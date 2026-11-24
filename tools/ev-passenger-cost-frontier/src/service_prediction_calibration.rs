@@ -124,7 +124,10 @@ pub struct WilsonInterval {
 pub struct MetricCalibrationGroup {
     pub forecast_model_id: String,
     pub forecast_model_version: String,
+    pub site_id: String,
+    pub site_configuration_digest: String,
     pub stratum_id: String,
+    pub asset_id: String,
     pub metric_kind: ForecastMetricKind,
     pub measurement_boundary: MeasurementBoundary,
     pub configuration_digest: String,
@@ -159,6 +162,7 @@ pub struct ReliabilityBin {
 pub struct OnTimeCalibrationGroup {
     pub forecast_model_id: String,
     pub forecast_model_version: String,
+    pub site_id: String,
     pub stratum_id: String,
     pub site_configuration_digest: String,
     pub calibration_sample_count: usize,
@@ -176,6 +180,9 @@ pub struct ServicePredictionCalibrationReport {
     pub schema_version: String,
     pub benchmark_id: String,
     pub audit_cutoff_unix_ms: u64,
+    /// Wilson intervals are a reference calculation under independent Bernoulli samples;
+    /// temporal/common-cause dependence requires clustered inference in a later version.
+    pub wilson_reference_assumes_iid_samples: bool,
     pub record_count: usize,
     pub calibration_record_count: usize,
     pub holdout_record_count: usize,
@@ -198,8 +205,10 @@ pub struct ServicePredictionCalibrationReport {
 struct MetricGroupKey {
     model_id: String,
     model_version: String,
-    stratum_id: String,
+    site_id: String,
     site_configuration_digest: String,
+    stratum_id: String,
+    asset_id: String,
     metric_kind: ForecastMetricKind,
     boundary: MeasurementBoundary,
     configuration_digest: String,
@@ -210,6 +219,7 @@ struct MetricGroupKey {
 struct OnTimeGroupKey {
     model_id: String,
     model_version: String,
+    site_id: String,
     stratum_id: String,
     site_configuration_digest: String,
 }
@@ -409,7 +419,10 @@ fn build_metric_group(
     let mut base = MetricCalibrationGroup {
         forecast_model_id: key.model_id.clone(),
         forecast_model_version: key.model_version.clone(),
+        site_id: key.site_id.clone(),
+        site_configuration_digest: key.site_configuration_digest.clone(),
         stratum_id: key.stratum_id.clone(),
+        asset_id: key.asset_id.clone(),
         metric_kind: key.metric_kind,
         measurement_boundary: key.boundary,
         configuration_digest: key.configuration_digest.clone(),
@@ -551,6 +564,7 @@ fn build_on_time_group(
     Some(OnTimeCalibrationGroup {
         forecast_model_id: key.model_id.clone(),
         forecast_model_version: key.model_version.clone(),
+        site_id: key.site_id.clone(),
         stratum_id: key.stratum_id.clone(),
         site_configuration_digest: key.site_configuration_digest.clone(),
         calibration_sample_count: calibration_count,
@@ -823,6 +837,7 @@ pub fn evaluate_service_prediction_calibration(
         let on_key = OnTimeGroupKey {
             model_id: record.forecast_model_id.clone(),
             model_version: record.forecast_model_version.clone(),
+            site_id: record.site_id.clone(),
             stratum_id: record.stratum_id.clone(),
             site_configuration_digest: record.site_configuration_digest.clone(),
         };
@@ -855,8 +870,10 @@ pub fn evaluate_service_prediction_calibration(
             let key = MetricGroupKey {
                 model_id: record.forecast_model_id.clone(),
                 model_version: record.forecast_model_version.clone(),
-                stratum_id: record.stratum_id.clone(),
+                site_id: record.site_id.clone(),
                 site_configuration_digest: record.site_configuration_digest.clone(),
+                stratum_id: record.stratum_id.clone(),
+                asset_id: metric.asset_id.clone(),
                 metric_kind: metric.metric_kind,
                 boundary: metric.measurement_boundary,
                 configuration_digest: metric.configuration_digest.clone(),
@@ -966,6 +983,7 @@ pub fn evaluate_service_prediction_calibration(
         schema_version: input.schema_version.clone(),
         benchmark_id: input.benchmark_id.clone(),
         audit_cutoff_unix_ms: input.audit_cutoff_unix_ms,
+        wilson_reference_assumes_iid_samples: true,
         record_count: input.records.len(),
         calibration_record_count: input
             .records
