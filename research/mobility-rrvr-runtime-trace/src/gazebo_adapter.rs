@@ -614,6 +614,8 @@ pub struct GazeboDispatchRequest {
     pub scenario_id: String,
     pub fault_id: String,
     pub fault_sequence: u32,
+    pub world_epoch: String,
+    pub clock_id: String,
     pub target_id: String,
     pub fault_domain_id: String,
     pub scheduled_simulation_step: u64,
@@ -676,6 +678,8 @@ struct GazeboDispatchPayload<'a> {
     scenario_id: &'a str,
     fault_id: &'a str,
     fault_sequence: u32,
+    world_epoch: &'a str,
+    clock_id: &'a str,
     target_id: &'a str,
     fault_domain_id: &'a str,
     scheduled_simulation_step: u64,
@@ -694,6 +698,8 @@ pub fn dispatch_request_fingerprint(
         || !nonempty(&request.pair_id)
         || !nonempty(&request.scenario_id)
         || !nonempty(&request.fault_id)
+        || !nonempty(&request.world_epoch)
+        || !nonempty(&request.clock_id)
         || !nonempty(&request.target_id)
         || !nonempty(&request.fault_domain_id)
         || !nonempty(&request.idempotency_key)
@@ -708,6 +714,8 @@ pub fn dispatch_request_fingerprint(
         scenario_id: &request.scenario_id,
         fault_id: &request.fault_id,
         fault_sequence: request.fault_sequence,
+        world_epoch: &request.world_epoch,
+        clock_id: &request.clock_id,
         target_id: &request.target_id,
         fault_domain_id: &request.fault_domain_id,
         scheduled_simulation_step: request.scheduled_simulation_step,
@@ -999,6 +1007,8 @@ struct GazeboIdempotencyIdentity<'a> {
     scenario_id: &'a str,
     fault_id: &'a str,
     fault_sequence: u32,
+    world_epoch: &'a str,
+    clock_id: &'a str,
     run_id: &'a str,
     run_epoch: &'a str,
 }
@@ -1012,11 +1022,15 @@ pub fn dispatch_idempotency_key(
     fault: &FaultInjection,
     run_id: &str,
     run_epoch: &str,
+    world_epoch: &str,
+    clock_id: &str,
 ) -> Result<String, GazeboAdapterError> {
     plan.verify_integrity()
         .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
     if !nonempty(run_id)
         || !nonempty(run_epoch)
+        || !nonempty(world_epoch)
+        || !nonempty(clock_id)
         || !nonempty(&scenario.pair_id)
         || !nonempty(&scenario.scenario_id)
         || !nonempty(&fault.fault_id)
@@ -1045,6 +1059,8 @@ pub fn dispatch_idempotency_key(
         scenario_id: &scenario.scenario_id,
         fault_id: &fault.fault_id,
         fault_sequence: fault.sequence,
+        world_epoch,
+        clock_id,
         run_id,
         run_epoch,
     };
@@ -1215,7 +1231,15 @@ where
         return Err(GazeboAdapterError::TargetBindingChanged);
     }
 
-    let idempotency_key = dispatch_idempotency_key(plan, scenario, fault, run_id, run_epoch)?;
+    let idempotency_key = dispatch_idempotency_key(
+        plan,
+        scenario,
+        fault,
+        run_id,
+        run_epoch,
+        &session.world_epoch,
+        &session.clock_id,
+    )?;
     let mut request = GazeboDispatchRequest {
         plan_sha256: plan.plan_sha256.clone(),
         campaign_id: plan.campaign_id.clone(),
@@ -1223,6 +1247,8 @@ where
         scenario_id: scenario.scenario_id.clone(),
         fault_id: fault.fault_id.clone(),
         fault_sequence: fault.sequence,
+        world_epoch: session.world_epoch.clone(),
+        clock_id: session.clock_id.clone(),
         target_id: target_binding.target_id.clone(),
         fault_domain_id: fault.fault_domain_id.clone(),
         scheduled_simulation_step: fault.scheduled_simulation_step,
@@ -2306,6 +2332,8 @@ mod tests {
             scenario_id: "scenario-1".into(),
             fault_id: "fault-1".into(),
             fault_sequence: 7,
+            world_epoch: "world-epoch-2".into(),
+            clock_id: "sim-clock-1".into(),
             target_id: "gazebo-model-001".into(),
             fault_domain_id: "injector-domain-1".into(),
             scheduled_simulation_step: 42,
@@ -2316,7 +2344,7 @@ mod tests {
 
         assert_eq!(
             dispatch_request_fingerprint(&request).unwrap(),
-            "3dce526b8a70c80126e89afc5088fc8d436e46e0a259eb4584124cd3c293a5b0"
+            "4b03ee4bf55f363020a9d1df13c768942c9a5469428b5021653094eaaeac7175"
         );
     }
 
@@ -2325,23 +2353,47 @@ mod tests {
         let plan = plan();
         let scenario = &plan.scenarios[0];
         let fault = &scenario.fault_events[0];
-        let first = dispatch_idempotency_key(&plan, scenario, fault, "run-1", "epoch-1");
-        let second = dispatch_idempotency_key(&plan, scenario, fault, "run-1", "epoch-1");
+        let first = dispatch_idempotency_key(&plan, scenario, fault, "run-1", "epoch-1", "world-epoch-2", "sim-clock-1");
+        let second = dispatch_idempotency_key(&plan, scenario, fault, "run-1", "epoch-1", "world-epoch-2", "sim-clock-1");
         assert_eq!(first, second);
         assert_ne!(
             first,
-            dispatch_idempotency_key(&plan, scenario, fault, "run-2", "epoch-1")
+            dispatch_idempotency_key(&plan, scenario, fault, "run-2", "epoch-1", "world-epoch-2", "sim-clock-1")
         );
         let delimiter_left =
-            dispatch_idempotency_key(&plan, scenario, fault, "run/a", "b").unwrap();
+            dispatch_idempotency_key(&plan, scenario, fault, "run/a", "b", "world-epoch-2", "sim-clock-1").unwrap();
         let delimiter_right =
-            dispatch_idempotency_key(&plan, scenario, fault, "run", "a/b").unwrap();
+            dispatch_idempotency_key(&plan, scenario, fault, "run", "a/b", "world-epoch-2", "sim-clock-1").unwrap();
         assert_ne!(delimiter_left, delimiter_right);
+        assert_ne!(
+            first,
+            dispatch_idempotency_key(
+                &plan,
+                scenario,
+                fault,
+                "run-1",
+                "epoch-1",
+                "world-epoch-3",
+                "sim-clock-1"
+            )
+        );
+        assert_ne!(
+            first,
+            dispatch_idempotency_key(
+                &plan,
+                scenario,
+                fault,
+                "run-1",
+                "epoch-1",
+                "world-epoch-2",
+                "sim-clock-2"
+            )
+        );
 
         let mut uncommitted_scenario = scenario.clone();
         uncommitted_scenario.pair_id.push_str("-tampered");
         assert_eq!(
-            dispatch_idempotency_key(&plan, &uncommitted_scenario, fault, "run-1", "epoch-1"),
+            dispatch_idempotency_key(&plan, &uncommitted_scenario, fault, "run-1", "epoch-1", "world-epoch-2", "sim-clock-1"),
             Err(GazeboAdapterError::InvalidIdempotencyContext)
         );
     }
@@ -2358,12 +2410,14 @@ mod tests {
             scenario_id: scenario.scenario_id.clone(),
             fault_id: fault.fault_id.clone(),
             fault_sequence: fault.sequence,
+            world_epoch: "world-epoch-2".into(),
+            clock_id: "sim-clock-1".into(),
             target_id: "gazebo-model-001".into(),
             fault_domain_id: fault.fault_domain_id.clone(),
             scheduled_simulation_step: fault.scheduled_simulation_step,
             parameters_sha256: fault.parameters_sha256.clone(),
             payload_sha256: String::new(),
-            idempotency_key: dispatch_idempotency_key(&plan, scenario, fault, "run-1", "epoch-1")
+            idempotency_key: dispatch_idempotency_key(&plan, scenario, fault, "run-1", "epoch-1", "world-epoch-2", "sim-clock-1")
                 .unwrap(),
         };
         let mut request = request;
@@ -2419,12 +2473,14 @@ mod tests {
             scenario_id: scenario.scenario_id.clone(),
             fault_id: fault.fault_id.clone(),
             fault_sequence: fault.sequence,
+            world_epoch: "world-epoch-2".into(),
+            clock_id: "sim-clock-1".into(),
             target_id: "gazebo-model-001".into(),
             fault_domain_id: fault.fault_domain_id.clone(),
             scheduled_simulation_step: fault.scheduled_simulation_step,
             parameters_sha256: fault.parameters_sha256.clone(),
             payload_sha256: String::new(),
-            idempotency_key: dispatch_idempotency_key(&plan, scenario, fault, "run-reconcile", "epoch-1")
+            idempotency_key: dispatch_idempotency_key(&plan, scenario, fault, "run-reconcile", "epoch-1", "world-epoch-2", "sim-clock-1")
                 .unwrap(),
         };
         request.payload_sha256 = dispatch_request_fingerprint(&request).unwrap();
@@ -2541,12 +2597,14 @@ mod tests {
             scenario_id: scenario.scenario_id.clone(),
             fault_id: fault.fault_id.clone(),
             fault_sequence: fault.sequence,
+            world_epoch: "world-epoch-2".into(),
+            clock_id: "sim-clock-1".into(),
             target_id: "gazebo-model-001".into(),
             fault_domain_id: fault.fault_domain_id.clone(),
             scheduled_simulation_step: fault.scheduled_simulation_step,
             parameters_sha256: fault.parameters_sha256.clone(),
             payload_sha256: String::new(),
-            idempotency_key: dispatch_idempotency_key(&plan, scenario, fault, "run-1", "epoch-1")
+            idempotency_key: dispatch_idempotency_key(&plan, scenario, fault, "run-1", "epoch-1", "world-epoch-2", "sim-clock-1")
                 .unwrap(),
         };
         request.payload_sha256 = dispatch_request_fingerprint(&request).unwrap();
