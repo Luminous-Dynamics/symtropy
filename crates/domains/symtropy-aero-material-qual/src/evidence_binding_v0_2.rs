@@ -791,6 +791,7 @@ mod tests {
     #[test]
     fn hierarchy_mutation_is_detected_against_independent_source_assertion() {
         let mut case = fixture();
+        case["hierarchy"]["material_lots"].as_array_mut().unwrap().push(serde_json::json!({"id":"LOT-B"}));
         case["hierarchy"]["process_batches"][0]["material_lot_id"] =
             Value::String("LOT-B".to_owned());
         let report = evaluate_binding_case(&case);
