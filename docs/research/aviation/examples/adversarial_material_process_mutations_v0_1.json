@@ -14,7 +14,8 @@
         "DANGLING_REFERENCE"
       ],
       "expected_blocker_codes": [
-        "CALIBRATION_NOT_DECLARED_ACTIVE"
+        "CALIBRATION_NOT_DECLARED_ACTIVE",
+        "PROCESS_OUT_OF_DOMAIN"
       ]
     },
     {
@@ -28,7 +29,8 @@
         "DANGLING_REFERENCE"
       ],
       "expected_blocker_codes": [
-        "CALIBRATION_NOT_DECLARED_ACTIVE"
+        "CALIBRATION_NOT_DECLARED_ACTIVE",
+        "PROCESS_OUT_OF_DOMAIN"
       ]
     },
     {
@@ -42,7 +44,8 @@
         "SPLIT_GROUP_OVERLAP"
       ],
       "expected_blocker_codes": [
-        "CALIBRATION_NOT_DECLARED_ACTIVE"
+        "CALIBRATION_NOT_DECLARED_ACTIVE",
+        "PROCESS_OUT_OF_DOMAIN"
       ]
     },
     {
