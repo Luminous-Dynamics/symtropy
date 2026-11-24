@@ -174,7 +174,6 @@ pub struct ParameterSetReport {
 struct Plane {
     normal: [f64; 3],
     bound: f64,
-    observation_index: Option<usize>,
 }
 
 fn axis_from_index(index: usize) -> ShapeAxis {
@@ -259,15 +258,10 @@ fn validate(
                 "observation IDs must be unique",
             ));
         }
-        if !finite3(observation.normalized_boundary_components)
-            || observation
-                .normalized_boundary_components
-                .iter()
-                .any(|value| *value < 0.0)
-        {
+        if !finite3(observation.normalized_boundary_components) {
             return Err(ParameterSetError::new(
                 ParameterSetErrorKind::InvalidInput,
-                "normalized squared-boundary channels must be finite and non-negative",
+                "normalized boundary channels must be finite",
             ));
         }
         if !observation.normalized_residual_bound.is_finite()
@@ -457,7 +451,6 @@ pub fn compute_parameter_set(
         planes.push(Plane {
             normal: x,
             bound: 1.0 + epsilon,
-            observation_index: Some(index),
         });
         planes.push(Plane {
             normal: [-x[0], -x[1], -x[2]],
@@ -571,15 +564,20 @@ pub fn compute_parameter_set(
             observation.normalized_boundary_components[axis] > 0.0
         });
         let beta_upper = if excited { Some(maximum) } else { None };
+        let characteristic_scale = if axis == 2 {
+            input.characteristic_length_m
+        } else {
+            1.0
+        };
         let shape_lower = beta_upper.map(|upper| {
             if upper > 0.0 {
-                1.0 / upper.sqrt()
+                characteristic_scale / upper.sqrt()
             } else {
                 f64::INFINITY
             }
         }).map(|value| if value.is_finite() { value } else { 0.0 });
         let shape_upper = if minimum > config.feasibility_tolerance {
-            Some(1.0 / minimum.sqrt())
+            Some(characteristic_scale / minimum.sqrt())
         } else {
             None
         };
@@ -721,6 +719,32 @@ mod tests {
             close(interval.shape_scale_lower.unwrap(), 1.0 / expected.sqrt(), 1.0e-8);
             close(interval.shape_scale_upper.unwrap(), 1.0 / expected.sqrt(), 1.0e-8);
         }
+    }
+
+    #[test]
+    fn signed_force_and_moment_channels_are_squared_not_rejected() {
+        let problem = input(vec![
+            observation("u", "u-trial", [-2.0, 0.0, 0.0], 0.0),
+            observation("v", "v-trial", [0.0, -0.5, 0.0], 0.0),
+            observation("spin", "spin-trial", [0.0, 0.0, -0.25], 0.0),
+        ]);
+        let report = compute_parameter_set(&problem, config()).expect("signed channels");
+        assert_eq!(report.status, ParameterSetStatus::FeasibleWithFiniteIntervals);
+        close(report.intervals[0].beta_lower.unwrap(), 0.25, 1.0e-8);
+        close(report.intervals[1].beta_lower.unwrap(), 4.0, 1.0e-8);
+        close(report.intervals[2].beta_lower.unwrap(), 16.0, 1.0e-8);
+    }
+
+    #[test]
+    fn torsional_shape_interval_is_reported_in_metres() {
+        let problem = input(vec![
+            observation("u", "u-trial", [2.0, 0.0, 0.0], 0.0),
+            observation("v", "v-trial", [0.0, 0.5, 0.0], 0.0),
+            observation("spin", "spin-trial", [0.0, 0.0, 0.25], 0.0),
+        ]);
+        let report = compute_parameter_set(&problem, config()).expect("torsional units");
+        close(report.intervals[2].shape_scale_lower.unwrap(), 0.125, 1.0e-8);
+        close(report.intervals[2].shape_scale_upper.unwrap(), 0.125, 1.0e-8);
     }
 
     #[test]
