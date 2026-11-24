@@ -116,6 +116,32 @@ fn leaf_index(idx: u32) -> usize {
     (idx & !LEAF_BIT) as usize
 }
 
+/// Structural-quality and memory diagnostics for a built LBVH.
+///
+/// These values describe the current immutable tree, not the cost of building
+/// or querying it. `owned_buffer_bytes` counts the capacities of the three
+/// vectors owned by the LBVH and excludes allocator metadata and caller-owned
+/// bodies. `internal_bounds_measure_ratio` is the sum of internal-node
+/// D-dimensional AABB hypervolumes divided by the root hypervolume; it is
+/// unavailable for degenerate, non-finite, or overflowing measures.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct LbvhStructureStats {
+    /// Number of body leaves represented by the tree.
+    pub body_count: usize,
+    /// Number of internal BVH nodes.
+    pub internal_node_count: usize,
+    /// Maximum root-to-leaf edge count (0 for zero or one body).
+    pub tree_height: usize,
+    /// Payload bytes reserved in the LBVH's index, leaf-bound, and node vectors.
+    pub owned_buffer_bytes: usize,
+    /// Sum of internal-node hypervolumes divided by root hypervolume.
+    ///
+    /// This is an N-dimensional analogue of dynamic-tree area ratio, not a
+    /// cross-dimension physical metric. It is None when a sound finite ratio
+    /// cannot be computed (including degenerate root bounds).
+    pub internal_bounds_measure_ratio: Option<f64>,
+}
+
 #[derive(Clone, Debug)]
 struct BvhNode<const D: usize> {
     aabb: Aabb<D>,
@@ -240,6 +266,78 @@ impl<const D: usize> Lbvh<D> {
         idx
     }
 
+    /// Report the structure and owned-buffer footprint of this built LBVH.
+    ///
+    /// The computation is O(nodes) and allocates a temporary traversal stack.
+    /// It is intended for benchmarks, diagnostics, and offline algorithm
+    /// selection—not for every simulation step.
+    pub fn structure_stats(&self) -> LbvhStructureStats {
+        let tree_height = self.tree_height();
+        let owned_buffer_bytes = self
+            .sorted_indices
+            .capacity()
+            .saturating_mul(std::mem::size_of::<usize>())
+            .saturating_add(
+                self.leaf_aabbs
+                    .capacity()
+                    .saturating_mul(std::mem::size_of::<Aabb<D>>()),
+            )
+            .saturating_add(
+                self.nodes
+                    .capacity()
+                    .saturating_mul(std::mem::size_of::<BvhNode<D>>()),
+            );
+
+        LbvhStructureStats {
+            body_count: self.sorted_indices.len(),
+            internal_node_count: self.nodes.len(),
+            tree_height,
+            owned_buffer_bytes,
+            internal_bounds_measure_ratio: self.internal_bounds_measure_ratio(),
+        }
+    }
+
+    fn tree_height(&self) -> usize {
+        if self.nodes.is_empty() {
+            return 0;
+        }
+
+        let root = (self.nodes.len() - 1) as u32;
+        let mut stack = vec![(root, 0usize)];
+        let mut max_depth = 0usize;
+        while let Some((index, depth)) = stack.pop() {
+            if is_leaf(index) {
+                max_depth = max_depth.max(depth);
+                continue;
+            }
+
+            let node = &self.nodes[index as usize];
+            let child_depth = depth + 1;
+            stack.push((node.left, child_depth));
+            stack.push((node.right, child_depth));
+        }
+        max_depth
+    }
+
+    fn internal_bounds_measure_ratio(&self) -> Option<f64> {
+        let root = &self.nodes.last()?.aabb;
+        let root_measure = aabb_hypervolume(root)?;
+        if root_measure <= 0.0 {
+            return None;
+        }
+
+        let mut sum = 0.0;
+        for node in &self.nodes {
+            sum += aabb_hypervolume(&node.aabb)?;
+            if !sum.is_finite() {
+                return None;
+            }
+        }
+
+        let ratio = sum / root_measure;
+        ratio.is_finite().then_some(ratio)
+    }
+
     pub fn query_pairs(&self, bodies: &[RigidBody<D>]) -> Vec<BroadphasePair> {
         let n = self.sorted_indices.len();
         if n <= 1 {
@@ -291,6 +389,26 @@ impl<const D: usize> Lbvh<D> {
         pairs.dedup();
         pairs
     }
+}
+
+/// Finite D-dimensional hypervolume of a valid AABB.
+///
+/// Degenerate boxes return zero; invalid endpoints, negative widths, and
+/// arithmetic overflow return None so diagnostics cannot turn invalid bounds
+/// into a plausible structural-quality score.
+fn aabb_hypervolume<const D: usize>(aabb: &Aabb<D>) -> Option<f64> {
+    let mut measure = 1.0;
+    for axis in 0..D {
+        let width = aabb.max[axis] - aabb.min[axis];
+        if !width.is_finite() || width < 0.0 {
+            return None;
+        }
+        measure *= width;
+        if !measure.is_finite() {
+            return None;
+        }
+    }
+    Some(measure)
 }
 
 /// Check if two bodies should collide based on collision group/mask filters.
@@ -607,6 +725,68 @@ mod tests {
             RigidBody::<3>::dynamic_sphere(BodyHandle(2), Point::new([0.5, 0.5, 0.5]), 0.8, 1.0),
         ];
         assert_eq!(find_pairs(&bodies), find_pairs(&bodies));
+    }
+
+    #[test]
+    fn lbvh_structure_stats_report_nodes_height_memory_and_measure_ratio() {
+        let bodies: Vec<_> = (0..8)
+            .map(|index| {
+                RigidBody::<3>::dynamic_sphere(
+                    BodyHandle(index),
+                    Point::new([index as f64 * 2.0, 0.0, 0.0]),
+                    0.5,
+                    1.0,
+                )
+            })
+            .collect();
+        let tree = Lbvh::build(&bodies);
+        let stats = tree.structure_stats();
+
+        assert_eq!(stats.body_count, 8);
+        assert_eq!(stats.internal_node_count, 7);
+        assert!(stats.tree_height >= 1);
+        assert!(stats.tree_height <= 7);
+        assert!(stats.owned_buffer_bytes > 0);
+        assert!(
+            stats
+                .internal_bounds_measure_ratio
+                .is_some_and(|ratio| ratio >= 1.0)
+        );
+    }
+
+    #[test]
+    fn lbvh_structure_stats_mark_degenerate_root_measure_unavailable() {
+        let bodies = vec![
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.0, 1.0),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.0, 1.0),
+        ];
+        let stats = Lbvh::build(&bodies).structure_stats();
+
+        assert_eq!(stats.body_count, 2);
+        assert_eq!(stats.internal_node_count, 1);
+        assert_eq!(stats.tree_height, 1);
+        assert_eq!(stats.internal_bounds_measure_ratio, None);
+    }
+
+    #[test]
+    fn lbvh_structure_stats_handle_empty_and_single_leaf_trees() {
+        let empty = Lbvh::<3>::build(&[]);
+        let empty_stats = empty.structure_stats();
+        assert_eq!(empty_stats.body_count, 0);
+        assert_eq!(empty_stats.internal_node_count, 0);
+        assert_eq!(empty_stats.tree_height, 0);
+        assert_eq!(empty_stats.internal_bounds_measure_ratio, None);
+
+        let one = vec![RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::origin(),
+            1.0,
+            1.0,
+        )];
+        let one_stats = Lbvh::build(&one).structure_stats();
+        assert_eq!(one_stats.body_count, 1);
+        assert_eq!(one_stats.internal_node_count, 0);
+        assert_eq!(one_stats.tree_height, 0);
     }
 
     #[test]
