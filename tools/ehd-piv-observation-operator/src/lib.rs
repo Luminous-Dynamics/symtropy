@@ -851,6 +851,18 @@ mod tests {
         image.pixels.iter().map(|value| *value as u64).sum()
     }
 
+    fn vector_correlation(left: &[f64], right: &[f64]) -> f64 {
+        let dot = left
+            .iter()
+            .zip(right.iter())
+            .map(|(left_value, right_value)| left_value * right_value)
+            .sum::<f64>();
+        let left_norm = left.iter().map(|value| value * value).sum::<f64>().sqrt();
+        let right_norm = right.iter().map(|value| value * value).sum::<f64>().sqrt();
+        dot / (left_norm * right_norm)
+    }
+
+
     #[test]
     fn stationary_particle_pair_is_identical_with_identical_noise() {
         let width = 32;
@@ -1294,4 +1306,232 @@ mod tests {
             })
         );
     }
+    #[test]
+    fn particle_diameter_and_optical_psf_are_confounded_in_single_particle_view() {
+        let width = 24;
+        let height = 24;
+        let step = 1.0e-4;
+        let field = field(width, height, 0.0, 0.0);
+        let illumination = illumination();
+        let acquisition = acquisition(0.0, 1);
+        let noise = noise(width, height);
+        let sensor = {
+            let mut value = sensor(width, height);
+            value.optical_psf_sigma_px = 0.6;
+            value
+        };
+        let seed = particle(12.0, 12.0);
+
+        let mut particle_plus = seed.clone();
+        particle_plus.particle_sigma_px += step;
+        let mut particle_minus = seed.clone();
+        particle_minus.particle_sigma_px -= step;
+        let particle_sensitivity = central_difference_image_sensitivity(
+            &render_particle_image_pair(
+                &field,
+                &[particle_plus],
+                &illumination,
+                &acquisition,
+                &sensor,
+                &noise,
+            )
+            .unwrap(),
+            &render_particle_image_pair(
+                &field,
+                &[particle_minus],
+                &illumination,
+                &acquisition,
+                &sensor,
+                &noise,
+            )
+            .unwrap(),
+            step,
+        )
+        .unwrap();
+
+        let mut psf_plus = sensor.clone();
+        psf_plus.optical_psf_sigma_px += step;
+        let mut psf_minus = sensor;
+        psf_minus.optical_psf_sigma_px -= step;
+        let psf_sensitivity = central_difference_image_sensitivity(
+            &render_particle_image_pair(
+                &field,
+                &[seed.clone()],
+                &illumination,
+                &acquisition,
+                &psf_plus,
+                &noise,
+            )
+            .unwrap(),
+            &render_particle_image_pair(
+                &field,
+                &[seed],
+                &illumination,
+                &acquisition,
+                &psf_minus,
+                &noise,
+            )
+            .unwrap(),
+            step,
+        )
+        .unwrap();
+
+        assert!(
+            vector_correlation(
+                &particle_sensitivity.observation_sensitivity,
+                &psf_sensitivity.observation_sensitivity
+            ) > 0.999_99
+        );
+    }
+
+    #[test]
+    fn particle_sheet_position_and_sheet_thickness_are_confounded() {
+        let width = 24;
+        let height = 24;
+        let step = 1.0e-4;
+        let field = field(width, height, 0.0, 0.0);
+        let acquisition = acquisition(0.0, 1);
+        let sensor = sensor(width, height);
+        let noise = noise(width, height);
+        let mut seed = particle(12.0, 12.0);
+        seed.z_sheet_units = 0.7;
+        let illumination = IlluminationSheet {
+            sigma_sheet_units: 1.2,
+        };
+
+        let mut z_plus = seed.clone();
+        z_plus.z_sheet_units += step;
+        let mut z_minus = seed.clone();
+        z_minus.z_sheet_units -= step;
+        let z_sensitivity = central_difference_image_sensitivity(
+            &render_particle_image_pair(
+                &field,
+                &[z_plus],
+                &illumination,
+                &acquisition,
+                &sensor,
+                &noise,
+            )
+            .unwrap(),
+            &render_particle_image_pair(
+                &field,
+                &[z_minus],
+                &illumination,
+                &acquisition,
+                &sensor,
+                &noise,
+            )
+            .unwrap(),
+            step,
+        )
+        .unwrap();
+
+        let sheet_plus = IlluminationSheet {
+            sigma_sheet_units: illumination.sigma_sheet_units + step,
+        };
+        let sheet_minus = IlluminationSheet {
+            sigma_sheet_units: illumination.sigma_sheet_units - step,
+        };
+        let sheet_sensitivity = central_difference_image_sensitivity(
+            &render_particle_image_pair(
+                &field,
+                &[seed.clone()],
+                &sheet_plus,
+                &acquisition,
+                &sensor,
+                &noise,
+            )
+            .unwrap(),
+            &render_particle_image_pair(
+                &field,
+                &[seed],
+                &sheet_minus,
+                &acquisition,
+                &sensor,
+                &noise,
+            )
+            .unwrap(),
+            step,
+        )
+        .unwrap();
+
+        assert!(
+            vector_correlation(
+                &z_sensitivity.observation_sensitivity,
+                &sheet_sensitivity.observation_sensitivity
+            ) < -0.999_99
+        );
+    }
+
+    #[test]
+    fn uniform_flow_velocity_and_frame_separation_are_confounded() {
+        let width = 32;
+        let height = 32;
+        let step = 1.0e-4;
+        let seed = particle(12.0, 16.0);
+        let illumination = illumination();
+        let sensor = sensor(width, height);
+        let noise = noise(width, height);
+        let acquisition = acquisition(0.0, 1);
+        let velocity_plus = field(width, height, 2.0 + step, 0.0);
+        let velocity_minus = field(width, height, 2.0 - step, 0.0);
+        let velocity_sensitivity = central_difference_image_sensitivity(
+            &render_particle_image_pair(
+                &velocity_plus,
+                &[seed.clone()],
+                &illumination,
+                &acquisition,
+                &sensor,
+                &noise,
+            )
+            .unwrap(),
+            &render_particle_image_pair(
+                &velocity_minus,
+                &[seed.clone()],
+                &illumination,
+                &acquisition,
+                &sensor,
+                &noise,
+            )
+            .unwrap(),
+            step,
+        )
+        .unwrap();
+
+        let mut time_plus = acquisition.clone();
+        time_plus.frame_separation += step;
+        let mut time_minus = acquisition;
+        time_minus.frame_separation -= step;
+        let fixed_field = field(width, height, 2.0, 0.0);
+        let time_sensitivity = central_difference_image_sensitivity(
+            &render_particle_image_pair(
+                &fixed_field,
+                &[seed.clone()],
+                &illumination,
+                &time_plus,
+                &sensor,
+                &noise,
+            )
+            .unwrap(),
+            &render_particle_image_pair(
+                &fixed_field,
+                &[seed],
+                &illumination,
+                &time_minus,
+                &sensor,
+                &noise,
+            )
+            .unwrap(),
+            step,
+        )
+        .unwrap();
+
+        assert!(
+            vector_correlation(
+                &velocity_sensitivity.observation_sensitivity,
+                &time_sensitivity.observation_sensitivity
+            ) > 0.999_99
+        );
+    }
+
 }
