@@ -113,6 +113,7 @@
       "expected_structurally_complete": false,
       "expected_process_domain_status": "PARTIALLY_OUT_OF_DOMAIN",
       "expected_violation_codes": [
+        "UNASSIGNED_SPECIMEN",
         "UNKNOWN_PARTITION"
       ],
       "expected_blocker_codes": [
