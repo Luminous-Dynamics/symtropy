@@ -499,9 +499,9 @@ fn same_id_set(left: &[String], right: &[String]) -> bool {
     left.len() == right.len() && left == right
 }
 
-fn max_scenario_value(
-    rows: &[PolicyScenario],
-    metric: impl Fn(&PolicyScenario) -> &Rational,
+fn max_scenario_value<'a>(
+    rows: &'a [PolicyScenario],
+    metric: impl Fn(&'a PolicyScenario) -> &'a Rational,
 ) -> Rational {
     rows.iter()
         .map(metric)
@@ -510,9 +510,9 @@ fn max_scenario_value(
         .clone()
 }
 
-fn scenario_ids_at_max(
-    rows: &[PolicyScenario],
-    metric: impl Fn(&PolicyScenario) -> &Rational,
+fn scenario_ids_at_max<'a>(
+    rows: &'a [PolicyScenario],
+    metric: impl Fn(&'a PolicyScenario) -> &'a Rational,
     maximum: &Rational,
 ) -> Vec<String> {
     let mut ids = rows
@@ -1442,6 +1442,41 @@ mod tests {
             result.trigger_reason,
             "policy frontier payload digest differs from source receipt pin"
         );
+    }
+
+    #[test]
+    fn observation_class_world_inventory_must_match_the_policy_scenarios() {
+        let mut case = fixture_case(1, 2, 3);
+        case.policies[1]
+            .observation_class_world_ids
+            .insert("north".to_owned(), vec!["w-B".to_owned()]);
+        refresh_source_digests(&mut case);
+        let result = evaluate_case(&case);
+        assert_eq!(result.status, "INVALID_INPUT");
+        assert!(result.trigger_reason.contains("observation-class world IDs disagree"));
+    }
+
+    #[test]
+    fn reported_worst_case_regret_must_match_the_scenario_level_regret() {
+        let mut case = fixture_case(1, 2, 3);
+        case.policies[1].per_scenario[0].wait_and_see_regret = Rational {
+            numerator: 1,
+            denominator: 2,
+        };
+        refresh_source_digests(&mut case);
+        let result = evaluate_case(&case);
+        assert_eq!(result.status, "INVALID_INPUT");
+        assert!(result.trigger_reason.contains("declared regret metrics disagree"));
+    }
+
+    #[test]
+    fn worst_case_regret_scenario_ids_must_match_the_maximum_rows() {
+        let mut case = fixture_case(1, 2, 3);
+        case.policies[1].worst_wait_and_see_scenario_ids = vec!["s-A".to_owned()];
+        refresh_source_digests(&mut case);
+        let result = evaluate_case(&case);
+        assert_eq!(result.status, "INVALID_INPUT");
+        assert!(result.trigger_reason.contains("worst-metric scenario ID sets disagree"));
     }
 
     #[test]
