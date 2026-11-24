@@ -9,6 +9,7 @@ pub mod mobility_commitment_journal;
 pub mod mobility_commitment_lease;
 pub mod mobility_flexibility_envelope;
 pub mod mobility_recovery_envelope;
+pub mod service_decision_impact;
 pub mod service_prediction_calibration;
 pub mod sustainable_mobility_service_capacity;
 pub mod sustainable_mobility_service_quality;
