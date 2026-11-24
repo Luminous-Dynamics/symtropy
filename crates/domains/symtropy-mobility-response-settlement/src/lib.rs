@@ -758,12 +758,7 @@ fn validate_timelines(
         .collect();
     let mut sample_evidence_ids = BTreeSet::new();
     let mut tracked_sample_energy_kwh = 0.0_f64;
-    for (network_interval_index, (index, (sample, baseline_interval))) in samples
-        .iter()
-        .zip(dispatch_intervals)
-        .enumerate()
-        .enumerate()
-    {
+    for (index, (sample, baseline_interval)) in samples.iter().zip(dispatch_intervals).enumerate() {
         let elapsed = unsigned(sample, "/elapsed_ns")?;
         let expected_elapsed = (index as u64 + 1)
             .checked_mul(sample_interval_ns)
@@ -819,7 +814,7 @@ fn validate_timelines(
             ));
         }
 
-        let network_interval = &network_intervals[network_interval_index];
+        let network_interval = &network_intervals[index];
         same_u64(
             unsigned(network_interval, "/interval_start_ns")?,
             interval_start,
