@@ -268,6 +268,8 @@ pub struct QueryCounts {
     pub fallback_oracle_positives: u64,
     pub narrowphase_collision_queries: u64,
     pub narrowphase_true_positives: u64,
+    /// Oracle-positive forwarded/fallback queries eligible for narrowphase.
+    pub narrowphase_eligible_positive_queries: u64,
     pub narrowphase_false_positives: u64,
     /// Oracle-positive queries not reported as a collision by narrowphase.
     pub narrowphase_false_negatives: u64,
@@ -296,11 +298,30 @@ impl QueryCounts {
     }
 
     #[must_use]
+    /// Conditional narrowphase recall: denominator includes only oracle-positive
+    /// queries that actually reached narrowphase. Candidate-pruned positives
+    /// are counted separately in candidate_false_negatives.
+    #[must_use]
     pub fn narrowphase_recall_basis_points(&self) -> Option<u64> {
+        rate_basis_points(
+            self.narrowphase_true_positives,
+            self.narrowphase_eligible_positive_queries,
+        )
+    }
+
+    /// End-to-end recall across all oracle-positive queries; candidate misses
+    /// and narrowphase misses both reduce this score.
+    #[must_use]
+    pub fn end_to_end_recall_basis_points(&self) -> Option<u64> {
         rate_basis_points(
             self.narrowphase_true_positives,
             self.oracle_positive_queries,
         )
+    }
+
+    #[must_use]
+    pub fn end_to_end_false_negatives(&self) -> u64 {
+        self.candidate_false_negatives + self.narrowphase_false_negatives
     }
 
     #[must_use]
@@ -562,6 +583,12 @@ fn accumulate_counts(counts: &mut QueryCounts, evaluation: &QueryEvaluation, for
         }
     }
 
+    // Narrowphase-stage denominators contain only positives that were actually
+    // forwarded (including fallback), not positives already pruned upstream.
+    if forwarded && evaluation.oracle_collision {
+        counts.narrowphase_eligible_positive_queries += 1;
+    }
+
     match evaluation.narrowphase {
         NarrowphaseOutcome::Collision => {
             counts.narrowphase_collision_queries += 1;
@@ -584,9 +611,6 @@ fn accumulate_counts(counts: &mut QueryCounts, evaluation: &QueryEvaluation, for
         }
         NarrowphaseOutcome::NotRun => {
             counts.narrowphase_not_run_queries += 1;
-            if evaluation.oracle_collision {
-                counts.narrowphase_false_negatives += 1;
-            }
         }
     }
 
