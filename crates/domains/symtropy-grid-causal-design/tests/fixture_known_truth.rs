@@ -19,9 +19,12 @@ fn frozen_cluster_randomization_plan_is_reproducible_and_never_estimates_an_effe
     assert_eq!(report.control_cluster_count, 4);
     assert_eq!(report.stratum_count, 2);
     assert!(report.randomization_reproducible);
-    assert!(report.pre_registration_precedes_randomization);
-    assert!(report.public_randomness_published_after_freeze);
-    assert!(report.interference_domains_are_exclusive);
+    assert!(report.declared_pre_registration_precedes_randomization);
+    assert!(report.declared_public_randomness_published_after_freeze);
+    assert!(report.interference_domain_ids_unique_in_manifest);
+    assert!(!report.pre_registration_document_authenticated);
+    assert!(!report.interference_mapping_authenticated);
+    assert!(!report.declared_timestamps_attested);
     assert!(report.pretrend_windows_predeclared);
     assert!(report.placebo_windows_predeclared);
     assert!(report.negative_control_outcomes_predeclared);
