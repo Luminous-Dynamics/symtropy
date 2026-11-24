@@ -830,7 +830,11 @@ mod tests {
     #[test]
     fn adapter_keeps_hard_failure_and_service_loss_separate() {
         let bundle = compile_oracle_outcomes(&valid_dataset()).expect("valid oracle data");
-        assert_eq!(bundle.policy_ids, vec!["policy-A", "policy-B"]);
+        assert_eq!(bundle.policy_ids, vec!["policy-B", "policy-A"]);
+        assert_eq!(
+            bundle.policy_revisions,
+            vec!["policy-B-rev-1", "policy-A-rev-1"]
+        );
         assert_eq!(
             bundle.calibration_hard_failure_milli,
             vec![vec![1_000, 0], vec![0, 0]]
@@ -930,7 +934,7 @@ mod tests {
         data.episodes[2].policy_outcomes[0].policy_revision = "policy-A-rev-2".to_owned();
         assert!(matches!(
             compile_oracle_outcomes(&data),
-            Err(OracleAdapterError::PolicyRevisionDrift { .. })
+            Err(OracleAdapterError::FrozenPolicyRevisionMismatch("policy-A".to_owned()))
         ));
     }
 
