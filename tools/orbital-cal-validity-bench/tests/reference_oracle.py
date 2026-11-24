@@ -48,6 +48,8 @@ def choose_status(statuses):
 def validate_case(case):
     if not require_text(case["case_id"]) or not case["required_scope_ids"] or not case["scopes"]:
         raise ValueError("CASE_ID_OR_REQUIRED_SCOPE_INVALID")
+    if not valid_sha256(case["event_inventory_receipt_sha256"]):
+        raise ValueError("EVENT_INVENTORY_RECEIPT_DIGEST_INVALID")
     acq = interval(case["acquisition_time_ns"], case["acquisition_uncertainty_ns"])
 
     component_ids = set()
@@ -78,9 +80,13 @@ def validate_case(case):
                 or sid in scope_ids):
             raise ValueError("CALIBRATION_SCOPE_INVALID")
         scope_ids.add(sid)
+        if not scope["required_configuration"]:
+            raise ValueError("REQUIRED_CONFIGURATION_INVALID")
         if any(not require_text(key) or not require_text(value)
                for key, value in scope["required_configuration"].items()):
             raise ValueError("REQUIRED_CONFIGURATION_INVALID")
+        if not scope["required_conditions"]:
+            raise ValueError("REQUIRED_CONDITION_ENVELOPE_INVALID")
         if any(not require_text(key) or not require_text(envelope["unit"])
                or envelope["minimum_q"] > envelope["maximum_q"]
                for key, envelope in scope["required_conditions"].items()):
@@ -213,6 +219,11 @@ def evaluate_scope(case, scope, acquisition):
         elif event_time[0] <= acquisition[1]:
             add("INDETERMINATE", "EVENT_TIME_OVERLAPS_ACQUISITION")
 
+    condition_receipts = {
+        condition_id: case["actual_conditions"][condition_id]["receipt_sha256"]
+        for condition_id in scope["required_conditions"]
+        if condition_id in case["actual_conditions"]
+    }
     return {
         "scope_id": scope["scope_id"],
         "calibration_id": scope["calibration_id"],
@@ -220,6 +231,7 @@ def evaluate_scope(case, scope, acquisition):
         "certificate_sha256": scope["certificate_sha256"],
         "check_receipt_sha256": scope["check_receipt_sha256"],
         "calibration_epoch_ns": scope["calibration_epoch_ns"],
+        "condition_measurement_receipts": dict(sorted(condition_receipts.items())),
         "status": choose_status(statuses),
         "reason_codes": sorted(reasons),
     }
@@ -249,6 +261,7 @@ def evaluate_case(case):
         "status": status,
         "reason_codes": sorted(reasons),
         "event_inventory_complete": case["event_inventory_complete"],
+        "event_inventory_receipt_sha256": case["event_inventory_receipt_sha256"],
         "scope_results": scope_results,
         "may_enter_geometry_precondition": status == "VALID_WITHIN_SCOPE",
     }
