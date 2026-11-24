@@ -63,8 +63,7 @@ pub use conditional_velocity::{
 pub use confidence_sequence_benchmark::{
     ConfidenceSequenceBenchmarkError, ConfidenceSequenceBenchmarkReport,
     ConfidenceSequenceBenchmarkSnapshot, ConfidenceSequenceMethod,
-    ConfidenceSequenceMethodBenchmark, ConfidenceThresholdDecision,
-    benchmark_confidence_sequences,
+    ConfidenceSequenceMethodBenchmark, ConfidenceThresholdDecision, benchmark_confidence_sequences,
 };
 pub use decision_gate::{
     DecisionGateError, DecisionSufficiency, DecisionSufficiencyReport, RiskThresholdRule,
