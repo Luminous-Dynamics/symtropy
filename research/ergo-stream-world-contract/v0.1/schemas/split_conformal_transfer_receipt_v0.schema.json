@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://luminousdynamics.io/schemas/split_conformal_transfer_receipt_v0.schema.json",
   "title": "Owner-issued split-conformal transfer receipt v0",
-  "description": "Evaluator/episode-owner receipt binding a split-conformal transfer quantile to the frozen predictor, preprocessing, calibration cohort, stratum and claim scope. This is not learner-authored.",
+  "description": "Evaluator/episode-owner receipt binding a split-conformal transfer quantile to the frozen predictor, preprocessing, calibration cohort, stratum and claim scope. This is not learner-authored. Semantic owner validation must additionally verify model_frozen_at < calibration_started_at < issued_at, quantile_rank <= calibration_count + 1, the rank formula from alpha/count, and the equality of sample-ID count/digest to the sealed calibration manifest.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -29,7 +29,9 @@
     "quantile_nonconformity_ppm",
     "tie_rule",
     "guarantee",
-    "custody_receipt_id"
+    "custody_receipt_id",
+    "independent_unit_count",
+    "claim_scope_sha256"
   ],
   "properties": {
     "schema_version": {
