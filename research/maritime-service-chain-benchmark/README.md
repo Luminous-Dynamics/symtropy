@@ -233,6 +233,21 @@ The executable contract is in draft [PR #7391](https://github.com/Luminous-Dynam
 
 The current Mendeley record is **Event Log Dwelling Time Dataset v2** (DOI 10.17632/yvp2b4rtp3.2, 26 June 2024, CC BY 4.0). Its page describes container dwell as discharge/lift from ship until exit through the terminal main gate. The companion Data in Brief article (DOI 10.1016/j.dib.2024.110906) links the earlier **version 1** DOI (10.17632/yvp2b4rtp3.1) and describes July–September 2021 event logs, anonymization and multi-perspective attributes including worker roles and costs. The exact v2 file manifest was not retrieved in this pass; do not assume v2 is byte/schema-identical to the article's v1. Before reproducing the paper, fetch the exact v2 manifest/files through an authorized public API session, record each filename/size/hash and compare schema, event counts, case/trace coverage, labels and licence metadata with v1/paper descriptions.
 
+### A current sound-discovery comparator: OptIMIIst (2026)
+
+The 25 June 2026 *Process Science* paper "Locally optimized inductive process discovery" introduces OptIMIIst, an Inductive Miner extension that uses local ILP decisions to preserve soundness while handling infrequent/incomplete behaviour with less heuristic filtering. Its reported Process Discovery Contest 2024 score is **88.24%**; the paper reports Pyrrhus at 90.9% and a prior Brons et al. result of 89.46% but notes the latter was not independently reproduced because its implementation was unavailable. In the authors' separate comparison across real-life logs, OptIMIIst is compared with IMf, AIM, ILP-Miner, Split Miner and Heuristics Miner. The reported evaluation is not a blanket leaderboard: some competitors trade away soundness or activity coverage, and OptIMIIst itself reports weaknesses for duplicate activity labels and long-term dependencies.
+
+This means our benchmark should use OptIMIIst as a major comparator, but not claim SOTA merely by beating default Inductive Miner. We should:
+- reproduce the PDC24 reference protocol and published score before adapting it to the maritime dwell log;
+- run OptIMIIst and matched sound baselines on the same pinned v2 log, identical activity abstraction, train/test splits, compute/time limits and solver/version configuration;
+- include duplicate labels, long-term dependencies, incomplete/out-of-order traces and infrequent branches as separate challenge cohorts;
+- report fitness, precision, generalization, model size, soundness, activity coverage, runtime/memory and stability—not only a composite score;
+- preserve the process-tree representational limitation; compare against non-tree models where long-range dependencies or duplicate activity labels make the bias material.
+
+Paper: https://doi.org/10.1007/s44311-026-00051-x
+Open implementation: https://github.com/Nik314/OptIMIIstJournal
+PDC24 dataset: https://doi.org/10.4121/3cfcdbb7-c909-4f60-8bec-62c780598047
+
 ### Required discovery and conformance baselines
 
 For each frozen version, compare:
