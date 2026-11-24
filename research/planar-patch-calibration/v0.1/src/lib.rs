@@ -551,6 +551,62 @@ fn dot(left: &[f64], right: &[f64]) -> Result<f64, CalibrationError> {
     Ok(sum)
 }
 
+fn leave_one_axis_out_residual(
+    target: &[f64],
+    other_columns: &[&[f64]],
+    relative_tolerance: f64,
+) -> Result<f64, CalibrationError> {
+    let reference_scale = other_columns
+        .iter()
+        .map(|column| stable_norm(column))
+        .fold(0.0_f64, f64::max);
+    let threshold = relative_tolerance * reference_scale;
+    let mut basis = Vec::<Vec<f64>>::new();
+
+    for column in other_columns {
+        let mut residual = column.to_vec();
+        for _ in 0..2 {
+            for direction in &basis {
+                let coefficient = dot(direction, &residual)?;
+                for (value, basis_value) in residual.iter_mut().zip(direction) {
+                    *value -= coefficient * basis_value;
+                }
+            }
+        }
+        let residual_norm = stable_norm(&residual);
+        if !residual_norm.is_finite() {
+            return Err(CalibrationError::new(
+                CalibrationErrorKind::NonFiniteEvaluation,
+                "leave-one-axis-out basis residual is non-finite",
+            ));
+        }
+        if residual_norm > threshold {
+            for value in &mut residual {
+                *value /= residual_norm;
+            }
+            basis.push(residual);
+        }
+    }
+
+    let mut residual = target.to_vec();
+    for _ in 0..2 {
+        for direction in &basis {
+            let coefficient = dot(direction, &residual)?;
+            for (value, basis_value) in residual.iter_mut().zip(direction) {
+                *value -= coefficient * basis_value;
+            }
+        }
+    }
+    let residual_norm = stable_norm(&residual);
+    if !residual_norm.is_finite() {
+        return Err(CalibrationError::new(
+            CalibrationErrorKind::NonFiniteEvaluation,
+            "leave-one-axis-out excitation residual is non-finite",
+        ));
+    }
+    Ok(residual_norm)
+}
+
 fn finite_wrench(wrench: MeasuredPatchWrench) -> bool {
     wrench.tangent_u_force.is_finite()
         && wrench.tangent_v_force.is_finite()
@@ -878,22 +934,33 @@ pub fn calibrate_planar_patch(
 
     let mut axis_excitation = Vec::with_capacity(3);
     for (axis, column) in columns.iter().enumerate() {
-        let norm = stable_norm(column);
-        let mut residual_vector = column.clone();
-        for _ in 0..2 {
-            for direction in &basis {
-                let coefficient = dot(direction, &residual_vector)?;
-                for (value, basis_value) in residual_vector.iter_mut().zip(direction) {
-                    *value -= coefficient * basis_value;
+        let other_columns = columns
+            .iter()
+            .enumerate()
+            .filter_map(|(index, candidate)| {
+                if index == axis {
+                    None
+                } else {
+                    Some(candidate.as_slice())
                 }
-            }
-        }
-        let residual = stable_norm(&residual_vector);
+            })
+            .collect::<Vec<_>>();
+        let norm = stable_norm(column);
+        let residual = leave_one_axis_out_residual(
+            column,
+            &other_columns,
+            config.rank_relative_tolerance,
+        )?;
         axis_excitation.push(AxisExcitation {
             axis: axis_from_index(axis),
             weighted_column_norm: norm,
+            // Independent excitation after projecting onto the other two channels.
             final_projection_residual: residual,
-            relative_projection_residual: if norm > 0.0 { residual / norm } else { 0.0 },
+            relative_projection_residual: if norm > 0.0 {
+                residual / norm
+            } else {
+                0.0
+            },
         });
     }
 
@@ -1188,6 +1255,20 @@ mod tests {
                 .kind,
             CalibrationErrorKind::InvalidParameter
         );
+    }
+
+    #[test]
+    fn independent_axis_excitation_residuals_are_one_for_orthogonal_trials() {
+        let problem = input(vec![
+            observation("u", "u", [2.0, 0.0, 0.0], 1.0, 1.0),
+            observation("v", "v", [0.0, 0.5, 0.0], 1.0, 1.0),
+            observation("spin", "spin", [0.0, 0.0, 0.25], 1.0, 1.0),
+        ]);
+        let report = calibrate_planar_patch(&problem, config()).expect("orthogonal axes");
+        assert_eq!(report.design_rank, 3);
+        for axis in &report.axis_excitation {
+            close(axis.relative_projection_residual, 1.0, 1.0e-12);
+        }
     }
 
     #[test]
