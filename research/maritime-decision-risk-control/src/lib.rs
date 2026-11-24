@@ -370,7 +370,7 @@ pub fn render_csv() -> String {
     for (name, mode, fit, test) in rows {
         let test_loss = test_fixture(test, fit.selected_parameter_index);
         output.push_str(&format!(
-            "{name},WHOLE_SCHEDULE,{}, {},{},{},{},{},{},{},{:.3},{},{},{},{},{},{},{:.3},MARGINAL_EXPECTED_BOUNDED_LOSS,SYNTHETIC_ONLY\n",
+            "{name},WHOLE_SCHEDULE,{},{},{},{},{},{},{},{},{:.3},{},{},{},{},{},{},{:.3},MARGINAL_EXPECTED_BOUNDED_LOSS,SYNTHETIC_ONLY\n",
             mode.id(),
             fit.revisions.policy_revision,
             fit.revisions.evaluator_revision,
