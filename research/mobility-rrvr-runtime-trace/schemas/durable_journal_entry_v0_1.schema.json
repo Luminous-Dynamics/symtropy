@@ -1,0 +1,335 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr-durable-journal-entry-v0.1.schema.json",
+  "title": "RRVR Durable Journal Entry v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "canonicalization",
+    "sequence",
+    "previous_entry_sha256",
+    "event",
+    "entry_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "canonicalization": {
+      "const": "serde-json-value-sorted-keys-v0.1"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "previous_entry_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "entry_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "event": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "event",
+            "reset_id",
+            "plan_sha256",
+            "simulator_profile_sha256",
+            "world_id",
+            "prior_world_epoch",
+            "clock_id",
+            "expected_initial_state_sha256",
+            "run_id",
+            "run_epoch"
+          ],
+          "properties": {
+            "event": {
+              "const": "reset_intent"
+            },
+            "reset_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "plan_sha256": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            },
+            "simulator_profile_sha256": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            },
+            "world_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "prior_world_epoch": {
+              "type": "string",
+              "minLength": 1
+            },
+            "clock_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "expected_initial_state_sha256": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            },
+            "run_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "run_epoch": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "event",
+            "reset_id",
+            "source",
+            "status",
+            "observed_world_epoch",
+            "observed_clock_id",
+            "observed_initial_state_sha256",
+            "observation_artifact_sha256"
+          ],
+          "properties": {
+            "event": {
+              "const": "reset_outcome"
+            },
+            "reset_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source": {
+              "enum": [
+                "transport_response",
+                "read_only_observation",
+                "reconciliation"
+              ]
+            },
+            "status": {
+              "enum": [
+                "response_accepted",
+                "response_rejected",
+                "response_unknown",
+                "verified",
+                "unresolved"
+              ]
+            },
+            "observed_world_epoch": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "observed_clock_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "observed_initial_state_sha256": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[a-fA-F0-9]{64}$"
+            },
+            "observation_artifact_sha256": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[a-fA-F0-9]{64}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "event",
+            "idempotency_key",
+            "payload_sha256",
+            "reset_id",
+            "plan_sha256",
+            "simulator_profile_sha256",
+            "world_id",
+            "logical_effect_id",
+            "attempt_id",
+            "campaign_id",
+            "pair_id",
+            "scenario_id",
+            "fault_id",
+            "fault_sequence",
+            "run_id",
+            "run_epoch",
+            "world_epoch",
+            "clock_id",
+            "target_id",
+            "fault_domain_id",
+            "scheduled_simulation_step",
+            "parameters_sha256"
+          ],
+          "properties": {
+            "event": {
+              "const": "dispatch_intent"
+            },
+            "idempotency_key": {
+              "type": "string",
+              "minLength": 1
+            },
+            "payload_sha256": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            },
+            "reset_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "plan_sha256": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            },
+            "simulator_profile_sha256": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            },
+            "world_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "logical_effect_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "attempt_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "campaign_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "pair_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "scenario_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "fault_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "fault_sequence": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "run_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "run_epoch": {
+              "type": "string",
+              "minLength": 1
+            },
+            "world_epoch": {
+              "type": "string",
+              "minLength": 1
+            },
+            "clock_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "target_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "fault_domain_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "scheduled_simulation_step": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "parameters_sha256": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "event",
+            "idempotency_key",
+            "payload_sha256",
+            "source",
+            "status",
+            "dispatch_id",
+            "ledger_artifact_sha256"
+          ],
+          "properties": {
+            "event": {
+              "const": "dispatch_outcome"
+            },
+            "idempotency_key": {
+              "type": "string",
+              "minLength": 1
+            },
+            "payload_sha256": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            },
+            "source": {
+              "enum": [
+                "transport_response",
+                "injector_ledger_lookup"
+              ]
+            },
+            "status": {
+              "enum": [
+                "response_accepted",
+                "response_rejected",
+                "response_unknown",
+                "reconciled_accepted",
+                "reconciled_rejected",
+                "no_dispatch_proven",
+                "payload_conflict",
+                "unresolved"
+              ]
+            },
+            "dispatch_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "ledger_artifact_sha256": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[a-fA-F0-9]{64}$"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
