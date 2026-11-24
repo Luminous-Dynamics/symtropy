@@ -28,7 +28,6 @@ use core::fmt;
 
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod action_effect_portfolio;
-pub mod action_effect_portfolio;
 pub mod adaptive_importance_sampling;
 pub mod conditional_velocity;
 pub mod coverage;
