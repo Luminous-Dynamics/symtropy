@@ -195,7 +195,7 @@ pub enum MotionSkillOutcome {
     },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MotionSkillCompletionEvidence {
     /// Current simulation-clock time used to enforce the same expiry boundary as skill start.
