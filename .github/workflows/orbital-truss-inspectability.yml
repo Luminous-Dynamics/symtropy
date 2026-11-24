@@ -221,10 +221,6 @@ jobs:
       - name: Independent support-envelope oracle
         run: |
           python3 tools/orbital-truss-inspectability-bench/tests/support_envelope_reference_oracle.py docs/research/orbital-truss/fixtures/support-envelope-v0_1.json "$GITHUB_SHA" > /tmp/support-envelope-oracle.json
-            /tmp/rectilinear-frustum-a.json
-            /tmp/rectilinear-frustum-oracle.json
-            docs/research/orbital-truss/fixtures/rectilinear-frustum-v0_1.json
-            docs/research/orbital-truss/rectilinear_frustum_v0_1.schema.json
       - name: Compare Rust support-envelope receipt with independent oracle
         run: |
           python3 - <<'PY'
