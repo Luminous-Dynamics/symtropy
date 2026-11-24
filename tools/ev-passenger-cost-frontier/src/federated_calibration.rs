@@ -141,6 +141,16 @@ fn non_empty(value: &str) -> bool {
     !value.trim().is_empty()
 }
 
+fn is_sha256_digest(value: &str) -> bool {
+    let Some(hex) = value.strip_prefix("sha256:") else {
+        return false;
+    };
+    hex.len() == 64
+        && hex
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
 fn quantile_rank(sample_count: u64, nominal_coverage_permille: u16) -> Option<u64> {
     let numerator =
         u128::from(sample_count.checked_add(1)?) * u128::from(nominal_coverage_permille);
@@ -168,8 +178,8 @@ fn validate(input: &FederatedCalibrationInput) -> Result<(), Vec<String>> {
     if input.benchmark_id != "FEDERATED-SERVICE-CALIBRATION-001" {
         errors.push("benchmark_id must be FEDERATED-SERVICE-CALIBRATION-001".to_owned());
     }
-    if !non_empty(&input.epoch_id) || !non_empty(&input.query_scope_digest) {
-        errors.push("epoch_id and query_scope_digest must be non-empty".to_owned());
+    if !non_empty(&input.epoch_id) || !is_sha256_digest(&input.query_scope_digest) {
+        errors.push("epoch_id must be non-empty and query_scope_digest must be a lowercase SHA-256 digest".to_owned());
     }
     if input.aggregation_time_unix_ms == 0 || input.maximum_summary_age_ms == 0 {
         errors.push("aggregation time and maximum summary age must be positive".to_owned());
@@ -215,6 +225,16 @@ fn validate(input: &FederatedCalibrationInput) -> Result<(), Vec<String>> {
         if !non_empty(value) {
             errors.push(format!("compatibility.{name} must be non-empty"));
         }
+    }
+    if [
+        key.configuration_cohort_digest.as_str(),
+        key.stratum_taxonomy_digest.as_str(),
+        key.calibration_policy_digest.as_str(),
+    ]
+    .into_iter()
+    .any(|digest| !is_sha256_digest(digest))
+    {
+        errors.push("configuration, stratum-taxonomy and calibration-policy fields must be lowercase SHA-256 digests".to_owned());
     }
     if key.forecast_horizon_ms == 0
         || !(MIN_COVERAGE_PERMILLE..=MAX_COVERAGE_PERMILLE).contains(&key.nominal_coverage_permille)
@@ -278,7 +298,7 @@ fn validate(input: &FederatedCalibrationInput) -> Result<(), Vec<String>> {
         }
         let mut released = BTreeSet::new();
         for digest in &ledger.previously_released_query_digests {
-            if !non_empty(digest) || !released.insert(digest.as_str()) {
+            if !is_sha256_digest(digest) || !released.insert(digest.as_str()) {
                 errors.push(format!(
                     "release ledger for {} has duplicate/empty query digest",
                     ledger.site_id
@@ -306,7 +326,7 @@ fn validate(input: &FederatedCalibrationInput) -> Result<(), Vec<String>> {
                 summary.site_id
             ));
         }
-        if !non_empty(&summary.local_evidence_digest)
+        if !is_sha256_digest(&summary.local_evidence_digest)
             || !evidence_digests.insert(summary.local_evidence_digest.as_str())
         {
             errors.push(format!(
@@ -562,9 +582,9 @@ mod tests {
             measurement_boundary: "pack_terminal".to_owned(),
             unit: "Wh".to_owned(),
             stratum_id: "lfp_warm_mission".to_owned(),
-            configuration_cohort_digest: "sha256:lfp-pack-charger-cohort-v1".to_owned(),
-            stratum_taxonomy_digest: "sha256:mobility-strata-v1".to_owned(),
-            calibration_policy_digest: "sha256:split-conformal-policy-v1".to_owned(),
+            configuration_cohort_digest: format!("sha256:{}", "a".repeat(64)),
+            stratum_taxonomy_digest: format!("sha256:{}", "b".repeat(64)),
+            calibration_policy_digest: format!("sha256:{}", "c".repeat(64)),
             nominal_coverage_permille: 900,
             score_definition_id: "absolute_nonconformity_hist_v1".to_owned(),
             bin_edges: vec![0, 10, 20, 40],
@@ -588,7 +608,15 @@ mod tests {
             holdout_interval_width_sum: 100,
             local_status: status,
             local_audit_cutoff_unix_ms: 1_900,
-            local_evidence_digest: format!("sha256:{site}-evidence"),
+            local_evidence_digest: format!(
+                "sha256:{}",
+                match site {
+                    "depot-a" => "a".repeat(64),
+                    "depot-b" => "b".repeat(64),
+                    "depot-c" => "c".repeat(64),
+                    _ => "f".repeat(64),
+                }
+            ),
         }
     }
 
@@ -600,7 +628,7 @@ mod tests {
             epoch_id: "epoch-01".to_owned(),
             aggregation_time_unix_ms: 2_000,
             maximum_summary_age_ms: 500,
-            query_scope_digest: "sha256:query-01".to_owned(),
+            query_scope_digest: format!("sha256:{}", "d".repeat(64)),
             compatibility: compatibility(),
             registered_site_ids: site_ids.iter().map(|id| (*id).to_owned()).collect(),
             minimum_participating_sites: 3,
