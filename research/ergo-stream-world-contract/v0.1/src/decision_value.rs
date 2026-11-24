@@ -143,7 +143,9 @@ impl fmt::Display for DecisionValueErrorV0 {
             Self::LikelihoodRowDoesNotNormalize => {
                 "likelihood weights for each hypothesis must sum to the declared scale"
             }
-            Self::ArithmeticOverflow => "exact decision-value arithmetic overflowed its bounded integer representation",
+            Self::ArithmeticOverflow => {
+                "exact decision-value arithmetic overflowed its bounded integer representation"
+            }
             Self::NegativeEvsiInvariant => {
                 "expected loss after an available experiment exceeded pre-experiment Bayes risk"
             }
@@ -232,10 +234,9 @@ pub fn evaluate_decision_value(
             let weighted_loss = weighted_action_loss(
                 problem,
                 |hypothesis| {
-                    likelihood_weight(experiment, hypothesis.id, outcome_id)
-                        .map(|likelihood| {
-                            u128::from(hypothesis.prior_weight) * u128::from(likelihood)
-                        })
+                    likelihood_weight(experiment, hypothesis.id, outcome_id).map(|likelihood| {
+                        u128::from(hypothesis.prior_weight) * u128::from(likelihood)
+                    })
                 },
                 action.id,
             )?;
@@ -271,15 +272,14 @@ pub fn evaluate_decision_value(
         return Err(DecisionValueErrorV0::NegativeEvsiInvariant);
     }
 
-    let evsi_numerator =
-        expected_loss_before_scaled_numerator - expected_loss_after_numerator;
+    let evsi_numerator = expected_loss_before_scaled_numerator - expected_loss_after_numerator;
     let common_denominator = prior_total_weight
         .checked_mul(likelihood_scale)
         .ok_or(DecisionValueErrorV0::ArithmeticOverflow)?;
 
     let information_gain_bits = mutual_information_bits(problem, experiment, prior_total_weight)?;
-    let evsi_i128 = i128::try_from(evsi_numerator)
-        .map_err(|_| DecisionValueErrorV0::ArithmeticOverflow)?;
+    let evsi_i128 =
+        i128::try_from(evsi_numerator).map_err(|_| DecisionValueErrorV0::ArithmeticOverflow)?;
     let cost_numerator = i128::from(experiment.cost_units)
         .checked_mul(
             i128::try_from(common_denominator)
@@ -448,9 +448,7 @@ fn weighted_action_loss(
             let loss = problem
                 .losses
                 .iter()
-                .find(|loss| {
-                    loss.hypothesis_id == hypothesis.id && loss.action_id == action_id
-                })
+                .find(|loss| loss.hypothesis_id == hypothesis.id && loss.action_id == action_id)
                 .ok_or(DecisionValueErrorV0::IncompleteLossTable)?;
             let weighted_loss = weight
                 .checked_mul(u128::from(loss.loss_units))
@@ -470,8 +468,7 @@ fn mutual_information_bits(
     let mut information = 0.0;
 
     for hypothesis in &problem.hypotheses {
-        let prior_probability = f64::from(hypothesis.prior_weight)
-            / prior_total_weight as f64;
+        let prior_probability = f64::from(hypothesis.prior_weight) / prior_total_weight as f64;
         for outcome_id in &experiment.outcome_ids {
             let likelihood_probability =
                 f64::from(likelihood_weight(experiment, hypothesis.id, *outcome_id)?) / scale;
@@ -480,8 +477,8 @@ fn mutual_information_bits(
             }
             let mut outcome_probability = 0.0;
             for other_hypothesis in &problem.hypotheses {
-                let other_prior = f64::from(other_hypothesis.prior_weight)
-                    / prior_total_weight as f64;
+                let other_prior =
+                    f64::from(other_hypothesis.prior_weight) / prior_total_weight as f64;
                 let other_likelihood = f64::from(likelihood_weight(
                     experiment,
                     other_hypothesis.id,
@@ -490,11 +487,13 @@ fn mutual_information_bits(
                 outcome_probability += other_prior * other_likelihood;
             }
             let joint_probability = prior_probability * likelihood_probability;
-            information += joint_probability * (likelihood_probability / outcome_probability).log2();
+            information +=
+                joint_probability * (likelihood_probability / outcome_probability).log2();
         }
     }
 
-    information.is_finite()
+    information
+        .is_finite()
         .then_some(information)
         .ok_or(DecisionValueErrorV0::NonFiniteInformationGain)
 }
@@ -514,21 +513,51 @@ mod tests {
     fn decision_problem() -> DecisionProblemV0 {
         DecisionProblemV0 {
             hypotheses: vec![
-                DecisionHypothesisV0 { id: 0, prior_weight: 4 },
-                DecisionHypothesisV0 { id: 1, prior_weight: 4 },
-                DecisionHypothesisV0 { id: 2, prior_weight: 2 },
+                DecisionHypothesisV0 {
+                    id: 0,
+                    prior_weight: 4,
+                },
+                DecisionHypothesisV0 {
+                    id: 1,
+                    prior_weight: 4,
+                },
+                DecisionHypothesisV0 {
+                    id: 2,
+                    prior_weight: 2,
+                },
             ],
-            actions: vec![
-                DecisionActionV0 { id: 10 },
-                DecisionActionV0 { id: 20 },
-            ],
+            actions: vec![DecisionActionV0 { id: 10 }, DecisionActionV0 { id: 20 }],
             losses: vec![
-                DecisionLossV0 { hypothesis_id: 0, action_id: 10, loss_units: 0 },
-                DecisionLossV0 { hypothesis_id: 0, action_id: 20, loss_units: 10 },
-                DecisionLossV0 { hypothesis_id: 1, action_id: 10, loss_units: 0 },
-                DecisionLossV0 { hypothesis_id: 1, action_id: 20, loss_units: 10 },
-                DecisionLossV0 { hypothesis_id: 2, action_id: 10, loss_units: 10 },
-                DecisionLossV0 { hypothesis_id: 2, action_id: 20, loss_units: 0 },
+                DecisionLossV0 {
+                    hypothesis_id: 0,
+                    action_id: 10,
+                    loss_units: 0,
+                },
+                DecisionLossV0 {
+                    hypothesis_id: 0,
+                    action_id: 20,
+                    loss_units: 10,
+                },
+                DecisionLossV0 {
+                    hypothesis_id: 1,
+                    action_id: 10,
+                    loss_units: 0,
+                },
+                DecisionLossV0 {
+                    hypothesis_id: 1,
+                    action_id: 20,
+                    loss_units: 10,
+                },
+                DecisionLossV0 {
+                    hypothesis_id: 2,
+                    action_id: 10,
+                    loss_units: 10,
+                },
+                DecisionLossV0 {
+                    hypothesis_id: 2,
+                    action_id: 20,
+                    loss_units: 0,
+                },
             ],
         }
     }
