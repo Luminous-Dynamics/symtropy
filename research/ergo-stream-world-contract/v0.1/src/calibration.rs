@@ -506,9 +506,9 @@ mod tests {
     fn rejects_unmatched_duplicate_and_out_of_range_data() {
         let valid = [forecast(1, 500_000, None)];
         let outcome = [TransferOutcomeV0 {
-                sample_id: 1,
-                transfer_qualified: true,
-            }];
+            sample_id: 1,
+            transfer_qualified: true,
+        }];
         assert_eq!(
             evaluate_transfer_calibration(&[], &outcome, 10, &[0]),
             Err(TransferCalibrationErrorV0::EmptyForecasts)
@@ -520,7 +520,7 @@ mod tests {
 
         let duplicate = [forecast(1, 500_000, None), forecast(1, 500_000, None)];
         assert_eq!(
-            evaluate_transfer_calibration(&duplicate, &[outcome[0], outcome[0]], 10, &[0],)
+            evaluate_transfer_calibration(&duplicate, &[outcome[0], outcome[0]], 10, &[0],),
             Err(TransferCalibrationErrorV0::DuplicateSampleId)
         );
 
@@ -543,9 +543,9 @@ mod tests {
     fn rejects_duplicate_or_out_of_range_thresholds_and_invalid_bins() {
         let forecasts = [forecast(1, 500_000, None)];
         let outcomes = [TransferOutcomeV0 {
-                sample_id: 1,
-                transfer_qualified: true,
-            }];
+            sample_id: 1,
+            transfer_qualified: true,
+        }];
 
         assert_eq!(
             evaluate_transfer_calibration(&forecasts, &outcomes, 10, &[1_000_001]),
