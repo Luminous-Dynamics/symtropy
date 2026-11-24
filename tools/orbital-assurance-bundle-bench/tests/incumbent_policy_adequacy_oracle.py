@@ -300,6 +300,13 @@ def evaluate_case(case: dict[str, Any]) -> dict[str, Any]:
         or not valid_id(source.get("source_case_id"))
         or source["source_case_id"] != case["source_policy_case_id"]
         or source.get("source_scope_id") != case["decision_scope_id"]
+        or source.get("source_query_universe_receipt_id") != case["query_universe_receipt_id"]
+        or source.get("source_query_universe_scope_id") != case["query_universe_scope_id"]
+        or source.get("source_query_universe_scope_id") != case["decision_scope_id"]
+        or source.get("source_expected_query_ids_sha256") != case["expected_query_ids_sha256"]
+        or source.get("source_queries_sha256") != case["queries_sha256"]
+        or source.get("source_incumbent_policy_id") != case["incumbent_policy_id"]
+        or source.get("source_best_no_query_worst_case_loss") != case["best_no_query_worst_case_loss"]
         or source.get("source_scope_sha256") != case["scope_sha256"]
         or source.get("source_decision_cutoff_id") != case["decision_cutoff_id"]
         or source.get("source_world_set_receipt_id") != case["world_set_receipt_id"]
@@ -351,6 +358,32 @@ def evaluate_case(case: dict[str, Any]) -> dict[str, Any]:
         except (ValueError, KeyError, TypeError) as error:
             return invalid(case_id, str(error), loss_unit)
         policy_metrics[policy["policy_id"]] = (policy, loss)
+
+    no_query_losses = [
+        loss for policy, loss in policy_metrics.values() if policy["query_id"] is None
+    ]
+    best_no_query = min(no_query_losses) if no_query_losses else None
+    declared_best_no_query = (
+        exact_fraction(case["best_no_query_worst_case_loss"])
+        if case["best_no_query_worst_case_loss"] is not None else None
+    )
+    if best_no_query != declared_best_no_query:
+        return invalid(case_id, "best-no-query worst-case loss disagrees with upstream policy metrics", loss_unit)
+    for policy, loss in policy_metrics.values():
+        diagnostic = policy["worst_loss_reduction_vs_best_no_query"]
+        expected = signed_difference(best_no_query, loss) if policy["query_id"] is not None and best_no_query is not None else None
+        if expected is None:
+            if diagnostic is not None:
+                return invalid(case_id, "policy worst-loss reduction diagnostic disagrees with best no-query baseline", loss_unit)
+        else:
+            if (
+                not isinstance(diagnostic, dict)
+                or diagnostic.get("direction") != expected["direction"]
+                or exact_fraction(diagnostic.get("magnitude")) is None
+                or exact_fraction(diagnostic["magnitude"])
+                != Fraction(int(expected["magnitude"]["numerator"]), int(expected["magnitude"]["denominator"]))
+            ):
+                return invalid(case_id, "policy worst-loss reduction diagnostic disagrees with best no-query baseline", loss_unit)
 
     frontier = case["policy_pareto_frontier_ids"]
     if len(set(frontier)) != len(frontier) or any(pid not in policy_metrics for pid in frontier):
