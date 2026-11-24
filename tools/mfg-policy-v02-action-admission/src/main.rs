@@ -1389,16 +1389,11 @@ mod tests {
         frame_for_epoch(2)
     }
 
-    fn valid_snapshot_for_epoch(
-        frame: &Value,
-        epoch: u64,
-        operation_two_completed: bool,
-    ) -> Value {
+    fn valid_snapshot_for_epoch(frame: &Value, epoch: u64, operation_two_completed: bool) -> Value {
         let frame_digest = digest_value(frame).unwrap();
         let history = frame["observable_history"].as_array().unwrap().clone();
         let history_digest = digest_value(&Value::Array(history)).unwrap();
-        let mut applied_transition_ids =
-            vec!["START-OP2-E0", "TICK-OP2-E0"];
+        let mut applied_transition_ids = vec!["START-OP2-E0", "TICK-OP2-E0"];
         if epoch > 1 {
             applied_transition_ids.push("TICK-OP2-E1");
         }
