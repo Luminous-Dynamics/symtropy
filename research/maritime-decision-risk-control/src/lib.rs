@@ -1,5 +1,6 @@
 pub mod assurance_envelope;
 pub mod clustered_dependence;
+pub mod cross_standard_mapping;
 pub mod dcsa_maturity;
 pub mod high_probability;
 pub mod lipschitz;
