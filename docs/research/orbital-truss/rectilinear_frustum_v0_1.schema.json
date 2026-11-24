@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Rectilinear Camera Frustum Support Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-truss-rectilinear-frustum.corpus.v0.1"
+    },
+    "benchmark_id": {
+      "const": "ORBITAL-TRUSS-RECTILINEAR-FRUSTUM-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_3d_support_direction_cap_vs_rectilinear_pinhole_frustum_only_occlusion_not_assessed"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "items": {
+        "$ref": "#/$defs/Case"
+      }
+    }
+  },
+  "$defs": {
+    "Vector3": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "Status": {
+      "type": "string",
+      "enum": [
+        "WITHIN",
+        "OUTSIDE",
+        "INDETERMINATE",
+        "INVALID_INPUT"
+      ]
+    },
+    "Support": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "support_id",
+        "center_m",
+        "enclosing_ball_radius_m",
+        "enclosing_ball_asserted"
+      ],
+      "properties": {
+        "support_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "center_m": {
+          "$ref": "#/$defs/Vector3"
+        },
+        "enclosing_ball_radius_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "enclosing_ball_asserted": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Camera": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "camera_id",
+        "camera_model_id",
+        "position_m",
+        "optical_axis_unit",
+        "image_up_unit",
+        "horizontal_fov_rad",
+        "vertical_fov_rad"
+      ],
+      "properties": {
+        "camera_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "camera_model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "position_m": {
+          "$ref": "#/$defs/Vector3"
+        },
+        "optical_axis_unit": {
+          "$ref": "#/$defs/Vector3"
+        },
+        "image_up_unit": {
+          "$ref": "#/$defs/Vector3"
+        },
+        "horizontal_fov_rad": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 3.141592653589793
+        },
+        "vertical_fov_rad": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 3.141592653589793
+        }
+      }
+    },
+    "Case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "coordinate_frame_id",
+        "expected_status",
+        "support",
+        "camera"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coordinate_frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_status": {
+          "$ref": "#/$defs/Status"
+        },
+        "support": {
+          "$ref": "#/$defs/Support"
+        },
+        "camera": {
+          "$ref": "#/$defs/Camera"
+        }
+      }
+    }
+  }
+}

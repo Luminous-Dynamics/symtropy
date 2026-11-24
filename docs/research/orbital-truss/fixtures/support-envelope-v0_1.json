@@ -1,0 +1,567 @@
+{
+  "schema": "luminous.orbital-truss-support-envelope.corpus.v0.1",
+  "benchmark_id": "ORBITAL-TRUSS-SUPPORT-ENVELOPE-001",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_conditional_3d_support_sensing_envelope_bounds_only_occlusion_not_assessed",
+  "cases": [
+    {
+      "case_id": "SE-001-WHOLE-SUPPORT-PASS",
+      "coordinate_frame_id": "SUPPORT-TEST-FRAME",
+      "length_unit": "METRE",
+      "expected_status": "CONDITIONAL_WITHIN_SENSING_ENVELOPE",
+      "support": {
+        "support_id": "SUPPORT-SE-001-WHOLE-SUPPORT-PASS",
+        "center_m": [
+          0,
+          0,
+          0
+        ],
+        "enclosing_ball_radius_m": 0.01,
+        "enclosing_ball_asserted": true,
+        "outward_normal_unit": [
+          0,
+          0,
+          1
+        ],
+        "normal_cone_half_angle_rad": 0.01,
+        "normal_cone_asserted": true
+      },
+      "sensor": {
+        "sensor_id": "CAMERA-1",
+        "camera_model_id": "PINHOLE-HFOV-1",
+        "position_m": [
+          0,
+          0,
+          2
+        ],
+        "optical_axis_unit": [
+          0,
+          0,
+          -1
+        ],
+        "horizontal_fov_rad": 1,
+        "image_width_px": 4000,
+        "minimum_range_m": 0.1,
+        "maximum_range_m": 3,
+        "maximum_obliquity_rad": 0.5,
+        "maximum_gsd_m_per_px": 0.001
+      }
+    },
+    {
+      "case_id": "SE-002-ALL-SUPPORT-TOO-FAR",
+      "coordinate_frame_id": "SUPPORT-TEST-FRAME",
+      "length_unit": "METRE",
+      "expected_status": "CONDITIONAL_OUTSIDE_SENSING_ENVELOPE",
+      "support": {
+        "support_id": "SUPPORT-SE-002-ALL-SUPPORT-TOO-FAR",
+        "center_m": [
+          0,
+          0,
+          0
+        ],
+        "enclosing_ball_radius_m": 0.01,
+        "enclosing_ball_asserted": true,
+        "outward_normal_unit": [
+          0,
+          0,
+          1
+        ],
+        "normal_cone_half_angle_rad": 0.01,
+        "normal_cone_asserted": true
+      },
+      "sensor": {
+        "sensor_id": "CAMERA-1",
+        "camera_model_id": "PINHOLE-HFOV-1",
+        "position_m": [
+          0,
+          0,
+          4
+        ],
+        "optical_axis_unit": [
+          0,
+          0,
+          -1
+        ],
+        "horizontal_fov_rad": 1,
+        "image_width_px": 4000,
+        "minimum_range_m": 0.1,
+        "maximum_range_m": 3.5,
+        "maximum_obliquity_rad": 0.5,
+        "maximum_gsd_m_per_px": 0.001
+      }
+    },
+    {
+      "case_id": "SE-003-ALL-SUPPORT-TOO-NEAR",
+      "coordinate_frame_id": "SUPPORT-TEST-FRAME",
+      "length_unit": "METRE",
+      "expected_status": "CONDITIONAL_OUTSIDE_SENSING_ENVELOPE",
+      "support": {
+        "support_id": "SUPPORT-SE-003-ALL-SUPPORT-TOO-NEAR",
+        "center_m": [
+          0,
+          0,
+          0
+        ],
+        "enclosing_ball_radius_m": 0.01,
+        "enclosing_ball_asserted": true,
+        "outward_normal_unit": [
+          0,
+          0,
+          1
+        ],
+        "normal_cone_half_angle_rad": 0.01,
+        "normal_cone_asserted": true
+      },
+      "sensor": {
+        "sensor_id": "CAMERA-1",
+        "camera_model_id": "PINHOLE-HFOV-1",
+        "position_m": [
+          0,
+          0,
+          0.05
+        ],
+        "optical_axis_unit": [
+          0,
+          0,
+          -1
+        ],
+        "horizontal_fov_rad": 1,
+        "image_width_px": 4000,
+        "minimum_range_m": 0.1,
+        "maximum_range_m": 3,
+        "maximum_obliquity_rad": 0.5,
+        "maximum_gsd_m_per_px": 0.001
+      }
+    },
+    {
+      "case_id": "SE-004-ALL-SUPPORT-OUTSIDE-FOV",
+      "coordinate_frame_id": "SUPPORT-TEST-FRAME",
+      "length_unit": "METRE",
+      "expected_status": "CONDITIONAL_OUTSIDE_SENSING_ENVELOPE",
+      "support": {
+        "support_id": "SUPPORT-SE-004-ALL-SUPPORT-OUTSIDE-FOV",
+        "center_m": [
+          0,
+          0,
+          0
+        ],
+        "enclosing_ball_radius_m": 0.01,
+        "enclosing_ball_asserted": true,
+        "outward_normal_unit": [
+          0,
+          0,
+          1
+        ],
+        "normal_cone_half_angle_rad": 0.01,
+        "normal_cone_asserted": true
+      },
+      "sensor": {
+        "sensor_id": "CAMERA-1",
+        "camera_model_id": "PINHOLE-HFOV-1",
+        "position_m": [
+          0,
+          0,
+          2
+        ],
+        "optical_axis_unit": [
+          0.479425538604203,
+          0,
+          -0.8775825618903728
+        ],
+        "horizontal_fov_rad": 0.4,
+        "image_width_px": 4000,
+        "minimum_range_m": 0.1,
+        "maximum_range_m": 3,
+        "maximum_obliquity_rad": 0.5,
+        "maximum_gsd_m_per_px": 0.001
+      }
+    },
+    {
+      "case_id": "SE-005-FOV-BOUND-INDETERMINATE",
+      "coordinate_frame_id": "SUPPORT-TEST-FRAME",
+      "length_unit": "METRE",
+      "expected_status": "INDETERMINATE",
+      "support": {
+        "support_id": "SUPPORT-SE-005-FOV-BOUND-INDETERMINATE",
+        "center_m": [
+          0,
+          0,
+          0
+        ],
+        "enclosing_ball_radius_m": 0.2,
+        "enclosing_ball_asserted": true,
+        "outward_normal_unit": [
+          0,
+          0,
+          1
+        ],
+        "normal_cone_half_angle_rad": 0.01,
+        "normal_cone_asserted": true
+      },
+      "sensor": {
+        "sensor_id": "CAMERA-1",
+        "camera_model_id": "PINHOLE-HFOV-1",
+        "position_m": [
+          0,
+          0,
+          2
+        ],
+        "optical_axis_unit": [
+          0.14943813247359922,
+          0,
+          -0.9887710779360422
+        ],
+        "horizontal_fov_rad": 0.4,
+        "image_width_px": 4000,
+        "minimum_range_m": 0.1,
+        "maximum_range_m": 3,
+        "maximum_obliquity_rad": 0.5,
+        "maximum_gsd_m_per_px": 0.001
+      }
+    },
+    {
+      "case_id": "SE-006-INCIDENCE-BOUND-INDETERMINATE",
+      "coordinate_frame_id": "SUPPORT-TEST-FRAME",
+      "length_unit": "METRE",
+      "expected_status": "INDETERMINATE",
+      "support": {
+        "support_id": "SUPPORT-SE-006-INCIDENCE-BOUND-INDETERMINATE",
+        "center_m": [
+          0,
+          0,
+          0
+        ],
+        "enclosing_ball_radius_m": 0.2,
+        "enclosing_ball_asserted": true,
+        "outward_normal_unit": [
+          0.34289780745545134,
+          0,
+          0.9393727128473789
+        ],
+        "normal_cone_half_angle_rad": 0.1,
+        "normal_cone_asserted": true
+      },
+      "sensor": {
+        "sensor_id": "CAMERA-1",
+        "camera_model_id": "PINHOLE-HFOV-1",
+        "position_m": [
+          0,
+          0,
+          2
+        ],
+        "optical_axis_unit": [
+          0,
+          0,
+          -1
+        ],
+        "horizontal_fov_rad": 1,
+        "image_width_px": 4000,
+        "minimum_range_m": 0.1,
+        "maximum_range_m": 3,
+        "maximum_obliquity_rad": 0.5,
+        "maximum_gsd_m_per_px": 0.001
+      }
+    },
+    {
+      "case_id": "SE-007-ALL-SUPPORT-INCIDENCE-FAILS",
+      "coordinate_frame_id": "SUPPORT-TEST-FRAME",
+      "length_unit": "METRE",
+      "expected_status": "CONDITIONAL_OUTSIDE_SENSING_ENVELOPE",
+      "support": {
+        "support_id": "SUPPORT-SE-007-ALL-SUPPORT-INCIDENCE-FAILS",
+        "center_m": [
+          0,
+          0,
+          0
+        ],
+        "enclosing_ball_radius_m": 0.1,
+        "enclosing_ball_asserted": true,
+        "outward_normal_unit": [
+          0.7173560908995228,
+          0,
+          0.6967067093471654
+        ],
+        "normal_cone_half_angle_rad": 0.05,
+        "normal_cone_asserted": true
+      },
+      "sensor": {
+        "sensor_id": "CAMERA-1",
+        "camera_model_id": "PINHOLE-HFOV-1",
+        "position_m": [
+          0,
+          0,
+          2
+        ],
+        "optical_axis_unit": [
+          0,
+          0,
+          -1
+        ],
+        "horizontal_fov_rad": 1,
+        "image_width_px": 4000,
+        "minimum_range_m": 0.1,
+        "maximum_range_m": 3,
+        "maximum_obliquity_rad": 0.5,
+        "maximum_gsd_m_per_px": 0.001
+      }
+    },
+    {
+      "case_id": "SE-008-GSD-BOUND-INDETERMINATE",
+      "coordinate_frame_id": "SUPPORT-TEST-FRAME",
+      "length_unit": "METRE",
+      "expected_status": "INDETERMINATE",
+      "support": {
+        "support_id": "SUPPORT-SE-008-GSD-BOUND-INDETERMINATE",
+        "center_m": [
+          0,
+          0,
+          0
+        ],
+        "enclosing_ball_radius_m": 0.1,
+        "enclosing_ball_asserted": true,
+        "outward_normal_unit": [
+          0.24740395925452294,
+          0,
+          0.9689124217106447
+        ],
+        "normal_cone_half_angle_rad": 0.1,
+        "normal_cone_asserted": true
+      },
+      "sensor": {
+        "sensor_id": "CAMERA-1",
+        "camera_model_id": "PINHOLE-HFOV-1",
+        "position_m": [
+          0,
+          0,
+          2
+        ],
+        "optical_axis_unit": [
+          0,
+          0,
+          -1
+        ],
+        "horizontal_fov_rad": 1,
+        "image_width_px": 400,
+        "minimum_range_m": 0.1,
+        "maximum_range_m": 3,
+        "maximum_obliquity_rad": 0.5,
+        "maximum_gsd_m_per_px": 0.0057
+      }
+    },
+    {
+      "case_id": "SE-009-ALL-SUPPORT-GSD-FAILS",
+      "coordinate_frame_id": "SUPPORT-TEST-FRAME",
+      "length_unit": "METRE",
+      "expected_status": "CONDITIONAL_OUTSIDE_SENSING_ENVELOPE",
+      "support": {
+        "support_id": "SUPPORT-SE-009-ALL-SUPPORT-GSD-FAILS",
+        "center_m": [
+          0,
+          0,
+          0
+        ],
+        "enclosing_ball_radius_m": 0.01,
+        "enclosing_ball_asserted": true,
+        "outward_normal_unit": [
+          0.19866933079506122,
+          0,
+          0.9800665778412416
+        ],
+        "normal_cone_half_angle_rad": 0.01,
+        "normal_cone_asserted": true
+      },
+      "sensor": {
+        "sensor_id": "CAMERA-1",
+        "camera_model_id": "PINHOLE-HFOV-1",
+        "position_m": [
+          0,
+          0,
+          2
+        ],
+        "optical_axis_unit": [
+          0,
+          0,
+          -1
+        ],
+        "horizontal_fov_rad": 1,
+        "image_width_px": 400,
+        "minimum_range_m": 0.1,
+        "maximum_range_m": 3,
+        "maximum_obliquity_rad": 0.5,
+        "maximum_gsd_m_per_px": 0.005
+      }
+    },
+    {
+      "case_id": "SE-010-SUPPORT-BOUND-UNPROVEN",
+      "coordinate_frame_id": "SUPPORT-TEST-FRAME",
+      "length_unit": "METRE",
+      "expected_status": "INDETERMINATE",
+      "support": {
+        "support_id": "SUPPORT-SE-010-SUPPORT-BOUND-UNPROVEN",
+        "center_m": [
+          0,
+          0,
+          0
+        ],
+        "enclosing_ball_radius_m": 0.01,
+        "enclosing_ball_asserted": false,
+        "outward_normal_unit": [
+          0,
+          0,
+          1
+        ],
+        "normal_cone_half_angle_rad": 0.01,
+        "normal_cone_asserted": true
+      },
+      "sensor": {
+        "sensor_id": "CAMERA-1",
+        "camera_model_id": "PINHOLE-HFOV-1",
+        "position_m": [
+          0,
+          0,
+          2
+        ],
+        "optical_axis_unit": [
+          0,
+          0,
+          -1
+        ],
+        "horizontal_fov_rad": 1,
+        "image_width_px": 4000,
+        "minimum_range_m": 0.1,
+        "maximum_range_m": 3,
+        "maximum_obliquity_rad": 0.5,
+        "maximum_gsd_m_per_px": 0.001
+      }
+    },
+    {
+      "case_id": "SE-011-NORMAL-CONE-UNPROVEN",
+      "coordinate_frame_id": "SUPPORT-TEST-FRAME",
+      "length_unit": "METRE",
+      "expected_status": "INDETERMINATE",
+      "support": {
+        "support_id": "SUPPORT-SE-011-NORMAL-CONE-UNPROVEN",
+        "center_m": [
+          0,
+          0,
+          0
+        ],
+        "enclosing_ball_radius_m": 0.01,
+        "enclosing_ball_asserted": true,
+        "outward_normal_unit": [
+          0,
+          0,
+          1
+        ],
+        "normal_cone_half_angle_rad": 0.01,
+        "normal_cone_asserted": false
+      },
+      "sensor": {
+        "sensor_id": "CAMERA-1",
+        "camera_model_id": "PINHOLE-HFOV-1",
+        "position_m": [
+          0,
+          0,
+          2
+        ],
+        "optical_axis_unit": [
+          0,
+          0,
+          -1
+        ],
+        "horizontal_fov_rad": 1,
+        "image_width_px": 4000,
+        "minimum_range_m": 0.1,
+        "maximum_range_m": 3,
+        "maximum_obliquity_rad": 0.5,
+        "maximum_gsd_m_per_px": 0.001
+      }
+    },
+    {
+      "case_id": "SE-012-SENSOR-INSIDE-SUPPORT-BOUND",
+      "coordinate_frame_id": "SUPPORT-TEST-FRAME",
+      "length_unit": "METRE",
+      "expected_status": "INDETERMINATE",
+      "support": {
+        "support_id": "SUPPORT-SE-012-SENSOR-INSIDE-SUPPORT-BOUND",
+        "center_m": [
+          0,
+          0,
+          0
+        ],
+        "enclosing_ball_radius_m": 0.01,
+        "enclosing_ball_asserted": true,
+        "outward_normal_unit": [
+          0,
+          0,
+          1
+        ],
+        "normal_cone_half_angle_rad": 0.01,
+        "normal_cone_asserted": true
+      },
+      "sensor": {
+        "sensor_id": "CAMERA-1",
+        "camera_model_id": "PINHOLE-HFOV-1",
+        "position_m": [
+          0,
+          0,
+          0.005
+        ],
+        "optical_axis_unit": [
+          0,
+          0,
+          -1
+        ],
+        "horizontal_fov_rad": 1,
+        "image_width_px": 4000,
+        "minimum_range_m": 0.1,
+        "maximum_range_m": 3,
+        "maximum_obliquity_rad": 0.5,
+        "maximum_gsd_m_per_px": 0.001
+      }
+    },
+    {
+      "case_id": "SE-013-INVALID-NONUNIT-OPTICAL-AXIS",
+      "coordinate_frame_id": "SUPPORT-TEST-FRAME",
+      "length_unit": "METRE",
+      "expected_status": "INVALID_INPUT",
+      "support": {
+        "support_id": "SUPPORT-SE-013-INVALID-NONUNIT-OPTICAL-AXIS",
+        "center_m": [
+          0,
+          0,
+          0
+        ],
+        "enclosing_ball_radius_m": 0.01,
+        "enclosing_ball_asserted": true,
+        "outward_normal_unit": [
+          0,
+          0,
+          1
+        ],
+        "normal_cone_half_angle_rad": 0.01,
+        "normal_cone_asserted": true
+      },
+      "sensor": {
+        "sensor_id": "CAMERA-1",
+        "camera_model_id": "PINHOLE-HFOV-1",
+        "position_m": [
+          0,
+          0,
+          2
+        ],
+        "optical_axis_unit": [
+          0,
+          0,
+          -2
+        ],
+        "horizontal_fov_rad": 1,
+        "image_width_px": 4000,
+        "minimum_range_m": 0.1,
+        "maximum_range_m": 3,
+        "maximum_obliquity_rad": 0.5,
+        "maximum_gsd_m_per_px": 0.001
+      }
+    }
+  ]
+}

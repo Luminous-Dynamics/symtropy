@@ -1,0 +1,142 @@
+{
+  "schema": "luminous.orbital-truss.gsd-kcoverage-source-manifest.v0.1",
+  "evidence_class": "research_source_inventory",
+  "paper": {
+    "title": "Ground Sample Distance Constrained k-Coverage Viewpoint Planning via Set Multi-Cover Formulation",
+    "authors": [
+      "Waleed Bin Khalid",
+      "Chul Min Yeum"
+    ],
+    "arxiv_id": "2610.36450",
+    "version": 1,
+    "submitted_utc": "2026-10-27",
+    "abstract_url": "https://arxiv.org/abs/2610.36450",
+    "full_text_url": "https://borowiecki.dev/pdf/2610.36450",
+    "implementation_language_reported": "Python",
+    "geometry_library_reported": "Open3D",
+    "paper_claims_code_reproduction_link": false,
+    "source_repository_cited": "https://github.com/IvanNik17/python-3d-analysis-libraries"
+  },
+  "cited_model_repository": {
+    "full_name": "IvanNik17/python-3d-analysis-libraries",
+    "url": "https://github.com/IvanNik17/python-3d-analysis-libraries",
+    "default_branch": "main",
+    "pinned_commit": "2f88d442f7950b289de97982e38f4470a3e75f89",
+    "repository_license_spdx": "GPL-3.0",
+    "assets": [
+      {
+        "role": "Angel Statue mesh",
+        "path": "Python Libraries for Mesh, Point Cloud, and Data Visualization (Part 1 and Part 2)/mesh/angelStatue_lp.obj",
+        "size_bytes": 1146052,
+        "git_blob_sha1": "ac48e8054cc74bf7dd0e1f5c6b6f7fa81d80a73d",
+        "asset_specific_license": "UNVERIFIED",
+        "external_dataset_mapping": "UNVERIFIED"
+      },
+      {
+        "role": "Angel Statue point cloud",
+        "path": "Python Libraries for Mesh, Point Cloud, and Data Visualization (Part 1 and Part 2)/point_cloud/angelStatue_lp.txt",
+        "size_bytes": 3682573,
+        "git_blob_sha1": "64e9d057e654e375d621449b702d761a7052bb56",
+        "asset_specific_license": "UNVERIFIED",
+        "external_dataset_mapping": "UNVERIFIED"
+      },
+      {
+        "role": "Rooster mesh",
+        "path": "How to Voxelize Meshes and Point Clouds in Python/mesh/rooster.obj",
+        "size_bytes": 23038006,
+        "git_blob_sha1": "b479153dfc1208e92a6a3a34cb740e60d4caa85a",
+        "asset_specific_license": "UNVERIFIED",
+        "external_dataset_mapping": "UNVERIFIED"
+      },
+      {
+        "role": "Rooster material",
+        "path": "How to Voxelize Meshes and Point Clouds in Python/mesh/rooster.mtl",
+        "size_bytes": 133,
+        "git_blob_sha1": "2a8ef063c71ff1d4471d09e7d626c9ed012d7f3a",
+        "asset_specific_license": "UNVERIFIED",
+        "external_dataset_mapping": "UNVERIFIED"
+      }
+    ],
+    "policy": "Do not copy or redistribute the repository code or assets as part of this benchmark until applicable code and per-asset permissions are verified. Git blob SHA-1 values pin source-tree objects; they are not raw-file SHA-256 checksums."
+  },
+  "candidate_external_data_sources": [
+    {
+      "title": "GGG-BenchmarkSfM: Dataset for Benchmarking Close-range SfM Software Performance under Varying Capturing Conditions",
+      "version": 4,
+      "doi": "10.17632/bzxk2n78s9.4",
+      "url": "https://data.mendeley.com/datasets/bzxk2n78s9/4",
+      "stated_license": "CC BY 4.0",
+      "mapping_to_paper_asset": "UNVERIFIED"
+    },
+    {
+      "title": "GGG - Rough or Noisy? Metrics for Noise Detection in SfM Reconstructions",
+      "version": 2,
+      "doi": "10.17632/xtv5y29xvz.2",
+      "url": "https://data.mendeley.com/datasets/xtv5y29xvz/2",
+      "stated_license": "CC BY 4.0",
+      "mapping_to_paper_asset": "UNVERIFIED"
+    }
+  ],
+  "published_method_parameters": {
+    "voxel_sizes_m": [
+      0.04,
+      0.06,
+      0.08,
+      0.1
+    ],
+    "maximum_gsd_mm_per_pixel": 0.5,
+    "nominal_gsd_setpoint_mm_per_pixel": 0.25,
+    "maximum_oblique_angle_deg": 45,
+    "slant_range_m": 0.3394,
+    "perpendicular_distance_m": 0.24,
+    "coverage_k_values": [
+      1,
+      3,
+      5
+    ],
+    "overlap_threshold_percent": [
+      50,
+      70
+    ],
+    "overlap_pruning_orderings": [
+      "vertical_bottom_to_top",
+      "visibility_descending"
+    ],
+    "augmentation_tilt_deg": {
+      "start": 1,
+      "end": 90,
+      "step": 1
+    },
+    "augmentation_azimuth_deg": {
+      "start": 0,
+      "end": 360,
+      "step": 30
+    },
+    "ilp_time_limit_s": 3600,
+    "distance_threshold_relation": "T_dist = R_s",
+    "angular_threshold_relation": "T_ang = alpha",
+    "voxel_ray_occlusion_tolerance_relation": "tau = voxel_size * sqrt(3) / 2",
+    "gsd_relation": "GSD = (R_s * 2 * tan(horizontal_fov / 2)) / (horizontal_pixel_count * cos(alpha))",
+    "nominal_nadir_gsd_relation": "GSD_set = GSD_max * cos(alpha)^2"
+  },
+  "unspecified_or_ambiguous_inputs": [
+    "Exact camera horizontal pixel count and horizontal field of view are not stated in the inspected paper parameter table.",
+    "Exact asset-to-versioned-Mendeley-file mapping and per-asset attribution/permission remain unresolved.",
+    "Voxel grid origin/alignment, mesh preprocessing/scale, and any transforms required for exact source-image reproduction must be pinned from source data or authors.",
+    "The tangent-frame construction and whether the final 360-degree azimuth sample is inclusive require an explicit reproduction decision; the algorithm text uses [0, 2*pi) while the table prints 0-360 degrees.",
+    "The paper text specifies Open3D but does not expose an author implementation repository link; the cited model/examples repository is not itself a complete reproduction package."
+  ],
+  "reproducibility_gate": {
+    "status": "SOURCE_ADMISSION_INCOMPLETE",
+    "allowed_now": [
+      "Independent transcription of published algorithms",
+      "Synthetic visibility and set-multicover test fixtures",
+      "Public metadata and license inventory"
+    ],
+    "blocked_until_resolved": [
+      "Claiming exact 3D candidate-generation reproduction",
+      "Vendoring source assets",
+      "Claiming numerical comparison against the paper's Tables III-VI"
+    ]
+  }
+}

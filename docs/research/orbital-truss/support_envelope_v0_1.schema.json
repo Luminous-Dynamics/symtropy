@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Orbital Truss Support Envelope Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-truss-support-envelope.corpus.v0.1"
+    },
+    "benchmark_id": {
+      "const": "ORBITAL-TRUSS-SUPPORT-ENVELOPE-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_conditional_3d_support_sensing_envelope_bounds_only_occlusion_not_assessed"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 13,
+      "maxItems": 13,
+      "items": {
+        "$ref": "#/$defs/Case"
+      }
+    }
+  },
+  "$defs": {
+    "Vector3": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "Support": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "support_id",
+        "center_m",
+        "enclosing_ball_radius_m",
+        "enclosing_ball_asserted",
+        "outward_normal_unit",
+        "normal_cone_half_angle_rad",
+        "normal_cone_asserted"
+      ],
+      "properties": {
+        "support_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "center_m": {
+          "$ref": "#/$defs/Vector3"
+        },
+        "enclosing_ball_radius_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "enclosing_ball_asserted": {
+          "type": "boolean"
+        },
+        "outward_normal_unit": {
+          "$ref": "#/$defs/Vector3"
+        },
+        "normal_cone_half_angle_rad": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 3.141592653589793
+        },
+        "normal_cone_asserted": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Sensor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sensor_id",
+        "camera_model_id",
+        "position_m",
+        "optical_axis_unit",
+        "horizontal_fov_rad",
+        "image_width_px",
+        "minimum_range_m",
+        "maximum_range_m",
+        "maximum_obliquity_rad",
+        "maximum_gsd_m_per_px"
+      ],
+      "properties": {
+        "sensor_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "camera_model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "position_m": {
+          "$ref": "#/$defs/Vector3"
+        },
+        "optical_axis_unit": {
+          "$ref": "#/$defs/Vector3"
+        },
+        "horizontal_fov_rad": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 3.141592653589793
+        },
+        "image_width_px": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_range_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_range_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximum_obliquity_rad": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 1.5707963267948966
+        },
+        "maximum_gsd_m_per_px": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "Case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "coordinate_frame_id",
+        "length_unit",
+        "expected_status",
+        "support",
+        "sensor"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coordinate_frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "length_unit": {
+          "const": "METRE"
+        },
+        "expected_status": {
+          "type": "string",
+          "enum": [
+            "CONDITIONAL_WITHIN_SENSING_ENVELOPE",
+            "CONDITIONAL_OUTSIDE_SENSING_ENVELOPE",
+            "INDETERMINATE",
+            "INVALID_INPUT"
+          ]
+        },
+        "support": {
+          "$ref": "#/$defs/Support"
+        },
+        "sensor": {
+          "$ref": "#/$defs/Sensor"
+        }
+      }
+    }
+  }
+}
