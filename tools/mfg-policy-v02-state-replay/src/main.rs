@@ -495,7 +495,7 @@ fn validate_frame_evidence(
                         .and_then(Value::as_u64)
                         .ok_or_else(|| {
                             violation("failure_recovery_forecast_missing", Some(epoch), None)
-                        }),?;
+                        })?;
                     let upper = event
                         .get("recovery_forecast_max_epochs")
                         .and_then(Value::as_u64)
