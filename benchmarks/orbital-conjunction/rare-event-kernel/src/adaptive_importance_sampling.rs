@@ -125,58 +125,15 @@ impl BoundedMeanBettingSequence {
         })
     }
 
-    fn lower_bound(
-        &self,
-        log_threshold: f64,
-    ) -> Result<f64, AdaptiveImportanceSamplingError> {
-        let at_zero = self.max_log_e_value(0.0, false)?;
-        if at_zero >= log_threshold {
-            // A one-sided false rejection at the parameter-space boundary:
-            // preserve the valid domain endpoint and abstain from tightening.
-            return Ok(0.0);
-        }
-
-        let at_one = self.max_log_e_value(1.0, false)?;
-        if at_one < log_threshold {
-            return Ok(1.0);
-        }
-
-        // For negative stakes, the e-value is nondecreasing in the candidate
-        // mean. Find the largest candidate that has not been rejected.
-        let mut accepted = 0.0;
-        let mut rejected = 1.0;
-        for _ in 0..80 {
-            let midpoint = 0.5 * accepted + 0.5 * rejected;
-            if midpoint <= accepted || midpoint >= rejected {
-                break;
-            }
-            if self.max_log_e_value(midpoint, false)? < log_threshold {
-                accepted = midpoint;
-            } else {
-                rejected = midpoint;
-            }
-        }
-        Ok(next_down(accepted).max(0.0))
-    }
-
-    fn upper_bound(
-        &self,
-        log_threshold: f64,
-    ) -> Result<f64, AdaptiveImportanceSamplingError> {
+    fn lower_bound(&self, log_threshold: f64) -> Result<f64, AdaptiveImportanceSamplingError> {
+        // Positive stakes test H0: mu <= candidate_mean. Since their e-values
+        // decrease as candidate_mean increases, rejection at a candidate
+        // proves the true mean is above it and supplies a lower endpoint.
         let at_zero = self.max_log_e_value(0.0, true)?;
         if at_zero < log_threshold {
             return Ok(0.0);
         }
 
-        let at_one = self.max_log_e_value(1.0, true)?;
-        if at_one >= log_threshold {
-            // A one-sided false rejection at the parameter-space boundary:
-            // preserve the valid domain endpoint and abstain from tightening.
-            return Ok(1.0);
-        }
-
-        // For positive stakes, the e-value is nonincreasing in the candidate
-        // mean. Find the smallest candidate that has not been rejected.
         let mut rejected = 0.0;
         let mut accepted = 1.0;
         for _ in 0..80 {
@@ -190,7 +147,32 @@ impl BoundedMeanBettingSequence {
                 accepted = midpoint;
             }
         }
-        Ok(next_up(accepted).min(1.0))
+        Ok(next_down(rejected).max(0.0))
+    }
+
+    fn upper_bound(&self, log_threshold: f64) -> Result<f64, AdaptiveImportanceSamplingError> {
+        // Negative stakes test H0: mu >= candidate_mean. Their e-values
+        // increase as candidate_mean increases, so rejection proves the true
+        // mean is below the rejected candidate and supplies an upper endpoint.
+        let at_one = self.max_log_e_value(1.0, false)?;
+        if at_one < log_threshold {
+            return Ok(1.0);
+        }
+
+        let mut accepted = 0.0;
+        let mut rejected = 1.0;
+        for _ in 0..80 {
+            let midpoint = 0.5 * accepted + 0.5 * rejected;
+            if midpoint <= accepted || midpoint >= rejected {
+                break;
+            }
+            if self.max_log_e_value(midpoint, false)? >= log_threshold {
+                rejected = midpoint;
+            } else {
+                accepted = midpoint;
+            }
+        }
+        Ok(next_up(rejected).min(1.0))
     }
 
     /// Directional e-process: positive stakes test mu <= candidate, negative
