@@ -205,9 +205,7 @@ pub struct LiveEvidence {
 pub enum FailureAction {
     RecalibrationRequired,
     IndependentDiagnosticRequired,
-    AbstainOutOfEnvelope {
-        feature: String,
-    },
+    AbstainOutOfEnvelope { feature: String },
     AbstainInsufficientEvidence,
 }
 
