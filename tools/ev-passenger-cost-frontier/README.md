@@ -459,4 +459,4 @@ The frozen synthetic fixture has 100 records (40 calibration, 60 holdout), two s
 
 These are synthetic controls. The evaluator explicitly sets field qualification, model mutation and operational authority to false. Synthetic evidence cannot produce an empirically supported status. Split conformal is reported as an empirical diagnostic only; no distribution-free guarantee under arbitrary temporal dependence or deployment shift is claimed.
 
-Files: `src/service_prediction_calibration.rs`, `src/bin/service_prediction_calibration_screen.rs`, `schemas/service_prediction_calibration_v0_1.schema.json`, `fixtures/service_prediction_calibration_v0_1.json`. The module currently contains 15 focused Rust test definitions. Exact-head CI remains pending until the workflow completes.
+Files: `src/service_prediction_calibration.rs`, `src/bin/service_prediction_calibration_screen.rs`, `schemas/service_prediction_calibration_v0_1.schema.json`, `fixtures/service_prediction_calibration_v0_1.json`. The module currently contains 17 focused Rust test definitions. Exact-head CI remains pending until the workflow completes.
