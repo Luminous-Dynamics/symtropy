@@ -423,8 +423,7 @@ pub fn whitened_operator_perturbation_bound(
     nominal_operator_norm_upper: f64,
 ) -> Result<f64, StabilityError> {
     if !relative_mass_bound.is_finite()
-        || relative_mass_bound < 0.0
-        || relative_mass_bound >= 1.0
+        || !(0.0..1.0).contains(&relative_mass_bound)
         || !whitened_jacobian_bound.is_finite()
         || whitened_jacobian_bound < 0.0
         || !nominal_operator_norm_upper.is_finite()
