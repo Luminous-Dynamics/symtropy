@@ -11,6 +11,7 @@ pub mod atlas;
 pub mod dynamics;
 pub mod decision_value;
 pub mod matching;
+pub mod quotient;
 pub mod scoped;
 
 pub mod transfer;
