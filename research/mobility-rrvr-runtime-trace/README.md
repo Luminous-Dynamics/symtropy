@@ -188,3 +188,56 @@ The execution-evidence validator also enforces cross-event chronology: fault eve
 Fault delivery confirmation now requires the campaign-pinned minimum observer quorum (at least two profiles), each pinned by observer ID/revision/binary digest and declared common-cause domains. Confirmed/Refuted observations carry separate receipts per observer. The validator rejects shared declared domains between quorum members or with the injector, replayed observer artifacts and unpinned binaries.
 
 The positive four-event bundle carries eight observer receipts: two per fault. The evidence report separates four delivery verdicts from eight supporting observer receipts. This is still fault-model-relative independence, not a claim of physical independence.
+
+
+## Plan-derived Gazebo dispatch composition
+
+dispatch_planned_fault_once now composes the verified plan, exact simulation cut point, target resolution, final world/target rechecks and one idempotent injector dispatch. The function rejects a changed world epoch, clock, iteration, simulation time, world-state digest or target binding before dispatch. An Unknown injector result remains a reconciliation requirement. This is covered by mock-transport regression tests; it is not a live Gazebo run.
+
+The final snapshot/re-resolution narrows a time-of-check/time-of-use window but does not provide an atomic world lock. Gazebo's standard interfaces do not enforce exclusive mutation ownership. A live campaign must isolate and control all world-mutating clients, and must account for documented reset/spawn races, top-level-model-only enumeration, SceneBroadcaster synchronization and the separate /stats step-feedback clock. See [GAZEBO_ADAPTER_V0.1.md](GAZEBO_ADAPTER_V0.1.md).
+
+The research positioning has also been updated to acknowledge EAST (October 2026) and existing ROS fault-injection/tracing tools as prior art. RRVR's intended differentiator is cross-restart physical-effect lineage and authority continuity, not generic fault injection or digital-twin safety testing. See [RESEARCH_POSITIONING_AND_BENCHMARKS_V0.1.md](RESEARCH_POSITIONING_AND_BENCHMARKS_V0.1.md).
+
+
+### Durable injector idempotency and payload conflict
+
+The dispatch request now includes a SHA-256 commitment over its canonical plan/run/fault/target payload. The local registry detects same-process duplicates and same-key/different-payload conflicts; it is not durable and cannot protect a new coordinator process by itself. A concrete injector must persist idempotency-key-to-payload-digest-to-outcome atomically before effect execution, return the stored outcome for an identical retry, and reject a changed payload under the same key. `PayloadConflict` is distinct from `Unknown` and requires investigation, not retry.
+
+A test double exercises the contract across a simulated coordinator restart. A real injector ledger, its persistence semantics and its physical effect boundary remain unqualified.
+
+
+### Blind observer evaluation
+
+The Gazebo observer trait no longer receives the expected fault-signature digest. The independent assessor retains that oracle and compares it only after the observer returns its measured signature. A structurally qualified quorum now produces Confirmed (unanimous expected signature), Refuted (unanimous different signature), or InsufficientEvidence (observer disagreement). Invalid membership, stale scope and common-cause overlap remain hard errors. These verdicts do not grant authority.
+
+
+This increment advances the payload-conflict and observer-blinding portions of [#7148](https://github.com/Luminous-Dynamics/symtropy/issues/7148). The durable append-only dispatch journal and real injector-side ledger are not implemented by this mock-transport PR.
+
+
+### Reset-qualified dispatch session
+
+Plan-derived dispatch now requires a private reset-verification marker created only by reset_and_verify after exact initial-state, epoch, clock and pause checks. Capability preflight alone is not enough to dispatch. The dispatch path compares the session against the private marker and re-queries the live capability profile; plan, reset, session or profile drift blocks the injector call. The marker is process-local only. After coordinator restart, a concrete adapter must reconcile a durable reset receipt from the #7148 journal rather than reconstructing reset qualification from an epoch string.
+
+
+An ambiguous ResetSimulation response is non-retryable. The session moves to OutcomeUnresolved, a second reset and any fault dispatch are blocked, and reconcile_reset may restore Verified only from a read-only observation that matches the exact planned new epoch and initial state. This protects the live-process case; reset intent and outcome still need durable write-ahead journaling under #7148 to survive coordinator crashes.
+
+
+The process-local dispatch guard retains the last observed outcome as well as the payload digest: Unknown and PayloadConflict are not collapsed into DuplicateSuppressed on repeat calls. Independent delivery observation is bound to the exact scheduled simulation step in this v0.1 contract; later-step observations are rejected unless a future plan version explicitly commits an observation window.
+
+
+The dispatch idempotency key uses a versioned hash of a canonical, plan-verified event/run identity rather than delimiter-concatenated identifiers. The scenario/fault must be members of the integrity-verified plan; the payload commitment then binds the generated key to the target and exact fault request.
+
+
+The reset marker is bound to the exact compiled plan digest, not only to the simulator/world profile. A session qualified under one plan cannot be reused for another valid campaign on the same simulator. The session is non-cloneable and the raw injector dispatch wrapper is private; use the composed plan-bound dispatch API.
+
+
+The new model/GazeboResetLifecycle.tla is checked with the workflow's pinned TLC tool: the safe lifecycle must satisfy at-most-one reset request and no fault dispatch before verified reset; the unsafe retry config must produce an AtMostOneResetRequest counterexample. This remains a bounded abstract protocol model, not a proof of Gazebo transport behavior or a Rust/TLA refinement result.
+
+
+Fault-dispatch keys and payload commitments include the verified post-reset world epoch and simulation clock identity. Reusing the same plan/run/fault fields against a different world generation or clock must produce a different key and request fingerprint.
+
+
+Dispatch reconciliation is bound to the registered request payload and updates the local record with the read-only injector-ledger decision. NoDispatchProven, Unknown and PayloadConflict remain non-dispatching for that key; a genuinely new attempt must have a new run/attempt identity.
+
+
+The reset model now also pins the campaign identity at BeginReset and checks DispatchUsesResetPlan. The second TLC negative control swaps the active campaign after reset verification and must produce a counterexample if dispatch can reuse the old reset qualification under the new plan.

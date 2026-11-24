@@ -105,3 +105,133 @@ The next integration is a version-pinned ROS 2 service/action client implementin
 ## Cross-event trace ordering
 
 The execution-evidence contract checks one continuous simulation clock from reset through every fault event. It requires both phase-local order and cross-event nondecreasing step/time coordinates. This catches a replay where each fault's local receipts appear valid but the sequence of fault events is globally reordered.
+
+
+## Plan-derived dispatch composition extension
+
+The new dispatch_planned_fault_once function is the composed plan-to-injector boundary. It does not accept a free-form fault event: it first verifies the compiled plan, selects the named scenario and fault from that plan, and revalidates the capability profile and stepping method carried by the session. It then:
+
+1. Advances to the exact planned simulation iteration.
+2. Resolves the logical component to its pinned world/entity/revision/profile/fault-domain binding.
+3. Re-reads the world immediately before dispatch and requires the same world epoch, clock identity, paused state, exact iteration, simulation time and world-state digest as the cut-point snapshot.
+4. Resolves the target a second time and requires an identical binding.
+5. Derives the idempotency key from plan, pair, scenario, fault, run and run epoch, constructs the request from the committed fault definition, and makes at most one dispatch call through the registry.
+
+A changed world digest or target binding is not retried; it becomes a failed precondition for dispatch. A lost injector response remains Unknown and must be reconciled by looking up the same idempotency key. The result includes the exact cut snapshot, target binding, plan-derived request and dispatch outcome. It does not emit authenticated execution receipts or grant retry/actuation authority.
+
+### Important residual: Gazebo does not provide an exclusive-world lease
+
+The final re-read narrows the time-of-check/time-of-use window; it does not make a read followed by a dispatch atomic. Gazebo's standard Simulation Interfaces do not, by themselves, prevent another ROS/Gazebo client from mutating the same world between the final snapshot and injector acceptance.
+
+A live campaign must therefore demonstrate exclusive mutation ownership. The preferred deployment is a dedicated simulator process/ROS domain in which only the campaign coordinator can invoke world-mutating services, with all reset/spawn/delete/set-state clients routed through that coordinator. A lease/lock that is not enforced by every mutator is not evidence of exclusivity. If this property cannot be established, report the campaign as external_mutation_uncontrolled and do not promote it to a race-free live qualification.
+
+Gazebo's current documentation adds concrete reasons for this gate:
+- ResetSimulation can be detected through SceneBroadcaster's /scene/info; spawning an entity concurrently with reset can trigger reset detection early.
+- The documented GetEntities/GetEntitiesStates interfaces enumerate top-level models; nested models are not included, and GetEntityState expects a model entity. Target resolution must not silently treat a nested link or a partial entity inventory as complete.
+- Simulation Interfaces service calls synchronize with SceneBroadcaster state updates. The default throttles are nominally 60 Hz while running and 30 Hz while paused, while step completion feedback is tracked from the separate /stats stream at 10 Hz. The documented one-second synchronization timeout is a wall-clock timeout, not a simulation-time bound.
+
+Consequently, the live adapter must record separately: (a) requested and observed simulation iterations/time, (b) wall-clock request/response latency, and (c) SceneBroadcaster state synchronization latency. Do not infer simulation-step completion from wall-clock sleep or infer world freshness from the 10 Hz stats stream alone.
+
+References: [Gazebo Simulation Interfaces: dependencies, timing and known limitations](https://gazebosim.org/docs/rotary/ros2_sim_interfaces/); [Gazebo latest Simulation Interfaces](https://gazebosim.org/docs/latest/ros2_sim_interfaces/).
+
+
+## Payload-bound durable dispatch idempotency
+
+A stable idempotency key must not be allowed to alias two different fault requests. The dispatch request now carries a SHA-256 commitment over a canonical JSON projection of the plan, campaign, pair, scenario, fault ID/sequence, target ID, fault domain, scheduled simulation step, fault-parameter digest and idempotency key. The payload digest excludes only its own digest field. The coordinator verifies the digest before calling the injector.
+
+The in-process registry is only a fast duplicate/conflict guard. It is intentionally not treated as restart-safe storage. The concrete injector owner must atomically and durably store the mapping:
+
+idempotency_key -> payload_sha256 -> operation outcome
+
+before any fault effect can occur. Required semantics:
+- same key + same payload digest: return the previously recorded operation result without executing the effect again;
+- same key + different payload digest: reject with PayloadConflict and do not execute;
+- unknown ledger result or unavailable lookup: remain unresolved; never blind-resubmit;
+- ledger survives coordinator and injector process restarts, and its durability/linearizability are tested against the actual injector store.
+
+The Rust reference tests include an in-memory durable-ledger test double showing payload conflict rejection after a coordinator-registry restart. This is not evidence that a real fault injector already implements a durable ledger. Exactly-once physical effects are not claimed; the target is at-most-once effect admission under a verified, durable injector contract plus independent outcome observation.
+
+
+## Blind observer evaluation and three-valued delivery verdict
+
+The observer API receives the target, fault identity, world epoch and simulation step, but it is not passed the plan's expected delivery-signature digest. The expected signature remains with the independent assessor. This avoids making a supposedly independent observer echo or tune its measurement to the expected answer.
+
+Once observer identities, binaries, epochs, steps and disjoint common-cause domains have passed structural qualification, the assessor returns one of three results:
+- Confirmed: every qualified observer reports the same signature, and it equals the plan-committed expected signature;
+- Refuted: every qualified observer reports the same valid signature, but it differs from the plan-committed expected signature;
+- InsufficientEvidence: qualified observers disagree on the signature.
+
+Missing members, duplicate/unpinned observers, stale epochs, invalid digests and common-cause overlap remain hard qualification errors rather than being converted into a verdict. The observer verdict is evidence classification only; it does not authorize an action, retry or physical mutation.
+
+
+The request commitment includes the explicit canonicalization identifier serde-json-value-sorted-keys-v0.1. This lets an injector implementation reproduce the digest outside Rust without guessing a serialization profile. The standard industry pattern of storing the original request parameters with a client idempotency token and rejecting parameter changes is also described in [AWS Builder's Library: Making retries safe with idempotent APIs](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/). RRVR applies that principle to a physical fault command, where a payload mismatch must be a hard conflict rather than a second target mutation.
+
+This implementation advances part of [#7148 — crash-safe dispatch journaling and blinded observation](https://github.com/Luminous-Dynamics/symtropy/issues/7148). The append-only write-ahead journal, durable external injector implementation and authenticated raw observation artifacts remain separate acceptance items under that issue.
+
+
+## Verified-reset prerequisite for plan-derived dispatch
+
+The composed dispatch function now refuses a session created only by capability preflight. A GazeboAdapterSession carries a private reset-verification marker, which is populated only after reset_and_verify has:
+- revalidated the exact compiled plan and live simulator capability profile;
+- confirmed the current world epoch, clock and paused state against the session;
+- executed the campaign-declared reset;
+- verified a changed world epoch, paused state, step zero and the exact initial-state digest; and
+- retained the resulting epoch/clock and exact capability profile in the session marker.
+
+The dispatch path checks that the public session fields still equal the private marker, re-queries the live simulator capability profile and requires exact equality with the profile captured at reset. A preflight-only session, a caller-mutated epoch/profile/clock, a live capability drift, or a repeated reset attempt is rejected before injector dispatch. The preflight and reset functions also verify the compiled plan before issuing simulator operations, so a tampered plan cannot cause a reset.
+
+This marker is an in-process API invariant, not a durable reset receipt. It cannot establish that a concrete transport's reset record survived coordinator restart; the actual live adapter must persist reset receipts in the append-only ledger specified by #7148. A fresh coordinator after restart must not reconstruct a verified session merely from a remembered epoch string; it must reconcile the durable reset/evidence record and re-read live simulator state before resuming.
+
+
+### Ambiguous reset outcomes are non-retryable
+
+Reset lifecycle is now explicit: NotAttempted -> DispatchStarted -> Verified, with OutcomeUnresolved entered whenever the reset call or its immediate state observation is ambiguous or the returned state fails the reset contract. Once ResetSimulation might have been sent, reset_and_verify refuses a second reset request. It returns ResetOutcomeUnknown on a lost/ambiguous response and ResetOutcomeUnresolved on any subsequent attempt to reset without reconciliation.
+
+The read-only reconcile_reset path never calls ResetSimulation. It re-reads live capabilities and world state, then promotes the session to Verified only if the observed world proves a new epoch, the campaign-pinned initial state digest, paused state, step zero and matching clock. Otherwise the session remains unresolved. This is deliberately conservative: a timeout is not proof that reset did not happen.
+
+The regression test simulates the difficult cut: the mock applies the reset, then returns a transport error as though the response were lost. A second reset request is blocked; dispatch is also blocked while unresolved; read-only reconciliation observes the exact committed initial state and marks the session verified without a second reset.
+
+The state machine is still in-memory in this contract-only layer. A coordinator crash can erase DispatchStarted/OutcomeUnresolved; the concrete adapter must therefore persist reset intent before the request and reconcile from the #7148 append-only journal after restart.
+
+
+### Dispatch outcome retention and exact observer cut
+
+The process-local duplicate guard stores both the request payload digest and the last observed dispatch outcome. An identical repeated request after an accepted/definitively rejected result is DuplicateSuppressed; an ambiguous prior result remains Unknown; an existing payload conflict remains PayloadConflict. A different payload under the same key is always PayloadConflict. This local cache is not durable and must never replace the injector owner's durable ledger lookup.
+
+For this v0.1 simulator contract, delivery observations are scoped to the exact scheduled simulation iteration, not merely any later step. The simulator remains paused at the cut while independent observations are collected. An observation one or more steps late is a scope mismatch and cannot confirm delivery. Any future asynchronous observation window must be explicitly committed in the campaign plan, not introduced as an adapter-side tolerance.
+
+
+The idempotency key itself is now a versioned SHA-256 digest of a canonical identity record containing the plan digest, campaign/pair/scenario/fault IDs and sequence, run ID and run epoch. The scenario and fault must be exact members of the integrity-verified plan before a key can be derived. This avoids ambiguity from delimiter characters in caller-supplied IDs. The separate request-payload digest then binds that key to the full target, fault domain, schedule and parameter digest. A known-answer test pins the cross-language payload commitment; delimiter-collision and uncommitted-scenario tests pin identity behavior.
+
+
+The private reset-attempt and reset-verification records also commit the exact compiled plan SHA-256. Dispatch and read-only reset reconciliation reject a different plan, even when it targets the same simulator build and world profile. The adapter session itself is non-cloneable, and the raw injector dispatch helper is private; the only exported fault-dispatch path requires the plan-bound reset state. This closes accidental session duplication and plan substitution at the API layer, while the durable journal remains necessary for process-restart safety.
+
+
+## Bounded formal model for reset uncertainty
+
+The adapter increment now includes model/GazeboResetLifecycle.tla with a safe config and a deliberately unsafe retry config. The model separates coordinator phase from physical reset application and read-only observation, so a lost response can occur either before or after the simulator applies the reset. The safe model checks:
+- AtMostOneResetRequest;
+- NoFaultDispatchBeforeVerified;
+- VerifiedRequiresObservedReset; and
+- TypeOK.
+
+The unsafe control enables a second ResetSimulation request from OutcomeUnresolved and is expected to produce a TLC counterexample to AtMostOneResetRequest. The existing pinned TLC jar is reused, and the model/config source hashes are checked before model execution; safe and negative logs are included in the conformance artifact.
+
+Claim ceiling: this is a bounded abstract protocol model. It does not establish that a concrete ROS 2 client or Gazebo server obeys the modeled call/response semantics, does not prove liveness or fairness, and is not yet a state-by-state refinement proof against the Rust session lifecycle. A follow-on differential projection should map Rust reset lifecycle states/transitions to this TLA state space and use the same replayable traces for both.
+
+
+The canonical idempotency identity and request-body commitment now also include the exact world epoch and clock ID captured by reset qualification. These are derived from the session, not accepted as caller-authored claims. Thus an otherwise-identical plan/run/fault/target request on a different simulator world epoch or clock generation cannot reuse the same idempotency key or payload digest. This matters because a reset changes the simulator's state generation even when the model/entity names are unchanged.
+
+
+### Request-bound dispatch reconciliation
+
+The local registry reconciliation API now accepts the complete request, not only an arbitrary idempotency-key string. It recomputes the canonical payload fingerprint, requires an existing matching local/recovered registry entry, performs a read-only injector-ledger lookup and stores the returned decision with that entry. A changed request under the same key is PayloadConflict; a missing recovered registry entry remains Unresolved until the durable journal restores the request binding.
+
+A reconciled Accepted, Rejected, NoDispatchProven, Unresolved or PayloadConflict status is retained for subsequent calls. In particular, NoDispatchProven does not re-open the original dispatch request: it is a statement about the old attempt identity, not permission to send it again. A new physical attempt must carry a new attempt/run identity and independently qualified recovery evidence. This avoids a race where an old dispatch key is silently reused after a negative lookup.
+
+
+### Plan-substitution formal negative control
+
+The reset TLA model now records the plan identity captured by BeginReset and the plan identity used by FaultDispatch. Its additional invariant is DispatchUsesResetPlan: any fault dispatch must use the same plan that was active when reset qualification began. A separate mutant enables UnsafePlanSubstitution after Verified; TLC must produce a counterexample if a second plan is allowed to use the prior reset proof. The safe configuration disables both unsafe retry and plan substitution; the workflow requires the plan-mutant log to name DispatchUsesResetPlan specifically.
+
+This complements the Rust Plan A reset / Plan B dispatch regression. It remains an abstract check over two plan identifiers, not proof of cryptographic hash validation or the concrete Rust session implementation.

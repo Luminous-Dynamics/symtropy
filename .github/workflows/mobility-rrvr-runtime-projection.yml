@@ -50,6 +50,14 @@ jobs:
           printf '%s  %s\n' "e599cffcf0e82887af8ba627470c026da1109a5becc81e9a21c6755919495168" "$MODEL_CFG" | sha256sum --check
           printf '%s  %s\n' "281c17f88823c88edf070b4d7b320738f8c5b46645ec41cb1059213c69a5e3aa" "$TRACE_SPEC" | sha256sum --check
           printf '%s  %s\n' "b4e7c14733a757a9923e9837519586708b85ee23c6bb35995fff245695a365dc" "$TRACE_CFG" | sha256sum --check
+          RESET_MODEL="research/mobility-rrvr-runtime-trace/model/GazeboResetLifecycle.tla"
+          RESET_CFG="research/mobility-rrvr-runtime-trace/model/GazeboResetLifecycle.cfg"
+          RESET_UNSAFE_CFG="research/mobility-rrvr-runtime-trace/model/GazeboResetLifecycle_NaiveRetry.cfg"
+          RESET_PLAN_CFG="research/mobility-rrvr-runtime-trace/model/GazeboResetLifecycle_PlanSubstitution.cfg"
+          printf '%s  %s\n' "8e2be0cd17d91b5255c8be1055adf6dc1ddde328a5b94f3880265506cf121b59" "$RESET_MODEL" | sha256sum --check
+          printf '%s  %s\n' "62edb47e5e59ef395c2a05ddcff216d3ad032293578bd26eba873cd185fe519e" "$RESET_CFG" | sha256sum --check
+          printf '%s  %s\n' "98791fd10fef39b502f9281b300096157c6ca191739caf40618292a0c48a3462" "$RESET_UNSAFE_CFG" | sha256sum --check
+          printf '%s  %s\n' "5f0a3ec8edba3370f491a8eebab41c5241d072394cf62cd939bce1a7af864dfc" "$RESET_PLAN_CFG" | sha256sum --check
 
       - name: Validate schema and known-answer fixtures
         shell: bash
@@ -451,11 +459,7 @@ jobs:
             .events[0].execution.status = "unknown"
             | .events[0].execution.receipt = null
             | .events[0].delivery_observation.verdict = "unknown"
-            | .events[0].delivery_observation.observer_id = null
-            | .events[0].delivery_observation.observer_revision = null
-            | .events[0].delivery_observation.observer_fault_domain_id = null
-            | .events[0].delivery_observation.observed_fault_signature_sha256 = null
-            | .events[0].delivery_observation.receipt = null
+            | .events[0].delivery_observation.members = []
           ' "$BUNDLE" > "$DISPATCH_ONLY"
           cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_execution_validate -- "$PLAN_PATH" "$SOURCE" "$PLAN_SHA" "$DISPATCH_ONLY" "$RUNNER_TEMP/rrvr-dispatch-only-report.json" > /dev/null
           jq -e '
@@ -473,11 +477,7 @@ jobs:
             | .events[1].execution.status = "unknown"
             | .events[1].execution.receipt = null
             | .events[1].delivery_observation.verdict = "unknown"
-            | .events[1].delivery_observation.observer_id = null
-            | .events[1].delivery_observation.observer_revision = null
-            | .events[1].delivery_observation.observer_fault_domain_id = null
-            | .events[1].delivery_observation.observed_fault_signature_sha256 = null
-            | .events[1].delivery_observation.receipt = null
+            | .events[1].delivery_observation.members = []
           ' "$BUNDLE" > "$UNKNOWN"
           cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_execution_validate -- "$PLAN_PATH" "$SOURCE" "$PLAN_SHA" "$UNKNOWN" "$RUNNER_TEMP/rrvr-unknown-report.json" > /dev/null
           jq -e '
@@ -488,7 +488,7 @@ jobs:
             and .retry_permitted == false
           ' "$RUNNER_TEMP/rrvr-unknown-report.json"
 
-          jq '.events[0].delivery_observation.observed_fault_signature_sha256 = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"' "$BUNDLE" > "$TAMPERED"
+          jq '.events[0].delivery_observation.members[0].observed_fault_signature_sha256 = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"' "$BUNDLE" > "$TAMPERED"
           set +e
           cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_execution_validate -- "$PLAN_PATH" "$SOURCE" "$PLAN_SHA" "$TAMPERED" > "$RUNNER_TEMP/rrvr-execution-tamper.log" 2>&1
           status=$?
@@ -497,6 +497,7 @@ jobs:
             echo "Execution evidence validator accepted a mismatched observed fault signature."
             exit 1
           fi
+          grep -Fq "DeliverySignatureMismatch" "$RUNNER_TEMP/rrvr-execution-tamper.log"
           echo "Expected negative control rejected: delivery signature mismatch."
 
       - name: Run strict Clippy
@@ -718,6 +719,104 @@ jobs:
               RestartSafeEffectContinuity.tla tla2tools.jar tlc-reservation.log tlc-no-effect-recovery.log \
               tlc-negative-wrong-action.log formal-conformance-manifest.json >> SHA256SUMS
           )
+
+      - name: Model-check Gazebo reset uncertainty lifecycle and naive-retry counterexample
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace/model"
+          MODEL="$ROOT/GazeboResetLifecycle.tla"
+          SAFE_CFG="$ROOT/GazeboResetLifecycle.cfg"
+          UNSAFE_CFG="$ROOT/GazeboResetLifecycle_NaiveRetry.cfg"
+          PLAN_CFG="$ROOT/GazeboResetLifecycle_PlanSubstitution.cfg"
+          JAR="$RUNNER_TEMP/tla/tla2tools.jar"
+          OUT="$RUNNER_TEMP/rrvr-runtime-projection"
+          SAFE_DIR="$OUT/tla-gazebo-reset-safe"
+          UNSAFE_DIR="$OUT/tla-gazebo-reset-unsafe"
+          PLAN_DIR="$OUT/tla-gazebo-reset-plan-substitution"
+          mkdir -p "$SAFE_DIR" "$UNSAFE_DIR" "$PLAN_DIR"
+
+          cp "$MODEL" "$SAFE_DIR/GazeboResetLifecycle.tla"
+          cp "$SAFE_CFG" "$SAFE_DIR/GazeboResetLifecycle.cfg"
+          (
+            cd "$SAFE_DIR"
+            java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+              -workers 1 \
+              -metadir "$RUNNER_TEMP/tlc-gazebo-reset-safe" \
+              -config GazeboResetLifecycle.cfg \
+              GazeboResetLifecycle.tla
+          ) | tee "$OUT/tlc-gazebo-reset-safe.log"
+          grep -Fq "Model checking completed. No error has been found." "$OUT/tlc-gazebo-reset-safe.log"
+          grep -Fq "0 states left on queue" "$OUT/tlc-gazebo-reset-safe.log"
+
+          cp "$MODEL" "$UNSAFE_DIR/GazeboResetLifecycle.tla"
+          cp "$UNSAFE_CFG" "$UNSAFE_DIR/GazeboResetLifecycle_NaiveRetry.cfg"
+          set +e
+          (
+            cd "$UNSAFE_DIR"
+            java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+              -workers 1 \
+              -metadir "$RUNNER_TEMP/tlc-gazebo-reset-unsafe" \
+              -config GazeboResetLifecycle_NaiveRetry.cfg \
+              GazeboResetLifecycle.tla
+          ) > "$OUT/tlc-gazebo-reset-unsafe.log" 2>&1
+          unsafe_status=$?
+          set -e
+          if [ "$unsafe_status" -eq 0 ]; then
+            echo "TLC accepted an unsafe retry from OutcomeUnresolved."
+            exit 1
+          fi
+          grep -Fq "AtMostOneResetRequest" "$OUT/tlc-gazebo-reset-unsafe.log"
+          grep -Fq "Invariant AtMostOneResetRequest is violated" "$OUT/tlc-gazebo-reset-unsafe.log"
+
+          cp "$MODEL" "$PLAN_DIR/GazeboResetLifecycle.tla"
+          cp "$PLAN_CFG" "$PLAN_DIR/GazeboResetLifecycle_PlanSubstitution.cfg"
+          set +e
+          (
+            cd "$PLAN_DIR"
+            java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+              -workers 1 \
+              -metadir "$RUNNER_TEMP/tlc-gazebo-reset-plan-substitution" \
+              -config GazeboResetLifecycle_PlanSubstitution.cfg \
+              GazeboResetLifecycle.tla
+          ) > "$OUT/tlc-gazebo-reset-plan-substitution.log" 2>&1
+          plan_status=$?
+          set -e
+          if [ "$plan_status" -eq 0 ]; then
+            echo "TLC accepted dispatch after replacing the plan bound to reset."
+            exit 1
+          fi
+          grep -Fq "DispatchUsesResetPlan" "$OUT/tlc-gazebo-reset-plan-substitution.log"
+          grep -Fq "Invariant DispatchUsesResetPlan is violated" "$OUT/tlc-gazebo-reset-plan-substitution.log"
+          MODEL_SHA=$(sha256sum "$MODEL" | cut -d ' ' -f 1)
+          SAFE_CFG_SHA=$(sha256sum "$SAFE_CFG" | cut -d ' ' -f 1)
+          UNSAFE_CFG_SHA=$(sha256sum "$UNSAFE_CFG" | cut -d ' ' -f 1)
+          PLAN_CFG_SHA=$(sha256sum "$PLAN_CFG" | cut -d ' ' -f 1)
+          SAFE_LOG_SHA=$(sha256sum "$OUT/tlc-gazebo-reset-safe.log" | cut -d ' ' -f 1)
+          UNSAFE_LOG_SHA=$(sha256sum "$OUT/tlc-gazebo-reset-unsafe.log" | cut -d ' ' -f 1)
+          PLAN_LOG_SHA=$(sha256sum "$OUT/tlc-gazebo-reset-plan-substitution.log" | cut -d ' ' -f 1)
+          JAR_SHA=$(sha256sum "$JAR" | cut -d ' ' -f 1)
+          jq -n \
+            --arg model_sha256 "$MODEL_SHA" \
+            --arg safe_config_sha256 "$SAFE_CFG_SHA" \
+            --arg unsafe_config_sha256 "$UNSAFE_CFG_SHA" \
+            --arg plan_config_sha256 "$PLAN_CFG_SHA" \
+            --arg safe_log_sha256 "$SAFE_LOG_SHA" \
+            --arg unsafe_log_sha256 "$UNSAFE_LOG_SHA" \
+            --arg plan_log_sha256 "$PLAN_LOG_SHA" \
+            --arg tlc_jar_sha256 "$JAR_SHA" \
+            '{
+              schema_version:"0.1",
+              model:"GazeboResetLifecycle",
+              safe_model_check:{result:"passed",invariants:["TypeOK","AtMostOneResetRequest","NoFaultDispatchBeforeVerified","VerifiedRequiresObservedReset","DispatchUsesResetPlan"],log_sha256:$safe_log_sha256},
+              negative_controls:[
+                {mutation:"Enable UnsafeRetry from OutcomeUnresolved",expected:"AtMostOneResetRequest counterexample",result:"rejected",log_sha256:$unsafe_log_sha256},
+                {mutation:"Substitute the active plan after reset verification",expected:"DispatchUsesResetPlan counterexample",result:"rejected",log_sha256:$plan_log_sha256}
+              ],
+              pins:{model_sha256:$model_sha256,safe_config_sha256:$safe_config_sha256,unsafe_config_sha256:$unsafe_config_sha256,plan_config_sha256:$plan_config_sha256,tlc_jar_sha256:$tlc_jar_sha256},
+              claim_ceiling:"Bounded reset lifecycle abstraction; no proof of ROS/Gazebo transport behavior or physical reset."
+            }' > "$OUT/gazebo-reset-formal-manifest.json"
+          sha256sum "$MODEL" "$SAFE_CFG" "$UNSAFE_CFG" "$PLAN_CFG" "$OUT/tlc-gazebo-reset-safe.log" "$OUT/tlc-gazebo-reset-unsafe.log" "$OUT/tlc-gazebo-reset-plan-substitution.log" "$OUT/gazebo-reset-formal-manifest.json" >> "$OUT/SHA256SUMS"
 
       - name: Upload projection conformance package
         if: success()

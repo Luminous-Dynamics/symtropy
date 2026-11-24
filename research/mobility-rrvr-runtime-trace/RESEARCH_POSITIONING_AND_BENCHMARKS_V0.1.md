@@ -388,3 +388,153 @@ Publish:
 - observer binary/revision drift rejection rate.
 
 A more demanding benchmark should deliberately inject common-cause cuts across two nominally different observers and compare naive distinct-ID logic against dependency-qualified quorum logic. The target is zero false quorum qualifications in the frozen common-cause negative controls, alongside complete admission of valid positive controls. This is a target, not an achieved empirical rate.
+
+
+## 2026-11 research update: narrow the novelty claim
+
+A newly relevant preprint, **EAST: Embodied AI Safety Testing via Systematic Fault Injection in Digital Twins** (25 October 2026), already combines a literature-grounded hazard taxonomy, executable fault operators, validity/applicability constraints, verification that a fault was realized during simulation, independent safety evaluation, simulator-state evidence and replayable records. Its reported evaluation covers six RoboTwin manipulation tasks and ACT/RDT policy architectures; it targets 74 admissible task-policy-operator combinations, obtains valid evidence for 63, and reports 82 valid executions that complete the task despite safety violations.
+
+This is direct prior art for the broad proposition "connect systematic fault injection, simulator-state observation, independent evaluation and reproducible evidence." RRVR must not claim to invent that bridge. EAST should be included as a primary comparator in future evaluations, not described as a gap in the field.
+
+Other complementary tooling already exists:
+- ROS-RVFT publishes design guidance for APIs that inject faults and emulate errors in ROS-based execution scenarios.
+- ros2_fault_injection provides configurable seeded faults for selected ROS topic streams (including odometry, scans, joint states and IMU), assertions over injector events/topic rates, and a campaign runner.
+- ROS 2 launch_testing supports active integration tests while nodes run, post-shutdown assertions and isolated ROS domain IDs.
+- ros2_tracing provides runtime instrumentation and trace capture for execution/performance analysis.
+
+The defensible RRVR differentiation is therefore the cross-restart physical-effect and authority-continuity problem, not generic digital-twin fault testing:
+1. A stable logical physical-effect identity is retained across distinct attempts and process/controller epochs.
+2. A retry is admitted only after durable persistence reconciliation, independent physical NoEffect evidence, mission resolution, controller-queue fencing and downstream graph quiescence.
+3. Physical outcome and command-path quiescence are separate claims, each qualified against a declared common-cause model.
+4. An indeterminate injector/owner result is reconciled against the same durable identity; it cannot become a blind retry.
+5. The existing native adapter remains the only authority boundary; benchmark instrumentation cannot create a permit or capability.
+
+This contribution is still a research hypothesis until it is tested against the relevant baselines and a live, version-pinned stack. It is not a claim of superiority over EAST, RoboRecover or SafeVLA on their native task/safety metrics.
+
+### Comparator matrix to freeze before the live campaign
+
+| Comparator | What to run unchanged | RRVR question |
+|---|---|---|
+| ROS-RVFT / ros2_fault_injection | Existing fault API, seed/replay configuration and assertions for supported ROS-level fault classes | Does a fault event/dispatch assertion correspond to independently observed fault delivery and to an exact physical-effect attempt? |
+| EAST | Its hazard/operator applicability rules, fault-realization checks, independent task-safety evaluation and replay records | What additional restart, persistence, actuator-queue and native-authority continuity failures appear across crash cuts? |
+| ros2_tracing + ordinary launch integration tests | Standard tracing and process/service/action assertions, with tracing-disabled overhead control | Which failures are visible in traces, and which require owner receipts plus independent physical outcome/quiescence evidence? |
+| RRVR full chain | Same task, policy, action prefix, seed, world and fault schedule; compiled plan plus attempt lineage, receipts and observer fault model | Can it prevent unsafe retry/false recovery admission without hiding valid positives or imposing unacceptable recovery cost? |
+
+### New benchmark strata
+
+Do not pool the following into a single "fault coverage" number:
+
+- Fault realization: planned/dispatch/execution/observed event agreement; precision, recall, unknown and not-observed counts.
+- Reset isolation: reset correctness under concurrent spawn/delete/set-state attempts; world-epoch integrity; external-mutation-control failures.
+- Crash-cut continuity: cuts before/after dispatch, injector execution, persistence acknowledgement, physical effect, controller fence, downstream fence and observer capture.
+- Attempt lineage: duplicate physical effects, stale receipts, cross-attempt evidence reuse and false NoEffect/Applied classification.
+- Observer assurance: false quorum qualification under shared power/host/clock/network/firmware/calibration faults.
+- Recovery utility: valid positive admission, false holds, operator intervention, recovery time and mission makespan.
+- Diagnosis: replay-complete rate, signature-preserving reduction, minimization determinism and localization yield.
+
+Hard gates remain separate from utility metrics: zero false Confirmed delivery and zero duplicate effects on the frozen negative corpus; no admission under Unknown critical evidence; zero false observer quorum qualification for declared common-cause controls; and complete positive-control admission for the declared platform profile. These are targets, not achieved rates. Report confidence intervals and experimental-unit counts; repeated frames from one run are not independent trials.
+
+The Gazebo live adapter must also report service wall-clock latency separately from simulation iterations and SceneBroadcaster synchronization latency. Current Gazebo documentation describes a nominal 60 Hz running / 30 Hz paused SceneBroadcaster update rate, a separate 10 Hz stats stream for step feedback, and a one-second state synchronization timeout. These are distinct clocks and mechanisms; one aggregate "step latency" obscures which subsystem caused delay.
+
+### Research references
+
+- [EAST, arXiv:2610.34358](https://arxiv.org/abs/2610.34358), 25 October 2026.
+- [ROS-RVFT guideline I3: fault-injection APIs](https://ros-rvft.github.io/guidelines/guideline-i3).
+- [ros2_fault_injection](https://github.com/reeceholland/ros2_fault_injection).
+- [ROS 2 launch_testing integration-test documentation](https://docs.ros.org/en/rolling/Tutorials/Intermediate/Testing/Integration.html).
+- [ros2_tracing](https://github.com/ros2/ros2_tracing).
+- [Gazebo Simulation Interfaces timing and limitations](https://gazebosim.org/docs/rotary/ros2_sim_interfaces/).
+
+
+### Idempotency-ledger integrity as a separate benchmark dimension
+
+A restart-safe dispatch key must bind to one immutable request payload. Measure this independently from ordinary duplicate suppression:
+- identical key + identical payload after coordinator restart returns the prior outcome and creates zero additional effects;
+- identical key + changed target, fault parameters, schedule, or platform-bound context is rejected as PayloadConflict;
+- coordinator restart, injector restart and durable-store restart are tested separately;
+- crash cuts are inserted before ledger reservation, after reservation/before effect, after effect/before outcome persistence, and after persistence/before response;
+- report duplicate-effect count, payload-conflict detection rate, unresolved-ledger rate, and false NoDispatchProven rate.
+
+The local Rust registry is only a process-local guard. The hard target is zero duplicate effects and zero silent payload aliasing across a real durable injector ledger. A test double is not a deployed injector qualification.
+
+
+### Observer-blinding and verdict-calibration tests
+
+Independent delivery observers must not receive the plan-committed expected fault signature as an input. The evaluator may compare measurements to that expected value only after evidence capture. Benchmark:
+- oracle-leakage tests: observers cannot read the expected signature or hidden evaluator labels;
+- unanimous expected signature -> Confirmed;
+- unanimous valid mismatch -> Refuted;
+- observer disagreement -> InsufficientEvidence;
+- invalid digest, stale epoch, duplicate identity or common-cause overlap -> qualification error / no verdict;
+- false Confirmed and false Refuted rates on adjudicated positive/negative controls, with uncertainty intervals.
+
+This tests measurement independence and calibration separately from quorum membership independence. A set of physically distinct sensors can still share an evaluation oracle or data path.
+
+
+The same-key/different-payload conflict rule is not claimed as novel distributed-systems theory. It follows an established idempotent API pattern: store the original request parameters with a client token and reject reuse of that token with changed parameters ([AWS Builder's Library](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)). RRVR's research question is whether this invariant can be preserved across physical-effect identity, coordinator/injector restarts, actuator outcomes and independently observed recovery.
+
+
+### Reset-qualified dispatch and capability-drift controls
+
+The composed adapter must not permit dispatch from a session that has only completed capability preflight. Evaluate separately:
+- preflight-only session -> zero reset/step/dispatch mutations;
+- tampered compiled plan -> rejected before capability discovery, reset or pause;
+- reset epoch unchanged, wrong clock, nonzero initial step, state digest mismatch or simulator not paused -> no reset-qualified session;
+- repeated reset attempt within one qualified session -> rejected without a second ResetSimulation call;
+- caller-mutated session epoch/clock/profile or changed live simulator/plugin capability profile -> zero injector calls;
+- fresh coordinator restart -> must recover reset qualification from a durable journal receipt, not an in-memory marker or remembered epoch string.
+
+Targets: zero injector calls for every invalid-control case, zero simulator mutation from a tampered plan, and 100% valid positive-control admission only when the exact reset and capability receipts are present. The private session marker is a software guard, not durable reset evidence; that remains part of #7148.
+
+
+### Reset timeout and ambiguous-outcome campaign
+
+Reset is itself a mutating operation and must be tested with the same no-blind-retry discipline as physical fault dispatch. Add crash/fault cuts:
+- before ResetSimulation request;
+- request sent, response dropped before the simulator applies reset;
+- reset applied, response dropped;
+- response accepted, immediate state read lost;
+- state returned but wrong world epoch, clock, paused state, step or initial-state digest;
+- coordinator crash after request but before recording the outcome;
+- coordinator restart with durable reset intent but no durable response receipt.
+
+Targets: zero second reset requests while the prior outcome is ambiguous; zero fault dispatch while reset is unresolved; read-only reconciliation can qualify only an observed state matching the full reset contract; journal recovery after coordinator restart must not invent a successful reset from an epoch string. The in-memory mock state machine is a software contract, not a durable reset ledger qualification.
+
+
+### Exact-cut observer scope and local outcome replay
+
+Add controls for an observer at the exact planned simulation iteration versus one step early/late. The positive control is exact-step only in v0.1; early or late observation must fail scope qualification. If later versions need asynchronous sensing, the observation window must be a typed, committed field in the campaign manifest and independently benchmarked.
+
+For the process-local dispatch guard, verify status-preserving behavior: accepted/definitively rejected same-payload replay -> DuplicateSuppressed; Unknown replay -> Unknown pending reconciliation; same-key changed-payload replay -> PayloadConflict; prior PayloadConflict replay remains PayloadConflict. None may issue a second injector call.
+
+
+Add idempotency-identity controls beyond request-payload mutation: delimiter-colliding caller IDs must produce distinct versioned keys; a scenario or fault object not byte/field-equal to the committed plan entry must not yield a key; a mutated plan digest must not yield a key. The key derivation and request payload digest require separate cross-language known-answer vectors so different transport languages cannot silently compute divergent identifiers.
+
+
+Add controls proving reset evidence cannot be transferred across otherwise-compatible campaigns: compile two valid plans for the same pinned simulator/world profile, reset under plan A, then attempt dispatch under plan B. Expected: ResetVerificationMismatch and zero simulator steps/injector calls. Also check the session cannot be cloned through the safe public API and raw injector dispatch cannot be imported from outside the adapter module.
+
+
+### Formal reset protocol evaluation
+
+The formal reset model is an orthogonal assurance artifact, not a substitute for runtime tests. Its first qualification stage is bounded TLC exploration of the safe state machine plus a required unsafe-retry counterexample. The next research target is differential conformance: export the Rust lifecycle transition sequence (including DispatchStarted, OutcomeUnresolved, Verified and read-only reconciliation) into a typed trace, import it as TLA constraints, and require exact action/successor-state correspondence. Compare:
+- safe Rust traces that match the model;
+- reset-response-lost-after-effect traces that reconcile to Verified;
+- response-lost-before-effect traces that remain OutcomeUnresolved;
+- mutated Rust traces that issue a second reset or dispatch before verification, which TLC must reject.
+
+Do not call the current abstract TLC check a Rust refinement proof. The physical transport, server-side reset semantics and durability after coordinator crash require separate validation.
+
+
+### World-generation and clock-identity substitution controls
+
+For identical plan/run/fault/target fields, vary only the verified simulator world epoch, then only the clock ID. Both the derived idempotency key and payload digest must change. A dispatch request reconstructed with a stale pre-reset epoch or a different clock must be rejected before injector admission. This is distinct from controller boot/controller epochs and should be included in the crash-cut corpus.
+
+
+### Reconciliation-to-dispatch replay controls
+
+For a single registered request, exercise ledger outcomes Accepted, Rejected, NoDispatchProven, Unknown and PayloadConflict. After recording each decision locally, repeat the same dispatch request and require zero additional injector calls; the returned status must preserve the reconciled decision. Reconcile a request with a modified target under the same key and require PayloadConflict. Attempt reconciliation before the journal restores the local request binding and require Unresolved. A new physical retry must use a new attempt identity and must pass RRVR recovery qualification; NoDispatchProven on the old key is not by itself authority to issue a new effect.
+
+
+### Formal plan-binding mutant
+
+The bounded reset model now has a second explicit unsafe mutant in addition to blind reset retry: replace the active campaign after reset verification and then dispatch. The safe invariant DispatchUsesResetPlan requires the dispatched plan identity to equal the plan identity captured by the reset operation. The workflow requires a specific TLC counterexample for the mutant. This gives the reset protocol two independent mutation tests: duplicate reset request under an unknown outcome, and transfer of reset evidence across campaigns.
