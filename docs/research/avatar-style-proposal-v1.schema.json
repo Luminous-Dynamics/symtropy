@@ -1,0 +1,378 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:symtropy:avatar-style-proposal:1",
+  "title": "Symtropy Avatar Style Proposal v1",
+  "description": "Renderer-independent visual, motion-presentation, expression, and accessibility profile with append-only approval history. Declared receipts do not independently authenticate identity or consent.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "proposal_id",
+    "proposer_ref",
+    "origin",
+    "scope",
+    "presenter_ref",
+    "human_partner_ref",
+    "rationale",
+    "profile",
+    "approvals"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "proposal_id": {
+      "$ref": "#/$defs/id"
+    },
+    "proposer_ref": {
+      "$ref": "#/$defs/id"
+    },
+    "origin": {
+      "enum": [
+        "symthaea_self_authored",
+        "human_partner_suggested",
+        "joint_co_creation",
+        "curated_template",
+        "automated_mutation"
+      ]
+    },
+    "scope": {
+      "enum": [
+        "self_presentation",
+        "shared_relational_scene",
+        "public_scene"
+      ]
+    },
+    "presenter_ref": {
+      "$ref": "#/$defs/id"
+    },
+    "human_partner_ref": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "rationale": {
+      "type": "string",
+      "maxLength": 1024,
+      "minLength": 1
+    },
+    "profile": {
+      "$ref": "#/$defs/profile"
+    },
+    "approvals": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/$defs/approval"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[^\\s].*[^\\s]$|^[^\\s]$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "unit": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "sortedIds": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/id"
+      },
+      "uniqueItems": true
+    },
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parameter_id",
+        "value"
+      ],
+      "properties": {
+        "parameter_id": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128,
+          "pattern": "^[^\\s]+[.:][^\\s]+$"
+        },
+        "value": {
+          "$ref": "#/$defs/unit"
+        }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "profile_id",
+        "identity_ref",
+        "identity_anchor_sha256",
+        "skeleton_signature_sha256",
+        "parent_profile_ids",
+        "context_id",
+        "visual",
+        "motion",
+        "expression",
+        "accessibility",
+        "required_renderer_features",
+        "optional_renderer_features"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "profile_id": {
+          "$ref": "#/$defs/id"
+        },
+        "identity_ref": {
+          "$ref": "#/$defs/id"
+        },
+        "identity_anchor_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "skeleton_signature_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "parent_profile_ids": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "context_id": {
+          "$ref": "#/$defs/id"
+        },
+        "visual": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "family_id",
+            "palette_id",
+            "material_language_id",
+            "realism",
+            "stylization",
+            "detail_density",
+            "ornamentation",
+            "silhouette_expressivity",
+            "parameters"
+          ],
+          "properties": {
+            "family_id": {
+              "$ref": "#/$defs/id",
+              "pattern": "^[^\\\\s]+[.:][^\\\\s]+$"
+            },
+            "palette_id": {
+              "$ref": "#/$defs/id",
+              "pattern": "^[^\\\\s]+[.:][^\\\\s]+$"
+            },
+            "material_language_id": {
+              "$ref": "#/$defs/id",
+              "pattern": "^[^\\\\s]+[.:][^\\\\s]+$"
+            },
+            "realism": {
+              "$ref": "#/$defs/unit"
+            },
+            "stylization": {
+              "$ref": "#/$defs/unit"
+            },
+            "detail_density": {
+              "$ref": "#/$defs/unit"
+            },
+            "ornamentation": {
+              "$ref": "#/$defs/unit"
+            },
+            "silhouette_expressivity": {
+              "$ref": "#/$defs/unit"
+            },
+            "parameters": {
+              "type": "array",
+              "maxItems": 64,
+              "items": {
+                "$ref": "#/$defs/parameter"
+              }
+            }
+          }
+        },
+        "motion": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "gesture_amplitude",
+            "movement_expressivity",
+            "transition_smoothness",
+            "idle_motion_intensity",
+            "locomotion_stylization"
+          ],
+          "properties": {
+            "gesture_amplitude": {
+              "$ref": "#/$defs/unit"
+            },
+            "movement_expressivity": {
+              "$ref": "#/$defs/unit"
+            },
+            "transition_smoothness": {
+              "$ref": "#/$defs/unit"
+            },
+            "idle_motion_intensity": {
+              "$ref": "#/$defs/unit"
+            },
+            "locomotion_stylization": {
+              "$ref": "#/$defs/unit"
+            }
+          }
+        },
+        "expression": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "facial_expressivity",
+            "gaze_expressivity",
+            "blink_intensity",
+            "viseme_intensity"
+          ],
+          "properties": {
+            "facial_expressivity": {
+              "$ref": "#/$defs/unit"
+            },
+            "gaze_expressivity": {
+              "$ref": "#/$defs/unit"
+            },
+            "blink_intensity": {
+              "$ref": "#/$defs/unit"
+            },
+            "viseme_intensity": {
+              "$ref": "#/$defs/unit"
+            }
+          }
+        },
+        "accessibility": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reduced_motion",
+            "high_contrast",
+            "colour_independent_cues",
+            "low_distraction",
+            "low_detail"
+          ],
+          "properties": {
+            "reduced_motion": {
+              "type": "boolean"
+            },
+            "high_contrast": {
+              "type": "boolean"
+            },
+            "colour_independent_cues": {
+              "type": "boolean"
+            },
+            "low_distraction": {
+              "type": "boolean"
+            },
+            "low_detail": {
+              "type": "boolean"
+            }
+          }
+        },
+        "required_renderer_features": {
+          "$ref": "#/$defs/sortedIds"
+        },
+        "optional_renderer_features": {
+          "$ref": "#/$defs/sortedIds"
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "party_ref",
+        "role",
+        "decision",
+        "consent_receipt_sha256",
+        "decision_sequence",
+        "approved_content_digest_sha256"
+      ],
+      "properties": {
+        "party_ref": {
+          "$ref": "#/$defs/id"
+        },
+        "role": {
+          "enum": [
+            "presenter",
+            "human_partner"
+          ]
+        },
+        "decision": {
+          "enum": [
+            "accepted",
+            "rejected",
+            "revoked"
+          ]
+        },
+        "consent_receipt_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "decision_sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "approved_content_digest_sha256": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "scope": {
+            "const": "shared_relational_scene"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "human_partner_ref": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "origin": {
+            "enum": [
+              "human_partner_suggested",
+              "joint_co_creation"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "human_partner_ref": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    }
+  ]
+}

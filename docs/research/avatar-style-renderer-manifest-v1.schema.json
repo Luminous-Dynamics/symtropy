@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:symtropy:avatar-style-renderer-manifest:1",
+  "title": "Avatar Style Renderer Capability Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "renderer_id",
+    "renderer_version",
+    "supported_features"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "renderer_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "renderer_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "supported_features": {
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      }
+    }
+  }
+}

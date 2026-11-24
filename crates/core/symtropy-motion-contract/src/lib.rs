@@ -11,7 +11,21 @@
 use serde::{Deserialize, Serialize};
 use std::{error::Error, fmt};
 
+pub mod presentation;
 pub mod skill;
+
+pub use presentation::{
+    AVATAR_STYLE_PROFILE_SCHEMA_VERSION, AVATAR_STYLE_PROPOSAL_SCHEMA_VERSION,
+    AVATAR_STYLE_RENDERER_MANIFEST_SCHEMA_VERSION, AvatarAccessibilityStyle, AvatarExpressionStyle,
+    AvatarMotionPresentationStyle, AvatarStyleApproval, AvatarStyleCompatibilityReport,
+    AvatarStyleCompatibilityStatus, AvatarStyleCompositionPlan, AvatarStyleContractError,
+    AvatarStyleDimension, AvatarStyleParameter, AvatarStyleParentInfluence, AvatarStyleProfile,
+    AvatarStyleProposal, AvatarStyleRendererManifest, AvatarStyleScalarEdit, AvatarVisualStyle,
+    MAX_AVATAR_STYLE_APPROVALS, MAX_AVATAR_STYLE_FEATURES, MAX_AVATAR_STYLE_ID_BYTES,
+    MAX_AVATAR_STYLE_PARAMETERS, MAX_AVATAR_STYLE_PARENT_PROFILES,
+    MAX_AVATAR_STYLE_RATIONALE_BYTES, PresentationScope, StyleApprovalDecision, StyleApprovalRole,
+    StyleProposalOrigin, compose_avatar_style_profile, evaluate_avatar_style_compatibility,
+};
 
 pub const HUMAN_MOTION_INTENT_SCHEMA_VERSION: u32 = 1;
 

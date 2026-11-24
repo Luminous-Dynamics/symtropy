@@ -7,6 +7,7 @@ description = "Renderer-independent, versioned semantic motion intent contracts 
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
+blake3 = "1.5"
 
 [dev-dependencies]
 serde_json = "1.0"
