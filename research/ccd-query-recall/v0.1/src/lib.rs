@@ -14,7 +14,7 @@ use std::fmt;
 
 use nyu_ccd_query_import::{CcdQuery, QueryKind};
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum QueryClass {
     EdgeEdge,
     VertexFace,
@@ -261,9 +261,48 @@ impl QueryCounts {
     }
 }
 
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct QueryStratumIdentity {
+    dataset: String,
+    scene: String,
+    time_step: u64,
+    query_class: QueryClass,
+}
+
+impl QueryStratumIdentity {
+    #[must_use]
+    pub fn dataset(&self) -> &str {
+        &self.dataset
+    }
+
+    #[must_use]
+    pub fn scene(&self) -> &str {
+        &self.scene
+    }
+
+    #[must_use]
+    pub fn time_step(&self) -> u64 {
+        self.time_step
+    }
+
+    #[must_use]
+    pub fn query_class(&self) -> QueryClass {
+        self.query_class
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct QueryStratumScore {
+    pub identity: QueryStratumIdentity,
+    pub counts: QueryCounts,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryScore {
+    /// Micro-aggregated counts over the full evaluated query population.
     pub counts: QueryCounts,
+    /// Independently reported per dataset/scene/time-step/query-kind strata.
+    pub strata: Vec<QueryStratumScore>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -286,7 +325,7 @@ impl fmt::Display for EvaluationError {
 
 impl Error for EvaluationError {}
 
-/// Validate query dispositions and compute candidate and narrowphase scores.
+/// Validate query dispositions and compute aggregate plus stratified scores.
 ///
 /// Query metrics are not broadphase box-pair or Symtropy body/collider-pair
 /// metrics. Those require independent identity-preserving populations.
@@ -295,10 +334,8 @@ pub fn evaluate_queries(
 ) -> Result<QueryScore, Vec<EvaluationError>> {
     let mut errors = Vec::new();
     let mut identities = HashSet::with_capacity(evaluations.len());
-    let mut counts = QueryCounts {
-        total_queries: evaluations.len() as u64,
-        ..QueryCounts::default()
-    };
+    let mut strata = std::collections::BTreeMap::<QueryStratumIdentity, QueryCounts>::new();
+    let mut counts = QueryCounts::default();
 
     for evaluation in evaluations {
         let identity = &evaluation.identity;
@@ -309,103 +346,131 @@ pub fn evaluate_queries(
             errors.push(EvaluationError::DuplicateQueryIdentity);
         }
 
-        let forwarded = match &evaluation.candidate {
-            CandidateDisposition::Forwarded => true,
-            CandidateDisposition::Fallback(_) => {
-                counts.fallback_queries += 1;
-                if evaluation.oracle_collision {
-                    counts.fallback_oracle_positives += 1;
-                }
-                true
+        if let CandidateDisposition::CertifiedPruned(evidence) = &evaluation.candidate {
+            if evidence.status != VerificationStatus::AcceptedAndReplayed {
+                errors.push(EvaluationError::PruneCertificateNotAcceptedAndReplayed);
             }
-            CandidateDisposition::CertifiedPruned(evidence) => {
-                counts.certified_pruned_queries += 1;
-                if evaluation.oracle_collision {
-                    counts.candidate_false_negatives += 1;
-                } else {
-                    counts.certified_pruned_oracle_negatives += 1;
-                }
-                if evidence.status != VerificationStatus::AcceptedAndReplayed {
-                    errors.push(EvaluationError::PruneCertificateNotAcceptedAndReplayed);
-                }
-                if !is_lower_hex(&evidence.certificate_sha256, 64)
-                    || !is_lower_hex(&evidence.frozen_input_sha256, 64)
-                {
-                    errors.push(EvaluationError::InvalidPruneCertificateDigest);
-                }
-                if evidence.verifier_id.trim().is_empty() {
-                    errors.push(EvaluationError::EmptyPruneVerifierIdentity);
-                }
-                false
+            if !is_lower_hex(&evidence.certificate_sha256, 64)
+                || !is_lower_hex(&evidence.frozen_input_sha256, 64)
+            {
+                errors.push(EvaluationError::InvalidPruneCertificateDigest);
             }
-        };
-
-        if evaluation.oracle_collision {
-            counts.oracle_positive_queries += 1;
-        } else {
-            counts.oracle_negative_queries += 1;
-        }
-
-        if forwarded {
-            counts.candidate_forwarded_queries += 1;
-            if evaluation.oracle_collision {
-                counts.candidate_true_positives += 1;
-            } else {
-                counts.candidate_false_positives += 1;
+            if evidence.verifier_id.trim().is_empty() {
+                errors.push(EvaluationError::EmptyPruneVerifierIdentity);
             }
         }
 
-        match (forwarded, evaluation.narrowphase) {
-            (true, NarrowphaseOutcome::NotRun) => {
-                counts.narrowphase_not_run_queries += 1;
-                errors.push(EvaluationError::ForwardedQueryNotRunInNarrowphase);
-            }
-            (false, outcome) if outcome != NarrowphaseOutcome::NotRun => {
-                errors.push(EvaluationError::CertifiedPruneReachedNarrowphase);
-            }
-            (_, NarrowphaseOutcome::Collision) => {
-                counts.narrowphase_collision_queries += 1;
-                if evaluation.oracle_collision {
-                    counts.narrowphase_true_positives += 1;
-                } else {
-                    counts.narrowphase_false_positives += 1;
-                }
-            }
-            (_, NarrowphaseOutcome::Indeterminate) => {
-                counts.narrowphase_indeterminate_queries += 1;
-                if evaluation.oracle_collision {
-                    counts.narrowphase_false_negatives += 1;
-                }
-            }
-            (_, NarrowphaseOutcome::NotRun) => {
-                counts.narrowphase_not_run_queries += 1;
-                if evaluation.oracle_collision {
-                    counts.narrowphase_false_negatives += 1;
-                }
-            }
-            (_, NarrowphaseOutcome::NoCollision) => {
-                if evaluation.oracle_collision {
-                    counts.narrowphase_false_negatives += 1;
-                }
-            }
-        }
-
-        if matches!(
+        let forwarded = !matches!(
             &evaluation.candidate,
-            CandidateDisposition::CertifiedPruned(PruneEvidence {
-                status: VerificationStatus::AcceptedAndReplayed,
-                ..
-            })
-        ) && evaluation.narrowphase == NarrowphaseOutcome::NotRun
-        {
-            counts.accepted_replayed_prune_certificates += 1;
+            CandidateDisposition::CertifiedPruned(_)
+        );
+
+        if forwarded && evaluation.narrowphase == NarrowphaseOutcome::NotRun {
+            errors.push(EvaluationError::ForwardedQueryNotRunInNarrowphase);
         }
+        if !forwarded && evaluation.narrowphase != NarrowphaseOutcome::NotRun {
+            errors.push(EvaluationError::CertifiedPruneReachedNarrowphase);
+        }
+
+        accumulate_counts(&mut counts, evaluation, forwarded);
+        let stratum_identity = QueryStratumIdentity {
+            dataset: identity.dataset.clone(),
+            scene: identity.scene.clone(),
+            time_step: identity.time_step,
+            query_class: identity.query_class,
+        };
+        accumulate_counts(
+            strata.entry(stratum_identity).or_default(),
+            evaluation,
+            forwarded,
+        );
     }
 
     if errors.is_empty() {
-        Ok(QueryScore { counts })
+        Ok(QueryScore {
+            counts,
+            strata: strata
+                .into_iter()
+                .map(|(identity, counts)| QueryStratumScore { identity, counts })
+                .collect(),
+        })
     } else {
         Err(errors)
+    }
+}
+
+fn accumulate_counts(
+    counts: &mut QueryCounts,
+    evaluation: &QueryEvaluation,
+    forwarded: bool,
+) {
+    counts.total_queries += 1;
+    if evaluation.oracle_collision {
+        counts.oracle_positive_queries += 1;
+    } else {
+        counts.oracle_negative_queries += 1;
+    }
+
+    if forwarded {
+        counts.candidate_forwarded_queries += 1;
+        if evaluation.oracle_collision {
+            counts.candidate_true_positives += 1;
+        } else {
+            counts.candidate_false_positives += 1;
+        }
+    } else {
+        counts.certified_pruned_queries += 1;
+        if evaluation.oracle_collision {
+            counts.candidate_false_negatives += 1;
+        } else {
+            counts.certified_pruned_oracle_negatives += 1;
+        }
+    }
+
+    if matches!(evaluation.candidate, CandidateDisposition::Fallback(_)) {
+        counts.fallback_queries += 1;
+        if evaluation.oracle_collision {
+            counts.fallback_oracle_positives += 1;
+        }
+    }
+
+    match evaluation.narrowphase {
+        NarrowphaseOutcome::Collision => {
+            counts.narrowphase_collision_queries += 1;
+            if evaluation.oracle_collision {
+                counts.narrowphase_true_positives += 1;
+            } else {
+                counts.narrowphase_false_positives += 1;
+            }
+        }
+        NarrowphaseOutcome::NoCollision => {
+            if evaluation.oracle_collision {
+                counts.narrowphase_false_negatives += 1;
+            }
+        }
+        NarrowphaseOutcome::Indeterminate => {
+            counts.narrowphase_indeterminate_queries += 1;
+            if evaluation.oracle_collision {
+                counts.narrowphase_false_negatives += 1;
+            }
+        }
+        NarrowphaseOutcome::NotRun => {
+            counts.narrowphase_not_run_queries += 1;
+            if evaluation.oracle_collision {
+                counts.narrowphase_false_negatives += 1;
+            }
+        }
+    }
+
+    if matches!(
+        &evaluation.candidate,
+        CandidateDisposition::CertifiedPruned(PruneEvidence {
+            status: VerificationStatus::AcceptedAndReplayed,
+            ..
+        })
+    ) && evaluation.narrowphase == NarrowphaseOutcome::NotRun
+    {
+        counts.accepted_replayed_prune_certificates += 1;
     }
 }
 
