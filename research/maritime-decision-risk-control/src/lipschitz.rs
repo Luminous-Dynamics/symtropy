@@ -172,11 +172,8 @@ pub fn evaluate_grid(
     }
 
     let grid_correction = d_bound(policy_grid_size, calibration_schedules)?;
-    let (lipschitz_correction, auxiliary_grid_size) = lipschitz_correction(
-        calibration_schedules,
-        LIPSCHITZ_K,
-        POLICY_INTERVAL_LENGTH,
-    )?;
+    let (lipschitz_correction, auxiliary_grid_size) =
+        lipschitz_correction(calibration_schedules, LIPSCHITZ_K, POLICY_INTERVAL_LENGTH)?;
     let selected_correction = grid_correction.min(lipschitz_correction);
 
     Ok(LipschitzBoundResult {
@@ -270,10 +267,7 @@ mod tests {
     fn lipschitz_bound_can_improve_over_large_finite_grid_correction() {
         let result = evaluate_grid(1_200, 10_000, 99).expect("fine-grid result");
         assert!(result.lipschitz_correction < result.grid_correction);
-        assert_eq!(
-            result.selected_correction,
-            result.lipschitz_correction
-        );
+        assert_eq!(result.selected_correction, result.lipschitz_correction);
     }
 
     #[test]
