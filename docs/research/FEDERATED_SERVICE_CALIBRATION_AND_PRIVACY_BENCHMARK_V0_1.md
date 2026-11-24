@@ -201,7 +201,9 @@ This first executable implementation consumes already-prepared site summaries. I
 
 ### 8.1 Reducer contract
 
-Every summary must match the exact compatibility key: model ID/version, forecast horizon, metric kind, measurement boundary, unit, stratum, nominal coverage, score definition and fixed histogram edges. It rejects mismatched boundaries (for example pack-terminal Wh against charger-input Wh), model versions, strata, bins, or epochs.
+Every summary must match the exact compatibility key: model ID/version, forecast horizon, metric kind, measurement boundary, unit, stratum ID, configuration-cohort digest, stratum-taxonomy digest, calibration-policy digest, nominal coverage, score definition and fixed histogram edges. It rejects mismatched boundaries (for example pack-terminal Wh against charger-input Wh), model versions, strata, bins, or epochs.
+
+The three additional digests prevent identical labels from concealing different pack/charger hardware cohorts, differing stratum definitions or different local calibration policies. Matching a human-readable stratum label is insufficient; all digests must agree exactly.
 
 The reducer also enforces:
 - a registered roster and one contribution per site per epoch;
