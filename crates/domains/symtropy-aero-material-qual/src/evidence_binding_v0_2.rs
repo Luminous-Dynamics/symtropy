@@ -951,6 +951,7 @@ mod tests {
     #[test]
     fn revocation_after_acquisition_is_preserved_and_blocks_positive_binding() {
         let mut case = fixture();
+        case["evaluated_at_utc"] = Value::String("2026-11-24T10:40:00Z".to_owned());
         case["calibration_events"] = serde_json::json!([{
             "id": "EVENT-REVOKE-1",
             "certificate_id": "CAL-A",
