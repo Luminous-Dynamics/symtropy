@@ -226,11 +226,7 @@ pub fn evaluate_case(case: &Value) -> EvaluationReport {
     let campaigns = required_array(case, "hierarchy.test_campaigns", &mut violations);
     let configurations = required_array(case, "hierarchy.configurations", &mut violations);
     let observations = required_array(case, "observations", &mut violations);
-    let assignments = required_array(
-        case,
-        "partition_contract.assignments",
-        &mut violations,
-    );
+    let assignments = required_array(case, "partition_contract.assignments", &mut violations);
 
     let lot_index = index_by_id(&lots, "material_lots", &mut violations);
     let batch_index = index_by_id(&batches, "process_batches", &mut violations);
@@ -332,7 +328,10 @@ pub fn evaluate_case(case: &Value) -> EvaluationReport {
                 *observation_status_counts
                     .get_mut("observed")
                     .expect("observed counter exists") += 1;
-                if observation.get("value_index").and_then(Value::as_f64).is_none()
+                if observation
+                    .get("value_index")
+                    .and_then(Value::as_f64)
+                    .is_none()
                     || observation
                         .get("standard_uncertainty_index")
                         .and_then(Value::as_f64)
@@ -453,8 +452,7 @@ pub fn evaluate_case(case: &Value) -> EvaluationReport {
 
     let mut assignment_by_specimen = BTreeMap::new();
     for (position, assignment) in assignments.iter().enumerate() {
-        let owner_id = field_str(assignment, "specimen_id")
-            .unwrap_or("partition_assignment");
+        let owner_id = field_str(assignment, "specimen_id").unwrap_or("partition_assignment");
         let Some(specimen_id) = field_str(assignment, "specimen_id") else {
             continue;
         };
@@ -695,8 +693,7 @@ mod tests {
     #[test]
     fn duplicate_specimen_identity_is_rejected() {
         let mut case = fixture();
-        case["hierarchy"]["specimens"][1]["id"] =
-            case["hierarchy"]["specimens"][0]["id"].clone();
+        case["hierarchy"]["specimens"][1]["id"] = case["hierarchy"]["specimens"][0]["id"].clone();
         let report = evaluate_case(&case);
         assert!(!report.structurally_complete);
         assert!(has_code(&report, "DUPLICATE_ID"));
@@ -776,11 +773,46 @@ mod tests {
         assert_eq!(baseline, evaluate_case(&permuted));
     }
 
+    const SCHEMA: &str = include_str!(
+        "../../../../docs/research/aviation/schemas/aero_material_process_case_v0_1.schema.json"
+    );
+
+    #[test]
+    fn schema_document_is_parseable_and_pins_draft_2020_12() {
+        let schema: Value = serde_json::from_str(SCHEMA).expect("schema is valid JSON");
+        assert_eq!(
+            schema.get("$schema").and_then(Value::as_str),
+            Some("https://json-schema.org/draft/2020-12/schema")
+        );
+    }
+
+    #[test]
+    fn unknown_configuration_reference_is_rejected() {
+        let mut case = fixture();
+        case["hierarchy"]["specimens"][0]["configuration_id"] =
+            Value::String("CONFIG-UNKNOWN".to_owned());
+        let report = evaluate_case(&case);
+        assert!(!report.structurally_complete);
+        assert!(has_code(&report, "DANGLING_REFERENCE"));
+    }
+
+    #[test]
+    fn unknown_partition_is_rejected() {
+        let mut case = fixture();
+        case["partition_contract"]["assignments"][0]["partition"] =
+            Value::String("validation".to_owned());
+        let report = evaluate_case(&case);
+        assert!(!report.structurally_complete);
+        assert!(has_code(&report, "UNKNOWN_PARTITION"));
+    }
+
     #[test]
     fn unsupported_independent_lot_identity_is_reported_as_a_capability_gap() {
         let report = evaluate_case(&fixture());
-        assert!(report.capability_gaps.iter().any(|gap| {
-            gap == "INDEPENDENT_SPECIMEN_SOURCE_MATERIAL_IDENTITY_NOT_REPRESENTED"
-        }));
+        assert!(
+            report.capability_gaps.iter().any(|gap| {
+                gap == "INDEPENDENT_SPECIMEN_SOURCE_MATERIAL_IDENTITY_NOT_REPRESENTED"
+            })
+        );
     }
 }
