@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/landscape-scenario-manifest-v0.schema.json",
+  "title": "Luminous Landscape Scenario Manifest v0",
+  "description": "Pins a Symtropy scenario to exact Sol-Atlas snapshot and boundary-condition bytes. This v0 contract permits schema qualification and synthetic benchmarks only; physical landscape claims from schematic local drawing units are prohibited.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "scenario_id",
+    "design_snapshot",
+    "model_id",
+    "model_version",
+    "purpose",
+    "seed",
+    "boundary_conditions_sha256"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.landscape-scenario-manifest.v0"
+    },
+    "scenario_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "design_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "schema",
+        "schema_uri",
+        "scope",
+        "geometry_status",
+        "coordinate_frame_kind",
+        "georeferenced",
+        "feature_count"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "schema": {
+          "const": "luminous.landscape-design.v0"
+        },
+        "schema_uri": {
+          "const": "https://luminousdynamics.io/schemas/landscape-design-v0.schema.json"
+        },
+        "scope": {
+          "enum": [
+            "site-parcel",
+            "district",
+            "watershed",
+            "bioregion"
+          ]
+        },
+        "geometry_status": {
+          "enum": [
+            "schematic-design-intent",
+            "synthetic-benchmark"
+          ]
+        },
+        "coordinate_frame_kind": {
+          "const": "LOCAL_CARTESIAN_DRAWING_UNITS"
+        },
+        "georeferenced": {
+          "const": false
+        },
+        "feature_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        }
+      }
+    },
+    "model_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "model_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "purpose": {
+      "enum": [
+        "schema-qualification",
+        "synthetic-benchmark"
+      ]
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18446744073709552000
+    },
+    "boundary_conditions_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "evaluation_plan": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/evaluationPlanRef"
+        }
+      ],
+      "description": "Optional digest-bound reference to the preregistered evaluation plan. When present, the exact plan bytes are required for validation."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "purpose": {
+            "const": "synthetic-benchmark"
+          }
+        },
+        "required": [
+          "purpose"
+        ]
+      },
+      "then": {
+        "properties": {
+          "design_snapshot": {
+            "properties": {
+              "geometry_status": {
+                "const": "synthetic-benchmark"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "evaluationPlanRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "schema",
+        "schema_uri",
+        "evaluation_id"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "schema": {
+          "const": "luminous.landscape-evaluation-plan.v0"
+        },
+        "schema_uri": {
+          "const": "https://luminousdynamics.io/schemas/landscape-evaluation-plan-v0.schema.json"
+        },
+        "evaluation_id": {
+          "type": "string",
+          "pattern": "^eval-[a-z0-9][a-z0-9-]{2,60}$"
+        }
+      }
+    }
+  }
+}
