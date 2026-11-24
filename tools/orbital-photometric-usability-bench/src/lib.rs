@@ -644,3 +644,5 @@ mod tests {
         assert_eq!(evaluate_case(&c), Err("SURFACE_SAMPLE_INVALID".into()));
     }
 }
+
+pub mod rgb;
