@@ -91,7 +91,7 @@ pub struct Sample {
     pub material_asserted: bool,
     pub brdf: Brdf,
 }
-#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Expected {
     pub mode_id: String,
