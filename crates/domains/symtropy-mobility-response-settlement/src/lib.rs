@@ -664,17 +664,13 @@ fn validate_timelines(
         let pcc_energy_from_power_wh =
             number(pcc_interval, "/measured_reduction_w")? * duration_ns / 3_600_000_000_000.0;
         let pcc_energy_wh = number(pcc_interval, "/measured_reduction_energy_wh")?;
-        let pcc_bound_energy_from_power_wh = number(
-            pcc_interval,
-            "/conservative_reduction_lower_bound_w",
-        )? * duration_ns
-            / 3_600_000_000_000.0;
-        let pcc_bound_energy_wh =
-            number(pcc_interval, "/lower_bound_reduction_energy_wh")?;
+        let pcc_bound_energy_from_power_wh =
+            number(pcc_interval, "/conservative_reduction_lower_bound_w")? * duration_ns
+                / 3_600_000_000_000.0;
+        let pcc_bound_energy_wh = number(pcc_interval, "/lower_bound_reduction_energy_wh")?;
         let energy_tolerance_wh = input.maximum_dispatch_energy_disagreement_kwh * 1_000.0;
         if (pcc_energy_wh - pcc_energy_from_power_wh).abs() > energy_tolerance_wh
-            || (pcc_bound_energy_wh - pcc_bound_energy_from_power_wh).abs()
-                > energy_tolerance_wh
+            || (pcc_bound_energy_wh - pcc_bound_energy_from_power_wh).abs() > energy_tolerance_wh
         {
             return Err(BridgeError::EnergyMismatch(format!(
                 "PCC interval energy does not equal its power × duration at interval {index}"
@@ -682,10 +678,8 @@ fn validate_timelines(
         }
         let baseline_lower_kw =
             number(baseline_interval, "/conservative_reduction_lower_bound_kw")?;
-        let baseline_energy_from_power_kwh =
-            baseline_lower_kw * duration_ns / 3_600_000_000_000.0;
-        let baseline_energy_kwh =
-            number(baseline_interval, "/conservative_reduction_energy_kwh")?;
+        let baseline_energy_from_power_kwh = baseline_lower_kw * duration_ns / 3_600_000_000_000.0;
+        let baseline_energy_kwh = number(baseline_interval, "/conservative_reduction_energy_kwh")?;
         if (baseline_energy_kwh - baseline_energy_from_power_kwh).abs()
             > input.maximum_dispatch_energy_disagreement_kwh
         {
@@ -812,8 +806,8 @@ fn validate_timelines(
             )));
         }
 
-        let sample_energy_kwh = tracked_reduction_kw * sample_interval_ns as f64
-            / 3_600_000_000_000.0;
+        let sample_energy_kwh =
+            tracked_reduction_kw * sample_interval_ns as f64 / 3_600_000_000_000.0;
         tracked_sample_energy_kwh += sample_energy_kwh;
         if !tracked_sample_energy_kwh.is_finite() {
             return Err(BridgeError::Arithmetic(
@@ -869,8 +863,7 @@ fn validate_timelines(
         )?;
     }
 
-    let reported_tracking_energy_kwh =
-        number(grid, "/delivered_reduction_energy_kwh")?;
+    let reported_tracking_energy_kwh = number(grid, "/delivered_reduction_energy_kwh")?;
     if (tracked_sample_energy_kwh - reported_tracking_energy_kwh).abs()
         > input.maximum_dispatch_energy_disagreement_kwh
     {
@@ -1801,8 +1794,7 @@ mod tests {
     #[test]
     fn interval_energy_must_match_reported_power_times_duration() {
         let mut bad = input();
-        bad.pcc_metrology.report["intervals"][0]["measured_reduction_energy_wh"] =
-            json!(3.5);
+        bad.pcc_metrology.report["intervals"][0]["measured_reduction_energy_wh"] = json!(3.5);
         assert!(matches!(
             evaluate_mobility_response_settlement(&bad),
             Err(BridgeError::EnergyMismatch(_))
@@ -1825,8 +1817,8 @@ mod tests {
         ));
 
         let mut bad_baseline_recovery = input();
-        bad_baseline_recovery.counterfactual_baseline.report["intervals"][3]
-            ["conservative_reduction_energy_kwh"] = json!(0.0);
+        bad_baseline_recovery.counterfactual_baseline.report["intervals"][3]["conservative_reduction_energy_kwh"] =
+            json!(0.0);
         assert!(matches!(
             evaluate_mobility_response_settlement(&bad_baseline_recovery),
             Err(BridgeError::EnergyMismatch(_))
