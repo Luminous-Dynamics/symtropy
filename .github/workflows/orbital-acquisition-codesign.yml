@@ -1,0 +1,90 @@
+name: Orbital Acquisition Co-Design Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/orbital-acquisition-codesign-bench/**"
+      - "docs/research/orbital-truss/fixtures/acquisition-codesign-v0_1.json"
+      - "docs/research/orbital-truss/orbital_acquisition_codesign_corpus_v0_1.schema.json"
+      - ".github/workflows/orbital-acquisition-codesign.yml"
+  push:
+    branches:
+      - "research/orbital-acquisition-codesign-evaluator-v0-1"
+    paths:
+      - "tools/orbital-acquisition-codesign-bench/**"
+      - "docs/research/orbital-truss/fixtures/acquisition-codesign-v0_1.json"
+      - "docs/research/orbital-truss/orbital_acquisition_codesign_corpus_v0_1.schema.json"
+      - ".github/workflows/orbital-acquisition-codesign.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Exact finite schedule frontier and independent oracle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.1
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate frozen corpus and Draft 2020-12 schema
+        run: |
+          python3 -m pip install --disable-pip-version-check jsonschema==4.25.1
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+          fixture = json.loads(Path("docs/research/orbital-truss/fixtures/acquisition-codesign-v0_1.json").read_text())
+          schema = json.loads(Path("docs/research/orbital-truss/orbital_acquisition_codesign_corpus_v0_1.schema.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = list(Draft202012Validator(schema).iter_errors(fixture))
+          assert not errors, errors
+          assert len(fixture["cases"]) == 8
+          assert len({case["case_id"] for case in fixture["cases"]}) == 8
+          print("8 frozen co-design cases and Draft 2020-12 schema validated")
+          PY
+      - name: Format
+        run: cargo fmt --manifest-path tools/orbital-acquisition-codesign-bench/Cargo.toml -- --check
+      - name: Rust tests
+        run: cargo test --locked --manifest-path tools/orbital-acquisition-codesign-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/orbital-acquisition-codesign-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Deterministic Rust receipt replay
+        run: |
+          cargo run --quiet --locked --manifest-path tools/orbital-acquisition-codesign-bench/Cargo.toml --bin orbital-acquisition-codesign-bench -- docs/research/orbital-truss/fixtures/acquisition-codesign-v0_1.json "$GITHUB_SHA" > /tmp/codesign-rust-a.json
+          cargo run --quiet --locked --manifest-path tools/orbital-acquisition-codesign-bench/Cargo.toml --bin orbital-acquisition-codesign-bench -- docs/research/orbital-truss/fixtures/acquisition-codesign-v0_1.json "$GITHUB_SHA" > /tmp/codesign-rust-b.json
+          cmp /tmp/codesign-rust-a.json /tmp/codesign-rust-b.json
+      - name: Independent Python oracle
+        run: |
+          python3 tools/orbital-acquisition-codesign-bench/tests/reference_oracle.py docs/research/orbital-truss/fixtures/acquisition-codesign-v0_1.json "$GITHUB_SHA" > /tmp/codesign-python.json
+      - name: Compare complete Rust and Python receipts
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rust = json.loads(Path("/tmp/codesign-rust-a.json").read_text())
+          oracle = json.loads(Path("/tmp/codesign-python.json").read_text())
+          assert rust == oracle
+          statuses = {case["case_id"]: case["status"] for case in rust["cases"]}
+          assert statuses["CD-001-EXACT-TIME-ENERGY-PARETO"] == "OPTIMAL_WITHIN_DECLARED_FINITE_UNIVERSE"
+          assert statuses["CD-003-UNKNOWN-GATE-ABSTAINS"] == "INDETERMINATE"
+          assert statuses["CD-004-ALL-GATES-FAIL"] == "INFEASIBLE"
+          assert statuses["CD-008-SEARCH-CAP-NOT-PROVEN"] == "SEARCH_LIMIT_NOT_PROVEN"
+          print("Rust and independent Python oracle agree on all 8 co-design cases")
+          PY
+      - name: Retain exact-head evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-acquisition-codesign-evidence
+          path: |
+            /tmp/codesign-rust-a.json
+            /tmp/codesign-python.json
+            docs/research/orbital-truss/fixtures/acquisition-codesign-v0_1.json
+            docs/research/orbital-truss/orbital_acquisition_codesign_corpus_v0_1.schema.json
+          if-no-files-found: error
+          retention-days: 30
