@@ -187,7 +187,9 @@ impl core::fmt::Display for AdaptiveImportanceComparisonError {
             Self::EmptyReceiptStream => "adaptive importance receipt stream is empty",
             Self::InvalidFixtureTruth => "fixture truth must lie in [0, 1]",
             Self::InvalidDecisionThreshold => "decision threshold must lie in [0, 1]",
-            Self::InvalidConfidenceAlpha => "confidence alpha must lie strictly between zero and one",
+            Self::InvalidConfidenceAlpha => {
+                "confidence alpha must lie strictly between zero and one"
+            },
             Self::InvalidDefensiveMixtureWeight => "defensive mixture weight must lie in (0, 1]",
             Self::InvalidIdentity => "a required comparison identity digest is invalid",
             Self::ReceiptScopeMismatch => "receipt stream mixes event or target-measure identities",
@@ -255,27 +257,24 @@ pub fn compare_adaptive_importance_sequences(
     if config.timing_repetitions == 0 {
         return Err(AdaptiveImportanceComparisonError::InvalidTimingRepetitions);
     }
-    if config.decision_threshold.is_some_and(|threshold| {
-        !threshold.is_finite() || !(0.0..=1.0).contains(&threshold)
-    }) {
+    if config
+        .decision_threshold
+        .is_some_and(|threshold| !threshold.is_finite() || !(0.0..=1.0).contains(&threshold))
+    {
         return Err(AdaptiveImportanceComparisonError::InvalidDecisionThreshold);
     }
     if receipts.iter().any(|draw| {
         draw.event_digest != config.event_digest
             || draw.target_measure_digest != config.target_measure_digest
             || draw.defensive_component_digest != config.defensive_component_digest
-            || draw.defensive_mixture_weight.to_bits()
-                != config.defensive_mixture_weight.to_bits()
+            || draw.defensive_mixture_weight.to_bits() != config.defensive_mixture_weight.to_bits()
     }) {
         return Err(AdaptiveImportanceComparisonError::ReceiptScopeMismatch);
     }
 
     // Validate the caller-selected grid before benchmarking any adapter.
-    HedgedCapitalConfidenceSequence::new(
-        config.confidence_alpha,
-        config.parameter_grid.clone(),
-    )
-    .map_err(|_| AdaptiveImportanceComparisonError::InvalidHedgedGrid)?;
+    HedgedCapitalConfidenceSequence::new(config.confidence_alpha, config.parameter_grid.clone())
+        .map_err(|_| AdaptiveImportanceComparisonError::InvalidHedgedGrid)?;
 
     let fixed = run_fixed_stake(receipts, &config)?;
     let prpl = run_prpl_eb(receipts, &config)?;
@@ -550,7 +549,8 @@ fn record_snapshot(
             lower: summary.lower,
             upper: summary.upper,
             width: summary.upper - summary.lower,
-            contains_fixture_truth: summary.lower <= fixture_truth && fixture_truth <= summary.upper,
+            contains_fixture_truth: summary.lower <= fixture_truth
+                && fixture_truth <= summary.upper,
         });
         *checkpoint_index += 1;
     }
@@ -630,8 +630,7 @@ mod tests {
     const TARGET_EVENT_PROBABILITY: f64 = 0.2;
 
     fn hedged_grid() -> Vec<f64> {
-        HedgedCapitalConfidenceSequence::log_tailed_parameter_grid(1.0e-8, 0.02, 48, 48)
-            .unwrap()
+        HedgedCapitalConfidenceSequence::log_tailed_parameter_grid(1.0e-8, 0.02, 48, 48).unwrap()
     }
 
     fn config(
@@ -695,18 +694,20 @@ mod tests {
     #[test]
     fn all_adapters_receive_identical_receipts_and_checkpoints() {
         let (receipts, _) = adaptive_receipts(48, 0b0010_1101_0011_1001);
-        let report = compare_adaptive_importance_sequences(
-            &receipts,
-            config(&[12, 24, 48], Some(0.5), 2),
-        )
-        .unwrap();
+        let report =
+            compare_adaptive_importance_sequences(&receipts, config(&[12, 24, 48], Some(0.5), 2))
+                .unwrap();
 
         assert_eq!(report.receipt_count, 48);
         assert_eq!(report.checkpoints, vec![12, 24, 48]);
         assert_eq!(report.methods.len(), 3);
         for method in &report.methods {
             assert_eq!(
-                method.snapshots.iter().map(|s| s.sample_count).collect::<Vec<_>>(),
+                method
+                    .snapshots
+                    .iter()
+                    .map(|s| s.sample_count)
+                    .collect::<Vec<_>>(),
                 vec![12, 24, 48]
             );
             assert_eq!(method.retained_sample_identity_count, 48);
@@ -724,11 +725,9 @@ mod tests {
     #[test]
     fn adapters_share_the_same_decision_rule_and_receipt_stream_scope() {
         let (receipts, _) = adaptive_receipts(96, 0b1010_0101_1001_1100);
-        let report = compare_adaptive_importance_sequences(
-            &receipts,
-            config(&[24, 48, 96], Some(0.1), 1),
-        )
-        .unwrap();
+        let report =
+            compare_adaptive_importance_sequences(&receipts, config(&[24, 48, 96], Some(0.1), 1))
+                .unwrap();
 
         for method in &report.methods {
             if let Some(decision) = method.first_decision {
@@ -746,11 +745,8 @@ mod tests {
     #[test]
     fn state_profiles_make_identity_and_numerical_storage_distinct() {
         let (receipts, _) = adaptive_receipts(16, 0b0101_0110_1100_0011);
-        let report = compare_adaptive_importance_sequences(
-            &receipts,
-            config(&[16], None, 1),
-        )
-        .unwrap();
+        let report =
+            compare_adaptive_importance_sequences(&receipts, config(&[16], None, 1)).unwrap();
 
         assert_eq!(
             report.methods[0].state_profile,
@@ -767,7 +763,10 @@ mod tests {
         assert_eq!(report.methods[0].retained_observation_count, 16);
         assert_eq!(report.methods[1].retained_observation_count, 0);
         assert_eq!(report.methods[2].retained_observation_count, 0);
-        assert_eq!(report.methods[2].candidate_mean_grid_size, hedged_grid().len());
+        assert_eq!(
+            report.methods[2].candidate_mean_grid_size,
+            hedged_grid().len()
+        );
     }
 
     #[test]
@@ -778,23 +777,34 @@ mod tests {
 
         for encoded_path in 0_u32..(1_u32 << HORIZON) {
             let (receipts, path_probability) = adaptive_receipts(HORIZON as usize, encoded_path);
-            let report = compare_adaptive_importance_sequences(
-                &receipts,
-                config(&checkpoints, None, 1),
-            )
-            .unwrap();
+            let report =
+                compare_adaptive_importance_sequences(&receipts, config(&checkpoints, None, 1))
+                    .unwrap();
 
             for (index, method) in report.methods.iter().enumerate() {
-                if method.snapshots.iter().any(|snapshot| !snapshot.contains_fixture_truth) {
+                if method
+                    .snapshots
+                    .iter()
+                    .any(|snapshot| !snapshot.contains_fixture_truth)
+                {
                     miss_probability[index] += path_probability;
                 }
             }
         }
 
         for (method, probability) in [
-            (AdaptiveImportanceComparisonMethod::FixedStake, miss_probability[0]),
-            (AdaptiveImportanceComparisonMethod::PrPlEb, miss_probability[1]),
-            (AdaptiveImportanceComparisonMethod::Hedged, miss_probability[2]),
+            (
+                AdaptiveImportanceComparisonMethod::FixedStake,
+                miss_probability[0],
+            ),
+            (
+                AdaptiveImportanceComparisonMethod::PrPlEb,
+                miss_probability[1],
+            ),
+            (
+                AdaptiveImportanceComparisonMethod::Hedged,
+                miss_probability[2],
+            ),
         ] {
             assert!(
                 probability <= 0.05 + 1.0e-10,
@@ -809,7 +819,10 @@ mod tests {
         let mut sample_count = None;
 
         record_decision(Some(0.1), 0.1, 0.2, 3, &mut decision, &mut sample_count);
-        assert_eq!(decision, Some(AdaptiveImportanceThresholdDecision::AtOrAboveThreshold));
+        assert_eq!(
+            decision,
+            Some(AdaptiveImportanceThresholdDecision::AtOrAboveThreshold)
+        );
         assert_eq!(sample_count, Some(3));
 
         decision = None;
@@ -819,7 +832,10 @@ mod tests {
         assert_eq!(sample_count, None);
 
         record_decision(Some(0.1), 0.0, 0.099, 5, &mut decision, &mut sample_count);
-        assert_eq!(decision, Some(AdaptiveImportanceThresholdDecision::BelowThreshold));
+        assert_eq!(
+            decision,
+            Some(AdaptiveImportanceThresholdDecision::BelowThreshold)
+        );
         assert_eq!(sample_count, Some(5));
     }
 
