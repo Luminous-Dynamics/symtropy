@@ -1388,5 +1388,4 @@ mod tests {
         assert!(condition < 1.1, "profiled condition was {condition}");
         assert!(report.unprofiled_physical_singular_values.first().unwrap() > 50.0);
     }
-
 }
