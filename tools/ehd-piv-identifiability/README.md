@@ -30,3 +30,7 @@ A full-rank local Jacobian is not a proof of global/structural identifiability, 
     cargo fmt --manifest-path tools/ehd-piv-identifiability/Cargo.toml -- --check
     cargo test --manifest-path tools/ehd-piv-identifiability/Cargo.toml
     cargo clippy --manifest-path tools/ehd-piv-identifiability/Cargo.toml --all-targets -- -D warnings
+
+## Manufactured tests
+
+The current crate contains 14 deterministic tests, including exact and near flow/nuisance confounding, nuisance-only rank deficiency, absent physical sensitivity, parameter scaling, row permutation, underdetermined systems, malformed data and decomposition non-convergence.
