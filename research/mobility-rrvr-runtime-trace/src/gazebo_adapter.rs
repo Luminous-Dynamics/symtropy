@@ -129,6 +129,9 @@ pub enum GazeboAdapterError {
     TargetBindingChanged,
     InvalidDispatchRequest,
     InvalidCompiledPlan,
+    ResetNotVerified,
+    ResetAlreadyVerified,
+    ResetVerificationMismatch,
 }
 
 fn nonempty(value: &str) -> bool {
@@ -284,11 +287,22 @@ impl GazeboWorldSnapshot {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+struct GazeboResetVerification {
+    profile: GazeboCapabilityProfile,
+    stepping_method: SteppingMethod,
+    world_epoch: String,
+    clock_id: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GazeboAdapterSession {
     pub profile: GazeboCapabilityProfile,
     pub stepping_method: SteppingMethod,
     pub world_epoch: String,
     pub clock_id: String,
+    // Private by design: external callers cannot construct a reset-qualified
+    // session by merely filling its public descriptive fields.
+    reset_verification: Option<GazeboResetVerification>,
 }
 
 /// Discover and pin the simulator before any reset, step or target mutation.
@@ -323,6 +337,7 @@ pub fn preflight_transport<T: GazeboSimulationTransport>(
         stepping_method,
         world_epoch: snapshot.world_epoch,
         clock_id: snapshot.clock_id,
+        reset_verification: None,
     })
 }
 
@@ -332,6 +347,19 @@ pub fn reset_and_verify<T: GazeboSimulationTransport>(
     plan: &CompiledCampaignPlan,
     session: &mut GazeboAdapterSession,
 ) -> Result<GazeboWorldSnapshot, GazeboAdapterError> {
+    if session.reset_verification.is_some() {
+        return Err(GazeboAdapterError::ResetAlreadyVerified);
+    }
+    let live_profile = transport
+        .get_simulator_features()
+        .map_err(|_| GazeboAdapterError::TransportFailure)?;
+    if live_profile != session.profile {
+        return Err(GazeboAdapterError::InvalidCapabilityProfile);
+    }
+    let selected_method = session.profile.validate_for_plan(plan)?;
+    if selected_method != session.stepping_method {
+        return Err(GazeboAdapterError::InvalidCapabilityProfile);
+    }
     let before = transport
         .get_world_state(&session.profile.world_name)
         .map_err(|_| GazeboAdapterError::TransportFailure)?;
@@ -359,6 +387,12 @@ pub fn reset_and_verify<T: GazeboSimulationTransport>(
 
     session.world_epoch = after.world_epoch.clone();
     session.clock_id = after.clock_id.clone();
+    session.reset_verification = Some(GazeboResetVerification {
+        profile: session.profile.clone(),
+        stepping_method: session.stepping_method,
+        world_epoch: session.world_epoch.clone(),
+        clock_id: session.clock_id.clone(),
+    });
     Ok(after)
 }
 
@@ -885,11 +919,27 @@ where
 {
     plan.verify_integrity()
         .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
-    let selected_method = session.profile.validate_for_plan(plan)?;
-    if selected_method != session.stepping_method
+    let reset_verification = session
+        .reset_verification
+        .as_ref()
+        .ok_or(GazeboAdapterError::ResetNotVerified)?;
+    if reset_verification.profile != session.profile
+        || reset_verification.stepping_method != session.stepping_method
+        || reset_verification.world_epoch != session.world_epoch
+        || reset_verification.clock_id != session.clock_id
         || !nonempty(&session.world_epoch)
         || !nonempty(&session.clock_id)
     {
+        return Err(GazeboAdapterError::ResetVerificationMismatch);
+    }
+    let live_profile = simulator
+        .get_simulator_features()
+        .map_err(|_| GazeboAdapterError::TransportFailure)?;
+    if live_profile != reset_verification.profile {
+        return Err(GazeboAdapterError::InvalidCapabilityProfile);
+    }
+    let selected_method = live_profile.validate_for_plan(plan)?;
+    if selected_method != reset_verification.stepping_method {
         return Err(GazeboAdapterError::InvalidCapabilityProfile);
     }
     let scenario = plan
