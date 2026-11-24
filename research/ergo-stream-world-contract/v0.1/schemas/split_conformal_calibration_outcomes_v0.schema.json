@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/split_conformal_calibration_outcomes_v0.schema.json",
+  "title": "Split-conformal evaluator calibration outcomes v0",
+  "description": "Evaluator-owned calibration outcomes. Each row is one independent unit for the declared claim scope and stratum; multiple correlated observations must be aggregated by a separately specified block protocol, not counted as additional rows.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "cohort_id",
+    "evaluation_stratum_id",
+    "independent_unit_kind",
+    "claim_type",
+    "claim_scope_sha256",
+    "outcomes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ergo-split-conformal-calibration-outcomes-v0"
+    },
+    "cohort_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evaluation_stratum_id": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535
+    },
+    "independent_unit_kind": {
+      "enum": [
+        "world_seed",
+        "episode",
+        "campaign",
+        "site",
+        "asset",
+        "other"
+      ]
+    },
+    "claim_type": {
+      "enum": [
+        "structural_correspondence",
+        "deterministic_dynamics",
+        "simulation",
+        "bisimulation",
+        "mechanism_transfer"
+      ]
+    },
+    "claim_scope_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "outcomes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sample_id",
+          "independent_unit_id",
+          "transfer_qualified",
+          "evidence_ids"
+        ],
+        "properties": {
+          "sample_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 18446744073709552000
+          },
+          "independent_unit_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 18446744073709552000
+          },
+          "transfer_qualified": {
+            "type": "boolean"
+          },
+          "evidence_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}
