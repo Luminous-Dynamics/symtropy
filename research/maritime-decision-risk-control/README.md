@@ -539,6 +539,6 @@ This first ledger is an in-memory typed reference implementation and a CI fixtur
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin source-claim-admission-audit
 ~~~
 
-The receipt exercises 18 synthetic claim cases, including plan-to-actual, vessel-status-to-physical, stack-window-to-loaded, import-storage-to-receiver, third-party-to-independent-witness and DCSA-conformance-to-physical-truth negative controls; publication-time unknown; retrieval/publication after the historical cutoff; missing independence reference; and missing receiver custody digest.
+The receipt exercises 20 synthetic claim cases, including plan-to-actual, vessel-status-to-physical, stack-window-to-loaded, import-storage-to-receiver, third-party-to-independent-witness and DCSA-conformance-to-physical-truth negative controls; publication-time unknown; retrieval/publication after the historical cutoff; missing independence reference; and missing receiver custody digest.
 
 No DGT raw XLSX/PDF bytes are bundled in the fixture. The receipt validates the *class/claim contract*, not the truth of a particular vessel or cargo event.
