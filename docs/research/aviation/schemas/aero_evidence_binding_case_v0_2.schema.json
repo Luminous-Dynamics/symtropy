@@ -507,8 +507,33 @@
         },
         "retroactive": {
           "type": "boolean"
+        },
+        "corrects_event_id": {
+          "$ref": "#/$defs/id"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "event_type": {
+                "enum": [
+                  "corrected",
+                  "superseded"
+                ]
+              }
+            },
+            "required": [
+              "event_type"
+            ]
+          },
+          "then": {
+            "required": [
+              "corrects_event_id"
+            ]
+          }
+        }
+      ]
     }
   }
 }
