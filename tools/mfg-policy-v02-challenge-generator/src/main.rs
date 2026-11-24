@@ -6,6 +6,8 @@ const SCHEMA_JSON: &str =
     include_str!("../../../schemas/manufacturing/mfg_policy_v02_challenge_corpus.schema.json");
 const EVALUATOR_SCHEMA_JSON: &str =
     include_str!("../../../schemas/manufacturing/mfg_policy_v02_evaluator_labels.schema.json");
+const STREAMS_SCHEMA_JSON: &str =
+    include_str!("../../../schemas/manufacturing/mfg_policy_v02_scenario_streams.schema.json");
 const ROOT_SEED: u64 = 20_261_124;
 const FAMILY_COUNT: usize = 6;
 const REPLICATIONS_PER_FAMILY: usize = 20;
@@ -103,7 +105,6 @@ struct ChallengeCase {
     resources: Vec<Resource>,
     setup_transitions: Vec<SetupTransition>,
     inspection_station: InspectionStation,
-    scenarios: Vec<Scenario>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -189,6 +190,25 @@ struct Scenario {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
+struct ScenarioStreams {
+    schema_id: String,
+    benchmark_id: String,
+    evidence_class: String,
+    case_count: usize,
+    cases: Vec<ScenarioStreamCase>,
+    claim_ceiling: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct ScenarioStreamCase {
+    case_id: String,
+    scenario_family_id: String,
+    scenarios: Vec<Scenario>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 struct EvaluatorLabels {
     schema_id: String,
     benchmark_id: String,
@@ -214,7 +234,7 @@ struct EvaluatorScenarioOutcome {
 }
 
 struct ScenarioBundle {
-    policy_scenarios: Vec<Scenario>,
+    streams: Vec<Scenario>,
     evaluator_outcomes: Vec<EvaluatorScenarioOutcome>,
 }
 
