@@ -237,19 +237,6 @@ fn proposal_from_margin(margin: i64) -> bool {
     margin >= 0
 }
 
-fn wilson_lower_permille(successes: usize, trials: usize) -> u16 {
-    if trials == 0 || successes == 0 {
-        return 0;
-    }
-    let z = 1.959_963_984_540_054_f64;
-    let n = trials as f64;
-    let p = successes as f64 / n;
-    let z2 = z * z;
-    let center = p + z2 / (2.0 * n);
-    let radius = z * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt());
-    (((center - radius) / (1.0 + z2 / n)).clamp(0.0, 1.0) * 1000.0).floor() as u16
-}
-
 fn permille(numerator: usize, denominator: usize) -> u16 {
     if denominator == 0 {
         0
