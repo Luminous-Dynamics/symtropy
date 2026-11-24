@@ -738,6 +738,7 @@ jobs:
             tools/ev-passenger-cost-frontier/src/sustainable_mobility_service_quality.rs \
             tools/ev-passenger-cost-frontier/src/service_prediction_calibration.rs \
             tools/ev-passenger-cost-frontier/src/service_decision_impact.rs \
+            docs/research/SERVICE_DECISION_IMPACT_CALIBRATION_BENCHMARK_V0_1.md \
             tools/ev-passenger-cost-frontier/src/bin/service_decision_impact_screen.rs \
             tools/ev-passenger-cost-frontier/schemas/service_decision_impact_v0_1.schema.json \
             tools/ev-passenger-cost-frontier/fixtures/service_decision_impact_v0_1.json \
@@ -810,6 +811,7 @@ jobs:
             service-decision-impact-report.json
             tools/ev-passenger-cost-frontier/fixtures/service_decision_impact_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/service_decision_impact_v0_1.schema.json
+            docs/research/SERVICE_DECISION_IMPACT_CALIBRATION_BENCHMARK_V0_1.md
             tools/ev-passenger-cost-frontier/fixtures/service_prediction_calibration_v0_1.json
             tools/ev-passenger-cost-frontier/schemas/service_prediction_calibration_v0_1.schema.json
             docs/research/SERVICE_PREDICTION_CALIBRATION_AND_DEPLOYMENT_SHIFT_BENCHMARK_V0_1.md
