@@ -127,6 +127,7 @@ pub struct CaptureClaimBinding {
     pub source_record_id: String,
     pub canonical_subject_id: String,
     pub event_time: i64,
+    pub payload_digest: String,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -229,6 +230,7 @@ pub fn admit_claim_against_capture(
             && event.source_record_id == claim.source_record_id
             && event.canonical_subject_id == claim.canonical_subject_id
             && event.event_time == claim.event_time
+            && event.payload_digest == claim.payload_digest
             && event.reference_id == provenance.reference_id
             && event.published_at <= provenance.as_of
     });
@@ -601,6 +603,7 @@ mod tests {
             source_record_id: format!("source-record-{event_id}"),
             canonical_subject_id: "urn:epc:id:sscc:0614141.1234567890".to_owned(),
             event_time: 10,
+            payload_digest: format!("digest-{event_id}"),
         }
     }
 
@@ -670,11 +673,19 @@ mod tests {
     }
 
     #[test]
+    fn claim_with_wrong_source_payload_digest_is_not_admitted() {
+        let report = evaluate(&case(Some(reference(&["e1"])), vec![captured("e1")]));
+        let mut claim = claim_for_event("e1");
+        claim.payload_digest = "different-payload-digest".to_owned();
+        assert_eq!(
+            admit_claim_against_capture(&report, &claim),
+            CaptureClaimAdmission::EvidenceDoesNotMatchClaim
+        );
+    }
+
+    #[test]
     fn claim_for_wrong_event_time_is_not_admitted() {
-        let report = evaluate(&case(
-            Some(reference(&["e1"])),
-            vec![captured("e1")],
-        ));
+        let report = evaluate(&case(Some(reference(&["e1"])), vec![captured("e1")]));
         let mut claim = claim_for_event("e1");
         claim.event_time = 11;
         assert_eq!(
