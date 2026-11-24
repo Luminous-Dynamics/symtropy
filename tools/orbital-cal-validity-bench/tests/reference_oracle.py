@@ -91,8 +91,8 @@ def validate_case(case):
     event_ids = set()
     for event in case["events"]:
         interval(event["effective_time_ns"], event["time_uncertainty_ns"])
-        if (not require_text(event["event_id"]) or event["event_id"] in event_ids
-                or not event["affected_scope_ids"]):
+        if (not require_text(event["event_id"]) or not valid_sha256(event["event_receipt_sha256"])
+                or event["event_id"] in event_ids or not event["affected_scope_ids"]):
             raise ValueError("CHANGE_EVENT_INVALID")
         event_ids.add(event["event_id"])
         affected = set()
