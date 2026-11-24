@@ -338,7 +338,23 @@ cargo test --locked --manifest-path research/maritime-decision-risk-control/Carg
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin decision-risk-audit
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin non-monotone-risk-audit
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin weighted-shift-risk-audit
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin lipschitz-risk-audit
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin bernstein-risk-audit
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin simultaneous-hoeffding-risk-audit
 ```
+
+
+## Exact-head validation — 24 November 2026
+
+<badge color="success">PASS</badge> Pinned Rust 1.96.0 exact-head workflow [#157](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45394507064), commit `4964e19e89166313e7398f141771aa2408ce9427`:
+- `cargo fmt --check`: passed;
+- strict `cargo clippy -- -D warnings`: passed;
+- `cargo check`: passed;
+- `cargo test`: **70 passed, 0 failed**;
+- all six executable CSV receipts passed deterministic replay and schema/behaviour checks.
+
+This qualifies the synthetic software/method fixtures only. It does not qualify real DCT/DGT data, the #7231 oracle's independent evidence, operational exchangeability, known density ratios, or any actual port schedule.
+
 
 ## Claim ceiling
 
