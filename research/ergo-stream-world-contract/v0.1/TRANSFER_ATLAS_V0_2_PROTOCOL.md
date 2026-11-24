@@ -162,6 +162,12 @@ Do not compare against a weak random graph baseline without matching degree, den
 
 External benchmark leaderboard values are context until the exact protocol is run. Do not claim head-to-head superiority by comparing results from different datasets or input conditions.
 
+## Quotient congruence and task-observable preservation
+
+The v0.1 branch now contains a finite deterministic quotient constructor in `src/quotient.rs`. A state partition is accepted only when all states merged into one class agree on action enablement and, for enabled actions, transition to the same quotient class. This is the minimal congruence condition for a deterministic transition abstraction.
+
+The v0.2 benchmark must extend this beyond transition consistency: declare the observables, rewards, constraints and decisions that the abstraction is intended to preserve, then test them on held-out tasks. A quotient can be transition-congruent yet discard a distinction that matters to a task not included in its declared scope. Keep one-system quotient construction separate from source-to-target simulation/bisimulation.
+
 ## Decision-relevant information value
 
 ErgoStream must not rank acquisition actions by entropy reduction alone. The finite reference `decision_value.rs` computes expected reduction in optimal decision loss (EVSI) separately from mutual information, with a machine-readable known-answer pair. It should enter the v0.2 baseline ladder as a decision-focused oracle/control:
