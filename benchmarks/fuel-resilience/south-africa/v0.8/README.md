@@ -55,6 +55,14 @@ The intended integration boundary is an artifact adapter: the v0.8 result should
 
 Those Power Fabric issues and draft PRs are separate works in progress; this v0.8 crate currently has no compile-time dependency on them. They must be integrated only against their accepted schema versions and exact artifact contracts.
 
+## Power Fabric electricity-service interop
+
+The next integration work item is [SAFRB-SERVICE-TRAJECTORY-INTEROP-001 #7338](https://github.com/Luminous-Dynamics/symtropy/issues/7338). Its mapping contract is documented in [POWER_FABRIC_SERVICE_TRAJECTORY_INTEROP.md](research/POWER_FABRIC_SERVICE_TRAJECTORY_INTEROP.md).
+
+The existing [Power Fabric service trajectory auditor #6449 / PR #6450](https://github.com/Luminous-Dynamics/symtropy/pull/6450) accepts one delivered kWh value per frozen load/interval. Its uncertainty field is metadata; the current weighted scorer sums the delivered point value and does not independently calculate the v0.8 lower/upper interval. The adapter must therefore preserve the v0.8 interval and critical floor in a separate bound certificate, while projecting only the conservative lower bound into the generic score. A zero lower bound with a positive upper bound remains unknown/inconclusive.
+
+This adapter is **not implemented yet**. It must wait for accepted case/run/service-trajectory schema versions and the independent artifact/claim-verification chain; no compile-time dependency or end-to-end integration is claimed.
+
 ## Known-answer fixture
 
 The fixture uses four synthetic one-hour periods, a 50 Wh critical floor and an 80 Wh target. Delivered energy is bounded as:
