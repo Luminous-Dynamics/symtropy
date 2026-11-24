@@ -260,6 +260,14 @@ pub enum QueryRunImportError {
     InvalidNarrowphaseOutcome,
 }
 
+impl fmt::Display for QueryRunImportError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+impl Error for QueryRunImportError {}
+
 /// Parse the strict tab-separated per-query result interchange format.
 ///
 /// Optional first line: `#ccd-query-run-results-v1`.
@@ -386,8 +394,11 @@ fn parse_fallback_reason(value: &str) -> Result<FallbackReason, QueryRunImportEr
 }
 
 fn valid_identity_token(value: &str) -> bool {
-    !value.is_empty()
-        && value.bytes().all(|byte| {
+    let mut bytes = value.bytes();
+    bytes
+        .next()
+        .is_some_and(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
+        && bytes.all(|byte| {
             byte.is_ascii_lowercase()
                 || byte.is_ascii_digit()
                 || matches!(byte, b'-' | b'_' | b'.')
