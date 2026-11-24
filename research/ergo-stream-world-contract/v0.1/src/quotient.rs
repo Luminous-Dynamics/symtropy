@@ -275,6 +275,7 @@ fn unique_by<T>(values: &[T], id_of: impl Fn(&T) -> u32) -> bool {
     })
 }
 
+#[cfg(test)]
 fn fixture() -> (FiniteTransitionSystemV0, StatePartitionV0) {
     use super::dynamics::{ActionV0, StateV0};
 
