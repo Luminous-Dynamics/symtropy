@@ -13,8 +13,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::battery_service_network::EvidenceEnvelope;
-use crate::sustainable_mobility_service_quality::EvidenceClass;
+use crate::battery_service_network::{EvidenceClass, EvidenceEnvelope};
 
 const MAX_RECORDS: usize = 2_000;
 const MAX_METRICS_PER_RECORD: usize = 8;
