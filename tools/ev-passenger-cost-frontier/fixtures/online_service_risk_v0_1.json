@@ -217,6 +217,38 @@
         "valid_from_unix_ms": 2700,
         "valid_until_unix_ms": 3100
       }
+    },
+    {
+      "sample_id": "pending-1",
+      "site_id": "depot-01",
+      "site_configuration_digest": "site-config-sha256-fixture",
+      "asset_id": "ESS-01",
+      "asset_configuration_digest": "ess-config-sha256-fixture",
+      "stratum_id": "warm-lfp-mission",
+      "forecast_model_id": "pack-energy-model",
+      "forecast_model_version": "v1",
+      "metric": "pack_terminal_energy_wh",
+      "measurement_boundary": "pack_terminal",
+      "nominal_coverage_permille": 900,
+      "forecast_issued_unix_ms": 3100,
+      "target_start_unix_ms": 3200,
+      "target_end_unix_ms": 3400,
+      "outcome_available_unix_ms": null,
+      "predicted_lower": 100,
+      "predicted_upper": 200,
+      "observed_value": null,
+      "forecast_evidence": {
+        "asset_id": "ESS-01",
+        "configuration_digest": "ess-config-sha256-fixture",
+        "producer_id": "synthetic-online-fixture",
+        "method_id": "prequential-known-answer-v1",
+        "evidence_reference": "pending-1-forecast",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 3090,
+        "valid_from_unix_ms": 3080,
+        "valid_until_unix_ms": 5400
+      },
+      "outcome_evidence": null
     }
   ],
   "claim_ceiling": "Synthetic prequential monitor arithmetic only; no next-step risk guarantee, physical qualification or operational authority."
