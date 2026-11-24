@@ -279,12 +279,19 @@ pub fn analyze_local_identifiability(
     } else {
         None
     };
-    let physical_status = set_status_threshold(
+    let physical_base_status = if unprofiled_physical_max
+        < input.config.minimum_profiled_physical_sensitivity
+    {
+        IdentifiabilityStatus::NoInformativeSensitivity
+    } else {
         classify_status(
             physical_rank,
             physical_indices.len(),
             physical_condition_number,
-        ),
+        )
+    };
+    let physical_status = set_status_threshold(
+        physical_base_status,
         physical_condition_number,
         input.config.maximum_condition_number,
     );
@@ -782,7 +789,7 @@ mod tests {
         assert_eq!(report.nuisance_profiled_physical_rank, 0);
         assert_eq!(
             report.physical_status,
-            IdentifiabilityStatus::NoInformativeSensitivity
+            IdentifiabilityStatus::RankDeficient
         );
         assert_eq!(report.physical_nuisance_confounding.len(), 1);
         assert!((report.physical_nuisance_confounding[0].signed_correlation - 1.0).abs() < 1.0e-10);
@@ -1031,6 +1038,20 @@ mod tests {
             analyze_local_identifiability(&problem),
             Err(IdentifiabilityError::JacobiDidNotConverge { sweeps: 1 })
         ));
+    }
+
+    #[test]
+    fn a_physical_parameter_with_no_sensitivity_is_no_information_not_confounding() {
+        let report = analyze_local_identifiability(&input(
+            vec![parameter("flow", ParameterRole::Physical)],
+            vec![vec![0.0], vec![0.0], vec![0.0]],
+        ))
+        .unwrap();
+        assert_eq!(report.nuisance_profiled_physical_rank, 0);
+        assert_eq!(
+            report.physical_status,
+            IdentifiabilityStatus::NoInformativeSensitivity
+        );
     }
 
 }
