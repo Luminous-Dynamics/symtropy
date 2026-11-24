@@ -144,18 +144,26 @@ def cvar_upper_tail(losses: list[tuple[Fraction, Fraction]], alpha: Fraction) ->
     }
 
 
-def invalid(reason: str) -> dict[str, Any]:
+def invalid(case: dict[str, Any], reason: str) -> dict[str, Any]:
     return {
+        "case_id": case.get("case_id", ""),
         "status": "INVALID_INPUT",
         "reason": reason,
+        "probability_model_id": None,
+        "scenario_count": 0,
+        "policies": [],
         "authority_granted": False,
     }
 
 
-def abstain(reason: str) -> dict[str, Any]:
+def abstain(case: dict[str, Any], reason: str) -> dict[str, Any]:
     return {
+        "case_id": case.get("case_id", ""),
         "status": "ABSTAIN",
         "reason": reason,
+        "probability_model_id": None,
+        "scenario_count": 0,
+        "policies": [],
         "authority_granted": False,
     }
 
@@ -288,7 +296,7 @@ def evaluate_policy(
     if seen != expected_ids:
         raise ValueError(f"policy {policy_id} does not match exact scenario support")
 
-    output: dict[str, Any] = {"policy_id": policy_id, "metrics": {}}
+    output: dict[str, Any] = {"policy_id": policy_id}
     for metric, values in metric_values.items():
         expected_regret = sum(
             (value * weight for value, weight in values), Fraction(0, 1)
@@ -304,7 +312,7 @@ def evaluate_policy(
                 "tail_mass": fraction_json(risk["tail_mass"]),
                 "var_atom_fraction": fraction_json(risk["var_atom_fraction"]),
             })
-        output["metrics"][metric] = {
+        output[metric] = {
             "expected_regret": fraction_json(expected_regret),
             "worst_case_regret": fraction_json(worst_regret),
             "cvar": alpha_reports,
@@ -314,22 +322,22 @@ def evaluate_policy(
 
 def evaluate_case(case: dict[str, Any], alphas: list[Fraction]) -> dict[str, Any]:
     if not valid_id(case.get("case_id")) or not valid_id(case.get("scope_id")):
-        return invalid("case identity or scope is malformed")
+        return invalid(case, "case identity or scope is malformed")
     try:
         weight_rows = validate_receipt(case)
     except LookupError as error:
-        return abstain(str(error))
+        return abstain(case, str(error))
     except (ValueError, TypeError, KeyError) as error:
-        return invalid(str(error))
+        return invalid(case, str(error))
 
     weights = dict(weight_rows)
     expected_ids = set(weights)
     policies = case.get("policies")
     if not isinstance(policies, list) or not policies:
-        return invalid("policy list is empty or malformed")
+        return invalid(case, "policy list is empty or malformed")
     ids = [item.get("policy_id") for item in policies]
     if any(not valid_id(value) for value in ids) or len(ids) != len(set(ids)):
-        return invalid("policy IDs are malformed or duplicated")
+        return invalid(case, "policy IDs are malformed or duplicated")
 
     try:
         reports = [
@@ -337,17 +345,14 @@ def evaluate_case(case: dict[str, Any], alphas: list[Fraction]) -> dict[str, Any
             for policy in sorted(policies, key=lambda item: item["policy_id"])
         ]
     except (ValueError, TypeError, KeyError) as error:
-        return invalid(str(error))
+        return invalid(case, str(error))
 
     return {
-        "status": "PASS",
         "case_id": case["case_id"],
+        "status": "PASS",
+        "reason": "PROBABILITY_MODEL_CONDITIONED_METRICS_COMPUTED",
         "probability_model_id": case["probability_model"]["probability_model_id"],
-        "evidence_class": "synthetic",
-        "claim_ceiling": CLAIM_CEILING,
         "scenario_count": len(weights),
-        "probability_mass_exactly_one": True,
-        "policy_count": len(reports),
         "policies": reports,
         "authority_granted": False,
     }
