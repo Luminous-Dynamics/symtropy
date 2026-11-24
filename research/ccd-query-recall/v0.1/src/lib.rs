@@ -794,6 +794,8 @@ pub enum EvaluationError {
     CertifiedPruneReachedNarrowphase,
     ForwardedQueryNotRunInNarrowphase,
     MissingOracleGroundTruth,
+    ZeroNarrowphaseDuration,
+    DurationForNotRunNarrowphase,
 }
 
 impl fmt::Display for EvaluationError {
@@ -824,6 +826,9 @@ pub fn evaluate_queries_with_profile(
     let mut errors = Vec::new();
     let mut identities = HashSet::with_capacity(evaluations.len());
     let mut strata = std::collections::BTreeMap::<QueryStratumIdentity, QueryCounts>::new();
+    let mut all_durations_ns = Vec::new();
+    let mut stratum_durations_ns =
+        std::collections::BTreeMap::<QueryStratumIdentity, Vec<u64>>::new();
     let mut counts = QueryCounts::default();
 
     for evaluation in evaluations {
@@ -869,20 +874,45 @@ pub fn evaluate_queries_with_profile(
             query_class: identity.query_class,
         };
         accumulate_counts(
-            strata.entry(stratum_identity).or_default(),
+            strata.entry(stratum_identity.clone()).or_default(),
             evaluation,
             forwarded,
         );
+        if let Some(elapsed_ns) = evaluation.narrowphase_elapsed_ns {
+            if elapsed_ns == 0 {
+                errors.push(EvaluationError::ZeroNarrowphaseDuration);
+            } else if evaluation.narrowphase == NarrowphaseOutcome::NotRun {
+                errors.push(EvaluationError::DurationForNotRunNarrowphase);
+            } else {
+                all_durations_ns.push(elapsed_ns);
+                stratum_durations_ns
+                    .entry(stratum_identity)
+                    .or_default()
+                    .push(elapsed_ns);
+            }
+        }
     }
 
     if errors.is_empty() {
+        let timing = summarize_query_durations(all_durations_ns);
+        let strata = strata
+            .into_iter()
+            .map(|(identity, counts)| {
+                let timing = summarize_query_durations(
+                    stratum_durations_ns.remove(&identity).unwrap_or_default(),
+                );
+                QueryStratumScore {
+                    identity,
+                    counts,
+                    timing,
+                }
+            })
+            .collect();
         Ok(QueryScore {
             profile,
             counts,
-            strata: strata
-                .into_iter()
-                .map(|(identity, counts)| QueryStratumScore { identity, counts })
-                .collect(),
+            timing,
+            strata,
         })
     } else {
         Err(errors)
@@ -952,12 +982,16 @@ pub fn evaluate_imported_queries_with_profile(
             errors.push(QueryJoinError::MissingOracleGroundTruth);
             continue;
         };
-        evaluations.push(QueryEvaluation::new(
+        let evaluation = QueryEvaluation::new(
             identity,
             oracle_collision,
             result.candidate.clone(),
             result.narrowphase,
-        ));
+        );
+        evaluations.push(match result.narrowphase_elapsed_ns {
+            Some(elapsed_ns) => evaluation.with_narrowphase_elapsed_ns(elapsed_ns),
+            None => evaluation,
+        });
     }
 
     if by_identity
