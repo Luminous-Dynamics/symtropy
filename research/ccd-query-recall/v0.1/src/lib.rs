@@ -782,7 +782,7 @@ mod tests {
         let mut vertex_csv = String::new();
         for index in 0..8 {
             if !vertex_csv.is_empty() {
-                vertex_csv.push('\\n');
+                vertex_csv.push(char::from(10))
             }
             vertex_csv.push_str(&format!("{index},1,0,1,0,1,false"));
         }
