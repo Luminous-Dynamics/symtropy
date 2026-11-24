@@ -483,3 +483,9 @@ A source audit identified and corrected two issues:
 This protects against accidentally carrying a split-conformal statement across a declared stratum boundary. It does **not** detect distribution shift within a stratum or create a guarantee under arbitrary mechanism/concept shift. Such claims require separate shift diagnostics and assumptions.
 
 The current branch exact head `3da8b62e8a29720a7cba2d2d4fd453f23f467f51` passed focused Rust 1.96 workflow [#45400521911](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45400521911): formatting, **129 unit tests plus doctests**, strict Clippy. The stratum fail-closed change is newer and now requires a fresh exact-head run.
+
+## Independent-unit enforcement — added after the 129-test head
+
+Split-conformal fitting now consumes `SplitConformalCalibrationOutcomeV0`, whose rows carry an evaluator-owned independent-unit ID. It rejects repeated unit IDs so repeated frames/windows from one campaign cannot inflate the conformal rank. v0.1 therefore requires one scored claim per independent unit; multiple claims inside one block need a separately specified block-maximum protocol.
+
+Added the evaluator-only JSON Schema/example at `schemas/split_conformal_calibration_outcomes_v0.schema.json` and `examples/split_conformal_calibration_outcomes_v0.example.json`. Domain fingerprint resolution and minimum independent-block thresholds are delegated to #7041; the conformal fitter consumes only the owner-approved stratum. This source change requires fresh exact-head Rust verification.
