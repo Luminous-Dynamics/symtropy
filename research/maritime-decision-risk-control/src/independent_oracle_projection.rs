@@ -1041,20 +1041,31 @@ mod tests {
         }
     }
 
-    fn policy(
-        episode_id: &str,
-        policy_id: &str,
-        policy_revision: &str,
+    struct PolicyFixture<'a> {
+        episode_id: &'a str,
+        policy_id: &'a str,
+        policy_revision: &'a str,
         physical: PhysicalDisposition,
         authority: AuthorityDisposition,
         action_class: PolicyActionClass,
-        delivered_a: u32,
-        delivered_b: u32,
-    ) -> PolicyOracleProjection {
+        delivered_service: [u32; 2],
+    }
+
+    fn policy(fixture: PolicyFixture<'_>) -> PolicyOracleProjection {
+        let PolicyFixture {
+            episode_id,
+            policy_id,
+            policy_revision,
+            physical,
+            authority,
+            action_class,
+            delivered_service,
+        } = fixture;
         let binding = binding(episode_id, policy_id, policy_revision);
-        let authority_source = if authority == AuthorityDisposition::NotRequired {
-            Vec::new()
-        } else if authority == AuthorityDisposition::Unknown {
+        let authority_source = if matches!(
+            authority,
+            AuthorityDisposition::NotRequired | AuthorityDisposition::Unknown
+        ) {
             Vec::new()
         } else {
             vec!["authority-record".to_owned()]
@@ -1092,8 +1103,8 @@ mod tests {
                 receipt_sha256: C.to_owned(),
             },
             participant_service: vec![
-                participant("receiver-A", delivered_a),
-                participant("receiver-B", delivered_b),
+                participant("receiver-A", delivered_service[0]),
+                participant("receiver-B", delivered_service[1]),
             ],
         }
     }
@@ -1123,26 +1134,24 @@ mod tests {
                     "weather-1",
                     DatasetRole::Calibration,
                     vec![
-                        policy(
-                            "cal-1",
-                            "policy-safe",
-                            "policy-safe-v1",
-                            PhysicalDisposition::Feasible,
-                            AuthorityDisposition::NotRequired,
-                            PolicyActionClass::NoMutation,
-                            12,
-                            25,
-                        ),
-                        policy(
-                            "cal-1",
-                            "policy-mutating",
-                            "policy-mutating-v1",
-                            PhysicalDisposition::Infeasible,
-                            AuthorityDisposition::Authorized,
-                            PolicyActionClass::Mutating,
-                            11,
-                            22,
-                        ),
+                        policy(PolicyFixture {
+                            episode_id: "cal-1",
+                            policy_id: "policy-safe",
+                            policy_revision: "policy-safe-v1",
+                            physical: PhysicalDisposition::Feasible,
+                            authority: AuthorityDisposition::NotRequired,
+                            action_class: PolicyActionClass::NoMutation,
+                            delivered_service: [12, 25],
+                        }),
+                        policy(PolicyFixture {
+                            episode_id: "cal-1",
+                            policy_id: "policy-mutating",
+                            policy_revision: "policy-mutating-v1",
+                            physical: PhysicalDisposition::Infeasible,
+                            authority: AuthorityDisposition::Authorized,
+                            action_class: PolicyActionClass::Mutating,
+                            delivered_service: [11, 22],
+                        }),
                     ],
                 ),
                 schedule(
@@ -1150,26 +1159,24 @@ mod tests {
                     "outage-1",
                     DatasetRole::Evaluation,
                     vec![
-                        policy(
-                            "eval-1",
-                            "policy-safe",
-                            "policy-safe-v1",
-                            PhysicalDisposition::Feasible,
-                            AuthorityDisposition::NotRequired,
-                            PolicyActionClass::NoMutation,
-                            14,
-                            26,
-                        ),
-                        policy(
-                            "eval-1",
-                            "policy-mutating",
-                            "policy-mutating-v1",
-                            PhysicalDisposition::Feasible,
-                            AuthorityDisposition::Authorized,
-                            PolicyActionClass::Mutating,
-                            12,
-                            23,
-                        ),
+                        policy(PolicyFixture {
+                            episode_id: "eval-1",
+                            policy_id: "policy-safe",
+                            policy_revision: "policy-safe-v1",
+                            physical: PhysicalDisposition::Feasible,
+                            authority: AuthorityDisposition::NotRequired,
+                            action_class: PolicyActionClass::NoMutation,
+                            delivered_service: [14, 26],
+                        }),
+                        policy(PolicyFixture {
+                            episode_id: "eval-1",
+                            policy_id: "policy-mutating",
+                            policy_revision: "policy-mutating-v1",
+                            physical: PhysicalDisposition::Feasible,
+                            authority: AuthorityDisposition::Authorized,
+                            action_class: PolicyActionClass::Mutating,
+                            delivered_service: [12, 23],
+                        }),
                     ],
                 ),
             ],
