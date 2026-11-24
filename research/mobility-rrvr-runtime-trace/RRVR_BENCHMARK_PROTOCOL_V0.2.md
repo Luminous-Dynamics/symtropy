@@ -38,7 +38,7 @@ Traditional idempotency keys and payload-mismatch rejection are essential, estab
 The safety rule is asymmetric:
 - same key + same payload: retrieve the prior result; do not repeat the effect;
 - same key + different payload: conflict; stop;
-- unknown result: read-only reconciliation against the effect owner;
+- unknown or rejected result: read-only reconciliation against the effect owner;
 - no-dispatch proof: terminal for the old identity, not permission to replay it;
 - a new attempt: a new identity, fresh authority and newly qualified evidence.
 
