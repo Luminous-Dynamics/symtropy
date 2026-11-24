@@ -224,14 +224,14 @@ mod tests {
 
     #[test]
     fn unrepresentable_exact_interval_width_fails_closed() {
-        let interval = interval(
+        let bounds = interval(
             rational(1, u128::MAX),
             rational(1, u128::MAX - 1),
         );
 
         assert_eq!(
             assess_risk_threshold(
-                interval,
+                bounds,
                 rational(1, 2),
                 RiskThresholdRule::AtOrAbove,
             ),
