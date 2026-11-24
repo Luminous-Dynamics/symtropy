@@ -1503,6 +1503,214 @@ mod tests {
     }
 
     #[test]
+    fn parses_tsv_rows_for_forwarded_fallback_and_certified_prune() {
+        let forwarded = [
+            "nyu-fixture-v1",
+            "armadillo-rollers",
+            "3",
+            "edge_edge",
+            "0",
+            "forwarded",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "no_collision",
+        ]
+        .join("\\t");
+        let fallback = [
+            "nyu-fixture-v1",
+            "armadillo-rollers",
+            "3",
+            "edge_edge",
+            "1",
+            "fallback",
+            "unsupported_motion",
+            "",
+            "",
+            "",
+            "",
+            "no_collision",
+        ]
+        .join("\\t");
+        let pruned = [
+            "nyu-fixture-v1",
+            "armadillo-rollers",
+            "3",
+            "edge_edge",
+            "2",
+            "certified_pruned",
+            "",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "symtropy-aabb-checker-v0.1",
+            "accepted_and_replayed",
+            "not_run",
+        ]
+        .join("\\t");
+        let input = [
+            "#ccd-query-run-results-v1",
+            &forwarded,
+            &fallback,
+            &pruned,
+        ]
+        .join("\\n");
+
+        let results = parse_query_run_results_tsv(&input).unwrap();
+        assert_eq!(results.len(), 3);
+        assert_eq!(results[0].identity().query_index(), 0);
+        assert!(matches!(
+            results[0].candidate,
+            CandidateDisposition::Forwarded
+        ));
+        assert!(matches!(
+            results[1].candidate,
+            CandidateDisposition::Fallback(FallbackReason::UnsupportedMotion)
+        ));
+        assert!(matches!(
+            results[2].candidate,
+            CandidateDisposition::CertifiedPruned(PruneEvidence {
+                status: VerificationStatus::AcceptedAndReplayed,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn tsv_adapter_fails_closed_on_malformed_dispositions_and_evidence() {
+        let forwarded_with_metadata = [
+            "dataset",
+            "scene",
+            "0",
+            "edge_edge",
+            "0",
+            "forwarded",
+            "unsupported_motion",
+            "",
+            "",
+            "",
+            "",
+            "no_collision",
+        ]
+        .join("\\t");
+        assert_eq!(
+            parse_query_run_results_tsv(&forwarded_with_metadata),
+            Err(QueryRunImportError::UnexpectedDispositionMetadata)
+        );
+
+        let missing_fallback_reason = [
+            "dataset",
+            "scene",
+            "0",
+            "edge_edge",
+            "0",
+            "fallback",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "no_collision",
+        ]
+        .join("\\t");
+        assert_eq!(
+            parse_query_run_results_tsv(&missing_fallback_reason),
+            Err(QueryRunImportError::MissingFallbackReason)
+        );
+
+        let missing_certificate = [
+            "dataset",
+            "scene",
+            "0",
+            "edge_edge",
+            "0",
+            "certified_pruned",
+            "",
+            "",
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "checker",
+            "accepted_and_replayed",
+            "not_run",
+        ]
+        .join("\\t");
+        assert_eq!(
+            parse_query_run_results_tsv(&missing_certificate),
+            Err(QueryRunImportError::MissingPruneEvidence)
+        );
+    }
+
+    #[test]
+    fn tsv_adapter_joins_real_nyu_sample_to_profiled_query_score() {
+        const CSV: &str = include_str!(
+            "../../../nyu-ccd-query-import/v0.1/fixtures/armadillo-rollers-3ee.csv"
+        );
+        const BOOLS: &str = include_str!(
+            "../../../nyu-ccd-query-import/v0.1/fixtures/armadillo-rollers-3ee-mma-bool.json"
+        );
+        let mut queries = parse_queries_csv(CSV, QueryKind::EdgeEdge).unwrap();
+        attach_ground_truth(&mut queries, &parse_boolean_json(BOOLS).unwrap()).unwrap();
+
+        let row0 = [
+            "nyu-fixture-v1",
+            "armadillo-rollers",
+            "3",
+            "edge_edge",
+            "0",
+            "forwarded",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "no_collision",
+        ]
+        .join("\\t");
+        let row1 = [
+            "nyu-fixture-v1",
+            "armadillo-rollers",
+            "3",
+            "edge_edge",
+            "1",
+            "fallback",
+            "unsupported_motion",
+            "",
+            "",
+            "",
+            "",
+            "no_collision",
+        ]
+        .join("\\t");
+        let results = parse_query_run_results_tsv(&[row0, row1].join("\\n")).unwrap();
+        let profile = RunProfile::new(
+            RunProvenance::new(
+                "symtropy-adapter-smoke",
+                "v0.1",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            ),
+            MotionProfile::LinearizedConstantVelocity,
+            ArithmeticProfile::Binary64,
+        );
+        let score = evaluate_imported_queries_with_profile(
+            profile,
+            "nyu-fixture-v1",
+            "armadillo-rollers",
+            3,
+            &queries,
+            &results,
+        )
+        .unwrap();
+
+        assert_eq!(score.counts.total_queries, 2);
+        assert_eq!(score.counts.oracle_negative_queries, 2);
+        assert_eq!(score.counts.fallback_queries, 1);
+        assert_eq!(score.counts.candidate_false_positives, 2);
+        assert!(!score.benchmark_qualified());
+    }
+
+    #[test]
     fn rejects_missing_oracle_ground_truth() {
         let csv = (0..8)
             .map(|index| format!("{index},1,0,1,0,1"))
