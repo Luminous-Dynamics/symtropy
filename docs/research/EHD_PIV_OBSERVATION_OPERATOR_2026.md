@@ -43,7 +43,13 @@ The eleven V0 tests cover:
 8. no silent velocity extrapolation;
 9. malformed noise and acquisition metadata;
 10. field support outside the sensor bounds;
-11. non-finite sensor signal overflow.
+11. non-finite sensor signal overflow;
+12. sub-LSB analog sensitivity before quantization;
+13. camera gain vs particle-brightness sensitivity collinearity;
+14. particle diameter vs optical PSF sensitivity collinearity;
+15. particle z-position vs light-sheet thickness sensitivity collinearity;
+16. flow velocity vs frame-separation sensitivity collinearity;
+17. invalid sensitivity step and analog frame shape.
 
 These are analytic/constructed controls, not comparisons to measured hardware.
 
