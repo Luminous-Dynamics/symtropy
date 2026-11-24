@@ -213,14 +213,77 @@ fn validate_parameter_set(
                 "parameter report marks an axis without a feasible vertex",
             ));
         }
-        if report.status == ParameterSetStatus::FeasibleWithFiniteIntervals
-            && (interval.beta_upper.is_none() || interval.shape_scale_upper.is_none())
+
+        let characteristic_scale = if axis == 2 {
+            report.characteristic_length_m
+        } else {
+            1.0
+        };
+        let expected_shape_lower = interval
+            .beta_upper
+            .filter(|upper| *upper > 0.0)
+            .map_or(0.0, |upper| characteristic_scale / upper.sqrt());
+        let Some(shape_lower) = interval.shape_scale_lower else {
+            return Err(invalid(
+                ParameterSetErrorKind::InvalidInput,
+                "each axis requires a non-negative shape-scale lower bound",
+            ));
+        };
+        if !shape_lower.is_finite()
+            || shape_lower < 0.0
+            || !near(shape_lower, expected_shape_lower, tolerance)
         {
             return Err(invalid(
                 ParameterSetErrorKind::InvalidInput,
-                "finite parameter-set status contains an unbounded axis",
+                "shape-scale lower bound disagrees with beta upper bound",
             ));
         }
+        if let Some(shape_upper) = interval.shape_scale_upper {
+            if !shape_upper.is_finite()
+                || shape_upper <= 0.0
+                || lower == 0.0
+                || !near(
+                    shape_upper,
+                    characteristic_scale / lower.sqrt(),
+                    tolerance,
+                )
+            {
+                return Err(invalid(
+                    ParameterSetErrorKind::InvalidInput,
+                    "shape-scale upper bound disagrees with beta lower bound",
+                ));
+            }
+        }
+
+        if interval.axis_was_excited != interval.beta_upper.is_some() {
+            return Err(invalid(
+                ParameterSetErrorKind::InvalidInput,
+                "axis excitation flag disagrees with beta upper-bound availability",
+            ));
+        }
+        let expected_identifiability = if !interval.axis_was_excited {
+            AxisIdentifiability::BetaUpperBoundUnboundedDueToNoExcitation
+        } else if interval.shape_scale_upper.is_none() {
+            AxisIdentifiability::ShapeUpperBoundUnbounded
+        } else {
+            AxisIdentifiability::FiniteInterval
+        };
+        if interval.identifiability != expected_identifiability {
+            return Err(invalid(
+                ParameterSetErrorKind::InvalidInput,
+                "axis identifiability label disagrees with its parameter intervals",
+            ));
+        }
+    }
+
+    let has_unbounded_axis = report.intervals.iter().any(|interval| {
+        interval.beta_upper.is_none() || interval.shape_scale_upper.is_none()
+    });
+    if (report.status == ParameterSetStatus::FeasibleWithFiniteIntervals) == has_unbounded_axis {
+        return Err(invalid(
+            ParameterSetErrorKind::InvalidInput,
+            "parameter-set status disagrees with its per-axis boundedness",
+        ));
     }
     Ok(())
 }
@@ -708,6 +771,42 @@ mod tests {
         assert_eq!(
             compute_patch_support_envelope(&input, SupportEnvelopeConfig::default())
                 .expect_err("inconsistent marginal interval")
+                .kind,
+            ParameterSetErrorKind::InvalidInput
+        );
+    }
+
+    #[test]
+    fn rejects_shape_scale_and_identifiability_inconsistent_reports() {
+        let mut parameters = report(
+            vec![[1.0, 1.0, 1.0]],
+            [
+                interval(1.0, Some(1.0)),
+                interval(1.0, Some(1.0)),
+                interval(1.0, Some(1.0)),
+            ],
+            ParameterSetStatus::FeasibleWithFiniteIntervals,
+        );
+        let input = PatchSupportEnvelopeInput {
+            parameter_set: &parameters,
+            capacity_scale_interval: [1.0, 1.0],
+            capacity_scale_digest: "capacity-validation-fixture-v1".to_owned(),
+            slip_twist: [1.0, 0.0, 0.0],
+        };
+
+        parameters.intervals[0].shape_scale_upper = Some(2.0);
+        assert_eq!(
+            compute_patch_support_envelope(&input, SupportEnvelopeConfig::default())
+                .expect_err("incorrect shape upper bound")
+                .kind,
+            ParameterSetErrorKind::InvalidInput
+        );
+
+        parameters.intervals[0].shape_scale_upper = Some(1.0);
+        parameters.intervals[1].axis_was_excited = false;
+        assert_eq!(
+            compute_patch_support_envelope(&input, SupportEnvelopeConfig::default())
+                .expect_err("incorrect excitation flag")
                 .kind,
             ParameterSetErrorKind::InvalidInput
         );
