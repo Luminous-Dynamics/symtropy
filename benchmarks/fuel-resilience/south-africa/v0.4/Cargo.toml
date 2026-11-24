@@ -1,0 +1,16 @@
+[package]
+name = "safrb-tournament"
+version = "0.4.0"
+edition = "2024"
+publish = false
+license = "Apache-2.0"
+description = "Weighted disruption scenario scorecard and matched CVaR tournament for SAFRB"
+
+[dependencies]
+
+[[bin]]
+name = "safrb-tournament"
+path = "src/main.rs"
+
+[workspace]
+# Standalone tournament scorer; intentionally outside the root Symtropy workspace.
