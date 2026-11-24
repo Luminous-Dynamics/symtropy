@@ -202,3 +202,6 @@ For this v0.1 simulator contract, delivery observations are scoped to the exact 
 
 
 The idempotency key itself is now a versioned SHA-256 digest of a canonical identity record containing the plan digest, campaign/pair/scenario/fault IDs and sequence, run ID and run epoch. The scenario and fault must be exact members of the integrity-verified plan before a key can be derived. This avoids ambiguity from delimiter characters in caller-supplied IDs. The separate request-payload digest then binds that key to the full target, fault domain, schedule and parameter digest. A known-answer test pins the cross-language payload commitment; delimiter-collision and uncommitted-scenario tests pin identity behavior.
+
+
+The private reset-attempt and reset-verification records also commit the exact compiled plan SHA-256. Dispatch and read-only reset reconciliation reject a different plan, even when it targets the same simulator build and world profile. The adapter session itself is non-cloneable, and the raw injector dispatch helper is private; the only exported fault-dispatch path requires the plan-bound reset state. This closes accidental session duplication and plan substitution at the API layer, while the durable journal remains necessary for process-restart safety.
