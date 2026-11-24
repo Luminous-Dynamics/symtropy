@@ -780,11 +780,11 @@ pub fn evaluate_mobility_incident_portfolio(
             );
         }
 
-        event_observations.push(PortfolioEventObservation::new(
-            stress_event,
-            outcomes,
-            domain_observations,
-        ));
+        event_observations.push(PortfolioEventObservation {
+            event: stress_event,
+            asset_outcomes: outcomes,
+            failure_domain_observations: domain_observations,
+        });
         incident_evidence.push(IncidentEvidenceReceipt {
             event_id: event.event_id.clone(),
             incident_group_id: event.incident_group_id.clone(),
