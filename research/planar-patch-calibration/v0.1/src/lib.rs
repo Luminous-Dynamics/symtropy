@@ -1321,20 +1321,17 @@ mod tests {
             1.0e-12,
         );
         assert_eq!(report.non_dissipative_observation_count, 0);
-        close(report.diagnostics[0].predicted_power.unwrap(), -6.0_f64.sqrt(), 1.0e-12);
+        close(
+            report.diagnostics[0].predicted_power.unwrap(),
+            -6.0_f64.sqrt(),
+            1.0e-12,
+        );
     }
 
     #[test]
     fn zero_slip_sticking_samples_are_preserved_but_not_directionally_scored() {
         let problem = direction_input(vec![
-            direction_observation(
-                "stick",
-                "stick-trial",
-                [0.0; 3],
-                [0.2, 0.1, 0.05],
-                1.0,
-                1.0,
-            ),
+            direction_observation("stick", "stick-trial", [0.0; 3], [0.2, 0.1, 0.05], 1.0, 1.0),
             direction_observation(
                 "slide",
                 "slide-trial",
@@ -1388,10 +1385,21 @@ mod tests {
         )]);
         let report =
             validate_maximum_dissipation(&problem, direction_config()).expect("wrong direction");
-        assert_eq!(report.status, MaximumDissipationValidationStatus::Inconsistent);
+        assert_eq!(
+            report.status,
+            MaximumDissipationValidationStatus::Inconsistent
+        );
         assert_eq!(report.non_dissipative_observation_count, 1);
-        close(report.maximum_positive_observed_power.unwrap(), 2.0, 1.0e-12);
-        close(report.maximum_normalized_wrench_error.unwrap(), 2.0, 1.0e-12);
+        close(
+            report.maximum_positive_observed_power.unwrap(),
+            2.0,
+            1.0e-12,
+        );
+        close(
+            report.maximum_normalized_wrench_error.unwrap(),
+            2.0,
+            1.0e-12,
+        );
     }
 
     #[test]
