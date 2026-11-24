@@ -1050,6 +1050,7 @@ fn validate_inspection_method(
 
 fn apply_process_ticks(
     transition: &Value,
+    case: &Value,
     state: &mut RuntimeState,
     epoch: u64,
     transition_id: &str,
@@ -1084,7 +1085,7 @@ fn apply_process_ticks(
         return Err(violation("processed_ticks_exceed_remaining_work", Some(epoch), Some(transition_id)));
     }
 
-    let operation_static = state_operation_definition(state, operation_id, epoch, transition_id)?;
+    let operation_static = find_operation(case, operation_id, epoch, transition_id)?.clone();
     let inspection_required = operation_static
         .get("inspection_required")
         .and_then(Value::as_bool)
@@ -1110,17 +1111,6 @@ fn apply_process_ticks(
     }
 
     Ok(())
-}
-
-fn state_operation_definition(
-    state: &RuntimeState,
-    operation_id: &str,
-    epoch: u64,
-    transition_id: &str,
-) -> Result<Value, Violation> {
-    let _ = state;
-    let _ = operation_id;
-    Err(violation("operation_definition_not_bound", Some(epoch), Some(transition_id)))
 }
 
 fn apply_inspection_result(
@@ -1312,7 +1302,7 @@ fn apply_transition(
             epoch,
             transition_id,
         )?,
-        "PROCESS_TICKS" => apply_process_ticks(transition, state, epoch, transition_id)?,
+        "PROCESS_TICKS" => apply_process_ticks(transition, case, state, epoch, transition_id)?,
         "INSPECTION_RESULT" => {
             apply_inspection_result(transition, case, state, epoch, transition_id)?
         }
@@ -1718,7 +1708,7 @@ mod tests {
             start_transition("DUPLICATE-START", 0, "OP-2", "START", None, 2, 1),
         );
         let error = replay_ledger(&value).unwrap_err();
-        assert_eq!(error.code, "resource_already_has_active_operation");
+        assert_eq!(error.code, "start_requires_uncommitted_waiting_operation");
     }
 
     #[test]
