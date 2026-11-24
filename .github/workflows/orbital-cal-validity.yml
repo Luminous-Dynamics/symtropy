@@ -61,7 +61,6 @@ jobs:
           cmp /tmp/cal-rust-a.json /tmp/cal-rust-b.json
           test -s /tmp/cal-rust-a.json
           test -s /tmp/cal-rust-b.json
-          jq -r '"deterministic receipt generated for " + (.case_count | tostring) + " cases; expected matches=" + (.expected_outcome_matches | tostring) + "; mismatches=" + (.expected_outcome_mismatches | tostring)' /tmp/cal-rust-a.json
       - name: Independent Python oracle
         run: |
           python3 tools/orbital-cal-validity-bench/tests/reference_oracle.py docs/research/orbital-truss/fixtures/calibration-validity-v0_1.json "$GITHUB_SHA" > /tmp/cal-python.json
