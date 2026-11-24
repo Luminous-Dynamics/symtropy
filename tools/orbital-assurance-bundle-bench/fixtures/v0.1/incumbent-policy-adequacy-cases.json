@@ -23,7 +23,7 @@
         "source_world_set_receipt_id": "world-receipt-observable_review",
         "source_joint_loss_receipt_id": "loss-receipt-observable_review",
         "source_joint_scenario_manifest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "policy_payload_sha256": "3939eded9a5a0b28e70904bbcee734af44daf4e96515a06e7695af3c7ff9b79a",
+        "policy_payload_sha256": "078a926d8524acd3b7d4948ea1a1674213744104399b284091d3629499b1e0e6",
         "receipt_id": "discovery-receipt-observable_review",
         "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "state": "CURRENT",
@@ -84,10 +84,6 @@
           "query_id": null,
           "branch_actions": {
             "__NO_QUERY__": "safe"
-          },
-          "declared_worst_case_loss": {
-            "numerator": 10,
-            "denominator": 1
           },
           "query_cost": {
             "reference_trials": 0,
@@ -170,7 +166,11 @@
           "worst_outcome_class_regret_scenario_ids": [
             "s-A",
             "s-B"
-          ]
+          ],
+          "worst_case_loss": {
+            "numerator": 10,
+            "denominator": 1
+          }
         },
         {
           "policy_id": "candidate-observable",
@@ -178,10 +178,6 @@
           "branch_actions": {
             "north": "north-action",
             "south": "south-action"
-          },
-          "declared_worst_case_loss": {
-            "numerator": 1,
-            "denominator": 1
           },
           "query_cost": {
             "reference_trials": 1,
@@ -272,7 +268,11 @@
           "worst_outcome_class_regret_scenario_ids": [
             "s-A",
             "s-B"
-          ]
+          ],
+          "worst_case_loss": {
+            "numerator": 1,
+            "denominator": 1
+          }
         }
       ],
       "query_universe_receipt_id": "query-universe-1",
