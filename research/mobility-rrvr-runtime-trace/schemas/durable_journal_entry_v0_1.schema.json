@@ -101,7 +101,8 @@
             "observed_world_epoch",
             "observed_clock_id",
             "observed_initial_state_sha256",
-            "observation_artifact_sha256"
+            "observation_artifact_sha256",
+            "transport_response_artifact_sha256"
           ],
           "properties": {
             "event": {
@@ -147,6 +148,13 @@
               "pattern": "^[a-fA-F0-9]{64}$"
             },
             "observation_artifact_sha256": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[a-fA-F0-9]{64}$"
+            },
+            "transport_response_artifact_sha256": {
               "type": [
                 "string",
                 "null"
@@ -282,7 +290,8 @@
             "source",
             "status",
             "dispatch_id",
-            "ledger_artifact_sha256"
+            "ledger_artifact_sha256",
+            "transport_response_artifact_sha256"
           ],
           "properties": {
             "event": {
@@ -321,6 +330,13 @@
               ]
             },
             "ledger_artifact_sha256": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[a-fA-F0-9]{64}$"
+            },
+            "transport_response_artifact_sha256": {
               "type": [
                 "string",
                 "null"
