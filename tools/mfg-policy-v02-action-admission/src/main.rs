@@ -480,16 +480,29 @@ fn initial_live_state(
     })
 }
 
-fn snapshot_live_state(
-    frame: &Value,
-    snapshot: &Value,
-    static_case: &Value,
-    resources: &BTreeMap<String, &Value>,
-    operations: &BTreeMap<String, (&Value, &Value)>,
-    visible: &VisibleEvidenceState,
-    decision_frame_digest: &str,
+struct LiveSnapshotValidationContext<'a> {
+    frame: &'a Value,
+    static_case: &'a Value,
+    resources: &'a BTreeMap<String, &'a Value>,
+    operations: &'a BTreeMap<String, (&'a Value, &'a Value)>,
+    visible: &'a VisibleEvidenceState,
+    decision_frame_digest: &'a str,
     decision_epoch: u64,
+}
+
+fn snapshot_live_state(
+    snapshot: &Value,
+    context: LiveSnapshotValidationContext<'_>,
 ) -> Result<LiveAdmissionState, String> {
+    let LiveSnapshotValidationContext {
+        frame,
+        static_case,
+        resources,
+        operations,
+        visible,
+        decision_frame_digest,
+        decision_epoch,
+    } = context;
     validate_schema(snapshot, SNAPSHOT_SCHEMA_JSON, "operational_state_snapshot")?;
 
     if required_string(snapshot, "benchmark_id", "operational_state_snapshot")?
@@ -932,14 +945,16 @@ fn evaluate_with_snapshot(
 
     let live_state = match snapshot {
         Some(snapshot) => match snapshot_live_state(
-            frame,
             snapshot,
-            static_case,
-            &resources,
-            &operations,
-            &visible_state,
-            &decision_frame_digest,
-            decision_epoch,
+            LiveSnapshotValidationContext {
+                frame,
+                static_case,
+                resources: &resources,
+                operations: &operations,
+                visible: &visible_state,
+                decision_frame_digest: &decision_frame_digest,
+                decision_epoch,
+            },
         ) {
             Ok(state) => state,
             Err(error) => {
@@ -1070,6 +1085,11 @@ fn evaluate_with_snapshot(
         if operation_state.remaining_processing_ticks == 0 {
             mark_rejected(&mut receipt, "continuation_has_no_remaining_work");
             return Ok(receipt);
+        }
+        if resource_state.capacity_units_used == 0
+            || resource_state.capacity_units_remaining != 0
+        {
+            mark_hold(&mut receipt, "continuation_resource_occupancy_not_reconciled");
         }
         receipt.processing_duration_ticks = Some(operation_state.remaining_processing_ticks);
     }
@@ -1237,7 +1257,10 @@ fn run() -> Result<(), String> {
     } else {
         None
     };
-    let receipt = evaluate_with_snapshot(&frame, &proposal, snapshot.as_ref())?;
+    let receipt = match snapshot.as_ref() {
+        Some(snapshot) => evaluate_with_snapshot(&frame, &proposal, Some(snapshot))?,
+        None => evaluate(&frame, &proposal)?,
+    };
     let receipt_value = serde_json::to_value(&receipt)
         .map_err(|error| fail(format!("admission_receipt_serialize:{error}")))?;
     validate_schema(
