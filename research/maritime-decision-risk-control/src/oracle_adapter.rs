@@ -191,9 +191,7 @@ impl OracleCalibrationBundle {
             (DatasetRole::Evaluation, LossAxis::HardPhysicalFailure) => {
                 &self.evaluation_hard_failure_milli
             }
-            (DatasetRole::Evaluation, LossAxis::ServiceLoss) => {
-                &self.evaluation_service_loss_milli
-            }
+            (DatasetRole::Evaluation, LossAxis::ServiceLoss) => &self.evaluation_service_loss_milli,
         };
 
         crate::LossMatrix {
@@ -201,7 +199,11 @@ impl OracleCalibrationBundle {
         }
     }
 
-    pub fn non_monotone_grid(&self, role: DatasetRole, axis: LossAxis) -> crate::non_monotone::WholeScheduleLossGrid {
+    pub fn non_monotone_grid(
+        &self,
+        role: DatasetRole,
+        axis: LossAxis,
+    ) -> crate::non_monotone::WholeScheduleLossGrid {
         let schedules = match (role, axis) {
             (DatasetRole::Calibration, LossAxis::HardPhysicalFailure) => {
                 &self.calibration_hard_failure_milli
@@ -323,10 +325,7 @@ fn validate_policy_outcome(
             });
         }
     } else {
-        policy_revisions.insert(
-            outcome.policy_id.clone(),
-            outcome.policy_revision.clone(),
-        );
+        policy_revisions.insert(outcome.policy_id.clone(), outcome.policy_revision.clone());
     }
 
     if outcome.evaluator_revision != contract.evaluator_revision {
@@ -422,12 +421,7 @@ pub fn compile_oracle_outcomes(
                     policy_id: outcome.policy_id.clone(),
                 });
             }
-            validate_policy_outcome(
-                episode,
-                outcome,
-                &dataset.contract,
-                &mut policy_revisions,
-            )?;
+            validate_policy_outcome(episode, outcome, &dataset.contract, &mut policy_revisions)?;
         }
 
         match &expected_policy_ids {
@@ -436,7 +430,10 @@ pub fn compile_oracle_outcomes(
                 return Err(OracleAdapterError::PolicyGridDrift {
                     episode_id: episode.episode_id.clone(),
                     missing_policy_ids: expected.difference(&current_policy_ids).cloned().collect(),
-                    unexpected_policy_ids: current_policy_ids.difference(expected).cloned().collect(),
+                    unexpected_policy_ids: current_policy_ids
+                        .difference(expected)
+                        .cloned()
+                        .collect(),
                 });
             }
             Some(_) => {}
@@ -465,16 +462,12 @@ pub fn compile_oracle_outcomes(
             .collect::<Vec<_>>();
 
         match episode.role {
-            DatasetRole::Calibration => calibration_rows.push((
-                episode.episode_id.clone(),
-                hard_row,
-                service_row,
-            )),
-            DatasetRole::Evaluation => evaluation_rows.push((
-                episode.episode_id.clone(),
-                hard_row,
-                service_row,
-            )),
+            DatasetRole::Calibration => {
+                calibration_rows.push((episode.episode_id.clone(), hard_row, service_row))
+            }
+            DatasetRole::Evaluation => {
+                evaluation_rows.push((episode.episode_id.clone(), hard_row, service_row))
+            }
         }
     }
 
@@ -579,8 +572,7 @@ pub fn tail_metrics_by_policy(
         let total = losses.iter().map(|loss| u64::from(*loss)).sum::<u64>();
         let mean_loss_milli = total as f64 / losses.len() as f64;
         let maximum_loss_milli = losses.iter().copied().max().unwrap_or(0);
-        let empirical_upper_cvar_milli =
-            empirical_upper_cvar_milli(&losses, confidence_level)?;
+        let empirical_upper_cvar_milli = empirical_upper_cvar_milli(&losses, confidence_level)?;
 
         metrics.push(PolicyTailMetrics {
             policy_id: policy_id.clone(),
@@ -734,10 +726,7 @@ mod tests {
             bundle.calibration_service_loss_milli,
             vec![vec![250, 400], vec![200, 600]]
         );
-        assert_eq!(
-            bundle.evaluation_hard_failure_milli,
-            vec![vec![1_000, 0]]
-        );
+        assert_eq!(bundle.evaluation_hard_failure_milli, vec![vec![1_000, 0]]);
         assert_eq!(bundle.evaluation_service_loss_milli, vec![vec![900, 100]]);
     }
 
@@ -924,7 +913,8 @@ mod tests {
     #[test]
     fn adapter_converts_only_the_requested_axis_to_non_monotone_grid() {
         let bundle = compile_oracle_outcomes(&valid_dataset()).expect("valid oracle data");
-        let hard = bundle.non_monotone_grid(DatasetRole::Calibration, LossAxis::HardPhysicalFailure);
+        let hard =
+            bundle.non_monotone_grid(DatasetRole::Calibration, LossAxis::HardPhysicalFailure);
         let service = bundle.non_monotone_grid(DatasetRole::Calibration, LossAxis::ServiceLoss);
         assert_ne!(hard.schedule_losses_milli, service.schedule_losses_milli);
     }
