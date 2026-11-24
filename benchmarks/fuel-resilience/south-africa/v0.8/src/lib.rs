@@ -511,7 +511,7 @@ pub fn evaluate(
         CertificateDisposition::ContinuitySupportedWithinHorizon
     };
 
-    let guaranteed_time_ppm = guaranteed_service_seconds
+    let guaranteed_time_ppm = u128::from(guaranteed_service_seconds)
         .checked_mul(1_000_000)
         .ok_or_else(|| "guaranteed-time ratio overflowed".to_string())?
         .checked_div(u128::from(horizon_seconds))
