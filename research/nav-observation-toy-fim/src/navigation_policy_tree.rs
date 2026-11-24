@@ -5,6 +5,11 @@
 //! a two-action horizon. All probabilities are integer parts-per-billion.
 //! This is exact relative to those declared discrete likelihoods; it does not
 //! estimate or authenticate them and it does not authorize physical actions.
+//!
+//! Successive action outcomes factorize conditional on the binary latent state.
+//! This is a v0 modeling assumption, not a calibration claim. Shared latent
+//! failures and cross-action dependence require an explicit joint-state model
+//! (tracked separately in NAV-COMMON-CAUSE-VOI-001 / issue #6708).
 
 use core::fmt;
 
