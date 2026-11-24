@@ -1,0 +1,151 @@
+# AERO Material / Process Qualification v0.1
+
+**Issue:** [AERO-MATERIAL-PROCESS-QUAL-001 #7299](https://github.com/Luminous-Dynamics/symtropy/issues/7299)  
+**Status:** synthetic-first research contract; no physical material qualification  
+**Owner:** Symtropy benchmark and physical-model interface  
+**Composition:** Symthaea engineering reasoning and experiment selection; Mycelix manufactured-unit and process-evidence lineage; Sol-Atlas source rights and operating context  
+**Claim ceiling:** schema and fixture integrity only; no material allowable, process capability, structural qualification, part acceptance, airworthiness or certification claim.
+
+## 1. Research question
+
+Can we preserve the applicability and uncertainty of evidence as it moves through:
+
+`material lot → process batch → panel → specimen/coupon → element/joint → subcomponent`
+
+The key distinction is that a traceable coupon result is not automatically a design allowable, and a coupon from one material/process/configuration does not silently qualify another. Manufacturing variation and sampling dependence are part of the engineering state, not post-processing nuisances.
+
+## 2. Paradigm shifts
+
+1. **Process-conditioned material evidence.** A measured property is conditional on supplier and lot, storage/handling, process route/revision, machine/tooling, site, geometry/layup, conditioning, test method, calibration and exact configuration.
+2. **Hierarchical experimental identity.** Specimens from one panel, panels from one batch and batches from one campaign are correlated groups unless a justified model says otherwise. Row count is not independent sample count.
+3. **Explicit scale transfer.** Coupon → joint/element → subcomponent is a sequence of separately scoped claims. Every transfer names its parent evidence, model, domain, assumptions, uncertainty and remaining physical validation.
+4. **Design for inspectability and repair.** Structural mass and stiffness are optimized alongside defect detectability, access, NDE coverage, repairability, process window and lifecycle burden.
+5. **Decision-value-based testing.** Select the next test or inspection by the effect it may have on the engineering decision, but do not relax a hard acceptance criterion to save resources.
+6. **Honest abstention.** Out-of-domain, incomplete, contradictory, poorly calibrated or statistically unsupported evidence produces UNKNOWN / NOT_COVERED / INDETERMINATE, never a convenient default pass.
+
+## 3. Existing owners to compose
+
+- Symtropy [AERO-AIRFRAME-001 #3921](https://github.com/Luminous-Dynamics/symtropy/issues/3921): AER-01 aircraft architecture and design portfolio.
+- Symtropy [AERO-WHOLE-AIRCRAFT-CLOSURE-001 #3945](https://github.com/Luminous-Dynamics/symtropy/issues/3945): mass, CG, inertia, aero, propulsion, thermal and mission closure.
+- Symtropy [AERO-INSPECTION-OBSERVABILITY-001 #4165](https://github.com/Luminous-Dynamics/symtropy/issues/4165): design-for-inspection, NDE and SHM.
+- Symtropy [AERO-PORTFOLIO-MDO-001 #5853](https://github.com/Luminous-Dynamics/symtropy/pull/5853): matched whole-aircraft architecture MDO.
+- Symthaea [TRANSPORT-FIXED-WING-001 #6249](https://github.com/Luminous-Dynamics/symthaea/issues/6249): fixed-wing aerodynamics, flight dynamics, loads and applicability.
+- Symthaea [AIRROAD-VERIF-001 #11445](https://github.com/Luminous-Dynamics/symthaea/issues/11445): cross-fidelity validation and promotion gates.
+- Symthaea [structural evidence-action selector #13112](https://github.com/Luminous-Dynamics/symthaea/pull/13112): decision-valued analysis / inspection proposals.
+- Mycelix [MFG-EVID-001 #3084](https://github.com/Luminous-Dynamics/mycelix/issues/3084): physical-product, manufactured-unit and qualification lineage.
+- Mycelix [AEROCOMMONS-COMPONENT-PILOT-001 #6345](https://github.com/Luminous-Dynamics/mycelix/issues/6345) and [implementation PR #6347](https://github.com/Luminous-Dynamics/mycelix/pull/6347): non-flight-critical build/inspect/test packet structure.
+
+This work does not create a second MDO optimizer, FEM/CFD solver, quality system, provenance ledger, materials database or certification engine.
+
+## 4. v0.1 case contract
+
+The first case is intentionally synthetic and dimensionless. Its response values are **not MPa, modulus, strength, allowable, or any real material property**.
+
+The JSON Schema and fixture in this directory define:
+- exact material-lot, process-batch, panel, specimen, test-campaign and product-configuration identities;
+- observed, censored, excluded and missing measurements without deleting unsuccessful or incomplete records;
+- calibration state and process-domain disposition;
+- train / holdout / challenge specimen assignments;
+- grouping dimensions that the evaluator must check for disjointness;
+- a known synthetic data-generating model that is never treated as a physical model.
+
+A structurally valid JSON document is not sufficient to establish hierarchy closure, independent sampling or model applicability. The future Rust evaluator must verify all foreign-key edges, unique identities, ancestry, observation-to-specimen links, calibration windows and grouped split disjointness.
+
+## 5. Minimum evaluator obligations
+
+### Identity and lineage
+
+- Reject duplicate or blank identities and dangling references.
+- Recompute each specimen's lot, batch, panel, campaign and configuration ancestry.
+- Do not infer identity from row order or display labels.
+- Keep component definition, physical unit, evidence artifact, process execution and observation identities distinct.
+- Preserve artifact digest and byte-length verification as a separate Mycelix responsibility.
+
+### Evidence state
+
+- Keep OBSERVED, CENSORED, EXCLUDED and MISSING records visible with reason/limit fields.
+- An expired or unknown calibration cannot silently qualify an observation.
+- A test result and a calibration attestation do not establish the physical truth of the measurement by themselves.
+- Missing evidence is UNKNOWN, not zero.
+- Process out-of-domain status is not rescued by a statistically attractive response value.
+
+### Statistical unit and leakage
+
+- Derive group memberships from the lineage graph, not caller-supplied split labels alone.
+- Check disjointness at every declared grouping level (material lot, process batch, panel, campaign, configuration).
+- Reject specimen-level random splits when any declared higher-level group crosses partitions.
+- Preserve a census of offered, eligible, observed, censored, excluded, missing and challenge records.
+- Future physical studies must preregister the experimental unit, cluster hierarchy, exclusions, confirmatory split and statistical method before observing outcomes.
+
+### Claim promotion
+
+Keep these states independent:
+1. STRUCTURALLY_COMPLETE — required records and references exist.
+2. MODEL_APPLICABLE — declared physical/model domain covers the case.
+3. EVIDENCE_SUFFICIENT — quantity, calibration, sampling and independent evidence obligations are met for the specific claim.
+4. DECISION_ELIGIBLE — hard requirements, uncertainty and relying-party policy allow the proposed decision.
+5. PHYSICALLY_QUALIFIED / APPROVED — remains outside this software contract and belongs to competent engineering organizations, laboratories and aviation authorities.
+
+No later state follows automatically from an earlier state.
+
+## 6. Benchmark design and baselines
+
+Use a common frozen case, corpus, data budget and scoring budget for all methods.
+
+| Baseline | Question |
+|---|---|
+| Catalogue / handbook nominal value | What does a conventional value-only approach conclude, and what applicability is hidden? |
+| Sequential building-block workflow | What does the conventional coupon → element → subcomponent chain conclude? |
+| Process-conditioned deterministic envelope | Does an explicit bounded process/evidence envelope prevent unsupported transfer? |
+| Hierarchical / mixed-effects model | Does a justified cluster model improve estimation and calibration on held-out groups? |
+| Distribution-free bounded method | What can be concluded without strong distributional assumptions? |
+| Adaptive evidence selection | Does decision-value-based testing reduce total test effort at matched decision quality? |
+
+Do not assume Bayesian, machine-learning or adaptive methods win. Compare against simple baselines and preserve a no-model / abstain option.
+
+## 7. Prospective acceptance targets
+
+These are research objectives for the finite benchmark, not regulatory criteria or achieved results.
+
+- 100% agreement with an independently authored oracle on bounded synthetic cases.
+- Zero false passes on frozen wrong-lot, wrong-configuration, dangling ancestry, stale-calibration, out-of-domain, censoring/missingness and leakage controls.
+- 100% deterministic output under input-record permutation.
+- Zero overlap across declared training, holdout and challenge groups at each grouping level.
+- 100% explicit retention and accounting of censored, excluded, missing and failed records.
+- 100% traceability from each metric to the specimen, panel, process batch, material lot, campaign, configuration and source artifact.
+- 100% explicit UNKNOWN / NOT_COVERED / INDETERMINATE when evidence is unsupported.
+- Report false-accept and false-reject counts separately. Report denominators, exclusions, subgroup performance, interval coverage/width, abstention, compute and evidence cost.
+- Only after rights-cleared independent physical holdouts exist, consider a preregistered nominal 95% interval-coverage target by batch/process/environment stratum. Do not claim calibration from synthetic data or underpowered samples.
+
+No composite score may trade a hard engineering requirement against mass, cost, speed or yield.
+
+## 8. Industry and standards comparison
+
+The benchmark should interoperate with established practice, not claim to replace it:
+
+- **FAA AC 20-107B** is active guidance and an acceptable, non-exclusive means of showing compliance for composite aircraft structures under applicable 14 CFR parts; it is guidance, not itself a qualification or certification. https://www.faa.gov/regulations_policies/advisory_circulars/index.cfm/go/document.information/documentID/99693
+- **CMH-17** building-block methodology is a key reference for progressing through material characterization, coupons, elements, joints and subcomponents. Use the exact applicable volume, revision and statistical method; do not infer allowables from the synthetic corpus.
+- **ISO 10303-242 (STEP AP242)** carries product definition and configuration information.
+- **ISO 23952 (QIF)** carries quality / metrology information.
+- **ISO 23247-5:2026**, published 24 June 2026, specifies a manufacturing digital thread across design, planning, production and testing: https://www.iso.org/standard/87425.html
+- **NIST IR 8536**, published September 2026, provides a manufacturing supply-chain traceability meta-framework intended to connect diverse systems while preserving their existing standards: https://csrc.nist.gov/pubs/ir/8536/final
+
+For broader portfolio context:
+- NASA HEMM lists 16 kW/kg and 99% as development targets for a 1.4 MW aircraft motor, not an installed propulsion-package achievement: https://www.nasa.gov/eap-technology/electric-machines/hemm/
+- An August 2026 eVTOL mission-level electrothermal study reports thermal-management energy above 20% in its own studied cases; this is a study-specific result, not a universal design constant: https://doi.org/10.1016/j.applthermaleng.2026.132253
+- EASA MOC-5 SC-VTOL Issue 2 is dated 5 November 2026 and applies to VTOL-capable aircraft certification means of compliance, not generic fixed-wing composite qualification: https://www.easa.europa.eu/en/downloads/144423/en
+
+## 9. Next physical evidence ladder
+
+1. Synthetic contract and evaluator.
+2. Non-flight-critical coupon / calibration fixture with independent metrology.
+3. Coupon campaign across explicitly independent lots and process runs.
+4. Representative joint / element tests.
+5. Subcomponent tests with realistic load paths and boundary conditions.
+6. Aircraft structural substantiation and certification evidence under accountable engineering and authority processes.
+
+The physical ladder cannot be shortcut by a successful software test, simulation, a ledger attestation or an AI recommendation.
+
+## 10. Reproduction status
+
+v0.1 at this branch contains a research protocol, strict JSON Schema and one known-truth synthetic case. JSON parsing and schema/fixture structural checks are performed in the authoring workflow before the files are committed. No Rust evaluator, physical result, material allowable, manufacturing capability or airworthiness claim is included in v0.1.
