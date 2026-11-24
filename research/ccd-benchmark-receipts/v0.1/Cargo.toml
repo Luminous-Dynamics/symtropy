@@ -1,0 +1,12 @@
+[package]
+name = "ccd-benchmark-receipts"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Fail-closed validation for collision-detection benchmark receipts"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
