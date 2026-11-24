@@ -19,9 +19,9 @@
   "require_n_minus_one": false,
   "network": {
     "network_model_id": "triangle-model-v1",
-    "network_model_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "network_model_digest": "sha256:85868893e0f07ad7da759733903a12036431a915d0bbf6b91650e62bfc535d24",
     "topology_id": "topology-2026-11-24",
-    "topology_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "topology_digest": "sha256:9a5299af2925f96fd2598ce0fe3d4f522293b3e5f338ae9919c513b980489472",
     "topology_effective_at_ns": 0,
     "base_mva": 100,
     "buses": [
@@ -97,10 +97,12 @@
       "observed_at_unix_ms": 90000,
       "valid_from_unix_ms": 0,
       "valid_until_unix_ms": 4000000,
-      "network_model_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-      "topology_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "network_model_digest": "sha256:85868893e0f07ad7da759733903a12036431a915d0bbf6b91650e62bfc535d24",
+      "topology_digest": "sha256:9a5299af2925f96fd2598ce0fe3d4f522293b3e5f338ae9919c513b980489472",
       "baseline_trace_digest": null,
-      "flexible_trace_digest": null
+      "flexible_trace_digest": null,
+      "pcc_bus_id": "B",
+      "recovery_deadline_unix_ms": null
     },
     {
       "gate": "reserve_recovery",
@@ -120,7 +122,9 @@
       "network_model_digest": null,
       "topology_digest": null,
       "baseline_trace_digest": null,
-      "flexible_trace_digest": null
+      "flexible_trace_digest": null,
+      "pcc_bus_id": null,
+      "recovery_deadline_unix_ms": 3900000
     },
     {
       "gate": "commitment_lease",
@@ -140,7 +144,9 @@
       "network_model_digest": null,
       "topology_digest": null,
       "baseline_trace_digest": null,
-      "flexible_trace_digest": null
+      "flexible_trace_digest": null,
+      "pcc_bus_id": null,
+      "recovery_deadline_unix_ms": null
     },
     {
       "gate": "commitment_journal",
@@ -160,7 +166,9 @@
       "network_model_digest": null,
       "topology_digest": null,
       "baseline_trace_digest": null,
-      "flexible_trace_digest": null
+      "flexible_trace_digest": null,
+      "pcc_bus_id": null,
+      "recovery_deadline_unix_ms": null
     },
     {
       "gate": "pcc_metrology",
@@ -180,8 +188,11 @@
       "network_model_digest": null,
       "topology_digest": null,
       "baseline_trace_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
-      "flexible_trace_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+      "flexible_trace_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "pcc_bus_id": "B",
+      "recovery_deadline_unix_ms": null
     }
   ],
-  "claim_ceiling": "Synthetic known-truth adapter fixture only."
+  "claim_ceiling": "Synthetic known-truth adapter fixture only.",
+  "required_recovery_by_unix_ms": 3900000
 }
