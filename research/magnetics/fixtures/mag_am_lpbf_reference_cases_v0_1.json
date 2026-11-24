@@ -1,0 +1,171 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MAG-AM-PROC-001",
+  "prepared_date": "2026-11-24",
+  "status": "literature_reference_only_not_simulation_input_complete",
+  "source": {
+    "doi": "10.1002/aesr.202500339",
+    "url": "https://doi.org/10.1002/aesr.202500339",
+    "first_published": "2026-01-05",
+    "data_availability": "supporting data available from corresponding author on reasonable request",
+    "local_reproduction": false
+  },
+  "machine_process": {
+    "process": "LPBF",
+    "machine": "Sinterit Lisa Pro",
+    "laser_power_W": 5,
+    "laser_wavelength_nm": 808,
+    "powder_surface_temperature_C": 177.5,
+    "chamber_temperature_C": 140,
+    "laser_spot_mm": 0.4,
+    "hatch_distance_mm": 0.4,
+    "layer_height_um": 150,
+    "coupon_shape": "cube",
+    "coupon_side_mm": 5,
+    "nominal_magnetic_powder_fraction_wt_percent": 90,
+    "mixing_duration_min": 15,
+    "status": "source_reported_not_transferable_without_requalification"
+  },
+  "source_transcription_ambiguities": [
+    {
+      "field": "HD_plus_desorbed_feedstock_D90",
+      "table_value_um": 276,
+      "discussion_value_um": 279,
+      "disposition": "unresolved_source_internal_difference",
+      "model_input_policy": "do_not silently select one as exact particle distribution; use full source PSD if obtained or treat this scalar as uncertain"
+    }
+  ],
+  "scenarios": [
+    {
+      "case_id": "MAG-AM-LPBF-HD-001",
+      "feedstock_route": "HD_plus_desorbed_hot_deformed_EOL_NdFeB",
+      "feedstock": {
+        "d10_um": 43,
+        "d50_um": 102,
+        "d90_table_um": 276,
+        "d90_discussion_um": 279,
+        "mean_aspect_ratio": 2.8,
+        "theoretical_density_g_cm3": 7.6,
+        "remanence_T": 1.22,
+        "coercivity_kA_per_m": 1269
+      },
+      "printed_outcomes": {
+        "porosity_percent": 32.6,
+        "remanence_T": 0.34,
+        "coercivity_kA_per_m": 1238,
+        "alignment_degree": 0.75,
+        "filler_fraction_wt_percent": 89.6,
+        "theoretical_density_g_cm3": 4.6,
+        "geometrical_density_g_cm3": 3.1
+      },
+      "field_assistance_during_printing": false,
+      "evidence_class": "source_reported",
+      "simulation_status": "not_simulated"
+    },
+    {
+      "case_id": "MAG-AM-LPBF-MILLED-001",
+      "feedstock_route": "industrial_hammer_milled_hot_deformed_EOL_NdFeB",
+      "feedstock": {
+        "d10_um": 27,
+        "d50_um": 114,
+        "d90_um": 210,
+        "mean_aspect_ratio": 2.2,
+        "theoretical_density_g_cm3": 7.6,
+        "remanence_T": 1.12,
+        "coercivity_kA_per_m": 1290
+      },
+      "printed_outcomes": {
+        "porosity_percent": 28.3,
+        "remanence_T": 0.32,
+        "coercivity_kA_per_m": 1226,
+        "alignment_degree": 0.65,
+        "filler_fraction_wt_percent": 89.8,
+        "theoretical_density_g_cm3": 4.6,
+        "geometrical_density_g_cm3": 3.3
+      },
+      "field_assistance_during_printing": false,
+      "evidence_class": "source_reported",
+      "simulation_status": "not_simulated"
+    }
+  ],
+  "prospective_factors": {
+    "particle_size_blend": {
+      "levels": "to be defined from measured full feedstock distributions and machine/process constraints",
+      "evidence_status": "hypothesis_only"
+    },
+    "layer_height": {
+      "levels": "to be selected within qualified machine capability; source baseline is 150 micrometres",
+      "evidence_status": "hypothesis_only"
+    },
+    "applied_magnetic_field": {
+      "source_baseline": "no external magnetic alignment field applied during printing",
+      "prospective_levels": "to be defined only after a calibrated field apparatus, safe operating envelope and spatial map exist",
+      "evidence_status": "hypothesis_only"
+    },
+    "powder_shape_and_orientation": {
+      "required_inputs": [
+        "measured aspect-ratio distribution",
+        "shape descriptors",
+        "lot identity",
+        "easy-axis-to-morphology relation where measured"
+      ],
+      "evidence_status": "source_partially_reported"
+    }
+  },
+  "required_but_missing_for_particle_resolved_simulation": [
+    "full per-particle size distribution",
+    "particle shape mesh or calibrated shape descriptors",
+    "particle-to-crystal easy-axis distribution",
+    "particle magnetic moment or suitable constitutive property data",
+    "particle contact/friction/cohesion parameters",
+    "particle-binder interaction parameters",
+    "time-resolved deposition/layer boundary conditions",
+    "spatial and temporal process temperature history",
+    "field map and timing for any future field-assisted condition"
+  ],
+  "model_output_contract": {
+    "prediction_fields": [
+      "packing_fraction",
+      "porosity_distribution",
+      "particle_orientation_distribution",
+      "texture_statistic",
+      "predicted_magnetic_property_projection"
+    ],
+    "evidence_class": "predicted_or_surrogate_only",
+    "forbidden_promotions": [
+      "predicted_microstructure_to_measured",
+      "solver_convergence_to_physical_validation",
+      "coupon_result_to_component_qualification",
+      "simulation_result_to_machine_authority"
+    ]
+  },
+  "evaluation": {
+    "splits": [
+      "held_out_build",
+      "held_out_powder_lot",
+      "held_out_process_window"
+    ],
+    "comparison_baselines": [
+      "analytical_packing",
+      "spherical_particle_DEM",
+      "morphology_aware_DEM",
+      "DEM_plus_magnetic_orientation",
+      "conventional_DOE",
+      "space_filling_selection",
+      "random_selection"
+    ],
+    "equal_budget_required": true,
+    "report_metrics": [
+      "porosity_error",
+      "density_error",
+      "orientation_error",
+      "texture_error",
+      "uncertainty_coverage",
+      "OOD_abstention",
+      "replay_determinism",
+      "compute_cost",
+      "experiments_to_target"
+    ],
+    "status": "protocol_only_no_results"
+  }
+}
