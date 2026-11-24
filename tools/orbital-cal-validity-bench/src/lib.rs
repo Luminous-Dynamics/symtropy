@@ -75,6 +75,7 @@ pub struct CalibrationScope {
 #[serde(deny_unknown_fields)]
 pub struct ChangeEvent {
     pub event_id: String,
+    pub event_receipt_sha256: String,
     pub effective_time_ns: i64,
     pub time_uncertainty_ns: u64,
     pub affected_scope_ids: Vec<String>,
@@ -230,6 +231,9 @@ fn validate_case(case: &Case) -> Result<(), String> {
         if scope.required_configuration.iter().any(|(key, value)| !valid_text(key) || !valid_text(value)) {
             return Err("REQUIRED_CONFIGURATION_INVALID".to_owned());
         }
+        if scope.check_receipt_sha256.as_deref().is_some_and(|digest| !valid_sha256(digest)) {
+            return Err("CHECK_RECEIPT_DIGEST_INVALID".to_owned());
+        }
         if scope.check_required {
             if scope.check_state == CheckState::NotRequired {
                 return Err("REQUIRED_CHECK_MARKED_NOT_REQUIRED".to_owned());
@@ -254,6 +258,7 @@ fn validate_case(case: &Case) -> Result<(), String> {
     for event in &case.events {
         checked_interval(event.effective_time_ns, event.time_uncertainty_ns)?;
         if !valid_text(&event.event_id)
+            || !valid_sha256(&event.event_receipt_sha256)
             || !event_ids.insert(event.event_id.clone())
             || event.affected_scope_ids.is_empty()
         {
