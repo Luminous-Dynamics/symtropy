@@ -138,13 +138,14 @@ The quantile is not a free-floating number. The owner-side receipt schema is:
 The receipt binds the split-conformal calibration artifact to:
 - predictor, preprocessing and score-function digests;
 - exact calibration cohort, sample-ID set, split manifest and evidence-prefix digests;
-- evaluator-assigned stratum and independent-unit kind/count;
+- evaluator-assigned stratum, independent-unit kind and independent-unit count;
+- exact transfer-claim scope digest;
 - claim type and claim-scope digest;
 - alpha, calibration count, finite-sample rank, quantile and tie rule;
 - episode-owner custody receipt;
 - active/revoked/expired state, with a revocation reason required when revoked.
 
-The receipt is owner-issued, not candidate-authored. A change to the predictor, preprocessing, score definition, calibration cohort, stratum or scope creates a different receipt and invalidates the old binding. Digests identify artifacts; they do not by themselves prove truthful acquisition, secure custody or exchangeability.
+The receipt is owner-issued, not candidate-authored. Owner-side semantic validation must verify model_frozen_at < calibration_started_at < issued_at, quantile_rank <= calibration_count + 1, the exact rank formula from alpha/count, and consistency of the sample-ID digest/count with the sealed calibration manifest. A change to predictor, preprocessing, score definition, calibration cohort, stratum or scope creates a different receipt and invalidates the old binding. Digests identify artifacts; they do not by themselves prove truthful acquisition, secure custody or exchangeability.
 
 ## Prospective internal targets
 
