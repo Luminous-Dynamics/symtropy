@@ -1037,7 +1037,6 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
             || case.horizon_epochs != HORIZON_EPOCHS
             || case.jobs.len() != 3
             || case.resources.len() != 3
-            || case.scenarios.len() != SCENARIOS_PER_CASE
             || case.inspection_station.capacity_units_by_epoch.len() != HORIZON_EPOCHS
         {
             return Err("case_identity_split_or_shape_invalid".into());
@@ -1188,67 +1187,7 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
             return Err("sequence_dependent_setup_matrix_missing_invalid_or_zero".into());
         }
 
-        let mut probability_total = 0_u64;
-        let mut scenario_ids = BTreeSet::new();
-        for scenario in &case.scenarios {
-            if !scenario_ids.insert(scenario.scenario_id.as_str())
-                || scenario.observations_by_epoch.len() != HORIZON_EPOCHS
-                || scenario
-                    .observations_by_epoch
-                    .iter()
-                    .enumerate()
-                    .any(|(epoch, observation)| observation.epoch != epoch)
-            {
-                return Err("scenario_identity_or_observation_horizon_invalid".into());
-            }
-            probability_total = probability_total
-                .checked_add(scenario.probability_ppm)
-                .ok_or_else(|| "scenario_probability_overflow".to_string())?;
-            for observation in &scenario.observations_by_epoch {
-                for event in &observation.resource_events {
-                    if event.observed_at_epoch != observation.epoch
-                        || event.occurred_at_epoch > event.observed_at_epoch
-                        || !resource_ids.contains(event.resource_id.as_str())
-                        || (event.kind == ResourceEventKind::Failed
-                            && (event.recovery_forecast_min_epochs.is_none()
-                                || event.recovery_forecast_max_epochs.is_none()
-                                || event.recovery_forecast_min_epochs
-                                    > event.recovery_forecast_max_epochs))
-                        || (event.kind == ResourceEventKind::Restored
-                            && (event.recovery_forecast_min_epochs.is_some()
-                                || event.recovery_forecast_max_epochs.is_some()))
-                    {
-                        return Err("resource_event_chronology_scope_or_forecast_invalid".into());
-                    }
-                }
-                for update in &observation.qualification_updates {
-                    if update.observed_at_epoch != observation.epoch
-                        || update.occurred_at_epoch > update.observed_at_epoch
-                        || !resource_ids.contains(update.resource_id.as_str())
-                        || update.previous_disposition == update.new_disposition
-                    {
-                        return Err("qualification_update_chronology_or_scope_invalid".into());
-                    }
-                }
-                for event in &observation.inspection_capacity_events {
-                    if event.observed_at_epoch != observation.epoch
-                        || event.occurred_at_epoch > event.observed_at_epoch
-                        || event.station_id != case.inspection_station.station_id
-                    {
-                        return Err("inspection_capacity_event_invalid".into());
-                    }
-                }
-            }
-        }
-        if probability_total != PROBABILITY_TOTAL_PPM {
-            return Err("scenario_probabilities_must_sum_to_one_million".into());
-        }
 
-        if case.scenarios[0].observations_by_epoch != case.scenarios[1].observations_by_epoch {
-            return Err(
-                "hidden_quality_counterfactuals_must_share_identical_visible_history".into(),
-            );
-        }
     }
 
     for family in &corpus.family_manifest {
@@ -1260,6 +1199,129 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
         if count != REPLICATIONS_PER_FAMILY {
             return Err("family_replication_coverage_invalid".into());
         }
+    }
+    Ok(())
+}
+
+
+fn validate_scenario_streams(corpus: &Corpus, streams: &ScenarioStreams) -> Result<(), String> {
+    if streams.schema_id != "https://luminousdynamics.io/schemas/mfg-policy-v0.2-scenario-streams"
+        || streams.benchmark_id != corpus.benchmark_id
+        || streams.evidence_class != "synthetic_simulation_only"
+        || streams.case_count != corpus.case_count
+        || streams.cases.len() != corpus.case_count
+        || streams.claim_ceiling.trim().is_empty()
+    {
+        return Err("scenario_stream_manifest_or_count_invalid".into());
+    }
+
+    let policy_cases: BTreeMap<&str, &ChallengeCase> = corpus.cases.iter()
+        .map(|case| (case.case_id.as_str(), case))
+        .collect();
+    let mut stream_cases = BTreeMap::new();
+    for stream_case in &streams.cases {
+        if stream_cases.insert(stream_case.case_id.as_str(), stream_case).is_some() {
+            return Err("duplicate_scenario_stream_case_id".into());
+        }
+    }
+
+    for (case_id, case) in &policy_cases {
+        let stream_case = stream_cases.get(case_id)
+            .ok_or_else(|| "scenario_stream_case_missing".to_string())?;
+        if stream_case.scenario_family_id != case.scenario_family_id
+            || stream_case.scenarios.len() != SCENARIOS_PER_CASE
+        {
+            return Err("scenario_stream_case_scope_or_count_invalid".into());
+        }
+
+        let resource_ids: BTreeSet<&str> = case.resources.iter()
+            .map(|resource| resource.resource_id.as_str())
+            .collect();
+        let mut scenario_ids = BTreeSet::new();
+        let mut probability_total = 0_u64;
+        for scenario in &stream_case.scenarios {
+            if scenario.scenario_id.trim().is_empty()
+                || !scenario_ids.insert(scenario.scenario_id.as_str())
+                || scenario.observations_by_epoch.len() != HORIZON_EPOCHS
+            {
+                return Err("scenario_stream_identity_or_horizon_invalid".into());
+            }
+            probability_total = probability_total.checked_add(scenario.probability_ppm)
+                .ok_or_else(|| "scenario_stream_probability_overflow".to_string())?;
+
+            let mut source_event_ids = BTreeSet::new();
+            let mut receipt_ids = BTreeSet::new();
+            for (epoch, observation) in scenario.observations_by_epoch.iter().enumerate() {
+                if observation.epoch != epoch {
+                    return Err("scenario_stream_epoch_order_invalid".into());
+                }
+                for event in &observation.resource_events {
+                    if event.source_event_id.trim().is_empty()
+                        || !source_event_ids.insert(event.source_event_id.as_str())
+                        || event.observed_at_epoch != observation.epoch
+                        || event.occurred_at_epoch > event.observed_at_epoch
+                        || !resource_ids.contains(event.resource_id.as_str())
+                        || (event.kind == ResourceEventKind::Failed
+                            && (event.recovery_forecast_min_epochs.is_none()
+                                || event.recovery_forecast_max_epochs.is_none()
+                                || event.recovery_forecast_min_epochs > event.recovery_forecast_max_epochs))
+                        || (event.kind == ResourceEventKind::Restored
+                            && (event.recovery_forecast_min_epochs.is_some()
+                                || event.recovery_forecast_max_epochs.is_some()))
+                    {
+                        return Err("resource_event_chronology_scope_or_forecast_invalid".into());
+                    }
+                }
+                for update in &observation.qualification_updates {
+                    if update.evidence_receipt_id.trim().is_empty()
+                        || !receipt_ids.insert(update.evidence_receipt_id.as_str())
+                        || update.observed_at_epoch != observation.epoch
+                        || update.occurred_at_epoch > update.observed_at_epoch
+                        || !resource_ids.contains(update.resource_id.as_str())
+                        || update.previous_disposition == update.new_disposition
+                    {
+                        return Err("qualification_update_chronology_or_scope_invalid".into());
+                    }
+                    let resource = case.resources.iter()
+                        .find(|resource| resource.resource_id == update.resource_id)
+                        .ok_or_else(|| "qualification_update_resource_missing".to_string())?;
+                    if !resource.capability_families.contains(&update.process_family)
+                        || !resource.initial_qualifications.iter().any(|qualification|
+                            qualification.process_family == update.process_family
+                                && qualification.disposition == update.previous_disposition)
+                    {
+                        return Err("qualification_update_process_scope_or_prior_state_invalid".into());
+                    }
+                }
+                for event in &observation.inspection_capacity_events {
+                    if event.source_event_id.trim().is_empty()
+                        || !source_event_ids.insert(event.source_event_id.as_str())
+                        || event.observed_at_epoch != observation.epoch
+                        || event.occurred_at_epoch > event.observed_at_epoch
+                        || event.station_id != case.inspection_station.station_id
+                    {
+                        return Err("inspection_capacity_event_invalid".into());
+                    }
+                }
+            }
+        }
+        if probability_total != PROBABILITY_TOTAL_PPM {
+            return Err("scenario_probabilities_must_sum_to_one_million".into());
+        }
+        if stream_case.scenarios[0].scenario_id != "NOMINAL-01"
+            || stream_case.scenarios[1].scenario_id != "NOMINAL-02"
+            || stream_case.scenarios[0].observations_by_epoch
+                != stream_case.scenarios[1].observations_by_epoch
+            || stream_case.scenarios.iter().any(|scenario|
+                scenario.scenario_id.contains("ACCEPTED")
+                    || scenario.scenario_id.contains("REJECT"))
+        {
+            return Err("policy_visible_paired_histories_or_scenario_ids_invalid".into());
+        }
+    }
+
+    if stream_cases.len() != corpus.case_count {
+        return Err("scenario_stream_case_coverage_mismatch".into());
     }
     Ok(())
 }
