@@ -1229,6 +1229,57 @@ mod tests {
     }
 
     #[test]
+    fn candidate_trace_detects_an_omitted_requested_direction() {
+        let p = pair(1, 2);
+        let root = LineageId::root(p.clone());
+        let mut ledger = PairLedger::new([p]).unwrap();
+        for stage in [
+            Stage::Eligibility,
+            Stage::TemporalBounds,
+            Stage::Broadphase,
+            Stage::Narrowphase,
+        ] {
+            ledger.record(StageEvent {
+                stage,
+                input: root.clone(),
+                outcome: Outcome::Forward,
+            }).unwrap();
+        }
+        ledger.record(StageEvent {
+            stage: Stage::CandidateGeneration,
+            input: root.clone(),
+            outcome: Outcome::CandidateTrace {
+                requested_directions: 2,
+                attempts: vec![
+                    CandidateAttempt {
+                        id: root.child(0),
+                        kind: CandidateAttemptKind::PrimaryWitness,
+                        direction: DirectionDisposition::NotApplicable,
+                        support_a: SupportQueryDisposition::NotAttempted,
+                        support_b: SupportQueryDisposition::NotAttempted,
+                        disposition: CandidateDisposition::PrimaryAdmitted,
+                    },
+                    CandidateAttempt {
+                        id: root.child(1),
+                        kind: CandidateAttemptKind::PerturbationDirection,
+                        direction: DirectionDisposition::InvalidOrDegenerate,
+                        support_a: SupportQueryDisposition::NotAttempted,
+                        support_b: SupportQueryDisposition::NotAttempted,
+                        disposition: CandidateDisposition::InvalidDirection,
+                    },
+                ],
+            },
+        }).unwrap();
+        assert_eq!(
+            ledger.validate(),
+            Err(LedgerError::RequestedDirectionCountMismatch {
+                requested: 2,
+                recorded: 1,
+            })
+        );
+    }
+
+    #[test]
     fn child_cannot_change_pair_identity() {
         let p = pair(1, 2);
         let other = pair(1, 3);
