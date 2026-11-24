@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-action-admission-receipt",
+  "title": "Manufacturing Policy v0.2 Independent Action Admission Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "benchmark_id", "case_id", "decision_epoch", "operation_id", "resource_id", "status", "reason_codes", "qualification_disposition", "processing_duration_ticks", "setup_duration_ticks", "inspection_method_id", "capacity_units_required", "claim_ceiling"],
+  "properties": {
+    "schema_id": {"const": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-action-admission-receipt"},
+    "benchmark_id": {"const": "MFG-POLICY-V02-CHALLENGE-001"},
+    "case_id": {"type": "string", "minLength": 1},
+    "decision_epoch": {"type": "integer", "minimum": 0, "maximum": 3},
+    "operation_id": {"type": "string", "minLength": 1},
+    "resource_id": {"type": "string", "minLength": 1},
+    "status": {"type": "string", "enum": ["ADMISSIBLE", "HOLD", "REJECTED"]},
+    "reason_codes": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "qualification_disposition": {"type": ["string", "null"], "enum": ["ADMISSIBLE", "UNKNOWN", "BLOCKED", null]},
+    "processing_duration_ticks": {"type": ["integer", "null"], "minimum": 0},
+    "setup_duration_ticks": {"type": ["integer", "null"], "minimum": 0},
+    "inspection_method_id": {"type": ["string", "null"], "minLength": 1},
+    "capacity_units_required": {"const": 1},
+    "claim_ceiling": {"const": "Synthetic single-action admissibility only; this receipt is not schedule feasibility, source authentication, machine authority, or execution authorization."}
+  }
+}

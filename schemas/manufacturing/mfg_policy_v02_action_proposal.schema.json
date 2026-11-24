@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-action-proposal",
+  "title": "Manufacturing Policy v0.2 Single-Action Proposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "benchmark_id", "case_id", "decision_epoch", "operation_id", "resource_id", "action_kind", "inspection_method_id"],
+  "properties": {
+    "schema_id": {"const": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-action-proposal"},
+    "benchmark_id": {"const": "MFG-POLICY-V02-CHALLENGE-001"},
+    "case_id": {"type": "string", "minLength": 1},
+    "decision_epoch": {"type": "integer", "minimum": 0, "maximum": 3},
+    "operation_id": {"type": "string", "minLength": 1},
+    "resource_id": {"type": "string", "minLength": 1},
+    "action_kind": {"type": "string", "enum": ["START", "CONTINUE"]},
+    "inspection_method_id": {"type": ["string", "null"], "minLength": 1}
+  }
+}

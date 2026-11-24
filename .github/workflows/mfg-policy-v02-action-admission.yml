@@ -1,0 +1,35 @@
+name: Manufacturing Policy v0.2 Action Admission Verifier
+on:
+  pull_request:
+    paths:
+      - "schemas/manufacturing/mfg_policy_v02_decision_frame.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_action_proposal.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_action_admission_receipt.schema.json"
+      - "tools/mfg-policy-v02-action-admission/**"
+      - ".github/workflows/mfg-policy-v02-action-admission.yml"
+  push:
+    branches:
+      - main
+      - research/mfg-policy-v02-action-admission
+    paths:
+      - "schemas/manufacturing/mfg_policy_v02_decision_frame.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_action_proposal.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_action_admission_receipt.schema.json"
+      - "tools/mfg-policy-v02-action-admission/**"
+      - ".github/workflows/mfg-policy-v02-action-admission.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/mfg-policy-v02-action-admission/Cargo.toml -- --check
+      - name: Independent action-admission contract tests
+        run: cargo test --manifest-path tools/mfg-policy-v02-action-admission/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/mfg-policy-v02-action-admission/Cargo.toml -- -D warnings
