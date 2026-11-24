@@ -7,6 +7,7 @@ description = "Drop-in Bevy plugin for Phi-coupled N-dimensional physics. Builds
 
 [dependencies]
 symtropy-bevy-core = { path = "../../core/symtropy-bevy-core" }
+symtropy-motion-contract = { path = "../../core/symtropy-motion-contract" }
 symthaea-bevy-brain = { path = "../../bridges/symthaea-bevy-brain" }
 symtropy-physics = { path = "../../core/symtropy-physics" }
 symtropy-rapier3d-bridge = { path = "../../bridges/symtropy-rapier3d-bridge", optional = true }
@@ -25,11 +26,14 @@ bevy = { version = "0.19", default-features = false, features = [
 nalgebra = "0.34"
 rhai = { version = "1.19", features = ["sync"] }
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 
 [features]
 default = []
 debug-gizmos = ["bevy/bevy_gizmos", "bevy/bevy_gizmos_render"]
 rapier3d = ["dep:symtropy-rapier3d-bridge", "dep:rapier3d"]
+# Opt-in skinned glTF character playback; default robotics builds stay lean.
+human-animation = ["bevy/3d"]
 # `inspector` (bevy_inspector_egui in-engine tooling, per README.md/roadmap.md's
 # stated direction) was previously declared here as an empty, unbuildable
 # feature gating dead code in plugin.rs. Removed 2026-07-21 rather than left
@@ -42,3 +46,11 @@ symthaea-consciousness-equation = "0.1.0"
 symtropy-bevy-scene = { path = "../../core/symtropy-bevy-scene" }
 symtropy-render-bridge = { path = "../symtropy-render-bridge" }
 
+
+[[example]]
+name = "human_avatar"
+required-features = ["human-animation"]
+
+[[bin]]
+name = "human-motion-bench"
+path = "src/bin/human_motion_bench.rs"

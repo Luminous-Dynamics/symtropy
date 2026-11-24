@@ -1,0 +1,353 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:symtropy:human-motion-trace:0.2",
+  "title": "Symtropy Human Motion Trace v0.2",
+  "description": "Version 0.2 extends v0.1 with sampled world-space root orientation as unit quaternions in XYZW component order. Cross-array lengths and quaternion normalization tolerances require semantic validation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "trace_id",
+    "run",
+    "skeleton_signature_sha256",
+    "retarget_map_sha256",
+    "coordinate_frame",
+    "timestamps_sec",
+    "root_world_m",
+    "left_foot_world_m",
+    "left_foot_contact",
+    "right_foot_world_m",
+    "right_foot_contact",
+    "root_rotation_world_xyzw"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "trace_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_kind",
+        "git_commit",
+        "configuration_sha256"
+      ],
+      "properties": {
+        "source_kind": {
+          "enum": [
+            "synthetic_test_fixture",
+            "licensed_asset",
+            "original_consent_capture",
+            "external_model"
+          ]
+        },
+        "git_commit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "model_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "asset_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "asset_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "asset_license": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dataset_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dataset_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "split": {
+          "enum": [
+            "train",
+            "validation",
+            "test",
+            "synthetic"
+          ]
+        },
+        "actor_pseudonym": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Non-identifying pseudonym only; never a real name."
+        },
+        "recording_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "seed": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "coordinate_frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "length_unit": {
+          "const": "metre"
+        },
+        "up_axis": {
+          "const": "+Y"
+        },
+        "forward_axis": {
+          "enum": [
+            "+Z",
+            "-Z"
+          ]
+        },
+        "position_space": {
+          "const": "world"
+        }
+      },
+      "default": {
+        "length_unit": "metre",
+        "up_axis": "+Y",
+        "forward_axis": "-Z",
+        "position_space": "world"
+      },
+      "required": [
+        "length_unit",
+        "up_axis",
+        "forward_axis",
+        "position_space"
+      ]
+    },
+    "timestamps_sec": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "number"
+      }
+    },
+    "root_world_m": {
+      "$ref": "#/$defs/positions"
+    },
+    "left_foot_world_m": {
+      "$ref": "#/$defs/positions"
+    },
+    "left_foot_contact": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "boolean"
+      }
+    },
+    "right_foot_world_m": {
+      "$ref": "#/$defs/positions"
+    },
+    "right_foot_contact": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "boolean"
+      }
+    },
+    "joint_world_m": {
+      "type": "object",
+      "description": "Optional named joint trajectories; every joint array must match timestamps_sec length.",
+      "additionalProperties": {
+        "$ref": "#/$defs/positions"
+      }
+    },
+    "constraint_targets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "time_sec",
+          "target",
+          "position_world_m"
+        ],
+        "properties": {
+          "time_sec": {
+            "type": "number"
+          },
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "position_world_m": {
+            "$ref": "#/$defs/position"
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "string"
+    },
+    "skeleton_signature_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "retarget_map_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "description": "Digest of the motion-to-canonical-skeleton retarget map; null only for synthetic fixtures."
+    },
+    "root_rotation_world_xyzw": {
+      "type": "array",
+      "minItems": 1,
+      "description": "World-space root orientation sampled at each timestamps_sec entry; quaternion component order XYZW. Quaternions must be finite and unit length within the implementation tolerance.",
+      "items": {
+        "type": "array",
+        "minItems": 4,
+        "maxItems": 4,
+        "items": {
+          "type": "number"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "run": {
+            "properties": {
+              "source_kind": {
+                "const": "synthetic_test_fixture"
+              }
+            },
+            "required": [
+              "source_kind"
+            ]
+          }
+        },
+        "required": [
+          "run"
+        ]
+      },
+      "then": {},
+      "else": {
+        "properties": {
+          "run": {
+            "required": [
+              "asset_sha256",
+              "asset_license",
+              "git_commit"
+            ],
+            "properties": {
+              "git_commit": {
+                "pattern": "^[a-fA-F0-9]{40}$"
+              },
+              "asset_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              },
+              "asset_license": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "retarget_map_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "skeleton_signature_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "run": {
+                  "properties": {
+                    "source_kind": {
+                      "const": "external_model"
+                    }
+                  },
+                  "required": [
+                    "source_kind"
+                  ]
+                }
+              },
+              "required": [
+                "run"
+              ]
+            },
+            "then": {
+              "properties": {
+                "run": {
+                  "required": [
+                    "model_sha256"
+                  ],
+                  "properties": {
+                    "model_sha256": {
+                      "type": "string",
+                      "pattern": "^[a-fA-F0-9]{64}$"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "position": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "number"
+      }
+    },
+    "positions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/position"
+      }
+    }
+  }
+}
