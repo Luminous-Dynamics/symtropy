@@ -504,6 +504,38 @@
       "requires_projector": false,
       "projector_window": null,
       "expected_status": "ACQUISITION_VALID_WITHIN_BUDGET"
+    },
+    {
+      "case_id": "ACQ-019-PROJECTOR-CLOCK-MAP-UNKNOWN",
+      "camera_id": "CAM-01",
+      "calibration_state": "VALID",
+      "calibration_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "clock_map_state": "UNKNOWN",
+      "clock_map_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "timestamp_reference": "CENTER_ROW_EXPOSURE_MIDPOINT",
+      "frame_timestamp_ns": 5000,
+      "timestamp_uncertainty_ns": 0,
+      "trigger_jitter_ns": 0,
+      "motion_model_id": "REL-VELOCITY-BOUND-01",
+      "motion_model_state": "ADMITTED",
+      "relative_velocity_x_um_per_s": 0,
+      "relative_velocity_y_um_per_s": 0,
+      "gsd_um_per_pixel": 10,
+      "exposure_duration_ns": 1000,
+      "shutter_mode": "GLOBAL_SHUTTER",
+      "image_height_px": 100,
+      "readout_duration_ns": 0,
+      "readout_uncertainty_ns": 0,
+      "readout_direction": "TOP_TO_BOTTOM",
+      "motion_budget_micro_px": 100000,
+      "requires_projector": true,
+      "projector_window": {
+        "pattern_id": "PATTERN-1",
+        "stable_start_ns": 0,
+        "stable_end_ns": 1000,
+        "pattern_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "expected_status": "INDETERMINATE"
     }
   ]
 }
