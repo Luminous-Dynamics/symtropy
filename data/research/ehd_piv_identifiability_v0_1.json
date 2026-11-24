@@ -15,7 +15,7 @@
     "candidate_acquisition_rank_gain",
     "candidate_smallest_profiled_physical_sensitivity_gain_per_cost"
   ],
-  "authored_manufactured_tests": 18,
+  "authored_manufactured_tests": 19,
   "limits": [
     "no_observation_covariance_whitening",
     "no_global_or_structural_identifiability_proof",
@@ -33,7 +33,8 @@
     "configured_condition_number_threshold",
     "minimum_effective_nuisance_sensitivity_floor",
     "nuisance_confounding_vs_absent_physical_sensitivity",
-    "projection_and_correlation_overflow_fail_closed"
+    "projection_and_correlation_overflow_fail_closed",
+    "profiled_condition_number_uses_profiled_maximum_and_minimum_singular_values"
   ],
   "matrix_size_limits": {
     "maximum_observation_rows": 65536,
