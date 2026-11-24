@@ -155,7 +155,8 @@
         "lot_effects",
         "batch_effects",
         "panel_effects",
-        "measurement_noise_index"
+        "measurement_noise_index",
+        "out_of_domain_offset_index"
       ],
       "properties": {
         "generator_id": {
@@ -189,6 +190,9 @@
         "measurement_noise_index": {
           "type": "number",
           "minimum": 0
+        },
+        "out_of_domain_offset_index": {
+          "type": "number"
         }
       }
     }
