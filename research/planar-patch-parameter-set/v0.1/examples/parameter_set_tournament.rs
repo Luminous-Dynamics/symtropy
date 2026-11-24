@@ -66,7 +66,10 @@ u_beta_low,u_beta_high,v_beta_low,v_beta_high,n_beta_low,n_beta_high"
     );
 
     println!("axis,shape_lower_m_or_unitless,shape_upper_m_or_unitless");
-    for (name, interval) in ["u", "v", "torsion"].into_iter().zip(report.intervals.iter()) {
+    for (name, interval) in ["u", "v", "torsion"]
+        .into_iter()
+        .zip(report.intervals.iter())
+    {
         println!(
             "{name},{},{}",
             interval.shape_scale_lower.map_or_else(|| "unknown".to_owned(), |v| format!("{v:.9}")),
