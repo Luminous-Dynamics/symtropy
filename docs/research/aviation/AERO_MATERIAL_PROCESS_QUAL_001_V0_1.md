@@ -149,6 +149,33 @@ For broader portfolio context:
 - NASA's 1.4 MW HEMM page publishes 16 kW/kg and 99% efficiency as development targets. Our comparison must keep motor-only metrics separate from installed motor/inverter/gearbox/cooling/harness/containment package metrics. https://www.nasa.gov/eap-technology/electric-machines/hemm/
 - Nakayama et al. (August 2026) report thermal-management energy above 20% in their particular mission-level eVTOL study cases. Treat this as a reason to model TMS energy and seasonal conditions explicitly, not as a universal aircraft design constant. https://doi.org/10.1016/j.applthermaleng.2026.132253
 
+### Benchmark comparators and competitive positioning
+
+Use established tools and guidance as matched baselines, not straw men:
+
+- **Aircraft MDO:** NASA's open-source [Aviary](https://github.com/OpenMDAO/Aviary) is a direct aircraft analysis/design/optimization comparator, including analytic-gradient methods. Compare on the same mission, configuration, discipline models, constraints, derivative quality, convergence tolerances and evaluation budget. A different fidelity or mission invalidates a headline speed/weight comparison.
+- **High-fidelity aeroelastic optimization:** use the [NASA/AIAA aeroelastic optimization benchmark](https://ntrs.nasa.gov/citations/20240016218) where its configuration and scope match. Its motivation is directly relevant: inconsistent baselines, design variables, objectives and constraints make published optimizer comparisons difficult.
+- **Model-assisted material qualification:** align to [NASA/NIST CM4QC Phase II](https://www.nist.gov/programs-projects/cm4qc/cm4qc-phase-ii) and [NIST AM-Bench](https://www.nist.gov/programs-projects/metrology-am-model-validation) style datasets and challenge cases as rights-cleared reference data become available. Do not claim access to unpublished data or imply that the Luminous synthetic fixture is comparable to physical round-robin evidence.
+- **Composite structures:** retain applicable [FAA AC 20-107B](https://www.faa.gov/airports/resources/advisory_circulars/index.cfm/go/document.information/documentNumber/20-107B) and CMH-17 building-block practice as the engineering baseline. A digital thread or AI score does not replace substantiation by test and analysis.
+
+The competitive hypothesis is therefore not that a new model beats every specialist CFD, FEM, materials or MDO tool. It is that an evidence layer can connect their outputs to exact configurations, manufacturing lineage, metrology, uncertainty, applicability and change history—and then select the next evidence action without overstating what has been established.
+
+### Benchmark scorecard and prospective targets
+
+Report a vector of metrics, never a single weighted score:
+
+| Dimension | Benchmark | Prospective research target |
+|---|---|---|
+| Safety / decision error | False acceptance and false rejection by claim family; adversarial negative controls | Zero false acceptance on the bounded, preregistered challenge corpus |
+| Applicability | Whole-lot, whole-batch, whole-site, whole-machine, whole-recipe and configuration holdouts | No promotion outside the validated domain; explicit abstention |
+| Uncertainty | Prediction-interval coverage and width on independent physical holdouts | For nominal 95% intervals, assess observed coverage against a preregistered tolerance such as 93–97% only with adequate independent sample size |
+| Traceability | Claim-to-unit / process / configuration / calibration / source-artifact path completeness | 100% traceability for every reported claim |
+| Reproducibility | Input permutation, independent evaluator, frozen toolchain and corpus digest | 100% deterministic outputs for deterministic inputs |
+| Test efficiency | Test count, independent lots/batches, lab cost, engineering hours and calendar time at matched acceptance risk | Aim for at least 20% lower total verification effort only after a physical, independently held-out comparison |
+| Model transfer | Coupon → element/joint → subcomponent error and uncertainty by scale | No scale promotion without its own validation and explicit transfer uncertainty |
+
+These are research targets, not regulatory criteria or achieved results. In particular, fewer tests are not an improvement if false-accept risk, uncertainty, independent-group coverage or hard-requirement coverage deteriorates.
+
 ## 9. Next physical evidence ladder
 
 1. Synthetic contract and evaluator.
