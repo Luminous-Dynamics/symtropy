@@ -1,0 +1,66 @@
+{
+  "schema_version": "ergo-transfer-forecast-cohort-v0",
+  "cohort_id": "ergo-transfer-blind-confirmatory-v0-example",
+  "forecasts": [
+    {
+      "sample_id": 1,
+      "probability_transfer_ppm": 950000,
+      "decision": "assert_transfer"
+    },
+    {
+      "sample_id": 2,
+      "probability_transfer_ppm": 750000,
+      "decision": "assert_transfer"
+    },
+    {
+      "sample_id": 3,
+      "probability_transfer_ppm": 200000,
+      "decision": "reject_transfer"
+    },
+    {
+      "sample_id": 4,
+      "probability_transfer_ppm": 980000,
+      "decision": "assert_transfer"
+    },
+    {
+      "sample_id": 5,
+      "probability_transfer_ppm": 200000,
+      "decision": "reject_transfer"
+    },
+    {
+      "sample_id": 6,
+      "probability_transfer_ppm": 550000,
+      "decision": null
+    },
+    {
+      "sample_id": 7,
+      "probability_transfer_ppm": 900000,
+      "decision": "assert_transfer"
+    },
+    {
+      "sample_id": 8,
+      "probability_transfer_ppm": 850000,
+      "decision": "assert_transfer"
+    },
+    {
+      "sample_id": 9,
+      "probability_transfer_ppm": 100000,
+      "decision": "reject_transfer"
+    },
+    {
+      "sample_id": 10,
+      "probability_transfer_ppm": 700000,
+      "decision": "assert_transfer"
+    },
+    {
+      "sample_id": 11,
+      "probability_transfer_ppm": 600000,
+      "decision": "reject_transfer"
+    },
+    {
+      "sample_id": 12,
+      "probability_transfer_ppm": 400000,
+      "decision": null
+    }
+  ]
+}
