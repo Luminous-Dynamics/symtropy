@@ -86,7 +86,9 @@ impl ClaimKind {
     const fn requires_physical_observation(self) -> bool {
         matches!(
             self,
-            Self::ObservedBerthOccupancy | Self::ObservedCargoMovement
+            Self::ObservedBerthOccupancy
+                | Self::ObservedCargoMovement
+                | Self::ReceiverAcceptedDelivery
         )
     }
 }
@@ -129,6 +131,7 @@ pub enum AdmissionBlock {
     EventOutsideDeclaredValidity,
     IndependenceEvidenceReferenceMissing,
     ReceiverCustodyDigestMissing,
+    EventTimeUnknown,
     ClaimSubjectIdentityMissing,
     SourceRecordIdentityMissing,
 }
@@ -143,6 +146,7 @@ impl AdmissionBlock {
             Self::EventOutsideDeclaredValidity => "EVENT_OUTSIDE_DECLARED_VALIDITY",
             Self::IndependenceEvidenceReferenceMissing => "INDEPENDENCE_REFERENCE_MISSING",
             Self::ReceiverCustodyDigestMissing => "RECEIVER_CUSTODY_DIGEST_MISSING",
+            Self::EventTimeUnknown => "EVENT_TIME_UNKNOWN",
             Self::ClaimSubjectIdentityMissing => "CLAIM_SUBJECT_IDENTITY_MISSING",
             Self::SourceRecordIdentityMissing => "SOURCE_RECORD_IDENTITY_MISSING",
         }
@@ -445,6 +449,9 @@ pub fn admit_claim(claim: &SourceClaim) -> Result<AdmissionDecision, ArtifactVal
         ));
     }
 
+    if claim.claim_kind.requires_physical_observation() && claim.event_time_unix.is_none() {
+        return Ok(AdmissionDecision::Blocked(AdmissionBlock::EventTimeUnknown));
+    }
     if let Some(event_time) = claim.event_time_unix {
         if event_time < 0 {
             return Err(ArtifactValidationError::NegativeTimestamp);
@@ -524,7 +531,7 @@ struct BenchmarkCase {
     event_time: Option<i64>,
 }
 
-fn benchmark_cases() -> [BenchmarkCase; 20] {
+fn benchmark_cases() -> [BenchmarkCase; 21] {
     [
         BenchmarkCase {
             id: "dgt_vessel_status_as_reported",
@@ -732,6 +739,17 @@ fn benchmark_cases() -> [BenchmarkCase; 20] {
             publication_time: Some(FIXTURE_PUBLICATION_TIME),
             retrieval_time: FIXTURE_RETRIEVAL_TIME,
             independence_ref: None,
+            custody_digest: None,
+            event_time: None,
+        },
+        BenchmarkCase {
+            id: "physical_observation_without_event_time_negative",
+            artifact_class: ArtifactClass::IndependentPhysicalObservation,
+            claim_kind: ClaimKind::ObservedCargoMovement,
+            expected: "EVENT_TIME_UNKNOWN",
+            publication_time: Some(FIXTURE_PUBLICATION_TIME),
+            retrieval_time: FIXTURE_RETRIEVAL_TIME,
+            independence_ref: Some("synthetic-independent-witness-review"),
             custody_digest: None,
             event_time: None,
         },
@@ -1266,6 +1284,21 @@ mod tests {
     }
 
     #[test]
+    fn physical_observation_without_event_time_is_blocked() {
+        let mut candidate = claim(
+            ArtifactClass::IndependentPhysicalObservation,
+            ClaimKind::ObservedCargoMovement,
+        );
+        candidate.artifact.independence_evidence_ref =
+            Some("synthetic-independent-witness-review".to_owned());
+        candidate.event_time_unix = None;
+        assert_eq!(
+            admit_claim(&candidate),
+            Ok(AdmissionDecision::Blocked(AdmissionBlock::EventTimeUnknown))
+        );
+    }
+
+    #[test]
     fn observed_future_event_is_not_admitted_as_of_the_past() {
         let mut candidate = claim(
             ArtifactClass::IndependentPhysicalObservation,
@@ -1320,7 +1353,7 @@ mod tests {
     fn benchmark_receipt_is_deterministic_and_contains_all_negative_controls() {
         let first = render_csv();
         assert_eq!(first, render_csv());
-        assert_eq!(first.lines().count(), 21);
+        assert_eq!(first.lines().count(), 22);
         let width = first.lines().next().expect("CSV header").split(',').count();
         assert_eq!(width, 7);
         for row in first.lines().skip(1) {
