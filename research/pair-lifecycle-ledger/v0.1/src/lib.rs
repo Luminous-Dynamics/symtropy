@@ -442,7 +442,9 @@ impl PairLedger {
                     && !matches!(
                         outcome,
                         Outcome::CandidateTrace { .. }
-                            | Outcome::Terminate(TerminalReason::InvalidInput | TerminalReason::Aborted)
+                            | Outcome::Terminate(
+                                TerminalReason::InvalidInput | TerminalReason::Aborted
+                            )
                     )
                 {
                     return Err(LedgerError::CandidateGenerationRequiresTrace);
