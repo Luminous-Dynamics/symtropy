@@ -125,7 +125,9 @@ Disposition is set-valued:
 - both labels: ambiguous / abstain;
 - neither label: empty set / no decision (do not force a class).
 
-The calibration function requires one evaluator-owned stratum and matched forecast/outcome IDs. It does not pool across strata. Under exchangeability between the calibration cohort and future claims within that admitted stratum, this gives a finite-sample **marginal** coverage guarantee for the prediction set at the requested alpha. It does not give arbitrary conditional coverage, cross-stratum coverage, robustness to arbitrary shift, or a sequential online guarantee. The learner must not choose the calibration stratum after observing outcomes.
+Both-label and empty prediction sets are retained as distinct outcomes. A tie at the calibrated quantile is included (`score <= q`), not discarded.
+
+The calibration function requires one evaluator-owned stratum and matched forecast/outcome IDs. It does not pool across strata. The predictor, preprocessing, probability forecast and nonconformity mapping must be frozen independently of the calibration outcomes; the calibration cohort must not be used to fit or select that predictor. Under exchangeability between the independent calibration cohort and future claims within that predeclared admitted stratum, this gives a finite-sample **marginal** coverage guarantee for the prediction set at the requested alpha. It does not give arbitrary conditional coverage, cross-stratum coverage, robustness to arbitrary shift, or a sequential online guarantee. The learner must not choose the calibration stratum after observing outcomes.
 
 ## Prospective internal targets
 
