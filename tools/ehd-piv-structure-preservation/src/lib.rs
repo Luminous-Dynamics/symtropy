@@ -170,8 +170,8 @@ pub fn evaluate_structure_preservation(
         return Err(FieldMetricError::EmptyEvaluationDomain);
     }
 
-    for index in 0..cell_count {
-        if !evaluation_domain[index] {
+    for (index, included) in evaluation_domain.iter().enumerate() {
+        if !included {
             continue;
         }
         if !reference.valid[index] {
@@ -190,8 +190,8 @@ pub fn evaluate_structure_preservation(
     let mut reconstructed_vector_cells = 0usize;
     let mut vector_error_squared = 0.0;
     let mut reference_vector_squared = 0.0;
-    for index in 0..cell_count {
-        if !evaluation_domain[index] || !reconstruction.valid[index] {
+    for (index, included) in evaluation_domain.iter().enumerate() {
+        if !included || !reconstruction.valid[index] {
             continue;
         }
         reconstructed_vector_cells += 1;
