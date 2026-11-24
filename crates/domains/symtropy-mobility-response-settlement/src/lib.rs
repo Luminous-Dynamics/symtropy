@@ -658,6 +658,42 @@ fn validate_timelines(
             "baseline/PCC interval duration",
         )?;
         let phase = string(baseline_interval, "/phase")?;
+        // Check response and recovery intervals alike; a recovery energy cannot
+        // be reconciled from a power trace with a contradictory duration.
+        let duration_ns = duration as f64;
+        let pcc_energy_from_power_wh =
+            number(pcc_interval, "/measured_reduction_w")? * duration_ns / 3_600_000_000_000.0;
+        let pcc_energy_wh = number(pcc_interval, "/measured_reduction_energy_wh")?;
+        let pcc_bound_energy_from_power_wh = number(
+            pcc_interval,
+            "/conservative_reduction_lower_bound_w",
+        )? * duration_ns
+            / 3_600_000_000_000.0;
+        let pcc_bound_energy_wh =
+            number(pcc_interval, "/lower_bound_reduction_energy_wh")?;
+        let energy_tolerance_wh = input.maximum_dispatch_energy_disagreement_kwh * 1_000.0;
+        if (pcc_energy_wh - pcc_energy_from_power_wh).abs() > energy_tolerance_wh
+            || (pcc_bound_energy_wh - pcc_bound_energy_from_power_wh).abs()
+                > energy_tolerance_wh
+        {
+            return Err(BridgeError::EnergyMismatch(format!(
+                "PCC interval energy does not equal its power × duration at interval {index}"
+            )));
+        }
+        let baseline_lower_kw =
+            number(baseline_interval, "/conservative_reduction_lower_bound_kw")?;
+        let baseline_energy_from_power_kwh =
+            baseline_lower_kw * duration_ns / 3_600_000_000_000.0;
+        let baseline_energy_kwh =
+            number(baseline_interval, "/conservative_reduction_energy_kwh")?;
+        if (baseline_energy_kwh - baseline_energy_from_power_kwh).abs()
+            > input.maximum_dispatch_energy_disagreement_kwh
+        {
+            return Err(BridgeError::EnergyMismatch(format!(
+                "baseline interval energy does not equal its power × duration at interval {index}"
+            )));
+        }
+
         if !boolean(pcc_interval, "/interval_qualified")?
             || !boolean(baseline_interval, "/interval_qualified")?
         {
@@ -773,40 +809,6 @@ fn validate_timelines(
         {
             return Err(BridgeError::EnergyMismatch(format!(
                 "grid tracking and PCC metrology power disagree at dispatch interval {index}"
-            )));
-        }
-
-        let duration_ns = interval_duration as f64;
-        let pcc_energy_from_power_wh =
-            number(pcc_interval, "/measured_reduction_w")? * duration_ns / 3_600_000_000_000.0;
-        let pcc_energy_wh = number(pcc_interval, "/measured_reduction_energy_wh")?;
-        let pcc_bound_energy_from_power_wh = number(
-            pcc_interval,
-            "/conservative_reduction_lower_bound_w",
-        )? * duration_ns
-            / 3_600_000_000_000.0;
-        let pcc_bound_energy_wh =
-            number(pcc_interval, "/lower_bound_reduction_energy_wh")?;
-        let energy_tolerance_wh = input.maximum_dispatch_energy_disagreement_kwh * 1_000.0;
-        if (pcc_energy_wh - pcc_energy_from_power_wh).abs() > energy_tolerance_wh
-            || (pcc_bound_energy_wh - pcc_bound_energy_from_power_wh).abs()
-                > energy_tolerance_wh
-        {
-            return Err(BridgeError::EnergyMismatch(format!(
-                "PCC interval energy does not equal its power × duration at dispatch interval {index}"
-            )));
-        }
-        let baseline_lower_kw =
-            number(baseline_interval, "/conservative_reduction_lower_bound_kw")?;
-        let baseline_energy_from_power_kwh =
-            baseline_lower_kw * duration_ns / 3_600_000_000_000.0;
-        let baseline_energy_kwh =
-            number(baseline_interval, "/conservative_reduction_energy_kwh")?;
-        if (baseline_energy_kwh - baseline_energy_from_power_kwh).abs()
-            > input.maximum_dispatch_energy_disagreement_kwh
-        {
-            return Err(BridgeError::EnergyMismatch(format!(
-                "baseline interval energy does not equal its power × duration at dispatch interval {index}"
             )));
         }
 
