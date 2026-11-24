@@ -115,6 +115,15 @@ pub struct PolicyScenario {
     pub observed_outcome_id: String,
     pub selected_action_id: String,
     pub loss: Rational,
+    pub wait_and_see_regret: Rational,
+    pub outcome_class_regret: Rational,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct SourceSignedDifference {
+    pub direction: String,
+    pub magnitude: Rational,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -124,7 +133,15 @@ pub struct PolicySnapshot {
     pub query_id: Option<String>,
     /// Keys are public observation outcomes, or __NO_QUERY__ for a static policy.
     pub branch_actions: BTreeMap<String, String>,
+    /// Upstream outcome -> exact distinct physical worlds in that observation class.
+    pub observation_class_world_ids: BTreeMap<String, Vec<String>>,
     pub declared_worst_case_loss: Rational,
+    pub worst_case_wait_and_see_regret: Rational,
+    pub worst_case_outcome_class_regret: Rational,
+    pub worst_loss_scenario_ids: Vec<String>,
+    pub worst_wait_and_see_scenario_ids: Vec<String>,
+    pub worst_outcome_class_regret_scenario_ids: Vec<String>,
+    pub worst_loss_reduction_vs_best_no_query: Option<SourceSignedDifference>,
     pub query_cost: ActionCost,
     pub branch_action_cost_upper_bound: ActionCost,
     /// Must equal query cost plus the maximum branch execution cost in each native unit.
@@ -209,7 +226,6 @@ pub struct Summary {
     pub abstain_cases: usize,
     pub invalid_input_cases: usize,
     pub resource_blocked_cases: usize,
-    pub expected_result_mismatches: usize,
     pub authority_grants: usize,
 }
 
@@ -893,7 +909,6 @@ pub fn evaluate(corpus: &Corpus) -> Result<Evaluation, String> {
             .iter()
             .filter(|case| case.resource_blocked_policy_count > 0)
             .count(),
-        expected_result_mismatches: 0,
         authority_grants: cases.iter().filter(|case| case.authority_granted).count(),
     };
     let pass = summary.authority_grants == 0;
