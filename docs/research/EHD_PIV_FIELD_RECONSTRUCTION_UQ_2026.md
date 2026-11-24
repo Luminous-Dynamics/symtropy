@@ -95,6 +95,19 @@ Wang, *Generative priors for spatiotemporal turbulence: Toward conditionable and
 
 A common metric suite may be shared, but the estimand, information available to the model, data-generating regime, inference semantics and compute budget must be frozen per track.
 
+### 2.6 Synthetic image generation is a separate benchmark from reconstruction
+
+**SynthPix** (Terpin et al., *SoftwareX* 34, 102642, June 2026; DOI 10.1016/j.softx.2026.102642) is the current high-throughput open-source generator comparator. Its MIT-licensed public repository is v0.4.0 at pinned commit `0effe6e70b77d0d5c97348d8220e74d31bfaee2e`. It uses JAX batching/accelerators, streams image pairs and ground-truth flow fields, and supports HDF5/MAT/NPY flow sources. It exposes seeding density, particle diameter/intensity ranges, particle shape correlation `rho`, per-frame particle appearance variability, particle hide probabilities, noise, masks and histogram matching. The paper reports orders-of-magnitude throughput improvements over selected alternative generators. In its own synthetic benchmark, after tuning rendering parameters to reproduce the relevant image conditions, mean/max relative EPE discrepancy was 0.001/0.005. Treat this as an external reproduction target, not a general accuracy guarantee.
+
+The paper describes its v0.1 geometry/sensor model as simplified and orthogonal, with non-orthogonal camera projection and finite pixel fill factor deferred; it also describes multi-camera volumetric synthesis as future work. Check the exact pinned repository release before assuming any such limitation has changed in v0.4.0.
+
+**Division of labour:** SynthPix is the high-throughput synthetic generation engine for large nuisance sweeps, hard-example mining and training. The new Rust observation operator in [PR #7259](https://github.com/Luminous-Dynamics/symtropy/pull/7259) is a transparent deterministic reference kernel for small analytic controls (finite-exposure RK2 motion, explicit Gaussian sheet attenuation, PSF, fixed per-pixel noise, gain/offset, quantization and fail-closed bounds). Do not compare their throughput as though they were equivalent implementations. Compare semantic coverage and known-output behavior first; compare speed only on matched hardware/configurations.
+
+Keep three tracks separate:
+1. **Generator fidelity:** synthetic image distributions and parameters vs analytic or measured camera data.
+2. **Estimator performance:** PIV reconstruction accuracy on a given frozen image corpus.
+3. **End-to-end predictive validity:** whether benchmark performance on generated data predicts held-out performance on real image pairs.
+
 ## 3. Declare the estimand before scoring
 
 The target must be explicit and immutable for each benchmark lane:
