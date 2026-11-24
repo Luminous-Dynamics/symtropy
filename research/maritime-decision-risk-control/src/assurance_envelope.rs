@@ -413,7 +413,7 @@ pub fn compose_assurance(
         && risk
             .monitoring_horizon_ref
             .as_deref()
-            .is_none_or(str::is_empty)
+            .is_none_or(|reference| reference.trim().is_empty())
     {
         blockers.push(AssuranceBlocker::MissingTimeUniformHorizon);
     }
@@ -703,9 +703,7 @@ mod tests {
         claim.risk_axis = StatisticalRiskAxis::ServiceLoss;
         let decision = compose_assurance(&compile(FiniteScenarioSource::IndependentOracle), &claim);
 
-        assert!(
-            decision.blockers.contains(&AssuranceBlocker::WrongRiskAxis)
-        );
+        assert!(decision.blockers.contains(&AssuranceBlocker::WrongRiskAxis));
     }
 
     #[test]
@@ -716,10 +714,7 @@ mod tests {
         };
         claim.monitoring_horizon_ref = Some("monitoring-sequence-2026-Q4-v1".to_owned());
 
-        let decision = compose_assurance(
-            &compile(FiniteScenarioSource::IndependentOracle),
-            &claim,
-        );
+        let decision = compose_assurance(&compile(FiniteScenarioSource::IndependentOracle), &claim);
 
         assert!(decision.admissible_within_declared_scope);
         assert_eq!(
@@ -735,14 +730,13 @@ mod tests {
             failure_probability_ppm: 50_000,
         };
 
-        let decision = compose_assurance(
-            &compile(FiniteScenarioSource::IndependentOracle),
-            &claim,
-        );
+        let decision = compose_assurance(&compile(FiniteScenarioSource::IndependentOracle), &claim);
 
-        assert!(decision
-            .blockers
-            .contains(&AssuranceBlocker::MissingTimeUniformHorizon));
+        assert!(
+            decision
+                .blockers
+                .contains(&AssuranceBlocker::MissingTimeUniformHorizon)
+        );
         assert!(!decision.admissible_within_declared_scope);
     }
 
@@ -754,7 +748,11 @@ mod tests {
         };
         let decision = compose_assurance(&compile(FiniteScenarioSource::IndependentOracle), &claim);
 
-        assert!(decision.blockers.contains(&AssuranceBlocker::InvalidRiskClaim));
+        assert!(
+            decision
+                .blockers
+                .contains(&AssuranceBlocker::InvalidRiskClaim)
+        );
     }
 
     #[test]
