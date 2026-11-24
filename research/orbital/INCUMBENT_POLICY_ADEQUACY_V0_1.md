@@ -215,3 +215,19 @@ The differentiator is not claiming to beat each method on its native task. It is
 5. **Scale and systems track:** 10^2, 10^3, 10^4, 10^5 joint scenarios and 10^1, 10^2, 10^3 policies; measure p50/p95/p99 time, peak memory, digest/replay throughput and deterministic cross-runtime agreement.
 
 Targets are prospective engineering gates, not claimed achieved results. To claim superiority over SOTA, run each published baseline on its own matched benchmark, then demonstrate a clearly separate contribution on the integrated incumbent-maintenance problem.
+
+
+### Primary research and industry sources
+
+**Research (2026):**
+- PEAR, ICML 2026: https://proceedings.mlr.press/v306/lee26q.html
+- Robust Decision-Focused Learning, UAI 2026: https://proceedings.mlr.press/v337/yamao26a.html
+- Risk-Averse Decision-Focused Learning / RESTRO preprint (14 Nov 2026): https://arxiv.org/abs/2611.19575
+- IJCAI 2026 survey on active feature acquisition: https://ijcai.org/proceedings/2026/860
+
+**Industry product capability references:**
+- Ansys medini analyze documents integrated HARA/HAZOP/FHA, FMEA/FMEDA/FTA, safety requirements, consistency checks, traceability, and integrations with requirements-management tools: https://ansys.synopsys.com/products/safety-analysis/ansys-medini-analyze
+- Siemens Polarion documents requirements/test impact analysis, traceability from release artifacts to code, and audit trails: https://www.siemens.com/en-gb/products/polarion/application-lifecycle-management-alm/
+- IBM Engineering Lifecycle Management / DOORS Next documents requirements capture, lifecycle traceability, change analysis, and compliance-oriented governance: https://www.ibm.com/products/engineering-lifecycle-management
+
+These sources establish what the respective research and vendors describe; they do not provide an independent matched benchmark of Symtropy versus those products. The comparison above is a product-positioning analysis, not a performance ranking.
