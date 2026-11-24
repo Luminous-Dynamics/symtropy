@@ -230,7 +230,6 @@ impl fmt::Display for IdentifiabilityError {
 
 impl Error for IdentifiabilityError {}
 
-
 /// Whiten a raw observation sensitivity matrix using a dense, symmetric,
 /// positive-definite residual covariance.
 ///
@@ -1599,8 +1598,7 @@ mod tests {
     fn covariance_whitening_matches_correlated_information_analytic_oracle() {
         let raw = vec![vec![1.0], vec![-1.0]];
         let covariance = vec![vec![1.0, 0.9], vec![0.9, 1.0]];
-        let whitened =
-            whiten_sensitivity_with_covariance(&raw, &covariance, 1.0e-12).unwrap();
+        let whitened = whiten_sensitivity_with_covariance(&raw, &covariance, 1.0e-12).unwrap();
         let information = whitened.iter().map(|row| row[0] * row[0]).sum::<f64>();
         let analytic = 2.0 / (1.0 - 0.9);
         assert!((information - analytic).abs() < 1.0e-9);
@@ -1611,22 +1609,12 @@ mod tests {
         let raw = vec![vec![1.0], vec![1.0]];
         let independent_covariance = vec![vec![1.0, 0.0], vec![0.0, 1.0]];
         let correlated_covariance = vec![vec![1.0, 0.9], vec![0.9, 1.0]];
-        let independent = whiten_sensitivity_with_covariance(
-            &raw,
-            &independent_covariance,
-            1.0e-12,
-        )
-        .unwrap();
-        let correlated = whiten_sensitivity_with_covariance(
-            &raw,
-            &correlated_covariance,
-            1.0e-12,
-        )
-        .unwrap();
-        let independent_information =
-            independent.iter().map(|row| row[0] * row[0]).sum::<f64>();
-        let correlated_information =
-            correlated.iter().map(|row| row[0] * row[0]).sum::<f64>();
+        let independent =
+            whiten_sensitivity_with_covariance(&raw, &independent_covariance, 1.0e-12).unwrap();
+        let correlated =
+            whiten_sensitivity_with_covariance(&raw, &correlated_covariance, 1.0e-12).unwrap();
+        let independent_information = independent.iter().map(|row| row[0] * row[0]).sum::<f64>();
+        let correlated_information = correlated.iter().map(|row| row[0] * row[0]).sum::<f64>();
         assert_eq!(independent_information, 2.0);
         assert!((correlated_information - (2.0 / 1.9)).abs() < 1.0e-10);
         assert!(correlated_information < independent_information);
@@ -1672,5 +1660,4 @@ mod tests {
             Err(IdentifiabilityError::NoiseCovarianceNotPositiveDefinite { pivot: 1 })
         );
     }
-
 }
