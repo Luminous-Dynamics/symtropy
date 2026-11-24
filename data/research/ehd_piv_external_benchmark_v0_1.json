@@ -179,5 +179,6 @@
     "TKE_from_half_trace",
     "full_tensor_frobenius_error_with_double_weighted_off_diagonal_terms",
     "positive_semidefinite_realizability_diagnostic"
-  ]
+  ],
+  "v0_tests_authored": 19
 }
