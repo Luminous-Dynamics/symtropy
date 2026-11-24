@@ -52,7 +52,8 @@
     "SAMM_RR",
     "SVGP_KAN",
     "covariance_aware_GP",
-    "HDC_CfC_experimental_challenger"
+    "HDC_CfC_experimental_challenger",
+    "adv_NO_multiscale_comparator_from_Oommen_2026"
   ],
   "manufactured_cases": [
     "exact_field",
@@ -72,8 +73,57 @@
     "no_3D_validation",
     "no_empirical_uncertainty_calibration",
     "no_physical_EHD_experiment",
-    "no_SOTA_superiority_claim"
+    "no_SOTA_superiority_claim",
+    "no_bandwise_energy_spectrum_metric_in_v0"
   ],
   "precision_definition": "true retained weak structures divided by all predicted weak support (wrong sign or inadequate amplitude and background false support count as false positives)",
-  "false_support_rate_definition": "false support in reference-defined background divided by background cells with valid reconstructed derivative stencils"
+  "false_support_rate_definition": "false support in reference-defined background divided by background cells with valid reconstructed derivative stencils",
+  "v1_multiscale_spectral_extension": {
+    "status": "specified_research_target_not_in_v0_kernel",
+    "comparator_source": "Oommen et al. (2026), Nature Communications 17:3707, DOI 10.1038/s41467-026-70145-4",
+    "reported_example": {
+      "task": "2D Schlieren jet super_resolution",
+      "vanilla_neural_operator": {
+        "field_nrmse": 0.0542,
+        "energy_spectrum_nrmse": 0.1601
+      },
+      "adversarial_neural_operator": {
+        "field_nrmse": 0.0662,
+        "energy_spectrum_nrmse": 0.0109
+      },
+      "inference_seconds_per_sample_h100": 0.01,
+      "implication": "pointwise field NRMSE and multiscale spectral fidelity can rank methods differently"
+    },
+    "metrics": [
+      "directional_1D_and_2D_energy_spectra_where_assumptions_admit",
+      "predeclared_wavenumber_band_log_energy_error",
+      "high_wavenumber_tail_energy_retention",
+      "spectral_slope_error_over_common_resolvable_band",
+      "phase_alignment_and_spatial_displacement",
+      "velocity_gradient_pdf_and_intermittency_tails",
+      "Q_R_joint_pdf_only_with_supported_full_3D_gradient_tensor",
+      "observed_vector_measurement_consistency",
+      "posterior_energy_score_variogram_score_and_sample_diversity_for_generative_inverse_methods"
+    ],
+    "measurement_resolution_guard": {
+      "required_metadata": [
+        "interrogation_window_transfer",
+        "optical_blur_or_psf",
+        "pixel_and_vector_spacing",
+        "filtering",
+        "sampling_and_nyquist_limit",
+        "noise_floor",
+        "domain_mask_and_edge_window"
+      ],
+      "policy": "score only the common resolvable wavenumber band; do not reward energy above instrument resolution or noise floor",
+      "no_zero_fill_fft_on_masked_data": true,
+      "no_radial_spectrum_unless_isotropy_justified": true
+    },
+    "non_substitution_rule": "spectral fidelity cannot excuse wrong vortex phase/location/sign, false structures or measurement inconsistency; low pointwise error cannot excuse erased high-frequency structure",
+    "explicit_nonclaims": [
+      "no_spectral_metric_implemented_in_v0",
+      "no_3D_QR_metric_from_2D2C_fields",
+      "no_EHD_validation_from_Schlieren_or_DNS_results"
+    ]
+  }
 }
