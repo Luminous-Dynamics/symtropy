@@ -104,16 +104,24 @@ impl ProofContext {
     }
 
     #[must_use]
-    pub fn world_revision(&self) -> u64 { self.world_revision }
+    pub fn world_revision(&self) -> u64 {
+        self.world_revision
+    }
 
     #[must_use]
-    pub fn step_index(&self) -> u64 { self.step_index }
+    pub fn step_index(&self) -> u64 {
+        self.step_index
+    }
 
     #[must_use]
-    pub fn interval_start(&self) -> f64 { f64::from_bits(self.interval_start_bits) }
+    pub fn interval_start(&self) -> f64 {
+        f64::from_bits(self.interval_start_bits)
+    }
 
     #[must_use]
-    pub fn interval_end(&self) -> f64 { f64::from_bits(self.interval_end_bits) }
+    pub fn interval_end(&self) -> f64 {
+        f64::from_bits(self.interval_end_bits)
+    }
 }
 
 /// Stable collider identity. Generation prevents a recycled body handle from
@@ -128,21 +136,39 @@ pub struct ColliderId {
 
 impl ColliderId {
     #[must_use]
-    pub fn new(body_handle: u64, body_generation: u32, collider_id: u32, subshape_path: Vec<u32>) -> Self {
-        Self { body_handle, body_generation, collider_id, subshape_path }
+    pub fn new(
+        body_handle: u64,
+        body_generation: u32,
+        collider_id: u32,
+        subshape_path: Vec<u32>,
+    ) -> Self {
+        Self {
+            body_handle,
+            body_generation,
+            collider_id,
+            subshape_path,
+        }
     }
 
     #[must_use]
-    pub fn body_handle(&self) -> u64 { self.body_handle }
+    pub fn body_handle(&self) -> u64 {
+        self.body_handle
+    }
 
     #[must_use]
-    pub fn body_generation(&self) -> u32 { self.body_generation }
+    pub fn body_generation(&self) -> u32 {
+        self.body_generation
+    }
 
     #[must_use]
-    pub fn collider_id(&self) -> u32 { self.collider_id }
+    pub fn collider_id(&self) -> u32 {
+        self.collider_id
+    }
 
     #[must_use]
-    pub fn subshape_path(&self) -> &[u32] { &self.subshape_path }
+    pub fn subshape_path(&self) -> &[u32] {
+        &self.subshape_path
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -154,17 +180,27 @@ pub struct ColliderPair {
 impl ColliderPair {
     pub fn new(a: ColliderId, b: ColliderId) -> Result<Self, BoundInputError> {
         match a.cmp(&b) {
-            Ordering::Less => Ok(Self { first: a, second: b }),
-            Ordering::Greater => Ok(Self { first: b, second: a }),
+            Ordering::Less => Ok(Self {
+                first: a,
+                second: b,
+            }),
+            Ordering::Greater => Ok(Self {
+                first: b,
+                second: a,
+            }),
             Ordering::Equal => Err(BoundInputError::SelfPair),
         }
     }
 
     #[must_use]
-    pub fn first(&self) -> &ColliderId { &self.first }
+    pub fn first(&self) -> &ColliderId {
+        &self.first
+    }
 
     #[must_use]
-    pub fn second(&self) -> &ColliderId { &self.second }
+    pub fn second(&self) -> &ColliderId {
+        &self.second
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -190,10 +226,14 @@ impl<const D: usize> Aabb<D> {
     }
 
     #[must_use]
-    pub fn min(&self) -> &[f64; D] { &self.min }
+    pub fn min(&self) -> &[f64; D] {
+        &self.min
+    }
 
     #[must_use]
-    pub fn max(&self) -> &[f64; D] { &self.max }
+    pub fn max(&self) -> &[f64; D] {
+        &self.max
+    }
 }
 
 /// An exact represented envelope with caller-supplied producer provenance.
@@ -211,17 +251,27 @@ impl<const D: usize> BoundEnvelope<D> {
         min: [f64; D],
         max: [f64; D],
     ) -> Result<Self, BoundInputError> {
-        Ok(Self { collider, context, aabb: Aabb::new(min, max)? })
+        Ok(Self {
+            collider,
+            context,
+            aabb: Aabb::new(min, max)?,
+        })
     }
 
     #[must_use]
-    pub fn collider(&self) -> &ColliderId { &self.collider }
+    pub fn collider(&self) -> &ColliderId {
+        &self.collider
+    }
 
     #[must_use]
-    pub fn context(&self) -> &ProofContext { &self.context }
+    pub fn context(&self) -> &ProofContext {
+        &self.context
+    }
 
     #[must_use]
-    pub fn aabb(&self) -> &Aabb<D> { &self.aabb }
+    pub fn aabb(&self) -> &Aabb<D> {
+        &self.aabb
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -255,10 +305,14 @@ pub struct GapInterval {
 
 impl GapInterval {
     #[must_use]
-    pub fn lower(&self) -> f64 { self.lower }
+    pub fn lower(&self) -> f64 {
+        self.lower
+    }
 
     #[must_use]
-    pub fn upper(&self) -> f64 { self.upper }
+    pub fn upper(&self) -> f64 {
+        self.upper
+    }
 }
 
 /// Re-playable proof of disjointness for the supplied AABB snapshots only.
@@ -275,16 +329,24 @@ pub struct AabbSeparationCertificate<const D: usize> {
 
 impl<const D: usize> AabbSeparationCertificate<D> {
     #[must_use]
-    pub fn pair(&self) -> &ColliderPair { &self.pair }
+    pub fn pair(&self) -> &ColliderPair {
+        &self.pair
+    }
 
     #[must_use]
-    pub fn axis(&self) -> usize { self.axis }
+    pub fn axis(&self) -> usize {
+        self.axis
+    }
 
     #[must_use]
-    pub fn ordering(&self) -> SeparationOrdering { self.ordering }
+    pub fn ordering(&self) -> SeparationOrdering {
+        self.ordering
+    }
 
     #[must_use]
-    pub fn gap(&self) -> GapInterval { self.gap }
+    pub fn gap(&self) -> GapInterval {
+        self.gap
+    }
 
     #[must_use]
     pub fn context(&self) -> &ProofContext { &self.context }
@@ -342,21 +404,21 @@ pub fn classify_pair<const D: usize>(
     let mut best: Option<(usize, SeparationOrdering, GapInterval)> = None;
     let mut strict_separation_found = false;
 
-    for (axis, (first_min, first_max, second_min, second_max)) in first
-        .aabb
-        .min
-        .iter()
-        .zip(first.aabb.max.iter())
-        .zip(second.aabb.min.iter().zip(second.aabb.max.iter()))
-        .enumerate()
-        .map(|(axis, ((first_min, first_max), (second_min, second_max)))| {
-            (axis, (first_min, first_max, second_min, second_max))
-        })
-    {
+    for axis in 0..D {
+        let first_min = first.aabb.min[axis];
+        let first_max = first.aabb.max[axis];
+        let second_min = second.aabb.min[axis];
+        let second_max = second.aabb.max[axis];
         let separation = if first_max < second_min {
-            Some((second_min - first_max, SeparationOrdering::FirstBeforeSecond))
+            Some((
+                second_min - first_max,
+                SeparationOrdering::FirstBeforeSecond,
+            ))
         } else if second_max < first_min {
-            Some((first_min - second_max, SeparationOrdering::SecondBeforeFirst))
+            Some((
+                first_min - second_max,
+                SeparationOrdering::SecondBeforeFirst,
+            ))
         } else {
             None
         };
@@ -454,8 +516,8 @@ pub fn verify_certificate<const D: usize>(
         return Err(CertificateError::BoundsNotStrictlySeparated);
     }
 
-    let expected_gap = outward_gap_interval(far - near)
-        .ok_or(CertificateError::GapMarginUnavailable)?;
+    let expected_gap =
+        outward_gap_interval(far - near).ok_or(CertificateError::GapMarginUnavailable)?;
     if expected_gap.lower <= 0.0 {
         return Err(CertificateError::GapMarginUnavailable);
     }
@@ -472,8 +534,15 @@ fn same_envelope<const D: usize>(left: &BoundEnvelope<D>, right: &BoundEnvelope<
 }
 
 fn same_aabb<const D: usize>(left: Aabb<D>, right: Aabb<D>) -> bool {
-    left.min.iter().zip(right.min.iter()).all(|(a, b)| a.to_bits() == b.to_bits())
-        && left.max.iter().zip(right.max.iter()).all(|(a, b)| a.to_bits() == b.to_bits())
+    left.min
+        .iter()
+        .zip(right.min.iter())
+        .all(|(a, b)| a.to_bits() == b.to_bits())
+        && left
+            .max
+            .iter()
+            .zip(right.max.iter())
+            .all(|(a, b)| a.to_bits() == b.to_bits())
 }
 
 fn same_gap(left: GapInterval, right: GapInterval) -> bool {
@@ -484,7 +553,10 @@ fn same_gap(left: GapInterval, right: GapInterval) -> bool {
 /// representable value outward on either side to enclose the exact positive gap.
 fn outward_gap_interval(rounded_gap: f64) -> Option<GapInterval> {
     if rounded_gap == f64::INFINITY {
-        return Some(GapInterval { lower: f64::MAX, upper: f64::INFINITY });
+        return Some(GapInterval {
+            lower: f64::MAX,
+            upper: f64::INFINITY,
+        });
     }
     if !rounded_gap.is_finite() || rounded_gap <= 0.0 {
         return None;
@@ -511,9 +583,18 @@ mod tests {
 
     fn context() -> ProofContext {
         ProofContext::new(
-            7, 19, 0.0, 1.0 / 60.0, "semi-implicit-euler", "v3",
-            "test-aabb-provider", "v1", "world-transform-v2", "ieee754-binary64-nearest",
-        ).unwrap()
+            7,
+            19,
+            0.0,
+            1.0 / 60.0,
+            "semi-implicit-euler",
+            "v3",
+            "test-aabb-provider",
+            "v1",
+            "world-transform-v2",
+            "ieee754-binary64-nearest",
+        )
+        .unwrap()
     }
 
     fn collider(body_handle: u64) -> ColliderId {
@@ -524,8 +605,14 @@ mod tests {
         BoundEnvelope::new(collider(body_handle), context(), min, max).unwrap()
     }
 
-    fn certificate(left: &BoundEnvelope<2>, right: &BoundEnvelope<2>) -> AabbSeparationCertificate<2> {
-        match classify_pair(BoundAvailability::Available(left), BoundAvailability::Available(right)) {
+    fn certificate(
+        left: &BoundEnvelope<2>,
+        right: &BoundEnvelope<2>,
+    ) -> AabbSeparationCertificate<2> {
+        match classify_pair(
+            BoundAvailability::Available(left),
+            BoundAvailability::Available(right),
+        ) {
             CullingDecision::CertifiedDisjoint(proof) => proof,
             other => panic!("expected certificate, got {other:?}"),
         }
@@ -567,11 +654,17 @@ mod tests {
         let touching_right = bound(2, [1.0, 0.0], [2.0, 1.0]);
         let overlapping = bound(2, [0.5, 0.5], [2.0, 2.0]);
         assert_eq!(
-            classify_pair(BoundAvailability::Available(&touching_left), BoundAvailability::Available(&touching_right)),
+            classify_pair(
+                BoundAvailability::Available(&touching_left),
+                BoundAvailability::Available(&touching_right)
+            ),
             CullingDecision::OverlapPossible(NonPruneReason::BoundsOverlapOrTouch)
         );
         assert_eq!(
-            classify_pair(BoundAvailability::Available(&touching_left), BoundAvailability::Available(&overlapping)),
+            classify_pair(
+                BoundAvailability::Available(&touching_left),
+                BoundAvailability::Available(&overlapping)
+            ),
             CullingDecision::OverlapPossible(NonPruneReason::BoundsOverlapOrTouch)
         );
     }
@@ -580,16 +673,31 @@ mod tests {
     fn context_mismatch_and_self_pair_are_invalid() {
         let left = bound(1, [0.0, 0.0], [1.0, 1.0]);
         let other_context = ProofContext::new(
-            8, 19, 0.0, 1.0 / 60.0, "semi-implicit-euler", "v3",
-            "test-aabb-provider", "v1", "world-transform-v2", "ieee754-binary64-nearest",
-        ).unwrap();
+            8,
+            19,
+            0.0,
+            1.0 / 60.0,
+            "semi-implicit-euler",
+            "v3",
+            "test-aabb-provider",
+            "v1",
+            "world-transform-v2",
+            "ieee754-binary64-nearest",
+        )
+        .unwrap();
         let right = BoundEnvelope::new(collider(2), other_context, [2.0, 0.0], [3.0, 1.0]).unwrap();
         assert_eq!(
-            classify_pair(BoundAvailability::Available(&left), BoundAvailability::Available(&right)),
+            classify_pair(
+                BoundAvailability::Available(&left),
+                BoundAvailability::Available(&right)
+            ),
             CullingDecision::Invalid(BoundInputError::ContextMismatch)
         );
         assert_eq!(
-            classify_pair(BoundAvailability::Available(&left), BoundAvailability::Available(&left)),
+            classify_pair(
+                BoundAvailability::Available(&left),
+                BoundAvailability::Available(&left)
+            ),
             CullingDecision::Invalid(BoundInputError::SelfPair)
         );
     }
@@ -598,11 +706,17 @@ mod tests {
     fn unsupported_and_invalid_inputs_force_fallback() {
         let available = bound(1, [0.0, 0.0], [1.0, 1.0]);
         assert_eq!(
-            classify_pair(BoundAvailability::Available(&available), BoundAvailability::Unsupported(UnsupportedReason::UnsupportedMotionModel)),
+            classify_pair(
+                BoundAvailability::Available(&available),
+                BoundAvailability::Unsupported(UnsupportedReason::UnsupportedMotionModel)
+            ),
             CullingDecision::Unsupported(UnsupportedReason::UnsupportedMotionModel)
         );
         assert_eq!(
-            classify_pair(BoundAvailability::Available(&available), BoundAvailability::Invalid(BoundInputError::NonFiniteEndpoint)),
+            classify_pair(
+                BoundAvailability::Available(&available),
+                BoundAvailability::Invalid(BoundInputError::NonFiniteEndpoint)
+            ),
             CullingDecision::Invalid(BoundInputError::NonFiniteEndpoint)
         );
     }
@@ -641,7 +755,10 @@ mod tests {
         let left = bound(1, [0.0, 0.0], [0.0, 1.0]);
         let right = bound(2, [f64::from_bits(1), 0.0], [1.0, 1.0]);
         assert_eq!(
-            classify_pair(BoundAvailability::Available(&left), BoundAvailability::Available(&right)),
+            classify_pair(
+                BoundAvailability::Available(&left),
+                BoundAvailability::Available(&right)
+            ),
             CullingDecision::OverlapPossible(NonPruneReason::GapMarginNotStrictlyPositive)
         );
     }
@@ -659,8 +776,14 @@ mod tests {
     #[test]
     fn malformed_aabbs_and_time_intervals_are_rejected() {
         assert_eq!(Aabb::<0>::new([], []), Err(BoundInputError::ZeroDimension));
-        assert_eq!(Aabb::new([f64::NAN, 0.0], [1.0, 1.0]), Err(BoundInputError::NonFiniteEndpoint));
-        assert_eq!(Aabb::new([2.0, 0.0], [1.0, 1.0]), Err(BoundInputError::InvertedBounds));
+        assert_eq!(
+            Aabb::new([f64::NAN, 0.0], [1.0, 1.0]),
+            Err(BoundInputError::NonFiniteEndpoint)
+        );
+        assert_eq!(
+            Aabb::new([2.0, 0.0], [1.0, 1.0]),
+            Err(BoundInputError::InvertedBounds)
+        );
         assert_eq!(
             ProofContext::new(1, 1, 0.0, f64::INFINITY, "i", "1", "b", "1", "t", "a"),
             Err(BoundInputError::NonFiniteTime)
@@ -674,9 +797,24 @@ mod tests {
     #[test]
     fn three_dimensional_bounds_use_the_same_contract() {
         let ctx = context();
-        let left = BoundEnvelope::new(ColliderId::new(1, 0, 0, vec![]), ctx.clone(), [0.0; 3], [1.0; 3]).unwrap();
-        let right = BoundEnvelope::new(ColliderId::new(2, 0, 0, vec![]), ctx, [0.0, 0.0, 2.0], [1.0, 1.0, 3.0]).unwrap();
-        let proof = match classify_pair(BoundAvailability::Available(&left), BoundAvailability::Available(&right)) {
+        let left = BoundEnvelope::new(
+            ColliderId::new(1, 0, 0, vec![]),
+            ctx.clone(),
+            [0.0; 3],
+            [1.0; 3],
+        )
+        .unwrap();
+        let right = BoundEnvelope::new(
+            ColliderId::new(2, 0, 0, vec![]),
+            ctx,
+            [0.0, 0.0, 2.0],
+            [1.0, 1.0, 3.0],
+        )
+        .unwrap();
+        let proof = match classify_pair(
+            BoundAvailability::Available(&left),
+            BoundAvailability::Available(&right),
+        ) {
             CullingDecision::CertifiedDisjoint(proof) => proof,
             other => panic!("expected certificate, got {other:?}"),
         };
