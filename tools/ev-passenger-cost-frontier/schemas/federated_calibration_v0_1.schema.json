@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/ev-passenger-cost-frontier/schemas/federated_calibration_v0_1.schema.json",
+  "title": "Federated Calibration Summary Reducer v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "benchmark_id", "epoch_id", "aggregation_time_unix_ms",
+    "maximum_summary_age_ms", "query_scope_digest", "compatibility",
+    "registered_site_ids", "minimum_participating_sites", "minimum_total_calibration_samples",
+    "maximum_samples_per_site", "maximum_count_per_bin_per_site",
+    "release_ledger_snapshot", "summaries", "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "benchmark_id": {"const": "FEDERATED-SERVICE-CALIBRATION-001"},
+    "epoch_id": {"type": "string", "minLength": 1, "maxLength": 96},
+    "aggregation_time_unix_ms": {"type": "integer", "minimum": 1},
+    "maximum_summary_age_ms": {"type": "integer", "minimum": 1},
+    "query_scope_digest": {"type": "string", "minLength": 1, "maxLength": 256},
+    "compatibility": {"$ref": "#/$defs/compatibility"},
+    "registered_site_ids": {
+      "type": "array", "minItems": 2, "maxItems": 64,
+      "items": {"type": "string", "minLength": 1, "maxLength": 128},
+      "uniqueItems": true
+    },
+    "minimum_participating_sites": {"type": "integer", "minimum": 2, "maximum": 64},
+    "minimum_total_calibration_samples": {"type": "integer", "minimum": 1, "maximum": 640000},
+    "maximum_samples_per_site": {"type": "integer", "minimum": 1, "maximum": 10000},
+    "maximum_count_per_bin_per_site": {"type": "integer", "minimum": 1, "maximum": 10000},
+    "release_ledger_snapshot": {
+      "type": "array", "minItems": 1, "maxItems": 64,
+      "items": {"$ref": "#/$defs/release_ledger"}
+    },
+    "summaries": {
+      "type": "array", "minItems": 1, "maxItems": 64,
+      "items": {"$ref": "#/$defs/site_summary"}
+    },
+    "claim_ceiling": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "compatibility": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "forecast_model_id", "forecast_model_version", "forecast_horizon_ms",
+        "metric_kind", "measurement_boundary", "unit", "stratum_id",
+        "nominal_coverage_permille", "score_definition_id", "bin_edges"
+      ],
+      "properties": {
+        "forecast_model_id": {"type": "string", "minLength": 1, "maxLength": 96},
+        "forecast_model_version": {"type": "string", "minLength": 1, "maxLength": 64},
+        "forecast_horizon_ms": {"type": "integer", "minimum": 1},
+        "metric_kind": {"type": "string", "minLength": 1, "maxLength": 96},
+        "measurement_boundary": {"type": "string", "minLength": 1, "maxLength": 96},
+        "unit": {"type": "string", "minLength": 1, "maxLength": 24},
+        "stratum_id": {"type": "string", "minLength": 1, "maxLength": 96},
+        "nominal_coverage_permille": {"type": "integer", "minimum": 500, "maximum": 990},
+        "score_definition_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "bin_edges": {
+          "type": "array", "minItems": 2, "maxItems": 65,
+          "items": {"type": "integer", "minimum": 0},
+          "uniqueItems": true
+        }
+      }
+    },
+    "site_summary": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "site_id", "epoch_id", "compatibility", "calibration_sample_count",
+        "calibration_score_bin_counts", "holdout_sample_count", "holdout_covered_count",
+        "holdout_interval_width_sum", "local_status", "local_audit_cutoff_unix_ms",
+        "local_evidence_digest"
+      ],
+      "properties": {
+        "site_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "epoch_id": {"type": "string", "minLength": 1, "maxLength": 96},
+        "compatibility": {"$ref": "#/$defs/compatibility"},
+        "calibration_sample_count": {"type": "integer", "minimum": 1, "maximum": 10000},
+        "calibration_score_bin_counts": {
+          "type": "array", "minItems": 1, "maxItems": 64,
+          "items": {"type": "integer", "minimum": 0, "maximum": 10000}
+        },
+        "holdout_sample_count": {"type": "integer", "minimum": 0, "maximum": 10000},
+        "holdout_covered_count": {"type": "integer", "minimum": 0, "maximum": 10000},
+        "holdout_interval_width_sum": {"type": "integer", "minimum": 0, "maximum": 1000000000000},
+        "local_status": {"enum": ["locally_supported", "undercoverage_alarm", "insufficient_local_support", "unsupported_stratum", "unknown"]},
+        "local_audit_cutoff_unix_ms": {"type": "integer", "minimum": 1},
+        "local_evidence_digest": {"type": "string", "minLength": 1, "maxLength": 256}
+      }
+    },
+    "release_ledger": {
+      "type": "object", "additionalProperties": false,
+      "required": ["site_id", "epoch_id", "releases_in_epoch", "maximum_releases_in_epoch", "previously_released_query_digests"],
+      "properties": {
+        "site_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "epoch_id": {"type": "string", "minLength": 1, "maxLength": 96},
+        "releases_in_epoch": {"type": "integer", "minimum": 0, "maximum": 65535},
+        "maximum_releases_in_epoch": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "previously_released_query_digests": {"type": "array", "maxItems": 64, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 256}}
+      }
+    }
+  }
+}
