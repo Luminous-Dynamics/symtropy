@@ -798,6 +798,18 @@ mod tests {
     }
 
     #[test]
+    fn contradictory_exact_boundary_observations_return_inconclusive_or_empty() {
+        let problem = input(vec![
+            observation("u-a", "trial-a", [2.0, 0.0, 0.0], 0.0),
+            observation("u-b", "trial-b", [3.0, 0.0, 0.0], 0.0),
+        ]);
+        let report = compute_parameter_set(&problem, config()).expect("empty feasible set");
+        assert_eq!(report.status, ParameterSetStatus::InconclusiveOrEmpty);
+        assert!(report.feasible_vertices.is_empty());
+        assert!(report.direct_infeasibility_observation_id.is_none());
+    }
+
+    #[test]
     fn observation_order_does_not_change_parameter_intervals() {
         let observations = vec![
             observation("u", "u", [2.0, 0.0, 0.0], 0.05),
