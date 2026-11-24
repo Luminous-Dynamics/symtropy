@@ -42,6 +42,7 @@ pub struct DecisionImpactRecord {
     pub sample_id: String,
     pub site_id: String,
     pub site_configuration_digest: String,
+    pub site_evidence: EvidenceEnvelope,
     pub asset_id: String,
     pub asset_configuration_digest: String,
     pub stratum_id: String,
@@ -322,6 +323,13 @@ fn validate(input: &ServiceDecisionImpactInput) -> Result<(), Vec<String>> {
             errors.push(format!("{prefix} forecast interval/point ordering is invalid"));
         }
 
+        let site_ok = forecast_evidence_valid(
+            &r.site_evidence,
+            &r.site_id,
+            &r.site_configuration_digest,
+            r.decision_time_unix_ms,
+            r.target_end_unix_ms,
+        );
         let forecast_ok = forecast_evidence_valid(
             &r.forecast_evidence,
             &r.asset_id,
@@ -343,6 +351,9 @@ fn validate(input: &ServiceDecisionImpactInput) -> Result<(), Vec<String>> {
             r.target_end_unix_ms,
             input.audit_cutoff_unix_ms,
         );
+        if !site_ok {
+            errors.push(format!("{prefix}.site_evidence is stale, mismatched or invalid"));
+        }
         if !forecast_ok {
             errors.push(format!("{prefix}.forecast_evidence is stale, mismatched or invalid"));
         }
@@ -352,7 +363,7 @@ fn validate(input: &ServiceDecisionImpactInput) -> Result<(), Vec<String>> {
         if !outcome_ok {
             errors.push(format!("{prefix}.outcome_evidence is premature, mismatched or invalid"));
         }
-        for e in [&r.forecast_evidence, &r.hard_gate_evidence, &r.outcome_evidence] {
+        for e in [&r.site_evidence, &r.forecast_evidence, &r.hard_gate_evidence, &r.outcome_evidence] {
             if evidence_well_formed(e) && !evidence_refs.insert(e.evidence_reference.as_str()) {
                 errors.push(format!("{prefix} reuses an evidence reference"));
             }
@@ -377,7 +388,7 @@ pub fn evaluate_service_decision_impact(
     let mut any_synthetic_evidence = false;
 
     for r in &input.records {
-        let evidence = [&r.forecast_evidence, &r.hard_gate_evidence, &r.outcome_evidence];
+        let evidence = [&r.site_evidence, &r.forecast_evidence, &r.hard_gate_evidence, &r.outcome_evidence];
         for e in evidence {
             if e.evidence_class == EvidenceClass::Synthetic {
                 any_synthetic_evidence = true;
@@ -581,6 +592,7 @@ mod tests {
             sample_id: id.to_owned(),
             site_id: "site-1".to_owned(),
             site_configuration_digest: "site-cfg-1".to_owned(),
+            site_evidence: evidence("site-1", &format!("{id}-site"), 900, 800, 2_500),
             asset_id: "ESS-01".to_owned(),
             asset_configuration_digest: "cfg-1".to_owned(),
             stratum_id: "warm".to_owned(),
