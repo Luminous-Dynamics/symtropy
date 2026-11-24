@@ -183,7 +183,7 @@ fn validate_parameter_set(
         if let Some(upper) = interval.beta_upper {
             if !upper.is_finite()
                 || upper < 0.0
-                || upper + tolerance * (1.0 + maximum) < maximum
+                || !near(upper, maximum, tolerance)
             {
                 return Err(invalid(
                     ParameterSetErrorKind::InvalidInput,
@@ -200,6 +200,14 @@ fn validate_parameter_set(
             return Err(invalid(
                 ParameterSetErrorKind::InvalidInput,
                 "parameter report marks an axis without a feasible vertex",
+            ));
+        }
+        if report.status == ParameterSetStatus::FeasibleWithFiniteIntervals
+            && (interval.beta_upper.is_none() || interval.shape_scale_upper.is_none())
+        {
+            return Err(invalid(
+                ParameterSetErrorKind::InvalidInput,
+                "finite parameter-set status contains an unbounded axis",
             ));
         }
     }
@@ -245,14 +253,14 @@ pub fn compute_patch_support_envelope(
         ));
     }
     let active: Vec<usize> = (0..3).filter(|axis| direction[*axis] != 0.0).collect();
-    let build_report = |status,
-                        lower,
-                        upper,
-                        method,
-                        lower_exact,
-                        maximum_vertex,
-                        unbounded_vertex,
-                        maximum_beta_sum| PatchSupportEnvelopeReport {
+    let build_report = |status: SupportEnvelopeStatus,
+                        lower: Option<f64>,
+                        upper: Option<f64>,
+                        method: SupportLowerBoundMethod,
+                        lower_exact: bool,
+                        maximum_vertex: Option<[f64; 3]>,
+                        unbounded_vertex: Option<[f64; 3]>,
+                        maximum_beta_sum: Option<f64>| PatchSupportEnvelopeReport {
         schema_version: "planar-patch-support-envelope-v0.1".to_owned(),
         parameter_set_schema_version: parameter_set.schema_version.clone(),
         specimen_digest: parameter_set.specimen_digest.clone(),
@@ -343,7 +351,7 @@ pub fn compute_patch_support_envelope(
     let active_beta_unbounded = active
         .iter()
         .any(|axis| parameter_set.intervals[*axis].beta_upper.is_none());
-    if maximum_active_beta_sum == 0.0 {
+    if maximum_active_beta_sum == 0.0 && !active_beta_unbounded {
         return Ok(build_report(
             SupportEnvelopeStatus::UnboundedForAllFeasibleParameters,
             None,
