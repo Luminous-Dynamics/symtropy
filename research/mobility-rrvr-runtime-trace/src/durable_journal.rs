@@ -1217,6 +1217,117 @@ mod tests {
     }
 
     #[test]
+    fn reopening_rehydrates_dispatch_identity_and_reconciles_without_new_intent() {
+        let path = temp_journal_path("reopen");
+        {
+            let mut journal = Journal::open(&path).unwrap();
+            append_verified_reset(&mut journal);
+            append_dispatch_intent(&mut journal);
+            journal
+                .append_dispatch_outcome(DispatchOutcomeRecord {
+                    idempotency_key: "rrvr/v0.1/test-key-1".into(),
+                    payload_sha256: digest('e'),
+                    source: DispatchOutcomeSource::TransportResponse,
+                    status: DispatchOutcomeStatus::ResponseUnknown,
+                    dispatch_id: None,
+                    ledger_artifact_sha256: None,
+                })
+                .unwrap();
+        }
+
+        // A new writer reconstructs the prior intent/status from disk. The
+        // only allowed next operation for this key is a read-only reconciliation.
+        {
+            let mut reopened = Journal::open(&path).unwrap();
+            assert_eq!(reopened.summary().dispatch_intent_count, 1);
+            assert_eq!(reopened.summary().dispatch_unknown_count, 1);
+            reopened
+                .append_dispatch_outcome(DispatchOutcomeRecord {
+                    idempotency_key: "rrvr/v0.1/test-key-1".into(),
+                    payload_sha256: digest('e'),
+                    source: DispatchOutcomeSource::InjectorLedgerLookup,
+                    status: DispatchOutcomeStatus::NoDispatchProven,
+                    dispatch_id: None,
+                    ledger_artifact_sha256: Some(digest('9')),
+                })
+                .unwrap();
+            assert_eq!(reopened.summary().dispatch_no_dispatch_proven_count, 1);
+            assert_eq!(
+                reopened.append_dispatch_outcome(DispatchOutcomeRecord {
+                    idempotency_key: "rrvr/v0.1/test-key-1".into(),
+                    payload_sha256: digest('e'),
+                    source: DispatchOutcomeSource::TransportResponse,
+                    status: DispatchOutcomeStatus::ResponseAccepted,
+                    dispatch_id: Some("late-dispatch".into()),
+                    ledger_artifact_sha256: None,
+                }),
+                Err(JournalError::InvalidDispatchTransition)
+            );
+        }
+        assert_eq!(
+            verify_file(&path).unwrap().dispatch_no_dispatch_proven_count,
+            1
+        );
+        cleanup(&path);
+    }
+
+    #[test]
+    fn reset_intent_scope_cannot_be_reused_with_a_new_reset_id() {
+        let path = temp_journal_path("reset-scope");
+        let mut journal = Journal::open(&path).unwrap();
+        journal
+            .append_reset_intent(ResetIntentRecord {
+                reset_id: "reset-1".into(),
+                plan_sha256: digest('a'),
+                simulator_profile_sha256: digest('b'),
+                world_id: "world-1".into(),
+                prior_world_epoch: "world-epoch-1".into(),
+                clock_id: "clock-1".into(),
+                expected_initial_state_sha256: digest('c'),
+                run_id: "run-1".into(),
+                run_epoch: "run-epoch-1".into(),
+            })
+            .unwrap();
+        assert_eq!(
+            journal.append_reset_intent(ResetIntentRecord {
+                reset_id: "reset-2".into(),
+                plan_sha256: digest('a'),
+                simulator_profile_sha256: digest('b'),
+                world_id: "world-1".into(),
+                prior_world_epoch: "world-epoch-1".into(),
+                clock_id: "clock-1".into(),
+                expected_initial_state_sha256: digest('c'),
+                run_id: "run-1".into(),
+                run_epoch: "run-epoch-1".into(),
+            }),
+            Err(JournalError::DuplicateResetId)
+        );
+        drop(journal);
+        cleanup(&path);
+    }
+
+    #[test]
+    fn stale_writer_lease_is_not_automatically_stolen() {
+        let path = temp_journal_path("stale-lease");
+        let mut lock_name = path.as_os_str().to_owned();
+        lock_name.push(".writer.lock");
+        let lock_path = PathBuf::from(lock_name);
+        fs::write(&lock_path, b"pid=stale\n").unwrap();
+
+        assert!(matches!(
+            Journal::open(&path),
+            Err(JournalError::WriterLeaseExists)
+        ));
+        assert!(lock_path.exists());
+
+        // Explicit operator recovery removes the stale lease only after
+        // verifying that the prior writer is no longer active.
+        fs::remove_file(&lock_path).unwrap();
+        assert!(Journal::open(&path).is_ok());
+        cleanup(&path);
+    }
+
+    #[test]
     fn reset_verification_requires_exact_observed_world_clock_and_initial_digest() {
         let path = temp_journal_path("reset-proof");
         let mut journal = Journal::open(&path).unwrap();
