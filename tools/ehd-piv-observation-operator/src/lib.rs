@@ -150,7 +150,23 @@ pub struct SimulationReceipt {
 pub struct ParticleImagePair {
     pub first: ImageFrame,
     pub second: ImageFrame,
+    /// Detector-domain floating-point values after gain/offset/noise and
+    /// active-pixel masking, but before clipping and ADC quantization.
+    /// These are useful for finite-difference sensitivity analysis; they are
+    /// not photon-electron or radiometric truth.
+    pub analog_first_frame: Vec<f64>,
+    pub analog_second_frame: Vec<f64>,
     pub receipt: SimulationReceipt,
+}
+
+/// Central finite-difference sensitivity of the concatenated two-frame
+/// analog detector observation. Pixel order is first frame row-major,
+/// followed by second frame row-major.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ImagePairSensitivity {
+    pub parameter_step: f64,
+    pub first_frame_pixel_count: usize,
+    pub observation_sensitivity: Vec<f64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -196,6 +212,17 @@ pub enum ObservationError {
         index: usize,
     },
     NonFiniteSensorSignal {
+        index: usize,
+    },
+    InvalidSensitivityStep,
+    ImagePairShapeMismatch,
+    InvalidAnalogFrameShape {
+        frame: &'static str,
+        expected: usize,
+        actual: usize,
+    },
+    NonFiniteAnalogFrameValue {
+        frame: &'static str,
         index: usize,
     },
     VelocitySupportExceeded,
@@ -249,9 +276,9 @@ pub fn render_particle_image_pair(
         )?;
     }
 
-    let (first_pixels, saturated_pixel_count_first) =
+    let (first_pixels, saturated_pixel_count_first, analog_first_frame) =
         digitize(&first_intensity, &noise.first_frame, sensor)?;
-    let (second_pixels, saturated_pixel_count_second) =
+    let (second_pixels, saturated_pixel_count_second, analog_second_frame) =
         digitize(&second_intensity, &noise.second_frame, sensor)?;
 
     let masked_pixel_count = sensor
@@ -273,6 +300,8 @@ pub fn render_particle_image_pair(
             bit_depth: sensor.bit_depth,
             pixels: second_pixels,
         },
+        analog_first_frame,
+        analog_second_frame,
         receipt: SimulationReceipt {
             particle_count: particles.len(),
             frame_separation: acquisition.frame_separation,
@@ -284,6 +313,117 @@ pub fn render_particle_image_pair(
             saturated_pixel_count_first,
             saturated_pixel_count_second,
         },
+    })
+}
+
+/// Estimate the image-domain derivative using two forward predictions
+/// evaluated at parameter values theta +/- parameter_step.
+///
+/// The caller MUST freeze all unrelated nuisance/random inputs, including the
+/// particle seed set, per-pixel noise arrays, masks and acquisition state.
+/// The returned derivative uses analog detector values before ADC clipping
+/// and quantization so sub-LSB changes remain visible. Parameter steps must be
+/// large enough to dominate numerical/model noise while remaining local.
+pub fn central_difference_image_sensitivity(
+    positive_perturbation: &ParticleImagePair,
+    negative_perturbation: &ParticleImagePair,
+    parameter_step: f64,
+) -> Result<ImagePairSensitivity, ObservationError> {
+    if !parameter_step.is_finite() || parameter_step <= 0.0 {
+        return Err(ObservationError::InvalidSensitivityStep);
+    }
+    let positive_first = &positive_perturbation.first;
+    let positive_second = &positive_perturbation.second;
+    let negative_first = &negative_perturbation.first;
+    let negative_second = &negative_perturbation.second;
+
+    if positive_first.width != negative_first.width
+        || positive_first.height != negative_first.height
+        || positive_first.bit_depth != negative_first.bit_depth
+        || positive_second.width != negative_second.width
+        || positive_second.height != negative_second.height
+        || positive_second.bit_depth != negative_second.bit_depth
+        || positive_first.width != positive_second.width
+        || positive_first.height != positive_second.height
+    {
+        return Err(ObservationError::ImagePairShapeMismatch);
+    }
+    let first_count = positive_first
+        .width
+        .checked_mul(positive_first.height)
+        .filter(|count| *count <= 16_777_216)
+        .ok_or(ObservationError::PixelCountExceeded)?;
+    let second_count = positive_second
+        .width
+        .checked_mul(positive_second.height)
+        .filter(|count| *count <= 16_777_216)
+        .ok_or(ObservationError::PixelCountExceeded)?;
+
+    for (frame, values, expected) in [
+        (
+            "positive_first",
+            positive_perturbation.analog_first_frame.as_slice(),
+            first_count,
+        ),
+        (
+            "negative_first",
+            negative_perturbation.analog_first_frame.as_slice(),
+            first_count,
+        ),
+        (
+            "positive_second",
+            positive_perturbation.analog_second_frame.as_slice(),
+            second_count,
+        ),
+        (
+            "negative_second",
+            negative_perturbation.analog_second_frame.as_slice(),
+            second_count,
+        ),
+    ] {
+        if values.len() != expected {
+            return Err(ObservationError::InvalidAnalogFrameShape {
+                frame,
+                expected,
+                actual: values.len(),
+            });
+        }
+        for (index, value) in values.iter().enumerate() {
+            if !value.is_finite() {
+                return Err(ObservationError::NonFiniteAnalogFrameValue { frame, index });
+            }
+        }
+    }
+
+    let denominator = 2.0 * parameter_step;
+    if !denominator.is_finite() || denominator <= 0.0 {
+        return Err(ObservationError::InvalidSensitivityStep);
+    }
+    let mut observation_sensitivity = Vec::with_capacity(first_count + second_count);
+    for (positive, negative) in positive_perturbation
+        .analog_first_frame
+        .iter()
+        .zip(negative_perturbation.analog_first_frame.iter())
+        .chain(
+            positive_perturbation
+                .analog_second_frame
+                .iter()
+                .zip(negative_perturbation.analog_second_frame.iter()),
+        )
+    {
+        let derivative = (positive - negative) / denominator;
+        if !derivative.is_finite() {
+            return Err(ObservationError::NonFiniteSensorSignal {
+                index: observation_sensitivity.len(),
+            });
+        }
+        observation_sensitivity.push(derivative);
+    }
+
+    Ok(ImagePairSensitivity {
+        parameter_step,
+        first_frame_pixel_count: first_count,
+        observation_sensitivity,
     })
 }
 
@@ -590,9 +730,10 @@ fn digitize(
     intensity: &[f64],
     noise: &[f64],
     sensor: &SensorConfig,
-) -> Result<(Vec<u16>, usize), ObservationError> {
+) -> Result<(Vec<u16>, usize, Vec<f64>), ObservationError> {
     let maximum = sensor.maximum_digital_value() as f64;
     let mut saturated = 0usize;
+    let mut analog_values = Vec::with_capacity(intensity.len());
     let pixels = intensity
         .iter()
         .zip(noise.iter())
@@ -600,19 +741,21 @@ fn digitize(
         .enumerate()
         .map(|(index, ((signal, noise), active))| {
             if !*active {
+                analog_values.push(0.0);
                 return Ok(0);
             }
             let analog = sensor.gain * signal + sensor.offset + noise;
             if !analog.is_finite() {
                 return Err(ObservationError::NonFiniteSensorSignal { index });
             }
+            analog_values.push(analog);
             if analog >= maximum {
                 saturated += 1;
             }
             Ok(analog.round().clamp(0.0, maximum) as u16)
         })
         .collect::<Result<Vec<u16>, ObservationError>>()?;
-    Ok((pixels, saturated))
+    Ok((pixels, saturated, analog_values))
 }
 
 #[cfg(test)]
@@ -986,4 +1129,167 @@ mod tests {
             })
         );
     }
+    #[test]
+    fn analog_finite_difference_preserves_sub_lsb_sensitivity() {
+        let width = 24;
+        let height = 24;
+        let mut base = particle(12.0, 12.0);
+        base.brightness = 100.0;
+        let step = 1.0e-4;
+        let mut positive_seed = base.clone();
+        positive_seed.brightness += step;
+        let mut negative_seed = base;
+        negative_seed.brightness -= step;
+        let field = field(width, height, 0.0, 0.0);
+        let sensor = sensor(width, height);
+        let positive = render_particle_image_pair(
+            &field,
+            &[positive_seed],
+            &illumination(),
+            &acquisition(0.0, 1),
+            &sensor,
+            &noise(width, height),
+        )
+        .unwrap();
+        let negative = render_particle_image_pair(
+            &field,
+            &[negative_seed],
+            &illumination(),
+            &acquisition(0.0, 1),
+            &sensor,
+            &noise(width, height),
+        )
+        .unwrap();
+        assert_eq!(positive.first.pixels, negative.first.pixels);
+        let sensitivity =
+            central_difference_image_sensitivity(&positive, &negative, step).unwrap();
+        assert!(sensitivity
+            .observation_sensitivity
+            .iter()
+            .any(|value| value.abs() > 0.0));
+        assert!(sensitivity.observation_sensitivity.iter().all(|value| value.is_finite()));
+    }
+
+    #[test]
+    fn brightness_and_gain_sensitivities_are_locally_collinear() {
+        let width = 24;
+        let height = 24;
+        let mut seed = particle(12.0, 12.0);
+        seed.brightness = 1000.0;
+        let field = field(width, height, 0.0, 0.0);
+        let acquisition = acquisition(0.0, 1);
+        let illumination = illumination();
+        let frozen_noise = noise(width, height);
+        let brightness_step = 0.1;
+        let mut bright_plus = seed.clone();
+        bright_plus.brightness += brightness_step;
+        let mut bright_minus = seed.clone();
+        bright_minus.brightness -= brightness_step;
+        let sensor = sensor(width, height);
+        let brightness_plus = render_particle_image_pair(
+            &field,
+            &[bright_plus],
+            &illumination,
+            &acquisition,
+            &sensor,
+            &frozen_noise,
+        )
+        .unwrap();
+        let brightness_minus = render_particle_image_pair(
+            &field,
+            &[bright_minus],
+            &illumination,
+            &acquisition,
+            &sensor,
+            &frozen_noise,
+        )
+        .unwrap();
+        let brightness_sensitivity = central_difference_image_sensitivity(
+            &brightness_plus,
+            &brightness_minus,
+            brightness_step,
+        )
+        .unwrap();
+
+        let gain_step = 0.001;
+        let mut gain_plus = sensor.clone();
+        gain_plus.gain += gain_step;
+        let mut gain_minus = sensor;
+        gain_minus.gain -= gain_step;
+        let gain_plus_pair = render_particle_image_pair(
+            &field,
+            &[seed.clone()],
+            &illumination,
+            &acquisition,
+            &gain_plus,
+            &frozen_noise,
+        )
+        .unwrap();
+        let gain_minus_pair = render_particle_image_pair(
+            &field,
+            &[seed],
+            &illumination,
+            &acquisition,
+            &gain_minus,
+            &frozen_noise,
+        )
+        .unwrap();
+        let gain_sensitivity = central_difference_image_sensitivity(
+            &gain_plus_pair,
+            &gain_minus_pair,
+            gain_step,
+        )
+        .unwrap();
+
+        let dot: f64 = brightness_sensitivity
+            .observation_sensitivity
+            .iter()
+            .zip(gain_sensitivity.observation_sensitivity.iter())
+            .map(|(left, right)| left * right)
+            .sum();
+        let left_norm = brightness_sensitivity
+            .observation_sensitivity
+            .iter()
+            .map(|value| value * value)
+            .sum::<f64>()
+            .sqrt();
+        let right_norm = gain_sensitivity
+            .observation_sensitivity
+            .iter()
+            .map(|value| value * value)
+            .sum::<f64>()
+            .sqrt();
+        let correlation = dot / (left_norm * right_norm);
+        assert!(correlation > 0.999_999);
+    }
+
+    #[test]
+    fn finite_difference_rejects_invalid_steps_and_mismatched_analog_shapes() {
+        let width = 8;
+        let height = 8;
+        let pair = render_particle_image_pair(
+            &field(width, height, 0.0, 0.0),
+            &[particle(4.0, 4.0)],
+            &illumination(),
+            &acquisition(0.0, 1),
+            &sensor(width, height),
+            &noise(width, height),
+        )
+        .unwrap();
+        assert_eq!(
+            central_difference_image_sensitivity(&pair, &pair, f64::NAN),
+            Err(ObservationError::InvalidSensitivityStep)
+        );
+        let mut malformed = pair.clone();
+        malformed.analog_first_frame.pop();
+        assert_eq!(
+            central_difference_image_sensitivity(&malformed, &pair, 0.1),
+            Err(ObservationError::InvalidAnalogFrameShape {
+                frame: "positive_first",
+                expected: width * height,
+                actual: width * height - 1
+            })
+        );
+    }
+
 }
