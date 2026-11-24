@@ -56,7 +56,7 @@ An idempotency key can be recorded only once. Outcomes are payload-bound. A tran
 
 `Journal::open` obtains a single-writer lease using exclusive file creation. A stale lock left by process death is not automatically stolen. An operator must establish that the previous writer is gone and explicitly remove the stale lease. The clean-close path only unlinks the same lease inode it originally created.
 
-Appending is write-then-sync. If writing or syncing fails, the in-process writer becomes poisoned and will refuse additional appends. On restart, replay rejects torn final lines, empty lines, oversized lines, invalid UTF-8/JSON, unknown schema/canonicalization, sequence gaps, broken previous-hash links, digest mismatch and illegal event transitions. It never truncates or repairs a damaged tail automatically.
+Appending is write-then-sync. If writing or syncing fails, the in-process writer becomes poisoned and will refuse additional appends. The live index uses a two-phase validate/commit delta: validation is read-only, the record is written and synced, then only the affected reset/dispatch entries are committed. It does not clone the entire accumulated index on each append. Replay uses the same transition validator. On restart, replay rejects torn final lines, empty lines, oversized lines, invalid UTF-8/JSON, unknown schema/canonicalization, sequence gaps, broken previous-hash links, digest mismatch and illegal event transitions. It never truncates or repairs a damaged tail automatically.
 
 `recovery_projection_file` and `Journal::recovery_projection` provide a deterministic read-only projection:
 - resets with intent-only, response-accepted-awaiting-observation, response-unknown, response-rejected-awaiting-observation, unresolved, verified or rejected-hold status;
@@ -80,5 +80,7 @@ This PR branch adds the library and tests, not the live adapter wiring. The next
 The durable journal is local history. The actual injector must still implement a durable, atomic, linearizable idempotency-key-to-payload-to-outcome ledger. A hash chain cannot make a non-durable remote injector idempotent.
 
 ## Claim ceiling
+
+The synthetic `rrvr_journal_bench` binary measures append-plus-sync percentiles, records per second, journal size and read-only recovery-projection time. Example: `cargo run --locked --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --bin rrvr_journal_bench -- 1000 /tmp/rrvr-journal-1000.jsonl`. This is a local synthetic baseline only; use the benchmark protocol for matched SQLite WAL and target-media comparisons.
 
 The current implementation is a file-backed reference contract with mocked tests. Its current exact-head CI status must be read from the stacked draft PR; this branch is not wired to a live ROS 2/Gazebo transport. File and directory sync semantics must be qualified on the deployment filesystem and storage stack. No claims are made about remote injector persistence, owner authentication, observer independence, HIL, physical behaviour or robotics safety.
