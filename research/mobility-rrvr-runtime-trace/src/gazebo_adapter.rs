@@ -709,9 +709,17 @@ pub enum DeliveryEvidenceVerdict {
 pub fn validate_delivery_observer_quorum(
     observations: &[ObservedFaultSignature],
     plan: &CompiledCampaignPlan,
-    fault: &FaultInjection,
+    fault_id: &str,
     expected_world_epoch: &str,
 ) -> Result<DeliveryEvidenceVerdict, GazeboAdapterError> {
+    plan.verify_integrity()
+        .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
+    let fault = plan
+        .scenarios
+        .iter()
+        .flat_map(|scenario| scenario.fault_events.iter())
+        .find(|candidate| candidate.fault_id == fault_id)
+        .ok_or(GazeboAdapterError::FaultNotFound)?;
     let required = plan.platform.required_delivery_observer_quorum;
     if observations.len() < required || observations.len() > 32 {
         return Err(GazeboAdapterError::ObserverQuorumUnqualified);
@@ -1614,7 +1622,7 @@ mod tests {
         let fault = &plan.scenarios[0].fault_events[0];
         let observations = observer_quorum(&plan);
         assert_eq!(
-            validate_delivery_observer_quorum(&observations, &plan, fault, "world-epoch-2"),
+            validate_delivery_observer_quorum(&observations, &plan, &fault.fault_id, "world-epoch-2"),
             Ok(DeliveryEvidenceVerdict::Confirmed)
         );
     }
@@ -1629,14 +1637,14 @@ mod tests {
             observation.signature_sha256 = "f".repeat(64);
         }
         assert_eq!(
-            validate_delivery_observer_quorum(&unanimous_mismatch, &plan, fault, "world-epoch-2"),
+            validate_delivery_observer_quorum(&unanimous_mismatch, &plan, &fault.fault_id, "world-epoch-2"),
             Ok(DeliveryEvidenceVerdict::Refuted)
         );
 
         let mut disagreement = observer_quorum(&plan);
         disagreement[0].signature_sha256 = "f".repeat(64);
         assert_eq!(
-            validate_delivery_observer_quorum(&disagreement, &plan, fault, "world-epoch-2"),
+            validate_delivery_observer_quorum(&disagreement, &plan, &fault.fault_id, "world-epoch-2"),
             Ok(DeliveryEvidenceVerdict::InsufficientEvidence)
         );
     }
@@ -1648,14 +1656,14 @@ mod tests {
         let mut observations = observer_quorum(&plan);
         observations.pop();
         assert_eq!(
-            validate_delivery_observer_quorum(&observations, &plan, fault, "world-epoch-2"),
+            validate_delivery_observer_quorum(&observations, &plan, &fault.fault_id, "world-epoch-2"),
             Err(GazeboAdapterError::ObserverQuorumUnqualified)
         );
 
         let mut duplicate = observer_quorum(&plan);
         duplicate[1].observer_id = duplicate[0].observer_id.clone();
         assert_eq!(
-            validate_delivery_observer_quorum(&duplicate, &plan, fault, "world-epoch-2"),
+            validate_delivery_observer_quorum(&duplicate, &plan, &fault.fault_id, "world-epoch-2"),
             Err(GazeboAdapterError::ObserverIdentityMismatch)
         );
     }
@@ -1667,7 +1675,7 @@ mod tests {
         let mut shared = observer_quorum(&plan);
         shared[1].common_cause_domains = shared[0].common_cause_domains.clone();
         assert_eq!(
-            validate_delivery_observer_quorum(&shared, &plan, fault, "world-epoch-2"),
+            validate_delivery_observer_quorum(&shared, &plan, &fault.fault_id, "world-epoch-2"),
             Err(GazeboAdapterError::ObserverCommonCauseOverlap)
         );
 
@@ -1675,7 +1683,7 @@ mod tests {
         injector[0].common_cause_domains =
             vec![plan.platform.fault_injector_fault_domain_id.clone()];
         assert_eq!(
-            validate_delivery_observer_quorum(&injector, &plan, fault, "world-epoch-2"),
+            validate_delivery_observer_quorum(&injector, &plan, &fault.fault_id, "world-epoch-2"),
             Err(GazeboAdapterError::ObserverCommonCauseOverlap)
         );
     }
@@ -1687,21 +1695,21 @@ mod tests {
         let mut binary = observer_quorum(&plan);
         binary[0].observer_binary_sha256 = "c".repeat(64);
         assert_eq!(
-            validate_delivery_observer_quorum(&binary, &plan, fault, "world-epoch-2"),
+            validate_delivery_observer_quorum(&binary, &plan, &fault.fault_id, "world-epoch-2"),
             Err(GazeboAdapterError::ObserverIdentityMismatch)
         );
 
         let mut epoch = observer_quorum(&plan);
         epoch[0].world_epoch = "stale-world-epoch".into();
         assert_eq!(
-            validate_delivery_observer_quorum(&epoch, &plan, fault, "world-epoch-2"),
+            validate_delivery_observer_quorum(&epoch, &plan, &fault.fault_id, "world-epoch-2"),
             Err(GazeboAdapterError::ObserverEpochMismatch)
         );
 
         let mut signature = observer_quorum(&plan);
         signature[0].signature_sha256 = "f".repeat(64);
         assert_eq!(
-            validate_delivery_observer_quorum(&signature, &plan, fault, "world-epoch-2"),
+            validate_delivery_observer_quorum(&signature, &plan, &fault.fault_id, "world-epoch-2"),
             Ok(DeliveryEvidenceVerdict::InsufficientEvidence)
         );
     }
