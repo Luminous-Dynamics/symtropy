@@ -322,29 +322,6 @@
   ],
   "behavioural_transfer": {
     "map_kind": "simulation",
-    "source_scope": {
-      "source_state_ids": [
-        1,
-        2
-      ],
-      "target_state_ids": [],
-      "source_action_ids": [
-        10
-      ],
-      "target_action_ids": []
-    },
-    "target_scope": {
-      "source_state_ids": [],
-      "target_state_ids": [
-        11,
-        12,
-        13
-      ],
-      "source_action_ids": [],
-      "target_action_ids": [
-        110
-      ]
-    },
     "source_state_snapshot": [
       {
         "id": 1,
@@ -445,6 +422,23 @@
       "The target response is a frozen candidate prediction, not evaluator-owned target truth.",
       "Simulation permits additional target transitions; no bisimulation claim is made."
     ],
-    "unresolved": false
+    "unresolved": false,
+    "scope": {
+      "source_state_ids": [
+        1,
+        2
+      ],
+      "target_state_ids": [
+        11,
+        12,
+        13
+      ],
+      "source_action_ids": [
+        10
+      ],
+      "target_action_ids": [
+        110
+      ]
+    }
   }
 }
