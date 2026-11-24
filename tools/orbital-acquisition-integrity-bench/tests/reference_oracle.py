@@ -173,24 +173,29 @@ def evaluate_case(case):
 
     half_exposure = (case["exposure_duration_ns"] + 1) // 2
     projector_interval = None
+    projector_assessed = False
     if case["requires_projector"]:
-        span = (half_exposure + maximum_row_offset
-                + case["timestamp_uncertainty_ns"] + case["trigger_jitter_ns"])
-        if span > U128_MAX:
-            raise ValueError("PROJECTOR_SPAN_OVERFLOW")
-        center = case["frame_timestamp_ns"]
-        projector_interval = [center - span, center + span]
         if case["timestamp_reference"] != "CENTER_ROW_EXPOSURE_MIDPOINT":
             add("INDETERMINATE", "PROJECTOR_TIME_REFERENCE_UNRESOLVED")
-        elif case["projector_window"] is None:
-            add("INDETERMINATE", "PROJECTOR_PATTERN_EVIDENCE_MISSING")
+        elif case["clock_map_state"] != "VALID":
+            add("INDETERMINATE", "PROJECTOR_CLOCK_MAP_NOT_QUALIFIED")
         else:
-            stable_start = case["projector_window"]["stable_start_ns"]
-            stable_end = case["projector_window"]["stable_end_ns"]
-            if projector_interval[1] < stable_start or projector_interval[0] >= stable_end:
-                add("PROJECTOR_PATTERN_MISMATCH", "PROJECTOR_PATTERN_WINDOW_DISJOINT")
-            elif projector_interval[0] < stable_start or projector_interval[1] >= stable_end:
-                add("INDETERMINATE", "PROJECTOR_PATTERN_WINDOW_BOUNDARY_OVERLAP")
+            span = (half_exposure + maximum_row_offset
+                    + case["timestamp_uncertainty_ns"] + case["trigger_jitter_ns"])
+            if span > U128_MAX:
+                raise ValueError("PROJECTOR_SPAN_OVERFLOW")
+            center = case["frame_timestamp_ns"]
+            projector_interval = [center - span, center + span]
+            if case["projector_window"] is None:
+                add("INDETERMINATE", "PROJECTOR_PATTERN_EVIDENCE_MISSING")
+            else:
+                projector_assessed = True
+                stable_start = case["projector_window"]["stable_start_ns"]
+                stable_end = case["projector_window"]["stable_end_ns"]
+                if projector_interval[1] < stable_start or projector_interval[0] >= stable_end:
+                    add("PROJECTOR_PATTERN_MISMATCH", "PROJECTOR_PATTERN_WINDOW_DISJOINT")
+                elif projector_interval[0] < stable_start or projector_interval[1] >= stable_end:
+                    add("INDETERMINATE", "PROJECTOR_PATTERN_WINDOW_BOUNDARY_OVERLAP")
 
     status = choose_status(statuses)
     return {
@@ -224,6 +229,7 @@ def evaluate_case(case):
         "motion_budget_micro_px": budget,
         "maximum_row_offset_ns": maximum_row_offset,
         "projector_frame_interval_ns": projector_interval,
+        "projector_pattern_assessed": projector_assessed,
         "status": status,
         "reason_codes": sorted(reasons),
         "may_enter_measurement_pipeline": status == "ACQUISITION_VALID_WITHIN_BUDGET",
