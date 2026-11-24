@@ -227,7 +227,9 @@ fn ceil_div(numerator: u128, denominator: u128) -> Result<u128, String> {
     if numerator % denominator == 0 {
         Ok(quotient)
     } else {
-        quotient.checked_add(1).ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())
+        quotient
+            .checked_add(1)
+            .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())
     }
 }
 
@@ -270,8 +272,12 @@ fn checked_projector_interval(
         .ok_or_else(|| "PROJECTOR_SPAN_OVERFLOW".to_owned())?;
     let span = i128::try_from(span).map_err(|_| "PROJECTOR_SPAN_OVERFLOW".to_owned())?;
     let center = i128::from(case.frame_timestamp_ns);
-    let lower = center.checked_sub(span).ok_or_else(|| "PROJECTOR_INTERVAL_OVERFLOW".to_owned())?;
-    let upper = center.checked_add(span).ok_or_else(|| "PROJECTOR_INTERVAL_OVERFLOW".to_owned())?;
+    let lower = center
+        .checked_sub(span)
+        .ok_or_else(|| "PROJECTOR_INTERVAL_OVERFLOW".to_owned())?;
+    let upper = center
+        .checked_add(span)
+        .ok_or_else(|| "PROJECTOR_INTERVAL_OVERFLOW".to_owned())?;
     Ok([lower, upper])
 }
 
@@ -406,22 +412,16 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
         }
     };
 
-    let rolling_shutter_bound = pixel_bound_micro(
-        l1_velocity,
-        maximum_row_offset_ns,
-        case.gsd_um_per_pixel,
-    )?;
+    let rolling_shutter_bound =
+        pixel_bound_micro(l1_velocity, maximum_row_offset_ns, case.gsd_um_per_pixel)?;
 
     let association_time_ns = checked_add(
         case.timestamp_uncertainty_ns,
         case.trigger_jitter_ns,
         "TIMING_ASSOCIATION_OVERFLOW",
     )?;
-    let timing_association_bound = pixel_bound_micro(
-        l1_velocity,
-        association_time_ns,
-        case.gsd_um_per_pixel,
-    )?;
+    let timing_association_bound =
+        pixel_bound_micro(l1_velocity, association_time_ns, case.gsd_um_per_pixel)?;
 
     let total_motion_bound = exposure_smear
         .checked_add(rolling_shutter_bound)
@@ -486,11 +486,8 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
             );
             None
         } else {
-            let interval = checked_projector_interval(
-                case,
-                half_exposure_ns,
-                maximum_row_offset_ns,
-            )?;
+            let interval =
+                checked_projector_interval(case, half_exposure_ns, maximum_row_offset_ns)?;
             if let Some(window) = &case.projector_window {
                 let stable_start = i128::from(window.stable_start_ns);
                 let stable_end = i128::from(window.stable_end_ns);
@@ -650,7 +647,10 @@ mod tests {
     #[test]
     fn static_global_shutter_case_is_valid() {
         let result = evaluate_case(&base_case()).expect("valid case");
-        assert_eq!(result.status, AcquisitionStatus::AcquisitionValidWithinBudget);
+        assert_eq!(
+            result.status,
+            AcquisitionStatus::AcquisitionValidWithinBudget
+        );
         assert_eq!(result.total_motion_bound_micro_px, 0);
         assert!(!result.visibility_assessed);
         assert!(!result.feature_measurability_assessed);
@@ -662,7 +662,10 @@ mod tests {
         value.relative_velocity_x_um_per_s = 1_000;
         let result = evaluate_case(&value).expect("valid case");
         assert_eq!(result.exposure_smear_bound_micro_px, 100_000);
-        assert_eq!(result.status, AcquisitionStatus::AcquisitionValidWithinBudget);
+        assert_eq!(
+            result.status,
+            AcquisitionStatus::AcquisitionValidWithinBudget
+        );
     }
 
     #[test]
@@ -682,7 +685,10 @@ mod tests {
         value.readout_duration_ns = 3_000_000;
         let result = evaluate_case(&value).expect("valid input");
         assert_eq!(result.rolling_shutter_bound_micro_px, 150_000);
-        assert_eq!(result.status, AcquisitionStatus::RollingShutterBudgetExceeded);
+        assert_eq!(
+            result.status,
+            AcquisitionStatus::RollingShutterBudgetExceeded
+        );
     }
 
     #[test]
@@ -707,7 +713,10 @@ mod tests {
         assert!(result.exposure_smear_bound_micro_px < value.motion_budget_micro_px);
         assert!(result.rolling_shutter_bound_micro_px < value.motion_budget_micro_px);
         assert!(result.timing_association_bound_micro_px < value.motion_budget_micro_px);
-        assert_eq!(result.status, AcquisitionStatus::CombinedAcquisitionBudgetExceeded);
+        assert_eq!(
+            result.status,
+            AcquisitionStatus::CombinedAcquisitionBudgetExceeded
+        );
     }
 
     #[test]
@@ -811,7 +820,10 @@ mod tests {
             pattern_receipt_sha256: "c".repeat(64),
         });
         let result = evaluate_case(&value).expect("valid input");
-        assert_eq!(result.status, AcquisitionStatus::AcquisitionValidWithinBudget);
+        assert_eq!(
+            result.status,
+            AcquisitionStatus::AcquisitionValidWithinBudget
+        );
     }
 
     #[test]
@@ -825,27 +837,39 @@ mod tests {
         let result = evaluate_case(&value).expect("valid input");
         assert_eq!(result.maximum_row_offset_ns, 500_000);
         assert_eq!(result.rolling_shutter_bound_micro_px, 50_000);
-        assert_eq!(result.status, AcquisitionStatus::AcquisitionValidWithinBudget);
+        assert_eq!(
+            result.status,
+            AcquisitionStatus::AcquisitionValidWithinBudget
+        );
     }
 
     #[test]
     fn global_shutter_cannot_claim_nonzero_readout() {
         let mut value = base_case();
         value.readout_duration_ns = 10;
-        assert_eq!(evaluate_case(&value).unwrap_err(), "GLOBAL_SHUTTER_HAS_ROLLING_READOUT");
+        assert_eq!(
+            evaluate_case(&value).unwrap_err(),
+            "GLOBAL_SHUTTER_HAS_ROLLING_READOUT"
+        );
     }
 
     #[test]
     fn rolling_shutter_requires_readout_model() {
         let mut value = base_case();
         value.shutter_mode = ShutterMode::RollingShutter;
-        assert_eq!(evaluate_case(&value).unwrap_err(), "ROLLING_SHUTTER_READOUT_INVALID");
+        assert_eq!(
+            evaluate_case(&value).unwrap_err(),
+            "ROLLING_SHUTTER_READOUT_INVALID"
+        );
     }
 
     #[test]
     fn zero_gsd_is_rejected() {
         let mut value = base_case();
         value.gsd_um_per_pixel = 0;
-        assert_eq!(evaluate_case(&value).unwrap_err(), "ACQUISITION_INPUT_IDENTITY_OR_LIMIT_INVALID");
+        assert_eq!(
+            evaluate_case(&value).unwrap_err(),
+            "ACQUISITION_INPUT_IDENTITY_OR_LIMIT_INVALID"
+        );
     }
 }
