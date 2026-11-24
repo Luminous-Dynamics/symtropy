@@ -695,6 +695,14 @@ mod tests {
         );
         assert_eq!(exact.first_action_id, Some(3));
         assert_eq!(greedy.first_action_id, Some(1));
+        assert_eq!(
+            exact.expected_terminal_loss_numerator,
+            470_988_000_000_000_000_000_000_000
+        );
+        assert_eq!(
+            greedy.expected_terminal_loss_numerator,
+            486_828_000_000_000_000_000_000_000
+        );
         assert_eq!(exact.expected_terminal_loss_denominator, RISK_DENOMINATOR);
         assert!(exact.authority_transition_not_authorized_by_plan);
         assert!(greedy.authority_transition_not_authorized_by_plan);

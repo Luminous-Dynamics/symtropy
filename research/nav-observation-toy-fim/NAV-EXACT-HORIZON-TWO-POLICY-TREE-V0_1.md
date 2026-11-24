@@ -64,6 +64,8 @@ The Rust module navigation_policy_tree.rs provides:
 
 The synthetic regression fixture is a constructed greedy counterexample. The greedy policy chooses action 1, while the contingent oracle chooses action 3 and then chooses no second action after a no-observation branch, action 1 after observed-zero, and action 2 after observed-one. This is an exact discrete model result, not a physical sensing result.
 
+For the committed fixture (prior outside probability 0.48, false-safe loss 2, false-degraded loss 5), the no-sensing expected loss is 0.96. The greedy-first policy has exact expected loss 0.486828, while the contingent oracle has 0.470988 under the common denominator 10^27. That is a 3.2537% reduction relative to this greedy comparator in this one constructed case. These values are regression-fixture outputs only; they are not measured navigation performance or a general superiority result.
+
 The tests also cover posterior change under state-dependent dropout, impossible branches, asymmetric terminal losses, budget limits, action non-reuse, malformed likelihoods and explicit abstention. These tests are authored in source; only an exact-head CI run can establish that the current repository commit passes them.
 
 ## What this does not prove
