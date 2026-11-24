@@ -1,0 +1,85 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MAG-FIELD-METRICS-001",
+  "evidence_status": "synthetic_metric_known_answers_not_physical_measurement",
+  "coordinate_frame": "component-frame-rh",
+  "grid_id": "grid-3d-v1",
+  "units": {"position": "m", "field": "T", "direction_angle": "rad"},
+  "cases": [
+    {
+      "case_id": "FIELD-MAP-KNOWN-001",
+      "policy": {"absolute_vector_error_tolerance_t": 0.5, "direction_magnitude_floor_t": 0.01},
+      "reference": [
+        {"id": 7, "position_m": [0.0, 0.0, 0.0], "field_T": [0.0, 0.0, 2.0]},
+        {"id": 8, "position_m": [1.0, 0.0, 0.0], "field_T": [0.0, 0.0, 1.0]}
+      ],
+      "predicted": [
+        {"id": 7, "position_m": [0.0, 0.0, 0.0], "field_T": [0.0, 0.0, 1.0]},
+        {"id": 8, "position_m": [1.0, 0.0, 0.0], "field_T": [0.0, 0.0, 1.0]}
+      ],
+      "expected": {
+        "sample_count": 2,
+        "component_mae_t": 0.16666666666666666,
+        "vector_mae_t": 0.5,
+        "vector_rmse_t": 0.7071067811865476,
+        "reference_rms_t": 1.5811388300841898,
+        "normalized_vector_rmse": 0.4472135954999579,
+        "max_vector_error_t": 1.0,
+        "p95_vector_error_t": 1.0,
+        "worst_sample_id": 7,
+        "within_absolute_tolerance_fraction": 0.5,
+        "all_samples_within_absolute_tolerance": false,
+        "directional_sample_count": 2,
+        "mean_direction_error_rad": 0.0,
+        "direction_reversal_fraction": 0.0
+      }
+    },
+    {
+      "case_id": "FIELD-MAP-REVERSAL-001",
+      "policy": {"absolute_vector_error_tolerance_t": 2.0, "direction_magnitude_floor_t": 0.01},
+      "reference": [{"id": 42, "position_m": [0.0, 0.0, 0.0], "field_T": [0.0, 0.0, 1.0]}],
+      "predicted": [{"id": 42, "position_m": [0.0, 0.0, 0.0], "field_T": [0.0, 0.0, -1.0]}],
+      "expected": {
+        "vector_mae_t": 2.0,
+        "vector_rmse_t": 2.0,
+        "max_vector_error_t": 2.0,
+        "mean_direction_error_rad": 3.141592653589793,
+        "direction_reversal_fraction": 1.0,
+        "all_samples_within_absolute_tolerance": true
+      }
+    },
+    {
+      "case_id": "FIELD-MAP-ZERO-REFERENCE-001",
+      "policy": {"absolute_vector_error_tolerance_t": 0.2, "direction_magnitude_floor_t": 0.01},
+      "reference": [{"id": 1, "position_m": [0.0, 0.0, 0.0], "field_T": [0.0, 0.0, 0.0]}],
+      "predicted": [{"id": 1, "position_m": [0.0, 0.0, 0.0], "field_T": [0.1, 0.0, 0.0]}],
+      "expected": {
+        "normalized_vector_rmse": null,
+        "directional_sample_count": 0,
+        "mean_direction_error_rad": null,
+        "direction_reversal_fraction": null,
+        "all_samples_within_absolute_tolerance": true
+      }
+    }
+  ],
+  "negative_controls": [
+    "empty_map",
+    "duplicate_sample_id",
+    "different_frame_id",
+    "different_grid_id",
+    "sample_order_or_id_mismatch",
+    "sample_position_mismatch",
+    "non_finite_position",
+    "non_finite_field",
+    "negative_or_non_finite_tolerance",
+    "zero_reference_rms_normalized_metric_undefined"
+  ],
+  "interpretation": {
+    "equal_sample_weighting_only": true,
+    "automatic_interpolation": false,
+    "automatic_sample_dropping": false,
+    "uncertainty_coverage_claim": false,
+    "component_qualification": false,
+    "physical_measurement": false
+  }
+}
