@@ -946,6 +946,9 @@ pub fn compile_oracle_outcomes(
         evaluation_service_loss_milli: evaluation_rows.iter().map(|row| row.3.clone()).collect(),
         oracle_id: dataset.contract.oracle_id.clone(),
         oracle_revision: dataset.contract.oracle_revision.clone(),
+        oracle_evidence_ref: dataset.contract.oracle_evidence_ref.clone(),
+        independence_evidence_ref: dataset.contract.independence_evidence_ref.clone(),
+        exchangeability_scope: dataset.contract.exchangeability_scope.clone(),
         evaluator_revision: dataset.contract.evaluator_revision.clone(),
         loss_contract_revision: dataset.contract.loss_contract_revision.clone(),
         policy_grid_sha256: dataset.contract.policy_grid_sha256.clone(),
@@ -1385,8 +1388,13 @@ mod tests {
         let cluster_means = bundle
             .cluster_mean_matrix(DatasetRole::Calibration, LossAxis::ServiceLoss)
             .expect("cluster means");
-        assert_eq!(cluster_means.cluster_ids, vec!["weather-1", "weather-2"]);
-        assert_eq!(cluster_means.schedules_per_cluster, vec![2, 1]);
+        assert_eq!(
+            cluster_means.provenance.cluster_ids,
+            vec!["weather-1", "weather-2"]
+        );
+        assert_eq!(cluster_means.provenance.schedules_per_cluster, vec![2, 1]);
+        assert_eq!(cluster_means.provenance.independent_cluster_count, 2);
+        assert_eq!(cluster_means.provenance.source_schedule_count, 3);
         assert_eq!(
             cluster_means.loss.schedules,
             vec![vec![401, 251], vec![600, 200]]
@@ -1410,15 +1418,18 @@ mod tests {
             .expect("cluster hard-failure means");
         assert_eq!(hard_means.loss.schedules, vec![vec![0, 0], vec![1_000, 0]]);
 
-        let high_probability = crate::high_probability::select_simultaneous_hoeffding(
-            &hard_means.non_monotone_grid(),
-            &cluster_means.non_monotone_grid(),
-            100,
-            0.05,
-        );
+        let high_probability = hard_means
+            .select_fixed_grid_high_probability(&cluster_means, 100, 0.05)
+            .expect("cluster-unit high-probability evaluation");
+        assert!(matches!(
+            high_probability.selection,
+            ClusterHighProbabilitySelection::Abstained(
+                crate::high_probability::HighProbabilityError::NoPolicyMeetsTarget
+            )
+        ));
         assert_eq!(
-            high_probability,
-            Err(crate::high_probability::HighProbabilityError::NoPolicyMeetsTarget)
+            high_probability.risk_provenance.independent_cluster_count,
+            2
         );
     }
 
