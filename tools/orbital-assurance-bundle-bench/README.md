@@ -207,3 +207,17 @@ node tools/orbital-assurance-bundle-bench/tests/dependency_invalidation_oracle.m
 This crate composes; it does not duplicate lifecycle/event semantics (#6485/#6516), campaign adequacy (#6542), one-shot mission reliability (#6553), constant-intensity statistics (#6593), trust roots/credentials/signatures/revocation (#6519), physical test safety and metrology (#6256/#6303), or the broader assurance-case/adversarial challenge patterns (#5647/#5721).
 
 A passing synthetic corpus establishes only that the reference evaluator classifies the declared graph structure and metadata as expected. It does not authenticate evidence, prove claims true, establish hazard completeness, qualify a mechanism, accept risk, establish flight readiness, or authorize operations.
+
+
+## Independent oracle language strategy
+
+Rust remains the canonical production evaluator. The incumbent sequential receipt bridge retains its Node.js BigInt challenger and adds a standard-library-only Python challenger using exact Fraction arithmetic. Both are test/research implementations; neither can grant authority or establish the upstream statistical guarantee.
+
+The Python reference oracle replays the same frozen receipt mutations:
+~~~bash
+python3 -m py_compile tools/orbital-assurance-bundle-bench/tests/anytime_world_set_bridge_oracle.py
+python3 tools/orbital-assurance-bundle-bench/tests/anytime_world_set_bridge_oracle.py \
+  tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-anytime-world-set-receipt.synthetic.json
+~~~
+
+Language decision and promotion gate: [ORBITAL_ASSURANCE_IMPLEMENTATION_LANGUAGE_STRATEGY_V0_1.md](../../research/orbital/ORBITAL_ASSURANCE_IMPLEMENTATION_LANGUAGE_STRATEGY_V0_1.md). Python is used for an independently expressed exact-rational oracle and research baseline reproduction, not as a production runtime replacement for Rust. Keep Node and Python challengers until matched per-case differential tests demonstrate their incremental assurance value.
