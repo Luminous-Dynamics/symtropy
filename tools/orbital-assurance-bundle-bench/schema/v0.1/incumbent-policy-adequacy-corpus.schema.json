@@ -30,6 +30,10 @@
           "case_id",
           "source_policy_case_id",
           "decision_scope_id",
+          "query_universe_receipt_id",
+          "query_universe_scope_id",
+          "expected_query_ids_sha256",
+          "queries_sha256",
           "scope_sha256",
           "decision_cutoff_id",
           "world_set_receipt_id",
@@ -45,6 +49,7 @@
           "incumbent_feasibility_state",
           "loss_unit",
           "incumbent_policy_id",
+          "best_no_query_worst_case_loss",
           "materiality_margin",
           "policy_switch_cost",
           "resource_budget",
@@ -96,6 +101,12 @@
               "source_commit",
               "source_case_id",
               "source_scope_id",
+              "source_query_universe_receipt_id",
+              "source_query_universe_scope_id",
+              "source_expected_query_ids_sha256",
+              "source_queries_sha256",
+              "source_incumbent_policy_id",
+              "source_best_no_query_worst_case_loss",
               "source_scope_sha256",
               "source_decision_cutoff_id",
               "source_world_set_receipt_id",
@@ -169,6 +180,53 @@
               },
               "result": {
                 "const": "pass"
+              },
+              "source_query_universe_receipt_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_query_universe_scope_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_expected_query_ids_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "source_queries_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "source_incumbent_policy_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_best_no_query_worst_case_loss": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "numerator",
+                      "denominator"
+                    ],
+                    "properties": {
+                      "numerator": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000000000000
+                      },
+                      "denominator": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000000000000
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             }
           },
@@ -684,6 +742,49 @@
                 }
               }
             }
+          },
+          "query_universe_receipt_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "query_universe_scope_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_query_ids_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "queries_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "best_no_query_worst_case_loss": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "numerator",
+                  "denominator"
+                ],
+                "properties": {
+                  "numerator": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000000000
+                  },
+                  "denominator": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000000000000
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       }
