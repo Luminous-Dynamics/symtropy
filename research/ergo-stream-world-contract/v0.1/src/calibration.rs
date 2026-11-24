@@ -369,10 +369,22 @@ mod tests {
             forecast(4, 0, Some(TransferDecisionV0::RejectTransfer)),
         ];
         let outcomes = [
-            TransferOutcomeV0 { sample_id: 1, transfer_qualified: true },
-            TransferOutcomeV0 { sample_id: 2, transfer_qualified: false },
-            TransferOutcomeV0 { sample_id: 3, transfer_qualified: true },
-            TransferOutcomeV0 { sample_id: 4, transfer_qualified: false },
+            TransferOutcomeV0 {
+                sample_id: 1,
+                transfer_qualified: true,
+            },
+            TransferOutcomeV0 {
+                sample_id: 2,
+                transfer_qualified: false,
+            },
+            TransferOutcomeV0 {
+                sample_id: 3,
+                transfer_qualified: true,
+            },
+            TransferOutcomeV0 {
+                sample_id: 4,
+                transfer_qualified: false,
+            },
         ];
 
         let report = evaluate_transfer_calibration(&forecasts, &outcomes, 10, &[0, 900_000])
@@ -386,13 +398,16 @@ mod tests {
 
     #[test]
     fn equal_width_bins_include_exact_lower_boundaries() {
-        let forecasts = [
-            forecast(1, 100_000, None),
-            forecast(2, 1_000_000, None),
-        ];
+        let forecasts = [forecast(1, 100_000, None), forecast(2, 1_000_000, None)];
         let outcomes = [
-            TransferOutcomeV0 { sample_id: 1, transfer_qualified: false },
-            TransferOutcomeV0 { sample_id: 2, transfer_qualified: true },
+            TransferOutcomeV0 {
+                sample_id: 1,
+                transfer_qualified: false,
+            },
+            TransferOutcomeV0 {
+                sample_id: 2,
+                transfer_qualified: true,
+            },
         ];
 
         let report = evaluate_transfer_calibration(&forecasts, &outcomes, 10, &[0]).unwrap();
@@ -431,19 +446,26 @@ mod tests {
             forecast(4, 500_000, None),
         ];
         let outcomes = [
-            TransferOutcomeV0 { sample_id: 1, transfer_qualified: true },
-            TransferOutcomeV0 { sample_id: 2, transfer_qualified: false },
-            TransferOutcomeV0 { sample_id: 3, transfer_qualified: false },
-            TransferOutcomeV0 { sample_id: 4, transfer_qualified: true },
+            TransferOutcomeV0 {
+                sample_id: 1,
+                transfer_qualified: true,
+            },
+            TransferOutcomeV0 {
+                sample_id: 2,
+                transfer_qualified: false,
+            },
+            TransferOutcomeV0 {
+                sample_id: 3,
+                transfer_qualified: false,
+            },
+            TransferOutcomeV0 {
+                sample_id: 4,
+                transfer_qualified: true,
+            },
         ];
 
-        let report = evaluate_transfer_calibration(
-            &forecasts,
-            &outcomes,
-            10,
-            &[0, 900_000],
-        )
-        .unwrap();
+        let report =
+            evaluate_transfer_calibration(&forecasts, &outcomes, 10, &[0, 900_000]).unwrap();
 
         let all_decisions = report.selective_risk_curve[0];
         let high_confidence = report.selective_risk_curve[1];
@@ -464,8 +486,14 @@ mod tests {
             forecast(2, 50_000, Some(TransferDecisionV0::AssertTransfer)),
         ];
         let outcomes = [
-            TransferOutcomeV0 { sample_id: 1, transfer_qualified: true },
-            TransferOutcomeV0 { sample_id: 2, transfer_qualified: false },
+            TransferOutcomeV0 {
+                sample_id: 1,
+                transfer_qualified: true,
+            },
+            TransferOutcomeV0 {
+                sample_id: 2,
+                transfer_qualified: false,
+            },
         ];
 
         let report = evaluate_transfer_calibration(&forecasts, &outcomes, 2, &[900_000]).unwrap();
@@ -477,7 +505,10 @@ mod tests {
     #[test]
     fn rejects_unmatched_duplicate_and_out_of_range_data() {
         let valid = [forecast(1, 500_000, None)];
-        let outcome = [TransferOutcomeV0 { sample_id: 1, transfer_qualified: true }];
+        let outcome = [TransferOutcomeV0 {
+                sample_id: 1,
+                transfer_qualified: true,
+            }];
         assert_eq!(
             evaluate_transfer_calibration(&[], &outcome, 10, &[0]),
             Err(TransferCalibrationErrorV0::EmptyForecasts)
@@ -489,12 +520,7 @@ mod tests {
 
         let duplicate = [forecast(1, 500_000, None), forecast(1, 500_000, None)];
         assert_eq!(
-            evaluate_transfer_calibration(
-                &duplicate,
-                &[outcome[0], outcome[0]],
-                10,
-                &[0],
-            ),
+            evaluate_transfer_calibration(&duplicate, &[outcome[0], outcome[0]], 10, &[0],)
             Err(TransferCalibrationErrorV0::DuplicateSampleId)
         );
 
@@ -502,7 +528,10 @@ mod tests {
         assert_eq!(
             evaluate_transfer_calibration(
                 &invalid,
-                &[TransferOutcomeV0 { sample_id: 2, transfer_qualified: false }],
+                &[TransferOutcomeV0 {
+                    sample_id: 2,
+                    transfer_qualified: false,
+                }],
                 10,
                 &[0],
             ),
@@ -513,7 +542,10 @@ mod tests {
     #[test]
     fn rejects_duplicate_or_out_of_range_thresholds_and_invalid_bins() {
         let forecasts = [forecast(1, 500_000, None)];
-        let outcomes = [TransferOutcomeV0 { sample_id: 1, transfer_qualified: true }];
+        let outcomes = [TransferOutcomeV0 {
+                sample_id: 1,
+                transfer_qualified: true,
+            }];
 
         assert_eq!(
             evaluate_transfer_calibration(&forecasts, &outcomes, 10, &[1_000_001]),
@@ -533,8 +565,14 @@ mod tests {
     fn rejects_duplicate_outcome_ids() {
         let forecasts = [forecast(1, 500_000, None)];
         let outcomes = [
-            TransferOutcomeV0 { sample_id: 1, transfer_qualified: true },
-            TransferOutcomeV0 { sample_id: 1, transfer_qualified: false },
+            TransferOutcomeV0 {
+                sample_id: 1,
+                transfer_qualified: true,
+            },
+            TransferOutcomeV0 {
+                sample_id: 1,
+                transfer_qualified: false,
+            },
         ];
 
         assert_eq!(
@@ -547,8 +585,14 @@ mod tests {
     fn rejects_an_outcome_without_a_forecast() {
         let forecasts = [forecast(1, 500_000, None)];
         let outcomes = [
-            TransferOutcomeV0 { sample_id: 1, transfer_qualified: true },
-            TransferOutcomeV0 { sample_id: 2, transfer_qualified: false },
+            TransferOutcomeV0 {
+                sample_id: 1,
+                transfer_qualified: true,
+            },
+            TransferOutcomeV0 {
+                sample_id: 2,
+                transfer_qualified: false,
+            },
         ];
 
         assert_eq!(
