@@ -248,7 +248,9 @@ impl fmt::Display for BundleValidationErrorV0 {
             Self::MissingEntityEvidenceBinding => {
                 "a declared node or relation has no evidence binding"
             }
-            Self::EmptyEntityEvidence => "each declared node or relation requires at least one evidence ID",
+            Self::EmptyEntityEvidence => {
+                "each declared node or relation requires at least one evidence ID"
+            }
             Self::DuplicateEntityEvidenceId => {
                 "one node or relation cites the same evidence ID more than once"
             }
@@ -359,10 +361,8 @@ pub fn validate_transfer_submission_binding(
     }
 
     if target_receipt.episode_id != binding.target_episode_id
-        || target_receipt.process_episode_receipt_sha256
-            != binding.target_episode_receipt_sha256
-        || target_receipt.final_evidence_prefix_sha256
-            != binding.target_evidence_prefix_sha256
+        || target_receipt.process_episode_receipt_sha256 != binding.target_episode_receipt_sha256
+        || target_receipt.final_evidence_prefix_sha256 != binding.target_evidence_prefix_sha256
     {
         return Err(BundleValidationErrorV0::TargetReceiptBindingMismatch);
     }
@@ -414,12 +414,9 @@ pub fn validate_evidence_bound_scoped_transfer(
     let source_counts = validate_structure_evidence(source, source_prefix)?;
     let target_counts = validate_structure_evidence(target, target_prefix)?;
 
-    let structural = validate_scoped_structural_correspondence(
-        &source.structure,
-        &target.structure,
-        candidate,
-    )
-    .map_err(BundleValidationErrorV0::ScopedStructuralRejected)?;
+    let structural =
+        validate_scoped_structural_correspondence(&source.structure, &target.structure, candidate)
+            .map_err(BundleValidationErrorV0::ScopedStructuralRejected)?;
 
     Ok(EvidenceBoundTransferWitnessV0 {
         structural,
@@ -448,16 +445,8 @@ pub fn validate_evidence_bound_behavioural_transfer(
     target_system: &LabelledTransitionSystemV0,
     candidate: &EvidenceBoundBehaviouralCandidateV0,
 ) -> Result<EvidenceBoundBehaviouralWitnessV0, BundleValidationErrorV0> {
-    validate_lts_snapshot_binding(
-        source_prefix,
-        source_system,
-        &candidate.source_snapshot,
-    )?;
-    validate_lts_snapshot_binding(
-        target_prefix,
-        target_system,
-        &candidate.target_snapshot,
-    )?;
+    validate_lts_snapshot_binding(source_prefix, source_system, &candidate.source_snapshot)?;
+    validate_lts_snapshot_binding(target_prefix, target_system, &candidate.target_snapshot)?;
 
     if candidate.response_predictions.is_empty() {
         return Err(BundleValidationErrorV0::EmptyBehaviouralResponsePredictions);
@@ -547,15 +536,16 @@ fn validate_lts_snapshot_binding(
             evidence_ids: binding.evidence_ids.clone(),
         })
         .collect::<Vec<_>>();
-    validate_entity_evidence(known_state_ids, &state_refs, &available)
-        .map_err(|error| match error {
+    validate_entity_evidence(known_state_ids, &state_refs, &available).map_err(
+        |error| match error {
             BundleValidationErrorV0::UnknownEntityEvidenceBinding
             | BundleValidationErrorV0::MissingEntityEvidenceBinding
             | BundleValidationErrorV0::DuplicateEntityEvidenceBinding => {
                 BundleValidationErrorV0::BehaviouralSnapshotStateMismatch
             }
             other => other,
-        })?;
+        },
+    )?;
 
     let known_actions = system
         .actions
@@ -625,11 +615,21 @@ fn validate_behavioural_response_prediction(
             (
                 BehaviouralPredictionDirectionV0::SourceToTarget,
                 BehaviouralObservedSideV0::Source,
-            ) => (source_system, target_system, source_prefix, BehaviouralObservedSideV0::Source),
+            ) => (
+                source_system,
+                target_system,
+                source_prefix,
+                BehaviouralObservedSideV0::Source,
+            ),
             (
                 BehaviouralPredictionDirectionV0::TargetToSource,
                 BehaviouralObservedSideV0::Target,
-            ) => (target_system, source_system, target_prefix, BehaviouralObservedSideV0::Target),
+            ) => (
+                target_system,
+                source_system,
+                target_prefix,
+                BehaviouralObservedSideV0::Target,
+            ),
             _ => return Err(BundleValidationErrorV0::BehaviouralPredictionDirectionSideMismatch),
         };
 
@@ -821,7 +821,10 @@ fn is_sha256_digest(value: &str) -> bool {
     let Some(hex) = value.strip_prefix("sha256:") else {
         return false;
     };
-    hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    hex.len() == 64
+        && hex
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn is_evidence_id(value: &str) -> bool {
@@ -833,12 +836,11 @@ fn is_evidence_id(value: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::super::scoped::{
-        StructuralMapKindV0, StructureScopeV0,
-    };
+    use super::super::scoped::{StructuralMapKindV0, StructureScopeV0};
     use super::super::transfer::{
         NodeCorrespondenceV0, NodeV0, ParticipantTransformV0, RelationCorrespondenceV0,
-        RelationKindCorrespondenceV0, RelationOrientationV0, RelationV0, StructuralCorrespondenceV0,
+        RelationKindCorrespondenceV0, RelationOrientationV0, RelationV0,
+        StructuralCorrespondenceV0,
     };
     use super::*;
 
@@ -910,13 +912,28 @@ mod tests {
                 ],
             },
             node_evidence: vec![
-                EntityEvidenceBindingV0 { entity_id: 1, evidence_ids: vec!["E0001".to_owned()] },
-                EntityEvidenceBindingV0 { entity_id: 2, evidence_ids: vec!["E0002".to_owned()] },
-                EntityEvidenceBindingV0 { entity_id: 3, evidence_ids: vec!["E0003".to_owned()] },
+                EntityEvidenceBindingV0 {
+                    entity_id: 1,
+                    evidence_ids: vec!["E0001".to_owned()],
+                },
+                EntityEvidenceBindingV0 {
+                    entity_id: 2,
+                    evidence_ids: vec!["E0002".to_owned()],
+                },
+                EntityEvidenceBindingV0 {
+                    entity_id: 3,
+                    evidence_ids: vec!["E0003".to_owned()],
+                },
             ],
             relation_evidence: vec![
-                EntityEvidenceBindingV0 { entity_id: 10, evidence_ids: vec!["E0004".to_owned()] },
-                EntityEvidenceBindingV0 { entity_id: 11, evidence_ids: vec!["E0005".to_owned()] },
+                EntityEvidenceBindingV0 {
+                    entity_id: 10,
+                    evidence_ids: vec!["E0004".to_owned()],
+                },
+                EntityEvidenceBindingV0 {
+                    entity_id: 11,
+                    evidence_ids: vec!["E0005".to_owned()],
+                },
             ],
         }
     }
@@ -943,13 +960,28 @@ mod tests {
                 ],
             },
             node_evidence: vec![
-                EntityEvidenceBindingV0 { entity_id: 11, evidence_ids: vec!["E0011".to_owned()] },
-                EntityEvidenceBindingV0 { entity_id: 12, evidence_ids: vec!["E0012".to_owned()] },
-                EntityEvidenceBindingV0 { entity_id: 13, evidence_ids: vec!["E0013".to_owned()] },
+                EntityEvidenceBindingV0 {
+                    entity_id: 11,
+                    evidence_ids: vec!["E0011".to_owned()],
+                },
+                EntityEvidenceBindingV0 {
+                    entity_id: 12,
+                    evidence_ids: vec!["E0012".to_owned()],
+                },
+                EntityEvidenceBindingV0 {
+                    entity_id: 13,
+                    evidence_ids: vec!["E0013".to_owned()],
+                },
             ],
             relation_evidence: vec![
-                EntityEvidenceBindingV0 { entity_id: 110, evidence_ids: vec!["E0014".to_owned()] },
-                EntityEvidenceBindingV0 { entity_id: 111, evidence_ids: vec!["E0015".to_owned()] },
+                EntityEvidenceBindingV0 {
+                    entity_id: 110,
+                    evidence_ids: vec!["E0014".to_owned()],
+                },
+                EntityEvidenceBindingV0 {
+                    entity_id: 111,
+                    evidence_ids: vec!["E0015".to_owned()],
+                },
             ],
         }
     }
@@ -987,8 +1019,14 @@ mod tests {
             },
             correspondence: StructuralCorrespondenceV0 {
                 nodes: vec![
-                    NodeCorrespondenceV0 { source_node_id: 1, target_node_id: 11 },
-                    NodeCorrespondenceV0 { source_node_id: 2, target_node_id: 12 },
+                    NodeCorrespondenceV0 {
+                        source_node_id: 1,
+                        target_node_id: 11,
+                    },
+                    NodeCorrespondenceV0 {
+                        source_node_id: 2,
+                        target_node_id: 12,
+                    },
                 ],
                 relation_kinds: vec![RelationKindCorrespondenceV0 {
                     source_kind: 1,
@@ -1162,7 +1200,9 @@ mod tests {
     #[test]
     fn rejects_duplicate_entity_evidence_references() {
         let mut source = source_structure();
-        source.node_evidence[0].evidence_ids.push("E0001".to_owned());
+        source.node_evidence[0]
+            .evidence_ids
+            .push("E0001".to_owned());
         assert_eq!(
             validate_evidence_bound_scoped_transfer(
                 &source_prefix(),
