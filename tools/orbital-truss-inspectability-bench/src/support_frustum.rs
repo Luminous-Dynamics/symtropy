@@ -282,9 +282,9 @@ pub fn evaluate_rectilinear_frustum(
             .acos();
         inside[i] = theta - spread - std::f64::consts::FRAC_PI_2;
         outside[i] = std::f64::consts::FRAC_PI_2 - theta - spread;
-        all_inside &= cap_max_dot(*plane, direction, spread).expect("valid plane") <= EPS;
+        all_inside &= cap_max_dot(*plane, direction, spread).expect("valid plane") <= GEOMETRY_EPS;
         some_plane_wholly_outside |=
-            cap_min_dot(*plane, direction, spread).expect("valid plane") > EPS;
+            cap_min_dot(*plane, direction, spread).expect("valid plane") > GEOMETRY_EPS;
     }
     let status = if all_inside {
         FrustumStatus::Within
