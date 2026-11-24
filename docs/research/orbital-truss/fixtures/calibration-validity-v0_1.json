@@ -454,7 +454,8 @@
           "affected_scope_ids": [
             "camera-intrinsics"
           ],
-          "impact": "INVALIDATES"
+          "impact": "INVALIDATES",
+          "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
         }
       ],
       "expected_status": "INVALIDATED"
@@ -517,7 +518,8 @@
           "affected_scope_ids": [
             "camera-intrinsics"
           ],
-          "impact": "INVALIDATES"
+          "impact": "INVALIDATES",
+          "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
         }
       ],
       "expected_status": "INDETERMINATE"
@@ -706,7 +708,8 @@
           "affected_scope_ids": [
             "camera-intrinsics"
           ],
-          "impact": "INVALIDATES"
+          "impact": "INVALIDATES",
+          "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
         }
       ],
       "expected_status": "VALID_WITHIN_SCOPE"
@@ -769,7 +772,8 @@
           "affected_scope_ids": [
             "camera-intrinsics"
           ],
-          "impact": "NO_CALIBRATION_IMPACT"
+          "impact": "NO_CALIBRATION_IMPACT",
+          "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
         }
       ],
       "expected_status": "VALID_WITHIN_SCOPE"
@@ -832,7 +836,8 @@
           "affected_scope_ids": [
             "camera-intrinsics"
           ],
-          "impact": "UNKNOWN_IMPACT"
+          "impact": "UNKNOWN_IMPACT",
+          "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
         }
       ],
       "expected_status": "INDETERMINATE"
