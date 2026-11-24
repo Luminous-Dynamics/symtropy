@@ -5,6 +5,7 @@ on:
       - "schemas/manufacturing/mfg_policy_v02_decision_frame.schema.json"
       - "schemas/manufacturing/mfg_policy_v02_action_proposal.schema.json"
       - "schemas/manufacturing/mfg_policy_v02_action_admission_receipt.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_operational_state_snapshot.schema.json"
       - "tools/mfg-policy-v02-action-admission/**"
       - ".github/workflows/mfg-policy-v02-action-admission.yml"
   push:
