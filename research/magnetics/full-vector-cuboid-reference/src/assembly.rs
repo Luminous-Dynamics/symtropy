@@ -97,10 +97,10 @@ impl RigidPose {
             return Err(AssemblyError::NonFiniteTranslation);
         }
 
-        for row in 0..3 {
-            for other_row in 0..3 {
-                let product = dot(rotation[row], rotation[other_row]);
-                let expected = if row == other_row { 1.0 } else { 0.0 };
+        for (row_index, row_values) in rotation.iter().enumerate() {
+            for (other_index, other_values) in rotation.iter().enumerate() {
+                let product = dot(*row_values, *other_values);
+                let expected = if row_index == other_index { 1.0 } else { 0.0 };
                 if (product - expected).abs() > ROTATION_TOLERANCE {
                     return Err(AssemblyError::NonOrthonormalRotation);
                 }
@@ -267,8 +267,8 @@ impl MagneticAssembly {
         let mut compensation = [0.0_f64; 3];
         for component in &self.components {
             let field = component.field_at_global(observer)?;
-            for axis in 0..3 {
-                let corrected = field.0[axis] - compensation[axis];
+            for (axis, contribution) in field.0.iter().enumerate() {
+                let corrected = contribution - compensation[axis];
                 let next = sum[axis] + corrected;
                 compensation[axis] = (next - sum[axis]) - corrected;
                 sum[axis] = next;
@@ -376,7 +376,7 @@ mod tests {
             [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
             [0.02, -0.01, 0.03],
         );
-        let component = PlacedCuboid::new(1, cuboid([0.2, 0.5, 0.9], [0.2, 0.5, 0.9]), base_pose);
+        let component = PlacedCuboid::new(1, cuboid([0.05, 0.04, 0.03], [0.2, 0.5, 0.9]), base_pose);
         let point = PositionMeters([0.08, 0.04, 0.11]);
         let original = component.field_at_global(point).unwrap();
 
@@ -478,7 +478,7 @@ mod tests {
     #[test]
     fn empty_assembly_and_duplicate_ids_are_rejected() {
         assert_eq!(MagneticAssembly::new(vec![]), Err(AssemblyError::EmptyAssembly));
-        let component = PlacedCuboid::new(9, cuboid([0.0, 0.0, 1.0]), RigidPose::identity());
+        let component = PlacedCuboid::new(9, cuboid([0.05, 0.04, 0.03], [0.0, 0.0, 1.0]), RigidPose::identity());
         assert_eq!(
             MagneticAssembly::new(vec![component, component]),
             Err(AssemblyError::DuplicateComponentId(9))
@@ -487,7 +487,7 @@ mod tests {
 
     #[test]
     fn component_boundary_error_preserves_component_identity() {
-        let component = PlacedCuboid::new(123, cuboid([0.0, 0.0, 1.0]), RigidPose::identity());
+        let component = PlacedCuboid::new(123, cuboid([0.05, 0.04, 0.03], [0.0, 0.0, 1.0]), RigidPose::identity());
         let assembly = MagneticAssembly::new(vec![component]).unwrap();
         assert_eq!(
             assembly.field_at(PositionMeters([0.05, 0.0, 0.0])),
@@ -500,7 +500,7 @@ mod tests {
 
     #[test]
     fn non_finite_observer_is_rejected_before_component_evaluation() {
-        let component = PlacedCuboid::new(1, cuboid([0.0, 0.0, 1.0]), RigidPose::identity());
+        let component = PlacedCuboid::new(1, cuboid([0.05, 0.04, 0.03], [0.0, 0.0, 1.0]), RigidPose::identity());
         let assembly = MagneticAssembly::new(vec![component]).unwrap();
         assert_eq!(
             assembly.field_at(PositionMeters([f64::NAN, 0.0, 0.0])),
