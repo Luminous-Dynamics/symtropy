@@ -563,3 +563,447 @@ mod tests {
         );
     }
 }
+
+
+
+/// Symmetric three-component Reynolds-stress tensor, with components in the
+/// order uu, vv, ww, uv, uw, vw. Off-diagonal terms are covariances, not
+/// correlation coefficients.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ReynoldsStressTensor3D {
+    pub uu: f64,
+    pub vv: f64,
+    pub ww: f64,
+    pub uv: f64,
+    pub uw: f64,
+    pub vw: f64,
+}
+
+impl ReynoldsStressTensor3D {
+    pub fn turbulent_kinetic_energy(self) -> f64 {
+        0.5 * (self.uu + self.vv + self.ww)
+    }
+
+    pub fn components(self) -> [f64; 6] {
+        [self.uu, self.vv, self.ww, self.uv, self.uw, self.vw]
+    }
+
+    /// Tests positive semidefiniteness of the 3x3 symmetric covariance
+    /// matrix. All principal minors are checked after scale normalization.
+    /// The tolerance is relative and dimensionless.
+    pub fn is_positive_semidefinite(
+        self,
+        relative_tolerance: f64,
+    ) -> Result<bool, StressTensorError> {
+        if !relative_tolerance.is_finite() || relative_tolerance < 0.0 {
+            return Err(StressTensorError::InvalidTolerance);
+        }
+        let values = self.components();
+        if values.iter().any(|value| !value.is_finite()) {
+            return Err(StressTensorError::NonFiniteComponent);
+        }
+        let scale = values
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        if scale == 0.0 {
+            return Ok(true);
+        }
+
+        let a = self.uu / scale;
+        let d = self.vv / scale;
+        let f = self.ww / scale;
+        let b = self.uv / scale;
+        let c = self.uw / scale;
+        let e = self.vw / scale;
+
+        let diagonal_minors = [a, d, f];
+        let second_order_minors = [
+            a * d - b * b,
+            a * f - c * c,
+            d * f - e * e,
+        ];
+        let determinant =
+            a * d * f + 2.0 * b * c * e - a * e * e - d * c * c - f * b * b;
+
+        Ok(diagonal_minors
+            .iter()
+            .chain(second_order_minors.iter())
+            .all(|minor| *minor >= -relative_tolerance)
+            && determinant >= -relative_tolerance)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StressProfilePoint {
+    pub y_plus: f64,
+    pub estimate: Option<ReynoldsStressTensor3D>,
+    pub reference: ReynoldsStressTensor3D,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StressProfileInput {
+    pub unit: String,
+    pub points: Vec<StressProfilePoint>,
+    pub bands: Vec<YPlusBand>,
+    pub psd_relative_tolerance: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StressBandMetrics {
+    pub band_id: String,
+    pub point_count: usize,
+    pub estimated_points: usize,
+    pub point_coverage_fraction: f64,
+    /// RMSE order: uu, vv, ww, uv, uw, vw.
+    pub component_rmse: [Option<f64>; 6],
+    pub tke_bias: Option<f64>,
+    pub tke_rmse: Option<f64>,
+    /// RMSE of the full 3x3 tensor Frobenius norm. Off-diagonal entries count
+    /// twice, as they do in the symmetric matrix.
+    pub tensor_frobenius_rmse: Option<f64>,
+    pub tensor_frobenius_nrmse: Option<f64>,
+    pub reference_non_psd_points: usize,
+    pub estimate_non_psd_points: usize,
+    pub estimate_realizability_violation_fraction: Option<f64>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StressProfileReport {
+    pub unit: String,
+    pub bands: Vec<StressBandMetrics>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum StressTensorError {
+    InvalidTolerance,
+    NonFiniteComponent,
+    EmptyUnit,
+    TooFewProfilePoints,
+    EmptyBands,
+    NonFiniteCoordinate { index: usize },
+    NonIncreasingCoordinate { index: usize },
+    InvalidBand { band_id: String },
+    BandHasTooFewPoints { band_id: String },
+    InvalidReferenceTensor { index: usize },
+    InvalidEstimateTensor { index: usize },
+}
+
+impl fmt::Display for StressTensorError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "invalid Reynolds-stress profile: {self:?}")
+    }
+}
+
+impl Error for StressTensorError {}
+
+pub fn compare_reynolds_stress_profile(
+    input: &StressProfileInput,
+) -> Result<StressProfileReport, StressTensorError> {
+    if input.unit.trim().is_empty() {
+        return Err(StressTensorError::EmptyUnit);
+    }
+    if input.points.len() < 2 {
+        return Err(StressTensorError::TooFewProfilePoints);
+    }
+    if input.bands.is_empty() {
+        return Err(StressTensorError::EmptyBands);
+    }
+    if !input.psd_relative_tolerance.is_finite() || input.psd_relative_tolerance < 0.0 {
+        return Err(StressTensorError::InvalidTolerance);
+    }
+
+    for (index, point) in input.points.iter().enumerate() {
+        if !point.y_plus.is_finite() {
+            return Err(StressTensorError::NonFiniteCoordinate { index });
+        }
+        if index > 0 && point.y_plus <= input.points[index - 1].y_plus {
+            return Err(StressTensorError::NonIncreasingCoordinate { index });
+        }
+        if point
+            .reference
+            .is_positive_semidefinite(input.psd_relative_tolerance)
+            .is_err()
+        {
+            return Err(StressTensorError::InvalidReferenceTensor { index });
+        }
+        if let Some(estimate) = point.estimate {
+            if estimate
+                .is_positive_semidefinite(input.psd_relative_tolerance)
+                .is_err()
+            {
+                return Err(StressTensorError::InvalidEstimateTensor { index });
+            }
+        }
+    }
+
+    let mut reports = Vec::with_capacity(input.bands.len());
+    for band in &input.bands {
+        if band.id.trim().is_empty()
+            || !band.lower.is_finite()
+            || !band.upper.is_finite()
+            || band.lower >= band.upper
+        {
+            return Err(StressTensorError::InvalidBand {
+                band_id: band.id.clone(),
+            });
+        }
+        let selected: Vec<&StressProfilePoint> = input
+            .points
+            .iter()
+            .filter(|point| point.y_plus >= band.lower && point.y_plus <= band.upper)
+            .collect();
+        if selected.len() < 2 {
+            return Err(StressTensorError::BandHasTooFewPoints {
+                band_id: band.id.clone(),
+            });
+        }
+
+        let point_count = selected.len();
+        let estimates: Vec<(&StressProfilePoint, ReynoldsStressTensor3D)> = selected
+            .iter()
+            .filter_map(|point| point.estimate.map(|estimate| (*point, estimate)))
+            .collect();
+        let estimated_points = estimates.len();
+        let mut component_squared_errors = [0.0; 6];
+        let mut tke_error_sum = 0.0;
+        let mut tke_squared_error_sum = 0.0;
+        let mut tensor_squared_error_sum = 0.0;
+        let mut reference_tensor_squared_sum = 0.0;
+        let mut reference_non_psd_points = 0usize;
+        let mut estimate_non_psd_points = 0usize;
+
+        for point in &selected {
+            if !point
+                .reference
+                .is_positive_semidefinite(input.psd_relative_tolerance)?
+            {
+                reference_non_psd_points += 1;
+            }
+            if let Some(estimate) = point.estimate {
+                if !estimate.is_positive_semidefinite(input.psd_relative_tolerance)? {
+                    estimate_non_psd_points += 1;
+                }
+            }
+        }
+
+        for (point, estimate) in &estimates {
+            let reference_values = point.reference.components();
+            let estimate_values = estimate.components();
+            for component_index in 0..6 {
+                let difference = estimate_values[component_index] - reference_values[component_index];
+                component_squared_errors[component_index] += difference * difference;
+            }
+
+            let tke_error =
+                estimate.turbulent_kinetic_energy() - point.reference.turbulent_kinetic_energy();
+            tke_error_sum += tke_error;
+            tke_squared_error_sum += tke_error * tke_error;
+
+            let [duu, dvv, dww, duv, duw, dvw] = std::array::from_fn(|index| {
+                estimate_values[index] - reference_values[index]
+            });
+            tensor_squared_error_sum +=
+                duu * duu + dvv * dvv + dww * dww + 2.0 * (duv * duv + duw * duw + dvw * dvw);
+            let [ruu, rvv, rww, ruv, ruw, rvw] = reference_values;
+            reference_tensor_squared_sum += ruu * ruu
+                + rvv * rvv
+                + rww * rww
+                + 2.0 * (ruv * ruv + ruw * ruw + rvw * rvw);
+        }
+
+        let component_rmse = std::array::from_fn(|index| {
+            if estimated_points == 0 {
+                None
+            } else {
+                Some((component_squared_errors[index] / estimated_points as f64).sqrt())
+            }
+        });
+        let tke_bias = mean(tke_error_sum, estimated_points);
+        let tke_rmse = mean(tke_squared_error_sum, estimated_points).map(f64::sqrt);
+        let tensor_frobenius_rmse =
+            mean(tensor_squared_error_sum, estimated_points).map(f64::sqrt);
+        let tensor_frobenius_nrmse = if reference_tensor_squared_sum > 0.0 {
+            safe_ratio(
+                tensor_squared_error_sum.sqrt(),
+                reference_tensor_squared_sum.sqrt(),
+            )
+        } else {
+            None
+        };
+
+        reports.push(StressBandMetrics {
+            band_id: band.id.clone(),
+            point_count,
+            estimated_points,
+            point_coverage_fraction: estimated_points as f64 / point_count as f64,
+            component_rmse,
+            tke_bias,
+            tke_rmse,
+            tensor_frobenius_rmse,
+            tensor_frobenius_nrmse,
+            reference_non_psd_points,
+            estimate_non_psd_points,
+            estimate_realizability_violation_fraction: ratio(
+                estimate_non_psd_points,
+                estimated_points,
+            ),
+        });
+    }
+
+    Ok(StressProfileReport {
+        unit: input.unit.clone(),
+        bands: reports,
+    })
+}
+
+#[cfg(test)]
+mod stress_tensor_tests {
+    use super::*;
+
+    fn tensor(scale: f64) -> ReynoldsStressTensor3D {
+        ReynoldsStressTensor3D {
+            uu: 4.0 * scale,
+            vv: 2.0 * scale,
+            ww: 1.0 * scale,
+            uv: 0.5 * scale,
+            uw: 0.2 * scale,
+            vw: 0.1 * scale,
+        }
+    }
+
+    fn stress_input(
+        estimates: [Option<ReynoldsStressTensor3D>; 3],
+        references: [ReynoldsStressTensor3D; 3],
+    ) -> StressProfileInput {
+        StressProfileInput {
+            unit: "wall_velocity_squared".into(),
+            points: (0..3)
+                .map(|index| StressProfilePoint {
+                    y_plus: [1.0, 10.0, 100.0][index],
+                    estimate: estimates[index],
+                    reference: references[index],
+                })
+                .collect(),
+            bands: vec![YPlusBand {
+                id: "full".into(),
+                lower: 1.0,
+                upper: 100.0,
+            }],
+            psd_relative_tolerance: 1.0e-10,
+        }
+    }
+
+    #[test]
+    fn positive_semidefinite_tensor_is_accepted() {
+        assert!(tensor(1.0).is_positive_semidefinite(1.0e-10).unwrap());
+    }
+
+    #[test]
+    fn impossible_cross_covariance_is_not_realizable() {
+        let invalid = ReynoldsStressTensor3D {
+            uu: 1.0,
+            vv: 1.0,
+            ww: 1.0,
+            uv: 1.5,
+            uw: 0.0,
+            vw: 0.0,
+        };
+        assert!(!invalid.is_positive_semidefinite(1.0e-10).unwrap());
+    }
+
+    #[test]
+    fn exact_reynolds_stress_profile_has_zero_component_and_tke_error() {
+        let value = tensor(1.0);
+        let report = compare_reynolds_stress_profile(&stress_input(
+            [Some(value); 3],
+            [value; 3],
+        ))
+        .unwrap();
+        let metrics = &report.bands[0];
+        assert_eq!(metrics.point_coverage_fraction, 1.0);
+        assert!(metrics.component_rmse.iter().all(|value| *value == Some(0.0)));
+        assert_eq!(metrics.tke_bias, Some(0.0));
+        assert_eq!(metrics.tke_rmse, Some(0.0));
+        assert_eq!(metrics.estimate_non_psd_points, 0);
+    }
+
+    #[test]
+    fn each_stress_component_is_reported_separately() {
+        let reference = tensor(1.0);
+        let mut changed = reference;
+        changed.uv += 1.0;
+        let report = compare_reynolds_stress_profile(&stress_input(
+            [Some(changed); 3],
+            [reference; 3],
+        ))
+        .unwrap();
+        let components = report.bands[0].component_rmse;
+        assert_eq!(components[0], Some(0.0));
+        assert_eq!(components[3], Some(1.0));
+    }
+
+    #[test]
+    fn non_realizable_estimates_remain_visible_in_the_scorecard() {
+        let reference = tensor(1.0);
+        let invalid = ReynoldsStressTensor3D {
+            uu: 1.0,
+            vv: 1.0,
+            ww: 1.0,
+            uv: 2.0,
+            uw: 0.0,
+            vw: 0.0,
+        };
+        let report = compare_reynolds_stress_profile(&stress_input(
+            [Some(invalid); 3],
+            [reference; 3],
+        ))
+        .unwrap();
+        assert_eq!(report.bands[0].estimate_non_psd_points, 3);
+        assert_eq!(
+            report.bands[0].estimate_realizability_violation_fraction,
+            Some(1.0)
+        );
+    }
+
+    #[test]
+    fn missing_tensor_estimates_reduce_stress_profile_coverage() {
+        let reference = tensor(1.0);
+        let report = compare_reynolds_stress_profile(&stress_input(
+            [Some(reference), None, Some(reference)],
+            [reference; 3],
+        ))
+        .unwrap();
+        assert!((report.bands[0].point_coverage_fraction - 2.0 / 3.0).abs() < 1.0e-12);
+        assert_eq!(report.bands[0].estimate_realizability_violation_fraction, Some(0.0));
+    }
+
+    #[test]
+    fn stress_profile_rejects_nonfinite_tensors() {
+        let mut invalid = tensor(1.0);
+        invalid.uv = f64::NAN;
+        let result = compare_reynolds_stress_profile(&stress_input(
+            [Some(tensor(1.0)); 3],
+            [tensor(1.0), invalid, tensor(1.0)],
+        ));
+        assert_eq!(
+            result,
+            Err(StressTensorError::InvalidReferenceTensor { index: 1 })
+        );
+    }
+
+    #[test]
+    fn tke_error_does_not_hide_individual_stress_component_errors() {
+        let reference = tensor(1.0);
+        let mut changed = reference;
+        changed.uu += 1.0;
+        changed.vv -= 1.0;
+        let report = compare_reynolds_stress_profile(&stress_input(
+            [Some(changed); 3],
+            [reference; 3],
+        ))
+        .unwrap();
+        assert_eq!(report.bands[0].tke_bias, Some(0.0));
+        assert!(report.bands[0].component_rmse[0].unwrap() > 0.0);
+        assert!(report.bands[0].component_rmse[1].unwrap() > 0.0);
+    }
+}
