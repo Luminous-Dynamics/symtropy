@@ -1,0 +1,69 @@
+name: Mobility Network Delivery Adapter
+
+on:
+  pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/domains/symtropy-dc-network-screen/**"
+      - "crates/domains/symtropy-mobility-network-adapter/**"
+      - ".github/workflows/mobility-network-delivery-adapter.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mobility-network-adapter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Parse strict schema and fixture as JSON
+        run: |
+          jq empty crates/domains/symtropy-mobility-network-adapter/schemas/mobility_network_adapter_v0_1.schema.json
+          jq empty crates/domains/symtropy-mobility-network-adapter/fixtures/mobility_network_adapter_v0_1.json
+      - name: Format check
+        run: cargo fmt --package symtropy-mobility-network-adapter -- --check
+      - name: Rust tests
+        run: cargo test -p symtropy-mobility-network-adapter --locked
+      - name: Clippy
+        run: cargo clippy -p symtropy-mobility-network-adapter --all-targets --locked -- -D warnings
+      - name: Emit deterministic reference report
+        run: |
+          cargo run --quiet -p symtropy-mobility-network-adapter --locked --bin mobility_network_delivery_screen -- \
+            crates/domains/symtropy-mobility-network-adapter/fixtures/mobility_network_adapter_v0_1.json \
+            > mobility-network-adapter-report.json
+          jq -e '
+            .benchmark_id == "MOBILITY-NETWORK-DELIVERY-ADAPTER-001"
+            and .disposition == "screened_partial_request"
+            and (.input_digest | test("^sha256:[0-9a-f]{64}$"))
+            and (.site_requested_response_energy_mwh - 30 | fabs < 0.000000001)
+            and (.maximum_dc_network_deliverable_response_energy_mwh - 17.5 | fabs < 0.00000001)
+            and (.dc_undeliverable_or_curtailed_energy_mwh - 12.5 | fabs < 0.00000001)
+            and (.energy_conservation_error_mwh | fabs < 0.000000001)
+            and .full_requested_trajectory_dc_deliverable == false
+            and .actual_measured_pcc_response_energy_mwh == null
+            and .actual_metered_delivery_assessed == false
+            and .adequacy_contribution_computed == false
+            and .ac_feasibility_established == false
+            and .market_eligibility_granted == false
+            and .interconnection_approval_granted == false
+            and .field_qualification_granted == false
+            and .dispatch_authority_granted == false
+            and (.upstream_receipts | length) == 5
+            and (.dc_network_report | .network_deliverable) == false
+          ' mobility-network-adapter-report.json
+          cat mobility-network-adapter-report.json
+      - name: Upload adapter evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobility-network-adapter-evidence
+          path: |
+            mobility-network-adapter-report.json
+            crates/domains/symtropy-mobility-network-adapter/fixtures/mobility_network_adapter_v0_1.json
+            crates/domains/symtropy-mobility-network-adapter/schemas/mobility_network_adapter_v0_1.schema.json
+            crates/domains/symtropy-mobility-network-adapter/README.md
+          if-no-files-found: error
