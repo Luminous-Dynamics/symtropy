@@ -53,7 +53,9 @@ impl fmt::Display for CuboidError {
             Self::NonPositiveDimension => f.write_str("cuboid half-dimensions must be positive"),
             Self::NonFinitePolarization => f.write_str("polarization is non-finite"),
             Self::NonFiniteObserver => f.write_str("axial observation coordinate is non-finite"),
-            Self::NonFiniteDisplacement => f.write_str("axial displacement is outside the f64 range"),
+            Self::NonFiniteDisplacement => {
+                f.write_str("axial displacement is outside the f64 range")
+            }
             Self::NonFiniteField => f.write_str("axial field is outside the f64 range"),
         }
     }
@@ -86,7 +88,10 @@ impl AxiallyPolarizedCuboid {
                 return Err(CuboidError::NonPositiveDimension);
             }
         }
-        Ok(Self { half_dimensions, polarization })
+        Ok(Self {
+            half_dimensions,
+            polarization,
+        })
     }
 
     #[must_use]
@@ -154,12 +159,7 @@ impl AxiallyPolarizedCuboid {
 ///
 /// Dimensionless scaling avoids overflowing a*b or d*sqrt(d*d+a*a+b*b).
 /// zero_limit_sign chooses the correct one-sided limit for d exactly zero.
-fn rectangle_solid_angle_half_angle(
-    a: f64,
-    b: f64,
-    d: f64,
-    zero_limit_sign: f64,
-) -> f64 {
+fn rectangle_solid_angle_half_angle(a: f64, b: f64, d: f64, zero_limit_sign: f64) -> f64 {
     if d == 0.0 {
         return zero_limit_sign * (PI / 2.0);
     }
@@ -194,7 +194,11 @@ mod tests {
     #[test]
     fn cube_centre_interior_face_and_exterior_known_answers() {
         let magnet = cube(1.2);
-        close(magnet.field_at_z(AxisPositionMeters(0.0)).unwrap().0, 0.8, 1.0e-14);
+        close(
+            magnet.field_at_z(AxisPositionMeters(0.0)).unwrap().0,
+            0.8,
+            1.0e-14,
+        );
         close(
             magnet.field_at_z(AxisPositionMeters(0.025)).unwrap().0,
             0.726_331_230_043_011_6,
