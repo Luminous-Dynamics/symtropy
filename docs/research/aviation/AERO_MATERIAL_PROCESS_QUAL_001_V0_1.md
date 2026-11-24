@@ -135,6 +135,18 @@ For broader portfolio context:
 - An August 2026 eVTOL mission-level electrothermal study reports thermal-management energy above 20% in its own studied cases; this is a study-specific result, not a universal design constant: https://doi.org/10.1016/j.applthermaleng.2026.132253
 - EASA MOC-5 SC-VTOL Issue 2 is dated 5 November 2026 and applies to VTOL-capable aircraft certification means of compliance, not generic fixed-wing composite qualification: https://www.easa.europa.eu/en/downloads/144423/en
 
+
+### Current revision and applicability notes (reviewed 24 November 2026)
+
+- Wichita State / NIAR's CMH-17 publication update reports Volume 3 Revision H released in October 2025. SAE lists Volume 5 Revision B published 27 August 2026. These are different material families; do not treat one volume/revision as a universal composite profile. The CMH-17 roadmaps explicitly cover new-material qualification, lamina-allowable development, equivalence for revised material/process and second sources, bolted/bonded joints, and repairs. Our benchmark should map to the applicable roadmap but must not reproduce or substitute for the handbook's material statistical methods or proprietary data. See https://www.wichita.edu/industry_and_defense/NIAR/cmh-17/cmh-17.php, https://www.cmh17.org/HOME/FAQ and https://saemobilus.sae.org/books/composite-materials-handbook-volume-5-revision-b-r-460.
+- ISO reports ISO 23952:2020 (QIF) was reviewed and confirmed current on 14 June 2026. It is an information model and exchange format; a valid QIF document does not itself establish measurement validity. https://www.iso.org/standard/77461.html
+- ISO 23247-5:2026 was published on 24 June 2026. It defines a manufacturing digital thread across design, planning, production and testing. Our Mycelix handoff should interoperate with this thread while leaving engineering evidence appraisal to the appropriate owner. https://www.iso.org/standard/87425.html
+- NIST IR 8536 was finalized on 9 September 2026. Its contribution is interoperable manufacturing traceability and selective disclosure across existing systems; it is not a composite qualification method or physical acceptance authority. https://csrc.nist.gov/pubs/ir/8536/final
+- FAA AC 20-107B remains listed as active. It is an acceptable, non-exclusive means of showing compliance for composite aircraft structures under the applicable 14 CFR parts, and provides associated design/manufacturing/maintenance guidance. It is guidance, not mandatory regulation and not a standalone approval. https://www.faa.gov/regulations_policies/advisory_circulars/index.cfm/go/document.information/documentID/99693
+- EASA MOC-5 SC-VTOL Issue 2 is dated 5 November 2026. It is relevant to VTOL-capable aircraft certification means of compliance; do not apply it indiscriminately to a conventional fixed-wing/eSTOL configuration. https://www.easa.europa.eu/en/downloads/144423/en
+- NASA's 1.4 MW HEMM page publishes 16 kW/kg and 99% efficiency as development targets. Our comparison must keep motor-only metrics separate from installed motor/inverter/gearbox/cooling/harness/containment package metrics. https://www.nasa.gov/eap-technology/electric-machines/hemm/
+- Nakayama et al. (August 2026) report thermal-management energy above 20% in their particular mission-level eVTOL study cases. Treat this as a reason to model TMS energy and seasonal conditions explicitly, not as a universal aircraft design constant. https://doi.org/10.1016/j.applthermaleng.2026.132253
+
 ## 9. Next physical evidence ladder
 
 1. Synthetic contract and evaluator.
