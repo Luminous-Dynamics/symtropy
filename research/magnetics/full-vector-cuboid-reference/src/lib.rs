@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 #![forbid(unsafe_code)]
 
-pub mod assembly;
-
 //! Full-vector analytical field of a uniformly polarized rectangular cuboid.
 //!
 //! This independent reference sums the six rectangular surface-charge faces.
 //! It is exact for prescribed uniform polarization in free space, away from
 //! cuboid coordinate planes. It is not a nonlinear or multi-material solver.
+
+pub mod assembly;
 
 use std::fmt;
 
