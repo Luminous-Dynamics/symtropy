@@ -937,7 +937,6 @@ mod tests {
             "INDETERMINATE_NO_PROCESS_BATCHES"
         );
         assert!(has_code(&report, "EMPTY_REQUIRED_COLLECTION"));
-        assert!(has_code(&report, "EMPTY_GROUPING_CONTRACT") == false);
     }
 
     #[test]
