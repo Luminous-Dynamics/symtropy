@@ -155,6 +155,15 @@ The domain support fingerprint and minimum independent-block threshold should be
 
 ## Owner-issued calibration receipt
 
+The Rust runtime identity is represented by `SplitConformalCalibrationIdentityV0`. Both fitting and prediction bind the exact:
+- owner-issued receipt ID;
+- evaluator-assigned stratum and independent-unit kind;
+- claim type and canonical claim-scope digest;
+- predictor, preprocessing and score-function digests;
+- calibration cohort, sample-ID set, split manifest and evidence-prefix digests.
+
+The owner resolves this identity only after verifying the active receipt's signature/custody, status, model-freeze/calibration/issue chronology, sample manifest, exact order-statistic rank and revocation/expiry state. The Rust library validates digest shape and exact identity equality; it does **not** verify cryptographic signatures, owner custody or whether a receipt was revoked. A caller that cannot verify the active receipt must not instantiate/use the calibrator. If any runtime identity field differs from the fitted identity, prediction returns the full two-label set, no decision and `calibration_scope_admitted = false`.
+
 The quantile is not a free-floating number. The owner-side receipt schema is:
 - `schemas/split_conformal_transfer_receipt_v0.schema.json`
 - example: `examples/split_conformal_transfer_receipt_v0.example.json`
