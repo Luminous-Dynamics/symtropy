@@ -165,9 +165,16 @@ pub struct Corpus {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct WideRational {
+    /// Decimal strings preserve exact values beyond JSON's safe-integer range.
+    pub numerator: String,
+    pub denominator: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct SignedDifference {
     pub direction: String,
-    pub magnitude: Rational,
+    pub magnitude: WideRational,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
