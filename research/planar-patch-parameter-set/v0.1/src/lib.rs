@@ -387,10 +387,18 @@ fn is_feasible(
     if !finite3(beta) || beta.iter().any(|value| *value < -tolerance) {
         return false;
     }
+    let beta_norm = norm3(beta);
+    if !beta_norm.is_finite() {
+        return false;
+    }
     planes.iter().all(|plane| {
         let left = dot3(plane.normal, beta);
-        let scale = 1.0 + plane.bound.abs() + norm3(plane.normal) * norm3(beta);
-        left.is_finite() && left <= plane.bound + tolerance * scale
+        let normal_norm = norm3(plane.normal);
+        let scale = 1.0 + plane.bound.abs() + normal_norm * beta_norm;
+        left.is_finite()
+            && normal_norm.is_finite()
+            && scale.is_finite()
+            && left <= plane.bound + tolerance * scale
     })
 }
 
@@ -436,6 +444,14 @@ pub fn compute_parameter_set(
                 "squared normalized boundary channels overflowed",
             ));
         }
+        if z.iter().zip(x.iter()).any(|(component, square)| {
+            *component != 0.0 && *square == 0.0
+        }) {
+            return Err(ParameterSetError::new(
+                ParameterSetErrorKind::NonFiniteEvaluation,
+                "squared normalized boundary channel underflowed to zero",
+            ));
+        }
         if norm3(x) == 0.0 {
             direct_infeasibility = Some(observation.observation_id.clone());
             break;
@@ -443,7 +459,16 @@ pub fn compute_parameter_set(
     }
 
     let direct_infeasibility_observation_id = direct_infeasibility.clone();
-    let mut planes = Vec::with_capacity(observation_count * 2 + 3);
+    let plane_capacity = observation_count
+        .checked_mul(2)
+        .and_then(|value| value.checked_add(3))
+        .ok_or_else(|| {
+            ParameterSetError::new(
+                ParameterSetErrorKind::EnumerationBudgetExceeded,
+                "plane count overflowed",
+            )
+        })?;
+    let mut planes = Vec::with_capacity(plane_capacity);
     for (index, observation) in input.observations.iter().enumerate() {
         let z = observation.normalized_boundary_components;
         let x = [z[0] * z[0], z[1] * z[1], z[2] * z[2]];
@@ -606,7 +631,9 @@ pub fn compute_parameter_set(
         }
     }
 
-    let has_unbounded_axis = intervals.iter().any(|interval| interval.beta_upper.is_none());
+    let has_unbounded_axis = intervals.iter().any(|interval| {
+        interval.beta_upper.is_none() || interval.shape_scale_upper.is_none()
+    });
     let status = if has_unbounded_axis {
         ParameterSetStatus::FeasibleWithUnboundedAxes
     } else {
@@ -780,6 +807,33 @@ mod tests {
         assert!(report.intervals[2].shape_scale_upper.is_none());
         assert!(report.intervals[0].shape_scale_upper.is_some());
         assert!(report.intervals[1].shape_scale_upper.is_some());
+    }
+
+    #[test]
+    fn normalized_channel_square_underflow_is_rejected() {
+        let problem = input(vec![
+            observation("tiny", "tiny-trial", [1.0e-300, 0.0, 0.0], 0.05),
+        ]);
+        assert_eq!(
+            compute_parameter_set(&problem, config())
+                .expect_err("underflowed squared design")
+                .kind,
+            ParameterSetErrorKind::NonFiniteEvaluation
+        );
+    }
+
+    #[test]
+    fn shape_unboundedness_is_reflected_in_overall_status() {
+        let problem = input(vec![
+            observation("u", "u-trial", [2.0, 0.0, 0.0], 0.95),
+            observation("v", "v-trial", [0.0, 0.5, 0.0], 0.95),
+            observation("spin", "spin-trial", [0.0, 0.0, 0.25], 0.95),
+            observation("mixed", "mixed-trial", [1.0, 0.0, 0.0], 0.95),
+        ]);
+        let report = compute_parameter_set(&problem, config()).expect("wide slabs");
+        if report.intervals.iter().any(|interval| interval.shape_scale_upper.is_none()) {
+            assert_eq!(report.status, ParameterSetStatus::FeasibleWithUnboundedAxes);
+        }
     }
 
     #[test]
