@@ -74,7 +74,8 @@
     "GenCFD_conditional_score_diffusion_for_forward_statistical_computation",
     "masked_or_guided_diffusion_for_sparse_inverse_reconstruction",
     "physics_regularized_endpoint_residual_diffusion_for_temporal_super_resolution",
-    "autoregressive_conditional_diffusion_for_long_horizon_turbulence_rollout"
+    "autoregressive_conditional_diffusion_for_long_horizon_turbulence_rollout",
+    "SynthPix_JAX_high_throughput_synthetic_PIV_generator_v0_4_0"
   ],
   "matched_privileges": [
     "same_observations",
@@ -265,7 +266,9 @@
     "guided_sparse_diffusion": "https://doi.org/10.1063/5.0304492",
     "temporal_residual_diffusion": "https://doi.org/10.1016/j.compfluid.2026.107277",
     "autoregressive_conditional_diffusion": "https://doi.org/10.1016/j.neunet.2026.108641",
-    "generative_turbulence_priors_perspective": "https://doi.org/10.1103/qbw5-qqmg"
+    "generative_turbulence_priors_perspective": "https://doi.org/10.1103/qbw5-qqmg",
+    "synthpix_paper": "https://doi.org/10.1016/j.softx.2026.102642",
+    "synthpix_repository": "https://github.com/antonioterpin/synthpix"
   },
   "periodic_sampling_design": {
     "status": "source_reported_synthetic_baseline_and_prospective_benchmark_lane",
@@ -510,5 +513,45 @@
       ],
       "tradeoff": "diffusion accuracy/stability vs deterministic architecture inference speed"
     }
+  },
+  "synthetic_generator_track": {
+    "pinned_version": "0.4.0",
+    "pinned_commit": "0effe6e70b77d0d5c97348d8220e74d31bfaee2e",
+    "license": "MIT",
+    "reported_paper_results": {
+      "throughput": "orders_of_magnitude_faster_than_selected_alternative_generators",
+      "relative_EPE_discrepancy_mean": 0.001,
+      "relative_EPE_discrepancy_maximum": 0.005
+    },
+    "measured_reproduction_status": "not_yet_run",
+    "use_for": [
+      "high_throughput_GPU_image_generation",
+      "nuisance_parameter_sweeps",
+      "hard_example_mining",
+      "adaptive_acquisition_simulation",
+      "training_image_generation"
+    ],
+    "compare_separately_from": [
+      "PIV_estimator_accuracy",
+      "uncertainty_calibration",
+      "real_image_transfer"
+    ],
+    "current_interface": [
+      "JAX_batching",
+      "HDF5_MAT_NPY_flow_sources",
+      "seeding_density",
+      "diameter_intensity_and_shape_ranges",
+      "per_frame_appearance_variability",
+      "particle_hide_probability",
+      "noise",
+      "mask",
+      "histogram_matching"
+    ],
+    "paper_version_limitations": [
+      "orthogonal_camera_geometry",
+      "no_finite_pixel_fill_factor",
+      "multi_camera_volumetric_generation_deferred"
+    ],
+    "role_split": "SynthPix is the high-throughput generator; the Rust observation operator is a deterministic reference/analytic-control kernel, not a throughput competitor."
   }
 }
