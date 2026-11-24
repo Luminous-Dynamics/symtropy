@@ -245,7 +245,7 @@ pub fn compare_field_maps(
     };
 
     errors.sort_by(f64::total_cmp);
-    let p95_rank = (errors.len() * 95 + 99) / 100;
+    let p95_rank = (errors.len() * 95).div_ceil(100);
     let p95_vector_error_t = errors[p95_rank - 1];
     let within_absolute_tolerance_fraction = within_tolerance_count as f64 / count as f64;
 
