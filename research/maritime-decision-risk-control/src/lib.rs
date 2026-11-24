@@ -520,7 +520,7 @@ mod tests {
     #[test]
     fn calibration_data_can_falsify_declared_maximum_parameter_contract() {
         let mut matrix = monotone_fixture(120);
-        matrix.schedules[0][4] = 10;
+        matrix.schedules[0] = vec![10; 5];
 
         let result = calibrate(
             &matrix,
