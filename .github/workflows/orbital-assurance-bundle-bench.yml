@@ -17,6 +17,7 @@ on:
       - "research/orbital/INCUMBENT_DECISION_ADEQUACY_V0_1.md"
       - "research/orbital/INCUMBENT_LOSS_MODEL_BRIDGE_V0_1.md"
       - "research/orbital/INCUMBENT_POLICY_ADEQUACY_V0_1.md"
+      - "research/orbital/ORBITAL_RISK_SENSITIVE_CVAR_V0_1.md"
       - ".github/workflows/orbital-assurance-bundle-bench.yml"
   pull_request:
     branches:
@@ -24,6 +25,7 @@ on:
       - "research/orbital-dependency-graph-adequacy-v0-1"
       - "research/orbital-assurance-bundle-v0-1"
       - "research/orbital-incumbent-sequential-receipt-v0-1"
+      - "research/orbital-policy-source-provenance-v0-1"
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "tools/orbital-assurance-bundle-bench/**"
@@ -265,6 +267,41 @@ jobs:
             and .authority_granted == false
           ' exhaustive-observable-policy-report.json
 
+      - name: Validate CVaR corpus and output schemas
+        run: |
+          node -e 'JSON.parse(require("node:fs").readFileSync("tools/orbital-assurance-bundle-bench/schema/v0.1/cvar-regret-corpus.schema.json", "utf8"))'
+          node -e 'JSON.parse(require("node:fs").readFileSync("tools/orbital-assurance-bundle-bench/schema/v0.1/cvar-regret-evaluation.schema.json", "utf8"))'
+          node -e 'JSON.parse(require("node:fs").readFileSync("tools/orbital-assurance-bundle-bench/fixtures/v0.1/cvar-regret-cases.json", "utf8"))'
+
+      - name: Generate probability-qualified CVaR receipt with Rust
+        run: |
+          cargo run --locked --quiet --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --bin cvar-regret -- tools/orbital-assurance-bundle-bench/fixtures/v0.1/cvar-regret-cases.json --source-commit "$BENCHMARK_COMMIT" > cvar-regret-receipt.json
+          jq -e '
+            .receipt_schema == "luminous.orbital-cvar-regret.receipt.v0.1"
+            and .source_commit == env.BENCHMARK_COMMIT
+            and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
+            and .result == "pass"
+            and .evaluation.summary.case_count == 4
+            and .evaluation.summary.pass_cases == 1
+            and .evaluation.summary.abstain_cases == 3
+            and .evaluation.summary.invalid_input_cases == 0
+            and .evaluation.summary.authority_grants == 0
+            and .probability_qualification_granted == false
+            and .authority_granted == false
+          ' cvar-regret-receipt.json
+
+      - name: Run independent Python Fraction CVaR oracle and tests
+        run: |
+          python3 --version
+          python3 -m py_compile tools/orbital-assurance-bundle-bench/tests/cvar_regret_oracle.py
+          python3 tools/orbital-assurance-bundle-bench/tests/cvar_regret_oracle.py tools/orbital-assurance-bundle-bench/fixtures/v0.1/cvar-regret-cases.json > cvar-regret-python.json
+          (cd tools/orbital-assurance-bundle-bench/tests && python3 -m unittest -v test_cvar_regret_oracle)
+
+      - name: Compare Rust and Python CVaR results
+        run: |
+          node --check tools/orbital-assurance-bundle-bench/tests/compare_rust_python_cvar_regret.mjs
+          node tools/orbital-assurance-bundle-bench/tests/compare_rust_python_cvar_regret.mjs cvar-regret-receipt.json cvar-regret-python.json
+
       - name: Upload reproducible assurance receipt
         uses: actions/upload-artifact@v4
         with:
@@ -280,5 +317,7 @@ jobs:
             incumbent-policy-adequacy-receipt.json
             incumbent-policy-adequacy-python.json
             exhaustive-observable-policy-report.json
+            cvar-regret-receipt.json
+            cvar-regret-python.json
           if-no-files-found: error
           retention-days: 30
