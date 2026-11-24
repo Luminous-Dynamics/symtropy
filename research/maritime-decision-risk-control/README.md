@@ -227,11 +227,11 @@ Each complete scheduling episode declares its unique episode ID, unique dependen
 - Calibration and Evaluation matrices remain separate. Evaluation outcomes cannot enter calibration selection through this adapter.
 - Matrices and policy columns are sorted deterministically, so input episode order and policy-outcome order do not change the compiled result.
 
-The adapter does **not** prove that the oracle is independent, that the evidence reference is truthful, that an external digest matches the policy-grid contents, or that the declared exchangeability scope holds. Those remain owner/evidence assertions. It does not implement physical feasibility, estimate importance weights, or convert a CRC expected-risk result into an authorization decision.
+The adapter does **not** prove that the oracle is independent, that the evidence reference is truthful, that an external digest matches the policy-grid contents, or that the declared exchangeability scope holds. Those remain owner/evidence assertions. The adapter also reports empirical upper-tail CVaR by policy and loss axis. These descriptive diagnostics are not finite-sample CVaR guarantees or risk-control certificates. The broader comparison against high-probability LTT/RCPS, stability-based and anytime-valid methods is owned by [#7303](https://github.com/Luminous-Dynamics/symtropy/issues/7303). It does not implement physical feasibility, estimate importance weights, or convert a CRC expected-risk result into an authorization decision.
 
 The root `crate::LossMatrix` and finite-grid CRC-NM grid can consume the emitted matrices independently for each loss axis. Known-weight shift selection is deliberately not wired to this adapter: a real bounded likelihood ratio must be independently justified, not inferred from these receipts.
 
-The adapter has 13 unit tests for separate axes, deterministic permutation invariance, authority denial/unknown, physical unknown, bounded-loss violations, dependence-cluster leakage, policy-grid/revision drift, mixed regimes, digest validation, and role separation.
+The adapter has 16 unit tests for separate axes, deterministic permutation invariance, authority denial/unknown, physical unknown, bounded-loss violations, dependence-cluster leakage, policy-grid/revision drift, mixed regimes, digest validation, role separation, and empirical upper-tail CVaR.
 
 ## Important release preconditions
 
