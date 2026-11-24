@@ -25,15 +25,29 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "sample_id",
+          "claim_id",
+          "claim_type",
+          "claim_scope_sha256",
           "evaluation_stratum_id",
           "transfer_qualified"
         ],
         "properties": {
-          "sample_id": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 18446744073709552000
+          "claim_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "claim_type": {
+            "enum": [
+              "structural_correspondence",
+              "deterministic_dynamics",
+              "simulation",
+              "bisimulation",
+              "mechanism_transfer"
+            ]
+          },
+          "claim_scope_sha256": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "evaluation_stratum_id": {
             "type": "integer",
