@@ -14,9 +14,7 @@
 
 use std::collections::BTreeSet;
 
-use crate::oracle_adapter::{
-    AuthorityDisposition, PhysicalDisposition, PolicyActionClass,
-};
+use crate::oracle_adapter::{AuthorityDisposition, PhysicalDisposition, PolicyActionClass};
 
 const MAX_LOSS_MILLI: u16 = 1_000;
 
@@ -120,11 +118,17 @@ pub fn compile_finite_scenario_audit(
 ) -> Result<FiniteScenarioAudit, FiniteScenarioError> {
     for (value, field) in [
         (contract.scenario_set_id.as_str(), "scenario_set_id"),
-        (contract.scenario_set_revision.as_str(), "scenario_set_revision"),
+        (
+            contract.scenario_set_revision.as_str(),
+            "scenario_set_revision",
+        ),
         (contract.policy_id.as_str(), "policy_id"),
         (contract.policy_revision.as_str(), "policy_revision"),
         (contract.evaluator_revision.as_str(), "evaluator_revision"),
-        (contract.loss_contract_revision.as_str(), "loss_contract_revision"),
+        (
+            contract.loss_contract_revision.as_str(),
+            "loss_contract_revision",
+        ),
         (contract.operating_regime_id.as_str(), "operating_regime_id"),
         (contract.source_evidence_ref.as_str(), "source_evidence_ref"),
     ] {
@@ -206,8 +210,13 @@ pub fn compile_finite_scenario_audit(
 
         let authority_is_valid = matches!(
             (outcome.action_class, outcome.authority),
-            (PolicyActionClass::NoMutation, AuthorityDisposition::NotRequired)
-                | (PolicyActionClass::Mutating, AuthorityDisposition::Authorized)
+            (
+                PolicyActionClass::NoMutation,
+                AuthorityDisposition::NotRequired
+            ) | (
+                PolicyActionClass::Mutating,
+                AuthorityDisposition::Authorized
+            )
         );
         if !authority_is_valid {
             authority_violation_count += 1;
@@ -228,9 +237,8 @@ pub fn compile_finite_scenario_audit(
             .participant_a_service_units
             .min(outcome.participant_b_service_units);
         minimum_participant_service_units = Some(
-            minimum_participant_service_units.map_or(participant_min, |value: u32| {
-                value.min(participant_min)
-            }),
+            minimum_participant_service_units
+                .map_or(participant_min, |value: u32| value.min(participant_min)),
         );
     }
 
@@ -272,13 +280,9 @@ pub enum StatisticalGuarantee {
     /// Marginal expected risk over calibration and a future draw.
     MarginalExpected,
     /// Sample-conditional risk control with a declared failure probability.
-    HighProbability {
-        failure_probability_ppm: u32,
-    },
+    HighProbability { failure_probability_ppm: u32 },
     /// Time-uniform risk control over the declared monitoring sequence.
-    TimeUniform {
-        failure_probability_ppm: u32,
-    },
+    TimeUniform { failure_probability_ppm: u32 },
     /// Descriptive metric only; never sufficient for this composition gate.
     DiagnosticOnly,
 }
@@ -369,8 +373,7 @@ pub fn compose_assurance(
         blockers.push(AssuranceBlocker::ParticipantServiceFloorViolation);
     }
 
-    if risk.policy_id != scenarios.policy_id || risk.policy_revision != scenarios.policy_revision
-    {
+    if risk.policy_id != scenarios.policy_id || risk.policy_revision != scenarios.policy_revision {
         blockers.push(AssuranceBlocker::PolicyIdentityMismatch);
     }
     if risk.evaluator_revision != scenarios.evaluator_revision {
@@ -512,13 +515,17 @@ mod tests {
 
     #[test]
     fn model_generated_scenarios_cannot_masquerade_as_independent_truth() {
-        let decision =
-            compose_assurance(&compile(FiniteScenarioSource::SyntheticModel), &risk_claim());
+        let decision = compose_assurance(
+            &compile(FiniteScenarioSource::SyntheticModel),
+            &risk_claim(),
+        );
 
         assert!(!decision.admissible_within_declared_scope);
-        assert!(decision
-            .blockers
-            .contains(&AssuranceBlocker::ScenarioSourceNotIndependent));
+        assert!(
+            decision
+                .blockers
+                .contains(&AssuranceBlocker::ScenarioSourceNotIndependent)
+        );
     }
 
     #[test]
@@ -533,9 +540,11 @@ mod tests {
 
         let decision = compose_assurance(&audit, &risk_claim());
         assert!(!decision.admissible_within_declared_scope);
-        assert!(decision
-            .blockers
-            .contains(&AssuranceBlocker::PhysicalScenarioFailure));
+        assert!(
+            decision
+                .blockers
+                .contains(&AssuranceBlocker::PhysicalScenarioFailure)
+        );
     }
 
     #[test]
@@ -551,9 +560,11 @@ mod tests {
 
         let decision = compose_assurance(&audit, &risk_claim());
         assert!(!decision.admissible_within_declared_scope);
-        assert!(decision
-            .blockers
-            .contains(&AssuranceBlocker::AuthorityViolation));
+        assert!(
+            decision
+                .blockers
+                .contains(&AssuranceBlocker::AuthorityViolation)
+        );
     }
 
     #[test]
@@ -567,9 +578,11 @@ mod tests {
         .expect("unknown state remains explicit");
 
         let decision = compose_assurance(&audit, &risk_claim());
-        assert!(decision
-            .blockers
-            .contains(&AssuranceBlocker::UnknownPhysicalScenarioOutcome));
+        assert!(
+            decision
+                .blockers
+                .contains(&AssuranceBlocker::UnknownPhysicalScenarioOutcome)
+        );
     }
 
     #[test]
@@ -584,9 +597,11 @@ mod tests {
 
         assert!(!audit.scenario_universe_complete());
         let decision = compose_assurance(&audit, &risk_claim());
-        assert!(decision
-            .blockers
-            .contains(&AssuranceBlocker::ScenarioUniverseIncomplete));
+        assert!(
+            decision
+                .blockers
+                .contains(&AssuranceBlocker::ScenarioUniverseIncomplete)
+        );
     }
 
     #[test]
@@ -605,9 +620,11 @@ mod tests {
 
         let decision = compose_assurance(&audit, &risk_claim());
         assert!(!decision.admissible_within_declared_scope);
-        assert!(decision
-            .blockers
-            .contains(&AssuranceBlocker::ParticipantServiceFloorViolation));
+        assert!(
+            decision
+                .blockers
+                .contains(&AssuranceBlocker::ParticipantServiceFloorViolation)
+        );
     }
 
     #[test]
@@ -624,14 +641,13 @@ mod tests {
     fn empirical_tail_diagnostics_do_not_count_as_statistical_risk_control() {
         let mut claim = risk_claim();
         claim.guarantee = StatisticalGuarantee::DiagnosticOnly;
-        let decision = compose_assurance(
-            &compile(FiniteScenarioSource::IndependentOracle),
-            &claim,
-        );
+        let decision = compose_assurance(&compile(FiniteScenarioSource::IndependentOracle), &claim);
 
-        assert!(decision
-            .blockers
-            .contains(&AssuranceBlocker::DiagnosticIsNotRiskControl));
+        assert!(
+            decision
+                .blockers
+                .contains(&AssuranceBlocker::DiagnosticIsNotRiskControl)
+        );
         assert!(!decision.admissible_within_declared_scope);
     }
 
@@ -639,14 +655,13 @@ mod tests {
     fn risk_bound_above_target_blocks_even_when_finite_scenarios_pass() {
         let mut claim = risk_claim();
         claim.risk_upper_bound_milli = 101;
-        let decision = compose_assurance(
-            &compile(FiniteScenarioSource::IndependentOracle),
-            &claim,
-        );
+        let decision = compose_assurance(&compile(FiniteScenarioSource::IndependentOracle), &claim);
 
-        assert!(decision
-            .blockers
-            .contains(&AssuranceBlocker::RiskUpperBoundExceedsTarget));
+        assert!(
+            decision
+                .blockers
+                .contains(&AssuranceBlocker::RiskUpperBoundExceedsTarget)
+        );
     }
 
     #[test]
@@ -654,29 +669,29 @@ mod tests {
         let mut claim = risk_claim();
         claim.policy_revision = "policy-v2".to_owned();
         claim.evaluator_revision = "evaluator-v2".to_owned();
-        let decision = compose_assurance(
-            &compile(FiniteScenarioSource::IndependentOracle),
-            &claim,
-        );
+        let decision = compose_assurance(&compile(FiniteScenarioSource::IndependentOracle), &claim);
 
-        assert!(decision
-            .blockers
-            .contains(&AssuranceBlocker::PolicyIdentityMismatch));
-        assert!(decision
-            .blockers
-            .contains(&AssuranceBlocker::EvaluatorRevisionMismatch));
+        assert!(
+            decision
+                .blockers
+                .contains(&AssuranceBlocker::PolicyIdentityMismatch)
+        );
+        assert!(
+            decision
+                .blockers
+                .contains(&AssuranceBlocker::EvaluatorRevisionMismatch)
+        );
     }
 
     #[test]
     fn service_loss_claim_cannot_stand_in_for_hard_physical_risk() {
         let mut claim = risk_claim();
         claim.risk_axis = StatisticalRiskAxis::ServiceLoss;
-        let decision = compose_assurance(
-            &compile(FiniteScenarioSource::IndependentOracle),
-            &claim,
-        );
+        let decision = compose_assurance(&compile(FiniteScenarioSource::IndependentOracle), &claim);
 
-        assert!(decision.blockers.contains(&AssuranceBlocker::WrongRiskAxis));
+        assert!(
+            decision.blockers.contains(&AssuranceBlocker::WrongRiskAxis)
+        );
     }
 
     #[test]
@@ -685,10 +700,7 @@ mod tests {
         claim.guarantee = StatisticalGuarantee::TimeUniform {
             failure_probability_ppm: 0,
         };
-        let decision = compose_assurance(
-            &compile(FiniteScenarioSource::IndependentOracle),
-            &claim,
-        );
+        let decision = compose_assurance(&compile(FiniteScenarioSource::IndependentOracle), &claim);
 
         assert!(decision.blockers.contains(&AssuranceBlocker::InvalidRiskClaim));
     }
