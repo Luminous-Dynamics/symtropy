@@ -371,6 +371,9 @@ pub struct ConditionalLossBranch {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PersistentMissionBranchSet {
     pub model_id: u64,
+    /// First-stage acquisition action selected at the mission root. It must
+    /// be identical across every persistent model.
+    pub root_action_id: u64,
     pub branches: Vec<ConditionalLossBranch>,
 }
 
@@ -484,9 +487,15 @@ pub fn worst_case_iterated_cvar(
         }
     }
 
+    if ordered[0].root_action_id == 0 {
+        return Err(TailRiskError::InvalidBranchId);
+    }
+    let reference_root_action = ordered[0].root_action_id;
     let reference_policy = branch_policy_signature(&ordered[0].branches)?;
     for model in ordered.iter().skip(1) {
-        if branch_policy_signature(&model.branches)? != reference_policy {
+        if model.root_action_id != reference_root_action
+            || branch_policy_signature(&model.branches)? != reference_policy
+        {
             return Err(TailRiskError::PersistentPolicyMismatch);
         }
     }
@@ -1686,6 +1695,7 @@ mod iterated_cvar_tests {
     fn outer_model_max_keeps_persistent_models_separate_and_deterministic() {
         let model_a = PersistentMissionBranchSet {
             model_id: 11,
+            root_action_id: 10,
             branches: vec![
                 branch(1, 99, &[(100, 1), (0, 98)]),
                 branch(2, 1, &[(10, 1)]),
@@ -1693,6 +1703,7 @@ mod iterated_cvar_tests {
         };
         let model_b = PersistentMissionBranchSet {
             model_id: 22,
+            root_action_id: 10,
             branches: vec![
                 branch(1, 99, &[(200, 1), (0, 98)]),
                 branch(2, 1, &[(20, 1)]),
@@ -1730,6 +1741,7 @@ mod iterated_cvar_tests {
             worst_case_iterated_cvar(&[
                 PersistentMissionBranchSet {
                     model_id: 0,
+                    root_action_id: 10,
                     branches: vec![branch(1, 1, &[(1, 1)])],
                 }
             ], 50_000),
@@ -1741,6 +1753,7 @@ mod iterated_cvar_tests {
     fn persistent_models_must_share_the_same_observable_branch_actions() {
         let model_a = PersistentMissionBranchSet {
             model_id: 1,
+            root_action_id: 10,
             branches: vec![
                 branch(1, 99, &[(100, 1), (0, 98)]),
                 branch(2, 1, &[(10, 1)]),
@@ -1748,6 +1761,7 @@ mod iterated_cvar_tests {
         };
         let mut model_b = PersistentMissionBranchSet {
             model_id: 2,
+            root_action_id: 10,
             branches: vec![
                 branch(1, 99, &[(200, 1), (0, 98)]),
                 branch(2, 1, &[(20, 1)]),
@@ -1755,7 +1769,14 @@ mod iterated_cvar_tests {
         };
         model_b.branches[1].continuation_action_id = 99;
         assert_eq!(
-            worst_case_iterated_cvar(&[model_a, model_b], 50_000),
+            worst_case_iterated_cvar(&[model_a.clone(), model_b.clone()], 50_000),
+            Err(TailRiskError::PersistentPolicyMismatch)
+        );
+
+        let mut root_mismatch = model_b;
+        root_mismatch.root_action_id = 77;
+        assert_eq!(
+            worst_case_iterated_cvar(&[model_a, root_mismatch], 50_000),
             Err(TailRiskError::PersistentPolicyMismatch)
         );
     }
