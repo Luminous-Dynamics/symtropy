@@ -1335,7 +1335,9 @@ mod tests {
         assert!(
             result
                 .trigger_reason
-                .contains("branches on hidden loss-model identity")
+                .contains("branches on hidden loss-model identity"),
+            "actual trigger reason: {}",
+            result.trigger_reason
         );
     }
 
