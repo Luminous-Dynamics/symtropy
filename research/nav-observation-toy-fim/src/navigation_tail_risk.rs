@@ -340,12 +340,47 @@ pub fn mission_path_loss_distributions(
         }
     }
 
+    if problem.false_safe_loss == 0 || problem.false_degraded_loss == 0 {
+        return Err(TailRiskError::InvalidPolicyTree);
+    }
+
     for (index, action) in actions.iter().enumerate() {
-        if actions[..index]
-            .iter()
-            .any(|prior| prior.action_id == action.action_id)
+        if action.action_id == 0
+            || action.evidence_age_ns > action.cost.latency_ns
+            || actions[..index]
+                .iter()
+                .any(|prior| prior.action_id == action.action_id)
         {
             return Err(TailRiskError::InvalidPolicyTree);
+        }
+        for model in 0..2 {
+            for state in 0..4 {
+                let likelihoods = action.likelihoods[model][state];
+                let total = likelihoods
+                    .no_observation_ppm
+                    .checked_add(likelihoods.observed_zero_ppm)
+                    .and_then(|value| value.checked_add(likelihoods.observed_one_ppm));
+                if total != Some(PROBABILITY_SCALE) {
+                    return Err(TailRiskError::InvalidPolicyTree);
+                }
+            }
+            for cause in 0..2 {
+                let transition = action.transitions[model][cause];
+                if transition.inside_to_outside_ppm > PROBABILITY_SCALE
+                    || transition.outside_to_inside_ppm > PROBABILITY_SCALE
+                    || (action.evidence_age_ns == 0
+                        && (transition.inside_to_outside_ppm != 0
+                            || transition.outside_to_inside_ppm != 0))
+                    || action.outcome_model_sha256[model][cause]
+                        .iter()
+                        .all(|byte| *byte == 0)
+                    || action.transition_model_sha256[model][cause]
+                        .iter()
+                        .all(|byte| *byte == 0)
+                {
+                    return Err(TailRiskError::InvalidPolicyTree);
+                }
+            }
         }
     }
 
@@ -799,5 +834,186 @@ mod tests {
             ),
             Err(TailRiskError::DuplicateModelId(1))
         );
+    }
+}
+
+
+#[cfg(test)]
+mod mission_path_distribution_tests {
+    use super::*;
+    use crate::navigation_temporal_mission_minimax::{
+        plan_temporal_mission_minimax, OutcomeLikelihoods, ResourceVector,
+        StateTransition, TimedJointAction,
+    };
+
+    fn likelihoods(no: u64, zero: u64, one: u64) -> OutcomeLikelihoods {
+        OutcomeLikelihoods {
+            no_observation_ppm: no,
+            observed_zero_ppm: zero,
+            observed_one_ppm: one,
+        }
+    }
+
+    fn problem() -> TemporalMinimaxProblem {
+        TemporalMinimaxProblem {
+            prior_by_model_ppm: [
+                [250_000, 250_000, 250_000, 250_000],
+                [250_000, 250_000, 250_000, 250_000],
+            ],
+            false_safe_loss: 1,
+            false_degraded_loss: 1,
+        }
+    }
+
+    fn action(id: u64, age: u64, latency: u64, inside_error: u64, outside_error: u64) -> TimedJointAction {
+        let inside = likelihoods(0, PROBABILITY_SCALE - inside_error, inside_error);
+        let outside = likelihoods(0, outside_error, PROBABILITY_SCALE - outside_error);
+        let rows = [inside, outside, inside, outside];
+        TimedJointAction {
+            action_id: id,
+            cost: ResourceVector { latency_ns: latency, energy_uj: 1, bandwidth_bytes: 1 },
+            evidence_age_ns: age,
+            likelihoods: [rows; 2],
+            transitions: [[
+                StateTransition { inside_to_outside_ppm: 0, outside_to_inside_ppm: 0 },
+                StateTransition { inside_to_outside_ppm: 0, outside_to_inside_ppm: 0 },
+            ]; 2],
+            outcome_model_sha256: [[[0x31; 32]; 2]; 2],
+            transition_model_sha256: [[[0x42; 32]; 2]; 2],
+        }
+    }
+
+    fn assert_matches_expected_loss(
+        policy: &ObservablePolicy,
+        distributions: &[Vec<LossMass>; 2],
+    ) {
+        for model in 0..2 {
+            assert_eq!(
+                expected_loss(&distributions[model]).unwrap(),
+                ExactRisk::new(
+                    policy.model_loss_numerators[model],
+                    policy.risk_denominator,
+                )
+                .unwrap()
+            );
+            assert_eq!(
+                total_mass(&distributions[model]).unwrap(),
+                scale_power(5).unwrap()
+            );
+        }
+    }
+
+    #[test]
+    fn extracted_complete_path_distributions_reproduce_exact_minimax_expected_risk() {
+        let p = problem();
+        let actions = [
+            action(1, 100, 100, 0, 0),
+            action(2, 0, 100, 100_000, 100_000),
+        ];
+        let plans = plan_temporal_mission_minimax(
+            &p,
+            &actions,
+            ResourceVector { latency_ns: 200, energy_uj: 10, bandwidth_bytes: 10 },
+        )
+        .unwrap();
+
+        for policy in [
+            &plans.mission_global_minimax_risk,
+            &plans.mission_global_minimax_regret,
+            &plans.rectangular_switching_diagnostic,
+        ] {
+            let distributions = mission_path_loss_distributions(&p, &actions, policy).unwrap();
+            assert_matches_expected_loss(policy, &distributions);
+            let robust_tail = worst_case_cvar(
+                &[
+                    ModelLossDistribution { model_id: 0, outcomes: &distributions[0] },
+                    ModelLossDistribution { model_id: 1, outcomes: &distributions[1] },
+                ],
+                950_000,
+            )
+            .unwrap();
+            assert!(robust_tail.worst_case_cvar.numerator > 0);
+        }
+    }
+
+    #[test]
+    fn no_action_policy_reconstructs_padded_full_mission_distribution() {
+        let p = problem();
+        let plans = plan_temporal_mission_minimax(&p, &[], ResourceVector::default()).unwrap();
+        let policy = &plans.mission_global_minimax_risk;
+        let distributions = mission_path_loss_distributions(&p, &[], policy).unwrap();
+        assert_matches_expected_loss(policy, &distributions);
+    }
+
+    #[test]
+    fn mission_path_extraction_rejects_missing_action_and_incomplete_branches() {
+        let p = problem();
+        let actions = [action(1, 0, 100, 0, 0)];
+        let plans = plan_temporal_mission_minimax(
+            &p,
+            &actions,
+            ResourceVector { latency_ns: 100, energy_uj: 10, bandwidth_bytes: 10 },
+        )
+        .unwrap();
+        let mut missing_action = plans.mission_global_minimax_risk.clone();
+        missing_action.first_action_id = Some(99);
+        assert_eq!(
+            mission_path_loss_distributions(&p, &actions, &missing_action),
+            Err(TailRiskError::MissingAction(99))
+        );
+
+        let mut incomplete = plans.mission_global_minimax_risk.clone();
+        incomplete.branches.pop();
+        assert_eq!(
+            mission_path_loss_distributions(&p, &actions, &incomplete),
+            Err(TailRiskError::InvalidPolicyTree)
+        );
+    }
+
+    #[test]
+    fn contingent_second_action_distribution_reproduces_model_loss_numerators() {
+        let p = problem();
+        let mut reveal_cause = action(1, 0, 100, 0, 0);
+        let reveal_nominal = likelihoods(0, PROBABILITY_SCALE, 0);
+        let reveal_shared = likelihoods(0, 0, PROBABILITY_SCALE);
+        for model in 0..2 {
+            reveal_cause.likelihoods[model] = [
+                reveal_nominal,
+                reveal_nominal,
+                reveal_shared,
+                reveal_shared,
+            ];
+        }
+
+        let mut nominal_specialist = action(2, 0, 100, 0, 0);
+        let mut shared_specialist = action(3, 0, 100, 0, 0);
+        let uninformative = likelihoods(0, 500_000, 500_000);
+        for model in 0..2 {
+            for state in 0..2 {
+                nominal_specialist.likelihoods[model][2 + state] = uninformative;
+                shared_specialist.likelihoods[model][state] = uninformative;
+            }
+        }
+
+        let actions = [reveal_cause, nominal_specialist, shared_specialist];
+        let plans = plan_temporal_mission_minimax(
+            &p,
+            &actions,
+            ResourceVector { latency_ns: 200, energy_uj: 10, bandwidth_bytes: 10 },
+        )
+        .unwrap();
+        let policy = &plans.mission_global_minimax_risk;
+        assert_eq!(policy.first_action_id, Some(1));
+        assert!(policy.branches.iter().any(|branch| {
+            matches!(&branch.choice, ObservableBranchChoice::Acquire { second_action_id: 2, .. })
+        }));
+        assert!(policy.branches.iter().any(|branch| {
+            matches!(&branch.choice, ObservableBranchChoice::Acquire { second_action_id: 3, .. })
+        }));
+
+        let distributions = mission_path_loss_distributions(&p, &actions, policy).unwrap();
+        assert_matches_expected_loss(policy, &distributions);
+        assert_eq!(cvar(&distributions[0], 950_000).unwrap(), risk(0, 1));
+        assert_eq!(cvar(&distributions[1], 950_000).unwrap(), risk(0, 1));
     }
 }
