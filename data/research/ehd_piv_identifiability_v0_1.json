@@ -18,7 +18,7 @@
     "conditional_innovation_sensitivity_after_existing_measurements",
     "Schur_complement_covariance_for_incremental_measurement"
   ],
-  "authored_manufactured_tests": 27,
+  "authored_manufactured_tests": 28,
   "limits": [
     "no_observation_covariance_whitening",
     "no_global_or_structural_identifiability_proof",
@@ -57,7 +57,11 @@
       "no automatic sensor actuation",
       "no direct EVSI or functional posterior variance calculation",
       "does_not_authenticate_noise_covariance_or_candidate_sensitivities"
-    ]
+    ],
+    "raw_covariance_api": "rank_covariance_aware_measurement_actions",
+    "accepts_raw_existing_and_candidate_sensitivity_and_covariance_blocks": true,
+    "automatically_computes_conditional_schur_innovations": true,
+    "additional_test": "covariance_aware_action_ranker_discounts_correlated_repeat"
   },
   "covariance_whitening": {
     "function": "whiten_sensitivity_with_covariance",
