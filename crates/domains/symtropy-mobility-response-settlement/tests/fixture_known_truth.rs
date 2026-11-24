@@ -31,6 +31,7 @@ fn frozen_four_report_bundle_reconciles_and_never_grants_settlement_authority() 
         (report.conservative_net_response_lower_bound_kwh.unwrap() - 0.005194444444444444).abs()
             < 1.0e-12
     );
+    assert!((report.minimum_dispatch_interval_lower_bound_kw.unwrap() - 9.8).abs() < 1.0e-9);
     assert!(!report.conservative_lower_bound_is_joint_probability);
     assert!(!report.source_artifact_signatures_verified);
     assert!(!report.settlement_authority_granted);
