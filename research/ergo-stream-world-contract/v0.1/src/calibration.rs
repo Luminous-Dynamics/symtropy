@@ -10,7 +10,7 @@
 //! transfers. Probabilities use integer parts-per-million (ppm) so Brier and
 //! binned calibration errors have exact integer numerators.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 /// Probability scale: 1_000_000 ppm represents probability 1.0.
@@ -36,6 +36,8 @@ pub struct TransferForecastV0 {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TransferOutcomeV0 {
     pub sample_id: u64,
+    /// Owner/evaluator grouping label, never learner-authored.
+    pub evaluation_stratum_id: u16,
     /// Owner/evaluator truth for the exact declared transfer claim.
     pub transfer_qualified: bool,
 }
@@ -66,6 +68,13 @@ impl SelectiveRiskPointV0 {
     pub fn selective_risk(self) -> Option<f64> {
         (self.covered_samples > 0).then(|| self.errors as f64 / self.covered_samples as f64)
     }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct StratifiedTransferCalibrationReportV0 {
+    /// Evaluator-owned, preregistered semantic/format/claim stratum.
+    pub evaluation_stratum_id: u16,
+    pub report: TransferCalibrationReportV0,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -344,6 +353,67 @@ pub fn evaluate_transfer_calibration(
     })
 }
 
+/// Evaluate calibration separately for evaluator-owned strata.
+///
+/// The strata label each outcome using information unavailable to the
+/// candidate at forecast time (for example: representation-only shift,
+/// semantic/mechanism shift, combined shift, or a particular claim family).
+/// Each stratum receives its own Brier/log-loss/ECE and selective-risk report.
+/// The full forecast/outcome set is validated first, so missing, duplicate or
+/// orphan records cannot disappear by being excluded from a group.
+pub fn evaluate_transfer_calibration_by_stratum(
+    forecasts: &[TransferForecastV0],
+    outcomes: &[TransferOutcomeV0],
+    calibration_bin_count: usize,
+    confidence_thresholds_ppm: &[u32],
+) -> Result<Vec<StratifiedTransferCalibrationReportV0>, TransferCalibrationErrorV0> {
+    // Validate the complete cohort before grouping to prevent silent loss of
+    // unmatched samples or invalid strata.
+    let _ = evaluate_transfer_calibration(
+        forecasts,
+        outcomes,
+        calibration_bin_count,
+        confidence_thresholds_ppm,
+    )?;
+
+    let forecasts_by_id = forecasts
+        .iter()
+        .map(|forecast| (forecast.sample_id, *forecast))
+        .collect::<BTreeMap<_, _>>();
+    let mut outcomes_by_stratum = BTreeMap::<u16, Vec<TransferOutcomeV0>>::new();
+    for outcome in outcomes {
+        outcomes_by_stratum
+            .entry(outcome.evaluation_stratum_id)
+            .or_default()
+            .push(*outcome);
+    }
+
+    outcomes_by_stratum
+        .into_iter()
+        .map(|(evaluation_stratum_id, stratum_outcomes)| {
+            let stratum_forecasts = stratum_outcomes
+                .iter()
+                .map(|outcome| {
+                    forecasts_by_id
+                        .get(&outcome.sample_id)
+                        .copied()
+                        .ok_or(TransferCalibrationErrorV0::MissingOutcome)
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            let report = evaluate_transfer_calibration(
+                &stratum_forecasts,
+                &stratum_outcomes,
+                calibration_bin_count,
+                confidence_thresholds_ppm,
+            )?;
+            Ok(StratifiedTransferCalibrationReportV0 {
+                evaluation_stratum_id,
+                report,
+            })
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -361,6 +431,51 @@ mod tests {
     }
 
     #[test]
+    fn stratified_calibration_surfaces_domain_specific_failure_hidden_by_pooled_scores() {
+        let forecasts = [
+            forecast(101, 1_000_000, Some(TransferDecisionV0::AssertTransfer)),
+            forecast(102, 950_000, Some(TransferDecisionV0::AssertTransfer)),
+            forecast(103, 0, Some(TransferDecisionV0::RejectTransfer)),
+        ];
+        let outcomes = [
+            TransferOutcomeV0 {
+                sample_id: 101,
+                evaluation_stratum_id: 0,
+                transfer_qualified: true,
+            },
+            TransferOutcomeV0 {
+                sample_id: 102,
+                evaluation_stratum_id: 3,
+                transfer_qualified: false,
+            },
+            TransferOutcomeV0 {
+                sample_id: 103,
+                evaluation_stratum_id: 0,
+                transfer_qualified: false,
+            },
+        ];
+
+        let reports = evaluate_transfer_calibration_by_stratum(
+            &forecasts,
+            &outcomes,
+            10,
+            &[0, 900_000],
+        )
+        .unwrap();
+
+        assert_eq!(reports.len(), 2);
+        assert_eq!(reports[0].evaluation_stratum_id, 0);
+        assert_eq!(reports[0].report.sample_count, 2);
+        assert_eq!(reports[0].report.brier_numerator, 0);
+        assert_eq!(reports[1].evaluation_stratum_id, 3);
+        assert_eq!(reports[1].report.sample_count, 1);
+        assert_eq!(
+            reports[1].report.selective_risk_curve[1].selective_risk(),
+            Some(1.0)
+        );
+    }
+
+    #[test]
     fn perfect_extreme_forecasts_have_zero_brier_and_ece() {
         let forecasts = [
             forecast(1, 1_000_000, Some(TransferDecisionV0::AssertTransfer)),
@@ -371,18 +486,22 @@ mod tests {
         let outcomes = [
             TransferOutcomeV0 {
                 sample_id: 1,
+                evaluation_stratum_id: 0,
                 transfer_qualified: true,
             },
             TransferOutcomeV0 {
                 sample_id: 2,
+                evaluation_stratum_id: 0,
                 transfer_qualified: false,
             },
             TransferOutcomeV0 {
                 sample_id: 3,
+                evaluation_stratum_id: 0,
                 transfer_qualified: true,
             },
             TransferOutcomeV0 {
                 sample_id: 4,
+                evaluation_stratum_id: 0,
                 transfer_qualified: false,
             },
         ];
@@ -402,10 +521,12 @@ mod tests {
         let outcomes = [
             TransferOutcomeV0 {
                 sample_id: 1,
+                evaluation_stratum_id: 0,
                 transfer_qualified: false,
             },
             TransferOutcomeV0 {
                 sample_id: 2,
+                evaluation_stratum_id: 0,
                 transfer_qualified: true,
             },
         ];
@@ -426,6 +547,7 @@ mod tests {
         )];
         let outcomes = [TransferOutcomeV0 {
             sample_id: 1,
+            evaluation_stratum_id: 0,
             transfer_qualified: false,
         }];
 
@@ -448,18 +570,22 @@ mod tests {
         let outcomes = [
             TransferOutcomeV0 {
                 sample_id: 1,
+                evaluation_stratum_id: 0,
                 transfer_qualified: true,
             },
             TransferOutcomeV0 {
                 sample_id: 2,
+                evaluation_stratum_id: 0,
                 transfer_qualified: false,
             },
             TransferOutcomeV0 {
                 sample_id: 3,
+                evaluation_stratum_id: 0,
                 transfer_qualified: false,
             },
             TransferOutcomeV0 {
                 sample_id: 4,
+                evaluation_stratum_id: 0,
                 transfer_qualified: true,
             },
         ];
@@ -488,10 +614,12 @@ mod tests {
         let outcomes = [
             TransferOutcomeV0 {
                 sample_id: 1,
+                evaluation_stratum_id: 0,
                 transfer_qualified: true,
             },
             TransferOutcomeV0 {
                 sample_id: 2,
+                evaluation_stratum_id: 0,
                 transfer_qualified: false,
             },
         ];
@@ -507,6 +635,7 @@ mod tests {
         let valid = [forecast(1, 500_000, None)];
         let outcome = [TransferOutcomeV0 {
             sample_id: 1,
+            evaluation_stratum_id: 0,
             transfer_qualified: true,
         }];
         assert_eq!(
@@ -530,6 +659,7 @@ mod tests {
                 &invalid,
                 &[TransferOutcomeV0 {
                     sample_id: 2,
+                    evaluation_stratum_id: 0,
                     transfer_qualified: false,
                 }],
                 10,
@@ -544,6 +674,7 @@ mod tests {
         let forecasts = [forecast(1, 500_000, None)];
         let outcomes = [TransferOutcomeV0 {
             sample_id: 1,
+            evaluation_stratum_id: 0,
             transfer_qualified: true,
         }];
 
@@ -567,10 +698,12 @@ mod tests {
         let outcomes = [
             TransferOutcomeV0 {
                 sample_id: 1,
+                evaluation_stratum_id: 0,
                 transfer_qualified: true,
             },
             TransferOutcomeV0 {
                 sample_id: 1,
+                evaluation_stratum_id: 0,
                 transfer_qualified: false,
             },
         ];
@@ -587,10 +720,12 @@ mod tests {
         let outcomes = [
             TransferOutcomeV0 {
                 sample_id: 1,
+                evaluation_stratum_id: 0,
                 transfer_qualified: true,
             },
             TransferOutcomeV0 {
                 sample_id: 2,
+                evaluation_stratum_id: 0,
                 transfer_qualified: false,
             },
         ];
