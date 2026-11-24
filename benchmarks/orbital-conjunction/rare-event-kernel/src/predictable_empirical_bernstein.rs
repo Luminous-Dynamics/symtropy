@@ -551,7 +551,6 @@ mod tests {
         // r_t(event)=0.8 after an event, else 0.05. The normalized weighted
         // event indicator has fixed conditional mean a*P(E)=0.02.
         const HORIZON: u32 = 6;
-        let target_mean = DEFENSIVE_WEIGHT * EVENT_PROBABILITY;
         let mut total_miss_probability = 0.0;
 
         for encoded_path in 0_u32..(1_u32 << HORIZON) {
