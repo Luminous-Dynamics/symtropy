@@ -828,6 +828,28 @@ mod tests {
     }
 
     #[test]
+    fn visible_resource_failure_holds_at_the_first_decision_cutoff() {
+        let mut frame = sample_frame();
+        frame["observable_history"][0]["resource_events"] = json!([{
+            "source_event_id": "FAIL-AT-EPOCH-0",
+            "resource_id": "RESOURCE-A",
+            "kind": "FAILED",
+            "occurred_at_epoch": 0,
+            "observed_at_epoch": 0,
+            "common_cause_id": null,
+            "recovery_forecast_min_epochs": 1,
+            "recovery_forecast_max_epochs": 2
+        }]);
+        let receipt = evaluate(&frame, &sample_proposal()).unwrap();
+        assert_eq!(receipt.status, AdmissionStatus::Hold);
+        assert!(
+            receipt
+                .reason_codes
+                .contains(&"resource_has_visible_unrestored_failure".to_string())
+        );
+    }
+
+    #[test]
     fn later_epoch_requires_live_operation_state_even_after_restoration() {
         let mut frame = sample_frame();
         frame["decision_epoch"] = Value::from(1);
