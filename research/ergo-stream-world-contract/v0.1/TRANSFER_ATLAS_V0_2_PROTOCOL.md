@@ -202,6 +202,10 @@ Add the following to the v0.2 scorecard by shift axis and claim kind:
 - abstention rate and correctness of abstention on non-identifiable/out-of-scope cases;
 - calibration drift between in-domain, representation-only, semantic/mechanism and combined shifts.
 
+### Wilson reference intervals and dependence
+
+The scorer now provides two-sided 95% Wilson reference intervals for selective coverage and selective risk. These are IID-binomial diagnostics only. For campaigns with repeated measurements, shared world seeds, temporal dependence or common-cause clusters, publish uncertainty at the predeclared independent-unit level using cluster/bootstrap or another justified method. Report raw event counts and independent-cluster counts separately; do not use frame count as the inferential sample size.
+
 ### Evaluator-owned shift strata
 
 Use `evaluate_transfer_calibration_by_stratum` to report separate proper scores and risk/coverage curves for predeclared evaluator-owned groups. Recommended strata include:
