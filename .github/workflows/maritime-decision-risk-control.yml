@@ -103,4 +103,15 @@ jobs:
           grep -q "NO_POLICY_MEETS_TARGET$" /tmp/simultaneous-risk.csv
           grep -q "SIMULTANEOUS_UCB_SYNTHETIC$" /tmp/simultaneous-risk.csv
           awk -F, '$1==50000 { if ($6 != 1 || $7 > 100) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/simultaneous-risk.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin repeated-sampling-risk-audit > /tmp/repeated-sampling-risk.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin repeated-sampling-risk-audit > /tmp/repeated-sampling-risk-replay.csv
+          cmp /tmp/repeated-sampling-risk.csv /tmp/repeated-sampling-risk-replay.csv
+          test "$(wc -l < /tmp/repeated-sampling-risk.csv)" -eq 21
+          head -n 1 /tmp/repeated-sampling-risk.csv | awk -F, '{ if (NF != 26) exit 1 }'
+          awk -F, 'NF != 26 { exit 1 }' /tmp/repeated-sampling-risk.csv
+          grep -q "MARGINAL_EXPECTED_RISK" /tmp/repeated-sampling-risk.csv
+          grep -q "FIXED_GRID_HIGH_PROBABILITY" /tmp/repeated-sampling-risk.csv
+          grep -q ",NO_POSITIVE_ADJUSTED_TARGET$" /tmp/repeated-sampling-risk.csv
+          awk -F, '$2=="SIMULTANEOUS_HOEFFDING" && $6==200 { if ($7 <= 0 || $8 >= 2000 || $18=="NA") exit 1; found++; } END { if (found != 2) exit 1 }' /tmp/repeated-sampling-risk.csv
+          echo "Maritime repeated-sampling risk tournament smoke receipt passed."
           echo "Maritime decision-risk and finite-grid non-monotone receipts passed."
