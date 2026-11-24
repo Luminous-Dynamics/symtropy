@@ -740,6 +740,176 @@ fn set_status_threshold(
     }
 }
 
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CandidateMeasurementAction {
+    pub id: String,
+    /// Positive declared acquisition / diagnostic cost in one consistent unit.
+    pub cost: f64,
+    /// New residual-sensitivity rows after conditional whitening with the
+    /// covariance of all previously observed residuals. These are innovations,
+    /// not raw rows when candidate observations correlate with existing ones.
+    pub whitened_conditional_innovation_rows: Vec<Vec<f64>>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CandidateActionScore {
+    pub action_id: String,
+    pub cost: f64,
+    pub added_observation_count: usize,
+    pub physical_rank_gain: usize,
+    pub smallest_profiled_physical_sensitivity_before: f64,
+    pub smallest_profiled_physical_sensitivity_after: f64,
+    pub smallest_profiled_physical_sensitivity_gain: f64,
+    pub sensitivity_gain_per_cost: f64,
+    pub physical_condition_number_before: Option<f64>,
+    pub physical_condition_number_after: Option<f64>,
+    pub physical_status_after: IdentifiabilityStatus,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MeasurementActionRanking {
+    pub baseline_physical_status: IdentifiabilityStatus,
+    pub baseline_profiled_physical_singular_values: Vec<f64>,
+    /// Sorted by physical rank gain, then weakest-direction sensitivity gain
+    /// per unit cost, then remaining sensitivity; ties are ordered by ID.
+    pub candidates: Vec<CandidateActionScore>,
+    pub recommended_action_id: Option<String>,
+}
+
+/// Rank candidate actions by how much they improve the weakest physical
+/// sensitivity after nuisance directions have been profiled out.
+///
+/// Candidate rows must be conditionally whitened innovations: if candidate
+/// observations correlate with existing observations, the caller must first
+/// apply the appropriate conditional covariance whitening. Simply treating
+/// correlated image pixels as independent rows invalidates the information
+/// increment.
+pub fn rank_candidate_measurement_actions(
+    baseline: &IdentifiabilityInput,
+    actions: &[CandidateMeasurementAction],
+) -> Result<MeasurementActionRanking, IdentifiabilityError> {
+    validate_input(baseline)?;
+    if actions.is_empty() {
+        return Err(IdentifiabilityError::EmptyCandidateActions);
+    }
+    let baseline_report = analyze_local_identifiability(baseline)?;
+    let baseline_smallest = baseline_report
+        .nuisance_profiled_physical_singular_values
+        .last()
+        .copied()
+        .unwrap_or(0.0);
+    let mut seen_ids = std::collections::BTreeSet::new();
+    let mut scores = Vec::with_capacity(actions.len());
+
+    for action in actions {
+        if action.id.trim().is_empty() {
+            return Err(IdentifiabilityError::EmptyCandidateActionId);
+        }
+        if !seen_ids.insert(action.id.as_str()) {
+            return Err(IdentifiabilityError::DuplicateCandidateActionId {
+                id: action.id.clone(),
+            });
+        }
+        if !action.cost.is_finite() || action.cost <= 0.0 {
+            return Err(IdentifiabilityError::InvalidCandidateActionCost {
+                id: action.id.clone(),
+            });
+        }
+        if action.whitened_conditional_innovation_rows.is_empty() {
+            return Err(IdentifiabilityError::EmptyCandidateActionRows {
+                id: action.id.clone(),
+            });
+        }
+        for (row_index, row) in action.whitened_conditional_innovation_rows.iter().enumerate() {
+            if row.len() != baseline.parameters.len() {
+                return Err(IdentifiabilityError::CandidateRaggedSensitivityRow {
+                    action_id: action.id.clone(),
+                    row: row_index,
+                    expected: baseline.parameters.len(),
+                    actual: row.len(),
+                });
+            }
+            for (column_index, value) in row.iter().enumerate() {
+                if !value.is_finite() {
+                    return Err(IdentifiabilityError::CandidateNonFiniteSensitivity {
+                        action_id: action.id.clone(),
+                        row: row_index,
+                        column: column_index,
+                    });
+                }
+            }
+        }
+
+        let mut augmented = baseline.clone();
+        augmented
+            .whitened_sensitivity_matrix
+            .extend(action.whitened_conditional_innovation_rows.iter().cloned());
+        let augmented_report = analyze_local_identifiability(&augmented)?;
+        let smallest_after = augmented_report
+            .nuisance_profiled_physical_singular_values
+            .last()
+            .copied()
+            .unwrap_or(0.0);
+        let sensitivity_gain = (smallest_after - baseline_smallest).max(0.0);
+        let physical_rank_gain = augmented_report
+            .nuisance_profiled_physical_rank
+            .saturating_sub(baseline_report.nuisance_profiled_physical_rank);
+
+        scores.push(CandidateActionScore {
+            action_id: action.id.clone(),
+            cost: action.cost,
+            added_observation_count: action.whitened_conditional_innovation_rows.len(),
+            physical_rank_gain,
+            smallest_profiled_physical_sensitivity_before: baseline_smallest,
+            smallest_profiled_physical_sensitivity_after: smallest_after,
+            smallest_profiled_physical_sensitivity_gain: sensitivity_gain,
+            sensitivity_gain_per_cost: sensitivity_gain / action.cost,
+            physical_condition_number_before: baseline_report
+                .nuisance_profiled_physical_condition_number,
+            physical_condition_number_after: augmented_report
+                .nuisance_profiled_physical_condition_number,
+            physical_status_after: augmented_report.physical_status,
+        });
+    }
+
+    scores.sort_by(|left, right| {
+        right
+            .physical_rank_gain
+            .cmp(&left.physical_rank_gain)
+            .then_with(|| {
+                right
+                    .sensitivity_gain_per_cost
+                    .partial_cmp(&left.sensitivity_gain_per_cost)
+                    .unwrap_or(Ordering::Equal)
+            })
+            .then_with(|| {
+                right
+                    .smallest_profiled_physical_sensitivity_after
+                    .partial_cmp(&left.smallest_profiled_physical_sensitivity_after)
+                    .unwrap_or(Ordering::Equal)
+            })
+            .then_with(|| left.action_id.cmp(&right.action_id))
+    });
+
+    let recommended_action_id = scores
+        .iter()
+        .find(|score| {
+            score.physical_rank_gain > 0
+                || score.smallest_profiled_physical_sensitivity_gain
+                    > baseline.config.minimum_profiled_physical_sensitivity
+        })
+        .map(|score| score.action_id.clone());
+
+    Ok(MeasurementActionRanking {
+        baseline_physical_status: baseline_report.physical_status,
+        baseline_profiled_physical_singular_values: baseline_report
+            .nuisance_profiled_physical_singular_values,
+        candidates: scores,
+        recommended_action_id,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1057,4 +1227,121 @@ mod tests {
             IdentifiabilityStatus::NoInformativeSensitivity
         );
     }
+    #[test]
+    fn candidate_action_that_breaks_flow_gain_confounding_is_ranked_first() {
+        let baseline = input(
+            vec![
+                parameter("flow_brightness", ParameterRole::Physical),
+                parameter("camera_gain", ParameterRole::Nuisance),
+            ],
+            vec![vec![1.0, 1.0]],
+        );
+        let actions = vec![
+            CandidateMeasurementAction {
+                id: "same-ambiguous-view".into(),
+                cost: 1.0,
+                whitened_conditional_innovation_rows: vec![vec![1.0, 1.0]],
+            },
+            CandidateMeasurementAction {
+                id: "gain-reference-view".into(),
+                cost: 1.0,
+                whitened_conditional_innovation_rows: vec![vec![0.0, 1.0]],
+            },
+        ];
+        let ranking = rank_candidate_measurement_actions(&baseline, &actions).unwrap();
+        assert_eq!(
+            ranking.recommended_action_id.as_deref(),
+            Some("gain-reference-view")
+        );
+        assert_eq!(ranking.candidates[0].physical_rank_gain, 1);
+        assert_eq!(
+            ranking.candidates[0].physical_status_after,
+            IdentifiabilityStatus::Identifiable
+        );
+        assert_eq!(ranking.candidates[1].physical_rank_gain, 0);
+    }
+
+    #[test]
+    fn cost_breaks_ties_after_rank_gain_and_sensitivity_gain() {
+        let baseline = input(
+            vec![
+                parameter("flow", ParameterRole::Physical),
+                parameter("gain", ParameterRole::Nuisance),
+            ],
+            vec![vec![1.0, 1.0]],
+        );
+        let actions = vec![
+            CandidateMeasurementAction {
+                id: "expensive".into(),
+                cost: 10.0,
+                whitened_conditional_innovation_rows: vec![vec![0.0, 1.0]],
+            },
+            CandidateMeasurementAction {
+                id: "cheap".into(),
+                cost: 1.0,
+                whitened_conditional_innovation_rows: vec![vec![0.0, 1.0]],
+            },
+        ];
+        let ranking = rank_candidate_measurement_actions(&baseline, &actions).unwrap();
+        assert_eq!(ranking.candidates[0].action_id, "cheap");
+        assert!(ranking.candidates[0].sensitivity_gain_per_cost
+            > ranking.candidates[1].sensitivity_gain_per_cost);
+    }
+
+    #[test]
+    fn nuisance_only_candidate_does_not_receive_physical_information_credit() {
+        let baseline = input(
+            vec![
+                parameter("flow", ParameterRole::Physical),
+                parameter("gain", ParameterRole::Nuisance),
+            ],
+            vec![vec![1.0, 0.0], vec![0.0, 1.0]],
+        );
+        let actions = vec![CandidateMeasurementAction {
+            id: "more-gain-only".into(),
+            cost: 1.0,
+            whitened_conditional_innovation_rows: vec![vec![0.0, 1.0]],
+        }];
+        let ranking = rank_candidate_measurement_actions(&baseline, &actions).unwrap();
+        assert_eq!(ranking.candidates[0].physical_rank_gain, 0);
+        assert_eq!(
+            ranking.candidates[0].smallest_profiled_physical_sensitivity_gain,
+            0.0
+        );
+        assert_eq!(ranking.recommended_action_id, None);
+    }
+
+    #[test]
+    fn candidate_action_inputs_fail_closed() {
+        let baseline = input(
+            vec![
+                parameter("flow", ParameterRole::Physical),
+                parameter("gain", ParameterRole::Nuisance),
+            ],
+            vec![vec![1.0, 1.0]],
+        );
+        let empty = rank_candidate_measurement_actions(&baseline, &[]);
+        assert_eq!(empty, Err(IdentifiabilityError::EmptyCandidateActions));
+
+        let malformed = vec![CandidateMeasurementAction {
+            id: "bad-row".into(),
+            cost: 1.0,
+            whitened_conditional_innovation_rows: vec![vec![1.0]],
+        }];
+        assert!(matches!(
+            rank_candidate_measurement_actions(&baseline, &malformed),
+            Err(IdentifiabilityError::CandidateRaggedSensitivityRow { .. })
+        ));
+
+        let nonfinite = vec![CandidateMeasurementAction {
+            id: "bad-number".into(),
+            cost: 1.0,
+            whitened_conditional_innovation_rows: vec![vec![f64::NAN, 1.0]],
+        }];
+        assert!(matches!(
+            rank_candidate_measurement_actions(&baseline, &nonfinite),
+            Err(IdentifiabilityError::CandidateNonFiniteSensitivity { .. })
+        ));
+    }
+
 }
