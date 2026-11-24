@@ -363,3 +363,11 @@ New implementation on the branch:
 It computes exact fixed-point Brier score and ECE numerators/denominators, mean log loss with a reported one-ppm boundary clip count, and selective risk/coverage across evaluator-supplied confidence thresholds. Assert/reject confidence is derived from the selected class; abstention is excluded from selective coverage but its probability remains in proper-score calculations. Thresholds, bins and outcome labels are evaluator-owned. The example forecast list includes structural, simulation and mechanism claims with assert/abstain/reject decisions.
 
 The implementation currently has nine focused unit tests covering perfect forecasts, exact bin boundaries, overconfident false transfer, abstention, decision confidence, duplicate/missing/out-of-range input, duplicate thresholds/out-of-range bins and orphan outcomes. **Exact-head Rust 1.96 format, tests/doctests and strict Clippy remain pending for this new module.** The prior green workflow on head `9735f9f7...` qualifies the earlier 86-test finite stack only and does not qualify this addition.
+
+## Evaluator-stratified transfer calibration
+
+The calibration module now also includes `evaluate_transfer_calibration_by_stratum`. Each owner-side outcome has an `evaluation_stratum_id` (not visible in the learner's forecast schema). The helper first validates the complete pooled cohort, then emits separate Brier/log-loss/ECE and selective-risk reports per stratum in deterministic ID order.
+
+This allows preregistered comparisons across representation-only, semantic/mechanism, combined shift and claim-family strata without allowing candidate-authored labels or silent omission of malformed records. A new known-answer test demonstrates a pooled evaluation that could hide a stratum with 100% selective risk.
+
+**Current source head includes this stratified addition; exact-head Rust 1.96 format/tests/doctests/strict Clippy are pending.** The earlier 95-test result covers the pooled calibration module before this stratified addition, not this new code.
