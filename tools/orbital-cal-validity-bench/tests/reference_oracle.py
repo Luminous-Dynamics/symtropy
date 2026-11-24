@@ -60,6 +60,12 @@ def validate_case(case):
                for key, value in component["configuration"].items()):
             raise ValueError("COMPONENT_CONFIGURATION_INVALID")
 
+    for condition_id, measurement in case["actual_conditions"].items():
+        interval(measurement["observed_time_ns"], measurement["time_uncertainty_ns"])
+        if (not require_text(condition_id) or not require_text(measurement["unit"])
+                or not valid_sha256(measurement["receipt_sha256"])):
+            raise ValueError("ACTUAL_CONDITION_MEASUREMENT_INVALID")
+
     scope_ids = set()
     for scope in case["scopes"]:
         sid = scope["scope_id"]
@@ -75,6 +81,10 @@ def validate_case(case):
         if any(not require_text(key) or not require_text(value)
                for key, value in scope["required_configuration"].items()):
             raise ValueError("REQUIRED_CONFIGURATION_INVALID")
+        if any(not require_text(key) or not require_text(envelope["unit"])
+               or envelope["minimum_q"] > envelope["maximum_q"]
+               for key, envelope in scope["required_conditions"].items()):
+            raise ValueError("REQUIRED_CONDITION_ENVELOPE_INVALID")
         if scope["check_required"]:
             if scope["check_state"] == "NOT_REQUIRED":
                 raise ValueError("REQUIRED_CHECK_MARKED_NOT_REQUIRED")
@@ -134,6 +144,32 @@ def evaluate_scope(case, scope, acquisition):
                 add("INDETERMINATE", "CONFIGURATION_FIELD_MISSING")
             elif component["configuration"][key] != required_value:
                 add("IDENTITY_MISMATCH", "CONFIGURATION_MISMATCH")
+
+    for condition_id, envelope in scope["required_conditions"].items():
+        measurement = case["actual_conditions"].get(condition_id)
+        if measurement is None:
+            add("INDETERMINATE", "CONDITION_MEASUREMENT_MISSING")
+        elif measurement["unit"] != envelope["unit"]:
+            add("IDENTITY_MISMATCH", "CONDITION_UNIT_MISMATCH")
+        else:
+            value_interval = interval(measurement["value_q"], measurement["uncertainty_q"])
+            minimum = envelope["minimum_q"]
+            maximum = envelope["maximum_q"]
+            if value_interval[1] < minimum or value_interval[0] > maximum:
+                add("OUT_OF_SCOPE", "OPERATING_CONDITION_OUT_OF_SCOPE")
+            elif value_interval[0] < minimum or value_interval[1] > maximum:
+                add("INDETERMINATE", "OPERATING_CONDITION_BOUNDARY_OVERLAP")
+
+            observed_interval = interval(measurement["observed_time_ns"], measurement["time_uncertainty_ns"])
+            if observed_interval[0] > acquisition[1]:
+                add("INDETERMINATE", "CONDITION_MEASUREMENT_AFTER_ACQUISITION")
+            elif observed_interval[1] < acquisition[0]:
+                minimum_age = acquisition[0] - observed_interval[1]
+                maximum_age = acquisition[1] - observed_interval[0]
+                if minimum_age > envelope["maximum_age_ns"]:
+                    add("EXPIRED", "CONDITION_MEASUREMENT_STALE")
+                elif maximum_age > envelope["maximum_age_ns"]:
+                    add("INDETERMINATE", "CONDITION_MEASUREMENT_AGE_BOUNDARY_OVERLAP")
 
     if scope["check_required"]:
         state = scope["check_state"]
