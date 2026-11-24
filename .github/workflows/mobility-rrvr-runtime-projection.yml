@@ -288,6 +288,30 @@ jobs:
             and .physical_safety_established == false
           ' "$REPORT"
 
+      - name: Smoke-test synthetic RRVR journal benchmark
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace"
+          REPORT="$RUNNER_TEMP/rrvr-journal-benchmark.json"
+          JOURNAL="$RUNNER_TEMP/rrvr-journal-benchmark.jsonl"
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_journal_bench -- 5 "$JOURNAL" > "$REPORT"
+          jq -e '
+            .schema_version == "0.1"
+            and .benchmark == "RRVR-JRN-SYNTHETIC-APPEND-REPLAY"
+            and .dispatch_count == 5
+            and .journal_entry_count == 12
+            and .journal_bytes > 0
+            and .append_total_ns > 0
+            and .replay_projection_ns > 0
+            and .recovery_projection.dispatches == 5
+            and .recovery_projection.dispatch_ledger_reconciliation_required == 5
+            and .recovery_projection.mutation_permitted == false
+            and .recovery_projection.authority_created == false
+            and .transport_calls_performed == false
+            and .physical_safety_established == false
+          ' "$REPORT"
+
       - name: Run paired RRVR campaign validator positive control
         shell: bash
         run: |
