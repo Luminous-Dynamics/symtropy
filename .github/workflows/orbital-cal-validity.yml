@@ -44,7 +44,7 @@ jobs:
           errors = list(Draft202012Validator(schema).iter_errors(fixture))
           assert not errors, errors
           assert len(fixture["cases"]) == 17
-          assert len({case["case_id"] for case in fixture["cases"]}) == 16
+          assert len({case["case_id"] for case in fixture["cases"]}) == 17
           assert all(case["required_scope_ids"] for case in fixture["cases"])
           print("16 frozen calibration-validity cases and Draft 2020-12 schema validated")
           PY
