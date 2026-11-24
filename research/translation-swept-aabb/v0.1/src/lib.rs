@@ -728,11 +728,21 @@ mod tests {
     #[test]
     fn malformed_time_and_state_are_rejected() {
         assert_eq!(
-            SweepContext::new(1, 1, f64::NAN, provenance(QuantizationProfile::NativeBinary64)),
+            SweepContext::new(
+                1,
+                1,
+                f64::NAN,
+                provenance(QuantizationProfile::NativeBinary64)
+            ),
             Err(SweepError::NonFiniteTimeStep)
         );
         assert_eq!(
-            SweepContext::new(1, 1, -1.0, provenance(QuantizationProfile::NativeBinary64)),
+            SweepContext::new(
+                1,
+                1,
+                -1.0,
+                provenance(QuantizationProfile::NativeBinary64)
+            ),
             Err(SweepError::NegativeTimeStep)
         );
         assert_eq!(Aabb::<0>::new([], []), Err(SweepError::ZeroDimension));
