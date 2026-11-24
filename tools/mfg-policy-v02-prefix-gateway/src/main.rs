@@ -14,7 +14,6 @@ struct PolicyDecisionFrame {
     schema_id: &'static str,
     benchmark_id: String,
     case_id: String,
-    scenario_family_id: String,
     decision_epoch: usize,
     static_case: Value,
     observable_history: Vec<Value>,
@@ -43,6 +42,25 @@ fn required_string<'a>(value: &'a Value, key: &str, context: &str) -> Result<&'a
         .and_then(Value::as_str)
         .filter(|value| !value.trim().is_empty())
         .ok_or_else(|| fail(format!("{context}_{key}_missing_or_invalid")))
+}
+
+fn policy_static_projection(policy_case: &Value) -> Result<Value, String> {
+    let required_fields = [
+        "case_id",
+        "horizon_epochs",
+        "jobs",
+        "resources",
+        "setup_transitions",
+        "inspection_station",
+    ];
+    let mut projection = serde_json::Map::new();
+    for key in required_fields {
+        let value = policy_case
+            .get(key)
+            .ok_or_else(|| fail(format!("policy_static_field_missing:{key}")))?;
+        projection.insert(key.to_string(), value.clone());
+    }
+    Ok(Value::Object(projection))
 }
 
 fn find_unique_case<'a>(
@@ -121,9 +139,8 @@ fn project_prefix(
         schema_id: "https://luminousdynamics.io/schemas/mfg-policy-v0.2-decision-frame",
         benchmark_id: benchmark_id.to_string(),
         case_id: case_id.to_string(),
-        scenario_family_id: scenario_family_id.to_string(),
         decision_epoch,
-        static_case: policy_case.clone(),
+        static_case: policy_static_projection(policy_case)?,
         observable_history: visible_history,
         claim_ceiling: "Synthetic policy-input projection only; no evidence authentication, schedule feasibility, execution, acceptance or production authority.",
     })
