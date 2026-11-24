@@ -970,6 +970,59 @@ mod tests {
     }
 
     #[test]
+    fn holdout_probability_scores_are_not_computed_from_calibration_outcomes() {
+        let input = fixture();
+        let baseline = evaluate_service_prediction_calibration(&input).expect("baseline");
+        let baseline_hot = baseline.on_time_groups.iter()
+            .find(|group| group.stratum_id == "hot_shift")
+            .expect("hot shift probability group");
+        assert_eq!(baseline_hot.calibration_sample_count, 20);
+        assert_eq!(baseline_hot.holdout_sample_count, 30);
+        assert_eq!(baseline_hot.holdout_brier_score_millionths, 330_000);
+
+        let mut changed = fixture();
+        for record in changed.records.iter_mut()
+            .filter(|record| record.cohort == CalibrationCohort::Calibration)
+        {
+            record.on_time_observed = !record.on_time_observed;
+            record.on_time_probability_permille = 0;
+        }
+        let changed_report = evaluate_service_prediction_calibration(&changed)
+            .expect("calibration cohort changes remain auditable");
+        let changed_hot = changed_report.on_time_groups.iter()
+            .find(|group| group.stratum_id == "hot_shift")
+            .expect("changed hot shift group");
+        assert_eq!(
+            changed_hot.holdout_brier_score_millionths,
+            baseline_hot.holdout_brier_score_millionths
+        );
+        assert_eq!(
+            changed_hot.holdout_observed_on_time_rate_permille,
+            baseline_hot.holdout_observed_on_time_rate_permille
+        );
+    }
+
+    #[test]
+    fn coverage_report_keeps_width_and_wilson_support_separate() {
+        let report = evaluate_service_prediction_calibration(&fixture()).expect("fixture");
+        let nominal = report.metric_groups.iter().find(|group| {
+            group.stratum_id == "nominal"
+                && group.metric_kind == ForecastMetricKind::MissionDurationSeconds
+        }).expect("nominal mission group");
+        assert_eq!(nominal.conformal_adjustment, Some(70));
+        assert_eq!(nominal.holdout_coverage_before_permille, Some(1_000));
+        assert_eq!(nominal.holdout_coverage_after_permille, Some(1_000));
+        assert_eq!(nominal.mean_interval_width_before, Some(160));
+        assert_eq!(nominal.mean_interval_width_after, Some(300));
+        assert!(
+            nominal.holdout_coverage_after_wilson_95.as_ref()
+                .expect("Wilson interval")
+                .lower_permille < nominal.nominal_coverage_permille
+        );
+        assert_eq!(nominal.status, CalibrationGroupStatus::CoverageNotDemonstrated);
+    }
+
+    #[test]
     fn temporal_leakage_is_rejected() {
         let mut input = fixture();
         let holdout_time = input.records.iter()
