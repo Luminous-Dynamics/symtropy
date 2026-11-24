@@ -106,7 +106,12 @@ impl std::error::Error for TailRiskError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ModelLossDistribution<'a> {
-    
+    /// Stable identity of one complete mission-persistent model.
+    pub model_id: u64,
+    /// Complete stochastic mission-path loss distribution under one fixed
+    /// model and one fixed observable policy.
+    pub outcomes: &'a [LossMass],
+}
 
 /// One weighted particle in the current belief for a state-dependent
 /// immediate action cost. The caller must construct these particles using
@@ -184,13 +189,6 @@ pub fn belief_immediate_cvar(
         tail_mass_ppm,
         particle_count: particles.len(),
     })
-}
-
-/// Stable identity of one complete mission-persistent model.
-    pub model_id: u64,
-    /// Complete stochastic mission-path loss distribution under one fixed
-    /// model and one fixed observable policy.
-    pub outcomes: &'a [LossMass],
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
