@@ -343,11 +343,11 @@ pub enum SweepDecision<const D: usize> {
     Invalid(InvalidReason),
 }
 
-/// Construct a conservative union of:
-/// 1. the start AABB translated along post_velocity * dt, which is the
-///    straight-line CCD path documented by the current physics step; and
-/// 2. the observed post-integration position endpoint, which can differ due to
-///    deterministic position quantization.
+/// Construct a conservative union of the fixed-orientation start AABB
+/// translated along both the integrator's pre-quantization velocity path and
+/// the CCD pass's post-quantization velocity path, plus the observed endpoint.
+/// The two paths are identical in native-binary64 mode and may differ under
+/// deterministic-net Q16.16 quantization.
 ///
 /// Rotation is supported only when the integrator's actual rotor-update
 /// threshold proves no rotation update occurred. Other cases must fall back.
@@ -821,24 +821,34 @@ mod tests {
 
         for _case in 0..256 {
             let start_position = [next(), next()];
-            let velocity = [next() * 0.01, next() * 0.01];
-            let dt = 0.25;
-            let expected_displacement = [velocity[0] * dt, velocity[1] * dt];
-            let observed_delta = [
-                expected_displacement[0] + 1.0e-7,
-                expected_displacement[1] - 1.0e-7,
+            let integrator_velocity = [next() * 0.01, next() * 0.01];
+            let post_velocity = [
+                (integrator_velocity[0] * 65536.0).round() / 65536.0,
+                (integrator_velocity[1] * 65536.0).round() / 65536.0,
             ];
+            let dt = 0.25;
+            let integrated_displacement = [
+                integrator_velocity[0] * dt,
+                integrator_velocity[1] * dt,
+            ];
+            let ccd_displacement = [post_velocity[0] * dt, post_velocity[1] * dt];
             let post_position = [
-                start_position[0] + observed_delta[0],
-                start_position[1] + observed_delta[1],
+                ((start_position[0] + integrated_displacement[0]) * 65536.0).round()
+                    / 65536.0,
+                ((start_position[1] + integrated_displacement[1]) * 65536.0).round()
+                    / 65536.0,
+            ];
+            let observed_delta = [
+                post_position[0] - start_position[0],
+                post_position[1] - start_position[1],
             ];
             let source = TranslationSweepInput::new(
                 identity(),
-                context(dt, QuantizationProfile::NativeBinary64),
+                context(dt, QuantizationProfile::Q16_16),
                 start_position,
                 post_position,
-                velocity,
-                velocity,
+                integrator_velocity,
+                post_velocity,
                 0.0,
                 Aabb::new(
                     [start_position[0] - 0.5, start_position[1] - 0.25],
@@ -849,12 +859,16 @@ mod tests {
             .unwrap();
             let proof = certified(&source);
 
-            // Independent segment sampling over both the linear CCD path and
-            // the observed endpoint path. Sampling is a regression oracle,
-            // not a mathematical proof of the path enclosure.
+            // Independent segment sampling over the raw integrator path,
+            // quantized CCD path and observed endpoint path. Sampling is a
+            // regression oracle, not a mathematical proof of the enclosure.
             for step in 0..=100 {
                 let alpha = step as f64 / 100.0;
-                for delta in [expected_displacement, observed_delta] {
+                for delta in [
+                    integrated_displacement,
+                    ccd_displacement,
+                    observed_delta,
+                ] {
                     let offset = [delta[0] * alpha, delta[1] * alpha];
                     let sample = Aabb::new(
                         [
