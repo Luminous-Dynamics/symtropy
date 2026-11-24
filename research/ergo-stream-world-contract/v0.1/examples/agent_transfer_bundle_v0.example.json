@@ -233,7 +233,10 @@
         "source_to_state_id": 2,
         "predicted_target_from_state_id": 11,
         "predicted_target_action_id": 110,
-        "predicted_target_to_state_id": 12
+        "predicted_target_to_state_id": 12,
+        "source_evidence_ids": [
+          "E0010"
+        ]
       },
       {
         "source_from_state_id": 2,
@@ -241,14 +244,75 @@
         "source_to_state_id": 3,
         "predicted_target_from_state_id": 12,
         "predicted_target_action_id": 110,
-        "predicted_target_to_state_id": 13
+        "predicted_target_to_state_id": 13,
+        "source_evidence_ids": [
+          "E0020"
+        ]
       }
     ],
     "assumptions": [
       "The declared source transition sample is deterministic over this scope.",
       "The target transition predictions are frozen before evaluator-owned target transitions are released."
     ],
-    "unresolved": false
+    "unresolved": false,
+    "source_state_snapshot": [
+      {
+        "id": 1,
+        "evidence_ids": [
+          "E0006"
+        ]
+      },
+      {
+        "id": 2,
+        "evidence_ids": [
+          "E0007"
+        ]
+      },
+      {
+        "id": 3,
+        "evidence_ids": [
+          "E0008"
+        ]
+      }
+    ],
+    "target_state_snapshot": [
+      {
+        "id": 11,
+        "evidence_ids": [
+          "E0016"
+        ]
+      },
+      {
+        "id": 12,
+        "evidence_ids": [
+          "E0017"
+        ]
+      },
+      {
+        "id": 13,
+        "evidence_ids": [
+          "E0018"
+        ]
+      }
+    ],
+    "source_action_snapshot": [
+      {
+        "id": 10,
+        "kind": 1,
+        "evidence_ids": [
+          "E0009"
+        ]
+      }
+    ],
+    "target_action_snapshot": [
+      {
+        "id": 110,
+        "kind": 100,
+        "evidence_ids": [
+          "E0019"
+        ]
+      }
+    ]
   },
   "unresolved": false,
   "alternatives": [],
