@@ -489,3 +489,15 @@ The current branch exact head `3da8b62e8a29720a7cba2d2d4fd453f23f467f51` passed 
 Split-conformal fitting now consumes `SplitConformalCalibrationOutcomeV0`, whose rows carry an evaluator-owned independent-unit ID. It rejects repeated unit IDs so repeated frames/windows from one campaign cannot inflate the conformal rank. v0.1 therefore requires one scored claim per independent unit; multiple claims inside one block need a separately specified block-maximum protocol.
 
 Added the evaluator-only JSON Schema/example at `schemas/split_conformal_calibration_outcomes_v0.schema.json` and `examples/split_conformal_calibration_outcomes_v0.example.json`. Domain fingerprint resolution and minimum independent-block thresholds are delegated to #7041; the conformal fitter consumes only the owner-approved stratum. This source change requires fresh exact-head Rust verification.
+
+## Independent-unit conformal calibration input
+
+The split-conformal fitter now accepts `SplitConformalCalibrationOutcomeV0`, an evaluator-only record containing:
+- sample ID;
+- evaluator-issued independent-unit ID;
+- evaluator-assigned stratum ID;
+- exact claim-qualification outcome.
+
+Duplicate independent-unit IDs are rejected. v0.1 uses one scored claim per independent unit. Multiple correlated claims within one block require a separately specified aggregate/block-conformal method; they must not be treated as extra independent calibration rows.
+
+Added `schemas/split_conformal_calibration_outcomes_v0.schema.json` and `examples/split_conformal_calibration_outcomes_v0.example.json`. Domain fingerprint admission and minimum independent-block counts compose with Symtropy #7041. The new source and schema work is newer than the last passing 129-test exact head and remains pending a new Rust 1.96 format/test/doctest/strict-Clippy run.
