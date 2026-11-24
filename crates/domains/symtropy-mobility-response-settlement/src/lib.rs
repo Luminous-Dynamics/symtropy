@@ -66,6 +66,7 @@ pub struct MobilityResponseSettlementInput {
     pub dispatch_end_ns: u64,
     pub observation_horizon_end_ns: u64,
     pub maximum_dispatch_energy_disagreement_kwh: f64,
+    pub maximum_dispatch_power_disagreement_kw: f64,
     pub maximum_net_energy_disagreement_kwh: f64,
     pub grid_response: SourceReportArtifact,
     pub pcc_metrology: SourceReportArtifact,
@@ -350,6 +351,8 @@ fn validate_input(
         || input.observation_horizon_end_ns < input.dispatch_end_ns
         || !input.maximum_dispatch_energy_disagreement_kwh.is_finite()
         || input.maximum_dispatch_energy_disagreement_kwh < 0.0
+        || !input.maximum_dispatch_power_disagreement_kw.is_finite()
+        || input.maximum_dispatch_power_disagreement_kw < 0.0
         || !input.maximum_net_energy_disagreement_kwh.is_finite()
         || input.maximum_net_energy_disagreement_kwh < 0.0
     {
@@ -725,6 +728,7 @@ fn validate_timelines(
         .collect();
     let mut network_interval_index = 0_usize;
     let mut sample_evidence_ids = BTreeSet::new();
+    let mut tracked_sample_energy_kwh = 0.0_f64;
     for (index, (sample, baseline_interval)) in samples.iter().zip(dispatch_intervals).enumerate() {
         let elapsed = unsigned(sample, "/elapsed_ns")?;
         let expected_elapsed = (index as u64 + 1)
@@ -758,6 +762,63 @@ fn validate_timelines(
                 BridgeError::Arithmetic("dispatch interval start overflow".to_owned())
             })?;
         same_u64(interval_start, expected_start, "dispatch interval start")?;
+
+        // Cross-report matching is per interval. Aggregate equality alone can
+        // hide offsetting over- and under-delivery errors across intervals.
+        let pcc_interval = &pcc_intervals[index];
+        let tracked_reduction_kw = number(sample, "/delivered_reduction_kw")?;
+        let metered_reduction_kw = number(pcc_interval, "/measured_reduction_w")? / 1_000.0;
+        if (tracked_reduction_kw - metered_reduction_kw).abs()
+            > input.maximum_dispatch_power_disagreement_kw
+        {
+            return Err(BridgeError::EnergyMismatch(format!(
+                "grid tracking and PCC metrology power disagree at dispatch interval {index}"
+            )));
+        }
+
+        let duration_ns = interval_duration as f64;
+        let pcc_energy_from_power_wh =
+            number(pcc_interval, "/measured_reduction_w")? * duration_ns / 3_600_000_000_000.0;
+        let pcc_energy_wh = number(pcc_interval, "/measured_reduction_energy_wh")?;
+        let pcc_bound_energy_from_power_wh = number(
+            pcc_interval,
+            "/conservative_reduction_lower_bound_w",
+        )? * duration_ns
+            / 3_600_000_000_000.0;
+        let pcc_bound_energy_wh =
+            number(pcc_interval, "/lower_bound_reduction_energy_wh")?;
+        let energy_tolerance_wh = input.maximum_dispatch_energy_disagreement_kwh * 1_000.0;
+        if (pcc_energy_wh - pcc_energy_from_power_wh).abs() > energy_tolerance_wh
+            || (pcc_bound_energy_wh - pcc_bound_energy_from_power_wh).abs()
+                > energy_tolerance_wh
+        {
+            return Err(BridgeError::EnergyMismatch(format!(
+                "PCC interval energy does not equal its power × duration at dispatch interval {index}"
+            )));
+        }
+        let baseline_lower_kw =
+            number(baseline_interval, "/conservative_reduction_lower_bound_kw")?;
+        let baseline_energy_from_power_kwh =
+            baseline_lower_kw * duration_ns / 3_600_000_000_000.0;
+        let baseline_energy_kwh =
+            number(baseline_interval, "/conservative_reduction_energy_kwh")?;
+        if (baseline_energy_kwh - baseline_energy_from_power_kwh).abs()
+            > input.maximum_dispatch_energy_disagreement_kwh
+        {
+            return Err(BridgeError::EnergyMismatch(format!(
+                "baseline interval energy does not equal its power × duration at dispatch interval {index}"
+            )));
+        }
+
+        let sample_energy_kwh = tracked_reduction_kw * sample_interval_ns as f64
+            / 3_600_000_000_000.0;
+        tracked_sample_energy_kwh += sample_energy_kwh;
+        if !tracked_sample_energy_kwh.is_finite() {
+            return Err(BridgeError::Arithmetic(
+                "grid response sample energy accumulation overflow".to_owned(),
+            ));
+        }
+
         let network_interval = &network_intervals[network_interval_index];
         same_u64(
             unsigned(network_interval, "/interval_start_ns")?,
@@ -790,7 +851,7 @@ fn validate_timelines(
             ));
         }
         check_identity(
-            string(pcc_intervals.get(index).unwrap(), "/baseline_evidence_id")?,
+            string(pcc_interval, "/baseline_evidence_id")?,
             &baseline_id,
             "PCC/grid baseline evidence reference",
         )?;
@@ -804,6 +865,17 @@ fn validate_timelines(
             &response_id,
             "baseline/grid response evidence reference",
         )?;
+    }
+
+    let reported_tracking_energy_kwh =
+        number(grid, "/delivered_reduction_energy_kwh")?;
+    if (tracked_sample_energy_kwh - reported_tracking_energy_kwh).abs()
+        > input.maximum_dispatch_energy_disagreement_kwh
+    {
+        return Err(BridgeError::EnergyMismatch(
+            "grid-response total does not equal signed sum of dispatch sample power × duration"
+                .to_owned(),
+        ));
     }
 
     if previous_end != Some(input.observation_horizon_end_ns) {
@@ -1616,6 +1688,7 @@ mod tests {
             dispatch_end_ns: dispatch_end,
             observation_horizon_end_ns: horizon_end,
             maximum_dispatch_energy_disagreement_kwh: 0.0001,
+            maximum_dispatch_power_disagreement_kw: 0.25,
             maximum_net_energy_disagreement_kwh: 0.0002,
             grid_response: report_artifact(GRID_RESPONSE_PR, GRID_RESPONSE_PATH, grid_report),
             pcc_metrology: report_artifact(PCC_METROLOGY_PR, PCC_METROLOGY_PATH, pcc_report),
@@ -1709,6 +1782,47 @@ mod tests {
         assert!(matches!(
             evaluate_mobility_response_settlement(&bad),
             Err(BridgeError::IntervalMismatch(_)) | Err(BridgeError::TimeBoundaryMismatch(_))
+        ));
+    }
+
+    #[test]
+    fn per_interval_power_disagreement_cannot_cancel_in_the_aggregate() {
+        let mut bad = input();
+        bad.grid_response.report["sample_receipts"][0]["delivered_reduction_kw"] = json!(11.0);
+        bad.grid_response.report["sample_receipts"][1]["delivered_reduction_kw"] = json!(9.0);
+        assert!(matches!(
+            evaluate_mobility_response_settlement(&bad),
+            Err(BridgeError::EnergyMismatch(_))
+        ));
+    }
+
+    #[test]
+    fn interval_energy_must_match_reported_power_times_duration() {
+        let mut bad = input();
+        bad.pcc_metrology.report["intervals"][0]["measured_reduction_energy_wh"] =
+            json!(3.5);
+        assert!(matches!(
+            evaluate_mobility_response_settlement(&bad),
+            Err(BridgeError::EnergyMismatch(_))
+        ));
+
+        let mut bad_bound = input();
+        bad_bound.pcc_metrology.report["intervals"][0]["lower_bound_reduction_energy_wh"] =
+            json!(3.5);
+        assert!(matches!(
+            evaluate_mobility_response_settlement(&bad_bound),
+            Err(BridgeError::EnergyMismatch(_))
+        ));
+    }
+
+    #[test]
+    fn grid_response_total_must_equal_signed_sample_energy() {
+        let mut bad = input();
+        bad.grid_response.report["sample_receipts"][0]["delivered_reduction_kw"] = json!(11.0);
+        bad.grid_response.report["sample_receipts"][1]["delivered_reduction_kw"] = json!(10.0);
+        assert!(matches!(
+            evaluate_mobility_response_settlement(&bad),
+            Err(BridgeError::EnergyMismatch(_))
         ));
     }
 
