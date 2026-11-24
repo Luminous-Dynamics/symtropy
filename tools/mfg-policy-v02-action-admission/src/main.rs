@@ -427,7 +427,11 @@ fn initial_live_state(
             .resource_status_by_id
             .get(resource_id)
             .map(|status| {
-                if status == "FAILED" { "FAILED" } else { "AVAILABLE" }
+                if status == "FAILED" {
+                    "FAILED"
+                } else {
+                    "AVAILABLE"
+                }
             })
             .unwrap_or("AVAILABLE")
             .to_string();
@@ -456,11 +460,8 @@ fn initial_live_state(
     let station = static_case
         .get("inspection_station")
         .ok_or_else(|| fail("inspection_station_missing"))?;
-    let station_calendar = required_array(
-        station,
-        "capacity_units_by_epoch",
-        "inspection_station",
-    )?;
+    let station_calendar =
+        required_array(station, "capacity_units_by_epoch", "inspection_station")?;
     let mut inspection_capacity_total = station_calendar
         .get(decision_epoch as usize)
         .and_then(Value::as_u64)
@@ -489,18 +490,13 @@ fn snapshot_live_state(
     decision_frame_digest: &str,
     decision_epoch: u64,
 ) -> Result<LiveAdmissionState, String> {
-    validate_schema(
-        snapshot,
-        SNAPSHOT_SCHEMA_JSON,
-        "operational_state_snapshot",
-    )?;
+    validate_schema(snapshot, SNAPSHOT_SCHEMA_JSON, "operational_state_snapshot")?;
 
     if required_string(snapshot, "benchmark_id", "operational_state_snapshot")?
         != required_string(frame, "benchmark_id", "decision_frame")?
         || required_string(snapshot, "case_id", "operational_state_snapshot")?
             != required_string(frame, "case_id", "decision_frame")?
-        || required_u64(snapshot, "decision_epoch", "operational_state_snapshot")?
-            != decision_epoch
+        || required_u64(snapshot, "decision_epoch", "operational_state_snapshot")? != decision_epoch
         || required_string(
             snapshot,
             "decision_frame_digest",
@@ -527,11 +523,7 @@ fn snapshot_live_state(
     if required_u64(event_cut, "decision_epoch", "snapshot_event_cut")? != decision_epoch {
         return Err(fail("snapshot_event_cut_epoch_mismatch"));
     }
-    let ids = required_array(
-        event_cut,
-        "visible_source_event_ids",
-        "snapshot_event_cut",
-    )?;
+    let ids = required_array(event_cut, "visible_source_event_ids", "snapshot_event_cut")?;
     let snapshot_ids = ids
         .iter()
         .map(|id| {
@@ -564,11 +556,8 @@ fn snapshot_live_state(
             "operational_state_snapshot",
         )?;
         if !valid_digest(previous)
-            || previous == required_string(
-                snapshot,
-                "snapshot_digest",
-                "operational_state_snapshot",
-            )?
+            || previous
+                == required_string(snapshot, "snapshot_digest", "operational_state_snapshot")?
         {
             return Err(fail("snapshot_previous_digest_invalid"));
         }
@@ -583,8 +572,7 @@ fn snapshot_live_state(
         }
     }
 
-    let snapshot_operations =
-        required_array(snapshot, "operations", "operational_state_snapshot")?;
+    let snapshot_operations = required_array(snapshot, "operations", "operational_state_snapshot")?;
     let mut operation_states = BTreeMap::new();
     for item in snapshot_operations {
         let operation_id = required_string(item, "operation_id", "snapshot_operation")?;
@@ -594,9 +582,7 @@ fn snapshot_live_state(
             .get("committed_resource_id")
             .and_then(Value::as_str)
             .map(str::to_string);
-        let quality = item
-            .get("quality_disposition")
-            .and_then(Value::as_str);
+        let quality = item.get("quality_disposition").and_then(Value::as_str);
         let (_, static_operation) = operations
             .get(operation_id)
             .ok_or_else(|| fail("snapshot_unknown_operation"))?;
@@ -611,9 +597,7 @@ fn snapshot_live_state(
                 inspection_required && remaining == 0 && committed.is_none() && quality.is_none()
             }
             "COMPLETED" => {
-                remaining == 0
-                    && committed.is_none()
-                    && (inspection_required == quality.is_some())
+                remaining == 0 && committed.is_none() && (inspection_required == quality.is_some())
             }
             _ => false,
         };
@@ -635,7 +619,9 @@ fn snapshot_live_state(
         }
     }
     if operation_states.len() != operations.len()
-        || operations.keys().any(|id| !operation_states.contains_key(id))
+        || operations
+            .keys()
+            .any(|id| !operation_states.contains_key(id))
     {
         return Err(fail("snapshot_operation_set_mismatch"));
     }
@@ -645,11 +631,9 @@ fn snapshot_live_state(
             .get(operation_id)
             .ok_or_else(|| fail("snapshot_operation_state_missing"))?;
         if operation_state.status != "WAITING" {
-            for predecessor in required_array(
-                static_operation,
-                "predecessor_operation_ids",
-                "operation",
-            )? {
+            for predecessor in
+                required_array(static_operation, "predecessor_operation_ids", "operation")?
+            {
                 let predecessor_id = predecessor
                     .as_str()
                     .filter(|value| !value.trim().is_empty())
@@ -667,21 +651,12 @@ fn snapshot_live_state(
                 .committed_resource_id
                 .as_deref()
                 .ok_or_else(|| fail("snapshot_in_process_commitment_missing"))?;
-            let process_family =
-                required_string(static_operation, "process_family", "operation")?;
-            let eligible = required_array(
-                static_operation,
-                "eligible_resource_ids",
-                "operation",
-            )?;
+            let process_family = required_string(static_operation, "process_family", "operation")?;
+            let eligible = required_array(static_operation, "eligible_resource_ids", "operation")?;
             let static_resource = resources
                 .get(resource_id)
                 .ok_or_else(|| fail("snapshot_in_process_resource_unknown"))?;
-            let capabilities = required_array(
-                static_resource,
-                "capability_families",
-                "resource",
-            )?;
+            let capabilities = required_array(static_resource, "capability_families", "resource")?;
             if !eligible
                 .iter()
                 .any(|item| item.as_str() == Some(resource_id))
@@ -711,8 +686,7 @@ fn snapshot_live_state(
         }
     }
 
-    let snapshot_resources =
-        required_array(snapshot, "resources", "operational_state_snapshot")?;
+    let snapshot_resources = required_array(snapshot, "resources", "operational_state_snapshot")?;
     let mut resource_states = BTreeMap::new();
     for item in snapshot_resources {
         let resource_id = required_string(item, "resource_id", "snapshot_resource")?;
@@ -721,21 +695,14 @@ fn snapshot_live_state(
             .ok_or_else(|| fail("snapshot_unknown_resource"))?;
         let current_setup_family =
             required_string(item, "current_setup_family", "snapshot_resource")?.to_string();
-        let availability = required_string(
-            item,
-            "availability_status",
-            "snapshot_resource",
-        )?
-        .to_string();
+        let availability =
+            required_string(item, "availability_status", "snapshot_resource")?.to_string();
         let capacity_total = required_u64(item, "capacity_units_total", "snapshot_resource")?;
         let capacity_used = required_u64(item, "capacity_units_used", "snapshot_resource")?;
         let capacity_remaining =
             required_u64(item, "capacity_units_remaining", "snapshot_resource")?;
-        let static_calendar = required_array(
-            static_resource,
-            "capacity_units_by_epoch",
-            "resource",
-        )?;
+        let static_calendar =
+            required_array(static_resource, "capacity_units_by_epoch", "resource")?;
         let expected_total = static_calendar
             .get(decision_epoch as usize)
             .and_then(Value::as_u64)
@@ -751,7 +718,13 @@ fn snapshot_live_state(
         let expected_availability = visible
             .resource_status_by_id
             .get(resource_id)
-            .map(|status| if status == "FAILED" { "FAILED" } else { "AVAILABLE" })
+            .map(|status| {
+                if status == "FAILED" {
+                    "FAILED"
+                } else {
+                    "AVAILABLE"
+                }
+            })
             .unwrap_or("AVAILABLE");
         if availability != expected_availability {
             return Err(fail("snapshot_resource_availability_mismatch"));
@@ -765,9 +738,7 @@ fn snapshot_live_state(
             return Err(fail("snapshot_active_operation_mismatch"));
         }
         let expected_used = u64::from(
-            active_operation_id.is_some()
-                && capacity_total > 0
-                && availability == "AVAILABLE",
+            active_operation_id.is_some() && capacity_total > 0 && availability == "AVAILABLE",
         );
         if capacity_used != expected_used {
             return Err(fail("snapshot_resource_occupancy_mismatch"));
@@ -778,23 +749,17 @@ fn snapshot_live_state(
             required_string(static_resource, "initial_setup_family", "resource")?.to_string(),
         );
         for operation in operations.values().map(|(_, operation)| *operation) {
-            known_setup_families.insert(
-                required_string(operation, "setup_family", "operation")?.to_string(),
-            );
+            known_setup_families
+                .insert(required_string(operation, "setup_family", "operation")?.to_string());
         }
-        for transition in required_array(
-            static_case,
-            "setup_transitions",
-            "static_case",
-        )? {
+        for transition in required_array(static_case, "setup_transitions", "static_case")? {
             if transition.get("resource_id").and_then(Value::as_str) == Some(resource_id) {
                 known_setup_families.insert(
                     required_string(transition, "from_setup_family", "setup_transition")?
                         .to_string(),
                 );
                 known_setup_families.insert(
-                    required_string(transition, "to_setup_family", "setup_transition")?
-                        .to_string(),
+                    required_string(transition, "to_setup_family", "setup_transition")?.to_string(),
                 );
             }
         }
@@ -847,7 +812,11 @@ fn snapshot_live_state(
     let station_snapshot = snapshot
         .get("inspection_station")
         .ok_or_else(|| fail("snapshot_inspection_station_missing"))?;
-    let station_id = required_string(station_snapshot, "station_id", "snapshot_inspection_station")?;
+    let station_id = required_string(
+        station_snapshot,
+        "station_id",
+        "snapshot_inspection_station",
+    )?;
     if station_id != required_string(static_station, "station_id", "inspection_station")? {
         return Err(fail("snapshot_inspection_station_identity_mismatch"));
     }
@@ -1021,7 +990,10 @@ fn evaluate_with_snapshot(
             mark_rejected(&mut receipt, "waiting_operation_cannot_continue");
         }
         (_, "AWAITING_INSPECTION") => {
-            mark_rejected(&mut receipt, "operation_awaiting_inspection_cannot_be_dispatched");
+            mark_rejected(
+                &mut receipt,
+                "operation_awaiting_inspection_cannot_be_dispatched",
+            );
         }
         (_, "COMPLETED") => {
             mark_rejected(&mut receipt, "completed_operation_cannot_be_dispatched");
@@ -1054,12 +1026,18 @@ fn evaluate_with_snapshot(
         mark_hold(&mut receipt, "resource_has_visible_unrestored_failure");
     }
     if resource_state.capacity_units_total == 0 {
-        mark_hold(&mut receipt, "resource_capacity_unavailable_in_current_epoch");
+        mark_hold(
+            &mut receipt,
+            "resource_capacity_unavailable_in_current_epoch",
+        );
     }
 
     if action_kind == "START" {
         if operation_state.committed_resource_id.is_some() {
-            mark_rejected(&mut receipt, "waiting_operation_has_existing_resource_commitment");
+            mark_rejected(
+                &mut receipt,
+                "waiting_operation_has_existing_resource_commitment",
+            );
             return Ok(receipt);
         }
         if resource_state.active_operation_id.is_some() {
@@ -1067,7 +1045,10 @@ fn evaluate_with_snapshot(
             return Ok(receipt);
         }
         if resource_state.capacity_units_remaining == 0 {
-            mark_hold(&mut receipt, "resource_capacity_unavailable_in_current_epoch");
+            mark_hold(
+                &mut receipt,
+                "resource_capacity_unavailable_in_current_epoch",
+            );
         }
         let times = static_operation
             .get("processing_time_ticks_by_resource")
@@ -1093,11 +1074,7 @@ fn evaluate_with_snapshot(
         receipt.processing_duration_ticks = Some(operation_state.remaining_processing_ticks);
     }
 
-    let predecessors = required_array(
-        static_operation,
-        "predecessor_operation_ids",
-        "operation",
-    )?;
+    let predecessors = required_array(static_operation, "predecessor_operation_ids", "operation")?;
     for predecessor in predecessors {
         let predecessor_id = predecessor
             .as_str()
@@ -1197,7 +1174,10 @@ fn evaluate_with_snapshot(
             }
         }
         if live_state.inspection_capacity_remaining == 0 {
-            mark_hold(&mut receipt, "inspection_capacity_unavailable_in_current_epoch");
+            mark_hold(
+                &mut receipt,
+                "inspection_capacity_unavailable_in_current_epoch",
+            );
         }
     } else if !proposed_method.is_null() {
         mark_rejected(&mut receipt, "unneeded_inspection_method_proposed");
@@ -1750,7 +1730,12 @@ mod tests {
         proposal["inspection_method_id"] = Value::Null;
         let receipt = evaluate_with_snapshot(&frame, &proposal, Some(&snapshot)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Hold);
-        assert!(receipt.reason_codes.iter().any(|reason| reason.starts_with("snapshot_invalid:")));
+        assert!(
+            receipt
+                .reason_codes
+                .iter()
+                .any(|reason| reason.starts_with("snapshot_invalid:"))
+        );
     }
 
     #[test]
@@ -1768,7 +1753,12 @@ mod tests {
         proposal["inspection_method_id"] = Value::Null;
         let receipt = evaluate_with_snapshot(&frame, &proposal, Some(&snapshot)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Hold);
-        assert!(receipt.reason_codes.iter().any(|reason| reason.starts_with("snapshot_invalid:")));
+        assert!(
+            receipt
+                .reason_codes
+                .iter()
+                .any(|reason| reason.starts_with("snapshot_invalid:"))
+        );
     }
 
     #[test]
