@@ -634,7 +634,14 @@ pub fn compile_partially_identified_outcomes(
     if dataset.episodes.is_empty() {
         return Err(OracleAdapterError::EmptyDataset);
     }
+    validate_contract(&dataset.contract)?;
 
+    let expected_policy_ids = dataset
+        .contract
+        .policy_grid
+        .iter()
+        .map(|entry| entry.policy_id.clone())
+        .collect::<BTreeSet<_>>();
     let mut lower = dataset.clone();
     let mut upper = dataset.clone();
     let mut unknown_physical_cells_total = 0_usize;
@@ -649,7 +656,11 @@ pub fn compile_partially_identified_outcomes(
                 .policy_grid
                 .iter()
                 .position(|entry| entry.policy_id == original.policy_id)
-                .unwrap_or(0);
+                .ok_or_else(|| OracleAdapterError::PolicyGridDrift {
+                    episode_id: dataset.episodes[episode_index].episode_id.clone(),
+                    missing_policy_ids: expected_policy_ids.clone().into_iter().collect(),
+                    unexpected_policy_ids: vec![original.policy_id.clone()],
+                })?;
 
             physical_cells_total += 1;
             if original.physical == PhysicalDisposition::Unknown {
