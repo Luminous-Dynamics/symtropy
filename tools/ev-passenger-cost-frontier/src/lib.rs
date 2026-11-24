@@ -5,6 +5,7 @@ pub mod battery_charge_queue;
 pub mod battery_service_network;
 pub mod carrier_lifecycle;
 pub mod carrier_module_factory;
+pub mod federated_calibration;
 pub mod mobility_commitment_journal;
 pub mod mobility_commitment_lease;
 pub mod mobility_flexibility_envelope;
