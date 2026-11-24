@@ -327,13 +327,15 @@ fn pivoted_weighted_least_squares(
         let mut best_residual = Vec::new();
         let mut best_norm = 0.0_f64;
         let mut residual_by_index: [Option<Vec<f64>>; 3] = [None, None, None];
-        let mut norm_by_index = [0.0_f64; 3];
 
         for index in 0..3 {
             if selected[index] {
                 continue;
             }
             let mut residual = columns[index].clone();
+            for basis_index in 0..basis.len() {
+                r[basis_index][index] = 0.0;
+            }
             for _ in 0..2 {
                 for (basis_index, direction) in basis.iter().enumerate() {
                     let coefficient = dot(direction, &residual)?;
@@ -356,7 +358,6 @@ fn pivoted_weighted_least_squares(
                     "calibration residual norm is non-finite",
                 ));
             }
-            norm_by_index[index] = residual_norm;
             residual_by_index[index] = Some(residual);
             let replace = match best_index {
                 None => true,
@@ -394,8 +395,6 @@ fn pivoted_weighted_least_squares(
         pivot_norms.push(best_norm);
         basis.push(best_residual);
 
-        // Continue so all three directions are assessed, not just the first rank.
-        let _ = norm_by_index;
     }
 
     let rank = basis.len();
@@ -830,6 +829,9 @@ mod tests {
         .expect("permuted");
         let a = first.ellipsoid_shape_scales.expect("first scales");
         let b = second.ellipsoid_shape_scales.expect("second scales");
+        close(a[0], 2.0, 1.0e-9);
+        close(a[1], 0.5, 1.0e-9);
+        close(a[2], 0.25, 1.0e-9);
         for index in 0..3 {
             close(a[index], b[index], 1.0e-10);
         }
