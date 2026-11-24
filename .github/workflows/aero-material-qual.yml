@@ -10,6 +10,7 @@ on:
       - "docs/research/aviation/AERO_MATERIAL_PROCESS_QUAL_001_V0_1.md"
       - "docs/research/aviation/schemas/aero_material_process_case_v0_1.schema.json"
       - "docs/research/aviation/examples/synthetic_material_process_case_v0_1.json"
+      - "docs/research/aviation/examples/adversarial_material_process_mutations_v0_1.json"
       - ".github/workflows/aero-material-qual.yml"
   workflow_dispatch:
 
