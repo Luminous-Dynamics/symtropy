@@ -98,6 +98,9 @@ def validate_case(case):
                 raise ValueError("REQUIRED_CHECK_MAX_AGE_MISSING")
             if not valid_sha256(scope["check_receipt_sha256"]):
                 raise ValueError("REQUIRED_CHECK_RECEIPT_DIGEST_INVALID")
+        elif (scope["check_receipt_sha256"] is not None
+              and not valid_sha256(scope["check_receipt_sha256"])):
+            raise ValueError("CHECK_RECEIPT_DIGEST_INVALID")
 
     required = set()
     for sid in case["required_scope_ids"]:
