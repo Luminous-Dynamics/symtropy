@@ -1,0 +1,25 @@
+{
+  "contract_id": "ehd_piv_identifiability_v0_1",
+  "version": "0.1.0",
+  "status": "local_linear_identifiability_kernel",
+  "matrix_semantics": "input residual sensitivity rows are pre-whitened by a qualified observation covariance; columns are multiplied by characteristic parameter scales",
+  "algorithm": "one_sided_jacobi_svd",
+  "diagnostics": [
+    "joint_singular_values",
+    "joint_rank_and_condition",
+    "nuisance_sensitivity_span",
+    "nuisance_profiled_physical_singular_values",
+    "nuisance_profiled_physical_rank_and_condition",
+    "weak_joint_right_singular_directions",
+    "physical_nuisance_pairwise_signed_correlation"
+  ],
+  "authored_manufactured_tests": 12,
+  "limits": [
+    "no_observation_covariance_whitening",
+    "no_global_or_structural_identifiability_proof",
+    "no_nonlinear_profile_likelihood",
+    "no_posterior_unimodality_proof",
+    "no_model_correctness_or_physical_validation",
+    "does_not_authenticate_jacobian_or_noise_covariance_provenance"
+  ]
+}
