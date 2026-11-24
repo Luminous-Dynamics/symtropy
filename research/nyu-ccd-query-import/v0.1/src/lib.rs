@@ -17,6 +17,55 @@ pub enum QueryKind {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum VertexRole {
+    EdgeAStart0,
+    EdgeAStart1,
+    EdgeBStart0,
+    EdgeBStart1,
+    EdgeAEnd0,
+    EdgeAEnd1,
+    EdgeBEnd0,
+    EdgeBEnd1,
+    VertexStart,
+    Face0Start,
+    Face1Start,
+    Face2Start,
+    VertexEnd,
+    Face0End,
+    Face1End,
+    Face2End,
+}
+
+impl QueryKind {
+    /// Row order in the eight-row source query record.
+    #[must_use]
+    pub fn row_roles(self) -> [VertexRole; 8] {
+        match self {
+            Self::EdgeEdge => [
+                VertexRole::EdgeAStart0,
+                VertexRole::EdgeAStart1,
+                VertexRole::EdgeBStart0,
+                VertexRole::EdgeBStart1,
+                VertexRole::EdgeAEnd0,
+                VertexRole::EdgeAEnd1,
+                VertexRole::EdgeBEnd0,
+                VertexRole::EdgeBEnd1,
+            ],
+            Self::VertexFace => [
+                VertexRole::VertexStart,
+                VertexRole::Face0Start,
+                VertexRole::Face1Start,
+                VertexRole::Face2Start,
+                VertexRole::VertexEnd,
+                VertexRole::Face0End,
+                VertexRole::Face1End,
+                VertexRole::Face2End,
+            ],
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ImportError {
     EmptyInput,
     EmptyRow,
@@ -132,6 +181,11 @@ impl CcdQuery {
     }
 
     #[must_use]
+    pub fn row_roles(&self) -> [VertexRole; 8] {
+        self.kind.row_roles()
+    }
+
+    #[must_use]
     pub fn vertices(&self) -> &[Point3; 8] {
         &self.vertices
     }
@@ -151,7 +205,10 @@ pub struct BoxPair {
 impl BoxPair {
     #[must_use]
     pub fn new(first: u64, second: u64) -> Option<Self> {
-        (first != second).then_some(Self { first, second })
+        (first != second).then_some(Self {
+            first: first.min(second),
+            second: first.max(second),
+        })
     }
 
     #[must_use]
@@ -262,7 +319,7 @@ pub fn parse_boolean_json(input: &str) -> Result<Vec<bool>, ImportError> {
     loop {
         cursor.skip_whitespace();
         let token = cursor.read_ascii_token()?;
-        values.push(parse_bool(token)?);
+        values.push(parse_json_bool(token)?);
         cursor.skip_whitespace();
         if cursor.consume_if(b']') {
             break;
@@ -300,6 +357,14 @@ pub fn parse_box_pairs_json(input: &str) -> Result<Vec<BoxPair>, ImportError> {
     }
     cursor.finish()?;
     Ok(pairs)
+}
+
+fn parse_json_bool(value: &str) -> Result<bool, ImportError> {
+    match value {
+        "false" => Ok(false),
+        "true" => Ok(true),
+        _ => Err(ImportError::InvalidBoolean),
+    }
 }
 
 fn parse_bool(value: &str) -> Result<bool, ImportError> {
@@ -425,6 +490,7 @@ mod tests {
         assert_eq!(queries.len(), 1);
         assert_eq!(queries[0].index(), 0);
         assert_eq!(queries[0].kind(), QueryKind::EdgeEdge);
+        assert_eq!(queries[0].row_roles(), QueryKind::EdgeEdge.row_roles());
         assert_eq!(queries[0].inline_ground_truth(), Some(true));
         assert_eq!(queries[0].vertices()[0].x().numerator(), "1");
         assert_eq!(queries[0].vertices()[0].x().denominator(), "2");
@@ -521,6 +587,10 @@ mod tests {
             parse_box_pairs_json("[[1, 1]]"),
             Err(ImportError::InvalidBoxPair)
         );
+        assert_eq!(
+            parse_box_pairs_json("[[30842, 14175]]").unwrap(),
+            parse_box_pairs_json("[[14175, 30842]]").unwrap()
+        );
     }
 
     #[test]
@@ -531,6 +601,10 @@ mod tests {
         );
         assert_eq!(
             parse_boolean_json("[false, nope]"),
+            Err(ImportError::InvalidBoolean)
+        );
+        assert_eq!(
+            parse_boolean_json("[false, 0]"),
             Err(ImportError::InvalidBoolean)
         );
         assert_eq!(
