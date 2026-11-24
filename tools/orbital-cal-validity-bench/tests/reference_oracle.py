@@ -152,6 +152,20 @@ def evaluate_scope(case, scope, acquisition):
         elif measurement["unit"] != envelope["unit"]:
             add("IDENTITY_MISMATCH", "CONDITION_UNIT_MISMATCH")
         else:
+            observed_interval = interval(measurement["observed_time_ns"], measurement["time_uncertainty_ns"])
+            if observed_interval[0] > acquisition[1]:
+                add("INDETERMINATE", "CONDITION_MEASUREMENT_AFTER_ACQUISITION")
+                continue
+            elif observed_interval[1] < acquisition[0]:
+                minimum_age = acquisition[0] - observed_interval[1]
+                maximum_age = acquisition[1] - observed_interval[0]
+                if minimum_age > envelope["maximum_age_ns"]:
+                    add("EXPIRED", "CONDITION_MEASUREMENT_STALE")
+                    continue
+                elif maximum_age > envelope["maximum_age_ns"]:
+                    add("INDETERMINATE", "CONDITION_MEASUREMENT_AGE_BOUNDARY_OVERLAP")
+                    continue
+
             value_interval = interval(measurement["value_q"], measurement["uncertainty_q"])
             minimum = envelope["minimum_q"]
             maximum = envelope["maximum_q"]
@@ -159,17 +173,6 @@ def evaluate_scope(case, scope, acquisition):
                 add("OUT_OF_SCOPE", "OPERATING_CONDITION_OUT_OF_SCOPE")
             elif value_interval[0] < minimum or value_interval[1] > maximum:
                 add("INDETERMINATE", "OPERATING_CONDITION_BOUNDARY_OVERLAP")
-
-            observed_interval = interval(measurement["observed_time_ns"], measurement["time_uncertainty_ns"])
-            if observed_interval[0] > acquisition[1]:
-                add("INDETERMINATE", "CONDITION_MEASUREMENT_AFTER_ACQUISITION")
-            elif observed_interval[1] < acquisition[0]:
-                minimum_age = acquisition[0] - observed_interval[1]
-                maximum_age = acquisition[1] - observed_interval[0]
-                if minimum_age > envelope["maximum_age_ns"]:
-                    add("EXPIRED", "CONDITION_MEASUREMENT_STALE")
-                elif maximum_age > envelope["maximum_age_ns"]:
-                    add("INDETERMINATE", "CONDITION_MEASUREMENT_AGE_BOUNDARY_OVERLAP")
 
     if scope["check_required"]:
         state = scope["check_state"]
