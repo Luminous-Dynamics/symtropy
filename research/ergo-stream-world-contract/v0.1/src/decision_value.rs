@@ -319,10 +319,11 @@ fn validate_problem(problem: &DecisionProblemV0) -> Result<(), DecisionValueErro
     {
         return Err(DecisionValueErrorV0::ZeroPriorWeight);
     }
-    if !unique_by(&problem.hypotheses, |hypothesis| hypothesis.id)
-        || !unique_by(&problem.actions, |action| action.id)
-    {
+    if !unique_by(&problem.hypotheses, |hypothesis| hypothesis.id) {
         return Err(DecisionValueErrorV0::DuplicateHypothesisId);
+    }
+    if !unique_by(&problem.actions, |action| action.id) {
+        return Err(DecisionValueErrorV0::DuplicateActionId);
     }
 
     let expected_loss_entries = problem
@@ -395,7 +396,9 @@ fn validate_experiment(
             if entry.likelihood_weight > experiment.likelihood_scale {
                 return Err(DecisionValueErrorV0::LikelihoodExceedsScale);
             }
-            row_total += u32::from(entry.likelihood_weight);
+            row_total = row_total
+                .checked_add(u32::from(entry.likelihood_weight))
+                .ok_or(DecisionValueErrorV0::ArithmeticOverflow)?;
             if !seen_likelihoods.insert((entry.hypothesis_id, entry.outcome_id)) {
                 return Err(DecisionValueErrorV0::DuplicateLikelihoodEntry);
             }
