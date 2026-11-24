@@ -241,3 +241,14 @@ Dispatch reconciliation is bound to the registered request payload and updates t
 
 
 The reset model now also pins the campaign identity at BeginReset and checks DispatchUsesResetPlan. The second TLC negative control swaps the active campaign after reset verification and must produce a counterexample if dispatch can reuse the old reset qualification under the new plan.
+
+
+## Durable reset and dispatch journal v0.1
+
+The separate `durable_journal.rs` module adds a transport-neutral, append-only, SHA-256 hash-chained journal for reset and fault-dispatch intent/outcome records. Its typed API validates reset-before-dispatch binding, recomputes the Gazebo request payload digest before persisting a dispatch intent, requires durable-artifact references for read-only injector reconciliation, and treats NoDispatchProven as terminal for the old key.
+
+After process restart, `Journal::open` replays the strict log into a typed index. `recovery_projection_file` and `Journal::recovery_projection` expose deterministic unresolved reset identities, ledger-reconciliation keys and accepted dispatches awaiting execution evidence. This is a read-only projection: it does not call ROS/Gazebo, the injector or native authority. The `rrvr_journal_verify` CLI and cross-language known-answer fixture exercise that contract.
+
+See [DURABLE_JOURNAL_V0.1.md](DURABLE_JOURNAL_V0.1.md), the [journal entry schema](schemas/durable_journal_entry_v0_1.schema.json), the [recovery projection schema](schemas/durable_journal_recovery_v0_1.schema.json), and [issue #7148](https://github.com/Luminous-Dynamics/symtropy/issues/7148).
+
+Claim ceiling: this branch is still a file-backed reference implementation. It is not yet wired into the live reset/dispatch transport, and the injector's own durable idempotency ledger remains an external requirement. Hash-chain validity does not authenticate the producer or prove physical truth.
