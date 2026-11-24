@@ -1,0 +1,16 @@
+[package]
+name = "planar-patch-calibration"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Weighted identifiability and calibration reference for aggregate planar patch friction ellipsoids"
+
+[lib]
+path = "src/lib.rs"
+
+[[example]]
+name = "patch_calibration_tournament"
+path = "examples/patch_calibration_tournament.rs"
+
+[workspace]
