@@ -23,11 +23,20 @@
         "source_world_set_receipt_id": "world-receipt-observable_review",
         "source_joint_loss_receipt_id": "loss-receipt-observable_review",
         "source_joint_scenario_manifest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "policy_payload_sha256": "b6837d3c1f04ba6522743485d41da3feb965923803d299c70f41b3fda4642e6f",
+        "policy_payload_sha256": "3939eded9a5a0b28e70904bbcee734af44daf4e96515a06e7695af3c7ff9b79a",
         "receipt_id": "discovery-receipt-observable_review",
         "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "state": "CURRENT",
-        "result": "pass"
+        "result": "pass",
+        "source_query_universe_receipt_id": "query-universe-1",
+        "source_query_universe_scope_id": "scope-observable_review",
+        "source_expected_query_ids_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "source_queries_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "source_incumbent_policy_id": "incumbent-static",
+        "source_best_no_query_worst_case_loss": {
+          "numerator": 10,
+          "denominator": 1
+        }
       },
       "world_set_state": "CURRENT",
       "loss_model_state": "CURRENT",
@@ -245,7 +254,13 @@
             "numerator": 0,
             "denominator": 1
           },
-          "worst_loss_reduction_vs_best_no_query": null,
+          "worst_loss_reduction_vs_best_no_query": {
+            "direction": "positive_improvement",
+            "magnitude": {
+              "numerator": 9,
+              "denominator": 1
+            }
+          },
           "worst_loss_scenario_ids": [
             "s-A",
             "s-B"
@@ -259,7 +274,15 @@
             "s-B"
           ]
         }
-      ]
+      ],
+      "query_universe_receipt_id": "query-universe-1",
+      "query_universe_scope_id": "scope-observable_review",
+      "expected_query_ids_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "queries_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "best_no_query_worst_case_loss": {
+        "numerator": 10,
+        "denominator": 1
+      }
     }
   ]
 }
