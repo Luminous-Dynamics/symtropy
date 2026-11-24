@@ -50,3 +50,7 @@ path = "src/bin/navigation_temporal_minimax_demo.rs"
 [[bin]]
 name = "navigation_tail_risk_demo"
 path = "src/bin/navigation_tail_risk_demo.rs"
+
+[[bin]]
+name = "navigation_temporal_cvar_demo"
+path = "src/bin/navigation_temporal_cvar_demo.rs"
