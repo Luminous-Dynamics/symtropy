@@ -115,3 +115,36 @@ jobs:
           awk -F, '$2=="SIMULTANEOUS_HOEFFDING" && $6==200 { if ($8 <= 0 || $9 >= 2000 || $19=="NA") exit 1; found++; } END { if (found != 2) exit 1 }' /tmp/repeated-sampling-risk.csv
           echo "Maritime repeated-sampling risk tournament smoke receipt passed."
           echo "Maritime decision-risk and finite-grid non-monotone receipts passed."
+
+      - name: Hash exact deterministic receipts
+        env:
+          EXACT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          printf "head_sha=%s\nrun_id=%s\n" "$EXACT_HEAD_SHA" "$GITHUB_RUN_ID" > /tmp/maritime-receipt-manifest.txt
+          sha256sum \
+            /tmp/decision-risk.csv \
+            /tmp/non-monotone-risk.csv \
+            /tmp/weighted-shift-risk.csv \
+            /tmp/lipschitz-risk.csv \
+            /tmp/bernstein-risk.csv \
+            /tmp/simultaneous-risk.csv \
+            /tmp/repeated-sampling-risk.csv \
+            > /tmp/maritime-receipt-sha256.txt
+
+      - name: Upload reproducible maritime risk receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-risk-receipts-${{ github.event.pull_request.number || github.run_number }}
+          path: |
+            /tmp/maritime-receipt-manifest.txt
+            /tmp/maritime-receipt-sha256.txt
+            /tmp/decision-risk.csv
+            /tmp/non-monotone-risk.csv
+            /tmp/weighted-shift-risk.csv
+            /tmp/lipschitz-risk.csv
+            /tmp/bernstein-risk.csv
+            /tmp/simultaneous-risk.csv
+            /tmp/repeated-sampling-risk.csv
+          if-no-files-found: error
+          retention-days: 30
