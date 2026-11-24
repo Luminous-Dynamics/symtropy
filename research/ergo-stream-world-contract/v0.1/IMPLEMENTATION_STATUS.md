@@ -531,3 +531,9 @@ The split-conformal calibrator now stores `SplitConformalCalibrationIdentityV0`:
 - The schema and example mirror this receipt identity.
 
 **Boundary:** the Rust module checks syntax and identity equality only. The episode owner still must verify signature/custody, active/revoked/expired status, chronology, and the actual calibration manifest before constructing this identity. The current code head requires exact-head Rust 1.96 format/test/doctest/strict-Clippy qualification.
+
+## Receipt-status gating
+
+`SplitConformalCalibrationIdentityV0` now includes `receipt_status` (`Active`, `Revoked`, `Expired`). Fitting rejects non-active receipts; prediction identity comparison fails closed to the full set/no decision if a receipt is revoked/expired or otherwise differs. The JSON schema/example mirror the status field.
+
+This is a typed owner-to-evaluator handoff, not cryptographic verification. The owner still verifies signature/custody, expiry/revocation, chronology, cohort digest and receipt state before creating the identity. Exact-head Rust verification remains pending.
