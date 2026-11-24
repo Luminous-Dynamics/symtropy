@@ -236,6 +236,32 @@ jobs:
           node --check tools/orbital-assurance-bundle-bench/tests/compare_rust_python_policy_adequacy.mjs
           node tools/orbital-assurance-bundle-bench/tests/compare_rust_python_policy_adequacy.mjs incumbent-policy-adequacy-receipt.json incumbent-policy-adequacy-python.json
 
+      - name: Exhaustively enumerate tiny observable policy domain
+        run: |
+          python3 -m py_compile tools/orbital-assurance-bundle-bench/tests/exhaustive_observable_policy_oracle.py
+          python3 tools/orbital-assurance-bundle-bench/tests/exhaustive_observable_policy_oracle.py tools/orbital-assurance-bundle-bench/fixtures/v0.1/exhaustive-observable-policy-domain.json > exhaustive-observable-policy-report.json
+          jq -e '
+            .schema == "luminous.orbital-observable-policy-exhaustive-report.v0.1"
+            and .evidence_class == "synthetic"
+            and .claim_ceiling == "tiny-finite-domain-exhaustive-observable-policy-oracle-only"
+            and .policy_count == 22
+            and .dominated_policy_count == 20
+            and .frontier_policy_ids == [
+              "query::measure::north=north_action::south=south_action",
+              "static::safe"
+            ]
+            and .incumbent_policy_id == "static::safe"
+            and .incumbent_worst_case_loss == {"numerator":10,"denominator":1}
+            and .best_eligible_reference_policy_id == "query::measure::north=north_action::south=south_action"
+            and .best_eligible_reference_worst_case_loss == {"numerator":1,"denominator":1}
+            and .worst_case_improvement == {"numerator":9,"denominator":1}
+            and .materiality_margin == {"numerator":2,"denominator":1}
+            and .eligible_reference_policy_count == 1
+            and .resource_blocked_frontier_policy_count == 0
+            and .review_warranted == true
+            and .authority_granted == false
+          ' exhaustive-observable-policy-report.json
+
       - name: Upload reproducible assurance receipt
         uses: actions/upload-artifact@v4
         with:
@@ -250,5 +276,6 @@ jobs:
             incumbent-decision-adequacy-oracle.json
             incumbent-policy-adequacy-receipt.json
             incumbent-policy-adequacy-python.json
+            exhaustive-observable-policy-report.json
           if-no-files-found: error
           retention-days: 30
