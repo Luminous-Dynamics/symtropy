@@ -101,7 +101,8 @@ pub struct PolicyAdjudication {
 pub struct ScheduleAdjudication {
     /// One complete scheduling episode is one row of the calibration matrix.
     pub episode_id: String,
-    /// Shared outage/weather/TOS incident identifier; must be unique per episode.
+    /// Shared outage/weather/TOS incident identifier. Multiple episodes may
+    /// share one cluster within a split, but a cluster must never cross splits.
     pub dependence_cluster_id: String,
     pub scenario_family: String,
     pub regime_id: String,
@@ -130,6 +131,7 @@ pub enum OracleAdapterError {
         field: &'static str,
     },
     DuplicateEpisodeId(String),
+    /// One dependence cluster appears in both calibration and evaluation.
     ReusedDependenceCluster(String),
     MixedOperatingRegimes {
         expected: String,
@@ -191,6 +193,8 @@ pub enum OracleAdapterError {
     EmptyTailRiskSample,
     InvalidTailConfidence(f64),
     TailLossOutsideBound(u16),
+    /// Cluster-size weighting is not yet certified for this conversion.
+    EmptyDependenceCluster(String),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -211,6 +215,34 @@ pub struct OracleCalibrationBundle {
     pub loss_contract_revision: String,
     pub policy_grid_sha256: String,
     pub regime_id: String,
+    /// Dependence-cluster identifier parallel to each calibration matrix row.
+    pub calibration_dependence_cluster_ids: Vec<String>,
+    /// Dependence-cluster identifier parallel to each evaluation matrix row.
+    pub evaluation_dependence_cluster_ids: Vec<String>,
+}
+
+/// Equal-cluster-weighted, conservative cluster-mean loss matrix.
+///
+/// Each row represents one independent dependence cluster, not one schedule.
+/// The target is the mean schedule loss within a typical sampled cluster, with
+/// every cluster receiving equal weight. Means are rounded upward in milli-loss
+/// units so integer quantization cannot make the loss optimistic. This is not a
+/// schedule-weighted estimand when cluster sizes differ.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClusterMeanMatrix {
+    pub policy_ids: Vec<String>,
+    pub cluster_ids: Vec<String>,
+    pub schedules_per_cluster: Vec<usize>,
+    pub axis: LossAxis,
+    pub role: DatasetRole,
+    pub loss: crate::LossMatrix,
+}
+
+impl ClusterMeanMatrix {
+    /// Converts the cluster means into the existing CRC loss-matrix contract.
+    pub fn matrix(&self) -> crate::LossMatrix {
+        self.loss.clone()
+    }
 }
 
 impl OracleCalibrationBundle {
@@ -231,6 +263,93 @@ impl OracleCalibrationBundle {
         crate::LossMatrix {
             schedules: schedules.clone(),
         }
+    }
+
+    /// Aggregates schedule rows into equal-weight cluster means.
+    ///
+    /// The cluster identity is kept alongside each source schedule and cannot
+    /// be reused across calibration/evaluation. Unequal cluster sizes are
+    /// allowed for the equal-cluster estimand; this method does not claim the
+    /// pooled typical-schedule estimand.
+    pub fn cluster_mean_matrix(
+        &self,
+        role: DatasetRole,
+        axis: LossAxis,
+    ) -> Result<ClusterMeanMatrix, OracleAdapterError> {
+        let (schedules, cluster_ids) = match (role, axis) {
+            (DatasetRole::Calibration, LossAxis::HardPhysicalFailure) => (
+                &self.calibration_hard_failure_milli,
+                &self.calibration_dependence_cluster_ids,
+            ),
+            (DatasetRole::Calibration, LossAxis::ServiceLoss) => (
+                &self.calibration_service_loss_milli,
+                &self.calibration_dependence_cluster_ids,
+            ),
+            (DatasetRole::Evaluation, LossAxis::HardPhysicalFailure) => (
+                &self.evaluation_hard_failure_milli,
+                &self.evaluation_dependence_cluster_ids,
+            ),
+            (DatasetRole::Evaluation, LossAxis::ServiceLoss) => (
+                &self.evaluation_service_loss_milli,
+                &self.evaluation_dependence_cluster_ids,
+            ),
+        };
+        if schedules.is_empty() || cluster_ids.is_empty() {
+            return Err(OracleAdapterError::EmptyDataset);
+        }
+        if schedules.len() != cluster_ids.len() {
+            return Err(OracleAdapterError::EmptyDependenceCluster(
+                "row/cluster identity length mismatch".to_owned(),
+            ));
+        }
+
+        let mut groups: BTreeMap<&str, Vec<usize>> = BTreeMap::new();
+        for (row_index, cluster_id) in cluster_ids.iter().enumerate() {
+            groups.entry(cluster_id.as_str()).or_default().push(row_index);
+        }
+
+        let mut ordered_cluster_ids = Vec::with_capacity(groups.len());
+        let mut schedules_per_cluster = Vec::with_capacity(groups.len());
+        let mut cluster_rows = Vec::with_capacity(groups.len());
+        for (cluster_id, row_indices) in groups {
+            if row_indices.is_empty() {
+                return Err(OracleAdapterError::EmptyDependenceCluster(
+                    cluster_id.to_owned(),
+                ));
+            }
+            let width = self.policy_ids.len();
+            let mut sums = vec![0_u64; width];
+            for row_index in &row_indices {
+                let row = &schedules[*row_index];
+                if row.len() != width || row.iter().any(|value| *value > MAX_LOSS_MILLI) {
+                    return Err(OracleAdapterError::EmptyDependenceCluster(
+                        cluster_id.to_owned(),
+                    ));
+                }
+                for (sum, loss) in sums.iter_mut().zip(row.iter()) {
+                    *sum += u64::from(*loss);
+                }
+            }
+            let count = row_indices.len() as u64;
+            let mean = sums
+                .into_iter()
+                .map(|sum| ((sum + count - 1) / count) as u16)
+                .collect::<Vec<_>>();
+            ordered_cluster_ids.push(cluster_id.to_owned());
+            schedules_per_cluster.push(row_indices.len());
+            cluster_rows.push(mean);
+        }
+
+        Ok(ClusterMeanMatrix {
+            policy_ids: self.policy_ids.clone(),
+            cluster_ids: ordered_cluster_ids,
+            schedules_per_cluster,
+            axis,
+            role,
+            loss: crate::LossMatrix {
+                schedules: cluster_rows,
+            },
+        })
     }
 
     pub fn non_monotone_grid(
