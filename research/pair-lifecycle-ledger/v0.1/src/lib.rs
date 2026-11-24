@@ -1088,17 +1088,25 @@ mod tests {
     fn fingerprint_is_independent_of_event_insertion_order() {
         let p = pair(1, 2);
         let root = LineageId::root(p.clone());
+        let primary = root.child(0);
         let events: Vec<_> = Stage::ORDER
             .into_iter()
             .map(|stage| StageEvent {
                 stage,
-                input: root.clone(),
+                input: if matches!(
+                    stage,
+                    Stage::ManifoldReduction | Stage::SolverMapping | Stage::Solve
+                ) {
+                    primary.clone()
+                } else {
+                    root.clone()
+                },
                 outcome: match stage {
                     Stage::Solve => Outcome::Terminate(TerminalReason::Converged),
                     Stage::CandidateGeneration => Outcome::CandidateTrace {
                         requested_directions: 0,
                         attempts: vec![CandidateAttempt {
-                            id: root.child(0),
+                            id: primary.clone(),
                             kind: CandidateAttemptKind::PrimaryWitness,
                             direction: DirectionDisposition::NotApplicable,
                             support_a: SupportQueryDisposition::NotAttempted,
