@@ -1847,13 +1847,13 @@ mod tests {
     }
 
     #[test]
-    fn energy_disagreement_cannot_be_silently_clamped() {
+    fn energy_disagreement_is_rejected_before_any_signed_credit_is_reported() {
         let mut bad = input();
         bad.grid_response.report["delivered_reduction_energy_kwh"] = json!(-1.0);
-        let report = evaluate_mobility_response_settlement(&bad).unwrap();
-        assert_eq!(report.status, ReconciliationStatus::RejectedMismatch);
-        assert!(!report.technical_reconciliation_passed);
-        assert!(report.dispatch_tracking_signed_delivered_energy_kwh < 0.0);
+        assert!(matches!(
+            evaluate_mobility_response_settlement(&bad),
+            Err(BridgeError::EnergyMismatch(_))
+        ));
     }
 
     #[test]
@@ -1891,6 +1891,8 @@ mod tests {
         let mut bad = input();
         bad.counterfactual_baseline.report["conservative_net_reduction_energy_kwh"] =
             json!(-0.0001);
+        bad.counterfactual_baseline.report["intervals"][3]["conservative_reduction_lower_bound_kw"] =
+            json!(-19.78);
         bad.counterfactual_baseline.report["intervals"][3]["conservative_reduction_energy_kwh"] =
             json!(-0.005494444444444444);
         let report = evaluate_mobility_response_settlement(&bad).unwrap();
