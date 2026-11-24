@@ -309,8 +309,6 @@ pub enum ClusterRiskControlError {
     HardPhysicalFailureAxisRequired { found: LossAxis },
     ServiceLossAxisRequired { found: LossAxis },
     ClusterMatricesNotAligned,
-    EvaluatorRevisionMismatch,
-    LossContractRevisionMismatch,
     RiskControl(crate::RiskControlError),
     HighProbability(crate::high_probability::HighProbabilityError),
 }
@@ -340,23 +338,23 @@ impl ClusterMeanMatrix {
         target_risk_milli: u16,
         mode: crate::MonotonicityMode,
         maximum_parameter_contract: Option<&crate::MaxParameterContract>,
-        revisions: &crate::FrozenRevisions,
     ) -> Result<ClusteredRiskControlResult, ClusterRiskControlError> {
         if self.role != DatasetRole::Calibration {
             return Err(ClusterRiskControlError::CalibrationRoleRequired { found: self.role });
         }
-        if revisions.evaluator_revision != self.provenance.evaluator_revision {
-            return Err(ClusterRiskControlError::EvaluatorRevisionMismatch);
-        }
-        if revisions.loss_contract_revision != self.provenance.loss_contract_revision {
-            return Err(ClusterRiskControlError::LossContractRevisionMismatch);
-        }
+        // Bind the risk-control receipt to the exact validated source revisions.
+        // The policy revision is the SHA-256 of the frozen ordered policy grid.
+        let revisions = crate::FrozenRevisions {
+            policy_revision: self.provenance.policy_grid_sha256.clone(),
+            evaluator_revision: self.provenance.evaluator_revision.clone(),
+            loss_contract_revision: self.provenance.loss_contract_revision.clone(),
+        };
         let result = crate::calibrate(
             &self.loss,
             target_risk_milli,
             mode,
             maximum_parameter_contract,
-            revisions,
+            &revisions,
         )
         .map_err(ClusterRiskControlError::RiskControl)?;
 
@@ -1424,17 +1422,24 @@ mod tests {
                     evidence_ref: "synthetic-terminal-zero-loss-contract".to_owned(),
                     declared_loss_bound_milli: 0,
                 }),
-                &crate::FrozenRevisions {
-                    policy_revision: "frozen-policy-grid".to_owned(),
-                    evaluator_revision: "evaluator-v1".to_owned(),
-                    loss_contract_revision: "loss-v1".to_owned(),
-                },
             )
             .expect("typed cluster-unit expected-risk CRC result");
         assert_eq!(crc.result.calibration_schedules, 2);
         assert_eq!(crc.calibration_provenance.source_schedule_count, 3);
         assert_eq!(crc.calibration_provenance.independent_cluster_count, 2);
         assert_eq!(crc.loss_axis, LossAxis::HardPhysicalFailure);
+        assert_eq!(
+            crc.result.revisions.policy_revision,
+            crc.calibration_provenance.policy_grid_sha256
+        );
+        assert_eq!(
+            crc.result.revisions.evaluator_revision,
+            crc.calibration_provenance.evaluator_revision
+        );
+        assert_eq!(
+            crc.result.revisions.loss_contract_revision,
+            crc.calibration_provenance.loss_contract_revision
+        );
 
         let high_probability = hard_means
             .select_fixed_grid_high_probability(&cluster_means, 100, 0.05)
