@@ -7,6 +7,7 @@ This crate is a research kernel, not an operational collision-probability produc
 ## Current primitives
 
 - A fixed-stake bounded-mean betting confidence sequence for conditionally-mean-stationary observations, plus an adaptive defensive-importance-sampling adapter that binds event/measure/proposal/sample identities and checks observed normalized weights.
+- An end-to-end matched adaptive-IS receipt comparison for fixed-stake, PrPl-EB and Hedged. Every method receives the exact same draw receipts, verifies the same event/measure/proposal/weight identities, and is queried after every draw; the harness compares interval width, threshold decision time, repeated update-plus-summary latency and storage profile.
 - A constant-state, O(1)-per-observation predictable plug-in empirical-Bernstein (PrPl-EB) statistical sequence, with variance-adaptive predictable stakes and running intersection; the adaptive-IS receipt adapter validates identities and retains an exact O(n) duplicate-sample ledger.
 - A hedged-capital bounded-mean confidence sequence using two direction-specific log-capital processes, parameter-dependent stake caps, a theorem-backed interval sublevel set, a log-tailed caller-configurable candidate grid and conservative adjacent-grid outer bracketing. Update cost and state are O(G) in grid size.
 - Exact-rational three-way action-threshold classification for already-qualified risk intervals, with explicit inclusive/strict boundary semantics and abstention when the interval overlaps the threshold.
@@ -53,7 +54,7 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains **281 authored `#[test]` cases**:
+The current authored test corpus contains **286 authored `#[test]` cases**:
 30 in `lib.rs`, 14 in `adaptive_importance_sampling.rs`, 9 in `decision_gate.rs`, 7 in `decision_refinement.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, 9 in `normal_positive_part.rs`, 11 in `conditional_velocity.rs`, 6 in `ncdot_sphere.rs`, 12 in `ncdot_temporal.rs`, 18 in `ncdot_refinement.rs`, 8 in `pop_col_energy.rs`, 10 in `pop_col_adjustment.rs`, and 17 in `pop_convergence.rs`, 13 in `space_time_partition.rs`, and 15 in `refinement_scheduler.rs`.
 
 The package also includes:
