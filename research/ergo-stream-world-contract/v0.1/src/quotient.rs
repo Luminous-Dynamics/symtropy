@@ -13,6 +13,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use super::dynamics::FiniteTransitionSystemV0;
+#[cfg(test)]
+use super::dynamics::TransitionV0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StateClassMappingV0 {
@@ -276,7 +278,6 @@ fn unique_by<T>(values: &[T], id_of: impl Fn(&T) -> u32) -> bool {
 }
 
 #[cfg(test)]
-#[cfg(test)]
 fn fixture() -> (FiniteTransitionSystemV0, StatePartitionV0) {
     use super::dynamics::{ActionV0, StateV0};
 
@@ -338,7 +339,6 @@ fn fixture() -> (FiniteTransitionSystemV0, StatePartitionV0) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dynamics::TransitionV0;
 
     #[test]
     fn builds_a_valid_nontrivial_finite_quotient() {
