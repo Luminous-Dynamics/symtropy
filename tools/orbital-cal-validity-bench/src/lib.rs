@@ -361,6 +361,29 @@ fn evaluate_scope(
                 add_reason(ValidityStatus::IdentityMismatch, "CONDITION_UNIT_MISMATCH", &mut statuses, &mut reasons)
             }
             Some(measurement) => {
+                let observed_interval = match checked_interval(measurement.observed_time_ns, measurement.time_uncertainty_ns) {
+                    Ok(interval) => interval,
+                    Err(_) => {
+                        add_reason(ValidityStatus::InvalidInput, "CONDITION_TIME_INTERVAL_INVALID", &mut statuses, &mut reasons);
+                        continue;
+                    }
+                };
+                if observed_interval[0] > acquisition[1] {
+                    add_reason(ValidityStatus::Indeterminate, "CONDITION_MEASUREMENT_AFTER_ACQUISITION", &mut statuses, &mut reasons);
+                    continue;
+                } else if observed_interval[1] < acquisition[0] {
+                    let minimum_age = acquisition[0] - observed_interval[1];
+                    let maximum_age = acquisition[1] - observed_interval[0];
+                    let maximum_age_ns = i128::from(envelope.maximum_age_ns);
+                    if minimum_age > maximum_age_ns {
+                        add_reason(ValidityStatus::Expired, "CONDITION_MEASUREMENT_STALE", &mut statuses, &mut reasons);
+                        continue;
+                    } else if maximum_age > maximum_age_ns {
+                        add_reason(ValidityStatus::Indeterminate, "CONDITION_MEASUREMENT_AGE_BOUNDARY_OVERLAP", &mut statuses, &mut reasons);
+                        continue;
+                    }
+                }
+
                 let value_interval = match checked_interval(measurement.value_q, measurement.uncertainty_q) {
                     Ok(interval) => interval,
                     Err(_) => {
@@ -375,28 +398,7 @@ fn evaluate_scope(
                 } else if value_interval[0] < minimum || value_interval[1] > maximum {
                     add_reason(ValidityStatus::Indeterminate, "OPERATING_CONDITION_BOUNDARY_OVERLAP", &mut statuses, &mut reasons);
                 }
-
-                let observed_interval = match checked_interval(measurement.observed_time_ns, measurement.time_uncertainty_ns) {
-                    Ok(interval) => interval,
-                    Err(_) => {
-                        add_reason(ValidityStatus::InvalidInput, "CONDITION_TIME_INTERVAL_INVALID", &mut statuses, &mut reasons);
-                        continue;
-                    }
-                };
-                if observed_interval[0] > acquisition[1] {
-                    add_reason(ValidityStatus::Indeterminate, "CONDITION_MEASUREMENT_AFTER_ACQUISITION", &mut statuses, &mut reasons);
-                } else if observed_interval[1] < acquisition[0] {
-                    let minimum_age = acquisition[0] - observed_interval[1];
-                    let maximum_age = acquisition[1] - observed_interval[0];
-                    let maximum_age_ns = i128::from(envelope.maximum_age_ns);
-                    if minimum_age > maximum_age_ns {
-                        add_reason(ValidityStatus::Expired, "CONDITION_MEASUREMENT_STALE", &mut statuses, &mut reasons);
-                    } else if maximum_age > maximum_age_ns {
-                        add_reason(ValidityStatus::Indeterminate, "CONDITION_MEASUREMENT_AGE_BOUNDARY_OVERLAP", &mut statuses, &mut reasons);
-                    }
-                }
-            }
-        }
+            }        }
     }
 
     if scope.check_required {
