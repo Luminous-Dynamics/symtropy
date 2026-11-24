@@ -87,9 +87,11 @@ pub struct BandMetrics {
     pub pointwise_nrmse_reference_rms: Option<f64>,
     /// Fraction of estimates lying inside the supplied reference interval.
     /// This is an agreement diagnostic, not formal coverage.
+    pub reference_interval_points: usize,
     pub reference_interval_agreement_fraction: Option<f64>,
     /// Fraction of reference values covered by supplied prediction intervals.
     /// This is empirical coverage, not a calibrated guarantee.
+    pub prediction_interval_points: usize,
     pub prediction_interval_coverage_fraction: Option<f64>,
     /// Trapezoidal metrics respect nonuniform y+ spacing and skip any segment
     /// whose left or right estimate is missing.
@@ -284,8 +286,8 @@ fn compare_band(
         let left = &pair[0];
         let right = &pair[1];
         if left.y_plus < band.lower
-            || right.y_plus > band.upper
-            || left.y_plus < band.lower
+            || left.y_plus > band.upper
+            || right.y_plus < band.lower
             || right.y_plus > band.upper
         {
             continue;
@@ -352,7 +354,9 @@ fn compare_band(
         pointwise_bias,
         pointwise_rmse,
         pointwise_nrmse_reference_rms,
+        reference_interval_points: reference_interval_count,
         reference_interval_agreement_fraction,
+        prediction_interval_points: prediction_interval_count,
         prediction_interval_coverage_fraction,
         supported_y_plus_span,
         total_y_plus_span,
@@ -381,7 +385,7 @@ fn ratio(numerator: usize, denominator: usize) -> Option<f64> {
 }
 
 fn safe_ratio(numerator: f64, denominator: f64) -> Option<f64> {
-    if denominator == 0.0 || !denominator.is_finite() {
+    if !numerator.is_finite() || denominator == 0.0 || !denominator.is_finite() {
         None
     } else {
         Some(numerator / denominator)
@@ -478,7 +482,7 @@ mod tests {
         ]))
         .expect("valid nonuniform profile");
         let metrics = &report.bands[0];
-        assert_eq!(metrics.pointwise_rmse, Some(0.5));
+        assert!((metrics.pointwise_rmse.unwrap() - 0.5_f64.sqrt()).abs() < 1.0e-12);
         assert!((metrics.trapezoidal_rmse.unwrap() - 0.5_f64.sqrt()).abs() < 1.0e-12);
     }
 
@@ -490,8 +494,8 @@ mod tests {
             upper: 1.2,
         });
         points[1].estimate.as_mut().unwrap().interval = Some(Interval {
-            lower: 1.8,
-            upper: 2.1,
+            lower: 2.1,
+            upper: 2.3,
         });
         let report = compare_profile(&input(points)).expect("valid intervals");
         let metrics = &report.bands[0];
