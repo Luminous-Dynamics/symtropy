@@ -1553,15 +1553,37 @@ mod tests {
         frame_for_epoch(2)
     }
 
-    fn valid_snapshot_for_epoch(frame: &Value, epoch: u64, operation_two_completed: bool) -> Value {
+    fn recompute_snapshot_digest(snapshot: &mut Value) {
+        let mut body = snapshot.clone();
+        body.as_object_mut().unwrap().remove("snapshot_digest");
+        snapshot["snapshot_digest"] = Value::from(digest_value(&body).unwrap());
+    }
+
+    fn valid_snapshot_for_epoch(
+        frame: &Value,
+        epoch: u64,
+        operation_two_completed: bool,
+        previous_snapshot_digest: Option<&str>,
+    ) -> Value {
         let frame_digest = digest_value(frame).unwrap();
         let history = frame["observable_history"].as_array().unwrap().clone();
         let history_digest = digest_value(&Value::Array(history)).unwrap();
-        let mut applied_transition_ids = vec!["START-OP2-E0", "TICK-OP2-E0"];
-        if epoch > 1 {
+        let mut applied_transition_ids = Vec::<&str>::new();
+        if epoch >= 1 {
+            applied_transition_ids.extend(["START-OP2-E0", "TICK-OP2-E0"]);
+        }
+        if epoch >= 2 {
             applied_transition_ids.push("TICK-OP2-E1");
         }
-        let operation_two = if operation_two_completed {
+        let operation_two = if epoch == 0 {
+            json!({
+                "operation_id": "OP-2",
+                "status": "WAITING",
+                "remaining_processing_ticks": 0,
+                "committed_resource_id": null,
+                "quality_disposition": null
+            })
+        } else if operation_two_completed {
             json!({
                 "operation_id": "OP-2",
                 "status": "COMPLETED",
@@ -1585,21 +1607,23 @@ mod tests {
             "committed_resource_id": null,
             "quality_disposition": null
         });
+        let active = epoch == 1 && !operation_two_completed;
+        let setup = if epoch == 0 { "SETUP-A" } else { "SETUP-B" };
         let resource = json!({
             "resource_id": "RESOURCE-A",
-            "current_setup_family": if operation_two_completed { "SETUP-B" } else { "SETUP-B" },
-            "active_operation_id": if operation_two_completed { Value::Null } else { Value::from("OP-2") },
+            "current_setup_family": setup,
+            "active_operation_id": if active { Value::from("OP-2") } else { Value::Null },
             "availability_status": "AVAILABLE",
             "capacity_units_total": 1,
-            "capacity_units_used": if operation_two_completed { 0 } else { 1 },
-            "capacity_units_remaining": if operation_two_completed { 1 } else { 0 }
+            "capacity_units_used": if active { 1 } else { 0 },
+            "capacity_units_remaining": if active { 0 } else { 1 }
         });
         let mut snapshot = json!({
             "schema_id": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-operational-state-snapshot",
             "benchmark_id": "MFG-POLICY-V02-CHALLENGE-001",
             "case_id": "CASE-01",
             "decision_epoch": epoch,
-            "previous_snapshot_digest": "a".repeat(64),
+            "previous_snapshot_digest": previous_snapshot_digest,
             "decision_frame_digest": frame_digest,
             "visible_history_digest": history_digest,
             "transition_version": "mfg-policy-v02-state-replay/0.1.0",
@@ -1629,10 +1653,46 @@ mod tests {
             "snapshot_digest": "",
             "claim_ceiling": "Synthetic replay-derived operational state only; not physical truth, source authentication, production authorization or whole-factory feasibility."
         });
-        let mut body = snapshot.clone();
-        body.as_object_mut().unwrap().remove("snapshot_digest");
-        snapshot["snapshot_digest"] = Value::from(digest_value(&body).unwrap());
+        recompute_snapshot_digest(&mut snapshot);
         snapshot
+    }
+
+    fn valid_replay_receipt_for_epoch(
+        epoch: u64,
+        operation_two_completed: bool,
+    ) -> Value {
+        let mut snapshots = Vec::new();
+        let mut previous_digest: Option<String> = None;
+        for decision_epoch in 0..=epoch {
+            let frame = frame_for_epoch(decision_epoch);
+            let completed = decision_epoch >= 2 && operation_two_completed;
+            let mut snapshot = valid_snapshot_for_epoch(
+                &frame,
+                decision_epoch,
+                completed,
+                previous_digest.as_deref(),
+            );
+            // Recompute the child digest after linking it to the previous snapshot.
+            recompute_snapshot_digest(&mut snapshot);
+            previous_digest = Some(
+                snapshot["snapshot_digest"]
+                    .as_str()
+                    .unwrap()
+                    .to_string(),
+            );
+            snapshots.push(snapshot);
+        }
+        json!({
+            "schema_id": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-replay-receipt",
+            "benchmark_id": "MFG-POLICY-V02-CHALLENGE-001",
+            "case_id": "CASE-01",
+            "status": "VERIFIED",
+            "ledger_digest": "b".repeat(64),
+            "snapshots": snapshots,
+            "violation_ledger": [],
+            "final_snapshot_digest": previous_digest,
+            "claim_ceiling": "Synthetic event-sourced schedule-state replay; no physical execution, source authentication, product acceptance, ISO conformance or SOTA superiority."
+        })
     }
 
     fn sample_proposal_for(frame: &Value) -> Value {
