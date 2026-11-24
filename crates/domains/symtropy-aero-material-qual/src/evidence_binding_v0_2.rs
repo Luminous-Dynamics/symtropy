@@ -222,8 +222,8 @@ fn check_independent_identity(
     }
 
     let assertion = assertion_rows[0];
+    let mut consistent = true;
     if !has_provenance(assertion) {
-        consistent = false;
         push(
             violations,
             &format!("{identity_label}_PROVENANCE_INCOMPLETE"),
@@ -236,7 +236,6 @@ fn check_independent_identity(
         );
     }
 
-    let mut consistent = true;
     for (declared_field, expected_id) in expected {
         if field_str(assertion, declared_field) != Some(*expected_id) {
             push(
