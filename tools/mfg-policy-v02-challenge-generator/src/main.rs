@@ -833,9 +833,11 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
     }
 
     let mut family_by_id = BTreeMap::new();
+    let mut family_index_by_id = BTreeMap::new();
     let mut development_families = 0;
     let mut held_out_families = 0;
     for family in &corpus.family_manifest {
+        let family_index = family_by_id.len();
         if family.replication_seeds != (1..=REPLICATIONS_PER_FAMILY as u64).collect::<Vec<_>>()
             || family.primary_mechanism.trim().is_empty()
             || family.decision_tension_under_test.trim().is_empty()
@@ -843,6 +845,7 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
         {
             return Err("family_manifest_invalid_or_duplicate".into());
         }
+        family_index_by_id.insert(family.scenario_family_id.as_str(), family_index);
         match family.split {
             DataSplit::Development => development_families += 1,
             DataSplit::HeldOut => held_out_families += 1,
@@ -857,7 +860,12 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
         let family = family_by_id
             .get(case.scenario_family_id.as_str())
             .ok_or_else(|| "case_references_unknown_family".to_string())?;
+        let family_index = *family_index_by_id
+            .get(case.scenario_family_id.as_str())
+            .ok_or_else(|| "case_family_index_missing".to_string())?;
         if case.case_id.trim().is_empty()
+            || case.generator_seed != derive_seed(family_index, case.replication_seed)
+            || case.case_id != format!("{}-{:02}", case.scenario_family_id.to_ascii_uppercase(), case.replication_seed)
             || !case_ids.insert(case.case_id.as_str())
             || case.split != family.split
             || !family.replication_seeds.contains(&case.replication_seed)
@@ -878,6 +886,9 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
             return Err("resource_ids_not_unique".into());
         }
 
+        let resources_by_id: BTreeMap<&str, &Resource> = case.resources.iter()
+            .map(|resource| (resource.resource_id.as_str(), resource))
+            .collect();
         let mut operation_ids = BTreeSet::new();
         for job in &case.jobs {
             if job.operations.len() != 2 {
@@ -895,6 +906,11 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
                     || operation.eligible_resource_ids.len() != 2
                     || operation.eligible_resource_ids.iter().any(|id| !resource_ids.contains(id.as_str()))
                     || operation.processing_time_ticks_by_resource.len() != 2
+                    || operation.processing_time_ticks_by_resource.keys().map(String::as_str).collect::<BTreeSet<_>>()
+                        != operation.eligible_resource_ids.iter().map(String::as_str).collect::<BTreeSet<_>>()
+                    || operation.eligible_resource_ids.iter().any(|resource_id|
+                        !resources_by_id.get(resource_id.as_str()).is_some_and(|resource|
+                            resource.capability_families.contains(&operation.process_family)))
                     || operation.processing_time_ticks_by_resource.values().any(|value| *value == 0)
                     || (index == 0 && !operation.predecessor_operation_ids.is_empty())
                     || (index == 1 && operation.predecessor_operation_ids != vec![job.operations[0].operation_id.clone()])
@@ -918,6 +934,14 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
                 if operation.inspection_required != operation.inspection_method_id.is_some() {
                     return Err("inspection_requirement_and_method_mismatch".into());
                 }
+                if let Some(method_id) = &operation.inspection_method_id {
+                    if !case.inspection_station.methods.iter().any(|method|
+                        method.method_id == *method_id
+                            && method.applicable_process_families.contains(&operation.process_family))
+                    {
+                        return Err("operation_inspection_method_not_qualified_for_process".into());
+                    }
+                }
             }
         }
 
@@ -930,8 +954,21 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
         {
             return Err("interacting_bottleneck_capacity_windows_missing".into());
         }
-        if case.setup_transitions.is_empty() || case.setup_transitions.iter().any(|transition| transition.duration_ticks == 0) {
-            return Err("sequence_dependent_setup_matrix_missing_or_zero".into());
+        let setup_keys: BTreeSet<(&str, &str, &str)> = case.setup_transitions.iter()
+            .map(|transition| (
+                transition.resource_id.as_str(),
+                transition.from_setup_family.as_str(),
+                transition.to_setup_family.as_str(),
+            ))
+            .collect();
+        if case.setup_transitions.len() != 18
+            || setup_keys.len() != 18
+            || case.setup_transitions.iter().any(|transition|
+                transition.duration_ticks == 0
+                    || !resource_ids.contains(transition.resource_id.as_str())
+                    || transition.from_setup_family == transition.to_setup_family)
+        {
+            return Err("sequence_dependent_setup_matrix_missing_invalid_or_zero".into());
         }
 
         let mut probability_total = 0_u64;
