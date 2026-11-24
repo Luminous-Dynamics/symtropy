@@ -57,6 +57,17 @@ jobs:
     - name: Check Formatting
       run: cargo fmt --all -- --check
 
+    # Isolated research crates are nested workspaces and are not visited by
+    # cargo --workspace. Qualify this finite-geometry reference explicitly.
+    - name: Check Axial Cuboid Reference Formatting
+      run: cargo fmt --manifest-path research/magnetics/axial-cuboid-reference/Cargo.toml -- --check
+
+    - name: Clippy Axial Cuboid Reference
+      run: cargo clippy --manifest-path research/magnetics/axial-cuboid-reference/Cargo.toml --all-targets -- -D warnings
+
+    - name: Test Axial Cuboid Reference
+      run: cargo test --manifest-path research/magnetics/axial-cuboid-reference/Cargo.toml
+
     # Repo-invariant guards. These scripts existed since at least June but were
     # wired into nothing, so both of them silently failed against the tree for
     # weeks: check-workspace.sh still asserted `Bevy 0.18.1` (the workspace has
