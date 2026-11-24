@@ -133,3 +133,20 @@ Gazebo's current documentation adds concrete reasons for this gate:
 Consequently, the live adapter must record separately: (a) requested and observed simulation iterations/time, (b) wall-clock request/response latency, and (c) SceneBroadcaster state synchronization latency. Do not infer simulation-step completion from wall-clock sleep or infer world freshness from the 10 Hz stats stream alone.
 
 References: [Gazebo Simulation Interfaces: dependencies, timing and known limitations](https://gazebosim.org/docs/rotary/ros2_sim_interfaces/); [Gazebo latest Simulation Interfaces](https://gazebosim.org/docs/latest/ros2_sim_interfaces/).
+
+
+## Payload-bound durable dispatch idempotency
+
+A stable idempotency key must not be allowed to alias two different fault requests. The dispatch request now carries a SHA-256 commitment over a canonical JSON projection of the plan, campaign, pair, scenario, fault ID/sequence, target ID, fault domain, scheduled simulation step, fault-parameter digest and idempotency key. The payload digest excludes only its own digest field. The coordinator verifies the digest before calling the injector.
+
+The in-process registry is only a fast duplicate/conflict guard. It is intentionally not treated as restart-safe storage. The concrete injector owner must atomically and durably store the mapping:
+
+idempotency_key -> payload_sha256 -> operation outcome
+
+before any fault effect can occur. Required semantics:
+- same key + same payload digest: return the previously recorded operation result without executing the effect again;
+- same key + different payload digest: reject with PayloadConflict and do not execute;
+- unknown ledger result or unavailable lookup: remain unresolved; never blind-resubmit;
+- ledger survives coordinator and injector process restarts, and its durability/linearizability are tested against the actual injector store.
+
+The Rust reference tests include an in-memory durable-ledger test double showing payload conflict rejection after a coordinator-registry restart. This is not evidence that a real fault injector already implements a durable ledger. Exactly-once physical effects are not claimed; the target is at-most-once effect admission under a verified, durable injector contract plus independent outcome observation.
