@@ -1,0 +1,60 @@
+# Maritime cargo event-capture completeness v0.1
+
+Standalone synthetic-first Rust benchmark for the acquisition path between physical operations and admitted event records.
+
+## Core distinction
+
+`Occurrence → Detection → Durable capture → Source-semantic admission`
+
+These are four separate propositions. A source may return a valid, signed, replayable export while a physical operation was never detected or the event was lost before persistence. A delivery acknowledgement does not establish durable persistence. A complete-looking event stream is not a qualified observation channel.
+
+This crate owns none of the operational source adapters, canonical container identity, DCSA/EPCIS parsers, metrology, custody state machine or causal estimator. It is a read-only P0 contract that composes later with #4003, #6562, #6662, #6631, #6783 and #6945.
+
+## P0 behavior
+
+- Require a versioned source capture profile bound to source, event class, validity window, configuration digest and documented sequence semantics.
+- Require a separately qualified independent reference with complete coverage of the exact same event class and time window.
+- Reject a reference whose declared failure domains overlap the source capture path; different device IDs do not prove independence.
+- Match independently referenced events to source records by exact event ID and event time.
+- Count a source record only when durably persisted and visible at the declared as-of cutoff.
+- Qualify a full capture window only after the as-of instant reaches the window end; partial windows remain `NOT_EVALUABLE` rather than complete or missing.
+- Treat exact duplicate delivery as idempotent; conflicting reuse of an event ID as incomplete.
+- Permit a known-no-event interval only when the independent reference explicitly qualifies complete coverage and reports no events.
+
+Dispositions:
+- `QUALIFIED_WITHIN_DECLARED_ENVELOPE` — complete only within the exact tested source/configuration/event-class/window.
+- `INCOMPLETE` — an expected event is missing/non-durable, an unexpected record appears, or an event identity conflicts.
+- `NOT_IDENTIFIABLE` — no independent reference, incomplete/unqualified reference coverage, or shared failure domains.
+- `NOT_EVALUABLE` — source profile mismatch or unsupported sequence semantics.
+- `UNKNOWN` — required profile is absent.
+
+## Frozen corpus
+
+`fixtures/capture-v0.1.tsv` contains 18 hand-authored expected dispositions. Synthetic `event_time`, `published_at` and `as_of` values use one declared reference coordinate: a window not yet closed at the as-of instant is not evaluable (future reference events are not counted as missing), an evaluation before the capture window is not evaluable, and a record published before its claimed occurrence is not evaluable. Unit tests add metamorphic controls for event removal, shared failure domains, acknowledgements without persistence, historical cutoffs, exact duplicates and conflicting event identities.
+
+All cases are synthetic. The test helper creates the candidate input; the TSV independently declares the expected disposition. This is a reference contract, not a physical test campaign.
+
+## Run
+
+    cargo fmt --manifest-path benchmarks/maritime-cargo-capture-completeness/Cargo.toml -- --check
+    cargo test --manifest-path benchmarks/maritime-cargo-capture-completeness/Cargo.toml --locked
+    cargo clippy --manifest-path benchmarks/maritime-cargo-capture-completeness/Cargo.toml --locked --all-targets -- -D warnings
+
+## Claim ceiling
+
+A pass proves only this synthetic evaluator's declared rules. It does not qualify any real terminal, sensor, PLC, OCR, gate, rail, broker, API, archive or receiver; it does not establish physical occurrence, detection probability, legal access, source truth, identity, custody, delivery, port performance or network effects. Actual source-specific qualification requires independent reference instrumentation, rights-cleared records, metrology/clock traceability, configuration control, and an independently adjudicated physical test protocol.
+
+## Per-event claim binding (24 November 2026)
+
+The completeness result now carries a typed provenance envelope:
+- source ID and event class;
+- exact configuration digest;
+- capture window start/end and historical as-of cutoff;
+- independent reference ID;
+- one row per independently reconciled, durably persisted event with event ID, source-native record ID, canonical subject/container ID, event time, publication time and payload digest.
+
+Use admit_claim_against_capture(report, binding) before admitting an individual physical/source claim. It requires an exact match on source, event class, configuration, event ID, source-record ID, canonical subject and event time, and checks that the event was reconciled under the report's independent reference and visible by its as-of cutoff.
+
+A window-level pass no longer implies that an arbitrary event or container claim can borrow the qualification. Partial/incomplete windows propagate as INCOMPLETE; absent/overlapping reference failures propagate as NOT_IDENTIFIABLE; malformed/mismatched profile evidence propagates as NOT_EVALUABLE; unknown profiles remain UNKNOWN. A qualified no-event window cannot be used to admit an event that is not present.
+
+This creates the intended bridge between #6974 (was the acquisition channel complete for this source/configuration/class/window?) and #7386 (what claim is being made about this exact source record and canonical subject?). It does not by itself prove that the independent reference instrumentation is valid or that the physical event caused a later receiver outcome.

@@ -1,0 +1,5 @@
+version = 4
+
+[[package]]
+name = "maritime-cargo-capture-completeness"
+version = "0.1.0"
