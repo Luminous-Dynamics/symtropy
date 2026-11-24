@@ -380,3 +380,11 @@ The current executable source head is `e9a5fbf30b69931f54f387329df31af210ee717e`
 - `cargo clippy --locked --all-targets -- -D warnings`: passed.
 
 The 96 tests include the evaluator-stratified calibration regression, which demonstrates why pooled scores must not hide a failing shift stratum. This remains focused microcosm qualification only. It is not full repository-wide CI, a formal conformal guarantee, production #11171 integration, a sealed evaluator, or evidence of external SOTA performance.
+
+## Wilson uncertainty intervals for selective risk and coverage
+
+`SelectiveRiskPointV0` now exposes two-sided 95% Wilson intervals for both coverage and selective risk. Coverage uses all scored claims as its denominator; selective risk uses only selected claims at that confidence threshold. An empty selected set has no selective-risk estimate/interval. Three tests cover zero observed errors at small n, separate denominators and empty selective sets.
+
+These are explicitly IID binomial reference intervals only. They are not valid under repeated measures, campaign/world clustering, overlapping frames or temporal dependence. The confirmatory benchmark must declare the independent unit and use block/campaign bootstrap or another justified dependence-aware procedure when observations are clustered.
+
+**This source addition is newer than exact head e9a5… and requires its own Rust 1.96 formatting, tests/doctests and strict-Clippy qualification.**
