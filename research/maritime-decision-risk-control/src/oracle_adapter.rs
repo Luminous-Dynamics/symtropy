@@ -156,6 +156,9 @@ pub enum OracleAdapterError {
         policy_id: String,
         value_milli: u16,
     },
+    EmptyTailRiskSample,
+    InvalidTailConfidence(f64),
+    TailLossOutsideBound(u16),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -505,6 +508,92 @@ pub fn compile_oracle_outcomes(
     })
 }
 
+/// Descriptive tail metrics for one independently adjudicated policy/loss axis.
+/// These statistics are diagnostics, not finite-sample risk certificates.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PolicyTailMetrics {
+    pub policy_id: String,
+    pub sample_count: usize,
+    pub mean_loss_milli: f64,
+    /// Empirical upper-tail CVaR at the declared confidence level (e.g. 0.95).
+    pub empirical_upper_cvar_milli: f64,
+    pub maximum_loss_milli: u16,
+}
+
+/// Computes empirical upper-tail CVaR using fractional tail mass.
+///
+/// For confidence q, the upper tail has mass (1-q). Fractional weighting of
+/// the boundary observation avoids rounding the tail to an integer count.
+pub fn empirical_upper_cvar_milli(
+    losses: &[u16],
+    confidence_level: f64,
+) -> Result<f64, OracleAdapterError> {
+    if losses.is_empty() {
+        return Err(OracleAdapterError::EmptyTailRiskSample);
+    }
+    if !confidence_level.is_finite() || !(0.0..1.0).contains(&confidence_level) {
+        return Err(OracleAdapterError::InvalidTailConfidence(confidence_level));
+    }
+    if let Some(value) = losses.iter().copied().find(|value| *value > MAX_LOSS_MILLI) {
+        return Err(OracleAdapterError::TailLossOutsideBound(value));
+    }
+
+    let tail_mass = (1.0 - confidence_level) * losses.len() as f64;
+    let mut ordered = losses.to_vec();
+    ordered.sort_unstable_by(|left, right| right.cmp(left));
+
+    let mut remaining = tail_mass;
+    let mut weighted_total = 0.0;
+    for loss in ordered {
+        if remaining <= 0.0 {
+            break;
+        }
+        let weight = remaining.min(1.0);
+        weighted_total += f64::from(loss) * weight;
+        remaining -= weight;
+    }
+
+    Ok(weighted_total / tail_mass)
+}
+
+/// Reports mean, maximum and empirical upper-tail CVaR for each candidate policy.
+/// The output axis is explicit; hard-failure and service-loss tails never combine.
+pub fn tail_metrics_by_policy(
+    bundle: &OracleCalibrationBundle,
+    role: DatasetRole,
+    axis: LossAxis,
+    confidence_level: f64,
+) -> Result<Vec<PolicyTailMetrics>, OracleAdapterError> {
+    let matrix = bundle.matrix(role, axis);
+    if matrix.schedules.is_empty() {
+        return Err(OracleAdapterError::EmptyTailRiskSample);
+    }
+
+    let mut metrics = Vec::with_capacity(bundle.policy_ids.len());
+    for (policy_index, policy_id) in bundle.policy_ids.iter().enumerate() {
+        let losses = matrix
+            .schedules
+            .iter()
+            .map(|row| row[policy_index])
+            .collect::<Vec<_>>();
+        let total = losses.iter().map(|loss| u64::from(*loss)).sum::<u64>();
+        let mean_loss_milli = total as f64 / losses.len() as f64;
+        let maximum_loss_milli = losses.iter().copied().max().unwrap_or(0);
+        let empirical_upper_cvar_milli =
+            empirical_upper_cvar_milli(&losses, confidence_level)?;
+
+        metrics.push(PolicyTailMetrics {
+            policy_id: policy_id.clone(),
+            sample_count: losses.len(),
+            mean_loss_milli,
+            empirical_upper_cvar_milli,
+            maximum_loss_milli,
+        });
+    }
+
+    Ok(metrics)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -773,6 +862,60 @@ mod tests {
         let evaluation = bundle.matrix(DatasetRole::Evaluation, LossAxis::HardPhysicalFailure);
         assert_eq!(calibration.schedule_count(), 2);
         assert_eq!(evaluation.schedule_count(), 1);
+    }
+
+    #[test]
+    fn upper_tail_cvar_detects_a_rare_catastrophic_schedule() {
+        let losses = [10, 10, 10, 20, 1_000];
+        assert_eq!(
+            empirical_upper_cvar_milli(&losses, 0.80).expect("CVaR"),
+            1_000.0
+        );
+        assert!(empirical_upper_cvar_milli(&losses, 0.50).expect("CVaR") > 500.0);
+    }
+
+    #[test]
+    fn empirical_cvar_rejects_empty_invalid_or_unbounded_inputs() {
+        assert_eq!(
+            empirical_upper_cvar_milli(&[], 0.95),
+            Err(OracleAdapterError::EmptyTailRiskSample)
+        );
+        assert_eq!(
+            empirical_upper_cvar_milli(&[1, 2], 1.0),
+            Err(OracleAdapterError::InvalidTailConfidence(1.0))
+        );
+        assert_eq!(
+            empirical_upper_cvar_milli(&[1, 1_001], 0.95),
+            Err(OracleAdapterError::TailLossOutsideBound(1_001))
+        );
+    }
+
+    #[test]
+    fn policy_tail_metrics_keep_physical_and_service_axes_separate() {
+        let bundle = compile_oracle_outcomes(&valid_dataset()).expect("valid oracle data");
+        let hard = tail_metrics_by_policy(
+            &bundle,
+            DatasetRole::Calibration,
+            LossAxis::HardPhysicalFailure,
+            0.50,
+        )
+        .expect("hard-failure tail");
+        let service = tail_metrics_by_policy(
+            &bundle,
+            DatasetRole::Calibration,
+            LossAxis::ServiceLoss,
+            0.50,
+        )
+        .expect("service-loss tail");
+
+        assert_eq!(hard[0].policy_id, "policy-A");
+        assert_eq!(hard[1].policy_id, "policy-B");
+        assert_eq!(hard[1].maximum_loss_milli, 1_000);
+        assert_eq!(service[1].maximum_loss_milli, 600);
+        assert_ne!(
+            hard[1].empirical_upper_cvar_milli,
+            service[1].empirical_upper_cvar_milli
+        );
     }
 
     #[test]
