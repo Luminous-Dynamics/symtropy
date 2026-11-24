@@ -377,8 +377,7 @@ pub fn reset_and_verify<T: GazeboSimulationTransport>(
         GazeboResetLifecycle::Verified(_) => {
             return Err(GazeboAdapterError::ResetAlreadyVerified);
         }
-        GazeboResetLifecycle::DispatchStarted(_)
-        | GazeboResetLifecycle::OutcomeUnresolved(_) => {
+        GazeboResetLifecycle::DispatchStarted(_) | GazeboResetLifecycle::OutcomeUnresolved(_) => {
             return Err(GazeboAdapterError::ResetOutcomeUnresolved);
         }
     }
@@ -1024,8 +1023,8 @@ pub fn dispatch_idempotency_key(
     };
     let value = serde_json::to_value(identity)
         .map_err(|_| GazeboAdapterError::InvalidIdempotencyContext)?;
-    let bytes = serde_json::to_vec(&value)
-        .map_err(|_| GazeboAdapterError::InvalidIdempotencyContext)?;
+    let bytes =
+        serde_json::to_vec(&value).map_err(|_| GazeboAdapterError::InvalidIdempotencyContext)?;
     let digest = Sha256::digest(bytes);
     let digest: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
     Ok(format!("rrvr/v0.1/{digest}"))
@@ -1110,8 +1109,7 @@ where
         GazeboResetLifecycle::NotAttempted => {
             return Err(GazeboAdapterError::ResetNotVerified);
         }
-        GazeboResetLifecycle::DispatchStarted(_)
-        | GazeboResetLifecycle::OutcomeUnresolved(_) => {
+        GazeboResetLifecycle::DispatchStarted(_) | GazeboResetLifecycle::OutcomeUnresolved(_) => {
             return Err(GazeboAdapterError::ResetOutcomeUnresolved);
         }
     };
@@ -1461,7 +1459,10 @@ mod tests {
         manifest.campaign_id.push_str("-alternate");
         let source_bytes = serde_json::to_vec(&manifest).unwrap();
         let source_digest = Sha256::digest(source_bytes);
-        let source_digest: String = source_digest.iter().map(|byte| format!("{byte:02x}")).collect();
+        let source_digest: String = source_digest
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect();
         let plan_b = CompiledCampaignPlan::compile(&manifest, &source_digest).unwrap();
         assert_ne!(plan_a.plan_sha256, plan_b.plan_sha256);
 
@@ -1746,7 +1747,10 @@ mod tests {
             fault.scheduled_simulation_step
         );
         assert!(result.request.idempotency_key.starts_with("rrvr/v0.1/"));
-        assert_eq!(result.request.idempotency_key.len(), "rrvr/v0.1/".len() + 64);
+        assert_eq!(
+            result.request.idempotency_key.len(),
+            "rrvr/v0.1/".len() + 64
+        );
         assert_eq!(
             result.outcome,
             GazeboDispatchOutcome::Unknown { dispatch_id: None }
@@ -2247,12 +2251,7 @@ mod tests {
         let mut late_step = observer_quorum(&plan);
         late_step[0].simulation_step += 1;
         assert_eq!(
-            validate_delivery_observer_quorum(
-                &late_step,
-                &plan,
-                &fault.fault_id,
-                "world-epoch-2"
-            ),
+            validate_delivery_observer_quorum(&late_step, &plan, &fault.fault_id, "world-epoch-2"),
             Err(GazeboAdapterError::ObserverStepMismatch)
         );
 
@@ -2315,13 +2314,7 @@ mod tests {
         let mut uncommitted_scenario = scenario.clone();
         uncommitted_scenario.pair_id.push_str("-tampered");
         assert_eq!(
-            dispatch_idempotency_key(
-                &plan,
-                &uncommitted_scenario,
-                fault,
-                "run-1",
-                "epoch-1"
-            ),
+            dispatch_idempotency_key(&plan, &uncommitted_scenario, fault, "run-1", "epoch-1"),
             Err(GazeboAdapterError::InvalidIdempotencyContext)
         );
     }
