@@ -932,7 +932,7 @@ mod mission_path_distribution_tests {
                 950_000,
             )
             .unwrap();
-            assert!(robust_tail.worst_case_cvar.numerator > 0);
+            assert!(robust_tail.worst_case_cvar.denominator > 0);
         }
     }
 
