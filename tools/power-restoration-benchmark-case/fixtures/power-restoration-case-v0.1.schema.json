@@ -1,0 +1,738 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:power-restoration-benchmark-case:0.1.0",
+  "title": "Planner-neutral Power Restoration Benchmark Case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "formatVersion",
+    "caseId",
+    "maturity",
+    "provenance",
+    "units",
+    "timebase",
+    "modelProfile",
+    "network",
+    "roadNetwork",
+    "faults",
+    "repairCrews",
+    "mobilePowerSources",
+    "objective"
+  ],
+  "properties": {
+    "formatVersion": {
+      "const": "0.1.0"
+    },
+    "caseId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "maturity": {
+      "enum": [
+        "synthetic_fixture",
+        "historical_replay",
+        "field_observed"
+      ]
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    },
+    "units": {
+      "$ref": "#/$defs/units"
+    },
+    "timebase": {
+      "$ref": "#/$defs/timebase"
+    },
+    "modelProfile": {
+      "$ref": "#/$defs/modelProfile"
+    },
+    "network": {
+      "$ref": "#/$defs/network"
+    },
+    "roadNetwork": {
+      "$ref": "#/$defs/roadNetwork"
+    },
+    "faults": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/fault"
+      }
+    },
+    "repairCrews": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/repairCrew"
+      }
+    },
+    "mobilePowerSources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/mobilePowerSource"
+      }
+    },
+    "objective": {
+      "$ref": "#/$defs/objective"
+    }
+  },
+  "$defs": {
+    "nonEmpty": {
+      "type": "string",
+      "minLength": 1
+    },
+    "positive": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "nonnegative": {
+      "type": "number",
+      "minimum": 0
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "datasetId",
+        "sourceRepository",
+        "sourceCommit",
+        "sourceLicenseRef",
+        "conversionReceiptRef",
+        "sourceArtifacts"
+      ],
+      "properties": {
+        "datasetId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "sourceRepository": {
+          "type": "string",
+          "format": "uri"
+        },
+        "sourceCommit": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{40}$"
+        },
+        "sourceLicenseRef": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "conversionReceiptRef": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "sourceArtifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "vcsObjectId",
+              "vcsObjectFormat",
+              "rawSha256"
+            ],
+            "properties": {
+              "path": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "vcsObjectId": {
+                "type": "string"
+              },
+              "vcsObjectFormat": {
+                "enum": [
+                  "git_sha1",
+                  "git_sha256"
+                ]
+              },
+              "rawSha256": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "length",
+        "time",
+        "activePower",
+        "reactivePower",
+        "apparentPower",
+        "energy",
+        "work"
+      ],
+      "properties": {
+        "length": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "time": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "activePower": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "reactivePower": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "apparentPower": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "energy": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "work": {
+          "$ref": "#/$defs/nonEmpty"
+        }
+      }
+    },
+    "timebase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "stepSize",
+        "horizonSteps",
+        "firstStepSemantics"
+      ],
+      "properties": {
+        "unit": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "stepSize": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "horizonSteps": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "firstStepSemantics": {
+          "$ref": "#/$defs/nonEmpty"
+        }
+      }
+    },
+    "modelProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "electricalDataProfile",
+        "topologyConstraints",
+        "mpsConstraints",
+        "independentValidatorRef"
+      ],
+      "properties": {
+        "electricalDataProfile": {
+          "enum": [
+            "topology_only",
+            "branch_impedance_and_limits",
+            "complete_ac_model_inputs"
+          ]
+        },
+        "topologyConstraints": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "radiality",
+              "source_reachability",
+              "fault_isolation"
+            ]
+          }
+        },
+        "mpsConstraints": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/nonEmpty"
+          }
+        },
+        "independentValidatorRef": {
+          "$ref": "#/$defs/nonEmpty"
+        }
+      }
+    },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodes",
+        "branches",
+        "switches",
+        "loads",
+        "gridSources",
+        "electricalSettings"
+      ],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "nodeId"
+            ],
+            "properties": {
+              "nodeId": {
+                "$ref": "#/$defs/nonEmpty"
+              }
+            }
+          }
+        },
+        "branches": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/powerBranch"
+          }
+        },
+        "switches": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "switchId",
+              "fromNodeId",
+              "toNodeId",
+              "initiallyClosed",
+              "normallyOpenTie"
+            ],
+            "properties": {
+              "switchId": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "fromNodeId": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "toNodeId": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "initiallyClosed": {
+                "type": "boolean"
+              },
+              "normallyOpenTie": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "loads": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "loadId",
+              "nodeId",
+              "activePowerKw",
+              "reactivePowerKvar",
+              "priorityWeight",
+              "essentialServiceClass"
+            ],
+            "properties": {
+              "loadId": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "nodeId": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "activePowerKw": {
+                "$ref": "#/$defs/nonnegative"
+              },
+              "reactivePowerKvar": {
+                "type": "number"
+              },
+              "priorityWeight": {
+                "$ref": "#/$defs/nonnegative"
+              },
+              "essentialServiceClass": {
+                "$ref": "#/$defs/nonEmpty"
+              }
+            }
+          }
+        },
+        "gridSources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sourceId",
+              "nodeId",
+              "maximumActivePowerKw",
+              "maximumReactivePowerKvar",
+              "maximumApparentPowerKva"
+            ],
+            "properties": {
+              "sourceId": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "nodeId": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "maximumActivePowerKw": {
+                "$ref": "#/$defs/nonnegative"
+              },
+              "maximumReactivePowerKvar": {
+                "type": "number"
+              },
+              "maximumApparentPowerKva": {
+                "$ref": "#/$defs/positive"
+              }
+            }
+          }
+        },
+        "electricalSettings": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "baseMva",
+            "baseKv",
+            "voltageMinPu",
+            "voltageMaxPu",
+            "modelReference"
+          ],
+          "properties": {
+            "baseMva": {
+              "$ref": "#/$defs/positive"
+            },
+            "baseKv": {
+              "$ref": "#/$defs/positive"
+            },
+            "voltageMinPu": {
+              "$ref": "#/$defs/positive"
+            },
+            "voltageMaxPu": {
+              "$ref": "#/$defs/positive"
+            },
+            "modelReference": {
+              "$ref": "#/$defs/nonEmpty"
+            }
+          }
+        }
+      }
+    },
+    "powerBranch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "branchId",
+        "fromNodeId",
+        "toNodeId",
+        "lengthKm",
+        "normallyEnergized",
+        "electrical"
+      ],
+      "properties": {
+        "branchId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "fromNodeId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "toNodeId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "lengthKm": {
+          "$ref": "#/$defs/positive"
+        },
+        "normallyEnergized": {
+          "type": "boolean"
+        },
+        "electrical": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "resistanceOhm",
+            "reactanceOhm",
+            "ampacityA"
+          ],
+          "properties": {
+            "resistanceOhm": {
+              "$ref": "#/$defs/nonnegative"
+            },
+            "reactanceOhm": {
+              "$ref": "#/$defs/nonnegative"
+            },
+            "ampacityA": {
+              "$ref": "#/$defs/positive"
+            }
+          }
+        }
+      }
+    },
+    "roadNetwork": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodes",
+        "edges"
+      ],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "nodeId",
+              "powerNodeId"
+            ],
+            "properties": {
+              "nodeId": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "powerNodeId": {
+                "$ref": "#/$defs/nonEmpty"
+              }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "edgeId",
+              "fromNodeId",
+              "toNodeId",
+              "lengthKm",
+              "nominalSpeedKph",
+              "closedAtStart"
+            ],
+            "properties": {
+              "edgeId": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "fromNodeId": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "toNodeId": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "lengthKm": {
+                "$ref": "#/$defs/positive"
+              },
+              "nominalSpeedKph": {
+                "$ref": "#/$defs/positive"
+              },
+              "closedAtStart": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "fault": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "faultId",
+        "powerBranchId",
+        "positionFraction",
+        "workUnits",
+        "maximumParallelCrews",
+        "requiredSkillRef"
+      ],
+      "properties": {
+        "faultId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "powerBranchId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "positionFraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "workUnits": {
+          "$ref": "#/$defs/positive"
+        },
+        "maximumParallelCrews": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "requiredSkillRef": {
+          "$ref": "#/$defs/nonEmpty"
+        }
+      }
+    },
+    "repairCrew": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "crewId",
+        "startingRoadNodeId",
+        "travelSpeedKph",
+        "workUnitsPerStep",
+        "skillRefs",
+        "resourceCapacities",
+        "calendar"
+      ],
+      "properties": {
+        "crewId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "startingRoadNodeId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "travelSpeedKph": {
+          "$ref": "#/$defs/positive"
+        },
+        "workUnitsPerStep": {
+          "$ref": "#/$defs/positive"
+        },
+        "skillRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/nonEmpty"
+          }
+        },
+        "resourceCapacities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "resourceRef",
+              "capacityUnits"
+            ],
+            "properties": {
+              "resourceRef": {
+                "$ref": "#/$defs/nonEmpty"
+              },
+              "capacityUnits": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        "calendar": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "timezoneRef",
+            "windows"
+          ],
+          "properties": {
+            "timezoneRef": {
+              "$ref": "#/$defs/nonEmpty"
+            },
+            "windows": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "startStep",
+                  "endStep"
+                ],
+                "properties": {
+                  "startStep": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "endStep": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "mobilePowerSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mobileSourceId",
+        "startingRoadNodeId",
+        "maximumActivePowerKw",
+        "maximumApparentPowerKva",
+        "availableEnergyKwh",
+        "fuelOrEnergyModelRef",
+        "permittedConnectionNodeIds"
+      ],
+      "properties": {
+        "mobileSourceId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "startingRoadNodeId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "maximumActivePowerKw": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "maximumApparentPowerKva": {
+          "$ref": "#/$defs/positive"
+        },
+        "availableEnergyKwh": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "fuelOrEnergyModelRef": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "permittedConnectionNodeIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/nonEmpty"
+          }
+        }
+      }
+    },
+    "objective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "objectiveId",
+        "metric",
+        "expressionRef",
+        "horizonSteps",
+        "loadPriorityWeightSemantics"
+      ],
+      "properties": {
+        "objectiveId": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "metric": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "expressionRef": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "horizonSteps": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "loadPriorityWeightSemantics": {
+          "$ref": "#/$defs/nonEmpty"
+        }
+      }
+    }
+  }
+}
