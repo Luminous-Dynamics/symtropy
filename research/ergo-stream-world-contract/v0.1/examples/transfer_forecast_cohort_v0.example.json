@@ -14,7 +14,7 @@
       "claim_type": "simulation",
       "claim_scope_sha256": "sha256:6c4238994f641ce7986ddbc24a4bbba780589812cab8619eed81cf64efb27c18",
       "probability_transfer_ppm": 550000,
-      "decision": null
+      "decision": "abstain"
     }
   ]
 }
