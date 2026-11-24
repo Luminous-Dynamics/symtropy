@@ -33,6 +33,14 @@ pub enum AuthorityDisposition {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PolicyActionClass {
+    /// The candidate policy makes no mutating operational action.
+    NoMutation,
+    /// The candidate policy proposes or performs a mutating resource/action change.
+    Mutating,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PhysicalDisposition {
     Feasible,
     Infeasible,
@@ -43,6 +51,14 @@ pub enum PhysicalDisposition {
 pub enum LossAxis {
     HardPhysicalFailure,
     ServiceLoss,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FrozenPolicyEntry {
+    /// Zero-based index in the exact frozen policy-parameter order used by CRC.
+    pub parameter_index: usize,
+    pub policy_id: String,
+    pub policy_revision: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -60,7 +76,9 @@ pub struct OracleDatasetContract {
     pub regime_id: String,
     pub evaluator_revision: String,
     pub loss_contract_revision: String,
-    /// Digest of the pre-frozen candidate policy grid and ordering-independent policy IDs.
+    /// Ordered candidate grid; parameter_index is the CRC column/parameter order.
+    pub policy_grid: Vec<FrozenPolicyEntry>,
+    /// External digest reference for the canonical ordered policy grid; shape-checked here.
     pub policy_grid_sha256: String,
 }
 
@@ -70,6 +88,7 @@ pub struct PolicyAdjudication {
     pub policy_revision: String,
     pub evaluator_revision: String,
     pub loss_contract_revision: String,
+    pub action_class: PolicyActionClass,
     pub authority: AuthorityDisposition,
     pub physical: PhysicalDisposition,
     /// Independent service loss in [0, 1000], kept separate from hard feasibility.
@@ -119,6 +138,19 @@ pub enum OracleAdapterError {
     MissingCalibrationEpisodes,
     MissingEvaluationEpisodes,
     EmptyPolicyGrid,
+    InvalidPolicyGridOrder {
+        position: usize,
+        parameter_index: usize,
+    },
+    DuplicateFrozenPolicyId(String),
+    FrozenPolicyRevisionMissing(String),
+    FrozenPolicyRevisionMismatch(String),
+    AuthorityActionMismatch {
+        episode_id: String,
+        policy_id: String,
+        action_class: PolicyActionClass,
+        disposition: AuthorityDisposition,
+    },
     DuplicatePolicyId {
         episode_id: String,
         policy_id: String,
@@ -163,8 +195,10 @@ pub enum OracleAdapterError {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct OracleCalibrationBundle {
-    /// Stable, lexicographically sorted policy IDs; column i refers to policy_ids[i].
+    /// Candidate IDs in the exact frozen parameter order; column i is parameter i.
     pub policy_ids: Vec<String>,
+    /// Frozen candidate revisions in the same column order.
+    pub policy_revisions: Vec<String>,
     /// One row per independent calibration schedule, one column per candidate policy.
     pub calibration_hard_failure_milli: Vec<Vec<u16>>,
     pub calibration_service_loss_milli: Vec<Vec<u16>>,
@@ -265,6 +299,27 @@ fn validate_contract(contract: &OracleDatasetContract) -> Result<(), OracleAdapt
         require_nonempty(value, field)?;
     }
 
+    if contract.policy_grid.is_empty() {
+        return Err(OracleAdapterError::EmptyPolicyGrid);
+    }
+    let mut frozen_ids = BTreeSet::new();
+    for (position, entry) in contract.policy_grid.iter().enumerate() {
+        if entry.parameter_index != position {
+            return Err(OracleAdapterError::InvalidPolicyGridOrder {
+                position,
+                parameter_index: entry.parameter_index,
+            });
+        }
+        if entry.policy_id.trim().is_empty() || entry.policy_revision.trim().is_empty() {
+            return Err(OracleAdapterError::FrozenPolicyRevisionMissing(
+                entry.policy_id.clone(),
+            ));
+        }
+        if !frozen_ids.insert(entry.policy_id.clone()) {
+            return Err(OracleAdapterError::DuplicateFrozenPolicyId(entry.policy_id.clone()));
+        }
+    }
+
     if !is_sha256(&contract.policy_grid_sha256) {
         return Err(OracleAdapterError::InvalidSha256 {
             field: "policy_grid_sha256",
@@ -309,8 +364,8 @@ fn validate_episode_fields(
 fn validate_policy_outcome(
     episode: &ScheduleAdjudication,
     outcome: &PolicyAdjudication,
+    frozen_policy: &FrozenPolicyEntry,
     contract: &OracleDatasetContract,
-    policy_revisions: &mut BTreeMap<String, String>,
 ) -> Result<(), OracleAdapterError> {
     if outcome.policy_id.trim().is_empty() || outcome.policy_revision.trim().is_empty() {
         return Err(OracleAdapterError::MissingPolicyRevision {
@@ -318,14 +373,12 @@ fn validate_policy_outcome(
         });
     }
 
-    if let Some(existing) = policy_revisions.get(&outcome.policy_id) {
-        if existing != &outcome.policy_revision {
-            return Err(OracleAdapterError::PolicyRevisionDrift {
-                policy_id: outcome.policy_id.clone(),
-            });
-        }
-    } else {
-        policy_revisions.insert(outcome.policy_id.clone(), outcome.policy_revision.clone());
+    if outcome.policy_id != frozen_policy.policy_id
+        || outcome.policy_revision != frozen_policy.policy_revision
+    {
+        return Err(OracleAdapterError::FrozenPolicyRevisionMismatch(
+            outcome.policy_id.clone(),
+        ));
     }
 
     if outcome.evaluator_revision != contract.evaluator_revision {
@@ -350,14 +403,27 @@ fn validate_policy_outcome(
     }
 
     match outcome.authority {
-        AuthorityDisposition::Authorized | AuthorityDisposition::NotRequired => {}
-        disposition => {
+        AuthorityDisposition::Denied | AuthorityDisposition::Unknown => {
             return Err(OracleAdapterError::UnauthorizedPolicyOutcome {
                 episode_id: episode.episode_id.clone(),
                 policy_id: outcome.policy_id.clone(),
-                disposition,
+                disposition: outcome.authority,
             });
         }
+        _ => {}
+    }
+    let authority_matches_action = matches!(
+        (outcome.action_class, outcome.authority),
+        (PolicyActionClass::Mutating, AuthorityDisposition::Authorized)
+            | (PolicyActionClass::NoMutation, AuthorityDisposition::NotRequired)
+    );
+    if !authority_matches_action {
+        return Err(OracleAdapterError::AuthorityActionMismatch {
+            episode_id: episode.episode_id.clone(),
+            policy_id: outcome.policy_id.clone(),
+            action_class: outcome.action_class,
+            disposition: outcome.authority,
+        });
     }
 
     if outcome.physical == PhysicalDisposition::Unknown {
@@ -391,8 +457,12 @@ pub fn compile_oracle_outcomes(
 
     let mut episode_ids = BTreeSet::new();
     let mut dependence_clusters = BTreeSet::new();
-    let mut policy_revisions = BTreeMap::new();
-    let mut expected_policy_ids: Option<BTreeSet<String>> = None;
+    let expected_policy_ids = dataset
+        .contract
+        .policy_grid
+        .iter()
+        .map(|entry| entry.policy_id.clone())
+        .collect::<BTreeSet<_>>();
     let mut calibration_rows = Vec::new();
     let mut evaluation_rows = Vec::new();
 
@@ -421,22 +491,34 @@ pub fn compile_oracle_outcomes(
                     policy_id: outcome.policy_id.clone(),
                 });
             }
-            validate_policy_outcome(episode, outcome, &dataset.contract, &mut policy_revisions)?;
-        }
-
-        match &expected_policy_ids {
-            None => expected_policy_ids = Some(current_policy_ids.clone()),
-            Some(expected) if expected != &current_policy_ids => {
-                return Err(OracleAdapterError::PolicyGridDrift {
+            let frozen_policy = dataset
+                .contract
+                .policy_grid
+                .iter()
+                .find(|entry| entry.policy_id == outcome.policy_id)
+                .ok_or_else(|| OracleAdapterError::PolicyGridDrift {
                     episode_id: episode.episode_id.clone(),
-                    missing_policy_ids: expected.difference(&current_policy_ids).cloned().collect(),
-                    unexpected_policy_ids: current_policy_ids
-                        .difference(expected)
+                    missing_policy_ids: expected_policy_ids
+                        .difference(&current_policy_ids)
                         .cloned()
                         .collect(),
-                });
-            }
-            Some(_) => {}
+                    unexpected_policy_ids: vec![outcome.policy_id.clone()],
+                })?;
+            validate_policy_outcome(episode, outcome, frozen_policy, &dataset.contract)?;
+        }
+
+        if expected_policy_ids != current_policy_ids {
+            return Err(OracleAdapterError::PolicyGridDrift {
+                episode_id: episode.episode_id.clone(),
+                missing_policy_ids: expected_policy_ids
+                    .difference(&current_policy_ids)
+                    .cloned()
+                    .collect(),
+                unexpected_policy_ids: current_policy_ids
+                    .difference(&expected_policy_ids)
+                    .cloned()
+                    .collect(),
+            });
         }
 
         let mut by_policy = BTreeMap::new();
@@ -444,7 +526,12 @@ pub fn compile_oracle_outcomes(
             by_policy.insert(outcome.policy_id.as_str(), outcome);
         }
 
-        let policy_ids = current_policy_ids.into_iter().collect::<Vec<_>>();
+        let policy_ids = dataset
+            .contract
+            .policy_grid
+            .iter()
+            .map(|entry| entry.policy_id.as_str())
+            .collect::<Vec<_>>();
         let hard_row = policy_ids
             .iter()
             .map(|policy_id| {
@@ -481,13 +568,22 @@ pub fn compile_oracle_outcomes(
     calibration_rows.sort_by(|left, right| left.0.cmp(&right.0));
     evaluation_rows.sort_by(|left, right| left.0.cmp(&right.0));
 
-    let policy_ids = expected_policy_ids
-        .ok_or(OracleAdapterError::EmptyPolicyGrid)?
-        .into_iter()
+    let policy_ids = dataset
+        .contract
+        .policy_grid
+        .iter()
+        .map(|entry| entry.policy_id.clone())
+        .collect::<Vec<_>>();
+    let policy_revisions = dataset
+        .contract
+        .policy_grid
+        .iter()
+        .map(|entry| entry.policy_revision.clone())
         .collect::<Vec<_>>();
 
     Ok(OracleCalibrationBundle {
         policy_ids,
+        policy_revisions,
         calibration_hard_failure_milli: calibration_rows.iter().map(|row| row.1.clone()).collect(),
         calibration_service_loss_milli: calibration_rows.iter().map(|row| row.2.clone()).collect(),
         evaluation_hard_failure_milli: evaluation_rows.iter().map(|row| row.1.clone()).collect(),
