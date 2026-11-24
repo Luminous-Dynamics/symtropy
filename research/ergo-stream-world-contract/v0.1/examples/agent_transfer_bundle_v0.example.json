@@ -440,5 +440,25 @@
         110
       ]
     }
-  }
+  },
+  "transfer_forecasts": [
+    {
+      "claim_id": "structural-main",
+      "claim_type": "structural_correspondence",
+      "probability_transfer_ppm": 920000,
+      "decision": "assert_transfer"
+    },
+    {
+      "claim_id": "behaviour-main",
+      "claim_type": "simulation",
+      "probability_transfer_ppm": 550000,
+      "decision": "abstain"
+    },
+    {
+      "claim_id": "mechanism-main",
+      "claim_type": "mechanism_transfer",
+      "probability_transfer_ppm": 180000,
+      "decision": "reject_transfer"
+    }
+  ]
 }
