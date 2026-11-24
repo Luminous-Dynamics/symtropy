@@ -14,7 +14,7 @@ This tranche adds a dependency-free, independent reference trace over the evalua
 - uncertain against the critical floor;
 - guaranteed at or above the critical floor.
 
-For every sequence length 1–6, all (3^n) possible sequences are evaluated at three distinct sustained-restoration thresholds. That is 1,092 sequences and 3,276 evaluator/oracle comparisons. The oracle consumes only the discrete state alphabet; it does not consume the production assessment objects or `EpisodeBuilder` implementation.
+For every sequence length 1–6, all (3^n) possible sequences are evaluated at three distinct sustained-restoration thresholds. That is 1,092 sequences and 3,276 evaluator/oracle comparisons. In addition, the widening invariant enumerates 5,151 ordered delivery intervals, and the improvement invariant checks four monotone delivery shifts for each interval (20,604 comparisons). The oracle consumes only the discrete state alphabet; it does not consume the production assessment objects or `EpisodeBuilder` implementation.
 
 ## 2. Metamorphic invariants
 
