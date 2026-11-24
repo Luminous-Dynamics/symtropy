@@ -990,11 +990,9 @@ mod stress_tensor_tests {
         let mut changed = reference;
         changed.uu += 1.0;
         changed.vv -= 1.0;
-        let report = compare_reynolds_stress_profile(&stress_input(
-            [Some(changed); 3],
-            [reference; 3],
-        ))
-        .unwrap();
+        let report =
+            compare_reynolds_stress_profile(&stress_input([Some(changed); 3], [reference; 3]))
+                .unwrap();
         assert_eq!(report.bands[0].tke_bias, Some(0.0));
         assert!(report.bands[0].component_rmse[0].unwrap() > 0.0);
         assert!(report.bands[0].component_rmse[1].unwrap() > 0.0);
