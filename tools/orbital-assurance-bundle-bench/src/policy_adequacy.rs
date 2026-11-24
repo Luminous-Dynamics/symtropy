@@ -1108,8 +1108,14 @@ mod tests {
                 numerator: 10,
                 denominator: 1,
             },
-            worst_case_wait_and_see_regret: Rational { numerator: 0, denominator: 1 },
-            worst_case_outcome_class_regret: Rational { numerator: 0, denominator: 1 },
+            worst_case_wait_and_see_regret: Rational {
+                numerator: 0,
+                denominator: 1,
+            },
+            worst_case_outcome_class_regret: Rational {
+                numerator: 0,
+                denominator: 1,
+            },
             worst_loss_scenario_ids: vec!["s-A".to_owned(), "s-B".to_owned()],
             worst_wait_and_see_scenario_ids: vec!["s-A".to_owned(), "s-B".to_owned()],
             worst_outcome_class_regret_scenario_ids: vec!["s-A".to_owned(), "s-B".to_owned()],
