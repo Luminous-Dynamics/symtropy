@@ -896,13 +896,13 @@ mod tests {
                 "{case_id}: process-domain disposition"
             );
 
-            let expected_violations: std::collections::BTreeSet<String> = mutation
-                ["expected_violation_codes"]
-                .as_array()
-                .expect("expected violation codes")
-                .iter()
-                .map(|code| code.as_str().expect("violation code string").to_owned())
-                .collect();
+            let expected_violations: std::collections::BTreeSet<String> =
+                mutation["expected_violation_codes"]
+                    .as_array()
+                    .expect("expected violation codes")
+                    .iter()
+                    .map(|code| code.as_str().expect("violation code string").to_owned())
+                    .collect();
             let actual_violations: std::collections::BTreeSet<String> = report
                 .violations
                 .iter()
@@ -913,13 +913,13 @@ mod tests {
                 "{case_id}: exact violation-code oracle"
             );
 
-            let expected_blockers: std::collections::BTreeSet<String> = mutation
-                ["expected_blocker_codes"]
-                .as_array()
-                .expect("expected blocker codes")
-                .iter()
-                .map(|code| code.as_str().expect("blocker code string").to_owned())
-                .collect();
+            let expected_blockers: std::collections::BTreeSet<String> =
+                mutation["expected_blocker_codes"]
+                    .as_array()
+                    .expect("expected blocker codes")
+                    .iter()
+                    .map(|code| code.as_str().expect("blocker code string").to_owned())
+                    .collect();
             let actual_blockers: std::collections::BTreeSet<String> = report
                 .blockers
                 .iter()
@@ -958,11 +958,15 @@ mod tests {
         let mapping: Value = serde_json::from_str(AERO_BASALT_RESOURCE_MAP)
             .expect("aviation BASALT resource map parses");
         assert_eq!(
-            mapping.pointer("/mapping_profile/id").and_then(Value::as_str),
+            mapping
+                .pointer("/mapping_profile/id")
+                .and_then(Value::as_str),
             Some("aero-basalt-resource-map-v0.1")
         );
         assert_eq!(
-            mapping.pointer("/mapping_profile/synthetic_only").and_then(Value::as_bool),
+            mapping
+                .pointer("/mapping_profile/synthetic_only")
+                .and_then(Value::as_bool),
             Some(true)
         );
 
@@ -990,7 +994,10 @@ mod tests {
                 field_str(resource, "resource_id_template").expect("resource ID template");
             let change_kind =
                 field_str(resource, "default_change_kind").expect("BASALT change kind");
-            assert!(class_names.insert(class_name.to_owned()), "duplicate {class_name}");
+            assert!(
+                class_names.insert(class_name.to_owned()),
+                "duplicate {class_name}"
+            );
             assert!(
                 template.starts_with("aero:") && template.ends_with(":{immutable_id}"),
                 "non-canonical resource template {template}"
@@ -1033,8 +1040,14 @@ mod tests {
         for evidence in evidence_classes {
             let check_id = field_str(evidence, "check_id").expect("check id");
             let kind = field_str(evidence, "basalt_evidence_kind").expect("BASALT evidence kind");
-            assert!(check_id.starts_with("aero."), "non-aviation check ID {check_id}");
-            assert!(check_ids.insert(check_id.to_owned()), "duplicate check ID {check_id}");
+            assert!(
+                check_id.starts_with("aero."),
+                "non-aviation check ID {check_id}"
+            );
+            assert!(
+                check_ids.insert(check_id.to_owned()),
+                "duplicate check ID {check_id}"
+            );
             assert!(
                 valid_evidence_kinds.contains(&kind),
                 "unsupported BASALT evidence kind {kind}"
