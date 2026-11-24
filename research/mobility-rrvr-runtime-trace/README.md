@@ -256,7 +256,7 @@ Claim ceiling: this branch is still a file-backed reference implementation. It i
 
 ## Synthetic journal benchmark runner
 
-`rrvr_journal_bench` generates a non-mutating synthetic reset/dispatch journal and reports append-plus-sync latency percentiles, append throughput, bytes per entry and read-only replay/projection time. Example:
+`rrvr_journal_bench` generates a non-mutating synthetic reset/dispatch journal and reports append-plus-sync latency percentiles, append throughput, bytes per entry and read-only replay/projection time. Its JSON output is versioned by [durable_journal_benchmark_report_v0_1.schema.json](schemas/durable_journal_benchmark_report_v0_1.schema.json). Example:
 
 ```sh
 cargo run --locked --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --bin rrvr_journal_bench -- 1000 /tmp/rrvr-journal-1000.jsonl
