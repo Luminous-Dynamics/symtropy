@@ -207,7 +207,7 @@ The three additional digests prevent identical labels from concealing different 
 
 The reducer also enforces:
 - a registered roster and one contribution per site per epoch;
-- one unique local evidence digest per site summary;
+- one unique lowercase SHA-256-shaped local evidence digest per site summary;
 - per-site calibration sample and per-bin count caps;
 - exact histogram mass = declared calibration sample count;
 - holdout covered count no greater than holdout count and bounded width sums;
@@ -218,6 +218,8 @@ The reducer also enforces:
 - minimum participating-site and minimum total calibration-sample thresholds.
 
 When a cohort is too small, the report withholds participant counts and aggregate distribution values. It does not publish a seemingly harmless histogram with a sparse cohort.
+
+The reducer validates the `sha256:` prefix and 64 lowercase hexadecimal characters on query, cohort/policy and evidence-reference digests. This checks syntax and canonical representation only; it does not authenticate the producer or verify a signature.
 
 The quantile uses the bounded histogram and reports the selected bin's upper edge. This is an approximation at the declared bin resolution, not an exact residual quantile. A non-finite conformal order-statistic rank is rejected rather than silently clipped into a valid-looking rank.
 
