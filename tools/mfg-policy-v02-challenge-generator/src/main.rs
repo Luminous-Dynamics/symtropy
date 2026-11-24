@@ -183,7 +183,37 @@ struct Scenario {
     scenario_id: String,
     probability_ppm: u64,
     observations_by_epoch: Vec<EpochObservation>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct EvaluatorLabels {
+    schema_id: String,
+    benchmark_id: String,
+    evidence_class: String,
+    case_count: usize,
+    cases: Vec<EvaluatorCase>,
+    claim_ceiling: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct EvaluatorCase {
+    case_id: String,
+    scenario_family_id: String,
+    scenario_outcomes: Vec<EvaluatorScenarioOutcome>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct EvaluatorScenarioOutcome {
+    scenario_id: String,
     hidden_terminal_quality_outcomes: Vec<HiddenQualityOutcome>,
+}
+
+struct ScenarioBundle {
+    policy_scenarios: Vec<Scenario>,
+    evaluator_outcomes: Vec<EvaluatorScenarioOutcome>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -600,7 +630,11 @@ fn add_inspection_capacity_event(observations: &mut [EpochObservation], case_pre
         });
 }
 
-fn make_scenarios(family_id: &str, case_prefix: &str, rng: &mut DeterministicRng) -> Vec<Scenario> {
+fn make_scenarios(
+    family_id: &str,
+    case_prefix: &str,
+    rng: &mut DeterministicRng,
+) -> ScenarioBundle {
     let nominal_history = empty_observations();
 
     let mut disruption_history = empty_observations();
@@ -723,31 +757,47 @@ fn make_scenarios(family_id: &str, case_prefix: &str, rng: &mut DeterministicRng
     }
 
     let quality_operation = "JOB-1-OP-2";
-    vec![
+    let policy_scenarios = vec![
         Scenario {
             scenario_id: "NOMINAL-ACCEPTED".into(),
             probability_ppm: 300_000,
             observations_by_epoch: nominal_history.clone(),
+        },
+        Scenario {
+            scenario_id: "NOMINAL-HIDDEN-REJECT".into(),
+            probability_ppm: 200_000,
+            observations_by_epoch: nominal_history,
+        },
+        Scenario {
+            scenario_id: "PRIMARY-DISRUPTION".into(),
+            probability_ppm: 300_000,
+            observations_by_epoch: disruption_history,
+        },
+        Scenario {
+            scenario_id: "ALTERNATE-DISRUPTION".into(),
+            probability_ppm: 200_000,
+            observations_by_epoch: alternate_history,
+        },
+    ];
+    let evaluator_outcomes = vec![
+        EvaluatorScenarioOutcome {
+            scenario_id: "NOMINAL-ACCEPTED".into(),
             hidden_terminal_quality_outcomes: vec![HiddenQualityOutcome {
                 outcome_id: format!("{case_prefix}-Q-NOMINAL"),
                 operation_id: quality_operation.into(),
                 disposition: QualityDisposition::Accepted,
             }],
         },
-        Scenario {
+        EvaluatorScenarioOutcome {
             scenario_id: "NOMINAL-HIDDEN-REJECT".into(),
-            probability_ppm: 200_000,
-            observations_by_epoch: nominal_history,
             hidden_terminal_quality_outcomes: vec![HiddenQualityOutcome {
                 outcome_id: format!("{case_prefix}-Q-HIDDEN-REJECT"),
                 operation_id: quality_operation.into(),
                 disposition: QualityDisposition::Rejected,
             }],
         },
-        Scenario {
+        EvaluatorScenarioOutcome {
             scenario_id: "PRIMARY-DISRUPTION".into(),
-            probability_ppm: 300_000,
-            observations_by_epoch: disruption_history,
             hidden_terminal_quality_outcomes: vec![HiddenQualityOutcome {
                 outcome_id: format!("{case_prefix}-Q-DISRUPTION"),
                 operation_id: "JOB-2-OP-2".into(),
@@ -758,17 +808,20 @@ fn make_scenarios(family_id: &str, case_prefix: &str, rng: &mut DeterministicRng
                 },
             }],
         },
-        Scenario {
+        EvaluatorScenarioOutcome {
             scenario_id: "ALTERNATE-DISRUPTION".into(),
-            probability_ppm: 200_000,
-            observations_by_epoch: alternate_history,
             hidden_terminal_quality_outcomes: vec![HiddenQualityOutcome {
                 outcome_id: format!("{case_prefix}-Q-ALTERNATE"),
                 operation_id: "JOB-3-OP-2".into(),
                 disposition: QualityDisposition::Accepted,
             }],
         },
-    ]
+    ];
+
+    ScenarioBundle {
+        policy_scenarios,
+        evaluator_outcomes,
+    }
 }
 
 fn generate_case(family: &FamilySpec, family_index: usize, replication_seed: u64) -> ChallengeCase {
