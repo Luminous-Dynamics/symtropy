@@ -383,3 +383,47 @@ The source enum and evidence references are declarations made by the caller. Thi
 ### Next integration
 
 The #7188 scarce-reserve benchmark supplies a useful six-world finite-state test domain. Its current CSV is a policy/model receipt and must not be relabeled as independently adjudicated truth. A future #7231 owner-produced projection should provide per-policy/per-scenario oracle dispositions and the required independence evidence before the IndependentOracle source path is used. Statistical calibration continues to consume separately sampled, complete schedule episodes through oracle_adapter.rs.
+
+
+## Repeated-sampling risk tournament (24 November 2026)
+
+The executable **repeated-sampling-risk-audit** adds a repeated-calibration experiment to the single-run method receipts. It uses a finite four-state synthetic population with exact state probabilities and exact population risks. The policy selector receives only sampled complete-schedule losses; population risks are used only by the evaluator after selection.
+
+The experiment compares five fixture/method combinations:
+
+- Monotone whole-schedule CRC.
+- Fixed-grid simultaneous Hoeffding UCB on the monotone fixture.
+- Monotone-envelope CRC on a deliberately non-monotone loss family.
+- Finite-grid non-monotone CRC (CRC-NM) on that same family.
+- Fixed-grid simultaneous Hoeffding UCB on the non-monotone fixture.
+
+All methods use the same deterministic replicate stream (common random numbers). The default smoke run performs 2,000 independent synthetic calibration replicates at n=1,200. The **--full** run performs 2,000 replicates at each calibration size n = 50, 120, 500, 1,200, 5,000, 10,000 and 50,000, for target risks α = 0.01, 0.05, 0.10 and 0.20. The policy grid is intentionally frozen at four candidates in this first increment; expansion to the 16–10,000 candidate tournament remains a separate #7303 extension.
+
+Run the reproducible smoke receipt:
+
+~~~sh
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin repeated-sampling-risk-audit
+~~~
+
+Run the complete synthetic sweep:
+
+~~~sh
+cargo run --release --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin repeated-sampling-risk-audit -- --full
+~~~
+
+Interpret the receipts by guarantee class:
+
+- **MARGINAL_EXPECTED_RISK** rows report the mean exact population risk of the policy selected over calibration replicates, with a Monte Carlo interval. The CRC theorem is a marginal expected-risk statement; the replicate-level rate of selected policies above α is **not** its validity criterion.
+- **MONOTONE_ENVELOPE_CRC** also reports the exact population risk of the suffix-maximum envelope controlled by the method, separately from the original loss. The envelope is conservative and upper-bounds the original loss.
+- **FIXED_GRID_HIGH_PROBABILITY** rows report the frequency with which a selected policy's exact population risk exceeds α, its Wilson interval, the conditional rate among non-abstaining selections, and the abstention count. This tests the fixed-grid 1−δ selection statement; abstentions are not silently counted as safe deployed policies.
+- **NO_POSITIVE_ADJUSTED_TARGET** means the CRC-NM finite-grid correction consumes the entire requested risk budget. No adjusted expected-risk claim is emitted for that configuration.
+
+These results are synthetic method diagnostics. They do not qualify the #7231 physical/authority oracle, DCT/DGT exchangeability, operational risk, or deployment. The deterministic receipt is an experiment harness, not evidence that the 2,000 replicates correspond to 2,000 real independent port schedules.
+
+### Additional policy-control comparator: Conformal Policy Control (ICML 2026)
+
+Prinster et al., *Conformal Policy Control*, ICML 2026, introduces a different policy-improvement construction: constrain an optimized candidate policy relative to an already-qualified safe reference policy using a calibrated clipped likelihood ratio. It is a useful comparator for maritime policy updates, but it is not another name for CRC, LTT, RCPS or anytime-valid CRC.
+
+Reference: [PMLR paper](https://proceedings.mlr.press/v306/prinster26a.html), [arXiv version](https://arxiv.org/abs/2603.02196), [authors' implementation](https://github.com/samuelstanton/conformal-policy-control).
+
+A maritime adaptation is admissible only when all of the following are explicit: an independently qualified reference policy with risk at or below the target; a common and sufficiently stable context distribution; support overlap / absolute continuity between reference and candidate action distributions; and evaluable likelihood ratios for the relevant action or trajectory. A deterministic optimizer generally does not provide these quantities merely because it emits a schedule. Where the policy is deterministic or trajectory support cannot be justified, the comparator must return NOT_APPLICABLE rather than manufacturing a CPC certificate. The #7231 hard-feasibility and authority gates remain conjunctive and are not replaced by a safe-policy likelihood ratio.
