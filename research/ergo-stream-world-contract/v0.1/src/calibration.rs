@@ -1374,7 +1374,6 @@ mod tests {
     #[test]
     fn split_conformal_predict_rejects_probability_out_of_range() {
         let (forecasts, outcomes) = conformal_calibration_fixture();
-        let calibrator =
         let calibrator = fit_split_conformal_binary_transfer(
             &forecasts,
             &outcomes,
