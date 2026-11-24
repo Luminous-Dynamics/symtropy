@@ -1120,6 +1120,15 @@ pub struct GazeboPlannedDispatchResult {
     pub outcome: GazeboDispatchOutcome,
 }
 
+/// The committed scenario/fault and coordinator run identity for one dispatch.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct GazeboFaultRunIdentity<'a> {
+    pub scenario_id: &'a str,
+    pub fault_id: &'a str,
+    pub run_id: &'a str,
+    pub run_epoch: &'a str,
+}
+
 /// Execute the plan-to-dispatch boundary for one declared fault event.
 ///
 /// Unlike calling the individual step/resolve/dispatch helpers, this function
@@ -1136,10 +1145,7 @@ pub fn dispatch_planned_fault_once<S, I>(
     registry: &mut DispatchAttemptRegistry,
     plan: &CompiledCampaignPlan,
     session: &GazeboAdapterSession,
-    scenario_id: &str,
-    fault_id: &str,
-    run_id: &str,
-    run_epoch: &str,
+    identity: GazeboFaultRunIdentity<'_>,
 ) -> Result<GazeboPlannedDispatchResult, GazeboAdapterError>
 where
     S: GazeboSimulationTransport,
@@ -1179,12 +1185,12 @@ where
     let scenario = plan
         .scenarios
         .iter()
-        .find(|scenario| scenario.scenario_id == scenario_id)
+        .find(|scenario| scenario.scenario_id == identity.scenario_id)
         .ok_or(GazeboAdapterError::ScenarioNotFound)?;
     let fault = scenario
         .fault_events
         .iter()
-        .find(|fault| fault.fault_id == fault_id)
+        .find(|fault| fault.fault_id == identity.fault_id)
         .ok_or(GazeboAdapterError::FaultNotFound)?;
 
     let cut_snapshot = advance_to_fault_cut(simulator, session, fault)?;
@@ -1235,8 +1241,8 @@ where
         plan,
         scenario,
         fault,
-        run_id,
-        run_epoch,
+        identity.run_id,
+        identity.run_epoch,
         &session.world_epoch,
         &session.clock_id,
     )?;
@@ -1487,10 +1493,12 @@ mod tests {
                 &mut registry,
                 &plan,
                 &session,
-                &scenario.scenario_id,
-                &fault.fault_id,
-                "run-no-reset",
-                "epoch-no-reset"
+                GazeboFaultRunIdentity {
+                    scenario_id: &scenario.scenario_id,
+                    fault_id: &fault.fault_id,
+                    run_id: "run-no-reset",
+                    run_epoch: "epoch-no-reset",
+                }
             ),
             Err(GazeboAdapterError::ResetNotVerified)
         );
@@ -1538,10 +1546,12 @@ mod tests {
                 &mut registry,
                 &plan_b,
                 &session,
-                &scenario.scenario_id,
-                &fault.fault_id,
-                "run-plan-substitution",
-                "epoch-plan-substitution"
+                GazeboFaultRunIdentity {
+                    scenario_id: &scenario.scenario_id,
+                    fault_id: &fault.fault_id,
+                    run_id: "run-plan-substitution",
+                    run_epoch: "epoch-plan-substitution",
+                }
             ),
             Err(GazeboAdapterError::ResetVerificationMismatch)
         );
@@ -1575,10 +1585,12 @@ mod tests {
                 &mut registry,
                 &plan,
                 &session,
-                &scenario.scenario_id,
-                &fault.fault_id,
-                "run-mutated-session",
-                "epoch-mutated-session"
+                GazeboFaultRunIdentity {
+                    scenario_id: &scenario.scenario_id,
+                    fault_id: &fault.fault_id,
+                    run_id: "run-mutated-session",
+                    run_epoch: "epoch-mutated-session",
+                }
             ),
             Err(GazeboAdapterError::ResetVerificationMismatch)
         );
@@ -1611,10 +1623,12 @@ mod tests {
                 &mut registry,
                 &plan,
                 &session,
-                &scenario.scenario_id,
-                &fault.fault_id,
-                "run-profile-drift",
-                "epoch-profile-drift"
+                GazeboFaultRunIdentity {
+                    scenario_id: &scenario.scenario_id,
+                    fault_id: &fault.fault_id,
+                    run_id: "run-profile-drift",
+                    run_epoch: "epoch-profile-drift",
+                }
             ),
             Err(GazeboAdapterError::InvalidCapabilityProfile)
         );
@@ -1672,10 +1686,12 @@ mod tests {
                 &mut registry,
                 &plan,
                 &session,
-                &scenario.scenario_id,
-                &fault.fault_id,
-                "run-reset-unknown",
-                "epoch-reset-unknown"
+                GazeboFaultRunIdentity {
+                    scenario_id: &scenario.scenario_id,
+                    fault_id: &fault.fault_id,
+                    run_id: "run-reset-unknown",
+                    run_epoch: "epoch-reset-unknown",
+                }
             ),
             Err(GazeboAdapterError::ResetOutcomeUnresolved)
         );
@@ -1745,10 +1761,12 @@ mod tests {
                 &mut registry,
                 &tampered,
                 &session,
-                &scenario.scenario_id,
-                &fault.fault_id,
-                "run-tampered",
-                "epoch-tampered"
+                GazeboFaultRunIdentity {
+                    scenario_id: &scenario.scenario_id,
+                    fault_id: &fault.fault_id,
+                    run_id: "run-tampered",
+                    run_epoch: "epoch-tampered",
+                }
             ),
             Err(GazeboAdapterError::InvalidCompiledPlan)
         );
@@ -1779,10 +1797,12 @@ mod tests {
             &mut registry,
             &plan,
             &session,
-            &scenario.scenario_id,
-            &fault.fault_id,
-            "run-001",
-            "run-epoch-001",
+            GazeboFaultRunIdentity {
+                scenario_id: &scenario.scenario_id,
+                fault_id: &fault.fault_id,
+                run_id: "run-001",
+                run_epoch: "run-epoch-001",
+            },
         )
         .unwrap();
 
@@ -1838,10 +1858,12 @@ mod tests {
                 &mut registry,
                 &plan,
                 &session,
-                &scenario.scenario_id,
-                &fault.fault_id,
-                "run-001",
-                "run-epoch-001"
+                GazeboFaultRunIdentity {
+                    scenario_id: &scenario.scenario_id,
+                    fault_id: &fault.fault_id,
+                    run_id: "run-001",
+                    run_epoch: "run-epoch-001",
+                }
             ),
             Err(GazeboAdapterError::WorldChangedAtCutPoint)
         );
@@ -1867,10 +1889,12 @@ mod tests {
                 &mut registry,
                 &plan,
                 &session,
-                "not-in-plan",
-                "fault-process-crash",
-                "run-001",
-                "run-epoch-001"
+                GazeboFaultRunIdentity {
+                    scenario_id: "not-in-plan",
+                    fault_id: "fault-process-crash",
+                    run_id: "run-001",
+                    run_epoch: "run-epoch-001",
+                }
             ),
             Err(GazeboAdapterError::ScenarioNotFound)
         );
@@ -1886,10 +1910,12 @@ mod tests {
                 &mut registry,
                 &plan,
                 &session,
-                &scenario.scenario_id,
-                "not-in-plan",
-                "run-001",
-                "run-epoch-001"
+                GazeboFaultRunIdentity {
+                    scenario_id: &scenario.scenario_id,
+                    fault_id: "not-in-plan",
+                    run_id: "run-001",
+                    run_epoch: "run-epoch-001",
+                }
             ),
             Err(GazeboAdapterError::FaultNotFound)
         );
