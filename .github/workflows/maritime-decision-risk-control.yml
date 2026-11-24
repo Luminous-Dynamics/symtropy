@@ -63,4 +63,16 @@ jobs:
           grep -q "^N50000_ALPHA100,WHOLE_SCHEDULE,CRC_NM_FINITE_GRID," /tmp/non-monotone-risk.csv
           grep -q "NO_POSITIVE_ADJUSTED_TARGET$" /tmp/non-monotone-risk.csv
           grep -q "SYNTHETIC_ONLY$" /tmp/non-monotone-risk.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin weighted-shift-risk-audit > /tmp/weighted-shift-risk.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin weighted-shift-risk-audit > /tmp/weighted-shift-risk-replay.csv
+          cmp /tmp/weighted-shift-risk.csv /tmp/weighted-shift-risk-replay.csv
+          test "$(wc -l < /tmp/weighted-shift-risk.csv)" -eq 4
+          head -n 1 /tmp/weighted-shift-risk.csv | awk -F, '{ if (NF != 16) exit 1 }'
+          grep -q "^N120,KNOWN_EXACT_RATIO," /tmp/weighted-shift-risk.csv
+          grep -q "^N1200,KNOWN_EXACT_RATIO," /tmp/weighted-shift-risk.csv
+          grep -q "^N50000,KNOWN_EXACT_RATIO," /tmp/weighted-shift-risk.csv
+          grep -q "UPPER_BOUND_UNINFORMATIVE$" /tmp/weighted-shift-risk.csv
+          grep -q "EXPECTED_RISK_BOUND$" /tmp/weighted-shift-risk.csv
+          awk -F, '$1=="N1200" { if ($9 != 1 || $10 != 0 || $12 <= $11) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/weighted-shift-risk.csv
+
           echo "Maritime decision-risk and finite-grid non-monotone receipts passed."
