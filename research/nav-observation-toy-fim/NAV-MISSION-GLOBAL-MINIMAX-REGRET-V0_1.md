@@ -38,6 +38,15 @@ Two new tests check:
 1. shared-policy risk never falls below the exact model-aware oracle for either model, maximum regret equals the maximum of the model-wise regrets, and the plan remains non-authorizing;
 2. candidate ordering does not alter the exact minimax-regret result.
 
+A third regression constructs an explicit objective disagreement with only one sensing action affordable:
+- Model 0: action 1 error 0.10, action 2 error 0.00.
+- Model 1: action 1 error 0.45, action 2 error 0.475.
+- The model-wise oracles therefore have risks 0.00 and 0.45.
+- Mission-global minimax risk selects action 1 (worst-case loss 0.45).
+- Minimax regret selects action 2 (worst regret 0.025).
+
+This is a constructed exact binary-test example; the values are not measured sensor performance. It demonstrates why the two robust objectives should be evaluated and reported independently.
+
 The prior six global-minimax tests remain in place. The exact-head GitHub workflow must pass before this PR is qualified.
 
 ## Important boundaries
