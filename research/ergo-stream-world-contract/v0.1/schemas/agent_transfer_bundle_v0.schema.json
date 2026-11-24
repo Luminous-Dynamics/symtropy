@@ -67,7 +67,9 @@
         "target_episode_id",
         "source_evidence_prefix_sha256",
         "target_evidence_prefix_sha256",
-        "agent_view_frame_sha256"
+        "agent_view_frame_sha256",
+        "source_episode_receipt_sha256",
+        "target_episode_receipt_sha256"
       ],
       "properties": {
         "source_episode_id": {
@@ -91,6 +93,12 @@
           "$ref": "#/$defs/digest"
         },
         "agent_action_frame_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "source_episode_receipt_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "target_episode_receipt_sha256": {
           "$ref": "#/$defs/digest"
         }
       }
