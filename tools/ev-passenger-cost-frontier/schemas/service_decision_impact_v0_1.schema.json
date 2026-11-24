@@ -127,7 +127,7 @@
         "predicted_upper",
         "observed_value",
         "hard_gate_disposition",
-        "service_value_units",
+        "candidate_value_proxy_units",
         "forecast_evidence",
         "hard_gate_evidence",
         "outcome_evidence"
@@ -231,11 +231,6 @@
             "unknown"
           ]
         },
-        "service_value_units": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 1000000000000
-        },
         "forecast_evidence": {
           "$ref": "#/$defs/evidence"
         },
@@ -247,6 +242,11 @@
         },
         "site_evidence": {
           "$ref": "#/$defs/evidence"
+        },
+        "candidate_value_proxy_units": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000
         }
       }
     }
