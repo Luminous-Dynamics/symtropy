@@ -9,7 +9,7 @@
 A deployed decision should not be re-optimized simply because the data distribution moved. The right question is whether the incumbent has become materially suboptimal or infeasible under the currently admissible worlds, after accounting for switching cost.
 
 This benchmark composes existing owners:
-- #6887 supplies a current surviving-world set with its own anytime-valid evidence contract.
+- #6835 supplies the finite compatible-world receipt currently consumed by v0.1. #6887 owns the separate anytime-valid surviving-world sampling/stopping contract; the v0.1 bridge does not yet consume or inherit that guarantee.
 - #6958/#6997 supply scenario-specific feasibility, action, loss and regret semantics.
 - #6996/#7013/#7001 supply action-universe closure and independent model-family challenge.
 - #6595/#6598 supplies typed scope, evidence freshness and dependency invalidation.
@@ -132,3 +132,19 @@ Keep decision quality, switching cost, evidence validity and operational authori
 The evaluator trusts its supplied surviving-world set, action universe, feasible sets and losses. It cannot prove that the true world is included, that action closure is complete, that loss models match reality, or that the incumbent is physically safe. Those claims remain owned by upstream evidence producers and competent external authorities.
 
 A positive synthetic result means only that the finite inputs satisfy the exact retention rule. It does not authorize an operation or choose/execute a replacement.
+
+
+## 8. Joint loss-model receipt bridge
+
+The incumbent comparator is now bound to two independent upstream inventories:
+- physical worlds from the finite decision-identifiability receipt (#6835);
+- coherent joint physical-world/loss-model scenarios from #6939.
+
+Each joint scenario has a unique scenario ID, physical-world ID, loss-model ID, per-scenario evidence status and receipt ID. Multiple loss models may share one physical world. Exact planned scenario IDs must match observed IDs, and the scenarios must cover the exact physical-world inventory. Physical-world coverage does not imply loss-model coverage.
+
+Each source loss rational is carried as numerator/denominator beside the projected integer loss. The projection has a declared source unit, target unit, identifier and rational scale. The bridge accepts only exact integer projections; no floating-point arithmetic or rounding is permitted. A source rational that cannot map exactly into the declared integer unit blocks the decision.
+
+The bridge extends the frozen corpus to 30 cases, adding stale/inadequate/out-of-profile loss manifests, per-scenario evidence failures, missing joint-scenario and physical-world controls, a multiple-loss-model / single-world positive control, an exact fractional projection positive control, an inexact conversion negative control, and a mismatched projected integer negative control. See [INCUMBENT_LOSS_MODEL_BRIDGE_V0_1.md](INCUMBENT_LOSS_MODEL_BRIDGE_V0_1.md).
+
+**Sequential evidence boundary:** the consumed v0.1 physical-world source is #6835's finite decision-identifiability receipt. #6887's anytime-valid sampling/stopping guarantee is not inferred from this. It requires a separate adapter with its own receipt schema, filtration and stopping contract. Likewise, receipt hashes here do not authenticate issuer signatures or calibrate the real loss model.
+

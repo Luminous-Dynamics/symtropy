@@ -43,6 +43,8 @@
       "additionalProperties": false,
       "required": [
         "action_id",
+        "source_numerator",
+        "source_denominator",
         "loss"
       ],
       "properties": {
@@ -52,6 +54,16 @@
         "loss": {
           "type": "integer",
           "minimum": 0
+        },
+        "source_numerator": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "source_denominator": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
         }
       }
     },
@@ -59,7 +71,11 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "scenario_id",
         "world_id",
+        "loss_model_id",
+        "evidence_status",
+        "evidence_receipt_id",
         "loss_unit",
         "scope_sha256",
         "feasible_action_ids",
@@ -88,8 +104,29 @@
         },
         "loss_unit": {
           "$ref": "#/$defs/id"
+        },
+        "scenario_id": {
+          "$ref": "#/$defs/id"
+        },
+        "loss_model_id": {
+          "$ref": "#/$defs/id"
+        },
+        "evidence_status": {
+          "enum": [
+            "admissible",
+            "inadmissible",
+            "indeterminate",
+            "out_of_profile"
+          ]
+        },
+        "evidence_receipt_id": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
-      }
+      },
+      "maxItems": 16384
     },
     "expected": {
       "type": "object",
@@ -132,6 +169,15 @@
         "action_ids",
         "worlds",
         "world_set_state",
+        "world_set_receipt_schema",
+        "world_set_claim_ceiling",
+        "world_set_source_commit",
+        "world_set_source_case_id",
+        "world_set_receipt_id",
+        "world_set_receipt_sha256",
+        "expected_world_ids",
+        "expected_world_ids_sha256",
+        "loss_model_set",
         "domain_closure_state",
         "dependency_graph_state",
         "model_family_state",
@@ -164,7 +210,7 @@
         },
         "worlds": {
           "type": "array",
-          "maxItems": 4096,
+          "maxItems": 16384,
           "items": {
             "$ref": "#/$defs/world"
           }
@@ -223,6 +269,125 @@
             "STALE",
             "INDETERMINATE"
           ]
+        },
+        "world_set_receipt_id": {
+          "$ref": "#/$defs/id"
+        },
+        "world_set_receipt_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "expected_world_ids": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "expected_world_ids_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "loss_model_set": {
+          "$ref": "#/$defs/lossModelSet"
+        },
+        "world_set_receipt_schema": {
+          "const": "luminous.orbital-decision-identifiability.receipt.v0.1"
+        },
+        "world_set_claim_ceiling": {
+          "const": "exact-finite-world-decision-set-algebra-only"
+        },
+        "world_set_source_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "world_set_source_case_id": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "lossModelSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "source_receipt_schema",
+        "source_claim_ceiling",
+        "source_commit",
+        "source_receipt_sha256",
+        "source_case_id",
+        "source_manifest_id",
+        "source_scenarios_sha256",
+        "source_loss_unit",
+        "projection_id",
+        "projection_scale_numerator",
+        "projection_scale_denominator",
+        "expected_scenario_ids",
+        "expected_scenario_ids_sha256",
+        "projected_scenarios_sha256"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "CURRENT",
+            "STALE",
+            "INDETERMINATE",
+            "OUT_OF_PROFILE",
+            "INADEQUATE"
+          ]
+        },
+        "source_receipt_schema": {
+          "const": "luminous.orbital-joint-loss-scenario.receipt.v0.1"
+        },
+        "source_claim_ceiling": {
+          "const": "finite-joint-loss-scenario-regret-algebra-only"
+        },
+        "source_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "source_receipt_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "source_case_id": {
+          "$ref": "#/$defs/id"
+        },
+        "source_manifest_id": {
+          "$ref": "#/$defs/id"
+        },
+        "source_scenarios_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "expected_scenario_ids": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 16384,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "expected_scenario_ids_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "projected_scenarios_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "source_loss_unit": {
+          "$ref": "#/$defs/id"
+        },
+        "projection_id": {
+          "$ref": "#/$defs/id"
+        },
+        "projection_scale_numerator": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "projection_scale_denominator": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
         }
       }
     }

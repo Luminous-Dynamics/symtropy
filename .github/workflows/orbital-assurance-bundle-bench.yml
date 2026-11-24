@@ -2,20 +2,29 @@ name: Orbital Assurance Bundle Benchmark
 
 on:
   push:
-    branches: ["research/orbital-assurance-bundle-v0-1"]
+    branches:
+      - "research/orbital-assurance-bundle-v0-1"
+      - "research/orbital-incumbent-adequacy-v0-1"
+      - "research/orbital-incumbent-loss-model-bridge-v0-1"
     paths:
       - "tools/orbital-assurance-bundle-bench/**"
       - "research/orbital/DECISION_ASSURANCE_COMPARATOR_PROTOCOL_V0_1.md"
       - "research/orbital/DEPENDENCY_GRAPH_ADEQUACY_V0_1.md"
       - "research/orbital/INCUMBENT_DECISION_ADEQUACY_V0_1.md"
+      - "research/orbital/INCUMBENT_LOSS_MODEL_BRIDGE_V0_1.md"
       - ".github/workflows/orbital-assurance-bundle-bench.yml"
   pull_request:
+    branches:
+      - "research/orbital-incumbent-adequacy-v0-1"
+      - "research/orbital-dependency-graph-adequacy-v0-1"
+      - "research/orbital-assurance-bundle-v0-1"
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "tools/orbital-assurance-bundle-bench/**"
       - "research/orbital/DECISION_ASSURANCE_COMPARATOR_PROTOCOL_V0_1.md"
       - "research/orbital/DEPENDENCY_GRAPH_ADEQUACY_V0_1.md"
       - "research/orbital/INCUMBENT_DECISION_ADEQUACY_V0_1.md"
+      - "research/orbital/INCUMBENT_LOSS_MODEL_BRIDGE_V0_1.md"
       - ".github/workflows/orbital-assurance-bundle-bench.yml"
   workflow_dispatch:
 
@@ -164,11 +173,17 @@ jobs:
             and .source_commit == $expected_commit
             and (.fixture_sha256 | test("^[0-9a-f]{64}$"))
             and .result == "pass"
-            and .evaluation.summary.case_count == 16
+            and .evaluation.summary.case_count == 30
             and .evaluation.summary.retain_incumbent_cases >= 1
             and .evaluation.summary.reoptimization_warranted_cases >= 1
             and .evaluation.summary.abstain_cases >= 1
+            and .evaluation.summary.loss_model_set_blocked_cases >= 1
+            and .evaluation.summary.loss_scenario_evidence_blocked_cases >= 1
+            and .evaluation.summary.joint_scenario_inventory_blocked_cases >= 1
             and .evaluation.summary.expected_result_mismatches == 0
+            and ([.evaluation.cases[].case_id] | index("unknown_projection_id") != null)
+            and ([.evaluation.cases[].case_id] | index("inexact_loss_projection") != null)
+            and ([.evaluation.cases[].case_id] | index("incomplete_loss_matrix") != null)
             and .evaluation.summary.authority_grants == 0
             and .evaluation.authority_granted == false
             and .authority_granted == false
