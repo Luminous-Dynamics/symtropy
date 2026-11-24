@@ -145,7 +145,10 @@ pub struct RankStabilityReport {
 }
 
 fn finite_matrix(matrix: &[Vec<f64>]) -> bool {
-    matrix.iter().flat_map(|row| row.iter()).all(|value| value.is_finite())
+    matrix
+        .iter()
+        .flat_map(|row| row.iter())
+        .all(|value| value.is_finite())
 }
 
 fn stable_norm(values: &[f64]) -> f64 {
@@ -321,8 +324,14 @@ fn jacobi_singular_values(
                     continue;
                 }
 
-                let normalized_p = column_p.iter().map(|value| value / norm_p).collect::<Vec<_>>();
-                let normalized_q = column_q.iter().map(|value| value / norm_q).collect::<Vec<_>>();
+                let normalized_p = column_p
+                    .iter()
+                    .map(|value| value / norm_p)
+                    .collect::<Vec<_>>();
+                let normalized_q = column_q
+                    .iter()
+                    .map(|value| value / norm_q)
+                    .collect::<Vec<_>>();
                 let correlation = dot(&normalized_p, &normalized_q)?.abs();
                 if !correlation.is_finite() {
                     return Err(StabilityError::new(
@@ -509,7 +518,11 @@ pub fn certify_rank_stability(
         generalized_dof: input.whitened_rows[0].len(),
         singular_value_count: singular_values.len(),
         nominal_spectral_rank: nominal_rank,
-        robust_spectral_rank: if inconclusive { None } else { Some(robust_rank) },
+        robust_spectral_rank: if inconclusive {
+            None
+        } else {
+            Some(robust_rank)
+        },
         status: if inconclusive {
             RankStabilityStatus::Inconclusive
         } else {
@@ -583,8 +596,16 @@ mod tests {
         assert_eq!(report.nominal_spectral_rank, 2);
         assert_eq!(report.robust_spectral_rank, Some(2));
         assert_eq!(report.status, RankStabilityStatus::RobustRankDetermined);
-        close(report.singular_value_intervals[0].nominal_value, 3.0, 1.0e-12);
-        close(report.singular_value_intervals[1].nominal_value, 1.0, 1.0e-12);
+        close(
+            report.singular_value_intervals[0].nominal_value,
+            3.0,
+            1.0e-12,
+        );
+        close(
+            report.singular_value_intervals[1].nominal_value,
+            1.0,
+            1.0e-12,
+        );
         assert!(!report.physical_omission_certified);
     }
 
@@ -626,8 +647,7 @@ mod tests {
 
     #[test]
     fn perturbation_bound_matches_closed_form() {
-        let bound = whitened_operator_perturbation_bound(0.2, 0.1, 3.0)
-            .expect("finite envelope");
+        let bound = whitened_operator_perturbation_bound(0.2, 0.1, 3.0).expect("finite envelope");
         let inverse_root = 1.0 / 0.8_f64.sqrt();
         let expected = 0.1 * inverse_root + 3.0 * (inverse_root - 1.0);
         close(bound, expected, 1.0e-12);
@@ -672,8 +692,16 @@ mod tests {
         );
         let report = certify_rank_stability(&problem, square_config()).expect("wide matrix");
         assert_eq!(report.singular_value_count, 2);
-        close(report.singular_value_intervals[0].nominal_value, 4.0, 1.0e-12);
-        close(report.singular_value_intervals[1].nominal_value, 3.0, 1.0e-12);
+        close(
+            report.singular_value_intervals[0].nominal_value,
+            4.0,
+            1.0e-12,
+        );
+        close(
+            report.singular_value_intervals[1].nominal_value,
+            3.0,
+            1.0e-12,
+        );
         assert_eq!(report.robust_spectral_rank, Some(2));
     }
 
@@ -752,28 +780,14 @@ mod tests {
 
     #[test]
     fn duplicate_contact_ids_and_nonfinite_rows_are_rejected() {
-        let duplicate = input(
-            &["a", "a"],
-            vec![vec![1.0], vec![1.0]],
-            0.0,
-            0.0,
-            1.0,
-            0.1,
-        );
+        let duplicate = input(&["a", "a"], vec![vec![1.0], vec![1.0]], 0.0, 0.0, 1.0, 0.1);
         assert_eq!(
             certify_rank_stability(&duplicate, square_config())
                 .expect_err("duplicate ID")
                 .kind,
             StabilityErrorKind::DuplicateContactId
         );
-        let nonfinite = input(
-            &["a"],
-            vec![vec![f64::INFINITY]],
-            0.0,
-            0.0,
-            1.0,
-            0.1,
-        );
+        let nonfinite = input(&["a"], vec![vec![f64::INFINITY]], 0.0, 0.0, 1.0, 0.1);
         assert_eq!(
             certify_rank_stability(&nonfinite, square_config())
                 .expect_err("nonfinite")
