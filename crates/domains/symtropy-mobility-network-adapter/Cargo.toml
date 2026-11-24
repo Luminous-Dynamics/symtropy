@@ -1,0 +1,12 @@
+[package]
+name = "symtropy-mobility-network-adapter"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Read-only composition of mobility reserve and commitment evidence with locational DC network screening."
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+symtropy-dc-network-screen = { path = "../symtropy-dc-network-screen" }
