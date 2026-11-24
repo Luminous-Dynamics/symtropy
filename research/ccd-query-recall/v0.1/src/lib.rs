@@ -315,13 +315,8 @@ pub fn parse_query_run_results_tsv(
             "vertex_face" => QueryClass::VertexFace,
             _ => return Err(QueryRunImportError::InvalidQueryClass),
         };
-        let identity = QueryIdentity::new(
-            fields[0],
-            fields[1],
-            time_step,
-            query_class,
-            query_index,
-        );
+        let identity =
+            QueryIdentity::new(fields[0], fields[1], time_step, query_class, query_index);
 
         let candidate = match fields[5] {
             "forwarded" => {
@@ -353,10 +348,7 @@ pub fn parse_query_run_results_tsv(
                     _ => return Err(QueryRunImportError::InvalidVerificationStatus),
                 };
                 CandidateDisposition::CertifiedPruned(PruneEvidence::new(
-                    fields[7],
-                    fields[8],
-                    fields[9],
-                    status,
+                    fields[7], fields[8], fields[9], status,
                 ))
             }
             _ => return Err(QueryRunImportError::InvalidCandidateDisposition),
@@ -399,9 +391,7 @@ fn valid_identity_token(value: &str) -> bool {
         .next()
         .is_some_and(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
         && bytes.all(|byte| {
-            byte.is_ascii_lowercase()
-                || byte.is_ascii_digit()
-                || matches!(byte, b'-' | b'_' | b'.')
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'-' | b'_' | b'.')
         })
 }
 
@@ -1092,11 +1082,8 @@ mod tests {
         assert!(q16_score.benchmark_qualified());
         assert!(binary_score.can_pool_with(&binary_score));
         assert!(!binary_score.can_pool_with(&q16_score));
-        let other_score = evaluate_queries_with_profile(
-            other_algorithm,
-            std::slice::from_ref(&result),
-        )
-        .unwrap();
+        let other_score =
+            evaluate_queries_with_profile(other_algorithm, std::slice::from_ref(&result)).unwrap();
         assert!(!binary_score.can_pool_with(&other_score));
         assert!(!unspecified.benchmark_qualified());
         assert!(!unspecified.can_pool_with(&binary_score));
@@ -1560,13 +1547,7 @@ mod tests {
             "not_run",
         ]
         .join("\t");
-        let input = [
-            "#ccd-query-run-results-v1",
-            &forwarded,
-            &fallback,
-            &pruned,
-        ]
-        .join("\n");
+        let input = ["#ccd-query-run-results-v1", &forwarded, &fallback, &pruned].join("\n");
 
         let results = parse_query_run_results_tsv(&input).unwrap();
         assert_eq!(results.len(), 3);
@@ -1653,9 +1634,8 @@ mod tests {
 
     #[test]
     fn tsv_adapter_joins_real_nyu_sample_to_profiled_query_score() {
-        const CSV: &str = include_str!(
-            "../../../nyu-ccd-query-import/v0.1/fixtures/armadillo-rollers-3ee.csv"
-        );
+        const CSV: &str =
+            include_str!("../../../nyu-ccd-query-import/v0.1/fixtures/armadillo-rollers-3ee.csv");
         const BOOLS: &str = include_str!(
             "../../../nyu-ccd-query-import/v0.1/fixtures/armadillo-rollers-3ee-mma-bool.json"
         );
