@@ -985,6 +985,224 @@ mod tests {
     }
 
     #[test]
+    fn candidate_trace_accounts_attempts_queries_and_each_rejection() {
+        let p = pair(1, 2);
+        let root = LineageId::root(p.clone());
+        let primary = root.child(0);
+        let admitted = root.child(1);
+        let invalid = root.child(2);
+        let failed = root.child(3);
+        let shallow = root.child(4);
+        let duplicate = root.child(5);
+        let capacity = root.child(6);
+        let attempt = |id, kind, direction, support_a, support_b, disposition| CandidateAttempt {
+            id,
+            kind,
+            direction,
+            support_a,
+            support_b,
+            disposition,
+        };
+        let attempts = vec![
+            attempt(
+                primary.clone(),
+                CandidateAttemptKind::PrimaryWitness,
+                DirectionDisposition::NotApplicable,
+                SupportQueryDisposition::NotAttempted,
+                SupportQueryDisposition::NotAttempted,
+                CandidateDisposition::PrimaryAdmitted,
+            ),
+            attempt(
+                admitted.clone(),
+                CandidateAttemptKind::PerturbationDirection,
+                DirectionDisposition::Generated,
+                SupportQueryDisposition::Completed,
+                SupportQueryDisposition::Completed,
+                CandidateDisposition::Admitted,
+            ),
+            attempt(
+                invalid,
+                CandidateAttemptKind::PerturbationDirection,
+                DirectionDisposition::InvalidOrDegenerate,
+                SupportQueryDisposition::NotAttempted,
+                SupportQueryDisposition::NotAttempted,
+                CandidateDisposition::InvalidDirection,
+            ),
+            attempt(
+                failed,
+                CandidateAttemptKind::PerturbationDirection,
+                DirectionDisposition::Generated,
+                SupportQueryDisposition::Failed,
+                SupportQueryDisposition::Completed,
+                CandidateDisposition::SupportQueryFailed,
+            ),
+            attempt(
+                shallow,
+                CandidateAttemptKind::PerturbationDirection,
+                DirectionDisposition::Generated,
+                SupportQueryDisposition::Completed,
+                SupportQueryDisposition::Completed,
+                CandidateDisposition::ShallowRejected,
+            ),
+            attempt(
+                duplicate,
+                CandidateAttemptKind::PerturbationDirection,
+                DirectionDisposition::Generated,
+                SupportQueryDisposition::Completed,
+                SupportQueryDisposition::Completed,
+                CandidateDisposition::DuplicateRejected,
+            ),
+            attempt(
+                capacity,
+                CandidateAttemptKind::PerturbationDirection,
+                DirectionDisposition::Generated,
+                SupportQueryDisposition::Completed,
+                SupportQueryDisposition::Completed,
+                CandidateDisposition::CapacityRejected,
+            ),
+        ];
+
+        let mut ledger = PairLedger::new([p]).unwrap();
+        for stage in [
+            Stage::Eligibility,
+            Stage::TemporalBounds,
+            Stage::Broadphase,
+            Stage::Narrowphase,
+        ] {
+            ledger.record(StageEvent {
+                stage,
+                input: root.clone(),
+                outcome: Outcome::Forward,
+            }).unwrap();
+        }
+        ledger.record(StageEvent {
+            stage: Stage::CandidateGeneration,
+            input: root,
+            outcome: Outcome::CandidateTrace { attempts },
+        }).unwrap();
+
+        // Only the primary witness and explicitly admitted perturbation reach
+        // manifold reduction; invalid directions and all rejected queries do not.
+        ledger.record(StageEvent {
+            stage: Stage::ManifoldReduction,
+            input: primary,
+            outcome: Outcome::Terminate(TerminalReason::DeliberatelyReduced),
+        }).unwrap();
+        ledger.record(StageEvent {
+            stage: Stage::ManifoldReduction,
+            input: admitted.clone(),
+            outcome: Outcome::ForwardWithReason(ForwardReason::ManifoldRetained),
+        }).unwrap();
+        ledger.record(StageEvent {
+            stage: Stage::SolverMapping,
+            input: admitted.clone(),
+            outcome: Outcome::ForwardWithReason(ForwardReason::SolverRowSubmitted),
+        }).unwrap();
+        ledger.record(StageEvent {
+            stage: Stage::Solve,
+            input: admitted,
+            outcome: Outcome::Terminate(TerminalReason::Converged),
+        }).unwrap();
+
+        let receipt = ledger.receipt().unwrap();
+        let candidate_stats = receipt.stages.iter()
+            .find(|(stage, _)| *stage == Stage::CandidateGeneration)
+            .unwrap().1;
+        assert_eq!(candidate_stats.candidate_attempts, 7);
+        assert_eq!(candidate_stats.requested_directions, 6);
+        assert_eq!(candidate_stats.generated_directions, 5);
+        assert_eq!(candidate_stats.invalid_directions, 1);
+        assert_eq!(candidate_stats.support_queries_attempted, 10);
+        assert_eq!(candidate_stats.support_queries_completed, 9);
+        assert_eq!(candidate_stats.support_queries_failed, 1);
+        assert_eq!(candidate_stats.admitted_candidates, 2);
+        assert_eq!(candidate_stats.shallow_rejections, 1);
+        assert_eq!(candidate_stats.duplicate_rejections, 1);
+        assert_eq!(candidate_stats.capacity_rejections, 1);
+        assert_eq!(candidate_stats.terminal, 5);
+    }
+
+    #[test]
+    fn candidate_trace_rejects_inconsistent_support_query_outcome() {
+        let p = pair(1, 2);
+        let root = LineageId::root(p.clone());
+        let mut ledger = PairLedger::new([p]).unwrap();
+        for stage in [
+            Stage::Eligibility,
+            Stage::TemporalBounds,
+            Stage::Broadphase,
+            Stage::Narrowphase,
+        ] {
+            ledger.record(StageEvent {
+                stage,
+                input: root.clone(),
+                outcome: Outcome::Forward,
+            }).unwrap();
+        }
+        ledger.record(StageEvent {
+            stage: Stage::CandidateGeneration,
+            input: root.clone(),
+            outcome: Outcome::CandidateTrace {
+                attempts: vec![
+                    CandidateAttempt {
+                        id: root.child(0),
+                        kind: CandidateAttemptKind::PrimaryWitness,
+                        direction: DirectionDisposition::NotApplicable,
+                        support_a: SupportQueryDisposition::NotAttempted,
+                        support_b: SupportQueryDisposition::NotAttempted,
+                        disposition: CandidateDisposition::PrimaryAdmitted,
+                    },
+                    CandidateAttempt {
+                        id: root.child(1),
+                        kind: CandidateAttemptKind::PerturbationDirection,
+                        direction: DirectionDisposition::Generated,
+                        support_a: SupportQueryDisposition::Failed,
+                        support_b: SupportQueryDisposition::Completed,
+                        disposition: CandidateDisposition::Admitted,
+                    },
+                ],
+            },
+        }).unwrap();
+        assert_eq!(ledger.validate(), Err(LedgerError::InvalidCandidateAttempt));
+    }
+
+    #[test]
+    fn candidate_trace_requires_exactly_one_primary_witness() {
+        let p = pair(1, 2);
+        let root = LineageId::root(p.clone());
+        let mut ledger = PairLedger::new([p]).unwrap();
+        for stage in [
+            Stage::Eligibility,
+            Stage::TemporalBounds,
+            Stage::Broadphase,
+            Stage::Narrowphase,
+        ] {
+            ledger.record(StageEvent {
+                stage,
+                input: root.clone(),
+                outcome: Outcome::Forward,
+            }).unwrap();
+        }
+        ledger.record(StageEvent {
+            stage: Stage::CandidateGeneration,
+            input: root,
+            outcome: Outcome::CandidateTrace {
+                attempts: vec![
+                    CandidateAttempt {
+                        id: LineageId::root(pair(1, 2)).child(3),
+                        kind: CandidateAttemptKind::PerturbationDirection,
+                        direction: DirectionDisposition::InvalidOrDegenerate,
+                        support_a: SupportQueryDisposition::NotAttempted,
+                        support_b: SupportQueryDisposition::NotAttempted,
+                        disposition: CandidateDisposition::InvalidDirection,
+                    },
+                ],
+            },
+        }).unwrap();
+        assert_eq!(ledger.validate(), Err(LedgerError::MissingPrimaryCandidate));
+    }
+
+    #[test]
     fn child_cannot_change_pair_identity() {
         let p = pair(1, 2);
         let other = pair(1, 3);
