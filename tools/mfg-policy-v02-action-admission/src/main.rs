@@ -1013,7 +1013,10 @@ mod tests {
         let receipt = evaluate(&frame, &proposal).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Rejected);
         assert_eq!(receipt.reason_codes, vec!["proposal_frame_digest_mismatch"]);
-        assert_ne!(receipt.decision_frame_digest, proposal["decision_frame_digest"]);
+        assert_ne!(
+            receipt.decision_frame_digest,
+            proposal["decision_frame_digest"]
+        );
     }
 
     #[test]
