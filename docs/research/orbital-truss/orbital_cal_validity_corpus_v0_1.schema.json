@@ -64,6 +64,8 @@
         "scope_id",
         "calibration_id",
         "calibration_revision",
+        "certificate_sha256",
+        "check_receipt_sha256",
         "component_id",
         "valid_from_ns",
         "valid_until_ns",
@@ -129,6 +131,17 @@
             "null"
           ],
           "minimum": 0
+        },
+        "certificate_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
+        "check_receipt_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-fA-F]{64}$"
         }
       }
     },
