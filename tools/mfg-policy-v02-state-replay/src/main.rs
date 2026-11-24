@@ -225,7 +225,7 @@ fn digest_value(
     Ok(format!("{:x}", Sha256::digest(bytes)))
 }
 
-fn static_case<'a>(frame: &'a Value, epoch: u64) -> Result<&'a Value, Violation> {
+fn static_case(frame: &Value, epoch: u64) -> Result<&Value, Violation> {
     frame
         .get("static_case")
         .ok_or_else(|| violation("decision_frame_static_case_missing", Some(epoch), None))
@@ -234,11 +234,10 @@ fn static_case<'a>(frame: &'a Value, epoch: u64) -> Result<&'a Value, Violation>
 fn index_jobs_and_operations(
     case: &Value,
     epoch: u64,
-) -> Result<(BTreeMap<String, Value>, BTreeMap<String, String>), Violation> {
+) -> Result<BTreeMap<String, Value>, Violation> {
     let jobs = required_array(case, "jobs", "static_case", Some(epoch), None)?;
     let mut job_ids = BTreeSet::new();
     let mut operations = BTreeMap::new();
-    let mut owner_by_operation = BTreeMap::new();
 
     for job in jobs {
         let job_id = required_string(job, "job_id", "job", Some(epoch), None)?;
@@ -254,7 +253,6 @@ fn index_jobs_and_operations(
             {
                 return Err(violation("operation_id_duplicate", Some(epoch), None));
             }
-            owner_by_operation.insert(operation_id.to_string(), job_id.to_string());
         }
     }
 
@@ -280,7 +278,7 @@ fn index_jobs_and_operations(
         }
     }
 
-    Ok((operations, owner_by_operation))
+    Ok(operations)
 }
 
 fn index_resources(case: &Value, epoch: u64) -> Result<BTreeMap<String, Value>, Violation> {
@@ -700,7 +698,7 @@ fn initial_state(
     epoch: u64,
     resources: &BTreeMap<String, Value>,
 ) -> Result<RuntimeState, Violation> {
-    let (operations, _) = index_jobs_and_operations(case, epoch)?;
+    let operations = index_jobs_and_operations(case, epoch)?;
     let mut operation_states = BTreeMap::new();
     let mut resource_states = BTreeMap::new();
 
@@ -957,16 +955,29 @@ fn current_frame_qualification<'a>(
         .map(String::as_str)
 }
 
-fn verify_receipt_matches(
-    receipt: &Value,
-    proposal: &Value,
-    frame: &Value,
+struct ReceiptExpectation<'a> {
+    proposal: &'a Value,
+    frame: &'a Value,
     processing_duration: u64,
     setup_duration: u64,
-    inspection_method: Option<&str>,
+    inspection_method: Option<&'a str>,
     epoch: u64,
-    transition_id: &str,
+    transition_id: &'a str,
+}
+
+fn verify_receipt_matches(
+    receipt: &Value,
+    expected: ReceiptExpectation<'_>,
 ) -> Result<(), Violation> {
+    let ReceiptExpectation {
+        proposal,
+        frame,
+        processing_duration,
+        setup_duration,
+        inspection_method,
+        epoch,
+        transition_id,
+    } = expected;
     validate_schema(
         receipt,
         ADMISSION_SCHEMA_JSON,
@@ -1507,13 +1518,15 @@ fn apply_start_action(
 
     verify_receipt_matches(
         receipt,
-        proposal,
-        frame,
-        processing_duration,
-        setup_duration,
-        inspection_method,
-        epoch,
-        transition_id,
+        ReceiptExpectation {
+            proposal,
+            frame,
+            processing_duration,
+            setup_duration,
+            inspection_method,
+            epoch,
+            transition_id,
+        },
     )?;
 
     if action_kind == "START" {
@@ -2007,7 +2020,7 @@ fn replay_ledger(ledger: &Value) -> Result<ReplayReceipt, Violation> {
         return Err(violation("static_case_identity_mismatch", Some(0), None));
     }
     let resources = index_resources(case, 0)?;
-    let (initial_operations, _) = index_jobs_and_operations(case, 0)?;
+    let _initial_operations = index_jobs_and_operations(case, 0)?;
     let mut state = initial_state(case, 0, &resources)?;
     let mut snapshots = Vec::new();
     let mut previous_frame_history: Option<Vec<Value>> = None;
@@ -2115,7 +2128,6 @@ fn replay_ledger(ledger: &Value) -> Result<ReplayReceipt, Violation> {
         snapshots.push(snapshot);
     }
 
-    let _ = initial_operations;
     let ledger_digest = digest_value(ledger, None, None)?;
     let final_snapshot_digest = snapshots
         .last()
