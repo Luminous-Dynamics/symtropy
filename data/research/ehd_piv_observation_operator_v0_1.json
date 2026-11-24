@@ -1,0 +1,124 @@
+{
+  "contract_id": "ehd_piv_observation_operator_v0_1",
+  "version": "0.1.0",
+  "status": "deterministic_synthetic_2d2c_measurement_operator",
+  "coordinate_units": "x_y_pixels; velocities_pixels_per_time; z_sheet_units",
+  "model_components": [
+    "prescribed_2d2c_velocity_field",
+    "subpixel_particle_seeds",
+    "bilinear_velocity_sampling",
+    "midpoint_RK2_particle_advection",
+    "finite_exposure_midpoint_quadrature",
+    "gaussian_illumination_sheet_attenuation",
+    "gaussian_particle_image",
+    "gaussian_optical_PSF_combination",
+    "sensor_gain_and_offset",
+    "explicit_additive_noise_arrays",
+    "active_pixel_mask",
+    "clipping_and_quantization",
+    "analog_detector_values_before_clipping_and_ADC_quantization",
+    "central_finite_difference_image_sensitivity"
+  ],
+  "deterministic_noise": "frozen_per_pixel_noise_inputs; no implicit random generator",
+  "non_extrapolation": "particle trajectory leaving velocity support returns VelocitySupportExceeded",
+  "manufactured_tests": 17,
+  "explicit_nonclaims": [
+    "no_tracer_inertia",
+    "no_Mie_scattering",
+    "no_nonGaussian_PSF_or_aberration",
+    "no_rolling_shutter_or_camera_nonlinearity",
+    "no_solved_3D_velocity_or_3D_PIV",
+    "no_particle_tracking_or_Shake_the_Box",
+    "no_real_EHD_observer_validation",
+    "no_raw_image_inverse_model_or_PIV_processing",
+    "no_joint_solver_for_physical_and_nuisance_parameters",
+    "no_global_identifiability_guarantee_from_finite_difference_columns"
+  ],
+  "additional_failure_controls": [
+    "field_support_outside_sensor",
+    "nonfinite_rendered_sensor_signal"
+  ],
+  "industry_comparators": {
+    "synthpix": {
+      "repository": "https://github.com/antonioterpin/synthpix",
+      "pinned_commit": "0effe6e70b77d0d5c97348d8220e74d31bfaee2e",
+      "current_repository_version": "0.4.0",
+      "license": "MIT",
+      "paper": {
+        "title": "SynthPix: A lightspeed PIV image generator",
+        "venue": "SoftwareX",
+        "volume": 34,
+        "article_number": 102642,
+        "year": 2026,
+        "doi": "10.1016/j.softx.2026.102642",
+        "url": "https://doi.org/10.1016/j.softx.2026.102642",
+        "reported_performance": "orders-of-magnitude image-pair throughput vs selected synthetic generator alternatives",
+        "own_benchmark_relative_endpoint_error_discrepancy": {
+          "mean": 0.001,
+          "maximum": 0.005
+        },
+        "caveat": "paper-specific evaluation after tuning generator parameters to match those benchmark image conditions"
+      },
+      "current_capabilities": [
+        "JAX_accelerator_batched_and_on_the_fly_generation",
+        "HDF5_MAT_NPY_flow_sources",
+        "seeding_density_range",
+        "particle_diameter_ranges",
+        "particle_intensity_ranges",
+        "particle_shape_correlation_rho",
+        "per_frame_particle_size_intensity_shape_variation",
+        "particle_hide_probability",
+        "uniform_and_gaussian_image_noise",
+        "pixel_masks",
+        "intensity_histogram_matching"
+      ],
+      "known_paper_v0_1_limitations": [
+        "orthogonal_camera_geometry_assumption",
+        "no_finite_pixel_fill_factor",
+        "no_multicamera_volumetric_generation_in_paper_version"
+      ],
+      "role": "high_throughput_generation_baseline_and_robustness_sweep_engine",
+      "execution_status": "not_executed_in_this_PR"
+    },
+    "rust_reference_operator": {
+      "role": "deterministic_small_scale_analytic_reference_and_negative_control_kernel",
+      "not_competing_on": "accelerator_image_pair_throughput",
+      "distinguishing_behaviors": [
+        "explicit_RK2_trajectory_integration",
+        "finite_exposure_time_quadrature",
+        "Gaussian_out_of_plane_light_sheet_attenuation",
+        "explicit_optical_PSF_sigma",
+        "frozen_per_pixel_noise_inputs",
+        "gain_offset_mask_and_quantization",
+        "fail_closed_domain_and_numeric_validation"
+      ]
+    }
+  },
+  "architecture_decision": "Use SynthPix for high-throughput synthetic data generation; retain the Rust implementation as an independently inspectable deterministic measurement-operator reference and analytic control. Do not compare throughput without matched configurations and hardware.",
+  "identifiability_bridge": {
+    "derivative_method": "central_difference",
+    "function": "central_difference_image_sensitivity",
+    "observation_order": "analog first frame row-major, followed by analog second frame row-major",
+    "caller_requirements": [
+      "same_particle_seeds",
+      "same_frozen_per_pixel_noise",
+      "same_masks",
+      "same_unperturbed_acquisition_and_sensor_parameters",
+      "only_declared_parameter_changes_between_plus_and_minus_runs"
+    ],
+    "output": "d(I_analog)/d(theta) vector per candidate physical or nuisance parameter",
+    "downstream": "columns can be assembled into UQ-ID-001 whitened sensitivity matrix after qualified residual covariance whitening",
+    "finite_difference_step": "must be local but large enough to dominate model noise and quantization; analog outputs prevent sub-LSB effects from being rounded away",
+    "limitations": [
+      "not_automatically_whitened",
+      "not_a_verified_Jacobian",
+      "does_not_compute_full_noise_covariance",
+      "finite_difference_truncation_and_step_sensitivity_must_be_audited"
+    ],
+    "manufactured_confounds": [
+      "particle_diameter_vs_optical_PSF_positive_collinear_single_view",
+      "particle_out_of_plane_position_vs_light_sheet_thickness_negative_collinear_single_view",
+      "uniform_flow_velocity_vs_frame_separation_positive_collinear_single_view"
+    ]
+  }
+}
