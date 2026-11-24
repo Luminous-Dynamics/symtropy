@@ -1212,7 +1212,16 @@ mod tests {
             false,
         );
         assert_eq!(
-            evaluate_bound_transfer_calibration(&[forecast], &[orphan], 2, &[0]),
+            evaluate_bound_transfer_calibration(
+                &[forecast.clone()],
+                &[outcome.clone(), orphan],
+                2,
+                &[0],
+            ),
+            Err(TransferCalibrationErrorV0::UnknownOutcome)
+        );
+        assert_eq!(
+            evaluate_bound_transfer_calibration(&[forecast], &[], 2, &[0]),
             Err(TransferCalibrationErrorV0::MissingOutcome)
         );
     }
