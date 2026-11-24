@@ -2,7 +2,7 @@
 name = "ehd-piv-phase-design"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.87"
 license = "AGPL-3.0-or-later"
 publish = false
 description = "Phase coverage and independent-cycle replication metrics for periodic PIV acquisition"
