@@ -15,11 +15,13 @@
     "sensor_gain_and_offset",
     "explicit_additive_noise_arrays",
     "active_pixel_mask",
-    "clipping_and_quantization"
+    "clipping_and_quantization",
+    "analog_detector_values_before_clipping_and_ADC_quantization",
+    "central_finite_difference_image_sensitivity"
   ],
   "deterministic_noise": "frozen_per_pixel_noise_inputs; no implicit random generator",
   "non_extrapolation": "particle trajectory leaving velocity support returns VelocitySupportExceeded",
-  "manufactured_tests": 11,
+  "manufactured_tests": 14,
   "explicit_nonclaims": [
     "no_tracer_inertia",
     "no_Mie_scattering",
@@ -90,5 +92,26 @@
       ]
     }
   },
-  "architecture_decision": "Use SynthPix for high-throughput synthetic data generation; retain the Rust implementation as an independently inspectable deterministic measurement-operator reference and analytic control. Do not compare throughput without matched configurations and hardware."
+  "architecture_decision": "Use SynthPix for high-throughput synthetic data generation; retain the Rust implementation as an independently inspectable deterministic measurement-operator reference and analytic control. Do not compare throughput without matched configurations and hardware.",
+  "identifiability_bridge": {
+    "derivative_method": "central_difference",
+    "function": "central_difference_image_sensitivity",
+    "observation_order": "analog first frame row-major, followed by analog second frame row-major",
+    "caller_requirements": [
+      "same_particle_seeds",
+      "same_frozen_per_pixel_noise",
+      "same_masks",
+      "same_unperturbed_acquisition_and_sensor_parameters",
+      "only_declared_parameter_changes_between_plus_and_minus_runs"
+    ],
+    "output": "d(I_analog)/d(theta) vector per candidate physical or nuisance parameter",
+    "downstream": "columns can be assembled into UQ-ID-001 whitened sensitivity matrix after qualified residual covariance whitening",
+    "finite_difference_step": "must be local but large enough to dominate model noise and quantization; analog outputs prevent sub-LSB effects from being rounded away",
+    "limitations": [
+      "not_automatically_whitened",
+      "not_a_verified_Jacobian",
+      "does_not_compute_full_noise_covariance",
+      "finite_difference_truncation_and_step_sensitivity_must_be_audited"
+    ]
+  }
 }
