@@ -301,6 +301,7 @@ pub enum LedgerError {
     DuplicateCandidateAttempt,
     InvalidCandidateAttempt,
     CandidateTraceWrongStage,
+    CandidateGenerationRequiresTrace,
     ChildHasDifferentPair,
     ChildPathNotImmediate,
     DuplicateChild,
@@ -359,6 +360,9 @@ impl fmt::Display for LedgerError {
             ),
             Self::CandidateTraceWrongStage => {
                 write!(f, "candidate trace is only valid at CandidateGeneration")
+            }
+            Self::CandidateGenerationRequiresTrace => {
+                write!(f, "candidate generation requires a complete candidate trace")
             }
             Self::ChildHasDifferentPair => write!(f, "child lineage changed pair identity"),
             Self::ChildPathNotImmediate => {
@@ -434,6 +438,15 @@ impl PairLedger {
             }
             let mut next = BTreeSet::new();
             for (input, outcome) in records {
+                if stage == Stage::CandidateGeneration
+                    && !matches!(
+                        outcome,
+                        Outcome::CandidateTrace { .. }
+                            | Outcome::Terminate(TerminalReason::InvalidInput | TerminalReason::Aborted)
+                    )
+                {
+                    return Err(LedgerError::CandidateGenerationRequiresTrace);
+                }
                 match outcome {
                     Outcome::Forward => {
                         next.insert(input);
@@ -725,8 +738,7 @@ fn valid_forward(stage: Stage, reason: ForwardReason) -> bool {
         ) | (
             Stage::Narrowphase,
             ForwardReason::UnsupportedShapeFallback | ForwardReason::ManifoldsGenerated
-        ) | (Stage::CandidateGeneration, ForwardReason::CandidateAdmitted)
-            | (Stage::ManifoldReduction, ForwardReason::ManifoldRetained)
+        ) | (Stage::ManifoldReduction, ForwardReason::ManifoldRetained)
             | (Stage::SolverMapping, ForwardReason::SolverRowSubmitted)
     )
 }
