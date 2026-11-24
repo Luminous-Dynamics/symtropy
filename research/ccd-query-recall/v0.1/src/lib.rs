@@ -496,7 +496,9 @@ fn is_lower_hex(value: &str, expected_length: usize) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nyu_ccd_query_import::{QueryKind, attach_ground_truth, parse_boolean_json, parse_queries_csv};
+    use nyu_ccd_query_import::{
+        QueryKind, attach_ground_truth, parse_boolean_json, parse_queries_csv,
+    };
 
     fn evidence(status: VerificationStatus) -> PruneEvidence {
         PruneEvidence::new(
