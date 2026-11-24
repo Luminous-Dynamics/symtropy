@@ -1,5 +1,5 @@
 use serde::Serialize;
-use serde_json::{Value, json};
+use serde_json::Value;
 use std::process::ExitCode;
 
 const POLICY_SCHEMA_JSON: &str =
@@ -10,7 +10,6 @@ const DECISION_FRAME_SCHEMA_JSON: &str =
     include_str!("../../../schemas/manufacturing/mfg_policy_v02_decision_frame.schema.json");
 
 #[derive(Debug, Serialize)]
-#[serde(deny_unknown_fields)]
 struct PolicyDecisionFrame {
     schema_id: &'static str,
     benchmark_id: String,
@@ -219,6 +218,7 @@ fn main() -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     fn sample_policy_case() -> Value {
         json!({
