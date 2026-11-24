@@ -14,6 +14,8 @@ const RECEIPT_SCHEMA_JSON: &str = include_str!(
 const SNAPSHOT_SCHEMA_JSON: &str = include_str!(
     "../../../schemas/manufacturing/mfg_policy_v02_operational_state_snapshot.schema.json"
 );
+const REPLAY_RECEIPT_SCHEMA_JSON: &str =
+    include_str!("../../../schemas/manufacturing/mfg_policy_v02_replay_receipt.schema.json");
 
 const RECEIPT_SCHEMA_ID: &str =
     "https://luminousdynamics.io/schemas/mfg-policy-v0.2-action-admission-receipt";
@@ -373,6 +375,158 @@ fn valid_digest(value: &str) -> bool {
         && value
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn validate_replay_receipt_chain(
+    replay_receipt: &Value,
+    frame: &Value,
+    decision_epoch: u64,
+) -> Result<Value, String> {
+    validate_schema(
+        replay_receipt,
+        REPLAY_RECEIPT_SCHEMA_JSON,
+        "replay_receipt",
+    )?;
+    let benchmark_id = required_string(frame, "benchmark_id", "decision_frame")?;
+    let case_id = required_string(frame, "case_id", "decision_frame")?;
+    if required_string(replay_receipt, "status", "replay_receipt")? != "VERIFIED"
+        || required_string(replay_receipt, "benchmark_id", "replay_receipt")? != benchmark_id
+        || required_string(replay_receipt, "case_id", "replay_receipt")? != case_id
+    {
+        return Err(fail("replay_receipt_identity_or_status_invalid"));
+    }
+
+    let ledger_digest = required_string(replay_receipt, "ledger_digest", "replay_receipt")?;
+    if !valid_digest(ledger_digest) {
+        return Err(fail("replay_receipt_ledger_digest_invalid"));
+    }
+    if !required_array(replay_receipt, "violation_ledger", "replay_receipt")?.is_empty() {
+        return Err(fail("replay_receipt_contains_violations"));
+    }
+
+    let snapshots = required_array(replay_receipt, "snapshots", "replay_receipt")?;
+    if snapshots.len() as u64 != decision_epoch + 1 {
+        return Err(fail("replay_receipt_snapshot_chain_length_mismatch"));
+    }
+
+    let mut previous_snapshot_digest: Option<String> = None;
+    let mut previous_transition_ids = Vec::<String>::new();
+    let mut previous_event_ids = BTreeSet::<String>::new();
+    let mut last_digest = None;
+
+    for (expected_epoch, snapshot) in snapshots.iter().enumerate() {
+        validate_schema(snapshot, SNAPSHOT_SCHEMA_JSON, "operational_state_snapshot")?;
+        if required_string(snapshot, "benchmark_id", "operational_state_snapshot")?
+            != benchmark_id
+            || required_string(snapshot, "case_id", "operational_state_snapshot")? != case_id
+            || required_u64(snapshot, "decision_epoch", "operational_state_snapshot")?
+                != expected_epoch as u64
+        {
+            return Err(fail("replay_receipt_snapshot_identity_or_order_invalid"));
+        }
+
+        match previous_snapshot_digest.as_deref() {
+            None => {
+                if !snapshot
+                    .get("previous_snapshot_digest")
+                    .is_some_and(Value::is_null)
+                {
+                    return Err(fail("replay_receipt_genesis_snapshot_has_parent"));
+                }
+            }
+            Some(expected_parent) => {
+                if required_string(
+                    snapshot,
+                    "previous_snapshot_digest",
+                    "operational_state_snapshot",
+                )? != expected_parent
+                {
+                    return Err(fail("replay_receipt_snapshot_parent_link_mismatch"));
+                }
+            }
+        }
+
+        let mut snapshot_body = snapshot.clone();
+        snapshot_body
+            .as_object_mut()
+            .ok_or_else(|| fail("snapshot_must_be_object"))?
+            .remove("snapshot_digest");
+        let recomputed_digest = digest_value(&snapshot_body)?;
+        if required_string(snapshot, "snapshot_digest", "operational_state_snapshot")?
+            != recomputed_digest
+        {
+            return Err(fail("replay_receipt_snapshot_digest_mismatch"));
+        }
+
+        let transition_ids = required_array(
+            snapshot,
+            "applied_transition_ids",
+            "operational_state_snapshot",
+        )?
+        .iter()
+        .map(|value| {
+            value
+                .as_str()
+                .filter(|text| !text.trim().is_empty())
+                .map(str::to_string)
+                .ok_or_else(|| fail("replay_receipt_transition_id_invalid"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+        if transition_ids.len() < previous_transition_ids.len()
+            || transition_ids[..previous_transition_ids.len()] != previous_transition_ids
+        {
+            return Err(fail("replay_receipt_transition_lineage_not_monotonic"));
+        }
+        previous_transition_ids = transition_ids;
+
+        let event_cut = snapshot
+            .get("event_cut")
+            .ok_or_else(|| fail("snapshot_event_cut_missing"))?;
+        if required_u64(event_cut, "decision_epoch", "snapshot_event_cut")?
+            != expected_epoch as u64
+        {
+            return Err(fail("replay_receipt_event_cut_epoch_mismatch"));
+        }
+        let event_ids = required_array(
+            event_cut,
+            "visible_source_event_ids",
+            "snapshot_event_cut",
+        )?
+        .iter()
+        .map(|value| {
+            value
+                .as_str()
+                .filter(|text| !text.trim().is_empty())
+                .map(str::to_string)
+                .ok_or_else(|| fail("replay_receipt_event_id_invalid"))
+        })
+        .collect::<Result<BTreeSet<_>, _>>()?;
+        if !previous_event_ids.is_subset(&event_ids) {
+            return Err(fail("replay_receipt_event_cut_not_monotonic"));
+        }
+        previous_event_ids = event_ids;
+
+        previous_snapshot_digest = Some(recomputed_digest.clone());
+        last_digest = Some(recomputed_digest);
+    }
+
+    let last_digest = last_digest.ok_or_else(|| fail("replay_receipt_snapshot_chain_empty"))?;
+    if required_string(replay_receipt, "final_snapshot_digest", "replay_receipt")?
+        != last_digest
+    {
+        return Err(fail("replay_receipt_final_snapshot_digest_mismatch"));
+    }
+
+    let target = snapshots
+        .last()
+        .ok_or_else(|| fail("replay_receipt_snapshot_chain_empty"))?;
+    let frame_digest = digest_value(frame)?;
+    if required_string(target, "decision_frame_digest", "operational_state_snapshot")?
+        != frame_digest
+    {
+        return Err(fail("replay_receipt_target_frame_digest_mismatch"));
+    }
+    Ok(target.clone())
 }
 
 fn initial_live_state(
