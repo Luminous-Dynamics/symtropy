@@ -509,7 +509,9 @@ impl RunProfile {
 
     #[must_use]
     pub fn is_explicit(&self) -> bool {
-        self.provenance.as_ref().is_some_and(RunProvenance::is_valid)
+        self.provenance
+            .as_ref()
+            .is_some_and(RunProvenance::is_valid)
             && self.motion != MotionProfile::Unspecified
             && self.arithmetic != ArithmeticProfile::Unspecified
     }
@@ -918,8 +920,8 @@ mod tests {
             MotionProfile::LinearizedConstantVelocity,
             ArithmeticProfile::Binary64,
         );
-        let binary_score = evaluate_queries_with_profile(binary64, std::slice::from_ref(&result))
-            .unwrap();
+        let binary_score =
+            evaluate_queries_with_profile(binary64, std::slice::from_ref(&result)).unwrap();
         let q16_score = evaluate_queries_with_profile(q16, &[result.clone()]).unwrap();
         let unspecified = evaluate_queries(std::slice::from_ref(&result)).unwrap();
 
