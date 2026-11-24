@@ -444,7 +444,7 @@ mod tests {
         let matrix = non_monotone_fixture(120);
         let envelope = upper_monotone_envelope(&matrix);
 
-        assert!(monotonicity_violations(&envelope) == 0);
+        assert_eq!(monotonicity_violations(&envelope), 0);
         for (original, upper) in matrix.schedules.iter().zip(envelope.schedules.iter()) {
             for (actual, bound) in original.iter().zip(upper.iter()) {
                 assert!(bound >= actual);
