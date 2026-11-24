@@ -419,8 +419,7 @@ fn validate_input(input: &GridCausalDesignInput) -> Result<(), DesignAuditError>
         input
             .pretrend_windows
             .iter()
-            .enumerate()
-            .map(|(index, window)| (if index == usize::MAX { "pretrend" } else { "pretrend" }, window)),
+            .map(|window| ("pretrend", window)),
     );
     diagnostic_windows.extend(
         input
