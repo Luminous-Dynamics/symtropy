@@ -506,3 +506,6 @@ Targets: zero second reset requests while the prior outcome is ambiguous; zero f
 Add controls for an observer at the exact planned simulation iteration versus one step early/late. The positive control is exact-step only in v0.1; early or late observation must fail scope qualification. If later versions need asynchronous sensing, the observation window must be a typed, committed field in the campaign manifest and independently benchmarked.
 
 For the process-local dispatch guard, verify status-preserving behavior: accepted/definitively rejected same-payload replay -> DuplicateSuppressed; Unknown replay -> Unknown pending reconciliation; same-key changed-payload replay -> PayloadConflict; prior PayloadConflict replay remains PayloadConflict. None may issue a second injector call.
+
+
+Add idempotency-identity controls beyond request-payload mutation: delimiter-colliding caller IDs must produce distinct versioned keys; a scenario or fault object not byte/field-equal to the committed plan entry must not yield a key; a mutated plan digest must not yield a key. The key derivation and request payload digest require separate cross-language known-answer vectors so different transport languages cannot silently compute divergent identifiers.
