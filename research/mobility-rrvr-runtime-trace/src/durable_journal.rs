@@ -487,11 +487,7 @@ impl JournalIndex {
                 if self.reset_intents.contains_key(reset_id) {
                     return Err(JournalError::DuplicateResetId);
                 }
-                let scope = (
-                    run_id.clone(),
-                    world_id.clone(),
-                    prior_world_epoch.clone(),
-                );
+                let scope = (run_id.clone(), world_id.clone(), prior_world_epoch.clone());
                 if self.reset_scopes.contains(&scope) {
                     return Err(JournalError::DuplicateResetId);
                 }
@@ -599,8 +595,7 @@ impl JournalIndex {
                         .ok_or(JournalError::InvalidOutcomeEvidence)?;
                     if world_epoch == intent.prior_world_epoch
                         || observed_clock_id.as_deref() != Some(intent.clock_id.as_str())
-                        || observed_initial_state_sha256
-                            .as_deref()
+                        || observed_initial_state_sha256.as_deref()
                             != Some(intent.expected_initial_state_sha256.as_str())
                         || !observation_artifact_sha256
                             .as_deref()
@@ -868,7 +863,8 @@ impl JournalIndex {
                 binding,
                 record,
             } => {
-                self.dispatch_intents.insert(idempotency_key.clone(), binding);
+                self.dispatch_intents
+                    .insert(idempotency_key.clone(), binding);
                 self.dispatch_intent_records.insert(idempotency_key, record);
             }
             JournalIndexDelta::DispatchOutcome {
@@ -877,7 +873,8 @@ impl JournalIndex {
                 record,
             } => {
                 self.dispatch_status.insert(idempotency_key.clone(), status);
-                self.dispatch_outcome_records.insert(idempotency_key, record);
+                self.dispatch_outcome_records
+                    .insert(idempotency_key, record);
             }
         }
     }
