@@ -162,6 +162,18 @@ Do not compare against a weak random graph baseline without matching degree, den
 
 External benchmark leaderboard values are context until the exact protocol is run. Do not claim head-to-head superiority by comparing results from different datasets or input conditions.
 
+## Decision-relevant information value
+
+ErgoStream must not rank acquisition actions by entropy reduction alone. The finite reference `decision_value.rs` computes expected reduction in optimal decision loss (EVSI) separately from mutual information, with a machine-readable known-answer pair. It should enter the v0.2 baseline ladder as a decision-focused oracle/control:
+
+- entropy / mutual-information greedy;
+- hypothesis-disagreement variance;
+- exact EVSI with cost in declared decision-loss units;
+- matched-cost random;
+- no-acquisition and fixed-policy controls.
+
+The benchmark must include experiments that reveal more about latent hypotheses without changing the optimal action, alongside lower-information probes that change the optimal action and reduce regret. The same idea should scale to the active research policy only after a forecast-before-outcome contract and counterfactual branch evaluation are in place. This finite oracle is an evaluator baseline, not a deployable controller.
+
 ## 5. Scorecard
 
 Report per family, transformation class, size regime and budget. Do not collapse to a single ErgoScore.
