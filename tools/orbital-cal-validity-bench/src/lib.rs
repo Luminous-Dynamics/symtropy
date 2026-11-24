@@ -699,6 +699,7 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
         status,
         reason_codes: reasons.into_iter().collect(),
         event_inventory_complete: case.event_inventory_complete,
+        event_inventory_receipt_sha256: case.event_inventory_receipt_sha256.clone(),
         may_enter_geometry_precondition: status == ValidityStatus::ValidWithinScope,
         scope_results,
     })
