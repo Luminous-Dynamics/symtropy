@@ -177,7 +177,7 @@ The first executable increment lives in:
 - tools/ev-passenger-cost-frontier/schemas/service_decision_impact_v0_1.schema.json
 - tools/ev-passenger-cost-frontier/fixtures/service_decision_impact_v0_1.json
 
-It consumes frozen paired forecast/realized records. A record binds site and site configuration, exact asset and asset configuration, operating stratum, forecast model/version, policy/version, decision time, target interval, threshold direction/value, prediction interval, measured outcome, hard-gate disposition, service-value units, and forecast/gate/outcome evidence envelopes.
+It consumes frozen paired forecast/realized records. A record binds site and site configuration, exact asset and asset configuration, operating stratum, forecast model/version, policy/version, decision time, target interval, threshold direction/value, prediction interval, measured outcome, hard-gate disposition, service-value units, and site/forecast/gate/outcome evidence envelopes.
 
 ### 11.1 Explicit decision semantics
 
