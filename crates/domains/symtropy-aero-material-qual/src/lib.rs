@@ -56,11 +56,7 @@ fn push_finding(findings: &mut Vec<Finding>, code: &str, entity_id: &str, detail
     findings.push(Finding::new(code, entity_id, detail));
 }
 
-fn required_array<'a>(
-    root: &'a Value,
-    path: &str,
-    findings: &mut Vec<Finding>,
-) -> Vec<&'a Value> {
+fn required_array<'a>(root: &'a Value, path: &str, findings: &mut Vec<Finding>) -> Vec<&'a Value> {
     let mut current = root;
     for segment in path.split('.') {
         let Some(next) = current.get(segment) else {
@@ -159,9 +155,7 @@ fn check_foreign_key(
                 findings,
                 "DANGLING_REFERENCE",
                 &owner_id,
-                &format!(
-                    "{foreign_field} references unknown {target_kind} identity {target_id}."
-                ),
+                &format!("{foreign_field} references unknown {target_kind} identity {target_id}."),
             ),
             Some(_) => {}
         }
