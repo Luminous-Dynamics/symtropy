@@ -40,6 +40,7 @@ jobs:
             .benchmark_id == "MOBILITY-RESPONSE-SETTLEMENT-BRIDGE-001"
             and .status == "technically_reconciled"
             and .technical_reconciliation_passed == true
+            and .service_performance_qualified == true
             and (.input_digest | test("^sha256:[0-9a-f]{64}$"))
             and (.source_artifacts | length) == 4
             and (.requested_response_energy_kwh - 0.005555555555555556 | fabs < 0.000000000001)
