@@ -450,18 +450,21 @@
     {
       "claim_id": "structural-main",
       "claim_type": "structural_correspondence",
+      "claim_scope_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "probability_transfer_ppm": 920000,
       "decision": "assert_transfer"
     },
     {
       "claim_id": "behaviour-main",
       "claim_type": "simulation",
+      "claim_scope_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "probability_transfer_ppm": 550000,
       "decision": "abstain"
     },
     {
       "claim_id": "mechanism-main",
       "claim_type": "mechanism_transfer",
+      "claim_scope_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "probability_transfer_ppm": 180000,
       "decision": "reject_transfer"
     }
