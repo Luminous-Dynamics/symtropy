@@ -71,7 +71,7 @@ For configured maximum miscoverage q and slack s, update:
 
 When C_t reaches the configured alarm threshold, the alarm latches for the remainder of the evidence epoch. A new evidence epoch requires an explicit new model/configuration/epoch identifier and a separately qualified history; v0.1 does not silently reset a drift alarm.
 
-CUSUM is a detection heuristic, not a probability guarantee. Its false-alarm rate and detection delay must be measured on matched stationary and shifted traces. The confidence sequence and CUSUM are never blended into one scalar score.
+The group output reports the drift latch and whether the historical upper bound exceeds budget as independent booleans. The summary count for risk-above-budget therefore remains accurate even when the primary status is drift-alarm-latched. CUSUM is a detection heuristic, not a probability guarantee. Its false-alarm rate and detection delay must be measured on matched stationary and shifted traces. The confidence sequence and CUSUM are never blended into one scalar score.
 
 ## 5. Predict-before-update and delayed outcome semantics
 
@@ -103,7 +103,7 @@ Expected report:
 | Interval misses | 2 |
 | Final empirical miscoverage | 400‰ |
 | Shift-alarmed groups | 1 |
-| Risk-above-budget groups | 0 (drift status has precedence) |
+| Risk-above-budget groups | 1 (reported independently of drift status) |
 | Insufficient-history groups | 0 |
 | Prior-observation counts at forecast issue | [0, 0, 0, 2, 3] |
 | First three prequential statuses | insufficient_history |
