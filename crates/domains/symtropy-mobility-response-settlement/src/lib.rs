@@ -112,6 +112,9 @@ pub struct MobilityResponseSettlementReport {
     pub observation_horizon_end_ns: u64,
     pub status: ReconciliationStatus,
     pub technical_reconciliation_passed: bool,
+    /// Separates consistent reports from a service that meets the event/recovery
+    /// and full-request locational delivery gates.
+    pub service_performance_qualified: bool,
     pub grid_response_passed: bool,
     pub pcc_metrology_qualified: bool,
     pub counterfactual_baseline_qualified: bool,
@@ -1116,6 +1119,7 @@ pub fn evaluate_mobility_response_settlement(
             artifacts,
             ReconciliationStatus::RejectedMismatch,
             false,
+            false,
             grid_response_passed,
             pcc_metrology_qualified,
             baseline_qualified,
@@ -1168,11 +1172,22 @@ pub fn evaluate_mobility_response_settlement(
         }
     }
 
+    let minimum_dispatch_bound = if all_physical_evidence_passed {
+        Some(minimum_dispatch_interval_lower_bound_kw(input)?)
+    } else {
+        None
+    };
+    let service_performance_qualified = all_physical_evidence_passed
+        && full_request_dc_network_deliverable
+        && minimum_dispatch_bound.is_some_and(|bound| bound > 0.0)
+        && lower_bound.is_some_and(|bound| bound > input.maximum_net_energy_disagreement_kwh);
+
     Ok(build_report(
         input,
         artifacts,
         status,
         reconciled,
+        service_performance_qualified,
         grid_response_passed,
         pcc_metrology_qualified,
         baseline_qualified,
@@ -1188,11 +1203,7 @@ pub fn evaluate_mobility_response_settlement(
         dispatch_delta,
         net_delta,
         network_max_kwh,
-        if all_physical_evidence_passed {
-            Some(minimum_dispatch_interval_lower_bound_kw(input)?)
-        } else {
-            None
-        },
+        minimum_dispatch_bound,
         lower_bound,
         boolean(baseline, "/event_lower_bound_is_joint_probability")?,
         boolean(pcc, "/sub_interval_transients_unverified")?,
@@ -1206,6 +1217,7 @@ fn build_report(
     source_artifacts: Vec<SourceArtifactDigest>,
     status: ReconciliationStatus,
     technical_reconciliation_passed: bool,
+    service_performance_qualified: bool,
     grid_response_passed: bool,
     pcc_metrology_qualified: bool,
     counterfactual_baseline_qualified: bool,
@@ -1247,6 +1259,7 @@ fn build_report(
         observation_horizon_end_ns: input.observation_horizon_end_ns,
         status,
         technical_reconciliation_passed,
+        service_performance_qualified,
         grid_response_passed,
         pcc_metrology_qualified,
         counterfactual_baseline_qualified,
@@ -1625,6 +1638,7 @@ mod tests {
         let report = evaluate_mobility_response_settlement(&input()).unwrap();
         assert_eq!(report.status, ReconciliationStatus::TechnicallyReconciled);
         assert!(report.technical_reconciliation_passed);
+        assert!(report.service_performance_qualified);
         assert_eq!(report.source_artifacts.len(), 4);
         assert_eq!(report.requested_response_energy_kwh, 0.005555555555555556);
         assert!(report.conservative_net_response_lower_bound_kwh.unwrap() > 0.0050);
@@ -1730,6 +1744,7 @@ mod tests {
         let report = evaluate_mobility_response_settlement(&limited).unwrap();
         assert_eq!(report.status, ReconciliationStatus::NetworkLimited);
         assert!(report.technical_reconciliation_passed);
+        assert!(!report.service_performance_qualified);
         assert!(!report.full_request_dc_network_deliverable);
         assert!(report.conservative_net_response_lower_bound_kwh.unwrap() < 0.0052);
     }
@@ -1758,6 +1773,7 @@ mod tests {
         let report = evaluate_mobility_response_settlement(&bad).unwrap();
         assert_eq!(report.status, ReconciliationStatus::TechnicallyReconciled);
         assert!(report.technical_reconciliation_passed);
+        assert!(!report.service_performance_qualified);
         assert!(report.conservative_net_response_lower_bound_kwh.unwrap() < 0.0);
     }
 
@@ -1768,6 +1784,7 @@ mod tests {
         let report = evaluate_mobility_response_settlement(&bad).unwrap();
         assert_eq!(report.status, ReconciliationStatus::NotTechnicallyQualified);
         assert!(!report.technical_reconciliation_passed);
+        assert!(!report.service_performance_qualified);
         assert_eq!(report.conservative_net_response_lower_bound_kwh, None);
     }
 
