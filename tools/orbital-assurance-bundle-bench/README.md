@@ -241,3 +241,10 @@ node tools/orbital-assurance-bundle-bench/tests/compare_incumbent_policy_adequac
   incumbent-policy-adequacy-receipt.json \
   tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-policy-adequacy-expected.json
 ~~~
+
+
+### Additional source binding
+
+The policy adapter now pins the query-universe receipt/scope, expected query IDs and query-record digest, the actual incumbent policy ID, and the best no-query loss summary. It recomputes the best no-query baseline and every query policy's loss reduction rather than trusting the reported diagnostic. See [source provenance hardening and the 2026 benchmark comparison](../../research/orbital/INCUMBENT_POLICY_ADEQUACY_V0_1.md#10-source-provenance-hardening-stacked-increment).
+
+A small, independent exhaustive Python oracle also enumerates every observable policy on a bounded three-scenario/two-world domain. It computes the exact Pareto frontier and review decision using Fraction arithmetic; its CI known answer requires 22 enumerated policies, 2 frontier policies, zero authority and a review trigger for a 9-unit improvement over a 2-unit materiality threshold. This is only a tiny-domain oracle, not a scalable production planner.
