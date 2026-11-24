@@ -185,7 +185,7 @@ fn run(dispatch_count: u32, path: PathBuf) -> Result<serde_json::Value, String> 
     let report = json!({
         "schema_version": "0.1",
         "benchmark": "RRVR-JRN-SYNTHETIC-APPEND-REPLAY",
-        "journal_path": path,
+        "journal_path": path.display().to_string(),
         "dispatch_count": dispatch_count,
         "journal_entry_count": expected_entries,
         "journal_bytes": file_bytes,
