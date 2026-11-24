@@ -406,7 +406,8 @@ fn evaluate_scope(
                 } else if value_interval[0] < minimum || value_interval[1] > maximum {
                     add_reason(ValidityStatus::Indeterminate, "OPERATING_CONDITION_BOUNDARY_OVERLAP", &mut statuses, &mut reasons);
                 }
-            }        }
+            }
+        }
     }
 
     if scope.check_required {
