@@ -254,7 +254,6 @@ impl PrPlEbConfidenceSequence {
     }
 }
 
-
 /// Streaming PrPl-EB confidence sequence for predictable defensive importance sampling.
 ///
 /// This adapter applies the same evidence-identity, sample-order and observed
@@ -315,11 +314,9 @@ impl AdaptiveImportanceSamplingPrPlEbSequence {
             return Err(AdaptiveImportanceSamplingError::InvalidProbability);
         }
 
-        let sequence = PrPlEbConfidenceSequence::with_bet_fraction_cap(
-            confidence_alpha,
-            bet_fraction_cap,
-        )
-        .map_err(|_| AdaptiveImportanceSamplingError::InvalidProbability)?;
+        let sequence =
+            PrPlEbConfidenceSequence::with_bet_fraction_cap(confidence_alpha, bet_fraction_cap)
+                .map_err(|_| AdaptiveImportanceSamplingError::InvalidProbability)?;
 
         Ok(Self {
             event_digest,
@@ -352,8 +349,7 @@ impl AdaptiveImportanceSamplingPrPlEbSequence {
             return Err(AdaptiveImportanceSamplingError::DefensiveComponentMismatch);
         }
         if !draw.defensive_mixture_weight.is_finite()
-            || draw.defensive_mixture_weight.to_bits()
-                != self.defensive_mixture_weight.to_bits()
+            || draw.defensive_mixture_weight.to_bits() != self.defensive_mixture_weight.to_bits()
         {
             return Err(AdaptiveImportanceSamplingError::DefensiveMixtureWeightMismatch);
         }
@@ -379,9 +375,7 @@ impl AdaptiveImportanceSamplingPrPlEbSequence {
             let log_normalized_weight = self.defensive_mixture_weight.ln()
                 + draw.log_target_density
                 - draw.log_proposal_density;
-            if !log_normalized_weight.is_finite()
-                && log_normalized_weight != f64::NEG_INFINITY
-            {
+            if !log_normalized_weight.is_finite() && log_normalized_weight != f64::NEG_INFINITY {
                 return Err(AdaptiveImportanceSamplingError::DefensiveWeightBoundViolation);
             }
             if log_normalized_weight > 0.0 {
@@ -403,17 +397,19 @@ impl AdaptiveImportanceSamplingPrPlEbSequence {
             .checked_add(1)
             .ok_or(AdaptiveImportanceSamplingError::CounterOverflow)?;
 
-        self.sequence.observe(observation).map_err(|error| match error {
-            PrPlEbError::CounterOverflow => AdaptiveImportanceSamplingError::CounterOverflow,
-            PrPlEbError::InvalidObservation => {
-                AdaptiveImportanceSamplingError::DefensiveWeightBoundViolation
-            }
-            PrPlEbError::InvalidAlpha
-            | PrPlEbError::InvalidBetFractionCap
-            | PrPlEbError::NumericalFailure => {
-                AdaptiveImportanceSamplingError::NumericalFailure
-            }
-        })?;
+        self.sequence
+            .observe(observation)
+            .map_err(|error| match error {
+                PrPlEbError::CounterOverflow => AdaptiveImportanceSamplingError::CounterOverflow,
+                PrPlEbError::InvalidObservation => {
+                    AdaptiveImportanceSamplingError::DefensiveWeightBoundViolation
+                }
+                PrPlEbError::InvalidAlpha
+                | PrPlEbError::InvalidBetFractionCap
+                | PrPlEbError::NumericalFailure => {
+                    AdaptiveImportanceSamplingError::NumericalFailure
+                }
+            })?;
         self.sample_ids.insert(draw.sample_id);
         self.next_sequence_index = next_sequence_index;
         Ok(())
@@ -622,10 +618,9 @@ mod tests {
 
     #[test]
     fn adaptive_prpl_eb_rejects_duplicate_samples_and_weight_bound_violations() {
-        let mut sequence = AdaptiveImportanceSamplingPrPlEbSequence::new(
-            [1; 32], [2; 32], [3; 32], 0.1, 0.05,
-        )
-        .unwrap();
+        let mut sequence =
+            AdaptiveImportanceSamplingPrPlEbSequence::new([1; 32], [2; 32], [3; 32], 0.1, 0.05)
+                .unwrap();
         let valid = AdaptiveImportanceDraw {
             sequence_index: 0,
             sample_id: [4; 32],
