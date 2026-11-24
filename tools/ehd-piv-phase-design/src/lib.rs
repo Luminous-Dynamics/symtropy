@@ -122,19 +122,15 @@ pub fn evaluate_phase_design(
         .map(|(bin_index, observation_count)| PhaseBinOccupancy {
             phase_bin_index: *bin_index,
             observations: *observation_count,
-            independent_cycle_count: cycles_by_bin
-                .get(bin_index)
-                .map_or(0, BTreeSet::len),
+            independent_cycle_count: cycles_by_bin.get(bin_index).map_or(0, BTreeSet::len),
         })
         .collect();
 
     let occupied_phase_bins = bins.len();
     let phase_coverage_fraction = occupied_phase_bins as f64 / config.phase_bin_count as f64;
     let empty_phase_bins = config.phase_bin_count - occupied_phase_bins;
-    let replication_counts: Vec<usize> = bins
-        .iter()
-        .map(|bin| bin.independent_cycle_count)
-        .collect();
+    let replication_counts: Vec<usize> =
+        bins.iter().map(|bin| bin.independent_cycle_count).collect();
     let singleton_phase_bins = replication_counts
         .iter()
         .filter(|count| **count == 1)
@@ -146,8 +142,7 @@ pub fn evaluate_phase_design(
     let minimum_independent_cycles_per_occupied_bin =
         replication_counts.iter().copied().min().unwrap_or(0);
     let median_independent_cycles_per_occupied_bin = median_usize(&replication_counts);
-    let maximum_cyclic_phase_gap =
-        maximum_cyclic_gap(&bins, config.phase_bin_count);
+    let maximum_cyclic_phase_gap = maximum_cyclic_gap(&bins, config.phase_bin_count);
     let normalized_phase_occupancy_entropy =
         normalized_entropy(&replication_counts, config.phase_bin_count);
 
@@ -170,8 +165,7 @@ pub fn evaluate_phase_design(
         phase_coverage_fraction,
         empty_phase_bins,
         singleton_phase_bins,
-        singleton_phase_bin_fraction: singleton_phase_bins as f64
-            / occupied_phase_bins as f64,
+        singleton_phase_bin_fraction: singleton_phase_bins as f64 / occupied_phase_bins as f64,
         under_replicated_phase_bins,
         minimum_independent_cycles_per_occupied_bin,
         median_independent_cycles_per_occupied_bin,
@@ -295,9 +289,11 @@ mod tests {
         assert_eq!(report.occupied_phase_bins, 81);
         assert_eq!(report.singleton_phase_bins, 81);
         assert_eq!(report.under_replicated_phase_bins, 81);
-        assert!(report.failures.contains(
-            &PhaseDesignFailure::InsufficientIndependentReplication
-        ));
+        assert!(
+            report
+                .failures
+                .contains(&PhaseDesignFailure::InsufficientIndependentReplication)
+        );
     }
 
     #[test]
@@ -310,7 +306,11 @@ mod tests {
         let report = evaluate_phase_design(&observations, &settings).unwrap();
         assert_eq!(report.occupied_phase_bins, 1);
         assert_eq!(report.minimum_independent_cycles_per_occupied_bin, 20);
-        assert!(report.failures.contains(&PhaseDesignFailure::InsufficientPhaseCoverage));
+        assert!(
+            report
+                .failures
+                .contains(&PhaseDesignFailure::InsufficientPhaseCoverage)
+        );
     }
 
     #[test]
@@ -350,9 +350,11 @@ mod tests {
         assert_eq!(report.bins[1].independent_cycle_count, 2);
         assert_eq!(report.minimum_independent_cycles_per_occupied_bin, 2);
         assert_eq!(report.under_replicated_phase_bins, 1);
-        assert!(report
-            .failures
-            .contains(&PhaseDesignFailure::InsufficientIndependentReplication));
+        assert!(
+            report
+                .failures
+                .contains(&PhaseDesignFailure::InsufficientIndependentReplication)
+        );
     }
 
     #[test]
@@ -391,11 +393,15 @@ mod tests {
         let settings = config();
         assert_eq!(
             evaluate_phase_design(&[observation(1.0, "cycle-a")], &settings),
-            Err(PhaseDesignError::InvalidPhase { observation_index: 0 })
+            Err(PhaseDesignError::InvalidPhase {
+                observation_index: 0
+            })
         );
         assert_eq!(
             evaluate_phase_design(&[observation(f64::NAN, "cycle-a")], &settings),
-            Err(PhaseDesignError::InvalidPhase { observation_index: 0 })
+            Err(PhaseDesignError::InvalidPhase {
+                observation_index: 0
+            })
         );
     }
 
