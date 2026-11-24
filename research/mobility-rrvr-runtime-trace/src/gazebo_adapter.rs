@@ -1158,7 +1158,8 @@ mod tests {
             &fault.fault_id,
             "run-001",
             "run-epoch-001",
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(result.request.plan_sha256, plan.plan_sha256);
         assert_eq!(result.request.pair_id, scenario.pair_id);
@@ -1185,12 +1186,19 @@ mod tests {
     #[test]
     fn planned_dispatch_rejects_world_mutation_after_target_resolution() {
         let plan = plan();
-        let scenario = plan.scenarios.iter().find(|s| !s.fault_events.is_empty()).unwrap();
+        let scenario = plan
+            .scenarios
+            .iter()
+            .find(|s| !s.fault_events.is_empty())
+            .unwrap();
         let fault = &scenario.fault_events[0];
         let mut simulator = mock_transport(&plan);
         simulator.mutate_state_after_target_resolution = true;
         let session = preflight_transport(&mut simulator, &plan).unwrap();
-        let mut injector = MockInjector { dispatch_calls: 0, lookup: DispatchLedgerResult::Accepted };
+        let mut injector = MockInjector {
+            dispatch_calls: 0,
+            lookup: DispatchLedgerResult::Accepted,
+        };
         let mut registry = DispatchAttemptRegistry::default();
 
         assert_eq!(
@@ -1215,7 +1223,10 @@ mod tests {
         let plan = plan();
         let mut simulator = mock_transport(&plan);
         let session = preflight_transport(&mut simulator, &plan).unwrap();
-        let mut injector = MockInjector { dispatch_calls: 0, lookup: DispatchLedgerResult::Accepted };
+        let mut injector = MockInjector {
+            dispatch_calls: 0,
+            lookup: DispatchLedgerResult::Accepted,
+        };
         let mut registry = DispatchAttemptRegistry::default();
 
         assert_eq!(
@@ -1232,7 +1243,11 @@ mod tests {
             ),
             Err(GazeboAdapterError::ScenarioNotFound)
         );
-        let scenario = plan.scenarios.iter().find(|s| !s.fault_events.is_empty()).unwrap();
+        let scenario = plan
+            .scenarios
+            .iter()
+            .find(|s| !s.fault_events.is_empty())
+            .unwrap();
         assert_eq!(
             dispatch_planned_fault_once(
                 &mut simulator,
