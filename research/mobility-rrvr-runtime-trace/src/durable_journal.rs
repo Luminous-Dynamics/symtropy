@@ -429,8 +429,36 @@ struct JournalIndex {
     dispatch_outcome_records: BTreeMap<String, DispatchOutcomeRecord>,
 }
 
+#[derive(Clone, Debug)]
+enum JournalIndexDelta {
+    ResetIntent {
+        reset_id: String,
+        scope: (String, String, String),
+        binding: ResetIntentBinding,
+        record: ResetIntentRecord,
+    },
+    ResetOutcome {
+        reset_id: String,
+        status: ResetOutcomeStatus,
+        verified_world_epoch: Option<String>,
+        record: ResetOutcomeRecord,
+    },
+    DispatchIntent {
+        idempotency_key: String,
+        binding: DispatchIntentBinding,
+        record: DispatchIntentRecord,
+    },
+    DispatchOutcome {
+        idempotency_key: String,
+        status: DispatchOutcomeStatus,
+        record: DispatchOutcomeRecord,
+    },
+}
+
 impl JournalIndex {
-    fn apply(&mut self, event: &JournalEvent) -> Result<(), JournalError> {
+    /// Validate an event without mutating the index. The returned delta is
+    /// committed only after the corresponding journal bytes have been synced.
+    fn prepare(&self, event: &JournalEvent) -> Result<JournalIndexDelta, JournalError> {
         match event {
             JournalEvent::ResetIntent(record) => {
                 let ResetIntentRecord {
@@ -459,14 +487,18 @@ impl JournalIndex {
                 if self.reset_intents.contains_key(reset_id) {
                     return Err(JournalError::DuplicateResetId);
                 }
-                let reset_scope = (run_id.clone(), world_id.clone(), prior_world_epoch.clone());
-                if self.reset_scopes.contains(&reset_scope) {
+                let scope = (
+                    run_id.clone(),
+                    world_id.clone(),
+                    prior_world_epoch.clone(),
+                );
+                if self.reset_scopes.contains(&scope) {
                     return Err(JournalError::DuplicateResetId);
                 }
-                self.reset_scopes.insert(reset_scope);
-                self.reset_intents.insert(
-                    reset_id.clone(),
-                    ResetIntentBinding {
+                Ok(JournalIndexDelta::ResetIntent {
+                    reset_id: reset_id.clone(),
+                    scope,
+                    binding: ResetIntentBinding {
                         plan_sha256: plan_sha256.clone(),
                         simulator_profile_sha256: simulator_profile_sha256.clone(),
                         world_id: world_id.clone(),
@@ -477,22 +509,8 @@ impl JournalIndex {
                         run_epoch: run_epoch.clone(),
                         verified_world_epoch: None,
                     },
-                );
-                self.reset_intent_records.insert(
-                    reset_id.clone(),
-                    ResetIntentRecord {
-                        reset_id: reset_id.clone(),
-                        plan_sha256: plan_sha256.clone(),
-                        simulator_profile_sha256: simulator_profile_sha256.clone(),
-                        world_id: world_id.clone(),
-                        prior_world_epoch: prior_world_epoch.clone(),
-                        clock_id: clock_id.clone(),
-                        expected_initial_state_sha256: expected_initial_state_sha256.clone(),
-                        run_id: run_id.clone(),
-                        run_epoch: run_epoch.clone(),
-                    },
-                );
-                Ok(())
+                    record: record.as_ref().clone(),
+                })
             }
             JournalEvent::ResetOutcome(record) => {
                 let ResetOutcomeRecord {
@@ -507,7 +525,7 @@ impl JournalIndex {
                 } = record.as_ref();
                 let intent = self
                     .reset_intents
-                    .get_mut(reset_id)
+                    .get(reset_id)
                     .ok_or(JournalError::UnknownResetId)?;
                 let previous = self.reset_status.get(reset_id).copied();
                 match (previous, source, status) {
@@ -542,10 +560,7 @@ impl JournalIndex {
                         ResetOutcomeSource::ReadOnlyObservation
                         | ResetOutcomeSource::Reconciliation,
                         ResetOutcomeStatus::Verified | ResetOutcomeStatus::Unresolved,
-                    ) => {
-                        // Covers process restart after a durable intent but before
-                        // a response record could be appended.
-                    }
+                    ) => {}
                     _ => return Err(JournalError::InvalidResetTransition),
                 }
 
@@ -577,14 +592,15 @@ impl JournalIndex {
                     }
                 }
 
-                if *status == ResetOutcomeStatus::Verified {
+                let verified_world_epoch = if *status == ResetOutcomeStatus::Verified {
                     let world_epoch = observed_world_epoch
                         .as_deref()
                         .filter(|value| nonempty(value))
                         .ok_or(JournalError::InvalidOutcomeEvidence)?;
                     if world_epoch == intent.prior_world_epoch
                         || observed_clock_id.as_deref() != Some(intent.clock_id.as_str())
-                        || observed_initial_state_sha256.as_deref()
+                        || observed_initial_state_sha256
+                            .as_deref()
                             != Some(intent.expected_initial_state_sha256.as_str())
                         || !observation_artifact_sha256
                             .as_deref()
@@ -592,40 +608,22 @@ impl JournalIndex {
                     {
                         return Err(JournalError::InvalidOutcomeEvidence);
                     }
-                    intent.verified_world_epoch = Some(world_epoch.to_owned());
-                } else if matches!(
-                    status,
-                    ResetOutcomeStatus::Unresolved | ResetOutcomeStatus::ResponseUnknown
-                ) {
-                    // An unresolved observation may carry partial fields, but
-                    // cannot become a verified reset from an intent alone.
+                    Some(world_epoch.to_owned())
+                } else {
                     if observation_artifact_sha256
                         .as_deref()
                         .is_some_and(|digest| !valid_sha256(digest))
                     {
                         return Err(JournalError::InvalidOutcomeEvidence);
                     }
-                } else if let Some(digest) = observation_artifact_sha256
-                    && !valid_sha256(digest)
-                {
-                    return Err(JournalError::InvalidOutcomeEvidence);
-                }
-                self.reset_status.insert(reset_id.clone(), *status);
-                self.reset_outcome_records.insert(
-                    reset_id.clone(),
-                    ResetOutcomeRecord {
-                        reset_id: reset_id.clone(),
-                        source: *source,
-                        status: *status,
-                        observed_world_epoch: observed_world_epoch.clone(),
-                        observed_clock_id: observed_clock_id.clone(),
-                        observed_initial_state_sha256: observed_initial_state_sha256.clone(),
-                        observation_artifact_sha256: observation_artifact_sha256.clone(),
-                        transport_response_artifact_sha256: transport_response_artifact_sha256
-                            .clone(),
-                    },
-                );
-                Ok(())
+                    None
+                };
+                Ok(JournalIndexDelta::ResetOutcome {
+                    reset_id: reset_id.clone(),
+                    status: *status,
+                    verified_world_epoch,
+                    record: record.as_ref().clone(),
+                })
             }
             JournalEvent::DispatchIntent(record) => {
                 let DispatchIntentRecord {
@@ -714,39 +712,13 @@ impl JournalIndex {
                 {
                     return Err(JournalError::ResetBindingMismatch);
                 }
-                self.dispatch_intents.insert(
-                    idempotency_key.clone(),
-                    DispatchIntentBinding {
+                Ok(JournalIndexDelta::DispatchIntent {
+                    idempotency_key: idempotency_key.clone(),
+                    binding: DispatchIntentBinding {
                         payload_sha256: payload_sha256.clone(),
                     },
-                );
-                self.dispatch_intent_records.insert(
-                    idempotency_key.clone(),
-                    DispatchIntentRecord {
-                        idempotency_key: idempotency_key.clone(),
-                        payload_sha256: payload_sha256.clone(),
-                        reset_id: reset_id.clone(),
-                        plan_sha256: plan_sha256.clone(),
-                        simulator_profile_sha256: simulator_profile_sha256.clone(),
-                        world_id: world_id.clone(),
-                        logical_effect_id: logical_effect_id.clone(),
-                        attempt_id: attempt_id.clone(),
-                        campaign_id: campaign_id.clone(),
-                        pair_id: pair_id.clone(),
-                        scenario_id: scenario_id.clone(),
-                        fault_id: fault_id.clone(),
-                        fault_sequence: *fault_sequence,
-                        run_id: run_id.clone(),
-                        run_epoch: run_epoch.clone(),
-                        world_epoch: world_epoch.clone(),
-                        clock_id: clock_id.clone(),
-                        target_id: target_id.clone(),
-                        fault_domain_id: fault_domain_id.clone(),
-                        scheduled_simulation_step: *scheduled_simulation_step,
-                        parameters_sha256: parameters_sha256.clone(),
-                    },
-                );
-                Ok(())
+                    record: record.as_ref().clone(),
+                })
             }
             JournalEvent::DispatchOutcome(record) => {
                 let DispatchOutcomeRecord {
@@ -766,34 +738,6 @@ impl JournalIndex {
                     return Err(JournalError::DispatchPayloadMismatch);
                 }
                 let previous = self.dispatch_status.get(idempotency_key).copied();
-                match source {
-                    DispatchOutcomeSource::TransportResponse => {
-                        if matches!(
-                            status,
-                            DispatchOutcomeStatus::ResponseAccepted
-                                | DispatchOutcomeStatus::ResponseRejected
-                        ) && !transport_response_artifact_sha256
-                            .as_deref()
-                            .is_some_and(valid_sha256)
-                        {
-                            return Err(JournalError::InvalidOutcomeEvidence);
-                        }
-                        if transport_response_artifact_sha256
-                            .as_deref()
-                            .is_some_and(|digest| !valid_sha256(digest))
-                            || ledger_artifact_sha256.is_some()
-                        {
-                            return Err(JournalError::InvalidOutcomeEvidence);
-                        }
-                    }
-                    DispatchOutcomeSource::InjectorLedgerLookup => {
-                        if !ledger_artifact_sha256.as_deref().is_some_and(valid_sha256)
-                            || transport_response_artifact_sha256.is_some()
-                        {
-                            return Err(JournalError::InvalidOutcomeEvidence);
-                        }
-                    }
-                }
                 match (previous, source, status) {
                     (
                         None,
@@ -826,6 +770,36 @@ impl JournalIndex {
                     ) => {}
                     _ => return Err(JournalError::InvalidDispatchTransition),
                 }
+
+                match source {
+                    DispatchOutcomeSource::TransportResponse => {
+                        if matches!(
+                            status,
+                            DispatchOutcomeStatus::ResponseAccepted
+                                | DispatchOutcomeStatus::ResponseRejected
+                        ) && !transport_response_artifact_sha256
+                            .as_deref()
+                            .is_some_and(valid_sha256)
+                        {
+                            return Err(JournalError::InvalidOutcomeEvidence);
+                        }
+                        if transport_response_artifact_sha256
+                            .as_deref()
+                            .is_some_and(|digest| !valid_sha256(digest))
+                            || ledger_artifact_sha256.is_some()
+                        {
+                            return Err(JournalError::InvalidOutcomeEvidence);
+                        }
+                    }
+                    DispatchOutcomeSource::InjectorLedgerLookup => {
+                        if !ledger_artifact_sha256.as_deref().is_some_and(valid_sha256)
+                            || transport_response_artifact_sha256.is_some()
+                        {
+                            return Err(JournalError::InvalidOutcomeEvidence);
+                        }
+                    }
+                }
+
                 match status {
                     DispatchOutcomeStatus::ResponseAccepted
                     | DispatchOutcomeStatus::ReconciledAccepted => {
@@ -854,24 +828,64 @@ impl JournalIndex {
                     DispatchOutcomeStatus::ResponseRejected
                     | DispatchOutcomeStatus::ResponseUnknown => {}
                 }
-                self.dispatch_status
-                    .insert(idempotency_key.clone(), *status);
-                self.dispatch_outcome_records.insert(
-                    idempotency_key.clone(),
-                    DispatchOutcomeRecord {
-                        idempotency_key: idempotency_key.clone(),
-                        payload_sha256: payload_sha256.clone(),
-                        source: *source,
-                        status: *status,
-                        dispatch_id: dispatch_id.clone(),
-                        transport_response_artifact_sha256: transport_response_artifact_sha256
-                            .clone(),
-                        ledger_artifact_sha256: ledger_artifact_sha256.clone(),
-                    },
-                );
-                Ok(())
+                Ok(JournalIndexDelta::DispatchOutcome {
+                    idempotency_key: idempotency_key.clone(),
+                    status: *status,
+                    record: record.as_ref().clone(),
+                })
             }
         }
+    }
+
+    fn commit(&mut self, delta: JournalIndexDelta) {
+        match delta {
+            JournalIndexDelta::ResetIntent {
+                reset_id,
+                scope,
+                binding,
+                record,
+            } => {
+                self.reset_scopes.insert(scope);
+                self.reset_intents.insert(reset_id.clone(), binding);
+                self.reset_intent_records.insert(reset_id, record);
+            }
+            JournalIndexDelta::ResetOutcome {
+                reset_id,
+                status,
+                verified_world_epoch,
+                record,
+            } => {
+                if let Some(epoch) = verified_world_epoch {
+                    if let Some(intent) = self.reset_intents.get_mut(&reset_id) {
+                        intent.verified_world_epoch = Some(epoch);
+                    }
+                }
+                self.reset_status.insert(reset_id.clone(), status);
+                self.reset_outcome_records.insert(reset_id, record);
+            }
+            JournalIndexDelta::DispatchIntent {
+                idempotency_key,
+                binding,
+                record,
+            } => {
+                self.dispatch_intents.insert(idempotency_key.clone(), binding);
+                self.dispatch_intent_records.insert(idempotency_key, record);
+            }
+            JournalIndexDelta::DispatchOutcome {
+                idempotency_key,
+                status,
+                record,
+            } => {
+                self.dispatch_status.insert(idempotency_key.clone(), status);
+                self.dispatch_outcome_records.insert(idempotency_key, record);
+            }
+        }
+    }
+
+    fn apply(&mut self, event: &JournalEvent) -> Result<(), JournalError> {
+        let delta = self.prepare(event)?;
+        self.commit(delta);
+        Ok(())
     }
 
     fn recovery_projection(
@@ -1205,8 +1219,7 @@ impl Journal {
         if self.poisoned {
             return Err(JournalError::PoisonedWriter);
         }
-        let mut candidate = self.index.clone();
-        candidate.apply(&event)?;
+        let delta = self.index.prepare(&event)?;
         let digest = entry_digest(self.next_sequence, &self.head_sha256, &event)?;
         let entry = JournalEntry {
             schema_version: JOURNAL_SCHEMA_VERSION.to_owned(),
@@ -1234,7 +1247,7 @@ impl Journal {
             self.poisoned = true;
             return Err(io_error(error));
         }
-        self.index = candidate;
+        self.index.commit(delta);
         self.next_sequence = next_sequence;
         self.head_sha256 = digest;
         Ok(entry)
