@@ -594,8 +594,8 @@ fn summarize_query_durations(mut durations_ns: Vec<u64>) -> QueryTimingSummary {
     }
     durations_ns.sort_unstable();
     let nearest_rank = |percentile: u64| {
-        let rank = ((durations_ns.len() as u128 * u128::from(percentile)).div_ceil(100))
-            .max(1) as usize;
+        let rank =
+            ((durations_ns.len() as u128 * u128::from(percentile)).div_ceil(100)).max(1) as usize;
         durations_ns[rank - 1]
     };
     QueryTimingSummary {
