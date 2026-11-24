@@ -44,6 +44,233 @@ fn required_string<'a>(value: &'a Value, key: &str, context: &str) -> Result<&'a
         .ok_or_else(|| fail(format!("{context}_{key}_missing_or_invalid")))
 }
 
+fn validate_stream_case(policy_case: &Value, stream_case: &Value) -> Result<(), String> {
+    let resources = policy_case
+        .get("resources")
+        .and_then(Value::as_array)
+        .ok_or_else(|| fail("policy_resources_missing"))?;
+    let mut capability_by_resource = std::collections::BTreeMap::<String, std::collections::BTreeSet<String>>::new();
+    for resource in resources {
+        let resource_id = required_string(resource, "resource_id", "policy_resource")?;
+        let capabilities = resource
+            .get("capability_families")
+            .and_then(Value::as_array)
+            .ok_or_else(|| fail("policy_resource_capabilities_missing"))?;
+        let mut capability_set = std::collections::BTreeSet::new();
+        for capability in capabilities {
+            let capability = capability
+                .as_str()
+                .filter(|value| !value.trim().is_empty())
+                .ok_or_else(|| fail("policy_resource_capability_invalid"))?;
+            if !capability_set.insert(capability.to_string()) {
+                return Err(fail("policy_resource_capability_duplicate"));
+            }
+        }
+        if capability_by_resource
+            .insert(resource_id.to_string(), capability_set)
+            .is_some()
+        {
+            return Err(fail("policy_resource_id_duplicate"));
+        }
+    }
+
+    let station_id = required_string(
+        policy_case
+            .get("inspection_station")
+            .ok_or_else(|| fail("policy_inspection_station_missing"))?,
+        "station_id",
+        "policy_inspection_station",
+    )?;
+
+    let scenarios = stream_case
+        .get("scenarios")
+        .and_then(Value::as_array)
+        .ok_or_else(|| fail("scenario_streams_missing"))?;
+    if scenarios.len() != 4 {
+        return Err(fail("scenario_count_invalid"));
+    }
+
+    let mut scenario_ids = std::collections::BTreeSet::new();
+    let mut probability_total = 0_u64;
+    for scenario in scenarios {
+        let scenario_id = required_string(scenario, "scenario_id", "scenario")?;
+        if !scenario_ids.insert(scenario_id.to_string()) {
+            return Err(fail("scenario_id_duplicate"));
+        }
+        let probability = scenario
+            .get("probability_ppm")
+            .and_then(Value::as_u64)
+            .filter(|value| *value > 0)
+            .ok_or_else(|| fail("scenario_probability_invalid"))?;
+        probability_total = probability_total
+            .checked_add(probability)
+            .ok_or_else(|| fail("scenario_probability_overflow"))?;
+
+        let observations = scenario
+            .get("observations_by_epoch")
+            .and_then(Value::as_array)
+            .ok_or_else(|| fail("scenario_observations_missing"))?;
+        if observations.len() != 4 {
+            return Err(fail("scenario_observation_horizon_invalid"));
+        }
+
+        let mut source_event_ids = std::collections::BTreeSet::new();
+        let mut qualification_state = std::collections::BTreeMap::<(String, String), String>::new();
+        for resource in resources {
+            let resource_id = required_string(resource, "resource_id", "policy_resource")?;
+            let qualifications = resource
+                .get("initial_qualifications")
+                .and_then(Value::as_array)
+                .ok_or_else(|| fail("policy_initial_qualifications_missing"))?;
+            for qualification in qualifications {
+                let family = required_string(qualification, "process_family", "qualification")?;
+                let disposition = required_string(qualification, "disposition", "qualification")?;
+                qualification_state.insert(
+                    (resource_id.to_string(), family.to_string()),
+                    disposition.to_string(),
+                );
+            }
+        }
+
+        for (epoch, observation) in observations.iter().enumerate() {
+            let actual_epoch = observation
+                .get("epoch")
+                .and_then(Value::as_u64)
+                .ok_or_else(|| fail("observation_epoch_missing_or_invalid"))?;
+            if actual_epoch != epoch as u64 {
+                return Err(fail("observation_epoch_order_invalid"));
+            }
+
+            let resource_events = observation
+                .get("resource_events")
+                .and_then(Value::as_array)
+                .ok_or_else(|| fail("resource_events_missing"))?;
+            for event in resource_events {
+                let event_id = required_string(event, "source_event_id", "resource_event")?;
+                let resource_id = required_string(event, "resource_id", "resource_event")?;
+                let kind = required_string(event, "kind", "resource_event")?;
+                let occurred = event
+                    .get("occurred_at_epoch")
+                    .and_then(Value::as_u64)
+                    .ok_or_else(|| fail("resource_event_occurrence_invalid"))?;
+                let observed = event
+                    .get("observed_at_epoch")
+                    .and_then(Value::as_u64)
+                    .ok_or_else(|| fail("resource_event_observation_invalid"))?;
+                if !source_event_ids.insert(event_id.to_string())
+                    || !capability_by_resource.contains_key(resource_id)
+                    || observed != epoch as u64
+                    || occurred > observed
+                {
+                    return Err(fail("resource_event_identity_scope_or_chronology_invalid"));
+                }
+                let forecast_min = event.get("recovery_forecast_min_epochs");
+                let forecast_max = event.get("recovery_forecast_max_epochs");
+                match kind {
+                    "FAILED" => {
+                        let lower = forecast_min
+                            .and_then(Value::as_u64)
+                            .ok_or_else(|| fail("failure_recovery_forecast_missing"))?;
+                        let upper = forecast_max
+                            .and_then(Value::as_u64)
+                            .ok_or_else(|| fail("failure_recovery_forecast_missing"))?;
+                        if lower > upper {
+                            return Err(fail("failure_recovery_forecast_invalid"));
+                        }
+                    }
+                    "RESTORED" => {
+                        if !forecast_min.is_some_and(Value::is_null)
+                            || !forecast_max.is_some_and(Value::is_null)
+                        {
+                            return Err(fail("restoration_must_not_carry_recovery_forecast"));
+                        }
+                    }
+                    _ => return Err(fail("resource_event_kind_invalid")),
+                }
+            }
+
+            let updates = observation
+                .get("qualification_updates")
+                .and_then(Value::as_array)
+                .ok_or_else(|| fail("qualification_updates_missing"))?;
+            for update in updates {
+                let receipt = required_string(update, "evidence_receipt_id", "qualification_update")?;
+                let resource_id = required_string(update, "resource_id", "qualification_update")?;
+                let family = required_string(update, "process_family", "qualification_update")?;
+                let previous = required_string(update, "previous_disposition", "qualification_update")?;
+                let next = required_string(update, "new_disposition", "qualification_update")?;
+                let occurred = update
+                    .get("occurred_at_epoch")
+                    .and_then(Value::as_u64)
+                    .ok_or_else(|| fail("qualification_update_occurrence_invalid"))?;
+                let observed = update
+                    .get("observed_at_epoch")
+                    .and_then(Value::as_u64)
+                    .ok_or_else(|| fail("qualification_update_observation_invalid"))?;
+                if receipt.trim().is_empty()
+                    || !source_event_ids.insert(receipt.to_string())
+                    || observed != epoch as u64
+                    || occurred > observed
+                {
+                    return Err(fail("qualification_update_identity_or_chronology_invalid"));
+                }
+                let capabilities = capability_by_resource
+                    .get(resource_id)
+                    .ok_or_else(|| fail("qualification_update_resource_unknown"))?;
+                if !capabilities.contains(family) {
+                    return Err(fail("qualification_update_process_not_supported"));
+                }
+                let key = (resource_id.to_string(), family.to_string());
+                let state = qualification_state
+                    .get_mut(&key)
+                    .ok_or_else(|| fail("qualification_update_prior_state_missing"))?;
+                if state != previous || previous == next {
+                    return Err(fail("qualification_update_prior_state_mismatch"));
+                }
+                *state = next.to_string();
+            }
+
+            let inspection_events = observation
+                .get("inspection_capacity_events")
+                .and_then(Value::as_array)
+                .ok_or_else(|| fail("inspection_capacity_events_missing"))?;
+            for event in inspection_events {
+                let event_id = required_string(event, "source_event_id", "inspection_event")?;
+                let event_station = required_string(event, "station_id", "inspection_event")?;
+                let occurred = event
+                    .get("occurred_at_epoch")
+                    .and_then(Value::as_u64)
+                    .ok_or_else(|| fail("inspection_event_occurrence_invalid"))?;
+                let observed = event
+                    .get("observed_at_epoch")
+                    .and_then(Value::as_u64)
+                    .ok_or_else(|| fail("inspection_event_observation_invalid"))?;
+                if !source_event_ids.insert(event_id.to_string())
+                    || event_station != station_id
+                    || observed != epoch as u64
+                    || occurred > observed
+                    || event.get("available_capacity_units").and_then(Value::as_u64).is_none()
+                {
+                    return Err(fail("inspection_event_identity_scope_or_chronology_invalid"));
+                }
+            }
+        }
+    }
+
+    if probability_total != 1_000_000 {
+        return Err(fail("scenario_probabilities_must_sum_to_one_million"));
+    }
+
+    if scenarios[0]
+        .get("observations_by_epoch")
+        .is_none_or(|left| scenarios[1].get("observations_by_epoch") != Some(left))
+    {
+        return Err(fail("paired_scenarios_must_share_identical_visible_history"));
+    }
+
+    Ok(())
+}
+
 fn policy_static_projection(policy_case: &Value) -> Result<Value, String> {
     let required_fields = [
         "case_id",
@@ -102,6 +329,7 @@ fn project_prefix(
         .get("scenarios")
         .and_then(Value::as_array)
         .ok_or_else(|| fail("scenario_streams_missing"))?;
+    validate_stream_case(policy_case, stream_case)?;
     let scenario = scenarios
         .get(scenario_slot)
         .ok_or_else(|| fail("scenario_slot_out_of_range"))?;
