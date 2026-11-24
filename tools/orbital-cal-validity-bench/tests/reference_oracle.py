@@ -28,6 +28,11 @@ def require_text(value):
     return isinstance(value, str) and bool(value.strip())
 
 
+def valid_sha256(value):
+    return (isinstance(value, str) and len(value) == 64
+            and all(char in "0123456789abcdefABCDEF" for char in value))
+
+
 def interval(center, uncertainty):
     if not isinstance(center, int) or isinstance(center, bool):
         raise ValueError("TIME_INTERVAL_INVALID")
@@ -60,6 +65,7 @@ def validate_case(case):
         sid = scope["scope_id"]
         if (not require_text(sid) or not require_text(scope["calibration_id"])
                 or not require_text(scope["calibration_revision"])
+                or not valid_sha256(scope["certificate_sha256"])
                 or not require_text(scope["component_id"])
                 or scope["valid_until_ns"] <= scope["valid_from_ns"]
                 or sid in scope_ids):
@@ -73,6 +79,8 @@ def validate_case(case):
                 raise ValueError("REQUIRED_CHECK_MARKED_NOT_REQUIRED")
             if scope["max_check_age_ns"] is None:
                 raise ValueError("REQUIRED_CHECK_MAX_AGE_MISSING")
+            if not valid_sha256(scope["check_receipt_sha256"]):
+                raise ValueError("REQUIRED_CHECK_RECEIPT_DIGEST_INVALID")
 
     required = set()
     for sid in case["required_scope_ids"]:
@@ -163,6 +171,8 @@ def evaluate_scope(case, scope, acquisition):
         "scope_id": scope["scope_id"],
         "calibration_id": scope["calibration_id"],
         "calibration_revision": scope["calibration_revision"],
+        "certificate_sha256": scope["certificate_sha256"],
+        "check_receipt_sha256": scope["check_receipt_sha256"],
         "status": choose_status(statuses),
         "reason_codes": sorted(reasons),
     }
