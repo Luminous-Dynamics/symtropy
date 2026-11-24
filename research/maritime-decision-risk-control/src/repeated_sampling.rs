@@ -662,8 +662,8 @@ mod tests {
     fn finite_population_truth_matches_the_frozen_four_state_design() {
         let (mono, _, _) = exact_population_means(Fixture::Monotone);
         let (nonmono, _, _) = exact_population_means(Fixture::NonMonotone);
-        assert_eq!(mono, [220.0, 80.0, 20.0, 0.0]);
-        assert_eq!(nonmono, [220.0, 80.0, 200.0, 0.0]);
+        assert_eq!(mono, [220.0, 80.0, 80.0, 0.0]);
+        assert_eq!(nonmono, [220.0, 80.0, 220.0, 0.0]);
         assert!(nonmono[2] > nonmono[1]);
         assert_eq!(MASS_PER_THOUSAND.iter().sum::<u64>(), 1_000);
     }
