@@ -13,7 +13,7 @@ The aim is not to replace AVEVA PI, SLB, PyPSA, HiGHS, Gurobi, OR-Tools or grid-
 
 ## Versioned implementation
 
-v0.2–v0.8 have successful dedicated exact-head Rust workflows covering formatting, tests, Clippy and the known-answer executable. Test counts are unit tests. v0.2 also passed the repository-level CI workflow at its listed head. v0.8 is a new implementation increment; its exact-head qualification is pending and no pass is claimed.
+v0.2–v0.8 have successful dedicated exact-head Rust workflows covering formatting, tests, Clippy and the known-answer executable. Test counts are unit tests. v0.2 also passed the repository-level CI workflow at its listed head. The v0.8 exact-head checks are recorded in draft PR #7294; the PR remains unmerged.
 
 | Version | Public draft PR | Increment | Tests | Exact-head result |
 |---|---|---|---:|---|
