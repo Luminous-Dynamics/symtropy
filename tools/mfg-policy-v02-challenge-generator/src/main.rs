@@ -1424,28 +1424,35 @@ fn validate_evaluator_labels(
     Ok(())
 }
 
-fn build_and_validate() -> Result<(Corpus, EvaluatorLabels), String> {
-    let (corpus, labels) = generate_corpus();
+fn build_and_validate() -> Result<(Corpus, ScenarioStreams, EvaluatorLabels), String> {
+    let (corpus, streams, labels) = generate_corpus();
 
     let corpus_value =
         serde_json::to_value(&corpus).map_err(|error| format!("corpus_to_json:{error}"))?;
     validate_schema(&corpus_value)?;
     validate_corpus(&corpus)?;
 
+    let streams_value = serde_json::to_value(&streams)
+        .map_err(|error| format!("scenario_streams_to_json:{error}"))?;
+    validate_with_schema(&streams_value, STREAMS_SCHEMA_JSON)?;
+    validate_scenario_streams(&corpus, &streams)?;
+
     let labels_value = serde_json::to_value(&labels)
         .map_err(|error| format!("evaluator_labels_to_json:{error}"))?;
     validate_evaluator_schema(&labels_value)?;
-    validate_evaluator_labels(&corpus, &labels)?;
+    validate_evaluator_labels(&corpus, &streams, &labels)?;
 
-    Ok((corpus, labels))
+    Ok((corpus, streams, labels))
 }
 
 fn main() -> ExitCode {
     let output_kind = std::env::args().nth(1);
-    let result = build_and_validate().and_then(|(corpus, labels)| {
+    let result = build_and_validate().and_then(|(corpus, streams, labels)| {
         let json = match output_kind.as_deref() {
             None | Some("--policy-corpus") => serde_json::to_string_pretty(&corpus)
                 .map_err(|error| format!("policy_corpus_serialize:{error}"))?,
+            Some("--scenario-streams") => serde_json::to_string_pretty(&streams)
+                .map_err(|error| format!("scenario_streams_serialize:{error}"))?,
             Some("--evaluator-labels") => serde_json::to_string_pretty(&labels)
                 .map_err(|error| format!("evaluator_labels_serialize:{error}"))?,
             Some(other) => return Err(format!("unsupported_output_kind:{other}")),
