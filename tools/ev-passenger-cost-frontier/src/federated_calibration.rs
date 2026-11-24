@@ -138,10 +138,11 @@ fn non_empty(value: &str) -> bool {
     !value.trim().is_empty()
 }
 
-fn quantile_rank(sample_count: u64, nominal_coverage_permille: u16) -> u64 {
-    let numerator = u128::from(sample_count + 1) * u128::from(nominal_coverage_permille);
+fn quantile_rank(sample_count: u64, nominal_coverage_permille: u16) -> Option<u64> {
+    let numerator = u128::from(sample_count.checked_add(1)?) * u128::from(nominal_coverage_permille);
     let rank = numerator.div_ceil(1000).max(1);
-    u64::try_from(rank).unwrap_or(u64::MAX).min(sample_count).max(1)
+    let rank = u64::try_from(rank).ok()?;
+    (rank <= sample_count).then_some(rank)
 }
 
 fn resolve_quantile_upper_edge(
@@ -222,6 +223,14 @@ fn validate(input: &FederatedCalibrationInput) -> Result<(), Vec<String>> {
     if registered.len() < input.minimum_participating_sites {
         errors.push("registered roster is smaller than the minimum cohort".to_owned());
     }
+    if input.registered_site_ids.len() < input.minimum_participating_sites
+        || input.registered_site_ids.len() > MAX_SUMMARIES
+    {
+        errors.push(format!("registered_site_ids must contain minimum cohort..={MAX_SUMMARIES} sites"));
+    }
+    if input.release_ledger_snapshot.len() > MAX_SUMMARIES {
+        errors.push(format!("release_ledger_snapshot must contain at most {MAX_SUMMARIES} items"));
+    }
     if input.summaries.is_empty() || input.summaries.len() > MAX_SUMMARIES {
         errors.push(format!("summaries must contain 1..={MAX_SUMMARIES} items"));
     }
@@ -290,7 +299,8 @@ fn validate(input: &FederatedCalibrationInput) -> Result<(), Vec<String>> {
         if histogram_total != Some(summary.calibration_sample_count) {
             errors.push(format!("{} histogram count does not equal calibration sample count", summary.site_id));
         }
-        if summary.holdout_covered_count > summary.holdout_sample_count
+        if summary.holdout_sample_count > MAX_SAMPLES_PER_SITE
+            || summary.holdout_covered_count > summary.holdout_sample_count
             || summary.holdout_interval_width_sum > MAX_WIDTH_SUM
             || summary.local_audit_cutoff_unix_ms == 0
             || summary.local_audit_cutoff_unix_ms > input.aggregation_time_unix_ms
@@ -315,7 +325,7 @@ fn canonical_digest(input: &FederatedCalibrationInput) -> Result<String, Vec<Str
         .release_ledger_snapshot
         .sort_by(|a, b| a.site_id.cmp(&b.site_id));
     for ledger in &mut canonical.release_ledger_snapshot {
-        ledger.previously_released_query_scope_digests_sort();
+        ledger.previously_released_query_digests.sort();
     }
     let encoded = serde_json::to_vec(&canonical)
         .map_err(|error| vec![format!("cannot canonicalize federation input: {error}")])?;
@@ -419,7 +429,8 @@ pub fn evaluate_federated_calibration(
     let quantile_rank = quantile_rank(
         calibration_total,
         input.compatibility.nominal_coverage_permille,
-    );
+    )
+    .ok_or_else(|| vec!["no finite conformal quantile is available for this sample count".to_owned()])?;
     let quantile_upper_edge = resolve_quantile_upper_edge(
         &merged_bins,
         &input.compatibility.bin_edges,
@@ -660,12 +671,3 @@ mod tests {
     }
 }
 
-trait CanonicalLedgerQueryDigests {
-    fn previously_released_query_scope_digests_sort(&mut self);
-}
-
-impl CanonicalLedgerQueryDigests for SiteReleaseLedgerSnapshot {
-    fn previously_released_query_scope_digests_sort(&mut self) {
-        self.previously_released_query_digests.sort();
-    }
-}
