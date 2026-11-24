@@ -110,15 +110,11 @@ impl SymmetricCovariance3 {
         let minor_xy = a * b - d * d;
         let minor_xz = a * c - e * e;
         let minor_yz = b * c - f * f;
-        if minor_xy < -PSD_TOLERANCE
-            || minor_xz < -PSD_TOLERANCE
-            || minor_yz < -PSD_TOLERANCE
-        {
+        if minor_xy < -PSD_TOLERANCE || minor_xz < -PSD_TOLERANCE || minor_yz < -PSD_TOLERANCE {
             return Err(CovarianceError::NegativePrincipalMinor);
         }
 
-        let determinant =
-            a * b * c + 2.0 * d * e * f - a * f * f - b * e * e - c * d * d;
+        let determinant = a * b * c + 2.0 * d * e * f - a * f * f - b * e * e - c * d * d;
         if determinant < -PSD_TOLERANCE {
             return Err(CovarianceError::NegativeDeterminant);
         }
@@ -279,14 +275,7 @@ pub fn propagate_position_to_field_covariance(
 mod tests {
     use super::*;
 
-    fn covariance(
-        xx: f64,
-        yy: f64,
-        zz: f64,
-        xy: f64,
-        xz: f64,
-        yz: f64,
-    ) -> SymmetricCovariance3 {
+    fn covariance(xx: f64, yy: f64, zz: f64, xy: f64, xz: f64, yz: f64) -> SymmetricCovariance3 {
         SymmetricCovariance3::new(xx, yy, zz, xy, xz, yz).unwrap()
     }
 
@@ -301,12 +290,9 @@ mod tests {
     fn diagonal_covariance_is_preserved_under_identity_jacobian() {
         let position = PositionCovarianceM2::new(covariance(1.0, 4.0, 9.0, 0.0, 0.0, 0.0));
         let sensor = FieldCovarianceTesla2::new(covariance(0.25, 0.25, 0.25, 0.0, 0.0, 0.0));
-        let identity = FieldJacobianTeslaPerMeter::new([
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0],
-        ])
-        .unwrap();
+        let identity =
+            FieldJacobianTeslaPerMeter::new([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+                .unwrap();
 
         let output = propagate_position_to_field_covariance(identity, position, sensor).unwrap();
         let [xx, yy, zz, xy, xz, yz] = output.covariance().components();
@@ -323,12 +309,9 @@ mod tests {
     fn anisotropic_gradient_scales_position_uncertainty_by_axis() {
         let position = PositionCovarianceM2::new(covariance(1.0, 4.0, 9.0, 0.0, 0.0, 0.0));
         let sensor = FieldCovarianceTesla2::new(covariance(0.25, 0.25, 0.25, 0.0, 0.0, 0.0));
-        let gradient = FieldJacobianTeslaPerMeter::new([
-            [2.0, 0.0, 0.0],
-            [0.0, 3.0, 0.0],
-            [0.0, 0.0, 4.0],
-        ])
-        .unwrap();
+        let gradient =
+            FieldJacobianTeslaPerMeter::new([[2.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 4.0]])
+                .unwrap();
 
         let output = propagate_position_to_field_covariance(gradient, position, sensor).unwrap();
         let [xx, yy, zz, xy, xz, yz] = output.covariance().components();
@@ -343,16 +326,11 @@ mod tests {
 
     #[test]
     fn correlated_position_error_propagates_cross_axis_terms() {
-        let position =
-            PositionCovarianceM2::new(covariance(1.0, 4.0, 9.0, 0.5, 0.0, 0.0));
-        let sensor =
-            FieldCovarianceTesla2::new(covariance(0.1, 0.2, 0.3, 0.0, 0.0, 0.0));
-        let gradient = FieldJacobianTeslaPerMeter::new([
-            [1.0, 2.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0],
-        ])
-        .unwrap();
+        let position = PositionCovarianceM2::new(covariance(1.0, 4.0, 9.0, 0.5, 0.0, 0.0));
+        let sensor = FieldCovarianceTesla2::new(covariance(0.1, 0.2, 0.3, 0.0, 0.0, 0.0));
+        let gradient =
+            FieldJacobianTeslaPerMeter::new([[1.0, 2.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+                .unwrap();
 
         let output = propagate_position_to_field_covariance(gradient, position, sensor).unwrap();
         let [xx, yy, zz, xy, xz, yz] = output.covariance().components();
@@ -423,9 +401,8 @@ mod tests {
 
     #[test]
     fn overflow_during_propagation_is_rejected() {
-        let position = PositionCovarianceM2::new(covariance(
-            1.0e300, 1.0e300, 1.0e300, 0.0, 0.0, 0.0
-        ));
+        let position =
+            PositionCovarianceM2::new(covariance(1.0e300, 1.0e300, 1.0e300, 0.0, 0.0, 0.0));
         let sensor = FieldCovarianceTesla2::new(SymmetricCovariance3::zero());
         let gradient = FieldJacobianTeslaPerMeter::new([
             [1.0e100, 0.0, 0.0],
