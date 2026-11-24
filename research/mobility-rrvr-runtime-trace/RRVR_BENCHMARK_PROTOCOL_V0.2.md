@@ -177,6 +177,8 @@ Report matched fault budget, seeds, task/policy, simulator version, ROS distribu
 
 The current file-backed journal is a reference implementation, not presumed superior to databases. Compare it with SQLite WAL and at least one embedded Rust transactional store under the same event schema and durability policy.
 
+The current Rust implementation exposes `rrvr_journal_bench <dispatch-count> [journal.jsonl]`. It emits append-plus-sync p50/p95/p99/p99.9, records per second, bytes per entry, replay/projection time and unresolved identity counts. CI smoke-tests a five-dispatch workload. Run larger workloads explicitly and record the storage device, filesystem, mount options, power-loss protection and competing load.
+
 Measure:
 - append+sync latency distributions at 1, 10, 100, 1,000 and 10,000 events;
 - replay time and peak memory for 1e3, 1e5 and 1e6 entries;
