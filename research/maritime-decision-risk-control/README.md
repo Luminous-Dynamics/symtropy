@@ -508,3 +508,43 @@ The adapter also exposes typed execution wrappers so the calibration-unit label 
 The underlying compatibility matrix APIs remain available for research, but their returned rows do not retain the typed provenance by themselves. Prefer the typed wrapper for any reported claim.
 
 The projection is a software contract, not an operational independence certificate. Cluster metadata, source receipts, exact physical/authority adjudication and operating regime remain caller-supplied evidence.
+
+
+## Source-artifact claim-promotion firewall (24 November 2026)
+
+The `source_evidence` module adds an append-only, bitemporal source-artifact contract. It explicitly separates:
+
+- source publication time (when the publisher says the artifact was issued);
+- system retrieval time (when our system captured the bytes);
+- business valid time (the period the artifact says it applies to).
+
+A source artifact has a stable logical ID, immutable revision ID, source identity, source class, narrow declared claim, raw SHA-256, rights status and exact superseded revision. The in-memory ledger rejects duplicate revisions, broken revision chains, source/source-class drift and regressing capture times. As-of queries use separate publication and retrieval cutoffs; a later correction cannot be used to rewrite what the system knew before the correction was published or retrieved.
+
+### DGT claim-promotion controls
+
+The deterministic `source-claim-audit` negative control covers the four public DGT source classes:
+
+| Source artifact | Claim it can support | Claim it cannot establish by itself |
+|---|---|---|
+| Firm berth plan | Planned berth window | Actual berth occupancy |
+| Vessel-update snapshot | Terminal-reported vessel status | Independently observed arrival/departure |
+| Export stack window | Export stack eligibility window | Gate-in or actual loading |
+| Import storage snapshot | Terminal inventory/storage state | Custody transfer or receiver acceptance |
+
+Physical observations, custody-transfer receipts and receiver-acceptance receipts are distinct source classes. A custody receipt cannot become receiver acceptance; a physical observation for berth occupancy cannot establish vessel departure. The negative-control output keeps these claim types separate.
+
+Run:
+
+~~~sh
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin source-claim-audit
+~~~
+
+The workflow requires exact replay and 13 CSV lines (header + 12 scenarios), and asserts the key rejected promotions. The CSV is added to the exact-head SHA-256 receipt manifest and retained as a workflow artifact.
+
+### Claim ceiling
+
+This is an evidence-admission contract, not a cryptographic verifier, source connector, physical oracle, authority issuer or rights grant. Artifact class, declared claim, source revision, source publication time and rights status are supplied by the caller and must be justified by source review. The module validates the internal consistency of those declarations; it does not authenticate the publisher or prove that the source content is true or complete.
+
+The class `PhysicalObservationReceipt` is a declared qualified-receipt type, not proof of independence. A real independent physical observation still needs an owner, observation method, device/sensor/calibration identity, uncertainty, provenance, common-cause assessment and independent review. Redistribution is allowed only when the source-rights status is explicitly `PermissionGranted`; unknown or restricted rights remain non-redistributable.
+
+The DGT PDFs and XLSX links catalogued in the source register are not ingested by this module and are not included as local fixture bytes. The negative controls are synthetic typed examples, not DGT operational results.

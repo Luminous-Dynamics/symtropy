@@ -42,3 +42,7 @@ path = "src/bin/repeated_sampling_risk_audit.rs"
 [[bin]]
 name = "clustered-dependence-risk-audit"
 path = "src/bin/clustered_dependence_risk_audit.rs"
+
+[[bin]]
+name = "source-claim-audit"
+path = "src/bin/source_claim_audit.rs"
