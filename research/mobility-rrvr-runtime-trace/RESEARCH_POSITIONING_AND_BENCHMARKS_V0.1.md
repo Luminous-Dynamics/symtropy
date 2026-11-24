@@ -523,3 +523,8 @@ The formal reset model is an orthogonal assurance artifact, not a substitute for
 - mutated Rust traces that issue a second reset or dispatch before verification, which TLC must reject.
 
 Do not call the current abstract TLC check a Rust refinement proof. The physical transport, server-side reset semantics and durability after coordinator crash require separate validation.
+
+
+### World-generation and clock-identity substitution controls
+
+For identical plan/run/fault/target fields, vary only the verified simulator world epoch, then only the clock ID. Both the derived idempotency key and payload digest must change. A dispatch request reconstructed with a stale pre-reset epoch or a different clock must be rejected before injector admission. This is distinct from controller boot/controller epochs and should be included in the crash-cut corpus.
