@@ -1187,10 +1187,11 @@ mod tests {
     fn pcc_bus_must_exist_and_arbitrary_action_bus_is_never_accepted() {
         let mut input = fixture_input();
         input.pcc_bus_id = "UNKNOWN".to_owned();
+        input.upstream_receipts[0].pcc_bus_id = Some("UNKNOWN".to_owned());
+        input.upstream_receipts[4].pcc_bus_id = Some("UNKNOWN".to_owned());
         assert!(matches!(
             evaluate_mobility_network_adapter(&input),
             Err(AdapterError::NetworkScreen(_))
-                | Err(AdapterError::InvalidNetwork(_))
         ));
     }
 
