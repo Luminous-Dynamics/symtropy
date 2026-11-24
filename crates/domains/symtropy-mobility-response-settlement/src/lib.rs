@@ -1287,8 +1287,8 @@ mod tests {
                 "response_threshold_pass": true,
                 "expanded_uncertainty_pass": true,
                 "interval_qualified": true,
-                "measured_reduction_energy_wh": 0.002777777777777778,
-                "lower_bound_reduction_energy_wh": 0.002752932777777778,
+                "measured_reduction_energy_wh": 2.777777777777778,
+                "lower_bound_reduction_energy_wh": 2.752932777777778,
                 "baseline_evidence_id": "base-1",
                 "candidate_evidence_id": "resp-1"
             },
@@ -1576,6 +1576,7 @@ mod tests {
     fn dispatch_sample_ids_must_reconcile_across_reports() {
         let mut bad = input();
         bad.pcc_metrology.report["intervals"][0]["candidate_evidence_id"] = json!("other");
+        bad.counterfactual_baseline.report["intervals"][0]["evidence_id"] = json!("other");
         assert!(matches!(
             evaluate_mobility_response_settlement(&bad),
             Err(BridgeError::IdentityMismatch(_))
