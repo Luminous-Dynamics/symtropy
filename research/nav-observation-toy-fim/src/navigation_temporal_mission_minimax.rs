@@ -851,7 +851,7 @@ pub fn plan_temporal_mission_minimax(
 /// identity or common-cause state.
 pub fn plan_temporal_mission_cvar(
     problem: &TemporalMinimaxProblem,
-    actions: &[TimedSensorAction],
+    actions: &[TimedJointAction],
     budget: ResourceVector,
     alpha_ppm: u32,
 ) -> Result<TemporalCvarPlan, TemporalMinimaxError> {
@@ -1015,7 +1015,7 @@ pub fn plan_temporal_mission_cvar(
 
 fn consider_cvar_policy(
     problem: &TemporalMinimaxProblem,
-    actions: &[TimedSensorAction],
+    actions: &[TimedJointAction],
     policy: ObservablePolicy,
     alpha_ppm: u32,
     best: &mut Option<(ObservablePolicy, RobustTailRisk)>,
@@ -1357,6 +1357,161 @@ mod tests {
         assert_eq!(
             plan_temporal_mission_minimax(&p, &duplicate, budget(200)),
             Err(TemporalMinimaxError::DuplicateActionId(4))
+        );
+    }
+}
+
+
+#[cfg(test)]
+mod cvar_policy_tests {
+    use super::*;
+    use crate::navigation_tail_risk::{
+        mission_path_loss_distributions, worst_case_cvar, ModelLossDistribution,
+    };
+
+    fn likelihoods(zero: u64, one: u64) -> OutcomeLikelihoods {
+        OutcomeLikelihoods {
+            no_observation_ppm: 0,
+            observed_zero_ppm: zero,
+            observed_one_ppm: one,
+        }
+    }
+
+    fn action(
+        id: u64,
+        inside: OutcomeLikelihoods,
+        outside: OutcomeLikelihoods,
+    ) -> TimedJointAction {
+        let rows = [inside, outside, inside, outside];
+        TimedJointAction {
+            action_id: id,
+            cost: ResourceVector {
+                latency_ns: 100,
+                energy_uj: 1,
+                bandwidth_bytes: 1,
+            },
+            evidence_age_ns: 0,
+            likelihoods: [rows; MODEL_COUNT],
+            transitions: [[
+                StateTransition {
+                    inside_to_outside_ppm: 0,
+                    outside_to_inside_ppm: 0,
+                },
+                StateTransition {
+                    inside_to_outside_ppm: 0,
+                    outside_to_inside_ppm: 0,
+                },
+            ]; MODEL_COUNT],
+            outcome_model_sha256: [[[0x51; 32]; CAUSE_COUNT]; MODEL_COUNT],
+            transition_model_sha256: [[[0x62; 32]; CAUSE_COUNT]; MODEL_COUNT],
+        }
+    }
+
+    fn budget() -> ResourceVector {
+        ResourceVector {
+            latency_ns: 100,
+            energy_uj: 10,
+            bandwidth_bytes: 10,
+        }
+    }
+
+    fn tail_for_policy(
+        p: &TemporalMinimaxProblem,
+        actions: &[TimedJointAction],
+        policy: &ObservablePolicy,
+    ) -> RobustTailRisk {
+        let paths = mission_path_loss_distributions(p, actions, policy).unwrap();
+        worst_case_cvar(
+            &[
+                ModelLossDistribution {
+                    model_id: 0,
+                    outcomes: &paths[0],
+                },
+                ModelLossDistribution {
+                    model_id: 1,
+                    outcomes: &paths[1],
+                },
+            ],
+            950_000,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn robust_cvar_optimizer_can_select_a_different_sensor_than_expected_minimax() {
+        let p = TemporalMinimaxProblem {
+            prior_by_model_ppm: [
+                [250_000, 250_000, 250_000, 250_000],
+                [250_000, 250_000, 250_000, 250_000],
+            ],
+            false_safe_loss: 100,
+            false_degraded_loss: 1,
+        };
+
+        // Action A: very rare false-safe events (900 ppm) with a large
+        // consequence, and only 50 ppm false-degraded events.
+        let tail_sensitive = action(
+            1,
+            likelihoods(999_900, 100),
+            likelihoods(1_800, 998_200),
+        );
+        // Action B: 100,000 ppm false-degraded events with unit loss and no
+        // false-safe events. Its expectation is slightly worse, but its tail
+        // is bounded by one loss unit.
+        let steady = action(
+            2,
+            likelihoods(800_000, 200_000),
+            likelihoods(0, PROBABILITY_SCALE),
+        );
+        let actions = [tail_sensitive, steady];
+
+        let expected = plan_temporal_mission_minimax(&p, &actions, budget()).unwrap();
+        assert_eq!(expected.mission_global_minimax_risk.first_action_id, Some(1));
+
+        let tail = plan_temporal_mission_cvar(&p, &actions, budget(), 950_000).unwrap();
+        assert_eq!(tail.selected_policy.first_action_id, Some(2));
+        assert_eq!(
+            tail.tail_risk.worst_case_cvar,
+            crate::navigation_tail_risk::ExactRisk::from_ratio(1, 1).unwrap()
+        );
+        assert_eq!(tail.policy_trees_evaluated, expected.policy_trees_evaluated);
+        assert!(tail.authority_transition_not_authorized_by_plan);
+
+        let expected_tail = tail_for_policy(&p, &actions, &expected.mission_global_minimax_risk);
+        assert_eq!(
+            expected_tail.worst_case_cvar,
+            crate::navigation_tail_risk::ExactRisk::from_ratio(18_001, 10_000).unwrap()
+        );
+        assert!(
+            tail.tail_risk
+                .worst_case_cvar
+                .compare(expected_tail.worst_case_cvar)
+                == core::cmp::Ordering::Less
+        );
+    }
+
+    #[test]
+    fn robust_cvar_selection_is_independent_of_candidate_action_order() {
+        let p = TemporalMinimaxProblem {
+            prior_by_model_ppm: [
+                [250_000, 250_000, 250_000, 250_000],
+                [250_000, 250_000, 250_000, 250_000],
+            ],
+            false_safe_loss: 100,
+            false_degraded_loss: 1,
+        };
+        let a = action(1, likelihoods(999_900, 100), likelihoods(1_800, 998_200));
+        let b = action(2, likelihoods(800_000, 200_000), likelihoods(0, PROBABILITY_SCALE));
+        let forward = plan_temporal_mission_cvar(&p, &[a.clone(), b.clone()], budget(), 950_000).unwrap();
+        let reverse = plan_temporal_mission_cvar(&p, &[b, a], budget(), 950_000).unwrap();
+        assert_eq!(forward.selected_policy.first_action_id, Some(2));
+        assert_eq!(
+            forward.tail_risk.worst_case_cvar,
+            reverse.tail_risk.worst_case_cvar
+        );
+        assert_eq!(
+            forward.selected_policy.first_action_id,
+            reverse.selected_policy.first_action_id
         );
     }
 }
