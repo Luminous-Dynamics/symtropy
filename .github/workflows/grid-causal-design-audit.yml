@@ -40,6 +40,7 @@ jobs:
             and .design_qualified == true
             and .design_class == "cluster_randomized_parallel"
             and .primary_estimand == "intention_to_treat"
+            and .primary_outcome_unit == "kWh"
             and .cluster_count == 8
             and .site_count == 8
             and .asset_count == 8
