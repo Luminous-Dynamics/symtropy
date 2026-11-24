@@ -1363,11 +1363,13 @@ mod tests {
         assert_eq!(report.calibration_bins[0].sample_count, 0);
         assert_eq!(report.calibration_bins[1].sample_count, 1);
         assert_eq!(report.calibration_bins[9].sample_count, 1);
-        assert!(report
-            .calibration_bins
-            .iter()
-            .enumerate()
-            .all(|(expected_index, bin)| bin.bin_index == expected_index));
+        assert!(
+            report
+                .calibration_bins
+                .iter()
+                .enumerate()
+                .all(|(expected_index, bin)| bin.bin_index == expected_index)
+        );
     }
 
     #[test]
