@@ -209,59 +209,12 @@ pub enum DispatchOutcomeStatus {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(tag = "event", rename_all = "snake_case", deny_unknown_fields)]
+#[serde(tag = "event", rename_all = "snake_case")]
 pub enum JournalEvent {
-    ResetIntent {
-        reset_id: String,
-        plan_sha256: String,
-        simulator_profile_sha256: String,
-        world_id: String,
-        prior_world_epoch: String,
-        clock_id: String,
-        expected_initial_state_sha256: String,
-        run_id: String,
-        run_epoch: String,
-    },
-    ResetOutcome {
-        reset_id: String,
-        source: ResetOutcomeSource,
-        status: ResetOutcomeStatus,
-        observed_world_epoch: Option<String>,
-        observed_clock_id: Option<String>,
-        observed_initial_state_sha256: Option<String>,
-        observation_artifact_sha256: Option<String>,
-    },
-    DispatchIntent {
-        idempotency_key: String,
-        payload_sha256: String,
-        reset_id: String,
-        plan_sha256: String,
-        simulator_profile_sha256: String,
-        world_id: String,
-        logical_effect_id: String,
-        attempt_id: String,
-        campaign_id: String,
-        pair_id: String,
-        scenario_id: String,
-        fault_id: String,
-        fault_sequence: u32,
-        run_id: String,
-        run_epoch: String,
-        world_epoch: String,
-        clock_id: String,
-        target_id: String,
-        fault_domain_id: String,
-        scheduled_simulation_step: u64,
-        parameters_sha256: String,
-    },
-    DispatchOutcome {
-        idempotency_key: String,
-        payload_sha256: String,
-        source: DispatchOutcomeSource,
-        status: DispatchOutcomeStatus,
-        dispatch_id: Option<String>,
-        ledger_artifact_sha256: Option<String>,
-    },
+    ResetIntent(Box<ResetIntentRecord>),
+    ResetOutcome(Box<ResetOutcomeRecord>),
+    DispatchIntent(Box<DispatchIntentRecord>),
+    DispatchOutcome(Box<DispatchOutcomeRecord>),
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -473,17 +426,18 @@ struct JournalIndex {
 impl JournalIndex {
     fn apply(&mut self, event: &JournalEvent) -> Result<(), JournalError> {
         match event {
-            JournalEvent::ResetIntent {
-                reset_id,
-                plan_sha256,
-                simulator_profile_sha256,
-                world_id,
-                prior_world_epoch,
-                clock_id,
-                expected_initial_state_sha256,
-                run_id,
-                run_epoch,
-            } => {
+            JournalEvent::ResetIntent(record) => {
+                let ResetIntentRecord {
+                    reset_id,
+                    plan_sha256,
+                    simulator_profile_sha256,
+                    world_id,
+                    prior_world_epoch,
+                    clock_id,
+                    expected_initial_state_sha256,
+                    run_id,
+                    run_epoch,
+                } = record.as_ref();
                 if !nonempty(reset_id)
                     || !valid_sha256(plan_sha256)
                     || !valid_sha256(simulator_profile_sha256)
@@ -534,15 +488,16 @@ impl JournalIndex {
                 );
                 Ok(())
             }
-            JournalEvent::ResetOutcome {
-                reset_id,
-                source,
-                status,
-                observed_world_epoch,
-                observed_clock_id,
-                observed_initial_state_sha256,
-                observation_artifact_sha256,
-            } => {
+            JournalEvent::ResetOutcome(record) => {
+                let ResetOutcomeRecord {
+                    reset_id,
+                    source,
+                    status,
+                    observed_world_epoch,
+                    observed_clock_id,
+                    observed_initial_state_sha256,
+                    observation_artifact_sha256,
+                } = record.as_ref();
                 let intent = self
                     .reset_intents
                     .get_mut(reset_id)
@@ -614,10 +569,10 @@ impl JournalIndex {
                     {
                         return Err(JournalError::InvalidOutcomeEvidence);
                     }
-                } else if let Some(digest) = observation_artifact_sha256 {
-                    if !valid_sha256(digest) {
-                        return Err(JournalError::InvalidOutcomeEvidence);
-                    }
+                } else if let Some(digest) = observation_artifact_sha256
+                    && !valid_sha256(digest)
+                {
+                    return Err(JournalError::InvalidOutcomeEvidence);
                 }
                 self.reset_status.insert(reset_id.clone(), *status);
                 self.reset_outcome_records.insert(
@@ -634,29 +589,30 @@ impl JournalIndex {
                 );
                 Ok(())
             }
-            JournalEvent::DispatchIntent {
-                idempotency_key,
-                payload_sha256,
-                reset_id,
-                plan_sha256,
-                simulator_profile_sha256,
-                world_id,
-                logical_effect_id,
-                attempt_id,
-                campaign_id,
-                pair_id,
-                scenario_id,
-                fault_id,
-                fault_sequence,
-                run_id,
-                run_epoch,
-                world_epoch,
-                clock_id,
-                target_id,
-                fault_domain_id,
-                scheduled_simulation_step,
-                parameters_sha256,
-            } => {
+            JournalEvent::DispatchIntent(record) => {
+                let DispatchIntentRecord {
+                    idempotency_key,
+                    payload_sha256,
+                    reset_id,
+                    plan_sha256,
+                    simulator_profile_sha256,
+                    world_id,
+                    logical_effect_id,
+                    attempt_id,
+                    campaign_id,
+                    pair_id,
+                    scenario_id,
+                    fault_id,
+                    fault_sequence,
+                    run_id,
+                    run_epoch,
+                    world_epoch,
+                    clock_id,
+                    target_id,
+                    fault_domain_id,
+                    scheduled_simulation_step,
+                    parameters_sha256,
+                } = record.as_ref();
                 if !nonempty(idempotency_key)
                     || !valid_sha256(payload_sha256)
                     || !nonempty(logical_effect_id)
@@ -754,14 +710,15 @@ impl JournalIndex {
                 );
                 Ok(())
             }
-            JournalEvent::DispatchOutcome {
-                idempotency_key,
-                payload_sha256,
-                source,
-                status,
-                dispatch_id,
-                ledger_artifact_sha256,
-            } => {
+            JournalEvent::DispatchOutcome(record) => {
+                let DispatchOutcomeRecord {
+                    idempotency_key,
+                    payload_sha256,
+                    source,
+                    status,
+                    dispatch_id,
+                    ledger_artifact_sha256,
+                } = record.as_ref();
                 let intent = self
                     .dispatch_intents
                     .get(idempotency_key)
@@ -1065,10 +1022,11 @@ impl Drop for WriterLease {
         #[cfg(unix)]
         {
             use std::os::unix::fs::MetadataExt;
-            if let (Ok(owned), Ok(current)) = (self._file.metadata(), fs::metadata(&self.path)) {
-                if owned.dev() == current.dev() && owned.ino() == current.ino() {
-                    let _ = fs::remove_file(&self.path);
-                }
+            if let (Ok(owned), Ok(current)) = (self._file.metadata(), fs::metadata(&self.path))
+                && owned.dev() == current.dev()
+                && owned.ino() == current.ino()
+            {
+                let _ = fs::remove_file(&self.path);
             }
         }
         #[cfg(not(unix))]
@@ -1138,36 +1096,20 @@ impl Journal {
 
     /// Persist a reset intent before calling ResetSimulation. Do not call the
     /// simulator unless this method returns Ok.
+    /// Persist a reset intent before calling ResetSimulation. Do not call the
+    /// simulator unless this method returns Ok.
     pub fn append_reset_intent(
         &mut self,
         record: ResetIntentRecord,
     ) -> Result<JournalEntry, JournalError> {
-        self.append(JournalEvent::ResetIntent {
-            reset_id: record.reset_id,
-            plan_sha256: record.plan_sha256,
-            simulator_profile_sha256: record.simulator_profile_sha256,
-            world_id: record.world_id,
-            prior_world_epoch: record.prior_world_epoch,
-            clock_id: record.clock_id,
-            expected_initial_state_sha256: record.expected_initial_state_sha256,
-            run_id: record.run_id,
-            run_epoch: record.run_epoch,
-        })
+        self.append(JournalEvent::ResetIntent(Box::new(record)))
     }
 
     pub fn append_reset_outcome(
         &mut self,
         record: ResetOutcomeRecord,
     ) -> Result<JournalEntry, JournalError> {
-        self.append(JournalEvent::ResetOutcome {
-            reset_id: record.reset_id,
-            source: record.source,
-            status: record.status,
-            observed_world_epoch: record.observed_world_epoch,
-            observed_clock_id: record.observed_clock_id,
-            observed_initial_state_sha256: record.observed_initial_state_sha256,
-            observation_artifact_sha256: record.observation_artifact_sha256,
-        })
+        self.append(JournalEvent::ResetOutcome(Box::new(record)))
     }
 
     /// Persist a plan/run/world/clock/target-bound dispatch intent before
@@ -1176,43 +1118,14 @@ impl Journal {
         &mut self,
         record: DispatchIntentRecord,
     ) -> Result<JournalEntry, JournalError> {
-        self.append(JournalEvent::DispatchIntent {
-            idempotency_key: record.idempotency_key,
-            payload_sha256: record.payload_sha256,
-            reset_id: record.reset_id,
-            plan_sha256: record.plan_sha256,
-            simulator_profile_sha256: record.simulator_profile_sha256,
-            world_id: record.world_id,
-            logical_effect_id: record.logical_effect_id,
-            attempt_id: record.attempt_id,
-            campaign_id: record.campaign_id,
-            pair_id: record.pair_id,
-            scenario_id: record.scenario_id,
-            fault_id: record.fault_id,
-            fault_sequence: record.fault_sequence,
-            run_id: record.run_id,
-            run_epoch: record.run_epoch,
-            world_epoch: record.world_epoch,
-            clock_id: record.clock_id,
-            target_id: record.target_id,
-            fault_domain_id: record.fault_domain_id,
-            scheduled_simulation_step: record.scheduled_simulation_step,
-            parameters_sha256: record.parameters_sha256,
-        })
+        self.append(JournalEvent::DispatchIntent(Box::new(record)))
     }
 
     pub fn append_dispatch_outcome(
         &mut self,
         record: DispatchOutcomeRecord,
     ) -> Result<JournalEntry, JournalError> {
-        self.append(JournalEvent::DispatchOutcome {
-            idempotency_key: record.idempotency_key,
-            payload_sha256: record.payload_sha256,
-            source: record.source,
-            status: record.status,
-            dispatch_id: record.dispatch_id,
-            ledger_artifact_sha256: record.ledger_artifact_sha256,
-        })
+        self.append(JournalEvent::DispatchOutcome(Box::new(record)))
     }
 
     fn append(&mut self, event: JournalEvent) -> Result<JournalEntry, JournalError> {
