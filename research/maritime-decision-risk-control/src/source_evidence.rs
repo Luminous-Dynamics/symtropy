@@ -768,7 +768,13 @@ mod tests {
             ledger.append(artifact("r3", 1_700, 1_800, Some("r1"))),
             Err(SourceArtifactError::SupersedesLatestRevisionMismatch { .. })
         ));
-        assert_eq!(ledger.revisions("dgt-firm-berth-plan-2026-11-24").unwrap().len(), 2);
+        assert_eq!(
+            ledger
+                .revisions("dgt-firm-berth-plan-2026-11-24")
+                .unwrap()
+                .len(),
+            2
+        );
     }
 
     #[test]
