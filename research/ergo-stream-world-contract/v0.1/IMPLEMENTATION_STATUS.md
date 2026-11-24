@@ -297,3 +297,19 @@ The validator accepts a total state-to-class partition of a deterministic finite
 It builds a quotient state/action transition table and rejects incomplete partitions, successor-class mismatch, action-enabledness mismatch, unknown states, nondeterminism and duplicate transition rows. It does not yet match the quotient to a separate target system or preserve task-specific observables/rewards.
 
 This is a finite one-system abstraction witness, not simulation/bisimulation or physical coarse-graining. Exact-head Rust verification is pending.
+
+## Finite simulation and bisimulation
+
+The branch now adds `src/behaviour.rs`, exposed as `behaviour`, and `FINITE_SIMULATION_BISIMULATION_V0_1.md`.
+
+The validator uses finite labelled transition systems with possibly nondeterministic outcomes and a many-to-many state relation.
+
+- **Simulation:** for each related state pair, every scoped source transition must have a matching target transition under the mapped action and related successor pair. Additional target transitions are permitted.
+- **Bisimulation:** adds the reverse check. Every scoped target transition must have a matching source response, and the action map must cover the full target action scope.
+- Scopes must be valid and closed under their declared state/action transitions. State relation pairs are unique and cover every scoped state. Action mappings and action-kind mappings are separately checked.
+
+Seven tests cover target-extra-behaviour acceptance for simulation, rejection for bisimulation, positive bisimulation when extras are removed, missing target response, many-to-many state relations, duplicate edges and missing relation coverage.
+
+This is finite proposed-relation validation, not learned mapping discovery, continuous-time behavioural equivalence, probabilistic bisimulation or causal-mechanism qualification.
+
+**Verification for simulation/bisimulation plus decision-value and quotient code:** pending an exact-head Rust 1.96 formatting, tests/doctest and strict-Clippy pass.
