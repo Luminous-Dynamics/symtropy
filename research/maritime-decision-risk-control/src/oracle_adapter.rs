@@ -700,6 +700,18 @@ mod tests {
             regime_id: "regime-A".to_owned(),
             evaluator_revision: "evaluator-v1".to_owned(),
             loss_contract_revision: "loss-v1".to_owned(),
+            policy_grid: vec![
+                FrozenPolicyEntry {
+                    parameter_index: 0,
+                    policy_id: "policy-B".to_owned(),
+                    policy_revision: "policy-B-rev-1".to_owned(),
+                },
+                FrozenPolicyEntry {
+                    parameter_index: 1,
+                    policy_id: "policy-A".to_owned(),
+                    policy_revision: "policy-A-rev-1".to_owned(),
+                },
+            ],
             policy_grid_sha256: DIGEST_A.to_owned(),
         }
     }
@@ -716,6 +728,11 @@ mod tests {
             policy_revision: format!("{policy_id}-rev-1"),
             evaluator_revision: "evaluator-v1".to_owned(),
             loss_contract_revision: "loss-v1".to_owned(),
+            action_class: if authority == AuthorityDisposition::NotRequired {
+                PolicyActionClass::NoMutation
+            } else {
+                PolicyActionClass::Mutating
+            },
             authority,
             physical,
             service_loss_milli,
@@ -816,14 +833,14 @@ mod tests {
         assert_eq!(bundle.policy_ids, vec!["policy-A", "policy-B"]);
         assert_eq!(
             bundle.calibration_hard_failure_milli,
-            vec![vec![0, 1_000], vec![0, 0]]
+            vec![vec![1_000, 0], vec![0, 0]]
         );
         assert_eq!(
             bundle.calibration_service_loss_milli,
-            vec![vec![250, 400], vec![200, 600]]
+            vec![vec![400, 250], vec![600, 200]]
         );
-        assert_eq!(bundle.evaluation_hard_failure_milli, vec![vec![1_000, 0]]);
-        assert_eq!(bundle.evaluation_service_loss_milli, vec![vec![900, 100]]);
+        assert_eq!(bundle.evaluation_hard_failure_milli, vec![vec![0, 1_000]]);
+        assert_eq!(bundle.evaluation_service_loss_milli, vec![vec![100, 900]]);
     }
 
     #[test]
@@ -928,6 +945,35 @@ mod tests {
     }
 
     #[test]
+    fn adapter_rejects_not_required_authority_for_a_mutating_action() {
+        let mut data = valid_dataset();
+        let outcome = &mut data.episodes[0].policy_outcomes[1];
+        outcome.action_class = PolicyActionClass::Mutating;
+        outcome.authority = AuthorityDisposition::NotRequired;
+        assert!(matches!(
+            compile_oracle_outcomes(&data),
+            Err(OracleAdapterError::AuthorityActionMismatch {
+                action_class: PolicyActionClass::Mutating,
+                disposition: AuthorityDisposition::NotRequired,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn adapter_rejects_noncontiguous_frozen_policy_parameter_indices() {
+        let mut data = valid_dataset();
+        data.contract.policy_grid[1].parameter_index = 3;
+        assert!(matches!(
+            compile_oracle_outcomes(&data),
+            Err(OracleAdapterError::InvalidPolicyGridOrder {
+                position: 1,
+                parameter_index: 3,
+            })
+        ));
+    }
+
+    #[test]
     fn adapter_rejects_invalid_receipt_digest() {
         let mut data = valid_dataset();
         data.episodes[0].policy_outcomes[0].receipt_sha256 = "not-a-digest".to_owned();
@@ -996,13 +1042,13 @@ mod tests {
         )
         .expect("service-loss tail");
 
-        assert_eq!(hard[0].policy_id, "policy-A");
-        assert_eq!(hard[1].policy_id, "policy-B");
-        assert_eq!(hard[1].maximum_loss_milli, 1_000);
-        assert_eq!(service[1].maximum_loss_milli, 600);
+        assert_eq!(hard[0].policy_id, "policy-B");
+        assert_eq!(hard[1].policy_id, "policy-A");
+        assert_eq!(hard[0].maximum_loss_milli, 1_000);
+        assert_eq!(service[0].maximum_loss_milli, 600);
         assert_ne!(
-            hard[1].empirical_upper_cvar_milli,
-            service[1].empirical_upper_cvar_milli
+            hard[0].empirical_upper_cvar_milli,
+            service[0].empirical_upper_cvar_milli
         );
     }
 
