@@ -1,0 +1,12 @@
+[package]
+name = "temporal-wrench-transfer"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Exact planar normal-impulse transfer across changing contact manifolds"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
