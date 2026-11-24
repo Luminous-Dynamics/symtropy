@@ -501,3 +501,9 @@ The split-conformal fitter now accepts `SplitConformalCalibrationOutcomeV0`, an 
 Duplicate independent-unit IDs are rejected. v0.1 uses one scored claim per independent unit. Multiple correlated claims within one block require a separately specified aggregate/block-conformal method; they must not be treated as extra independent calibration rows.
 
 Added `schemas/split_conformal_calibration_outcomes_v0.schema.json` and `examples/split_conformal_calibration_outcomes_v0.example.json`. Domain fingerprint admission and minimum independent-block counts compose with Symtropy #7041. The new source and schema work is newer than the last passing 129-test exact head and remains pending a new Rust 1.96 format/test/doctest/strict-Clippy run.
+
+## Calibration transport protocol
+
+Added `CONFORMAL_CALIBRATION_TRANSFER_V0_2_PROTOCOL.md` defining a future structural-map-gated calibration transport tournament against DS-CP, Transported Conformal Calibration and KMM-CP. The protocol explicitly distinguishes exchangeability, covariate shift with support, paired calibration transport and concept/mechanism shift. It defines a paired-world factorial matrix, owner-bound transport receipt, baselines, metrics, acceptance gates and integration with #7041/#7193/#5990/#11171.
+
+This remains a research protocol, not an implemented weighted/TCC/KMM method or a claim of target-domain coverage outside the admitted split-conformal stratum.
