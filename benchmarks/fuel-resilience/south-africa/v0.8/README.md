@@ -55,6 +55,10 @@ The intended integration boundary is an artifact adapter: the v0.8 result should
 
 Those Power Fabric issues and draft PRs are separate works in progress; this v0.8 crate currently has no compile-time dependency on them. They must be integrated only against their accepted schema versions and exact artifact contracts.
 
+## Additional temporal-assurance suite
+
+See [TEMPORAL_ASSURANCE_SUITE.md](research/TEMPORAL_ASSURANCE_SUITE.md) and [SAFRB-TEMPORAL-ASSURANCE-001](https://github.com/Luminous-Dynamics/symtropy/issues/7336) for exhaustive state-sequence and metamorphic testing.
+
 ## Known-answer fixture
 
 The fixture uses four synthetic one-hour periods, a 50 Wh critical floor and an 80 Wh target. Delivered energy is bounded as:

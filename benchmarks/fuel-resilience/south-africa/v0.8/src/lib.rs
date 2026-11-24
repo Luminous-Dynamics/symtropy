@@ -798,3 +798,6 @@ mod tests {
         assert!(evaluate(&[window(0, 60, 65)], 0).is_err());
     }
 }
+
+#[cfg(test)]
+mod temporal_assurance_tests;
