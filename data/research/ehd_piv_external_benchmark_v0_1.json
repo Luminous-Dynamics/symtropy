@@ -158,7 +158,8 @@
     "capsule_integrity_and_published_result_reproduction",
     "matched_raw_image_reprocessing",
     "measurement_and_engineering_quality",
-    "adaptive_measurement_value"
+    "adaptive_measurement_value",
+    "synthetic_generator_fidelity_and_real_image_error_prediction"
   ],
   "prospective_targets": {
     "reproduce_shipped_reference_outputs": true,
@@ -172,7 +173,9 @@
     "no_full_field_truth_claim_from_hotwire",
     "no_171GB_bulk_download_performed",
     "no_MAT_TIFF_HDF5_importer_in_v0",
-    "no_independent_EHD_reynolds_stress_validation"
+    "no_independent_EHD_reynolds_stress_validation",
+    "no_SynthPix_benchmark_run_performed",
+    "no_generator_throughput_comparison_performed"
   ],
   "v0_kernel_additions": [
     "six_component_symmetric_reynolds_stress_profile",
@@ -217,5 +220,41 @@
     "x_edge_exclusion_and_profile_aggregation",
     "wall_origin_offset_and_y_plus_shift",
     "explicit_y_plus_scoring_bands"
-  ]
+  ],
+  "generator_benchmarks": {
+    "synthpix": {
+      "version": "0.4.0",
+      "commit": "0effe6e70b77d0d5c97348d8220e74d31bfaee2e",
+      "license": "MIT",
+      "url": "https://github.com/antonioterpin/synthpix",
+      "paper_doi": "10.1016/j.softx.2026.102642",
+      "reported_mean_relative_EPE_discrepancy": 0.001,
+      "reported_max_relative_EPE_discrepancy": 0.005,
+      "reported_throughput": "orders-of-magnitude improvement over selected generators",
+      "actual_execution_in_this_contract": false,
+      "benchmark_dimensions": [
+        "particle_count_density",
+        "centroid_and_diameter_distribution",
+        "particle_intensity_and_shape",
+        "illumination_spatial_profile",
+        "motion_and_exposure_smear",
+        "image_noise_distribution",
+        "estimator_endpoint_error",
+        "throughput_and_batch_latency",
+        "GPU_memory_and_data_loader_cost"
+      ],
+      "camera_model_challenge": [
+        "finite_pixel_fill_factor",
+        "nonorthogonal_camera_projection",
+        "PSF_and_optical_aberration",
+        "exposure_timing",
+        "stereo_volumetric_generation"
+      ]
+    },
+    "rust_reference_operator": {
+      "pull_request": 7259,
+      "role": "deterministic_small_scale_analytic_reference_and_negative_controls",
+      "throughput_competition": false
+    }
+  }
 }
