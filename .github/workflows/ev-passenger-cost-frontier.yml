@@ -680,7 +680,7 @@ jobs:
             and .false_abstention_count == 2
             and .decision_flip_count == 4
             and .replay_defined_count == 6
-            and .avoidable_abstention_value_units == 200
+            and .potentially_admissible_value_proxy_units == 200
             and .risk_coverage_group_count == 2
             and .wilson_reference_assumes_iid_samples == true
             and all(.groups[];
