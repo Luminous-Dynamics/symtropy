@@ -45,7 +45,6 @@ impl Fixture {
 #[derive(Clone, Copy, Debug, Default)]
 struct Accumulator {
     selected_runs: usize,
-    abstentions: usize,
     violations: usize,
     true_risk_sum: f64,
     true_risk_square_sum: f64,
@@ -69,7 +68,6 @@ impl Accumulator {
         is_high_probability: bool,
     ) {
         let Some(index) = selected else {
-            self.abstentions += 1;
             return;
         };
 
@@ -141,7 +139,7 @@ fn hard_loss(fixture: Fixture, state: usize, policy_index: usize) -> u16 {
         },
         Fixture::NonMonotone => match state {
             0 => false,
-            1 => effort < 0.25 || (0.55..=0.65).contains(&effort),
+            1 => effort < 0.25 || (0.65..=0.70).contains(&effort),
             2 => effort < 0.75 || (0.90..0.98).contains(&effort),
             3 => effort < 0.95,
             _ => unreachable!("four-state fixture"),
@@ -385,7 +383,7 @@ fn push_row(
             ",{unconditional_rate:.6},{wilson_low:.6},{wilson_high:.6},{conditional_rate:.6}"
         );
     } else {
-        output.push_str("NA,NA,NA,NA,NA");
+        output.push_str("NA,NA,NA,NA,NA,NA,NA");
     }
 
     let guarantee = if high_probability_method {
@@ -401,8 +399,13 @@ fn push_row(
 fn render_for(sample_sizes: &[usize], replicates: usize) -> String {
     assert!(replicates > 0, "replicates must be positive");
     let mut output = String::from(
-        "fixture,method,policy_grid_size,calibration_schedules,replicates,alpha_milli,selected_runs,abstentions,mean_selected_true_hard_risk_milli,true_risk_mc95_low,true_risk_mc95_high,mean_selected_theorem_axis_risk_milli,theorem_risk_mc95_low,theorem_risk_mc95_high,mean_selected_service_loss_milli,service_mc95_low,service_mc95_high,mean_selected_hoeffding_ucb_milli,selection_violation_rate,wilson95_low,wilson95_high,conditional_selected_violation_rate,guarantee_kind,status\n",
+        "fixture,method,policy_grid_size,calibration_schedules,replicates,alpha_milli,selected_runs,abstentions,mean_selected_true_hard_risk_milli,true_risk_mc95_low,true_risk_mc95_high,mean_selected_theorem_axis_risk_milli,theorem_risk_mc95_low,theorem_risk_mc95_high,mean_selected_service_loss_milli,service_mc95_low,service_mc95_high,mean_selected_hoeffding_ucb_milli,ucb_mc95_low,ucb_mc95_high,selection_violation_rate,wilson95_low,wilson95_high,conditional_selected_violation_rate,guarantee_kind,status\n",
     );
+
+    let (mono_true_risk, _mono_envelope_risk, mono_service) =
+        exact_population_means(Fixture::Monotone);
+    let (nonmono_true_risk, nonmono_envelope_risk, nonmono_service) =
+        exact_population_means(Fixture::NonMonotone);
 
     for &schedule_count in sample_sizes {
         let radius = simultaneous_hoeffding_radius_milli(POLICY_COUNT, schedule_count, DELTA)
@@ -420,12 +423,7 @@ fn render_for(sample_sizes: &[usize], replicates: usize) -> String {
                 sampled_sums(Fixture::Monotone, &state_counts);
             let (nonmono_hard_sums, nonmono_envelope_sums, nonmono_service_sums) =
                 sampled_sums(Fixture::NonMonotone, &state_counts);
-            let (mono_true_risk, mono_envelope_risk, mono_service) =
-                exact_population_means(Fixture::Monotone);
-            let (nonmono_true_risk, nonmono_envelope_risk, nonmono_service) =
-                exact_population_means(Fixture::NonMonotone);
-
-            for (alpha_index, target) in ALPHA_MILLI.iter().copied().enumerate() {
+                        for (alpha_index, target) in ALPHA_MILLI.iter().copied().enumerate() {
                 let mono_crc = select_crc(&mono_hard_sums, schedule_count, target);
                 accumulators[0][alpha_index].record(
                     Some(mono_crc),
@@ -626,7 +624,7 @@ mod tests {
         assert_eq!(first, render_smoke_csv());
         assert_eq!(first.lines().count(), 21);
         let width = first.lines().next().unwrap().split(',').count();
-        assert_eq!(width, 24);
+        assert_eq!(width, 26);
         assert!(first.contains("MARGINAL_EXPECTED_RISK"));
         assert!(first.contains("FIXED_GRID_HIGH_PROBABILITY"));
         assert!(first.contains("NO_POSITIVE_ADJUSTED_TARGET"));
