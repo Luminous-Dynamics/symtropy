@@ -1,12 +1,13 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use nalgebra::SVector;
 use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere};
-use symtropy_physics::PhysicsWorld;
+use symtropy_physics::broadphase::Lbvh;
 use symtropy_physics::gjk;
 use symtropy_physics::raycast;
+use symtropy_physics::{BodyHandle, PhysicsWorld, RigidBody};
 
 fn bench_gjk_sphere_sphere(c: &mut Criterion) {
     let a = Sphere::<3>::unit();
@@ -219,6 +220,40 @@ fn bench_physics_step_500_bodies(c: &mut Criterion) {
     });
 }
 
+// ═══ Broadphase traversal diagnostics ═══
+
+fn bench_broadphase_query_diagnostics(c: &mut Criterion) {
+    let mut group = c.benchmark_group("lbvh_query_diagnostics_3d");
+
+    for (scenario, spacing) in [("sparse", 2.5_f64), ("clustered", 0.3_f64)] {
+        let bodies: Vec<_> = (0..512)
+            .map(|index| {
+                let x = (index % 16) as f64 * spacing;
+                let y = ((index / 16) % 16) as f64 * spacing;
+                let z = (index / 256) as f64 * spacing;
+                RigidBody::<3>::dynamic_sphere(BodyHandle(index), Point::new([x, y, z]), 0.5, 1.0)
+            })
+            .collect();
+
+        let tree = Lbvh::build(&bodies);
+        let (expected_pairs, receipt) = tree.query_pairs_with_stats(&bodies);
+        assert_eq!(receipt.unique_pairs, expected_pairs.len());
+
+        group.bench_function(BenchmarkId::new("query_without_stats", scenario), |bench| {
+            bench.iter(|| {
+                black_box(tree.query_pairs(black_box(&bodies)));
+            });
+        });
+        group.bench_function(BenchmarkId::new("query_with_stats", scenario), |bench| {
+            bench.iter(|| {
+                black_box(tree.query_pairs_with_stats(black_box(&bodies)));
+            });
+        });
+    }
+
+    group.finish();
+}
+
 criterion_group!(
     benches,
     // GJK per shape
@@ -237,5 +272,7 @@ criterion_group!(
     bench_physics_step_100_bodies,
     bench_physics_step_500_bodies,
     bench_physics_step_2d,
+    // Opt-in work diagnostics for the LBVH query stage.
+    bench_broadphase_query_diagnostics,
 );
 criterion_main!(benches);
