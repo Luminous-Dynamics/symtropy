@@ -162,3 +162,8 @@ Once observer identities, binaries, epochs, steps and disjoint common-cause doma
 - InsufficientEvidence: qualified observers disagree on the signature.
 
 Missing members, duplicate/unpinned observers, stale epochs, invalid digests and common-cause overlap remain hard qualification errors rather than being converted into a verdict. The observer verdict is evidence classification only; it does not authorize an action, retry or physical mutation.
+
+
+The request commitment includes the explicit canonicalization identifier serde-json-value-sorted-keys-v0.1. This lets an injector implementation reproduce the digest outside Rust without guessing a serialization profile. The standard industry pattern of storing the original request parameters with a client idempotency token and rejecting parameter changes is also described in [AWS Builder's Library: Making retries safe with idempotent APIs](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/). RRVR applies that principle to a physical fault command, where a payload mismatch must be a hard conflict rather than a second target mutation.
+
+This implementation advances part of [#7148 — crash-safe dispatch journaling and blinded observation](https://github.com/Luminous-Dynamics/symtropy/issues/7148). The append-only write-ahead journal, durable external injector implementation and authenticated raw observation artifacts remain separate acceptance items under that issue.
