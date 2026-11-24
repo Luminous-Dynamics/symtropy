@@ -13,4 +13,8 @@ path = "src/lib.rs"
 name = "parameter_set_tournament"
 path = "examples/parameter_set_tournament.rs"
 
+[[example]]
+name = "patch_support_envelope_tournament"
+path = "examples/patch_support_envelope_tournament.rs"
+
 [workspace]
