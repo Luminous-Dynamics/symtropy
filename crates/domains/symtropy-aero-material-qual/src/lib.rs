@@ -893,28 +893,39 @@ mod tests {
                 "{case_id}: process-domain disposition"
             );
 
-            for code in mutation["expected_violation_codes"]
+            let expected_violations: std::collections::BTreeSet<String> = mutation
+                ["expected_violation_codes"]
                 .as_array()
                 .expect("expected violation codes")
-            {
-                let code = code.as_str().expect("violation code string");
-                assert!(
-                    report.violations.iter().any(|finding| finding.code == code),
-                    "{case_id}: missing expected violation {code}; got {:?}",
-                    report.violations
-                );
-            }
-            for code in mutation["expected_blocker_codes"]
+                .iter()
+                .map(|code| code.as_str().expect("violation code string").to_owned())
+                .collect();
+            let actual_violations: std::collections::BTreeSet<String> = report
+                .violations
+                .iter()
+                .map(|finding| finding.code.clone())
+                .collect();
+            assert_eq!(
+                actual_violations, expected_violations,
+                "{case_id}: exact violation-code oracle"
+            );
+
+            let expected_blockers: std::collections::BTreeSet<String> = mutation
+                ["expected_blocker_codes"]
                 .as_array()
                 .expect("expected blocker codes")
-            {
-                let code = code.as_str().expect("blocker code string");
-                assert!(
-                    report.blockers.iter().any(|finding| finding.code == code),
-                    "{case_id}: missing expected blocker {code}; got {:?}",
-                    report.blockers
-                );
-            }
+                .iter()
+                .map(|code| code.as_str().expect("blocker code string").to_owned())
+                .collect();
+            let actual_blockers: std::collections::BTreeSet<String> = report
+                .blockers
+                .iter()
+                .map(|finding| finding.code.clone())
+                .collect();
+            assert_eq!(
+                actual_blockers, expected_blockers,
+                "{case_id}: exact blocker-code oracle"
+            );
         }
     }
 
