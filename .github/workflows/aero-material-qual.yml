@@ -44,3 +44,11 @@ jobs:
 
       - name: Run evaluator Clippy
         run: cargo clippy --locked --package symtropy-aero-material-qual --all-targets -- -D warnings
+
+      - name: Run evaluator CLI smoke test
+        shell: bash
+        run: |
+          cargo run --locked --package symtropy-aero-material-qual -- docs/research/aviation/examples/synthetic_material_process_case_v0_1.json > "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"structural_status": "STRUCTURALLY_COMPLETE"' "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"decision_status": "NOT_ELIGIBLE_SYNTHETIC_ONLY"' "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"physical_qualification_status": "OUT_OF_SCOPE_NOT_CLAIMED"' "$RUNNER_TEMP/aero-material-qual-report.json"
