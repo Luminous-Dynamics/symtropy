@@ -62,3 +62,11 @@ The face-integral representation is deliberately different. Future parity cases 
 ## 7. Claim ceiling
 
 This is an analytical reference for a homogeneous cuboid with prescribed uniform polarization. It is not a nonlinear B-H solver, multi-material interface solver, FEM/BEM solver, physical measurement, or component qualification.
+
+## 8. Rigid finite-cuboid assemblies
+
+The same crate exposes an assembly module. Each source cuboid has a unique component ID and a validated rigid pose: a right-handed orthonormal rotation matrix with determinant +1, plus global translation. The global observer is transformed by R^T(x-t); the cuboid reference is evaluated locally; B is transformed by R and accumulated with per-axis Kahan compensation.
+
+The four-segment synthetic fixture uses cuboids with half-dimensions (10,10,20) mm, centres at +/-30 mm along X/Y and prescribed polarization directions +X,+X,+Y,+Y. Independent six-face Gauss-Legendre surface integration (220 nodes per axis) gives the global centre field (0.13564553917542044, 0.13564553917542044, 0) T. This is a prescribed-source analytical array control, not a Halbach magnetization design or self-consistent demagnetization solution.
+
+The assembly layer rejects empty arrays, duplicate IDs, non-orthonormal transforms, reflections, non-finite translations/observers and source cuboid boundary errors. It does not check component overlap, physical gap, retention, manufacturing tolerances or mutual demagnetization.
