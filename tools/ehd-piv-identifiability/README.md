@@ -1,0 +1,32 @@
+# EHD-PIV local identifiability kernel
+
+Dependency-free Rust diagnostics for distinguishing physical flow parameters from measurement nuisance parameters.
+
+## Critical input contract
+
+The row-major sensitivity/Jacobian matrix is in **whitened residual units**: measurement residual rows must already have been whitened by a qualified observation-noise covariance, including relevant correlations. Each parameter column is multiplied by its declared characteristic parameter scale. The resulting matrix has dimensionless parameter perturbations and unit-noise residual sensitivity.
+
+If the residual noise covariance is unknown, correlated or not independently qualified, the caller must not pretend that raw pixels/vectors are independent unit-variance observations. This V0 kernel does not perform the whitening or authenticate covariance provenance.
+
+## What it computes
+
+- Deterministic one-sided Jacobi SVD, singular values and right singular directions.
+- Joint numerical rank and condition.
+- Nuisance-column span from the nuisance SVD.
+- Projection of physical sensitivity columns onto the orthogonal complement of the nuisance span.
+- Nuisance-profiled physical singular values, rank and condition.
+- High-correlation physical/nuisance parameter pairs and weak joint parameter combinations.
+
+The central diagnostic is not merely whether the joint Jacobian is full rank. It is whether physical sensitivity remains after nuisance directions are allowed to explain the same observations. A deficiency confined to nuisance parameters can coexist with identifiable physical parameters.
+
+## Interpretation
+
+A physical status of `Identifiable` means local sensitivity is full-rank after nuisance profiling and its condition is under the configured limit. `IllConditioned`, `RankDeficient` and `NoInformativeSensitivity` must not be converted to a positive physical claim.
+
+A full-rank local Jacobian is not a proof of global/structural identifiability, unimodal posterior, unbiased estimator or model correctness. Priors and regularization can stabilize an optimizer without adding information to the observations; prior-dominated inference must be labelled separately.
+
+## Run
+
+    cargo fmt --manifest-path tools/ehd-piv-identifiability/Cargo.toml -- --check
+    cargo test --manifest-path tools/ehd-piv-identifiability/Cargo.toml
+    cargo clippy --manifest-path tools/ehd-piv-identifiability/Cargo.toml --all-targets -- -D warnings
