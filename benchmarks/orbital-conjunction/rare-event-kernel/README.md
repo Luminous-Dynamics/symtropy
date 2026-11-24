@@ -31,6 +31,7 @@ This crate is a research kernel, not an operational collision-probability produc
 - A fixed-size conditional relative-motion covariance kernel that forms Q1 = B*A⁻¹ and Q2 = C - B*A⁻¹*Bᵀ, checks Schur-complement PSD without jitter/clipping, and evaluates directional conditional means, variances and Mahalanobis distances. NASA's non-positive-variance fallback and the mathematical zero-variance limit are separate explicit modes.
 - A fixed-time Ncdot sphere integrator that evaluates every selected Lebedev node using the conditional Gaussian model, accumulates weighted contributions with log-sum-exp, preserves node and total underflow/overflow states, and reproduces NASA's strict 1e-3 significant-node threshold.
 - A temporal Ncdot aggregator that trapezoid-integrates expected collision count in log space, computes the Ncdot-rate-weighted average significant-node count, tracks sampled peaks and plateaus, and refuses qualification when the caller's horizon declaration is incomplete, an epoch gap exceeds policy, or upstream samples are unqualified.
+- A test-only exact finite-portfolio oracle for small capacity-constrained mitigation fixtures. It maximizes caller-supplied expected consequence avoided subject to resource capacity, non-actionable exclusions and pairwise incompatibility constraints; it is not a production maneuver planner or consequence model.
 - Deterministic positive-weight Lebedev sphere rules with 6, 14, 26 and 5,810 nodes (algebraic precision 3, 5, 7 and 131), plus a validated nonnegative-sample integrator. The 5,810-point rule is generated from 144 symmetry-orbit records transcribed from NASA CARA Analysis Tools at immutable source commit `43f0160f94d76a91805d86521c3e8fa0d09ecd68` (November 2026 update).
 - NASA-style Lebedev contribution diagnostics using the strict 1e-3-of-maximum integrand threshold, with significant-node count, significant solid-angle weight, significant integral share and largest-node share.
 - A deterministic 6 → 14 → 26 point refinement ladder that compares successive integral estimates and keeps numerical stability separate from significant-node adequacy; its output is a refinement diagnostic, not a formal error bound.
@@ -48,8 +49,8 @@ cargo clippy --locked --manifest-path benchmarks/orbital-conjunction/rare-event-
 
 The package has its own Cargo workspace and does not require the full Symtropy/Bevy workspace.
 
-The current authored test corpus contains **233 authored `#[test]` cases**:
-30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, 9 in `normal_positive_part.rs`, 11 in `conditional_velocity.rs`, 6 in `ncdot_sphere.rs`, 12 in `ncdot_temporal.rs`, 18 in `ncdot_refinement.rs`, 8 in `pop_col_energy.rs`, 10 in `pop_col_adjustment.rs`, and 17 in `pop_convergence.rs`, 13 in `space_time_partition.rs`, and 15 in `refinement_scheduler.rs`.
+The current authored test corpus contains **249 authored `#[test]` cases**:
+30 in `lib.rs`, 25 in `coverage.rs`, 13 in `residual.rs`, 10 in `sequential.rs`, 10 in `stats.rs`, 10 in `trajectory.rs`, 16 in `lebedev.rs`, 9 in `normal_positive_part.rs`, 11 in `conditional_velocity.rs`, 6 in `ncdot_sphere.rs`, 12 in `ncdot_temporal.rs`, 18 in `ncdot_refinement.rs`, 8 in `pop_col_energy.rs`, 10 in `pop_col_adjustment.rs`, and 17 in `pop_convergence.rs`, 13 in `space_time_partition.rs`, and 15 in `refinement_scheduler.rs`, and 16 in the test-only `portfolio_oracle.rs`.
 
 The package also includes:
 - A deterministic NASA-style sampled Ncdot refinement controller for boundary extension, top-four sampled peaks, zero-rate MD2 fallback, dominant trapezoid contributions and significant-rate spacing. It does not certify between-sample peak completeness.
