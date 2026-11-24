@@ -42,8 +42,17 @@ impl PairIdentity {
         if left == right {
             return Err(LedgerError::SelfPair);
         }
-        let (first, second) = if left < right { (left, right) } else { (right, left) };
-        Ok(Self { world_revision, step_index, first, second })
+        let (first, second) = if left < right {
+            (left, right)
+        } else {
+            (right, left)
+        };
+        Ok(Self {
+            world_revision,
+            step_index,
+            first,
+            second,
+        })
     }
 
     #[must_use]
@@ -62,14 +71,20 @@ pub struct LineageId {
 impl LineageId {
     #[must_use]
     pub fn root(pair: PairIdentity) -> Self {
-        Self { pair, path: Vec::new() }
+        Self {
+            pair,
+            path: Vec::new(),
+        }
     }
 
     #[must_use]
     pub fn child(&self, ordinal: u32) -> Self {
         let mut path = self.path.clone();
         path.push(ordinal);
-        Self { pair: self.pair.clone(), path }
+        Self {
+            pair: self.pair.clone(),
+            path,
+        }
     }
 
     #[must_use]
@@ -98,8 +113,14 @@ pub enum Stage {
 
 impl Stage {
     pub const ORDER: [Self; 8] = [
-        Self::Eligibility, Self::TemporalBounds, Self::Broadphase, Self::Narrowphase,
-        Self::CandidateGeneration, Self::ManifoldReduction, Self::SolverMapping, Self::Solve,
+        Self::Eligibility,
+        Self::TemporalBounds,
+        Self::Broadphase,
+        Self::Narrowphase,
+        Self::CandidateGeneration,
+        Self::ManifoldReduction,
+        Self::SolverMapping,
+        Self::Solve,
     ];
 }
 
@@ -147,7 +168,10 @@ pub enum TerminalReason {
 pub enum Outcome {
     Forward,
     ForwardWithReason(ForwardReason),
-    Spawn { reason: ForwardReason, children: Vec<LineageId> },
+    Spawn {
+        reason: ForwardReason,
+        children: Vec<LineageId>,
+    },
     Terminate(TerminalReason),
 }
 
@@ -193,13 +217,25 @@ pub enum LedgerError {
     NonCanonicalPair,
     DuplicateRoot,
     DuplicateEvent(Stage),
-    StageInputMismatch { stage: Stage, expected: usize, actual: usize, missing: usize, unexpected: usize },
+    StageInputMismatch {
+        stage: Stage,
+        expected: usize,
+        actual: usize,
+        missing: usize,
+        unexpected: usize,
+    },
     EmptySpawn,
     ChildHasDifferentPair,
     ChildPathNotImmediate,
     DuplicateChild,
-    InvalidTerminalReason { stage: Stage, reason: TerminalReason },
-    InvalidForwardReason { stage: Stage, reason: ForwardReason },
+    InvalidTerminalReason {
+        stage: Stage,
+        reason: TerminalReason,
+    },
+    InvalidForwardReason {
+        stage: Stage,
+        reason: ForwardReason,
+    },
     FinalStageHasForwardedItems(usize),
 }
 
@@ -210,16 +246,32 @@ impl fmt::Display for LedgerError {
             Self::NonCanonicalPair => write!(f, "pair identity is not canonical"),
             Self::DuplicateRoot => write!(f, "duplicate root pair identity"),
             Self::DuplicateEvent(stage) => write!(f, "duplicate disposition at {stage:?}"),
-            Self::StageInputMismatch { stage, expected, actual, missing, unexpected } => write!(
-                f, "{stage:?} input mismatch: expected {expected}, found {actual} (missing {missing}, unexpected {unexpected})"
+            Self::StageInputMismatch {
+                stage,
+                expected,
+                actual,
+                missing,
+                unexpected,
+            } => write!(
+                f,
+                "{stage:?} input mismatch: expected {expected}, found {actual} (missing {missing}, unexpected {unexpected})"
             ),
             Self::EmptySpawn => write!(f, "spawn disposition must create at least one child"),
             Self::ChildHasDifferentPair => write!(f, "child lineage changed pair identity"),
-            Self::ChildPathNotImmediate => write!(f, "child path must extend parent by exactly one ordinal"),
+            Self::ChildPathNotImmediate => {
+                write!(f, "child path must extend parent by exactly one ordinal")
+            }
             Self::DuplicateChild => write!(f, "duplicate child identity emitted"),
-            Self::InvalidTerminalReason { stage, reason } => write!(f, "terminal reason {reason:?} is invalid at {stage:?}"),
-            Self::InvalidForwardReason { stage, reason } => write!(f, "forward reason {reason:?} is invalid at {stage:?}"),
-            Self::FinalStageHasForwardedItems(n) => write!(f, "solve stage left {n} item(s) without terminal disposition"),
+            Self::InvalidTerminalReason { stage, reason } => {
+                write!(f, "terminal reason {reason:?} is invalid at {stage:?}")
+            }
+            Self::InvalidForwardReason { stage, reason } => {
+                write!(f, "forward reason {reason:?} is invalid at {stage:?}")
+            }
+            Self::FinalStageHasForwardedItems(n) => write!(
+                f,
+                "solve stage left {n} item(s) without terminal disposition"
+            ),
         }
     }
 }
@@ -242,7 +294,10 @@ impl PairLedger {
                 return Err(LedgerError::DuplicateRoot);
             }
         }
-        Ok(Self { roots, events: BTreeMap::new() })
+        Ok(Self {
+            roots,
+            events: BTreeMap::new(),
+        })
     }
 
     pub fn record(&mut self, mut event: StageEvent) -> Result<(), LedgerError> {
@@ -275,7 +330,9 @@ impl PairLedger {
             let mut next = BTreeSet::new();
             for (input, outcome) in records {
                 match outcome {
-                    Outcome::Forward => { next.insert(input); }
+                    Outcome::Forward => {
+                        next.insert(input);
+                    }
                     Outcome::ForwardWithReason(reason) => {
                         if !valid_forward(stage, reason) {
                             return Err(LedgerError::InvalidForwardReason { stage, reason });
@@ -286,15 +343,21 @@ impl PairLedger {
                         if !valid_forward(stage, reason) {
                             return Err(LedgerError::InvalidForwardReason { stage, reason });
                         }
-                        if children.is_empty() { return Err(LedgerError::EmptySpawn); }
+                        if children.is_empty() {
+                            return Err(LedgerError::EmptySpawn);
+                        }
                         for child in children {
                             if child.pair != input.pair {
                                 return Err(LedgerError::ChildHasDifferentPair);
                             }
-                            if child.path.len() != input.path.len() + 1 || !child.path.starts_with(&input.path) {
+                            if child.path.len() != input.path.len() + 1
+                                || !child.path.starts_with(&input.path)
+                            {
                                 return Err(LedgerError::ChildPathNotImmediate);
                             }
-                            if !next.insert(child) { return Err(LedgerError::DuplicateChild); }
+                            if !next.insert(child) {
+                                return Err(LedgerError::DuplicateChild);
+                            }
                         }
                     }
                     Outcome::Terminate(reason) => {
@@ -319,13 +382,28 @@ impl PairLedger {
         let (mut event_count, mut forwarded, mut spawned, mut terminal) = (0, 0, 0, 0);
         for stage in Stage::ORDER {
             let records = self.events.get(&stage).cloned().unwrap_or_default();
-            let mut stats = StageStats { inputs: records.len(), ..StageStats::default() };
+            let mut stats = StageStats {
+                inputs: records.len(),
+                ..StageStats::default()
+            };
             for outcome in records.values() {
                 let code = match outcome {
-                    Outcome::Forward => { stats.forwarded += 1; DispositionCode::Forwarded }
-                    Outcome::ForwardWithReason(r) => { stats.forwarded += 1; DispositionCode::ForwardedWithReason(*r) }
-                    Outcome::Spawn { reason, children } => { stats.spawned += children.len(); DispositionCode::Spawned(*reason) }
-                    Outcome::Terminate(r) => { stats.terminal += 1; DispositionCode::Terminated(*r) }
+                    Outcome::Forward => {
+                        stats.forwarded += 1;
+                        DispositionCode::Forwarded
+                    }
+                    Outcome::ForwardWithReason(r) => {
+                        stats.forwarded += 1;
+                        DispositionCode::ForwardedWithReason(*r)
+                    }
+                    Outcome::Spawn { reason, children } => {
+                        stats.spawned += children.len();
+                        DispositionCode::Spawned(*reason)
+                    }
+                    Outcome::Terminate(r) => {
+                        stats.terminal += 1;
+                        DispositionCode::Terminated(*r)
+                    }
                 };
                 *reasons.entry((stage, code)).or_insert(0usize) += 1;
             }
@@ -352,7 +430,9 @@ impl PairLedger {
     pub fn fingerprint(&self) -> u64 {
         let mut h = Fnv64(0xcbf29ce484222325);
         h.u64(self.roots.len() as u64);
-        for root in &self.roots { h.lineage(root); }
+        for root in &self.roots {
+            h.lineage(root);
+        }
         for stage in Stage::ORDER {
             h.byte(stage as u8);
             if let Some(records) = self.events.get(&stage) {
@@ -372,10 +452,18 @@ impl PairLedger {
 fn valid_forward(stage: Stage, reason: ForwardReason) -> bool {
     matches!(
         (stage, reason),
-        (Stage::TemporalBounds, ForwardReason::UnsupportedBoundFallback | ForwardReason::InvalidBoundFallback | ForwardReason::UnboundedMotionFallback)
-            | (Stage::Broadphase, ForwardReason::ExhaustiveBroadphaseFallback)
-            | (Stage::Narrowphase, ForwardReason::UnsupportedShapeFallback | ForwardReason::ManifoldsGenerated)
-            | (Stage::CandidateGeneration, ForwardReason::CandidateAdmitted)
+        (
+            Stage::TemporalBounds,
+            ForwardReason::UnsupportedBoundFallback
+                | ForwardReason::InvalidBoundFallback
+                | ForwardReason::UnboundedMotionFallback
+        ) | (
+            Stage::Broadphase,
+            ForwardReason::ExhaustiveBroadphaseFallback
+        ) | (
+            Stage::Narrowphase,
+            ForwardReason::UnsupportedShapeFallback | ForwardReason::ManifoldsGenerated
+        ) | (Stage::CandidateGeneration, ForwardReason::CandidateAdmitted)
             | (Stage::ManifoldReduction, ForwardReason::ManifoldRetained)
             | (Stage::SolverMapping, ForwardReason::SolverRowSubmitted)
     )
@@ -383,23 +471,81 @@ fn valid_forward(stage: Stage, reason: ForwardReason) -> bool {
 
 fn valid_terminal(stage: Stage, reason: TerminalReason) -> bool {
     match stage {
-        Stage::Eligibility => matches!(reason, TerminalReason::CollisionFiltered | TerminalReason::InvalidInput | TerminalReason::Aborted),
-        Stage::TemporalBounds => matches!(reason, TerminalReason::TemporallyProvenDisjoint | TerminalReason::Aborted),
-        Stage::Broadphase => matches!(reason, TerminalReason::BroadphaseProvenDisjoint | TerminalReason::InvalidInput | TerminalReason::Aborted),
-        Stage::Narrowphase => matches!(reason, TerminalReason::NarrowphaseNoContact | TerminalReason::UnsupportedGeometry | TerminalReason::InvalidInput | TerminalReason::Aborted),
-        Stage::CandidateGeneration => matches!(reason, TerminalReason::SupportQueryFailed | TerminalReason::ShallowCandidate | TerminalReason::DuplicateCandidate | TerminalReason::CandidateCapacity | TerminalReason::InvalidInput | TerminalReason::Aborted),
-        Stage::ManifoldReduction => matches!(reason, TerminalReason::DeliberatelyReduced | TerminalReason::ManifoldStorageOverflow | TerminalReason::InvalidInput | TerminalReason::Aborted),
-        Stage::SolverMapping => matches!(reason, TerminalReason::SolverRuleRejected | TerminalReason::SolverUnsupported | TerminalReason::SolverNotSubmitted | TerminalReason::InvalidInput | TerminalReason::Aborted),
-        Stage::Solve => matches!(reason, TerminalReason::Converged | TerminalReason::BudgetExhausted | TerminalReason::SolverFailed | TerminalReason::SleepingSkip | TerminalReason::Aborted | TerminalReason::NotRun),
+        Stage::Eligibility => matches!(
+            reason,
+            TerminalReason::CollisionFiltered
+                | TerminalReason::InvalidInput
+                | TerminalReason::Aborted
+        ),
+        Stage::TemporalBounds => matches!(
+            reason,
+            TerminalReason::TemporallyProvenDisjoint | TerminalReason::Aborted
+        ),
+        Stage::Broadphase => matches!(
+            reason,
+            TerminalReason::BroadphaseProvenDisjoint
+                | TerminalReason::InvalidInput
+                | TerminalReason::Aborted
+        ),
+        Stage::Narrowphase => matches!(
+            reason,
+            TerminalReason::NarrowphaseNoContact
+                | TerminalReason::UnsupportedGeometry
+                | TerminalReason::InvalidInput
+                | TerminalReason::Aborted
+        ),
+        Stage::CandidateGeneration => matches!(
+            reason,
+            TerminalReason::SupportQueryFailed
+                | TerminalReason::ShallowCandidate
+                | TerminalReason::DuplicateCandidate
+                | TerminalReason::CandidateCapacity
+                | TerminalReason::InvalidInput
+                | TerminalReason::Aborted
+        ),
+        Stage::ManifoldReduction => matches!(
+            reason,
+            TerminalReason::DeliberatelyReduced
+                | TerminalReason::ManifoldStorageOverflow
+                | TerminalReason::InvalidInput
+                | TerminalReason::Aborted
+        ),
+        Stage::SolverMapping => matches!(
+            reason,
+            TerminalReason::SolverRuleRejected
+                | TerminalReason::SolverUnsupported
+                | TerminalReason::SolverNotSubmitted
+                | TerminalReason::InvalidInput
+                | TerminalReason::Aborted
+        ),
+        Stage::Solve => matches!(
+            reason,
+            TerminalReason::Converged
+                | TerminalReason::BudgetExhausted
+                | TerminalReason::SolverFailed
+                | TerminalReason::SleepingSkip
+                | TerminalReason::Aborted
+                | TerminalReason::NotRun
+        ),
     }
 }
 
 struct Fnv64(u64);
 impl Fnv64 {
-    fn byte(&mut self, b: u8) { self.0 = (self.0 ^ u64::from(b)).wrapping_mul(0x100000001b3); }
-    fn bytes(&mut self, bytes: &[u8]) { for b in bytes { self.byte(*b); } }
-    fn u32(&mut self, n: u32) { self.bytes(&n.to_le_bytes()); }
-    fn u64(&mut self, n: u64) { self.bytes(&n.to_le_bytes()); }
+    fn byte(&mut self, b: u8) {
+        self.0 = (self.0 ^ u64::from(b)).wrapping_mul(0x100000001b3);
+    }
+    fn bytes(&mut self, bytes: &[u8]) {
+        for b in bytes {
+            self.byte(*b);
+        }
+    }
+    fn u32(&mut self, n: u32) {
+        self.bytes(&n.to_le_bytes());
+    }
+    fn u64(&mut self, n: u64) {
+        self.bytes(&n.to_le_bytes());
+    }
     fn pair(&mut self, p: &PairIdentity) {
         self.u64(p.world_revision);
         self.u64(p.step_index);
@@ -408,25 +554,37 @@ impl Fnv64 {
             self.u32(c.body.generation);
             self.u32(c.collider);
             self.u64(c.subshape_path.len() as u64);
-            for part in &c.subshape_path { self.u32(*part); }
+            for part in &c.subshape_path {
+                self.u32(*part);
+            }
         }
     }
     fn lineage(&mut self, id: &LineageId) {
         self.pair(&id.pair);
         self.u64(id.path.len() as u64);
-        for part in &id.path { self.u32(*part); }
+        for part in &id.path {
+            self.u32(*part);
+        }
     }
     fn outcome(&mut self, o: &Outcome) {
         match o {
             Outcome::Forward => self.byte(0),
-            Outcome::ForwardWithReason(r) => { self.byte(1); self.byte(*r as u8); }
+            Outcome::ForwardWithReason(r) => {
+                self.byte(1);
+                self.byte(*r as u8);
+            }
             Outcome::Spawn { reason, children } => {
                 self.byte(2);
                 self.byte(*reason as u8);
                 self.u64(children.len() as u64);
-                for child in children { self.lineage(child); }
+                for child in children {
+                    self.lineage(child);
+                }
             }
-            Outcome::Terminate(r) => { self.byte(3); self.byte(*r as u8); }
+            Outcome::Terminate(r) => {
+                self.byte(3);
+                self.byte(*r as u8);
+            }
         }
     }
 }
@@ -437,7 +595,10 @@ mod tests {
 
     fn pair(a: u64, b: u64) -> PairIdentity {
         let collider = |handle| ColliderIdentity {
-            body: BodyIdentity { handle, generation: 0 },
+            body: BodyIdentity {
+                handle,
+                generation: 0,
+            },
             collider: 0,
             subshape_path: vec![],
         };
@@ -451,8 +612,18 @@ mod tests {
 
     #[test]
     fn rejects_self_pair() {
-        let c = ColliderIdentity { body: BodyIdentity { handle: 4, generation: 1 }, collider: 0, subshape_path: vec![] };
-        assert_eq!(PairIdentity::new(1, 1, c.clone(), c), Err(LedgerError::SelfPair));
+        let c = ColliderIdentity {
+            body: BodyIdentity {
+                handle: 4,
+                generation: 1,
+            },
+            collider: 0,
+            subshape_path: vec![],
+        };
+        assert_eq!(
+            PairIdentity::new(1, 1, c.clone(), c),
+            Err(LedgerError::SelfPair)
+        );
     }
 
     #[test]
@@ -462,20 +633,63 @@ mod tests {
         let a = root.child(0);
         let b = root.child(1);
         let mut l = PairLedger::new([p]).unwrap();
-        for s in [Stage::Eligibility, Stage::TemporalBounds, Stage::Broadphase, Stage::Narrowphase] {
-            l.record(StageEvent { stage: s, input: root.clone(), outcome: Outcome::Forward }).unwrap();
+        for s in [
+            Stage::Eligibility,
+            Stage::TemporalBounds,
+            Stage::Broadphase,
+            Stage::Narrowphase,
+        ] {
+            l.record(StageEvent {
+                stage: s,
+                input: root.clone(),
+                outcome: Outcome::Forward,
+            })
+            .unwrap();
         }
         l.record(StageEvent {
             stage: Stage::CandidateGeneration,
             input: root.clone(),
-            outcome: Outcome::Spawn { reason: ForwardReason::CandidateAdmitted, children: vec![b.clone(), a.clone()] },
-        }).unwrap();
-        l.record(StageEvent { stage: Stage::ManifoldReduction, input: a.clone(), outcome: Outcome::ForwardWithReason(ForwardReason::ManifoldRetained) }).unwrap();
-        l.record(StageEvent { stage: Stage::ManifoldReduction, input: b, outcome: Outcome::Terminate(TerminalReason::DeliberatelyReduced) }).unwrap();
-        l.record(StageEvent { stage: Stage::SolverMapping, input: a.clone(), outcome: Outcome::ForwardWithReason(ForwardReason::SolverRowSubmitted) }).unwrap();
-        l.record(StageEvent { stage: Stage::Solve, input: a, outcome: Outcome::Terminate(TerminalReason::Converged) }).unwrap();
+            outcome: Outcome::Spawn {
+                reason: ForwardReason::CandidateAdmitted,
+                children: vec![b.clone(), a.clone()],
+            },
+        })
+        .unwrap();
+        l.record(StageEvent {
+            stage: Stage::ManifoldReduction,
+            input: a.clone(),
+            outcome: Outcome::ForwardWithReason(ForwardReason::ManifoldRetained),
+        })
+        .unwrap();
+        l.record(StageEvent {
+            stage: Stage::ManifoldReduction,
+            input: b,
+            outcome: Outcome::Terminate(TerminalReason::DeliberatelyReduced),
+        })
+        .unwrap();
+        l.record(StageEvent {
+            stage: Stage::SolverMapping,
+            input: a.clone(),
+            outcome: Outcome::ForwardWithReason(ForwardReason::SolverRowSubmitted),
+        })
+        .unwrap();
+        l.record(StageEvent {
+            stage: Stage::Solve,
+            input: a,
+            outcome: Outcome::Terminate(TerminalReason::Converged),
+        })
+        .unwrap();
         let r = l.receipt().unwrap();
-        assert_eq!((r.root_pairs, r.event_count, r.forwarded_count, r.spawned_count, r.terminal_count), (1, 9, 6, 2, 2));
+        assert_eq!(
+            (
+                r.root_pairs,
+                r.event_count,
+                r.forwarded_count,
+                r.spawned_count,
+                r.terminal_count
+            ),
+            (1, 9, 6, 2, 2)
+        );
         assert_eq!(r.stages[4].1.spawned, 2);
     }
 
@@ -484,8 +698,20 @@ mod tests {
         let p = pair(1, 2);
         let root = LineageId::root(p.clone());
         let mut l = PairLedger::new([p]).unwrap();
-        l.record(StageEvent { stage: Stage::Eligibility, input: root, outcome: Outcome::Forward }).unwrap();
-        assert!(matches!(l.validate(), Err(LedgerError::StageInputMismatch { stage: Stage::TemporalBounds, missing: 1, .. })));
+        l.record(StageEvent {
+            stage: Stage::Eligibility,
+            input: root,
+            outcome: Outcome::Forward,
+        })
+        .unwrap();
+        assert!(matches!(
+            l.validate(),
+            Err(LedgerError::StageInputMismatch {
+                stage: Stage::TemporalBounds,
+                missing: 1,
+                ..
+            })
+        ));
     }
 
     #[test]
@@ -493,24 +719,51 @@ mod tests {
         let p = pair(1, 2);
         let root = LineageId::root(p.clone());
         let mut l = PairLedger::new([p]).unwrap();
-        l.record(StageEvent { stage: Stage::Eligibility, input: root.clone(), outcome: Outcome::Forward }).unwrap();
-        l.record(StageEvent { stage: Stage::TemporalBounds, input: root, outcome: Outcome::Terminate(TerminalReason::UnsupportedGeometry) }).unwrap();
-        assert!(matches!(l.validate(), Err(LedgerError::InvalidTerminalReason { stage: Stage::TemporalBounds, .. })));
+        l.record(StageEvent {
+            stage: Stage::Eligibility,
+            input: root.clone(),
+            outcome: Outcome::Forward,
+        })
+        .unwrap();
+        l.record(StageEvent {
+            stage: Stage::TemporalBounds,
+            input: root,
+            outcome: Outcome::Terminate(TerminalReason::UnsupportedGeometry),
+        })
+        .unwrap();
+        assert!(matches!(
+            l.validate(),
+            Err(LedgerError::InvalidTerminalReason {
+                stage: Stage::TemporalBounds,
+                ..
+            })
+        ));
     }
 
     #[test]
     fn fingerprint_is_independent_of_event_insertion_order() {
         let p = pair(1, 2);
         let root = LineageId::root(p.clone());
-        let events: Vec<_> = Stage::ORDER.into_iter().map(|stage| StageEvent {
-            stage,
-            input: root.clone(),
-            outcome: if stage == Stage::Solve { Outcome::Terminate(TerminalReason::Converged) } else { Outcome::Forward },
-        }).collect();
+        let events: Vec<_> = Stage::ORDER
+            .into_iter()
+            .map(|stage| StageEvent {
+                stage,
+                input: root.clone(),
+                outcome: if stage == Stage::Solve {
+                    Outcome::Terminate(TerminalReason::Converged)
+                } else {
+                    Outcome::Forward
+                },
+            })
+            .collect();
         let mut a = PairLedger::new([p.clone()]).unwrap();
         let mut b = PairLedger::new([p]).unwrap();
-        for e in &events { a.record(e.clone()).unwrap(); }
-        for e in events.into_iter().rev() { b.record(e).unwrap(); }
+        for e in &events {
+            a.record(e.clone()).unwrap();
+        }
+        for e in events.into_iter().rev() {
+            b.record(e).unwrap();
+        }
         assert_eq!(a.receipt().unwrap(), b.receipt().unwrap());
     }
 
@@ -520,13 +773,28 @@ mod tests {
         let other = pair(1, 3);
         let root = LineageId::root(p.clone());
         let mut l = PairLedger::new([p]).unwrap();
-        for s in [Stage::Eligibility, Stage::TemporalBounds, Stage::Broadphase, Stage::Narrowphase] {
-            l.record(StageEvent { stage: s, input: root.clone(), outcome: Outcome::Forward }).unwrap();
+        for s in [
+            Stage::Eligibility,
+            Stage::TemporalBounds,
+            Stage::Broadphase,
+            Stage::Narrowphase,
+        ] {
+            l.record(StageEvent {
+                stage: s,
+                input: root.clone(),
+                outcome: Outcome::Forward,
+            })
+            .unwrap();
         }
-        l.record(StageEvent { stage: Stage::CandidateGeneration, input: root, outcome: Outcome::Spawn {
-            reason: ForwardReason::CandidateAdmitted,
-            children: vec![LineageId::root(other)],
-        }}).unwrap();
+        l.record(StageEvent {
+            stage: Stage::CandidateGeneration,
+            input: root,
+            outcome: Outcome::Spawn {
+                reason: ForwardReason::CandidateAdmitted,
+                children: vec![LineageId::root(other)],
+            },
+        })
+        .unwrap();
         assert_eq!(l.validate(), Err(LedgerError::ChildHasDifferentPair));
     }
 }
