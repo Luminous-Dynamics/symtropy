@@ -366,12 +366,12 @@ fn make_jobs(
                     Operation {
                         operation_id,
                         sequence: operation_index + 1,
-                        setup_family: match process_family.as_str() {
+                        setup_family: (match process_family.as_str() {
                             "CUTTING" => "SETUP-A",
                             "FORMING" => "SETUP-B",
                             "FINISHING" => "SETUP-C",
                             _ => unreachable!("known process family"),
-                        }.to_string(),
+                        }).to_string(),
                         process_family,
                         predecessor_operation_ids: if operation_index == 0 {
                             Vec::new()
@@ -897,12 +897,12 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
             for (index, operation) in job.operations.iter().enumerate() {
                 if !operation_ids.insert(operation.operation_id.as_str())
                     || operation.sequence != index + 1
-                    || operation.setup_family != match operation.process_family.as_str() {
+                    || operation.setup_family != (match operation.process_family.as_str() {
                         "CUTTING" => "SETUP-A",
                         "FORMING" => "SETUP-B",
                         "FINISHING" => "SETUP-C",
                         _ => "",
-                    }
+                    })
                     || operation.eligible_resource_ids.len() != 2
                     || operation.eligible_resource_ids.iter().any(|id| !resource_ids.contains(id.as_str()))
                     || operation.processing_time_ticks_by_resource.len() != 2
