@@ -170,6 +170,14 @@ The v0.1 branch now contains a finite deterministic quotient constructor in `src
 
 The v0.2 benchmark must extend this beyond transition consistency: declare the observables, rewards, constraints and decisions that the abstraction is intended to preserve, then test them on held-out tasks. A quotient can be transition-congruent yet discard a distinction that matters to a task not included in its declared scope. Keep one-system quotient construction separate from source-to-target simulation/bisimulation.
 
+## Mechanism claims must be evidence-bound, not inferred from graph identity
+
+The current finite owner-side bundle adapter now supports a separate qualitative mechanism-transfer candidate: mapped actions, precommitted preserve/negate effect transforms, source intervention observations with public source evidence IDs, and frozen target-effect predictions. Actual target effects and target evidence receipts are supplied only by the owner after freeze.
+
+The evaluator checks that every mapped action has exactly one source observation, one prediction and one owner outcome; it verifies source evidence against the public prefix, verifies mapping and action-kind identity, compares target predictions with hidden owner-side outcomes, and then applies the finite effect-transform validator. A mismatch is a falsifiable counterexample, not a soft confidence penalty.
+
+This is qualitative and finite: it does not estimate effect magnitude, adjust for confounding, discover mediators or identify a general causal graph. Unobserved actions and mechanisms remain unknown. A mechanism forecast must carry its typed mechanism artifact and is bound to that exact artifact via the claim-scope digest contract.
+
 ## Decision-relevant information value
 
 ErgoStream must not rank acquisition actions by entropy reduction alone. The finite reference `decision_value.rs` computes expected reduction in optimal decision loss (EVSI) separately from mutual information, with a machine-readable known-answer pair. It should enter the v0.2 baseline ladder as a decision-focused oracle/control:
