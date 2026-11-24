@@ -52,7 +52,13 @@ The crucial difference is separating joint rank from physical rank after nuisanc
 
 ## Manufactured tests
 
-The 19 current deterministic tests cover orthogonal and exact/near-collinear physical/nuisance effects, nuisance-only rank deficiency, characteristic scaling, row permutation, positive/negative confounding, zero-sensitivity parameters, underdetermined observations, malformed/non-finite inputs, one-column decomposition, Jacobi non-convergence and the distinction between absent physical sensitivity and nuisance confounding.
+The 23 current deterministic tests cover orthogonal and exact/near-collinear physical/nuisance effects, nuisance-only rank deficiency, characteristic scaling, row permutation, positive/negative confounding, zero-sensitivity parameters, underdetermined observations, malformed/non-finite inputs, one-column decomposition, Jacobi non-convergence, the distinction between absent physical sensitivity and nuisance confounding, correlated-noise whitening, positive-definite covariance validation and no-jitter rejection.
+
+## V0.2: explicit dense covariance whitening reference
+
+The crate now includes `whiten_sensitivity_with_covariance(J, Sigma, tol)`, which checks covariance dimensions, finiteness, symmetry and strict positive definiteness, performs Cholesky (Sigma=LL^	op), and returns (J_w=L^{-1}J). Therefore (J_w^	op J_w=J^	opSigma^{-1}J). It does not symmetrize the input, add diagonal jitter, or repair a singular covariance. The dense routine is capped at 512 observations to bound (O(n^3)) factorization cost.
+
+This is a small reference path for proving the effect of correlated observation noise, not the production image-covariance implementation. The next scalable adapter should use independently qualified block-sparse, Toeplitz/FFT or low-rank-plus-diagonal covariance structure, including cross-frame/common-mode components. Do not whiten each image pixel independently unless the measurement model actually supports that covariance assumption.
 
 ## V0.1: candidate measurement ranking
 
