@@ -95,6 +95,7 @@ pub struct CalibrationRecord {
     pub target_end_unix_ms: u64,
     pub on_time_probability_permille: u16,
     pub on_time_observed: bool,
+    pub on_time_forecast_evidence: EvidenceEnvelope,
     pub on_time_evidence: EvidenceEnvelope,
     pub metrics: Vec<ForecastMetricObservation>,
 }
@@ -195,6 +196,7 @@ struct MetricGroupKey {
     model_id: String,
     model_version: String,
     stratum_id: String,
+    site_configuration_digest: String,
     metric_kind: ForecastMetricKind,
     boundary: MeasurementBoundary,
     configuration_digest: String,
@@ -206,6 +208,7 @@ struct OnTimeGroupKey {
     model_id: String,
     model_version: String,
     stratum_id: String,
+    site_configuration_digest: String,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -355,7 +358,6 @@ fn interval_metrics(
     let mut covered_after = 0_usize;
     let mut widths_before = Vec::with_capacity(pairs.len());
     let mut widths_after = Vec::with_capacity(pairs.len());
-    let mut absolute_errors = Vec::with_capacity(pairs.len());
     let mut winkler_sum = 0.0_f64;
     let alpha = 1.0 - f64::from(nominal_coverage_permille) / 1_000.0;
 
@@ -370,7 +372,6 @@ fn interval_metrics(
         }
         widths_before.push(pair.upper.saturating_sub(pair.lower));
         widths_after.push(adjusted_upper.saturating_sub(adjusted_lower));
-        absolute_errors.push(pair.point.abs_diff(pair.observed));
         let miss = if pair.observed < adjusted_lower {
             adjusted_lower - pair.observed
         } else if pair.observed > adjusted_upper {
@@ -390,7 +391,7 @@ fn interval_metrics(
         after,
         mean_u64(&widths_before)?,
         mean_u64(&widths_after)?,
-        mean_u64(&absolute_errors)? as f64 * 0.0 + winkler_sum / pairs.len() as f64,
+        winkler_sum / pairs.len() as f64,
     ))
 }
 
@@ -602,7 +603,26 @@ fn validate_record(
     ) {
         add_error(&mut errors, format!("on_time_outcome_evidence_invalid:{}", record.sample_id));
     }
-    let _ = evidence_references.insert(record.on_time_evidence.evidence_reference.clone());
+    if !evidence_references.insert(record.on_time_forecast_evidence.evidence_reference.clone()) {
+        add_error(&mut errors, format!("evidence_reference_reused:{}", record.on_time_forecast_evidence.evidence_reference));
+    }
+    if !validate_forecast_evidence(
+        &record.on_time_forecast_evidence,
+        &record.site_id,
+        &record.site_configuration_digest,
+        record.decision_time_unix_ms,
+        record.target_end_unix_ms,
+    ) {
+        add_error(&mut errors, format!("on_time_forecast_evidence_invalid:{}", record.sample_id));
+    }
+    if !evidence_references.insert(record.on_time_evidence.evidence_reference.clone()) {
+        add_error(&mut errors, format!("evidence_reference_reused:{}", record.on_time_evidence.evidence_reference));
+    }
+    *all_source_grade &= matches!(
+        record.on_time_forecast_evidence.evidence_class,
+        EvidenceClass::Measured | EvidenceClass::IndependentTest
+    );
+    *any_synthetic |= record.on_time_forecast_evidence.evidence_class == EvidenceClass::Synthetic;
     *all_source_grade &= matches!(
         record.on_time_evidence.evidence_class,
         EvidenceClass::Measured | EvidenceClass::IndependentTest
@@ -670,7 +690,27 @@ fn validate_record(
 }
 
 fn input_digest(input: &ServicePredictionCalibrationInput) -> Result<String, String> {
-    let bytes = serde_json::to_vec(input)
+    let mut canonical = input.clone();
+    canonical.records.sort_by(|a, b| a.sample_id.cmp(&b.sample_id));
+    for record in &mut canonical.records {
+        record.metrics.sort_by(|a, b| {
+            (
+                a.metric_kind,
+                a.measurement_boundary,
+                a.nominal_coverage_permille,
+                a.asset_id.as_str(),
+                a.configuration_digest.as_str(),
+            )
+                .cmp(&(
+                    b.metric_kind,
+                    b.measurement_boundary,
+                    b.nominal_coverage_permille,
+                    b.asset_id.as_str(),
+                    b.configuration_digest.as_str(),
+                ))
+        });
+    }
+    let bytes = serde_json::to_vec(&canonical)
         .map_err(|error| format!("calibration_input_serialization_failed:{error}"))?;
     let digest = Sha256::digest(bytes);
     let mut output = String::from("sha256:");
@@ -727,6 +767,7 @@ pub fn evaluate_service_prediction_calibration(
             model_id: record.forecast_model_id.clone(),
             model_version: record.forecast_model_version.clone(),
             stratum_id: record.stratum_id.clone(),
+            site_configuration_digest: record.site_configuration_digest.clone(),
         };
         on_time_groups
             .entry(on_key)
@@ -738,6 +779,7 @@ pub fn evaluate_service_prediction_calibration(
                 model_id: record.forecast_model_id.clone(),
                 model_version: record.forecast_model_version.clone(),
                 stratum_id: record.stratum_id.clone(),
+                site_configuration_digest: record.site_configuration_digest.clone(),
                 metric_kind: metric.metric_kind,
                 boundary: metric.measurement_boundary,
                 configuration_digest: metric.configuration_digest.clone(),
