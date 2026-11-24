@@ -16,6 +16,7 @@ on:
       - main
       - research/mfg-policy-v02-action-admission
       - research/mfg-policy-v02-live-snapshot-admission
+      - research/mfg-policy-v02-replay-chain-admission
     paths:
       - "schemas/manufacturing/mfg_policy_v02_decision_frame.schema.json"
       - "schemas/manufacturing/mfg_policy_v02_action_proposal.schema.json"
