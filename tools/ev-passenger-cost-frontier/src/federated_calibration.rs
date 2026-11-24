@@ -179,7 +179,10 @@ fn validate(input: &FederatedCalibrationInput) -> Result<(), Vec<String>> {
         errors.push("benchmark_id must be FEDERATED-SERVICE-CALIBRATION-001".to_owned());
     }
     if !non_empty(&input.epoch_id) || !is_sha256_digest(&input.query_scope_digest) {
-        errors.push("epoch_id must be non-empty and query_scope_digest must be a lowercase SHA-256 digest".to_owned());
+        errors.push(
+            "epoch_id must be non-empty and query_scope_digest must be a lowercase SHA-256 digest"
+                .to_owned(),
+        );
     }
     if input.aggregation_time_unix_ms == 0 || input.maximum_summary_age_ms == 0 {
         errors.push("aggregation time and maximum summary age must be positive".to_owned());
