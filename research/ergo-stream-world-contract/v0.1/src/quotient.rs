@@ -74,8 +74,12 @@ impl fmt::Display for QuotientErrorV0 {
             Self::DuplicateActionId => "action IDs must be unique",
             Self::DuplicateStateMapping => "state partition contains duplicate state mappings",
             Self::UnknownStateMapping => "state partition references an unknown state",
-            Self::PartitionIncomplete => "state partition must cover every source state exactly once",
-            Self::UnknownTransitionState => "transition references an unknown source or target state",
+            Self::PartitionIncomplete => {
+                "state partition must cover every source state exactly once"
+            }
+            Self::UnknownTransitionState => {
+                "transition references an unknown source or target state"
+            }
             Self::UnknownTransitionAction => "transition references an unknown action",
             Self::DuplicateTransition => "transition table contains a duplicate state/action row",
             Self::NondeterministicTransition => "source transition system is not deterministic",
@@ -156,8 +160,7 @@ pub fn validate_and_build_quotient(
                     .transitions
                     .iter()
                     .find(|transition| {
-                        transition.from_state_id == state_id
-                            && transition.action_id == action.id
+                        transition.from_state_id == state_id && transition.action_id == action.id
                     })
                     .map(|transition| {
                         state_to_class
@@ -196,7 +199,11 @@ pub fn validate_and_build_quotient(
     }
 
     quotient_transitions.sort_by_key(|transition| {
-        (transition.from_class_id, transition.action_id, transition.to_class_id)
+        (
+            transition.from_class_id,
+            transition.action_id,
+            transition.to_class_id,
+        )
     });
     let class_ids = class_members.keys().copied().collect::<Vec<_>>();
     let action_ids = source
@@ -220,9 +227,7 @@ pub fn validate_and_build_quotient(
     })
 }
 
-fn validate_source_transitions(
-    source: &FiniteTransitionSystemV0,
-) -> Result<(), QuotientErrorV0> {
+fn validate_source_transitions(source: &FiniteTransitionSystemV0) -> Result<(), QuotientErrorV0> {
     let mut seen = BTreeSet::new();
     for transition in &source.transitions {
         if !source
@@ -249,7 +254,9 @@ fn validate_source_transitions(
                     && candidate.action_id == transition.action_id
             });
             let mut outcomes = same_pair.map(|candidate| candidate.to_state_id);
-            let first_outcome = outcomes.next().ok_or(QuotientErrorV0::DuplicateTransition)?;
+            let first_outcome = outcomes
+                .next()
+                .ok_or(QuotientErrorV0::DuplicateTransition)?;
             return Err(if outcomes.all(|outcome| outcome == first_outcome) {
                 QuotientErrorV0::DuplicateTransition
             } else {
@@ -272,15 +279,8 @@ fn fixture() -> (FiniteTransitionSystemV0, StatePartitionV0) {
     use super::dynamics::{ActionV0, StateV0};
 
     let source = FiniteTransitionSystemV0 {
-        states: vec![
-            StateV0 { id: 1 },
-            StateV0 { id: 2 },
-            StateV0 { id: 3 },
-        ],
-        actions: vec![
-            ActionV0 { id: 10, kind: 1 },
-            ActionV0 { id: 20, kind: 2 },
-        ],
+        states: vec![StateV0 { id: 1 }, StateV0 { id: 2 }, StateV0 { id: 3 }],
+        actions: vec![ActionV0 { id: 10, kind: 1 }, ActionV0 { id: 20, kind: 2 }],
         transitions: vec![
             TransitionV0 {
                 from_state_id: 1,
@@ -387,9 +387,9 @@ mod tests {
     #[test]
     fn rejects_partition_members_with_different_action_enablement() {
         let (mut source, partition) = fixture();
-        source.transitions.retain(|transition| {
-            !(transition.from_state_id == 2 && transition.action_id == 10)
-        });
+        source
+            .transitions
+            .retain(|transition| !(transition.from_state_id == 2 && transition.action_id == 10));
 
         assert_eq!(
             validate_and_build_quotient(&source, &partition),
@@ -451,14 +451,13 @@ mod tests {
         let witness = validate_and_build_quotient(&source, &partition).unwrap();
 
         for transition in &witness.quotient.transitions {
-            assert!(witness
-                .quotient
-                .class_ids
-                .contains(&transition.from_class_id));
-            assert!(witness
-                .quotient
-                .class_ids
-                .contains(&transition.to_class_id));
+            assert!(
+                witness
+                    .quotient
+                    .class_ids
+                    .contains(&transition.from_class_id)
+            );
+            assert!(witness.quotient.class_ids.contains(&transition.to_class_id));
             assert!(witness.quotient.action_ids.contains(&transition.action_id));
         }
     }
