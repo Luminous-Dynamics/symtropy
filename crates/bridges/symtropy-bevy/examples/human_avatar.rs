@@ -13,7 +13,8 @@
 //! This is an asset/animation smoke test, not a human-motion realism benchmark.
 
 use bevy::{
-    animation::{AnimationGraph, AnimationPlayer},
+    animation::{AnimationPlayer, graph::AnimationGraph},
+    asset::LoadState,
     light::CascadeShadowConfigBuilder,
     prelude::*,
     world_serialization::WorldInstanceReady,
