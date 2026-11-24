@@ -1566,7 +1566,7 @@ mod tests {
         assert!(
             receipt
                 .reason_codes
-                .contains(&"dynamic_operation_state_snapshot_not_yet_supported".to_string())
+                .contains(&"trusted_operational_state_snapshot_required".to_string())
         );
     }
 
