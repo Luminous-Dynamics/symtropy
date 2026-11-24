@@ -2,6 +2,7 @@ pub mod assurance_envelope;
 pub mod high_probability;
 pub mod lipschitz;
 pub mod oracle_adapter;
+pub mod repeated_sampling;
 pub mod weighted_shift;
 
 pub mod non_monotone;
