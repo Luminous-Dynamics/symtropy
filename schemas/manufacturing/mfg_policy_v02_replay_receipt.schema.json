@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-replay-receipt",
+  "title": "Manufacturing Policy v0.2 Independent Replay Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "benchmark_id", "case_id", "status", "ledger_digest", "snapshots", "violation_ledger", "final_snapshot_digest", "claim_ceiling"],
+  "properties": {
+    "schema_id": {"const": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-replay-receipt"},
+    "benchmark_id": {"const": "MFG-POLICY-V02-CHALLENGE-001"},
+    "case_id": {"type": "string", "minLength": 1},
+    "status": {"type": "string", "enum": ["VERIFIED", "REJECTED"]},
+    "ledger_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "snapshots": {"type": "array", "items": {"$ref": "mfg_policy_v02_operational_state_snapshot.schema.json"}},
+    "violation_ledger": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["decision_epoch", "transition_id", "code"],
+        "properties": {
+          "decision_epoch": {"type": ["integer", "null"], "minimum": 0, "maximum": 3},
+          "transition_id": {"type": ["string", "null"]},
+          "code": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "final_snapshot_digest": {"type": ["string", "null"]},
+    "claim_ceiling": {"const": "Synthetic event-sourced schedule-state replay; no physical execution, source authentication, product acceptance, ISO conformance or SOTA superiority."}
+  }
+}
