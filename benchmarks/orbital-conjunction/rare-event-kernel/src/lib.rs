@@ -55,16 +55,16 @@ pub use adaptive_importance_sampling::{
     AdaptiveImportanceSamplingError, AdaptiveImportanceSamplingSummary, BoundedMeanBettingSequence,
     BoundedMeanConfidenceSequence,
 };
+pub use conditional_velocity::{
+    ConditionalDirectionReport, ConditionalVelocityConfig, ConditionalVelocityDiagnostics,
+    ConditionalVelocityDistribution, Matrix3, RelativePositionVelocityCovarianceBlocks,
+    ZeroConditionalVarianceMode,
+};
 pub use confidence_sequence_benchmark::{
     ConfidenceSequenceBenchmarkError, ConfidenceSequenceBenchmarkReport,
     ConfidenceSequenceBenchmarkSnapshot, ConfidenceSequenceMethod,
     ConfidenceSequenceMethodBenchmark, ConfidenceThresholdDecision,
     benchmark_confidence_sequences,
-};
-pub use conditional_velocity::{
-    ConditionalDirectionReport, ConditionalVelocityConfig, ConditionalVelocityDiagnostics,
-    ConditionalVelocityDistribution, Matrix3, RelativePositionVelocityCovarianceBlocks,
-    ZeroConditionalVarianceMode,
 };
 pub use decision_gate::{
     DecisionGateError, DecisionSufficiency, DecisionSufficiencyReport, RiskThresholdRule,
