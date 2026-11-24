@@ -15,7 +15,7 @@ use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::fmt;
 use std::fs::{self, File, OpenOptions};
-use std::io::{Read, Seek, SeekFrom, Write};
+use std::io::{BufRead, BufReader, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
 pub const JOURNAL_SCHEMA_VERSION: &str = "0.1";
@@ -33,6 +33,7 @@ pub enum JournalError {
     TornFinalRecord,
     EmptyRecord,
     RecordTooLarge,
+    SequenceOverflow,
     InvalidUtf8,
     InvalidJson(String),
     UnsupportedVersion,
@@ -64,6 +65,7 @@ impl fmt::Display for JournalError {
             Self::TornFinalRecord => write!(f, "journal has a torn final record; refusing automatic truncation"),
             Self::EmptyRecord => write!(f, "journal contains an empty record"),
             Self::RecordTooLarge => write!(f, "journal record exceeds the configured size bound"),
+            Self::SequenceOverflow => write!(f, "journal sequence counter overflowed"),
             Self::InvalidUtf8 => write!(f, "journal contains invalid UTF-8"),
             Self::InvalidJson(message) => write!(f, "journal record is invalid JSON: {message}"),
             Self::UnsupportedVersion => write!(f, "journal schema version is unsupported"),
@@ -759,6 +761,7 @@ impl Journal {
         let existed = path.exists();
         let mut file = OpenOptions::new()
             .create(true)
+            .truncate(false)
             .read(true)
             .write(true)
             .open(&path)
@@ -884,6 +887,10 @@ impl Journal {
             event,
             entry_sha256: digest.clone(),
         };
+        let next_sequence = self
+            .next_sequence
+            .checked_add(1)
+            .ok_or(JournalError::SequenceOverflow)?;
         let mut line = serde_json::to_vec(&entry)
             .map_err(|error| JournalError::InvalidJson(error.to_string()))?;
         if line.len() > MAX_JOURNAL_RECORD_BYTES {
@@ -895,7 +902,7 @@ impl Journal {
             return Err(io_error(error));
         }
         self.index = candidate;
-        self.next_sequence = self.next_sequence.saturating_add(1);
+        self.next_sequence = next_sequence;
         self.head_sha256 = digest;
         Ok(entry)
     }
@@ -912,30 +919,31 @@ pub fn verify_file(path: impl AsRef<Path>) -> Result<JournalSummary, JournalErro
 
 fn replay_file(file: &mut File) -> Result<(JournalIndex, u64, String), JournalError> {
     file.seek(SeekFrom::Start(0)).map_err(io_error)?;
-    let mut bytes = Vec::new();
-    file.read_to_end(&mut bytes).map_err(io_error)?;
-    if bytes.is_empty() {
-        return Ok((
-            JournalIndex::default(),
-            1,
-            JOURNAL_GENESIS_SHA256.to_owned(),
-        ));
-    }
-    if !bytes.ends_with(b"\n") {
-        return Err(JournalError::TornFinalRecord);
-    }
-
+    let cloned = file.try_clone().map_err(io_error)?;
+    let mut reader = BufReader::new(cloned);
     let mut index = JournalIndex::default();
     let mut expected_sequence = 1_u64;
     let mut previous_hash = JOURNAL_GENESIS_SHA256.to_owned();
-    for raw_line in bytes.split_terminator(|byte| *byte == b'\n') {
-        if raw_line.is_empty() {
-            return Err(JournalError::EmptyRecord);
+    let mut saw_record = false;
+
+    loop {
+        let mut line = Vec::new();
+        let bytes_read = reader.read_until(b'\n', &mut line).map_err(io_error)?;
+        if bytes_read == 0 {
+            break;
         }
-        if raw_line.len() > MAX_JOURNAL_RECORD_BYTES {
+        saw_record = true;
+        if line.len() > MAX_JOURNAL_RECORD_BYTES + 1 {
             return Err(JournalError::RecordTooLarge);
         }
-        let text = std::str::from_utf8(raw_line).map_err(|_| JournalError::InvalidUtf8)?;
+        if line.last() != Some(&b'\n') {
+            return Err(JournalError::TornFinalRecord);
+        }
+        line.pop();
+        if line.is_empty() {
+            return Err(JournalError::EmptyRecord);
+        }
+        let text = std::str::from_utf8(&line).map_err(|_| JournalError::InvalidUtf8)?;
         let entry: JournalEntry = serde_json::from_str(text)
             .map_err(|error| JournalError::InvalidJson(error.to_string()))?;
         if entry.schema_version != JOURNAL_SCHEMA_VERSION {
@@ -963,7 +971,12 @@ fn replay_file(file: &mut File) -> Result<(JournalIndex, u64, String), JournalEr
         }
         index.apply(&entry.event)?;
         previous_hash = digest;
-        expected_sequence = expected_sequence.saturating_add(1);
+        expected_sequence = expected_sequence
+            .checked_add(1)
+            .ok_or(JournalError::SequenceOverflow)?;
+    }
+    if !saw_record {
+        return Ok((index, 1, JOURNAL_GENESIS_SHA256.to_owned()));
     }
     Ok((index, expected_sequence, previous_hash))
 }
