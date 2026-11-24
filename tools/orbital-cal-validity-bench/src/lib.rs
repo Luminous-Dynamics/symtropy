@@ -557,6 +557,7 @@ mod tests {
         let mut value = case();
         value.events.push(ChangeEvent {
             event_id: "tool-change-1".to_owned(),
+            event_receipt_sha256: "c".repeat(64),
             effective_time_ns: 400,
             time_uncertainty_ns: 1,
             affected_scope_ids: vec!["camera-intrinsics".to_owned()],
@@ -571,6 +572,7 @@ mod tests {
         let mut value = case();
         value.events.push(ChangeEvent {
             event_id: "collision-1".to_owned(),
+            event_receipt_sha256: "c".repeat(64),
             effective_time_ns: 501,
             time_uncertainty_ns: 4,
             affected_scope_ids: vec!["camera-intrinsics".to_owned()],
@@ -602,6 +604,7 @@ mod tests {
         let mut value = case();
         value.events.push(ChangeEvent {
             event_id: "maintenance-log-1".to_owned(),
+            event_receipt_sha256: "c".repeat(64),
             effective_time_ns: 400,
             time_uncertainty_ns: 1,
             affected_scope_ids: vec!["camera-intrinsics".to_owned()],
