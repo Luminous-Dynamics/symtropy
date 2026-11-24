@@ -31,6 +31,12 @@ pub struct ExactRisk {
 }
 
 impl ExactRisk {
+    /// Construct and reduce a non-negative exact fraction. A zero denominator
+    /// is rejected; all successful values are safe for exact comparison.
+    pub fn from_ratio(numerator: u128, denominator: u128) -> Result<Self, TailRiskError> {
+        Self::new(numerator, denominator)
+    }
+
     fn new(numerator: u128, denominator: u128) -> Result<Self, TailRiskError> {
         if denominator == 0 {
             return Err(TailRiskError::ZeroTotalMass);
