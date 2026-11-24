@@ -363,7 +363,10 @@ fn abstain(case: &Case, reason: &str) -> CaseResult {
     }
 }
 
-fn validate_receipt(case: &Case, receipt: &ProbabilityReceipt) -> Result<BTreeMap<String, Rational>, String> {
+fn validate_receipt(
+    case: &Case,
+    receipt: &ProbabilityReceipt,
+) -> Result<BTreeMap<String, Rational>, String> {
     if receipt.receipt_schema != MODEL_SCHEMA
         || receipt.claim_ceiling != MODEL_CLAIM_CEILING
         || !valid_commit(&receipt.source_commit)
@@ -402,7 +405,9 @@ fn validate_receipt(case: &Case, receipt: &ProbabilityReceipt) -> Result<BTreeMa
     if receipt.assumptions.sampling_design != "EXPLICIT_JOINT_DISTRIBUTION"
         || receipt.assumptions.dependence_model != "JOINT_SCENARIO_WEIGHTS"
     {
-        return Err("probability model assumptions do not declare an explicit joint distribution".to_owned());
+        return Err(
+            "probability model assumptions do not declare an explicit joint distribution".to_owned(),
+        );
     }
     let expected_ids = case.expected_scenario_ids.iter().cloned().collect::<BTreeSet<_>>();
     let scenario_ids_digest = digest_ids(&case.expected_scenario_ids)?;
@@ -411,18 +416,25 @@ fn validate_receipt(case: &Case, receipt: &ProbabilityReceipt) -> Result<BTreeMa
         || case.expected_scenario_ids.windows(2).any(|pair| pair[0] >= pair[1])
         || scenario_ids_digest != case.expected_scenario_ids_sha256
     {
-        return Err("expected joint scenario ID inventory is malformed or digest-inconsistent".to_owned());
+        return Err(
+            "expected joint scenario ID inventory is malformed or digest-inconsistent".to_owned(),
+        );
     }
     if case.joint_scenarios.len() != expected_ids.len()
-        || case.joint_scenarios.iter().any(|row| !valid_id(&row.scenario_id)
-            || !valid_id(&row.world_id)
-            || !valid_id(&row.loss_model_id))
+        || case
+            .joint_scenarios
+            .iter()
+            .any(|row| !valid_id(&row.scenario_id)
+                || !valid_id(&row.world_id)
+                || !valid_id(&row.loss_model_id))
         || case.joint_scenarios.iter().map(|row| row.scenario_id.as_str()).collect::<BTreeSet<_>>()
             != expected_ids.iter().map(String::as_str).collect::<BTreeSet<_>>()
         || digest_joint_scenarios(&case.joint_scenarios)?
             != case.joint_scenario_manifest_sha256
     {
-        return Err("joint scenario identity records or manifest digest are inconsistent".to_owned());
+        return Err(
+            "joint scenario identity records or manifest digest are inconsistent".to_owned(),
+        );
     }
     if receipt.weights.len() != expected_ids.len() {
         return Err("probability weights do not cover the exact joint scenario inventory".to_owned());
@@ -439,12 +451,10 @@ fn validate_receipt(case: &Case, receipt: &ProbabilityReceipt) -> Result<BTreeMa
         }
         total = total.checked_add(&row.weight)?;
     }
-    if weights.len() != expected_ids.len()
-        || total != Rational::one()
-    {
+    if weights.len() != expected_ids.len() || total != Rational::one() {
         return Err("probability weights do not sum exactly to one".to_owned());
     }
-    if digest_weights(&receipt.weights)?.as_str() != receipt.probability_payload_sha256 {
+    if digest_weights(&receipt.weights)? != receipt.probability_payload_sha256 {
         return Err("probability weight payload digest mismatch".to_owned());
     }
     Ok(weights)
@@ -611,7 +621,10 @@ fn evaluate_case(case: &Case, alphas: &[Rational]) -> CaseResult {
         if row_ids.len() != policy.per_scenario.len()
             || row_ids != expected_ids.iter().map(String::as_str).collect::<BTreeSet<_>>()
         {
-            return invalid(case, "policy regret rows have missing, duplicate or unknown scenario IDs");
+            return invalid(
+                case,
+                "policy regret rows have missing, duplicate or unknown scenario IDs",
+            );
         }
         let wait = match evaluate_metric(
             &policy.per_scenario,
@@ -667,7 +680,9 @@ pub fn evaluate(corpus: &Corpus) -> Result<Evaluation, String> {
             || alpha.compare_exact(&Rational::one()) != Ordering::Less
             || !alpha_set.insert((alpha.numerator, alpha.denominator))
         {
-            return Err("CVaR alphas must be unique exact rationals between zero and one".to_owned());
+            return Err(
+                "CVaR alphas must be unique exact rationals between zero and one".to_owned(),
+            );
         }
     }
     let mut case_ids = BTreeSet::new();
@@ -712,10 +727,7 @@ mod tests {
 
     #[test]
     fn tail_smaller_than_one_atom_uses_fractional_var_mass() {
-        let values = vec![
-            (r(0, 1), r(9, 10)),
-            (r(10, 1), r(1, 10)),
-        ];
+        let values = vec![(r(0, 1), r(9, 10)), (r(10, 1), r(1, 10))];
         let result = cvar_upper_tail(&values, &r(19, 20)).expect("exact CVaR");
         assert_eq!(result.var, r(10, 1));
         assert_eq!(result.cvar, r(10, 1));
@@ -725,11 +737,7 @@ mod tests {
 
     #[test]
     fn partial_var_atom_uses_exact_weighted_boundary() {
-        let values = vec![
-            (r(0, 1), r(7, 10)),
-            (r(3, 1), r(1, 5)),
-            (r(8, 1), r(1, 10)),
-        ];
+        let values = vec![(r(0, 1), r(7, 10)), (r(3, 1), r(1, 5)), (r(8, 1), r(1, 10))];
         let result = cvar_upper_tail(&values, &r(17, 20)).expect("exact CVaR");
         assert_eq!(result.var, r(3, 1));
         assert_eq!(result.cvar, r(19, 3));
@@ -826,7 +834,12 @@ mod tests {
     #[test]
     fn probability_model_support_must_match_full_joint_inventory() {
         let mut corpus = fixture_corpus();
-        corpus.cases[0].probability_model.as_mut().unwrap().weights.pop();
+        corpus.cases[0]
+            .probability_model
+            .as_mut()
+            .unwrap()
+            .weights
+            .pop();
         let result = evaluate(&corpus).expect("invalid support produces a report");
         assert_eq!(result.cases[0].status, "INVALID_INPUT");
         assert_eq!(
