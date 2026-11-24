@@ -42,10 +42,14 @@ impl core::fmt::Display for PrPlEbError {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let message = match self {
             Self::InvalidAlpha => "confidence alpha must lie strictly between zero and one",
-            Self::InvalidBetFractionCap => "betting-fraction cap must lie strictly between zero and one",
+            Self::InvalidBetFractionCap => {
+                "betting-fraction cap must lie strictly between zero and one"
+            },
             Self::InvalidObservation => "bounded-mean observation must lie in [0, 1]",
             Self::CounterOverflow => "bounded-mean observation counter overflowed",
-            Self::NumericalFailure => "PrPl-EB update or confidence intersection failed numerically",
+            Self::NumericalFailure => {
+                "PrPl-EB update or confidence intersection failed numerically"
+            },
         };
         formatter.write_str(message)
     }
@@ -86,17 +90,11 @@ impl PrPlEbConfidenceSequence {
     ///
     /// The paper recommends caps such as 0.5 or 0.75. The cap controls efficiency,
     /// not the validity contract, provided it remains strictly below one.
-    pub fn with_bet_fraction_cap(
-        alpha: f64,
-        bet_fraction_cap: f64,
-    ) -> Result<Self, PrPlEbError> {
+    pub fn with_bet_fraction_cap(alpha: f64, bet_fraction_cap: f64) -> Result<Self, PrPlEbError> {
         if !alpha.is_finite() || alpha <= 0.0 || alpha >= 1.0 {
             return Err(PrPlEbError::InvalidAlpha);
         }
-        if !bet_fraction_cap.is_finite()
-            || bet_fraction_cap <= 0.0
-            || bet_fraction_cap >= 1.0
-        {
+        if !bet_fraction_cap.is_finite() || bet_fraction_cap <= 0.0 || bet_fraction_cap >= 1.0 {
             return Err(PrPlEbError::InvalidBetFractionCap);
         }
 
@@ -150,8 +148,7 @@ impl PrPlEbConfidenceSequence {
 
         let next_sum_observations = self.sum_observations + observation;
         let next_sum_lambda = self.sum_lambda + lambda;
-        let next_sum_lambda_observations =
-            self.sum_lambda_observations + lambda * observation;
+        let next_sum_lambda_observations = self.sum_lambda_observations + lambda * observation;
         let next_penalty = self.sum_predictable_variance_penalty + penalty_increment;
         if !next_sum_observations.is_finite()
             || !next_sum_lambda.is_finite()
@@ -176,10 +173,7 @@ impl PrPlEbConfidenceSequence {
         let current_upper = next_up(center + radius).min(1.0);
         let next_lower = self.lower.max(current_lower);
         let next_upper = self.upper.min(current_upper);
-        if !next_lower.is_finite()
-            || !next_upper.is_finite()
-            || next_lower > next_upper
-        {
+        if !next_lower.is_finite() || !next_upper.is_finite() || next_lower > next_upper {
             return Err(PrPlEbError::NumericalFailure);
         }
 
@@ -190,8 +184,7 @@ impl PrPlEbConfidenceSequence {
         let previous_residual_sum =
             self.predictive_variance * (self.sample_count as f64 + 1.0) - 0.25;
         let next_predictive_variance =
-            (0.25 + previous_residual_sum + next_residual * next_residual)
-                / next_time_denominator;
+            (0.25 + previous_residual_sum + next_residual * next_residual) / next_time_denominator;
 
         if !next_predictive_mean.is_finite()
             || !(0.0..=1.0).contains(&next_predictive_mean)
@@ -256,7 +249,6 @@ impl PrPlEbConfidenceSequence {
     pub fn variance_residual_sum(&self) -> f64 {
         self.predictive_variance * (self.sample_count as f64 + 1.0) - 0.25
     }
-
 }
 
 fn next_down(value: f64) -> f64 {
@@ -342,7 +334,10 @@ mod tests {
     #[test]
     fn invalid_observations_and_configuration_fail_closed() {
         let mut sequence = PrPlEbConfidenceSequence::new(0.05).unwrap();
-        assert_eq!(sequence.observe(f64::NAN), Err(PrPlEbError::InvalidObservation));
+        assert_eq!(
+            sequence.observe(f64::NAN),
+            Err(PrPlEbError::InvalidObservation)
+        );
         assert_eq!(sequence.observe(1.01), Err(PrPlEbError::InvalidObservation));
         assert_eq!(sequence.sample_count(), 0);
         assert!(PrPlEbConfidenceSequence::new(0.0).is_err());
@@ -415,9 +410,7 @@ mod tests {
             let predictive_mean = (0.5 + sum) / (index as f64 + 2.0);
             residual_sum += (observation - predictive_mean).powi(2);
             assert!((sequence.predictive_mean() - predictive_mean).abs() < 1.0e-14);
-            assert!(
-                (sequence.variance_residual_sum() - residual_sum).abs() < 1.0e-13
-            );
+            assert!((sequence.variance_residual_sum() - residual_sum).abs() < 1.0e-13);
         }
     }
 }
