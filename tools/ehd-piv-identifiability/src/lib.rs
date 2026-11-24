@@ -249,8 +249,7 @@ pub fn whiten_sensitivity_with_covariance(
         return Err(IdentifiabilityError::EmptyNoiseCovariance);
     }
     if !symmetry_relative_tolerance.is_finite()
-        || symmetry_relative_tolerance < 0.0
-        || symmetry_relative_tolerance >= 1.0
+        || !(0.0..1.0).contains(&symmetry_relative_tolerance)
     {
         return Err(IdentifiabilityError::InvalidConfiguration {
             field: "symmetry_relative_tolerance",
@@ -325,8 +324,12 @@ pub fn whiten_sensitivity_with_covariance(
     for (row_index, covariance_row) in observation_covariance.iter().enumerate() {
         for column_index in 0..=row_index {
             let mut value = covariance_row[column_index];
-            for inner_index in 0..column_index {
-                value -= lower[row_index][inner_index] * lower[column_index][inner_index];
+            for (left_value, right_value) in lower[row_index]
+                .iter()
+                .zip(lower[column_index].iter())
+                .take(column_index)
+            {
+                value -= left_value * right_value;
                 if !value.is_finite() {
                     return Err(IdentifiabilityError::NumericalOverflow);
                 }
@@ -357,8 +360,10 @@ pub fn whiten_sensitivity_with_covariance(
     for parameter_index in 0..parameter_count {
         for row_index in 0..observation_count {
             let mut value = raw_sensitivity_matrix[row_index][parameter_index];
-            for inner_index in 0..row_index {
-                value -= lower[row_index][inner_index] * whitened[inner_index][parameter_index];
+            for (lower_value, whitened_row) in
+                lower[row_index].iter().zip(whitened.iter()).take(row_index)
+            {
+                value -= lower_value * whitened_row[parameter_index];
                 if !value.is_finite() {
                     return Err(IdentifiabilityError::NumericalOverflow);
                 }
