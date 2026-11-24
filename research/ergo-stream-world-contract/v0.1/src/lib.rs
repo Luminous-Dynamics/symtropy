@@ -9,6 +9,7 @@ use std::fmt;
 pub mod acquisition;
 pub mod atlas;
 pub mod behaviour;
+pub mod bundle;
 pub mod calibration;
 pub mod decision_value;
 pub mod dynamics;
