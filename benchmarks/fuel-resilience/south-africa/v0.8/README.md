@@ -1,0 +1,69 @@
+# SAFRB v0.8 — service continuity and restoration certificate
+
+**Status:** standalone read-only evaluator; synthetic known-answer fixture only  
+**Research cut:** 24 November 2026  
+**Language:** Rust 2024, dependency-free  
+**Parent:** SAFRB v0.7 physical-capacity/access envelope; consumes service-boundary results from v0.6  
+**Operational posture:** no optimization, dispatch, reservations, provider commitments or control-system writes
+
+## Paradigm shift
+
+A balanced energy schedule is not yet evidence that an essential service survived a disruption. A capacity envelope is not yet evidence that a service was restored. Resilience must be measured as a time trajectory at a named service boundary.
+
+v0.8 turns a contiguous sequence of lower/upper delivered-energy intervals and critical-service floors into a deterministic evaluation receipt. It distinguishes:
+
+- **Guaranteed service:** the delivered-energy lower bound meets or exceeds the critical floor.
+- **Confirmed shortfall:** even the delivered-energy upper bound is below the critical floor.
+- **Uncertain service:** the interval overlaps the critical floor, so continuity cannot be proven.
+- **Sustained restoration:** the lower bound remains above the critical floor for a configured continuous duration.
+- **Right-censored recovery:** the observation horizon ends before sustained restoration can be confirmed.
+
+This prevents a single recovered interval, a point estimate, or a forecast from being presented as a durable restoration.
+
+## What the evaluator checks
+
+1. One named service and service boundary per certificate.
+2. Ordered, contiguous, non-overlapping time windows.
+3. Unique window and period identities.
+4. Explicit Wh units at a declared boundary, lower/upper delivery bounds and a critical service floor.
+5. A full-service target that cannot fall below the critical floor.
+6. Measurement or fixture evidence whose validity window covers the service window.
+7. A digest reference and upstream accounting artifact ID for measured evidence; the crate checks shape only.
+8. Explicitly namespaced synthetic fixtures; reported-only evidence is rejected.
+9. Checked timestamp, duration, counter and energy arithmetic.
+10. Sustained restoration confirmation and right-censoring when the horizon is insufficient.
+
+The evaluator does not verify source bytes, hashes, signatures, calibration, measurement installation, physical state, upstream v0.6 calculations or issuer authority. A valid digest-shaped string is not proof that a file was hashed. Mycelix or an independent verifier must qualify upstream identities/receipts; a metrology or operator review is still required for field evidence.
+
+## Known-answer fixture
+
+The fixture uses four synthetic one-hour periods, a 50 Wh critical floor and an 80 Wh target. Delivered energy is bounded as:
+
+| Period | Delivered interval | Outcome |
+|---|---:|---|
+| 1 | 60–60 Wh | Guaranteed |
+| 2 | 10–15 Wh | Confirmed critical shortfall |
+| 3 | 60–65 Wh | Recovery candidate |
+| 4 | 60–65 Wh | Sustained recovery confirmed |
+
+The evaluator therefore reports:
+- one confirmed shortfall period;
+- 35–40 Wh of critical-floor shortfall;
+- 3 of 4 hours guaranteed at or above the critical floor;
+- restoration beginning 3,600 seconds after the episode begins;
+- restoration confirmed after a further 7,200 seconds of sustained evidence.
+
+These are synthetic known answers, not measured port performance.
+
+## Run
+
+~~~~sh
+cargo fmt --manifest-path benchmarks/fuel-resilience/south-africa/v0.8/Cargo.toml -- --check
+cargo test --manifest-path benchmarks/fuel-resilience/south-africa/v0.8/Cargo.toml --locked
+cargo clippy --manifest-path benchmarks/fuel-resilience/south-africa/v0.8/Cargo.toml --all-targets --locked -- -D warnings
+cargo run --manifest-path benchmarks/fuel-resilience/south-africa/v0.8/Cargo.toml --release --locked
+~~~~
+
+## Claim ceiling
+
+A passing unit test establishes deterministic behavior over the supplied inputs and evidence contract. It does not establish actual service continuity, field restoration time, fuel availability, operator readiness, power-system stability, legal rights, or system resilience. No certificate should be described as independently verified unless a separate verifier has actually checked its referenced source bytes, signatures, authority, calibration and physical measurement process.

@@ -13,7 +13,7 @@ The aim is not to replace AVEVA PI, SLB, PyPSA, HiGHS, Gurobi, OR-Tools or grid-
 
 ## Versioned implementation
 
-All current heads listed below have successful dedicated exact-head Rust workflows covering formatting, tests, Clippy and the known-answer executable. Test counts are unit tests. v0.2 also passed the repository-level CI workflow at its listed head.
+v0.2–v0.7 have successful dedicated exact-head Rust workflows covering formatting, tests, Clippy and the known-answer executable. Test counts are unit tests. v0.2 also passed the repository-level CI workflow at its listed head. v0.8 is a new implementation increment; its exact-head qualification is pending and no pass is claimed.
 
 | Version | Public draft PR | Increment | Tests | Exact-head result |
 |---|---|---|---:|---|
@@ -23,6 +23,7 @@ All current heads listed below have successful dedicated exact-head Rust workflo
 | v0.5 | [#7205 — fuel-to-useful-energy service](https://github.com/Luminous-Dynamics/symtropy/pull/7205) | Batch LHV and generator-efficiency intervals, nameplate/auxiliary limits, net Wh, service shortfall and EVSI fixture. | 14 | PASS |
 | v0.6 | [#7215 — multi-carrier service portfolio](https://github.com/Luminous-Dynamics/symtropy/pull/7215) | Grid/shore/generator/renewable sources, battery SOC/power bounds, priority service, curtailment and exact bus-energy balance. | 14 | PASS |
 | v0.7 | [#7243 — physical capacity vs access rights](https://github.com/Luminous-Dynamics/symtropy/pull/7243) | Installed/operable capacity, entitlement, provider offer, existing reservation/commitment/delivery and residual capacity. | 15 | PASS |
+| v0.8 | [service continuity and restoration branch](https://github.com/Luminous-Dynamics/symtropy/tree/research/safrb-v0.8-service-restoration) | Time-bounded critical-service continuity, bounded shortfall, sustained restoration and right-censored recovery. | 20 | QUALIFICATION PENDING |
 
 **Qualification boundary:** PASS establishes software behavior for the supplied synthetic fixtures and declared evidence contracts. It does not establish actual South African stock, IVP/MPP throughput, equipment performance, national resilience, economic impact, legal entitlements or field prediction accuracy.
 
