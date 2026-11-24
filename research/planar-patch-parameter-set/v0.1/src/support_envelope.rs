@@ -787,16 +787,21 @@ mod tests {
             ],
             ParameterSetStatus::FeasibleWithFiniteIntervals,
         );
-        let input = PatchSupportEnvelopeInput {
-            parameter_set: &parameters,
-            capacity_scale_interval: [1.0, 1.0],
-            capacity_scale_digest: "capacity-validation-fixture-v1".to_owned(),
-            slip_twist: [1.0, 0.0, 0.0],
+        let evaluate = |parameter_set: &ParameterSetReport| {
+            compute_patch_support_envelope(
+                &PatchSupportEnvelopeInput {
+                    parameter_set,
+                    capacity_scale_interval: [1.0, 1.0],
+                    capacity_scale_digest: "capacity-validation-fixture-v1".to_owned(),
+                    slip_twist: [1.0, 0.0, 0.0],
+                },
+                SupportEnvelopeConfig::default(),
+            )
         };
 
         parameters.intervals[0].shape_scale_upper = Some(2.0);
         assert_eq!(
-            compute_patch_support_envelope(&input, SupportEnvelopeConfig::default())
+            evaluate(&parameters)
                 .expect_err("incorrect shape upper bound")
                 .kind,
             ParameterSetErrorKind::InvalidInput
@@ -805,7 +810,7 @@ mod tests {
         parameters.intervals[0].shape_scale_upper = Some(1.0);
         parameters.intervals[1].axis_was_excited = false;
         assert_eq!(
-            compute_patch_support_envelope(&input, SupportEnvelopeConfig::default())
+            evaluate(&parameters)
                 .expect_err("incorrect excitation flag")
                 .kind,
             ParameterSetErrorKind::InvalidInput
