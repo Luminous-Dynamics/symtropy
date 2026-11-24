@@ -202,7 +202,6 @@ pub fn calibrate(
         .iter()
         .map(|row| u64::from(row[last]))
         .sum::<u64>();
-    let mut found_feasible = false;
     let n_u64 = n as u64;
 
     for parameter_index in 0..m {
@@ -219,7 +218,6 @@ pub fn calibrate(
         if lhs <= rhs {
             selected = parameter_index;
             selected_sum = loss_sum;
-            found_feasible = true;
             break;
         }
     }
@@ -565,7 +563,7 @@ fn synthetic_variance_endpoint() -> EndpointPopulationRiskContract {
     EndpointPopulationRiskContract {
         scope: "SYNTHETIC_KNOWN_BERNOULLI_POLICY_GRID".to_owned(),
         evidence_ref: "synthetic-generator-exact-population-risk".to_owned(),
-        population_expected_loss_upper_milli: VARIANCE_ENDPOINT_RISK_MILLI,
+        expected_loss_upper_milli: VARIANCE_ENDPOINT_RISK_MILLI,
     }
 }
 
@@ -677,7 +675,7 @@ mod tests {
         EndpointPopulationRiskContract {
             scope: "SYNTHETIC_KNOWN_BERNOULLI_POLICY_GRID".to_owned(),
             evidence_ref: "synthetic-generator-exact-population-risk".to_owned(),
-            population_expected_loss_upper_milli: 50,
+            expected_loss_upper_milli: 50,
         }
     }
 
@@ -733,7 +731,7 @@ mod tests {
                 Some(&EndpointPopulationRiskContract {
                     scope: "synthetic".to_owned(),
                     evidence_ref: "synthetic".to_owned(),
-                    population_expected_loss_upper_milli: 0,
+                    expected_loss_upper_milli: 0,
                 }),
                 &variance_fixture_revisions(),
             ),
@@ -755,7 +753,7 @@ mod tests {
             Some(&EndpointPopulationRiskContract {
                 scope: "bad endpoint".to_owned(),
                 evidence_ref: "synthetic".to_owned(),
-                population_expected_loss_upper_milli: adjusted + 1,
+                expected_loss_upper_milli: adjusted + 1,
             }),
             &variance_fixture_revisions(),
         );
