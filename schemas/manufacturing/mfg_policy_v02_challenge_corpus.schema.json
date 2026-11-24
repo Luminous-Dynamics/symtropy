@@ -81,11 +81,12 @@
     "operation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["operation_id", "sequence", "process_family", "predecessor_operation_ids", "eligible_resource_ids", "processing_time_ticks_by_resource", "initial_status", "committed_resource_id", "remaining_processing_ticks", "inspection_required", "inspection_method_id"],
+      "required": ["operation_id", "sequence", "process_family", "setup_family", "predecessor_operation_ids", "eligible_resource_ids", "processing_time_ticks_by_resource", "initial_status", "committed_resource_id", "remaining_processing_ticks", "inspection_required", "inspection_method_id"],
       "properties": {
         "operation_id": {"type": "string", "minLength": 1},
         "sequence": {"type": "integer", "minimum": 1, "maximum": 2},
         "process_family": {"type": "string", "enum": ["CUTTING", "FORMING", "FINISHING"]},
+        "setup_family": {"type": "string", "enum": ["SETUP-A", "SETUP-B", "SETUP-C"]},
         "predecessor_operation_ids": {"type": "array", "items": {"type": "string"}},
         "eligible_resource_ids": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "string"}},
         "processing_time_ticks_by_resource": {"type": "object", "minProperties": 2, "maxProperties": 2, "additionalProperties": {"type": "integer", "minimum": 1}},
