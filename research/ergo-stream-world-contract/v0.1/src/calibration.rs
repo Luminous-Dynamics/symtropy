@@ -61,11 +61,11 @@ pub struct SelectiveRiskPointV0 {
 impl SelectiveRiskPointV0 {
     pub fn coverage(self) -> Option<f64> {
         (self.total_samples > 0)
-            .then_some(self.covered_samples as f64 / self.total_samples as f64)
+            .then(|| self.covered_samples as f64 / self.total_samples as f64)
     }
 
     pub fn selective_risk(self) -> Option<f64> {
-        (self.covered_samples > 0).then_some(self.errors as f64 / self.covered_samples as f64)
+        (self.covered_samples > 0).then(|| self.errors as f64 / self.covered_samples as f64)
     }
 }
 
@@ -448,7 +448,7 @@ mod tests {
             forecast(2, 50_000, Some(TransferDecisionV0::AssertTransfer)),
         ];
         let outcomes = [
-            TransferOutcomeV0 { sample_id: 1, transfer_qualified: false },
+            TransferOutcomeV0 { sample_id: 1, transfer_qualified: true },
             TransferOutcomeV0 { sample_id: 2, transfer_qualified: false },
         ];
 
@@ -500,7 +500,7 @@ mod tests {
         let outcomes = [TransferOutcomeV0 { sample_id: 1, transfer_qualified: true }];
 
         assert_eq!(
-            evaluate_transfer_calibration(&forecasts, &outcomes, 10, &[10, 10]),
+            evaluate_transfer_calibration(&forecasts, &outcomes, 10, &[1_000_001]),
             Err(TransferCalibrationErrorV0::ThresholdOutOfRange)
         );
         assert_eq!(
@@ -510,6 +510,20 @@ mod tests {
         assert_eq!(
             evaluate_transfer_calibration(&forecasts, &outcomes, 0, &[0]),
             Err(TransferCalibrationErrorV0::ZeroCalibrationBins)
+        );
+    }
+
+    #[test]
+    fn rejects_duplicate_outcome_ids() {
+        let forecasts = [forecast(1, 500_000, None)];
+        let outcomes = [
+            TransferOutcomeV0 { sample_id: 1, transfer_qualified: true },
+            TransferOutcomeV0 { sample_id: 1, transfer_qualified: false },
+        ];
+
+        assert_eq!(
+            evaluate_transfer_calibration(&forecasts, &outcomes, 2, &[0]),
+            Err(TransferCalibrationErrorV0::DuplicateOutcomeId)
         );
     }
 
