@@ -798,17 +798,16 @@ fn validate_policy(
             policy.policy_id
         ));
     }
-    if let Some(reduction) = &policy.worst_loss_reduction_vs_best_no_query {
-        if !matches!(
+    if let Some(reduction) = &policy.worst_loss_reduction_vs_best_no_query
+        && (!matches!(
             reduction.direction.as_str(),
             "positive_improvement" | "negative_improvement" | "no_change"
-        ) || !reduction.magnitude.valid()
-        {
-            return Err(format!(
-                "policy {} loss-reduction diagnostic is malformed",
-                policy.policy_id
-            ));
-        }
+        ) || !reduction.magnitude.valid())
+    {
+        return Err(format!(
+            "policy {} loss-reduction diagnostic is malformed",
+            policy.policy_id
+        ));
     }
     Ok(worst_loss)
 }
