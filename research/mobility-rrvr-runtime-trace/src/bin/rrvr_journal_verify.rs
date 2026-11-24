@@ -45,11 +45,11 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    if let Some(path) = report_path {
-        if let Err(error) = fs::write(path, &bytes) {
-            eprintln!("failed to write validation report: {error}");
-            return ExitCode::FAILURE;
-        }
+    if let Some(path) = report_path
+        && let Err(error) = fs::write(path, &bytes)
+    {
+        eprintln!("failed to write validation report: {error}");
+        return ExitCode::FAILURE;
     }
     println!("{}", String::from_utf8_lossy(&bytes));
     ExitCode::SUCCESS
