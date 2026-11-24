@@ -93,6 +93,7 @@ pub enum DcsaClassifierError {
     InvalidTimezoneOffset,
     RecordTimeBeforeEventTime,
     PublicationTimeUnknown,
+    PublicationAfterRetrieval,
     EvidenceUnavailableAtAsOf,
 }
 
@@ -170,6 +171,9 @@ impl DcsaSourceEvent {
         let Some(published_at) = self.published_at_unix else {
             return Err(DcsaClassifierError::PublicationTimeUnknown);
         };
+        if published_at > self.retrieved_at_unix {
+            return Err(DcsaClassifierError::PublicationAfterRetrieval);
+        }
         if self.record_time_unix > as_of_unix
             || self.retrieved_at_unix > as_of_unix
             || published_at > as_of_unix
@@ -179,9 +183,10 @@ impl DcsaSourceEvent {
         if classifier == DcsaEventClassifier::Actual && self.event_time_unix.is_none() {
             return Err(DcsaClassifierError::EventTimeUnknown);
         }
-        if self
-            .event_time_unix
-            .is_some_and(|event_time| self.record_time_unix < event_time)
+        if classifier == DcsaEventClassifier::Actual
+            && self
+                .event_time_unix
+                .is_some_and(|event_time| self.record_time_unix < event_time)
         {
             return Err(DcsaClassifierError::RecordTimeBeforeEventTime);
         }
@@ -258,7 +263,7 @@ struct BenchmarkCase {
     version: &'static str,
 }
 
-fn benchmark_cases() -> [BenchmarkCase; 9] {
+fn benchmark_cases() -> [BenchmarkCase; 11] {
     [
         BenchmarkCase {
             id: "estimated_remains_estimated",
@@ -350,6 +355,26 @@ fn benchmark_cases() -> [BenchmarkCase; 9] {
             event_time: None,
             version: EXPECTED_STANDARD_VERSION,
         },
+        BenchmarkCase {
+            id: "planned_future_event_time_is_admissible",
+            code: "PLN",
+            expected: "PLANNED_ONLY",
+            published: Some(FIXTURE_PUBLISHED),
+            retrieved: FIXTURE_RETRIEVED,
+            record_time: FIXTURE_RETRIEVED,
+            event_time: Some(FIXTURE_AS_OF + 10),
+            version: EXPECTED_STANDARD_VERSION,
+        },
+        BenchmarkCase {
+            id: "publication_after_retrieval_rejected",
+            code: "ACT",
+            expected: "PUBLICATION_AFTER_RETRIEVAL",
+            published: Some(FIXTURE_RETRIEVAL + 10),
+            retrieved: FIXTURE_RETRIEVED,
+            record_time: FIXTURE_RETRIEVED,
+            event_time: Some(FIXTURE_EVENT_TIME),
+            version: EXPECTED_STANDARD_VERSION,
+        },
     ]
 }
 
@@ -394,6 +419,7 @@ pub fn render_csv() -> String {
                         "RECORD_TIME_BEFORE_EVENT_TIME"
                     }
                     DcsaClassifierError::PublicationTimeUnknown => "PUBLICATION_TIME_UNKNOWN",
+                    DcsaClassifierError::PublicationAfterRetrieval => "PUBLICATION_AFTER_RETRIEVAL",
                     DcsaClassifierError::EvidenceUnavailableAtAsOf => "EVIDENCE_UNAVAILABLE_AT_AS_OF",
                 };
                 assert_eq!(observed, case.expected, "DCSA case {}", case.id);
@@ -468,6 +494,26 @@ mod tests {
     }
 
     #[test]
+    fn future_planned_time_is_not_mistaken_for_future_physical_actual() {
+        let mut event = fixture_event("PLN");
+        event.event_time_unix = Some(FIXTURE_AS_OF + 10);
+        let receipt = event
+            .admit_as_of(FIXTURE_AS_OF)
+            .expect("planned event can have a future event time");
+        assert_eq!(receipt.maturity, DcsaEventMaturity::PlannedOnly);
+    }
+
+    #[test]
+    fn publication_after_retrieval_is_rejected_as_invalid_envelope() {
+        let mut event = fixture_event("ACT");
+        event.published_at_unix = Some(FIXTURE_RETRIEVED + 10);
+        assert_eq!(
+            event.admit_as_of(FIXTURE_AS_OF),
+            Err(DcsaClassifierError::PublicationAfterRetrieval)
+        );
+    }
+
+    #[test]
     fn historical_asof_requires_publication_recording_and_retrieval() {
         let mut event = fixture_event("ACT");
         event.published_at_unix = None;
@@ -519,7 +565,7 @@ mod tests {
     fn benchmark_receipt_is_deterministic_and_all_known_answers_match() {
         let first = render_csv();
         assert_eq!(first, render_csv());
-        assert_eq!(first.lines().count(), 10);
+        assert_eq!(first.lines().count(), 12);
         let width = first.lines().next().expect("header").split(',').count();
         assert_eq!(width, 7);
         for row in first.lines().skip(1) {
