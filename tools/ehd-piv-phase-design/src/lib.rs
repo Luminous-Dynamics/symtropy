@@ -284,7 +284,10 @@ mod tests {
     #[test]
     fn one_sample_per_phase_fails_replication_even_with_phase_diversity() {
         let observations: Vec<PhaseObservation> = (0..81)
-            .map(|index| observation((index as f64 + 0.5) / 160.0, &format!("cycle-{index}")))
+            .map(|index| {
+                let bin = index * 160 / 81;
+                observation((bin as f64 + 0.5) / 160.0, &format!("cycle-{index}"))
+            })
             .collect();
         let mut settings = config();
         settings.maximum_cyclic_phase_gap = 0.02;
