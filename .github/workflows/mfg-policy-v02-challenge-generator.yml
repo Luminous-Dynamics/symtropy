@@ -1,0 +1,57 @@
+name: Manufacturing Policy v0.2 Challenge Corpus
+on:
+  pull_request:
+    paths:
+      - "schemas/manufacturing/mfg_policy_v02_challenge_corpus.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_evaluator_labels.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_scenario_streams.schema.json"
+      - "tools/mfg-policy-v02-challenge-generator/**"
+      - ".github/workflows/mfg-policy-v02-challenge-generator.yml"
+  push:
+    branches:
+      - main
+      - research/mfg-policy-v02-challenge-generator
+    paths:
+      - "schemas/manufacturing/mfg_policy_v02_challenge_corpus.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_evaluator_labels.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_scenario_streams.schema.json"
+      - "tools/mfg-policy-v02-challenge-generator/**"
+      - ".github/workflows/mfg-policy-v02-challenge-generator.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml -- --check
+      - name: Validate deterministic corpus and adversarial invariants
+        run: cargo test --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml
+      - name: Generate policy corpus, simulation streams and evaluator labels twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --quiet --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml -- --policy-corpus > "$RUNNER_TEMP/policy-a.json"
+          cargo run --quiet --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml -- --policy-corpus > "$RUNNER_TEMP/policy-b.json"
+          cargo run --quiet --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml -- --scenario-streams > "$RUNNER_TEMP/streams-a.json"
+          cargo run --quiet --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml -- --scenario-streams > "$RUNNER_TEMP/streams-b.json"
+          cargo run --quiet --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml -- --evaluator-labels > "$RUNNER_TEMP/evaluator-a.json"
+          cargo run --quiet --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml -- --evaluator-labels > "$RUNNER_TEMP/evaluator-b.json"
+          cmp "$RUNNER_TEMP/policy-a.json" "$RUNNER_TEMP/policy-b.json"
+          cmp "$RUNNER_TEMP/streams-a.json" "$RUNNER_TEMP/streams-b.json"
+          cmp "$RUNNER_TEMP/evaluator-a.json" "$RUNNER_TEMP/evaluator-b.json"
+          ! grep -q '"observations_by_epoch"' "$RUNNER_TEMP/policy-a.json"
+          ! grep -q '"scenario_id"' "$RUNNER_TEMP/policy-a.json"
+          ! grep -q '"hidden_terminal_quality_outcomes"' "$RUNNER_TEMP/policy-a.json"
+          grep -q '"observations_by_epoch"' "$RUNNER_TEMP/streams-a.json"
+          grep -q '"hidden_terminal_quality_outcomes"' "$RUNNER_TEMP/evaluator-a.json"
+          test -s "$RUNNER_TEMP/policy-a.json"
+          test -s "$RUNNER_TEMP/streams-a.json"
+          test -s "$RUNNER_TEMP/evaluator-a.json"
+          wc -c "$RUNNER_TEMP/policy-a.json" "$RUNNER_TEMP/streams-a.json" "$RUNNER_TEMP/evaluator-a.json"
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml -- -D warnings

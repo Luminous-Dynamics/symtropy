@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-challenge-corpus",
+  "title": "Manufacturing Policy v0.2 Challenge Corpus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "benchmark_id", "generator_version", "evidence_class", "generation", "horizon_epochs", "family_count", "family_manifest", "case_count", "cases", "claim_ceiling"],
+  "properties": {
+    "schema_id": {"const": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-challenge-corpus"},
+    "benchmark_id": {"const": "MFG-POLICY-V02-CHALLENGE-001"},
+    "generator_version": {"const": "mfg-policy-v02-challenge-generator/0.2.0"},
+    "evidence_class": {"const": "synthetic_offline_policy_visible"},
+    "generation": {"$ref": "#/$defs/generation"},
+    "horizon_epochs": {"const": 4},
+    "family_count": {"const": 6},
+    "family_manifest": {"type": "array", "minItems": 6, "maxItems": 6, "items": {"$ref": "#/$defs/family"}},
+    "case_count": {"const": 120},
+    "cases": {"type": "array", "minItems": 120, "maxItems": 120, "items": {"$ref": "#/$defs/case"}},
+    "claim_ceiling": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["root_seed", "seed_algorithm", "seed_derivation", "pairing_rule", "split_rule", "tuning_rule"],
+      "properties": {
+        "root_seed": {"type": "integer", "minimum": 0},
+        "seed_algorithm": {"const": "SplitMix64-v1"},
+        "seed_derivation": {"type": "string", "minLength": 1},
+        "pairing_rule": {"type": "string", "minLength": 1},
+        "split_rule": {"type": "string", "minLength": 1},
+        "tuning_rule": {"type": "string", "minLength": 1}
+      }
+    },
+    "split": {"type": "string", "enum": ["development", "held_out"]},
+    "family": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scenario_family_id", "split", "replication_seeds", "primary_mechanism", "decision_tension_under_test"],
+      "properties": {
+        "scenario_family_id": {"type": "string", "minLength": 1},
+        "split": {"$ref": "#/$defs/split"},
+        "replication_seeds": {"type": "array", "minItems": 20, "maxItems": 20, "items": {"type": "integer", "minimum": 1}},
+        "primary_mechanism": {"type": "string", "minLength": 1},
+        "decision_tension_under_test": {"type": "string", "minLength": 1}
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case_id", "scenario_family_id", "split", "replication_seed", "generator_seed", "paired_seed_id", "horizon_epochs", "decision_visibility_rule", "jobs", "resources", "setup_transitions", "inspection_station"],
+      "properties": {
+        "case_id": {"type": "string", "minLength": 1},
+        "scenario_family_id": {"type": "string", "minLength": 1},
+        "split": {"$ref": "#/$defs/split"},
+        "replication_seed": {"type": "integer", "minimum": 1, "maximum": 20},
+        "generator_seed": {"type": "integer", "minimum": 0},
+        "paired_seed_id": {"type": "string", "minLength": 1},
+        "horizon_epochs": {"const": 4},
+        "decision_visibility_rule": {"type": "string", "minLength": 1},
+        "jobs": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/job"}},
+        "resources": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/resource"}},
+        "setup_transitions": {"type": "array", "minItems": 18, "items": {"$ref": "#/$defs/setupTransition"}},
+        "inspection_station": {"$ref": "#/$defs/inspectionStation"}
+      }
+    },
+    "job": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["job_id", "due_epoch", "value_units", "tardiness_penalty_per_epoch", "unserved_penalty_units", "operations"],
+      "properties": {
+        "job_id": {"type": "string", "minLength": 1},
+        "due_epoch": {"type": "integer", "minimum": 1, "maximum": 4},
+        "value_units": {"type": "integer", "minimum": 1},
+        "tardiness_penalty_per_epoch": {"type": "integer", "minimum": 0},
+        "unserved_penalty_units": {"type": "integer", "minimum": 1},
+        "operations": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"$ref": "#/$defs/operation"}}
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation_id", "sequence", "process_family", "setup_family", "predecessor_operation_ids", "eligible_resource_ids", "processing_time_ticks_by_resource", "initial_status", "committed_resource_id", "remaining_processing_ticks", "inspection_required", "inspection_method_id"],
+      "properties": {
+        "operation_id": {"type": "string", "minLength": 1},
+        "sequence": {"type": "integer", "minimum": 1, "maximum": 2},
+        "process_family": {"type": "string", "enum": ["CUTTING", "FORMING", "FINISHING"]},
+        "setup_family": {"type": "string", "enum": ["SETUP-A", "SETUP-B", "SETUP-C"]},
+        "predecessor_operation_ids": {"type": "array", "items": {"type": "string"}},
+        "eligible_resource_ids": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "string"}},
+        "processing_time_ticks_by_resource": {"type": "object", "minProperties": 2, "maxProperties": 2, "additionalProperties": {"type": "integer", "minimum": 1}},
+        "initial_status": {"type": "string", "enum": ["WAITING", "IN_PROCESS", "COMPLETED"]},
+        "committed_resource_id": {"type": ["string", "null"]},
+        "remaining_processing_ticks": {"type": "integer", "minimum": 0},
+        "inspection_required": {"type": "boolean"},
+        "inspection_method_id": {"type": ["string", "null"]}
+      }
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resource_id", "capability_families", "common_cause_domain", "capacity_units_by_epoch", "initial_setup_family", "initial_qualifications"],
+      "properties": {
+        "resource_id": {"type": "string", "minLength": 1},
+        "capability_families": {"type": "array", "minItems": 2, "items": {"type": "string"}},
+        "common_cause_domain": {"type": "string", "minLength": 1},
+        "capacity_units_by_epoch": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "integer", "minimum": 0}},
+        "initial_setup_family": {"type": "string", "minLength": 1},
+        "initial_qualifications": {"type": "array", "minItems": 2, "items": {"$ref": "#/$defs/resourceQualification"}}
+      }
+    },
+    "resourceQualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["process_family", "disposition", "evidence_receipt_id"],
+      "properties": {
+        "process_family": {"type": "string"},
+        "disposition": {"type": "string", "enum": ["ADMISSIBLE", "UNKNOWN", "BLOCKED"]},
+        "evidence_receipt_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "setupTransition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resource_id", "from_setup_family", "to_setup_family", "duration_ticks"],
+      "properties": {
+        "resource_id": {"type": "string"},
+        "from_setup_family": {"type": "string"},
+        "to_setup_family": {"type": "string"},
+        "duration_ticks": {"type": "integer", "minimum": 1}
+      }
+    },
+    "inspectionStation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["station_id", "capacity_units_by_epoch", "methods"],
+      "properties": {
+        "station_id": {"type": "string", "minLength": 1},
+        "capacity_units_by_epoch": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "integer", "minimum": 0}},
+        "methods": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/inspectionMethod"}}
+      }
+    },
+    "inspectionMethod": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method_id", "applicable_process_families", "duration_ticks", "cost_units"],
+      "properties": {
+        "method_id": {"type": "string", "minLength": 1},
+        "applicable_process_families": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "duration_ticks": {"type": "integer", "minimum": 1},
+        "cost_units": {"type": "integer", "minimum": 1}
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scenario_id", "probability_ppm", "observations_by_epoch"],
+      "properties": {
+        "scenario_id": {"type": "string", "minLength": 1},
+        "probability_ppm": {"type": "integer", "minimum": 1, "maximum": 1000000},
+        "observations_by_epoch": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"$ref": "#/$defs/epochObservation"}}
+      }
+    },
+    "epochObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["epoch", "resource_events", "qualification_updates", "inspection_capacity_events"],
+      "properties": {
+        "epoch": {"type": "integer", "minimum": 0, "maximum": 3},
+        "resource_events": {"type": "array", "items": {"$ref": "#/$defs/resourceEvent"}},
+        "qualification_updates": {"type": "array", "items": {"$ref": "#/$defs/qualificationUpdate"}},
+        "inspection_capacity_events": {"type": "array", "items": {"$ref": "#/$defs/inspectionCapacityEvent"}}
+      }
+    },
+    "resourceEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_event_id", "resource_id", "kind", "occurred_at_epoch", "observed_at_epoch", "common_cause_id", "recovery_forecast_min_epochs", "recovery_forecast_max_epochs"],
+      "properties": {
+        "source_event_id": {"type": "string", "minLength": 1},
+        "resource_id": {"type": "string", "minLength": 1},
+        "kind": {"type": "string", "enum": ["FAILED", "RESTORED"]},
+        "occurred_at_epoch": {"type": "integer", "minimum": 0, "maximum": 3},
+        "observed_at_epoch": {"type": "integer", "minimum": 0, "maximum": 3},
+        "common_cause_id": {"type": ["string", "null"]},
+        "recovery_forecast_min_epochs": {"type": ["integer", "null"], "minimum": 0},
+        "recovery_forecast_max_epochs": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "qualificationUpdate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_receipt_id", "resource_id", "process_family", "previous_disposition", "new_disposition", "occurred_at_epoch", "observed_at_epoch"],
+      "properties": {
+        "evidence_receipt_id": {"type": "string", "minLength": 1},
+        "resource_id": {"type": "string", "minLength": 1},
+        "process_family": {"type": "string", "minLength": 1},
+        "previous_disposition": {"type": "string", "enum": ["ADMISSIBLE", "UNKNOWN", "BLOCKED"]},
+        "new_disposition": {"type": "string", "enum": ["ADMISSIBLE", "UNKNOWN", "BLOCKED"]},
+        "occurred_at_epoch": {"type": "integer", "minimum": 0, "maximum": 3},
+        "observed_at_epoch": {"type": "integer", "minimum": 0, "maximum": 3}
+      }
+    },
+    "inspectionCapacityEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_event_id", "station_id", "available_capacity_units", "occurred_at_epoch", "observed_at_epoch"],
+      "properties": {
+        "source_event_id": {"type": "string", "minLength": 1},
+        "station_id": {"type": "string", "minLength": 1},
+        "available_capacity_units": {"type": "integer", "minimum": 0},
+        "occurred_at_epoch": {"type": "integer", "minimum": 0, "maximum": 3},
+        "observed_at_epoch": {"type": "integer", "minimum": 0, "maximum": 3}
+      }
+    },
+    "hiddenQuality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome_id", "operation_id", "disposition"],
+      "properties": {
+        "outcome_id": {"type": "string", "minLength": 1},
+        "operation_id": {"type": "string", "minLength": 1},
+        "disposition": {"type": "string", "enum": ["ACCEPTED", "REJECTED", "INDETERMINATE"]}
+      }
+    }
+  }
+}
