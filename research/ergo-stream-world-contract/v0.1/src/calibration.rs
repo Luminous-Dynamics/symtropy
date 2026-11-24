@@ -154,6 +154,9 @@ pub enum TransferCalibrationErrorV0 {
     ProbabilityOutOfRange,
     ThresholdOutOfRange,
     ArithmeticOverflow,
+    EmptyConformalCalibration,
+    AlphaOutOfRange,
+    MixedCalibrationStrata,
 }
 
 impl fmt::Display for TransferCalibrationErrorV0 {
@@ -171,6 +174,9 @@ impl fmt::Display for TransferCalibrationErrorV0 {
             Self::ProbabilityOutOfRange => "transfer probability must be in 0..=1_000_000 ppm",
             Self::ThresholdOutOfRange => "confidence threshold must be in 0..=1_000_000 ppm",
             Self::ArithmeticOverflow => "calibration metric arithmetic overflowed",
+            Self::EmptyConformalCalibration => "split-conformal calibration requires at least one matched sample",
+            Self::AlphaOutOfRange => "conformal miscoverage alpha must be in 1..999999 ppm",
+            Self::MixedCalibrationStrata => "split-conformal calibration samples must belong to one evaluator-owned stratum",
         };
         formatter.write_str(message)
     }
@@ -449,6 +455,147 @@ pub fn evaluate_transfer_calibration_by_stratum(
         .collect()
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SplitConformalBinaryTransferV0 {
+    pub evaluation_stratum_id: u16,
+    pub alpha_ppm: u32,
+    pub calibration_count: usize,
+    /// One-based finite-sample order statistic rank. calibration_count + 1
+    /// denotes the conservative +infinity fallback, represented by scale.
+    pub quantile_rank: usize,
+    pub quantile_nonconformity_ppm: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TransferPredictionSetV0 {
+    pub sample_id: u64,
+    pub include_transfer: bool,
+    pub include_non_transfer: bool,
+    /// A singleton prediction set can be turned into a decision. Both labels
+    /// or neither label produce no decision and must not be silently forced.
+    pub decision: Option<TransferDecisionV0>,
+}
+
+impl SplitConformalBinaryTransferV0 {
+    pub fn predict(
+        self,
+        sample_id: u64,
+        probability_transfer_ppm: u32,
+    ) -> Result<TransferPredictionSetV0, TransferCalibrationErrorV0> {
+        if probability_transfer_ppm > PROBABILITY_SCALE_PPM_V0 {
+            return Err(TransferCalibrationErrorV0::ProbabilityOutOfRange);
+        }
+        let transfer_score = PROBABILITY_SCALE_PPM_V0 - probability_transfer_ppm;
+        let non_transfer_score = probability_transfer_ppm;
+        let include_transfer = transfer_score <= self.quantile_nonconformity_ppm;
+        let include_non_transfer = non_transfer_score <= self.quantile_nonconformity_ppm;
+        let decision = match (include_transfer, include_non_transfer) {
+            (true, false) => Some(TransferDecisionV0::AssertTransfer),
+            (false, true) => Some(TransferDecisionV0::RejectTransfer),
+            (true, true) | (false, false) => None,
+        };
+        Ok(TransferPredictionSetV0 {
+            sample_id,
+            include_transfer,
+            include_non_transfer,
+            decision,
+        })
+    }
+}
+
+/// Fit split conformal for the binary label "this exact scoped transfer claim
+/// qualifies". Use only an independent calibration cohort from one
+/// evaluator-owned stratum. The finite-sample marginal guarantee requires
+/// exchangeability between this calibration cohort and future claims in the
+/// same admitted stratum. It does not imply conditional coverage or validity
+/// under arbitrary distribution shift.
+pub fn fit_split_conformal_binary_transfer(
+    calibration_forecasts: &[TransferForecastV0],
+    calibration_outcomes: &[TransferOutcomeV0],
+    evaluation_stratum_id: u16,
+    alpha_ppm: u32,
+) -> Result<SplitConformalBinaryTransferV0, TransferCalibrationErrorV0> {
+    if calibration_forecasts.is_empty() || calibration_outcomes.is_empty() {
+        return Err(TransferCalibrationErrorV0::EmptyConformalCalibration);
+    }
+    if alpha_ppm == 0 || alpha_ppm >= PROBABILITY_SCALE_PPM_V0 {
+        return Err(TransferCalibrationErrorV0::AlphaOutOfRange);
+    }
+
+    let mut forecast_by_id = BTreeMap::new();
+    for forecast in calibration_forecasts {
+        if forecast.probability_transfer_ppm > PROBABILITY_SCALE_PPM_V0 {
+            return Err(TransferCalibrationErrorV0::ProbabilityOutOfRange);
+        }
+        if forecast_by_id.insert(forecast.sample_id, *forecast).is_some() {
+            return Err(TransferCalibrationErrorV0::DuplicateSampleId);
+        }
+    }
+
+    let mut outcomes_by_id = BTreeMap::new();
+    for outcome in calibration_outcomes {
+        if outcome.evaluation_stratum_id != evaluation_stratum_id {
+            return Err(TransferCalibrationErrorV0::MixedCalibrationStrata);
+        }
+        if outcomes_by_id.insert(outcome.sample_id, *outcome).is_some() {
+            return Err(TransferCalibrationErrorV0::DuplicateOutcomeId);
+        }
+    }
+
+    if forecast_by_id.len() != outcomes_by_id.len() {
+        return Err(TransferCalibrationErrorV0::MissingOutcome);
+    }
+
+    let mut nonconformity_scores = Vec::with_capacity(calibration_forecasts.len());
+    for (sample_id, outcome) in &outcomes_by_id {
+        let forecast = forecast_by_id
+            .get(sample_id)
+            .ok_or(TransferCalibrationErrorV0::MissingOutcome)?;
+        let score = if outcome.transfer_qualified {
+            PROBABILITY_SCALE_PPM_V0 - forecast.probability_transfer_ppm
+        } else {
+            forecast.probability_transfer_ppm
+        };
+        nonconformity_scores.push(score);
+    }
+    if forecast_by_id
+        .keys()
+        .any(|sample_id| !outcomes_by_id.contains_key(sample_id))
+    {
+        return Err(TransferCalibrationErrorV0::UnknownOutcome);
+    }
+
+    nonconformity_scores.sort_unstable();
+    let calibration_count = nonconformity_scores.len();
+    let n_plus_one = u128::try_from(calibration_count)
+        .map_err(|_| TransferCalibrationErrorV0::ArithmeticOverflow)?
+        .checked_add(1)
+        .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?;
+    let target_numerator = n_plus_one
+        .checked_mul(u128::from(PROBABILITY_SCALE_PPM_V0 - alpha_ppm))
+        .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?;
+    let rank = target_numerator
+        .checked_add(u128::from(PROBABILITY_SCALE_PPM_V0 - 1))
+        .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?
+        / u128::from(PROBABILITY_SCALE_PPM_V0);
+    let quantile_rank = usize::try_from(rank)
+        .map_err(|_| TransferCalibrationErrorV0::ArithmeticOverflow)?;
+
+    let quantile_nonconformity_ppm = if quantile_rank > calibration_count {
+        PROBABILITY_SCALE_PPM_V0
+    } else {
+        nonconformity_scores[quantile_rank - 1]
+    };
+
+    Ok(SplitConformalBinaryTransferV0 {
+        evaluation_stratum_id,
+        alpha_ppm,
+        calibration_count,
+        quantile_rank,
+        quantile_nonconformity_ppm,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -463,6 +610,112 @@ mod tests {
             probability_transfer_ppm,
             decision,
         }
+    }
+
+    fn conformal_calibration_fixture() -> (Vec<TransferForecastV0>, Vec<TransferOutcomeV0>) {
+        let forecasts = vec![
+            forecast(201, 900_000, None),
+            forecast(202, 200_000, None),
+            forecast(203, 500_000, None),
+        ];
+        let outcomes = vec![
+            TransferOutcomeV0 {
+                sample_id: 201,
+                evaluation_stratum_id: 7,
+                transfer_qualified: true,
+            },
+            TransferOutcomeV0 {
+                sample_id: 202,
+                evaluation_stratum_id: 7,
+                transfer_qualified: false,
+            },
+            TransferOutcomeV0 {
+                sample_id: 203,
+                evaluation_stratum_id: 7,
+                transfer_qualified: false,
+            },
+        ];
+        (forecasts, outcomes)
+    }
+
+    #[test]
+    fn split_conformal_fits_finite_sample_order_statistic_and_predicts_singleton() {
+        let (forecasts, outcomes) = conformal_calibration_fixture();
+        let calibrator =
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, 7, 250_000).unwrap();
+
+        assert_eq!(calibrator.calibration_count, 3);
+        assert_eq!(calibrator.quantile_rank, 3);
+        assert_eq!(calibrator.quantile_nonconformity_ppm, 500_000);
+
+        let predicted = calibrator.predict(204, 900_000).unwrap();
+        assert!(predicted.include_transfer);
+        assert!(!predicted.include_non_transfer);
+        assert_eq!(
+            predicted.decision,
+            Some(TransferDecisionV0::AssertTransfer)
+        );
+    }
+
+    #[test]
+    fn split_conformal_returns_both_labels_when_calibration_is_too_small_for_rank() {
+        let forecasts = [forecast(301, 900_000, None)];
+        let outcomes = [TransferOutcomeV0 {
+            sample_id: 301,
+            evaluation_stratum_id: 2,
+            transfer_qualified: true,
+        }];
+        let calibrator = fit_split_conformal_binary_transfer(&forecasts, &outcomes, 2, 100_000)
+            .unwrap();
+
+        assert_eq!(calibrator.quantile_rank, 2);
+        assert_eq!(calibrator.quantile_nonconformity_ppm, PROBABILITY_SCALE_PPM_V0);
+        let predicted = calibrator.predict(302, 900_000).unwrap();
+        assert!(predicted.include_transfer);
+        assert!(predicted.include_non_transfer);
+        assert_eq!(predicted.decision, None);
+    }
+
+    #[test]
+    fn split_conformal_rejects_mixed_strata_and_invalid_alpha() {
+        let (forecasts, outcomes) = conformal_calibration_fixture();
+        assert_eq!(
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, 8, 100_000),
+            Err(TransferCalibrationErrorV0::MixedCalibrationStrata)
+        );
+        assert_eq!(
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, 7, 0),
+            Err(TransferCalibrationErrorV0::AlphaOutOfRange)
+        );
+        assert_eq!(
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, 7, 1_000_000),
+            Err(TransferCalibrationErrorV0::AlphaOutOfRange)
+        );
+    }
+
+    #[test]
+    fn split_conformal_rejects_missing_and_duplicate_calibration_records() {
+        let (forecasts, outcomes) = conformal_calibration_fixture();
+        assert_eq!(
+            fit_split_conformal_binary_transfer(&forecasts[..2], &outcomes, 7, 100_000),
+            Err(TransferCalibrationErrorV0::MissingOutcome)
+        );
+        let duplicate = [forecasts[0], forecasts[0]];
+        assert_eq!(
+            fit_split_conformal_binary_transfer(&duplicate, &outcomes[..1], 7, 100_000),
+            Err(TransferCalibrationErrorV0::DuplicateSampleId)
+        );
+    }
+
+    #[test]
+    fn split_conformal_predict_rejects_probability_out_of_range() {
+        let (forecasts, outcomes) = conformal_calibration_fixture();
+        let calibrator =
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, 7, 100_000).unwrap();
+        assert_eq!(
+            calibrator.predict(999, 1_000_001),
+            Err(TransferCalibrationErrorV0::ProbabilityOutOfRange)
+        );
     }
 
     #[test]
