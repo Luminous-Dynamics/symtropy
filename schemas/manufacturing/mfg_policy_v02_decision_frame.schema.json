@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-decision-frame",
+  "title": "Manufacturing Policy v0.2 Incremental Decision Frame",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "benchmark_id", "case_id", "scenario_family_id", "decision_epoch", "static_case", "observable_history", "claim_ceiling"],
+  "properties": {
+    "schema_id": {"const": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-decision-frame"},
+    "benchmark_id": {"const": "MFG-POLICY-V02-CHALLENGE-001"},
+    "case_id": {"type": "string", "minLength": 1},
+    "scenario_family_id": {"type": "string", "minLength": 1},
+    "decision_epoch": {"type": "integer", "minimum": 0, "maximum": 3},
+    "static_case": {
+      "type": "object",
+      "required": ["case_id", "scenario_family_id", "jobs", "resources", "setup_transitions", "inspection_station"],
+      "not": {
+        "anyOf": [
+          {"required": ["scenario_id"]},
+          {"required": ["scenarios"]},
+          {"required": ["scenario_slot"]},
+          {"required": ["observations_by_epoch"]},
+          {"required": ["hidden_terminal_quality_outcomes"]}
+        ]
+      }
+    },
+    "observable_history": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["epoch", "resource_events", "qualification_updates", "inspection_capacity_events"],
+        "properties": {
+          "epoch": {"type": "integer", "minimum": 0, "maximum": 3},
+          "resource_events": {"type": "array", "items": {"type": "object"}},
+          "qualification_updates": {"type": "array", "items": {"type": "object"}},
+          "inspection_capacity_events": {"type": "array", "items": {"type": "object"}}
+        }
+      }
+    },
+    "claim_ceiling": {"type": "string", "minLength": 1}
+  }
+}
