@@ -205,14 +205,15 @@ fn require_nonempty(field: &str, value: &str) -> Result<(), DesignAuditError> {
 }
 
 fn valid_sha256(value: &str) -> bool {
-    value.strip_prefix("sha256:").is_some_and(|hex| {
-        hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit())
-    })
+    value
+        .strip_prefix("sha256:")
+        .is_some_and(|hex| hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit()))
 }
 
 fn canonical_digest<T: Serialize>(value: &T, label: &str) -> Result<String, DesignAuditError> {
-    let bytes = serde_json::to_vec(value)
-        .map_err(|error| DesignAuditError::InvalidInput(format!("{label} serialization failed: {error}")))?;
+    let bytes = serde_json::to_vec(value).map_err(|error| {
+        DesignAuditError::InvalidInput(format!("{label} serialization failed: {error}"))
+    })?;
     Ok(format!("sha256:{:x}", Sha256::digest(bytes)))
 }
 
@@ -255,9 +256,7 @@ fn randomization_rank(input: &GridCausalDesignInput, stratum_id: &str, cluster_i
     sha256_hex(&material)
 }
 
-fn assignment_digest(
-    input: &GridCausalDesignInput,
-) -> Result<String, DesignAuditError> {
+fn assignment_digest(input: &GridCausalDesignInput) -> Result<String, DesignAuditError> {
     let mut records: Vec<_> = input.clusters.iter().collect();
     records.sort_by(|left, right| left.cluster_id.cmp(&right.cluster_id));
     canonical_digest(&records, "cluster assignment records")
@@ -274,14 +273,20 @@ fn validate_input(input: &GridCausalDesignInput) -> Result<(), DesignAuditError>
         ("experiment_id", input.experiment_id.as_str()),
         ("service_product_id", input.service_product_id.as_str()),
         ("primary_outcome_id", input.primary_outcome_id.as_str()),
-        ("measurement_boundary_id", input.measurement_boundary_id.as_str()),
+        (
+            "measurement_boundary_id",
+            input.measurement_boundary_id.as_str(),
+        ),
         ("protocol_reference", input.protocol_reference.as_str()),
         ("claim_ceiling", input.claim_ceiling.as_str()),
         (
             "public_randomness_source_id",
             input.randomization.public_randomness_source_id.as_str(),
         ),
-        ("random seed reveal", input.randomization.seed_reveal.as_str()),
+        (
+            "random seed reveal",
+            input.randomization.seed_reveal.as_str(),
+        ),
         (
             "public randomness value",
             input.randomization.public_randomness_value.as_str(),
@@ -291,9 +296,18 @@ fn validate_input(input: &GridCausalDesignInput) -> Result<(), DesignAuditError>
     }
 
     for (field, digest) in [
-        ("pre-registration digest", input.pre_registration_digest.as_str()),
-        ("frozen covariate digest", input.frozen_covariate_digest.as_str()),
-        ("baseline partition digest", input.baseline_partition_digest.as_str()),
+        (
+            "pre-registration digest",
+            input.pre_registration_digest.as_str(),
+        ),
+        (
+            "frozen covariate digest",
+            input.frozen_covariate_digest.as_str(),
+        ),
+        (
+            "baseline partition digest",
+            input.baseline_partition_digest.as_str(),
+        ),
         (
             "interference mapping digest",
             input.interference_mapping_digest.as_str(),
@@ -352,14 +366,12 @@ fn validate_input(input: &GridCausalDesignInput) -> Result<(), DesignAuditError>
         ));
     }
     if input.plan_frozen_at_unix_ms == 0
-        || input.randomization.seed_commitment_recorded_at_unix_ms
-            > input.plan_frozen_at_unix_ms
+        || input.randomization.seed_commitment_recorded_at_unix_ms > input.plan_frozen_at_unix_ms
         || input.baseline_window.end_unix_ms > input.plan_frozen_at_unix_ms
         || input.plan_frozen_at_unix_ms >= input.randomization.randomness_published_at_unix_ms
         || input.randomization.randomness_published_at_unix_ms
             > input.randomization.assignment_issued_at_unix_ms
-        || input.randomization.assignment_issued_at_unix_ms
-            >= input.dispatch_window.start_unix_ms
+        || input.randomization.assignment_issued_at_unix_ms >= input.dispatch_window.start_unix_ms
     {
         return Err(DesignAuditError::TimeOrderViolation(
             "baseline/seed commitment must precede freeze; public randomness follows freeze; assignment follows randomness and precedes dispatch"
@@ -374,8 +386,7 @@ fn validate_input(input: &GridCausalDesignInput) -> Result<(), DesignAuditError>
             .unwrap_or_default()
     {
         return Err(DesignAuditError::RandomizationMismatch(
-            "revealed randomization seed does not match its pre-registration commitment"
-                .to_owned(),
+            "revealed randomization seed does not match its pre-registration commitment".to_owned(),
         ));
     }
     if sha256_hex(&input.randomization.public_randomness_value)
@@ -472,7 +483,10 @@ fn validate_input(input: &GridCausalDesignInput) -> Result<(), DesignAuditError>
         for (field, value) in [
             ("cluster ID", cluster.cluster_id.as_str()),
             ("cluster stratum ID", cluster.stratum_id.as_str()),
-            ("interference domain ID", cluster.interference_domain_id.as_str()),
+            (
+                "interference domain ID",
+                cluster.interference_domain_id.as_str(),
+            ),
         ] {
             require_nonempty(field, value)?;
         }
@@ -516,7 +530,9 @@ fn validate_input(input: &GridCausalDesignInput) -> Result<(), DesignAuditError>
                 )));
             }
         }
-        let entry = observed_counts.entry(cluster.stratum_id.as_str()).or_insert((0, 0));
+        let entry = observed_counts
+            .entry(cluster.stratum_id.as_str())
+            .or_insert((0, 0));
         match cluster.assigned_arm {
             AssignmentArm::Treatment => entry.0 += 1,
             AssignmentArm::Control => entry.1 += 1,
@@ -560,9 +576,7 @@ fn validate_input(input: &GridCausalDesignInput) -> Result<(), DesignAuditError>
         }
     }
     for cluster in &input.clusters {
-        if expected_arm_by_cluster.get(cluster.cluster_id.as_str())
-            != Some(&cluster.assigned_arm)
-        {
+        if expected_arm_by_cluster.get(cluster.cluster_id.as_str()) != Some(&cluster.assigned_arm) {
             return Err(DesignAuditError::RandomizationMismatch(format!(
                 "cluster {} assignment does not reproduce from the committed seed and public random beacon",
                 cluster.cluster_id
@@ -643,8 +657,9 @@ pub fn audit_causal_design(
     stratum_audits.sort_by(|left, right| left.stratum_id.cmp(&right.stratum_id));
 
     let assignment_digest = assignment_digest(input)?;
-    let input_bytes = serde_json::to_vec(input)
-        .map_err(|error| DesignAuditError::InvalidInput(format!("input serialization failed: {error}")))?;
+    let input_bytes = serde_json::to_vec(input).map_err(|error| {
+        DesignAuditError::InvalidInput(format!("input serialization failed: {error}"))
+    })?;
     let input_digest = format!("sha256:{:x}", Sha256::digest(input_bytes));
 
     Ok(GridCausalDesignAuditReport {
@@ -656,8 +671,16 @@ pub fn audit_causal_design(
         primary_estimand: input.primary_estimand,
         design_qualified: true,
         cluster_count: input.clusters.len(),
-        site_count: input.clusters.iter().map(|cluster| cluster.site_ids.len()).sum(),
-        asset_count: input.clusters.iter().map(|cluster| cluster.asset_ids.len()).sum(),
+        site_count: input
+            .clusters
+            .iter()
+            .map(|cluster| cluster.site_ids.len())
+            .sum(),
+        asset_count: input
+            .clusters
+            .iter()
+            .map(|cluster| cluster.asset_ids.len())
+            .sum(),
         treated_cluster_count: treated_count,
         control_cluster_count: control_count,
         stratum_count: input.strata.len(),
@@ -761,8 +784,10 @@ mod tests {
         ));
 
         let mut before_assignment = fixture();
-        before_assignment.randomization.assignment_issued_at_unix_ms =
-            before_assignment.randomization.randomness_published_at_unix_ms - 1;
+        before_assignment.randomization.assignment_issued_at_unix_ms = before_assignment
+            .randomization
+            .randomness_published_at_unix_ms
+            - 1;
         assert!(matches!(
             audit_causal_design(&before_assignment),
             Err(DesignAuditError::TimeOrderViolation(_))
@@ -772,8 +797,7 @@ mod tests {
     #[test]
     fn shared_interference_domain_must_be_one_randomization_cluster() {
         let mut input = fixture();
-        input.clusters[1].interference_domain_id =
-            input.clusters[0].interference_domain_id.clone();
+        input.clusters[1].interference_domain_id = input.clusters[0].interference_domain_id.clone();
         assert!(matches!(
             audit_causal_design(&input),
             Err(DesignAuditError::InterferenceDomainOverlap(_))
@@ -783,16 +807,14 @@ mod tests {
     #[test]
     fn site_and_asset_cannot_be_randomized_twice() {
         let mut duplicate_site = fixture();
-        duplicate_site.clusters[1].site_ids[0] =
-            duplicate_site.clusters[0].site_ids[0].clone();
+        duplicate_site.clusters[1].site_ids[0] = duplicate_site.clusters[0].site_ids[0].clone();
         assert!(matches!(
             audit_causal_design(&duplicate_site),
             Err(DesignAuditError::DuplicateIdentity(_))
         ));
 
         let mut duplicate_asset = fixture();
-        duplicate_asset.clusters[1].asset_ids[0] =
-            duplicate_asset.clusters[0].asset_ids[0].clone();
+        duplicate_asset.clusters[1].asset_ids[0] = duplicate_asset.clusters[0].asset_ids[0].clone();
         assert!(matches!(
             audit_causal_design(&duplicate_asset),
             Err(DesignAuditError::DuplicateIdentity(_))
