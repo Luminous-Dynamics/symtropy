@@ -142,17 +142,14 @@ fn non_empty(value: &str) -> bool {
 }
 
 fn quantile_rank(sample_count: u64, nominal_coverage_permille: u16) -> Option<u64> {
-    let numerator = u128::from(sample_count.checked_add(1)?) * u128::from(nominal_coverage_permille);
+    let numerator =
+        u128::from(sample_count.checked_add(1)?) * u128::from(nominal_coverage_permille);
     let rank = numerator.div_ceil(1000).max(1);
     let rank = u64::try_from(rank).ok()?;
     (rank <= sample_count).then_some(rank)
 }
 
-fn resolve_quantile_upper_edge(
-    bin_counts: &[u64],
-    bin_edges: &[u64],
-    rank: u64,
-) -> Option<u64> {
+fn resolve_quantile_upper_edge(bin_counts: &[u64], bin_edges: &[u64], rank: u64) -> Option<u64> {
     let mut cumulative = 0_u64;
     for (index, count) in bin_counts.iter().enumerate() {
         cumulative = cumulative.checked_add(*count)?;
@@ -193,7 +190,10 @@ fn validate(input: &FederatedCalibrationInput) -> Result<(), Vec<String>> {
     let key = &input.compatibility;
     for (name, value) in [
         ("forecast_model_id", key.forecast_model_id.as_str()),
-        ("forecast_model_version", key.forecast_model_version.as_str()),
+        (
+            "forecast_model_version",
+            key.forecast_model_version.as_str(),
+        ),
         ("metric_kind", key.metric_kind.as_str()),
         ("measurement_boundary", key.measurement_boundary.as_str()),
         ("unit", key.unit.as_str()),
@@ -208,13 +208,15 @@ fn validate(input: &FederatedCalibrationInput) -> Result<(), Vec<String>> {
         }
     }
     if key.forecast_horizon_ms == 0
-        || !(MIN_COVERAGE_PERMILLE..=MAX_COVERAGE_PERMILLE)
-            .contains(&key.nominal_coverage_permille)
+        || !(MIN_COVERAGE_PERMILLE..=MAX_COVERAGE_PERMILLE).contains(&key.nominal_coverage_permille)
     {
         errors.push("compatibility horizon or coverage is outside v0.1 bounds".to_owned());
     }
     if key.bin_edges.len() < 2 || key.bin_edges.len() > MAX_BINS + 1 {
-        errors.push(format!("compatibility.bin_edges must contain 2..={} items", MAX_BINS + 1));
+        errors.push(format!(
+            "compatibility.bin_edges must contain 2..={} items",
+            MAX_BINS + 1
+        ));
     }
     if key.bin_edges.windows(2).any(|pair| pair[0] >= pair[1]) {
         errors.push("compatibility.bin_edges must be strictly increasing".to_owned());
@@ -232,7 +234,9 @@ fn validate(input: &FederatedCalibrationInput) -> Result<(), Vec<String>> {
     if input.registered_site_ids.len() < input.minimum_participating_sites
         || input.registered_site_ids.len() > MAX_SUMMARIES
     {
-        errors.push(format!("registered_site_ids must contain minimum cohort..={MAX_SUMMARIES} sites"));
+        errors.push(format!(
+            "registered_site_ids must contain minimum cohort..={MAX_SUMMARIES} sites"
+        ));
     }
     if input.release_ledger_snapshot.len() > MAX_SUMMARIES {
         errors.push(format!("release_ledger_snapshot must contain at most {MAX_SUMMARIES} items"));
@@ -250,60 +254,92 @@ fn validate(input: &FederatedCalibrationInput) -> Result<(), Vec<String>> {
             || ledger.maximum_releases_in_epoch == 0
             || ledger.releases_in_epoch >= ledger.maximum_releases_in_epoch
         {
-            errors.push(format!("release ledger for {} is invalid or exhausted", ledger.site_id));
+            errors.push(format!(
+                "release ledger for {} is invalid or exhausted",
+                ledger.site_id
+            ));
         }
-        if ledgers_by_site.insert(ledger.site_id.as_str(), ledger).is_some() {
+        if ledgers_by_site
+            .insert(ledger.site_id.as_str(), ledger)
+            .is_some()
+        {
             errors.push(format!("duplicate release ledger for {}", ledger.site_id));
         }
         let mut released = BTreeSet::new();
         for digest in &ledger.previously_released_query_digests {
             if !non_empty(digest) || !released.insert(digest.as_str()) {
-                errors.push(format!("release ledger for {} has duplicate/empty query digest", ledger.site_id));
+                errors.push(format!(
+                    "release ledger for {} has duplicate/empty query digest",
+                    ledger.site_id
+                ));
             }
             if digest == &input.query_scope_digest {
-                errors.push(format!("query scope was already released for {}", ledger.site_id));
+                errors.push(format!(
+                    "query scope was already released for {}",
+                    ledger.site_id
+                ));
             }
         }
     }
 
     for summary in &input.summaries {
         if !registered.contains(summary.site_id.as_str()) {
-            errors.push(format!("{} is not in the registered site roster", summary.site_id));
+            errors.push(format!(
+                "{} is not in the registered site roster",
+                summary.site_id
+            ));
         }
         if !summaries_by_site.insert(summary.site_id.as_str()) {
-            errors.push(format!("{} contributes more than once in the epoch", summary.site_id));
+            errors.push(format!(
+                "{} contributes more than once in the epoch",
+                summary.site_id
+            ));
         }
         if !non_empty(&summary.local_evidence_digest)
             || !evidence_digests.insert(summary.local_evidence_digest.as_str())
         {
-            errors.push(format!("{} has empty or reused local evidence digest", summary.site_id));
+            errors.push(format!(
+                "{} has empty or reused local evidence digest",
+                summary.site_id
+            ));
         }
         if summary.epoch_id != input.epoch_id {
             errors.push(format!("{} summary epoch does not match", summary.site_id));
         }
         if summary.compatibility != input.compatibility {
-            errors.push(format!("{} summary is compatibility-inconsistent", summary.site_id));
+            errors.push(format!(
+                "{} summary is compatibility-inconsistent",
+                summary.site_id
+            ));
         }
         if summary.calibration_sample_count == 0
             || summary.calibration_sample_count > input.maximum_samples_per_site
             || summary.calibration_sample_count > MAX_SAMPLES_PER_SITE
         {
-            errors.push(format!("{} exceeds or violates the sample contribution bound", summary.site_id));
+            errors.push(format!(
+                "{} exceeds or violates the sample contribution bound",
+                summary.site_id
+            ));
         }
         if summary.calibration_score_bin_counts.len() + 1 != input.compatibility.bin_edges.len()
             || summary.calibration_score_bin_counts.iter().any(|count| {
-                *count > input.maximum_count_per_bin_per_site
-                    || *count > MAX_BIN_COUNT_PER_SITE
+                *count > input.maximum_count_per_bin_per_site || *count > MAX_BIN_COUNT_PER_SITE
             })
         {
-            errors.push(format!("{} histogram bins violate shape or per-bin contribution bounds", summary.site_id));
+            errors.push(format!(
+                "{} histogram bins violate shape or per-bin contribution bounds",
+                summary.site_id
+            ));
         }
         let histogram_total = summary
             .calibration_score_bin_counts
             .iter()
             .try_fold(0_u64, |sum, count| sum.checked_add(*count));
         if histogram_total != Some(summary.calibration_sample_count) {
-            errors.push(format!("{} histogram count does not equal calibration sample count", summary.site_id));
+            errors.push(format!(
+                "{} histogram count does not equal calibration sample count",
+                summary.site_id
+            ));
         }
         if summary.holdout_sample_count > MAX_SAMPLES_PER_SITE
             || summary.holdout_covered_count > summary.holdout_sample_count
@@ -313,19 +349,31 @@ fn validate(input: &FederatedCalibrationInput) -> Result<(), Vec<String>> {
             || input.aggregation_time_unix_ms - summary.local_audit_cutoff_unix_ms
                 > input.maximum_summary_age_ms
         {
-            errors.push(format!("{} holdout metrics or evidence cutoff are invalid/stale", summary.site_id));
+            errors.push(format!(
+                "{} holdout metrics or evidence cutoff are invalid/stale",
+                summary.site_id
+            ));
         }
         if !ledgers_by_site.contains_key(summary.site_id.as_str()) {
-            errors.push(format!("{} has no release ledger snapshot", summary.site_id));
+            errors.push(format!(
+                "{} has no release ledger snapshot",
+                summary.site_id
+            ));
         }
     }
 
-    if errors.is_empty() { Ok(()) } else { Err(errors) }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
 }
 
 fn canonical_digest(input: &FederatedCalibrationInput) -> Result<String, Vec<String>> {
     let mut canonical = input.clone();
-    canonical.summaries.sort_by(|a, b| a.site_id.cmp(&b.site_id));
+    canonical
+        .summaries
+        .sort_by(|a, b| a.site_id.cmp(&b.site_id));
     canonical.registered_site_ids.sort();
     canonical
         .release_ledger_snapshot
@@ -347,7 +395,9 @@ pub fn evaluate_federated_calibration(
     let calibration_total = input
         .summaries
         .iter()
-        .try_fold(0_u64, |sum, item| sum.checked_add(item.calibration_sample_count))
+        .try_fold(0_u64, |sum, item| {
+            sum.checked_add(item.calibration_sample_count)
+        })
         .ok_or_else(|| vec!["aggregate calibration count overflow".to_owned()])?;
 
     let status = if participant_count < input.minimum_participating_sites {
@@ -436,14 +486,15 @@ pub fn evaluate_federated_calibration(
         calibration_total,
         input.compatibility.nominal_coverage_permille,
     )
-    .ok_or_else(|| vec!["no finite conformal quantile is available for this sample count".to_owned()])?;
-    let quantile_upper_edge = resolve_quantile_upper_edge(
-        &merged_bins,
-        &input.compatibility.bin_edges,
-        quantile_rank,
-    );
+    .ok_or_else(|| {
+        vec!["no finite conformal quantile is available for this sample count".to_owned()]
+    })?;
+    let quantile_upper_edge =
+        resolve_quantile_upper_edge(&merged_bins, &input.compatibility.bin_edges, quantile_rank);
     if quantile_upper_edge.is_none() {
-        return Err(vec!["merged histogram cannot resolve the configured quantile".to_owned()]);
+        return Err(vec![
+            "merged histogram cannot resolve the configured quantile".to_owned(),
+        ]);
     }
 
     Ok(FederatedCalibrationReport {
@@ -509,7 +560,12 @@ mod tests {
         }
     }
 
-    fn summary(site: &str, counts: Vec<u64>, covered: u64, status: LocalCalibrationStatus) -> SiteCalibrationSummary {
+    fn summary(
+        site: &str,
+        counts: Vec<u64>,
+        covered: u64,
+        status: LocalCalibrationStatus,
+    ) -> SiteCalibrationSummary {
         SiteCalibrationSummary {
             site_id: site.to_owned(),
             epoch_id: "epoch-01".to_owned(),
@@ -557,9 +613,24 @@ mod tests {
 
     fn fixture_input() -> FederatedCalibrationInput {
         input(vec![
-            summary("depot-a", vec![2, 4, 4], 9, LocalCalibrationStatus::LocallySupported),
-            summary("depot-b", vec![1, 3, 6], 7, LocalCalibrationStatus::UndercoverageAlarm),
-            summary("depot-c", vec![3, 2, 5], 8, LocalCalibrationStatus::InsufficientLocalSupport),
+            summary(
+                "depot-a",
+                vec![2, 4, 4],
+                9,
+                LocalCalibrationStatus::LocallySupported,
+            ),
+            summary(
+                "depot-b",
+                vec![1, 3, 6],
+                7,
+                LocalCalibrationStatus::UndercoverageAlarm,
+            ),
+            summary(
+                "depot-c",
+                vec![3, 2, 5],
+                8,
+                LocalCalibrationStatus::InsufficientLocalSupport,
+            ),
         ])
     }
 
@@ -569,7 +640,10 @@ mod tests {
         assert_eq!(report.status, FederatedAggregationStatus::Published);
         assert_eq!(report.participating_site_count, Some(3));
         assert_eq!(report.total_calibration_sample_count, Some(30));
-        assert_eq!(report.merged_calibration_score_bin_counts, Some(vec![6, 9, 15]));
+        assert_eq!(
+            report.merged_calibration_score_bin_counts,
+            Some(vec![6, 9, 15])
+        );
         assert_eq!(report.conformal_quantile_rank, Some(28));
         assert_eq!(report.conformal_quantile_upper_edge, Some(40));
         assert_eq!(report.total_holdout_sample_count, Some(30));
@@ -587,7 +661,10 @@ mod tests {
         let a = evaluate_federated_calibration(&first).unwrap();
         let b = evaluate_federated_calibration(&reversed).unwrap();
         assert_eq!(a.input_digest, b.input_digest);
-        assert_eq!(a.merged_calibration_score_bin_counts, b.merged_calibration_score_bin_counts);
+        assert_eq!(
+            a.merged_calibration_score_bin_counts,
+            b.merged_calibration_score_bin_counts
+        );
     }
 
     #[test]
@@ -648,7 +725,10 @@ mod tests {
         let mut input = fixture_input();
         input.summaries.pop();
         let report = evaluate_federated_calibration(&input).unwrap();
-        assert_eq!(report.status, FederatedAggregationStatus::SuppressedMinimumCohort);
+        assert_eq!(
+            report.status,
+            FederatedAggregationStatus::SuppressedMinimumCohort
+        );
         assert_eq!(report.participating_site_count, None);
         assert_eq!(report.merged_calibration_score_bin_counts, None);
         assert_eq!(report.conformal_quantile_upper_edge, None);
@@ -691,7 +771,10 @@ mod tests {
         let mut input = fixture_input();
         input.minimum_total_calibration_samples = 31;
         let report = evaluate_federated_calibration(&input).unwrap();
-        assert_eq!(report.status, FederatedAggregationStatus::SuppressedMinimumSamples);
+        assert_eq!(
+            report.status,
+            FederatedAggregationStatus::SuppressedMinimumSamples
+        );
         assert_eq!(report.participating_site_count, None);
         assert_eq!(report.total_calibration_sample_count, None);
         assert_eq!(report.merged_calibration_score_bin_counts, None);
@@ -702,9 +785,24 @@ mod tests {
         let mut input = fixture_input();
         input.compatibility.nominal_coverage_permille = 990;
         input.summaries = vec![
-            summary("depot-a", vec![1, 0, 0], 9, LocalCalibrationStatus::LocallySupported),
-            summary("depot-b", vec![1, 0, 0], 7, LocalCalibrationStatus::UndercoverageAlarm),
-            summary("depot-c", vec![1, 0, 0], 8, LocalCalibrationStatus::InsufficientLocalSupport),
+            summary(
+                "depot-a",
+                vec![1, 0, 0],
+                9,
+                LocalCalibrationStatus::LocallySupported,
+            ),
+            summary(
+                "depot-b",
+                vec![1, 0, 0],
+                7,
+                LocalCalibrationStatus::UndercoverageAlarm,
+            ),
+            summary(
+                "depot-c",
+                vec![1, 0, 0],
+                8,
+                LocalCalibrationStatus::InsufficientLocalSupport,
+            ),
         ];
         for summary in &mut input.summaries {
             summary.compatibility.nominal_coverage_permille = 990;
