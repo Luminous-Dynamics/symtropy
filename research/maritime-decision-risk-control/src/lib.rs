@@ -1,3 +1,4 @@
+pub mod high_probability;
 pub mod lipschitz;
 pub mod oracle_adapter;
 pub mod weighted_shift;
