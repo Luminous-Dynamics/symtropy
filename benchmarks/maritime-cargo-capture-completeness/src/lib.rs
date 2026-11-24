@@ -190,6 +190,55 @@ fn valid_reference(reference: &IndependentReference, profile: &CaptureProfile) -
         && !reference.failure_domains.is_empty()
 }
 
+/// Binds a particular downstream source claim to a qualified capture receipt.
+///
+/// A qualified window alone is insufficient: the exact source, configuration,
+/// event class, event ID, source-native record ID, canonical subject and event
+/// time must match one durably reconciled event. A non-qualified window keeps
+/// its stronger failure disposition and never admits an individual claim.
+pub fn admit_claim_against_capture(
+    report: &CaptureReport,
+    claim: &CaptureClaimBinding,
+) -> CaptureClaimAdmission {
+    match report.disposition {
+        Disposition::Incomplete => return CaptureClaimAdmission::Incomplete,
+        Disposition::NotIdentifiable => return CaptureClaimAdmission::NotIdentifiable,
+        Disposition::NotEvaluable => return CaptureClaimAdmission::NotEvaluable,
+        Disposition::Unknown => return CaptureClaimAdmission::Unknown,
+        Disposition::QualifiedWithinDeclaredEnvelope => {}
+    }
+
+    let Some(provenance) = report.provenance.as_ref() else {
+        return CaptureClaimAdmission::NotEvaluable;
+    };
+    if provenance.source_id != claim.source_id
+        || provenance.event_class != claim.event_class
+        || provenance.configuration_digest != claim.configuration_digest
+        || claim.event_time < provenance.window_start
+        || claim.event_time >= provenance.window_end
+        || claim.event_time > provenance.as_of
+    {
+        return CaptureClaimAdmission::EvidenceDoesNotMatchClaim;
+    }
+
+    let matched = report.reconciled_events.iter().any(|event| {
+        event.source_id == claim.source_id
+            && event.event_class == claim.event_class
+            && event.configuration_digest == claim.configuration_digest
+            && event.event_id == claim.event_id
+            && event.source_record_id == claim.source_record_id
+            && event.canonical_subject_id == claim.canonical_subject_id
+            && event.event_time == claim.event_time
+            && event.reference_id == provenance.reference_id
+            && event.published_at <= provenance.as_of
+    });
+    if matched {
+        CaptureClaimAdmission::Qualified
+    } else {
+        CaptureClaimAdmission::EvidenceDoesNotMatchClaim
+    }
+}
+
 pub fn evaluate(case: &CaptureCase) -> CaptureReport {
     let Some(profile) = case.profile.as_ref() else {
         return CaptureReport::with_disposition(Disposition::Unknown);
@@ -225,6 +274,7 @@ pub fn evaluate(case: &CaptureCase) -> CaptureReport {
     let mut seen_reference_ids = BTreeSet::new();
     for event in &reference.events {
         if event.event_id.trim().is_empty()
+            || event.canonical_subject_id.trim().is_empty()
             || event.event_class != profile.event_class
             || event.event_time < profile.window_start
             || event.event_time >= profile.window_end
@@ -233,7 +283,7 @@ pub fn evaluate(case: &CaptureCase) -> CaptureReport {
             return CaptureReport::with_disposition(Disposition::NotEvaluable);
         }
         if event.event_time <= case.as_of {
-            expected.insert(event.event_id.clone(), event.event_time);
+            expected.insert(event.event_id.clone(), event.clone());
         }
     }
 
@@ -245,6 +295,13 @@ pub fn evaluate(case: &CaptureCase) -> CaptureReport {
             || event.event_time >= profile.window_end
         {
             continue;
+        }
+        if event.event_id.trim().is_empty()
+            || event.source_record_id.trim().is_empty()
+            || event.canonical_subject_id.trim().is_empty()
+            || event.payload_digest.trim().is_empty()
+        {
+            return CaptureReport::with_disposition(Disposition::NotEvaluable);
         }
         if event.published_at < event.event_time {
             return CaptureReport::with_disposition(Disposition::NotEvaluable);
@@ -271,17 +328,43 @@ pub fn evaluate(case: &CaptureCase) -> CaptureReport {
     let mut report = CaptureReport::with_disposition(Disposition::QualifiedWithinDeclaredEnvelope);
     report.expected_event_count = expected.len();
     report.conflicting_identity_count = conflicting_identity_count;
+    report.provenance = Some(CaptureProvenance {
+        source_id: profile.source_id.clone(),
+        event_class: profile.event_class.clone(),
+        configuration_digest: profile.configuration_digest.clone(),
+        window_start: profile.window_start,
+        window_end: profile.window_end,
+        as_of: case.as_of,
+        reference_id: reference.reference_id.clone(),
+    });
 
-    for (event_id, event_time) in &expected {
+    for (event_id, expected_event) in &expected {
         match visible.get(event_id) {
             None => report.missing_event_count += 1,
             Some(record) if !record.durably_persisted => {
                 report.non_durable_event_count += 1;
             }
-            Some(record) if record.event_time != *event_time => {
+            Some(record)
+                if record.event_time != expected_event.event_time
+                    || record.canonical_subject_id != expected_event.canonical_subject_id =>
+            {
                 report.conflicting_identity_count += 1;
             }
-            Some(_) => report.reconciled_event_count += 1,
+            Some(record) => {
+                report.reconciled_event_count += 1;
+                report.reconciled_events.push(ReconciledCaptureEvent {
+                    source_id: profile.source_id.clone(),
+                    reference_id: reference.reference_id.clone(),
+                    configuration_digest: profile.configuration_digest.clone(),
+                    event_id: record.event_id.clone(),
+                    source_record_id: record.source_record_id.clone(),
+                    canonical_subject_id: record.canonical_subject_id.clone(),
+                    event_class: record.event_class.clone(),
+                    event_time: record.event_time,
+                    published_at: record.published_at,
+                    payload_digest: record.payload_digest.clone(),
+                });
+            }
         }
     }
 
