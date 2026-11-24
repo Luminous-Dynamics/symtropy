@@ -4,8 +4,8 @@
 
 use planar_patch_calibration::{
     BoundaryObservation, CalibrationConfig, MaximumDissipationObservation,
-    MaximumDissipationValidationConfig, MaximumDissipationValidationInput,
-    PatchCalibrationInput, calibrate_planar_patch, validate_maximum_dissipation,
+    MaximumDissipationValidationConfig, MaximumDissipationValidationInput, PatchCalibrationInput,
+    calibrate_planar_patch, validate_maximum_dissipation,
 };
 
 fn observation(id: &str, group: &str, wrench: [f64; 3]) -> BoundaryObservation {
