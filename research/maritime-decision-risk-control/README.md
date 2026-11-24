@@ -96,7 +96,7 @@ Important distinctions:
 - The correction grows with the candidate-grid resolution and shrinks with calibration sample size. If `D >= alpha`, the implementation emits `NO_POSITIVE_ADJUSTED_TARGET`, not a fabricated certificate.
 - Authority/consent remains a deterministic gate; no statistical guarantee can authorize an action.
 
-The deterministic receipt compares three finite-grid cases: 1,200 schedules at 20% target risk, 1,200 at 10%, and 50,000 at 10%. These counts are synthetic illustrations of the correction's effect, not DCT sample-size recommendations or operational risk estimates. The 1,200/10% arm is expected to show that the correction can consume the entire risk budget; the 50,000/10% arm tests whether a useful adjusted target returns at a larger calibration size.
+The deterministic receipt compares three finite-grid cases: 1,200 schedules at 20% target risk, 120 at 10%, and 50,000 at 10%. The 120/10% arm deliberately demonstrates that D(m,n) can consume the entire risk budget and must produce NO_POSITIVE_ADJUSTED_TARGET; the 1,200/20% arm shows a positive adjusted budget; the 50,000/10% arm tests whether a useful adjusted target returns at a much larger calibration size. These counts are synthetic illustrations of the correction's effect, not DCT sample-size recommendations or operational risk estimates.
 
 The original monotone CRC, CRC with a monotone envelope, and finite-grid CRC-NM are different methods with different theorem assumptions. They must be compared at matched loss definitions and clearly reported guarantee types; do not treat them as interchangeable.
 
