@@ -360,6 +360,9 @@ pub struct ConditionalLossBranch {
     /// The continuation action selected from observable history on this branch.
     /// It must be identical for this branch across every persistent model.
     pub continuation_action_id: u64,
+    /// Terminal decision chosen for each observable second-stage outcome
+    /// (no-observation, observed-zero, observed-one). Must match across models.
+    pub terminal_decisions: [TerminalDecision; 3],
     /// Unnormalized probability mass of reaching this branch under its model.
     pub probability_mass: u128,
     /// Conditional future-loss distribution after this branch is observed.
@@ -534,7 +537,7 @@ pub fn worst_case_iterated_cvar(
 /// and that branch IDs are unique.
 fn branch_policy_signature(
     branches: &[ConditionalLossBranch],
-) -> Result<Vec<(u64, u64)>, TailRiskError> {
+) -> Result<Vec<(u64, u64, [TerminalDecision; 3])>, TailRiskError> {
     if branches.is_empty() {
         return Err(TailRiskError::EmptyDistribution);
     }
@@ -547,7 +550,11 @@ fn branch_policy_signature(
             {
                 return Err(TailRiskError::InvalidBranchId);
             }
-            Ok((branch.branch_id, branch.continuation_action_id))
+            Ok((
+                branch.branch_id,
+                branch.continuation_action_id,
+                branch.terminal_decisions,
+            ))
         })
         .collect::<Result<Vec<_>, _>>()?;
     signature.sort_unstable_by_key(|(branch_id, _)| *branch_id);
@@ -1602,6 +1609,7 @@ mod iterated_cvar_tests {
         ConditionalLossBranch {
             branch_id: id,
             continuation_action_id: id,
+            terminal_decisions: [TerminalDecision::DeclareSafe; 3],
             probability_mass: mass,
             continuation_losses: losses(outcomes),
         }
@@ -1773,10 +1781,18 @@ mod iterated_cvar_tests {
             Err(TailRiskError::PersistentPolicyMismatch)
         );
 
-        let mut root_mismatch = model_b;
+        let mut root_mismatch = model_b.clone();
         root_mismatch.root_action_id = 77;
         assert_eq!(
-            worst_case_iterated_cvar(&[model_a, root_mismatch], 50_000),
+            worst_case_iterated_cvar(&[model_a.clone(), root_mismatch], 50_000),
+            Err(TailRiskError::PersistentPolicyMismatch)
+        );
+
+        let mut terminal_mismatch = model_b;
+        terminal_mismatch.branches[0].terminal_decisions[2] =
+            TerminalDecision::DeclareDegraded;
+        assert_eq!(
+            worst_case_iterated_cvar(&[model_a, terminal_mismatch], 50_000),
             Err(TailRiskError::PersistentPolicyMismatch)
         );
     }
