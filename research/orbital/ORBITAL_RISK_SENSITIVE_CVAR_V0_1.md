@@ -106,3 +106,55 @@ Targets are prospective: zero missing-support/provenance escapes, zero arithmeti
 ## 8. Non-negotiable claim boundary
 
 CVaR is conditional on the supplied probability model. This module cannot show that the weights describe reality, prove calibration, establish the candidate support is complete, validate stochastic dependence assumptions, or replace the existing worst-case comparator. The output is an evidence-qualified analytical metric only, not a recommendation or operational decision.
+
+
+## 9. Matched SOTA reproduction protocol and implementation caveats
+
+The benchmark must compare methods only on matched tasks and retain the original authors' solver/runtime assumptions. A single aggregate score across PEAR, Robust-DFL and a policy-assurance adapter would be misleading because they solve different problems.
+
+### PEAR (ICML 2026)
+
+The [official PEAR implementation](https://github.com/FinJun/PEAR) documents:
+- LP experiments on shortest-path and knapsack;
+- QP experiments on mean-variance portfolio optimization;
+- constraint-shift experiments;
+- MSE, SPO+, DBB, PFYL, projection and LAVA training baselines;
+- a Gurobi license requirement.
+
+Author-faithful reproduction should pin the paper's data/task setup, solver version, Gurobi version/license, seed list, stopping criterion and hardware. Its native outcomes are decision quality/regret and training/inference computational cost under the paper's regularity regime. The ORBITAL layer should consume and independently evaluate the resulting policy/decision artifacts; it should not claim that its receipt logic improves PEAR's regret gradient or training efficiency.
+
+### Robust Decision-Focused Learning (UAI 2026)
+
+The [official UAI 2026 implementation](https://github.com/isct-nakatalab/UAI2026_Robust_Decision-Focused_Learning_via_Worst-Case_Regret_Minimization) explicitly separates:
+- **set-based Robust-DFL:** ellipsoidal, sparse/budget and hybrid uncertainty sets;
+- **distribution-robust DFL:** Wasserstein ambiguity around conditional empirical distributions;
+- **GenDFL:** a generative surrogate/tail-mean path.
+
+The README states Python 3.10+ / Poetry and a Gurobi license for optimization oracles. Synthetic LP experiments run without external datasets; the energy scheduling reproduction requires the separately sourced Ifrim et al. electricity-price data. Pin the exact world-set geometry, radius/budget, dual norm, data split, Gurobi version and seed. A solver substitution must be labeled a sensitivity reproduction, not an exact paper reproduction.
+
+### Risk-Averse DFL / RESTRO (14 November 2026 preprint)
+
+RESTRO is not the same as this module. Its proposed contribution is a training-time entropy-regularized instance reweighting, using a minibatch approximation to a CVaR-of-loss objective. Its stated SPO+ generalization argument relies on the pointwise SPO+ upper bound on regret and on its distribution/class assumptions. The paper's theory does not automatically transfer to arbitrary DFL surrogates or to a finite set of unweighted scenarios.
+
+This PR instead computes exact finite-distribution CVaR of supplied *regret values* at evaluation time. The probability receipt is an explicit additional assumption; the evaluator does not train a predictor, infer weights or prove calibration. A fair experiment should compare RESTRO's trained models on the paper's original tasks, then separately run this exact post-hoc evaluation on a common qualified held-out probability model.
+
+### Reproduction tracks
+
+Maintain two labelled tracks:
+1. **Author-faithful:** pinned upstream commit, paper's exact data and splits, solver/version/license, settings, hardware, seed set, raw outputs.
+2. **Open reproducibility:** same mathematical formulation where possible using a declared open solver (for example HiGHS), with the solver/version and any changed tolerances recorded. It is a sensitivity run unless the authors' solver assumptions are matched.
+
+Do not compare Gurobi vs HiGHS results as if numerical differences were algorithmic gains. Record infeasibility, optimality gap, tolerances, presolve, time limits, license state, CPU/GPU, memory, seeds and raw objective/regret outputs.
+
+### Matched benchmark matrix
+
+| Experiment | Baselines | Primary outcome | ORBITAL-specific measurement |
+|---|---|---|---|
+| LP shortest path / knapsack | two-stage MSE, SPO+, DBB/PFYL, PEAR, Robust-DFL | decision regret and runtime | source/evidence provenance, incumbent drift detection and exact receipt replay |
+| QP portfolio | PEAR and paper baselines | regret, feasibility, active-set stability | policy adequacy under constraint shifts and model-family change |
+| Robust uncertainty | ellipsoid, sparse/budget, hybrid robust regret | worst-case regret vs uncertainty radius | support coverage, declared ambiguity geometry and invalidation after support changes |
+| Distribution shift | Wasserstein DRO / GenDFL | robust expected regret and radius sensitivity | distribution receipt currentness and scenario support identity |
+| Tail-risk training | SPO+ and RESTRO | expected and CVaR regret with paper's exact assumptions | independent exact CVaR calculation from qualified held-out probability receipt |
+| Runtime policy maintenance | static incumbent, common-action baseline, non-anticipative frontier | false retain/review and resource envelope | source freshness, hidden-state leakage and independent exhaustive-oracle parity |
+
+A valid superiority claim requires preregistration, matched tasks, matched splits, repeated seeds, uncertainty intervals, raw result publication and independent reproduction. The current synthetic four-scenario fixture is a correctness known-answer only; it is not an experimental comparison.
