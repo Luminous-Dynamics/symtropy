@@ -203,10 +203,12 @@ pub struct OracleCalibrationBundle {
     pub policy_ids: Vec<String>,
     /// Frozen candidate revisions in the same column order.
     pub policy_revisions: Vec<String>,
-    /// One row per independent calibration schedule, one column per candidate policy.
+    /// Raw per-schedule calibration rows, one column per candidate policy.
+    /// Multiple rows may share a dependence cluster and are not automatically IID.
+    /// Use cluster_mean_matrix when the independent unit is a dependence cluster.
     pub calibration_hard_failure_milli: Vec<Vec<u16>>,
     pub calibration_service_loss_milli: Vec<Vec<u16>>,
-    /// Separate held-out evaluation matrices, never consumed by calibration selection.
+    /// Raw held-out per-schedule evaluation rows, never consumed by calibration selection.
     pub evaluation_hard_failure_milli: Vec<Vec<u16>>,
     pub evaluation_service_loss_milli: Vec<Vec<u16>>,
     pub oracle_id: String,
@@ -240,6 +242,7 @@ pub struct ClusterMeanMatrix {
 
 impl ClusterMeanMatrix {
     /// Converts the cluster means into the existing CRC loss-matrix contract.
+    /// Each resulting row is one independent cluster, not one schedule.
     pub fn matrix(&self) -> crate::LossMatrix {
         self.loss.clone()
     }
@@ -568,9 +571,11 @@ fn validate_policy_outcome(
     Ok(())
 }
 
-/// Validates and deterministically converts independent oracle receipts into
-/// separate calibration/evaluation matrices. It never computes feasibility
-/// itself, infers authority, estimates a distribution ratio, or drops unknown rows.
+/// Validates and deterministically converts independently adjudicated schedule
+/// receipts into separate calibration/evaluation matrices while preserving each
+/// row's dependence-cluster identity. Repeated cluster IDs are allowed within a
+/// split and prohibited across splits. It never computes feasibility itself,
+/// infers authority, estimates a distribution ratio, or drops unknown rows.
 pub fn compile_oracle_outcomes(
     dataset: &OracleOutcomeDataset,
 ) -> Result<OracleCalibrationBundle, OracleAdapterError> {
@@ -763,7 +768,7 @@ pub struct PartialIdentificationBundle {
 /// Preserves unresolved physical outcomes as [0, B] rather than dropping them.
 ///
 /// This function enforces the same frozen grid, authority, revision, regime,
-/// dependence-cluster and receipt checks as the strict adapter. It returns two
+/// dependence-cluster split-isolation and receipt checks as the strict adapter. It returns two
 /// fully deterministic bundles:
 /// - lower_bound: Unknown -> Feasible (0 loss);
 /// - upper_bound: Unknown -> Infeasible (B loss).
