@@ -449,9 +449,7 @@ fn render_row(
 /// Deterministic DGT-specific negative-control matrix; no real artifact bytes
 /// are read or claimed by this executable.
 pub fn render_dgt_claim_negative_controls() -> String {
-    let mut output = String::from(
-        "source_class,declared_claim,requested_claim,admission\n",
-    );
+    let mut output = String::from("source_class,declared_claim,requested_claim,admission\n");
     let rows = [
         (
             SourceArtifactClass::BerthPlan,
