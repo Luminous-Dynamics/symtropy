@@ -1328,7 +1328,6 @@ pub fn rank_candidate_measurement_actions(
     })
 }
 
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct RawCandidateMeasurementAction {
     pub id: String,
@@ -2027,8 +2026,9 @@ mod tests {
             .iter()
             .find(|candidate| candidate.action_id == "independent_new_view")
             .unwrap();
-        assert!(correlated.smallest_profiled_physical_sensitivity_gain
-            < independent.smallest_profiled_physical_sensitivity_gain);
+        assert!(
+            correlated.smallest_profiled_physical_sensitivity_gain
+                < independent.smallest_profiled_physical_sensitivity_gain
+        );
     }
-
 }
