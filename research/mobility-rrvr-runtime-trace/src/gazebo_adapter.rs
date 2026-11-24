@@ -2342,10 +2342,22 @@ mod tests {
             idempotency_key: "rrvr/test-vector-001".into(),
         };
 
+        let expected = dispatch_request_fingerprint(&request).unwrap();
         assert_eq!(
-            dispatch_request_fingerprint(&request).unwrap(),
+            expected,
             "4b03ee4bf55f363020a9d1df13c768942c9a5469428b5021653094eaaeac7175"
         );
+
+        let mut changed_world_epoch = request.clone();
+        changed_world_epoch.world_epoch = "world-epoch-3".into();
+        assert_ne!(
+            expected,
+            dispatch_request_fingerprint(&changed_world_epoch).unwrap()
+        );
+
+        let mut changed_clock = request.clone();
+        changed_clock.clock_id = "sim-clock-2".into();
+        assert_ne!(expected, dispatch_request_fingerprint(&changed_clock).unwrap());
     }
 
     #[test]
