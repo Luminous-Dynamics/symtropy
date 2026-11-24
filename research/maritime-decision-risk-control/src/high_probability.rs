@@ -243,7 +243,7 @@ pub fn render_csv() -> String {
     let mut output = String::from(
         "calibration_schedules,parameter_count,target_risk_milli,delta,simultaneous_radius_milli,selected_policy_index,selected_risk_upper_bound_milli,selected_service_mean_milli,eligible_policy_count,status\n",
     );
-    let hard_probabilities = [0.25, 0.08, 0.13, 0.02];
+    let hard_probabilities = [0.25, 0.07, 0.13, 0.02];
     let service_costs = [100_u16, 300, 150, 450];
 
     for (n, seed) in [
