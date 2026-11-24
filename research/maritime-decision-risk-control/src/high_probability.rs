@@ -62,8 +62,7 @@ pub fn simultaneous_hoeffding_radius_milli(
 
     let m = parameter_count as f64;
     let n = calibration_schedules as f64;
-    let radius = f64::from(LOSS_BOUND_MILLI)
-        * ((m / delta).ln() / (2.0 * n)).sqrt();
+    let radius = f64::from(LOSS_BOUND_MILLI) * ((m / delta).ln() / (2.0 * n)).sqrt();
     if !radius.is_finite() || radius < 0.0 || radius > f64::from(u32::MAX) {
         return Err(HighProbabilityError::InvalidDelta);
     }
@@ -183,8 +182,7 @@ pub fn select_simultaneous_hoeffding(
         target_risk_milli,
         delta,
         simultaneous_radius_milli: radius,
-        selected_risk_upper_bound_milli: candidate_risk_upper_bounds_milli
-            [selected_policy_index],
+        selected_risk_upper_bound_milli: candidate_risk_upper_bounds_milli[selected_policy_index],
         selected_service_mean_milli: candidate_service_means_milli[selected_policy_index],
         candidate_risk_upper_bounds_milli,
         candidate_service_means_milli,
@@ -194,14 +192,24 @@ pub fn select_simultaneous_hoeffding(
     })
 }
 
-fn bernoulli_schedule_grid(count: usize, seed: u64, probabilities: &[f64]) -> WholeScheduleLossGrid {
+fn bernoulli_schedule_grid(
+    count: usize,
+    seed: u64,
+    probabilities: &[f64],
+) -> WholeScheduleLossGrid {
     let mut rng = SplitMix64::new(seed);
     let schedules = (0..count)
         .map(|_| {
             let draw = (rng.next_u64() >> 11) as f64 / ((1_u64 << 53) as f64);
             probabilities
                 .iter()
-                .map(|probability| if draw < *probability { LOSS_BOUND_MILLI } else { 0 })
+                .map(|probability| {
+                    if draw < *probability {
+                        LOSS_BOUND_MILLI
+                    } else {
+                        0
+                    }
+                })
                 .collect::<Vec<_>>()
         })
         .collect();
@@ -263,9 +271,7 @@ pub fn render_csv() -> String {
             Err(HighProbabilityError::NoPolicyMeetsTarget) => output.push_str(&format!(
                 "{n},4,200,0.050,NA,NA,NA,NA,0,NO_POLICY_MEETS_TARGET\n"
             )),
-            Err(_) => output.push_str(&format!(
-                "{n},4,200,0.050,NA,NA,NA,NA,0,NO_RISK_CLAIM\n"
-            )),
+            Err(_) => output.push_str(&format!("{n},4,200,0.050,NA,NA,NA,NA,0,NO_RISK_CLAIM\n")),
         }
     }
     output
@@ -293,9 +299,7 @@ mod tests {
     fn selector_picks_lowest_service_cost_among_simultaneously_safe_policies() {
         let hard = bernoulli_schedule_grid(50_000, 0x4849_5053, &[0.25, 0.08, 0.13, 0.04]);
         let service = WholeScheduleLossGrid {
-            schedule_losses_milli: (0..50_000)
-                .map(|_| vec![100, 300, 150, 450])
-                .collect(),
+            schedule_losses_milli: (0..50_000).map(|_| vec![100, 300, 150, 450]).collect(),
         };
         let result = select_simultaneous_hoeffding(&hard, &service, 200, 0.05)
             .expect("one or more certified policies");
