@@ -1,0 +1,33 @@
+name: Pair Lifecycle Ledger
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/pair-lifecycle-ledger/v0.1/**"
+      - ".github/workflows/pair-lifecycle-ledger.yml"
+  push:
+    branches: [main]
+    paths:
+      - "research/pair-lifecycle-ledger/v0.1/**"
+      - ".github/workflows/pair-lifecycle-ledger.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Rust 1.96 pair lifecycle checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/pair-lifecycle-ledger/v0.1/Cargo.toml -- --check
+      - name: Run tests
+        run: cargo test --manifest-path research/pair-lifecycle-ledger/v0.1/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/pair-lifecycle-ledger/v0.1/Cargo.toml --locked --all-targets -- -D warnings
