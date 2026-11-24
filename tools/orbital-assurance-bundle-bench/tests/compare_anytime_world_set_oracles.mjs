@@ -27,4 +27,4 @@ assert.deepEqual(
   canonicalize(pythonReport.cases),
   "Node BigInt and Python Fraction per-case results must match exactly"
 );
-process.stdout.write("cross-language-incumbent-world-set-oracle-match: 26 cases; Node BigInt == Python Fraction; zero mismatches; zero authority\\n");
+process.stdout.write("cross-language-incumbent-world-set-oracle-match: 26 cases; Node BigInt == Python Fraction; zero mismatches; zero authority\n");
