@@ -159,6 +159,18 @@ pub struct MissionMinimaxPlan {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MissionMinimaxRegretPlan {
+    pub shared_policy: MissionMinimaxPlan,
+    /// Best achievable risk if each model identity were revealed before
+    /// planning. These are evaluator-only oracle values, not controller data.
+    pub model_aware_oracle_risk_numerators: [u128; MODELS],
+    /// Shared-policy risk minus the model-aware oracle risk, one per model.
+    pub model_regret_numerators: [u128; MODELS],
+    pub minimax_regret_numerator: u128,
+    pub risk_denominator: u128,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MissionMinimaxError {
     InvalidPrior(usize),
     InvalidDecisionModel,
@@ -511,6 +523,124 @@ pub fn plan_mission_global_minimax(
     Ok(best)
 }
 
+/// Compute the best model-aware policy risk for one fixed model. Duplicating
+/// that model into both model slots turns the existing shared-policy minimax
+/// oracle into an exact single-model oracle.
+fn model_aware_oracle_risk(
+    problem: &MissionMinimaxProblem,
+    actions: &[PersistentModelAction],
+    budget: ResourceVector,
+    model_index: usize,
+) -> Result<u128, MissionMinimaxError> {
+    let model_problem = MissionMinimaxProblem {
+        prior_by_model_ppb: [
+            problem.prior_by_model_ppb[model_index],
+            problem.prior_by_model_ppb[model_index],
+        ],
+        false_safe_loss: problem.false_safe_loss,
+        false_degraded_loss: problem.false_degraded_loss,
+    };
+    let model_actions: Vec<PersistentModelAction> = actions
+        .iter()
+        .map(|action| PersistentModelAction {
+            action_id: action.action_id,
+            cost: action.cost,
+            likelihoods: [
+                action.likelihoods[model_index],
+                action.likelihoods[model_index],
+            ],
+        })
+        .collect();
+    let oracle = plan_mission_global_minimax(&model_problem, &model_actions, budget)?;
+    Ok(oracle.worst_case_risk_numerator)
+}
+
+fn regret_for_policy(
+    policy: &MissionMinimaxPlan,
+    model_oracle_risk: [u128; MODELS],
+) -> Result<[u128; MODELS], MissionMinimaxError> {
+    Ok([
+        policy.model_risk_numerators[0]
+            .checked_sub(model_oracle_risk[0])
+            .ok_or(MissionMinimaxError::ArithmeticOverflow)?,
+        policy.model_risk_numerators[1]
+            .checked_sub(model_oracle_risk[1])
+            .ok_or(MissionMinimaxError::ArithmeticOverflow)?,
+    ])
+}
+
+fn maximum_regret(regrets: [u128; MODELS]) -> u128 {
+    regrets[0].max(regrets[1])
+}
+
+/// Exact mission-global minimax-regret selector over the finite observable
+/// policy-tree class. Each model-aware oracle may choose a different policy,
+/// but the selected deployable policy remains one shared observable tree.
+pub fn plan_mission_global_minimax_regret(
+    problem: &MissionMinimaxProblem,
+    actions: &[PersistentModelAction],
+    budget: ResourceVector,
+) -> Result<MissionMinimaxRegretPlan, MissionMinimaxError> {
+    let ordered = validate(problem, actions)?;
+    let oracle_risks = [
+        model_aware_oracle_risk(problem, actions, budget, 0)?,
+        model_aware_oracle_risk(problem, actions, budget, 1)?,
+    ];
+
+    let stop_degraded = stop_candidate(problem, TerminalDecision::DeclareDegraded, 1)?;
+    let stop_safe = stop_candidate(problem, TerminalDecision::DeclareSafe, 2)?;
+    let degraded_regret = regret_for_policy(&stop_degraded, oracle_risks)?;
+    let safe_regret = regret_for_policy(&stop_safe, oracle_risks)?;
+    let mut evaluated = 2_u64;
+    let (mut best, mut best_regrets) =
+        if maximum_regret(degraded_regret) <= maximum_regret(safe_regret) {
+            (stop_degraded, degraded_regret)
+        } else {
+            (stop_safe, safe_regret)
+        };
+
+    for first in &ordered {
+        if !first.cost.fits(budget) {
+            continue;
+        }
+        let remaining_budget = budget
+            .remaining(first.cost)
+            .ok_or(MissionMinimaxError::ArithmeticOverflow)?;
+        let options = branch_options(first.action_id, &ordered, remaining_budget);
+        for policy0 in &options {
+            for policy1 in &options {
+                for policy2 in &options {
+                    evaluated = evaluated
+                        .checked_add(1)
+                        .ok_or(MissionMinimaxError::ArithmeticOverflow)?;
+                    let candidate = evaluate_policy(
+                        problem,
+                        &ordered,
+                        first,
+                        [*policy0, *policy1, *policy2],
+                        budget,
+                        evaluated,
+                    )?;
+                    let candidate_regrets = regret_for_policy(&candidate, oracle_risks)?;
+                    if maximum_regret(candidate_regrets) < maximum_regret(best_regrets) {
+                        best = candidate;
+                        best_regrets = candidate_regrets;
+                    }
+                }
+            }
+        }
+    }
+
+    best.policy_trees_evaluated = evaluated;
+    Ok(MissionMinimaxRegretPlan {
+        shared_policy: best,
+        model_aware_oracle_risk_numerators: oracle_risks,
+        model_regret_numerators: best_regrets,
+        minimax_regret_numerator: maximum_regret(best_regrets),
+        risk_denominator: RISK_DENOMINATOR,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -678,6 +808,40 @@ mod tests {
         assert_eq!(plan.first_action_id, None);
         assert!(plan.branches.is_empty());
         assert!(plan.authority_transition_not_authorized_by_plan);
+    }
+
+    #[test]
+    fn minimax_regret_is_measured_against_each_model_aware_oracle() {
+        let problem = problem(equal_prior(), equal_prior(), 1, 1);
+        let actions = asymmetric_fixture();
+        let budget = ResourceVector { latency_ns: 2, energy_uj: 2, bandwidth_bytes: 2 };
+        let result = plan_mission_global_minimax_regret(&problem, &actions, budget).unwrap();
+
+        assert!(
+            result.shared_policy.model_risk_numerators[0]
+                >= result.model_aware_oracle_risk_numerators[0]
+        );
+        assert!(
+            result.shared_policy.model_risk_numerators[1]
+                >= result.model_aware_oracle_risk_numerators[1]
+        );
+        assert_eq!(
+            result.minimax_regret_numerator,
+            result.model_regret_numerators[0].max(result.model_regret_numerators[1])
+        );
+        assert_eq!(result.risk_denominator, RISK_DENOMINATOR);
+        assert!(result.shared_policy.authority_transition_not_authorized_by_plan);
+    }
+
+    #[test]
+    fn minimax_regret_policy_is_candidate_order_invariant() {
+        let problem = problem(equal_prior(), equal_prior(), 1, 1);
+        let mut actions = asymmetric_fixture();
+        let budget = ResourceVector { latency_ns: 2, energy_uj: 2, bandwidth_bytes: 2 };
+        let first = plan_mission_global_minimax_regret(&problem, &actions, budget).unwrap();
+        actions.reverse();
+        let second = plan_mission_global_minimax_regret(&problem, &actions, budget).unwrap();
+        assert_eq!(first, second);
     }
 
     #[test]
