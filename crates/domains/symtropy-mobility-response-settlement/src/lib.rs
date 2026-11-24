@@ -542,6 +542,7 @@ fn validate_timelines(
     let pcc = &input.pcc_metrology.report;
     let baseline = &input.counterfactual_baseline.report;
     let network = &input.mobility_network.report;
+    let mut evidence_ids = BTreeSet::new();
 
     same_u64(
         unsigned(grid, "/instruction_issued_at_ns")?,
