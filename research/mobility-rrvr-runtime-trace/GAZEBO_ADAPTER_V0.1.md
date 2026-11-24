@@ -228,3 +228,10 @@ The canonical idempotency identity and request-body commitment now also include 
 The local registry reconciliation API now accepts the complete request, not only an arbitrary idempotency-key string. It recomputes the canonical payload fingerprint, requires an existing matching local/recovered registry entry, performs a read-only injector-ledger lookup and stores the returned decision with that entry. A changed request under the same key is PayloadConflict; a missing recovered registry entry remains Unresolved until the durable journal restores the request binding.
 
 A reconciled Accepted, Rejected, NoDispatchProven, Unresolved or PayloadConflict status is retained for subsequent calls. In particular, NoDispatchProven does not re-open the original dispatch request: it is a statement about the old attempt identity, not permission to send it again. A new physical attempt must carry a new attempt/run identity and independently qualified recovery evidence. This avoids a race where an old dispatch key is silently reused after a negative lookup.
+
+
+### Plan-substitution formal negative control
+
+The reset TLA model now records the plan identity captured by BeginReset and the plan identity used by FaultDispatch. Its additional invariant is DispatchUsesResetPlan: any fault dispatch must use the same plan that was active when reset qualification began. A separate mutant enables UnsafePlanSubstitution after Verified; TLC must produce a counterexample if a second plan is allowed to use the prior reset proof. The safe configuration disables both unsafe retry and plan substitution; the workflow requires the plan-mutant log to name DispatchUsesResetPlan specifically.
+
+This complements the Rust Plan A reset / Plan B dispatch regression. It remains an abstract check over two plan identifiers, not proof of cryptographic hash validation or the concrete Rust session implementation.
