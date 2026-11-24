@@ -1,0 +1,16 @@
+[package]
+name = "planar-patch-limit-surface-oracle"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Analytic aggregate planar friction-wrench ellipsoid oracle"
+
+[lib]
+path = "src/lib.rs"
+
+[[example]]
+name = "patch_limit_tournament"
+path = "examples/patch_limit_tournament.rs"
+
+[workspace]
