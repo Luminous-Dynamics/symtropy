@@ -555,7 +555,11 @@ mod tests {
             post_position,
             post_velocity,
             angular_norm_sq,
-            Aabb::new([-1.0, -2.0], [1.0, 2.0]).unwrap(),
+            Aabb::new(
+                [start_position[0] - 1.0, start_position[1] - 2.0],
+                [start_position[0] + 1.0, start_position[1] + 2.0],
+            )
+            .unwrap(),
         )
         .unwrap()
     }
@@ -590,10 +594,10 @@ mod tests {
     fn multiaxis_translation_is_bounded_on_each_axis() {
         let source = input([2.0, -2.0], [5.0, -6.0], [3.0, -4.0], 0.0);
         let proof = certified(&source);
-        assert!(proof.bounds.min()[0] <= -1.0);
+        assert!(proof.bounds.min()[0] <= 1.0);
         assert!(proof.bounds.max()[0] >= 6.0);
-        assert!(proof.bounds.min()[1] <= -6.0);
-        assert!(proof.bounds.max()[1] >= 2.0);
+        assert!(proof.bounds.min()[1] <= -8.0);
+        assert!(proof.bounds.max()[1] >= 0.0);
     }
 
     #[test]
@@ -783,7 +787,11 @@ mod tests {
                 post_position,
                 velocity,
                 0.0,
-                Aabb::new([-0.5, -0.25], [0.75, 0.5]).unwrap(),
+                Aabb::new(
+                    [start_position[0] - 0.5, start_position[1] - 0.25],
+                    [start_position[0] + 0.75, start_position[1] + 0.5],
+                )
+                .unwrap(),
             )
             .unwrap();
             let proof = certified(&source);
@@ -796,8 +804,14 @@ mod tests {
                 for delta in [expected_displacement, observed_delta] {
                     let offset = [delta[0] * alpha, delta[1] * alpha];
                     let sample = Aabb::new(
-                        [-0.5 + offset[0], -0.25 + offset[1]],
-                        [0.75 + offset[0], 0.5 + offset[1]],
+                        [
+                            start_position[0] - 0.5 + offset[0],
+                            start_position[1] - 0.25 + offset[1],
+                        ],
+                        [
+                            start_position[0] + 0.75 + offset[0],
+                            start_position[1] + 0.5 + offset[1],
+                        ],
                     )
                     .unwrap();
                     assert!(
