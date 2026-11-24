@@ -597,7 +597,7 @@ mod tests {
     };
 
     #[test]
-    fn splitmix_sampling_is_deterministic_and_unbiased_range_checked() {
+    fn splitmix_sampling_is_deterministic_and_range_checked() {
         let mut first = SplitMix64::new(123);
         let mut second = SplitMix64::new(123);
         for _ in 0..10_000 {
@@ -682,6 +682,24 @@ mod tests {
                     .collect::<Vec<_>>()
             })
             .collect::<Vec<_>>();
+        let nonmono_matrix = LossMatrix {
+            schedules: nonmonotone_rows.clone(),
+        };
+        let envelope_result = calibrate(
+            &nonmono_matrix,
+            200,
+            MonotonicityMode::UseUpperEnvelope,
+            Some(&max_contract),
+            &revisions,
+        )
+        .expect("existing monotone-envelope CRC implementation");
+        let envelope = crate::upper_monotone_envelope(&nonmono_matrix);
+        let envelope_sums = sum_rows(&envelope.schedules);
+        assert_eq!(
+            select_crc(&envelope_sums, nonmonotone_rows.len(), 200),
+            envelope_result.selected_parameter_index
+        );
+
         let nonmono_grid = WholeScheduleLossGrid {
             schedule_losses_milli: nonmonotone_rows.clone(),
         };
