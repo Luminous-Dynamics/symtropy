@@ -102,8 +102,7 @@ Expected report:
 
 | Output | Expected |
 |---|---:|
-| Forecasts | 5 |
-| Observed outcomes / pending outcomes | 5 / 0 |
+| Forecasts | 6 |
 | Observed outcomes / pending outcomes | 5 / 1 |
 | Exact groups | 1 |
 | Interval misses | 2 |
@@ -115,6 +114,8 @@ Expected report:
 | First three prequential statuses | insufficient_history |
 | Fourth/fifth/sixth prequential statuses | drift_alarm_latched |
 | Model update / field qualification / operational authority | false |
+
+The module includes 17 focused Rust tests covering predict-before-update, asynchronous/out-of-order outcomes, pending outcome retention, evidence and configuration binding, deterministic replay, CUSUM latching, stationary-null behaviour, step-shift detection and claim ceilings.
 
 All evidence is synthetic. This fixture checks chronology, arithmetic, report determinism and claim ceilings; it is not a battery or mobility performance result.
 
