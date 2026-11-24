@@ -409,7 +409,14 @@ impl Gaussian {
     ///
     /// This returns a log density, not a probability mass. The Cholesky solve
     /// avoids explicit matrix inversion.
-    pub fn log_pdf(&self, point: &[f64]) -> Result<f64, KernelError> {
+    /// Evaluate the squared Mahalanobis distance from the Gaussian mean.
+    ///
+    /// The residual is whitened through the stored lower Cholesky factor. This
+    /// avoids explicit covariance inversion and preserves full cross-axis
+    /// correlations. The result is dimensionless and is chi-square distributed
+    /// with `dimension()` degrees of freedom only when the residual really is
+    /// drawn from the declared zero-mean Gaussian model.
+    pub fn mahalanobis_distance_squared(&self, point: &[f64]) -> Result<f64, KernelError> {
         let dimension = self.dimension();
         if point.len() != dimension {
             return Err(KernelError::DimensionMismatch);
@@ -429,19 +436,28 @@ impl Gaussian {
         }
 
         let quadratic_form: f64 = whitened.iter().map(|value| value * value).sum();
-        if !quadratic_form.is_finite() {
-            return Err(KernelError::NumericalOverflow);
+        if quadratic_form.is_finite() {
+            Ok(quadratic_form)
+        } else {
+            Err(KernelError::NumericalOverflow)
         }
+    }
 
-        let normalizer = dimension as f64 * core::f64::consts::TAU.ln() + self.log_determinant;
+    /// Evaluate the multivariate Gaussian log density at a point.
+    ///
+    /// This returns a log density, not a probability mass. The Cholesky solve
+    /// avoids explicit matrix inversion.
+    pub fn log_pdf(&self, point: &[f64]) -> Result<f64, KernelError> {
+        let quadratic_form = self.mahalanobis_distance_squared(point)?;
+        let normalizer =
+            self.dimension() as f64 * core::f64::consts::TAU.ln() + self.log_determinant;
         let result = -0.5 * (normalizer + quadratic_form);
         if result.is_finite() {
             Ok(result)
         } else {
             Err(KernelError::NumericalOverflow)
         }
-    }
-}
+    }}
 
 /// Evaluate the log probability of a Gaussian half-space event.
 ///
