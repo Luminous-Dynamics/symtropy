@@ -384,7 +384,6 @@ impl HedgedCapitalConfidenceSequence {
     }
 }
 
-
 /// Streaming Hedged confidence sequence bound to adaptive importance-sampling draw receipts.
 ///
 /// The adapter validates event, target-measure, defensive-component, proposal,
@@ -461,8 +460,7 @@ impl AdaptiveImportanceSamplingHedgedSequence {
             return Err(AdaptiveImportanceSamplingError::DefensiveComponentMismatch);
         }
         if !draw.defensive_mixture_weight.is_finite()
-            || draw.defensive_mixture_weight.to_bits()
-                != self.defensive_mixture_weight.to_bits()
+            || draw.defensive_mixture_weight.to_bits() != self.defensive_mixture_weight.to_bits()
         {
             return Err(AdaptiveImportanceSamplingError::DefensiveMixtureWeightMismatch);
         }
@@ -720,12 +718,7 @@ mod tests {
     fn adaptive_hedged_adapter_checks_receipt_identity_and_weight_bounds() {
         let grid = grid();
         let mut sequence = AdaptiveImportanceSamplingHedgedSequence::new(
-            [1; 32],
-            [2; 32],
-            [3; 32],
-            0.1,
-            0.05,
-            grid,
+            [1; 32], [2; 32], [3; 32], 0.1, 0.05, grid,
         )
         .unwrap();
         let valid = AdaptiveImportanceDraw {
@@ -833,6 +826,4 @@ mod tests {
             "adaptive Hedged exact-path miss probability was {miss_probability}"
         );
     }
-
-
 }
