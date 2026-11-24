@@ -397,7 +397,7 @@ The experiment compares five fixture/method combinations:
 - Finite-grid non-monotone CRC (CRC-NM) on that same family.
 - Fixed-grid simultaneous Hoeffding UCB on the non-monotone fixture.
 
-All methods use the same deterministic replicate stream (common random numbers). The default smoke run performs 2,000 independent synthetic calibration replicates at n=1,200. The **--full** run performs 2,000 replicates at each calibration size n = 50, 120, 500, 1,200, 5,000, 10,000 and 50,000, for target risks α = 0.01, 0.05, 0.10 and 0.20. The policy grid is intentionally frozen at four candidates in this first increment; expansion to the 16–10,000 candidate tournament remains a separate #7303 extension.
+All methods use the same deterministic replicate stream (common random numbers). The default smoke run performs 2,000 independent synthetic calibration replicates at n=1,200. Every receipt row records the requested α; `delta=0.050` is recorded on fixed-grid high-probability rows and `NA` on marginal expected-risk rows. The terminal policy has exactly zero hard loss by construction in this finite toy population; this known-answer condition is not inferred from calibration data. The **--full** run performs 2,000 replicates at each calibration size n = 50, 120, 500, 1,200, 5,000, 10,000 and 50,000, for target risks α = 0.01, 0.05, 0.10 and 0.20. The policy grid is intentionally frozen at four candidates in this first increment; expansion to the 16–10,000 candidate tournament remains a separate #7303 extension.
 
 Run the reproducible smoke receipt:
 
