@@ -84,8 +84,14 @@ impl Environment {
             && self.worker_threads > 0
             && !self.compiler.trim().is_empty()
             && !self.build_profile.trim().is_empty()
-            && self.gpu_model.as_ref().is_none_or(|value| !value.trim().is_empty())
-            && self.gpu_driver.as_ref().is_none_or(|value| !value.trim().is_empty())
+            && self
+                .gpu_model
+                .as_ref()
+                .is_none_or(|value| !value.trim().is_empty())
+            && self
+                .gpu_driver
+                .as_ref()
+                .is_none_or(|value| !value.trim().is_empty())
             && self.gpu_model.is_some() == self.gpu_driver.is_some()
     }
 }
@@ -134,8 +140,8 @@ impl PairAccounting {
             return None;
         }
         Some(
-            (u128::from(self.certified_pruned_pairs) * 10_000
-                / u128::from(self.eligible_pairs)) as u64,
+            (u128::from(self.certified_pruned_pairs) * 10_000 / u128::from(self.eligible_pairs))
+                as u64,
         )
     }
 }
@@ -150,9 +156,7 @@ pub struct TimeQuantiles {
 impl TimeQuantiles {
     #[must_use]
     pub fn valid(&self) -> bool {
-        self.p50_ns > 0
-            && self.p50_ns <= self.p95_ns
-            && self.p95_ns <= self.p99_ns
+        self.p50_ns > 0 && self.p50_ns <= self.p95_ns && self.p95_ns <= self.p99_ns
     }
 }
 
@@ -273,17 +277,23 @@ impl BenchmarkReceipt {
         }
 
         let pairs = self.pairs;
-        if pairs.oracle_positive_pairs.checked_add(pairs.oracle_negative_pairs)
+        if pairs
+            .oracle_positive_pairs
+            .checked_add(pairs.oracle_negative_pairs)
             != Some(pairs.eligible_pairs)
         {
             errors.push(ReceiptError::OracleDenominatorMismatch);
         }
-        if pairs.forwarded_true_positives.checked_add(pairs.forwarded_false_positives)
+        if pairs
+            .forwarded_true_positives
+            .checked_add(pairs.forwarded_false_positives)
             != Some(pairs.forwarded_pairs)
         {
             errors.push(ReceiptError::ForwardedDenominatorMismatch);
         }
-        if pairs.forwarded_pairs.checked_add(pairs.certified_pruned_pairs)
+        if pairs
+            .forwarded_pairs
+            .checked_add(pairs.certified_pruned_pairs)
             != Some(pairs.eligible_pairs)
         {
             errors.push(ReceiptError::PairConservationMismatch);
@@ -297,7 +307,8 @@ impl BenchmarkReceipt {
         if pairs.rejected_certificate_attempts > pairs.invalid_fallbacks {
             errors.push(ReceiptError::RejectedCertificateNotFallback);
         }
-        let fallback_reasons = pairs.unsupported_fallbacks
+        let fallback_reasons = pairs
+            .unsupported_fallbacks
             .checked_add(pairs.invalid_fallbacks)
             .and_then(|value| value.checked_add(pairs.overflow_fallbacks));
         if fallback_reasons != Some(pairs.fallback_pairs) {
@@ -393,12 +404,36 @@ mod tests {
                 overflow_fallbacks: 2,
             },
             timing: Timing {
-                total_step: TimeQuantiles { p50_ns: 1_000_000, p95_ns: 2_000_000, p99_ns: 3_000_000 },
-                broadphase: TimeQuantiles { p50_ns: 100_000, p95_ns: 200_000, p99_ns: 300_000 },
-                swept_bound_producer: TimeQuantiles { p50_ns: 150_000, p95_ns: 250_000, p99_ns: 350_000 },
-                certificate_verifier: TimeQuantiles { p50_ns: 2_000, p95_ns: 4_000, p99_ns: 6_000 },
-                narrowphase: TimeQuantiles { p50_ns: 500_000, p95_ns: 1_000_000, p99_ns: 1_500_000 },
-                solver: TimeQuantiles { p50_ns: 200_000, p95_ns: 500_000, p99_ns: 700_000 },
+                total_step: TimeQuantiles {
+                    p50_ns: 1_000_000,
+                    p95_ns: 2_000_000,
+                    p99_ns: 3_000_000,
+                },
+                broadphase: TimeQuantiles {
+                    p50_ns: 100_000,
+                    p95_ns: 200_000,
+                    p99_ns: 300_000,
+                },
+                swept_bound_producer: TimeQuantiles {
+                    p50_ns: 150_000,
+                    p95_ns: 250_000,
+                    p99_ns: 350_000,
+                },
+                certificate_verifier: TimeQuantiles {
+                    p50_ns: 2_000,
+                    p95_ns: 4_000,
+                    p99_ns: 6_000,
+                },
+                narrowphase: TimeQuantiles {
+                    p50_ns: 500_000,
+                    p95_ns: 1_000_000,
+                    p99_ns: 1_500_000,
+                },
+                solver: TimeQuantiles {
+                    p50_ns: 200_000,
+                    p95_ns: 500_000,
+                    p99_ns: 700_000,
+                },
             },
         }
     }
@@ -413,7 +448,12 @@ mod tests {
         let mut receipt = valid_receipt();
         receipt.pairs.forwarded_true_positives = 9;
         receipt.pairs.forwarded_false_positives = 31;
-        assert!(receipt.validate().unwrap_err().contains(&ReceiptError::FalseNegativePairs));
+        assert!(
+            receipt
+                .validate()
+                .unwrap_err()
+                .contains(&ReceiptError::FalseNegativePairs)
+        );
     }
 
     #[test]
@@ -430,28 +470,48 @@ mod tests {
     fn rejects_pair_disposition_count_mismatch() {
         let mut receipt = valid_receipt();
         receipt.pairs.certified_pruned_pairs = 59;
-        assert!(receipt.validate().unwrap_err().contains(&ReceiptError::PairConservationMismatch));
+        assert!(
+            receipt
+                .validate()
+                .unwrap_err()
+                .contains(&ReceiptError::PairConservationMismatch)
+        );
     }
 
     #[test]
     fn rejected_certificate_attempt_must_enter_invalid_fallback() {
         let mut receipt = valid_receipt();
         receipt.pairs.rejected_certificate_attempts = 2;
-        assert!(receipt.validate().unwrap_err().contains(&ReceiptError::RejectedCertificateNotFallback));
+        assert!(
+            receipt
+                .validate()
+                .unwrap_err()
+                .contains(&ReceiptError::RejectedCertificateNotFallback)
+        );
     }
 
     #[test]
     fn rejects_fallbacks_without_reason_codes() {
         let mut receipt = valid_receipt();
         receipt.pairs.overflow_fallbacks = 1;
-        assert!(receipt.validate().unwrap_err().contains(&ReceiptError::FallbackReasonMismatch));
+        assert!(
+            receipt
+                .validate()
+                .unwrap_err()
+                .contains(&ReceiptError::FallbackReasonMismatch)
+        );
     }
 
     #[test]
     fn timeouts_and_oom_cannot_qualify_as_completed_runs() {
         let mut receipt = valid_receipt();
         receipt.status = RunStatus::TimedOut;
-        assert!(receipt.validate().unwrap_err().contains(&ReceiptError::IncompleteExecution));
+        assert!(
+            receipt
+                .validate()
+                .unwrap_err()
+                .contains(&ReceiptError::IncompleteExecution)
+        );
         receipt.status = RunStatus::OutOfMemory;
         assert!(receipt.validate().unwrap_err().contains(&ReceiptError::IncompleteExecution));
     }
@@ -470,10 +530,20 @@ mod tests {
     fn rejects_nonmonotone_quantiles_and_stages_larger_than_total() {
         let mut receipt = valid_receipt();
         receipt.timing.total_step.p95_ns = 999;
-        assert!(receipt.validate().unwrap_err().contains(&ReceiptError::InvalidTimingQuantiles));
+        assert!(
+            receipt
+                .validate()
+                .unwrap_err()
+                .contains(&ReceiptError::InvalidTimingQuantiles)
+        );
         receipt = valid_receipt();
         receipt.timing.solver.p95_ns = receipt.timing.total_step.p95_ns + 1;
-        assert!(receipt.validate().unwrap_err().contains(&ReceiptError::StageTimingExceedsTotal));
+        assert!(
+            receipt
+                .validate()
+                .unwrap_err()
+                .contains(&ReceiptError::StageTimingExceedsTotal)
+        );
     }
 
     #[test]
