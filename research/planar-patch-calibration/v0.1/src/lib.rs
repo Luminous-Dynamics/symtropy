@@ -274,7 +274,10 @@ pub fn validate_maximum_dissipation(
         ("coordinate frame", &input.coordinate_frame_digest),
         ("rig calibration", &input.rig_calibration_digest),
         ("observation profile", &input.observation_profile_digest),
-        ("calibration parameters", &input.calibration_parameter_digest),
+        (
+            "calibration parameters",
+            &input.calibration_parameter_digest,
+        ),
         ("held-out split", &input.held_out_split_digest),
     ] {
         if digest.trim().is_empty() {
@@ -370,9 +373,8 @@ pub fn validate_maximum_dissipation(
                 "directional validation ellipsoid axes are invalid",
             ));
         }
-        let scaled_slip = std::array::from_fn::<_, 3, _>(|index| {
-            axes[index] * observation.slip_twist[index]
-        });
+        let scaled_slip =
+            std::array::from_fn::<_, 3, _>(|index| axes[index] * observation.slip_twist[index]);
         if !scaled_slip.iter().all(|value| value.is_finite()) {
             return Err(CalibrationError::new(
                 CalibrationErrorKind::NonFiniteEvaluation,
@@ -427,7 +429,10 @@ pub fn validate_maximum_dissipation(
         let normalized_error = stable_norm(&difference);
         let observed_power = dot(&observation.slip_twist, &measured_values)?;
         let predicted_power = dot(&observation.slip_twist, &predicted_values)?;
-        if !normalized_error.is_finite() || !observed_power.is_finite() || !predicted_power.is_finite() {
+        if !normalized_error.is_finite()
+            || !observed_power.is_finite()
+            || !predicted_power.is_finite()
+        {
             return Err(CalibrationError::new(
                 CalibrationErrorKind::NonFiniteEvaluation,
                 "maximum-dissipation residual or power is non-finite",
@@ -476,8 +481,7 @@ pub fn validate_maximum_dissipation(
     let status = match weighted_rms {
         None => MaximumDissipationValidationStatus::NoInformativeSlidingObservations,
         Some(value)
-            if value <= config.maximum_weighted_rms_wrench_error
-                && non_dissipative_count == 0 =>
+            if value <= config.maximum_weighted_rms_wrench_error && non_dissipative_count == 0 =>
         {
             MaximumDissipationValidationStatus::ConsistentWithinTolerance
         }
@@ -1272,9 +1276,30 @@ mod tests {
                 1.0,
                 2.0,
             ),
-            direction_observation("pure-u", "u-trial", [1.0, 0.0, 0.0], [-2.0, 0.0, 0.0], 1.0, 1.0),
-            direction_observation("pure-v", "v-trial", [0.0, 1.0, 0.0], [0.0, -0.5, 0.0], 1.0, 1.0),
-            direction_observation("pure-spin", "spin-trial", [0.0, 0.0, 1.0], [0.0, 0.0, -0.25], 1.0, 1.0),
+            direction_observation(
+                "pure-u",
+                "u-trial",
+                [1.0, 0.0, 0.0],
+                [-2.0, 0.0, 0.0],
+                1.0,
+                1.0,
+            ),
+            direction_observation(
+                "pure-v",
+                "v-trial",
+                [0.0, 1.0, 0.0],
+                [0.0, -0.5, 0.0],
+                1.0,
+                1.0,
+            ),
+            direction_observation(
+                "pure-spin",
+                "spin-trial",
+                [0.0, 0.0, 1.0],
+                [0.0, 0.0, -0.25],
+                1.0,
+                1.0,
+            ),
         ]);
         let report =
             validate_maximum_dissipation(&problem, direction_config()).expect("direction fit");
@@ -1285,8 +1310,16 @@ mod tests {
         assert_eq!(report.sliding_observation_count, 5);
         assert_eq!(report.zero_slip_observation_count, 0);
         assert_eq!(report.unique_trial_group_count, 5);
-        close(report.weighted_rms_normalized_wrench_error.unwrap(), 0.0, 1.0e-12);
-        close(report.maximum_normalized_wrench_error.unwrap(), 0.0, 1.0e-12);
+        close(
+            report.weighted_rms_normalized_wrench_error.unwrap(),
+            0.0,
+            1.0e-12,
+        );
+        close(
+            report.maximum_normalized_wrench_error.unwrap(),
+            0.0,
+            1.0e-12,
+        );
         assert_eq!(report.non_dissipative_observation_count, 0);
         close(report.diagnostics[0].predicted_power.unwrap(), -6.0_f64.sqrt(), 1.0e-12);
     }
@@ -1294,8 +1327,22 @@ mod tests {
     #[test]
     fn zero_slip_sticking_samples_are_preserved_but_not_directionally_scored() {
         let problem = direction_input(vec![
-            direction_observation("stick", "stick-trial", [0.0; 3], [0.2, 0.1, 0.05], 1.0, 1.0),
-            direction_observation("slide", "slide-trial", [1.0, 0.0, 0.0], [-2.0, 0.0, 0.0], 1.0, 1.0),
+            direction_observation(
+                "stick",
+                "stick-trial",
+                [0.0; 3],
+                [0.2, 0.1, 0.05],
+                1.0,
+                1.0,
+            ),
+            direction_observation(
+                "slide",
+                "slide-trial",
+                [1.0, 0.0, 0.0],
+                [-2.0, 0.0, 0.0],
+                1.0,
+                1.0,
+            ),
         ]);
         let report =
             validate_maximum_dissipation(&problem, direction_config()).expect("sticking/sliding");
@@ -1331,9 +1378,14 @@ mod tests {
 
     #[test]
     fn wrong_direction_and_positive_measured_power_are_reported_as_inconsistent() {
-        let problem = direction_input(vec![
-            direction_observation("wrong-way", "trial-a", [1.0, 0.0, 0.0], [2.0, 0.0, 0.0], 1.0, 1.0),
-        ]);
+        let problem = direction_input(vec![direction_observation(
+            "wrong-way",
+            "trial-a",
+            [1.0, 0.0, 0.0],
+            [2.0, 0.0, 0.0],
+            1.0,
+            1.0,
+        )]);
         let report =
             validate_maximum_dissipation(&problem, direction_config()).expect("wrong direction");
         assert_eq!(report.status, MaximumDissipationValidationStatus::Inconsistent);
@@ -1345,8 +1397,22 @@ mod tests {
     #[test]
     fn maximum_dissipation_validation_rejects_duplicate_ids_and_missing_holdout_identity() {
         let duplicate = direction_input(vec![
-            direction_observation("same", "trial-a", [1.0, 0.0, 0.0], [-2.0, 0.0, 0.0], 1.0, 1.0),
-            direction_observation("same", "trial-b", [0.0, 1.0, 0.0], [0.0, -0.5, 0.0], 1.0, 1.0),
+            direction_observation(
+                "same",
+                "trial-a",
+                [1.0, 0.0, 0.0],
+                [-2.0, 0.0, 0.0],
+                1.0,
+                1.0,
+            ),
+            direction_observation(
+                "same",
+                "trial-b",
+                [0.0, 1.0, 0.0],
+                [0.0, -0.5, 0.0],
+                1.0,
+                1.0,
+            ),
         ]);
         assert_eq!(
             validate_maximum_dissipation(&duplicate, direction_config())
@@ -1355,9 +1421,14 @@ mod tests {
             CalibrationErrorKind::DuplicateObservationId
         );
 
-        let mut missing = direction_input(vec![
-            direction_observation("slide", "trial-a", [1.0, 0.0, 0.0], [-2.0, 0.0, 0.0], 1.0, 1.0),
-        ]);
+        let mut missing = direction_input(vec![direction_observation(
+            "slide",
+            "trial-a",
+            [1.0, 0.0, 0.0],
+            [-2.0, 0.0, 0.0],
+            1.0,
+            1.0,
+        )]);
         missing.held_out_split_digest.clear();
         assert_eq!(
             validate_maximum_dissipation(&missing, direction_config())
