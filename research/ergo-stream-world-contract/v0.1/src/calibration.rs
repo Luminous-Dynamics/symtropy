@@ -241,7 +241,10 @@ impl fmt::Display for TransferCalibrationErrorV0 {
             }
             Self::InvalidClaimScopeDigest => "claim scope digest must be a lowercase sha256 digest",
             Self::InvalidCalibrationIdentityDigest => {
-                "predictor, preprocessing and score-function identities must be lowercase sha256 digests"
+                "predictor, preprocessing, score-function and calibration artifact identities must be lowercase sha256 digests"
+            },
+            Self::InvalidCalibrationReceiptIdentity => {
+                "conformal calibration identity requires a non-empty owner-issued receipt ID"
             },
             Self::ClaimIdentityMismatch => {
                 "forecast and evaluator outcome do not bind to the same claim type and scope digest"
@@ -720,6 +723,7 @@ pub enum ConformalIndependentUnitKindV0 {
 /// verification remains an owner-side responsibility.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SplitConformalCalibrationIdentityV0 {
+    pub receipt_id: String,
     pub evaluation_stratum_id: u16,
     pub independent_unit_kind: ConformalIndependentUnitKindV0,
     pub claim_type: TransferClaimTypeV0,
@@ -727,6 +731,10 @@ pub struct SplitConformalCalibrationIdentityV0 {
     pub predictor_sha256: String,
     pub preprocessing_sha256: String,
     pub score_function_sha256: String,
+    pub calibration_cohort_sha256: String,
+    pub sample_ids_sha256: String,
+    pub split_manifest_sha256: String,
+    pub evidence_prefix_sha256: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -808,12 +816,19 @@ impl SplitConformalBinaryTransferV0 {
 fn validate_conformal_identity(
     identity: &SplitConformalCalibrationIdentityV0,
 ) -> Result<(), TransferCalibrationErrorV0> {
+    if identity.receipt_id.trim().is_empty() {
+        return Err(TransferCalibrationErrorV0::InvalidCalibrationReceiptIdentity);
+    }
     if !is_lowercase_sha256(&identity.claim_scope_sha256) {
         return Err(TransferCalibrationErrorV0::InvalidClaimScopeDigest);
     }
     if !is_lowercase_sha256(&identity.predictor_sha256)
         || !is_lowercase_sha256(&identity.preprocessing_sha256)
         || !is_lowercase_sha256(&identity.score_function_sha256)
+        || !is_lowercase_sha256(&identity.calibration_cohort_sha256)
+        || !is_lowercase_sha256(&identity.sample_ids_sha256)
+        || !is_lowercase_sha256(&identity.split_manifest_sha256)
+        || !is_lowercase_sha256(&identity.evidence_prefix_sha256)
     {
         return Err(TransferCalibrationErrorV0::InvalidCalibrationIdentityDigest);
     }
@@ -941,6 +956,7 @@ mod tests {
         evaluation_stratum_id: u16,
     ) -> SplitConformalCalibrationIdentityV0 {
         SplitConformalCalibrationIdentityV0 {
+            receipt_id: "receipt-test-001".to_owned(),
             evaluation_stratum_id,
             independent_unit_kind: ConformalIndependentUnitKindV0::WorldSeed,
             claim_type: TransferClaimTypeV0::Simulation,
@@ -948,6 +964,10 @@ mod tests {
             predictor_sha256: format!("sha256:{}", "2".repeat(64)),
             preprocessing_sha256: format!("sha256:{}", "3".repeat(64)),
             score_function_sha256: format!("sha256:{}", "4".repeat(64)),
+            calibration_cohort_sha256: format!("sha256:{}", "5".repeat(64)),
+            sample_ids_sha256: format!("sha256:{}", "6".repeat(64)),
+            split_manifest_sha256: format!("sha256:{}", "7".repeat(64)),
+            evidence_prefix_sha256: format!("sha256:{}", "8".repeat(64)),
         }
     }
 
@@ -1054,11 +1074,11 @@ mod tests {
             Err(TransferCalibrationErrorV0::MixedCalibrationStrata)
         );
         assert_eq!(
-            fit_split_conformal_binary_transfer(&forecasts, &outcomes, 7, 0),
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &conformal_identity(7), 0),
             Err(TransferCalibrationErrorV0::AlphaOutOfRange)
         );
         assert_eq!(
-            fit_split_conformal_binary_transfer(&forecasts, &outcomes, 7, 1_000_000),
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &conformal_identity(7), 1_000_000),
             Err(TransferCalibrationErrorV0::AlphaOutOfRange)
         );
     }
@@ -1130,6 +1150,26 @@ mod tests {
         let mut changed_identities = Vec::new();
 
         let mut changed = baseline.clone();
+        changed.receipt_id = "receipt-test-002".to_owned();
+        changed_identities.push(changed);
+
+        let mut changed = baseline.clone();
+        changed.calibration_cohort_sha256 = format!("sha256:{}", "9".repeat(64));
+        changed_identities.push(changed);
+
+        let mut changed = baseline.clone();
+        changed.sample_ids_sha256 = format!("sha256:{}", "9".repeat(64));
+        changed_identities.push(changed);
+
+        let mut changed = baseline.clone();
+        changed.split_manifest_sha256 = format!("sha256:{}", "9".repeat(64));
+        changed_identities.push(changed);
+
+        let mut changed = baseline.clone();
+        changed.evidence_prefix_sha256 = format!("sha256:{}", "9".repeat(64));
+        changed_identities.push(changed);
+
+        let mut changed = baseline.clone();
         changed.claim_type = TransferClaimTypeV0::MechanismTransfer;
         changed_identities.push(changed);
 
@@ -1171,6 +1211,22 @@ mod tests {
         assert_eq!(
             fit_split_conformal_binary_transfer(&forecasts, &outcomes, &identity, 100_000),
             Err(TransferCalibrationErrorV0::InvalidCalibrationIdentityDigest)
+        );
+
+        let mut identity = conformal_identity(7);
+        identity.calibration_cohort_sha256 = "sha256:bad".to_owned();
+
+        assert_eq!(
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &identity, 100_000),
+            Err(TransferCalibrationErrorV0::InvalidCalibrationIdentityDigest)
+        );
+
+        let mut identity = conformal_identity(7);
+        identity.receipt_id.clear();
+
+        assert_eq!(
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &identity, 100_000),
+            Err(TransferCalibrationErrorV0::InvalidCalibrationReceiptIdentity)
         );
 
         let mut identity = conformal_identity(7);
