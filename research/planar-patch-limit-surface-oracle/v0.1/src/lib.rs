@@ -492,7 +492,7 @@ mod tests {
                 components: [2.0, -3.0, 4.0],
             })
             .expect("support");
-        let membership = model
+        let membership = model()
             .membership(report.maximizing_wrench, 1.0e-12)
             .expect("membership");
         assert_eq!(membership.status, MembershipStatus::Boundary);
