@@ -4,7 +4,7 @@ A dependency-free Rust importer for the public NYU continuous-collision-detectio
 
 ## Supported formats
 
-The scalable dataset stores per-scene folders for queries, broadphase boxes, Mathematica Boolean ground truth and symbolic roots. The query CSV contains eight rows per query and six integer columns: numerator/denominator pairs for x, y and z. Edge-edge and vertex-face row order is selected explicitly by the caller. The Boolean ground-truth JSON stores JSON `true`/`false` tokens only, one Boolean per query, and is attached after parsing. Legacy CSV labels alone accept `0`/`1` as well as `false`/`true`. The boxes JSON is an array of unordered pairs of box IDs; the importer canonicalizes each pair so reversed order has the same identity.
+The scalable dataset stores per-scene folders for queries, broadphase boxes, Mathematica Boolean ground truth and symbolic roots. The query CSV contains eight rows per query and six integer columns: numerator/denominator pairs for x, y and z. Edge-edge and vertex-face row order is selected explicitly by the caller and exposed as typed row roles: edge-edge `ea0_t0, ea1_t0, eb0_t0, eb1_t0, ea0_t1, ea1_t1, eb0_t1, eb1_t1`; vertex-face `v_t0, f0_t0, f1_t0, f2_t0, v_t1, f0_t1, f1_t1, f2_t1`. The Boolean ground-truth JSON stores JSON `true`/`false` tokens only, one Boolean per query, and is attached after parsing. Legacy CSV labels alone accept `0`/`1` as well as `false`/`true`. The boxes JSON is an array of unordered pairs of box IDs; the importer canonicalizes each pair so reversed order has the same identity.
 
 The legacy 2021 sample format uses eight rows per query and seven columns, with the seventh column repeating the Boolean result on each row. The importer checks that all eight row labels agree.
 
@@ -31,4 +31,4 @@ The test suite now imports the public `armadillo-rollers/queries/3ee.csv`, `mma_
 - Original benchmark dataset: https://archive.nyu.edu/handle/2451/61518
 - Full scene/time-of-impact dataset: https://archive.nyu.edu/handle/2451/74508
 
-The datasets are not copied into this repository. The import tests use small synthetic fixtures and preserve the original exact rational format.
+The full datasets are not copied into this repository. The test suite retains only the small published `armadillo-rollers/3ee` sample excerpt under Apache License 2.0 and preserves the original exact rational format.
