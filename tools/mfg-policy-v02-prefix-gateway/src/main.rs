@@ -306,6 +306,11 @@ mod tests {
         assert!(!serialized.contains("EVENT-3"));
         assert!(!serialized.contains("scenario_id"));
         assert!(!serialized.contains("probability_ppm"));
+        assert!(!serialized.contains("generator_seed"));
+        assert!(!serialized.contains("replication_seed"));
+        assert!(!serialized.contains("paired_seed_id"));
+        assert!(!serialized.contains("scenario_family_id"));
+        assert!(!serialized.contains("decision_visibility_rule"));
     }
 
     #[test]
@@ -401,6 +406,11 @@ mod tests {
         assert!(value.get("scenario_id").is_none());
         assert!(value.get("scenario_slot").is_none());
         assert!(value.get("probability_ppm").is_none());
+        assert!(value.get("scenario_family_id").is_none());
+        assert!(value.get("static_case").unwrap().get("generator_seed").is_none());
+        assert!(value.get("static_case").unwrap().get("replication_seed").is_none());
+        assert!(value.get("static_case").unwrap().get("paired_seed_id").is_none());
+        assert!(value.get("static_case").unwrap().get("decision_visibility_rule").is_none());
         assert!(
             value
                 .get("observable_history")
