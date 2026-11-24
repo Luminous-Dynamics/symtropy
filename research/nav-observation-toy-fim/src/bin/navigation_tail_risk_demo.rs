@@ -32,6 +32,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     println!("claim_class=synthetic_exact_discrete_tail_fixture");
+    println!("loss_unit=0.01");
     println!("policy_a_expected_loss={}/{}", a_mean.numerator(), a_mean.denominator());
     println!("policy_a_cvar_95={}/{}", a_tail.numerator(), a_tail.denominator());
     println!("policy_b_expected_loss={}/{}", b_mean.numerator(), b_mean.denominator());
