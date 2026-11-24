@@ -383,16 +383,20 @@ def main() -> int:
         return 2
 
     results = [evaluate_case(case, alphas) for case in corpus.get("cases", [])]
+    pass_cases = sum(row["status"] == "PASS" for row in results)
+    abstain_cases = sum(row["status"] == "ABSTAIN" for row in results)
+    invalid_cases = sum(row["status"] == "INVALID_INPUT" for row in results)
     report = {
-        "schema": "luminous.orbital-cvar-regret.report.v0.1",
-        "result": "pass" if all(row["status"] in {"PASS", "ABSTAIN"} for row in results) else "fail",
+        "result": "pass" if invalid_cases == 0 else "fail",
         "evidence_class": "synthetic",
         "claim_ceiling": CLAIM_CEILING,
-        "case_count": len(results),
-        "pass_cases": sum(row["status"] == "PASS" for row in results),
-        "abstain_cases": sum(row["status"] == "ABSTAIN" for row in results),
-        "invalid_cases": sum(row["status"] == "INVALID_INPUT" for row in results),
-        "authority_grants": 0,
+        "summary": {
+            "case_count": len(results),
+            "pass_cases": pass_cases,
+            "abstain_cases": abstain_cases,
+            "invalid_input_cases": invalid_cases,
+            "authority_grants": 0,
+        },
         "cases": results,
         "authority_granted": False,
     }
