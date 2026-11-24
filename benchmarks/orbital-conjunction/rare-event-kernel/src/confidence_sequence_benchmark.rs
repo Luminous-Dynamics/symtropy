@@ -729,8 +729,8 @@ mod tests {
                 let hedged_interval = hedged.confidence_sequence();
                 fixed_missed |= fixed_interval.lower > conditional_mean
                     || fixed_interval.upper < conditional_mean;
-                prpl_missed |=
-                    prpl_interval.lower > conditional_mean || prpl_interval.upper < conditional_mean;
+                prpl_missed |= prpl_interval.lower > conditional_mean
+                    || prpl_interval.upper < conditional_mean;
                 hedged_missed |= hedged_interval.lower > conditional_mean
                     || hedged_interval.upper < conditional_mean;
                 previous_event = event_occurred;
@@ -760,6 +760,4 @@ mod tests {
             "Hedged exact adaptive-path miss probability was {hedged_miss_probability}"
         );
     }
-
-
 }
