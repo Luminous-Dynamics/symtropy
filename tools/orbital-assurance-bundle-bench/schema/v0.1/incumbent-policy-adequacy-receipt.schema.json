@@ -73,7 +73,6 @@
             "abstain_cases",
             "invalid_input_cases",
             "resource_blocked_cases",
-            "expected_result_mismatches",
             "authority_grants"
           ],
           "properties": {
@@ -100,9 +99,6 @@
             "resource_blocked_cases": {
               "type": "integer",
               "minimum": 0
-            },
-            "expected_result_mismatches": {
-              "const": 0
             },
             "authority_grants": {
               "const": 0
