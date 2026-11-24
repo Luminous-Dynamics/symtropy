@@ -691,7 +691,7 @@ mod tests {
                 && fields[5] == "10"
                 && fields[7] == "0"
                 && fields[8] == "2000"
-                && fields[25] == "NA"
+                && fields[24] == "NA"
         }));
     }
 
