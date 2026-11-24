@@ -42,7 +42,7 @@ A verified reset requires all of:
 - the exact committed initial-state digest;
 - a valid raw observation-artifact SHA-256.
 
-An accepted transport response is not a verified reset. An unknown or unresolved outcome remains in the recovery projection as requiring read-only reconciliation. The same reset intent cannot be retried automatically. A definitive rejected response is held for explicit policy handling.
+An accepted transport response is not a verified reset. An unknown or unresolved outcome remains in the recovery projection as requiring read-only reconciliation. The same reset intent cannot be retried automatically. A rejected transport response is not accepted as proof of no physical effect. It remains in the recovery projection as requiring read-only state/ledger reconciliation. Only the owner-side read-only result can move it to a terminal qualified disposition.
 
 ## Dispatch lifecycle
 
@@ -59,8 +59,8 @@ An idempotency key can be recorded only once. Outcomes are payload-bound. A tran
 Appending is write-then-sync. If writing or syncing fails, the in-process writer becomes poisoned and will refuse additional appends. On restart, replay rejects torn final lines, empty lines, oversized lines, invalid UTF-8/JSON, unknown schema/canonicalization, sequence gaps, broken previous-hash links, digest mismatch and illegal event transitions. It never truncates or repairs a damaged tail automatically.
 
 `recovery_projection_file` and `Journal::recovery_projection` provide a deterministic read-only projection:
-- resets with intent-only, response-accepted-awaiting-observation, response-unknown, unresolved, verified or rejected-hold status;
-- dispatches needing injector-ledger reconciliation;
+- resets with intent-only, response-accepted-awaiting-observation, response-unknown, response-rejected-awaiting-observation, unresolved, verified or rejected-hold status;
+- dispatches with intent-only, response-unknown or response-rejected status needing injector-ledger reconciliation;
 - accepted dispatches still awaiting execution/physical evidence;
 - terminal no-dispatch-proven and payload-conflict states.
 
