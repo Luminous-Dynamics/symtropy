@@ -231,11 +231,11 @@ fn derive_human_motion_from_intent(
             continue;
         }
 
-        if expire_locomotion_intent(&mut intent, now_sec, config.stop_exit_speed_mps) {
-            if intent.motion_override == Some(HumanMotion::Idle) {
-                controller.motion = HumanMotion::Idle;
-                continue;
-            }
+        if expire_locomotion_intent(&mut intent, now_sec, config.stop_exit_speed_mps)
+            && intent.motion_override == Some(HumanMotion::Idle)
+        {
+            controller.motion = HumanMotion::Idle;
+            continue;
         }
         controller.motion = motion_for_locomotion_intent(&intent, controller.motion, *config);
     }
