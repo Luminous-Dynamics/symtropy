@@ -157,6 +157,22 @@ The existing Power Fabric comparator programme #6320 has already identified seve
 
 These are not one leaderboard. LARA, FLARE, IEEE-118 AC restoration, fuel-network flow and industrial process simulation have different physics, action spaces, observation semantics and objective functions. Publish separate tables and only aggregate after an explicit common service contract is defined.
 
+**Reuse the expanded comparator roster in Power Fabric #6448.** It already records additional 2026 baselines that SAFRB should not omit or independently re-discover:
+- **HAPPO / OpenDSS:** IEEE-123 and 8,500-node feeders; paper-reported restoration of more than 95% of available load under a 2,400 kW generation cap. Reproduce training seeds, three-phase model scope, DER constraints, time step and runtime budget before comparison.
+- **Two-stage CoT/LoRA restoration:** modified IEEE-123; paper-reported 100% feasibility in its own perturbed cases and approximately 44% lower inference time with soft prompts. Treat its topology and perturbation protocol as its own benchmark track.
+- **Explainable multi-agent LLM restoration:** IEEE-33/69/118 and MCTS/RL/single-agent comparisons; the cited study changes scenarios on fixed topologies, so it does not independently establish held-out arbitrary-topology transfer.
+
+These numbers are claims reported by their respective studies, not Symtropy results. The full reproduction/scale/tail protocol lives in [Power Fabric #6448](https://github.com/Luminous-Dynamics/symtropy/issues/6448), which also prescribes held-out topology splits, paired runs, exact physics tiers, tail regret, guard counterfactuals, API/compute cost and failure accounting.
+
+**Separate SAFRB's evaluator scorecard from planner performance.** v0.8 is not an optimizer and should not be ranked against HAPPO, LARA, MILP or FLARE as though they perform the same function. The relevant test is a matched assurance ablation over identical planner runs:
+1. baseline planner + existing physical validator;
+2. same planner/run + SAFRB interval and sustained-restoration qualification;
+3. same run + SAFRB + independent artifact/claim verification.
+
+Measure false restoration claims, critical-floor false passes, unsupported stock promotions, upper-bound/midpoint promotions, right-censoring correctness, unresolved/unknown rate, false rejects, interval information loss under conservative lower-bound scoring, verifier latency and total API/compute cost. Preserve all failures and incomplete attempts. Report customer interruption indices, native-unit unserved energy, critical-floor shortfall and restoration time separately.
+
+The proposed Power Fabric #6448 targets (e.g. lower p95/CVaR95 regret and zero false-safe transitions) belong to the composed planner/guard programme, not to the standalone v0.8 arithmetic evaluator. SAFRB's direct contribution is fewer unsupported service claims and better evidence-qualified tail accounting at an explicitly measured latency and false-reject cost.
+
 ## 11. Research hypotheses beyond the current prototype
 
 1. **Service-floor-first optimization:** hard constraints for critical services, with cost, emissions and noncritical curtailment optimized only after those floors are protected.
