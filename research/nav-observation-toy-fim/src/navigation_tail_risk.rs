@@ -355,6 +355,9 @@ pub fn worst_case_cvar(
 pub struct ConditionalLossBranch {
     /// Stable, nonzero identity for the observable branch.
     pub branch_id: u64,
+    /// The continuation action selected from observable history on this branch.
+    /// It must be identical for this branch across every persistent model.
+    pub continuation_action_id: u64,
     /// Unnormalized probability mass of reaching this branch under its model.
     pub probability_mass: u128,
     /// Conditional future-loss distribution after this branch is observed.
@@ -418,7 +421,10 @@ pub fn iterated_cvar(
     let mut ordered = branches.to_vec();
     ordered.sort_unstable_by_key(|branch| branch.branch_id);
     for branch in &ordered {
-        if branch.branch_id == 0 || branch.probability_mass == 0 {
+        if branch.branch_id == 0
+            || branch.continuation_action_id == 0
+            || branch.probability_mass == 0
+        {
             return Err(TailRiskError::InvalidBranchId);
         }
     }
@@ -476,6 +482,13 @@ pub fn worst_case_iterated_cvar(
         }
     }
 
+    let reference_policy = branch_policy_signature(&ordered[0].branches)?;
+    for model in ordered.iter().skip(1) {
+        if branch_policy_signature(&model.branches)? != reference_policy {
+            return Err(TailRiskError::PersistentPolicyMismatch);
+        }
+    }
+
     let mut per_model = Vec::with_capacity(ordered.len());
     let mut worst_case: Option<IteratedModelRisk> = None;
     for model in ordered {
@@ -502,6 +515,37 @@ pub fn worst_case_iterated_cvar(
         worst_case_cvar: worst.iterated_cvar,
         tail_mass_ppm,
     })
+}
+
+
+/// Return a sorted branch-to-continuation-action signature, validating that
+/// every branch identity, action identity, and probability mass is nonzero
+/// and that branch IDs are unique.
+fn branch_policy_signature(
+    branches: &[ConditionalLossBranch],
+) -> Result<Vec<(u64, u64)>, TailRiskError> {
+    if branches.is_empty() {
+        return Err(TailRiskError::EmptyDistribution);
+    }
+    let mut signature = branches
+        .iter()
+        .map(|branch| {
+            if branch.branch_id == 0
+                || branch.continuation_action_id == 0
+                || branch.probability_mass == 0
+            {
+                return Err(TailRiskError::InvalidBranchId);
+            }
+            Ok((branch.branch_id, branch.continuation_action_id))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    signature.sort_unstable_by_key(|(branch_id, _)| *branch_id);
+    for pair in signature.windows(2) {
+        if pair[0].0 == pair[1].0 {
+            return Err(TailRiskError::DuplicateBranchId(pair[0].0));
+        }
+    }
+    Ok(signature)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1689,4 +1733,28 @@ mod iterated_cvar_tests {
             Err(TailRiskError::InvalidModelId)
         );
     }
+
+    #[test]
+    fn persistent_models_must_share_the_same_observable_branch_actions() {
+        let model_a = PersistentMissionBranchSet {
+            model_id: 1,
+            branches: vec![
+                branch(1, 99, &[(100, 1), (0, 98)]),
+                branch(2, 1, &[(10, 1)]),
+            ],
+        };
+        let mut model_b = PersistentMissionBranchSet {
+            model_id: 2,
+            branches: vec![
+                branch(1, 99, &[(200, 1), (0, 98)]),
+                branch(2, 1, &[(20, 1)]),
+            ],
+        };
+        model_b.branches[1].continuation_action_id = 99;
+        assert_eq!(
+            worst_case_iterated_cvar(&[model_a, model_b], 50_000),
+            Err(TailRiskError::PersistentPolicyMismatch)
+        );
+    }
+
 }
