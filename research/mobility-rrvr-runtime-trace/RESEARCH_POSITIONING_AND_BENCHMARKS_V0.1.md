@@ -469,3 +469,6 @@ Independent delivery observers must not receive the plan-committed expected faul
 - false Confirmed and false Refuted rates on adjudicated positive/negative controls, with uncertainty intervals.
 
 This tests measurement independence and calibration separately from quorum membership independence. A set of physically distinct sensors can still share an evaluation oracle or data path.
+
+
+The same-key/different-payload conflict rule is not claimed as novel distributed-systems theory. It follows an established idempotent API pattern: store the original request parameters with a client token and reject reuse of that token with changed parameters ([AWS Builder's Library](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)). RRVR's research question is whether this invariant can be preserved across physical-effect identity, coordinator/injector restarts, actuator outcomes and independently observed recovery.
