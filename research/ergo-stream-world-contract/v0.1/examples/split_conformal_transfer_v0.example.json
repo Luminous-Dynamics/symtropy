@@ -12,19 +12,33 @@
       "sample_id": 1001,
       "include_transfer": true,
       "include_non_transfer": false,
-      "decision": "assert_transfer"
+      "decision": "assert_transfer",
+      "evaluation_stratum_id": 1,
+      "exchangeability_admitted": true
     },
     {
       "sample_id": 1002,
       "include_transfer": true,
       "include_non_transfer": true,
-      "decision": null
+      "decision": null,
+      "evaluation_stratum_id": 1,
+      "exchangeability_admitted": true
     },
     {
       "sample_id": 1003,
       "include_transfer": false,
       "include_non_transfer": true,
-      "decision": "reject_transfer"
+      "decision": "reject_transfer",
+      "evaluation_stratum_id": 1,
+      "exchangeability_admitted": true
+    },
+    {
+      "sample_id": 1004,
+      "evaluation_stratum_id": 2,
+      "exchangeability_admitted": false,
+      "include_transfer": true,
+      "include_non_transfer": true,
+      "decision": null
     }
   ]
 }
