@@ -42,4 +42,12 @@ path = "src/bin/rrvr_execution_validate.rs"
 name = "rrvr_gazebo_preflight"
 path = "src/bin/rrvr_gazebo_preflight.rs"
 
+[[bin]]
+name = "rrvr_journal_verify"
+path = "src/bin/rrvr_journal_verify.rs"
+
+[[bin]]
+name = "rrvr_journal_bench"
+path = "src/bin/rrvr_journal_bench.rs"
+
 [workspace]

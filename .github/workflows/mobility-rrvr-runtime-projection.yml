@@ -67,7 +67,22 @@ jobs:
           INIT="research/mobility-rrvr-runtime-trace/fixtures/runtime_projection_init_v0_1.json"
           TRACE_FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/runtime_projection_reservation_acceptance_v0_1.json"
           RECOVERY_FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/runtime_projection_no_effect_recovery_v0_1.json"
+          JOURNAL_SCHEMA="research/mobility-rrvr-runtime-trace/schemas/durable_journal_entry_v0_1.schema.json"
+          JOURNAL_RECOVERY_SCHEMA="research/mobility-rrvr-runtime-trace/schemas/durable_journal_recovery_v0_1.schema.json"
+          JOURNAL_BENCH_SCHEMA="research/mobility-rrvr-runtime-trace/schemas/durable_journal_benchmark_report_v0_1.schema.json"
+          JOURNAL_FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/durable_journal_known_answer_v0_1.jsonl"
           jq empty "$SCHEMA"
+          jq empty "$JOURNAL_SCHEMA"
+          jq empty "$JOURNAL_RECOVERY_SCHEMA"
+          jq empty "$JOURNAL_BENCH_SCHEMA"
+          jq -e '
+            .schema_version == "0.1"
+            and .canonicalization == "serde-json-value-sorted-keys-v0.1"
+            and .sequence == 1
+            and .event.event == "reset_intent"
+            and .event.reset_id == "reset-vector-1"
+            and .entry_sha256 == "4c825e86529c6b88e2ccf3f4086186203363c257832ff0a975b981de749328c1"
+          ' "$JOURNAL_FIXTURE"
           jq empty "$INIT"
           jq empty "$TRACE_FIXTURE"
           jq empty "$RECOVERY_FIXTURE"
@@ -248,6 +263,56 @@ jobs:
 
       - name: Run runtime projection tests
         run: cargo test --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --locked
+
+      - name: Verify durable RRVR journal known-answer fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace"
+          FIXTURE="$ROOT/fixtures/durable_journal_known_answer_v0_1.jsonl"
+          REPORT="$RUNNER_TEMP/rrvr-durable-journal-report.json"
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_journal_verify -- "$FIXTURE" "$REPORT" > "$RUNNER_TEMP/rrvr-durable-journal.stdout"
+          jq -e '
+            .validation == "passed"
+            and .read_only == true
+            and .recovery_projection.entry_count == 1
+            and .recovery_projection.head_sha256 == "4c825e86529c6b88e2ccf3f4086186203363c257832ff0a975b981de749328c1"
+            and (.recovery_projection.resets | length == 1)
+            and .recovery_projection.resets[0].disposition == "intent_only"
+            and .recovery_projection.resets[0].intent.reset_id == "reset-vector-1"
+            and .recovery_projection.dispatches == []
+            and .recovery_projection.reset_reconciliation_required == ["reset-vector-1"]
+            and .recovery_projection.dispatch_ledger_reconciliation_required == []
+            and .recovery_projection.authority_created == false
+            and .recovery_projection.mutation_permitted == false
+            and .transport_calls_performed == false
+            and .native_authority_created == false
+            and .physical_safety_established == false
+          ' "$REPORT"
+
+      - name: Smoke-test synthetic RRVR journal benchmark
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace"
+          REPORT="$RUNNER_TEMP/rrvr-journal-benchmark.json"
+          JOURNAL="$RUNNER_TEMP/rrvr-journal-benchmark.jsonl"
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_journal_bench -- 5 "$JOURNAL" > "$REPORT"
+          jq -e '
+            .schema_version == "0.1"
+            and .benchmark == "RRVR-JRN-SYNTHETIC-APPEND-REPLAY"
+            and .dispatch_count == 5
+            and .journal_entry_count == 12
+            and .journal_bytes > 0
+            and .append_total_ns > 0
+            and .replay_projection_ns > 0
+            and .recovery_projection.dispatches == 5
+            and .recovery_projection.dispatch_ledger_reconciliation_required == 5
+            and .recovery_projection.mutation_permitted == false
+            and .recovery_projection.authority_created == false
+            and .transport_calls_performed == false
+            and .physical_safety_established == false
+          ' "$REPORT"
 
       - name: Run paired RRVR campaign validator positive control
         shell: bash

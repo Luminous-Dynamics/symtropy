@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr-durable-journal-benchmark-v0.1.schema.json",
+  "title": "RRVR Durable Journal Benchmark Report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark",
+    "journal_path",
+    "dispatch_count",
+    "journal_entry_count",
+    "journal_bytes",
+    "append_total_ns",
+    "append_records_per_second",
+    "append_sync_latency_ns",
+    "replay_projection_ns",
+    "bytes_per_entry",
+    "recovery_projection",
+    "transport_calls_performed",
+    "physical_safety_established",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "benchmark": {
+      "const": "RRVR-JRN-SYNTHETIC-APPEND-REPLAY"
+    },
+    "journal_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dispatch_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "journal_entry_count": {
+      "type": "integer",
+      "minimum": 2
+    },
+    "journal_bytes": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "append_total_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "append_records_per_second": {
+      "type": "number",
+      "minimum": 0
+    },
+    "append_sync_latency_ns": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "p50",
+        "p95",
+        "p99",
+        "p999"
+      ],
+      "properties": {
+        "p50": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "p95": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "p99": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "p999": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "replay_projection_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "bytes_per_entry": {
+      "type": "number",
+      "minimum": 0
+    },
+    "recovery_projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resets",
+        "dispatches",
+        "reset_reconciliation_required",
+        "dispatch_ledger_reconciliation_required",
+        "dispatch_execution_evidence_pending",
+        "authority_created",
+        "mutation_permitted"
+      ],
+      "properties": {
+        "resets": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "dispatches": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reset_reconciliation_required": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "dispatch_ledger_reconciliation_required": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "dispatch_execution_evidence_pending": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "authority_created": {
+          "const": false
+        },
+        "mutation_permitted": {
+          "const": false
+        }
+      }
+    },
+    "transport_calls_performed": {
+      "const": false
+    },
+    "physical_safety_established": {
+      "const": false
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

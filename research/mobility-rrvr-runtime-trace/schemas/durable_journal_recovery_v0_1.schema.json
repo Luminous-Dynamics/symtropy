@@ -1,0 +1,385 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr-durable-journal-recovery-v0.1.schema.json",
+  "title": "RRVR Durable Journal Recovery Projection v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "canonicalization",
+    "entry_count",
+    "head_sha256",
+    "resets",
+    "dispatches",
+    "reset_reconciliation_required",
+    "dispatch_ledger_reconciliation_required",
+    "dispatch_execution_evidence_pending",
+    "authority_created",
+    "mutation_permitted"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "canonicalization": {
+      "const": "serde-json-value-sorted-keys-v0.1"
+    },
+    "entry_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "head_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "resets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "intent",
+          "latest_outcome",
+          "disposition"
+        ],
+        "properties": {
+          "intent": {
+            "type": "object",
+            "required": [
+              "reset_id",
+              "plan_sha256",
+              "simulator_profile_sha256",
+              "world_id",
+              "prior_world_epoch",
+              "clock_id",
+              "expected_initial_state_sha256",
+              "run_id",
+              "run_epoch"
+            ],
+            "properties": {
+              "reset_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "plan_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              },
+              "simulator_profile_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              },
+              "world_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "prior_world_epoch": {
+                "type": "string",
+                "minLength": 1
+              },
+              "clock_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "expected_initial_state_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              },
+              "run_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "run_epoch": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "latest_outcome": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "reset_id",
+                  "source",
+                  "status",
+                  "transport_response_artifact_sha256"
+                ],
+                "properties": {
+                  "reset_id": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "enum": [
+                      "transport_response",
+                      "read_only_observation",
+                      "reconciliation"
+                    ]
+                  },
+                  "status": {
+                    "enum": [
+                      "response_accepted",
+                      "response_rejected",
+                      "response_unknown",
+                      "verified",
+                      "unresolved"
+                    ]
+                  },
+                  "transport_response_artifact_sha256": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^[a-fA-F0-9]{64}$"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "disposition": {
+            "enum": [
+              "intent_only",
+              "response_accepted_awaiting_observation",
+              "response_unknown_read_only_reconciliation_required",
+              "response_rejected_read_only_reconciliation_required",
+              "unresolved_read_only_reconciliation_required",
+              "verified"
+            ]
+          }
+        }
+      }
+    },
+    "dispatches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "intent",
+          "latest_outcome",
+          "disposition"
+        ],
+        "properties": {
+          "intent": {
+            "type": "object",
+            "required": [
+              "idempotency_key",
+              "payload_sha256",
+              "reset_id",
+              "plan_sha256",
+              "simulator_profile_sha256",
+              "world_id",
+              "logical_effect_id",
+              "attempt_id",
+              "campaign_id",
+              "pair_id",
+              "scenario_id",
+              "fault_id",
+              "fault_sequence",
+              "run_id",
+              "run_epoch",
+              "world_epoch",
+              "clock_id",
+              "target_id",
+              "fault_domain_id",
+              "scheduled_simulation_step",
+              "parameters_sha256"
+            ],
+            "properties": {
+              "idempotency_key": {
+                "type": "string",
+                "minLength": 1
+              },
+              "payload_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              },
+              "reset_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "plan_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              },
+              "simulator_profile_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              },
+              "world_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "logical_effect_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "attempt_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "campaign_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "pair_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "scenario_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "fault_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "fault_sequence": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "run_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "run_epoch": {
+                "type": "string",
+                "minLength": 1
+              },
+              "world_epoch": {
+                "type": "string",
+                "minLength": 1
+              },
+              "clock_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "target_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "fault_domain_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "scheduled_simulation_step": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "parameters_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              }
+            }
+          },
+          "latest_outcome": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "idempotency_key",
+                  "payload_sha256",
+                  "source",
+                  "status",
+                  "transport_response_artifact_sha256",
+                  "ledger_artifact_sha256"
+                ],
+                "properties": {
+                  "idempotency_key": {
+                    "type": "string"
+                  },
+                  "payload_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-fA-F0-9]{64}$"
+                  },
+                  "source": {
+                    "enum": [
+                      "transport_response",
+                      "injector_ledger_lookup"
+                    ]
+                  },
+                  "status": {
+                    "enum": [
+                      "response_accepted",
+                      "response_rejected",
+                      "response_unknown",
+                      "reconciled_accepted",
+                      "reconciled_rejected",
+                      "no_dispatch_proven",
+                      "payload_conflict",
+                      "unresolved"
+                    ]
+                  },
+                  "transport_response_artifact_sha256": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^[a-fA-F0-9]{64}$"
+                  },
+                  "ledger_artifact_sha256": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^[a-fA-F0-9]{64}$"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "disposition": {
+            "enum": [
+              "intent_only_ledger_lookup_required",
+              "response_unknown_ledger_lookup_required",
+              "response_rejected_ledger_lookup_required",
+              "unresolved_ledger_lookup_required",
+              "accepted_awaiting_execution_evidence",
+              "reconciled_accepted_awaiting_execution_evidence",
+              "rejected",
+              "reconciled_rejected",
+              "no_dispatch_proven_terminal",
+              "payload_conflict_hold"
+            ]
+          }
+        }
+      }
+    },
+    "reset_reconciliation_required": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "dispatch_ledger_reconciliation_required": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "dispatch_execution_evidence_pending": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "authority_created": {
+      "const": false
+    },
+    "mutation_permitted": {
+      "const": false
+    }
+  }
+}

@@ -241,3 +241,34 @@ Dispatch reconciliation is bound to the registered request payload and updates t
 
 
 The reset model now also pins the campaign identity at BeginReset and checks DispatchUsesResetPlan. The second TLC negative control swaps the active campaign after reset verification and must produce a counterexample if dispatch can reuse the old reset qualification under the new plan.
+
+
+## Durable reset and dispatch journal v0.1
+
+The separate `durable_journal.rs` module adds a transport-neutral, append-only, SHA-256 hash-chained journal for reset and fault-dispatch intent/outcome records. Its typed API validates reset-before-dispatch binding, recomputes the Gazebo request payload digest before persisting a dispatch intent, requires durable-artifact references for read-only injector reconciliation, and treats NoDispatchProven as terminal for the old key.
+
+After process restart, `Journal::open` replays the strict log into a typed index. `recovery_projection_file` and `Journal::recovery_projection` expose deterministic unresolved reset identities, ledger-reconciliation keys and accepted dispatches awaiting execution evidence. This is a read-only projection: it does not call ROS/Gazebo, the injector or native authority. The `rrvr_journal_verify` CLI and cross-language known-answer fixture exercise that contract.
+
+See [DURABLE_JOURNAL_V0.1.md](DURABLE_JOURNAL_V0.1.md), the [journal entry schema](schemas/durable_journal_entry_v0_1.schema.json), the [recovery projection schema](schemas/durable_journal_recovery_v0_1.schema.json), and [issue #7148](https://github.com/Luminous-Dynamics/symtropy/issues/7148).
+
+Claim ceiling: this branch is still a file-backed reference implementation. It is not yet wired into the live reset/dispatch transport, and the injector's own durable idempotency ledger remains an external requirement. Hash-chain validity does not authenticate the producer or prove physical truth.
+
+
+## Synthetic journal benchmark runner
+
+`rrvr_journal_bench` generates a non-mutating synthetic reset/dispatch journal and reports append-plus-sync latency percentiles, append throughput, bytes per entry and read-only replay/projection time. Its JSON output is versioned by [durable_journal_benchmark_report_v0_1.schema.json](schemas/durable_journal_benchmark_report_v0_1.schema.json). Example:
+
+```sh
+cargo run --locked --manifest-path research/mobility-rrvr-runtime-trace/Cargo.toml --bin rrvr_journal_bench -- 1000 /tmp/rrvr-journal-1000.jsonl
+```
+
+The runner does not call ROS, Gazebo, an injector or native authority. It is not yet an SQLite comparison or a power-cut durability test; use identical event workloads, sync settings and target media for those comparisons.
+
+## RRVR benchmark protocol v0.2
+
+The [RRVR Benchmark Protocol](RRVR_BENCHMARK_PROTOCOL_V0.2.md) defines cross-restart physical-effect benchmarks, matched prior-art baselines (EAST, SafeVLA-Bench, ROS fault-injection, ROS-RVFT, Gazebo, AWS idempotency, SQLite WAL and NIST), hard safety invariants, operational metrics, confidence methodology, mandatory negative controls and evidence artifact requirements.
+
+It makes the core research distinction explicit: RRVR is not a new generic fault injector or VLA task benchmark. Its proposed contribution is cross-process/cross-restart physical-effect lineage, durable intent, request-bound reconciliation, independent observer evidence and safe recovery admission. All targets in that document are proposed qualification goals, not measured results.
+
+
+A transport-level rejected response is not considered proof of no physical effect. The recovery projection keeps rejected reset outcomes pending for read-only world observation and rejected dispatch outcomes pending for read-only injector-ledger lookup.

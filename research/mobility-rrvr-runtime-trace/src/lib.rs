@@ -11,6 +11,7 @@
 
 pub mod attempt_lineage;
 pub mod campaign_plan;
+pub mod durable_journal;
 pub mod execution_evidence;
 pub mod fault_campaign;
 pub mod gazebo_adapter;

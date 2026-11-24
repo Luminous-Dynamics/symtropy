@@ -538,3 +538,43 @@ For a single registered request, exercise ledger outcomes Accepted, Rejected, No
 ### Formal plan-binding mutant
 
 The bounded reset model now has a second explicit unsafe mutant in addition to blind reset retry: replace the active campaign after reset verification and then dispatch. The safe invariant DispatchUsesResetPlan requires the dispatched plan identity to equal the plan identity captured by the reset operation. The workflow requires a specific TLC counterexample for the mutant. This gives the reset protocol two independent mutation tests: duplicate reset request under an unknown outcome, and transfer of reset evidence across campaigns.
+
+
+## Durable reset/dispatch journal as an evaluation dimension
+
+A restart-safe recovery framework must be able to reconstruct *what it intended to do* before it asks an external owner what happened. The durable-journal branch adds a transport-neutral reference implementation and a read-only restart projection. This is a foundation, not proof of end-to-end crash safety until integrated with the actual simulator and injector call sites.
+
+Benchmark the journal at distinct crash cuts:
+- before durable reset intent;
+- after reset intent sync / before ResetSimulation;
+- after reset request / before response;
+- after reset effect / response lost;
+- after reset response / before initial-state observation is appended;
+- before durable dispatch intent;
+- after dispatch intent sync / before injector call;
+- after injector admission/effect / before dispatch response append;
+- after response append / before execution/observer artifact linking;
+- coordinator restart with a valid prefix, a torn tail, a mutated middle record, a replaced writer lease or a stale lock.
+
+Report recovery completeness separately from physical truth: hash-chain validation, reset/dispatch identity reconstruction, pending read-only reconciliation, and execution-evidence pending. The journal must never infer that an intent was delivered, or that a hash-chained receipt is authentic, merely because it parses.
+
+### Additional benchmark metrics
+
+| Metric | Definition | Hard target |
+|---|---|---|
+| Intent-before-mutation violations | External mutator call without successfully synced intent | 0 |
+| Duplicate-key acceptance | Reuse of an idempotency key in one journal | 0 |
+| Payload alias acceptance | Same key accepted with a changed canonical payload | 0 |
+| Reset-proof transfer | Dispatch under a plan/world/clock/profile different from its verified reset | 0 |
+| Silent-tail repair | Automatic truncation or optimistic recovery from a torn tail | 0 |
+| Stale-lease theft | Writer starts by silently removing another lease | 0 |
+| Unknown-to-retry transitions | Same old reset/dispatch identity is reissued after unknown/no-dispatch result | 0 |
+| Recovery projection determinism | Same journal bytes produce different recovery projection bytes | 0 |
+
+Also measure append p50/p95/p99 latency, sync latency, bytes per record, replay throughput, max supported journal size, and instrumentation overhead. Durability claims must specify filesystem, mount options, storage device/cache policy and OS semantics. A successful `sync_all` is not a remote injector transaction.
+
+The current verifier projection distinguishes:
+- reset intent-only / response accepted awaiting observation / unknown / unresolved / verified / rejected hold;
+- dispatch intent-only / unknown / unresolved / accepted or reconciled accepted awaiting execution evidence / rejected / no-dispatch-proven terminal / payload-conflict hold.
+
+That makes restart recovery actionable without authorizing mutation. The actual injector must still provide a durable atomic ledger, and execution/observer evidence must still be independently captured.
