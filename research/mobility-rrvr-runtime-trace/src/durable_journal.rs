@@ -59,32 +59,65 @@ impl fmt::Display for JournalError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io { kind, message } => write!(f, "journal I/O error ({kind}): {message}"),
-            Self::WriterLeaseExists => write!(f, "journal writer lease already exists; stale leases require explicit operator recovery"),
+            Self::WriterLeaseExists => write!(
+                f,
+                "journal writer lease already exists; stale leases require explicit operator recovery"
+            ),
             Self::InvalidPath => write!(f, "journal path has no usable parent or filename"),
-            Self::PoisonedWriter => write!(f, "journal writer is poisoned after an uncertain append/sync failure"),
-            Self::TornFinalRecord => write!(f, "journal has a torn final record; refusing automatic truncation"),
+            Self::PoisonedWriter => write!(
+                f,
+                "journal writer is poisoned after an uncertain append/sync failure"
+            ),
+            Self::TornFinalRecord => write!(
+                f,
+                "journal has a torn final record; refusing automatic truncation"
+            ),
             Self::EmptyRecord => write!(f, "journal contains an empty record"),
             Self::RecordTooLarge => write!(f, "journal record exceeds the configured size bound"),
             Self::SequenceOverflow => write!(f, "journal sequence counter overflowed"),
             Self::InvalidUtf8 => write!(f, "journal contains invalid UTF-8"),
             Self::InvalidJson(message) => write!(f, "journal record is invalid JSON: {message}"),
             Self::UnsupportedVersion => write!(f, "journal schema version is unsupported"),
-            Self::UnsupportedCanonicalization => write!(f, "journal canonicalization profile is unsupported"),
-            Self::SequenceMismatch { expected, actual } => write!(f, "journal sequence mismatch: expected {expected}, got {actual}"),
-            Self::PreviousHashMismatch { sequence } => write!(f, "journal previous-record hash mismatch at sequence {sequence}"),
-            Self::RecordHashMismatch { sequence } => write!(f, "journal record hash mismatch at sequence {sequence}"),
+            Self::UnsupportedCanonicalization => {
+                write!(f, "journal canonicalization profile is unsupported")
+            }
+            Self::SequenceMismatch { expected, actual } => write!(
+                f,
+                "journal sequence mismatch: expected {expected}, got {actual}"
+            ),
+            Self::PreviousHashMismatch { sequence } => write!(
+                f,
+                "journal previous-record hash mismatch at sequence {sequence}"
+            ),
+            Self::RecordHashMismatch { sequence } => {
+                write!(f, "journal record hash mismatch at sequence {sequence}")
+            }
             Self::InvalidSha256 => write!(f, "journal contains an invalid SHA-256 digest"),
             Self::MissingIdentity => write!(f, "journal event is missing a required identity"),
             Self::DuplicateResetId => write!(f, "reset identity already exists in the journal"),
             Self::UnknownResetId => write!(f, "reset outcome references an unknown reset identity"),
             Self::InvalidResetTransition => write!(f, "reset outcome transition is not permitted"),
             Self::ResetNotVerified => write!(f, "dispatch intent requires a verified reset"),
-            Self::ResetBindingMismatch => write!(f, "dispatch intent does not match its verified reset binding"),
-            Self::DuplicateDispatchKey => write!(f, "dispatch idempotency key already exists in the journal"),
-            Self::UnknownDispatchKey => write!(f, "dispatch outcome references an unknown idempotency key"),
-            Self::DispatchPayloadMismatch => write!(f, "dispatch outcome payload differs from the committed intent"),
-            Self::InvalidDispatchTransition => write!(f, "dispatch outcome transition is not permitted"),
-            Self::InvalidOutcomeEvidence => write!(f, "outcome evidence is incomplete or inconsistent"),
+            Self::ResetBindingMismatch => write!(
+                f,
+                "dispatch intent does not match its verified reset binding"
+            ),
+            Self::DuplicateDispatchKey => {
+                write!(f, "dispatch idempotency key already exists in the journal")
+            }
+            Self::UnknownDispatchKey => {
+                write!(f, "dispatch outcome references an unknown idempotency key")
+            }
+            Self::DispatchPayloadMismatch => write!(
+                f,
+                "dispatch outcome payload differs from the committed intent"
+            ),
+            Self::InvalidDispatchTransition => {
+                write!(f, "dispatch outcome transition is not permitted")
+            }
+            Self::InvalidOutcomeEvidence => {
+                write!(f, "outcome evidence is incomplete or inconsistent")
+            }
         }
     }
 }
@@ -97,7 +130,9 @@ fn sync_parent_directory(path: &Path) -> Result<(), JournalError> {
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
         .unwrap_or_else(|| Path::new("."));
-    File::open(parent).and_then(|directory| directory.sync_all()).map_err(io_error)
+    File::open(parent)
+        .and_then(|directory| directory.sync_all())
+        .map_err(io_error)
 }
 
 #[cfg(not(unix))]
@@ -464,11 +499,7 @@ impl JournalIndex {
                 if self.reset_intents.contains_key(reset_id) {
                     return Err(JournalError::DuplicateResetId);
                 }
-                let reset_scope = (
-                    run_id.clone(),
-                    world_id.clone(),
-                    prior_world_epoch.clone(),
-                );
+                let reset_scope = (run_id.clone(), world_id.clone(), prior_world_epoch.clone());
                 if self.reset_scopes.contains(&reset_scope) {
                     return Err(JournalError::DuplicateResetId);
                 }
@@ -518,14 +549,37 @@ impl JournalIndex {
                     .ok_or(JournalError::UnknownResetId)?;
                 let previous = self.reset_status.get(reset_id).copied();
                 match (previous, source, status) {
-                    (None, ResetOutcomeSource::TransportResponse, ResetOutcomeStatus::ResponseAccepted)
-                    | (None, ResetOutcomeSource::TransportResponse, ResetOutcomeStatus::ResponseRejected)
-                    | (None, ResetOutcomeSource::TransportResponse, ResetOutcomeStatus::ResponseUnknown) => {}
-                    (Some(ResetOutcomeStatus::ResponseAccepted | ResetOutcomeStatus::ResponseUnknown | ResetOutcomeStatus::Unresolved),
-                     ResetOutcomeSource::ReadOnlyObservation | ResetOutcomeSource::Reconciliation,
-                     ResetOutcomeStatus::Verified | ResetOutcomeStatus::Unresolved) => {}
-                    (None, ResetOutcomeSource::ReadOnlyObservation | ResetOutcomeSource::Reconciliation,
-                     ResetOutcomeStatus::Verified | ResetOutcomeStatus::Unresolved) => {
+                    (
+                        None,
+                        ResetOutcomeSource::TransportResponse,
+                        ResetOutcomeStatus::ResponseAccepted,
+                    )
+                    | (
+                        None,
+                        ResetOutcomeSource::TransportResponse,
+                        ResetOutcomeStatus::ResponseRejected,
+                    )
+                    | (
+                        None,
+                        ResetOutcomeSource::TransportResponse,
+                        ResetOutcomeStatus::ResponseUnknown,
+                    ) => {}
+                    (
+                        Some(
+                            ResetOutcomeStatus::ResponseAccepted
+                            | ResetOutcomeStatus::ResponseUnknown
+                            | ResetOutcomeStatus::Unresolved,
+                        ),
+                        ResetOutcomeSource::ReadOnlyObservation
+                        | ResetOutcomeSource::Reconciliation,
+                        ResetOutcomeStatus::Verified | ResetOutcomeStatus::Unresolved,
+                    ) => {}
+                    (
+                        None,
+                        ResetOutcomeSource::ReadOnlyObservation
+                        | ResetOutcomeSource::Reconciliation,
+                        ResetOutcomeStatus::Verified | ResetOutcomeStatus::Unresolved,
+                    ) => {
                         // Covers process restart after a durable intent but before
                         // a response record could be appended.
                     }
@@ -717,48 +771,71 @@ impl JournalIndex {
                 }
                 let previous = self.dispatch_status.get(idempotency_key).copied();
                 if *source == DispatchOutcomeSource::InjectorLedgerLookup
-                    && !ledger_artifact_sha256
-                        .as_deref()
-                        .is_some_and(valid_sha256)
+                    && !ledger_artifact_sha256.as_deref().is_some_and(valid_sha256)
                 {
                     return Err(JournalError::InvalidOutcomeEvidence);
                 }
                 match (previous, source, status) {
-                    (None, DispatchOutcomeSource::TransportResponse,
-                     DispatchOutcomeStatus::ResponseAccepted | DispatchOutcomeStatus::ResponseRejected | DispatchOutcomeStatus::ResponseUnknown) => {}
-                    (None, DispatchOutcomeSource::InjectorLedgerLookup,
-                     DispatchOutcomeStatus::ReconciledAccepted | DispatchOutcomeStatus::ReconciledRejected
-                     | DispatchOutcomeStatus::NoDispatchProven | DispatchOutcomeStatus::PayloadConflict
-                     | DispatchOutcomeStatus::Unresolved) => {}
-                    (Some(DispatchOutcomeStatus::ResponseUnknown | DispatchOutcomeStatus::Unresolved),
-                     DispatchOutcomeSource::InjectorLedgerLookup,
-                     DispatchOutcomeStatus::ReconciledAccepted | DispatchOutcomeStatus::ReconciledRejected
-                     | DispatchOutcomeStatus::NoDispatchProven | DispatchOutcomeStatus::PayloadConflict
-                     | DispatchOutcomeStatus::Unresolved) => {}
+                    (
+                        None,
+                        DispatchOutcomeSource::TransportResponse,
+                        DispatchOutcomeStatus::ResponseAccepted
+                        | DispatchOutcomeStatus::ResponseRejected
+                        | DispatchOutcomeStatus::ResponseUnknown,
+                    ) => {}
+                    (
+                        None,
+                        DispatchOutcomeSource::InjectorLedgerLookup,
+                        DispatchOutcomeStatus::ReconciledAccepted
+                        | DispatchOutcomeStatus::ReconciledRejected
+                        | DispatchOutcomeStatus::NoDispatchProven
+                        | DispatchOutcomeStatus::PayloadConflict
+                        | DispatchOutcomeStatus::Unresolved,
+                    ) => {}
+                    (
+                        Some(
+                            DispatchOutcomeStatus::ResponseUnknown
+                            | DispatchOutcomeStatus::Unresolved,
+                        ),
+                        DispatchOutcomeSource::InjectorLedgerLookup,
+                        DispatchOutcomeStatus::ReconciledAccepted
+                        | DispatchOutcomeStatus::ReconciledRejected
+                        | DispatchOutcomeStatus::NoDispatchProven
+                        | DispatchOutcomeStatus::PayloadConflict
+                        | DispatchOutcomeStatus::Unresolved,
+                    ) => {}
                     _ => return Err(JournalError::InvalidDispatchTransition),
                 }
                 match status {
-                    DispatchOutcomeStatus::ResponseAccepted | DispatchOutcomeStatus::ReconciledAccepted => {
+                    DispatchOutcomeStatus::ResponseAccepted
+                    | DispatchOutcomeStatus::ReconciledAccepted => {
                         if !dispatch_id.as_deref().is_some_and(nonempty) {
                             return Err(JournalError::InvalidOutcomeEvidence);
                         }
                     }
                     DispatchOutcomeStatus::PayloadConflict => {
-                        if ledger_artifact_sha256.as_deref().is_none_or(|digest| !valid_sha256(digest)) {
+                        if ledger_artifact_sha256
+                            .as_deref()
+                            .is_none_or(|digest| !valid_sha256(digest))
+                        {
                             return Err(JournalError::InvalidOutcomeEvidence);
                         }
                     }
                     DispatchOutcomeStatus::ReconciledRejected
                     | DispatchOutcomeStatus::NoDispatchProven
                     | DispatchOutcomeStatus::Unresolved => {
-                        if ledger_artifact_sha256.as_deref().is_some_and(|digest| !valid_sha256(digest)) {
+                        if ledger_artifact_sha256
+                            .as_deref()
+                            .is_some_and(|digest| !valid_sha256(digest))
+                        {
                             return Err(JournalError::InvalidOutcomeEvidence);
                         }
                     }
                     DispatchOutcomeStatus::ResponseRejected
                     | DispatchOutcomeStatus::ResponseUnknown => {}
                 }
-                self.dispatch_status.insert(idempotency_key.clone(), *status);
+                self.dispatch_status
+                    .insert(idempotency_key.clone(), *status);
                 self.dispatch_outcome_records.insert(
                     idempotency_key.clone(),
                     DispatchOutcomeRecord {
@@ -915,7 +992,10 @@ impl JournalIndex {
             })
             .count();
         let dispatch_count = |status: DispatchOutcomeStatus| {
-            self.dispatch_status.values().filter(|value| **value == status).count()
+            self.dispatch_status
+                .values()
+                .filter(|value| **value == status)
+                .count()
         };
         JournalSummary {
             schema_version: JOURNAL_SCHEMA_VERSION.to_owned(),
@@ -932,7 +1012,9 @@ impl JournalIndex {
                 + dispatch_count(DispatchOutcomeStatus::ReconciledRejected),
             dispatch_unknown_count: dispatch_count(DispatchOutcomeStatus::ResponseUnknown)
                 + dispatch_count(DispatchOutcomeStatus::Unresolved),
-            dispatch_no_dispatch_proven_count: dispatch_count(DispatchOutcomeStatus::NoDispatchProven),
+            dispatch_no_dispatch_proven_count: dispatch_count(
+                DispatchOutcomeStatus::NoDispatchProven,
+            ),
             dispatch_payload_conflict_count: dispatch_count(DispatchOutcomeStatus::PayloadConflict),
             authority_created: false,
             transport_calls_performed: false,
@@ -1048,8 +1130,10 @@ impl Journal {
     }
 
     pub fn summary(&self) -> JournalSummary {
-        self.index
-            .summary(self.next_sequence.saturating_sub(1), self.head_sha256.clone())
+        self.index.summary(
+            self.next_sequence.saturating_sub(1),
+            self.head_sha256.clone(),
+        )
     }
 
     /// Persist a reset intent before calling ResetSimulation. Do not call the
@@ -1156,7 +1240,11 @@ impl Journal {
             return Err(JournalError::RecordTooLarge);
         }
         line.push(b'\n');
-        if let Err(error) = self.file.write_all(&line).and_then(|_| self.file.sync_all()) {
+        if let Err(error) = self
+            .file
+            .write_all(&line)
+            .and_then(|_| self.file.sync_all())
+        {
             self.poisoned = true;
             return Err(io_error(error));
         }
@@ -1279,37 +1367,40 @@ mod tests {
     }
 
     fn append_verified_reset(journal: &mut Journal) {
-        journal.append_reset_intent(ResetIntentRecord {
-            reset_id: "reset-1".into(),
-            plan_sha256: digest('a'),
-            simulator_profile_sha256: digest('b'),
-            world_id: "world-1".into(),
-            prior_world_epoch: "world-epoch-1".into(),
-            clock_id: "clock-1".into(),
-            expected_initial_state_sha256: digest('c'),
-            run_id: "run-1".into(),
-            run_epoch: "run-epoch-1".into(),
-        })
+        journal
+            .append_reset_intent(ResetIntentRecord {
+                reset_id: "reset-1".into(),
+                plan_sha256: digest('a'),
+                simulator_profile_sha256: digest('b'),
+                world_id: "world-1".into(),
+                prior_world_epoch: "world-epoch-1".into(),
+                clock_id: "clock-1".into(),
+                expected_initial_state_sha256: digest('c'),
+                run_id: "run-1".into(),
+                run_epoch: "run-epoch-1".into(),
+            })
             .unwrap();
-        journal.append_reset_outcome(ResetOutcomeRecord {
-            reset_id: "reset-1".into(),
-            source: ResetOutcomeSource::TransportResponse,
-            status: ResetOutcomeStatus::ResponseUnknown,
-            observed_world_epoch: None,
-            observed_clock_id: None,
-            observed_initial_state_sha256: None,
-            observation_artifact_sha256: None,
-        })
+        journal
+            .append_reset_outcome(ResetOutcomeRecord {
+                reset_id: "reset-1".into(),
+                source: ResetOutcomeSource::TransportResponse,
+                status: ResetOutcomeStatus::ResponseUnknown,
+                observed_world_epoch: None,
+                observed_clock_id: None,
+                observed_initial_state_sha256: None,
+                observation_artifact_sha256: None,
+            })
             .unwrap();
-        journal.append_reset_outcome(ResetOutcomeRecord {
-            reset_id: "reset-1".into(),
-            source: ResetOutcomeSource::Reconciliation,
-            status: ResetOutcomeStatus::Verified,
-            observed_world_epoch: Some("world-epoch-2".into()),
-            observed_clock_id: Some("clock-1".into()),
-            observed_initial_state_sha256: Some(digest('c')),
-            observation_artifact_sha256: Some(digest('d')),
-        })
+        journal
+            .append_reset_outcome(ResetOutcomeRecord {
+                reset_id: "reset-1".into(),
+                source: ResetOutcomeSource::Reconciliation,
+                status: ResetOutcomeStatus::Verified,
+                observed_world_epoch: Some("world-epoch-2".into()),
+                observed_clock_id: Some("clock-1".into()),
+                observed_initial_state_sha256: Some(digest('c')),
+                observation_artifact_sha256: Some(digest('d')),
+            })
             .unwrap();
     }
 
@@ -1338,29 +1429,30 @@ mod tests {
     }
 
     fn append_dispatch_intent(journal: &mut Journal) {
-        journal.append_dispatch_intent(DispatchIntentRecord {
-            idempotency_key: "rrvr/v0.1/test-key-1".into(),
-            payload_sha256: dispatch_payload_sha256(),
-            reset_id: "reset-1".into(),
-            plan_sha256: digest('a'),
-            simulator_profile_sha256: digest('b'),
-            world_id: "world-1".into(),
-            logical_effect_id: "logical-effect-1".into(),
-            attempt_id: "attempt-1".into(),
-            campaign_id: "campaign-1".into(),
-            pair_id: "pair-1".into(),
-            scenario_id: "scenario-1".into(),
-            fault_id: "fault-1".into(),
-            fault_sequence: 1,
-            run_id: "run-1".into(),
-            run_epoch: "run-epoch-1".into(),
-            world_epoch: "world-epoch-2".into(),
-            clock_id: "clock-1".into(),
-            target_id: "entity-1".into(),
-            fault_domain_id: "injector-domain-1".into(),
-            scheduled_simulation_step: 42,
-            parameters_sha256: digest('f'),
-        })
+        journal
+            .append_dispatch_intent(DispatchIntentRecord {
+                idempotency_key: "rrvr/v0.1/test-key-1".into(),
+                payload_sha256: dispatch_payload_sha256(),
+                reset_id: "reset-1".into(),
+                plan_sha256: digest('a'),
+                simulator_profile_sha256: digest('b'),
+                world_id: "world-1".into(),
+                logical_effect_id: "logical-effect-1".into(),
+                attempt_id: "attempt-1".into(),
+                campaign_id: "campaign-1".into(),
+                pair_id: "pair-1".into(),
+                scenario_id: "scenario-1".into(),
+                fault_id: "fault-1".into(),
+                fault_sequence: 1,
+                run_id: "run-1".into(),
+                run_epoch: "run-epoch-1".into(),
+                world_epoch: "world-epoch-2".into(),
+                clock_id: "clock-1".into(),
+                target_id: "entity-1".into(),
+                fault_domain_id: "injector-domain-1".into(),
+                scheduled_simulation_step: 42,
+                parameters_sha256: digest('f'),
+            })
             .unwrap();
     }
 
@@ -1381,12 +1473,7 @@ mod tests {
             "4c825e86529c6b88e2ccf3f4086186203363c257832ff0a975b981de749328c1"
         );
         assert_eq!(
-            entry_digest(
-                entry.sequence,
-                &entry.previous_entry_sha256,
-                &entry.event
-            )
-            .unwrap(),
+            entry_digest(entry.sequence, &entry.previous_entry_sha256, &entry.event).unwrap(),
             entry.entry_sha256
         );
         let mut index = JournalIndex::default();
@@ -1400,49 +1487,51 @@ mod tests {
             let mut journal = Journal::open(&path).unwrap();
             assert_eq!(
                 journal.append_dispatch_intent(DispatchIntentRecord {
-                idempotency_key: "premature-key".into(),
-                payload_sha256: dispatch_payload_sha256_for_key("premature-key"),
-                reset_id: "reset-1".into(),
-                plan_sha256: digest('a'),
-                simulator_profile_sha256: digest('b'),
-                world_id: "world-1".into(),
-                logical_effect_id: "logical-effect-1".into(),
-                attempt_id: "attempt-1".into(),
-                campaign_id: "campaign-1".into(),
-                pair_id: "pair-1".into(),
-                scenario_id: "scenario-1".into(),
-                fault_id: "fault-1".into(),
-                fault_sequence: 1,
-                run_id: "run-1".into(),
-                run_epoch: "run-epoch-1".into(),
-                world_epoch: "world-epoch-2".into(),
-                clock_id: "clock-1".into(),
-                target_id: "entity-1".into(),
-                fault_domain_id: "injector-domain-1".into(),
-                scheduled_simulation_step: 42,
-                parameters_sha256: digest('f'),
-            }),
+                    idempotency_key: "premature-key".into(),
+                    payload_sha256: dispatch_payload_sha256_for_key("premature-key"),
+                    reset_id: "reset-1".into(),
+                    plan_sha256: digest('a'),
+                    simulator_profile_sha256: digest('b'),
+                    world_id: "world-1".into(),
+                    logical_effect_id: "logical-effect-1".into(),
+                    attempt_id: "attempt-1".into(),
+                    campaign_id: "campaign-1".into(),
+                    pair_id: "pair-1".into(),
+                    scenario_id: "scenario-1".into(),
+                    fault_id: "fault-1".into(),
+                    fault_sequence: 1,
+                    run_id: "run-1".into(),
+                    run_epoch: "run-epoch-1".into(),
+                    world_epoch: "world-epoch-2".into(),
+                    clock_id: "clock-1".into(),
+                    target_id: "entity-1".into(),
+                    fault_domain_id: "injector-domain-1".into(),
+                    scheduled_simulation_step: 42,
+                    parameters_sha256: digest('f'),
+                }),
                 Err(JournalError::UnknownResetId)
             );
             append_verified_reset(&mut journal);
             append_dispatch_intent(&mut journal);
-            journal.append_dispatch_outcome(DispatchOutcomeRecord {
-                idempotency_key: "rrvr/v0.1/test-key-1".into(),
-                payload_sha256: dispatch_payload_sha256(),
-                source: DispatchOutcomeSource::TransportResponse,
-                status: DispatchOutcomeStatus::ResponseUnknown,
-                dispatch_id: None,
-                ledger_artifact_sha256: None,
-            })
+            journal
+                .append_dispatch_outcome(DispatchOutcomeRecord {
+                    idempotency_key: "rrvr/v0.1/test-key-1".into(),
+                    payload_sha256: dispatch_payload_sha256(),
+                    source: DispatchOutcomeSource::TransportResponse,
+                    status: DispatchOutcomeStatus::ResponseUnknown,
+                    dispatch_id: None,
+                    ledger_artifact_sha256: None,
+                })
                 .unwrap();
-            journal.append_dispatch_outcome(DispatchOutcomeRecord {
-                idempotency_key: "rrvr/v0.1/test-key-1".into(),
-                payload_sha256: dispatch_payload_sha256(),
-                source: DispatchOutcomeSource::InjectorLedgerLookup,
-                status: DispatchOutcomeStatus::ReconciledAccepted,
-                dispatch_id: Some("dispatch-1".into()),
-                ledger_artifact_sha256: Some(digest('9')),
-            })
+            journal
+                .append_dispatch_outcome(DispatchOutcomeRecord {
+                    idempotency_key: "rrvr/v0.1/test-key-1".into(),
+                    payload_sha256: dispatch_payload_sha256(),
+                    source: DispatchOutcomeSource::InjectorLedgerLookup,
+                    status: DispatchOutcomeStatus::ReconciledAccepted,
+                    dispatch_id: Some("dispatch-1".into()),
+                    ledger_artifact_sha256: Some(digest('9')),
+                })
                 .unwrap();
             let recovery = journal.recovery_projection();
             assert_eq!(
@@ -1572,14 +1661,16 @@ mod tests {
         let mut journal = Journal::open(&path).unwrap();
         append_verified_reset(&mut journal);
         append_dispatch_intent(&mut journal);
-        journal.append_dispatch_outcome(DispatchOutcomeRecord {
-            idempotency_key: "rrvr/v0.1/test-key-1".into(),
-            payload_sha256: dispatch_payload_sha256(),
-            source: DispatchOutcomeSource::InjectorLedgerLookup,
-            status: DispatchOutcomeStatus::NoDispatchProven,
-            dispatch_id: None,
-            ledger_artifact_sha256: Some(digest('9')),
-        }).unwrap();
+        journal
+            .append_dispatch_outcome(DispatchOutcomeRecord {
+                idempotency_key: "rrvr/v0.1/test-key-1".into(),
+                payload_sha256: dispatch_payload_sha256(),
+                source: DispatchOutcomeSource::InjectorLedgerLookup,
+                status: DispatchOutcomeStatus::NoDispatchProven,
+                dispatch_id: None,
+                ledger_artifact_sha256: Some(digest('9')),
+            })
+            .unwrap();
         assert_eq!(
             journal.append_dispatch_outcome(DispatchOutcomeRecord {
                 idempotency_key: "rrvr/v0.1/test-key-1".into(),
@@ -1636,7 +1727,11 @@ mod tests {
                 projection.dispatches[0].disposition,
                 DispatchRecoveryDisposition::NoDispatchProvenTerminal
             );
-            assert!(projection.dispatch_ledger_reconciliation_required.is_empty());
+            assert!(
+                projection
+                    .dispatch_ledger_reconciliation_required
+                    .is_empty()
+            );
             assert_eq!(
                 reopened.append_dispatch_outcome(DispatchOutcomeRecord {
                     idempotency_key: "rrvr/v0.1/test-key-1".into(),
@@ -1650,7 +1745,9 @@ mod tests {
             );
         }
         assert_eq!(
-            verify_file(&path).unwrap().dispatch_no_dispatch_proven_count,
+            verify_file(&path)
+                .unwrap()
+                .dispatch_no_dispatch_proven_count,
             1
         );
         let projection = recovery_projection_file(&path).unwrap();
@@ -1658,7 +1755,11 @@ mod tests {
             projection.dispatches[0].disposition,
             DispatchRecoveryDisposition::NoDispatchProvenTerminal
         );
-        assert!(projection.dispatch_ledger_reconciliation_required.is_empty());
+        assert!(
+            projection
+                .dispatch_ledger_reconciliation_required
+                .is_empty()
+        );
         assert!(!projection.mutation_permitted);
         cleanup(&path);
     }
@@ -1723,17 +1824,19 @@ mod tests {
     fn reset_verification_requires_exact_observed_world_clock_and_initial_digest() {
         let path = temp_journal_path("reset-proof");
         let mut journal = Journal::open(&path).unwrap();
-        journal.append_reset_intent(ResetIntentRecord {
-            reset_id: "reset-1".into(),
-            plan_sha256: digest('a'),
-            simulator_profile_sha256: digest('b'),
-            world_id: "world-1".into(),
-            prior_world_epoch: "world-epoch-1".into(),
-            clock_id: "clock-1".into(),
-            expected_initial_state_sha256: digest('c'),
-            run_id: "run-1".into(),
-            run_epoch: "run-epoch-1".into(),
-        }).unwrap();
+        journal
+            .append_reset_intent(ResetIntentRecord {
+                reset_id: "reset-1".into(),
+                plan_sha256: digest('a'),
+                simulator_profile_sha256: digest('b'),
+                world_id: "world-1".into(),
+                prior_world_epoch: "world-epoch-1".into(),
+                clock_id: "clock-1".into(),
+                expected_initial_state_sha256: digest('c'),
+                run_id: "run-1".into(),
+                run_epoch: "run-epoch-1".into(),
+            })
+            .unwrap();
         assert_eq!(
             journal.append_reset_outcome(ResetOutcomeRecord {
                 reset_id: "reset-1".into(),
