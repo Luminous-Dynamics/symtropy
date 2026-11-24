@@ -1029,13 +1029,13 @@ fn snapshot_live_state(
 }
 
 fn evaluate(frame: &Value, proposal: &Value) -> Result<AdmissionReceipt, String> {
-    evaluate_with_snapshot(frame, proposal, None)
+    evaluate_with_replay_receipt(frame, proposal, None)
 }
 
-fn evaluate_with_snapshot(
+fn evaluate_with_replay_receipt(
     frame: &Value,
     proposal: &Value,
-    snapshot: Option<&Value>,
+    replay_receipt: Option<&Value>,
 ) -> Result<AdmissionReceipt, String> {
     validate_schema(frame, FRAME_SCHEMA_JSON, "decision_frame")?;
     validate_schema(proposal, PROPOSAL_SCHEMA_JSON, "action_proposal")?;
@@ -1088,7 +1088,7 @@ fn evaluate_with_snapshot(
     }
 
     // A post-epoch action is never evaluated against immutable initial state.
-    if decision_epoch > 0 && snapshot.is_none() {
+    if decision_epoch > 0 && replay_receipt.is_none() {
         mark_hold(&mut receipt, "trusted_operational_state_snapshot_required");
         return Ok(receipt);
     }
@@ -1097,23 +1097,33 @@ fn evaluate_with_snapshot(
     let resources = resource_index(static_case)?;
     let visible_state = validate_visible_history(frame, static_case, &resources, decision_epoch)?;
 
-    let live_state = match snapshot {
-        Some(snapshot) => match snapshot_live_state(
-            snapshot,
-            LiveSnapshotValidationContext {
-                frame,
-                static_case,
-                resources: &resources,
-                operations: &operations,
-                visible: &visible_state,
-                decision_frame_digest: &decision_frame_digest,
-                decision_epoch,
-            },
-        ) {
-            Ok(state) => state,
-            Err(error) => {
-                mark_hold(&mut receipt, &format!("snapshot_invalid:{error}"));
-                return Ok(receipt);
+    let live_state = match replay_receipt {
+        Some(replay_receipt) => {
+            let target_snapshot =
+                match validate_replay_receipt_chain(replay_receipt, frame, decision_epoch) {
+                    Ok(snapshot) => snapshot,
+                    Err(error) => {
+                        mark_hold(&mut receipt, &format!("replay_receipt_invalid:{error}"));
+                        return Ok(receipt);
+                    }
+                };
+            match snapshot_live_state(
+                &target_snapshot,
+                LiveSnapshotValidationContext {
+                    frame,
+                    static_case,
+                    resources: &resources,
+                    operations: &operations,
+                    visible: &visible_state,
+                    decision_frame_digest: &decision_frame_digest,
+                    decision_epoch,
+                },
+            ) {
+                Ok(state) => state,
+                Err(error) => {
+                    mark_hold(&mut receipt, &format!("snapshot_invalid:{error}"));
+                    return Ok(receipt);
+                }
             }
         },
         None if decision_epoch == 0 => initial_live_state(
