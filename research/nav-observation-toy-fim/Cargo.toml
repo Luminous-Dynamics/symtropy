@@ -42,3 +42,7 @@ path = "src/bin/temporal_alignment_demo.rs"
 [[bin]]
 name = "ds_twr_integrity_demo"
 path = "src/bin/ds_twr_integrity_demo.rs"
+
+[[bin]]
+name = "navigation_temporal_minimax_demo"
+path = "src/bin/navigation_temporal_minimax_demo.rs"
