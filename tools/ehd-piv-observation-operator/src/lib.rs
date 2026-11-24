@@ -335,7 +335,11 @@ fn validate_inputs(
     if !sensor.offset.is_finite() {
         return Err(ObservationError::InvalidSensorMetadata { field: "offset" });
     }
-    let pixel_count = sensor.width.saturating_mul(sensor.height);
+    let pixel_count = sensor
+        .width
+        .checked_mul(sensor.height)
+        .filter(|count| *count <= 16_777_216)
+        .ok_or(ObservationError::PixelCountExceeded)?;
     if sensor.active_pixel_mask.len() != pixel_count {
         return Err(ObservationError::InvalidMaskShape {
             expected: pixel_count,
@@ -876,6 +880,48 @@ mod tests {
             &noise(width, height),
         );
         assert_eq!(result, Err(ObservationError::VelocitySupportExceeded));
+    }
+
+    #[test]
+    fn unsupported_field_extent_is_rejected_before_rendering() {
+        let width = 8;
+        let height = 8;
+        let mut outside = field(width, height, 0.0, 0.0);
+        outside.origin_x_px = 2.0;
+        assert_eq!(
+            render_particle_image_pair(
+                &outside,
+                &[particle(4.0, 4.0)],
+                &illumination(),
+                &acquisition(0.0, 1),
+                &sensor(width, height),
+                &noise(width, height)
+            ),
+            Err(ObservationError::FieldSupportOutsideSensor)
+        );
+    }
+
+    #[test]
+    fn rendered_signal_overflow_fails_closed() {
+        let width = 8;
+        let height = 8;
+        let mut seed = particle(4.0, 4.0);
+        seed.brightness = f64::MAX;
+        let mut sensor = sensor(width, height);
+        sensor.gain = f64::MAX;
+        assert_eq!(
+            render_particle_image_pair(
+                &field(width, height, 0.0, 0.0),
+                &[seed],
+                &illumination(),
+                &acquisition(0.0, 1),
+                &sensor,
+                &noise(width, height)
+            ),
+            Err(ObservationError::NonFiniteSensorSignal {
+                index: 4 * width + 4
+            })
+        );
     }
 
     #[test]
