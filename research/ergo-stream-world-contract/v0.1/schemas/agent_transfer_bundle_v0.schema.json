@@ -39,6 +39,9 @@
         "minLength": 1
       },
       "uniqueItems": true
+    },
+    "behavioural_transfer": {
+      "$ref": "#/$defs/behavioural_transfer"
     }
   },
   "$defs": {
@@ -367,6 +370,262 @@
             "type": "string",
             "pattern": "^E[0-9]{4,}$"
           }
+        }
+      }
+    },
+    "behaviour_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_state_ids",
+        "target_state_ids",
+        "source_action_ids",
+        "target_action_ids"
+      ],
+      "properties": {
+        "source_state_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "uniqueItems": true
+        },
+        "target_state_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "uniqueItems": true
+        },
+        "source_action_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "uniqueItems": true
+        },
+        "target_action_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "behaviour_state_pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_state_id",
+        "target_state_id"
+      ],
+      "properties": {
+        "source_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "target_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "behaviour_action_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_action_id",
+        "target_action_id",
+        "source_action_kind",
+        "target_action_kind"
+      ],
+      "properties": {
+        "source_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "target_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "source_action_kind": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "target_action_kind": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      }
+    },
+    "behaviour_response_prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "direction",
+        "observed_side",
+        "observed_from_state_id",
+        "observed_action_id",
+        "observed_to_state_id",
+        "observed_evidence_ids",
+        "predicted_from_state_id",
+        "predicted_action_id",
+        "predicted_to_state_id"
+      ],
+      "properties": {
+        "direction": {
+          "enum": [
+            "source_to_target",
+            "target_to_source"
+          ]
+        },
+        "observed_side": {
+          "enum": [
+            "source",
+            "target"
+          ]
+        },
+        "observed_from_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "observed_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "observed_to_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "observed_evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^E[0-9]{4,}$"
+          }
+        },
+        "predicted_from_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "predicted_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "predicted_to_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "behavioural_transfer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "map_kind",
+        "source_scope",
+        "target_scope",
+        "source_state_snapshot",
+        "target_state_snapshot",
+        "source_action_snapshot",
+        "target_action_snapshot",
+        "state_relation",
+        "action_mappings",
+        "response_predictions",
+        "assumptions",
+        "unresolved"
+      ],
+      "properties": {
+        "map_kind": {
+          "enum": [
+            "simulation",
+            "bisimulation"
+          ]
+        },
+        "source_scope": {
+          "$ref": "#/$defs/behaviour_scope"
+        },
+        "target_scope": {
+          "$ref": "#/$defs/behaviour_scope"
+        },
+        "source_state_snapshot": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/state_snapshot"
+          }
+        },
+        "target_state_snapshot": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/state_snapshot"
+          }
+        },
+        "source_action_snapshot": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action_snapshot"
+          }
+        },
+        "target_action_snapshot": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action_snapshot"
+          }
+        },
+        "state_relation": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/behaviour_state_pair"
+          }
+        },
+        "action_mappings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/behaviour_action_mapping"
+          }
+        },
+        "response_predictions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/behaviour_response_prediction"
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "unresolved": {
+          "type": "boolean"
         }
       }
     }
