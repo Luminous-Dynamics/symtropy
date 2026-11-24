@@ -1,0 +1,66 @@
+{
+  "schema_version": "ergo-transfer-evaluator-outcomes-v0",
+  "cohort_id": "ergo-transfer-blind-confirmatory-v0-example",
+  "outcomes": [
+    {
+      "sample_id": 1,
+      "evaluation_stratum_id": 0,
+      "transfer_qualified": true
+    },
+    {
+      "sample_id": 2,
+      "evaluation_stratum_id": 0,
+      "transfer_qualified": true
+    },
+    {
+      "sample_id": 3,
+      "evaluation_stratum_id": 0,
+      "transfer_qualified": false
+    },
+    {
+      "sample_id": 4,
+      "evaluation_stratum_id": 1,
+      "transfer_qualified": false
+    },
+    {
+      "sample_id": 5,
+      "evaluation_stratum_id": 1,
+      "transfer_qualified": true
+    },
+    {
+      "sample_id": 6,
+      "evaluation_stratum_id": 1,
+      "transfer_qualified": false
+    },
+    {
+      "sample_id": 7,
+      "evaluation_stratum_id": 2,
+      "transfer_qualified": true
+    },
+    {
+      "sample_id": 8,
+      "evaluation_stratum_id": 2,
+      "transfer_qualified": false
+    },
+    {
+      "sample_id": 9,
+      "evaluation_stratum_id": 2,
+      "transfer_qualified": true
+    },
+    {
+      "sample_id": 10,
+      "evaluation_stratum_id": 3,
+      "transfer_qualified": true
+    },
+    {
+      "sample_id": 11,
+      "evaluation_stratum_id": 3,
+      "transfer_qualified": false
+    },
+    {
+      "sample_id": 12,
+      "evaluation_stratum_id": 3,
+      "transfer_qualified": true
+    }
+  ]
+}
