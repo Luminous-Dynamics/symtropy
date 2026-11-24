@@ -625,12 +625,14 @@ impl JournalIndex {
                     }
                     None
                 };
-                Ok(JournalIndexDelta::ResetOutcome(Box::new(ResetOutcomeDelta {
-                    reset_id: reset_id.clone(),
-                    status: *status,
-                    verified_world_epoch,
-                    record: record.as_ref().clone(),
-                })))
+                Ok(JournalIndexDelta::ResetOutcome(Box::new(
+                    ResetOutcomeDelta {
+                        reset_id: reset_id.clone(),
+                        status: *status,
+                        verified_world_epoch,
+                        record: record.as_ref().clone(),
+                    },
+                )))
             }
             JournalEvent::DispatchIntent(record) => {
                 let DispatchIntentRecord {
@@ -719,13 +721,15 @@ impl JournalIndex {
                 {
                     return Err(JournalError::ResetBindingMismatch);
                 }
-                Ok(JournalIndexDelta::DispatchIntent(Box::new(DispatchIntentDelta {
-                    idempotency_key: idempotency_key.clone(),
-                    binding: DispatchIntentBinding {
-                        payload_sha256: payload_sha256.clone(),
+                Ok(JournalIndexDelta::DispatchIntent(Box::new(
+                    DispatchIntentDelta {
+                        idempotency_key: idempotency_key.clone(),
+                        binding: DispatchIntentBinding {
+                            payload_sha256: payload_sha256.clone(),
+                        },
+                        record: record.as_ref().clone(),
                     },
-                    record: record.as_ref().clone(),
-                })))
+                )))
             }
             JournalEvent::DispatchOutcome(record) => {
                 let DispatchOutcomeRecord {
@@ -835,11 +839,13 @@ impl JournalIndex {
                     DispatchOutcomeStatus::ResponseRejected
                     | DispatchOutcomeStatus::ResponseUnknown => {}
                 }
-                Ok(JournalIndexDelta::DispatchOutcome(Box::new(DispatchOutcomeDelta {
-                    idempotency_key: idempotency_key.clone(),
-                    status: *status,
-                    record: record.as_ref().clone(),
-                })))
+                Ok(JournalIndexDelta::DispatchOutcome(Box::new(
+                    DispatchOutcomeDelta {
+                        idempotency_key: idempotency_key.clone(),
+                        status: *status,
+                        record: record.as_ref().clone(),
+                    },
+                )))
             }
         }
     }
@@ -878,7 +884,8 @@ impl JournalIndex {
                     binding,
                     record,
                 } = *delta;
-                self.dispatch_intents.insert(idempotency_key.clone(), binding);
+                self.dispatch_intents
+                    .insert(idempotency_key.clone(), binding);
                 self.dispatch_intent_records.insert(idempotency_key, record);
             }
             JournalIndexDelta::DispatchOutcome(delta) => {
@@ -888,11 +895,11 @@ impl JournalIndex {
                     record,
                 } = *delta;
                 self.dispatch_status.insert(idempotency_key.clone(), status);
-                self.dispatch_outcome_records.insert(idempotency_key, record);
+                self.dispatch_outcome_records
+                    .insert(idempotency_key, record);
             }
         }
     }
-
 
     fn apply(&mut self, event: &JournalEvent) -> Result<(), JournalError> {
         let delta = self.prepare(event)?;
