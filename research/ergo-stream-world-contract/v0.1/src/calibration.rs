@@ -60,8 +60,7 @@ pub struct SelectiveRiskPointV0 {
 
 impl SelectiveRiskPointV0 {
     pub fn coverage(self) -> Option<f64> {
-        (self.total_samples > 0)
-            .then(|| self.covered_samples as f64 / self.total_samples as f64)
+        (self.total_samples > 0).then(|| self.covered_samples as f64 / self.total_samples as f64)
     }
 
     pub fn selective_risk(self) -> Option<f64> {
@@ -245,9 +244,10 @@ pub fn evaluate_transfer_calibration(
         log_loss_sum += if truth { -p.ln() } else { -(1.0 - p).ln() };
 
         let scaled_bin = u64::from(forecast.probability_transfer_ppm)
-            .checked_mul(u64::try_from(calibration_bin_count).map_err(|_| {
-                TransferCalibrationErrorV0::ArithmeticOverflow
-            })?)
+            .checked_mul(
+                u64::try_from(calibration_bin_count)
+                    .map_err(|_| TransferCalibrationErrorV0::ArithmeticOverflow)?,
+            )
             .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?;
         let bin_index = usize::try_from(scaled_bin / u64::from(PROBABILITY_SCALE_PPM_V0))
             .map_err(|_| TransferCalibrationErrorV0::ArithmeticOverflow)?
