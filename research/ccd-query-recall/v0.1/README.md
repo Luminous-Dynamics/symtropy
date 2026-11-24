@@ -45,9 +45,9 @@ Adapters write UTF-8 TSV with an optional first line `#ccd-query-run-results-v1`
 | 10 | Verifier ID | required for certified prune rows |
 | 11 | Verification status | `accepted_and_replayed`, `rejected`, `not_run` |
 | 12 | Narrowphase outcome | `collision`, `no_collision`, `indeterminate`, `not_run` |
-| 13 | Narrowphase elapsed time | positive integer nanoseconds when narrowphase ran; blank when `not_run` |
+| 13 | Narrowphase elapsed time | integer nanoseconds when narrowphase ran (zero means below timer resolution); blank when `not_run` |
 
-Forwarded rows must leave fields 7-11 blank. Fallback rows require field 7 and leave fields 8-11 blank. Certified-pruned rows require fields 8-11 and leave field 7 blank. Oracle labels are never included in adapter output. The evaluator joins TSV rows to the independent imported query set by dataset/scene/time-step/query-kind/query-index, then rejects duplicate, missing and orphan rows. Forwarded and fallback rows must have a positive elapsed time; `not_run` rows must leave it blank. The scorecard reports nearest-rank p50/p95/p99 narrowphase latency globally and per stratum. Benchmark qualification requires a duration for every forwarded/fallback query. The official CCD-Wrapper reports microseconds; convert these to integer nanoseconds by multiplying by 1,000 and retain the source timer resolution in the run manifest.
+Forwarded rows must leave fields 7-11 blank. Fallback rows require field 7 and leave fields 8-11 blank. Certified-pruned rows require fields 8-11 and leave field 7 blank. Oracle labels are never included in adapter output. The evaluator joins TSV rows to the independent imported query set by dataset/scene/time-step/query-kind/query-index, then rejects duplicate, missing and orphan rows. Forwarded and fallback rows must include an elapsed-time observation; zero is permitted and means the measurement fell below the run's declared clock resolution. `not_run` rows must leave it blank. The scorecard reports nearest-rank p50/p95/p99 narrowphase latency globally and per stratum, plus the count of below-resolution samples. `benchmark_qualified` covers correctness and complete timing records; `latency_comparable` is false when any sample is below clock resolution. This avoids inventing a 1 ns latency for a timer that only resolved to 1 μs. The official CCD-Wrapper reports microseconds; convert these to integer nanoseconds by multiplying by 1,000 and retain the source timer resolution in the run manifest.
 
 Example rows (tabs separate fields):
 
@@ -57,7 +57,7 @@ nyu-fixture-v1	armadillo-rollers	3	edge_edge	0	forwarded						no_collision
 nyu-fixture-v1	armadillo-rollers	3	edge_edge	1	fallback	unsupported_motion					no_collision
 ```
 
-A production benchmark run must provide an explicit `RunProfile` with algorithm name/version/commit, dataset-manifest SHA-256, canonical configuration SHA-256, motion profile and arithmetic profile. The convenience evaluator returns an unspecified profile and cannot qualify or be pooled. Only scorecards with identical explicit run provenance may be pooled; different algorithms and numeric models remain separate.
+A production benchmark run must provide an explicit `RunProfile` with algorithm name/version/commit, dataset-manifest SHA-256, canonical configuration SHA-256, environment SHA-256, measured timer-resolution nanoseconds, motion profile and arithmetic profile. The convenience evaluator returns an unspecified profile and cannot qualify or be pooled. Only scorecards with identical explicit run provenance may be pooled; different algorithms and numeric models remain separate.
 
 ## Run
 
