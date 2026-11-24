@@ -211,10 +211,10 @@ pub fn benchmark_confidence_sequences(
     if timing_repetitions == 0 {
         return Err(ConfidenceSequenceBenchmarkError::InvalidTimingRepetitions);
     }
-    if let Some(threshold) = decision_threshold {
-        if !threshold.is_finite() || !(0.0..=1.0).contains(&threshold) {
-            return Err(ConfidenceSequenceBenchmarkError::InvalidDecisionThreshold);
-        }
+    if decision_threshold
+        .is_some_and(|threshold| !threshold.is_finite() || !(0.0..=1.0).contains(&threshold))
+    {
+        return Err(ConfidenceSequenceBenchmarkError::InvalidDecisionThreshold);
     }
 
     // Construct once up front to validate alpha and the candidate grid before
@@ -241,7 +241,6 @@ pub fn benchmark_confidence_sequences(
         observations,
         fixture_truth,
         alpha,
-        parameter_grid.len(),
         parameter_grid,
         checkpoints,
         decision_threshold,
@@ -382,7 +381,6 @@ fn run_hedged(
     observations: &[f64],
     fixture_truth: f64,
     alpha: f64,
-    grid_size: usize,
     parameter_grid: Vec<f64>,
     checkpoints: &[usize],
     threshold: Option<f64>,
@@ -436,7 +434,7 @@ fn run_hedged(
         median_elapsed_nanoseconds: elapsed,
         timing_repetitions: repetitions,
         retained_observation_count: 0,
-        candidate_mean_grid_size: grid_size,
+        candidate_mean_grid_size: parameter_grid.len(),
     })
 }
 
