@@ -95,6 +95,19 @@ jobs:
       if: ${{ hashFiles('research/magnetics/field-covariance/Cargo.toml') != '' }}
       run: cargo test --manifest-path research/magnetics/field-covariance/Cargo.toml
 
+    # Isolated full-vector cuboid research crate; not a production workspace member.
+    - name: Check Full-Vector Cuboid Reference Formatting
+      if: ${{ hashFiles('research/magnetics/full-vector-cuboid-reference/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path research/magnetics/full-vector-cuboid-reference/Cargo.toml -- --check
+
+    - name: Clippy Full-Vector Cuboid Reference
+      if: ${{ hashFiles('research/magnetics/full-vector-cuboid-reference/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path research/magnetics/full-vector-cuboid-reference/Cargo.toml --all-targets -- -D warnings
+
+    - name: Test Full-Vector Cuboid Reference
+      if: ${{ hashFiles('research/magnetics/full-vector-cuboid-reference/Cargo.toml') != '' }}
+      run: cargo test --manifest-path research/magnetics/full-vector-cuboid-reference/Cargo.toml
+
     # Repo-invariant guards. These scripts existed since at least June but were
     # wired into nothing, so both of them silently failed against the tree for
     # weeks: check-workspace.sh still asserted `Bevy 0.18.1` (the workspace has
