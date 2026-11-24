@@ -221,8 +221,12 @@ fn choose_status(statuses: &[ValidityStatus]) -> ValidityStatus {
 fn checked_interval(center_ns: i64, uncertainty_ns: u64) -> Result<[i128; 2], String> {
     let center = i128::from(center_ns);
     let uncertainty = i128::from(uncertainty_ns);
-    let lower = center.checked_sub(uncertainty).ok_or_else(|| "TIME_INTERVAL_OVERFLOW".to_owned())?;
-    let upper = center.checked_add(uncertainty).ok_or_else(|| "TIME_INTERVAL_OVERFLOW".to_owned())?;
+    let lower = center
+        .checked_sub(uncertainty)
+        .ok_or_else(|| "TIME_INTERVAL_OVERFLOW".to_owned())?;
+    let upper = center
+        .checked_add(uncertainty)
+        .ok_or_else(|| "TIME_INTERVAL_OVERFLOW".to_owned())?;
     Ok([lower, upper])
 }
 
@@ -238,16 +242,25 @@ fn validate_case(case: &Case) -> Result<(), String> {
 
     let mut component_ids = BTreeSet::new();
     for component in &case.components {
-        if !valid_text(&component.component_id) || !component_ids.insert(component.component_id.clone()) {
+        if !valid_text(&component.component_id)
+            || !component_ids.insert(component.component_id.clone())
+        {
             return Err("COMPONENT_ID_DUPLICATE_OR_EMPTY".to_owned());
         }
-        if component.configuration.iter().any(|(key, value)| !valid_text(key) || !valid_text(value)) {
+        if component
+            .configuration
+            .iter()
+            .any(|(key, value)| !valid_text(key) || !valid_text(value))
+        {
             return Err("COMPONENT_CONFIGURATION_INVALID".to_owned());
         }
     }
 
     for (condition_id, measurement) in &case.actual_conditions {
-        checked_interval(measurement.observed_time_ns, measurement.time_uncertainty_ns)?;
+        checked_interval(
+            measurement.observed_time_ns,
+            measurement.time_uncertainty_ns,
+        )?;
         if !valid_text(condition_id)
             || !valid_text(&measurement.unit)
             || !valid_sha256(&measurement.receipt_sha256)
@@ -271,7 +284,11 @@ fn validate_case(case: &Case) -> Result<(), String> {
         {
             return Err("CALIBRATION_SCOPE_INVALID".to_owned());
         }
-        if scope.required_configuration.iter().any(|(key, value)| !valid_text(key) || !valid_text(value)) {
+        if scope
+            .required_configuration
+            .iter()
+            .any(|(key, value)| !valid_text(key) || !valid_text(value))
+        {
             return Err("REQUIRED_CONFIGURATION_INVALID".to_owned());
         }
         if scope.required_conditions.iter().any(|(key, envelope)| {
@@ -281,7 +298,11 @@ fn validate_case(case: &Case) -> Result<(), String> {
         }) {
             return Err("REQUIRED_CONDITION_ENVELOPE_INVALID".to_owned());
         }
-        if scope.check_receipt_sha256.as_deref().is_some_and(|digest| !valid_sha256(digest)) {
+        if scope
+            .check_receipt_sha256
+            .as_deref()
+            .is_some_and(|digest| !valid_sha256(digest))
+        {
             return Err("CHECK_RECEIPT_DIGEST_INVALID".to_owned());
         }
         if scope.check_required {
@@ -291,7 +312,11 @@ fn validate_case(case: &Case) -> Result<(), String> {
             if scope.max_check_age_ns.is_none() {
                 return Err("REQUIRED_CHECK_MAX_AGE_MISSING".to_owned());
             }
-            if !scope.check_receipt_sha256.as_deref().is_some_and(valid_sha256) {
+            if !scope
+                .check_receipt_sha256
+                .as_deref()
+                .is_some_and(valid_sha256)
+            {
                 return Err("REQUIRED_CHECK_RECEIPT_DIGEST_INVALID".to_owned());
             }
         }
@@ -299,7 +324,10 @@ fn validate_case(case: &Case) -> Result<(), String> {
 
     let mut required = BTreeSet::new();
     for scope_id in &case.required_scope_ids {
-        if !valid_text(scope_id) || !required.insert(scope_id.clone()) || !scope_ids.contains(scope_id) {
+        if !valid_text(scope_id)
+            || !required.insert(scope_id.clone())
+            || !scope_ids.contains(scope_id)
+        {
             return Err("REQUIRED_SCOPE_REFERENCE_INVALID".to_owned());
         }
     }
@@ -324,38 +352,70 @@ fn validate_case(case: &Case) -> Result<(), String> {
     Ok(())
 }
 
-fn evaluate_scope(
-    case: &Case,
-    scope: &CalibrationScope,
-    acquisition: [i128; 2],
-) -> ScopeResult {
+fn evaluate_scope(case: &Case, scope: &CalibrationScope, acquisition: [i128; 2]) -> ScopeResult {
     let mut statuses = Vec::new();
     let mut reasons = BTreeSet::new();
 
     if scope.certificate_state == CertificateState::Revoked {
-        add_reason(ValidityStatus::Revoked, "CERTIFICATE_REVOKED", &mut statuses, &mut reasons);
+        add_reason(
+            ValidityStatus::Revoked,
+            "CERTIFICATE_REVOKED",
+            &mut statuses,
+            &mut reasons,
+        );
     }
 
     let valid_from = i128::from(scope.valid_from_ns);
     let valid_until = i128::from(scope.valid_until_ns);
     if acquisition[1] < valid_from {
-        add_reason(ValidityStatus::Expired, "CALIBRATION_NOT_YET_VALID", &mut statuses, &mut reasons);
+        add_reason(
+            ValidityStatus::Expired,
+            "CALIBRATION_NOT_YET_VALID",
+            &mut statuses,
+            &mut reasons,
+        );
     } else if acquisition[0] >= valid_until {
-        add_reason(ValidityStatus::Expired, "CALIBRATION_EXPIRED", &mut statuses, &mut reasons);
+        add_reason(
+            ValidityStatus::Expired,
+            "CALIBRATION_EXPIRED",
+            &mut statuses,
+            &mut reasons,
+        );
     } else if acquisition[0] < valid_from || acquisition[1] >= valid_until {
-        add_reason(ValidityStatus::Indeterminate, "CALIBRATION_TIME_BOUNDARY_OVERLAP", &mut statuses, &mut reasons);
+        add_reason(
+            ValidityStatus::Indeterminate,
+            "CALIBRATION_TIME_BOUNDARY_OVERLAP",
+            &mut statuses,
+            &mut reasons,
+        );
     }
 
-    let component = case.components.iter().find(|component| component.component_id == scope.component_id);
+    let component = case
+        .components
+        .iter()
+        .find(|component| component.component_id == scope.component_id);
     match component {
-        None => add_reason(ValidityStatus::Indeterminate, "COMPONENT_STATE_MISSING", &mut statuses, &mut reasons),
+        None => add_reason(
+            ValidityStatus::Indeterminate,
+            "COMPONENT_STATE_MISSING",
+            &mut statuses,
+            &mut reasons,
+        ),
         Some(component) => {
             for (key, required_value) in &scope.required_configuration {
                 match component.configuration.get(key) {
-                    None => add_reason(ValidityStatus::Indeterminate, "CONFIGURATION_FIELD_MISSING", &mut statuses, &mut reasons),
-                    Some(actual_value) if actual_value != required_value => {
-                        add_reason(ValidityStatus::IdentityMismatch, "CONFIGURATION_MISMATCH", &mut statuses, &mut reasons)
-                    }
+                    None => add_reason(
+                        ValidityStatus::Indeterminate,
+                        "CONFIGURATION_FIELD_MISSING",
+                        &mut statuses,
+                        &mut reasons,
+                    ),
+                    Some(actual_value) if actual_value != required_value => add_reason(
+                        ValidityStatus::IdentityMismatch,
+                        "CONFIGURATION_MISMATCH",
+                        &mut statuses,
+                        &mut reasons,
+                    ),
                     Some(_) => {}
                 }
             }
@@ -364,47 +424,94 @@ fn evaluate_scope(
 
     for (condition_id, envelope) in &scope.required_conditions {
         match case.actual_conditions.get(condition_id) {
-            None => add_reason(ValidityStatus::Indeterminate, "CONDITION_MEASUREMENT_MISSING", &mut statuses, &mut reasons),
-            Some(measurement) if measurement.unit != envelope.unit => {
-                add_reason(ValidityStatus::IdentityMismatch, "CONDITION_UNIT_MISMATCH", &mut statuses, &mut reasons)
-            }
+            None => add_reason(
+                ValidityStatus::Indeterminate,
+                "CONDITION_MEASUREMENT_MISSING",
+                &mut statuses,
+                &mut reasons,
+            ),
+            Some(measurement) if measurement.unit != envelope.unit => add_reason(
+                ValidityStatus::IdentityMismatch,
+                "CONDITION_UNIT_MISMATCH",
+                &mut statuses,
+                &mut reasons,
+            ),
             Some(measurement) => {
-                let observed_interval = match checked_interval(measurement.observed_time_ns, measurement.time_uncertainty_ns) {
+                let observed_interval = match checked_interval(
+                    measurement.observed_time_ns,
+                    measurement.time_uncertainty_ns,
+                ) {
                     Ok(interval) => interval,
                     Err(_) => {
-                        add_reason(ValidityStatus::InvalidInput, "CONDITION_TIME_INTERVAL_INVALID", &mut statuses, &mut reasons);
+                        add_reason(
+                            ValidityStatus::InvalidInput,
+                            "CONDITION_TIME_INTERVAL_INVALID",
+                            &mut statuses,
+                            &mut reasons,
+                        );
                         continue;
                     }
                 };
                 if observed_interval[0] > acquisition[1] {
-                    add_reason(ValidityStatus::Indeterminate, "CONDITION_MEASUREMENT_AFTER_ACQUISITION", &mut statuses, &mut reasons);
+                    add_reason(
+                        ValidityStatus::Indeterminate,
+                        "CONDITION_MEASUREMENT_AFTER_ACQUISITION",
+                        &mut statuses,
+                        &mut reasons,
+                    );
                     continue;
                 } else if observed_interval[1] < acquisition[0] {
                     let minimum_age = acquisition[0] - observed_interval[1];
                     let maximum_age = acquisition[1] - observed_interval[0];
                     let maximum_age_ns = i128::from(envelope.maximum_age_ns);
                     if minimum_age > maximum_age_ns {
-                        add_reason(ValidityStatus::Expired, "CONDITION_MEASUREMENT_STALE", &mut statuses, &mut reasons);
+                        add_reason(
+                            ValidityStatus::Expired,
+                            "CONDITION_MEASUREMENT_STALE",
+                            &mut statuses,
+                            &mut reasons,
+                        );
                         continue;
                     } else if maximum_age > maximum_age_ns {
-                        add_reason(ValidityStatus::Indeterminate, "CONDITION_MEASUREMENT_AGE_BOUNDARY_OVERLAP", &mut statuses, &mut reasons);
+                        add_reason(
+                            ValidityStatus::Indeterminate,
+                            "CONDITION_MEASUREMENT_AGE_BOUNDARY_OVERLAP",
+                            &mut statuses,
+                            &mut reasons,
+                        );
                         continue;
                     }
                 }
 
-                let value_interval = match checked_interval(measurement.value_q, measurement.uncertainty_q) {
-                    Ok(interval) => interval,
-                    Err(_) => {
-                        add_reason(ValidityStatus::InvalidInput, "CONDITION_VALUE_INTERVAL_INVALID", &mut statuses, &mut reasons);
-                        continue;
-                    }
-                };
+                let value_interval =
+                    match checked_interval(measurement.value_q, measurement.uncertainty_q) {
+                        Ok(interval) => interval,
+                        Err(_) => {
+                            add_reason(
+                                ValidityStatus::InvalidInput,
+                                "CONDITION_VALUE_INTERVAL_INVALID",
+                                &mut statuses,
+                                &mut reasons,
+                            );
+                            continue;
+                        }
+                    };
                 let minimum = i128::from(envelope.minimum_q);
                 let maximum = i128::from(envelope.maximum_q);
                 if value_interval[1] < minimum || value_interval[0] > maximum {
-                    add_reason(ValidityStatus::OutOfScope, "OPERATING_CONDITION_OUT_OF_SCOPE", &mut statuses, &mut reasons);
+                    add_reason(
+                        ValidityStatus::OutOfScope,
+                        "OPERATING_CONDITION_OUT_OF_SCOPE",
+                        &mut statuses,
+                        &mut reasons,
+                    );
                 } else if value_interval[0] < minimum || value_interval[1] > maximum {
-                    add_reason(ValidityStatus::Indeterminate, "OPERATING_CONDITION_BOUNDARY_OVERLAP", &mut statuses, &mut reasons);
+                    add_reason(
+                        ValidityStatus::Indeterminate,
+                        "OPERATING_CONDITION_BOUNDARY_OVERLAP",
+                        &mut statuses,
+                        &mut reasons,
+                    );
                 }
             }
         }
@@ -412,65 +519,129 @@ fn evaluate_scope(
 
     if scope.check_required {
         match scope.check_state {
-            CheckState::Hold => add_reason(ValidityStatus::DriftSuspected, "REFERENCE_CHECK_HOLD", &mut statuses, &mut reasons),
-            CheckState::Unknown | CheckState::NotRequired => {
-                add_reason(ValidityStatus::Indeterminate, "REFERENCE_CHECK_STATE_UNKNOWN", &mut statuses, &mut reasons)
-            }
-            CheckState::Pass => {
-                match (scope.last_check_time_ns, scope.max_check_age_ns) {
-                    (Some(check_time), Some(max_age)) => {
-                        let check_time = i128::from(check_time);
-                        let max_age = i128::from(max_age);
-                        if check_time > acquisition[1] {
-                            add_reason(ValidityStatus::Indeterminate, "REFERENCE_CHECK_AFTER_ACQUISITION", &mut statuses, &mut reasons);
-                        } else if check_time >= acquisition[0] {
-                            add_reason(ValidityStatus::Indeterminate, "REFERENCE_CHECK_TIME_OVERLAPS_ACQUISITION", &mut statuses, &mut reasons);
-                        } else if acquisition[0] - check_time > max_age {
-                            add_reason(ValidityStatus::Expired, "REFERENCE_CHECK_STALE", &mut statuses, &mut reasons);
-                        } else if acquisition[1] - check_time > max_age {
-                            add_reason(ValidityStatus::Indeterminate, "REFERENCE_CHECK_AGE_BOUNDARY_OVERLAP", &mut statuses, &mut reasons);
-                        }
+            CheckState::Hold => add_reason(
+                ValidityStatus::DriftSuspected,
+                "REFERENCE_CHECK_HOLD",
+                &mut statuses,
+                &mut reasons,
+            ),
+            CheckState::Unknown | CheckState::NotRequired => add_reason(
+                ValidityStatus::Indeterminate,
+                "REFERENCE_CHECK_STATE_UNKNOWN",
+                &mut statuses,
+                &mut reasons,
+            ),
+            CheckState::Pass => match (scope.last_check_time_ns, scope.max_check_age_ns) {
+                (Some(check_time), Some(max_age)) => {
+                    let check_time = i128::from(check_time);
+                    let max_age = i128::from(max_age);
+                    if check_time > acquisition[1] {
+                        add_reason(
+                            ValidityStatus::Indeterminate,
+                            "REFERENCE_CHECK_AFTER_ACQUISITION",
+                            &mut statuses,
+                            &mut reasons,
+                        );
+                    } else if check_time >= acquisition[0] {
+                        add_reason(
+                            ValidityStatus::Indeterminate,
+                            "REFERENCE_CHECK_TIME_OVERLAPS_ACQUISITION",
+                            &mut statuses,
+                            &mut reasons,
+                        );
+                    } else if acquisition[0] - check_time > max_age {
+                        add_reason(
+                            ValidityStatus::Expired,
+                            "REFERENCE_CHECK_STALE",
+                            &mut statuses,
+                            &mut reasons,
+                        );
+                    } else if acquisition[1] - check_time > max_age {
+                        add_reason(
+                            ValidityStatus::Indeterminate,
+                            "REFERENCE_CHECK_AGE_BOUNDARY_OVERLAP",
+                            &mut statuses,
+                            &mut reasons,
+                        );
                     }
-                    _ => add_reason(ValidityStatus::Indeterminate, "REFERENCE_CHECK_EVIDENCE_MISSING", &mut statuses, &mut reasons),
                 }
-            }
+                _ => add_reason(
+                    ValidityStatus::Indeterminate,
+                    "REFERENCE_CHECK_EVIDENCE_MISSING",
+                    &mut statuses,
+                    &mut reasons,
+                ),
+            },
         }
     }
 
     for event in &case.events {
-        if !event.affected_scope_ids.iter().any(|scope_id| scope_id == &scope.scope_id) {
+        if !event
+            .affected_scope_ids
+            .iter()
+            .any(|scope_id| scope_id == &scope.scope_id)
+        {
             continue;
         }
         if event.impact == EventImpact::NoCalibrationImpact {
             continue;
         }
-        let event_interval = match checked_interval(event.effective_time_ns, event.time_uncertainty_ns) {
-            Ok(interval) => interval,
-            Err(_) => {
-                add_reason(ValidityStatus::InvalidInput, "EVENT_TIME_INTERVAL_INVALID", &mut statuses, &mut reasons);
-                continue;
-            }
-        };
+        let event_interval =
+            match checked_interval(event.effective_time_ns, event.time_uncertainty_ns) {
+                Ok(interval) => interval,
+                Err(_) => {
+                    add_reason(
+                        ValidityStatus::InvalidInput,
+                        "EVENT_TIME_INTERVAL_INVALID",
+                        &mut statuses,
+                        &mut reasons,
+                    );
+                    continue;
+                }
+            };
         let calibration_epoch = i128::from(scope.calibration_epoch_ns);
         if event_interval[1] < calibration_epoch {
             continue;
         }
         if event_interval[0] <= calibration_epoch {
-            add_reason(ValidityStatus::Indeterminate, "EVENT_TIME_OVERLAPS_CALIBRATION_EPOCH", &mut statuses, &mut reasons);
+            add_reason(
+                ValidityStatus::Indeterminate,
+                "EVENT_TIME_OVERLAPS_CALIBRATION_EPOCH",
+                &mut statuses,
+                &mut reasons,
+            );
         } else if event_interval[1] < acquisition[0] {
             match event.impact {
-                EventImpact::Invalidates => add_reason(ValidityStatus::Invalidated, "CALIBRATION_INVALIDATED_BY_EVENT", &mut statuses, &mut reasons),
-                EventImpact::UnknownImpact => add_reason(ValidityStatus::Indeterminate, "EVENT_IMPACT_UNKNOWN", &mut statuses, &mut reasons),
+                EventImpact::Invalidates => add_reason(
+                    ValidityStatus::Invalidated,
+                    "CALIBRATION_INVALIDATED_BY_EVENT",
+                    &mut statuses,
+                    &mut reasons,
+                ),
+                EventImpact::UnknownImpact => add_reason(
+                    ValidityStatus::Indeterminate,
+                    "EVENT_IMPACT_UNKNOWN",
+                    &mut statuses,
+                    &mut reasons,
+                ),
                 EventImpact::NoCalibrationImpact => {}
             }
         } else if event_interval[0] <= acquisition[1] {
-            add_reason(ValidityStatus::Indeterminate, "EVENT_TIME_OVERLAPS_ACQUISITION", &mut statuses, &mut reasons);
+            add_reason(
+                ValidityStatus::Indeterminate,
+                "EVENT_TIME_OVERLAPS_ACQUISITION",
+                &mut statuses,
+                &mut reasons,
+            );
         }
     }
 
-    let condition_measurement_receipts = scope.required_conditions.keys()
+    let condition_measurement_receipts = scope
+        .required_conditions
+        .keys()
         .filter_map(|condition_id| {
-            case.actual_conditions.get(condition_id)
+            case.actual_conditions
+                .get(condition_id)
                 .map(|measurement| (condition_id.clone(), measurement.receipt_sha256.clone()))
         })
         .collect();
@@ -492,13 +663,19 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
     validate_case(case)?;
     let acquisition = checked_interval(case.acquisition_time_ns, case.acquisition_uncertainty_ns)?;
 
-    let scope_map: BTreeMap<&str, &CalibrationScope> = case.scopes.iter().map(|scope| (scope.scope_id.as_str(), scope)).collect();
+    let scope_map: BTreeMap<&str, &CalibrationScope> = case
+        .scopes
+        .iter()
+        .map(|scope| (scope.scope_id.as_str(), scope))
+        .collect();
     let mut scope_results = Vec::new();
     let mut statuses = Vec::new();
     let mut reasons = BTreeSet::new();
 
     for scope_id in &case.required_scope_ids {
-        let scope = scope_map.get(scope_id.as_str()).ok_or_else(|| "REQUIRED_SCOPE_REFERENCE_INVALID".to_owned())?;
+        let scope = scope_map
+            .get(scope_id.as_str())
+            .ok_or_else(|| "REQUIRED_SCOPE_REFERENCE_INVALID".to_owned())?;
         let result = evaluate_scope(case, scope, acquisition);
         statuses.push(result.status);
         for reason in &result.reason_codes {
@@ -508,7 +685,12 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
     }
 
     if !case.event_inventory_complete {
-        add_reason(ValidityStatus::Indeterminate, "EVENT_INVENTORY_INCOMPLETE", &mut statuses, &mut reasons);
+        add_reason(
+            ValidityStatus::Indeterminate,
+            "EVENT_INVENTORY_INCOMPLETE",
+            &mut statuses,
+            &mut reasons,
+        );
     }
     let status = choose_status(&statuses);
     Ok(CaseResult {
@@ -526,7 +708,8 @@ pub fn audit_corpus(bytes: &[u8], source_commit: &str) -> Result<Receipt, String
     if source_commit.len() != 40 || !source_commit.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err("SOURCE_COMMIT_MUST_BE_40_HEX_CHARACTERS".to_owned());
     }
-    let corpus: Corpus = serde_json::from_slice(bytes).map_err(|error| format!("CORPUS_JSON_INVALID: {error}"))?;
+    let corpus: Corpus =
+        serde_json::from_slice(bytes).map_err(|error| format!("CORPUS_JSON_INVALID: {error}"))?;
     if corpus.schema != CORPUS_SCHEMA
         || corpus.benchmark_id != BENCHMARK_ID
         || corpus.evidence_class != "synthetic"
@@ -546,7 +729,9 @@ pub fn audit_corpus(bytes: &[u8], source_commit: &str) -> Result<Receipt, String
         cases.push(evaluate_case(case)?);
     }
 
-    let expected_outcome_matches = cases.iter().zip(corpus.cases.iter())
+    let expected_outcome_matches = cases
+        .iter()
+        .zip(corpus.cases.iter())
         .filter(|(result, source)| result.status == source.expected_status)
         .count();
 
@@ -667,7 +852,9 @@ mod tests {
     #[test]
     fn configuration_mismatch_is_not_qualified() {
         let mut value = case();
-        value.components[0].configuration.insert("lens".to_owned(), "L-2".to_owned());
+        value.components[0]
+            .configuration
+            .insert("lens".to_owned(), "L-2".to_owned());
         let result = evaluate_case(&value).expect("well-formed case");
         assert_eq!(result.status, ValidityStatus::IdentityMismatch);
         assert!(!result.may_enter_geometry_precondition);
@@ -687,7 +874,11 @@ mod tests {
         value.scopes[0].last_check_time_ns = Some(200);
         let result = evaluate_case(&value).expect("well-formed case");
         assert_eq!(result.status, ValidityStatus::Expired);
-        assert!(result.reason_codes.contains(&"REFERENCE_CHECK_STALE".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"REFERENCE_CHECK_STALE".to_owned())
+        );
     }
 
     #[test]
@@ -698,13 +889,21 @@ mod tests {
         value.scopes[0].max_check_age_ns = Some(100);
         let result = evaluate_case(&value).expect("well-formed case");
         assert_eq!(result.status, ValidityStatus::Indeterminate);
-        assert!(result.reason_codes.contains(&"REFERENCE_CHECK_AGE_BOUNDARY_OVERLAP".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"REFERENCE_CHECK_AGE_BOUNDARY_OVERLAP".to_owned())
+        );
     }
 
     #[test]
     fn definitely_out_of_scope_temperature_is_rejected() {
         let mut value = case();
-        value.actual_conditions.get_mut("temperature_milli_c").expect("condition exists").value_q = 40_000;
+        value
+            .actual_conditions
+            .get_mut("temperature_milli_c")
+            .expect("condition exists")
+            .value_q = 40_000;
         let result = evaluate_case(&value).expect("well-formed case");
         assert_eq!(result.status, ValidityStatus::OutOfScope);
     }
@@ -712,19 +911,33 @@ mod tests {
     #[test]
     fn stale_out_of_range_condition_does_not_claim_current_out_of_scope() {
         let mut value = case();
-        let temperature = value.actual_conditions.get_mut("temperature_milli_c").expect("condition exists");
+        let temperature = value
+            .actual_conditions
+            .get_mut("temperature_milli_c")
+            .expect("condition exists");
         temperature.value_q = 40_000;
         temperature.observed_time_ns = 100;
-        value.scopes[0].required_conditions.get_mut("temperature_milli_c").expect("condition envelope exists").maximum_age_ns = 100;
+        value.scopes[0]
+            .required_conditions
+            .get_mut("temperature_milli_c")
+            .expect("condition envelope exists")
+            .maximum_age_ns = 100;
         let result = evaluate_case(&value).expect("well-formed case");
         assert_eq!(result.status, ValidityStatus::Expired);
-        assert!(!result.reason_codes.contains(&"OPERATING_CONDITION_OUT_OF_SCOPE".to_owned()));
+        assert!(
+            !result
+                .reason_codes
+                .contains(&"OPERATING_CONDITION_OUT_OF_SCOPE".to_owned())
+        );
     }
 
     #[test]
     fn condition_uncertainty_crossing_envelope_is_indeterminate() {
         let mut value = case();
-        let temperature = value.actual_conditions.get_mut("temperature_milli_c").expect("condition exists");
+        let temperature = value
+            .actual_conditions
+            .get_mut("temperature_milli_c")
+            .expect("condition exists");
         temperature.value_q = 35_100;
         temperature.uncertainty_q = 500;
         let result = evaluate_case(&value).expect("well-formed case");
@@ -734,8 +947,16 @@ mod tests {
     #[test]
     fn stale_condition_observation_is_expired() {
         let mut value = case();
-        value.actual_conditions.get_mut("temperature_milli_c").expect("condition exists").observed_time_ns = 100;
-        value.scopes[0].required_conditions.get_mut("temperature_milli_c").expect("condition envelope exists").maximum_age_ns = 100;
+        value
+            .actual_conditions
+            .get_mut("temperature_milli_c")
+            .expect("condition exists")
+            .observed_time_ns = 100;
+        value.scopes[0]
+            .required_conditions
+            .get_mut("temperature_milli_c")
+            .expect("condition envelope exists")
+            .maximum_age_ns = 100;
         let result = evaluate_case(&value).expect("well-formed case");
         assert_eq!(result.status, ValidityStatus::Expired);
     }
@@ -747,7 +968,11 @@ mod tests {
         value.scopes[0].last_check_time_ns = Some(500);
         let result = evaluate_case(&value).expect("well-formed case");
         assert_eq!(result.status, ValidityStatus::Indeterminate);
-        assert!(result.reason_codes.contains(&"REFERENCE_CHECK_TIME_OVERLAPS_ACQUISITION".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"REFERENCE_CHECK_TIME_OVERLAPS_ACQUISITION".to_owned())
+        );
     }
 
     #[test]
@@ -825,7 +1050,11 @@ mod tests {
         });
         let result = evaluate_case(&value).expect("well-formed case");
         assert_eq!(result.status, ValidityStatus::Indeterminate);
-        assert!(result.reason_codes.contains(&"EVENT_TIME_OVERLAPS_CALIBRATION_EPOCH".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"EVENT_TIME_OVERLAPS_CALIBRATION_EPOCH".to_owned())
+        );
     }
 
     #[test]
@@ -862,18 +1091,27 @@ mod tests {
     fn malformed_certificate_digest_is_rejected() {
         let mut value = case();
         value.scopes[0].certificate_sha256 = "not-a-digest".to_owned();
-        assert_eq!(evaluate_case(&value).unwrap_err(), "CALIBRATION_SCOPE_INVALID");
+        assert_eq!(
+            evaluate_case(&value).unwrap_err(),
+            "CALIBRATION_SCOPE_INVALID"
+        );
     }
 
     #[test]
     fn malformed_required_check_receipt_digest_is_rejected() {
         let mut value = case();
         value.scopes[0].check_receipt_sha256 = Some("bad".to_owned());
-        assert_eq!(validate_case(&value).unwrap_err(), "REQUIRED_CHECK_RECEIPT_DIGEST_INVALID");
+        assert_eq!(
+            validate_case(&value).unwrap_err(),
+            "REQUIRED_CHECK_RECEIPT_DIGEST_INVALID"
+        );
     }
 
     #[test]
     fn source_commit_must_be_exactly_forty_hex() {
-        assert_eq!(audit_corpus(b"{}", "short").unwrap_err(), "SOURCE_COMMIT_MUST_BE_40_HEX_CHARACTERS");
+        assert_eq!(
+            audit_corpus(b"{}", "short").unwrap_err(),
+            "SOURCE_COMMIT_MUST_BE_40_HEX_CHARACTERS"
+        );
     }
 }
