@@ -134,6 +134,8 @@ pub fn exact_portfolio_oracle(
         }
     }
 
+    rejected_non_actionable_ids.sort_unstable();
+
     let mut canonical_pairs = BTreeSet::new();
     for pair in incompatible_pairs {
         if pair.first_action_id == pair.second_action_id {
@@ -410,6 +412,40 @@ mod tests {
         assert_eq!(
             exact_portfolio_oracle(2, &[invalid], &[]),
             Err(PortfolioOracleError::ZeroResourceCost)
+        );
+    }
+
+
+    #[test]
+    fn non_actionable_rejection_report_is_stable_under_input_permutation() {
+        let mut rejected_first = action(9, 100, 1);
+        rejected_first.actionable = false;
+        let mut rejected_second = action(3, 100, 1);
+        rejected_second.actionable = false;
+        let actions = [rejected_first, action(1, 5, 1), rejected_second];
+
+        let forward = exact_portfolio_oracle(1, &actions, &[]).unwrap();
+        let reverse = exact_portfolio_oracle(1, &[actions[2], actions[1], actions[0]], &[]).unwrap();
+
+        assert_eq!(forward, reverse);
+        assert_eq!(forward.rejected_non_actionable_ids, [3, 9]);
+    }
+
+    #[test]
+    fn rational_consequence_overflow_fails_closed() {
+        let actions = [
+            PortfolioAction {
+                action_id: 1,
+                expected_consequence_avoided: Rational::from_integer(u128::MAX),
+                resource_units: 1,
+                actionable: true,
+            },
+            action(2, 1, 1),
+        ];
+
+        assert_eq!(
+            exact_portfolio_oracle(2, &actions, &[]),
+            Err(PortfolioOracleError::ArithmeticOverflow)
         );
     }
 
