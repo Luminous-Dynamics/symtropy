@@ -423,3 +423,7 @@ Current executable code head: `80f48aae87e57d73efa31d69296c665cb5796693`. Focuse
 - `cargo clippy --locked --all-targets -- -D warnings`: passed.
 
 The new tests cover split-conformal rank/coverage, conservative full-set fallback at insufficient calibration size, mixed-stratum and invalid-alpha rejection, malformed calibration bindings, inclusive quantile ties and empty-set abstention. The owner-issued receipt schema/example parse and the example rank arithmetic matches. Qualification remains focused to the finite microcosm: no production #11171 adapter, sealed multi-process evaluator, temporal/online conformal guarantee, conditional coverage, physical deployment or SOTA result is claimed.
+
+## Conformal receipt schema tightening
+
+The owner-issued receipt schema now requires both the independent-unit count and exact claim-scope digest. Its semantic owner checks are documented: model freeze precedes calibration start, which precedes receipt issuance; quantile rank is at most n+1 and matches alpha/count; and sample-ID digest/count match the sealed calibration manifest. JSON parse/static example checks remain distinct from cryptographic custody validation.
