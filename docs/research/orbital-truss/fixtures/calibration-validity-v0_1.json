@@ -1,0 +1,765 @@
+{
+  "schema": "luminous.orbital-cal-validity.corpus.v0.1",
+  "benchmark_id": "ORBITAL-CAL-VALIDITY-001",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_calibration_scope_and_acquisition_state_validity_only",
+  "cases": [
+    {
+      "case_id": "CAL-001-MULTI-SCOPE-VALID",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics",
+        "camera-to-robot"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100
+        },
+        {
+          "scope_id": "camera-to-robot",
+          "calibration_id": "CAL-CAMERA-TO-ROBOT",
+          "calibration_revision": "r7",
+          "component_id": "ROBOT-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4"
+          },
+          "certificate_state": "VALID",
+          "check_required": false,
+          "check_state": "NOT_REQUIRED",
+          "last_check_time_ns": null,
+          "max_check_age_ns": null
+        }
+      ],
+      "events": [],
+      "expected_status": "VALID_WITHIN_SCOPE"
+    },
+    {
+      "case_id": "CAL-002-ACQUISITION-AFTER-EXPIRY",
+      "acquisition_time_ns": 1000,
+      "acquisition_uncertainty_ns": 0,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100
+        }
+      ],
+      "events": [],
+      "expected_status": "VALID_WITHIN_SCOPE"
+    },
+    {
+      "case_id": "CAL-003-TIME-BOUNDARY-OVERLAP",
+      "acquisition_time_ns": 999,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100
+        }
+      ],
+      "events": [],
+      "expected_status": "VALID_WITHIN_SCOPE"
+    },
+    {
+      "case_id": "CAL-004-LENS-IDENTITY-MISMATCH",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-2",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100
+        }
+      ],
+      "events": [],
+      "expected_status": "IDENTITY_MISMATCH"
+    },
+    {
+      "case_id": "CAL-005-REVOKED-CERTIFICATE",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          },
+          "certificate_state": "REVOKED",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100
+        }
+      ],
+      "events": [],
+      "expected_status": "REVOKED"
+    },
+    {
+      "case_id": "CAL-006-REFERENCE-CHECK-HOLD",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "HOLD",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100
+        }
+      ],
+      "events": [],
+      "expected_status": "DRIFT_SUSPECTED"
+    },
+    {
+      "case_id": "CAL-007-STALE-REFERENCE-CHECK",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 300,
+          "max_check_age_ns": 100
+        }
+      ],
+      "events": [],
+      "expected_status": "EXPIRED"
+    },
+    {
+      "case_id": "CAL-008-PRIOR-INVALIDATING-EVENT",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-TOOL-EXCHANGE",
+          "effective_time_ns": 400,
+          "time_uncertainty_ns": 1,
+          "affected_scope_ids": [
+            "camera-intrinsics"
+          ],
+          "impact": "INVALIDATES"
+        }
+      ],
+      "expected_status": "INVALIDATED"
+    },
+    {
+      "case_id": "CAL-009-EVENT-TIME-OVERLAPS-ACQUISITION",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-MOUNT-SHOCK",
+          "effective_time_ns": 501,
+          "time_uncertainty_ns": 4,
+          "affected_scope_ids": [
+            "camera-intrinsics"
+          ],
+          "impact": "INVALIDATES"
+        }
+      ],
+      "expected_status": "INDETERMINATE"
+    },
+    {
+      "case_id": "CAL-010-INCOMPLETE-EVENT-INVENTORY",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": false,
+      "required_scope_ids": [
+        "camera-intrinsics",
+        "camera-to-robot"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100
+        },
+        {
+          "scope_id": "camera-to-robot",
+          "calibration_id": "CAL-CAMERA-TO-ROBOT",
+          "calibration_revision": "r7",
+          "component_id": "ROBOT-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4"
+          },
+          "certificate_state": "VALID",
+          "check_required": false,
+          "check_state": "NOT_REQUIRED",
+          "last_check_time_ns": null,
+          "max_check_age_ns": null
+        }
+      ],
+      "events": [],
+      "expected_status": "INDETERMINATE"
+    },
+    {
+      "case_id": "CAL-011-MISSING-CONFIGURATION-FIELD",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "sensor_mode": "global"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100
+        }
+      ],
+      "events": [],
+      "expected_status": "INDETERMINATE"
+    },
+    {
+      "case_id": "CAL-012-EVENT-AFTER-ACQUISITION",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-LATER-MAINTENANCE",
+          "effective_time_ns": 600,
+          "time_uncertainty_ns": 1,
+          "affected_scope_ids": [
+            "camera-intrinsics"
+          ],
+          "impact": "INVALIDATES"
+        }
+      ],
+      "expected_status": "VALID_WITHIN_SCOPE"
+    },
+    {
+      "case_id": "CAL-013-NONINVALIDATING-EVENT",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-PAPERWORK",
+          "effective_time_ns": 400,
+          "time_uncertainty_ns": 1,
+          "affected_scope_ids": [
+            "camera-intrinsics"
+          ],
+          "impact": "NO_CALIBRATION_IMPACT"
+        }
+      ],
+      "expected_status": "VALID_WITHIN_SCOPE"
+    },
+    {
+      "case_id": "CAL-014-UNKNOWN-EVENT-IMPACT",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-UNKNOWN",
+          "effective_time_ns": 400,
+          "time_uncertainty_ns": 1,
+          "affected_scope_ids": [
+            "camera-intrinsics"
+          ],
+          "impact": "UNKNOWN_IMPACT"
+        }
+      ],
+      "expected_status": "INDETERMINATE"
+    }
+  ]
+}
