@@ -58,7 +58,10 @@ impl VelocityField2D {
             let upper = q01 * (1.0 - tx) + q11 * tx;
             lower * (1.0 - ty) + upper * ty
         };
-        Ok((interpolate(&self.u_px_per_time), interpolate(&self.v_px_per_time)))
+        Ok((
+            interpolate(&self.u_px_per_time),
+            interpolate(&self.v_px_per_time),
+        ))
     }
 }
 
@@ -152,22 +155,49 @@ pub struct ParticleImagePair {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ObservationError {
-    InvalidFieldShape { field: &'static str, expected: usize, actual: usize },
+    InvalidFieldShape {
+        field: &'static str,
+        expected: usize,
+        actual: usize,
+    },
     InvalidFieldDimensions,
     FieldSupportOutsideSensor,
     PixelCountExceeded,
-    InvalidFieldMetadata { field: &'static str },
-    NonFiniteFieldValue { index: usize },
+    InvalidFieldMetadata {
+        field: &'static str,
+    },
+    NonFiniteFieldValue {
+        index: usize,
+    },
     InvalidSensorDimensions,
-    InvalidSensorMetadata { field: &'static str },
-    InvalidMaskShape { expected: usize, actual: usize },
-    InvalidAcquisitionMetadata { field: &'static str },
+    InvalidSensorMetadata {
+        field: &'static str,
+    },
+    InvalidMaskShape {
+        expected: usize,
+        actual: usize,
+    },
+    InvalidAcquisitionMetadata {
+        field: &'static str,
+    },
     InvalidIlluminationMetadata,
     EmptyParticleSet,
-    InvalidParticle { index: usize, field: &'static str },
-    InvalidNoiseShape { frame: &'static str, expected: usize, actual: usize },
-    NonFiniteNoise { frame: &'static str, index: usize },
-    NonFiniteSensorSignal { index: usize },
+    InvalidParticle {
+        index: usize,
+        field: &'static str,
+    },
+    InvalidNoiseShape {
+        frame: &'static str,
+        expected: usize,
+        actual: usize,
+    },
+    NonFiniteNoise {
+        frame: &'static str,
+        index: usize,
+    },
+    NonFiniteSensorSignal {
+        index: usize,
+    },
     VelocitySupportExceeded,
     ExcessiveIntegrationSteps,
 }
@@ -225,16 +255,10 @@ pub fn render_particle_image_pair(
         )?;
     }
 
-    let (first_pixels, saturated_pixel_count_first) = digitize(
-        &first_intensity,
-        &noise.first_frame,
-        sensor,
-    )?;
-    let (second_pixels, saturated_pixel_count_second) = digitize(
-        &second_intensity,
-        &noise.second_frame,
-        sensor,
-    )?;
+    let (first_pixels, saturated_pixel_count_first) =
+        digitize(&first_intensity, &noise.first_frame, sensor)?;
+    let (second_pixels, saturated_pixel_count_second) =
+        digitize(&second_intensity, &noise.second_frame, sensor)?;
 
     let masked_pixel_count = sensor
         .active_pixel_mask
@@ -308,9 +332,7 @@ fn validate_inputs(
         }
     }
     for index in 0..field_len {
-        if !field.u_px_per_time[index].is_finite()
-            || !field.v_px_per_time[index].is_finite()
-        {
+        if !field.u_px_per_time[index].is_finite() || !field.v_px_per_time[index].is_finite() {
             return Err(ObservationError::NonFiniteFieldValue { index });
         }
     }
@@ -463,9 +485,8 @@ fn render_exposure(
 ) -> Result<(), ObservationError> {
     let count = acquisition.exposure_samples;
     for sample_index in 0..count {
-        let sample_offset = (sample_index as f64 + 0.5)
-            * acquisition.exposure_duration
-            / count as f64;
+        let sample_offset =
+            (sample_index as f64 + 0.5) * acquisition.exposure_duration / count as f64;
         let sample_time = exposure_start + sample_offset;
         let (x_px, y_px) = advect_particle(
             field,
@@ -480,14 +501,7 @@ fn render_exposure(
         let illumination_weight = (-0.5 * normalized_z * normalized_z).exp();
         let brightness = particle.brightness * illumination_weight / count as f64;
 
-        add_gaussian_particle(
-            sensor,
-            image,
-            x_px,
-            y_px,
-            brightness,
-            effective_sigma_px,
-        );
+        add_gaussian_particle(sensor, image, x_px, y_px, brightness, effective_sigma_px);
     }
     Ok(())
 }
@@ -711,7 +725,9 @@ mod tests {
             &noise(width, height),
         )
         .unwrap();
-        assert!((centroid_x(&image_pair.second) - centroid_x(&image_pair.first) - 2.0).abs() < 0.02);
+        assert!(
+            (centroid_x(&image_pair.second) - centroid_x(&image_pair.first) - 2.0).abs() < 0.02
+        );
     }
 
     #[test]
