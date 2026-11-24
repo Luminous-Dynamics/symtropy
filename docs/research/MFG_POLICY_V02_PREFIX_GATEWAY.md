@@ -27,7 +27,7 @@ The simulator harness selects the scenario slot. The policy-facing frame intenti
 - complete future event trajectories;
 - evaluator-only terminal-quality labels.
 
-The frame exposes the scenario-independent static case and the observed history from epoch 0 through the requested decision epoch, inclusive.
+The frame exposes a deliberately narrowed operational projection—case identity, horizon, jobs, resources, setup transitions and inspection configuration—plus the observed history from epoch 0 through the requested decision epoch, inclusive. It strips scenario-family labels, split labels, replication/generator seeds, paired-seed IDs and visibility-rule metadata from the policy-facing frame.
 
 ## Invariants
 
@@ -38,7 +38,7 @@ The frame exposes the scenario-independent static case and the observed history 
 - The projection is a deterministic function of the static case and observable prefix.
 - Identical visible prefixes from distinct simulator scenarios produce identical policy frames.
 - Mutation of future events cannot change an earlier decision frame.
-- The serialized frame contains no scenario slot, scenario ID or probability.
+- The serialized frame contains no scenario slot, scenario ID, probability, family label, split label, generator/replication seed, paired-seed ID, or future event.
 
 ## Validation
 
