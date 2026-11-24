@@ -757,8 +757,12 @@ mod tests {
     #[test]
     fn ledger_is_append_only_and_requires_exact_revision_lineage() {
         let mut ledger = SourceArtifactLedger::default();
-        ledger.append(artifact("r1", 1_000, 1_100, None)).expect("initial revision");
-        ledger.append(artifact("r2", 1_500, 1_600, Some("r1"))).expect("revision two");
+        ledger
+            .append(artifact("r1", 1_000, 1_100, None))
+            .expect("initial revision");
+        ledger
+            .append(artifact("r2", 1_500, 1_600, Some("r1")))
+            .expect("revision two");
 
         assert_eq!(
             ledger.append(artifact("r2", 1_700, 1_800, Some("r1"))),
