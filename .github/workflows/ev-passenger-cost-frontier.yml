@@ -672,7 +672,7 @@ jobs:
             and .observation_count == 5
             and .group_count == 1
             and .groups_with_shift_alarm == 1
-            and .groups_with_risk_above_budget == 0
+            and .groups_with_risk_above_budget == 1
             and .groups_with_insufficient_history == 0
             and .all_evidence_source_grade == false
             and .any_synthetic_evidence == true
@@ -686,6 +686,7 @@ jobs:
             and .groups[0].interval_miss_count_at_audit_cutoff == 2
             and .groups[0].empirical_miscoverage_permille_at_audit_cutoff == 400
             and .groups[0].drift_alarm_latched == true
+            and .groups[0].historical_risk_upper_bound_exceeds_budget == true
             and .groups[0].final_status == "drift_alarm_latched"
             and ([.groups[0].assessments[].prior_observation_count] == [0,0,0,2,3])
             and ([.groups[0].assessments[0:3][].status] | all(.[]; . == "insufficient_history"))
