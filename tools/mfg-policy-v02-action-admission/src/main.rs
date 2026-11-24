@@ -139,7 +139,6 @@ fn validate_visible_history(
     BTreeMap<(String, String), String>,
     BTreeMap<String, String>,
     Option<u64>,
-    BTreeSet<String>,
 ), String> {
     let mut qualification_state = BTreeMap::<(String, String), String>::new();
     let mut evidence_receipts = BTreeSet::<String>::new();
@@ -174,6 +173,9 @@ fn validate_visible_history(
             if !evidence_receipts.insert(receipt.to_string()) {
                 return Err(fail("qualification_receipt_duplicate"));
             }
+            if !capability_set.contains(family) {
+                return Err(fail("qualification_process_not_supported"));
+            }
             if qualification_state
                 .insert(
                     (resource_id.to_string(), family.to_string()),
@@ -193,7 +195,9 @@ fn validate_visible_history(
 
     let mut visible_resource_state = BTreeMap::<String, String>::new();
     let mut inspection_capacity_override = None;
-    let mut source_event_ids = BTreeSet::<String>::new();
+    let mut resource_event_epochs = BTreeSet::<(String, u64)>::new();
+    let mut qualification_update_epochs = BTreeSet::<(String, String, u64)>::new();
+    let mut inspection_event_epochs = BTreeSet::<u64>::new();
     let station_id = required_string(
         static_case
             .get("inspection_station")
@@ -214,15 +218,36 @@ fn validate_visible_history(
             let kind = required_string(event, "kind", "resource_event")?;
             let occurred = required_u64(event, "occurred_at_epoch", "resource_event")?;
             let observed = required_u64(event, "observed_at_epoch", "resource_event")?;
-            if !source_event_ids.insert(event_id.to_string())
+            if !evidence_receipts.insert(event_id.to_string())
                 || !resources.contains_key(resource_id)
                 || observed != expected_epoch as u64
                 || occurred > observed
+                || !resource_event_epochs.insert((resource_id.to_string(), observed))
             {
                 return Err(fail("resource_event_identity_scope_or_chronology_invalid"));
             }
-            if kind != "FAILED" && kind != "RESTORED" {
-                return Err(fail("resource_event_kind_invalid"));
+            let forecast_min = event.get("recovery_forecast_min_epochs");
+            let forecast_max = event.get("recovery_forecast_max_epochs");
+            match kind {
+                "FAILED" => {
+                    let lower = forecast_min
+                        .and_then(Value::as_u64)
+                        .ok_or_else(|| fail("failure_recovery_forecast_missing"))?;
+                    let upper = forecast_max
+                        .and_then(Value::as_u64)
+                        .ok_or_else(|| fail("failure_recovery_forecast_missing"))?;
+                    if lower > upper {
+                        return Err(fail("failure_recovery_forecast_invalid"));
+                    }
+                }
+                "RESTORED" => {
+                    if !forecast_min.is_some_and(Value::is_null)
+                        || !forecast_max.is_some_and(Value::is_null)
+                    {
+                        return Err(fail("restoration_must_not_carry_recovery_forecast"));
+                    }
+                }
+                _ => return Err(fail("resource_event_kind_invalid")),
             }
             visible_resource_state.insert(resource_id.to_string(), kind.to_string());
         }
@@ -242,8 +267,22 @@ fn validate_visible_history(
                 || !["ADMISSIBLE", "UNKNOWN", "BLOCKED"].contains(&previous)
                 || !["ADMISSIBLE", "UNKNOWN", "BLOCKED"].contains(&next)
                 || previous == next
+                || !qualification_update_epochs.insert((
+                    resource_id.to_string(),
+                    family.to_string(),
+                    observed,
+                ))
             {
                 return Err(fail("qualification_update_identity_or_chronology_invalid"));
+            }
+            let update_resource = resources
+                .get(resource_id)
+                .ok_or_else(|| fail("qualification_update_resource_unknown"))?;
+            if !required_array(update_resource, "capability_families", "resource")?
+                .iter()
+                .any(|capability| capability.as_str() == Some(family))
+            {
+                return Err(fail("qualification_update_process_not_supported"));
             }
             let state = qualification_state
                 .get_mut(&(resource_id.to_string(), family.to_string()))
@@ -261,10 +300,11 @@ fn validate_visible_history(
             let observed = required_u64(event, "observed_at_epoch", "inspection_event")?;
             let capacity =
                 required_u64(event, "available_capacity_units", "inspection_event")?;
-            if !source_event_ids.insert(event_id.to_string())
+            if !evidence_receipts.insert(event_id.to_string())
                 || event_station != station_id
                 || observed != expected_epoch as u64
                 || occurred > observed
+                || !inspection_event_epochs.insert(observed)
             {
                 return Err(fail("inspection_event_identity_scope_or_chronology_invalid"));
             }
@@ -277,7 +317,6 @@ fn validate_visible_history(
         qualification_state,
         visible_resource_state,
         inspection_capacity_override,
-        source_event_ids,
     ))
 }
 
@@ -326,10 +365,10 @@ fn evaluate(frame: &Value, proposal: &Value) -> Result<AdmissionReceipt, String>
 
     let operations = operation_index(static_case)?;
     let resources = resource_index(static_case)?;
-    let (qualification_state, resource_state, inspection_override, _) =
+    let (qualification_state, resource_state, inspection_override) =
         validate_visible_history(frame, static_case, &resources, decision_epoch)?;
 
-    let Some((job, operation)) = operations.get(&operation_id).copied() else {
+    let Some((_, operation)) = operations.get(&operation_id).copied() else {
         mark_rejected(&mut receipt, "operation_not_found");
         return Ok(receipt);
     };
