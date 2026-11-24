@@ -369,7 +369,7 @@ pub fn reset_and_verify<T: GazeboSimulationTransport>(
 ) -> Result<GazeboWorldSnapshot, GazeboAdapterError> {
     plan.verify_integrity()
         .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
-    match session.reset_lifecycle {
+    match &session.reset_lifecycle {
         GazeboResetLifecycle::NotAttempted => {}
         GazeboResetLifecycle::Verified(_) => {
             return Err(GazeboAdapterError::ResetAlreadyVerified);
@@ -1189,6 +1189,7 @@ mod tests {
         step_calls: Vec<(u64, SteppingMethod)>,
         target: GazeboTargetBinding,
         mutate_state_after_target_resolution: bool,
+        reset_response_unknown: bool,
     }
 
     impl GazeboSimulationTransport for MockGazebo {
@@ -1219,7 +1220,11 @@ mod tests {
             self.world.simulation_time_ns = 0;
             self.world.state = SimulationState::Paused;
             self.world.state_sha256 = self.initial_state_sha256.clone();
-            Ok(())
+            if self.reset_response_unknown {
+                Err("reset may have completed before response loss")
+            } else {
+                Ok(())
+            }
         }
 
         fn step_simulation(
@@ -1276,6 +1281,7 @@ mod tests {
                 fault_domain_id: fault.fault_domain_id.clone(),
             },
             mutate_state_after_target_resolution: false,
+            reset_response_unknown: false,
         }
     }
 
@@ -1433,6 +1439,65 @@ mod tests {
         let mut session = preflight_transport(&mut simulator, &plan).unwrap();
         reset_and_verify(&mut simulator, &plan, &mut session).unwrap();
         assert_eq!(simulator.reset_calls, 1);
+        assert_eq!(
+            reset_and_verify(&mut simulator, &plan, &mut session),
+            Err(GazeboAdapterError::ResetAlreadyVerified)
+        );
+        assert_eq!(simulator.reset_calls, 1);
+    }
+
+    #[test]
+    fn ambiguous_reset_response_suppresses_second_reset_and_reconciles_read_only() {
+        let plan = plan();
+        let mut simulator = mock_transport(&plan);
+        simulator.reset_response_unknown = true;
+        let mut session = preflight_transport(&mut simulator, &plan).unwrap();
+
+        assert_eq!(
+            reset_and_verify(&mut simulator, &plan, &mut session),
+            Err(GazeboAdapterError::ResetOutcomeUnknown)
+        );
+        assert_eq!(simulator.reset_calls, 1);
+
+        assert_eq!(
+            reset_and_verify(&mut simulator, &plan, &mut session),
+            Err(GazeboAdapterError::ResetOutcomeUnresolved)
+        );
+        assert_eq!(simulator.reset_calls, 1);
+
+        let scenario = plan
+            .scenarios
+            .iter()
+            .find(|scenario| !scenario.fault_events.is_empty())
+            .unwrap();
+        let fault = &scenario.fault_events[0];
+        let mut injector = MockInjector {
+            dispatch_calls: 0,
+            lookup: DispatchLedgerResult::Accepted,
+        };
+        let mut registry = DispatchAttemptRegistry::default();
+        assert_eq!(
+            dispatch_planned_fault_once(
+                &mut simulator,
+                &mut injector,
+                &mut registry,
+                &plan,
+                &session,
+                &scenario.scenario_id,
+                &fault.fault_id,
+                "run-reset-unknown",
+                "epoch-reset-unknown"
+            ),
+            Err(GazeboAdapterError::ResetOutcomeUnresolved)
+        );
+        assert_eq!(injector.dispatch_calls, 0);
+        assert!(simulator.step_calls.is_empty());
+
+        // Read-only reconciliation observes that the reset actually happened.
+        let reset_snapshot = reconcile_reset(&mut simulator, &plan, &mut session).unwrap();
+        assert_eq!(simulator.reset_calls, 1);
+        assert_eq!(session.world_epoch, reset_snapshot.world_epoch);
+        assert_eq!(session.clock_id, reset_snapshot.clock_id);
         assert_eq!(
             reset_and_verify(&mut simulator, &plan, &mut session),
             Err(GazeboAdapterError::ResetAlreadyVerified)
