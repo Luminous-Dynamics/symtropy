@@ -1,0 +1,557 @@
+{
+  "contract_id": "ehd_piv_field_reconstruction_uq_v0_1",
+  "version": "0.1.0",
+  "status": "prospective_benchmark_contract_not_executed",
+  "issue": 6963,
+  "estimands": [
+    "instantaneous_physical_field",
+    "conditional_expected_field",
+    "ensemble_or_time_mean",
+    "derived_functional_or_statistic"
+  ],
+  "uncertainty_classes": [
+    "physical_aleatoric_variability",
+    "piv_measurement_uncertainty",
+    "reference_uncertainty",
+    "shared_common_mode_uncertainty",
+    "reconstruction_epistemic_uncertainty",
+    "model_form_discrepancy",
+    "numerical_approximation_error",
+    "observer_intervention_effect"
+  ],
+  "default_independence_assumption": false,
+  "cohort_roles": {
+    "model_training": "fit weights, bases, transforms and preprocessing statistics",
+    "model_selection": "select model family, features and hyperparameters",
+    "uncertainty_calibration": "calibrate intervals after predictor freeze; cannot fit predictor or select architecture",
+    "sealed_evaluation": "one-time final test; no model, threshold, feature or interval tuning",
+    "out_of_domain_challenge": "frozen shift/falsification cohort; never used to tune in-domain threshold"
+  },
+  "split_policy": {
+    "grouping_key": "highest_shared_cause_component_in_UQ008_dependency_graph",
+    "groups": [
+      "campaign",
+      "session",
+      "geometry_or_flow_family",
+      "reference_calibration",
+      "timing_chain",
+      "tracer_batch",
+      "sensor_setup",
+      "acquisition_cluster"
+    ],
+    "prohibit_random_splits_of": [
+      "vectors",
+      "pixels",
+      "frames",
+      "overlapping_windows",
+      "adjacent_temporal_samples"
+    ],
+    "require_disjoint_groups_between_all_roles": true
+  },
+  "conformal_field_score": {
+    "example": "max_x ||u_ref(x)-u_hat(x)|| / max(s(x),s_floor)",
+    "independent_unit": "complete_acquisition_or_dependence_cluster",
+    "missing_vector_policy": "missing points cannot silently be removed from the declared scoring domain",
+    "marginal_pointwise_coverage_separate_from_simultaneous_whole_field_coverage": true,
+    "minimum_finite_rank_clusters_at_95_percent": 19,
+    "minimum_is_not_adequate_sample_recommendation": true,
+    "coverage_confidence_intervals_required": true,
+    "approximate_test_clusters_for_95pct_coverage_and_2pp_half_width": 457,
+    "sample_size_note": "simple independent-binomial approximation only; final plan must account for grouping, heterogeneity and exact intervals"
+  },
+  "baselines": [
+    "persistence_and_nearest_time_interpolation",
+    "POD_linear_regression",
+    "LSE",
+    "SAMM_RR",
+    "linear_Kalman_filter_and_smoother",
+    "SVGP_KAN",
+    "covariance_aware_GP_or_reduced_rank_GP",
+    "Symtropy_or_Symthaea_HDC_CfC_experimental_challenger",
+    "adversarially_trained_neural_operator_adv_NO_for_forward_super_resolution_and_forecasting",
+    "conditional_score_based_diffusion_EDM_for_sparse_inverse_reconstruction",
+    "conditional_GAN_for_sparse_inverse_reconstruction",
+    "GenCFD_conditional_score_diffusion_for_forward_statistical_computation",
+    "masked_or_guided_diffusion_for_sparse_inverse_reconstruction",
+    "physics_regularized_endpoint_residual_diffusion_for_temporal_super_resolution",
+    "autoregressive_conditional_diffusion_for_long_horizon_turbulence_rollout",
+    "SynthPix_JAX_high_throughput_synthetic_PIV_generator_v0_4_0"
+  ],
+  "matched_privileges": [
+    "same_observations",
+    "same_sensor_history",
+    "same_train_selection_calibration_test_partitions",
+    "same_preprocessing_information",
+    "same_inference_cutoff",
+    "same_compute_budget_policy",
+    "keep_forward_operator_super_resolution_forecasting_and_inverse_sparse_posterior_reconstruction_as_distinct_tracks",
+    "for_generative_methods_report_posterior_sample_count_and_sampling_cost",
+    "same_geometry_unseen_mask_generalization_is_not_unseen_geometry_generalization",
+    "PTV_like_velocity_masks_generated_from_DNS_are_not_raw_PIV_image_measurements"
+  ],
+  "scoreboards": {
+    "reconstruction": [
+      "relative_L2",
+      "normalized_RMSE",
+      "region_P50_P90_P95_max",
+      "profile_error",
+      "wake_and_shear_layer_location",
+      "vorticity_divergence",
+      "spectral_and_structure_function_error",
+      "temporal_phase_and_event_timing",
+      "declared_ensemble_statistics",
+      "bandwise_energy_spectrum_error",
+      "high_wavenumber_tail_energy_retention",
+      "velocity_gradient_invariant_QR_joint_PDF_error_when_3D_available",
+      "conditional_measurement_consistency_residual",
+      "phase_alignment_near_observed_measurements",
+      "between_observation_temporal_super_resolution_error",
+      "long_horizon_autoregressive_rollout_drift",
+      "temporal_coherence_and_rollout_stability",
+      "structure_function_error",
+      "higher_order_statistics_through_declared_moment_order"
+    ],
+    "uncertainty": [
+      "pointwise_coverage_50_80_90_95_99",
+      "simultaneous_whole_field_coverage",
+      "functional_coverage",
+      "calibration_slope_intercept",
+      "uncertainty_ratio_between_observations",
+      "CRPS",
+      "weighted_interval_score",
+      "energy_score",
+      "variogram_score",
+      "interval_width_or_region_volume",
+      "cluster_bootstrap_confidence_intervals",
+      "posterior_sample_coverage_and_sharpness_for_generative_inverse_models",
+      "conditional_measurement_consistency_of_posterior_samples",
+      "Wasserstein_distance_between_conditional_flow_distributions",
+      "conditional_point_PDF_and_higher_central_moment_error",
+      "posterior_sample_diversity",
+      "posterior_measurement_consistency_at_sparse_observation_locations",
+      "non_memorization_and_distributional_generalization",
+      "physical_admissibility_and_large_domain_coherence"
+    ],
+    "selective_prediction": [
+      "risk_coverage_curve",
+      "false_safe_rate_on_shift_controls",
+      "abstention_precision_recall",
+      "detection_delay",
+      "recovery_after_fresh_evidence",
+      "worst_slice_by_region_flow_family_SNR_sampling_and_dropout"
+    ],
+    "vector_validity": [
+      "matched_F1_and_ROC_AUC",
+      "valid_and_invalid_precision_recall",
+      "valid_vector_retention",
+      "false_removal_rate",
+      "low_amplitude_error_sensitivity",
+      "structure_preservation",
+      "rejection_probability_calibration"
+    ],
+    "engineering_functionals": [
+      "mass_or_volume_flow",
+      "momentum_flux",
+      "vorticity",
+      "Reynolds_stress",
+      "functional_coverage_and_sharpness",
+      "geometry_density_pressure_boundary_uncertainty"
+    ],
+    "systems": [
+      "p50_p95_p99_latency",
+      "throughput",
+      "peak_memory",
+      "energy",
+      "bytes_moved",
+      "model_size",
+      "end_to_end_cost_including_preprocessing_calibration_fallback_and_receipts"
+    ],
+    "temporal_phase_sampling": [
+      "nominal_sampling_fraction_and_total_snapshots",
+      "occupied_phase_bins_and_phase_coverage",
+      "empty_and_singleton_phase_bin_fraction",
+      "independent_cycle_replication_histogram",
+      "minimum_and_median_independent_cycles_per_occupied_bin",
+      "maximum_cyclic_phase_gap",
+      "normalized_phase_occupancy_entropy",
+      "phase_estimation_error_and_clock_uncertainty",
+      "observed_time_and_interpolation_time_error",
+      "worst_phase_error_and_phase_stratified_uncertainty",
+      "generalization_gap_interpolation_minus_observed_time"
+    ]
+  },
+  "datasets": [
+    {
+      "name": "FFS-S-PIV",
+      "doi": "10.5281/zenodo.21732072",
+      "role": "synthetic_image_and_displacement_software_verification",
+      "admission_status": "candidate_payload_license_and_version_verification_required",
+      "physical_claim_allowed": false
+    },
+    {
+      "name": "INRAE_Re3900_experimental_PIV_2026",
+      "doi": "10.57745/DHJXM6",
+      "role": "experimental_flow_structure_and_distribution_shift",
+      "admission_status": "rights_review_required_explicit_reuse_license_not_verified",
+      "has_reference_truth_residuals": false,
+      "physical_EHD_claim_allowed": false
+    },
+    {
+      "name": "INRAE_Re3900_Eulerian_Lagrangian_DNS",
+      "doi": "10.15454/GLNRHK",
+      "license": "Etalab_Open_License_2_0",
+      "role": "DNS_particle_tracking_and_observation_operator_verification",
+      "admission_status": "candidate_version_and_file_hash_pinning_required",
+      "physical_PIV_or_EHD_measurement_claim_allowed": false
+    },
+    {
+      "name": "SVGP_KAN_pulsed_impinging_jet",
+      "doi": "10.1016/j.aitf.2026.100034",
+      "role": "matched_method_reproduction",
+      "admission_status": "author_request_for_full_data_and_code_required",
+      "physical_turbulent_EHD_claim_allowed": false
+    },
+    {
+      "name": "EHD_physical_observer_cohort",
+      "doi": null,
+      "role": "physical_EHD_observer_and_functional_validation",
+      "admission_status": "not_available_in_current_work",
+      "physical_claim_allowed": false
+    }
+  ],
+  "research_targets": {
+    "reproduce_published_SVGP_KAN_SAMM_RR_LSE_before_superiority_claim": true,
+    "disjoint_fit_selection_calibration_and_test_groups": true,
+    "nominal_whole_field_and_functional_coverage": "95_percent_with_predeclared_confidence_bounds_and_sharpness",
+    "zero_false_qualification_on_frozen_shift_reference_mutation_and_observer_controls": true,
+    "matched_compute_improvement_criterion": "lower_error_without_worse_calibration_or_sharper_regions_at_matched_coverage_or_lower_selective_risk_at_matched_useful_coverage",
+    "reproduce_PIVPostProcess_exact_matched_cohort_before_classifier_superiority": true,
+    "valid_vector_retention_and_low_corruption_metrics_required": true,
+    "synthetic_DNS_or_non_EHD_success_never_promoted_to_physical_EHD_result": true,
+    "multi_scale_fidelity": "At matched field NRMSE or matched measurement consistency, reduce bandwise energy-spectrum error and preserve high-wavenumber tail energy without inflating false physical structure.",
+    "generative_inverse": "Report posterior measurement consistency, calibration/coverage, sample diversity, sampling cost and same-geometry versus cross-geometry generalization separately."
+  },
+  "qualification_dispositions": [
+    "QualifiedInDomain",
+    "OutOfEnvelope",
+    "NotIdentifiable",
+    "InsufficientEvidence",
+    "CalibrationInsufficient",
+    "ReferenceUnqualified",
+    "ObserverEffectUnresolved",
+    "MeasurementFunctionalNotQualified"
+  ],
+  "explicit_nonclaims": [
+    "no model implementation added",
+    "no published baseline reproduced",
+    "no dataset payload ingested",
+    "no empirical coverage measured",
+    "no physical EHD experiment or force balance completed",
+    "no SOTA superiority demonstrated",
+    "no_periodic_phase_detection_or_estimation_in_v0_phase_design_kernel",
+    "no_universal_physical_two_samples_per_phase_rule"
+  ],
+  "references": {
+    "svgpk_an_paper": "https://doi.org/10.1016/j.aitf.2026.100034",
+    "pivpostprocess": "https://doi.org/10.1007/s00348-026-04319-7",
+    "pivtools": "https://doi.org/10.1016/j.softx.2026.102967",
+    "ffs_s_piv": "https://doi.org/10.5281/zenodo.21732072",
+    "inrae_experimental_piv": "https://doi.org/10.57745/DHJXM6",
+    "inrae_dns_lpt": "https://doi.org/10.15454/GLNRHK",
+    "piv_uncertainty": "https://doi.org/10.1088/0957-0233/27/8/084006",
+    "nistir_8298": "https://doi.org/10.6028/NIST.IR.8298",
+    "oommen_2026": "https://doi.org/10.1038/s41467-026-70145-4",
+    "gencfd": "https://doi.org/10.1038/s41467-026-76390-x",
+    "gencfd_code": "https://github.com/camlab-ethz/GenCFD",
+    "guided_sparse_diffusion": "https://doi.org/10.1063/5.0304492",
+    "temporal_residual_diffusion": "https://doi.org/10.1016/j.compfluid.2026.107277",
+    "autoregressive_conditional_diffusion": "https://doi.org/10.1016/j.neunet.2026.108641",
+    "generative_turbulence_priors_perspective": "https://doi.org/10.1103/qbw5-qqmg",
+    "synthpix_paper": "https://doi.org/10.1016/j.softx.2026.102642",
+    "synthpix_repository": "https://github.com/antonioterpin/synthpix"
+  },
+  "periodic_sampling_design": {
+    "status": "source_reported_synthetic_baseline_and_prospective_benchmark_lane",
+    "source": {
+      "authors": [
+        "Y. Sungtaek Ju"
+      ],
+      "title": "Uncertainty-aware flow field reconstruction using SVGP Kolmogorov–Arnold networks",
+      "year": 2026,
+      "venue": "AI Thermal Fluids 6, article 100034",
+      "doi": "10.1016/j.aitf.2026.100034",
+      "url": "https://doi.org/10.1016/j.aitf.2026.100034",
+      "cohort": "synthetic pulsed impinging jet; 160 forcing cycles",
+      "applicability": "periodic coherent-flow baseline only; not turbulent EHD validation"
+    },
+    "reported_schedules": [
+      {
+        "sampling_fraction": 0.005,
+        "kind": "non_coprime",
+        "distinct_phase_count": 1,
+        "samples_per_phase": 10,
+        "svgp_kan_lse_interpolation_relative_l2": 0.089
+      },
+      {
+        "sampling_fraction": 0.0055,
+        "kind": "coprime",
+        "distinct_phase_count": 11,
+        "samples_per_phase": 1,
+        "svgp_kan_lse_interpolation_relative_l2": 0.237
+      },
+      {
+        "sampling_fraction": 0.01,
+        "kind": "non_coprime",
+        "distinct_phase_count": 1,
+        "samples_per_phase": 20,
+        "svgp_kan_lse_interpolation_relative_l2": 0.068
+      },
+      {
+        "sampling_fraction": 0.081,
+        "kind": "coprime",
+        "distinct_phase_count": 81,
+        "samples_per_phase": 2,
+        "svgp_kan_lse_interpolation_relative_l2": 0.047
+      },
+      {
+        "sampling_fraction": 0.101,
+        "kind": "coprime",
+        "distinct_phase_count": 101,
+        "samples_per_phase": 2,
+        "svgp_kan_lse_interpolation_relative_l2": null,
+        "notes": "reported as favorable high-phase-coverage regime; exact per-method value to be reproduced from source tables before use"
+      }
+    ],
+    "prospective_diagnostics": [
+      "total_snapshots_and_sampling_fraction",
+      "occupied_phase_bins_and_phase_coverage_fraction",
+      "empty_bin_and_singleton_bin_fraction",
+      "phase_occupancy_histogram",
+      "minimum_and_median_independent_cycle_replication_per_occupied_bin",
+      "maximum_cyclic_phase_gap",
+      "phase_occupancy_entropy_normalized_by_log_total_bins",
+      "independent_cycle_and_session_cluster_count",
+      "forcing_phase_estimation_error_and_clock_uncertainty",
+      "observed_time_vs_interpolation_time_error",
+      "worst_phase_and_phase_bin_error",
+      "phase_stratified_and_simultaneous_uncertainty_coverage",
+      "phase_stratified_sharpness_and_calibration",
+      "generalization_gap_interpolation_minus_observed_error"
+    ],
+    "phase_design_baselines": [
+      "uniform_phase_locked",
+      "random_phase",
+      "coprime_phase_diverse",
+      "non_coprime_repeated_phase",
+      "stratified_minimum_replicates",
+      "adaptive_functional_risk_reduction"
+    ],
+    "split_rule": "complete forcing-cycle/acquisition dependence clusters are disjoint across model-fit, selection, calibration and final-test roles",
+    "replication_rule": "frames within one cycle do not count as independent-cycle replication for a phase bin",
+    "candidate_reproduction_constraint": "two independent cycle clusters per occupied phase bin",
+    "explicit_caveat": "two samples per phase is an empirical threshold reported for the paper's synthetic pulsed impinging jet, not a universal physical law or a hard rule for unrelated flows",
+    "implementation": {
+      "crate": "tools/ehd-piv-phase-design",
+      "authored_tests": 8,
+      "inputs": [
+        "phase_fraction_in_[0,1)",
+        "dependence_cluster_id"
+      ],
+      "config": [
+        "phase_bin_count",
+        "minimum_occupied_phase_bins",
+        "minimum_independent_cycles_per_occupied_bin",
+        "maximum_cyclic_phase_gap"
+      ],
+      "independent_replication": "count unique dependence-cluster IDs per phase bin; repeated frames in a cluster do not count as extra independent cycles",
+      "diagnostics": [
+        "occupied_and_empty_bins",
+        "singleton_bins",
+        "under_replicated_bins",
+        "minimum_and_median_independent_cycles_per_bin",
+        "maximum_cyclic_gap_including_wraparound",
+        "normalized_phase_occupancy_entropy",
+        "explicit_failure_reasons"
+      ],
+      "nonclaims": [
+        "does_not_estimate_forcing_phase",
+        "does_not_detect_periodicity",
+        "does_not_select_or_actuate_acquisition_times",
+        "does_not_prove_independent_cycles_from_IDs",
+        "does_not_imply_universal_two_repeats_per_phase"
+      ]
+    }
+  },
+  "tools": [
+    "tools/ehd-piv-phase-design"
+  ],
+  "sota_comparator_notes": {
+    "adv_NO": {
+      "task": "forward operator for super_resolution_and_forecasting",
+      "source": "Oommen et al. (2026), Nature Communications 17:3707",
+      "schlieren_jet": {
+        "vanilla_NO": {
+          "field_NRMSE": 0.0542,
+          "energy_spectrum_NRMSE": 0.1601
+        },
+        "adv_NO": {
+          "field_NRMSE": 0.0662,
+          "energy_spectrum_NRMSE": 0.0109
+        },
+        "inference_seconds_per_sample_on_H100": 0.01
+      },
+      "hit_Re_lambda_90": {
+        "vanilla_NO": {
+          "field_NRMSE": 0.0326,
+          "energy_spectrum_NRMSE": 0.0865
+        },
+        "adv_NO": {
+          "field_NRMSE": 0.0265,
+          "energy_spectrum_NRMSE": 0.0235
+        },
+        "inference_seconds_per_sample_on_H100": 0.082,
+        "GenCFD_inference_seconds_per_sample_on_H100": 7.804
+      },
+      "caution": "Not interchangeable with inverse sparse-measurement reconstruction; spectrum and pointwise error move in different directions."
+    },
+    "conditional_diffusion": {
+      "task": "inverse sparse PTV-like observation posterior",
+      "flow": "DNS cylinder wake Re=11000",
+      "snapshots": {
+        "training": 150,
+        "validation": 18,
+        "test": 17
+      },
+      "generalization": "unseen masking layouts within the same geometry only; not unseen geometry",
+      "observation": "sparse PTV-like velocity masks applied to DNS fields; not raw PIV image processing",
+      "limit": "posterior calibration and experimental measurement-domain transfer require separate evaluation"
+    }
+  },
+  "statistical_forward_uq": {
+    "model": "GenCFD",
+    "source": "Raonic et al., Nature Communications 17:9846 (17 August 2026)",
+    "doi": "10.1038/s41467-026-76390-x",
+    "task": "conditional distribution of three-dimensional turbulent flow realizations",
+    "reported_claims": {
+      "benchmarks": 5,
+      "metrics": [
+        "conditional_mean",
+        "conditional_variance",
+        "point_PDF",
+        "energy_spectrum",
+        "structure_functions",
+        "higher_central_moments_up_to_order_five",
+        "Wasserstein_conditional_distribution_distance"
+      ],
+      "speedup_over_conventional_CFD_orders_of_magnitude": [
+        1,
+        5
+      ],
+      "sample_generation_seconds_upper_bound": 4,
+      "hardware": "NVIDIA RTX 4090"
+    },
+    "code": {
+      "repository": "https://github.com/camlab-ethz/GenCFD",
+      "license": "Apache-2.0",
+      "caveat": "paper settings and full data must be pinned before reproducing; do not transfer published speed or accuracy directly to EHD"
+    }
+  },
+  "sparse_inverse_diffusion": {
+    "masked_guided_diffusion": {
+      "paper": "Guiding diffusion models to reconstruct flow fields from sparse data",
+      "venue": "Physics of Fluids 38, 015112",
+      "date": "2026-01-08",
+      "doi": "10.1063/5.0304492",
+      "reported_2d_kolmogorov_5_percent_case": {
+        "rmse": "0.13 ± 0.02",
+        "sparse_observation_p_rmse": "0.10 ± 0.01",
+        "physics_residual_metric": "0.02 ± 0.03",
+        "structure_similarity_loss": "0.05 ± 0.01",
+        "energy_spectrum_error": "0.26 ± 0.05"
+      },
+      "limitation": "one published 2D Kolmogorov-flow case; not directly comparable to other datasets"
+    },
+    "conditional_edm": {
+      "source": "Oommen et al. (2026), Nature Communications 17:3707",
+      "task": "inverse reconstruction from sparse PTV-like DNS velocity observations",
+      "limitation": "same-geometry unseen-mask transfer is not unseen-geometry or raw-PIV-image transfer"
+    }
+  },
+  "temporal_diffusion": {
+    "endpoint_residual_diffusion": {
+      "paper": "Physics-regularized residual diffusion model for temporal super-resolution reconstruction of turbulent flows",
+      "venue": "Computers & Fluids 320, 107277",
+      "publication_date": "2026-11-15",
+      "doi": "10.1016/j.compfluid.2026.107277",
+      "conditioning": "two temporally sparse endpoint velocity fields",
+      "method": "linear interpolation base plus learned normalized DNS residual at intermediate times",
+      "benchmark_requirements": [
+        "between_endpoint_error",
+        "phase_and_timing_error",
+        "temporal_coherence",
+        "spectral_transfer",
+        "structure_function_transfer",
+        "event_detection"
+      ]
+    },
+    "autoregressive_conditional_diffusion": {
+      "paper": "Benchmarking autoregressive conditional diffusion models for turbulent flow simulation",
+      "venue": "Neural Networks 199, 108641",
+      "year": 2026,
+      "doi": "10.1016/j.neunet.2026.108641",
+      "scenarios": [
+        "2D_incompressible_flow",
+        "2D_transonic_flow",
+        "2D_isotropic_turbulence"
+      ],
+      "evaluation": [
+        "accuracy",
+        "posterior_sampling",
+        "spectral_behavior",
+        "temporal_stability",
+        "out_of_training_range_parameter_generalization"
+      ],
+      "tradeoff": "diffusion accuracy/stability vs deterministic architecture inference speed"
+    }
+  },
+  "synthetic_generator_track": {
+    "pinned_version": "0.4.0",
+    "pinned_commit": "0effe6e70b77d0d5c97348d8220e74d31bfaee2e",
+    "license": "MIT",
+    "reported_paper_results": {
+      "throughput": "orders_of_magnitude_faster_than_selected_alternative_generators",
+      "relative_EPE_discrepancy_mean": 0.001,
+      "relative_EPE_discrepancy_maximum": 0.005
+    },
+    "measured_reproduction_status": "not_yet_run",
+    "use_for": [
+      "high_throughput_GPU_image_generation",
+      "nuisance_parameter_sweeps",
+      "hard_example_mining",
+      "adaptive_acquisition_simulation",
+      "training_image_generation"
+    ],
+    "compare_separately_from": [
+      "PIV_estimator_accuracy",
+      "uncertainty_calibration",
+      "real_image_transfer"
+    ],
+    "current_interface": [
+      "JAX_batching",
+      "HDF5_MAT_NPY_flow_sources",
+      "seeding_density",
+      "diameter_intensity_and_shape_ranges",
+      "per_frame_appearance_variability",
+      "particle_hide_probability",
+      "noise",
+      "mask",
+      "histogram_matching"
+    ],
+    "paper_version_limitations": [
+      "orthogonal_camera_geometry",
+      "no_finite_pixel_fill_factor",
+      "multi_camera_volumetric_generation_deferred"
+    ],
+    "role_split": "SynthPix is the high-throughput generator; the Rust observation operator is a deterministic reference/analytic-control kernel, not a throughput competitor."
+  }
+}
