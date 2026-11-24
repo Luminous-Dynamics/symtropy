@@ -135,6 +135,19 @@
       "bytes_moved",
       "model_size",
       "end_to_end_cost_including_preprocessing_calibration_fallback_and_receipts"
+    ],
+    "temporal_phase_sampling": [
+      "nominal_sampling_fraction_and_total_snapshots",
+      "occupied_phase_bins_and_phase_coverage",
+      "empty_and_singleton_phase_bin_fraction",
+      "independent_cycle_replication_histogram",
+      "minimum_and_median_independent_cycles_per_occupied_bin",
+      "maximum_cyclic_phase_gap",
+      "normalized_phase_occupancy_entropy",
+      "phase_estimation_error_and_clock_uncertainty",
+      "observed_time_and_interpolation_time_error",
+      "worst_phase_error_and_phase_stratified_uncertainty",
+      "generalization_gap_interpolation_minus_observed_time"
     ]
   },
   "datasets": [
@@ -213,5 +226,86 @@
     "inrae_dns_lpt": "https://doi.org/10.15454/GLNRHK",
     "piv_uncertainty": "https://doi.org/10.1088/0957-0233/27/8/084006",
     "nistir_8298": "https://doi.org/10.6028/NIST.IR.8298"
+  },
+  "periodic_sampling_design": {
+    "status": "source_reported_synthetic_baseline_and_prospective_benchmark_lane",
+    "source": {
+      "authors": [
+        "Y. Sungtaek Ju"
+      ],
+      "title": "Uncertainty-aware flow field reconstruction using SVGP Kolmogorov–Arnold networks",
+      "year": 2026,
+      "venue": "AI Thermal Fluids 6, article 100034",
+      "doi": "10.1016/j.aitf.2026.100034",
+      "url": "https://doi.org/10.1016/j.aitf.2026.100034",
+      "cohort": "synthetic pulsed impinging jet; 160 forcing cycles",
+      "applicability": "periodic coherent-flow baseline only; not turbulent EHD validation"
+    },
+    "reported_schedules": [
+      {
+        "sampling_fraction": 0.005,
+        "kind": "non_coprime",
+        "distinct_phase_count": 1,
+        "samples_per_phase": 10,
+        "svgp_kan_lse_interpolation_relative_l2": 0.089
+      },
+      {
+        "sampling_fraction": 0.0055,
+        "kind": "coprime",
+        "distinct_phase_count": 11,
+        "samples_per_phase": 1,
+        "svgp_kan_lse_interpolation_relative_l2": 0.237
+      },
+      {
+        "sampling_fraction": 0.01,
+        "kind": "non_coprime",
+        "distinct_phase_count": 1,
+        "samples_per_phase": 20,
+        "svgp_kan_lse_interpolation_relative_l2": 0.068
+      },
+      {
+        "sampling_fraction": 0.081,
+        "kind": "coprime",
+        "distinct_phase_count": 81,
+        "samples_per_phase": 2,
+        "svgp_kan_lse_interpolation_relative_l2": 0.047
+      },
+      {
+        "sampling_fraction": 0.101,
+        "kind": "coprime",
+        "distinct_phase_count": 101,
+        "samples_per_phase": 2,
+        "svgp_kan_lse_interpolation_relative_l2": null,
+        "notes": "reported as favorable high-phase-coverage regime; exact per-method value to be reproduced from source tables before use"
+      }
+    ],
+    "prospective_diagnostics": [
+      "total_snapshots_and_sampling_fraction",
+      "occupied_phase_bins_and_phase_coverage_fraction",
+      "empty_bin_and_singleton_bin_fraction",
+      "phase_occupancy_histogram",
+      "minimum_and_median_independent_cycle_replication_per_occupied_bin",
+      "maximum_cyclic_phase_gap",
+      "phase_occupancy_entropy_normalized_by_log_total_bins",
+      "independent_cycle_and_session_cluster_count",
+      "forcing_phase_estimation_error_and_clock_uncertainty",
+      "observed_time_vs_interpolation_time_error",
+      "worst_phase_and_phase_bin_error",
+      "phase_stratified_and_simultaneous_uncertainty_coverage",
+      "phase_stratified_sharpness_and_calibration",
+      "generalization_gap_interpolation_minus_observed_error"
+    ],
+    "phase_design_baselines": [
+      "uniform_phase_locked",
+      "random_phase",
+      "coprime_phase_diverse",
+      "non_coprime_repeated_phase",
+      "stratified_minimum_replicates",
+      "adaptive_functional_risk_reduction"
+    ],
+    "split_rule": "complete forcing-cycle/acquisition dependence clusters are disjoint across model-fit, selection, calibration and final-test roles",
+    "replication_rule": "frames within one cycle do not count as independent-cycle replication for a phase bin",
+    "candidate_reproduction_constraint": "two independent cycle clusters per occupied phase bin",
+    "explicit_caveat": "two samples per phase is an empirical threshold reported for the paper's synthetic pulsed impinging jet, not a universal physical law or a hard rule for unrelated flows"
   }
 }
