@@ -211,13 +211,13 @@ The fixture contains eight paired records across a stationary-storage lower-boun
 | Avoidable service-value loss units | 200 |
 | Group-local risk/coverage frontiers | 2 |
 
-All fixture evidence is synthetic. The reference report must therefore set any_synthetic_evidence=true, all_evidence_source_grade=false, and all field-qualification, model-update and operational-authority flags to false. These counts are known-answer expectations for the synthetic fixture, not empirical mobility results.
+All fixture evidence is synthetic. The reference report must therefore set any_synthetic_evidence=true, all_evidence_source_grade=false, and all field-qualification, model-update and operational-authority flags to false. These counts are known-answer expectations for the synthetic fixture, not empirical mobility results. It also reports separate Wilson 95% reference intervals for false-safe admissions and false abstentions, with their denominators; these intervals explicitly assume IID samples and are not valid cluster-aware guarantees.
 
 The module includes ten focused tests covering false-safe/false-abstention separation, hard-gate blocking, unknown-gate abstention, upper-bound semantics, record-order digest invariance, duplicate evidence rejection, synthetic evidence claim ceilings, forecast chronology, group-local risk/coverage monotonicity, and non-negotiable hard gates.
 
 ### 11.3 Risk/coverage output
 
-For each exact group (site, asset, asset configuration, stratum, model/version, policy/version, direction and threshold), the evaluator sweeps the signed conservative-bound margin. It emits accepted-proposal count, coverage of gate-passing replay cases and false-safe rate at each distinct margin.
+For each exact group (site, asset, asset configuration, stratum, model/version, policy/version, direction and threshold), the evaluator sweeps the signed conservative-bound margin. It emits accepted-proposal count, coverage of gate-passing replay cases and false-safe rate at each distinct margin, including explicit zero-admission and full-admission endpoints. It reports the realized-feasible denominator for false abstentions and the operational-admission denominator for false-safe admissions. The accompanying Wilson intervals are IID-reference diagnostics only; repeated sorties, shared packs, weather events and site-level common causes require clustered or sequential inference.
 
 This avoids pooling unlike sites, assets, policies or measurement units. The curve is an empirical diagnostic over the supplied cases; it is not a distribution-free risk guarantee. Temporal and common-cause dependence must be handled by the campaign design and inference method, not by assuming every observation is IID.
 
