@@ -512,3 +512,14 @@ Add idempotency-identity controls beyond request-payload mutation: delimiter-col
 
 
 Add controls proving reset evidence cannot be transferred across otherwise-compatible campaigns: compile two valid plans for the same pinned simulator/world profile, reset under plan A, then attempt dispatch under plan B. Expected: ResetVerificationMismatch and zero simulator steps/injector calls. Also check the session cannot be cloned through the safe public API and raw injector dispatch cannot be imported from outside the adapter module.
+
+
+### Formal reset protocol evaluation
+
+The formal reset model is an orthogonal assurance artifact, not a substitute for runtime tests. Its first qualification stage is bounded TLC exploration of the safe state machine plus a required unsafe-retry counterexample. The next research target is differential conformance: export the Rust lifecycle transition sequence (including DispatchStarted, OutcomeUnresolved, Verified and read-only reconciliation) into a typed trace, import it as TLA constraints, and require exact action/successor-state correspondence. Compare:
+- safe Rust traces that match the model;
+- reset-response-lost-after-effect traces that reconcile to Verified;
+- response-lost-before-effect traces that remain OutcomeUnresolved;
+- mutated Rust traces that issue a second reset or dispatch before verification, which TLC must reject.
+
+Do not call the current abstract TLC check a Rust refinement proof. The physical transport, server-side reset semantics and durability after coordinator crash require separate validation.
