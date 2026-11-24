@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - research/safrb-v0.8-service-restoration
+      - research/safrb-temporal-assurance-v0-1
     paths:
       - "benchmarks/fuel-resilience/south-africa/v0.8/**"
       - "benchmarks/fuel-resilience/south-africa/README.md"

@@ -13,7 +13,7 @@ The aim is not to replace AVEVA PI, SLB, PyPSA, HiGHS, Gurobi, OR-Tools or grid-
 
 ## Versioned implementation
 
-v0.2–v0.8 have successful dedicated exact-head Rust workflows covering formatting, tests, Clippy and the known-answer executable. Test counts are unit tests. v0.2 also passed the repository-level CI workflow at its listed head. The v0.8 exact-head checks are recorded in draft PR #7294; the PR remains unmerged.
+v0.2–v0.8 have successful dedicated exact-head Rust workflows covering formatting, tests, Clippy and the known-answer executable. Test counts are unit tests. v0.2 also passed the repository-level CI workflow at its listed head. v0.8's core evaluator and temporal-assurance tranche are in stacked draft PRs #7294 and #7337; both remain unmerged.
 
 | Version | Public draft PR | Increment | Tests | Exact-head result |
 |---|---|---|---:|---|
@@ -23,7 +23,7 @@ v0.2–v0.8 have successful dedicated exact-head Rust workflows covering formatt
 | v0.5 | [#7205 — fuel-to-useful-energy service](https://github.com/Luminous-Dynamics/symtropy/pull/7205) | Batch LHV and generator-efficiency intervals, nameplate/auxiliary limits, net Wh, service shortfall and EVSI fixture. | 14 | PASS |
 | v0.6 | [#7215 — multi-carrier service portfolio](https://github.com/Luminous-Dynamics/symtropy/pull/7215) | Grid/shore/generator/renewable sources, battery SOC/power bounds, priority service, curtailment and exact bus-energy balance. | 14 | PASS |
 | v0.7 | [#7243 — physical capacity vs access rights](https://github.com/Luminous-Dynamics/symtropy/pull/7243) | Installed/operable capacity, entitlement, provider offer, existing reservation/commitment/delivery and residual capacity. | 15 | PASS |
-| v0.8 | [#7294 — service continuity and restoration](https://github.com/Luminous-Dynamics/symtropy/pull/7294) | Time-bounded critical-service continuity, bounded shortfall, sustained restoration and right-censored recovery. | 20 | PASS |
+| v0.8 | [#7294 — core evaluator](https://github.com/Luminous-Dynamics/symtropy/pull/7294) + [#7337 — temporal assurance](https://github.com/Luminous-Dynamics/symtropy/pull/7337) | Time-bounded critical-service continuity, bounded shortfall, sustained restoration, right-censoring and exhaustive temporal invariants. | 26 | PASS |
 
 **Qualification boundary:** PASS establishes software behavior for the supplied synthetic fixtures and declared evidence contracts. It does not establish actual South African stock, IVP/MPP throughput, equipment performance, national resilience, economic impact, legal entitlements or field prediction accuracy.
 

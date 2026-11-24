@@ -63,6 +63,12 @@ The existing [Power Fabric service trajectory auditor #6449 / PR #6450](https://
 
 This adapter is **not implemented yet**. It must wait for accepted case/run/service-trajectory schema versions and the independent artifact/claim-verification chain; no compile-time dependency or end-to-end integration is claimed.
 
+## Additional temporal-assurance suite
+
+The combined v0.8 crate now has **26 Rust tests** (20 original evaluator tests and six independent temporal-assurance tests). The temporal suite checks 3,276 exhaustive oracle comparisons, 5,151 interval-widening combinations, 20,604 delivery-improvement combinations, equivalent time partitioning, clock translation, exact restoration thresholds and repeated outages.
+
+See [TEMPORAL_ASSURANCE_SUITE.md](research/TEMPORAL_ASSURANCE_SUITE.md), [SAFRB-TEMPORAL-ASSURANCE-001](https://github.com/Luminous-Dynamics/symtropy/issues/7336) and [draft PR #7337](https://github.com/Luminous-Dynamics/symtropy/pull/7337).
+
 ## Known-answer fixture
 
 The fixture uses four synthetic one-hour periods, a 50 Wh critical floor and an 80 Wh target. Delivered energy is bounded as:
