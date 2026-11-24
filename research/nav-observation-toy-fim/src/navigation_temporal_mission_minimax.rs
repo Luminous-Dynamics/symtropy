@@ -261,6 +261,7 @@ impl fmt::Display for TemporalMinimaxError {
                 f, "action {action_id} is missing an observation/transition commitment for model {model_index}, cause {cause_index}"
             ),
             Self::NoFeasiblePolicy => write!(f, "no feasible observable policy exists"),
+            Self::TailRiskEvaluationFailed => write!(f, "exact persistent-model CVaR evaluation failed"),
             Self::ArithmeticOverflow => write!(f, "checked temporal minimax probability, loss, or resource arithmetic overflowed"),
         }
     }
