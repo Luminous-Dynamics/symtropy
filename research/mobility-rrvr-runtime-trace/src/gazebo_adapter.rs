@@ -491,7 +491,9 @@ pub enum GazeboDispatchOutcome {
         dispatch_id: Option<String>,
     },
     DuplicateSuppressed,
-    PayloadConflict { idempotency_key: String },
+    PayloadConflict {
+        idempotency_key: String,
+    },
     InvalidDispatchRequest,
 }
 
@@ -504,7 +506,8 @@ pub struct DispatchAttemptRegistry {
 
 impl DispatchAttemptRegistry {
     pub fn attempted(&self, idempotency_key: &str) -> bool {
-        self.attempted_idempotency_keys.contains_key(idempotency_key)
+        self.attempted_idempotency_keys
+            .contains_key(idempotency_key)
     }
 }
 
@@ -555,10 +558,10 @@ pub fn dispatch_request_fingerprint(
         parameters_sha256: &request.parameters_sha256,
         idempotency_key: &request.idempotency_key,
     };
-    let value = serde_json::to_value(payload)
-        .map_err(|_| GazeboAdapterError::InvalidDispatchRequest)?;
-    let bytes = serde_json::to_vec(&value)
-        .map_err(|_| GazeboAdapterError::InvalidDispatchRequest)?;
+    let value =
+        serde_json::to_value(payload).map_err(|_| GazeboAdapterError::InvalidDispatchRequest)?;
+    let bytes =
+        serde_json::to_vec(&value).map_err(|_| GazeboAdapterError::InvalidDispatchRequest)?;
     let digest = Sha256::digest(bytes);
     Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect())
 }
@@ -597,7 +600,10 @@ pub fn dispatch_fault_once<T: GazeboFaultInjectorTransport>(
         Ok(fingerprint) if fingerprint == request.payload_sha256 => fingerprint,
         _ => return GazeboDispatchOutcome::InvalidDispatchRequest,
     };
-    if let Some(previous) = registry.attempted_idempotency_keys.get(&request.idempotency_key) {
+    if let Some(previous) = registry
+        .attempted_idempotency_keys
+        .get(&request.idempotency_key)
+    {
         return if previous == &fingerprint {
             GazeboDispatchOutcome::DuplicateSuppressed
         } else {
@@ -929,8 +935,7 @@ where
         return Err(GazeboAdapterError::TargetBindingChanged);
     }
 
-    let idempotency_key =
-        dispatch_idempotency_key(plan, scenario, fault, run_id, run_epoch)?;
+    let idempotency_key = dispatch_idempotency_key(plan, scenario, fault, run_id, run_epoch)?;
     let mut request = GazeboDispatchRequest {
         plan_sha256: plan.plan_sha256.clone(),
         campaign_id: plan.campaign_id.clone(),
@@ -1129,11 +1134,18 @@ mod tests {
     #[test]
     fn planned_dispatch_is_bound_to_verified_plan_cut_and_target() {
         let plan = plan();
-        let scenario = plan.scenarios.iter().find(|s| !s.fault_events.is_empty()).unwrap();
+        let scenario = plan
+            .scenarios
+            .iter()
+            .find(|s| !s.fault_events.is_empty())
+            .unwrap();
         let fault = &scenario.fault_events[0];
         let mut simulator = mock_transport(&plan);
         let session = preflight_transport(&mut simulator, &plan).unwrap();
-        let mut injector = MockInjector { dispatch_calls: 0, lookup: DispatchLedgerResult::Accepted };
+        let mut injector = MockInjector {
+            dispatch_calls: 0,
+            lookup: DispatchLedgerResult::Accepted,
+        };
         let mut registry = DispatchAttemptRegistry::default();
 
         let result = dispatch_planned_fault_once(
@@ -1153,10 +1165,19 @@ mod tests {
         assert_eq!(result.request.scenario_id, scenario.scenario_id);
         assert_eq!(result.request.fault_id, fault.fault_id);
         assert_eq!(result.request.target_id, result.target_binding.target_id);
-        assert_eq!(result.request.scheduled_simulation_step, fault.scheduled_simulation_step);
-        assert_eq!(result.cut_snapshot.simulation_step, fault.scheduled_simulation_step);
+        assert_eq!(
+            result.request.scheduled_simulation_step,
+            fault.scheduled_simulation_step
+        );
+        assert_eq!(
+            result.cut_snapshot.simulation_step,
+            fault.scheduled_simulation_step
+        );
         assert!(result.request.idempotency_key.contains("run-001"));
-        assert_eq!(result.outcome, GazeboDispatchOutcome::Unknown { dispatch_id: None });
+        assert_eq!(
+            result.outcome,
+            GazeboDispatchOutcome::Unknown { dispatch_id: None }
+        );
         assert_eq!(injector.dispatch_calls, 1);
         assert_eq!(simulator.step_calls.len(), 1);
     }
@@ -1174,8 +1195,15 @@ mod tests {
 
         assert_eq!(
             dispatch_planned_fault_once(
-                &mut simulator, &mut injector, &mut registry, &plan, &session,
-                &scenario.scenario_id, &fault.fault_id, "run-001", "run-epoch-001"
+                &mut simulator,
+                &mut injector,
+                &mut registry,
+                &plan,
+                &session,
+                &scenario.scenario_id,
+                &fault.fault_id,
+                "run-001",
+                "run-epoch-001"
             ),
             Err(GazeboAdapterError::WorldChangedAtCutPoint)
         );
@@ -1192,16 +1220,30 @@ mod tests {
 
         assert_eq!(
             dispatch_planned_fault_once(
-                &mut simulator, &mut injector, &mut registry, &plan, &session,
-                "not-in-plan", "fault-process-crash", "run-001", "run-epoch-001"
+                &mut simulator,
+                &mut injector,
+                &mut registry,
+                &plan,
+                &session,
+                "not-in-plan",
+                "fault-process-crash",
+                "run-001",
+                "run-epoch-001"
             ),
             Err(GazeboAdapterError::ScenarioNotFound)
         );
         let scenario = plan.scenarios.iter().find(|s| !s.fault_events.is_empty()).unwrap();
         assert_eq!(
             dispatch_planned_fault_once(
-                &mut simulator, &mut injector, &mut registry, &plan, &session,
-                &scenario.scenario_id, "not-in-plan", "run-001", "run-epoch-001"
+                &mut simulator,
+                &mut injector,
+                &mut registry,
+                &plan,
+                &session,
+                &scenario.scenario_id,
+                "not-in-plan",
+                "run-001",
+                "run-epoch-001"
             ),
             Err(GazeboAdapterError::FaultNotFound)
         );
@@ -1531,18 +1573,14 @@ mod tests {
             observation.signature_sha256 = "f".repeat(64);
         }
         assert_eq!(
-            validate_delivery_observer_quorum(
-                &unanimous_mismatch, &plan, fault, "world-epoch-2"
-            ),
+            validate_delivery_observer_quorum(&unanimous_mismatch, &plan, fault, "world-epoch-2"),
             Ok(DeliveryEvidenceVerdict::Refuted)
         );
 
         let mut disagreement = observer_quorum(&plan);
         disagreement[0].signature_sha256 = "f".repeat(64);
         assert_eq!(
-            validate_delivery_observer_quorum(
-                &disagreement, &plan, fault, "world-epoch-2"
-            ),
+            validate_delivery_observer_quorum(&disagreement, &plan, fault, "world-epoch-2"),
             Ok(DeliveryEvidenceVerdict::InsufficientEvidence)
         );
     }
@@ -1716,7 +1754,8 @@ mod tests {
             &mut self,
             request: &GazeboDispatchRequest,
         ) -> Result<GazeboDispatchOutcome, Self::Error> {
-            let fingerprint = dispatch_request_fingerprint(request).map_err(|_| "invalid request")?;
+            let fingerprint =
+                dispatch_request_fingerprint(request).map_err(|_| "invalid request")?;
             if fingerprint != request.payload_sha256 {
                 return Ok(GazeboDispatchOutcome::InvalidDispatchRequest);
             }
