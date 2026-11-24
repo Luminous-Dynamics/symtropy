@@ -88,10 +88,7 @@ impl BodyIdentity {
 /// All labels are provenance metadata supplied by the caller, not authenticated
 /// identities. The state snapshot remains the numerical source of the sweep.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SweepContext {
-    world_revision: u64,
-    step_index: u64,
-    dt_bits: u64,
+pub struct SweepProvenance {
     integrator_id: String,
     integrator_version: String,
     quantization: QuantizationProfile,
@@ -99,23 +96,14 @@ pub struct SweepContext {
     shape_bound_version: String,
 }
 
-impl SweepContext {
+impl SweepProvenance {
     pub fn new(
-        world_revision: u64,
-        step_index: u64,
-        dt: f64,
         integrator_id: impl Into<String>,
         integrator_version: impl Into<String>,
         quantization: QuantizationProfile,
         shape_bound_provider: impl Into<String>,
         shape_bound_version: impl Into<String>,
     ) -> Result<Self, SweepError> {
-        if !dt.is_finite() {
-            return Err(SweepError::NonFiniteTimeStep);
-        }
-        if dt < 0.0 {
-            return Err(SweepError::NegativeTimeStep);
-        }
         let labels = [
             integrator_id.into(),
             integrator_version.into(),
@@ -126,14 +114,41 @@ impl SweepContext {
             return Err(SweepError::EmptyProvenance);
         }
         Ok(Self {
-            world_revision,
-            step_index,
-            dt_bits: dt.to_bits(),
             integrator_id: labels[0].clone(),
             integrator_version: labels[1].clone(),
             quantization,
             shape_bound_provider: labels[2].clone(),
             shape_bound_version: labels[3].clone(),
+        })
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SweepContext {
+    world_revision: u64,
+    step_index: u64,
+    dt_bits: u64,
+    provenance: SweepProvenance,
+}
+
+impl SweepContext {
+    pub fn new(
+        world_revision: u64,
+        step_index: u64,
+        dt: f64,
+        provenance: SweepProvenance,
+    ) -> Result<Self, SweepError> {
+        if !dt.is_finite() {
+            return Err(SweepError::NonFiniteTimeStep);
+        }
+        if dt < 0.0 {
+            return Err(SweepError::NegativeTimeStep);
+        }
+        Ok(Self {
+            world_revision,
+            step_index,
+            dt_bits: dt.to_bits(),
+            provenance,
         })
     }
 
@@ -154,7 +169,7 @@ impl SweepContext {
 
     #[must_use]
     pub fn quantization(&self) -> QuantizationProfile {
-        self.quantization
+        self.provenance.quantization
     }
 }
 
@@ -236,7 +251,7 @@ impl<const D: usize> TranslationSweepInput<D> {
         {
             return Err(SweepError::InvalidAngularSpeed);
         }
-        if context.quantization == QuantizationProfile::NativeBinary64
+        if context.provenance.quantization == QuantizationProfile::NativeBinary64
             && !same_array(&integrator_post_linear_velocity, &post_linear_velocity)
         {
             return Err(SweepError::NativeVelocityMismatch);
@@ -353,7 +368,7 @@ pub fn produce_swept_aabb<const D: usize>(input: &TranslationSweepInput<D>) -> S
     if input.post_angular_velocity_norm_squared > ROTATION_UPDATE_NORM_SQUARED_THRESHOLD {
         return SweepDecision::Unsupported(UnsupportedReason::RotationUpdated);
     }
-    if input.context.quantization == QuantizationProfile::Unknown {
+    if input.context.provenance.quantization == QuantizationProfile::Unknown {
         return SweepDecision::Unsupported(UnsupportedReason::UnknownQuantizationProfile);
     }
 
@@ -548,11 +563,8 @@ fn next_up(value: f64) -> f64 {
 mod tests {
     use super::*;
 
-    fn context(dt: f64, quantization: QuantizationProfile) -> SweepContext {
-        SweepContext::new(
-            9,
-            27,
-            dt,
+    fn provenance(quantization: QuantizationProfile) -> SweepProvenance {
+        SweepProvenance::new(
             "semi-implicit-euler",
             "symtropy-integrator-v1",
             quantization,
@@ -560,6 +572,10 @@ mod tests {
             "shape-bounds-v1",
         )
         .unwrap()
+    }
+
+    fn context(dt: f64, quantization: QuantizationProfile) -> SweepContext {
+        SweepContext::new(9, 27, dt, provenance(quantization)).unwrap()
     }
 
     fn identity() -> BodyIdentity {
@@ -712,29 +728,11 @@ mod tests {
     #[test]
     fn malformed_time_and_state_are_rejected() {
         assert_eq!(
-            SweepContext::new(
-                1,
-                1,
-                f64::NAN,
-                "i",
-                "1",
-                QuantizationProfile::NativeBinary64,
-                "b",
-                "1"
-            ),
+            SweepContext::new(1, 1, f64::NAN, provenance(QuantizationProfile::NativeBinary64)),
             Err(SweepError::NonFiniteTimeStep)
         );
         assert_eq!(
-            SweepContext::new(
-                1,
-                1,
-                -1.0,
-                "i",
-                "1",
-                QuantizationProfile::NativeBinary64,
-                "b",
-                "1"
-            ),
+            SweepContext::new(1, 1, -1.0, provenance(QuantizationProfile::NativeBinary64)),
             Err(SweepError::NegativeTimeStep)
         );
         assert_eq!(Aabb::<0>::new([], []), Err(SweepError::ZeroDimension));
@@ -907,7 +905,7 @@ mod tests {
         )
         .unwrap();
         let proof = match produce_swept_aabb(&source) {
-            SweepDecision::Certified(proof) => proof,
+            SweepDecision::Certified(proof) => *proof,
             other => panic!("expected certified sweep, got {other:?}"),
         };
         assert!(proof.bounds.min()[0] <= -1.0);
