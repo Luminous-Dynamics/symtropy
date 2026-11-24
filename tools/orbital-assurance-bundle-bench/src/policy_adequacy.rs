@@ -1242,7 +1242,13 @@ mod tests {
             worst_loss_scenario_ids: vec!["s-A".to_owned(), "s-B".to_owned()],
             worst_wait_and_see_scenario_ids: vec!["s-A".to_owned(), "s-B".to_owned()],
             worst_outcome_class_regret_scenario_ids: vec!["s-A".to_owned(), "s-B".to_owned()],
-            worst_loss_reduction_vs_best_no_query: None,
+            worst_loss_reduction_vs_best_no_query: Some(
+                source_signed_difference(
+                    &Rational { numerator: 10, denominator: 1 },
+                    &Rational { numerator: candidate_loss, denominator: 1 },
+                )
+                .expect("candidate loss reduction"),
+            ),
             query_cost: cost(1, 5, 10),
             branch_action_cost_upper_bound: cost(1, 0, 5),
             total_cost_upper_bound: cost(2, 5, 15),
@@ -1269,6 +1275,10 @@ mod tests {
             case_id: "policy-case".to_owned(),
             source_policy_case_id: "discovery-case-1".to_owned(),
             decision_scope_id: "scope-1".to_owned(),
+            query_universe_receipt_id: "query-universe-1".to_owned(),
+            query_universe_scope_id: "scope-1".to_owned(),
+            expected_query_ids_sha256: "e".repeat(64),
+            queries_sha256: "f".repeat(64),
             scope_sha256: "c".repeat(64),
             decision_cutoff_id: "cutoff-106".to_owned(),
             world_set_receipt_id: "world-receipt-1".to_owned(),
@@ -1280,6 +1290,12 @@ mod tests {
                 source_commit: "a".repeat(40),
                 source_case_id: "discovery-case-1".to_owned(),
                 source_scope_id: "scope-1".to_owned(),
+                source_query_universe_receipt_id: "query-universe-1".to_owned(),
+                source_query_universe_scope_id: "scope-1".to_owned(),
+                source_expected_query_ids_sha256: "e".repeat(64),
+                source_queries_sha256: "f".repeat(64),
+                source_incumbent_policy_id: "incumbent-static".to_owned(),
+                source_best_no_query_worst_case_loss: Some(Rational { numerator: 10, denominator: 1 }),
                 source_scope_sha256: "c".repeat(64),
                 source_decision_cutoff_id: "cutoff-106".to_owned(),
                 source_world_set_receipt_id: "world-receipt-1".to_owned(),
@@ -1300,6 +1316,7 @@ mod tests {
             incumbent_feasibility_state: "FEASIBLE".to_owned(),
             loss_unit: "loss_micro_units".to_owned(),
             incumbent_policy_id: "incumbent-static".to_owned(),
+            best_no_query_worst_case_loss: Some(Rational { numerator: 10, denominator: 1 }),
             materiality_margin: Rational {
                 numerator: margin,
                 denominator: 1,
@@ -1510,6 +1527,57 @@ mod tests {
         assert_eq!(
             result.trigger_reason,
             "joint scenario identity mapping digest mismatch"
+        );
+    }
+
+    #[test]
+    fn query_universe_receipt_and_digest_must_match_the_source_case() {
+        let mut case = fixture_case(1, 2, 3);
+        case.queries_sha256 = "9".repeat(64);
+        let result = evaluate_case(&case);
+        assert_eq!(result.status, "INVALID_INPUT");
+        assert_eq!(
+            result.trigger_reason,
+            "upstream feasibility-discovery receipt pins are malformed"
+        );
+    }
+
+    #[test]
+    fn incumbent_identity_must_be_source_bound() {
+        let mut case = fixture_case(1, 2, 3);
+        case.incumbent_policy_id = "candidate-observable".to_owned();
+        let result = evaluate_case(&case);
+        assert_eq!(result.status, "INVALID_INPUT");
+        assert_eq!(
+            result.trigger_reason,
+            "upstream feasibility-discovery receipt pins are malformed"
+        );
+    }
+
+    #[test]
+    fn best_no_query_baseline_and_policy_loss_reduction_are_recomputed() {
+        let mut wrong_baseline = fixture_case(1, 2, 3);
+        wrong_baseline.best_no_query_worst_case_loss =
+            Some(Rational { numerator: 9, denominator: 1 });
+        let result = evaluate_case(&wrong_baseline);
+        assert_eq!(result.status, "INVALID_INPUT");
+        assert_eq!(
+            result.trigger_reason,
+            "best-no-query worst-case loss disagrees with upstream policy metrics"
+        );
+
+        let mut wrong_delta = fixture_case(1, 2, 3);
+        wrong_delta.policies[1]
+            .worst_loss_reduction_vs_best_no_query
+            .as_mut()
+            .expect("candidate reduction exists")
+            .magnitude = Rational { numerator: 8, denominator: 1 };
+        refresh_source_digests(&mut wrong_delta);
+        let result = evaluate_case(&wrong_delta);
+        assert_eq!(result.status, "INVALID_INPUT");
+        assert_eq!(
+            result.trigger_reason,
+            "policy worst-loss reduction diagnostic disagrees with best no-query baseline"
         );
     }
 
