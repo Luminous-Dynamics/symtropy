@@ -1180,6 +1180,19 @@ mod tests {
             cluster_means.loss.schedules,
             vec![vec![401, 251], vec![600, 200]]
         );
+        assert_eq!(bundle.calibration_hard_failure_milli.len(), 3);
+        assert_eq!(cluster_means.loss.schedules.len(), 2);
+
+        let mut permuted = data.clone();
+        permuted.episodes.reverse();
+        let permuted_bundle =
+            compile_oracle_outcomes(&permuted).expect("permuted same-split cluster receipts");
+        assert_eq!(
+            cluster_means,
+            permuted_bundle
+                .cluster_mean_matrix(DatasetRole::Calibration, LossAxis::ServiceLoss)
+                .expect("permuted cluster means")
+        );
 
         let hard_means = bundle
             .cluster_mean_matrix(DatasetRole::Calibration, LossAxis::HardPhysicalFailure)
