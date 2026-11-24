@@ -93,6 +93,7 @@ pub enum RiskControlError {
         adjusted_target_milli: u16,
     },
     InvalidExcessBound,
+    InvalidVarianceBound,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -242,6 +243,147 @@ pub fn calibrate(
     })
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct BernsteinRiskControlResult {
+    pub selected_parameter_index: usize,
+    pub parameter_count: usize,
+    pub calibration_schedules: usize,
+    pub target_risk_milli: u16,
+    pub hoeffding_correction_milli: u32,
+    pub bernstein_correction_milli: u32,
+    pub selected_correction_milli: u32,
+    pub adjusted_risk_milli: u16,
+    /// Declared upper bound on population standard deviation across all policies.
+    pub sigma_max_milli: u16,
+    pub selected_calibration_loss_mean_milli: f64,
+    pub monotonicity_violations: usize,
+    pub endpoint_population_risk_upper_milli: u16,
+    pub endpoint_contract_scope: String,
+    pub endpoint_evidence_ref: String,
+    pub revisions: FrozenRevisions,
+}
+
+/// Known-variance Bernstein correction from Appendix F, Corollary S1:
+/// D_Bern(m,n) = sigma_max * sqrt(2*ln(2m)/n) + B*ln(2m)/(3n).
+///
+/// sigma_max_milli must be a population-level upper bound over every candidate
+/// policy, not an estimate from the calibration sample. For losses in [0,B],
+/// Popoviciu's inequality gives sigma_max <= B/2. The returned correction is
+/// rounded upward to milli-loss units.
+pub fn bernstein_excess_bound_milli(
+    parameter_count: usize,
+    calibration_schedules: usize,
+    sigma_max_milli: u16,
+) -> Option<u32> {
+    if parameter_count == 0
+        || calibration_schedules == 0
+        || sigma_max_milli > LOSS_BOUND_MILLI / 2
+    {
+        return None;
+    }
+
+    let m = parameter_count as f64;
+    let n = calibration_schedules as f64;
+    let sigma = f64::from(sigma_max_milli);
+    let log_term = (2.0 * m).ln();
+    let bound = sigma * (2.0 * log_term / n).sqrt()
+        + f64::from(LOSS_BOUND_MILLI) * log_term / (3.0 * n);
+    if !bound.is_finite() || bound < 0.0 || bound > f64::from(u32::MAX) {
+        return None;
+    }
+    Some(bound.ceil() as u32)
+}
+
+/// Finite-grid non-monotone CRC with the known-variance Bernstein correction.
+///
+/// The population variance bound must be justified independently. A sample
+/// variance is not a known population bound. The terminal population-risk
+/// condition is required at the adjusted level.
+pub fn calibrate_bernstein(
+    grid: &WholeScheduleLossGrid,
+    target_risk_milli: u16,
+    sigma_max_milli: u16,
+    endpoint_contract: Option<&EndpointPopulationRiskContract>,
+    revisions: &FrozenRevisions,
+) -> Result<BernsteinRiskControlResult, RiskControlError> {
+    grid.validate()?;
+    validate_revisions(revisions)?;
+    if target_risk_milli == 0 || target_risk_milli >= LOSS_BOUND_MILLI {
+        return Err(RiskControlError::InvalidTarget);
+    }
+    if sigma_max_milli > LOSS_BOUND_MILLI / 2 {
+        return Err(RiskControlError::InvalidVarianceBound);
+    }
+
+    let endpoint =
+        endpoint_contract.ok_or(RiskControlError::MissingEndpointPopulationRiskContract)?;
+    if endpoint.scope.trim().is_empty() || endpoint.evidence_ref.trim().is_empty() {
+        return Err(RiskControlError::MissingEndpointPopulationRiskContract);
+    }
+
+    let n = grid.schedule_count();
+    let m = grid.parameter_count();
+    let hoeffding = excess_bound_milli(m, n).ok_or(RiskControlError::InvalidExcessBound)?;
+    let bernstein = bernstein_excess_bound_milli(m, n, sigma_max_milli)
+        .ok_or(RiskControlError::InvalidVarianceBound)?;
+    let correction = hoeffding.min(bernstein);
+
+    if correction >= u32::from(target_risk_milli) {
+        return Err(RiskControlError::NoPositiveAdjustedTarget {
+            target_risk_milli,
+            excess_bound_milli: correction,
+        });
+    }
+
+    let adjusted_target = target_risk_milli - correction as u16;
+    if endpoint.expected_loss_upper_milli > adjusted_target {
+        return Err(RiskControlError::EndpointPopulationRiskContractExceedsAdjustedTarget);
+    }
+
+    let mut selected = m - 1;
+    let mut selected_sum = grid
+        .schedule_losses_milli
+        .iter()
+        .map(|row| u64::from(row[m - 1]))
+        .sum::<u64>();
+    let mut found_feasible = false;
+    let n_u64 = n as u64;
+
+    for parameter_index in 0..m {
+        let loss_sum = grid
+            .schedule_losses_milli
+            .iter()
+            .map(|row| u64::from(row[parameter_index]))
+            .sum::<u64>();
+        let lhs = loss_sum + u64::from(LOSS_BOUND_MILLI);
+        let rhs = u64::from(adjusted_target) * (n_u64 + 1);
+        if lhs <= rhs {
+            selected = parameter_index;
+            selected_sum = loss_sum;
+            found_feasible = true;
+            break;
+        }
+    }
+
+    Ok(BernsteinRiskControlResult {
+        selected_parameter_index: selected,
+        parameter_count: m,
+        calibration_schedules: n,
+        target_risk_milli,
+        hoeffding_correction_milli: hoeffding,
+        bernstein_correction_milli: bernstein,
+        selected_correction_milli: correction,
+        adjusted_risk_milli: adjusted_target,
+        sigma_max_milli,
+        selected_calibration_loss_mean_milli: selected_sum as f64 / n as f64,
+        monotonicity_violations: grid.monotonicity_violations(),
+        endpoint_population_risk_upper_milli: endpoint.expected_loss_upper_milli,
+        endpoint_contract_scope: endpoint.scope.clone(),
+        endpoint_evidence_ref: endpoint.evidence_ref.clone(),
+        revisions: revisions.clone(),
+    })
+}
+
 #[derive(Clone, Copy, Debug)]
 struct SplitMix64 {
     state: u64,
@@ -385,6 +527,126 @@ pub fn render_csv() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn variance_controlled_fixture(count: usize, seed: u64) -> WholeScheduleLossGrid {
+        let mut rng = SplitMix64::new(seed);
+        let probabilities = [0.17_f64, 0.04, 0.12, 0.05];
+        let schedules = (0..count)
+            .map(|_| {
+                let draw = (rng.next_u64() >> 11) as f64 / ((1_u64 << 53) as f64);
+                probabilities
+                    .iter()
+                    .map(|probability| {
+                        if draw < *probability {
+                            LOSS_BOUND_MILLI
+                        } else {
+                            0
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        WholeScheduleLossGrid { schedule_losses_milli: schedules }
+    }
+
+    fn variance_fixture_revisions() -> FrozenRevisions {
+        FrozenRevisions {
+            policy_revision: "variance-policy-v1".to_owned(),
+            evaluator_revision: "variance-evaluator-v1".to_owned(),
+            loss_contract_revision: "variance-loss-v1".to_owned(),
+        }
+    }
+
+    fn variance_fixture_endpoint() -> EndpointPopulationRiskContract {
+        EndpointPopulationRiskContract {
+            scope: "SYNTHETIC_KNOWN_BERNOULLI_POLICY_GRID".to_owned(),
+            evidence_ref: "synthetic-generator-exact-population-risk".to_owned(),
+            population_expected_loss_upper_milli: 50,
+        }
+    }
+
+    #[test]
+    fn known_variance_bernstein_is_tighter_than_hoeffding_for_low_variance_losses() {
+        let hoeffding = excess_bound_milli(4, 1_200).expect("Hoeffding correction");
+        let bernstein = bernstein_excess_bound_milli(4, 1_200, 376).expect("Bernstein correction");
+        assert!(bernstein < hoeffding);
+        assert!(bernstein > 0);
+    }
+
+    #[test]
+    fn bernstein_adjusted_selector_preserves_non_monotone_policy_grid() {
+        let grid = variance_controlled_fixture(1_200, 0xBE12_2602);
+        let result = calibrate_bernstein(
+            &grid,
+            200,
+            376,
+            Some(&variance_fixture_endpoint()),
+            &variance_fixture_revisions(),
+        )
+        .expect("known-variance Bernstein selector");
+
+        assert!(result.monotonicity_violations > 0);
+        assert!(result.selected_correction_milli < result.hoeffding_correction_milli);
+        assert_eq!(result.endpoint_population_risk_upper_milli, 50);
+        assert!(result.adjusted_risk_milli < result.target_risk_milli);
+    }
+
+    #[test]
+    fn bernstein_selector_rejects_unjustified_variance_range() {
+        let grid = variance_controlled_fixture(1_200, 72);
+        assert_eq!(
+            calibrate_bernstein(
+                &grid,
+                200,
+                501,
+                Some(&variance_fixture_endpoint()),
+                &variance_fixture_revisions(),
+            ),
+            Err(RiskControlError::InvalidVarianceBound)
+        );
+    }
+
+    #[test]
+    fn bernstein_selector_rejects_when_adjustment_consumes_target() {
+        let grid = variance_controlled_fixture(50, 73);
+        assert!(matches!(
+            calibrate_bernstein(
+                &grid,
+                100,
+                500,
+                Some(&EndpointPopulationRiskContract {
+                    scope: "synthetic".to_owned(),
+                    evidence_ref: "synthetic".to_owned(),
+                    population_expected_loss_upper_milli: 0,
+                }),
+                &variance_fixture_revisions(),
+            ),
+            Err(RiskControlError::NoPositiveAdjustedTarget { .. })
+        ));
+    }
+
+    #[test]
+    fn bernstein_endpoint_contract_must_fit_adjusted_target() {
+        let grid = variance_controlled_fixture(1_200, 74);
+        let correction = bernstein_excess_bound_milli(4, 1_200, 376)
+            .expect("Bernstein correction")
+            .min(excess_bound_milli(4, 1_200).expect("Hoeffding correction"));
+        let adjusted = 200_u16 - correction as u16;
+        assert_eq!(
+            calibrate_bernstein(
+                &grid,
+                200,
+                376,
+                Some(&EndpointPopulationRiskContract {
+                    scope: "bad endpoint".to_owned(),
+                    evidence_ref: "synthetic".to_owned(),
+                    population_expected_loss_upper_milli: adjusted + 1,
+                }),
+                &variance_fixture_revisions(),
+            ),
+            Err(RiskControlError::EndpointPopulationRiskContractExceedsAdjustedTarget)
+        );
+    }
 
     #[test]
     fn correction_decreases_as_schedule_calibration_size_increases() {
