@@ -1019,7 +1019,7 @@ mod mission_path_distribution_tests {
 
         let distributions = mission_path_loss_distributions(&p, &actions, policy).unwrap();
         assert_matches_expected_loss(policy, &distributions);
-        assert_eq!(cvar(&distributions[0], 950_000).unwrap(), risk(0, 1));
-        assert_eq!(cvar(&distributions[1], 950_000).unwrap(), risk(0, 1));
+        assert_eq!(cvar(&distributions[0], 950_000).unwrap(), ExactRisk::from_ratio(0, 1).unwrap());
+        assert_eq!(cvar(&distributions[1], 950_000).unwrap(), ExactRisk::from_ratio(0, 1).unwrap());
     }
 }
