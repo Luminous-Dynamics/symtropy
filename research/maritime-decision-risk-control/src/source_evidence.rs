@@ -362,10 +362,7 @@ impl SourceArtifactLedger {
                 if artifact.retrieved_at_unix_ms < previous.retrieved_at_unix_ms {
                     return Err(SourceArtifactError::RetrievalTimeRegressed);
                 }
-                if let (
-                    Some(previous_published),
-                    Some(next_published),
-                ) = (
+                if let (Some(previous_published), Some(next_published)) = (
                     previous.source_published_at_unix_ms,
                     artifact.source_published_at_unix_ms,
                 ) {
