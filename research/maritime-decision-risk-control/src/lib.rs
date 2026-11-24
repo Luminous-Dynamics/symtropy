@@ -1,4 +1,5 @@
 pub mod assurance_envelope;
+pub mod clustered_dependence;
 pub mod high_probability;
 pub mod lipschitz;
 pub mod oracle_adapter;
