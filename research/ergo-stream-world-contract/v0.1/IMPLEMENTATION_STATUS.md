@@ -520,3 +520,14 @@ The split-conformal Rust API now stores `SplitConformalCalibrationIdentityV0` in
 Fit rejects malformed identity digests and empty receipt IDs. Prediction takes the owner-resolved full identity; any mismatch returns the full two-label set, no decision and `calibration_scope_admitted=false`. Tests cover changes to claim type/scope, predictor, preprocessing, score function, independent-unit kind and receipt/cohort/manifest/evidence identity.
 
 The schema/example now mirror the complete identity. The Rust code validates digest shape and field equality only; active receipt signature, custody, revocation, expiry and chronology remain owner-side checks. This is a new source head after the 129-test pass and requires exact-head Rust 1.96 formatting, tests/doctests and strict Clippy.
+
+## Full owner-issued calibration receipt identity binding
+
+The split-conformal calibrator now stores `SplitConformalCalibrationIdentityV0`: receipt ID, stratum, independent-unit kind, claim type/scope, predictor/preprocessing/score digests, calibration cohort digest, sample-ID digest, split-manifest digest and evidence-prefix digest.
+
+- Fit validates all required digest formats and rejects empty receipt IDs.
+- Prediction requires the complete evaluator-resolved identity; any mismatch returns the full two-label set, no decision and `calibration_scope_admitted=false`.
+- Tests mutate receipt ID, claim type/scope, predictor, preprocessing, score function, independent-unit kind, calibration cohort, sample-ID set, split manifest and evidence prefix; all changed identities fail closed.
+- The schema and example mirror this receipt identity.
+
+**Boundary:** the Rust module checks syntax and identity equality only. The episode owner still must verify signature/custody, active/revoked/expired status, chronology, and the actual calibration manifest before constructing this identity. The current code head requires exact-head Rust 1.96 format/test/doctest/strict-Clippy qualification.
