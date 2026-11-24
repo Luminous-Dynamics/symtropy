@@ -123,10 +123,12 @@ Do not duplicate the generic infrastructure already being developed in Symtropy 
 | Frozen case, topology, observation profile | #6346 / PR #6347 | Tokenized South African port/fuel-chain profile, asset/service boundaries, fuel/access evidence references. |
 | Planner proposal and actions | #6348 / PR #6350 | Fuel logistics and service alternatives are represented as candidate proposals, not authorization. |
 | Information requests/results | #6369 / PR #6370; #6397 / PR #6401 | Symthaea EVSI may request cargo-status, assay, tank-gauge, route, generator or service-meter observations; request and result remain separate and time-indexed. |
-| Run receipt and trajectory | #6352 / PR #6366 | v0.8 service-floor trajectory and metrics are attached as content-addressed per-step/final service artifacts. |
+| Run receipt and trajectory | #6352 / PR #6366 | Planned adapter will bind v0.8 service-floor trajectory and metrics; current v0.8 returns an in-memory Rust result and CSV, not a content-addressed artifact. |
 | Artifact and claim verification | #6402 / PR #6405; #6419 | Independent byte, signature, parent-link and role verifier qualifies the complete chain. |
 | Authority and access | Mycelix | Verifies issuer, rights, provider offer, reservation and commitment receipts; it does not make physical truth self-authenticating. |
 | Spatial context | Sol-Atlas | Supplies governed asset/site/route geometry and affected service cohorts. |
+
+Current v0.8 boundary: the evaluator returns a deterministic Rust result struct and the example binary prints CSV. It does not yet serialize canonical JSON, compute content digests, sign an output bundle or populate the generic run receipt. Build that adapter only against the accepted contract revisions, then require the independent artifact/claim verifier to qualify the resulting chain.
 
 This is a proposed interop mapping, not a claim that the draft contracts have already been merged or that the end-to-end pipeline is implemented. No generic action, restoration or signature schema should be forked inside SAFRB.
 
