@@ -279,9 +279,9 @@ pub fn reconcile_action_effects(
     })
 }
 
-fn index_events<'a>(
-    events: &'a [ConjunctionEventProbabilityEnvelope],
-) -> Result<BTreeMap<[u8; 32], &'a ConjunctionEventProbabilityEnvelope>, ActionPortfolioError> {
+fn index_events(
+    events: &[ConjunctionEventProbabilityEnvelope],
+) -> Result<BTreeMap<[u8; 32], &ConjunctionEventProbabilityEnvelope>, ActionPortfolioError> {
     let one = Rational::from_integer(1);
     let mut indexed = BTreeMap::new();
     for event in events {
