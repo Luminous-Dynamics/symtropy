@@ -1,0 +1,231 @@
+{
+  "mapping_profile": {
+    "id": "aero-basalt-resource-map-v0.1",
+    "version": 1,
+    "consumer_contract": "BASALT state timeline schema_version=1",
+    "synthetic_only": true,
+    "claim_ceiling": "adapter_mapping_contract_only",
+    "ownership_rule": "This file maps aerospace domain identities into the generic BASALT timeline. It is not a timeline, evidence ledger, qualification authority, or physical source of truth."
+  },
+  "resource_classes": [
+    {
+      "class": "material_system_revision",
+      "resource_id_template": "aero:material-system:{immutable_id}",
+      "owner": "engineering_material_specification_owner",
+      "default_change_kind": "dependency_change",
+      "digest_rule": "Pin the authoritative immutable material specification/revision artifact or content commitment."
+    },
+    {
+      "class": "material_lot",
+      "resource_id_template": "aero:material-lot:{immutable_id}",
+      "owner": "Mycelix manufactured-unit/build packet lineage",
+      "default_change_kind": "dependency_change",
+      "digest_rule": "Use the verified lot/traveler packet content commitment; a lot label is not a digest."
+    },
+    {
+      "class": "process_recipe_revision",
+      "resource_id_template": "aero:process-recipe:{immutable_id}",
+      "owner": "manufacturing process authority",
+      "default_change_kind": "dependency_change",
+      "digest_rule": "Pin the exact controlled recipe/process revision and applicable process window."
+    },
+    {
+      "class": "process_batch",
+      "resource_id_template": "aero:process-batch:{immutable_id}",
+      "owner": "Mycelix manufacturing execution lineage",
+      "default_change_kind": "dependency_change",
+      "digest_rule": "Pin the exact build/process execution packet and its verified artifact commitment."
+    },
+    {
+      "class": "machine_tooling_site",
+      "resource_id_template": "aero:process-resource:{immutable_id}",
+      "owner": "manufacturing execution / equipment records",
+      "default_change_kind": "dependency_change",
+      "digest_rule": "Identity and state are bound to an exact equipment/site record; a display name is insufficient."
+    },
+    {
+      "class": "panel_or_detail",
+      "resource_id_template": "aero:manufactured-detail:{immutable_id}",
+      "owner": "Mycelix serialized-unit and manufacturing lineage",
+      "default_change_kind": "dependency_change",
+      "digest_rule": "Pin the exact manufactured unit/detail revision and its source genealogy."
+    },
+    {
+      "class": "specimen_and_sampling_event",
+      "resource_id_template": "aero:specimen:{immutable_id}",
+      "owner": "specimen traveler and sampling record; independent of inferred hierarchy",
+      "default_change_kind": "dependency_change",
+      "digest_rule": "Pin the independent specimen source assertion and sampling event; hierarchy-derived identity alone is not an independent witness."
+    },
+    {
+      "class": "product_configuration",
+      "resource_id_template": "aero:product-config:{immutable_id}",
+      "owner": "authoritative product definition / PLM configuration",
+      "default_change_kind": "configuration_change",
+      "digest_rule": "Pin exact product-definition revision and the independent specimen/intended-configuration assertion."
+    },
+    {
+      "class": "test_method_and_campaign",
+      "resource_id_template": "aero:test-campaign:{immutable_id}",
+      "owner": "laboratory method and campaign record",
+      "default_change_kind": "dependency_change",
+      "digest_rule": "Pin method/revision, campaign protocol and the exact test execution record."
+    },
+    {
+      "class": "instrument_and_calibration",
+      "resource_id_template": "aero:metrology:{immutable_id}",
+      "owner": "instrument calibration authority / laboratory",
+      "default_change_kind": "dependency_change",
+      "digest_rule": "Pin instrument identity, calibration certificate/event, validity interval and any revocation or correction event."
+    },
+    {
+      "class": "inspection_procedure_and_ndt_equipment",
+      "resource_id_template": "aero:inspection:{immutable_id}",
+      "owner": "inspection authority and NDE equipment/metrology records",
+      "default_change_kind": "dependency_change",
+      "digest_rule": "Pin procedure revision, equipment identity, calibration, coverage and demonstrated detectability scope."
+    },
+    {
+      "class": "analysis_model_and_solver",
+      "resource_id_template": "aero:analysis-model:{immutable_id}",
+      "owner": "engineering analysis configuration and source/toolchain owner",
+      "default_change_kind": "source_change",
+      "digest_rule": "Pin model source, solver/version, executable, parameters, mesh and boundary-condition artifacts separately where each can affect the claim."
+    },
+    {
+      "class": "analysis_mesh_and_boundary_conditions",
+      "resource_id_template": "aero:analysis-input:{immutable_id}",
+      "owner": "engineering analysis configuration",
+      "default_change_kind": "configuration_change",
+      "digest_rule": "Pin exact mesh and boundary-condition artifacts, including coordinate frames and load/environment state."
+    },
+    {
+      "class": "component_build_or_evidence_packet",
+      "resource_id_template": "aero:component-packet:{immutable_id}",
+      "owner": "Mycelix AEROCOMMONS packet",
+      "default_change_kind": "dependency_change",
+      "digest_rule": "Reuse packet artifact SHA-256 and byte length; do not create a second artifact ledger."
+    },
+    {
+      "class": "environment_or_mission_case",
+      "resource_id_template": "aero:environment:{immutable_id}",
+      "owner": "mission and environmental-condition definition owner",
+      "default_change_kind": "environment_change",
+      "digest_rule": "Pin the exact declared environment/mission scenario revision; no implication of field representativeness."
+    }
+  ],
+  "evidence_classes": [
+    {
+      "class": "material_measurement",
+      "check_id": "aero.material.measurement.v1",
+      "basalt_evidence_kind": "other",
+      "expected_resource_classes": [
+        "material_system_revision",
+        "material_lot",
+        "process_batch",
+        "specimen_and_sampling_event",
+        "test_method_and_campaign",
+        "instrument_and_calibration"
+      ],
+      "notes": "Evidence digest refers to the actual report/record artifact. A parseable or signed report is not proof of physical measurement truth."
+    },
+    {
+      "class": "coupon_or_element_test",
+      "check_id": "aero.structure.test.v1",
+      "basalt_evidence_kind": "test",
+      "expected_resource_classes": [
+        "material_lot",
+        "process_batch",
+        "product_configuration",
+        "test_method_and_campaign",
+        "instrument_and_calibration",
+        "environment_or_mission_case"
+      ],
+      "notes": "The test unit, group hierarchy and uncertainty provenance must remain available through the supporting packet/claim closure."
+    },
+    {
+      "class": "analysis_or_model_validation",
+      "check_id": "aero.analysis.validation.v1",
+      "basalt_evidence_kind": "other",
+      "expected_resource_classes": [
+        "analysis_model_and_solver",
+        "analysis_mesh_and_boundary_conditions",
+        "product_configuration",
+        "environment_or_mission_case"
+      ],
+      "notes": "A model verification/validation result and a physical test result are distinct evidence classes."
+    },
+    {
+      "class": "inspection_or_ndt_result",
+      "check_id": "aero.inspection.result.v1",
+      "basalt_evidence_kind": "other",
+      "expected_resource_classes": [
+        "inspection_procedure_and_ndt_equipment",
+        "panel_or_detail",
+        "product_configuration",
+        "instrument_and_calibration"
+      ],
+      "notes": "Coverage, probability of detection, threshold of detection and applicability are separate claims."
+    },
+    {
+      "class": "structural_closure",
+      "check_id": "aero.aircraft.structural-closure.v1",
+      "basalt_evidence_kind": "other",
+      "expected_resource_classes": [
+        "material_system_revision",
+        "material_lot",
+        "process_batch",
+        "panel_or_detail",
+        "product_configuration",
+        "analysis_model_and_solver",
+        "analysis_mesh_and_boundary_conditions",
+        "component_build_or_evidence_packet"
+      ],
+      "notes": "This is a closure/analysis evidence record, not an approval or airworthiness certificate."
+    },
+    {
+      "class": "mission_energy_or_performance_closure",
+      "check_id": "aero.aircraft.mission-closure.v1",
+      "basalt_evidence_kind": "other",
+      "expected_resource_classes": [
+        "product_configuration",
+        "analysis_model_and_solver",
+        "analysis_mesh_and_boundary_conditions",
+        "environment_or_mission_case"
+      ],
+      "notes": "Keep battery, propulsion, thermal and reserve claims separately scoped and linked through exact dependencies."
+    }
+  ],
+  "change_kind_mapping": [
+    {
+      "domain_change": "material lot/source/grade/specification, process recipe/window, batch, machine/tooling/site, specimen identity, calibration, test method, inspection method, NDE equipment, evidence correction/revocation",
+      "basalt_change_kind": "dependency_change"
+    },
+    {
+      "domain_change": "product definition, geometry, layup/configuration, mesh or boundary-condition configuration",
+      "basalt_change_kind": "configuration_change"
+    },
+    {
+      "domain_change": "analysis source, solver implementation or model implementation source",
+      "basalt_change_kind": "source_change"
+    },
+    {
+      "domain_change": "compiler, solver runtime, external analysis toolchain",
+      "basalt_change_kind": "toolchain_change"
+    },
+    {
+      "domain_change": "mission/environment/thermal boundary state",
+      "basalt_change_kind": "environment_change"
+    }
+  ],
+  "mapping_invariants": [
+    "resource_id is stable logical identity; digest is exact content/state identity; generation is BASALT-owned monotonic resource history.",
+    "Never derive a digest from a human-readable identifier or a mutable label.",
+    "Never create resource pins from an inferred or unresolved identity.",
+    "Never emit dependency_coverage=complete unless the applicable observer profile is independently qualified for every relevant input channel; otherwise emit incomplete/unresolved and retain the affected evidence as ineligible.",
+    "Map evidence_dependencies only to already recorded upstream evidence IDs, preserving the evidence DAG; typed claim-support closure remains in the existing CEB/engineering claim representation.",
+    "Do not create domain-specific invalidation algorithms or a second append-only qualification lifecycle.",
+    "A change to an independent source assertion or certificate revocation is an event even when a physical value or content label is unchanged.",
+    "BASALT freshness is not physical truth; ASSURE lifecycle currentness is not engineering correctness; neither grants approval or execution authority."
+  ]
+}
