@@ -52,7 +52,13 @@ The crucial difference is separating joint rank from physical rank after nuisanc
 
 ## Manufactured tests
 
-The 27 current deterministic tests cover orthogonal and exact/near-collinear physical/nuisance effects, nuisance-only rank deficiency, characteristic scaling, row permutation, positive/negative confounding, zero-sensitivity parameters, underdetermined observations, malformed/non-finite inputs, one-column decomposition, Jacobi non-convergence, the distinction between absent physical sensitivity and nuisance confounding, correlated-noise whitening, positive-definite covariance validation, no-jitter rejection, and conditional innovation/Schur-complement controls for candidate measurements.
+The 28 current deterministic tests cover orthogonal and exact/near-collinear physical/nuisance effects, nuisance-only rank deficiency, characteristic scaling, row permutation, positive/negative confounding, zero-sensitivity parameters, underdetermined observations, malformed/non-finite inputs, one-column decomposition, Jacobi non-convergence, the distinction between absent physical sensitivity and nuisance confounding, correlated-noise whitening, positive-definite covariance validation, no-jitter rejection, and conditional innovation/Schur-complement controls for candidate measurements.
+
+## V0.4: raw-covariance-aware candidate action ranking
+
+The API `rank_covariance_aware_measurement_actions` now composes the full local design path. It accepts raw baseline sensitivity (J_0), (Sigma_{00}), and each candidate's raw (J_1), (Sigma_{11}), (Sigma_{10}); it whitens the baseline, computes the Schur-complement conditional innovation for each candidate, then ranks the nuisance-profiled physical-information gain per cost. Callers no longer have to manually whiten candidate innovations before invoking the action ranker.
+
+A manufactured test directly compares a highly correlated repeat ((ho=0.9)) with an independent new view and verifies that the independent view is ranked higher. The API remains a bounded dense reference, requires qualified covariance blocks, and does not compute EVSI for a nonlinear posterior or control hardware.
 
 ## V0.3: conditional innovation whitening for candidate measurements
 
