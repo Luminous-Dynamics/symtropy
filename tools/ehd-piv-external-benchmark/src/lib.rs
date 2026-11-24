@@ -208,9 +208,7 @@ fn validate_band(band: &YPlusBand) -> Result<(), ProfileMetricError> {
 }
 
 fn valid_interval(interval: Interval) -> bool {
-    interval.lower.is_finite()
-        && interval.upper.is_finite()
-        && interval.lower <= interval.upper
+    interval.lower.is_finite() && interval.upper.is_finite() && interval.lower <= interval.upper
 }
 
 fn compare_band(
@@ -304,8 +302,7 @@ fn compare_band(
         integrated_signed_error += delta_y * (left_error + right_error) * 0.5;
         integrated_squared_error +=
             delta_y * (left_error * left_error + right_error * right_error) * 0.5;
-        integrated_absolute_error +=
-            delta_y * (left_error.abs() + right_error.abs()) * 0.5;
+        integrated_absolute_error += delta_y * (left_error.abs() + right_error.abs()) * 0.5;
         integrated_reference_squared += delta_y
             * (left.reference.value * left.reference.value
                 + right.reference.value * right.reference.value)
