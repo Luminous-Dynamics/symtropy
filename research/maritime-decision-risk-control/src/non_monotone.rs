@@ -169,7 +169,8 @@ pub fn calibrate(
         return Err(RiskControlError::InvalidTarget);
     }
 
-    let endpoint = endpoint_contract.ok_or(RiskControlError::MissingEndpointPopulationRiskContract)?;
+    let endpoint =
+        endpoint_contract.ok_or(RiskControlError::MissingEndpointPopulationRiskContract)?;
     if endpoint.scope.trim().is_empty() || endpoint.evidence_ref.trim().is_empty() {
         return Err(RiskControlError::MissingEndpointPopulationRiskContract);
     }
@@ -185,10 +186,12 @@ pub fn calibrate(
     }
     let adjusted_target = target_risk_milli - correction as u16;
     if endpoint.expected_loss_upper_milli > adjusted_target {
-        return Err(RiskControlError::EndpointPopulationRiskExceedsAdjustedTarget {
-            endpoint_risk_upper_milli: endpoint.expected_loss_upper_milli,
-            adjusted_target_milli: adjusted_target,
-        });
+        return Err(
+            RiskControlError::EndpointPopulationRiskExceedsAdjustedTarget {
+                endpoint_risk_upper_milli: endpoint.expected_loss_upper_milli,
+                adjusted_target_milli: adjusted_target,
+            },
+        );
     }
 
     let last = m - 1;
@@ -360,7 +363,9 @@ pub fn render_csv() -> String {
                     test_loss,
                 ));
             }
-            Err(RiskControlError::NoPositiveAdjustedTarget { excess_bound_milli, .. }) => {
+            Err(RiskControlError::NoPositiveAdjustedTarget {
+                excess_bound_milli, ..
+            }) => {
                 output.push_str(&format!(
                     "{name},WHOLE_SCHEDULE,CRC_NM_FINITE_GRID,{n},4,{alpha},{excess_bound_milli},NA,NA,NA,{},0,SYNTHETIC_IID_WHOLE_SCHEDULES,terminal fallback zero-loss by construction,{TEST_SCHEDULES},NA,NO_POSITIVE_ADJUSTED_TARGET\n",
                     calibration.monotonicity_violations()
