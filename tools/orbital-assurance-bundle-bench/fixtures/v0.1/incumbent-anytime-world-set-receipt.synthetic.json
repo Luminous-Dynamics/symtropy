@@ -1,0 +1,66 @@
+{
+  "schema": "luminous.orbital-incumbent-world-set-bridge.receipt.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "source-receipt-structure-and-inventory-composition-only",
+  "source": {
+    "owner_issue": "#6887",
+    "receipt_schema": "luminous.orbital-decision-anytime-valid.receipt.v0.1",
+    "claim_ceiling": "synthetic-anytime-valid-world-exclusion-only",
+    "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "source_case_id": "qualified_adaptive_receipt",
+    "receipt_id": "source-receipt-001",
+    "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "contract": {
+    "guarantee_type": "ANYTIME_VALID_WORLD_EXCLUSION",
+    "guarantee_disposition": "QUALIFIED",
+    "optional_stopping_covered": true,
+    "predictable_selection": true,
+    "adaptive_selection_covered": true,
+    "process_id": "process-001",
+    "look_index": 14,
+    "stopping_state": "ACTIVE",
+    "alpha_total": {
+      "numerator": 1,
+      "denominator": 20
+    },
+    "alpha_allocated": {
+      "numerator": 1,
+      "denominator": 50
+    },
+    "alpha_allocation_id": "campaign-alpha-001",
+    "alpha_allocation_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "filtration_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "selection_policy_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "conditional_kernel_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  },
+  "cutoff": {
+    "cutoff_id": "decision-cutoff-2026-11-24T10:00Z",
+    "event_watermark_sequence": 106,
+    "observed_max_sequence": 105,
+    "history_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "knowledge_time_utc": "2026-11-24T10:00:00Z"
+  },
+  "world_inventory": {
+    "candidate_world_ids": [
+      "world-A",
+      "world-B"
+    ],
+    "candidate_world_ids_sha256": "f5076f6cf46262c1c632b2df7853f46bd1d20128244ca9a4f1842d14d147c2db",
+    "surviving_world_ids": [
+      "world-A",
+      "world-B"
+    ],
+    "surviving_world_ids_sha256": "f5076f6cf46262c1c632b2df7853f46bd1d20128244ca9a4f1842d14d147c2db",
+    "excluded_world_ids": [],
+    "excluded_world_ids_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  },
+  "qualification": {
+    "source_state": "CURRENT",
+    "model_family_state": "ADEQUATE",
+    "channel_dependence_state": "ADEQUATE",
+    "action_realization_state": "NOT_REQUIRED_BY_PROFILE"
+  },
+  "adapter_disposition": "CONSUMABLE",
+  "authority_granted": false
+}
