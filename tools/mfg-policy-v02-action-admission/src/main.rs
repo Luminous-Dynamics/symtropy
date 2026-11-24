@@ -1,5 +1,6 @@
 use serde::Serialize;
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::process::ExitCode;
 
@@ -29,6 +30,7 @@ struct AdmissionReceipt {
     benchmark_id: String,
     case_id: String,
     decision_epoch: u64,
+    decision_frame_digest: String,
     operation_id: String,
     resource_id: String,
     status: AdmissionStatus,
@@ -81,6 +83,12 @@ fn required_u64(value: &Value, key: &str, context: &str) -> Result<u64, String> 
         .get(key)
         .and_then(Value::as_u64)
         .ok_or_else(|| fail(format!("{context}_{key}_missing_or_invalid")))
+}
+
+fn digest_value(value: &Value) -> Result<String, String> {
+    let bytes = serde_json::to_vec(value)
+        .map_err(|error| fail(format!("decision_frame_serialize:{error}")))?;
+    Ok(format!("{:x}", Sha256::digest(bytes)))
 }
 
 fn mark_hold(receipt: &mut AdmissionReceipt, reason: &str) {
@@ -334,6 +342,7 @@ fn validate_visible_history(
 fn evaluate(frame: &Value, proposal: &Value) -> Result<AdmissionReceipt, String> {
     validate_schema(frame, FRAME_SCHEMA_JSON, "decision_frame")?;
     validate_schema(proposal, PROPOSAL_SCHEMA_JSON, "action_proposal")?;
+    let decision_frame_digest = digest_value(frame)?;
 
     let benchmark_id = required_string(frame, "benchmark_id", "decision_frame")?.to_string();
     let case_id = required_string(frame, "case_id", "decision_frame")?.to_string();
@@ -346,6 +355,7 @@ fn evaluate(frame: &Value, proposal: &Value) -> Result<AdmissionReceipt, String>
         benchmark_id: benchmark_id.clone(),
         case_id: case_id.clone(),
         decision_epoch,
+        decision_frame_digest: decision_frame_digest.clone(),
         operation_id: operation_id.clone(),
         resource_id: resource_id.clone(),
         status: AdmissionStatus::Admissible,
@@ -363,6 +373,12 @@ fn evaluate(frame: &Value, proposal: &Value) -> Result<AdmissionReceipt, String>
         || required_u64(proposal, "decision_epoch", "action_proposal")? != decision_epoch
     {
         mark_rejected(&mut receipt, "proposal_frame_identity_mismatch");
+        return Ok(receipt);
+    }
+    if required_string(proposal, "decision_frame_digest", "action_proposal")?
+        != decision_frame_digest
+    {
+        mark_rejected(&mut receipt, "proposal_frame_digest_mismatch");
         return Ok(receipt);
     }
 
@@ -756,6 +772,7 @@ mod tests {
             "benchmark_id": "MFG-POLICY-V02-CHALLENGE-001",
             "case_id": "CASE-01",
             "decision_epoch": 0,
+            "decision_frame_digest": digest_value(&sample_frame()).unwrap(),
             "operation_id": "OP-3",
             "resource_id": "RESOURCE-A",
             "action_kind": "START",
@@ -982,6 +999,17 @@ mod tests {
             evaluate(&frame, &sample_proposal()).unwrap_err(),
             "observable_history_must_end_at_decision_epoch"
         );
+    }
+
+    #[test]
+    fn proposal_from_another_frame_digest_is_rejected() {
+        let frame = sample_frame();
+        let mut proposal = sample_proposal();
+        proposal["decision_frame_digest"] = Value::from("0".repeat(64));
+        let receipt = evaluate(&frame, &proposal).unwrap();
+        assert_eq!(receipt.status, AdmissionStatus::Rejected);
+        assert_eq!(receipt.reason_codes, vec!["proposal_frame_digest_mismatch"]);
+        assert_ne!(receipt.decision_frame_digest, proposal["decision_frame_digest"]);
     }
 
     #[test]
