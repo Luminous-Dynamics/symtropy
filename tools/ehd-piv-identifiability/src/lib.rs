@@ -191,7 +191,11 @@ pub fn analyze_local_identifiability(
         joint_rank,
         parameter_count,
     );
-    let joint_status = classify_status(joint_rank, parameter_count, joint_condition_number);
+    let joint_status = set_status_threshold(
+        classify_status(joint_rank, parameter_count, joint_condition_number),
+        joint_condition_number,
+        input.config.maximum_condition_number,
+    );
 
     let physical_indices: Vec<usize> = input
         .parameters
@@ -223,7 +227,8 @@ pub fn analyze_local_identifiability(
         .as_ref()
         .and_then(|svd| svd.singular_values.first().copied())
         .unwrap_or(0.0);
-    let nuisance_threshold = nuisance_max * input.config.rank_relative_tolerance;
+    let nuisance_threshold = (nuisance_max * input.config.rank_relative_tolerance)
+        .max(input.config.minimum_profiled_physical_sensitivity);
     let nuisance_rank = nuisance_svd
         .as_ref()
         .map_or(0, |svd| count_above(&svd.singular_values, nuisance_threshold));
@@ -274,10 +279,14 @@ pub fn analyze_local_identifiability(
     } else {
         None
     };
-    let physical_status = classify_status(
-        physical_rank,
-        physical_indices.len(),
+    let physical_status = set_status_threshold(
+        classify_status(
+            physical_rank,
+            physical_indices.len(),
+            physical_condition_number,
+        ),
         physical_condition_number,
+        input.config.maximum_condition_number,
     );
 
     let mut parameter_sensitivities = Vec::with_capacity(parameter_count);
@@ -365,10 +374,10 @@ fn validate_input(input: &IdentifiabilityInput) -> Result<(), IdentifiabilityErr
     }
     let row_count = input.whitened_sensitivity_matrix.len();
     let column_count = input.parameters.len();
-    if row_count > 1_000_000 {
+    if row_count > 65_536 {
         return Err(IdentifiabilityError::TooManyObservations { count: row_count });
     }
-    if column_count > 128 {
+    if column_count > 64 {
         return Err(IdentifiabilityError::TooManyParameters { count: column_count });
     }
     if !input
@@ -652,9 +661,7 @@ fn classify_status(
         IdentifiabilityStatus::NoInformativeSensitivity
     } else if numerical_rank < required_rank {
         IdentifiabilityStatus::RankDeficient
-    } else if condition_number.is_some_and(|value| value.is_finite() && value > 1.0e12) {
-        // A generic upper safety bound. The caller's declared maximum is
-        // applied by the caller after this helper via the thresholded status.
+    } else if condition_number.is_some_and(|value| !value.is_finite()) {
         IdentifiabilityStatus::IllConditioned
     } else {
         IdentifiabilityStatus::Identifiable
@@ -1005,4 +1012,25 @@ mod tests {
         assert_eq!(report.physical_status, IdentifiabilityStatus::Identifiable);
         assert_eq!(report.jacobi_sweeps, 1);
     }
+    #[test]
+    fn jacobi_nonconvergence_fails_closed() {
+        let mut problem = input(
+            vec![
+                parameter("flow", ParameterRole::Physical),
+                parameter("gain", ParameterRole::Nuisance),
+                parameter("psf", ParameterRole::Nuisance),
+            ],
+            vec![
+                vec![1.0, 1.0, 0.0],
+                vec![0.0, 1.0, 1.0],
+                vec![1.0, 0.0, 1.0],
+            ],
+        );
+        problem.config.maximum_jacobi_sweeps = 1;
+        assert!(matches!(
+            analyze_local_identifiability(&problem),
+            Err(IdentifiabilityError::JacobiDidNotConverge { sweeps: 1 })
+        ));
+    }
+
 }
