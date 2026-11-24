@@ -729,7 +729,7 @@ pub trait GazeboFaultInjectorTransport {
 }
 
 /// Issue one dispatch attempt. An error is not retried and maps to Unknown.
-pub fn dispatch_fault_once<T: GazeboFaultInjectorTransport>(
+fn dispatch_fault_once<T: GazeboFaultInjectorTransport>(
     registry: &mut DispatchAttemptRegistry,
     injector: &mut T,
     request: &GazeboDispatchRequest,
