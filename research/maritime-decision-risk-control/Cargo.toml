@@ -18,3 +18,7 @@ path = "src/main.rs"
 [[bin]]
 name = "non-monotone-risk-audit"
 path = "src/bin/non_monotone_risk_audit.rs"
+
+[[bin]]
+name = "weighted-shift-risk-audit"
+path = "src/bin/weighted_shift_risk_audit.rs"
