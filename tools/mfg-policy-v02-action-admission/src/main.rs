@@ -98,7 +98,11 @@ fn mark_hold(receipt: &mut AdmissionReceipt, reason: &str) {
 
 fn mark_rejected(receipt: &mut AdmissionReceipt, reason: &str) {
     receipt.status = AdmissionStatus::Rejected;
-    if !receipt.reason_codes.iter().any(|existing| existing == reason) {
+    if !receipt
+        .reason_codes
+        .iter()
+        .any(|existing| existing == reason)
+    {
         receipt.reason_codes.push(reason.to_string());
     }
 }
