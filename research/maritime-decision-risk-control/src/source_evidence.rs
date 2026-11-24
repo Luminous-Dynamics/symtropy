@@ -774,8 +774,12 @@ mod tests {
     #[test]
     fn ledger_keeps_source_publication_and_system_retrieval_as_of_times_distinct() {
         let mut ledger = SourceArtifactLedger::default();
-        ledger.append(artifact("r1", 1_000, 1_100, None)).expect("r1");
-        ledger.append(artifact("r2", 1_500, 1_600, Some("r1"))).expect("r2");
+        ledger
+            .append(artifact("r1", 1_000, 1_100, None))
+            .expect("r1");
+        ledger
+            .append(artifact("r2", 1_500, 1_600, Some("r1")))
+            .expect("r2");
 
         let as_known_before_r2 = ledger
             .latest_available_as_of("dgt-firm-berth-plan-2026-11-24", 1_300, 1_700)
