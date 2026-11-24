@@ -84,6 +84,17 @@ def probability_payload_digest(weights: list[dict[str, Any]]) -> str:
     return digest_json(canonical_weight_rows(weights))
 
 
+def canonical_joint_rows(rows: list[dict[str, Any]]) -> list[dict[str, str]]:
+    return [
+        {
+            "scenario_id": row["scenario_id"],
+            "world_id": row["world_id"],
+            "loss_model_id": row["loss_model_id"],
+        }
+        for row in sorted(rows, key=lambda item: item["scenario_id"])
+    ]
+
+
 def var_threshold(losses: list[tuple[Fraction, Fraction]], alpha: Fraction) -> Fraction:
     """Lower alpha-quantile; ties handled as one atom."""
     cumulative = Fraction(0, 1)
@@ -206,6 +217,19 @@ def validate_receipt(case: dict[str, Any]) -> list[tuple[str, Fraction]]:
         or digest_json(expected_ids) != case.get("expected_scenario_ids_sha256")
     ):
         raise ValueError("expected joint scenario ID inventory is malformed or digest-inconsistent")
+    joint_scenarios = case.get("joint_scenarios")
+    if not isinstance(joint_scenarios, list) or not joint_scenarios:
+        raise ValueError("joint scenario identity records are missing")
+    joint_ids = [row.get("scenario_id") for row in joint_scenarios if isinstance(row, dict)]
+    if (
+        len(joint_ids) != len(joint_scenarios)
+        or any(not valid_id(value) for value in joint_ids)
+        or len(set(joint_ids)) != len(joint_ids)
+        or sorted(joint_ids) != expected_ids
+        or digest_json(canonical_joint_rows(joint_scenarios))
+        != case.get("joint_scenario_manifest_sha256")
+    ):
+        raise ValueError("joint scenario identity records or manifest digest are inconsistent")
 
     weights = receipt.get("weights")
     if not isinstance(weights, list) or len(weights) != len(expected_ids):
