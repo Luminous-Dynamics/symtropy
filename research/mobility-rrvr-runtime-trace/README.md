@@ -232,3 +232,6 @@ The reset marker is bound to the exact compiled plan digest, not only to the sim
 
 
 The new model/GazeboResetLifecycle.tla is checked with the workflow's pinned TLC tool: the safe lifecycle must satisfy at-most-one reset request and no fault dispatch before verified reset; the unsafe retry config must produce an AtMostOneResetRequest counterexample. This remains a bounded abstract protocol model, not a proof of Gazebo transport behavior or a Rust/TLA refinement result.
+
+
+Fault-dispatch keys and payload commitments include the verified post-reset world epoch and simulation clock identity. Reusing the same plan/run/fault fields against a different world generation or clock must produce a different key and request fingerprint.
