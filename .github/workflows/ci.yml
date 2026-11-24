@@ -57,14 +57,42 @@ jobs:
     - name: Check Formatting
       run: cargo fmt --all -- --check
 
-    # Isolated metrology research crate; the production workspace excludes it.
+    # Isolated magnetic research crates are intentionally nested workspaces.
+    # Each command runs only when its crate is present in the checked-out PR.
+    - name: Check Magnetic Field-Map Oracle Formatting
+      if: ${{ hashFiles('research/magnetics/field-map-metrics/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path research/magnetics/field-map-metrics/Cargo.toml -- --check
+
+    - name: Clippy Magnetic Field-Map Oracle
+      if: ${{ hashFiles('research/magnetics/field-map-metrics/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path research/magnetics/field-map-metrics/Cargo.toml --all-targets -- -D warnings
+
+    - name: Test Magnetic Field-Map Oracle
+      if: ${{ hashFiles('research/magnetics/field-map-metrics/Cargo.toml') != '' }}
+      run: cargo test --manifest-path research/magnetics/field-map-metrics/Cargo.toml
+
+    - name: Check Axial Cuboid Reference Formatting
+      if: ${{ hashFiles('research/magnetics/axial-cuboid-reference/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path research/magnetics/axial-cuboid-reference/Cargo.toml -- --check
+
+    - name: Clippy Axial Cuboid Reference
+      if: ${{ hashFiles('research/magnetics/axial-cuboid-reference/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path research/magnetics/axial-cuboid-reference/Cargo.toml --all-targets -- -D warnings
+
+    - name: Test Axial Cuboid Reference
+      if: ${{ hashFiles('research/magnetics/axial-cuboid-reference/Cargo.toml') != '' }}
+      run: cargo test --manifest-path research/magnetics/axial-cuboid-reference/Cargo.toml
+
     - name: Check Magnetic Field Covariance Formatting
+      if: ${{ hashFiles('research/magnetics/field-covariance/Cargo.toml') != '' }}
       run: cargo fmt --manifest-path research/magnetics/field-covariance/Cargo.toml -- --check
 
     - name: Clippy Magnetic Field Covariance
+      if: ${{ hashFiles('research/magnetics/field-covariance/Cargo.toml') != '' }}
       run: cargo clippy --manifest-path research/magnetics/field-covariance/Cargo.toml --all-targets -- -D warnings
 
     - name: Test Magnetic Field Covariance
+      if: ${{ hashFiles('research/magnetics/field-covariance/Cargo.toml') != '' }}
       run: cargo test --manifest-path research/magnetics/field-covariance/Cargo.toml
 
     # Repo-invariant guards. These scripts existed since at least June but were
