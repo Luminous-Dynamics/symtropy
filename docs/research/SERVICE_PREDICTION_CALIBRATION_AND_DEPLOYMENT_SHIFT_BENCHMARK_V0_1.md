@@ -5,7 +5,7 @@
 **Calibration issue:** [#7240](https://github.com/Luminous-Dynamics/symtropy/issues/7240)  
 **Branch:** \`research/service-prediction-calibration-v0-1\`  
 **Research cut-off:** 24 November 2026  
-**Status:** bounded Rust evaluator, strict schema, synthetic two-stratum fixture, CLI and workflow integration; exact-head CI pending.
+**Status:** bounded Rust evaluator, strict schema, synthetic two-stratum fixture, CLI and workflow integration; exact-head Actions verified.
 
 ## 1. The missing reliability contract
 
@@ -162,7 +162,7 @@ Expected behavior:
 - synthetic evidence flag true, source-grade flag false;
 - all field qualification, model mutation and operational authority flags false.
 
-These are frozen synthetic known answers, not measured deployments or predictive performance.
+These are frozen synthetic known answers, not measured deployments or predictive performance. Exact-head Actions run [#45333671953](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45333671953) at `9f61b00ea3b4077f5f67409222e27dc20806f835` passed schema/fixture parsing, workspace formatting, Cargo tests, deterministic report assertions and artifact upload: 241 tests passed, 0 failed across test binaries. The module contains 17 focused Rust tests. Clippy remains unverified.
 
 ## 8. Negative controls
 
