@@ -61,20 +61,15 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "submission_schema_version",
-        "submission_sha256",
+        "agent_protocol_version",
+        "agent_action_frame_sha256",
         "source_episode_id",
         "target_episode_id",
         "source_evidence_prefix_sha256",
-        "target_evidence_prefix_sha256"
+        "target_evidence_prefix_sha256",
+        "agent_view_frame_sha256"
       ],
       "properties": {
-        "submission_schema_version": {
-          "const": "symthaea-open-world-research-episode-v0"
-        },
-        "submission_sha256": {
-          "$ref": "#/$defs/digest"
-        },
         "source_episode_id": {
           "type": "string",
           "minLength": 1
@@ -87,6 +82,15 @@
           "$ref": "#/$defs/digest"
         },
         "target_evidence_prefix_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "agent_protocol_version": {
+          "const": "symthaea-open-world-research-episode-v0"
+        },
+        "agent_view_frame_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "agent_action_frame_sha256": {
           "$ref": "#/$defs/digest"
         }
       }
