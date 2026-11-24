@@ -129,7 +129,7 @@ The calibration module now also provides fit_split_conformal_binary_transfer. It
 - for a true transfer calibration example, score = 1 - p_transfer;
 - for a false transfer example, score = p_transfer.
 
-The finite-sample order statistic uses rank ceil((n+1)(1-alpha)). If that rank is n+1, the quantile uses the conservative full-scale fallback, yielding the full two-label set. At prediction time it includes transfer and/or non-transfer labels when their nonconformity scores are below the calibrated quantile.
+The finite-sample order statistic uses rank ceil((n+1)(1-alpha)). If that rank is n+1, the quantile uses the conservative full-scale fallback, yielding the full two-label set. At prediction time it includes transfer and/or non-transfer labels when their nonconformity scores are below the calibrated quantile. The prediction call must receive the **owner-assigned** evaluation stratum. If that stratum differs from the calibration stratum, the method returns the full two-label set, no decision, and `exchangeability_admitted = false`. The owner must supply the stratum from the hidden evaluation manifest; it is not a learner-selected input. This fail-closed path prevents accidental reuse of a calibrator outside its declared stratum, but it does not detect within-stratum mechanism shift.
 
 Disposition is set-valued:
 - transfer only: singleton AssertTransfer;
@@ -139,7 +139,7 @@ Disposition is set-valued:
 
 Both-label and empty prediction sets are retained as distinct outcomes. A tie at the calibrated quantile is included (`score <= q`), not discarded.
 
-The calibration function requires one evaluator-owned stratum and matched forecast/outcome IDs. It does not pool across strata. The predictor, preprocessing, probability forecast and nonconformity mapping must be frozen independently of the calibration outcomes; the calibration cohort must not be used to fit or select that predictor. Under exchangeability between the independent calibration cohort and future claims within that predeclared admitted stratum, this gives a finite-sample **marginal** coverage guarantee for the prediction set at the requested alpha. It does not give arbitrary conditional coverage, cross-stratum coverage, robustness to arbitrary shift, or a sequential online guarantee. The learner must not choose the calibration stratum after observing outcomes.
+The calibration function requires one evaluator-owned stratum and matched forecast/outcome IDs. It does not pool across strata. The predictor, preprocessing, probability forecast and nonconformity mapping must be frozen independently of the calibration outcomes; the calibration cohort must not be used to fit or select that predictor. Under exchangeability between the independent calibration cohort and future claims within that predeclared admitted stratum, this gives a finite-sample **marginal** coverage guarantee for the prediction set at the requested alpha. It does not give arbitrary conditional coverage, cross-stratum coverage, robustness to arbitrary shift, or a sequential online guarantee. The learner must not choose the calibration stratum after observing outcomes. The owner must also pass the actual evaluation stratum for each prediction. A cross-stratum prediction returns the full label set and marks the exchangeability scope as not admitted; it must never inherit the calibrator's nominal coverage statement.
 
 ## Owner-issued calibration receipt
 
