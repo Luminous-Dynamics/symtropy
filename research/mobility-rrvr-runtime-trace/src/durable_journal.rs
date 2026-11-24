@@ -553,7 +553,8 @@ impl JournalIndex {
                     ResetOutcomeSource::TransportResponse => {
                         if matches!(
                             status,
-                            ResetOutcomeStatus::ResponseAccepted | ResetOutcomeStatus::ResponseRejected
+                            ResetOutcomeStatus::ResponseAccepted
+                                | ResetOutcomeStatus::ResponseRejected
                         ) && !transport_response_artifact_sha256
                             .as_deref()
                             .is_some_and(valid_sha256)
@@ -568,7 +569,8 @@ impl JournalIndex {
                             return Err(JournalError::InvalidOutcomeEvidence);
                         }
                     }
-                    ResetOutcomeSource::ReadOnlyObservation | ResetOutcomeSource::Reconciliation => {
+                    ResetOutcomeSource::ReadOnlyObservation
+                    | ResetOutcomeSource::Reconciliation => {
                         if transport_response_artifact_sha256.is_some() {
                             return Err(JournalError::InvalidOutcomeEvidence);
                         }
@@ -619,7 +621,8 @@ impl JournalIndex {
                         observed_clock_id: observed_clock_id.clone(),
                         observed_initial_state_sha256: observed_initial_state_sha256.clone(),
                         observation_artifact_sha256: observation_artifact_sha256.clone(),
-                        transport_response_artifact_sha256: transport_response_artifact_sha256.clone(),
+                        transport_response_artifact_sha256: transport_response_artifact_sha256
+                            .clone(),
                     },
                 );
                 Ok(())
@@ -767,7 +770,8 @@ impl JournalIndex {
                     DispatchOutcomeSource::TransportResponse => {
                         if matches!(
                             status,
-                            DispatchOutcomeStatus::ResponseAccepted | DispatchOutcomeStatus::ResponseRejected
+                            DispatchOutcomeStatus::ResponseAccepted
+                                | DispatchOutcomeStatus::ResponseRejected
                         ) && !transport_response_artifact_sha256
                             .as_deref()
                             .is_some_and(valid_sha256)
@@ -860,7 +864,8 @@ impl JournalIndex {
                         source: *source,
                         status: *status,
                         dispatch_id: dispatch_id.clone(),
-                        transport_response_artifact_sha256: transport_response_artifact_sha256.clone(),
+                        transport_response_artifact_sha256: transport_response_artifact_sha256
+                            .clone(),
                         ledger_artifact_sha256: ledger_artifact_sha256.clone(),
                     },
                 );
