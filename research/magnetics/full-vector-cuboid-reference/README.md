@@ -43,3 +43,19 @@ currents, temperature, interfaces or process microstructure. It is not a
 finite-element solver or physical component qualification.
 
 Synthetic reference fixtures are mathematical controls, not field measurements.
+
+## Rigid assemblies
+
+The public assembly module provides a validated proper rigid pose, identified
+cuboid instances and a multi-component magnetic assembly. It transforms the
+global observer into each local frame, evaluates the single-cuboid reference,
+rotates each B vector back into the global frame and uses per-axis Kahan
+compensation for superposition.
+
+Superposition is exact for prescribed uniform source polarizations in the
+linear free-space model. The assembly does not update each magnet's
+polarization in response to neighbouring fields, check physical overlap, or
+qualify mechanical retention, clearances or process tolerances.
+
+The four-segment fixture is a synthetic prescribed-source array reference;
+it is not a self-consistent Halbach solution or manufactured component.
