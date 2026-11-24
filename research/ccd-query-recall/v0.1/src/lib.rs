@@ -835,6 +835,25 @@ mod tests {
         QueryKind, attach_ground_truth, parse_boolean_json, parse_queries_csv,
     };
 
+    fn run_profile(
+        algorithm_name: &str,
+        algorithm_commit: &str,
+        motion: MotionProfile,
+        arithmetic: ArithmeticProfile,
+    ) -> RunProfile {
+        RunProfile::new(
+            RunProvenance::new(
+                algorithm_name,
+                "v0.1",
+                algorithm_commit,
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            ),
+            motion,
+            arithmetic,
+        )
+    }
+
     fn evidence(status: VerificationStatus) -> PruneEvidence {
         PruneEvidence::new(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -881,13 +900,23 @@ mod tests {
             CandidateDisposition::Forwarded,
             NarrowphaseOutcome::Collision,
         );
-        let binary64 = RunProfile::new(
+        let binary64 = run_profile(
+            "symtropy",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             MotionProfile::LinearizedConstantVelocity,
             ArithmeticProfile::Binary64,
         );
-        let q16 = RunProfile::new(
+        let q16 = run_profile(
+            "symtropy",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             MotionProfile::SemiImplicitEulerQ16_16,
             ArithmeticProfile::FixedQ16_16,
+        );
+        let other_algorithm = run_profile(
+            "ccd-wrapper",
+            "dddddddddddddddddddddddddddddddddddddddd",
+            MotionProfile::LinearizedConstantVelocity,
+            ArithmeticProfile::Binary64,
         );
         let binary_score = evaluate_queries_with_profile(binary64, std::slice::from_ref(&result))
             .unwrap();
@@ -898,6 +927,9 @@ mod tests {
         assert!(q16_score.benchmark_qualified());
         assert!(binary_score.can_pool_with(&binary_score));
         assert!(!binary_score.can_pool_with(&q16_score));
+        let other_score =
+            evaluate_queries_with_profile(other_algorithm, &[result.clone()]).unwrap();
+        assert!(!binary_score.can_pool_with(&other_score));
         assert!(!unspecified.benchmark_qualified());
         assert!(!unspecified.can_pool_with(&binary_score));
     }
@@ -911,7 +943,9 @@ mod tests {
             CandidateDisposition::Forwarded,
             NarrowphaseOutcome::NoCollision,
         );
-        let profile = RunProfile::new(
+        let profile = run_profile(
+            "symtropy",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             MotionProfile::LinearizedConstantVelocity,
             ArithmeticProfile::Binary64,
         );
