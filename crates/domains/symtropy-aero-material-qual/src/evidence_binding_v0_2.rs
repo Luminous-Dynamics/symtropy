@@ -223,6 +223,7 @@ fn check_independent_identity(
 
     let assertion = assertion_rows[0];
     if !has_provenance(assertion) {
+        consistent = false;
         push(
             violations,
             &format!("{identity_label}_PROVENANCE_INCOMPLETE"),
@@ -358,6 +359,7 @@ fn evaluate_binding_case(case: &Value) -> BindingReport {
     let _event_index = index_by_id(&events, "calibration_events", &mut violations);
 
     let mut source_record_ids = BTreeSet::new();
+    let mut source_record_replay = false;
     for assertion in &specimen_assertions {
         if let Some(source_id) = field_str(assertion, "source_record_id") {
             if !source_record_ids.insert(source_id.to_owned()) {
@@ -371,12 +373,13 @@ fn evaluate_binding_case(case: &Value) -> BindingReport {
                     "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED",
                     source_id,
                 );
+                source_record_replay = true;
             }
         }
     }
 
-    let mut specimen_identity_ok = true;
-    for (specimen_position, specimen) in specimens.iter().enumerate() {
+    let mut specimen_identity_ok = !source_record_replay;
+    for specimen in &specimens {
         let specimen_id = field_str(specimen, "id")
             .unwrap_or("specimen")
             .to_owned();
@@ -434,9 +437,6 @@ fn evaluate_binding_case(case: &Value) -> BindingReport {
         );
         specimen_identity_ok &= valid;
 
-        if specimen_position > usize::MAX / 2 {
-            push(&mut violations, "UNREACHABLE_POSITION_GUARD", &specimen_id);
-        }
     }
 
     let mut configuration_identity_ok = true;
@@ -681,7 +681,7 @@ fn evaluate_binding_case(case: &Value) -> BindingReport {
     } else {
         "UNKNOWN_OR_CONFLICT"
     };
-    let metrology_binding_status = if blockers.is_empty() {
+    let metrology_binding_status = if blockers.is_empty() && violations.is_empty() {
         "METROLOGY_BINDING_CONSISTENT_ONLY"
     } else {
         "BLOCKED_OR_INDETERMINATE"
