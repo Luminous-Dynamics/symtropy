@@ -269,3 +269,31 @@ This is an exact one-step finite decision oracle, not an adaptive scheduler, a l
 The decision-value module now has twelve tests, including adversarial checks for duplicate hypothesis/action/outcome IDs, duplicate likelihood pairs, unknown outcome references, likelihood weights above scale, non-normalized rows, incomplete loss tables, impossible outcomes and cost dominance. The finite EVSI arithmetic remains exact; only the mutual-information diagnostic uses floating point.
 
 **Verification for the decision-value source and its latest tests:** pending exact-head Rust 1.96 formatting, tests/doctest and strict Clippy. This code is newer than the earlier scoped-validator checks.
+
+## Exact finite decision-value oracle
+
+The branch now adds `src/decision_value.rs`, exposed as `decision_value`, and:
+- `DECISION_RELEVANT_EVSI_V0_1.md`
+- `schemas/decision_value_problem_v0.schema.json`
+- `examples/decision_relevant_evsi_v0.example.json`
+
+The exact finite evaluator separates mutual information from expected value of sample information and net decision value after cost. Known-answer experiment 100 carries 0.8 bits but has EVSI 0 / net -1; experiment 101 carries about 0.721928 bits but has EVSI 2 / net +1 because it changes the optimal action. EVSI uses exact integer numerators; mutual information is a descriptive floating-point metric only.
+
+The module is a one-step evaluator/baseline, not a scheduler or research-policy authority. It is intended to be composed with #5476/#5478/#8721 and the #11171 adapter as a reference check, not a duplicate value-of-computation framework.
+
+**Verification:** this decision-value code and its adversarial tests are newer than the last passing #7173 run and remain pending exact-head Rust 1.96 format/tests/doctest/strict Clippy.
+
+
+## Finite quotient / coarse-graining implementation
+
+The branch now also adds `src/quotient.rs`, exposed as `quotient`, with `FINITE_QUOTIENT_V0_1.md`.
+
+The validator accepts a total state-to-class partition of a deterministic finite transition system only when it is an action congruence:
+- all members of a class agree on action enablement;
+- enabled members transition into the same destination class;
+- the source transition system is deterministic;
+- every source state is accounted for exactly once.
+
+It builds a quotient state/action transition table and rejects incomplete partitions, successor-class mismatch, action-enabledness mismatch, unknown states, nondeterminism and duplicate transition rows. It does not yet match the quotient to a separate target system or preserve task-specific observables/rewards.
+
+This is a finite one-system abstraction witness, not simulation/bisimulation or physical coarse-graining. Exact-head Rust verification is pending.
