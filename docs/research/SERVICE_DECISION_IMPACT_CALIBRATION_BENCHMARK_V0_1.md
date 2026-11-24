@@ -165,3 +165,102 @@ The most important comparison is not raw RMSE. It is the Pareto frontier between
 - #6803/#6809/#6829/#6837 remain hard flexibility, recovery, unique commitment and event journal gates.
 
 A passing synthetic decision-impact evaluator would prove only its bounded replay arithmetic and metric definitions. It would not prove operational reliability, customer outcomes, flight safety, grid eligibility or commercial performance.
+
+---
+
+## 11. Executable v0.1 evaluator
+
+The first executable increment lives in:
+
+- tools/ev-passenger-cost-frontier/src/service_decision_impact.rs
+- tools/ev-passenger-cost-frontier/src/bin/service_decision_impact_screen.rs
+- tools/ev-passenger-cost-frontier/schemas/service_decision_impact_v0_1.schema.json
+- tools/ev-passenger-cost-frontier/fixtures/service_decision_impact_v0_1.json
+
+It consumes frozen paired forecast/realized records. A record binds site and site configuration, exact asset and asset configuration, operating stratum, forecast model/version, policy/version, decision time, target interval, threshold direction/value, prediction interval, measured outcome, hard-gate disposition, service-value units, and forecast/gate/outcome evidence envelopes.
+
+### 11.1 Explicit decision semantics
+
+The v0.1 policy is deliberately small and auditable:
+
+- For a minimum-bound decision, propose admission only when the entire forecast interval is at or above the threshold (predicted_lower >= threshold).
+- For a maximum-bound decision, propose admission only when the entire forecast interval is at or below the threshold (predicted_upper <= threshold).
+- The realized-information replay applies the same direction, threshold and policy version to the later observed value. It is a retrospective oracle, never information available at the original decision.
+- A hard-gate failed result blocks a proposal; unknown also blocks it and is reported as unsupported. A proposal cannot override either disposition.
+- A false-safe proposal is not automatically a false-safe admission. Report proposals separately from those that remain admitted after the independent hard gate.
+- False abstention is counted only when the hard gate passed and the realized value would have passed the same threshold policy.
+- Service-value loss is counted only for avoidable abstention. Hard failures are never converted to finite utility penalties.
+
+This is a bounded threshold policy, not a general scheduler. The evaluator does not infer source authenticity or independently establish the correctness of supplied hard-gate dispositions.
+
+### 11.2 Frozen synthetic known answer
+
+The fixture contains eight paired records across a stationary-storage lower-bound group and a charger-service upper-bound group.
+
+| Output | Expected |
+|---|---:|
+| Candidate admission proposals | 6 |
+| Proposals blocked by a failed hard gate | 1 |
+| Unsupported proposals held for unknown hard-gate outcome | 1 |
+| Hard-gate bypass attempts | 2 |
+| False-safe proposals | 2 |
+| False-safe admissions after hard gate | 2 |
+| False abstentions | 2 |
+| Same-policy replay comparisons | 6 |
+| Decision flips | 4 |
+| Avoidable service-value loss units | 200 |
+| Group-local risk/coverage frontiers | 2 |
+
+All fixture evidence is synthetic. The reference report must therefore set any_synthetic_evidence=true, all_evidence_source_grade=false, and all field-qualification, model-update and operational-authority flags to false. These counts are known-answer expectations for the synthetic fixture, not empirical mobility results.
+
+The module includes ten focused tests covering false-safe/false-abstention separation, hard-gate blocking, unknown-gate abstention, upper-bound semantics, record-order digest invariance, duplicate evidence rejection, synthetic evidence claim ceilings, forecast chronology, group-local risk/coverage monotonicity, and non-negotiable hard gates.
+
+### 11.3 Risk/coverage output
+
+For each exact group (site, asset, asset configuration, stratum, model/version, policy/version, direction and threshold), the evaluator sweeps the signed conservative-bound margin. It emits accepted-proposal count, coverage of gate-passing replay cases and false-safe rate at each distinct margin.
+
+This avoids pooling unlike sites, assets, policies or measurement units. The curve is an empirical diagnostic over the supplied cases; it is not a distribution-free risk guarantee. Temporal and common-cause dependence must be handled by the campaign design and inference method, not by assuming every observation is IID.
+
+### 11.4 Verification boundary
+
+The repository workflow now parses the strict schema and fixture, runs the CLI, asserts the frozen counts and retains the report and input artifacts. The exact-head Actions run must pass before the module is described as compiled or tested. A source commit, local arithmetic inspection, queued workflow or artifact from another head is not a pass.
+
+The v0.1 evaluator does not train or recalibrate the forecast model, estimate arbitrary counterfactual outcomes for rejected/unserved requests, prove causal effects, calculate a universal economic utility, authenticate evidence signatures, qualify field hardware, or grant operational authority. It adds an executable audit of the decision boundary—not an operational controller.
+
+## 12. Updated research comparison and tournament
+
+The strongest relevant comparators are complementary rather than interchangeable:
+
+- Static split conformal / conformalized quantile regression: calibration baseline, with chronology and held-out deployment strata retained. The 2026 battery deployment-shift study reports substantial SOC interval coverage collapse when moving from random-cycle splits to held-out cells, protocols, chemistries and EV-profile cells (Processes 14(21), 3557, DOI 10.3390/pr14213557). This motivates explicit abstention and per-domain reporting, not a claim that our evaluator repairs conformal guarantees.
+- Adaptive conformal inference and rolling risk control: compare against the October 2026 ERCOT day-ahead reserve study, which reports approximately 90% coverage and 5.3% less reserve than uncalibrated requirements for its rolling risk-control method under the paper's deployment simulation. Reproduce the paper's timing protocol and metric before applying the idea to mobility.
+- Hierarchical station calibration: compare against the October 2026 EV charging power forecasting study using 2,964 sessions across 336 stations and a larger 439-station snapshot. Retain cross-station holdouts and regime-specific metrics.
+- Robust/MPC and DR-SAC scheduling: run the same forecasts, policy limits, hard-gate evidence and disturbances through every arm. No method may receive privileged information or weaker reserve constraints.
+
+The matched evaluation arms should include point forecast with fixed conservative margin; raw quantiles; static split conformal; site/asset-conditional conformal; adaptive conformal/rolling risk control; online certificate-driven calibration; and each corresponding policy behind the exact same hard reserve, recovery and commitment gates.
+
+The primary comparison is a Pareto frontier over successful on-time service, false-safe proposals, false-safe admissions after hard gates, avoidable abstention, recovery shortfall and lifecycle cost. Do not collapse a hard-invariant violation into a finite scalar penalty.
+
+### 12.1 Research target ladder (not achieved)
+
+| Benchmark | Target |
+|---|---|
+| Bounded paired replay oracle | 100% agreement |
+| Frozen hard-negative false-safe admissions | 0 |
+| Hard-gate bypass after independent gate | 0 |
+| Unknown hard-gate disposition | 100% held/unsupported |
+| Evidence/sample identity replay | 0 duplicate acceptance |
+| Deterministic input digest | 100% invariant to record ordering |
+| Matched risk/coverage frontier | Pareto improvement over fixed-margin baseline |
+| False-safe reduction | ≥20% relative reduction without >5% added avoidable abstention |
+| Runtime | report p50/p95/p99; initial research target p99 <10 ms on bounded cases |
+| Deployment shift | publish each held-out site/asset/chemistry/protocol/regime separately |
+
+Zero observed false-safe admissions in a finite corpus is not proof of zero real-world risk. Every rate must include the sample denominator, asset/site dependence groups, and an appropriate cluster-aware or sequential uncertainty analysis. A reject-all system fails the usefulness test.
+
+## 13. External research references
+
+- Zhang et al., Diagnosing Conformal Coverage Failure Under Battery Deployment Shift for Joint SOC and SOH Estimation, Processes 14(21), 3557 (2026), DOI 10.3390/pr14213557.
+- Costilla-Enriquez, Weng & Ortega-Vazquez, Adaptive Calibration of Day-Ahead Flexibility Reserve Requirements Under Distribution Shift, arXiv:2610.16075 (12 October 2026).
+- Huang & Wang, Session-level electric vehicle charging power forecasting under cross-station shift: A deployment-oriented routing and conformal calibration framework, Sustainable Energy, Grids and Networks (available online 15 October 2026), DOI 10.1016/j.segan.2026.102562.
+
+These are external research comparators. Their results are not reproduced by the synthetic fixture and must not be represented as Symtropy results.
