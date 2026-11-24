@@ -101,3 +101,12 @@ cargo run --manifest-path benchmarks/fuel-resilience/south-africa/v0.8/Cargo.tom
 ## Claim ceiling
 
 A passing unit test establishes deterministic behavior over the supplied inputs and evidence contract. It does not establish actual service continuity, field restoration time, fuel availability, operator readiness, power-system stability, legal rights, or system resilience. No certificate should be described as independently verified unless a separate verifier has actually checked its referenced source bytes, signatures, authority, calibration and physical measurement process.
+
+
+## Next assurance and benchmark increments
+
+The next research layer treats usable service as a non-compensatory vector rather than an energy-only scalar. It separates delivered Wh, instantaneous/sustained kW, voltage, frequency, reactive power, waveform quality, downstream process output and evidence qualification. See [SERVICE_ASSURANCE_VECTOR_AND_BENCHMARK_PROTOCOL.md](research/SERVICE_ASSURANCE_VECTOR_AND_BENCHMARK_PROTOCOL.md) and the stacked [draft PR #7375](https://github.com/Luminous-Dynamics/symtropy/pull/7375).
+
+The next domain dataset workstream is [SAFRB-FUEL-TO-SERVICE-CORPUS-001 #7377](https://github.com/Luminous-Dynamics/symtropy/issues/7377). It begins with synthetic, abstract-ID fuel-chain cases and tests gross stock through usable/access-controlled/deliverable inventory, conversion, generation, network constraints and beneficiary service. It is not a claim about actual South African stock or site performance.
+
+These are research specifications. They do not add an adapter implementation, field data or additional qualification to the v0.8 evaluator.
