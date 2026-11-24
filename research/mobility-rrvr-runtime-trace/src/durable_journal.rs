@@ -328,7 +328,6 @@ pub enum ResetRecoveryDisposition {
     ResponseRejectedReadOnlyReconciliationRequired,
     UnresolvedReadOnlyReconciliationRequired,
     Verified,
-    RejectedHold,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -932,9 +931,6 @@ impl JournalIndex {
                         ResetRecoveryDisposition::UnresolvedReadOnlyReconciliationRequired
                     }
                     Some(ResetOutcomeStatus::Verified) => ResetRecoveryDisposition::Verified,
-                    Some(ResetOutcomeStatus::ResponseRejected) => {
-                        ResetRecoveryDisposition::RejectedHold
-                    }
                 };
                 ResetRecoveryState {
                     intent: intent.clone(),
