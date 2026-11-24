@@ -385,6 +385,7 @@ def main() -> int:
         return 2
 
     results = [evaluate_case(case, alphas) for case in corpus.get("cases", [])]
+    results.sort(key=lambda row: row["case_id"])
     pass_cases = sum(row["status"] == "PASS" for row in results)
     abstain_cases = sum(row["status"] == "ABSTAIN" for row in results)
     invalid_cases = sum(row["status"] == "INVALID_INPUT" for row in results)
