@@ -1,7 +1,9 @@
 # Decision-relevant expected value of sample information v0.1
 
 **Implementation:** `src/decision_value.rs`  
-**Protocol:** finite, evaluator-owned prior/loss/likelihood table  
+**Protocol:** finite, evaluator-owned prior/loss/likelihood table
+**Machine-readable fixture:** `examples/decision_relevant_evsi_v0.example.json`
+**Schema:** `schemas/decision_value_problem_v0.schema.json`  
 **Related:** Symtropy #7193 · Symtropy #7230 · Symthaea #13418 / PR #13407 · Symthaea #5476 / #5478 / #8721
 
 ## Research claim
