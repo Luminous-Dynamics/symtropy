@@ -7,8 +7,8 @@
 use std::fmt;
 
 pub mod acquisition;
-pub mod behaviour;
 pub mod atlas;
+pub mod behaviour;
 pub mod decision_value;
 pub mod dynamics;
 pub mod matching;
