@@ -938,6 +938,58 @@ mod tests {
     }
 
     #[test]
+    fn observable_first_outcome_selects_different_second_sensor_by_persistent_cause() {
+        let p = problem();
+        let mut reveal_cause = action(1, 0, 100, 0, 0);
+        let reveal_nominal = likelihoods(0, PROBABILITY_SCALE, 0);
+        let reveal_shared = likelihoods(0, 0, PROBABILITY_SCALE);
+        for model in 0..MODEL_COUNT {
+            reveal_cause.likelihoods[model] = [
+                reveal_nominal,
+                reveal_nominal,
+                reveal_shared,
+                reveal_shared,
+            ];
+        }
+
+        let mut nominal_specialist = action(2, 0, 100, 0, 0);
+        let mut shared_specialist = action(3, 0, 100, 0, 0);
+        let uninformative = likelihoods(0, 500_000, 500_000);
+        for model in 0..MODEL_COUNT {
+            for state in 0..2 {
+                nominal_specialist.likelihoods[model][2 + state] = uninformative;
+                shared_specialist.likelihoods[model][state] = uninformative;
+            }
+        }
+
+        let plans = plan_temporal_mission_minimax(
+            &p,
+            &[reveal_cause, nominal_specialist, shared_specialist],
+            budget(200),
+        ).unwrap();
+        let policy = &plans.mission_global_minimax_risk;
+        assert_eq!(policy.first_action_id, Some(1));
+        assert_eq!(policy.worst_case_risk_numerator, 0);
+        let nominal_branch = policy.branches.iter()
+            .find(|branch| branch.first_outcome == ActionOutcome::ObservedZero)
+            .unwrap();
+        let shared_branch = policy.branches.iter()
+            .find(|branch| branch.first_outcome == ActionOutcome::ObservedOne)
+            .unwrap();
+        assert!(matches!(
+            &nominal_branch.choice,
+            ObservableBranchChoice::Acquire { second_action_id: 2, .. }
+        ));
+        assert!(matches!(
+            &shared_branch.choice,
+            ObservableBranchChoice::Acquire { second_action_id: 3, .. }
+        ));
+        assert!(policy.branches.iter().all(|branch| {
+            branch.model_loss_contributions == [0, 0]
+        }));
+    }
+
+    #[test]
     fn missing_transition_evidence_and_zero_age_nonidentity_reject() {
         let p = problem();
         let mut missing = action(1, 100, 100, 100_000, 100_000);
