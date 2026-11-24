@@ -128,6 +128,8 @@ pub enum AdmissionBlock {
     EventOutsideDeclaredValidity,
     IndependenceEvidenceReferenceMissing,
     ReceiverCustodyDigestMissing,
+    ClaimSubjectIdentityMissing,
+    SourceRecordIdentityMissing,
 }
 
 impl AdmissionBlock {
@@ -140,6 +142,8 @@ impl AdmissionBlock {
             Self::EventOutsideDeclaredValidity => "EVENT_OUTSIDE_DECLARED_VALIDITY",
             Self::IndependenceEvidenceReferenceMissing => "INDEPENDENCE_REFERENCE_MISSING",
             Self::ReceiverCustodyDigestMissing => "RECEIVER_CUSTODY_DIGEST_MISSING",
+            Self::ClaimSubjectIdentityMissing => "CLAIM_SUBJECT_IDENTITY_MISSING",
+            Self::SourceRecordIdentityMissing => "SOURCE_RECORD_IDENTITY_MISSING",
         }
     }
 }
@@ -328,6 +332,10 @@ pub struct SourceClaim {
     pub artifact_class: ArtifactClass,
     pub artifact: ArtifactEnvelope,
     pub claim_kind: ClaimKind,
+    /// Canonical identity of the vessel, container, visit or other claim subject.
+    pub subject_id: String,
+    /// Identity of the source-native record supporting this particular assertion.
+    pub source_record_id: String,
     /// The evaluation cutoff for a historical/as-of reconstruction.
     pub as_of_unix: i64,
     /// Event time being asserted. It is not publication time or retrieval time.
@@ -412,6 +420,16 @@ fn supported_evidence(
 pub fn admit_claim(claim: &SourceClaim) -> Result<AdmissionDecision, ArtifactValidationError> {
     claim.artifact.validate()?;
 
+    if claim.subject_id.trim().is_empty() {
+        return Ok(AdmissionDecision::Blocked(
+            AdmissionBlock::ClaimSubjectIdentityMissing,
+        ));
+    }
+    if claim.source_record_id.trim().is_empty() {
+        return Ok(AdmissionDecision::Blocked(
+            AdmissionBlock::SourceRecordIdentityMissing,
+        ));
+    }
     if claim.as_of_unix < 0 {
         return Err(ArtifactValidationError::NegativeTimestamp);
     }
@@ -725,6 +743,8 @@ fn evaluate_case(case: BenchmarkCase) -> Result<AdmissionDecision, ArtifactValid
         artifact_class: case.artifact_class,
         artifact,
         claim_kind: case.claim_kind,
+        subject_id: "container-or-vessel:synthetic-001".to_owned(),
+        source_record_id: format!("source-record:{}", case.id),
         as_of_unix: FIXTURE_AS_OF,
         event_time_unix: case.event_time,
     })
@@ -785,6 +805,8 @@ mod tests {
             artifact_class,
             artifact: valid_artifact(),
             claim_kind,
+            subject_id: "container-or-vessel:synthetic-001".to_owned(),
+            source_record_id: "source-record:synthetic-001".to_owned(),
             as_of_unix: FIXTURE_AS_OF,
             event_time_unix: Some(FIXTURE_EVENT_TIME),
         }
@@ -1129,6 +1151,38 @@ mod tests {
             admit_claim(&receipt),
             Ok(AdmissionDecision::Admitted(
                 AdmittedEvidenceClass::IndependentReceiverAcceptance
+            ))
+        );
+    }
+
+    #[test]
+    fn claim_without_canonical_subject_identity_is_blocked() {
+        let mut candidate = claim(
+            ArtifactClass::IndependentPhysicalObservation,
+            ClaimKind::ObservedCargoMovement,
+        );
+        candidate.artifact.independence_evidence_ref =
+            Some("synthetic-independent-witness-review".to_owned());
+        candidate.subject_id.clear();
+        assert_eq!(
+            admit_claim(&candidate),
+            Ok(AdmissionDecision::Blocked(
+                AdmissionBlock::ClaimSubjectIdentityMissing
+            ))
+        );
+    }
+
+    #[test]
+    fn claim_without_source_native_record_identity_is_blocked() {
+        let mut candidate = claim(
+            ArtifactClass::OfficialVesselUpdate,
+            ClaimKind::SourceReportedVesselStatus,
+        );
+        candidate.source_record_id.clear();
+        assert_eq!(
+            admit_claim(&candidate),
+            Ok(AdmissionDecision::Blocked(
+                AdmissionBlock::SourceRecordIdentityMissing
             ))
         );
     }
