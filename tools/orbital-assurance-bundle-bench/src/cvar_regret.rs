@@ -59,6 +59,7 @@ impl Rational {
         self.denominator > 0
             && self.numerator <= MAX_COMPONENT
             && self.denominator <= MAX_COMPONENT
+            && gcd_u128(u128::from(self.numerator), u128::from(self.denominator)) == 1
     }
 
     pub fn compare_exact(&self, other: &Self) -> Ordering {
