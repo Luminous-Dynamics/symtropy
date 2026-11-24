@@ -929,6 +929,7 @@ pub fn calibrate_planar_patch(
         pivot_order,
         pivot_norms,
         coefficients,
+        ..
     } = pivoted_weighted_least_squares(&columns, &target, config.rank_relative_tolerance)?;
 
     let mut axis_excitation = Vec::with_capacity(3);
