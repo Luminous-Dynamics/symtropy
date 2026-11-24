@@ -83,6 +83,26 @@ Compare at both matched relative-L2 and matched valid-vector retention. Report c
 
 These are prospective targets, not achieved results.
 
+## V1 research extension: spectral and multiscale fidelity
+
+A 2026 *Nature Communications* study demonstrates why V0's pointwise and vorticity metrics should be joined by an explicit multiscale scoreboard, not replaced by it. Oommen et al. report a 2D Schlieren-jet case where a vanilla neural operator gives field NRMSE 0.0542 and energy-spectrum NRMSE 0.1601, while adversarially trained NO gives field NRMSE 0.0662 but spectrum NRMSE 0.0109 at the same reported inference cost. The spectral metric reveals a substantial small-scale fidelity improvement that pointwise NRMSE does not reward. On a separate 3D homogeneous-isotropic-turbulence forecast at Re_lambda=90, adv-NO also improves field and spectrum NRMSE; the paper evaluates Q–R velocity-gradient invariant statistics. These are task-specific DNS/Schlieren results, not EHD evidence. [Oommen et al. (2026)](https://doi.org/10.1038/s41467-026-70145-4).
+
+V1 should add a separate multi-scale scoreboard:
+
+- direction-specific one-dimensional and two-dimensional energy spectra where the domain, sampling and homogeneity assumptions justify them;
+- fixed, predeclared wavenumber bands and log-energy-spectrum error;
+- high-wavenumber tail-energy retention and spectral slope error over the common resolvable band;
+- phase alignment and spatial displacement as distinct quantities from spectrum magnitude;
+- velocity-gradient PDFs / intermittency tails and Q–R joint PDFs only where the full 3D gradient tensor is supported;
+- measurement-consistency residuals at observed vector locations and masks;
+- for generative inverse methods, posterior ensemble energy-score/variogram-score, calibration and sample diversity.
+
+**Measurement-resolution guard:** never reward invented high-frequency energy beyond the instrument's common resolvable band or where noise dominates. Freeze interrogation-window transfer, optical blur, pixel size, vector spacing, filtering and any taper/window correction. For anisotropic EHD/shear flows, do not use radial/angle-averaged spectra unless isotropy is scientifically justified. Missing or masked data and edge windows require an explicit estimator; zero-fill FFT is not permitted.
+
+**Non-substitution rule:** a good energy spectrum cannot excuse a displaced or sign-reversed vortex, incorrect phase, false weak structure, nonphysical tensor or failure to match observed measurements. Conversely, low pointwise RMSE cannot excuse destruction of high-wavenumber content. Report the Pareto surface across pointwise error, structure retention, spectral error, measurement consistency, uncertainty calibration and cost.
+
+V0 does not implement the spectrum estimator. The current 2D five-point-vorticity kernel remains a manufactured structure-preservation reference; spectral estimation is a separately specified V1 task requiring analytic/windowing controls and common-band resolution metadata.
+
 ## Dataset admission
 
 Use analytic manufactured fields first. DNS/Eulerian-Lagrangian data can validate observation operators and numerical response but is not experimental PIV truth. The INRAE experimental cylinder-wake dataset remains outside admitted payloads until exact reuse rights and reference semantics are clarified. SVGP-KAN source data/code must be obtained for a faithful reproduction. Physical EHD remains a separate later validation lane.
