@@ -1,0 +1,514 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/aviation/schemas/aero_evidence_binding_case_v0_2.schema.json",
+  "title": "AERO evidence-binding case v0.2",
+  "description": "Synthetic-only contract for independently asserted specimen/configuration identity and acquisition-time calibration binding. Schema validity is not physical evidence or qualification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "case_id",
+    "profile_id",
+    "synthetic_only",
+    "claim_ceiling",
+    "validity_interval_semantics",
+    "evaluated_at_utc",
+    "hierarchy",
+    "specimen_source_assertions",
+    "intended_configuration_assertions",
+    "observations",
+    "calibration_certificates",
+    "calibration_events"
+  ],
+  "properties": {
+    "case_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\S(.*\\S)?$"
+    },
+    "profile_id": {
+      "const": "aero-evidence-binding-v0.2"
+    },
+    "synthetic_only": {
+      "const": true
+    },
+    "claim_ceiling": {
+      "const": "synthetic_binding_contract_only"
+    },
+    "validity_interval_semantics": {
+      "const": "[valid_from_utc, valid_until_utc)"
+    },
+    "evaluated_at_utc": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "hierarchy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "material_lots",
+        "process_batches",
+        "panels",
+        "specimens",
+        "test_campaigns",
+        "configurations"
+      ],
+      "properties": {
+        "material_lots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/lot"
+          }
+        },
+        "process_batches": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/batch"
+          }
+        },
+        "panels": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/panel"
+          }
+        },
+        "specimens": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/specimen"
+          }
+        },
+        "test_campaigns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/campaign"
+          }
+        },
+        "configurations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/configuration"
+          }
+        }
+      }
+    },
+    "specimen_source_assertions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/specimenSourceAssertion"
+      }
+    },
+    "intended_configuration_assertions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/configurationAssertion"
+      }
+    },
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/observation"
+      }
+    },
+    "calibration_certificates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/calibrationCertificate"
+      }
+    },
+    "calibration_events": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/calibrationEvent"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\S(.*\\S)?$"
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "identityStatus": {
+      "enum": [
+        "verified",
+        "unresolved",
+        "conflict"
+      ]
+    },
+    "lot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "batch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "material_lot_id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "material_lot_id": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "panel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "process_batch_id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "process_batch_id": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "specimen": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "panel_id",
+        "configuration_id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "panel_id": {
+          "$ref": "#/$defs/id"
+        },
+        "configuration_id": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "campaign": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "instrument_id",
+        "protocol_revision_id",
+        "calibration_id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "instrument_id": {
+          "$ref": "#/$defs/id"
+        },
+        "protocol_revision_id": {
+          "$ref": "#/$defs/id"
+        },
+        "calibration_id": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "product_definition_revision_id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "product_definition_revision_id": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "source_system",
+        "source_record_id",
+        "assertion_method",
+        "issuer_id",
+        "provenance_ref"
+      ],
+      "properties": {
+        "source_system": {
+          "$ref": "#/$defs/id"
+        },
+        "source_record_id": {
+          "$ref": "#/$defs/id"
+        },
+        "assertion_method": {
+          "$ref": "#/$defs/id"
+        },
+        "issuer_id": {
+          "$ref": "#/$defs/id"
+        },
+        "provenance_ref": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "specimenSourceAssertion": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/provenance"
+        }
+      ],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "specimen_id",
+        "declared_material_lot_id",
+        "declared_process_batch_id",
+        "declared_panel_id",
+        "verified_material_lot_id",
+        "verified_process_batch_id",
+        "verified_panel_id",
+        "identity_status",
+        "source_system",
+        "source_record_id",
+        "assertion_method",
+        "issuer_id",
+        "provenance_ref"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "specimen_id": {
+          "$ref": "#/$defs/id"
+        },
+        "declared_material_lot_id": {
+          "$ref": "#/$defs/id"
+        },
+        "declared_process_batch_id": {
+          "$ref": "#/$defs/id"
+        },
+        "declared_panel_id": {
+          "$ref": "#/$defs/id"
+        },
+        "verified_material_lot_id": {
+          "$ref": "#/$defs/id"
+        },
+        "verified_process_batch_id": {
+          "$ref": "#/$defs/id"
+        },
+        "verified_panel_id": {
+          "$ref": "#/$defs/id"
+        },
+        "identity_status": {
+          "$ref": "#/$defs/identityStatus"
+        },
+        "source_system": {
+          "$ref": "#/$defs/id"
+        },
+        "source_record_id": {
+          "$ref": "#/$defs/id"
+        },
+        "assertion_method": {
+          "$ref": "#/$defs/id"
+        },
+        "issuer_id": {
+          "$ref": "#/$defs/id"
+        },
+        "provenance_ref": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "configurationAssertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "specimen_id",
+        "declared_intended_configuration_id",
+        "verified_intended_configuration_id",
+        "identity_status",
+        "source_system",
+        "source_record_id",
+        "assertion_method",
+        "issuer_id",
+        "provenance_ref"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "specimen_id": {
+          "$ref": "#/$defs/id"
+        },
+        "declared_intended_configuration_id": {
+          "$ref": "#/$defs/id"
+        },
+        "verified_intended_configuration_id": {
+          "$ref": "#/$defs/id"
+        },
+        "identity_status": {
+          "$ref": "#/$defs/identityStatus"
+        },
+        "source_system": {
+          "$ref": "#/$defs/id"
+        },
+        "source_record_id": {
+          "$ref": "#/$defs/id"
+        },
+        "assertion_method": {
+          "$ref": "#/$defs/id"
+        },
+        "issuer_id": {
+          "$ref": "#/$defs/id"
+        },
+        "provenance_ref": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "specimen_id",
+        "campaign_id",
+        "acquired_at_utc",
+        "time_basis"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "specimen_id": {
+          "$ref": "#/$defs/id"
+        },
+        "campaign_id": {
+          "$ref": "#/$defs/id"
+        },
+        "acquired_at_utc": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "time_basis": {
+          "enum": [
+            "UTC",
+            "LOCAL_UNKNOWN",
+            "OFFSET_NOT_NORMALIZED"
+          ]
+        }
+      }
+    },
+    "calibrationCertificate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "instrument_id",
+        "method_revision_id",
+        "calibration_lab",
+        "certificate_artifact_ref",
+        "authenticity_status",
+        "valid_from_utc",
+        "valid_until_utc"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "instrument_id": {
+          "$ref": "#/$defs/id"
+        },
+        "method_revision_id": {
+          "$ref": "#/$defs/id"
+        },
+        "calibration_lab": {
+          "$ref": "#/$defs/id"
+        },
+        "certificate_artifact_ref": {
+          "$ref": "#/$defs/id"
+        },
+        "authenticity_status": {
+          "enum": [
+            "authenticated",
+            "unauthenticated",
+            "unknown"
+          ]
+        },
+        "valid_from_utc": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "valid_until_utc": {
+          "$ref": "#/$defs/timestamp"
+        }
+      }
+    },
+    "calibrationEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "certificate_id",
+        "event_type",
+        "effective_at_utc",
+        "recorded_at_utc",
+        "retroactive"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "certificate_id": {
+          "$ref": "#/$defs/id"
+        },
+        "event_type": {
+          "enum": [
+            "revoked",
+            "suspended",
+            "corrected",
+            "superseded"
+          ]
+        },
+        "effective_at_utc": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "recorded_at_utc": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "retroactive": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}
