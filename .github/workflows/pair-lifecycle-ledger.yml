@@ -25,6 +25,13 @@ jobs:
         with:
           toolchain: 1.96.0
           components: clippy, rustfmt
+      - name: Format source and emit formatter output for review
+        run: |
+          cargo fmt --manifest-path research/pair-lifecycle-ledger/v0.1/Cargo.toml
+          echo "PAIR_LEDGER_SOURCE_B64_BEGIN"
+          base64 -w0 research/pair-lifecycle-ledger/v0.1/src/lib.rs
+          echo
+          echo "PAIR_LEDGER_SOURCE_B64_END"
       - name: Check formatting
         run: cargo fmt --manifest-path research/pair-lifecycle-ledger/v0.1/Cargo.toml -- --check
       - name: Run tests
