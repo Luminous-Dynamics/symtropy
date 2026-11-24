@@ -791,6 +791,101 @@ mod tests {
     const SCHEMA: &str = include_str!(
         "../../../../docs/research/aviation/schemas/aero_material_process_case_v0_1.schema.json"
     );
+    const MUTATION_ORACLE: &str = include_str!(
+        "../../../../docs/research/aviation/examples/adversarial_material_process_mutations_v0_1.json"
+    );
+
+    #[test]
+    fn independent_mutation_oracle_matches_expected_dispositions() {
+        let corpus: Value =
+            serde_json::from_str(MUTATION_ORACLE).expect("mutation oracle parses");
+        assert_eq!(
+            corpus.get("synthetic_only").and_then(Value::as_bool),
+            Some(true)
+        );
+        assert_eq!(
+            corpus
+                .get("oracle_authored_independently_of_evaluator")
+                .and_then(Value::as_bool),
+            Some(true)
+        );
+        let cases = corpus
+            .get("cases")
+            .and_then(Value::as_array)
+            .expect("mutation cases array");
+        assert_eq!(cases.len(), 11);
+
+        for mutation in cases {
+            let case_id = field_str(mutation, "case_id").expect("case id");
+            let operation = field_str(mutation, "operation").expect("mutation operation");
+            let pointer = field_str(mutation, "pointer").expect("mutation pointer");
+            let mut case = fixture();
+
+            match operation {
+                "set" => {
+                    let target = case
+                        .pointer_mut(pointer)
+                        .unwrap_or_else(|| panic!("{case_id}: mutation pointer exists"));
+                    *target = mutation
+                        .get("value")
+                        .expect("set mutation has value")
+                        .clone();
+                }
+                "append" => {
+                    let target = case
+                        .pointer_mut(pointer)
+                        .and_then(Value::as_array_mut)
+                        .unwrap_or_else(|| panic!("{case_id}: append target is an array"));
+                    target.push(
+                        mutation
+                            .get("value")
+                            .expect("append mutation has value")
+                            .clone(),
+                    );
+                }
+                other => panic!("{case_id}: unsupported mutation operation {other}"),
+            }
+
+            let report = evaluate_case(&case);
+            assert_eq!(
+                report.structurally_complete,
+                mutation["expected_structurally_complete"]
+                    .as_bool()
+                    .expect("expected structural status"),
+                "{case_id}: structural disposition"
+            );
+            assert_eq!(
+                report.process_domain_status,
+                mutation["expected_process_domain_status"]
+                    .as_str()
+                    .expect("expected process-domain status"),
+                "{case_id}: process-domain disposition"
+            );
+
+            for code in mutation["expected_violation_codes"]
+                .as_array()
+                .expect("expected violation codes")
+            {
+                let code = code.as_str().expect("violation code string");
+                assert!(
+                    report.violations.iter().any(|finding| finding.code == code),
+                    "{case_id}: missing expected violation {code}; got {:?}",
+                    report.violations
+                );
+            }
+            for code in mutation["expected_blocker_codes"]
+                .as_array()
+                .expect("expected blocker codes")
+            {
+                let code = code.as_str().expect("blocker code string");
+                assert!(
+                    report.blockers.iter().any(|finding| finding.code == code),
+                    "{case_id}: missing expected blocker {code}; got {:?}",
+                    report.blockers
+                );
+            }
+        }
+    }
 
     #[test]
     fn schema_document_is_parseable_and_pins_draft_2020_12() {
