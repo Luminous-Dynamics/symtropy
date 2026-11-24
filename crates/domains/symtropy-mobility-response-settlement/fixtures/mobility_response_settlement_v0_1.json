@@ -353,7 +353,19 @@
         "interval_count": 2,
         "network_deliverable": true,
         "n_minus_one_required": true,
-        "n_minus_one_feasible_interval_count": 2
+        "n_minus_one_feasible_interval_count": 2,
+        "intervals": [
+          {
+            "interval_start_ns": 100000000000,
+            "interval_duration_ns": 1000000000,
+            "maximum_network_deliverable_reduction_mw": 0.01
+          },
+          {
+            "interval_start_ns": 101000000000,
+            "interval_duration_ns": 1000000000,
+            "maximum_network_deliverable_reduction_mw": 0.01
+          }
+        ]
       },
       "upstream_receipts": [
         {
