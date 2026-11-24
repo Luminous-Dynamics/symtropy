@@ -275,10 +275,7 @@ pub fn bernstein_excess_bound_milli(
     calibration_schedules: usize,
     sigma_max_milli: u16,
 ) -> Option<u32> {
-    if parameter_count == 0
-        || calibration_schedules == 0
-        || sigma_max_milli > LOSS_BOUND_MILLI / 2
-    {
+    if parameter_count == 0 || calibration_schedules == 0 || sigma_max_milli > LOSS_BOUND_MILLI / 2 {
         return None;
     }
 
@@ -286,8 +283,8 @@ pub fn bernstein_excess_bound_milli(
     let n = calibration_schedules as f64;
     let sigma = f64::from(sigma_max_milli);
     let log_term = (2.0 * m).ln();
-    let bound = sigma * (2.0 * log_term / n).sqrt()
-        + f64::from(LOSS_BOUND_MILLI) * log_term / (3.0 * n);
+    let bound =
+        sigma * (2.0 * log_term / n).sqrt() + f64::from(LOSS_BOUND_MILLI) * log_term / (3.0 * n);
     if !bound.is_finite() || bound < 0.0 || bound > f64::from(u32::MAX) {
         return None;
     }
@@ -662,7 +659,9 @@ mod tests {
                     .collect::<Vec<_>>()
             })
             .collect();
-        WholeScheduleLossGrid { schedule_losses_milli: schedules }
+        WholeScheduleLossGrid {
+            schedule_losses_milli: schedules,
+        }
     }
 
     fn variance_fixture_revisions() -> FrozenRevisions {
