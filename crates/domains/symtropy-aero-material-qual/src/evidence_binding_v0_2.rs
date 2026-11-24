@@ -224,6 +224,7 @@ fn check_independent_identity(
     let assertion = assertion_rows[0];
     let mut consistent = true;
     if !has_provenance(assertion) {
+        consistent = false;
         push(
             violations,
             &format!("{identity_label}_PROVENANCE_INCOMPLETE"),
