@@ -42,6 +42,14 @@
     },
     "behavioural_transfer": {
       "$ref": "#/$defs/behavioural_transfer"
+    },
+    "transfer_forecasts": {
+      "type": "array",
+      "description": "Candidate-authored forecasts only. Evaluator outcomes and calibration-bin/threshold choices remain owner-side.",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/transfer_forecast"
+      }
     }
   },
   "$defs": {
@@ -622,6 +630,43 @@
         },
         "scope": {
           "$ref": "#/$defs/behaviour_scope"
+        }
+      }
+    },
+    "transfer_forecast": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "claim_type",
+        "probability_transfer_ppm",
+        "decision"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claim_type": {
+          "enum": [
+            "structural_correspondence",
+            "deterministic_dynamics",
+            "simulation",
+            "bisimulation",
+            "mechanism_transfer"
+          ]
+        },
+        "probability_transfer_ppm": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "decision": {
+          "enum": [
+            "assert_transfer",
+            "reject_transfer",
+            "abstain"
+          ]
         }
       }
     }
