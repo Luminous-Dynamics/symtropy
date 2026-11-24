@@ -76,10 +76,11 @@ pub struct PatchSupportEnvelopeReport {
     pub active_axis_count: usize,
     pub feasible_vertex_count: usize,
     pub status: SupportEnvelopeStatus,
-    /// Certified lower bound across the feasible parameter set. None means
-    /// support is unbounded for every feasible model in this direction.
+    /// Cauchy-Schwarz lower value over the reported vertex representation.
+    /// It is not an outward-rounded numerical certificate in v0.1.
     pub support_lower_bound: Option<f64>,
-    /// Certified upper bound. None represents positive infinity.
+    /// Maximum support evaluated at the reported vertices. None represents
+    /// an unbounded witness in the reported representation.
     pub support_upper_bound: Option<f64>,
     pub lower_bound_method: SupportLowerBoundMethod,
     /// Conservative except for the zero-twist case.
@@ -225,11 +226,11 @@ fn validate_parameter_set(
 
 /// Bound support over the joint feasible beta polyhedron.
 ///
-/// The upper envelope is the exact supremum over the complete vertex
-/// representation because the support expression is convex in beta and
-/// coordinatewise non-increasing; non-negative recession directions cannot
-/// increase it. The lower envelope is the conservative Cauchy-Schwarz bound
-/// c*||q||_1/sqrt(max_joint_sum(beta_active)).
+/// For an exact complete vertex representation, convexity and coordinatewise
+/// monotonicity make the vertex maximum the polyhedral supremum. This v0.1
+/// implementation uses floating-point intersections without outward rounding,
+/// so the result is a maximum over reported vertices, not a formal certificate.
+/// The lower value is the Cauchy-Schwarz construction over that representation.
 pub fn compute_patch_support_envelope(
     input: &PatchSupportEnvelopeInput<'_>,
     config: SupportEnvelopeConfig,
