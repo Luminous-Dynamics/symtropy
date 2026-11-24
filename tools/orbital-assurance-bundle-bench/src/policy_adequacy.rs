@@ -1053,6 +1053,14 @@ mod tests {
                 numerator: loss,
                 denominator: 1,
             },
+            wait_and_see_regret: Rational {
+                numerator: 0,
+                denominator: 1,
+            },
+            outcome_class_regret: Rational {
+                numerator: 0,
+                denominator: 1,
+            },
         }
     }
 
@@ -1092,10 +1100,20 @@ mod tests {
             policy_id: "incumbent-static".to_owned(),
             query_id: None,
             branch_actions: BTreeMap::from([(NO_QUERY_OUTCOME.to_owned(), "safe".to_owned())]),
+            observation_class_world_ids: BTreeMap::from([(
+                NO_QUERY_OUTCOME.to_owned(),
+                vec!["w-A".to_owned(), "w-B".to_owned()],
+            )]),
             declared_worst_case_loss: Rational {
                 numerator: 10,
                 denominator: 1,
             },
+            worst_case_wait_and_see_regret: Rational { numerator: 0, denominator: 1 },
+            worst_case_outcome_class_regret: Rational { numerator: 0, denominator: 1 },
+            worst_loss_scenario_ids: vec!["s-A".to_owned(), "s-B".to_owned()],
+            worst_wait_and_see_scenario_ids: vec!["s-A".to_owned(), "s-B".to_owned()],
+            worst_outcome_class_regret_scenario_ids: vec!["s-A".to_owned(), "s-B".to_owned()],
+            worst_loss_reduction_vs_best_no_query: None,
             query_cost: cost(0, 0, 0),
             branch_action_cost_upper_bound: cost(0, 0, 0),
             total_cost_upper_bound: cost(0, 0, 0),
@@ -1111,10 +1129,20 @@ mod tests {
                 ("north".to_owned(), "north-action".to_owned()),
                 ("south".to_owned(), "south-action".to_owned()),
             ]),
+            observation_class_world_ids: BTreeMap::from([
+                ("north".to_owned(), vec!["w-A".to_owned()]),
+                ("south".to_owned(), vec!["w-B".to_owned()]),
+            ]),
             declared_worst_case_loss: Rational {
                 numerator: candidate_loss,
                 denominator: 1,
             },
+            worst_case_wait_and_see_regret: Rational { numerator: 0, denominator: 1 },
+            worst_case_outcome_class_regret: Rational { numerator: 0, denominator: 1 },
+            worst_loss_scenario_ids: vec!["s-A".to_owned(), "s-B".to_owned()],
+            worst_wait_and_see_scenario_ids: vec!["s-A".to_owned(), "s-B".to_owned()],
+            worst_outcome_class_regret_scenario_ids: vec!["s-A".to_owned(), "s-B".to_owned()],
+            worst_loss_reduction_vs_best_no_query: None,
             query_cost: cost(1, 5, 10),
             branch_action_cost_upper_bound: cost(1, 0, 5),
             total_cost_upper_bound: cost(2, 5, 15),
