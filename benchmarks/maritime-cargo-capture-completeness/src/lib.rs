@@ -623,10 +623,7 @@ mod tests {
 
     #[test]
     fn claim_for_different_subject_is_not_admitted_by_same_capture_receipt() {
-        let report = evaluate(&case(
-            Some(reference(&["e1"])),
-            vec![captured("e1")],
-        ));
+        let report = evaluate(&case(Some(reference(&["e1"])), vec![captured("e1")]));
         let mut claim = claim_for_event("e1");
         claim.canonical_subject_id = "urn:epc:id:sscc:0614141.9999999999".to_owned();
         assert_eq!(
@@ -700,10 +697,7 @@ mod tests {
 
     #[test]
     fn failed_capture_window_cannot_admit_an_individual_claim() {
-        let report = evaluate(&case(
-            Some(reference(&["e1", "e2"])),
-            vec![captured("e1")],
-        ));
+        let report = evaluate(&case(Some(reference(&["e1", "e2"])), vec![captured("e1")]));
         assert_eq!(report.disposition, Disposition::Incomplete);
         assert_eq!(
             admit_claim_against_capture(&report, &claim_for_event("e1")),
