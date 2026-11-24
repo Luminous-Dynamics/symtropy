@@ -24,8 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             vec![-2.0, 0.0],
         ],
     };
-    let report =
-        select_inertial_rank_basis(&input, RankSelectionConfig::default())?;
+    let report = select_inertial_rank_basis(&input, RankSelectionConfig::default())?;
 
     println!(
         "schema,candidate_set,rank,candidates,first_pivot,rank_threshold,max_projection_residual,physical_omission_certified,selected_ids,excluded_ids"
@@ -44,9 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         report.excluded_contact_ids.join("|"),
     );
 
-    println!(
-        "contact_id,inertial_row_norm,projection_residual,relative_residual,disposition"
-    );
+    println!("contact_id,inertial_row_norm,projection_residual,relative_residual,disposition");
     for row in report.row_diagnostics {
         println!(
             "{},{:.9},{:.9},{}, {:?}",
