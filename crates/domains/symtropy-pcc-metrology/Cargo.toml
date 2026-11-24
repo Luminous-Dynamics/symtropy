@@ -1,0 +1,9 @@
+[package]
+name = "symtropy-pcc-metrology"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Evidence-bounded calibration correction and uncertainty qualification for PCC power traces."
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
