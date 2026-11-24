@@ -238,9 +238,7 @@ pub fn aggregate_orbital_hybrid_leaf_portfolio(
     }
     let zero = Rational::from_integer(0);
     let one = Rational::from_integer(1);
-    if portfolio.global_confidence_alpha <= zero
-        || portfolio.global_confidence_alpha >= one
-    {
+    if portfolio.global_confidence_alpha <= zero || portfolio.global_confidence_alpha >= one {
         return Err(OrbitalHybridPortfolioError::InvalidGlobalConfidenceAlpha);
     }
 
@@ -296,9 +294,7 @@ pub fn aggregate_orbital_hybrid_leaf_portfolio(
                     return Err(OrbitalHybridPortfolioError::MissingEvidenceDigest);
                 }
                 if !validate_interval(conditional_probability, one) {
-                    return Err(
-                        OrbitalHybridPortfolioError::InvalidConditionalProbabilityInterval
-                    );
+                    return Err(OrbitalHybridPortfolioError::InvalidConditionalProbabilityInterval);
                 }
                 let lower_contribution = leaf
                     .target_mass
@@ -313,12 +309,9 @@ pub fn aggregate_orbital_hybrid_leaf_portfolio(
                 risk_lower = checked_add(risk_lower, lower_contribution)?;
                 uncapped_risk_upper = checked_add(uncapped_risk_upper, upper_contribution)?;
 
-                let probability_width = checked_sub(
-                    conditional_probability.upper,
-                    conditional_probability.lower,
-                )?;
-                let mass_width =
-                    checked_sub(leaf.target_mass.upper, leaf.target_mass.lower)?;
+                let probability_width =
+                    checked_sub(conditional_probability.upper, conditional_probability.lower)?;
+                let mass_width = checked_sub(leaf.target_mass.upper, leaf.target_mass.lower)?;
                 analytic_width = checked_add(
                     analytic_width,
                     leaf.target_mass
@@ -342,9 +335,7 @@ pub fn aggregate_orbital_hybrid_leaf_portfolio(
                 sample_stream_digest,
                 proposal_history_digest,
             } => {
-                if is_zero_digest(&sample_stream_digest)
-                    || is_zero_digest(&proposal_history_digest)
-                {
+                if is_zero_digest(&sample_stream_digest) || is_zero_digest(&proposal_history_digest) {
                     return Err(OrbitalHybridPortfolioError::MissingEvidenceDigest);
                 }
                 if confidence_alpha <= zero || confidence_alpha >= one {
@@ -396,14 +387,14 @@ pub fn aggregate_orbital_hybrid_leaf_portfolio(
                     .checked_add(1)
                     .ok_or(OrbitalHybridPortfolioError::ArithmeticOverflow)?;
             }
-            OrbitalLeafEvidence::Unresolved { residual_mass_digest } => {
+            OrbitalLeafEvidence::Unresolved {
+                residual_mass_digest,
+            } => {
                 if is_zero_digest(&residual_mass_digest) {
                     return Err(OrbitalHybridPortfolioError::MissingEvidenceDigest);
                 }
-                unresolved_mass_upper =
-                    checked_add(unresolved_mass_upper, leaf.target_mass.upper)?;
-                uncapped_risk_upper =
-                    checked_add(uncapped_risk_upper, leaf.target_mass.upper)?;
+                unresolved_mass_upper = checked_add(unresolved_mass_upper, leaf.target_mass.upper)?;
+                uncapped_risk_upper = checked_add(uncapped_risk_upper, leaf.target_mass.upper)?;
                 unresolved_leaf_count = unresolved_leaf_count
                     .checked_add(1)
                     .ok_or(OrbitalHybridPortfolioError::ArithmeticOverflow)?;
@@ -461,18 +452,12 @@ fn validate_interval(interval: NonnegativeRationalInterval, maximum: Rational) -
     interval.lower <= interval.upper && interval.upper <= maximum
 }
 
-fn checked_add(
-    left: Rational,
-    right: Rational,
-) -> Result<Rational, OrbitalHybridPortfolioError> {
+fn checked_add(left: Rational, right: Rational) -> Result<Rational, OrbitalHybridPortfolioError> {
     left.checked_add(right)
         .map_err(|_| OrbitalHybridPortfolioError::ArithmeticOverflow)
 }
 
-fn checked_sub(
-    left: Rational,
-    right: Rational,
-) -> Result<Rational, OrbitalHybridPortfolioError> {
+fn checked_sub(left: Rational, right: Rational) -> Result<Rational, OrbitalHybridPortfolioError> {
     left.checked_sub(right)
         .map_err(|_| OrbitalHybridPortfolioError::ArithmeticOverflow)
 }
@@ -494,17 +479,18 @@ mod tests {
         Rational::new(numerator, denominator).unwrap()
     }
 
-    fn interval(
-        lower: (u128, u128),
-        upper: (u128, u128),
-    ) -> NonnegativeRationalInterval {
+    fn interval(lower: (u128, u128), upper: (u128, u128)) -> NonnegativeRationalInterval {
         NonnegativeRationalInterval {
             lower: rational(lower.0, lower.1),
             upper: rational(upper.0, upper.1),
         }
     }
 
-    fn leaf(id: u8, mass: ((u128, u128), (u128, u128)), evidence: OrbitalLeafEvidence) -> OrbitalRiskLeaf {
+    fn leaf(
+        id: u8,
+        mass: ((u128, u128), (u128, u128)),
+        evidence: OrbitalLeafEvidence,
+    ) -> OrbitalRiskLeaf {
         OrbitalRiskLeaf {
             leaf_id: [id; 32],
             ancestry_digest: [id + 20; 32],
@@ -557,8 +543,14 @@ mod tests {
 
         assert_eq!(result.risk_probability_lower, rational(1, 20));
         assert_eq!(result.risk_probability_upper, rational(7, 20));
-        assert_eq!(result.uncertainty.statistical_confidence_width, rational(1, 20));
-        assert_eq!(result.uncertainty.unresolved_structural_mass_upper, rational(1, 4));
+        assert_eq!(
+            result.uncertainty.statistical_confidence_width,
+            rational(1, 20)
+        );
+        assert_eq!(
+            result.uncertainty.unresolved_structural_mass_upper,
+            rational(1, 4)
+        );
         assert_eq!(result.uncertainty.uncapped_total_width, rational(3, 10));
         assert_eq!(result.event_free_leaf_count, 1);
         assert_eq!(result.statistical_leaf_count, 1);
@@ -580,7 +572,10 @@ mod tests {
         assert_eq!(result.risk_probability_lower, rational(1, 20));
         assert_eq!(result.uncapped_risk_probability_upper, rational(1, 5));
         assert_eq!(result.uncertainty.analytic_enclosure_width, rational(1, 10));
-        assert_eq!(result.uncertainty.target_mass_uncertainty_width, rational(1, 20));
+        assert_eq!(
+            result.uncertainty.target_mass_uncertainty_width,
+            rational(1, 20)
+        );
         assert_eq!(result.uncertainty.uncapped_total_width, rational(3, 20));
         assert_eq!(result.risk_probability_upper, rational(1, 5));
     }
@@ -759,13 +754,16 @@ mod tests {
                 closure_digest: [30; 32],
             },
         );
-        let mut input = portfolio(vec![one_leaf, leaf(
-            11,
-            ((1, 2), (1, 2)),
-            OrbitalLeafEvidence::StructurallyEventFree {
-                closure_digest: [31; 32],
-            },
-        )]);
+        let mut input = portfolio(vec![
+            one_leaf,
+            leaf(
+                11,
+                ((1, 2), (1, 2)),
+                OrbitalLeafEvidence::StructurallyEventFree {
+                    closure_digest: [31; 32],
+                },
+            ),
+        ]);
         input.max_leaf_count = 1;
         assert_eq!(
             aggregate_orbital_hybrid_leaf_portfolio(&input),
