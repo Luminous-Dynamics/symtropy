@@ -1,7 +1,6 @@
 use crate::sha256_hex;
 use crate::support::{
-    OcclusionStatus, SupportEnvelopeCase, SupportEnvelopeCertificate, SupportStatus,
-    evaluate_support_envelope,
+    SupportEnvelopeCase, SupportEnvelopeCertificate, SupportStatus, evaluate_support_envelope,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
