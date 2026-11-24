@@ -1,0 +1,33 @@
+name: NYU CCD Query Import
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/nyu-ccd-query-import/v0.1/**"
+      - ".github/workflows/nyu-ccd-query-import.yml"
+  push:
+    branches: [main, "research/nyu-ccd-query-import-v0.1"]
+    paths:
+      - "research/nyu-ccd-query-import/v0.1/**"
+      - ".github/workflows/nyu-ccd-query-import.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Rust 1.96 NYU query import checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/nyu-ccd-query-import/v0.1/Cargo.toml -- --check
+      - name: Run tests
+        run: cargo test --manifest-path research/nyu-ccd-query-import/v0.1/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/nyu-ccd-query-import/v0.1/Cargo.toml --locked --all-targets -- -D warnings
