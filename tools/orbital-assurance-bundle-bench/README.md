@@ -221,3 +221,23 @@ python3 tools/orbital-assurance-bundle-bench/tests/anytime_world_set_bridge_orac
 ~~~
 
 Language decision and promotion gate: [ORBITAL_ASSURANCE_IMPLEMENTATION_LANGUAGE_STRATEGY_V0_1.md](../../research/orbital/ORBITAL_ASSURANCE_IMPLEMENTATION_LANGUAGE_STRATEGY_V0_1.md). Python is used for an independently expressed exact-rational oracle and research baseline reproduction, not as a production runtime replacement for Rust. Keep Node and Python challengers until matched per-case differential tests demonstrate their incremental assurance value.
+
+
+## Observable incumbent policy adequacy v0.1
+
+The policy_adequacy adapter consumes a source-pinned, already-evaluated policy frontier from the feasibility-discovery owner (#6997). It does not enumerate policies or execute queries. It binds the actual incumbent policy, current joint physical-world/loss-model scenarios, scope and cutoff; verifies per-scenario loss/regret against policy summaries; rejects hidden-world branch leakage; and compares only frontier policies that satisfy the declared native resource budget.
+
+Loss materiality is compared in its own rational loss unit. Reference trials, exposure, elapsed time and transition cost remain separate resource dimensions. No arbitrary scalar exchange rate or hidden recommendation is produced.
+
+**Source limitation:** the current corpus is a normalized synthetic projection of #6997's case/metric fields, not a direct raw-receipt ingestion adapter. The source metadata and full policy payload digest are checked, but the actual #6997 workflow receipt still needs a dedicated extraction/replay bridge. Synthetic pins are not authenticated source evidence.
+
+Specification: [INCUMBENT_POLICY_ADEQUACY_V0_1.md](../../research/orbital/INCUMBENT_POLICY_ADEQUACY_V0_1.md).
+
+~~~bash
+cargo run --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --bin incumbent-policy-adequacy -- \
+  tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-policy-adequacy-cases.json \
+  --source-commit <40-lowercase-hex-commit>
+node tools/orbital-assurance-bundle-bench/tests/compare_incumbent_policy_adequacy.mjs \
+  incumbent-policy-adequacy-receipt.json \
+  tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-policy-adequacy-expected.json
+~~~
