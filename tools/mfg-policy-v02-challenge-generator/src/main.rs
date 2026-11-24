@@ -4,6 +4,8 @@ use std::process::ExitCode;
 
 const SCHEMA_JSON: &str =
     include_str!("../../../schemas/manufacturing/mfg_policy_v02_challenge_corpus.schema.json");
+const EVALUATOR_SCHEMA_JSON: &str =
+    include_str!("../../../schemas/manufacturing/mfg_policy_v02_evaluator_labels.schema.json");
 const ROOT_SEED: u64 = 20_261_124;
 const FAMILY_COUNT: usize = 6;
 const REPLICATIONS_PER_FAMILY: usize = 20;
@@ -868,25 +870,28 @@ fn generate_case(
     (case, evaluator_case)
 }
 
-fn generate_corpus() -> Corpus {
+fn generate_corpus() -> (Corpus, EvaluatorLabels) {
     let family_manifest = family_manifest();
     let mut cases = Vec::with_capacity(FAMILY_COUNT * REPLICATIONS_PER_FAMILY);
+    let mut evaluator_cases = Vec::with_capacity(FAMILY_COUNT * REPLICATIONS_PER_FAMILY);
     for (family_index, family) in family_manifest.iter().enumerate() {
         for seed in &family.replication_seeds {
-            cases.push(generate_case(family, family_index, *seed));
+            let (case, evaluator_case) = generate_case(family, family_index, *seed);
+            cases.push(case);
+            evaluator_cases.push(evaluator_case);
         }
     }
 
-    Corpus {
+    let policy_corpus = Corpus {
         schema_id: "https://luminousdynamics.io/schemas/mfg-policy-v0.2-challenge-corpus".into(),
         benchmark_id: "MFG-POLICY-V02-CHALLENGE-001".into(),
         generator_version: "mfg-policy-v02-challenge-generator/0.2.0".into(),
-        evidence_class: "synthetic_offline".into(),
+        evidence_class: "synthetic_offline_policy_visible".into(),
         generation: GenerationManifest {
             root_seed: ROOT_SEED,
             seed_algorithm: "SplitMix64-v1".into(),
             seed_derivation: "mix64(root_seed XOR ((family_index + 1) << 32) XOR replication_seed)".into(),
-            pairing_rule: "Each case is replayed unchanged by every policy; policies share identical case, scenario leaves, event prefixes and hidden evaluator outcomes.".into(),
+            pairing_rule: "Each policy receives the same policy-visible case bytes, scenario leaves and event prefixes; paired seeds are shared across policies.".into(),
             split_rule: "Whole scenario families are assigned to development or held_out before generation; no case-level random split.".into(),
             tuning_rule: "Tune only on development families; held_out families are evaluation-only and must not drive policy selection or hyperparameter changes.".into(),
         },
@@ -895,8 +900,17 @@ fn generate_corpus() -> Corpus {
         case_count: cases.len(),
         family_manifest,
         cases,
-        claim_ceiling: "Deterministic synthetic challenge generator and structural corpus only; no scheduler superiority, real provider reliability, physical acceptance, product conformity, factory recovery, production authorization, or ISO conformance claim.".into(),
-    }
+        claim_ceiling: "Policy-visible deterministic synthetic challenge corpus only; evaluator outcomes are distributed separately and must be access-controlled; no scheduler superiority, real provider reliability, physical acceptance, product conformity, factory recovery, production authorization, or ISO conformance claim.".into(),
+    };
+    let evaluator_labels = EvaluatorLabels {
+        schema_id: "https://luminousdynamics.io/schemas/mfg-policy-v0.2-evaluator-labels".into(),
+        benchmark_id: "MFG-POLICY-V02-CHALLENGE-001".into(),
+        evidence_class: "synthetic_evaluator_only".into(),
+        case_count: evaluator_cases.len(),
+        cases: evaluator_cases,
+        claim_ceiling: "Synthetic terminal outcome labels for independent evaluation only; never mount or expose to policy processes.".into(),
+    };
+    (policy_corpus, evaluator_labels)
 }
 
 fn validate_schema(instance: &serde_json::Value) -> Result<(), String> {
