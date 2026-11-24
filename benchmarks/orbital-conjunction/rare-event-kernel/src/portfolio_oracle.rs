@@ -248,11 +248,25 @@ mod tests {
 
     #[test]
     fn consequence_objective_can_prefer_lower_pc_event_over_higher_pc_event() {
-        // The labels encode the benchmark scenario, not a Pc calculation:
-        // a high-Pc / low-consequence event competes with a lower-Pc event
-        // whose independently modelled avoided consequence is much larger.
+        // This frozen fixture demonstrates why Pc-only ranking and
+        // consequence-aware portfolio selection must be measured separately.
         let high_pc_low_consequence = action(1, 2, 1);
         let lower_pc_high_consequence = action(2, 20, 1);
+        let mut pc_ranked = [
+            (Rational::new(9, 10).unwrap(), high_pc_low_consequence),
+            (Rational::new(1, 2).unwrap(), lower_pc_high_consequence),
+        ];
+        pc_ranked.sort_by(|left, right| {
+            right
+                .0
+                .cmp(&left.0)
+                .then_with(|| left.1.action_id.cmp(&right.1.action_id))
+        });
+
+        let pc_only_selection = pc_ranked[0].1;
+        let pc_only_avoided = pc_only_selection.expected_consequence_avoided;
+        assert_eq!(pc_only_selection.action_id, 1);
+        assert_eq!(pc_only_avoided, Rational::from_integer(2));
 
         let report = exact_portfolio_oracle(
             1,
