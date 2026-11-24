@@ -244,3 +244,22 @@ Added `AGENT_TRANSFER_BUNDLE_V0_1.md`, `schemas/agent_transfer_bundle_v0.schema.
 The scoped structural schema's `$id` now matches its repository filename, and the bundle references it by a relative schema URI. Each structural node/relation snapshot has evidence IDs. The optional deterministic-dynamics proposal now also carries source/target state and action snapshots with evidence IDs, plus source-transition evidence IDs and predicted target successors. Hidden target transitions remain evaluator-owned.
 
 This remains a sidecar specification/example, not an integrated #11171 runner or a claim that the JSON Schema has been executed by a full Draft 2020-12 validator. Static JSON parse and scope-partition checks are reported separately.
+
+## Decision-relevant expected value of sample information
+
+Added `src/decision_value.rs`, exposed as `decision_value`, with `DECISION_RELEVANT_EVSI_V0_1.md`, a JSON Schema and a machine-readable known-answer fixture.
+
+The evaluator computes an exact finite Bayes-risk reduction:
+- baseline minimum expected loss before an experiment;
+- expected minimum loss after observing each possible experiment outcome;
+- exact EVSI numerator over a common denominator;
+- net EVSI after cost in the same declared loss units;
+- floating-point mutual information as a separate diagnostic only.
+
+The known-answer pair contains a higher-information but decision-irrelevant probe and a lower-information, decision-changing probe:
+- Experiment 100: mutual information = 0.8 bits; EVSI = 0; cost = 1; net EVSI = -1.
+- Experiment 101: mutual information ≈ 0.721928 bits; EVSI = 2; cost = 1; net EVSI = +1.
+
+Five tests currently encode the core exact arithmetic, information/decision divergence, cost dominance, invalid likelihood normalization, incomplete loss table and impossible-outcome semantics. (The current test module has six tests total; future tests should add the duplicate-ID and unknown-reference paths.)
+
+This is an exact one-step finite decision oracle, not an adaptive scheduler, a learned VoC predictor, a causal experiment selector, or an action authority. It is designed to serve as a known-answer baseline for the #11171 research-policy adapter and to complement Symthaea #5476/#5478/#8721 and #13418.
