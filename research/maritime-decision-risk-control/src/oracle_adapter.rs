@@ -259,6 +259,15 @@ impl ClusterMeanMatrix {
     pub fn matrix(&self) -> crate::LossMatrix {
         self.loss.clone()
     }
+
+    /// Converts cluster means into the existing non-monotone CRC grid contract.
+    /// The returned rows remain one per cluster; this does not validate IID
+    /// cluster independence or the method's endpoint-risk assumption.
+    pub fn non_monotone_grid(&self) -> crate::non_monotone::WholeScheduleLossGrid {
+        crate::non_monotone::WholeScheduleLossGrid {
+            schedule_losses_milli: self.loss.schedules.clone(),
+        }
+    }
 }
 
 impl OracleCalibrationBundle {
@@ -1231,6 +1240,17 @@ mod tests {
         assert_eq!(
             hard_means.loss.schedules,
             vec![vec![0, 0], vec![1_000, 0]]
+        );
+
+        let high_probability = crate::high_probability::select_simultaneous_hoeffding(
+            &hard_means.non_monotone_grid(),
+            &cluster_means.non_monotone_grid(),
+            100,
+            0.05,
+        );
+        assert_eq!(
+            high_probability,
+            Err(crate::high_probability::HighProbabilityError::NoPolicyMeetsTarget)
         );
     }
 
