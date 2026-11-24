@@ -54,7 +54,7 @@ jobs:
           RESET_CFG="research/mobility-rrvr-runtime-trace/model/GazeboResetLifecycle.cfg"
           RESET_UNSAFE_CFG="research/mobility-rrvr-runtime-trace/model/GazeboResetLifecycle_NaiveRetry.cfg"
           RESET_PLAN_CFG="research/mobility-rrvr-runtime-trace/model/GazeboResetLifecycle_PlanSubstitution.cfg"
-          printf '%s  %s\n' "81e74ebdccb7b18989b0df1aca65c6099eb75d6c43ddabb22c66e477878301ed" "$RESET_MODEL" | sha256sum --check
+          printf '%s  %s\n' "8e2be0cd17d91b5255c8be1055adf6dc1ddde328a5b94f3880265506cf121b59" "$RESET_MODEL" | sha256sum --check
           printf '%s  %s\n' "62edb47e5e59ef395c2a05ddcff216d3ad032293578bd26eba873cd185fe519e" "$RESET_CFG" | sha256sum --check
           printf '%s  %s\n' "98791fd10fef39b502f9281b300096157c6ca191739caf40618292a0c48a3462" "$RESET_UNSAFE_CFG" | sha256sum --check
           printf '%s  %s\n' "5f0a3ec8edba3370f491a8eebab41c5241d072394cf62cd939bce1a7af864dfc" "$RESET_PLAN_CFG" | sha256sum --check
