@@ -1,3 +1,5 @@
+// Copyright (C) 2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
 //! Semantic checks for AERO-MATERIAL-PROCESS-QUAL-001 v0.1.
 //!
 //! This evaluator checks the referential and partition contract represented by
