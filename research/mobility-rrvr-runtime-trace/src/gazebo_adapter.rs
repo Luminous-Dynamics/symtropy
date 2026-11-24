@@ -763,7 +763,7 @@ pub fn validate_delivery_observer_quorum(
     let observed = observed_signatures
         .first()
         .ok_or(GazeboAdapterError::ObserverQuorumUnqualified)?;
-    if *observed == fault.expected_delivery_signature_sha256 {
+    if *observed == fault.expected_delivery_signature_sha256.as_str() {
         Ok(DeliveryEvidenceVerdict::Confirmed)
     } else {
         Ok(DeliveryEvidenceVerdict::Refuted)
