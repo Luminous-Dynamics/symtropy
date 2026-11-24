@@ -1,0 +1,587 @@
+{
+  "schema_id": "https://luminousdynamics.io/schemas/mfg-policy-observability-answers-v0.1",
+  "benchmark_id": "MFG-POLICY-OBSERVABILITY-001",
+  "evidence_class": "synthetic",
+  "answer_count": 20,
+  "answers": [
+    {
+      "case_id": "OBS-01-ONTIME",
+      "projections": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60,
+          "visible_event_ids": [
+            "e1"
+          ],
+          "active_event_ids": [
+            "e1"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        },
+        {
+          "decision_cut_id": "c90",
+          "cutoff_ms": 90,
+          "visible_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "active_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-02-LATE-OLD-EFFECTIVE",
+      "projections": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60,
+          "visible_event_ids": [],
+          "active_event_ids": [],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        },
+        {
+          "decision_cut_id": "c90",
+          "cutoff_ms": 90,
+          "visible_event_ids": [
+            "e1"
+          ],
+          "active_event_ids": [
+            "e1"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-03-REPLAY-DUPLICATE",
+      "projections": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60,
+          "visible_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "active_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-04-ADMITTED-CORRECTION",
+      "projections": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60,
+          "visible_event_ids": [
+            "e1"
+          ],
+          "active_event_ids": [
+            "e1"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        },
+        {
+          "decision_cut_id": "c90",
+          "cutoff_ms": 90,
+          "visible_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "active_event_ids": [
+            "e2"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": [
+            "e1"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-05-UNKNOWN-CORRECTION",
+      "projections": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60,
+          "visible_event_ids": [
+            "e1"
+          ],
+          "active_event_ids": [
+            "e1"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        },
+        {
+          "decision_cut_id": "c90",
+          "cutoff_ms": 90,
+          "visible_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "active_event_ids": [
+            "e1"
+          ],
+          "unresolved_event_ids": [
+            "e2"
+          ],
+          "superseded_event_ids": []
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-06-CLOCK-UNCERTAINTY",
+      "projections": [
+        {
+          "decision_cut_id": "c50",
+          "cutoff_ms": 50,
+          "visible_event_ids": [
+            "e2",
+            "e1"
+          ],
+          "active_event_ids": [
+            "e2"
+          ],
+          "unresolved_event_ids": [
+            "e1"
+          ],
+          "superseded_event_ids": []
+        },
+        {
+          "decision_cut_id": "c80",
+          "cutoff_ms": 80,
+          "visible_event_ids": [
+            "e2",
+            "e1"
+          ],
+          "active_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-07-FUTURE-EFFECTIVE",
+      "projections": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60,
+          "visible_event_ids": [
+            "e1"
+          ],
+          "active_event_ids": [],
+          "unresolved_event_ids": [
+            "e1"
+          ],
+          "superseded_event_ids": []
+        },
+        {
+          "decision_cut_id": "c120",
+          "cutoff_ms": 120,
+          "visible_event_ids": [
+            "e1"
+          ],
+          "active_event_ids": [
+            "e1"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-08-CONFLICTED-SOURCE",
+      "projections": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60,
+          "visible_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "active_event_ids": [
+            "e2"
+          ],
+          "unresolved_event_ids": [
+            "e1"
+          ],
+          "superseded_event_ids": []
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-09-UNKNOWN-EXECUTION",
+      "projections": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60,
+          "visible_event_ids": [
+            "e1"
+          ],
+          "active_event_ids": [],
+          "unresolved_event_ids": [
+            "e1"
+          ],
+          "superseded_event_ids": []
+        },
+        {
+          "decision_cut_id": "c90",
+          "cutoff_ms": 90,
+          "visible_event_ids": [
+            "e1"
+          ],
+          "active_event_ids": [],
+          "unresolved_event_ids": [
+            "e1"
+          ],
+          "superseded_event_ids": []
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-10-LATE-MEASUREMENT",
+      "projections": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60,
+          "visible_event_ids": [],
+          "active_event_ids": [],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        },
+        {
+          "decision_cut_id": "c100",
+          "cutoff_ms": 100,
+          "visible_event_ids": [
+            "e1"
+          ],
+          "active_event_ids": [
+            "e1"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-11-REORDERED-SEQUENCE",
+      "projections": [
+        {
+          "decision_cut_id": "c30",
+          "cutoff_ms": 30,
+          "visible_event_ids": [
+            "e2"
+          ],
+          "active_event_ids": [
+            "e2"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        },
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60,
+          "visible_event_ids": [
+            "e2",
+            "e1"
+          ],
+          "active_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-12-REVISION-SCOPE",
+      "projections": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60,
+          "visible_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "active_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-13-REPLAY-AND-CONFLICT",
+      "projections": [
+        {
+          "decision_cut_id": "c30",
+          "cutoff_ms": 30,
+          "visible_event_ids": [
+            "e1"
+          ],
+          "active_event_ids": [
+            "e1"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        },
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60,
+          "visible_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "active_event_ids": [
+            "e1"
+          ],
+          "unresolved_event_ids": [
+            "e2"
+          ],
+          "superseded_event_ids": []
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-14-CORRECTION-CHAIN",
+      "projections": [
+        {
+          "decision_cut_id": "c30",
+          "cutoff_ms": 30,
+          "visible_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "active_event_ids": [
+            "e2"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": [
+            "e1"
+          ]
+        },
+        {
+          "decision_cut_id": "c90",
+          "cutoff_ms": 90,
+          "visible_event_ids": [
+            "e1",
+            "e2",
+            "e3"
+          ],
+          "active_event_ids": [
+            "e3"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": [
+            "e1",
+            "e2"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-15-TWO-SOURCES",
+      "projections": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60,
+          "visible_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "active_event_ids": [
+            "e1"
+          ],
+          "unresolved_event_ids": [
+            "e2"
+          ],
+          "superseded_event_ids": []
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-16-UNKNOWN-THEN-RECONCILED",
+      "projections": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60,
+          "visible_event_ids": [
+            "e1"
+          ],
+          "active_event_ids": [],
+          "unresolved_event_ids": [
+            "e1"
+          ],
+          "superseded_event_ids": []
+        },
+        {
+          "decision_cut_id": "c90",
+          "cutoff_ms": 90,
+          "visible_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "active_event_ids": [
+            "e2"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": [
+            "e1"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-17-EFFECTIVE-WINDOW-PAST",
+      "projections": [
+        {
+          "decision_cut_id": "c30",
+          "cutoff_ms": 30,
+          "visible_event_ids": [],
+          "active_event_ids": [],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        },
+        {
+          "decision_cut_id": "c50",
+          "cutoff_ms": 50,
+          "visible_event_ids": [
+            "e1"
+          ],
+          "active_event_ids": [
+            "e1"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-18-EXACT-CUTOFF",
+      "projections": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60,
+          "visible_event_ids": [
+            "e1"
+          ],
+          "active_event_ids": [
+            "e1"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        },
+        {
+          "decision_cut_id": "c61",
+          "cutoff_ms": 61,
+          "visible_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "active_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-19-SCOPE-SPECIFIC-CORRECTION",
+      "projections": [
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60,
+          "visible_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "active_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "unresolved_event_ids": [],
+          "superseded_event_ids": []
+        }
+      ]
+    },
+    {
+      "case_id": "OBS-20-MIXED-RECEIPTS",
+      "projections": [
+        {
+          "decision_cut_id": "c30",
+          "cutoff_ms": 30,
+          "visible_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "active_event_ids": [
+            "e1"
+          ],
+          "unresolved_event_ids": [
+            "e2"
+          ],
+          "superseded_event_ids": []
+        },
+        {
+          "decision_cut_id": "c60",
+          "cutoff_ms": 60,
+          "visible_event_ids": [
+            "e1",
+            "e2",
+            "e3"
+          ],
+          "active_event_ids": [
+            "e1",
+            "e2"
+          ],
+          "unresolved_event_ids": [
+            "e3"
+          ],
+          "superseded_event_ids": []
+        },
+        {
+          "decision_cut_id": "c80",
+          "cutoff_ms": 80,
+          "visible_event_ids": [
+            "e1",
+            "e2",
+            "e3",
+            "e4"
+          ],
+          "active_event_ids": [
+            "e1",
+            "e2",
+            "e4"
+          ],
+          "unresolved_event_ids": [
+            "e3"
+          ],
+          "superseded_event_ids": []
+        }
+      ]
+    }
+  ],
+  "claim_ceiling": "frozen expected visible/admissible event sets for 20 synthetic timelines; history hashes are computed by the evaluator and are not source authentication"
+}

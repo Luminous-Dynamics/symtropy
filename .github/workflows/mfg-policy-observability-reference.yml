@@ -1,0 +1,37 @@
+name: Manufacturing Policy Observability Reference
+on:
+  pull_request:
+    paths:
+      - "schemas/manufacturing/mfg_policy_observability_*.schema.json"
+      - "fixtures/manufacturing/mfg_policy_observability_*.json"
+      - "tools/mfg-policy-observability-reference/**"
+      - "docs/research/MFG_POLICY_OBSERVABILITY_REFERENCE_V0_1.md"
+      - ".github/workflows/mfg-policy-observability-reference.yml"
+  push:
+    branches:
+      - main
+      - research/mfg-policy-observability-v0-1
+    paths:
+      - "schemas/manufacturing/mfg_policy_observability_*.schema.json"
+      - "fixtures/manufacturing/mfg_policy_observability_*.json"
+      - "tools/mfg-policy-observability-reference/**"
+      - "docs/research/MFG_POLICY_OBSERVABILITY_REFERENCE_V0_1.md"
+      - ".github/workflows/mfg-policy-observability-reference.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/mfg-policy-observability-reference/Cargo.toml -- --check
+      - name: Run timeline, cutoff and correction tests
+        run: cargo test --manifest-path tools/mfg-policy-observability-reference/Cargo.toml
+      - name: Run event projection reference
+        run: cargo run --manifest-path tools/mfg-policy-observability-reference/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/mfg-policy-observability-reference/Cargo.toml -- -D warnings
