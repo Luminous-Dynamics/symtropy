@@ -428,9 +428,8 @@ impl RunProfile {
     }
 
     #[must_use]
-    pub const fn can_pool_with(self, other: Self) -> bool {
-        self.is_explicit() && other.is_explicit() && self.motion as u8 == other.motion as u8
-            && self.arithmetic as u8 == other.arithmetic as u8
+    pub fn can_pool_with(self, other: Self) -> bool {
+        self.is_explicit() && other.is_explicit() && self == other
     }
 }
 
@@ -447,7 +446,9 @@ pub struct QueryScore {
 impl QueryScore {
     #[must_use]
     pub fn benchmark_qualified(&self) -> bool {
-        self.profile.is_explicit() && self.counts.correctness_qualified()
+        self.profile.is_explicit()
+            && self.counts.oracle_positive_queries > 0
+            && self.counts.correctness_qualified()
     }
 
     #[must_use]
@@ -780,6 +781,54 @@ mod tests {
     ) -> QueryEvaluation {
         QueryEvaluation::from_imported("nyu-fixture-v1", scene, 3, query, candidate, narrowphase)
             .unwrap()
+    }
+
+    #[test]
+    fn benchmark_scores_require_and_preserve_explicit_motion_precision_profiles() {
+        let queries = imported_queries_with_labels(&[true]);
+        let result = evaluation(
+            &queries[0],
+            "profile-scene",
+            CandidateDisposition::Forwarded,
+            NarrowphaseOutcome::Collision,
+        );
+        let binary64 = RunProfile::new(
+            MotionProfile::LinearizedConstantVelocity,
+            ArithmeticProfile::Binary64,
+        );
+        let q16 = RunProfile::new(
+            MotionProfile::SemiImplicitEulerQ16_16,
+            ArithmeticProfile::FixedQ16_16,
+        );
+        let binary_score = evaluate_queries_with_profile(binary64, std::slice::from_ref(&result))
+            .unwrap();
+        let q16_score = evaluate_queries_with_profile(q16, &[result.clone()]).unwrap();
+        let unspecified = evaluate_queries(std::slice::from_ref(&result)).unwrap();
+
+        assert!(binary_score.benchmark_qualified());
+        assert!(q16_score.benchmark_qualified());
+        assert!(binary_score.can_pool_with(&binary_score));
+        assert!(!binary_score.can_pool_with(&q16_score));
+        assert!(!unspecified.benchmark_qualified());
+        assert!(!unspecified.can_pool_with(&binary_score));
+    }
+
+    #[test]
+    fn zero_positive_population_cannot_claim_benchmark_recall() {
+        let queries = imported_queries_with_labels(&[false]);
+        let result = evaluation(
+            &queries[0],
+            "no-positive-profile-scene",
+            CandidateDisposition::Forwarded,
+            NarrowphaseOutcome::NoCollision,
+        );
+        let profile = RunProfile::new(
+            MotionProfile::LinearizedConstantVelocity,
+            ArithmeticProfile::Binary64,
+        );
+        let score = evaluate_queries_with_profile(profile, &[result]).unwrap();
+        assert!(score.counts.correctness_qualified());
+        assert!(!score.benchmark_qualified());
     }
 
     #[test]
