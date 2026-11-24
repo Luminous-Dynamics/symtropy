@@ -259,3 +259,6 @@ Claim ceiling: this branch is still a file-backed reference implementation. It i
 The [RRVR Benchmark Protocol](RRVR_BENCHMARK_PROTOCOL_V0.2.md) defines cross-restart physical-effect benchmarks, matched prior-art baselines (EAST, SafeVLA-Bench, ROS fault-injection, ROS-RVFT, Gazebo, AWS idempotency, SQLite WAL and NIST), hard safety invariants, operational metrics, confidence methodology, mandatory negative controls and evidence artifact requirements.
 
 It makes the core research distinction explicit: RRVR is not a new generic fault injector or VLA task benchmark. Its proposed contribution is cross-process/cross-restart physical-effect lineage, durable intent, request-bound reconciliation, independent observer evidence and safe recovery admission. All targets in that document are proposed qualification goals, not measured results.
+
+
+A transport-level rejected response is not considered proof of no physical effect. The recovery projection keeps rejected reset outcomes pending for read-only world observation and rejected dispatch outcomes pending for read-only injector-ledger lookup.
