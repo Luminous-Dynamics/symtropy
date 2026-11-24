@@ -179,7 +179,7 @@ fn choose_status(statuses: &[ValidityStatus]) -> ValidityStatus {
         .iter()
         .copied()
         .min_by_key(|status| precedence(*status))
-        .unwrap_or(ValidityStatus::Indeterminate)
+        .unwrap_or(ValidityStatus::ValidWithinScope)
 }
 
 fn checked_interval(center_ns: i64, uncertainty_ns: u64) -> Result<[i128; 2], String> {
