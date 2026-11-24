@@ -30,8 +30,7 @@ const GRID_RESPONSE_PATH: &str = "crates/domains/symtropy-energy-systems/src/gri
 const PCC_METROLOGY_PATH: &str = "crates/domains/symtropy-pcc-metrology/src/lib.rs";
 const COUNTERFACTUAL_BASELINE_PATH: &str =
     "crates/domains/symtropy-counterfactual-baseline/src/lib.rs";
-const MOBILITY_NETWORK_PATH: &str =
-    "crates/domains/symtropy-mobility-network-adapter/src/lib.rs";
+const MOBILITY_NETWORK_PATH: &str = "crates/domains/symtropy-mobility-network-adapter/src/lib.rs";
 const CLAIM_CEILING: &str = "Read-only reconciliation of dispatch tracking, covariance-aware PCC metrology, counterfactual baseline/rebound, and locational DC network reports. The conservative lower bound is a technical evidence summary, not a joint event probability unless the upstream owner proves dependence; it is not causal identification, market settlement, payment authorization, ELCC, AC feasibility, field qualification, or dispatch authority.";
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -221,16 +220,18 @@ fn array<'a>(root: &'a Value, pointer: &str) -> Result<&'a Vec<Value>, BridgeErr
 
 fn nonempty(name: &str, candidate: &str) -> Result<(), BridgeError> {
     if candidate.trim().is_empty() {
-        Err(BridgeError::InvalidInput(format!("{name} must not be empty")))
+        Err(BridgeError::InvalidInput(format!(
+            "{name} must not be empty"
+        )))
     } else {
         Ok(())
     }
 }
 
 fn sha256_shape(value: &str) -> bool {
-    value.strip_prefix("sha256:").is_some_and(|hex| {
-        hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit())
-    })
+    value
+        .strip_prefix("sha256:")
+        .is_some_and(|hex| hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit()))
 }
 
 fn commit_shape(value: &str) -> bool {
@@ -277,7 +278,9 @@ fn validate_artifact(
     })
 }
 
-fn validate_input(input: &MobilityResponseSettlementInput) -> Result<Vec<SourceArtifactDigest>, BridgeError> {
+fn validate_input(
+    input: &MobilityResponseSettlementInput,
+) -> Result<Vec<SourceArtifactDigest>, BridgeError> {
     if input.schema_version != SCHEMA_VERSION || input.benchmark_id != BENCHMARK_ID {
         return Err(BridgeError::InvalidInput(
             "schema_version or benchmark_id mismatch".to_owned(),
@@ -288,23 +291,44 @@ fn validate_input(input: &MobilityResponseSettlementInput) -> Result<Vec<SourceA
         ("offer_id", input.offer_id.as_str()),
         ("commitment_epoch_id", input.commitment_epoch_id.as_str()),
         ("service_product_id", input.service_product_id.as_str()),
-        ("measurement_boundary_id", input.measurement_boundary_id.as_str()),
+        (
+            "measurement_boundary_id",
+            input.measurement_boundary_id.as_str(),
+        ),
         ("baseline_model_id", input.baseline_model_id.as_str()),
-        ("response_configuration_digest", input.response_configuration_digest.as_str()),
+        (
+            "response_configuration_digest",
+            input.response_configuration_digest.as_str(),
+        ),
         ("site_id", input.site_id.as_str()),
         ("pcc_id", input.pcc_id.as_str()),
-        ("meter_chain_configuration_digest", input.meter_chain_configuration_digest.as_str()),
+        (
+            "meter_chain_configuration_digest",
+            input.meter_chain_configuration_digest.as_str(),
+        ),
         ("asset_id", input.asset_id.as_str()),
-        ("asset_configuration_digest", input.asset_configuration_digest.as_str()),
+        (
+            "asset_configuration_digest",
+            input.asset_configuration_digest.as_str(),
+        ),
         ("pcc_bus_id", input.pcc_bus_id.as_str()),
         ("claim_ceiling", input.claim_ceiling.as_str()),
     ] {
         nonempty(field, candidate)?;
     }
     for (field, digest) in [
-        ("response configuration digest", input.response_configuration_digest.as_str()),
-        ("meter-chain configuration digest", input.meter_chain_configuration_digest.as_str()),
-        ("asset configuration digest", input.asset_configuration_digest.as_str()),
+        (
+            "response configuration digest",
+            input.response_configuration_digest.as_str(),
+        ),
+        (
+            "meter-chain configuration digest",
+            input.meter_chain_configuration_digest.as_str(),
+        ),
+        (
+            "asset configuration digest",
+            input.asset_configuration_digest.as_str(),
+        ),
         ("network model digest", input.network_model_digest.as_str()),
         ("topology digest", input.topology_digest.as_str()),
     ] {
@@ -362,11 +386,7 @@ fn validate_input(input: &MobilityResponseSettlementInput) -> Result<Vec<SourceA
     Ok(artifacts)
 }
 
-fn check_identity(
-    observed: String,
-    expected: &str,
-    label: &str,
-) -> Result<(), BridgeError> {
+fn check_identity(observed: String, expected: &str, label: &str) -> Result<(), BridgeError> {
     if observed == expected {
         Ok(())
     } else {
@@ -376,11 +396,7 @@ fn check_identity(
     }
 }
 
-fn same_u64(
-    observed: u64,
-    expected: u64,
-    label: &str,
-) -> Result<(), BridgeError> {
+fn same_u64(observed: u64, expected: u64, label: &str) -> Result<(), BridgeError> {
     if observed == expected {
         Ok(())
     } else {
@@ -390,32 +406,34 @@ fn same_u64(
     }
 }
 
-fn sum_interval_energy(
-    intervals: &[Value],
-    pointer: &str,
-) -> Result<f64, BridgeError> {
-    intervals.iter().enumerate().try_fold(0.0_f64, |sum, (index, interval)| {
-        let energy = number(interval, pointer)?;
-        let next = sum + energy;
-        if next.is_finite() {
-            Ok(next)
-        } else {
-            Err(BridgeError::Arithmetic(format!(
-                "interval energy accumulation overflow at index {index}"
-            )))
-        }
-    })
+fn sum_interval_energy(intervals: &[Value], pointer: &str) -> Result<f64, BridgeError> {
+    intervals
+        .iter()
+        .enumerate()
+        .try_fold(0.0_f64, |sum, (index, interval)| {
+            let energy = number(interval, pointer)?;
+            let next = sum + energy;
+            if next.is_finite() {
+                Ok(next)
+            } else {
+                Err(BridgeError::Arithmetic(format!(
+                    "interval energy accumulation overflow at index {index}"
+                )))
+            }
+        })
 }
 
-fn validate_report_identities(
-    input: &MobilityResponseSettlementInput,
-) -> Result<(), BridgeError> {
+fn validate_report_identities(input: &MobilityResponseSettlementInput) -> Result<(), BridgeError> {
     let grid = &input.grid_response.report;
     let pcc = &input.pcc_metrology.report;
     let baseline = &input.counterfactual_baseline.report;
     let network = &input.mobility_network.report;
 
-    check_identity(string(grid, "/identity/event_id")?, &input.event_id, "grid event ID")?;
+    check_identity(
+        string(grid, "/identity/event_id")?,
+        &input.event_id,
+        "grid event ID",
+    )?;
     check_identity(
         string(grid, "/identity/service_product_id")?,
         &input.service_product_id,
@@ -437,8 +455,16 @@ fn validate_report_identities(
         "response configuration digest",
     )?;
 
-    check_identity(string(pcc, "/identity/site_id")?, &input.site_id, "PCC metrology site")?;
-    check_identity(string(pcc, "/identity/pcc_id")?, &input.pcc_id, "PCC metrology PCC")?;
+    check_identity(
+        string(pcc, "/identity/site_id")?,
+        &input.site_id,
+        "PCC metrology site",
+    )?;
+    check_identity(
+        string(pcc, "/identity/pcc_id")?,
+        &input.pcc_id,
+        "PCC metrology PCC",
+    )?;
     check_identity(
         string(pcc, "/identity/configuration_digest")?,
         &input.meter_chain_configuration_digest,
@@ -461,20 +487,36 @@ fn validate_report_identities(
         "counterfactual baseline model",
     )?;
 
-    check_identity(string(network, "/offer_id")?, &input.offer_id, "network adapter offer")?;
+    check_identity(
+        string(network, "/offer_id")?,
+        &input.offer_id,
+        "network adapter offer",
+    )?;
     check_identity(
         string(network, "/commitment_epoch_id")?,
         &input.commitment_epoch_id,
         "network adapter commitment epoch",
     )?;
-    check_identity(string(network, "/site_id")?, &input.site_id, "network adapter site")?;
-    check_identity(string(network, "/pcc_id")?, &input.pcc_id, "network adapter PCC")?;
+    check_identity(
+        string(network, "/site_id")?,
+        &input.site_id,
+        "network adapter site",
+    )?;
+    check_identity(
+        string(network, "/pcc_id")?,
+        &input.pcc_id,
+        "network adapter PCC",
+    )?;
     check_identity(
         string(network, "/pcc_bus_id")?,
         &input.pcc_bus_id,
         "network adapter PCC bus",
     )?;
-    check_identity(string(network, "/asset_id")?, &input.asset_id, "network adapter asset")?;
+    check_identity(
+        string(network, "/asset_id")?,
+        &input.asset_id,
+        "network adapter asset",
+    )?;
     check_identity(
         string(network, "/asset_configuration_digest")?,
         &input.asset_configuration_digest,
@@ -529,14 +571,24 @@ fn validate_timelines(
 
     let network_start_ns = unsigned(network, "/horizon_start_unix_ms")?
         .checked_mul(1_000_000)
-        .ok_or_else(|| BridgeError::Arithmetic("network horizon start conversion overflow".to_owned()))?;
+        .ok_or_else(|| {
+            BridgeError::Arithmetic("network horizon start conversion overflow".to_owned())
+        })?;
     let network_end_ns = unsigned(network, "/horizon_end_unix_ms")?
         .checked_mul(1_000_000)
-        .ok_or_else(|| BridgeError::Arithmetic("network horizon end conversion overflow".to_owned()))?;
+        .ok_or_else(|| {
+            BridgeError::Arithmetic("network horizon end conversion overflow".to_owned())
+        })?;
     let network_recovery_ns = unsigned(network, "/required_recovery_by_unix_ms")?
         .checked_mul(1_000_000)
-        .ok_or_else(|| BridgeError::Arithmetic("network recovery conversion overflow".to_owned()))?;
-    same_u64(network_start_ns, input.instruction_issued_at_ns, "network offer start")?;
+        .ok_or_else(|| {
+            BridgeError::Arithmetic("network recovery conversion overflow".to_owned())
+        })?;
+    same_u64(
+        network_start_ns,
+        input.instruction_issued_at_ns,
+        "network offer start",
+    )?;
     same_u64(network_end_ns, input.dispatch_end_ns, "network offer end")?;
     same_u64(
         network_recovery_ns,
@@ -661,25 +713,39 @@ fn validate_timelines(
         let elapsed = unsigned(sample, "/elapsed_ns")?;
         let expected_elapsed = (index as u64 + 1)
             .checked_mul(sample_interval_ns)
-            .ok_or_else(|| BridgeError::Arithmetic("grid sample elapsed-time overflow".to_owned()))?;
-        same_u64(elapsed, expected_elapsed, "grid response sample elapsed time")?;
+            .ok_or_else(|| {
+                BridgeError::Arithmetic("grid sample elapsed-time overflow".to_owned())
+            })?;
+        same_u64(
+            elapsed,
+            expected_elapsed,
+            "grid response sample elapsed time",
+        )?;
 
         let interval_start = unsigned(baseline_interval, "/interval_start_ns")?;
         let interval_duration = unsigned(baseline_interval, "/interval_duration_ns")?;
-        same_u64(interval_duration, sample_interval_ns, "dispatch interval sample resolution")?;
+        same_u64(
+            interval_duration,
+            sample_interval_ns,
+            "dispatch interval sample resolution",
+        )?;
         let expected_start = input
             .instruction_issued_at_ns
-            .checked_add((index as u64).checked_mul(sample_interval_ns).ok_or_else(|| {
-                BridgeError::Arithmetic("dispatch interval offset overflow".to_owned())
-            })?)
-            .ok_or_else(|| BridgeError::Arithmetic("dispatch interval start overflow".to_owned()))?;
+            .checked_add(
+                (index as u64)
+                    .checked_mul(sample_interval_ns)
+                    .ok_or_else(|| {
+                        BridgeError::Arithmetic("dispatch interval offset overflow".to_owned())
+                    })?,
+            )
+            .ok_or_else(|| {
+                BridgeError::Arithmetic("dispatch interval start overflow".to_owned())
+            })?;
         same_u64(interval_start, expected_start, "dispatch interval start")?;
 
         let baseline_id = string(sample, "/baseline_evidence_id")?;
         let response_id = string(sample, "/response_evidence_id")?;
-        if !evidence_ids.insert(baseline_id.clone())
-            || !evidence_ids.insert(response_id.clone())
-        {
+        if !evidence_ids.insert(baseline_id.clone()) || !evidence_ids.insert(response_id.clone()) {
             return Err(BridgeError::DuplicateEvidence(
                 "baseline or response evidence reference is reused across intervals".to_owned(),
             ));
@@ -732,7 +798,10 @@ fn evaluate_component_flags(
 
     let network_passed = string(network, "/disposition")? == "screened_full_request"
         && boolean(network, "/full_requested_trajectory_dc_deliverable")?
-        && boolean(value(network, "/dc_network_report")?, "/network_deliverable")?;
+        && boolean(
+            value(network, "/dc_network_report")?,
+            "/network_deliverable",
+        )?;
     let dc = value(network, "/dc_network_report")?;
     let n1_required = boolean(dc, "/n_minus_one_required")?;
     let n1_passed = !n1_required
@@ -774,7 +843,14 @@ fn evaluate_component_flags(
         ));
     }
     if !all_upstream_gates_passed {
-        return Ok((grid_passed, pcc_passed, baseline_qualified, baseline_event, false, false));
+        return Ok((
+            grid_passed,
+            pcc_passed,
+            baseline_qualified,
+            baseline_event,
+            false,
+            false,
+        ));
     }
     for field in [
         "/actual_metered_delivery_assessed",
@@ -791,7 +867,14 @@ fn evaluate_component_flags(
             )));
         }
     }
-    Ok((grid_passed, pcc_passed, baseline_qualified, baseline_event, network_passed, n1_passed))
+    Ok((
+        grid_passed,
+        pcc_passed,
+        baseline_qualified,
+        baseline_event,
+        network_passed,
+        n1_passed,
+    ))
 }
 
 fn canonical_input_digest(input: &MobilityResponseSettlementInput) -> Result<String, BridgeError> {
@@ -806,9 +889,14 @@ pub fn evaluate_mobility_response_settlement(
     let artifacts = validate_input(input)?;
     validate_report_identities(input)?;
     let _interval_counts = validate_timelines(input)?;
-    let (grid_response_passed, pcc_metrology_qualified, baseline_qualified, baseline_event_qualified,
-        full_request_dc_network_deliverable, required_n_minus_one_passed) =
-        evaluate_component_flags(input)?;
+    let (
+        grid_response_passed,
+        pcc_metrology_qualified,
+        baseline_qualified,
+        baseline_event_qualified,
+        full_request_dc_network_deliverable,
+        required_n_minus_one_passed,
+    ) = evaluate_component_flags(input)?;
 
     let grid = &input.grid_response.report;
     let pcc = &input.pcc_metrology.report;
@@ -838,8 +926,7 @@ pub fn evaluate_mobility_response_settlement(
             }
         })?;
 
-    let report_pcc_net_lower_kwh =
-        number(pcc, "/summed_interval_lower_bound_energy_wh")? / 1_000.0;
+    let report_pcc_net_lower_kwh = number(pcc, "/summed_interval_lower_bound_energy_wh")? / 1_000.0;
     let report_pcc_net_point_kwh = number(pcc, "/net_reduction_energy_wh")? / 1_000.0;
     let computed_pcc_net_lower_kwh =
         sum_interval_energy(pcc_intervals, "/lower_bound_reduction_energy_wh")? / 1_000.0;
@@ -851,7 +938,8 @@ pub fn evaluate_mobility_response_settlement(
         > input.maximum_net_energy_disagreement_kwh
     {
         return Err(BridgeError::EnergyMismatch(
-            "PCC gross reduction minus rebound does not equal reported signed net energy".to_owned(),
+            "PCC gross reduction minus rebound does not equal reported signed net energy"
+                .to_owned(),
         ));
     }
     if (computed_pcc_net_lower_kwh - report_pcc_net_lower_kwh).abs()
@@ -961,8 +1049,8 @@ pub fn evaluate_mobility_response_settlement(
         && baseline_event_qualified
         && required_n_minus_one_passed;
     let uncapped_conservative_lower = report_pcc_net_lower_kwh.min(baseline_net_lower);
-    let network_cap_conflict = uncapped_conservative_lower
-        > network_max_kwh + input.maximum_net_energy_disagreement_kwh;
+    let network_cap_conflict =
+        uncapped_conservative_lower > network_max_kwh + input.maximum_net_energy_disagreement_kwh;
     let lower_bound = if all_physical_evidence_passed && !network_cap_conflict {
         Some(uncapped_conservative_lower)
     } else {
@@ -1405,9 +1493,17 @@ mod tests {
             maximum_net_energy_disagreement_kwh: 0.0002,
             grid_response: report_artifact(GRID_RESPONSE_PR, GRID_RESPONSE_PATH, grid_report),
             pcc_metrology: report_artifact(PCC_METROLOGY_PR, PCC_METROLOGY_PATH, pcc_report),
-            counterfactual_baseline: report_artifact(COUNTERFACTUAL_BASELINE_PR, COUNTERFACTUAL_BASELINE_PATH, baseline_report),
-            mobility_network: report_artifact(MOBILITY_NETWORK_PR, MOBILITY_NETWORK_PATH, network_report),
-            claim_ceiling: "synthetic fixture only".to_owned()
+            counterfactual_baseline: report_artifact(
+                COUNTERFACTUAL_BASELINE_PR,
+                COUNTERFACTUAL_BASELINE_PATH,
+                baseline_report,
+            ),
+            mobility_network: report_artifact(
+                MOBILITY_NETWORK_PR,
+                MOBILITY_NETWORK_PATH,
+                network_report,
+            ),
+            claim_ceiling: "synthetic fixture only".to_owned(),
         }
     }
 
@@ -1471,8 +1567,7 @@ mod tests {
         bad.pcc_metrology.report["intervals"][2]["interval_start_ns"] = json!(999);
         assert!(matches!(
             evaluate_mobility_response_settlement(&bad),
-            Err(BridgeError::IntervalMismatch(_))
-                | Err(BridgeError::TimeBoundaryMismatch(_))
+            Err(BridgeError::IntervalMismatch(_)) | Err(BridgeError::TimeBoundaryMismatch(_))
         ));
     }
 
@@ -1502,7 +1597,8 @@ mod tests {
         limited.mobility_network.report["disposition"] = json!("screened_partial_request");
         limited.mobility_network.report["full_requested_trajectory_dc_deliverable"] = json!(false);
         limited.mobility_network.report["dc_network_report"]["network_deliverable"] = json!(false);
-        limited.mobility_network.report["maximum_dc_network_deliverable_response_energy_mwh"] = json!(0.0000053);
+        limited.mobility_network.report["maximum_dc_network_deliverable_response_energy_mwh"] =
+            json!(0.0000053);
         let report = evaluate_mobility_response_settlement(&limited).unwrap();
         assert_eq!(report.status, ReconciliationStatus::NetworkLimited);
         assert!(report.technical_reconciliation_passed);
@@ -1534,10 +1630,7 @@ mod tests {
         let report = evaluate_mobility_response_settlement(&bad).unwrap();
         assert_eq!(report.status, ReconciliationStatus::TechnicallyReconciled);
         assert!(report.technical_reconciliation_passed);
-        assert!(report
-            .conservative_net_response_lower_bound_kwh
-            .unwrap()
-            < 0.0);
+        assert!(report.conservative_net_response_lower_bound_kwh.unwrap() < 0.0);
     }
 
     #[test]
@@ -1553,7 +1646,8 @@ mod tests {
     #[test]
     fn counterfactual_recovery_horizon_is_non_negotiable() {
         let mut bad = input();
-        bad.counterfactual_baseline.report["event_and_recovery_included_in_supplied_horizon"] = json!(false);
+        bad.counterfactual_baseline.report["event_and_recovery_included_in_supplied_horizon"] =
+            json!(false);
         let report = evaluate_mobility_response_settlement(&bad).unwrap();
         assert_eq!(report.status, ReconciliationStatus::NotTechnicallyQualified);
         assert_eq!(report.conservative_net_response_lower_bound_kwh, None);
@@ -1573,7 +1667,10 @@ mod tests {
     fn missing_gate_is_detected_even_if_another_gate_failed() {
         let mut bad = input();
         bad.mobility_network.report["upstream_receipts"][0]["disposition"] = json!("failed");
-        bad.mobility_network.report["upstream_receipts"].as_array_mut().unwrap().pop();
+        bad.mobility_network.report["upstream_receipts"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
         assert!(matches!(
             evaluate_mobility_response_settlement(&bad),
             Err(BridgeError::InvalidField(_))
