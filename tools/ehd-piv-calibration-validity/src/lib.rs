@@ -82,6 +82,9 @@ pub struct CalibrationCertificate {
     pub maximum_age_ticks: u64,
     pub scope: Vec<FeatureBound>,
     pub calibration_cluster_ids: Vec<String>,
+    /// Sealed evaluation cohort fixed by this certificate, not supplied ad hoc
+    /// by the caller when a failed certificate is requalified.
+    pub sealed_test_cluster_ids: Vec<String>,
     pub weighted_support_policy: Option<WeightedSupportPolicy>,
 }
 
@@ -137,6 +140,26 @@ impl CalibrationCertificate {
                     cluster_id: id.clone(),
                 });
             }
+        }
+
+        if self.sealed_test_cluster_ids.is_empty() {
+            return Err(CertificateError::EmptySealedTestCohort);
+        }
+        let mut sealed_test_ids = BTreeSet::new();
+        for id in &self.sealed_test_cluster_ids {
+            if id.trim().is_empty() {
+                return Err(CertificateError::EmptyIdentity {
+                    field: "sealed_test_cluster_id",
+                });
+            }
+            if !sealed_test_ids.insert(id) {
+                return Err(CertificateError::DuplicateSealedTestCluster {
+                    cluster_id: id.clone(),
+                });
+            }
+        }
+        if !cluster_ids.is_disjoint(&sealed_test_ids) {
+            return Err(CertificateError::CalibrationAndTestOverlap);
         }
 
         match (self.method, self.weighted_support_policy.as_ref()) {
@@ -271,6 +294,9 @@ pub enum CertificateError {
     DuplicateFeature { feature: String },
     EmptyCalibrationCohort,
     DuplicateCalibrationCluster { cluster_id: String },
+    EmptySealedTestCohort,
+    DuplicateSealedTestCluster { cluster_id: String },
+    CalibrationAndTestOverlap,
     UnexpectedWeightedPolicy,
     MissingWeightedPolicy,
     InvalidWeightedSupportPolicy,
@@ -292,6 +318,7 @@ pub enum RequalificationError {
     CertificateNotNewer,
     ReceiptIncomplete,
     CalibrationCohortMismatch,
+    SealedTestCohortMismatch,
     CalibrationClustersOverlap,
     SealedTestClustersOverlap,
     CalibrationAndTestOverlap,
@@ -622,6 +649,11 @@ impl CalibrationSupervisor {
         if declared_calibration != receipt.calibration_cluster_ids {
             return Err(RequalificationError::CalibrationCohortMismatch);
         }
+        let declared_sealed_test: BTreeSet<String> =
+            next.sealed_test_cluster_ids.iter().cloned().collect();
+        if declared_sealed_test != receipt.sealed_test_cluster_ids {
+            return Err(RequalificationError::SealedTestCohortMismatch);
+        }
         if !declared_calibration.is_disjoint(&receipt.sealed_test_cluster_ids) {
             return Err(RequalificationError::CalibrationAndTestOverlap);
         }
@@ -632,6 +664,7 @@ impl CalibrationSupervisor {
             .iter()
             .cloned()
             .collect();
+        prior_clusters.extend(self.certificate.sealed_test_cluster_ids.iter().cloned());
         prior_clusters.extend(self.seen_dependence_clusters.iter().cloned());
 
         if !declared_calibration.is_disjoint(&prior_clusters) {
@@ -703,6 +736,7 @@ mod tests {
                 },
             ],
             calibration_cluster_ids: vec!["cal-a".into(), "cal-b".into()],
+            sealed_test_cluster_ids: vec!["test-old-a".into(), "test-old-b".into()],
             weighted_support_policy: None,
         }
     }
@@ -997,6 +1031,7 @@ mod tests {
         next.certificate_id = "certificate-v2".into();
         next.issued_at_tick = 12;
         next.calibration_cluster_ids = vec!["cal-c".into(), "cal-d".into()];
+        next.sealed_test_cluster_ids = vec!["test-a".into(), "test-b".into()];
         let receipt = RequalificationReceipt {
             calibration_cluster_ids: BTreeSet::from(["cal-c".into(), "cal-d".into()]),
             sealed_test_cluster_ids: BTreeSet::from(["test-a".into(), "test-b".into()]),
@@ -1025,9 +1060,10 @@ mod tests {
         next.certificate_id = "certificate-v2".into();
         next.issued_at_tick = 12;
         next.calibration_cluster_ids = vec!["session-e-1".into()];
+        next.sealed_test_cluster_ids = vec!["test-a".into(), "test-b".into()];
         let receipt = RequalificationReceipt {
             calibration_cluster_ids: BTreeSet::from(["session-e-1".into()]),
-            sealed_test_cluster_ids: BTreeSet::from(["test-a".into()]),
+            sealed_test_cluster_ids: BTreeSet::from(["test-a".into(), "test-b".into()]),
             predictor_frozen: true,
             independent_reference_qualified: true,
             external_evidence_verified: true,
@@ -1037,4 +1073,31 @@ mod tests {
             Err(RequalificationError::CalibrationClustersOverlap)
         );
     }
+    #[test]
+    fn requalification_rejects_receipt_test_cohort_not_bound_by_certificate() {
+        let mut supervisor = CalibrationSupervisor::new(certificate()).expect("valid fixture");
+        let mut changed = evidence("e-1", 11);
+        changed
+            .signals
+            .insert(ShiftSignal::ConditionalResidualDriftDetected);
+        let _ = supervisor.observe(&changed);
+
+        let mut next = certificate();
+        next.certificate_id = "certificate-v2".into();
+        next.issued_at_tick = 12;
+        next.calibration_cluster_ids = vec!["cal-c".into(), "cal-d".into()];
+        next.sealed_test_cluster_ids = vec!["sealed-a".into(), "sealed-b".into()];
+        let receipt = RequalificationReceipt {
+            calibration_cluster_ids: BTreeSet::from(["cal-c".into(), "cal-d".into()]),
+            sealed_test_cluster_ids: BTreeSet::from(["unbound-a".into(), "unbound-b".into()]),
+            predictor_frozen: true,
+            independent_reference_qualified: true,
+            external_evidence_verified: true,
+        };
+        assert_eq!(
+            supervisor.requalify(next, &receipt),
+            Err(RequalificationError::SealedTestCohortMismatch)
+        );
+    }
+
 }
