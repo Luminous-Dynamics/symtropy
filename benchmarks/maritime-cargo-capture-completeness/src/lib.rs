@@ -424,6 +424,7 @@ mod tests {
                 .iter()
                 .map(|event_id| ReferenceEvent {
                     event_id: (*event_id).to_owned(),
+                    canonical_subject_id: "urn:epc:id:sscc:0614141.1234567890".to_owned(),
                     event_class: "GATE_OUT".to_owned(),
                     event_time: 10,
                 })
@@ -434,6 +435,8 @@ mod tests {
     fn captured(event_id: &str) -> CapturedEvent {
         CapturedEvent {
             event_id: event_id.to_owned(),
+            source_record_id: format!("source-record-{event_id}"),
+            canonical_subject_id: "urn:epc:id:sscc:0614141.1234567890".to_owned(),
             event_class: "GATE_OUT".to_owned(),
             event_time: 10,
             published_at: 11,
@@ -587,6 +590,91 @@ mod tests {
             count += 1;
         }
         assert_eq!(count, 18);
+    }
+
+    fn claim_for_event(event_id: &str) -> CaptureClaimBinding {
+        CaptureClaimBinding {
+            source_id: "terminal-gate-1".to_owned(),
+            event_class: "GATE_OUT".to_owned(),
+            configuration_digest: "config-v1".to_owned(),
+            event_id: event_id.to_owned(),
+            source_record_id: format!("source-record-{event_id}"),
+            canonical_subject_id: "urn:epc:id:sscc:0614141.1234567890".to_owned(),
+            event_time: 10,
+        }
+    }
+
+    #[test]
+    fn qualified_window_binds_exact_source_event_record_subject_and_time() {
+        let report = evaluate(&case(
+            Some(reference(&["e1", "e2"])),
+            vec![captured("e1"), captured("e2")],
+        ));
+        assert_eq!(
+            report.disposition,
+            Disposition::QualifiedWithinDeclaredEnvelope
+        );
+        assert_eq!(report.reconciled_events.len(), 2);
+        assert_eq!(
+            admit_claim_against_capture(&report, &claim_for_event("e1")),
+            CaptureClaimAdmission::Qualified
+        );
+    }
+
+    #[test]
+    fn claim_for_different_subject_is_not_admitted_by_same_capture_receipt() {
+        let report = evaluate(&case(
+            Some(reference(&["e1"])),
+            vec![captured("e1")],
+        ));
+        let mut claim = claim_for_event("e1");
+        claim.canonical_subject_id = "urn:epc:id:sscc:0614141.9999999999".to_owned();
+        assert_eq!(
+            admit_claim_against_capture(&report, &claim),
+            CaptureClaimAdmission::EvidenceDoesNotMatchClaim
+        );
+    }
+
+    #[test]
+    fn claim_for_different_source_record_or_configuration_is_not_admitted() {
+        let report = evaluate(&case(
+            Some(reference(&["e1"])),
+            vec![captured("e1")],
+        ));
+        let mut claim = claim_for_event("e1");
+        claim.source_record_id = "different-source-row".to_owned();
+        assert_eq!(
+            admit_claim_against_capture(&report, &claim),
+            CaptureClaimAdmission::EvidenceDoesNotMatchClaim
+        );
+        claim = claim_for_event("e1");
+        claim.configuration_digest = "config-v2".to_owned();
+        assert_eq!(
+            admit_claim_against_capture(&report, &claim),
+            CaptureClaimAdmission::EvidenceDoesNotMatchClaim
+        );
+    }
+
+    #[test]
+    fn failed_capture_window_cannot_admit_an_individual_claim() {
+        let report = evaluate(&case(
+            Some(reference(&["e1", "e2"])),
+            vec![captured("e1")],
+        ));
+        assert_eq!(report.disposition, Disposition::Incomplete);
+        assert_eq!(
+            admit_claim_against_capture(&report, &claim_for_event("e1")),
+            CaptureClaimAdmission::Incomplete
+        );
+    }
+
+    #[test]
+    fn independently_qualified_no_event_window_cannot_admit_an_unlisted_claim() {
+        let report = evaluate(&case(Some(reference(&[])), vec![]));
+        assert_eq!(
+            admit_claim_against_capture(&report, &claim_for_event("not-present")),
+            CaptureClaimAdmission::EvidenceDoesNotMatchClaim
+        );
     }
 
     #[test]
