@@ -465,7 +465,7 @@ pub fn compute_parameter_set(
             )
         })?;
     let mut planes = Vec::with_capacity(plane_capacity);
-    for (index, observation) in input.observations.iter().enumerate() {
+    for observation in &input.observations {
         let z = observation.normalized_boundary_components;
         let x = [z[0] * z[0], z[1] * z[1], z[2] * z[2]];
         let epsilon = observation.normalized_residual_bound;
