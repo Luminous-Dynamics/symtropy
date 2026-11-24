@@ -290,10 +290,10 @@ impl Error for QueryRunImportError {}
 /// Parse the strict tab-separated per-query result interchange format.
 ///
 /// Optional first line: `#ccd-query-run-results-v1`.
-/// Each data row has twelve fields:
+/// Each data row has thirteen fields:
 /// dataset, scene, timestep, query class, query index, disposition,
 /// fallback reason, certificate SHA-256, frozen-input SHA-256, verifier ID,
-/// verification status, narrowphase outcome.
+/// verification status, narrowphase outcome, and narrowphase elapsed nanoseconds.
 ///
 /// Forwarded rows must leave fields 6-10 empty. Fallback rows require only a
 /// reason in field 6. Certified-pruned rows require all proof fields 7-10 and
@@ -1205,6 +1205,57 @@ mod tests {
         assert!(!binary_score.can_pool_with(&other_score));
         assert!(!unspecified.benchmark_qualified());
         assert!(!unspecified.can_pool_with(&binary_score));
+    }
+
+    #[test]
+    fn reports_nearest_rank_latency_quantiles_globally_and_per_stratum() {
+        let queries = imported_queries_with_labels(&[true, true, false, false]);
+        let results = vec![
+            evaluation(
+                &queries[0],
+                "latency-scene",
+                CandidateDisposition::Forwarded,
+                NarrowphaseOutcome::Collision,
+            )
+            .with_narrowphase_elapsed_ns(300),
+            evaluation(
+                &queries[1],
+                "latency-scene",
+                CandidateDisposition::Forwarded,
+                NarrowphaseOutcome::Collision,
+            )
+            .with_narrowphase_elapsed_ns(100),
+            evaluation(
+                &queries[2],
+                "latency-scene",
+                CandidateDisposition::Forwarded,
+                NarrowphaseOutcome::NoCollision,
+            )
+            .with_narrowphase_elapsed_ns(200),
+            evaluation(
+                &queries[3],
+                "latency-scene",
+                CandidateDisposition::CertifiedPruned(evidence(
+                    VerificationStatus::AcceptedAndReplayed,
+                )),
+                NarrowphaseOutcome::NotRun,
+            ),
+        ];
+        let profile = run_profile(
+            "symtropy",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            MotionProfile::LinearizedConstantVelocity,
+            ArithmeticProfile::Binary64,
+        );
+        let score = evaluate_queries_with_profile(profile, &results).unwrap();
+
+        assert_eq!(score.timing.sample_count, 3);
+        assert_eq!(score.timing.p50_ns, Some(200));
+        assert_eq!(score.timing.p95_ns, Some(300));
+        assert_eq!(score.timing.p99_ns, Some(300));
+        assert_eq!(score.strata.len(), 1);
+        assert_eq!(score.strata[0].timing, score.timing);
+        assert!(score.benchmark_qualified());
     }
 
     #[test]
