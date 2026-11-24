@@ -77,6 +77,12 @@ pub struct ServiceDecisionImpactInput {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct WilsonInterval {
+    pub lower_permille: u16,
+    pub upper_permille: u16,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct DecisionRiskCoveragePoint {
     /// Minimum signed conservative-bound margin required for a proposal.
     /// A positive margin is conservative headroom; a negative margin relaxes it.
@@ -107,7 +113,10 @@ pub struct DecisionImpactGroup {
     pub hard_gate_bypass_attempts: usize,
     pub false_safe_proposals: usize,
     pub false_safe_admissions: usize,
+    pub false_safe_admission_rate_wilson_95: Option<WilsonInterval>,
     pub false_abstentions: usize,
+    pub realized_feasible_count: usize,
+    pub false_abstention_rate_wilson_95: Option<WilsonInterval>,
     pub decision_flips: usize,
     pub replay_defined_count: usize,
     pub avoidable_abstention_value_units: u64,
@@ -119,6 +128,9 @@ pub struct ServiceDecisionImpactReport {
     pub schema_version: String,
     pub benchmark_id: String,
     pub audit_cutoff_unix_ms: u64,
+    /// Wilson intervals are IID reference calculations; clustered temporal and
+    /// common-cause inference must be reported separately.
+    pub wilson_reference_assumes_iid_samples: bool,
     pub record_count: usize,
     pub candidate_admission_count: usize,
     pub operational_admission_count: usize,
@@ -244,6 +256,25 @@ fn permille(numerator: usize, denominator: usize) -> u16 {
     } else {
         ((numerator as u128 * 1000) / denominator as u128) as u16
     }
+}
+
+fn wilson_interval(successes: usize, trials: usize) -> Option<WilsonInterval> {
+    if trials == 0 || successes > trials {
+        return None;
+    }
+    let z = 1.959_963_984_540_054_f64;
+    let n = trials as f64;
+    let p = successes as f64 / n;
+    let z2 = z * z;
+    let denominator = 1.0 + z2 / n;
+    let center = p + z2 / (2.0 * n);
+    let radius = z * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt());
+    let lower = ((center - radius) / denominator).clamp(0.0, 1.0) * 1000.0;
+    let upper = ((center + radius) / denominator).clamp(0.0, 1.0) * 1000.0;
+    Some(WilsonInterval {
+        lower_permille: lower.floor() as u16,
+        upper_permille: upper.ceil() as u16,
+    })
 }
 
 fn group_key(r: &DecisionImpactRecord) -> GroupKey {
@@ -428,7 +459,10 @@ pub fn evaluate_service_decision_impact(
         hard_gate_bypass_attempts: 0,
         false_safe_proposals: 0,
         false_safe_admissions: 0,
+        false_safe_admission_rate_wilson_95: None,
         false_abstentions: 0,
+        realized_feasible_count: 0,
+        false_abstention_rate_wilson_95: None,
         decision_flips: 0,
         replay_defined_count: 0,
         avoidable_abstention_value_units: 0,
@@ -455,7 +489,10 @@ pub fn evaluate_service_decision_impact(
             hard_gate_bypass_attempts: 0,
             false_safe_proposals: 0,
             false_safe_admissions: 0,
+            false_safe_admission_rate_wilson_95: None,
             false_abstentions: 0,
+            realized_feasible_count: 0,
+            false_abstention_rate_wilson_95: None,
             decision_flips: 0,
             replay_defined_count: 0,
             avoidable_abstention_value_units: 0,
@@ -480,6 +517,9 @@ pub fn evaluate_service_decision_impact(
             }
             if d.hard_gate == HardGateDisposition::Passed {
                 group.replay_defined_count += 1;
+                if d.realized_metric_admit {
+                    group.realized_feasible_count += 1;
+                }
                 if d.candidate_admit {
                     group.operational_admissions_after_hard_gate += 1;
                     if !d.realized_metric_admit {
@@ -497,9 +537,16 @@ pub fn evaluate_service_decision_impact(
             }
         }
 
+        group.false_safe_admission_rate_wilson_95 = wilson_interval(
+            group.false_safe_admissions,
+            group.operational_admissions_after_hard_gate,
+        );
+        group.false_abstention_rate_wilson_95 =
+            wilson_interval(group.false_abstentions, group.realized_feasible_count);
+
         // A within-group threshold sweep gives a reproducible risk/coverage
-        // frontier. It is not a statistical guarantee and is not pooled across
-        // sites, assets, policies, or measurement populations.
+        // frontier. Include explicit zero-admission and full-admission endpoints.
+        // It is not a statistical guarantee and is never pooled across groups.
         let mut margins: Vec<i64> = decisions
             .iter()
             .filter(|d| d.hard_gate == HardGateDisposition::Passed)
@@ -508,6 +555,12 @@ pub fn evaluate_service_decision_impact(
         margins.sort_unstable();
         margins.dedup();
         margins.reverse();
+        if !margins.is_empty() {
+            let zero_admission_margin = margins[0].saturating_add(1);
+            let full_admission_margin = margins[margins.len() - 1].saturating_sub(1);
+            margins.insert(0, zero_admission_margin);
+            margins.push(full_admission_margin);
+        }
         let replay_denominator = group.replay_defined_count;
         for minimum_margin in margins {
             let accepted: Vec<_> = decisions
@@ -533,6 +586,7 @@ pub fn evaluate_service_decision_impact(
         totals.false_safe_proposals += group.false_safe_proposals;
         totals.false_safe_admissions += group.false_safe_admissions;
         totals.false_abstentions += group.false_abstentions;
+        totals.realized_feasible_count += group.realized_feasible_count;
         totals.decision_flips += group.decision_flips;
         totals.replay_defined_count += group.replay_defined_count;
         totals.avoidable_abstention_value_units = totals
@@ -545,6 +599,7 @@ pub fn evaluate_service_decision_impact(
         schema_version: "0.1.0".to_owned(),
         benchmark_id: "SERVICE-DECISION-IMPACT-001".to_owned(),
         audit_cutoff_unix_ms: input.audit_cutoff_unix_ms,
+        wilson_reference_assumes_iid_samples: true,
         record_count: totals.sample_count,
         candidate_admission_count: totals.candidate_admissions,
         operational_admission_count: totals.operational_admissions_after_hard_gate,
