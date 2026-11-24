@@ -346,8 +346,10 @@ mod tests {
             maximum_cyclic_phase_gap: 1.0,
         };
         let report = evaluate_phase_design(&observations, &settings).unwrap();
-        assert_eq!(report.bins[1].observations, 4);
-        assert_eq!(report.bins[1].independent_cycle_count, 2);
+        assert_eq!(report.bins.len(), 1);
+        assert_eq!(report.bins[0].phase_bin_index, 1);
+        assert_eq!(report.bins[0].observations, 4);
+        assert_eq!(report.bins[0].independent_cycle_count, 2);
         assert_eq!(report.minimum_independent_cycles_per_occupied_bin, 2);
         assert_eq!(report.under_replicated_phase_bins, 1);
         assert!(
