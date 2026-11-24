@@ -427,3 +427,39 @@ The new tests cover split-conformal rank/coverage, conservative full-set fallbac
 ## Conformal receipt schema tightening
 
 The owner-issued receipt schema now requires both the independent-unit count and exact claim-scope digest. Its semantic owner checks are documented: model freeze precedes calibration start, which precedes receipt issuance; quantile rank is at most n+1 and matches alpha/count; and sample-ID digest/count match the sealed calibration manifest. JSON parse/static example checks remain distinct from cryptographic custody validation.
+
+## Tie-aware selective risk, decision coverage and separate forecast/outcome artifacts
+
+The calibration evaluator now reports:
+- exact fixed-point Brier and ECE numerators/denominators;
+- log loss with explicit boundary clipping count;
+- per-stratum reports using evaluator-owned strata;
+- Wilson reference intervals for coverage and selective risk;
+- a tie-aware right-step AURC over decided samples;
+- decision coverage over the full forecast cohort.
+
+AURC groups equal selected-class confidence values before integration, making the result input-order invariant. It is normalized over decided claims, while decision coverage uses all forecasts; both must be reported together so the learner cannot improve AURC by abstaining on nearly everything. Brier/log loss/ECE still score abstentions' probabilities.
+
+Separate artifacts now exist:
+- learner-side `schemas/transfer_forecast_cohort_v0.schema.json` and `examples/transfer_forecast_cohort_v0.example.json`;
+- evaluator-only `schemas/transfer_evaluator_outcomes_v0.schema.json` and `examples/transfer_evaluator_outcomes_v0.example.json`;
+- split-conformal output `schemas/split_conformal_transfer_v0.schema.json` and `examples/split_conformal_transfer_v0.example.json`.
+
+Static cross-file audit passed:
+- all three schema documents and three examples parse as JSON;
+- candidate forecast and evaluator outcome cohort IDs match;
+- 12 sample IDs are unique on both sides and form a one-to-one join;
+- the learner forecast objects contain no evaluator stratum field;
+- evaluator outcomes carry four illustrative strata (0–3);
+- the conformal example's finite-sample rank equals `ceil((19+1)*(1-0.10)) = 18`.
+
+This is JSON parse plus static consistency, not a full Draft 2020-12 schema-validation engine or owner-side cryptographic/custody verification.
+
+## Latest exact-head qualification — calibration, bundle and AURC — 24 November 2026
+
+The exact executable code head is `ca85791f015d9446cd6559fb8d2a7718e2c88399`. Focused workflow [#45394880303](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45394880303) ran under Rust 1.96.0 and passed all steps:
+- `cargo fmt --check`: passed;
+- `cargo test --locked`: **118 unit tests passed, 0 failed**, plus doctests;
+- `cargo clippy --locked --all-targets -- -D warnings`: passed.
+
+The subsequent current PR/branch commits are documentation/schema/example additions after that code head; no executable Rust source changed after the verified code head. The pass is focused microcosm qualification, not repository-wide cross-platform CI, production #11171 integration, a sealed multi-process evaluator, block/online conformal, physical deployment, or external SOTA performance.
