@@ -479,7 +479,10 @@ fn log_sum_exp(values: &[f64]) -> f64 {
     if maximum == f64::NEG_INFINITY {
         return f64::NEG_INFINITY;
     }
-    let scaled_sum = values.iter().map(|value| (value - maximum).exp()).sum::<f64>();
+    let scaled_sum = values
+        .iter()
+        .map(|value| (value - maximum).exp())
+        .sum::<f64>();
     maximum + scaled_sum.ln()
 }
 
@@ -536,10 +539,8 @@ mod tests {
     }
 
     fn accumulator() -> AdaptiveImportanceSamplingConfidenceSequence {
-        AdaptiveImportanceSamplingConfidenceSequence::new(
-            EVENT, TARGET, DEFENSIVE, 0.1, 0.05,
-        )
-        .unwrap()
+        AdaptiveImportanceSamplingConfidenceSequence::new(EVENT, TARGET, DEFENSIVE, 0.1, 0.05)
+            .unwrap()
     }
 
     #[test]
@@ -676,15 +677,11 @@ mod tests {
             Err(AdaptiveImportanceSamplingError::InvalidProbability)
         );
         assert_eq!(
-            AdaptiveImportanceSamplingConfidenceSequence::new(
-                EVENT, TARGET, DEFENSIVE, 0.0, 0.05,
-            ),
+            AdaptiveImportanceSamplingConfidenceSequence::new(EVENT, TARGET, DEFENSIVE, 0.0, 0.05,),
             Err(AdaptiveImportanceSamplingError::InvalidProbability)
         );
         assert_eq!(
-            AdaptiveImportanceSamplingConfidenceSequence::new(
-                EVENT, TARGET, DEFENSIVE, 0.1, 1.0,
-            ),
+            AdaptiveImportanceSamplingConfidenceSequence::new(EVENT, TARGET, DEFENSIVE, 0.1, 1.0,),
             Err(AdaptiveImportanceSamplingError::InvalidProbability)
         );
     }
@@ -702,7 +699,11 @@ mod tests {
 
         for encoded_path in 0_u32..(1_u32 << HORIZON) {
             let mut sequence = AdaptiveImportanceSamplingConfidenceSequence::new(
-                EVENT, TARGET, DEFENSIVE, MIXTURE_WEIGHT, 0.05,
+                EVENT,
+                TARGET,
+                DEFENSIVE,
+                MIXTURE_WEIGHT,
+                0.05,
             )
             .unwrap();
             let mut path_probability = 1.0;
@@ -724,7 +725,10 @@ mod tests {
                 let (target_density, proposal_density) = if event_occurred {
                     (TARGET_EVENT_PROBABILITY, proposal_event_probability)
                 } else {
-                    (1.0 - TARGET_EVENT_PROBABILITY, 1.0 - proposal_event_probability)
+                    (
+                        1.0 - TARGET_EVENT_PROBABILITY,
+                        1.0 - proposal_event_probability,
+                    )
                 };
 
                 sequence
@@ -801,5 +805,4 @@ mod tests {
         assert!(report.lower > 0.9);
         assert_eq!(report.upper, 1.0);
     }
-
 }
