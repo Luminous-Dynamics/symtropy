@@ -413,12 +413,13 @@ fn run_hedged(
             checkpoint_index += 1;
         }
     }
-    let first_elapsed = started.elapsed();
-    let elapsed = median_elapsed(first_elapsed, repetitions.saturating_sub(1), || {
+    let elapsed = median_elapsed(repetitions, || {
         let mut sequence = HedgedCapitalConfidenceSequence::new(alpha, parameter_grid.clone())?;
         for observation in observations {
             sequence.observe(black_box(*observation))?;
-            black_box(sequence.confidence_sequence().upper);
+            let interval = sequence.confidence_sequence();
+            black_box(interval.lower);
+            black_box(interval.upper);
         }
         Ok::<(), HedgedConfidenceSequenceError>(())
     })
