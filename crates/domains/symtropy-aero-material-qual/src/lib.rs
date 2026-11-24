@@ -192,6 +192,14 @@ pub fn evaluate_case(case: &Value) -> EvaluationReport {
     let mut blockers = Vec::new();
 
     let case_id = field_str(case, "case_id").map(str::to_owned);
+    if case_id.as_deref().is_none_or(|id| id.trim().is_empty()) {
+        push_finding(
+            &mut violations,
+            "MISSING_OR_BLANK_CASE_ID",
+            "case",
+            "The semantic contract requires a non-empty case_id.",
+        );
+    }
     if field_str(case, "profile_id") != Some(PROFILE_ID) {
         push_finding(
             &mut violations,
@@ -223,6 +231,26 @@ pub fn evaluate_case(case: &Value) -> EvaluationReport {
     let configurations = required_array(case, "hierarchy.configurations", &mut violations);
     let observations = required_array(case, "observations", &mut violations);
     let assignments = required_array(case, "partition_contract.assignments", &mut violations);
+
+    for (kind, rows) in [
+        ("material_lots", lots.as_slice()),
+        ("process_batches", batches.as_slice()),
+        ("panels", panels.as_slice()),
+        ("specimens", specimens.as_slice()),
+        ("test_campaigns", campaigns.as_slice()),
+        ("configurations", configurations.as_slice()),
+        ("observations", observations.as_slice()),
+        ("partition_assignments", assignments.as_slice()),
+    ] {
+        if rows.is_empty() {
+            push_finding(
+                &mut violations,
+                "EMPTY_REQUIRED_COLLECTION",
+                kind,
+                "The v0.1 semantic contract requires this collection to contain at least one record.",
+            );
+        }
+    }
 
     let lot_index = index_by_id(&lots, "material_lots", &mut violations);
     let batch_index = index_by_id(&batches, "process_batches", &mut violations);
@@ -611,11 +639,15 @@ pub fn evaluate_case(case: &Value) -> EvaluationReport {
     }
     .to_owned();
 
-    let process_domain_status = match (out_of_domain_batches > 0, unknown_domain_batches > 0) {
-        (true, true) => "MIXED_OUT_OF_DOMAIN_AND_UNKNOWN",
-        (true, false) => "PARTIALLY_OUT_OF_DOMAIN",
-        (false, true) => "INDETERMINATE",
-        (false, false) => "DECLARED_IN_DOMAIN",
+    let process_domain_status = if batches.is_empty() {
+        "INDETERMINATE_NO_PROCESS_BATCHES"
+    } else {
+        match (out_of_domain_batches > 0, unknown_domain_batches > 0) {
+            (true, true) => "MIXED_OUT_OF_DOMAIN_AND_UNKNOWN",
+            (true, false) => "PARTIALLY_OUT_OF_DOMAIN",
+            (false, true) => "INDETERMINATE",
+            (false, false) => "DECLARED_IN_DOMAIN",
+        }
     }
     .to_owned();
 
@@ -884,6 +916,28 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn empty_core_collections_fail_closed() {
+        let mut case = fixture();
+        case["hierarchy"]["material_lots"] = Value::Array(Vec::new());
+        case["hierarchy"]["process_batches"] = Value::Array(Vec::new());
+        case["hierarchy"]["panels"] = Value::Array(Vec::new());
+        case["hierarchy"]["specimens"] = Value::Array(Vec::new());
+        case["hierarchy"]["test_campaigns"] = Value::Array(Vec::new());
+        case["hierarchy"]["configurations"] = Value::Array(Vec::new());
+        case["observations"] = Value::Array(Vec::new());
+        case["partition_contract"]["assignments"] = Value::Array(Vec::new());
+
+        let report = evaluate_case(&case);
+        assert!(!report.structurally_complete);
+        assert_eq!(
+            report.process_domain_status,
+            "INDETERMINATE_NO_PROCESS_BATCHES"
+        );
+        assert!(has_code(&report, "EMPTY_REQUIRED_COLLECTION"));
+        assert!(has_code(&report, "EMPTY_GROUPING_CONTRACT") == false);
     }
 
     #[test]
