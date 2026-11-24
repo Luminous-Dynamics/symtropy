@@ -178,8 +178,8 @@
           "certificate_state": "VALID",
           "check_required": true,
           "check_state": "PASS",
-          "last_check_time_ns": 450,
-          "max_check_age_ns": 100,
+          "last_check_time_ns": 900,
+          "max_check_age_ns": 200,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "calibration_epoch_ns": 100
@@ -986,6 +986,60 @@
           "impact": "INVALIDATES"
         }
       ],
+      "expected_status": "INDETERMINATE"
+    },
+    {
+      "case_id": "CAL-017-REFERENCE-CHECK-AGE-BOUNDARY-OVERLAP",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 10,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 400,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100
+        }
+      ],
+      "events": [],
       "expected_status": "INDETERMINATE"
     }
   ]
