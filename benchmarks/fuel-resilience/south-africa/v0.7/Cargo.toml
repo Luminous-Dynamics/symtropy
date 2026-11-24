@@ -1,0 +1,16 @@
+[package]
+name = "safrb-capacity-access"
+version = "0.7.0"
+edition = "2024"
+publish = false
+license = "Apache-2.0"
+description = "Evidence-qualified physical capacity and provider access envelope for SAFRB"
+
+[dependencies]
+
+[[bin]]
+name = "safrb-capacity-access"
+path = "src/main.rs"
+
+[workspace]
+# Standalone evaluator outside the root workspace.
