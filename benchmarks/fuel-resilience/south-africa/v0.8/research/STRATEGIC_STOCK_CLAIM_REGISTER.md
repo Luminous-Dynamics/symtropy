@@ -43,7 +43,7 @@ Until those fields are reconciled, retain each statement as an attributed claim,
 - Parliament, National Assembly Unrevised Hansard, Wednesday 25 March 2026, p. 6: https://www.parliament.gov.za/storage/app/media/Docs/hansard/01mfgh4vqebdhkps6o35hybjq2binzrfd6.pdf
 - EWN, 30 September 2026, report of the Minister's parliamentary remarks: https://www.ewn.co.za/2026/09/30-mantashe-assures-sa-wont-run-out-of-fuel-due-to-middle-east-war
 - IOL, 3 October 2026, report on the 6.9-million-barrel statement: https://iol.co.za/business/2026-10-03-fuel-price-crisis--how-long-can-south-africa-keep-the-fuel-pumps-running-if-oil-supplies-tighten/
-- Cabinet statement, 1 July 2026, proposed 60-day net-import target with phased 90-day ambition: https://www.gov.za/news/cabinet-statements/statement-cabinet-meeting-1-july-2026
+- Cabinet statement, 1 July 2026, proposed 60-day net-import target with phased 90-day ambition: https://www.gcis.gov.za/full-statement-on-the-cabinet-meeting-of-wednesday-1-july-2026
 - Cabinet summary, 1 July 2026: https://www.gcis.gov.za/full-statement-on-the-cabinet-meeting-of-wednesday-1-july-2026
 
 **Source-retrieval action:** locate the exact 30 September 2026 Hansard passage or written parliamentary answer and record its question number, response date, stock measurement date and calculation basis. Until that is found, the 6.9-million-barrel statement remains secondary-source-attested.
