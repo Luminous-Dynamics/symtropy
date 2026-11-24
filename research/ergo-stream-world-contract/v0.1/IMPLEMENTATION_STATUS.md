@@ -338,3 +338,17 @@ The scoped structural, agent transfer bundle and decision-value JSON documents a
 - two decision-value known-answer experiments.
 
 This was a static consistency audit, not a full Draft 2020-12 validator invocation or a live #11171 episode submission.
+
+## Transfer calibration and selective-risk metrics
+
+The branch now adds `src/calibration.rs`, exposed as `calibration`, with `TRANSFER_CALIBRATION_V0_1.md`.
+
+The evaluator-side metric accepts candidate probabilities for exact scoped transfer claims and owner-side binary outcomes. It reports:
+- exact fixed-point Brier score;
+- mean binary log loss (with explicit one-ppm clipping count at probabilities 0/1);
+- fixed-width reliability-bin sufficient statistics and exact ECE numerator/denominator;
+- selective risk/coverage at evaluator-specified confidence thresholds.
+
+The decision confidence is derived from the predicted class: `p_transfer` for an assertion and `1-p_transfer` for a rejection. Explicit abstention is excluded from selective coverage but its probability remains in Brier/log-loss/ECE scoring. Candidate-authored probabilities and decisions are optional `transfer_forecasts` in the AgentTransferBundle; evaluator labels, bins and thresholds are not included in the learner sidecar.
+
+The new test suite covers exact scores, overconfident false transfer, abstention/coverage trade-offs, rejection confidence, boundary binning, malformed and duplicate IDs, out-of-range values and unmatched outcomes. Exact-head verification for this new module is pending.
