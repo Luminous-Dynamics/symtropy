@@ -244,3 +244,8 @@ The camera basis is right-handed: right = forward cross image-up; corrected up =
 The output is WITHIN only when the entire cap is inside all five half-spaces. It is OUTSIDE only when the entire cap violates at least one common half-space. Boundary intersection is INDETERMINATE. The receipt reports signed angular margins for all five planes.
 
 This is a frustum-geometric precondition only. The enclosing-ball assertion is caller-supplied and not independently proved here. Range, GSD, occlusion, calibration and physical visibility are not assessed; may_count_toward_visibility is always false. The contract has nine frozen controls, a standalone Rust CLI, an independent standard-library Python oracle and exact-head artifact retention.
+
+
+## Evidence-vector benchmark roadmap v0.5
+
+See \`docs/research/orbital-truss/benchmarking-and-sota-roadmap-v0_5.md\` for the expanded 2026 comparator map (GSD k-coverage, integrated sampling density/BRDF/robot execution, feature-measurement quality, traceable metrological digital twins), the rectangular-frustum gate and the matched B0-B10 qualification programme. The separate issue owners are #7002, #6925, #7136, #7164, #7222, #7043, #6846, #5920/#5892 and Mycelix #6390/#6519.
