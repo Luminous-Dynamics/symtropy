@@ -164,6 +164,53 @@ pub enum TerminalReason {
     NotRun = 20,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[repr(u8)]
+pub enum CandidateAttemptKind {
+    PrimaryWitness = 0,
+    PerturbationDirection = 1,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[repr(u8)]
+pub enum DirectionDisposition {
+    NotApplicable = 0,
+    Generated = 1,
+    InvalidOrDegenerate = 2,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[repr(u8)]
+pub enum SupportQueryDisposition {
+    NotAttempted = 0,
+    Completed = 1,
+    Failed = 2,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[repr(u8)]
+pub enum CandidateDisposition {
+    PrimaryAdmitted = 0,
+    Admitted = 1,
+    InvalidDirection = 2,
+    SupportQueryFailed = 3,
+    ShallowRejected = 4,
+    DuplicateRejected = 5,
+    CapacityRejected = 6,
+}
+
+/// One requested candidate-generation attempt. The two support-query outcomes
+/// correspond to the two shape support-map calls for a generated direction.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CandidateAttempt {
+    pub id: LineageId,
+    pub kind: CandidateAttemptKind,
+    pub direction: DirectionDisposition,
+    pub support_a: SupportQueryDisposition,
+    pub support_b: SupportQueryDisposition,
+    pub disposition: CandidateDisposition,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Outcome {
     Forward,
@@ -173,6 +220,9 @@ pub enum Outcome {
         children: Vec<LineageId>,
     },
     Terminate(TerminalReason),
+    /// Complete candidate-generation trace. Every attempt is explicitly
+    /// admitted to the next stage or terminated with a classified reason.
+    CandidateTrace { attempts: Vec<CandidateAttempt> },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -188,6 +238,17 @@ pub struct StageStats {
     pub forwarded: usize,
     pub spawned: usize,
     pub terminal: usize,
+    pub candidate_attempts: usize,
+    pub requested_directions: usize,
+    pub generated_directions: usize,
+    pub invalid_directions: usize,
+    pub support_queries_attempted: usize,
+    pub support_queries_completed: usize,
+    pub support_queries_failed: usize,
+    pub admitted_candidates: usize,
+    pub shallow_rejections: usize,
+    pub duplicate_rejections: usize,
+    pub capacity_rejections: usize,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -196,6 +257,7 @@ pub enum DispositionCode {
     ForwardedWithReason(ForwardReason),
     Spawned(ForwardReason),
     Terminated(TerminalReason),
+    CandidateAttempt(CandidateDisposition),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -225,6 +287,12 @@ pub enum LedgerError {
         unexpected: usize,
     },
     EmptySpawn,
+    EmptyCandidateTrace,
+    MissingPrimaryCandidate,
+    MultiplePrimaryCandidates,
+    DuplicateCandidateAttempt,
+    InvalidCandidateAttempt,
+    CandidateTraceWrongStage,
     ChildHasDifferentPair,
     ChildPathNotImmediate,
     DuplicateChild,
@@ -257,6 +325,12 @@ impl fmt::Display for LedgerError {
                 "{stage:?} input mismatch: expected {expected}, found {actual} (missing {missing}, unexpected {unexpected})"
             ),
             Self::EmptySpawn => write!(f, "spawn disposition must create at least one child"),
+            Self::EmptyCandidateTrace => write!(f, "candidate trace must contain at least one attempt"),
+            Self::MissingPrimaryCandidate => write!(f, "candidate trace must contain exactly one primary witness"),
+            Self::MultiplePrimaryCandidates => write!(f, "candidate trace contains multiple primary witnesses"),
+            Self::DuplicateCandidateAttempt => write!(f, "candidate trace contains duplicate attempt identities"),
+            Self::InvalidCandidateAttempt => write!(f, "candidate attempt has inconsistent direction, query, or disposition fields"),
+            Self::CandidateTraceWrongStage => write!(f, "candidate trace is only valid at CandidateGeneration"),
             Self::ChildHasDifferentPair => write!(f, "child lineage changed pair identity"),
             Self::ChildPathNotImmediate => {
                 write!(f, "child path must extend parent by exactly one ordinal")
@@ -301,8 +375,10 @@ impl PairLedger {
     }
 
     pub fn record(&mut self, mut event: StageEvent) -> Result<(), LedgerError> {
-        if let Outcome::Spawn { children, .. } = &mut event.outcome {
-            children.sort();
+        match &mut event.outcome {
+            Outcome::Spawn { children, .. } => children.sort(),
+            Outcome::CandidateTrace { attempts } => attempts.sort_by(|a, b| a.id.cmp(&b.id)),
+            _ => {}
         }
         let records = self.events.entry(event.stage).or_default();
         if records.contains_key(&event.input) {
@@ -365,6 +441,19 @@ impl PairLedger {
                             return Err(LedgerError::InvalidTerminalReason { stage, reason });
                         }
                     }
+                    Outcome::CandidateTrace { attempts } => {
+                        if stage != Stage::CandidateGeneration {
+                            return Err(LedgerError::CandidateTraceWrongStage);
+                        }
+                        validate_candidate_trace(input, &attempts)?;
+                        for attempt in attempts {
+                            if is_candidate_admitted(attempt.disposition) {
+                                if !next.insert(attempt.id) {
+                                    return Err(LedgerError::DuplicateCandidateAttempt);
+                                }
+                            }
+                        }
+                    }
                 }
             }
             expected = next;
@@ -403,6 +492,50 @@ impl PairLedger {
                     Outcome::Terminate(r) => {
                         stats.terminal += 1;
                         DispositionCode::Terminated(*r)
+                    }
+                    Outcome::CandidateTrace { attempts } => {
+                        for attempt in attempts {
+                            stats.candidate_attempts += 1;
+                            stats.spawned += 1;
+                            if attempt.kind == CandidateAttemptKind::PerturbationDirection {
+                                stats.requested_directions += 1;
+                                match attempt.direction {
+                                    DirectionDisposition::Generated => stats.generated_directions += 1,
+                                    DirectionDisposition::InvalidOrDegenerate => stats.invalid_directions += 1,
+                                    DirectionDisposition::NotApplicable => {}
+                                }
+                            }
+                            for query in [attempt.support_a, attempt.support_b] {
+                                match query {
+                                    SupportQueryDisposition::NotAttempted => {}
+                                    SupportQueryDisposition::Completed => {
+                                        stats.support_queries_attempted += 1;
+                                        stats.support_queries_completed += 1;
+                                    }
+                                    SupportQueryDisposition::Failed => {
+                                        stats.support_queries_attempted += 1;
+                                        stats.support_queries_failed += 1;
+                                    }
+                                }
+                            }
+                            if is_candidate_admitted(attempt.disposition) {
+                                stats.forwarded += 1;
+                                stats.admitted_candidates += 1;
+                            } else {
+                                stats.terminal += 1;
+                                match attempt.disposition {
+                                    CandidateDisposition::InvalidDirection => {}
+                                    CandidateDisposition::SupportQueryFailed => {}
+                                    CandidateDisposition::ShallowRejected => stats.shallow_rejections += 1,
+                                    CandidateDisposition::DuplicateRejected => stats.duplicate_rejections += 1,
+                                    CandidateDisposition::CapacityRejected => stats.capacity_rejections += 1,
+                                    CandidateDisposition::PrimaryAdmitted | CandidateDisposition::Admitted => {}
+                                }
+                            }
+                            let code = DispositionCode::CandidateAttempt(attempt.disposition);
+                            *reasons.entry((stage, code)).or_insert(0usize) += 1;
+                        }
+                        continue;
                     }
                 };
                 *reasons.entry((stage, code)).or_insert(0usize) += 1;
@@ -446,6 +579,78 @@ impl PairLedger {
             }
         }
         h.0
+    }
+}
+
+fn is_candidate_admitted(disposition: CandidateDisposition) -> bool {
+    matches!(
+        disposition,
+        CandidateDisposition::PrimaryAdmitted | CandidateDisposition::Admitted
+    )
+}
+
+fn validate_candidate_trace(
+    input: &LineageId,
+    attempts: &[CandidateAttempt],
+) -> Result<(), LedgerError> {
+    if attempts.is_empty() {
+        return Err(LedgerError::EmptyCandidateTrace);
+    }
+    let mut seen = BTreeSet::new();
+    let mut primary_count = 0usize;
+    for attempt in attempts {
+        if attempt.id.pair != input.pair
+            || attempt.id.path.len() != input.path.len() + 1
+            || !attempt.id.path.starts_with(&input.path)
+        {
+            return Err(LedgerError::ChildPathNotImmediate);
+        }
+        if !seen.insert(&attempt.id) {
+            return Err(LedgerError::DuplicateCandidateAttempt);
+        }
+        let valid = match attempt.kind {
+            CandidateAttemptKind::PrimaryWitness => {
+                primary_count += 1;
+                attempt.direction == DirectionDisposition::NotApplicable
+                    && attempt.support_a == SupportQueryDisposition::NotAttempted
+                    && attempt.support_b == SupportQueryDisposition::NotAttempted
+                    && attempt.disposition == CandidateDisposition::PrimaryAdmitted
+            }
+            CandidateAttemptKind::PerturbationDirection => match attempt.direction {
+                DirectionDisposition::NotApplicable => false,
+                DirectionDisposition::InvalidOrDegenerate => {
+                    attempt.support_a == SupportQueryDisposition::NotAttempted
+                        && attempt.support_b == SupportQueryDisposition::NotAttempted
+                        && attempt.disposition == CandidateDisposition::InvalidDirection
+                }
+                DirectionDisposition::Generated => {
+                    let both_attempted = attempt.support_a != SupportQueryDisposition::NotAttempted
+                        && attempt.support_b != SupportQueryDisposition::NotAttempted;
+                    let any_failed = attempt.support_a == SupportQueryDisposition::Failed
+                        || attempt.support_b == SupportQueryDisposition::Failed;
+                    both_attempted
+                        && if any_failed {
+                            attempt.disposition == CandidateDisposition::SupportQueryFailed
+                        } else {
+                            matches!(
+                                attempt.disposition,
+                                CandidateDisposition::ShallowRejected
+                                    | CandidateDisposition::DuplicateRejected
+                                    | CandidateDisposition::CapacityRejected
+                                    | CandidateDisposition::Admitted
+                            )
+                        }
+                }
+            },
+        };
+        if !valid {
+            return Err(LedgerError::InvalidCandidateAttempt);
+        }
+    }
+    match primary_count {
+        0 => Err(LedgerError::MissingPrimaryCandidate),
+        1 => Ok(()),
+        _ => Err(LedgerError::MultiplePrimaryCandidates),
     }
 }
 
@@ -584,6 +789,18 @@ impl Fnv64 {
             Outcome::Terminate(r) => {
                 self.byte(3);
                 self.byte(*r as u8);
+            }
+            Outcome::CandidateTrace { attempts } => {
+                self.byte(4);
+                self.u64(attempts.len() as u64);
+                for attempt in attempts {
+                    self.lineage(&attempt.id);
+                    self.byte(attempt.kind as u8);
+                    self.byte(attempt.direction as u8);
+                    self.byte(attempt.support_a as u8);
+                    self.byte(attempt.support_b as u8);
+                    self.byte(attempt.disposition as u8);
+                }
             }
         }
     }
