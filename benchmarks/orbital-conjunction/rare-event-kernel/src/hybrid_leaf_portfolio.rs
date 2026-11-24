@@ -269,8 +269,9 @@ pub fn aggregate_orbital_hybrid_leaf_portfolio(
         if !leaf_ids.insert(leaf.leaf_id) {
             return Err(OrbitalHybridPortfolioError::DuplicateLeafIdentity);
         }
-        validate_interval(leaf.target_mass, one)
-            .map_err(|_| OrbitalHybridPortfolioError::InvalidTargetMassInterval)?;
+        if !validate_interval(leaf.target_mass, one) {
+            return Err(OrbitalHybridPortfolioError::InvalidTargetMassInterval);
+        }
         mass_lower_sum = mass_lower_sum
             .checked_add(leaf.target_mass.lower)
             .map_err(|_| OrbitalHybridPortfolioError::ArithmeticOverflow)?;
@@ -294,8 +295,11 @@ pub fn aggregate_orbital_hybrid_leaf_portfolio(
                 if is_zero_digest(&enclosure_digest) {
                     return Err(OrbitalHybridPortfolioError::MissingEvidenceDigest);
                 }
-                validate_interval(conditional_probability, one)
-                    .map_err(|_| OrbitalHybridPortfolioError::InvalidConditionalProbabilityInterval)?;
+                if !validate_interval(conditional_probability, one) {
+                    return Err(
+                        OrbitalHybridPortfolioError::InvalidConditionalProbabilityInterval
+                    );
+                }
                 let lower_contribution = leaf
                     .target_mass
                     .lower
@@ -346,8 +350,11 @@ pub fn aggregate_orbital_hybrid_leaf_portfolio(
                 if confidence_alpha <= zero || confidence_alpha >= one {
                     return Err(OrbitalHybridPortfolioError::InvalidLeafConfidenceAlpha);
                 }
-                validate_interval(conditional_probability, one)
-                    .map_err(|_| OrbitalHybridPortfolioError::InvalidConditionalProbabilityInterval)?;
+                if !validate_interval(conditional_probability, one) {
+                    return Err(
+                        OrbitalHybridPortfolioError::InvalidConditionalProbabilityInterval
+                    );
+                }
                 allocated_alpha = checked_add(allocated_alpha, confidence_alpha)?;
                 if allocated_alpha > portfolio.global_confidence_alpha {
                     return Err(OrbitalHybridPortfolioError::ConfidenceAlphaBudgetExceeded);
@@ -450,15 +457,8 @@ pub fn aggregate_orbital_hybrid_leaf_portfolio(
     })
 }
 
-fn validate_interval(
-    interval: NonnegativeRationalInterval,
-    maximum: Rational,
-) -> Result<(), ()> {
-    if interval.lower > interval.upper || interval.upper > maximum {
-        Err(())
-    } else {
-        Ok(())
-    }
+fn validate_interval(interval: NonnegativeRationalInterval, maximum: Rational) -> bool {
+    interval.lower <= interval.upper && interval.upper <= maximum
 }
 
 fn checked_add(
@@ -708,7 +708,7 @@ mod tests {
             Err(OrbitalHybridPortfolioError::InvalidConditionalProbabilityInterval)
         );
 
-        let mut invalid_mass = portfolio(vec![leaf(
+        let invalid_mass = portfolio(vec![leaf(
             10,
             ((1, 2), (3, 2)),
             OrbitalLeafEvidence::StructurallyEventFree {
@@ -720,7 +720,57 @@ mod tests {
             aggregate_orbital_hybrid_leaf_portfolio(&invalid_mass),
             Err(OrbitalHybridPortfolioError::InvalidTargetMassInterval)
         );
-        invalid_mass.max_leaf_count = 1;
+    }
+
+    #[test]
+    fn portfolio_rejects_missing_leaf_evidence_and_invalid_global_alpha() {
+        let mut input = portfolio(vec![leaf(
+            10,
+            ((1, 1), (1, 1)),
+            OrbitalLeafEvidence::StructurallyEventFree {
+                closure_digest: [0; 32],
+            },
+        )]);
+        assert_eq!(
+            aggregate_orbital_hybrid_leaf_portfolio(&input),
+            Err(OrbitalHybridPortfolioError::MissingEvidenceDigest)
+        );
+
+        input = portfolio(vec![leaf(
+            10,
+            ((1, 1), (1, 1)),
+            OrbitalLeafEvidence::StructurallyEventFree {
+                closure_digest: [30; 32],
+            },
+        )]);
+        input.global_confidence_alpha = rational(1, 1);
+        assert_eq!(
+            aggregate_orbital_hybrid_leaf_portfolio(&input),
+            Err(OrbitalHybridPortfolioError::InvalidGlobalConfidenceAlpha)
+        );
+    }
+
+    #[test]
+    fn partition_leaf_count_cannot_exceed_reserved_maximum() {
+        let one_leaf = leaf(
+            10,
+            ((1, 2), (1, 2)),
+            OrbitalLeafEvidence::StructurallyEventFree {
+                closure_digest: [30; 32],
+            },
+        );
+        let mut input = portfolio(vec![one_leaf, leaf(
+            11,
+            ((1, 2), (1, 2)),
+            OrbitalLeafEvidence::StructurallyEventFree {
+                closure_digest: [31; 32],
+            },
+        )]);
+        input.max_leaf_count = 1;
+        assert_eq!(
+            aggregate_orbital_hybrid_leaf_portfolio(&input),
+            Err(OrbitalHybridPortfolioError::LeafCountExceedsMaximum)
+        );
     }
 
     #[test]
