@@ -592,7 +592,11 @@ mod tests {
             sample_id: id.to_owned(),
             site_id: "site-1".to_owned(),
             site_configuration_digest: "site-cfg-1".to_owned(),
-            site_evidence: evidence("site-1", &format!("{id}-site"), 900, 800, 2_500),
+            site_evidence: {
+                let mut e = evidence("site-1", &format!("{id}-site"), 900, 800, 2_500);
+                e.configuration_digest = "site-cfg-1".to_owned();
+                e
+            },
             asset_id: "ESS-01".to_owned(),
             asset_configuration_digest: "cfg-1".to_owned(),
             stratum_id: "warm".to_owned(),
