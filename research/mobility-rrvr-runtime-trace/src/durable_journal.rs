@@ -1743,6 +1743,105 @@ mod tests {
     }
 
     #[test]
+    fn transport_rejection_requires_read_only_owner_reconciliation() {
+        let reset_path = temp_journal_path("rejected-reset");
+        let mut reset_journal = Journal::open(&reset_path).unwrap();
+        reset_journal
+            .append_reset_intent(ResetIntentRecord {
+                reset_id: "reset-rejected".into(),
+                plan_sha256: digest('a'),
+                simulator_profile_sha256: digest('b'),
+                world_id: "world-1".into(),
+                prior_world_epoch: "epoch-before".into(),
+                clock_id: "clock-1".into(),
+                expected_initial_state_sha256: digest('c'),
+                run_id: "run-rejected".into(),
+                run_epoch: "run-epoch-rejected".into(),
+            })
+            .unwrap();
+        reset_journal
+            .append_reset_outcome(ResetOutcomeRecord {
+                reset_id: "reset-rejected".into(),
+                source: ResetOutcomeSource::TransportResponse,
+                status: ResetOutcomeStatus::ResponseRejected,
+                observed_world_epoch: None,
+                observed_clock_id: None,
+                observed_initial_state_sha256: None,
+                observation_artifact_sha256: None,
+            })
+            .unwrap();
+        let reset_projection = reset_journal.recovery_projection();
+        assert_eq!(
+            reset_projection.resets[0].disposition,
+            ResetRecoveryDisposition::ResponseRejectedReadOnlyReconciliationRequired
+        );
+        assert_eq!(
+            reset_projection.reset_reconciliation_required,
+            vec!["reset-rejected"]
+        );
+        reset_journal
+            .append_reset_outcome(ResetOutcomeRecord {
+                reset_id: "reset-rejected".into(),
+                source: ResetOutcomeSource::Reconciliation,
+                status: ResetOutcomeStatus::Verified,
+                observed_world_epoch: Some("epoch-after".into()),
+                observed_clock_id: Some("clock-1".into()),
+                observed_initial_state_sha256: Some(digest('c')),
+                observation_artifact_sha256: Some(digest('d')),
+            })
+            .unwrap();
+        assert_eq!(
+            reset_journal.recovery_projection().reset_reconciliation_required,
+            Vec::<String>::new()
+        );
+        drop(reset_journal);
+        cleanup(&reset_path);
+
+        let dispatch_path = temp_journal_path("rejected-dispatch");
+        let mut dispatch_journal = Journal::open(&dispatch_path).unwrap();
+        append_verified_reset(&mut dispatch_journal);
+        append_dispatch_intent(&mut dispatch_journal);
+        dispatch_journal
+            .append_dispatch_outcome(DispatchOutcomeRecord {
+                idempotency_key: "rrvr/v0.1/test-key-1".into(),
+                payload_sha256: dispatch_payload_sha256(),
+                source: DispatchOutcomeSource::TransportResponse,
+                status: DispatchOutcomeStatus::ResponseRejected,
+                dispatch_id: None,
+                ledger_artifact_sha256: None,
+            })
+            .unwrap();
+        let rejected_projection = dispatch_journal.recovery_projection();
+        assert_eq!(
+            rejected_projection.dispatches[0].disposition,
+            DispatchRecoveryDisposition::ResponseRejectedLedgerLookupRequired
+        );
+        assert_eq!(
+            rejected_projection.dispatch_ledger_reconciliation_required,
+            vec!["rrvr/v0.1/test-key-1"]
+        );
+        dispatch_journal
+            .append_dispatch_outcome(DispatchOutcomeRecord {
+                idempotency_key: "rrvr/v0.1/test-key-1".into(),
+                payload_sha256: dispatch_payload_sha256(),
+                source: DispatchOutcomeSource::InjectorLedgerLookup,
+                status: DispatchOutcomeStatus::ReconciledRejected,
+                dispatch_id: None,
+                ledger_artifact_sha256: Some(digest('9')),
+            })
+            .unwrap();
+        let reconciled_projection = dispatch_journal.recovery_projection();
+        assert_eq!(
+            reconciled_projection.dispatches[0].disposition,
+            DispatchRecoveryDisposition::ReconciledRejected
+        );
+        assert!(reconciled_projection.dispatch_ledger_reconciliation_required.is_empty());
+        assert!(reconciled_projection.dispatch_execution_evidence_pending.is_empty());
+        drop(dispatch_journal);
+        cleanup(&dispatch_path);
+    }
+
+    #[test]
     fn reset_verification_requires_exact_observed_world_clock_and_initial_digest() {
         let path = temp_journal_path("reset-proof");
         let mut journal = Journal::open(&path).unwrap();
