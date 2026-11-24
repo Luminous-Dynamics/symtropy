@@ -28,6 +28,10 @@ The central diagnostic is not merely whether the joint Jacobian is full rank. It
 
 `whiten_sensitivity_with_covariance` performs Cholesky whitening for dense SPD covariance matrices with at most 512 observation rows. It computes `L^-1 J` so the whitened Gram matrix is `J^T Sigma^-1 J`. It rejects asymmetric, ragged, non-finite and singular covariance inputs; no symmetrization or jitter is silently introduced. This is a reference implementation only; large images require structured covariance operators with cross-pixel and cross-frame terms.
 
+## Raw covariance-aware action ranking
+
+`rank_covariance_aware_measurement_actions` is the end-to-end wrapper. It accepts raw baseline/candidate Jacobian blocks and covariance blocks, computes baseline whitening and the candidate Schur-complement innovations itself, and then ranks actions. Use this rather than manually passing assumed-independent pixel rows. Its manufactured control ranks an independent view above a highly correlated repeated view.
+
 ## Candidate measurement ranking
 
 The crate accepts candidate actions whose new rows are conditional-whitened innovations, including covariance with existing observations. It ranks actions by physical rank gain, smallest nuisance-profiled physical singular-value gain per cost, then deterministic tie-break. A candidate that only adds nuisance information does not earn a physical-information recommendation. V0 is a local E-optimal-style heuristic, not full EVSI or D-optimal Bayesian design, and does not actuate hardware.
@@ -55,3 +59,5 @@ Condition number is the ratio of largest to smallest nuisance-profiled physical 
 The current manufactured suite contains 23 tests, including analytic correlated-noise oracles and fail-closed covariance validation.
 
 The current manufactured suite has 27 tests, including the conditional innovation and Schur-complement cases.
+
+The crate now contains 28 manufactured tests, including a raw-covariance action-ranking comparison between correlated repeated and independent measurements.
