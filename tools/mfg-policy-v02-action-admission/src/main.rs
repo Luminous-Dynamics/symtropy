@@ -563,8 +563,23 @@ fn snapshot_live_state(
             "previous_snapshot_digest",
             "operational_state_snapshot",
         )?;
-        if !valid_digest(previous) {
+        if !valid_digest(previous)
+            || previous == required_string(
+                snapshot,
+                "snapshot_digest",
+                "operational_state_snapshot",
+            )?
+        {
             return Err(fail("snapshot_previous_digest_invalid"));
+        }
+        if required_array(
+            snapshot,
+            "applied_transition_ids",
+            "operational_state_snapshot",
+        )?
+        .is_empty()
+        {
+            return Err(fail("snapshot_missing_applied_transition_lineage"));
         }
     }
 
@@ -582,12 +597,28 @@ fn snapshot_live_state(
         let quality = item
             .get("quality_disposition")
             .and_then(Value::as_str);
-        match status.as_str() {
-            "WAITING" if remaining == 0 && committed.is_none() && quality.is_none() => {}
-            "IN_PROCESS" if remaining > 0 && committed.is_some() && quality.is_none() => {}
-            "AWAITING_INSPECTION" if remaining == 0 && committed.is_none() && quality.is_none() => {}
-            "COMPLETED" if remaining == 0 && committed.is_none() => {}
-            _ => return Err(fail("snapshot_operation_state_inconsistent")),
+        let (_, static_operation) = operations
+            .get(operation_id)
+            .ok_or_else(|| fail("snapshot_unknown_operation"))?;
+        let inspection_required = static_operation
+            .get("inspection_required")
+            .and_then(Value::as_bool)
+            .ok_or_else(|| fail("snapshot_static_inspection_requirement_missing"))?;
+        let state_is_consistent = match status.as_str() {
+            "WAITING" => remaining == 0 && committed.is_none() && quality.is_none(),
+            "IN_PROCESS" => remaining > 0 && committed.is_some() && quality.is_none(),
+            "AWAITING_INSPECTION" => {
+                inspection_required && remaining == 0 && committed.is_none() && quality.is_none()
+            }
+            "COMPLETED" => {
+                remaining == 0
+                    && committed.is_none()
+                    && (inspection_required == quality.is_some())
+            }
+            _ => false,
+        };
+        if !state_is_consistent {
+            return Err(fail("snapshot_operation_state_inconsistent"));
         }
         if operation_states
             .insert(
@@ -607,6 +638,60 @@ fn snapshot_live_state(
         || operations.keys().any(|id| !operation_states.contains_key(id))
     {
         return Err(fail("snapshot_operation_set_mismatch"));
+    }
+
+    for (operation_id, (_, static_operation)) in operations {
+        let operation_state = operation_states
+            .get(operation_id)
+            .ok_or_else(|| fail("snapshot_operation_state_missing"))?;
+        if operation_state.status != "WAITING" {
+            for predecessor in required_array(
+                static_operation,
+                "predecessor_operation_ids",
+                "operation",
+            )? {
+                let predecessor_id = predecessor
+                    .as_str()
+                    .filter(|value| !value.trim().is_empty())
+                    .ok_or_else(|| fail("snapshot_predecessor_id_invalid"))?;
+                if operation_states
+                    .get(predecessor_id)
+                    .is_none_or(|state| state.status != "COMPLETED")
+                {
+                    return Err(fail("snapshot_predecessor_state_inconsistent"));
+                }
+            }
+        }
+        if operation_state.status == "IN_PROCESS" {
+            let resource_id = operation_state
+                .committed_resource_id
+                .as_deref()
+                .ok_or_else(|| fail("snapshot_in_process_commitment_missing"))?;
+            let process_family =
+                required_string(static_operation, "process_family", "operation")?;
+            let eligible = required_array(
+                static_operation,
+                "eligible_resource_ids",
+                "operation",
+            )?;
+            let static_resource = resources
+                .get(resource_id)
+                .ok_or_else(|| fail("snapshot_in_process_resource_unknown"))?;
+            let capabilities = required_array(
+                static_resource,
+                "capability_families",
+                "resource",
+            )?;
+            if !eligible
+                .iter()
+                .any(|item| item.as_str() == Some(resource_id))
+                || !capabilities
+                    .iter()
+                    .any(|item| item.as_str() == Some(process_family))
+            {
+                return Err(fail("snapshot_in_process_resource_not_eligible_or_capable"));
+            }
+        }
     }
 
     let mut active_by_resource = BTreeMap::<String, String>::new();
@@ -1050,12 +1135,19 @@ fn evaluate_with_snapshot(
     }
 
     if action_kind == "START" {
-        let setup_duration = current_setup_duration(
+        let setup_duration = match current_setup_duration(
             static_case,
             &resource_id,
             &resource_state.current_setup_family,
             target_setup,
-        )?;
+        ) {
+            Ok(duration) => duration,
+            Err(error) if error == "setup_transition_missing" => {
+                mark_rejected(&mut receipt, "setup_transition_missing");
+                0
+            }
+            Err(error) => return Err(error),
+        };
         receipt.setup_duration_ticks = Some(setup_duration);
     } else {
         receipt.setup_duration_ticks = Some(0);
