@@ -1,0 +1,16 @@
+[package]
+name = "inertial-contact-rank-oracle"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Inertia-whitened rank-revealing seed proposer for contact normal rows"
+
+[lib]
+path = "src/lib.rs"
+
+[[example]]
+name = "inertial_rank_tournament"
+path = "examples/inertial_rank_tournament.rs"
+
+[workspace]
