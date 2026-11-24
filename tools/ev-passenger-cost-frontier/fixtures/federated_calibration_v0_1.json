@@ -20,7 +20,10 @@
       10,
       20,
       40
-    ]
+    ],
+    "configuration_cohort_digest": "sha256:lfp-pack-charger-cohort-v1",
+    "stratum_taxonomy_digest": "sha256:mobility-strata-v1",
+    "calibration_policy_digest": "sha256:split-conformal-policy-v1"
   },
   "registered_site_ids": [
     "depot-a",
@@ -73,7 +76,10 @@
           10,
           20,
           40
-        ]
+        ],
+        "configuration_cohort_digest": "sha256:lfp-pack-charger-cohort-v1",
+        "stratum_taxonomy_digest": "sha256:mobility-strata-v1",
+        "calibration_policy_digest": "sha256:split-conformal-policy-v1"
       },
       "calibration_sample_count": 10,
       "calibration_score_bin_counts": [
@@ -106,7 +112,10 @@
           10,
           20,
           40
-        ]
+        ],
+        "configuration_cohort_digest": "sha256:lfp-pack-charger-cohort-v1",
+        "stratum_taxonomy_digest": "sha256:mobility-strata-v1",
+        "calibration_policy_digest": "sha256:split-conformal-policy-v1"
       },
       "calibration_sample_count": 10,
       "calibration_score_bin_counts": [
@@ -139,7 +148,10 @@
           10,
           20,
           40
-        ]
+        ],
+        "configuration_cohort_digest": "sha256:lfp-pack-charger-cohort-v1",
+        "stratum_taxonomy_digest": "sha256:mobility-strata-v1",
+        "calibration_policy_digest": "sha256:split-conformal-policy-v1"
       },
       "calibration_sample_count": 10,
       "calibration_score_bin_counts": [
