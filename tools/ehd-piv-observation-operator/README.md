@@ -1,6 +1,6 @@
 # EHD-PIV observation operator
 
-Deterministic, dependency-free 2D2C planar PIV particle-image forward model.
+Deterministic, dependency-free 2D2C planar PIV particle-image reference forward model.
 
 ## Model
 
@@ -32,3 +32,7 @@ Noise values are inputs, not generated implicitly. The same frozen inputs theref
 ## Manufactured test inventory
 
 The V0 crate currently contains 11 deterministic Rust tests covering stationary frames, analytic translation, exposure smear, out-of-plane illumination attenuation, optical PSF width, sensor gain/noise/quantization/saturation, pixel masking, fail-closed domain boundaries, malformed inputs, field/image support and numeric overflow.
+
+## Related high-throughput generator: SynthPix
+
+Use [SynthPix](https://github.com/antonioterpin/synthpix) (MIT, current public repository v0.4.0 at commit `0effe6e70b77d0d5c97348d8220e74d31bfaee2e`) for high-throughput batched JAX image generation, large nuisance sweeps and training-data production. This crate is not intended to compete on GPU throughput. Its role is a small deterministic reference/negative-control implementation for explicit exposure integration, RK2 particle paths, Gaussian sheet attenuation, PSF, fixed sensor-noise arrays and fail-closed numerical/domain behavior. Compare semantic coverage first and throughput only under matched settings/hardware. See the research note for the pinned paper and limitations.
