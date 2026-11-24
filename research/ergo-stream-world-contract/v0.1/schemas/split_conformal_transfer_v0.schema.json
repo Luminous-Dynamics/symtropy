@@ -57,6 +57,8 @@
         "additionalProperties": false,
         "required": [
           "sample_id",
+          "evaluation_stratum_id",
+          "exchangeability_admitted",
           "include_transfer",
           "include_non_transfer",
           "decision"
@@ -79,6 +81,14 @@
               "reject_transfer",
               null
             ]
+          },
+          "evaluation_stratum_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "exchangeability_admitted": {
+            "type": "boolean"
           }
         }
       }
