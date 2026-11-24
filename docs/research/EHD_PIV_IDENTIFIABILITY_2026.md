@@ -50,15 +50,21 @@ The crucial difference is separating joint rank from physical rank after nuisanc
 
 ## Manufactured tests
 
-The 14 current deterministic tests cover orthogonal and exact/near-collinear physical/nuisance effects, nuisance-only rank deficiency, characteristic scaling, row permutation, positive/negative confounding, zero-sensitivity parameters, underdetermined observations, malformed/non-finite inputs, one-column decomposition, Jacobi non-convergence and the distinction between absent physical sensitivity and nuisance confounding.
+The 18 current deterministic tests cover orthogonal and exact/near-collinear physical/nuisance effects, nuisance-only rank deficiency, characteristic scaling, row permutation, positive/negative confounding, zero-sensitivity parameters, underdetermined observations, malformed/non-finite inputs, one-column decomposition, Jacobi non-convergence and the distinction between absent physical sensitivity and nuisance confounding.
 
-## V1: from an audit to experiment selection
+## V0.1: candidate measurement ranking
+
+The crate now accepts a set of candidate actions. Each action supplies new residual-sensitivity rows that are already whitened as conditional innovations, including their cross-covariance with existing measurements. For each action, the kernel appends those rows, recomputes nuisance-profiled physical information and ranks actions lexicographically by physical-rank gain, smallest physical singular-value gain per unit cost, remaining weakest-direction sensitivity and stable action ID. Actions that only add nuisance sensitivity receive no physical-information credit. Candidate search is bounded to 256 actions and 65,536 total residual rows.
+
+This is a local E-optimal-style heuristic after nuisance profiling, not full Bayesian expected value of sample information (EVSI), D-optimal design, posterior-variance optimization or hardware actuation.
+
+## V1: from an audit to richer experiment selection
 
 For candidate acquisition action (a), estimate the new whitened sensitivity rows (J_a). The updated local information is:
 
 `F_new = F_old + J_a^T J_a`
 
-Candidate actions can then be ranked by:
+Future candidate actions can be ranked more broadly by:
 - increase in the smallest nuisance-profiled physical singular value;
 - reduction in profiled physical condition number;
 - increase in effective physical rank;
