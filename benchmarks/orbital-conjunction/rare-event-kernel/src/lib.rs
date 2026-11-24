@@ -50,10 +50,6 @@ pub mod stats;
 pub mod trajectory;
 
 pub use action_effect_portfolio::{
-    ActionEffectReceipt, ActionPortfolioDisposition, ActionPortfolioError, ActionPortfolioReport,
-    ConjunctionEventProbabilityEnvelope, ConjunctionPortfolioSnapshot, reconcile_action_effects,
-};
-pub use action_effect_portfolio::{
     ActionEffectReceipt, ActionPortfolioDisposition, ActionPortfolioError,
     ActionPortfolioEvidenceGap, ActionPortfolioReport, ConjunctionEventProbabilityEnvelope,
     ConjunctionPortfolioSnapshot, reconcile_action_effects,
