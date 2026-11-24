@@ -715,6 +715,14 @@ mod tests {
         let report = build_report().expect("frozen scorecard must pass");
         assert_eq!(report.case_count, 4);
         assert_eq!(report.family_count, 4);
+        assert_eq!(report.evaluator_version, "0.2.0");
+        assert_eq!(report.first_accepted_output_survival.sample_count, 4);
+        assert_eq!(report.recovery_target_survival.sample_count, 4);
+        assert_eq!(
+            report.recovery_target_survival.events_observed
+                + report.recovery_target_survival.right_censored,
+            4
+        );
         assert!(!report.physical_acceptance_verified);
         assert!(!report.production_release_authorized);
         assert!(!report.machine_commands_issued);
