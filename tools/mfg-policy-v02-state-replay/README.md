@@ -26,7 +26,7 @@ The ledger contains one decision frame for each contiguous epoch beginning at ze
 
 ## Snapshot and lineage
 
-After every epoch the replayer emits an operational snapshot containing:
+At the start of each decision epoch—after refreshing the newly visible event prefix but **before applying any action for that epoch**—the replayer emits an operational snapshot containing:
 - operation status, remaining processing ticks, committed resource, and quality disposition;
 - resource setup family, active operation, failure/availability state, and current-epoch capacity usage;
 - inspection station capacity usage;
@@ -55,7 +55,7 @@ The single-lane resource model matches the current v0.2 corpus, whose resource c
 
 ## Validation
 
-The focused workflow runs formatting, adversarial Rust tests, JSON-schema checks for every emitted snapshot/replay receipt, deterministic replay, and strict Clippy. Eleven tests cover a three-epoch dependent-operation trace, cross-epoch continuation, exact-frame proposal/receipt digest binding, stale/forged receipt mismatch, duplicate starts, resource double-booking, incomplete predecessor, failure-at-cutoff, future-prefix mutation, invalid processing ticks, and inspection-capacity violations.
+The focused workflow runs formatting, adversarial Rust tests, JSON-schema checks for every emitted snapshot/replay receipt, deterministic replay, and strict Clippy. Eleven tests cover pre-action decision-cut snapshots across four epochs, a three-epoch dependent-operation trace plus terminal observation, cross-epoch continuation, exact-frame proposal/receipt digest binding, stale/forged receipt mismatch, duplicate starts, resource double-booking, incomplete predecessor, failure-at-cutoff, future-prefix mutation, invalid processing ticks, and inspection-capacity violations.
 
 ## Claim ceiling
 
