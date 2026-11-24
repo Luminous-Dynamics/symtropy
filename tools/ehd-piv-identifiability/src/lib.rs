@@ -1384,15 +1384,9 @@ mod tests {
         problem.config.maximum_condition_number = 10.0;
         let report = analyze_local_identifiability(&problem).unwrap();
         assert_eq!(report.physical_status, IdentifiabilityStatus::Identifiable);
-        let condition = report
-            .nuisance_profiled_physical_condition_number
-            .unwrap();
+        let condition = report.nuisance_profiled_physical_condition_number.unwrap();
         assert!(condition < 1.1, "profiled condition was {condition}");
-        assert!(report
-            .unprofiled_physical_singular_values
-            .first()
-            .unwrap()
-            > 50.0);
+        assert!(report.unprofiled_physical_singular_values.first().unwrap() > 50.0);
     }
 
 }
