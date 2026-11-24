@@ -317,11 +317,8 @@ mod tests {
         let valid = box2([0.0, 0.0], [2.0, 2.0]);
         let degenerate = box2([0.0, 0.0], [0.0, 1.0]);
         let separate = box2([3.0, 0.0], [5.0, 2.0]);
-        let summary = summarize_sibling_overlaps(&[
-            (valid, separate),
-            (valid, degenerate),
-            (valid, valid),
-        ]);
+        let summary =
+            summarize_sibling_overlaps(&[(valid, separate), (valid, degenerate), (valid, valid)]);
         assert_eq!(summary.measured_pairs, 2);
         assert_eq!(summary.unavailable_pairs, 1);
         assert_eq!(summary.mean, Some(0.5));
