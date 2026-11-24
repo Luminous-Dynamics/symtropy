@@ -412,15 +412,16 @@ fn push_row(output: &mut String, metadata: RowMetadata, accumulator: &Accumulato
         let (wilson_low, wilson_high) =
             wilson_interval(accumulator.violations, metadata.replicates);
         let unconditional_rate = accumulator.violations as f64 / metadata.replicates as f64;
-        let conditional_rate = if selected == 0 {
-            0.0
-        } else {
-            accumulator.violations as f64 / selected as f64
-        };
         let _ = write!(
             output,
-            ",{unconditional_rate:.6},{wilson_low:.6},{wilson_high:.6},{conditional_rate:.6}"
+            ",{unconditional_rate:.6},{wilson_low:.6},{wilson_high:.6}"
         );
+        if selected == 0 {
+            output.push_str(",NA");
+        } else {
+            let conditional_rate = accumulator.violations as f64 / selected as f64;
+            let _ = write!(output, ",{conditional_rate:.6}");
+        }
     } else {
         output.push_str("NA,NA,NA,NA,NA,NA,NA");
     }
@@ -684,6 +685,14 @@ mod tests {
         assert!(first.contains("MARGINAL_EXPECTED_RISK"));
         assert!(first.contains("FIXED_GRID_HIGH_PROBABILITY"));
         assert!(first.contains("NO_RISK_CLAIM,NO_POSITIVE_ADJUSTED_TARGET"));
+        assert!(first.lines().any(|line| {
+            let fields = line.split(',').collect::<Vec<_>>();
+            fields[1] == "SIMULTANEOUS_HOEFFDING"
+                && fields[5] == "10"
+                && fields[7] == "0"
+                && fields[8] == "2000"
+                && fields[25] == "NA"
+        }));
     }
 
     #[test]
