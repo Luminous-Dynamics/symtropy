@@ -15,6 +15,13 @@
       "claim_scope_sha256": "sha256:6c4238994f641ce7986ddbc24a4bbba780589812cab8619eed81cf64efb27c18",
       "evaluation_stratum_id": 1,
       "transfer_qualified": false
+    },
+    {
+      "claim_id": "mechanism-main",
+      "claim_type": "mechanism_transfer",
+      "claim_scope_sha256": "sha256:9af2908a0b8ba846b15afbc4fafb88cfc4a9a4656566083b99839921e378e327",
+      "evaluation_stratum_id": 2,
+      "transfer_qualified": false
     }
   ]
 }
