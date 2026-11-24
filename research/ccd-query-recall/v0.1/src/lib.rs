@@ -297,7 +297,6 @@ impl QueryCounts {
         rate_basis_points(self.candidate_false_positives, self.oracle_negative_queries)
     }
 
-    #[must_use]
     /// Conditional narrowphase recall: denominator includes only oracle-positive
     /// queries that actually reached narrowphase. Candidate-pruned positives
     /// are counted separately in candidate_false_negatives.
