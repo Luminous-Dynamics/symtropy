@@ -797,8 +797,7 @@ mod tests {
 
     #[test]
     fn independent_mutation_oracle_matches_expected_dispositions() {
-        let corpus: Value =
-            serde_json::from_str(MUTATION_ORACLE).expect("mutation oracle parses");
+        let corpus: Value = serde_json::from_str(MUTATION_ORACLE).expect("mutation oracle parses");
         assert_eq!(
             corpus.get("synthetic_only").and_then(Value::as_bool),
             Some(true)
