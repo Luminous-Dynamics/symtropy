@@ -98,7 +98,7 @@ Important distinctions:
 
 The deterministic receipt compares three finite-grid cases: 1,200 schedules at 20% target risk, 120 at 10%, and 50,000 at 10%. The 120/10% arm deliberately demonstrates that D(m,n) can consume the entire risk budget and must produce NO_POSITIVE_ADJUSTED_TARGET; the 1,200/20% arm shows a positive adjusted budget; the 50,000/10% arm tests whether a useful adjusted target returns at a much larger calibration size. These counts are synthetic illustrations of the correction's effect, not DCT sample-size recommendations or operational risk estimates.
 
-The original monotone CRC, CRC with a monotone envelope, and finite-grid CRC-NM are different methods with different theorem assumptions. They must be compared at matched loss definitions and clearly reported guarantee types; do not treat them as interchangeable.
+Standard monotone CRC, CRC with a monotone upper envelope, finite-grid non-monotone CRC-NM, known-weight shift CRC and the Lipschitz-structured correction are distinct comparators with different theorem assumptions. Compare them at matched loss definitions and report each guarantee type; do not treat them as interchangeable. In particular, known-weight shift CRC requires an exact bounded likelihood ratio, while Lipschitz CRC requires an almost-sure uniform K across schedule losses. Neither assumption may be inferred from observed smoothness or estimated density ratios.
 
 
 ## Known-weight distribution-shift comparator (November 2026)
