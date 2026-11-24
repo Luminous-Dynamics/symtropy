@@ -602,7 +602,7 @@ fn summarize_query_durations(mut durations_ns: Vec<u64>) -> QueryTimingSummary {
         p50_ns: Some(nearest_rank(50)),
         p95_ns: Some(nearest_rank(95)),
         p99_ns: Some(nearest_rank(99)),
-        sub_resolution_samples: 0,
+        sub_resolution_samples: durations_ns.iter().filter(|duration| **duration == 0).count() as u64,
     }
 }
 
@@ -800,6 +800,18 @@ impl QueryScore {
     #[must_use]
     pub fn can_pool_with(&self, other: &Self) -> bool {
         self.profile.can_pool_with(&other.profile)
+    }
+
+    /// False whenever one or more durations were below the declared clock
+    /// resolution. Correctness may still qualify; latency comparisons may not.
+    #[must_use]
+    pub fn latency_comparable(&self) -> bool {
+        self.timing.complete_for(self.counts.candidate_forwarded_queries)
+            && self.timing.sub_resolution_samples == 0
+            && self
+                .strata
+                .iter()
+                .all(|stratum| stratum.timing.sub_resolution_samples == 0)
     }
 }
 
@@ -1224,6 +1236,31 @@ mod tests {
         assert!(!binary_score.can_pool_with(&other_score));
         assert!(!unspecified.benchmark_qualified());
         assert!(!unspecified.can_pool_with(&binary_score));
+    }
+
+    #[test]
+    fn sub_resolution_timings_are_censored_not_fabricated() {
+        let queries = imported_queries_with_labels(&[true]);
+        let result = evaluation(
+            &queries[0],
+            "sub-resolution-scene",
+            CandidateDisposition::Forwarded,
+            NarrowphaseOutcome::Collision,
+        )
+        .with_narrowphase_elapsed_ns(0);
+        let profile = run_profile(
+            "symtropy",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            MotionProfile::LinearizedConstantVelocity,
+            ArithmeticProfile::Binary64,
+        );
+        let score = evaluate_queries_with_profile(profile, &[result]).unwrap();
+
+        assert!(score.benchmark_qualified());
+        assert!(!score.latency_comparable());
+        assert_eq!(score.timing.sample_count, 1);
+        assert_eq!(score.timing.sub_resolution_samples, 1);
+        assert_eq!(score.timing.p50_ns, Some(0));
     }
 
     #[test]
