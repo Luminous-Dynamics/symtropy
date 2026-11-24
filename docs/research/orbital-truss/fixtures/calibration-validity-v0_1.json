@@ -53,7 +53,15 @@
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
         },
         {
           "scope_id": "camera-to-robot",
@@ -74,11 +82,37 @@
           "max_check_age_ns": null,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": null,
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "payload_g": {
+              "unit": "g",
+              "minimum_q": 0,
+              "maximum_q": 10000,
+              "maximum_age_ns": 10000
+            }
+          }
         }
       ],
       "events": [],
-      "expected_status": "VALID_WITHIN_SCOPE"
+      "expected_status": "VALID_WITHIN_SCOPE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
     },
     {
       "case_id": "CAL-002-ACQUISITION-AFTER-EXPIRY",
@@ -128,11 +162,37 @@
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
         }
       ],
       "events": [],
-      "expected_status": "VALID_WITHIN_SCOPE"
+      "expected_status": "VALID_WITHIN_SCOPE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
     },
     {
       "case_id": "CAL-003-TIME-BOUNDARY-OVERLAP",
@@ -182,11 +242,37 @@
           "max_check_age_ns": 200,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
         }
       ],
       "events": [],
-      "expected_status": "VALID_WITHIN_SCOPE"
+      "expected_status": "VALID_WITHIN_SCOPE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
     },
     {
       "case_id": "CAL-004-LENS-IDENTITY-MISMATCH",
@@ -236,11 +322,37 @@
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
         }
       ],
       "events": [],
-      "expected_status": "IDENTITY_MISMATCH"
+      "expected_status": "IDENTITY_MISMATCH",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
     },
     {
       "case_id": "CAL-005-REVOKED-CERTIFICATE",
@@ -290,11 +402,37 @@
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
         }
       ],
       "events": [],
-      "expected_status": "REVOKED"
+      "expected_status": "REVOKED",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
     },
     {
       "case_id": "CAL-006-REFERENCE-CHECK-HOLD",
@@ -344,11 +482,37 @@
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
         }
       ],
       "events": [],
-      "expected_status": "DRIFT_SUSPECTED"
+      "expected_status": "DRIFT_SUSPECTED",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
     },
     {
       "case_id": "CAL-007-STALE-REFERENCE-CHECK",
@@ -398,11 +562,37 @@
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
         }
       ],
       "events": [],
-      "expected_status": "EXPIRED"
+      "expected_status": "EXPIRED",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
     },
     {
       "case_id": "CAL-008-PRIOR-INVALIDATING-EVENT",
@@ -452,7 +642,15 @@
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
         }
       ],
       "events": [
@@ -467,7 +665,25 @@
           "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
         }
       ],
-      "expected_status": "INVALIDATED"
+      "expected_status": "INVALIDATED",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
     },
     {
       "case_id": "CAL-009-EVENT-TIME-OVERLAPS-ACQUISITION",
@@ -517,7 +733,15 @@
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
         }
       ],
       "events": [
@@ -532,7 +756,25 @@
           "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
         }
       ],
-      "expected_status": "INDETERMINATE"
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
     },
     {
       "case_id": "CAL-010-INCOMPLETE-EVENT-INVENTORY",
@@ -583,7 +825,15 @@
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
         },
         {
           "scope_id": "camera-to-robot",
@@ -604,11 +854,37 @@
           "max_check_age_ns": null,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": null,
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "payload_g": {
+              "unit": "g",
+              "minimum_q": 0,
+              "maximum_q": 10000,
+              "maximum_age_ns": 10000
+            }
+          }
         }
       ],
       "events": [],
-      "expected_status": "INDETERMINATE"
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
     },
     {
       "case_id": "CAL-011-MISSING-CONFIGURATION-FIELD",
@@ -657,11 +933,37 @@
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
         }
       ],
       "events": [],
-      "expected_status": "INDETERMINATE"
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
     },
     {
       "case_id": "CAL-012-EVENT-AFTER-ACQUISITION",
@@ -711,7 +1013,15 @@
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
         }
       ],
       "events": [
@@ -726,7 +1036,25 @@
           "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
         }
       ],
-      "expected_status": "VALID_WITHIN_SCOPE"
+      "expected_status": "VALID_WITHIN_SCOPE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
     },
     {
       "case_id": "CAL-013-NONINVALIDATING-EVENT",
@@ -776,7 +1104,15 @@
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
         }
       ],
       "events": [
@@ -791,7 +1127,25 @@
           "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
         }
       ],
-      "expected_status": "VALID_WITHIN_SCOPE"
+      "expected_status": "VALID_WITHIN_SCOPE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
     },
     {
       "case_id": "CAL-014-UNKNOWN-EVENT-IMPACT",
@@ -841,7 +1195,15 @@
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
         }
       ],
       "events": [
@@ -856,7 +1218,25 @@
           "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
         }
       ],
-      "expected_status": "INDETERMINATE"
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
     },
     {
       "case_id": "CAL-015-EVENT-BEFORE-CALIBRATION-EPOCH",
@@ -906,7 +1286,15 @@
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
         }
       ],
       "events": [
@@ -921,7 +1309,25 @@
           "impact": "INVALIDATES"
         }
       ],
-      "expected_status": "VALID_WITHIN_SCOPE"
+      "expected_status": "VALID_WITHIN_SCOPE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
     },
     {
       "case_id": "CAL-016-EVENT-OVERLAPS-CALIBRATION-EPOCH",
@@ -971,7 +1377,15 @@
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
         }
       ],
       "events": [
@@ -986,7 +1400,25 @@
           "impact": "INVALIDATES"
         }
       ],
-      "expected_status": "INDETERMINATE"
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
     },
     {
       "case_id": "CAL-017-REFERENCE-CHECK-AGE-BOUNDARY-OVERLAP",
@@ -1036,11 +1468,37 @@
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
         }
       ],
       "events": [],
-      "expected_status": "INDETERMINATE"
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
     },
     {
       "case_id": "CAL-018-REFERENCE-CHECK-AT-ACQUISITION",
@@ -1090,11 +1548,509 @@
           "max_check_age_ns": 100,
           "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "calibration_epoch_ns": 100
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
         }
       ],
       "events": [],
-      "expected_status": "INDETERMINATE"
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
+    },
+    {
+      "case_id": "CAL-019-TEMPERATURE-DEFINITIVELY-OUT-OF-SCOPE",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "OUT_OF_SCOPE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 40000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
+    },
+    {
+      "case_id": "CAL-020-TEMPERATURE-UNCERTAINTY-CROSSES-LIMIT",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 35100,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
+    },
+    {
+      "case_id": "CAL-021-TEMPERATURE-MEASUREMENT-MISSING",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
+    },
+    {
+      "case_id": "CAL-022-TEMPERATURE-UNIT-MISMATCH",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "IDENTITY_MISMATCH",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
+    },
+    {
+      "case_id": "CAL-023-TEMPERATURE-MEASUREMENT-STALE",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 100
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "EXPIRED",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 100,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
+    },
+    {
+      "case_id": "CAL-024-TEMPERATURE-MEASUREMENT-AGE-BOUNDARY",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 100
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 390,
+          "time_uncertainty_ns": 10,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      }
     }
   ]
 }
