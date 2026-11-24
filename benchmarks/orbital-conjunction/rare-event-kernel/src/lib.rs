@@ -44,6 +44,10 @@ pub mod space_time_partition;
 pub mod stats;
 pub mod trajectory;
 
+// Test-only exact portfolio oracle for capacity-constrained policy benchmarks.
+#[cfg(test)]
+mod portfolio_oracle;
+
 pub use conditional_velocity::{
     ConditionalDirectionReport, ConditionalVelocityConfig, ConditionalVelocityDiagnostics,
     ConditionalVelocityDistribution, Matrix3, RelativePositionVelocityCovarianceBlocks,
