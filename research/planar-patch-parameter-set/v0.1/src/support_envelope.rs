@@ -80,8 +80,13 @@ pub struct PatchSupportEnvelopeReport {
     pub lower_bound_method: SupportLowerBoundMethod,
     /// Conservative except for the zero-twist case.
     pub lower_bound_is_exact: bool,
-    /// Exact supremum over the declared complete convex feasible polyhedron.
-    pub upper_bound_is_exact_over_feasible_set: bool,
+    /// The returned value is the maximum evaluated over the supplied vertices.
+    /// It is an exact polyhedral supremum only if those vertices are complete
+    /// and exact; v0.1 does not establish that with outward-rounded arithmetic.
+    pub upper_bound_is_vertex_maximum: bool,
+    /// False in v0.1: floating-point intersection/support evaluation is not
+    /// enclosed by outward-rounded interval arithmetic.
+    pub outward_rounding_applied: bool,
     pub maximum_support_vertex: Option<[f64; 3]>,
     pub unbounded_support_vertex: Option<[f64; 3]>,
     pub maximum_active_beta_sum: Option<f64>,
@@ -509,7 +514,8 @@ mod tests {
         );
         let independent_box_upper = 2.0 * 20.0_f64.sqrt();
         assert!(result.support_upper_bound.unwrap() < independent_box_upper);
-        assert!(result.upper_bound_is_exact_over_feasible_set);
+        assert!(result.upper_bound_is_vertex_maximum);
+        assert!(!result.outward_rounding_applied);
         assert!(!result.lower_bound_is_exact);
     }
 
