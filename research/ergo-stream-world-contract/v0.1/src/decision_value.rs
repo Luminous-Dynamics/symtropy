@@ -186,9 +186,11 @@ pub fn evaluate_decision_value(
     let mut baseline_loss_numerator = u128::MAX;
 
     for action in &problem.actions {
-        let weighted_loss = weighted_action_loss(problem, |hypothesis| {
-            u128::from(hypothesis.prior_weight)
-        }, action.id)?;
+        let weighted_loss = weighted_action_loss(
+            problem,
+            |hypothesis| Ok(u128::from(hypothesis.prior_weight)),
+            action.id,
+        )?;
         if weighted_loss < baseline_loss_numerator {
             baseline_loss_numerator = weighted_loss;
             baseline_action_id = action.id;
@@ -652,13 +654,6 @@ mod tests {
             ExperimentLikelihoodV0 { hypothesis_id: 1, outcome_id: 2, likelihood_weight: 0 },
             ExperimentLikelihoodV0 { hypothesis_id: 2, outcome_id: 2, likelihood_weight: 0 },
         ]);
-        experiment.likelihood_scale = 3;
-        for likelihood in &mut experiment.likelihoods {
-            if likelihood.outcome_id == 0 || likelihood.outcome_id == 1 {
-                likelihood.likelihood_weight = 1;
-            }
-        }
-
         let report = evaluate_decision_value(&problem, &experiment).unwrap();
         let impossible = report
             .outcome_decisions
