@@ -271,8 +271,7 @@ impl HedgedCapitalConfidenceSequence {
             next_log_plus.push(plus);
             next_log_minus.push(minus);
 
-            let log_hedged_capital =
-                (log_theta + plus).max(log_one_minus_theta + minus);
+            let log_hedged_capital = (log_theta + plus).max(log_one_minus_theta + minus);
             if log_hedged_capital < log_threshold {
                 first_accepted.get_or_insert(index);
                 last_accepted = Some(index);
@@ -388,8 +387,7 @@ mod tests {
     const DEFENSIVE_WEIGHT: f64 = 0.1;
 
     fn grid() -> Vec<f64> {
-        HedgedCapitalConfidenceSequence::log_tailed_parameter_grid(1.0e-8, 0.02, 128, 128)
-            .unwrap()
+        HedgedCapitalConfidenceSequence::log_tailed_parameter_grid(1.0e-8, 0.02, 128, 128).unwrap()
     }
 
     #[test]
@@ -505,8 +503,7 @@ mod tests {
 
     #[test]
     fn coarse_grid_never_returns_a_tighter_than_bracketed_interval() {
-        let mut sequence =
-            HedgedCapitalConfidenceSequence::new(0.05, vec![0.0, 0.5, 1.0]).unwrap();
+        let mut sequence = HedgedCapitalConfidenceSequence::new(0.05, vec![0.0, 0.5, 1.0]).unwrap();
         sequence.observe(0.25).unwrap();
         let interval = sequence.confidence_sequence();
         assert!(interval.lower <= 0.5);
@@ -518,15 +515,9 @@ mod tests {
     fn invalid_inputs_and_parameter_grids_fail_closed() {
         assert!(HedgedCapitalConfidenceSequence::new(0.0, grid()).is_err());
         assert!(HedgedCapitalConfidenceSequence::new(1.0, grid()).is_err());
-        assert!(
-            HedgedCapitalConfidenceSequence::with_parameters(0.05, grid(), -0.1, 0.5).is_err()
-        );
-        assert!(
-            HedgedCapitalConfidenceSequence::with_parameters(0.05, grid(), 0.5, 1.0).is_err()
-        );
-        assert!(
-            HedgedCapitalConfidenceSequence::new(0.05, vec![0.0, 0.5, 0.5, 1.0]).is_err()
-        );
+        assert!(HedgedCapitalConfidenceSequence::with_parameters(0.05, grid(), -0.1, 0.5).is_err());
+        assert!(HedgedCapitalConfidenceSequence::with_parameters(0.05, grid(), 0.5, 1.0).is_err());
+        assert!(HedgedCapitalConfidenceSequence::new(0.05, vec![0.0, 0.5, 0.5, 1.0]).is_err());
         assert!(
             HedgedCapitalConfidenceSequence::log_tailed_parameter_grid(0.0, 0.02, 16, 16).is_err()
         );
