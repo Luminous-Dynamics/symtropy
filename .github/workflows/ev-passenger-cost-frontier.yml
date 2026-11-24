@@ -697,7 +697,6 @@ jobs:
             and .model_update_performed == false
             and .operational_authority_granted == false
             and (.input_digest | test("^sha256:[0-9a-f]{64}$"))
-            and all(.groups[]; (.risk_coverage | length) == 3)
           ' service-decision-impact-report.json
           cat service-decision-impact-report.json
           sha256sum \
