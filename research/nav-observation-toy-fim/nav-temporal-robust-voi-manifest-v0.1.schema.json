@@ -1,0 +1,313 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/nav-temporal-robust-voi-v0.1.json",
+  "title": "NAV-TEMPORAL-ROBUST-VOI v0.1 benchmark manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "status",
+    "execution_status",
+    "reference_model",
+    "baselines",
+    "scoreboards",
+    "scenarios",
+    "dataset_tracks",
+    "proposed_targets",
+    "references",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "NAV-TEMPORAL-ROBUST-VOI-V0_1"
+    },
+    "status": {
+      "const": "synthetic_specification_only"
+    },
+    "execution_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fixture_definitions_instantiated",
+        "results_generated",
+        "dataset_payloads_admitted",
+        "physical_campaigns_completed"
+      ],
+      "properties": {
+        "fixture_definitions_instantiated": {
+          "type": "boolean"
+        },
+        "results_generated": {
+          "type": "boolean"
+        },
+        "dataset_payloads_admitted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "physical_campaigns_completed": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "reference_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "horizon_actions",
+        "max_candidate_actions",
+        "persistent_models",
+        "persistent_common_cause_states",
+        "navigation_states",
+        "joint_hidden_state_count",
+        "outcome_alphabet",
+        "model_identity_persistent",
+        "common_cause_persistent",
+        "navigation_state_evolves_during_evidence_age",
+        "shared_observable_policy_across_models",
+        "second_action_capture_epoch",
+        "resource_dimensions",
+        "probability_representation",
+        "risk_objective",
+        "separate_regret_objective",
+        "branchwise_switching_model"
+      ],
+      "properties": {
+        "horizon_actions": {
+          "const": 2
+        },
+        "max_candidate_actions": {
+          "const": 4
+        },
+        "persistent_models": {
+          "const": 2
+        },
+        "persistent_common_cause_states": {
+          "const": 2
+        },
+        "navigation_states": {
+          "const": 2
+        },
+        "joint_hidden_state_count": {
+          "const": 8
+        },
+        "outcome_alphabet": {
+          "type": "array",
+          "const": [
+            "no_observation",
+            "observed_zero",
+            "observed_one"
+          ]
+        },
+        "model_identity_persistent": {
+          "const": true
+        },
+        "common_cause_persistent": {
+          "const": true
+        },
+        "navigation_state_evolves_during_evidence_age": {
+          "const": true
+        },
+        "shared_observable_policy_across_models": {
+          "const": true
+        },
+        "second_action_capture_epoch": {
+          "const": "first_action_use_epoch"
+        },
+        "resource_dimensions": {
+          "type": "array",
+          "const": [
+            "latency_ns",
+            "energy_uj",
+            "bandwidth_bytes"
+          ]
+        },
+        "probability_representation": {
+          "const": "integer_fixed_point_with_checked_arithmetic"
+        },
+        "risk_objective": {
+          "const": "mission_global_minimax"
+        },
+        "separate_regret_objective": {
+          "const": true
+        },
+        "branchwise_switching_model": {
+          "const": "diagnostic_only"
+        }
+      }
+    },
+    "baselines": {
+      "type": "array",
+      "minItems": 13,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "role"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "scoreboards": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "metrics"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "metrics": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 14,
+      "maxItems": 14,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "family",
+          "challenge",
+          "expected_invariant",
+          "expected_disposition",
+          "fixture_status",
+          "measurement_status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^S[0-9]{2}_[A-Z0-9_]+$"
+          },
+          "family": {
+            "type": "string",
+            "minLength": 1
+          },
+          "challenge": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_invariant": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_disposition": {
+            "enum": [
+              "evaluate",
+              "reject"
+            ]
+          },
+          "fixture_status": {
+            "const": "not_instantiated"
+          },
+          "measurement_status": {
+            "const": "not_measured"
+          }
+        }
+      }
+    },
+    "dataset_tracks": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "role",
+          "admission_status",
+          "use_limit"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "admission_status": {
+            "const": "not_admitted"
+          },
+          "use_limit": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "proposed_targets": {
+      "type": "object",
+      "minProperties": 7
+    },
+    "references": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "url",
+          "scope"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "scope": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
