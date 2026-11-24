@@ -550,10 +550,7 @@ struct ResourceEventDraft {
     forecast: Option<(u64, u64)>,
 }
 
-fn add_resource_event(
-    observations: &mut [EpochObservation],
-    event: ResourceEventDraft,
-) {
+fn add_resource_event(observations: &mut [EpochObservation], event: ResourceEventDraft) {
     observations[event.observed_at_epoch]
         .resource_events
         .push(ResourceEvent {
@@ -610,29 +607,29 @@ fn make_scenarios(family_id: &str, case_prefix: &str, rng: &mut DeterministicRng
     if family_id == "common-cause-outage" {
         for resource_id in ["RESOURCE-A", "RESOURCE-B"] {
             add_resource_event(
-            &mut disruption_history,
-            ResourceEventDraft {
-                source_event_id: format!("{case_prefix}-CC-{resource_id}-FAIL"),
-                resource_id: resource_id.to_string(),
-                kind: ResourceEventKind::Failed,
-                occurred_at_epoch: 1,
-                observed_at_epoch: 1,
-                common_cause_id: Some("COMMON-POWER-FEEDER-01".into()),
-                forecast: Some((1, 3)),
-            },
-        );
+                &mut disruption_history,
+                ResourceEventDraft {
+                    source_event_id: format!("{case_prefix}-CC-{resource_id}-FAIL"),
+                    resource_id: resource_id.to_string(),
+                    kind: ResourceEventKind::Failed,
+                    occurred_at_epoch: 1,
+                    observed_at_epoch: 1,
+                    common_cause_id: Some("COMMON-POWER-FEEDER-01".into()),
+                    forecast: Some((1, 3)),
+                },
+            );
             add_resource_event(
-            &mut disruption_history,
-            ResourceEventDraft {
-                source_event_id: format!("{case_prefix}-CC-{resource_id}-RESTORE"),
-                resource_id: resource_id.to_string(),
-                kind: ResourceEventKind::Restored,
-                occurred_at_epoch: 3,
-                observed_at_epoch: 3,
-                common_cause_id: Some("COMMON-POWER-FEEDER-01".into()),
-                forecast: None,
-            },
-        );
+                &mut disruption_history,
+                ResourceEventDraft {
+                    source_event_id: format!("{case_prefix}-CC-{resource_id}-RESTORE"),
+                    resource_id: resource_id.to_string(),
+                    kind: ResourceEventKind::Restored,
+                    occurred_at_epoch: 3,
+                    observed_at_epoch: 3,
+                    common_cause_id: Some("COMMON-POWER-FEEDER-01".into()),
+                    forecast: None,
+                },
+            );
         }
     } else {
         let recovery_epoch = if family_id == "uncertain-recovery" {
@@ -668,29 +665,29 @@ fn make_scenarios(family_id: &str, case_prefix: &str, rng: &mut DeterministicRng
 
     let mut alternate_history = empty_observations();
     add_resource_event(
-            &mut alternate_history,
-            ResourceEventDraft {
-                source_event_id: format!("{case_prefix}-RC-FAIL"),
-                resource_id: "RESOURCE-C".to_string(),
-                kind: ResourceEventKind::Failed,
-                occurred_at_epoch: 2,
-                observed_at_epoch: 2,
-                common_cause_id: None,
-                forecast: Some((1, 2)),
-            },
-        );
+        &mut alternate_history,
+        ResourceEventDraft {
+            source_event_id: format!("{case_prefix}-RC-FAIL"),
+            resource_id: "RESOURCE-C".to_string(),
+            kind: ResourceEventKind::Failed,
+            occurred_at_epoch: 2,
+            observed_at_epoch: 2,
+            common_cause_id: None,
+            forecast: Some((1, 2)),
+        },
+    );
     add_resource_event(
-            &mut alternate_history,
-            ResourceEventDraft {
-                source_event_id: format!("{case_prefix}-RC-RESTORE"),
-                resource_id: "RESOURCE-C".to_string(),
-                kind: ResourceEventKind::Restored,
-                occurred_at_epoch: 3,
-                observed_at_epoch: 3,
-                common_cause_id: None,
-                forecast: None,
-            },
-        );
+        &mut alternate_history,
+        ResourceEventDraft {
+            source_event_id: format!("{case_prefix}-RC-RESTORE"),
+            resource_id: "RESOURCE-C".to_string(),
+            kind: ResourceEventKind::Restored,
+            occurred_at_epoch: 3,
+            observed_at_epoch: 3,
+            common_cause_id: None,
+            forecast: None,
+        },
+    );
 
     if family_id == "qualification-transition" {
         add_qualification_update(&mut alternate_history, case_prefix);
