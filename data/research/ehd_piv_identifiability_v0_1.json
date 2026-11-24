@@ -11,9 +11,11 @@
     "nuisance_profiled_physical_singular_values",
     "nuisance_profiled_physical_rank_and_condition",
     "weak_joint_right_singular_directions",
-    "physical_nuisance_pairwise_signed_correlation"
+    "physical_nuisance_pairwise_signed_correlation",
+    "candidate_acquisition_rank_gain",
+    "candidate_smallest_profiled_physical_sensitivity_gain_per_cost"
   ],
-  "authored_manufactured_tests": 14,
+  "authored_manufactured_tests": 18,
   "limits": [
     "no_observation_covariance_whitening",
     "no_global_or_structural_identifiability_proof",
@@ -23,7 +25,9 @@
     "does_not_authenticate_jacobian_or_noise_covariance_provenance",
     "does_not_compute_FIM_from_raw_image_likelihood",
     "does_not_whiten_correlated_noise_in_v0",
-    "does_not_select_an_optimal_acquisition_action_in_v0"
+    "does_not_select_an_optimal_acquisition_action_in_v0",
+    "candidate_rows_must_be_conditionally_whitened_innovations",
+    "no_full_covariance_cross_block_whitening_or_optimal_design_optimization_in_v0"
   ],
   "additional_controls": [
     "configured_condition_number_threshold",
@@ -34,5 +38,20 @@
   "matrix_size_limits": {
     "maximum_observation_rows": 65536,
     "maximum_parameter_columns": 64
+  },
+  "candidate_action_selection": {
+    "maximum_candidate_actions": 256,
+    "maximum_total_observation_rows": 65536,
+    "objective": [
+      "increase_nuisance_profiled_physical_rank",
+      "increase_smallest_profiled_physical_singular_value",
+      "divide_sensitivity_gain_by_acquisition_cost"
+    ],
+    "input_semantics": "candidate rows are conditional innovations whitened with respect to existing measurement residuals and the cross-block covariance",
+    "nonclaims": [
+      "no automatic sensor actuation",
+      "no direct EVSI or functional posterior variance calculation",
+      "does_not_authenticate_noise_covariance_or_candidate_sensitivities"
+    ]
   }
 }
