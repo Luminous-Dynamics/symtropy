@@ -177,7 +177,7 @@ The first executable increment lives in:
 - tools/ev-passenger-cost-frontier/schemas/service_decision_impact_v0_1.schema.json
 - tools/ev-passenger-cost-frontier/fixtures/service_decision_impact_v0_1.json
 
-It consumes frozen paired forecast/realized records. A record binds site and site configuration, exact asset and asset configuration, operating stratum, forecast model/version, policy/version, decision time, target interval, threshold direction/value, prediction interval, measured outcome, hard-gate disposition, service-value units, and site/forecast/gate/outcome evidence envelopes.
+It consumes frozen paired forecast/realized records. A record binds site and site configuration, exact asset and asset configuration, operating stratum, forecast model/version, policy/version, decision time, target interval, threshold direction/value, prediction interval, measured outcome, hard-gate disposition, candidate-value proxy units, and site/forecast/gate/outcome evidence envelopes.
 
 ### 11.1 Explicit decision semantics
 
@@ -189,7 +189,10 @@ The v0.1 policy is deliberately small and auditable:
 - A hard-gate failed result blocks a proposal; unknown also blocks it and is reported as unsupported. A proposal cannot override either disposition.
 - A false-safe proposal is not automatically a false-safe admission. Report proposals separately from those that remain admitted after the independent hard gate.
 - False abstention is counted only when the hard gate passed and the realized value would have passed the same threshold policy.
-- Service-value loss is counted only for avoidable abstention. Hard failures are never converted to finite utility penalties.
+- The sum is only a candidate-value proxy for records whose later measured metric passes the threshold and whose supplied hard gate passed. It is not realized revenue, proven service delivery, causal regret, or an estimate of the counterfactual value of an unserved request. Hard failures are never converted to finite utility penalties.
+
+
+**Counterfactual limitation:** A false-abstention classification means only that the later observed metric crossed the same threshold and the supplied hard gate was marked passed. The evaluator does not establish that a rejected service would have been executed, that the service recipient would have received it, or what its realized economic value would have been. The candidate_value_proxy_units input is an exogenous benchmark weight. The report's potentially_admissible_value_proxy_units is a diagnostic proxy, not avoided loss, realized value, or causal regret. A causal service-value estimate would require a separately designed randomized or credible quasi-experimental evaluation with treatment, non-delivery and outcome evidence.
 
 This is a bounded threshold policy, not a general scheduler. The evaluator does not infer source authenticity or independently establish the correctness of supplied hard-gate dispositions.
 
@@ -208,7 +211,7 @@ The fixture contains eight paired records across a stationary-storage lower-boun
 | False abstentions | 2 |
 | Same-policy replay comparisons | 6 |
 | Decision flips | 4 |
-| Avoidable service-value loss units | 200 |
+| Potentially admissible value-proxy units | 200 |
 | Group-local risk/coverage frontiers | 2 |
 
 All fixture evidence is synthetic. The reference report must therefore set any_synthetic_evidence=true, all_evidence_source_grade=false, and all field-qualification, model-update and operational-authority flags to false. These counts are known-answer expectations for the synthetic fixture, not empirical mobility results. It also reports separate Wilson 95% reference intervals for false-safe admissions and false abstentions, with their denominators; these intervals explicitly assume IID samples and are not valid cluster-aware guarantees.
