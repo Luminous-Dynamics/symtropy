@@ -1018,6 +1018,10 @@ mod tests {
     }
 
     fn dispatch_payload_sha256() -> String {
+        dispatch_payload_sha256_for_key("rrvr/v0.1/test-key-1")
+    }
+
+    fn dispatch_payload_sha256_for_key(idempotency_key: &str) -> String {
         let request = crate::gazebo_adapter::GazeboDispatchRequest {
             plan_sha256: digest('a'),
             campaign_id: "campaign-1".into(),
@@ -1032,7 +1036,7 @@ mod tests {
             scheduled_simulation_step: 42,
             parameters_sha256: digest('f'),
             payload_sha256: String::new(),
-            idempotency_key: "rrvr/v0.1/test-key-1".into(),
+            idempotency_key: idempotency_key.to_owned(),
         };
         crate::gazebo_adapter::dispatch_request_fingerprint(&request).unwrap()
     }
@@ -1101,7 +1105,7 @@ mod tests {
             assert_eq!(
                 journal.append_dispatch_intent(DispatchIntentRecord {
                 idempotency_key: "premature-key".into(),
-                payload_sha256: dispatch_payload_sha256(),
+                payload_sha256: dispatch_payload_sha256_for_key("premature-key"),
                 reset_id: "reset-1".into(),
                 plan_sha256: digest('a'),
                 simulator_profile_sha256: digest('b'),
