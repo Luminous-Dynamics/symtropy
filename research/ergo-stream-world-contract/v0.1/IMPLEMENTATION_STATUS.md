@@ -236,3 +236,11 @@ Seven tests cover an induced embedding, full-isomorphism scope enforcement, omit
 Added `examples/scoped_transfer_induced_embedding.example.json` as a machine-readable example of the new v0 proposal sidecar. The JSON Schema and example have both been retrieved and parsed as JSON. The example shows two selected nodes / one selected relation on each side, plus one excluded node and one excluded relation on each side, all bound to separate episode IDs and evidence-prefix hashes.
 
 The first exact-head workflow after adding `scoped.rs` reached only `cargo fmt --check` and failed on three formatting differences in that file. Those exact rustfmt differences were corrected. The example and docs were then added; the latest branch head must still receive an exact-head Rust 1.96 format/test/doctest/strict-Clippy result. No validation result from the pre-scope code is inherited.
+
+## Transfer bundle sidecar
+
+Added `AGENT_TRANSFER_BUNDLE_V0_1.md`, `schemas/agent_transfer_bundle_v0.schema.json` and `examples/agent_transfer_bundle_v0.example.json`. The bundle attaches to an existing `AgentSubmission` by the exact Submit-frame digest, and binds both source and target episode IDs and evidence-prefix SHA-256 digests.
+
+The scoped structural schema's `$id` now matches its repository filename, and the bundle references it by a relative schema URI. Each structural node/relation snapshot has evidence IDs. The optional deterministic-dynamics proposal now also carries source/target state and action snapshots with evidence IDs, plus source-transition evidence IDs and predicted target successors. Hidden target transitions remain evaluator-owned.
+
+This remains a sidecar specification/example, not an integrated #11171 runner or a claim that the JSON Schema has been executed by a full Draft 2020-12 validator. Static JSON parse and scope-partition checks are reported separately.
