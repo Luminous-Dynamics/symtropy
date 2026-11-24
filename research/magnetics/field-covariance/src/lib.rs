@@ -233,7 +233,7 @@ pub fn propagate_position_to_field_covariance(
     for (row_index, output_row) in left_product.iter_mut().enumerate() {
         for (column_index, output) in output_row.iter_mut().enumerate() {
             for (inner_index, gradient_value) in gradient[row_index].iter().enumerate() {
-                *output += gradient_value * sigma_x[inner_index][column_index];
+                *output += *gradient_value * sigma_x[inner_index][column_index];
             }
             if !output.is_finite() {
                 return Err(CovarianceError::NonFiniteArithmetic);
@@ -246,7 +246,7 @@ pub fn propagate_position_to_field_covariance(
     for (row_index, output_row) in propagated.iter_mut().enumerate() {
         for (column_index, output) in output_row.iter_mut().enumerate() {
             for (inner_index, left_value) in left_product[row_index].iter().enumerate() {
-                *output += left_value * gradient[column_index][inner_index];
+                *output += *left_value * gradient[column_index][inner_index];
             }
             if !output.is_finite() {
                 return Err(CovarianceError::NonFiniteArithmetic);
@@ -446,8 +446,8 @@ mod tests {
         let scaled = covariance(25.0, 100.0, 225.0, 12.5, -6.25, 25.0);
         let a = source.components();
         let b = scaled.components();
-        for index in 0..6 {
-            close(b[index], 25.0 * a[index], 1.0e-12);
+        for (scaled_component, original_component) in b.iter().zip(a.iter()) {
+            close(*scaled_component, 25.0 * original_component, 1.0e-12);
         }
     }
 }
