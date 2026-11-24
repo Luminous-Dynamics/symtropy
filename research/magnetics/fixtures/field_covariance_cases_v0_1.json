@@ -1,0 +1,49 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MAG-METROLOGY-COVARIANCE-001",
+  "evidence_status": "synthetic_mathematical_reference_not_measurement",
+  "units": {
+    "position_covariance": "m^2",
+    "field_covariance": "T^2",
+    "field_jacobian": "T/m"
+  },
+  "propagation": "Sigma_B = G * Sigma_x * transpose(G) + Sigma_sensor",
+  "cases": [
+    {
+      "case_id": "COVARIANCE-IDENTITY-001",
+      "position_covariance_components_m2": [1.0, 4.0, 9.0, 0.0, 0.0, 0.0],
+      "field_jacobian_T_per_m": [[1.0,0.0,0.0],[0.0,1.0,0.0],[0.0,0.0,1.0]],
+      "sensor_covariance_components_T2": [0.25,0.25,0.25,0.0,0.0,0.0],
+      "expected_field_covariance_components_T2": [1.25,4.25,9.25,0.0,0.0,0.0]
+    },
+    {
+      "case_id": "COVARIANCE-CORRELATED-001",
+      "position_covariance_components_m2": [1.0,4.0,9.0,0.5,0.0,0.0],
+      "field_jacobian_T_per_m": [[1.0,2.0,0.0],[0.0,1.0,0.0],[0.0,0.0,1.0]],
+      "sensor_covariance_components_T2": [0.1,0.2,0.3,0.0,0.0,0.0],
+      "expected_field_covariance_components_T2": [19.1,4.2,9.3,8.5,0.0,0.0]
+    },
+    {
+      "case_id": "COVARIANCE-PSD-RANK-ONE-001",
+      "covariance_components": [1.0,1.0,1.0,1.0,1.0,1.0],
+      "expected": "admitted_rank_one_positive_semidefinite"
+    }
+  ],
+  "negative_controls": [
+    "negative_diagonal_variance",
+    "negative_2x2_principal_minor",
+    "negative_determinant_with_pairwise_minors_nonnegative",
+    "non_finite_covariance",
+    "non_finite_jacobian",
+    "overflow_during_propagation"
+  ],
+  "boundaries": {
+    "common_mode_calibration_covariance": "separate_map_level_quantity",
+    "unknown_covariance": "must_not_be_represented_as_zero",
+    "jacobian_required": true,
+    "nonlinear_large_displacement": "not_covered",
+    "physical_measurement": false,
+    "calibration_qualification": false,
+    "predictive_coverage": false
+  }
+}
