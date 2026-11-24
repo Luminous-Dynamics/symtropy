@@ -295,10 +295,13 @@ pub fn reconcile_action_effects(
         evidence_gaps.push(ActionPortfolioEvidenceGap::OperatorCoordinationMissing);
     }
 
-    let disposition = if !evidence_gaps.is_empty() {
-        ActionPortfolioDisposition::IncompleteEvidence
-    } else if !threshold_exceeded_event_ids.is_empty() {
+    // A known exceedance is actionable information even when other
+    // inventory evidence is incomplete. Never let a missing certificate
+    // suppress a confirmed above-threshold event.
+    let disposition = if !threshold_exceeded_event_ids.is_empty() {
         ActionPortfolioDisposition::ThresholdExceeded
+    } else if !evidence_gaps.is_empty() {
+        ActionPortfolioDisposition::IncompleteEvidence
     } else if !threshold_ambiguous_event_ids.is_empty() {
         ActionPortfolioDisposition::Indeterminate
     } else {
@@ -493,6 +496,28 @@ mod tests {
         assert_eq!(
             report.disposition,
             ActionPortfolioDisposition::ThresholdExceeded
+        );
+    }
+
+    #[test]
+    fn incomplete_inventory_does_not_hide_a_known_threshold_exceedance() {
+        let before = snapshot(BEFORE, BEFORE_CATALOG, BEFORE_EPHEMERIS, vec![]);
+        let mut after = snapshot(
+            AFTER,
+            AFTER_CATALOG,
+            AFTER_EPHEMERIS,
+            vec![event(10, 20, (2, 10_000), (3, 10_000))],
+        );
+        after.inventory_complete = false;
+        let report =
+            reconcile_action_effects(&before, &after, receipt(), rational(1, 10_000)).unwrap();
+        assert_eq!(
+            report.disposition,
+            ActionPortfolioDisposition::ThresholdExceeded
+        );
+        assert_eq!(
+            report.evidence_gaps,
+            vec![ActionPortfolioEvidenceGap::PostActionInventoryIncomplete]
         );
     }
 
