@@ -9,7 +9,7 @@ const STREAMS_SCHEMA_JSON: &str =
 const DECISION_FRAME_SCHEMA_JSON: &str =
     include_str!("../../../schemas/manufacturing/mfg_policy_v02_decision_frame.schema.json");
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, PartialEq, Eq)]
 struct PolicyDecisionFrame {
     schema_id: &'static str,
     benchmark_id: String,
