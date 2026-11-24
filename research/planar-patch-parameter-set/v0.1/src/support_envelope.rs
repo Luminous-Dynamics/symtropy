@@ -419,16 +419,25 @@ mod tests {
     use super::*;
 
     fn interval(lower: f64, upper: Option<f64>) -> ParameterInterval {
+        let shape_scale_lower = upper.map_or(Some(0.0), |value| Some(1.0 / value.sqrt()));
+        let shape_scale_upper = if lower > 0.0 {
+            Some(1.0 / lower.sqrt())
+        } else {
+            None
+        };
+        let identifiability = if upper.is_none() {
+            AxisIdentifiability::BetaUpperBoundUnboundedDueToNoExcitation
+        } else if shape_scale_upper.is_none() {
+            AxisIdentifiability::ShapeUpperBoundUnbounded
+        } else {
+            AxisIdentifiability::FiniteInterval
+        };
         ParameterInterval {
             beta_lower: Some(lower),
             beta_upper: upper,
-            shape_scale_lower: Some(0.0),
-            shape_scale_upper: Some(1.0),
-            identifiability: if upper.is_some() {
-                AxisIdentifiability::FiniteInterval
-            } else {
-                AxisIdentifiability::BetaUpperBoundUnboundedDueToNoExcitation
-            },
+            shape_scale_lower,
+            shape_scale_upper,
+            identifiability,
             axis_was_excited: upper.is_some(),
         }
     }
@@ -533,7 +542,7 @@ mod tests {
                 interval(1.0, Some(1.0)),
                 interval(1.0, Some(1.0)),
             ],
-            ParameterSetStatus::FeasibleWithFiniteIntervals,
+            ParameterSetStatus::FeasibleWithUnboundedAxes,
         );
         let result = compute_patch_support_envelope(
             &PatchSupportEnvelopeInput {
