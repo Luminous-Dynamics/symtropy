@@ -586,7 +586,7 @@ pub fn compute_parameter_set(
             .map(|vertex| vertex[axis])
             .fold(0.0_f64, f64::max);
         let excited = input.observations.iter().any(|observation| {
-            observation.normalized_boundary_components[axis] > 0.0
+            observation.normalized_boundary_components[axis] != 0.0
         });
         let beta_upper = if excited { Some(maximum) } else { None };
         let characteristic_scale = if axis == 2 {
