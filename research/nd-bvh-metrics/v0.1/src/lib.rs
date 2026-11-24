@@ -460,10 +460,7 @@ mod tests {
             None
         );
         assert_eq!(
-            spearman_rank_correlation(
-                &[1.0, 2.0, 3.0, 4.0, f64::NAN],
-                &[1.0, 2.0, 3.0, 4.0, 5.0],
-            ),
+            spearman_rank_correlation(&[1.0, 2.0, 3.0, 4.0, f64::NAN], &[1.0, 2.0, 3.0, 4.0, 5.0],),
             None
         );
     }
