@@ -2244,7 +2244,7 @@ mod tests {
     }
 
     #[test]
-    fn lost_dispatch_response_is_unknown_and_duplicate_resubmission_is_suppressed() {
+    fn lost_dispatch_response_remains_unknown_and_never_redispatches() {
         let plan = plan();
         let scenario = &plan.scenarios[0];
         let fault = &scenario.fault_events[0];
