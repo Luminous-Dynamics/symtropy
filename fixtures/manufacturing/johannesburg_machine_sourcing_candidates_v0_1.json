@@ -1,0 +1,316 @@
+{
+  "schema_id": "LUMINOUS-JOBURG-MACHINE-SOURCING-CANDIDATES-0.1",
+  "status": "discovery_only_not_qualified_supplier_list",
+  "checked_date": "2026-11-22",
+  "owner_issue": "Luminous-Dynamics/symtropy#6787",
+  "qualification_contract": {
+    "relationship_status": "none_established",
+    "quote_status": "not_requested",
+    "site_audit_status": "not_performed",
+    "sample_part_status": "not_requested",
+    "capability_validation_status": "not_assessed",
+    "procurement_status": "not_authorised",
+    "note": "Public web claims are discovery inputs only; they do not prove current capacity, quality, calibration, stock, pricing, lead time or compliance."
+  },
+  "candidates": [
+    {
+      "id": "SUP-JHB-001",
+      "name": "Glutek Engineering",
+      "category": "precision_cnc_machining",
+      "location": "16 Langwa Street, Strydom Park, Randburg, Johannesburg, Gauteng, South Africa",
+      "declared_capabilities": [
+        "CNC turning",
+        "CNC machining centres",
+        "one-off prototyping",
+        "small/medium production",
+        "engineering plastics including acetal and nylon",
+        "sheet metal components"
+      ],
+      "potential_use": [
+        "precision shafts and bushes",
+        "machined brackets and plates",
+        "bed/motor interfaces",
+        "prototype fixtures"
+      ],
+      "constraints_to_confirm": [
+        "dimensional capability and uncertainty",
+        "material certificates",
+        "surface finish",
+        "work envelope",
+        "price and lead time",
+        "inspection report availability"
+      ],
+      "evidence_url": "https://www.glutek.co.za/",
+      "evidence_class": "public_supplier_declaration",
+      "relationship_status": "none_established",
+      "quote_status": "not_requested",
+      "site_audit_status": "not_performed",
+      "sample_part_status": "not_requested"
+    },
+    {
+      "id": "SUP-JHB-002",
+      "name": "Laser Options",
+      "category": "sheet_metal_fabrication",
+      "location": "245 Majien Street, Strydom Park, Johannesburg, Gauteng, South Africa",
+      "declared_capabilities": [
+        "CNC laser cutting",
+        "CNC bending",
+        "CNC punching",
+        "CNC machining",
+        "welding and grinding",
+        "powder coating",
+        "assembly"
+      ],
+      "potential_use": [
+        "machine enclosure panels",
+        "formed brackets",
+        "electronics mounting panels",
+        "guarding prototypes subject to design review"
+      ],
+      "constraints_to_confirm": [
+        "material thickness range",
+        "bend tolerance",
+        "flatness",
+        "coating process",
+        "inspection evidence",
+        "sealing and edge finish",
+        "quote and delivery"
+      ],
+      "evidence_url": "https://laseroptions.co.za/",
+      "evidence_class": "public_supplier_declaration",
+      "relationship_status": "none_established",
+      "quote_status": "not_requested",
+      "site_audit_status": "not_performed",
+      "sample_part_status": "not_requested"
+    },
+    {
+      "id": "SUP-JHB-003",
+      "name": "Directech",
+      "category": "multi_process_engineering_fabrication",
+      "location": "Kya Sand, Randburg, Johannesburg, Gauteng, South Africa",
+      "declared_capabilities": [
+        "CNC metal cutting and bending",
+        "precision laser cutting",
+        "CNC punching",
+        "sheet metal fabrication",
+        "milling and turning",
+        "powder coating",
+        "metrology",
+        "mechanical/electrical engineering"
+      ],
+      "potential_use": [
+        "fabricated frame plates and brackets",
+        "enclosure and sheet metal assemblies",
+        "machined adaptors",
+        "possible independent measurement services"
+      ],
+      "constraints_to_confirm": [
+        "machine work envelope",
+        "material/alloy list",
+        "tolerance and uncertainty",
+        "accreditation scope if claimed",
+        "inspection reports",
+        "quote and lead time"
+      ],
+      "evidence_url": "https://directech.co.za/capabilities/",
+      "evidence_class": "public_supplier_declaration",
+      "relationship_status": "none_established",
+      "quote_status": "not_requested",
+      "site_audit_status": "not_performed",
+      "sample_part_status": "not_requested"
+    },
+    {
+      "id": "SUP-JHB-004",
+      "name": "PWS Engineering",
+      "category": "precision_engineering_and_cnc",
+      "location": "Roodepoort, Gauteng, South Africa",
+      "declared_capabilities": [
+        "CNC milling",
+        "CNC turning",
+        "CNC routing",
+        "surface grinding",
+        "general engineering",
+        "light fabrication"
+      ],
+      "potential_use": [
+        "precision faces and plates",
+        "router-cut fixtures and panels",
+        "machine repair and prototype components"
+      ],
+      "constraints_to_confirm": [
+        "exact site and machine inventory",
+        "calibrated metrology",
+        "dimensional tolerance capability",
+        "material scope",
+        "lead time and quote"
+      ],
+      "evidence_url": "https://pws-engineering.com/",
+      "evidence_class": "public_supplier_declaration",
+      "relationship_status": "none_established",
+      "quote_status": "not_requested",
+      "site_audit_status": "not_performed",
+      "sample_part_status": "not_requested"
+    },
+    {
+      "id": "SUP-JHB-005",
+      "name": "Faltec Engineering",
+      "category": "precision_cnc_machining_and_quality",
+      "location": "Jet Park, Boksburg, Gauteng, South Africa",
+      "declared_capabilities": [
+        "CNC turning",
+        "vertical and horizontal milling",
+        "fabrication",
+        "first-off approval",
+        "in-process and final inspection",
+        "calibrated measuring equipment",
+        "material and batch records"
+      ],
+      "potential_use": [
+        "precision motion and shaft parts",
+        "small machined brackets",
+        "inspection-backed prototypes and short runs"
+      ],
+      "constraints_to_confirm": [
+        "exact capability scope and tolerances",
+        "inspection report format",
+        "material certificates",
+        "subcontracted process visibility",
+        "quote and delivery"
+      ],
+      "evidence_url": "https://faltec.co.za/",
+      "evidence_class": "public_supplier_declaration",
+      "relationship_status": "none_established",
+      "quote_status": "not_requested",
+      "site_audit_status": "not_performed",
+      "sample_part_status": "not_requested"
+    },
+    {
+      "id": "SUP-JHB-006",
+      "name": "Taito 3D",
+      "category": "fdm_printing_and_product_development",
+      "location": "Tshimologong Digital Innovation Precinct, 41 Juta Street, Braamfontein, Johannesburg, Gauteng, South Africa",
+      "declared_capabilities": [
+        "3D printing service",
+        "design and product development",
+        "material selection assistance",
+        "post-processing"
+      ],
+      "potential_use": [
+        "matched FDM baseline prints",
+        "design/prototype comparison",
+        "low-risk part demand testing"
+      ],
+      "constraints_to_confirm": [
+        "printer make/model and configuration",
+        "process/material list",
+        "material lot traceability",
+        "slicer and build-profile disclosure",
+        "dimensional/metrology report",
+        "quote and lead time"
+      ],
+      "evidence_url": "https://www.taito3d.co.za/",
+      "evidence_class": "public_supplier_declaration",
+      "relationship_status": "none_established",
+      "quote_status": "not_requested",
+      "site_audit_status": "not_performed",
+      "sample_part_status": "not_requested"
+    },
+    {
+      "id": "SUP-JHB-007",
+      "name": "Aluminium Trading",
+      "category": "aluminium_extrusion_and_metal_supply",
+      "location": "128 Terrace Road, Sebenza, Johannesburg, Gauteng, South Africa",
+      "declared_capabilities": [
+        "extruded aluminium profiles",
+        "cut-to-size",
+        "anodising",
+        "powder coating",
+        "laser cutting",
+        "bending and shaping",
+        "fabrication"
+      ],
+      "potential_use": [
+        "frame extrusion and plates",
+        "cut-to-length stock",
+        "prototype mounting profiles"
+      ],
+      "constraints_to_confirm": [
+        "exact structural T-slot series availability",
+        "alloy and temper",
+        "profile straightness and tolerances",
+        "compatible fastener/joining system",
+        "minimum order and stock"
+      ],
+      "evidence_url": "https://www.aluminiumtrading.co.za/aluminium-extrusions/",
+      "evidence_class": "public_supplier_declaration",
+      "relationship_status": "none_established",
+      "quote_status": "not_requested",
+      "site_audit_status": "not_performed",
+      "sample_part_status": "not_requested"
+    },
+    {
+      "id": "SUP-JHB-008",
+      "name": "Wispeco Aluminium",
+      "category": "aluminium_extrusion_manufacturer",
+      "location": "31 Potgieter Street, Alrode, Alberton, Gauteng, South Africa",
+      "declared_capabilities": [
+        "aluminium extrusion manufacture",
+        "1xxx and 6xxx series alloys",
+        "industrial and architectural profiles",
+        "powder coating",
+        "anodising"
+      ],
+      "potential_use": [
+        "locally extruded profile supply",
+        "custom profile feasibility inquiry"
+      ],
+      "constraints_to_confirm": [
+        "whether required structural machine profile exists or custom die is required",
+        "alloy/temper",
+        "profile tolerance and straightness",
+        "die/NRE costs",
+        "minimum quantity and lead time"
+      ],
+      "evidence_url": "https://www.wispeco.co.za/manufacturing/",
+      "evidence_class": "public_supplier_declaration",
+      "relationship_status": "none_established",
+      "quote_status": "not_requested",
+      "site_audit_status": "not_performed",
+      "sample_part_status": "not_requested"
+    },
+    {
+      "id": "SUP-SA-009",
+      "name": "Fil X / Inventech",
+      "category": "filament_material_source",
+      "location": "South Africa; manufacturing site and current distribution point to be confirmed",
+      "declared_capabilities": [
+        "publicly described local filament manufacture",
+        "extrusion and tooling",
+        "product development and testing",
+        "PLA ABS PETG ASA SBS TPR and composite product families"
+      ],
+      "potential_use": [
+        "material-lot sample comparison",
+        "locally manufactured filament source discovery"
+      ],
+      "constraints_to_confirm": [
+        "manufacturer and site identity",
+        "exact resin grade",
+        "lot certificate",
+        "diameter/ovality tolerance",
+        "moisture/storage window",
+        "additive composition",
+        "emissions data",
+        "mechanical test results",
+        "print profile"
+      ],
+      "evidence_url": "https://www.inventech.co.za/3dprinting",
+      "evidence_class": "public_supplier_declaration",
+      "relationship_status": "none_established",
+      "quote_status": "not_requested",
+      "site_audit_status": "not_performed",
+      "sample_part_status": "not_requested"
+    }
+  ],
+  "claim_ceiling": "This file is a public discovery list. No supplier has been contacted, audited, approved, quoted or qualified; no capacity, pricing, stock, delivery time or product quality is established."
+}

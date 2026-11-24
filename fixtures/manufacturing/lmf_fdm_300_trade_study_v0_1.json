@@ -1,0 +1,322 @@
+{
+  "schema_id": "LMF-FDM-300-TRADE-STUDY-0.1",
+  "status": "research_trade_study_not_architecture_frozen",
+  "owner_issue": "Luminous-Dynamics/symtropy#6787",
+  "parent_issue": "Luminous-Dynamics/symtropy#6762",
+  "evidence_as_of": "2026-11-22",
+  "design_intent": "Produce low-risk fixtures, jigs, packaging spacers, prototypes and approved accessories in a locally serviceable, offline-capable machine; optimise accepted useful output, not catalogue speed or nominal volume.",
+  "sources": [
+    {
+      "id": "bambu_h2d",
+      "url": "https://cdn1.bambulab.com/documentation/h2d/en/H2D_Laser_Full_Combo_20250305.pdf",
+      "type": "manufacturer_specification",
+      "notes": "H2D technical specification; use single-nozzle volume for single-tool comparisons; max flow/speed values are manufacturer test-condition claims."
+    },
+    {
+      "id": "prusa_core_one_l",
+      "url": "https://www.prusa3d.com/p/core-one-l/",
+      "type": "manufacturer_specification",
+      "notes": "CORE One L product specification; exact model and product revision must be frozen for any physical comparison."
+    },
+    {
+      "id": "voron_v2",
+      "url": "https://docs.vorondesign.com/hardware.html",
+      "type": "project_documentation",
+      "notes": "V2.4 static bed with Z-moving gantry, 4-point tramming; documented build configuration range."
+    },
+    {
+      "id": "voron_licence",
+      "url": "https://github.com/VoronDesign/Voron-2",
+      "type": "repository_metadata",
+      "notes": "Voron-2 repository declares GPL-3.0; review exact files, release and third-party assets before derivation."
+    },
+    {
+      "id": "prusa_ocl",
+      "url": "https://blog.prusa3d.com/core-one-cad-files-release-under-the-new-open-community-license-ocl_127290/",
+      "type": "licence_explanation",
+      "notes": "Prusa explains OCL and restrictions on selling complete machines/remixes based on licensed files without separate agreement."
+    },
+    {
+      "id": "cern_ohl",
+      "url": "https://cern-ohl.web.cern.ch/",
+      "type": "hardware_licence_reference",
+      "notes": "CERN OHL v2 S/W/P variants; legal review required before selection."
+    },
+    {
+      "id": "iso_12100",
+      "url": "https://www.iso.org/standard/51528.html",
+      "type": "machinery_safety_standard",
+      "notes": "ISO 12100:2010 published and remains the current published version until successor publication; ISO/DIS 12100.3 is under development."
+    },
+    {
+      "id": "iso_12100_3",
+      "url": "https://www.iso.org/standard/88578.html",
+      "type": "draft_standard",
+      "notes": "ISO/DIS 12100.3 is a draft and not a published replacement standard."
+    },
+    {
+      "id": "iso_52902",
+      "url": "https://www.iso.org/standard/79683.html",
+      "type": "am_geometric_test_artifact",
+      "notes": "Geometric-capability test artefacts for AM system assessment and calibration."
+    },
+    {
+      "id": "nist_ambench",
+      "url": "https://www.nist.gov/ambench",
+      "type": "benchmark_programme",
+      "notes": "Open AM benchmark discipline; 2025 polymer benchmark includes vat photopolymerization, not a directly comparable desktop MEX leaderboard."
+    }
+  ],
+  "vendor_baselines": [
+    {
+      "id": "BAMBU-H2D-SINGLE-NOZZLE",
+      "manufacturer": "Bambu Lab",
+      "model": "H2D",
+      "configuration": "single nozzle",
+      "build_dimensions_mm": [
+        325,
+        320,
+        325
+      ],
+      "build_volume_l": 33.8,
+      "external_dimensions_mm": [
+        492,
+        514,
+        626
+      ],
+      "mass_kg": 31,
+      "published_max_toolhead_speed_mm_s": 1000,
+      "published_max_acceleration_mm_s2": 20000,
+      "published_hotend_flow_mm3_s": 40,
+      "published_flow_test_conditions": "250 mm round model, single outer wall, Bambu Lab ABS, 280 C; not treated as sustained accepted-output rate",
+      "evidence_class": "vendor_declared",
+      "source_id": "bambu_h2d"
+    },
+    {
+      "id": "PRUSA-CORE-ONE-L",
+      "manufacturer": "Prusa",
+      "model": "CORE One L",
+      "configuration": "single toolhead",
+      "build_dimensions_mm": [
+        300,
+        300,
+        330
+      ],
+      "build_volume_l": 29.7,
+      "external_dimensions_mm": [
+        469,
+        521,
+        635
+      ],
+      "mass_kg": 21.9,
+      "max_chamber_temperature_c": 60,
+      "evidence_class": "vendor_declared",
+      "source_id": "prusa_core_one_l"
+    },
+    {
+      "id": "VORON-2.4",
+      "manufacturer": "Voron Design community",
+      "model": "Voron 2.4",
+      "configuration_options": [
+        {
+          "build_xy_mm": 250,
+          "build_z_mm": 220
+        },
+        {
+          "build_xy_mm": 300,
+          "build_z_mm": 280
+        },
+        {
+          "build_xy_mm": 350,
+          "build_z_mm": 330
+        }
+      ],
+      "bed_type": "static_bed",
+      "z_architecture": "gantry_moves_in_z",
+      "z_tramming": "four_point",
+      "external_dimensions_mm": null,
+      "mass_kg": null,
+      "evidence_class": "project_documentation",
+      "source_ids": [
+        "voron_v2",
+        "voron_licence"
+      ]
+    }
+  ],
+  "luminous_concept": {
+    "id": "LMF-FDM-300-CONCEPT-0.1",
+    "build_dimensions_mm": [
+      300,
+      300,
+      300
+    ],
+    "build_volume_l": 27,
+    "frame_envelope_mm": [
+      520,
+      520,
+      620
+    ],
+    "frame_footprint_m2": 0.2704,
+    "external_dimensions_mm": null,
+    "mass_kg": null,
+    "kinematic_architecture": "unselected",
+    "status": "envelope_only",
+    "not_comparable_note": "The Luminous frame envelope is not a finished machine exterior and excludes panels, protrusions, cable/ventilation connections and service clearances. Derived footprint ratios are screening arithmetic only."
+  },
+  "derived_screening": {
+    "luminous_vs_core_one_l_build_volume_delta_fraction": -0.090909,
+    "luminous_vs_h2d_single_nozzle_build_volume_delta_fraction": -0.201183,
+    "luminous_frame_footprint_vs_core_one_l_external_footprint_delta_fraction": 0.10661,
+    "luminous_frame_footprint_vs_h2d_external_footprint_delta_fraction": 0.06925,
+    "note": "The first two compare nominal build volumes. The latter two are not like-for-like because the Luminous dimension is a concept frame envelope while vendor figures are finished external dimensions."
+  },
+  "architecture_candidates": [
+    {
+      "id": "A",
+      "name": "CoreXY XY gantry with Z-moving bed",
+      "status": "candidate_not_selected",
+      "advantages_to_test": [
+        "fewer Z-moving gantry components",
+        "commercial precedent",
+        "simpler top-side gantry access"
+      ],
+      "risks_to_test": [
+        "increasing moving bed/part mass",
+        "Z support synchronisation",
+        "bed tilt and repeatability",
+        "thermal gradients"
+      ]
+    },
+    {
+      "id": "B",
+      "name": "CoreXY XY gantry with fixed bed and Z-moving gantry",
+      "status": "candidate_not_selected",
+      "advantages_to_test": [
+        "fixed build platform",
+        "potentially stable metrology reference",
+        "open-hardware precedent"
+      ],
+      "risks_to_test": [
+        "more Z actuators",
+        "gantry tramming and racking",
+        "higher mechanism complexity",
+        "maintenance burden"
+      ]
+    },
+    {
+      "id": "C",
+      "name": "Alternative Cartesian/gantry arrangement",
+      "status": "candidate_not_selected",
+      "advantages_to_test": [
+        "may reduce cost or improve sourcing/maintainability"
+      ],
+      "risks_to_test": [
+        "must meet same build envelope, geometry, enclosure and acceptance requirements"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "LMF-R01",
+      "requirement": "Build envelope covers the frozen actual part/job corpus.",
+      "verification": "CAD bounds plus repeated real jobs; report whole-part fit and annual demand coverage.",
+      "status": "open_blocking"
+    },
+    {
+      "id": "LMF-R02",
+      "requirement": "External footprint and service clearance are measured separately.",
+      "verification": "Dimensioned assembly drawing and access/service trial.",
+      "status": "open"
+    },
+    {
+      "id": "LMF-R03",
+      "requirement": "Feature-specific geometric capability is demonstrated with measurement uncertainty.",
+      "verification": "ISO/ASTM 52902-inspired geometric artefact and calibrated metrology.",
+      "status": "method_selected_limits_open"
+    },
+    {
+      "id": "LMF-R04",
+      "requirement": "Accepted useful output competes with the matched route.",
+      "verification": "Matched functional part and full cost/quality denominator.",
+      "status": "baseline_not_measured"
+    },
+    {
+      "id": "LMF-R05",
+      "requirement": "Cross-node repeatability is demonstrated.",
+      "verification": "Three independent machine/operator nodes, raw feature distributions.",
+      "status": "hypothesis"
+    },
+    {
+      "id": "LMF-R06",
+      "requirement": "Repair is feasible with documented tools and replacement modules.",
+      "verification": "Timed module replacement, maintenance and recommissioning tests.",
+      "status": "open"
+    },
+    {
+      "id": "LMF-R07",
+      "requirement": "Machine operates offline without mandatory cloud/account dependency.",
+      "verification": "External network disconnected; local control, queue and safe stop verified.",
+      "status": "proposed"
+    },
+    {
+      "id": "LMF-R08",
+      "requirement": "Power interruption produces a safe state and no uncontrolled restart.",
+      "verification": "Controlled interruption/fault tests and protective-function verification.",
+      "status": "open_safety_review"
+    },
+    {
+      "id": "LMF-R09",
+      "requirement": "Print recovery after interruption is separately qualified.",
+      "verification": "Material- and state-specific recovery tests; otherwise discard/restart.",
+      "status": "open"
+    },
+    {
+      "id": "LMF-R10",
+      "requirement": "Emission controls are specific to printer/material/site.",
+      "verification": "Source-control design and appropriate exposure/emission assessment.",
+      "status": "not_qualified"
+    },
+    {
+      "id": "LMF-R11",
+      "requirement": "Thermal, electrical and motion hazards are addressed independent of network/AI.",
+      "verification": "Machine risk assessment, electrical review, fault tests and safety function proof.",
+      "status": "not_reviewed"
+    },
+    {
+      "id": "LMF-R12",
+      "requirement": "Firmware/configuration changes are versioned, verified and recoverable.",
+      "verification": "Update/rollback tests, configuration digest and local recovery.",
+      "status": "open"
+    },
+    {
+      "id": "LMF-R13",
+      "requirement": "Critical BOM dependencies have source status and alternate-source evidence or explicit risk.",
+      "verification": "Machine dependency/BOM audit with dated supplier evidence.",
+      "status": "no_bom"
+    },
+    {
+      "id": "LMF-R14",
+      "requirement": "Hardware design files have explicit licence and provenance.",
+      "verification": "Exact-file licence audit, upstream attribution, legal review.",
+      "status": "open"
+    },
+    {
+      "id": "LMF-R15",
+      "requirement": "Cost, energy, materials and waste are measured per accepted output.",
+      "verification": "Full cost accounting and kWh/material/scrap/rework measurement.",
+      "status": "no_physical_data"
+    }
+  ],
+  "gate_order": [
+    "part_demand_corpus",
+    "volume_and_footprint_trade",
+    "architecture_trade",
+    "preliminary_BOM_and_dependency_closure",
+    "machine_risk_review",
+    "hardware_license_decision",
+    "detailed_CAD_and_drawings",
+    "prototype",
+    "commissioning_and_physical_qualification"
+  ],
+  "claim_ceiling": "Vendor specifications are vendor-declared. Luminous figures are concept arithmetic. No architecture selected, machine fabricated, process qualified, safety case completed, cost advantage or SOTA superiority established."
+}
