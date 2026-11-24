@@ -27,14 +27,20 @@ jobs:
         run: cargo fmt --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml -- --check
       - name: Validate deterministic corpus and adversarial invariants
         run: cargo test --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml
-      - name: Generate v0.2 corpus twice and compare exact bytes
+      - name: Generate policy corpus and evaluator sidecar twice, compare exact bytes
         shell: bash
         run: |
           set -euo pipefail
-          cargo run --quiet --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml > "$RUNNER_TEMP/mfg-policy-v02-a.json"
-          cargo run --quiet --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml > "$RUNNER_TEMP/mfg-policy-v02-b.json"
-          cmp "$RUNNER_TEMP/mfg-policy-v02-a.json" "$RUNNER_TEMP/mfg-policy-v02-b.json"
-          test -s "$RUNNER_TEMP/mfg-policy-v02-a.json"
-          wc -c "$RUNNER_TEMP/mfg-policy-v02-a.json"
+          cargo run --quiet --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml -- --policy-corpus > "$RUNNER_TEMP/policy-a.json"
+          cargo run --quiet --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml -- --policy-corpus > "$RUNNER_TEMP/policy-b.json"
+          cargo run --quiet --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml -- --evaluator-labels > "$RUNNER_TEMP/evaluator-a.json"
+          cargo run --quiet --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml -- --evaluator-labels > "$RUNNER_TEMP/evaluator-b.json"
+          cmp "$RUNNER_TEMP/policy-a.json" "$RUNNER_TEMP/policy-b.json"
+          cmp "$RUNNER_TEMP/evaluator-a.json" "$RUNNER_TEMP/evaluator-b.json"
+          ! grep -q '"hidden_terminal_quality_outcomes"' "$RUNNER_TEMP/policy-a.json"
+          grep -q '"hidden_terminal_quality_outcomes"' "$RUNNER_TEMP/evaluator-a.json"
+          test -s "$RUNNER_TEMP/policy-a.json"
+          test -s "$RUNNER_TEMP/evaluator-a.json"
+          wc -c "$RUNNER_TEMP/policy-a.json" "$RUNNER_TEMP/evaluator-a.json"
       - name: Strict Clippy
         run: cargo clippy --manifest-path tools/mfg-policy-v02-challenge-generator/Cargo.toml -- -D warnings
