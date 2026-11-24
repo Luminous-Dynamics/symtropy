@@ -1,0 +1,354 @@
+{
+  "case_id": "synthetic-aero-material-process-0001",
+  "profile_id": "aero-material-process-qual-v0.1",
+  "synthetic_only": true,
+  "claim_ceiling": "synthetic_contract_test_only",
+  "hierarchy": {
+    "material_lots": [
+      {
+        "id": "LOT-A",
+        "supplier_label": "synthetic-supplier-A",
+        "material_system_label": "synthetic-system-X",
+        "status": "active"
+      },
+      {
+        "id": "LOT-B",
+        "supplier_label": "synthetic-supplier-B",
+        "material_system_label": "synthetic-system-X",
+        "status": "active"
+      },
+      {
+        "id": "LOT-C",
+        "supplier_label": "synthetic-supplier-C",
+        "material_system_label": "synthetic-system-X",
+        "status": "active"
+      },
+      {
+        "id": "LOT-D",
+        "supplier_label": "synthetic-supplier-D",
+        "material_system_label": "synthetic-system-X",
+        "status": "active"
+      }
+    ],
+    "process_batches": [
+      {
+        "id": "BATCH-A",
+        "material_lot_id": "LOT-A",
+        "recipe_revision_id": "RECIPE-1",
+        "machine_id": "MACHINE-A",
+        "tooling_id": "TOOL-A",
+        "site_id": "SITE-A",
+        "process_state": "in_domain",
+        "nominal_control_index": 100,
+        "realized_control_index": 99
+      },
+      {
+        "id": "BATCH-B",
+        "material_lot_id": "LOT-B",
+        "recipe_revision_id": "RECIPE-1",
+        "machine_id": "MACHINE-A",
+        "tooling_id": "TOOL-A",
+        "site_id": "SITE-A",
+        "process_state": "in_domain",
+        "nominal_control_index": 100,
+        "realized_control_index": 102
+      },
+      {
+        "id": "BATCH-C",
+        "material_lot_id": "LOT-C",
+        "recipe_revision_id": "RECIPE-2",
+        "machine_id": "MACHINE-B",
+        "tooling_id": "TOOL-B",
+        "site_id": "SITE-B",
+        "process_state": "in_domain",
+        "nominal_control_index": 100,
+        "realized_control_index": 101
+      },
+      {
+        "id": "BATCH-D",
+        "material_lot_id": "LOT-D",
+        "recipe_revision_id": "RECIPE-3",
+        "machine_id": "MACHINE-C",
+        "tooling_id": "TOOL-C",
+        "site_id": "SITE-C",
+        "process_state": "out_of_domain",
+        "nominal_control_index": 100,
+        "realized_control_index": 118
+      }
+    ],
+    "panels": [
+      {
+        "id": "PANEL-A",
+        "process_batch_id": "BATCH-A",
+        "panel_revision_id": "PANEL-REV-1"
+      },
+      {
+        "id": "PANEL-B",
+        "process_batch_id": "BATCH-B",
+        "panel_revision_id": "PANEL-REV-1"
+      },
+      {
+        "id": "PANEL-C",
+        "process_batch_id": "BATCH-C",
+        "panel_revision_id": "PANEL-REV-2"
+      },
+      {
+        "id": "PANEL-D",
+        "process_batch_id": "BATCH-D",
+        "panel_revision_id": "PANEL-REV-3"
+      }
+    ],
+    "specimens": [
+      {
+        "id": "SPEC-A1",
+        "panel_id": "PANEL-A",
+        "configuration_id": "CONFIG-A",
+        "geometry_profile_id": "GEOM-COUPON-1"
+      },
+      {
+        "id": "SPEC-A2",
+        "panel_id": "PANEL-A",
+        "configuration_id": "CONFIG-A",
+        "geometry_profile_id": "GEOM-COUPON-1"
+      },
+      {
+        "id": "SPEC-B1",
+        "panel_id": "PANEL-B",
+        "configuration_id": "CONFIG-A",
+        "geometry_profile_id": "GEOM-COUPON-1"
+      },
+      {
+        "id": "SPEC-B2",
+        "panel_id": "PANEL-B",
+        "configuration_id": "CONFIG-A",
+        "geometry_profile_id": "GEOM-COUPON-1"
+      },
+      {
+        "id": "SPEC-C1",
+        "panel_id": "PANEL-C",
+        "configuration_id": "CONFIG-B",
+        "geometry_profile_id": "GEOM-COUPON-2"
+      },
+      {
+        "id": "SPEC-C2",
+        "panel_id": "PANEL-C",
+        "configuration_id": "CONFIG-B",
+        "geometry_profile_id": "GEOM-COUPON-2"
+      },
+      {
+        "id": "SPEC-D1",
+        "panel_id": "PANEL-D",
+        "configuration_id": "CONFIG-C",
+        "geometry_profile_id": "GEOM-COUPON-3"
+      }
+    ],
+    "test_campaigns": [
+      {
+        "id": "CAMPAIGN-A",
+        "protocol_revision_id": "TEST-PROTOCOL-1",
+        "instrument_id": "INSTRUMENT-A",
+        "calibration_id": "CAL-A",
+        "calibration_state": "active"
+      },
+      {
+        "id": "CAMPAIGN-B",
+        "protocol_revision_id": "TEST-PROTOCOL-1",
+        "instrument_id": "INSTRUMENT-B",
+        "calibration_id": "CAL-B",
+        "calibration_state": "active"
+      },
+      {
+        "id": "CAMPAIGN-C",
+        "protocol_revision_id": "TEST-PROTOCOL-2",
+        "instrument_id": "INSTRUMENT-C",
+        "calibration_id": "CAL-C",
+        "calibration_state": "active"
+      },
+      {
+        "id": "CAMPAIGN-D",
+        "protocol_revision_id": "TEST-PROTOCOL-3",
+        "instrument_id": "INSTRUMENT-D",
+        "calibration_id": "CAL-D",
+        "calibration_state": "expired"
+      }
+    ],
+    "configurations": [
+      {
+        "id": "CONFIG-A",
+        "product_definition_revision_id": "PRODUCT-REV-A"
+      },
+      {
+        "id": "CONFIG-B",
+        "product_definition_revision_id": "PRODUCT-REV-B"
+      },
+      {
+        "id": "CONFIG-C",
+        "product_definition_revision_id": "PRODUCT-REV-C"
+      }
+    ]
+  },
+  "observations": [
+    {
+      "id": "OBS-001",
+      "specimen_id": "SPEC-A1",
+      "campaign_id": "CAMPAIGN-A",
+      "quantity": "response_index",
+      "unit": "synthetic_index",
+      "status": "observed",
+      "value_index": 105.2,
+      "standard_uncertainty_index": 0.5
+    },
+    {
+      "id": "OBS-002",
+      "specimen_id": "SPEC-A2",
+      "campaign_id": "CAMPAIGN-A",
+      "quantity": "response_index",
+      "unit": "synthetic_index",
+      "status": "observed",
+      "value_index": 104.8,
+      "standard_uncertainty_index": 0.5
+    },
+    {
+      "id": "OBS-003",
+      "specimen_id": "SPEC-B1",
+      "campaign_id": "CAMPAIGN-B",
+      "quantity": "response_index",
+      "unit": "synthetic_index",
+      "status": "observed",
+      "value_index": 97.1,
+      "standard_uncertainty_index": 0.7
+    },
+    {
+      "id": "OBS-004",
+      "specimen_id": "SPEC-B2",
+      "campaign_id": "CAMPAIGN-B",
+      "quantity": "response_index",
+      "unit": "synthetic_index",
+      "status": "observed",
+      "value_index": 97.5,
+      "standard_uncertainty_index": 0.7
+    },
+    {
+      "id": "OBS-005",
+      "specimen_id": "SPEC-C1",
+      "campaign_id": "CAMPAIGN-C",
+      "quantity": "response_index",
+      "unit": "synthetic_index",
+      "status": "observed",
+      "value_index": 111,
+      "standard_uncertainty_index": 0.6
+    },
+    {
+      "id": "OBS-006",
+      "specimen_id": "SPEC-C2",
+      "campaign_id": "CAMPAIGN-C",
+      "quantity": "response_index",
+      "unit": "synthetic_index",
+      "status": "observed",
+      "value_index": 110.6,
+      "standard_uncertainty_index": 0.6
+    },
+    {
+      "id": "OBS-007",
+      "specimen_id": "SPEC-D1",
+      "campaign_id": "CAMPAIGN-D",
+      "quantity": "response_index",
+      "unit": "synthetic_index",
+      "status": "observed",
+      "value_index": 123,
+      "standard_uncertainty_index": 1.2
+    },
+    {
+      "id": "OBS-008",
+      "specimen_id": "SPEC-A1",
+      "campaign_id": "CAMPAIGN-A",
+      "quantity": "response_index",
+      "unit": "synthetic_index",
+      "status": "censored",
+      "censoring_limit_index": 102,
+      "reason_code": "synthetic_lower_detection_limit"
+    },
+    {
+      "id": "OBS-009",
+      "specimen_id": "SPEC-B2",
+      "campaign_id": "CAMPAIGN-B",
+      "quantity": "response_index",
+      "unit": "synthetic_index",
+      "status": "excluded",
+      "reason_code": "synthetic_fixture_damage"
+    },
+    {
+      "id": "OBS-010",
+      "specimen_id": "SPEC-C2",
+      "campaign_id": "CAMPAIGN-C",
+      "quantity": "response_index",
+      "unit": "synthetic_index",
+      "status": "missing",
+      "reason_code": "synthetic_acquisition_gap"
+    }
+  ],
+  "partition_contract": {
+    "partition_id": "grouped-holdout-v1",
+    "grouping_levels": [
+      "material_lot",
+      "process_batch",
+      "panel",
+      "test_campaign",
+      "configuration"
+    ],
+    "assignments": [
+      {
+        "specimen_id": "SPEC-A1",
+        "partition": "train"
+      },
+      {
+        "specimen_id": "SPEC-A2",
+        "partition": "train"
+      },
+      {
+        "specimen_id": "SPEC-B1",
+        "partition": "train"
+      },
+      {
+        "specimen_id": "SPEC-B2",
+        "partition": "train"
+      },
+      {
+        "specimen_id": "SPEC-C1",
+        "partition": "holdout"
+      },
+      {
+        "specimen_id": "SPEC-C2",
+        "partition": "holdout"
+      },
+      {
+        "specimen_id": "SPEC-D1",
+        "partition": "challenge"
+      }
+    ]
+  },
+  "known_truth": {
+    "generator_id": "synthetic-additive-cluster-effects-v1",
+    "not_a_physical_model": true,
+    "baseline_index": 100,
+    "lot_effects": {
+      "LOT-A": 5,
+      "LOT-B": -3,
+      "LOT-C": 8,
+      "LOT-D": 10
+    },
+    "batch_effects": {
+      "BATCH-A": 1,
+      "BATCH-B": -1,
+      "BATCH-C": 2,
+      "BATCH-D": 4
+    },
+    "panel_effects": {
+      "PANEL-A": -0.8,
+      "PANEL-B": 0.4,
+      "PANEL-C": 0.2,
+      "PANEL-D": 0.9
+    },
+    "measurement_noise_index": 0.5
+  }
+}
