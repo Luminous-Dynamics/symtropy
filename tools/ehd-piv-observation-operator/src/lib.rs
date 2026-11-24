@@ -239,13 +239,7 @@ pub fn render_particle_image_pair(
         sigma_min = sigma_min.min(sigma);
         sigma_max = sigma_max.max(sigma);
 
-        render_exposure(
-            &render_context,
-            particle,
-            0.0,
-            sigma,
-            &mut first_intensity,
-        )?;
+        render_exposure(&render_context, particle, 0.0, sigma, &mut first_intensity)?;
         render_exposure(
             &render_context,
             particle,
@@ -494,9 +488,8 @@ fn render_exposure(
 ) -> Result<(), ObservationError> {
     let count = context.acquisition.exposure_samples;
     for sample_index in 0..count {
-        let sample_offset = (sample_index as f64 + 0.5)
-            * context.acquisition.exposure_duration
-            / count as f64;
+        let sample_offset =
+            (sample_index as f64 + 0.5) * context.acquisition.exposure_duration / count as f64;
         let sample_time = exposure_start + sample_offset;
         let (x_px, y_px) = advect_particle(
             context.field,
