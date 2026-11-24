@@ -663,6 +663,32 @@ mod tests {
     }
 
     #[test]
+    fn split_conformal_empty_and_tied_prediction_sets_remain_set_valued() {
+        let forecasts = [forecast(401, 900_000, None)];
+        let outcomes = [TransferOutcomeV0 {
+            sample_id: 401,
+            evaluation_stratum_id: 9,
+            transfer_qualified: true,
+        }];
+        let calibrator =
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, 9, 500_000).unwrap();
+
+        assert_eq!(calibrator.quantile_nonconformity_ppm, 100_000);
+        let tied = calibrator.predict(402, 900_000).unwrap();
+        assert!(tied.include_transfer);
+        assert!(!tied.include_non_transfer);
+        assert_eq!(
+            tied.decision,
+            Some(TransferDecisionV0::AssertTransfer)
+        );
+
+        let empty = calibrator.predict(403, 500_000).unwrap();
+        assert!(!empty.include_transfer);
+        assert!(!empty.include_non_transfer);
+        assert_eq!(empty.decision, None);
+    }
+
+    #[test]
     fn split_conformal_returns_both_labels_when_calibration_is_too_small_for_rank() {
         let forecasts = [forecast(301, 900_000, None)];
         let outcomes = [TransferOutcomeV0 {
