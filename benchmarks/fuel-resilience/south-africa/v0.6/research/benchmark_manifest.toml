@@ -1,0 +1,38 @@
+case_id = "SAFRB-MULTICARRIER-TINY-001"
+revision = 1
+classification = "synthetic_fixture"
+service_boundary = "port-critical-load-bus"
+periods = 2
+period_duration_minutes = 60
+energy_unit = "Wh"
+power_unit = "W"
+
+[software_baselines]
+pypsa = "1.4.0"
+highs = "1.16.0"
+gurobi = "14.0"
+safrb_flow = "v0.3"
+safrb_risk = "v0.4"
+safrb_generator = "v0.5"
+safrb_service = "v0.6"
+
+[scenario_tracks]
+empirical_frequency = "not_available"
+explicit_weighted_scenarios = "not_calibrated"
+unweighted_stress_envelope = "required"
+
+[case_scope]
+zones = ["port-critical-load"]
+carriers = ["grid_import", "shore_power", "diesel_generator", "solar_pv", "wind_turbine"]
+storage = ["battery"]
+network_power_flow = "not_in_case_v1"
+generator_commitment = "future_extension"
+demand_priority = "lexicographic"
+human_authority = "external_to_optimizer"
+
+[quality_gates]
+mass_balance_residual_l = 0
+bus_energy_balance_residual_wh = 0
+battery_soc_violation_count = 0
+source_eligibility_false_promotion_count = 0
+scenario_set_identity_must_match = true
