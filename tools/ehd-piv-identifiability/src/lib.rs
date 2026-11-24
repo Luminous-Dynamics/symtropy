@@ -234,7 +234,7 @@ pub fn analyze_local_identifiability(
         .map_or(0, |svd| count_above(&svd.singular_values, nuisance_threshold));
 
     let nuisance_basis = if let Some(svd) = &nuisance_svd {
-        left_singular_basis(&nuisance_columns, svd, nuisance_threshold)
+        left_singular_basis(&nuisance_columns, svd, nuisance_threshold)?
     } else {
         Vec::new()
     };
@@ -253,7 +253,7 @@ pub fn analyze_local_identifiability(
     let profiled_physical_columns: Vec<Vec<f64>> = physical_columns
         .iter()
         .map(|column| project_onto_complement(column, &nuisance_basis))
-        .collect();
+        .collect::<Result<Vec<_>, _>>()?;
     let profiled_physical_svd = jacobi_svd(&profiled_physical_columns, &input.config)?;
 
     let physical_threshold = (unprofiled_physical_max
@@ -598,7 +598,7 @@ fn left_singular_basis(
     columns: &[Vec<f64>],
     svd: &SvdResult,
     singular_threshold: f64,
-) -> Vec<Vec<f64>> {
+) -> Result<Vec<Vec<f64>>, IdentifiabilityError> {
     let row_count = columns.first().map_or(0, Vec::len);
     let mut basis = Vec::new();
     for (direction_index, singular_value) in svd.singular_values.iter().enumerate() {
@@ -612,30 +612,35 @@ fn left_singular_basis(
                 vector[row] += column[row] * coefficient / singular_value;
             }
         }
-        if let Ok(norm) = vector_norm(&vector) {
-            if norm > 0.0 {
-                for value in &mut vector {
-                    *value /= norm;
-                }
-                basis.push(vector);
+        let norm = vector_norm(&vector)?;
+        if norm > 0.0 {
+            for value in &mut vector {
+                *value /= norm;
             }
+            basis.push(vector);
         }
     }
-    basis
+    Ok(basis)
 }
 
-fn project_onto_complement(vector: &[f64], basis: &[Vec<f64>]) -> Vec<f64> {
+fn project_onto_complement(
+    vector: &[f64],
+    basis: &[Vec<f64>],
+) -> Result<Vec<f64>, IdentifiabilityError> {
     let mut residual = vector.to_vec();
     // Two modified Gram-Schmidt passes reduce loss of orthogonality.
     for _ in 0..2 {
         for basis_vector in basis {
-            let coefficient = dot_unchecked(&residual, basis_vector);
+            let coefficient = dot(&residual, basis_vector)?;
             for (value, basis_value) in residual.iter_mut().zip(basis_vector.iter()) {
                 *value -= coefficient * basis_value;
+                if !value.is_finite() {
+                    return Err(IdentifiabilityError::NumericalOverflow);
+                }
             }
         }
     }
-    residual
+    Ok(residual)
 }
 
 fn count_above(values: &[f64], threshold: f64) -> usize {
@@ -686,10 +691,6 @@ fn dot(left: &[f64], right: &[f64]) -> Result<f64, IdentifiabilityError> {
     Ok(sum)
 }
 
-fn dot_unchecked(left: &[f64], right: &[f64]) -> f64 {
-    left.iter().zip(right.iter()).map(|(a, b)| a * b).sum()
-}
-
 fn vector_norm(vector: &[f64]) -> Result<f64, IdentifiabilityError> {
     Ok(dot(vector, vector)?.sqrt())
 }
@@ -703,7 +704,16 @@ fn normalized_correlation(
     if left_norm == 0.0 || right_norm == 0.0 {
         return Ok(None);
     }
-    let value = dot(left, right)? / (left_norm * right_norm);
+    let value = left
+        .iter()
+        .zip(right.iter())
+        .map(|(left_value, right_value)| {
+            (left_value / left_norm) * (right_value / right_norm)
+        })
+        .sum::<f64>();
+    if !value.is_finite() {
+        return Err(IdentifiabilityError::NumericalOverflow);
+    }
     Ok(Some(value.clamp(-1.0, 1.0)))
 }
 
