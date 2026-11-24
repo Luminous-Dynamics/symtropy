@@ -627,7 +627,7 @@ mod tests {
         stream_case["scenarios"][0]["observations_by_epoch"][0]["resource_events"][0]["resource_id"] =
             Value::from("UNKNOWN-RESOURCE");
         assert_eq!(
-            validate_stream_case(&policy_case, &stream_case),
+            validate_stream_case(&policy_case, &stream_case, 0),
             Err("resource_event_identity_scope_or_chronology_invalid".into())
         );
     }
@@ -639,7 +639,7 @@ mod tests {
         stream_case["scenarios"][0]["observations_by_epoch"][1]["resource_events"][0]["occurred_at_epoch"] =
             Value::from(2_u64);
         assert_eq!(
-            validate_stream_case(&policy_case, &stream_case),
+            validate_stream_case(&policy_case, &stream_case, 1),
             Err("resource_event_identity_scope_or_chronology_invalid".into())
         );
     }
