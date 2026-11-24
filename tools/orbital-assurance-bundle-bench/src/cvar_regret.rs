@@ -11,6 +11,7 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::cmp::Ordering;
+use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 
 const CORPUS_SCHEMA: &str = "luminous.orbital-cvar-regret.corpus.v0.1";
