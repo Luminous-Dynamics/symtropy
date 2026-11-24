@@ -14,8 +14,7 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const GAZEBO_ADAPTER_CONTRACT_VERSION: &str = "0.1";
-pub const GAZEBO_DISPATCH_CANONICALIZATION_ID: &str =
-    "serde-json-value-sorted-keys-v0.1";
+pub const GAZEBO_DISPATCH_CANONICALIZATION_ID: &str = "serde-json-value-sorted-keys-v0.1";
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -1622,7 +1621,12 @@ mod tests {
         let fault = &plan.scenarios[0].fault_events[0];
         let observations = observer_quorum(&plan);
         assert_eq!(
-            validate_delivery_observer_quorum(&observations, &plan, &fault.fault_id, "world-epoch-2"),
+            validate_delivery_observer_quorum(
+                &observations,
+                &plan,
+                &fault.fault_id,
+                "world-epoch-2"
+            ),
             Ok(DeliveryEvidenceVerdict::Confirmed)
         );
     }
@@ -1637,14 +1641,24 @@ mod tests {
             observation.signature_sha256 = "f".repeat(64);
         }
         assert_eq!(
-            validate_delivery_observer_quorum(&unanimous_mismatch, &plan, &fault.fault_id, "world-epoch-2"),
+            validate_delivery_observer_quorum(
+                &unanimous_mismatch,
+                &plan,
+                &fault.fault_id,
+                "world-epoch-2"
+            ),
             Ok(DeliveryEvidenceVerdict::Refuted)
         );
 
         let mut disagreement = observer_quorum(&plan);
         disagreement[0].signature_sha256 = "f".repeat(64);
         assert_eq!(
-            validate_delivery_observer_quorum(&disagreement, &plan, &fault.fault_id, "world-epoch-2"),
+            validate_delivery_observer_quorum(
+                &disagreement,
+                &plan,
+                &fault.fault_id,
+                "world-epoch-2"
+            ),
             Ok(DeliveryEvidenceVerdict::InsufficientEvidence)
         );
     }
@@ -1656,7 +1670,12 @@ mod tests {
         let mut observations = observer_quorum(&plan);
         observations.pop();
         assert_eq!(
-            validate_delivery_observer_quorum(&observations, &plan, &fault.fault_id, "world-epoch-2"),
+            validate_delivery_observer_quorum(
+                &observations,
+                &plan,
+                &fault.fault_id,
+                "world-epoch-2"
+            ),
             Err(GazeboAdapterError::ObserverQuorumUnqualified)
         );
 
