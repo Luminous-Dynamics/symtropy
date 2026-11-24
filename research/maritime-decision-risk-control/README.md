@@ -460,3 +460,25 @@ Research comparators:
 - Allohibi, *Grouped Validation and Conformal Calibration for Clustered Cross-National Data*, Mathematics 14(21), 4055 (5 November 2026), compares pooled, equal-cluster and subsampling calibration: https://doi.org/10.3390/math14214055
 
 The software experiment can falsify the assumption that 50,000 rows necessarily mean 50,000 independent units. It cannot determine a real port's cluster structure, establish DCT/DGT exchangeability, or confer an operational statistical guarantee.
+
+
+## Oracle adapter: preserve cluster identity through calibration (24 November 2026)
+
+The oracle adapter previously treated every repeated dependence-cluster ID as an error. That prevented multiple complete schedule episodes from sharing a valid same-split common-cause cluster, so an upstream caller could not aggregate their independently adjudicated per-schedule loss vectors into one cluster calibration row without bypassing the adapter.
+
+The new adapter projection separates two controls:
+
+1. **Split isolation:** the same dependence-cluster ID may appear on multiple complete schedule episodes within calibration, or on multiple episodes within evaluation, but it may never appear in both roles. A weather/outage/TOS incident cannot leak between calibration and held-out evaluation merely because its individual schedule IDs differ.
+2. **Explicit aggregation:** the raw per-schedule matrices remain available and are not silently collapsed. The caller must explicitly call `OracleCalibrationBundle::cluster_mean_matrix(role, axis)` to obtain one row per cluster.
+
+The returned `ClusterMeanMatrix` preserves canonical cluster IDs, source schedule counts, role and loss axis. It equal-weights cluster means (the estimand is a typical cluster's mean schedule loss), and rounds each milli-loss mean **upward** to avoid optimistic integer quantization. It is then convertible to the existing CRC `LossMatrix` interface. This is a different target from pooled schedule weighting when cluster sizes differ; the adapter does not pretend they are interchangeable.
+
+The physical hard-failure and service-loss axes remain separate. The aggregation never averages participant authority into a risk number, and it cannot cure a falsely declared cluster boundary. Different cluster IDs do not establish independence: source-owner/common-cause review remains required for weather, labour, vessel convoys, power, equipment, sensor, gateway, broker and TOS incidents. If a cluster must be split across calibration/evaluation, the adapter rejects the dataset. If the dependence structure cannot be defended, the appropriate result remains NO_GUARANTEE / NOT_EVALUABLE.
+
+Regression coverage:
+- accepts repeated same-split episodes sharing a dependence cluster;
+- aggregates their policy loss vectors into one cluster row with deterministic ordering;
+- rounds fractional cluster means upward;
+- retains schedule counts and cluster IDs beside the aggregated matrix;
+- rejects any cluster ID reused across calibration and evaluation;
+- leaves the original per-schedule matrices unchanged.
