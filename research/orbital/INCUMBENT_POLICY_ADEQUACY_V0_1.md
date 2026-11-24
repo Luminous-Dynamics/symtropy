@@ -174,3 +174,44 @@ The current implementation can establish only deterministic finite algebra and r
 Before production composition: pin and replay the actual #6997 source artifact/schema, implement the exact extraction bridge, connect the actual #6887/#7291 sequential receipt and cutoff, and independently qualify the metrology/query-safety/authority path.
 
 No production action, query or replacement policy is selected or executed.
+
+
+## 10. Source provenance hardening (stacked increment)
+
+The normalized case now binds the query universe as a first-class upstream object:
+- query-universe receipt ID and scope ID;
+- expected query-ID digest;
+- canonical query-record digest;
+- exact decision cutoff identity.
+
+It also binds the deployed incumbent policy ID separately from the best no-query comparator. These identifiers are not interchangeable: the best static no-query policy may not be the policy actually in service. A mismatch between the source-pinned incumbent ID and the evaluator's incumbent ID invalidates the case.
+
+The adapter now independently recomputes #6997's `best_no_query_worst_case_loss` from every supplied static policy and compares it with the source summary. For each query-conditioned policy it independently recomputes:
+
+`best_no_query_worst_case_loss - candidate_worst_case_loss`
+
+and checks the upstream `worst_loss_reduction_vs_best_no_query` direction and exact rational magnitude. This catches an internally inconsistent source summary even when the digest is refreshed.
+
+**Provenance boundary:** these fields are a normalized composite envelope. #6997 supplies query-universe receipt/scope/digests, policy metrics, and the best no-query loss. The deployed-incumbent ID is a separate control-plane binding carried in the same envelope; it is not inferred from the #6997 "best no-query" field. The receipt digest remains a structural pin, not a cryptographic signature or issuer-authentication proof. The raw source-receipt extraction bridge is still required before production use.
+
+## 11. Research comparison and benchmark positioning (2026)
+
+| Comparator | What it contributes | What this adapter should measure alongside it |
+|---|---|---|
+| PEAR (ICML 2026) | Tangent-space projection of prediction error gives a solver-light regret gradient under locally stable active constraints. | Downstream policy quality, cost, constraint-shift degradation and time-to-detect incumbent drift; do not claim to replace its training method. |
+| Robust DFL (UAI 2026) | Worst-case regret over measurement-error sets and Wasserstein distributional ambiguity. | Exact finite world/model inventory, adversarial support shifts, source-currentness and whether the selected frontier remains safe under declared ambiguity sets. |
+| RESTRO / risk-averse DFL (arXiv preprint, 14 Nov 2026) | CVaR-of-regret training with entropy-regularized instance reweighting; the paper distinguishes per-context CVaR from joint-distribution CVaR. | A separate weighted-tail regret track with explicit probability/evidence qualification. Keep it distinct from the current unweighted worst-case maximum. |
+| Active feature acquisition (IJCAI 2026 survey) | Unifies sequential acquisition under a POMDP view and identifies the gap between practical heuristics and adaptive stochastic guarantees. | Acquisition policy non-anticipativity, query safety/currentness, adaptive selection, stopping validity, and exact resource envelopes. |
+| RADAR-style runtime monitoring | Monitors whether a deployed decision becomes operationally suboptimal as conditions drift. | Detection delay, false-retain/false-review, and source-evidence invalidation latency. |
+
+The differentiator is not claiming to beat each method on its native task. It is a compositional evidence layer that can consume their outputs and verify that the incumbent-policy maintenance decision is correctly scoped, current, non-anticipative and resource-admissible.
+
+### Next benchmark tracks
+
+1. **Exhaustive finite policy oracle (active):** enumerate all public-outcome branch maps on tiny domains, compute the exact non-dominated frontier and compare the adapter against it. Required gates: zero hidden-state leakage, zero missed frontier policies, zero false retain/review, zero resource escapes.
+2. **Robust support perturbation:** compare nominal, measurement-error uncertainty sets and Wasserstein ambiguity sets. Report worst-case loss and regret separately from uncertainty-set coverage and radius sensitivity.
+3. **Tail-regret track:** after probability weights and their source/validity contract exist, evaluate empirical CVaR at preregistered confidence levels (e.g. 0.90, 0.95, 0.99), with finite-sample uncertainty intervals. Do not infer probabilities from the current unweighted scenario list.
+4. **Adaptive acquisition track:** only after the sequential source bridge is backed by the upstream statistical guarantee. Test optional stopping, predictable selection, repeated/adaptive acquisition and query cost accumulation.
+5. **Scale and systems track:** 10^2, 10^3, 10^4, 10^5 joint scenarios and 10^1, 10^2, 10^3 policies; measure p50/p95/p99 time, peak memory, digest/replay throughput and deterministic cross-runtime agreement.
+
+Targets are prospective engineering gates, not claimed achieved results. To claim superiority over SOTA, run each published baseline on its own matched benchmark, then demonstrate a clearly separate contribution on the integrated incumbent-maintenance problem.
