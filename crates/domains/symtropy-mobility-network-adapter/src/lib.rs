@@ -1302,11 +1302,39 @@ mod tests {
     }
 
     #[test]
-    fn required_n_minus_one_is_passed_to_existing_network_solver() {
+    fn required_n_minus_one_island_cannot_be_hidden_by_basecase_dc_pass() {
         let mut input = fixture_input();
         input.require_n_minus_one = true;
+        input.network.branches = vec![
+            NetworkBranchInput {
+                id: "S-A".to_owned(),
+                from_bus: "S".to_owned(),
+                to_bus: "A".to_owned(),
+                reactance_pu: 0.1,
+                normal_limit_mw: 1_000.0,
+                emergency_limit_mw: 1_200.0,
+            },
+            NetworkBranchInput {
+                id: "A-B".to_owned(),
+                from_bus: "A".to_owned(),
+                to_bus: "B".to_owned(),
+                reactance_pu: 0.1,
+                normal_limit_mw: 1_000.0,
+                emergency_limit_mw: 1_200.0,
+            },
+        ];
+        input.network.network_model_digest =
+            expected_network_model_digest(&input.network).unwrap();
+        input.network.topology_digest = expected_topology_digest(&input.network).unwrap();
+        input.upstream_receipts[0].network_model_digest =
+            Some(input.network.network_model_digest.clone());
+        input.upstream_receipts[0].topology_digest = Some(input.network.topology_digest.clone());
+        input.n_minus_one_contingencies = vec!["A-B".to_owned()];
+
         let report = evaluate_mobility_network_adapter(&input).unwrap();
-        assert!(report.dc_network_report.is_some());
         assert!(report.dc_network_report.as_ref().unwrap().n_minus_one_required);
+        assert!(!report.dc_network_report.as_ref().unwrap().network_deliverable);
+        assert_eq!(report.disposition, CompositeDisposition::ScreenedUndeliverable);
+        assert_eq!(report.maximum_dc_network_deliverable_response_energy_mwh, Some(0.0));
     }
 }
