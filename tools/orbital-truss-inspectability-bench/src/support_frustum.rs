@@ -1,7 +1,7 @@
 use crate::sha256_hex;
 use crate::support::{
-    evaluate_support_envelope, OcclusionStatus, SupportEnvelopeCase, SupportEnvelopeCertificate,
-    SupportStatus,
+    OcclusionStatus, SupportEnvelopeCase, SupportEnvelopeCertificate, SupportStatus,
+    evaluate_support_envelope,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -389,7 +389,10 @@ pub fn evaluate_support_precondition_pair(
         && support_sensor.sensor_id == frustum_sensor.camera_id
         && support_sensor.camera_model_id == frustum_sensor.camera_model_id
         && same3(support_sensor.position_m, frustum_sensor.position_m)
-        && same3(support_sensor.optical_axis_unit, frustum_sensor.optical_axis_unit)
+        && same3(
+            support_sensor.optical_axis_unit,
+            frustum_sensor.optical_axis_unit,
+        )
         && same_scalar(
             support_sensor.horizontal_fov_rad,
             frustum_sensor.horizontal_fov_rad,
@@ -404,15 +407,15 @@ pub fn evaluate_support_precondition_pair(
         (SupportStatus::InvalidInput, _) | (_, FrustumStatus::InvalidInput) => {
             SupportPreconditionStatus::InvalidInput
         }
-        (SupportStatus::ConditionalOutsideSensingEnvelope, _)
-        | (_, FrustumStatus::Outside) => SupportPreconditionStatus::Rejected,
+        (SupportStatus::ConditionalOutsideSensingEnvelope, _) | (_, FrustumStatus::Outside) => {
+            SupportPreconditionStatus::Rejected
+        }
         (SupportStatus::Indeterminate, _) | (_, FrustumStatus::Indeterminate) => {
             SupportPreconditionStatus::Indeterminate
         }
-        (
-            SupportStatus::ConditionalWithinSensingEnvelope,
-            FrustumStatus::Within,
-        ) => SupportPreconditionStatus::NextGateEligible,
+        (SupportStatus::ConditionalWithinSensingEnvelope, FrustumStatus::Within) => {
+            SupportPreconditionStatus::NextGateEligible
+        }
     };
 
     let mut reason_codes = Vec::new();
@@ -540,9 +543,9 @@ mod tests {
     }
 
     fn positive_support_case() -> SupportEnvelopeCase {
-        let corpus: crate::support::SupportEnvelopeCorpus = serde_json::from_str(
-            include_str!("../../../docs/research/orbital-truss/fixtures/support-envelope-v0_1.json"),
-        )
+        let corpus: crate::support::SupportEnvelopeCorpus = serde_json::from_str(include_str!(
+            "../../../docs/research/orbital-truss/fixtures/support-envelope-v0_1.json"
+        ))
         .unwrap();
         corpus
             .cases
@@ -558,8 +561,7 @@ mod tests {
     fn composed_preconditions_only_make_a_case_eligible_for_the_next_gate() {
         let support_case = positive_support_case();
         let frustum_case = frustum_case_for_support(&support_case, 2.8);
-        let pair =
-            evaluate_support_precondition_pair(&support_case, &frustum_case).unwrap();
+        let pair = evaluate_support_precondition_pair(&support_case, &frustum_case).unwrap();
         assert_eq!(pair.status, SupportPreconditionStatus::NextGateEligible);
         assert!(!pair.occlusion_assessed);
         assert!(!pair.photometric_usability_assessed);
