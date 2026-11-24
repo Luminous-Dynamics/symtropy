@@ -657,7 +657,12 @@ impl JournalIndex {
         let reset_unresolved_count = self
             .reset_status
             .values()
-            .filter(|status| **status == ResetOutcomeStatus::Unresolved)
+            .filter(|status| {
+                matches!(
+                    **status,
+                    ResetOutcomeStatus::ResponseUnknown | ResetOutcomeStatus::Unresolved
+                )
+            })
             .count();
         let dispatch_count = |status: DispatchOutcomeStatus| {
             self.dispatch_status.values().filter(|value| **value == status).count()
