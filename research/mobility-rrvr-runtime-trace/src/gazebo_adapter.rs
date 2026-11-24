@@ -909,7 +909,7 @@ where
 
     let idempotency_key =
         dispatch_idempotency_key(plan, scenario, fault, run_id, run_epoch)?;
-    let request = GazeboDispatchRequest {
+    let mut request = GazeboDispatchRequest {
         plan_sha256: plan.plan_sha256.clone(),
         campaign_id: plan.campaign_id.clone(),
         pair_id: scenario.pair_id.clone(),
