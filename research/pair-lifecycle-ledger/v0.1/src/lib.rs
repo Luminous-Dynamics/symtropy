@@ -1093,10 +1093,20 @@ mod tests {
             .map(|stage| StageEvent {
                 stage,
                 input: root.clone(),
-                outcome: if stage == Stage::Solve {
-                    Outcome::Terminate(TerminalReason::Converged)
-                } else {
-                    Outcome::Forward
+                outcome: match stage {
+                    Stage::Solve => Outcome::Terminate(TerminalReason::Converged),
+                    Stage::CandidateGeneration => Outcome::CandidateTrace {
+                        requested_directions: 0,
+                        attempts: vec![CandidateAttempt {
+                            id: root.child(0),
+                            kind: CandidateAttemptKind::PrimaryWitness,
+                            direction: DirectionDisposition::NotApplicable,
+                            support_a: SupportQueryDisposition::NotAttempted,
+                            support_b: SupportQueryDisposition::NotAttempted,
+                            disposition: CandidateDisposition::PrimaryAdmitted,
+                        }],
+                    },
+                    _ => Outcome::Forward,
                 },
             })
             .collect();
