@@ -150,3 +150,15 @@ before any fault effect can occur. Required semantics:
 - ledger survives coordinator and injector process restarts, and its durability/linearizability are tested against the actual injector store.
 
 The Rust reference tests include an in-memory durable-ledger test double showing payload conflict rejection after a coordinator-registry restart. This is not evidence that a real fault injector already implements a durable ledger. Exactly-once physical effects are not claimed; the target is at-most-once effect admission under a verified, durable injector contract plus independent outcome observation.
+
+
+## Blind observer evaluation and three-valued delivery verdict
+
+The observer API receives the target, fault identity, world epoch and simulation step, but it is not passed the plan's expected delivery-signature digest. The expected signature remains with the independent assessor. This avoids making a supposedly independent observer echo or tune its measurement to the expected answer.
+
+Once observer identities, binaries, epochs, steps and disjoint common-cause domains have passed structural qualification, the assessor returns one of three results:
+- Confirmed: every qualified observer reports the same signature, and it equals the plan-committed expected signature;
+- Refuted: every qualified observer reports the same valid signature, but it differs from the plan-committed expected signature;
+- InsufficientEvidence: qualified observers disagree on the signature.
+
+Missing members, duplicate/unpinned observers, stale epochs, invalid digests and common-cause overlap remain hard qualification errors rather than being converted into a verdict. The observer verdict is evidence classification only; it does not authorize an action, retry or physical mutation.
