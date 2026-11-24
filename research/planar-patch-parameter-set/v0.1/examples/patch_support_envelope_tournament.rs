@@ -45,9 +45,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         SupportEnvelopeConfig::default(),
     )?;
 
-    println!("schema,status,vertices,active_axes,lower_bound_W,upper_bound_W,upper_exact");
+    println!("schema,status,vertices,active_axes,lower_bound_W,vertex_max_W,vertex_max_reported,outward_rounded");
     println!(
-        "{},{:?},{},{},{:.9},{},{}",
+        "{},{:?},{},{},{:.9},{},{},{}",
         envelope.schema_version,
         envelope.status,
         envelope.feasible_vertex_count,
@@ -56,7 +56,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         envelope
             .support_upper_bound
             .map_or_else(|| "unbounded".to_owned(), |value| format!("{value:.9}")),
-        envelope.upper_bound_is_exact_over_feasible_set,
+        envelope.upper_bound_is_vertex_maximum,
+        envelope.outward_rounding_applied,
     );
     Ok(())
 }
