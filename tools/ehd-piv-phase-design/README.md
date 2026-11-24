@@ -21,6 +21,12 @@ Each observation contains a phase fraction in [0,1) and a dependence-cluster ID,
 
 Thresholds are declared in the caller's config. No physical claim or universal minimum sample-per-phase rule is encoded.
 
+## Scope
+
+This V0 kernel evaluates a supplied phase schedule. It does not infer forcing frequency/phase, detect periodicity, plan new acquisition times or prove that different dependence-cluster IDs are statistically independent. The independence graph and cluster IDs must come from a separately qualified experiment design.
+
+The two-independent-cycle threshold is configurable and source-inspired only; it is not hard-coded as a universal condition.
+
 ## Run
 
     cargo fmt --manifest-path tools/ehd-piv-phase-design/Cargo.toml -- --check
