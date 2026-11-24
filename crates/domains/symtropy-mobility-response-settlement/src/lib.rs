@@ -942,12 +942,13 @@ fn minimum_dispatch_interval_lower_bound_kw(
             unsigned(network_interval, "/interval_duration_ns")?,
             "PCC/network dispatch interval duration",
         )?;
-        let pcc_lower_kw =
-            number(pcc_interval, "/conservative_reduction_lower_bound_w")? / 1_000.0;
+        let pcc_lower_kw = number(pcc_interval, "/conservative_reduction_lower_bound_w")? / 1_000.0;
         let baseline_lower_kw =
             number(baseline_interval, "/conservative_reduction_lower_bound_kw")?;
-        let network_lower_kw =
-            number(network_interval, "/maximum_network_deliverable_reduction_mw")? * 1_000.0;
+        let network_lower_kw = number(
+            network_interval,
+            "/maximum_network_deliverable_reduction_mw",
+        )? * 1_000.0;
         if network_lower_kw < 0.0 {
             return Err(BridgeError::InvalidField(
                 "network-deliverable power cap must be non-negative".to_owned(),
@@ -1638,10 +1639,10 @@ mod tests {
         assert!((report.minimum_dispatch_interval_lower_bound_kw.unwrap() - 9.8).abs() < 1.0e-9);
 
         let mut limited = input();
-        limited.mobility_network.report["dc_network_report"]["intervals"][0]
-            ["maximum_network_deliverable_reduction_mw"] = json!(0.009);
-        limited.mobility_network.report["dc_network_report"]["intervals"][1]
-            ["maximum_network_deliverable_reduction_mw"] = json!(0.009);
+        limited.mobility_network.report["dc_network_report"]["intervals"][0]["maximum_network_deliverable_reduction_mw"] =
+            json!(0.009);
+        limited.mobility_network.report["dc_network_report"]["intervals"][1]["maximum_network_deliverable_reduction_mw"] =
+            json!(0.009);
         let report = evaluate_mobility_response_settlement(&limited).unwrap();
         assert!((report.minimum_dispatch_interval_lower_bound_kw.unwrap() - 9.0).abs() < 1.0e-9);
     }
