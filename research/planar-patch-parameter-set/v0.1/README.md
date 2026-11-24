@@ -9,11 +9,16 @@ This dependency-free Rust reference package composes two research oracles:
    \(\beta=[1/e_u^2,1/e_v^2,1/(e_n/L)^2]\).
 
 2. **Correlated support envelope.** For physical slip twist
-   \([v_u,v_v,\omega_n]\), define \(q=[v_u,v_v,L\omega_n]\) and capacity
-   \(c=\mu N\). The support of a candidate ellipsoid is
+   \([v_u,v_v,\omega_n]\), define \(q=[v_u,v_v,L\omega_n]\) and a
+   declared capacity interval \([c_-,c_+]\) for \(c=\mu N\). The support
+   of a candidate ellipsoid at a fixed capacity is
    \[
-   h(\beta)=c\sqrt{\sum_i q_i^2/\beta_i}.
+   h(\beta,c)=c\sqrt{\sum_i q_i^2/\beta_i}.
    \]
+   The lower envelope uses \(c_-\); the upper vertex maximum uses \(c_+\).
+   The interval carries its own provenance digest. v0.1 treats capacity as
+   independent of the normalized shape-parameter polyhedron; correlated
+   uncertainty requires a future joint parameterization.
    The upper envelope is evaluated over the *joint feasible vertices*. It
    does not combine marginal minima from different vertices, which could
    describe a parameter combination that is not physically feasible.
