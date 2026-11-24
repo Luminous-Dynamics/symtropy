@@ -398,5 +398,6 @@
       "dispatch_authority_granted": false
     }
   },
-  "claim_ceiling": "Synthetic four-report reconciliation fixture; no settlement or authority."
+  "claim_ceiling": "Synthetic four-report reconciliation fixture; no settlement or authority.",
+  "maximum_dispatch_power_disagreement_kw": 0.25
 }
