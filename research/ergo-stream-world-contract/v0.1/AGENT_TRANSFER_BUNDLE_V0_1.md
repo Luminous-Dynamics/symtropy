@@ -89,6 +89,27 @@ The evaluator attaches `evaluation_stratum_id` to each owner-side outcome. That 
 
 
 
+## Evidence-bound mechanism-transfer proposal
+
+The optional `mechanism_transfer` object is now backed by an owner-side validator in `bundle.rs`. It consists of:
+- source and target episode IDs and evidence-prefix hashes;
+- a one-to-one action correspondence with source/target action kinds and a precommitted `preserve` or `negate` effect transform;
+- source intervention effect observations cited by evidence IDs in the public source prefix;
+- one frozen predicted target effect for each mapped action.
+
+It deliberately contains **no actual target effect** and no target evidence receipt. After bundle freeze, the evaluator supplies `OwnerInterventionOutcomeV0` records resolved from the trusted target intervention store. The validator:
+1. checks the candidate's source/target prefix binding;
+2. verifies source effect evidence IDs are available in the exact public source prefix;
+3. checks action pair and action-kind identity;
+4. requires one source observation, one target-effect prediction and one owner outcome per mapped action;
+5. compares the candidate source effects and source evidence IDs with owner records;
+6. compares predicted target effects with hidden owner-held target effects;
+7. runs the existing `validate_intervention_correspondence` preserve/negate validator.
+
+The result qualifies only the declared qualitative effect-sign mapping for the mapped action set. It does not estimate effect magnitude, adjust for confounding, identify mediators, prove a causal graph, or establish transfer outside the observed interventions. Structural similarity alone still cannot be promoted into mechanism transfer.
+
+A forecast with `claim_type: "mechanism_transfer"` requires a `mechanism_transfer` artifact in the bundle schema. The exact artifact is included in the claim-scope digest envelope; the actual target outcomes are excluded.
+
 ## Decision value and prospective forecasts
 
 Do not add a new scheduler or VoC implementation to this bundle. A future action-selection record should compose with Symthaea #5476/#5478/#8721:
