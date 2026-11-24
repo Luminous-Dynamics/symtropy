@@ -37,16 +37,16 @@ The verifier independently checks visible-event identity and chronology, qualifi
 ## Invocation
 
 ```text
-mfg-policy-v02-action-admission <decision-frame.json> <action-proposal.json> [operational-state-snapshot.json]
+mfg-policy-v02-action-admission <decision-frame.json> <action-proposal.json> [replay-receipt.json]
 ```
 
 The proposal schema requires `decision_frame_digest` (SHA-256 of the exact serialized decision-frame object) and `inspection_method_id` (the required method ID or JSON null). The verifier recomputes the frame digest and rejects a proposal bound to a different frame. The emitted admission receipt repeats that digest. The proposal has no field for a caller-supplied feasibility assertion, duration, evidence disposition, or execution authorization.
 
 ## Live-state limitation
 
-For decision epoch 0, the verifier reconstructs state from the static case and visible event prefix. For later epochs it requires a replay-derived operational snapshot as the third CLI input; without one it returns `HOLD` with `trusted_operational_state_snapshot_required`. The snapshot is validated against the exact case, epoch, decision-frame digest, visible-history digest and source-event cut. Its own snapshot digest is recomputed. Operation/resource sets, commitments, active occupancy, current setup family, availability and inspection capacity must reconcile. The verifier still independently recomputes each action's constraints and does not accept a self-declared feasibility flag.
+For decision epoch 0, the verifier reconstructs state from the static case and visible event prefix. For later epochs it requires the full replay receipt as the third CLI input; without one it returns `HOLD` with `trusted_operational_state_snapshot_required`. The receipt must be `VERIFIED`, have no violations, and contain exactly the contiguous snapshot chain from epoch zero through the decision epoch. The verifier recomputes every snapshot digest, checks every previous-snapshot link, enforces monotonic transition IDs and event cuts, and checks the final digest. It then validates the target snapshot against the exact case, epoch, decision-frame digest, visible-history digest and source-event cut. Operation/resource sets, commitments, active occupancy, current setup family, availability and inspection capacity must reconcile. The verifier still independently recomputes each action's constraints and does not accept a self-declared feasibility flag.
 
-The producer/consumer smoke in the focused workflow runs the state-replay CLI on a committed two-epoch execution ledger, extracts the actual epoch-1 snapshot and matching decision frame, then runs this admission CLI with a separate OP-3 proposal. It asserts an `ADMISSIBLE` receipt with independently derived setup duration 2 and processing duration 1. This qualifies the synthetic producer/consumer data contract; it does not establish physical source authenticity or whole-schedule feasibility.
+The producer/consumer smoke in the focused workflow runs the state-replay CLI on a committed two-epoch execution ledger, extracts the matching epoch-1 decision frame, and passes the complete replay receipt to this admission CLI with a separate OP-3 proposal. It asserts an `ADMISSIBLE` receipt with independently derived setup duration 2 and processing duration 1. This qualifies the synthetic producer/consumer data contract; it does not establish physical source authenticity or whole-schedule feasibility.
 
 ## Explicit scope ceiling
 
