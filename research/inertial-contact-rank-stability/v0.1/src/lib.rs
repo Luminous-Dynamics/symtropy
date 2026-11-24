@@ -727,7 +727,7 @@ mod tests {
         )
         .expect("base");
         let b = certify_rank_stability(
-            &input(&["a", "b"], rotated, 0.0, 0.0, 3.0, 0.5),
+            &input(&["a", "b"], rotated, 0.0, 0.0, 3.0 + 1.0e-12, 0.5),
             square_config(),
         )
         .expect("rotated");
