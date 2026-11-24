@@ -321,6 +321,7 @@ pub enum ResetRecoveryDisposition {
     IntentOnly,
     ResponseAcceptedAwaitingObservation,
     ResponseUnknownReadOnlyReconciliationRequired,
+    ResponseRejectedReadOnlyReconciliationRequired,
     UnresolvedReadOnlyReconciliationRequired,
     Verified,
     RejectedHold,
@@ -331,6 +332,7 @@ pub enum ResetRecoveryDisposition {
 pub enum DispatchRecoveryDisposition {
     IntentOnlyLedgerLookupRequired,
     ResponseUnknownLedgerLookupRequired,
+    ResponseRejectedLedgerLookupRequired,
     UnresolvedLedgerLookupRequired,
     AcceptedAwaitingExecutionEvidence,
     ReconciledAcceptedAwaitingExecutionEvidence,
@@ -523,6 +525,7 @@ impl JournalIndex {
                         Some(
                             ResetOutcomeStatus::ResponseAccepted
                             | ResetOutcomeStatus::ResponseUnknown
+                            | ResetOutcomeStatus::ResponseRejected
                             | ResetOutcomeStatus::Unresolved,
                         ),
                         ResetOutcomeSource::ReadOnlyObservation
@@ -752,6 +755,7 @@ impl JournalIndex {
                     (
                         Some(
                             DispatchOutcomeStatus::ResponseUnknown
+                            | DispatchOutcomeStatus::ResponseRejected
                             | DispatchOutcomeStatus::Unresolved,
                         ),
                         DispatchOutcomeSource::InjectorLedgerLookup,
@@ -827,6 +831,9 @@ impl JournalIndex {
                     Some(ResetOutcomeStatus::ResponseUnknown) => {
                         ResetRecoveryDisposition::ResponseUnknownReadOnlyReconciliationRequired
                     }
+                    Some(ResetOutcomeStatus::ResponseRejected) => {
+                        ResetRecoveryDisposition::ResponseRejectedReadOnlyReconciliationRequired
+                    }
                     Some(ResetOutcomeStatus::Unresolved) => {
                         ResetRecoveryDisposition::UnresolvedReadOnlyReconciliationRequired
                     }
@@ -862,7 +869,7 @@ impl JournalIndex {
                         DispatchRecoveryDisposition::ReconciledAcceptedAwaitingExecutionEvidence
                     }
                     Some(DispatchOutcomeStatus::ResponseRejected) => {
-                        DispatchRecoveryDisposition::Rejected
+                        DispatchRecoveryDisposition::ResponseRejectedLedgerLookupRequired
                     }
                     Some(DispatchOutcomeStatus::ReconciledRejected) => {
                         DispatchRecoveryDisposition::ReconciledRejected
@@ -889,6 +896,7 @@ impl JournalIndex {
                     ResetRecoveryDisposition::IntentOnly
                         | ResetRecoveryDisposition::ResponseAcceptedAwaitingObservation
                         | ResetRecoveryDisposition::ResponseUnknownReadOnlyReconciliationRequired
+                        | ResetRecoveryDisposition::ResponseRejectedReadOnlyReconciliationRequired
                         | ResetRecoveryDisposition::UnresolvedReadOnlyReconciliationRequired
                 )
             })
@@ -901,6 +909,7 @@ impl JournalIndex {
                     dispatch.disposition,
                     DispatchRecoveryDisposition::IntentOnlyLedgerLookupRequired
                         | DispatchRecoveryDisposition::ResponseUnknownLedgerLookupRequired
+                        | DispatchRecoveryDisposition::ResponseRejectedLedgerLookupRequired
                         | DispatchRecoveryDisposition::UnresolvedLedgerLookupRequired
                 )
             })
