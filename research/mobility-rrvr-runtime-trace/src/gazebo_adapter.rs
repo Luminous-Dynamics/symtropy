@@ -639,6 +639,9 @@ pub enum GazeboDispatchOutcome {
     PayloadConflict {
         idempotency_key: String,
     },
+    Reconciled {
+        decision: ReconciliationDecision,
+    },
     InvalidDispatchRequest,
 }
 
@@ -776,6 +779,11 @@ fn dispatch_fault_once<T: GazeboFaultInjectorTransport>(
             Some(GazeboDispatchOutcome::InvalidDispatchRequest) => {
                 GazeboDispatchOutcome::InvalidDispatchRequest
             }
+            Some(GazeboDispatchOutcome::Reconciled { decision }) => {
+                GazeboDispatchOutcome::Reconciled {
+                    decision: *decision,
+                }
+            }
             Some(_) => GazeboDispatchOutcome::DuplicateSuppressed,
             None => GazeboDispatchOutcome::Unknown { dispatch_id: None },
         };
@@ -801,13 +809,32 @@ fn dispatch_fault_once<T: GazeboFaultInjectorTransport>(
 
 /// Reconcile by idempotency key only. This function never calls dispatch_once.
 pub fn reconcile_fault_dispatch<T: GazeboFaultInjectorTransport>(
+    registry: &mut DispatchAttemptRegistry,
     injector: &mut T,
-    idempotency_key: &str,
+    request: &GazeboDispatchRequest,
 ) -> ReconciliationDecision {
-    match injector.lookup_dispatch(idempotency_key) {
+    let fingerprint = match dispatch_request_fingerprint(request) {
+        Ok(fingerprint) if fingerprint == request.payload_sha256 => fingerprint,
+        _ => return ReconciliationDecision::PayloadConflict,
+    };
+    let Some(entry) = registry
+        .attempted_idempotency_keys
+        .get_mut(&request.idempotency_key)
+    else {
+        // The journal/recovered registry entry must be restored before a
+        // coordinator asks the remote ledger to reconcile this request.
+        return ReconciliationDecision::Unresolved;
+    };
+    if entry.payload_sha256 != fingerprint {
+        return ReconciliationDecision::PayloadConflict;
+    }
+
+    let decision = match injector.lookup_dispatch(&request.idempotency_key) {
         Ok(lookup) => reconcile_dispatch_lookup(lookup),
         Err(_) => ReconciliationDecision::Unresolved,
-    }
+    };
+    entry.outcome = Some(GazeboDispatchOutcome::Reconciled { decision });
+    decision
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -2356,8 +2383,15 @@ mod tests {
         );
         assert_eq!(injector.dispatch_calls, 1);
         assert_eq!(
-            reconcile_fault_dispatch(&mut injector, &request.idempotency_key),
+            reconcile_fault_dispatch(&mut registry, &mut injector, &request),
             ReconciliationDecision::ExistingDispatchAccepted
+        );
+        assert_eq!(injector.dispatch_calls, 1);
+        assert_eq!(
+            dispatch_fault_once(&mut registry, &mut injector, &request),
+            GazeboDispatchOutcome::Reconciled {
+                decision: ReconciliationDecision::ExistingDispatchAccepted
+            }
         );
         assert_eq!(injector.dispatch_calls, 1);
 
@@ -2369,6 +2403,58 @@ mod tests {
             GazeboDispatchOutcome::PayloadConflict {
                 idempotency_key: request.idempotency_key.clone()
             }
+        );
+        assert_eq!(injector.dispatch_calls, 1);
+    }
+
+    #[test]
+    fn reconciliation_is_bound_to_registered_payload_and_unknown_stays_blocked() {
+        let plan = plan();
+        let scenario = &plan.scenarios[0];
+        let fault = &scenario.fault_events[0];
+        let mut request = GazeboDispatchRequest {
+            plan_sha256: plan.plan_sha256.clone(),
+            campaign_id: plan.campaign_id.clone(),
+            pair_id: scenario.pair_id.clone(),
+            scenario_id: scenario.scenario_id.clone(),
+            fault_id: fault.fault_id.clone(),
+            fault_sequence: fault.sequence,
+            target_id: "gazebo-model-001".into(),
+            fault_domain_id: fault.fault_domain_id.clone(),
+            scheduled_simulation_step: fault.scheduled_simulation_step,
+            parameters_sha256: fault.parameters_sha256.clone(),
+            payload_sha256: String::new(),
+            idempotency_key: dispatch_idempotency_key(&plan, scenario, fault, "run-reconcile", "epoch-1")
+                .unwrap(),
+        };
+        request.payload_sha256 = dispatch_request_fingerprint(&request).unwrap();
+        let mut registry = DispatchAttemptRegistry::default();
+        let mut injector = MockInjector {
+            dispatch_calls: 0,
+            lookup: DispatchLedgerResult::Unknown,
+        };
+        assert_eq!(
+            dispatch_fault_once(&mut registry, &mut injector, &request),
+            GazeboDispatchOutcome::Unknown { dispatch_id: None }
+        );
+        assert_eq!(
+            reconcile_fault_dispatch(&mut registry, &mut injector, &request),
+            ReconciliationDecision::Unresolved
+        );
+        assert_eq!(
+            dispatch_fault_once(&mut registry, &mut injector, &request),
+            GazeboDispatchOutcome::Reconciled {
+                decision: ReconciliationDecision::Unresolved
+            }
+        );
+        assert_eq!(injector.dispatch_calls, 1);
+
+        let mut altered = request.clone();
+        altered.target_id = "other-target".into();
+        altered.payload_sha256 = dispatch_request_fingerprint(&altered).unwrap();
+        assert_eq!(
+            reconcile_fault_dispatch(&mut registry, &mut injector, &altered),
+            ReconciliationDecision::PayloadConflict
         );
         assert_eq!(injector.dispatch_calls, 1);
     }
