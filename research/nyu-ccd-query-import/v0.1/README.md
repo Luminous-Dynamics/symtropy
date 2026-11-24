@@ -4,7 +4,7 @@ A dependency-free Rust importer for the public NYU continuous-collision-detectio
 
 ## Supported formats
 
-The scalable dataset stores per-scene folders for queries, broadphase boxes, Mathematica Boolean ground truth and symbolic roots. The query CSV contains eight rows per query and six integer columns: numerator/denominator pairs for x, y and z. Edge-edge and vertex-face row order is selected explicitly by the caller. The Boolean ground-truth JSON stores one Boolean per query and is attached after parsing. The boxes JSON is an array of pairs of box IDs.
+The scalable dataset stores per-scene folders for queries, broadphase boxes, Mathematica Boolean ground truth and symbolic roots. The query CSV contains eight rows per query and six integer columns: numerator/denominator pairs for x, y and z. Edge-edge and vertex-face row order is selected explicitly by the caller. The Boolean ground-truth JSON stores JSON `true`/`false` tokens only, one Boolean per query, and is attached after parsing. Legacy CSV labels alone accept `0`/`1` as well as `false`/`true`. The boxes JSON is an array of unordered pairs of box IDs; the importer canonicalizes each pair so reversed order has the same identity.
 
 The legacy 2021 sample format uses eight rows per query and seven columns, with the seventh column repeating the Boolean result on each row. The importer checks that all eight row labels agree.
 
