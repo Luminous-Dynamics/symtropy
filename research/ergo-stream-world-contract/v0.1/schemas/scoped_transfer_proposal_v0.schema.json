@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://luminousdynamics.io/schemas/ergo-transfer-proposal-v0.schema.json",
+  "$id": "https://luminousdynamics.io/schemas/scoped_transfer_proposal_v0.schema.json",
   "title": "ErgoStream scoped structural transfer proposal v0",
   "description": "Learner-authored structural transfer sidecar. It contains candidate mappings and public evidence-prefix bindings, never evaluator truth or hidden world fields.",
   "type": "object",
