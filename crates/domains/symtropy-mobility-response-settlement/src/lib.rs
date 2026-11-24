@@ -707,8 +707,8 @@ fn validate_timelines(
             )));
         }
         match phase.as_str() {
-            "dispatch" => dispatch_count += 1,
-            "recovery" => recovery_count += 1,
+            "Dispatch" => dispatch_count += 1,
+            "Recovery" => recovery_count += 1,
             _ => {
                 return Err(BridgeError::IntervalMismatch(format!(
                     "unknown baseline interval phase {phase}"
@@ -753,7 +753,7 @@ fn validate_timelines(
             interval
                 .get("phase")
                 .and_then(Value::as_str)
-                .is_some_and(|phase| phase == "dispatch")
+                .is_some_and(|phase| phase == "Dispatch")
         })
         .collect();
     let mut sample_evidence_ids = BTreeSet::new();
@@ -996,7 +996,7 @@ fn minimum_dispatch_interval_lower_bound_kw(
     for (index, (pcc_interval, baseline_interval)) in
         pcc_intervals.iter().zip(baseline_intervals).enumerate()
     {
-        if string(baseline_interval, "/phase")? != "dispatch" {
+        if string(baseline_interval, "/phase")? != "Dispatch" {
             continue;
         }
         let network_interval = network_intervals.get(lower_bounds.len()).ok_or_else(|| {
@@ -1077,7 +1077,7 @@ pub fn evaluate_mobility_response_settlement(
             baseline_interval
                 .get("phase")
                 .and_then(Value::as_str)
-                .is_some_and(|phase| phase == "dispatch")
+                .is_some_and(|phase| phase == "Dispatch")
         })
         .try_fold(0.0_f64, |sum, (pcc_interval, _)| {
             let wh = number(pcc_interval, "/measured_reduction_energy_wh")?;
@@ -1574,10 +1574,10 @@ mod tests {
         });
 
         let baseline_intervals = json!([
-            {"point_id":"point-1","phase":"dispatch","regime_id":"nominal","interval_start_ns":event_start,"interval_duration_ns":sample,"predicted_no_dispatch_power_kw":100.0,"baseline_lower_power_bound_kw":99.9,"measured_dispatch_power_kw":90.0,"measured_dispatch_upper_power_bound_kw":90.1,"baseline_residual_lower_quantile_kw":0.1,"metrology_expanded_uncertainty_kw":0.1,"reduction_point_estimate_kw":10.0,"conservative_reduction_lower_bound_kw":9.8,"conservative_reduction_energy_kwh":0.002722222222222222,"interval_qualified":true,"evidence_id":"resp-1"},
-            {"point_id":"point-2","phase":"dispatch","regime_id":"nominal","interval_start_ns":event_start+sample,"interval_duration_ns":sample,"predicted_no_dispatch_power_kw":100.0,"baseline_lower_power_bound_kw":99.9,"measured_dispatch_power_kw":90.0,"measured_dispatch_upper_power_bound_kw":90.1,"baseline_residual_lower_quantile_kw":0.1,"metrology_expanded_uncertainty_kw":0.1,"reduction_point_estimate_kw":10.0,"conservative_reduction_lower_bound_kw":9.8,"conservative_reduction_energy_kwh":0.002722222222222222,"interval_qualified":true,"evidence_id":"resp-2"},
-            {"point_id":"point-3","phase":"recovery","regime_id":"nominal","interval_start_ns":dispatch_end,"interval_duration_ns":sample,"predicted_no_dispatch_power_kw":100.0,"baseline_lower_power_bound_kw":99.9,"measured_dispatch_power_kw":100.0,"measured_dispatch_upper_power_bound_kw":100.1,"baseline_residual_lower_quantile_kw":0.1,"metrology_expanded_uncertainty_kw":0.1,"reduction_point_estimate_kw":0.0,"conservative_reduction_lower_bound_kw":-0.2,"conservative_reduction_energy_kwh":-0.000055555555555556,"interval_qualified":true,"evidence_id":"resp-3"},
-            {"point_id":"point-4","phase":"recovery","regime_id":"nominal","interval_start_ns":dispatch_end+sample,"interval_duration_ns":sample,"predicted_no_dispatch_power_kw":100.0,"baseline_lower_power_bound_kw":99.9,"measured_dispatch_power_kw":100.5,"measured_dispatch_upper_power_bound_kw":100.6,"baseline_residual_lower_quantile_kw":0.1,"metrology_expanded_uncertainty_kw":0.1,"reduction_point_estimate_kw":-0.5,"conservative_reduction_lower_bound_kw":-0.7,"conservative_reduction_energy_kwh":-0.000194444444444444,"interval_qualified":true,"evidence_id":"resp-4"}
+            {"point_id":"point-1","phase":"Dispatch","regime_id":"nominal","interval_start_ns":event_start,"interval_duration_ns":sample,"predicted_no_dispatch_power_kw":100.0,"baseline_lower_power_bound_kw":99.9,"measured_dispatch_power_kw":90.0,"measured_dispatch_upper_power_bound_kw":90.1,"baseline_residual_lower_quantile_kw":0.1,"metrology_expanded_uncertainty_kw":0.1,"reduction_point_estimate_kw":10.0,"conservative_reduction_lower_bound_kw":9.8,"conservative_reduction_energy_kwh":0.002722222222222222,"interval_qualified":true,"evidence_id":"resp-1"},
+            {"point_id":"point-2","phase":"Dispatch","regime_id":"nominal","interval_start_ns":event_start+sample,"interval_duration_ns":sample,"predicted_no_dispatch_power_kw":100.0,"baseline_lower_power_bound_kw":99.9,"measured_dispatch_power_kw":90.0,"measured_dispatch_upper_power_bound_kw":90.1,"baseline_residual_lower_quantile_kw":0.1,"metrology_expanded_uncertainty_kw":0.1,"reduction_point_estimate_kw":10.0,"conservative_reduction_lower_bound_kw":9.8,"conservative_reduction_energy_kwh":0.002722222222222222,"interval_qualified":true,"evidence_id":"resp-2"},
+            {"point_id":"point-3","phase":"Recovery","regime_id":"nominal","interval_start_ns":dispatch_end,"interval_duration_ns":sample,"predicted_no_dispatch_power_kw":100.0,"baseline_lower_power_bound_kw":99.9,"measured_dispatch_power_kw":100.0,"measured_dispatch_upper_power_bound_kw":100.1,"baseline_residual_lower_quantile_kw":0.1,"metrology_expanded_uncertainty_kw":0.1,"reduction_point_estimate_kw":0.0,"conservative_reduction_lower_bound_kw":-0.2,"conservative_reduction_energy_kwh":-0.000055555555555556,"interval_qualified":true,"evidence_id":"resp-3"},
+            {"point_id":"point-4","phase":"Recovery","regime_id":"nominal","interval_start_ns":dispatch_end+sample,"interval_duration_ns":sample,"predicted_no_dispatch_power_kw":100.0,"baseline_lower_power_bound_kw":99.9,"measured_dispatch_power_kw":100.5,"measured_dispatch_upper_power_bound_kw":100.6,"baseline_residual_lower_quantile_kw":0.1,"metrology_expanded_uncertainty_kw":0.1,"reduction_point_estimate_kw":-0.5,"conservative_reduction_lower_bound_kw":-0.7,"conservative_reduction_energy_kwh":-0.000194444444444444,"interval_qualified":true,"evidence_id":"resp-4"}
         ]);
         let baseline_report = json!({
             "identity": {
