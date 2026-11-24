@@ -682,6 +682,15 @@ jobs:
             and .replay_defined_count == 6
             and .avoidable_abstention_value_units == 200
             and .risk_coverage_group_count == 2
+            and .wilson_reference_assumes_iid_samples == true
+            and all(.groups[];
+              .realized_feasible_count == 2
+              and .false_safe_admission_rate_wilson_95 != null
+              and .false_abstention_rate_wilson_95 != null
+              and (.risk_coverage | length) == 5
+              and .risk_coverage[0].accepted_proposals == 0
+              and .risk_coverage[4].accepted_proposals == 3
+            )
             and .all_evidence_source_grade == false
             and .any_synthetic_evidence == true
             and .field_qualification_granted == false
