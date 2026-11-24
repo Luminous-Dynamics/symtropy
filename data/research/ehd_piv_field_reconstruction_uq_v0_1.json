@@ -215,7 +215,9 @@
     "no dataset payload ingested",
     "no empirical coverage measured",
     "no physical EHD experiment or force balance completed",
-    "no SOTA superiority demonstrated"
+    "no SOTA superiority demonstrated",
+    "no_periodic_phase_detection_or_estimation_in_v0_phase_design_kernel",
+    "no_universal_physical_two_samples_per_phase_rule"
   ],
   "references": {
     "svgpk_an_paper": "https://doi.org/10.1016/j.aitf.2026.100034",
@@ -306,6 +308,40 @@
     "split_rule": "complete forcing-cycle/acquisition dependence clusters are disjoint across model-fit, selection, calibration and final-test roles",
     "replication_rule": "frames within one cycle do not count as independent-cycle replication for a phase bin",
     "candidate_reproduction_constraint": "two independent cycle clusters per occupied phase bin",
-    "explicit_caveat": "two samples per phase is an empirical threshold reported for the paper's synthetic pulsed impinging jet, not a universal physical law or a hard rule for unrelated flows"
-  }
+    "explicit_caveat": "two samples per phase is an empirical threshold reported for the paper's synthetic pulsed impinging jet, not a universal physical law or a hard rule for unrelated flows",
+    "implementation": {
+      "crate": "tools/ehd-piv-phase-design",
+      "authored_tests": 8,
+      "inputs": [
+        "phase_fraction_in_[0,1)",
+        "dependence_cluster_id"
+      ],
+      "config": [
+        "phase_bin_count",
+        "minimum_occupied_phase_bins",
+        "minimum_independent_cycles_per_occupied_bin",
+        "maximum_cyclic_phase_gap"
+      ],
+      "independent_replication": "count unique dependence-cluster IDs per phase bin; repeated frames in a cluster do not count as extra independent cycles",
+      "diagnostics": [
+        "occupied_and_empty_bins",
+        "singleton_bins",
+        "under_replicated_bins",
+        "minimum_and_median_independent_cycles_per_bin",
+        "maximum_cyclic_gap_including_wraparound",
+        "normalized_phase_occupancy_entropy",
+        "explicit_failure_reasons"
+      ],
+      "nonclaims": [
+        "does_not_estimate_forcing_phase",
+        "does_not_detect_periodicity",
+        "does_not_select_or_actuate_acquisition_times",
+        "does_not_prove_independent_cycles_from_IDs",
+        "does_not_imply_universal_two_repeats_per_phase"
+      ]
+    }
+  },
+  "tools": [
+    "tools/ehd-piv-phase-design"
+  ]
 }
