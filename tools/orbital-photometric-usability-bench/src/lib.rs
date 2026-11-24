@@ -581,6 +581,63 @@ mod tests {
         assert_eq!(a, b);
     }
     #[test]
+    fn signal_floor_is_inclusive_and_saturation_ceiling_is_inclusive() {
+        let mut lower = case(Brdf::Lambertian { albedo: 0.8 });
+        lower.modes[0].noise_floor = 0.254648;
+        lower.modes[0].saturation = 0.254649;
+        assert_eq!(
+            evaluate_case(&lower).unwrap().modes[0].samples[0].status,
+            SignalStatus::Usable
+        );
+
+        let mut upper = case(Brdf::Lambertian { albedo: 0.8 });
+        upper.modes[0].noise_floor = 0.0;
+        upper.modes[0].saturation = 0.254648;
+        assert_eq!(
+            evaluate_case(&upper).unwrap().modes[0].samples[0].status,
+            SignalStatus::Usable
+        );
+    }
+
+    #[test]
+    fn exposure_gain_is_monotonic_for_a_fixed_declared_scene() {
+        let mut c = case(Brdf::Lambertian { albedo: 0.4 });
+        c.modes = vec![
+            Mode {
+                id: "LOW".into(),
+                exposure_gain: 1.0,
+                noise_floor: 0.0,
+                saturation: 1.0,
+                asserted: true,
+            },
+            Mode {
+                id: "HIGH".into(),
+                exposure_gain: 2.0,
+                noise_floor: 0.0,
+                saturation: 1.0,
+                asserted: true,
+            },
+        ];
+        c.expected = vec![
+            Expected {
+                mode_id: "LOW".into(),
+                summary: SummaryStatus::FullyUsable,
+                acquisition: AcquisitionStatus::Usable,
+            },
+            Expected {
+                mode_id: "HIGH".into(),
+                summary: SummaryStatus::FullyUsable,
+                acquisition: AcquisitionStatus::Usable,
+            },
+        ];
+        let receipt = evaluate_case(&c).unwrap();
+        let low = receipt.modes[0].samples[0].signal_micro_units.unwrap();
+        let high = receipt.modes[1].samples[0].signal_micro_units.unwrap();
+        assert!(high > low);
+        assert_eq!(high, low * 2);
+    }
+
+    #[test]
     fn nonunit_rejected() {
         let mut c = case(Brdf::Lambertian { albedo: 0.8 });
         c.samples[0].normal = [0., 0., 2.];
