@@ -286,13 +286,18 @@ pub fn analyze_local_identifiability(
     let physical_rank = count_above(&profiled_physical_svd.singular_values, physical_threshold);
     let physical_condition_number = if physical_rank == physical_indices.len() && physical_rank > 0
     {
+        let profiled_max = profiled_physical_svd
+            .singular_values
+            .first()
+            .copied()
+            .unwrap_or(0.0);
         let weakest = profiled_physical_svd
             .singular_values
             .get(physical_rank - 1)
             .copied()
             .unwrap_or(0.0);
         if weakest > 0.0 {
-            Some(unprofiled_physical_max / weakest)
+            Some(profiled_max / weakest)
         } else {
             None
         }
@@ -1362,4 +1367,32 @@ mod tests {
             Err(IdentifiabilityError::CandidateNonFiniteSensitivity { .. })
         ));
     }
+    #[test]
+    fn physical_condition_number_uses_profiled_spectrum_on_both_sides() {
+        let mut problem = input(
+            vec![
+                parameter("flow_brightness", ParameterRole::Physical),
+                parameter("flow_velocity", ParameterRole::Physical),
+                parameter("camera_gain", ParameterRole::Nuisance),
+            ],
+            vec![
+                vec![100.0, 0.0, 99.995],
+                vec![0.0, 0.0, 1.0],
+                vec![0.0, 1.0, 0.0],
+            ],
+        );
+        problem.config.maximum_condition_number = 10.0;
+        let report = analyze_local_identifiability(&problem).unwrap();
+        assert_eq!(report.physical_status, IdentifiabilityStatus::Identifiable);
+        let condition = report
+            .nuisance_profiled_physical_condition_number
+            .unwrap();
+        assert!(condition < 1.1, "profiled condition was {condition}");
+        assert!(report
+            .unprofiled_physical_singular_values
+            .first()
+            .unwrap()
+            > 50.0);
+    }
+
 }
