@@ -793,6 +793,11 @@ pub fn rank_candidate_measurement_actions(
     if actions.is_empty() {
         return Err(IdentifiabilityError::EmptyCandidateActions);
     }
+    if actions.len() > 256 {
+        return Err(IdentifiabilityError::TooManyCandidateActions {
+            count: actions.len(),
+        });
+    }
     let baseline_report = analyze_local_identifiability(baseline)?;
     let baseline_smallest = baseline_report
         .nuisance_profiled_physical_singular_values
@@ -819,6 +824,15 @@ pub fn rank_candidate_measurement_actions(
         if action.whitened_conditional_innovation_rows.is_empty() {
             return Err(IdentifiabilityError::EmptyCandidateActionRows {
                 id: action.id.clone(),
+            });
+        }
+        let augmented_row_count = baseline
+            .whitened_sensitivity_matrix
+            .len()
+            .saturating_add(action.whitened_conditional_innovation_rows.len());
+        if augmented_row_count > 65_536 {
+            return Err(IdentifiabilityError::TooManyObservations {
+                count: augmented_row_count,
             });
         }
         for (row_index, row) in action.whitened_conditional_innovation_rows.iter().enumerate() {
@@ -856,6 +870,10 @@ pub fn rank_candidate_measurement_actions(
             .nuisance_profiled_physical_rank
             .saturating_sub(baseline_report.nuisance_profiled_physical_rank);
 
+        let sensitivity_gain_per_cost = sensitivity_gain / action.cost;
+        if !sensitivity_gain_per_cost.is_finite() {
+            return Err(IdentifiabilityError::NumericalOverflow);
+        }
         scores.push(CandidateActionScore {
             action_id: action.id.clone(),
             cost: action.cost,
@@ -864,7 +882,7 @@ pub fn rank_candidate_measurement_actions(
             smallest_profiled_physical_sensitivity_before: baseline_smallest,
             smallest_profiled_physical_sensitivity_after: smallest_after,
             smallest_profiled_physical_sensitivity_gain: sensitivity_gain,
-            sensitivity_gain_per_cost: sensitivity_gain / action.cost,
+            sensitivity_gain_per_cost,
             physical_condition_number_before: baseline_report
                 .nuisance_profiled_physical_condition_number,
             physical_condition_number_after: augmented_report
