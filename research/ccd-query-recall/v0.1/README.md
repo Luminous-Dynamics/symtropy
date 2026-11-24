@@ -11,11 +11,11 @@ The NYU sample dataset provides one oracle Boolean per eight-row edge-edge or ve
 Candidate layer:
 - Forwarded and fallback queries reach narrowphase.
 - A certified-pruned query must carry certificate digest, frozen-input digest, verifier identity and explicit accepted-and-replayed status.
-- Candidate recall, precision, false-positive rate, false-negative count and fallback rate are computed only over query labels. Scores are stratified by dataset, scene, time step and query class; aggregate metrics never replace per-stratum results. Results are stratified by dataset, scene, time step and query class; the aggregate score never replaces the per-stratum rows.
+- Candidate recall, precision, false-positive rate, false-negative count and fallback rate are computed only over query labels. Narrowphase recall is conditional on oracle-positive queries actually forwarded/fallen back to narrowphase; a candidate-pruned positive is not double-counted as a narrowphase miss. End-to-end recall uses all oracle-positive queries. Scores are stratified by dataset, scene, time step and query class; aggregate metrics never replace per-stratum results. Results are stratified by dataset, scene, time step and query class; the aggregate score never replaces the per-stratum rows.
 
 Narrowphase layer:
 - Each forwarded/fallback query must record collision, no collision or indeterminate.
-- Candidate omissions and narrowphase misses are counted separately.
+- Candidate omissions and narrowphase misses are counted separately; end-to-end recall exposes their combined effect.
 - An indeterminate positive is not silently credited as a true positive.
 - Zero-positive datasets return unavailable recall, never 100%.
 
