@@ -4,7 +4,7 @@
 **Parent mobility assurance:** #6802, #6803, #6809, #6829, #6837
 **Network solver:** GRID-LOC-DELIV-001 (#3826), implementation PR #3827
 **Research cutoff:** 24 November 2026
-**Implementation status:** read-only Rust adapter, exact-PCC mapping, strict input schema, synthetic three-bus fixture, JSON CLI and dedicated workflow authored; exact-head compile/test/lint is pending.
+**Implementation status:** read-only Rust adapter, exact-PCC mapping, canonical network/topology digests, recovery-deadline binding, strict input schema, synthetic three-bus fixture, JSON CLI and dedicated workflow authored; exact-head compile/test/lint is pending.
 
 ## 1. The field-level problem
 
@@ -58,7 +58,7 @@ Mandatory input bindings:
 - exactly one mobility-flexibility, reserve-recovery, commitment-lease, commitment-journal and PCC-metrology receipt;
 - explicit N-1 contingency list and policy.
 
-Receipt validation enforces identity, exact gate set, uniqueness of receipt IDs/references/digests, valid SHA-256 digest shape, evidence observation times, validity through the full offer horizon, asset/configuration scope, exact network/topology binding on the mobility-flexibility receipt, and trace-pair binding on the PCC-metrology receipt. Digest shape is not signature verification or producer authentication. Unknown gates hold the offer; failed gates reject it; neither path invokes the network screen.
+Receipt validation enforces identity, exact gate set, uniqueness of receipt IDs/references/digests, valid SHA-256 digest shape, evidence observation times, validity through the full offer horizon, asset/configuration scope, exact PCC-bus binding on the mobility-flexibility and PCC-metrology receipts, a reserve-recovery validity/deadline that reaches the next required use, exact network/topology binding on the mobility-flexibility receipt, and trace-pair binding on the PCC-metrology receipt. Network-model and topology digests are recomputed from canonicalized model content (including line parameters, bus slack roles, branch endpoints and topology effective time) and compared with the declared values. Digest shape is not signature verification or producer authentication. Unknown gates hold the offer; failed gates reject it; neither path invokes the network screen.
 
 The DC report is preserved as a nested report. The adapter separately reports requested MWh, maximum DC-network-deliverable MWh and the remaining undeliverable/curtailed MWh. It keeps actual meter delivery unassessed and leaves AC feasibility, adequacy, market eligibility, interconnection approval, field qualification and dispatch authority false.
 
