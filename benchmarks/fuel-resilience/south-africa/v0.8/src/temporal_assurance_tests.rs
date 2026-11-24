@@ -109,6 +109,7 @@ fn oracle_episodes(states: &[u8], confirmation_seconds: u64) -> Vec<ExpectedEpis
                         expected.push(ExpectedEpisode {
                             start_index: episode.start_index,
                             recovery_candidate_index: Some(candidate),
+                            recovery_confirmed_end_index: Some(confirmed_end),
                             restoration_latency_seconds: Some(
                                 (candidate - episode.start_index) as u64 * HOUR,
                             ),
@@ -204,8 +205,8 @@ fn exhaustive_temporal_sequences_match_independent_oracle() {
             let windows = windows_from_states(&states);
             sequences_checked += 1;
 
-            for confirmation_hours in 1..=3 {
-                let confirmation_seconds = u64::from(confirmation_hours) * HOUR;
+            for confirmation_hours in 1_u64..=3 {
+                let confirmation_seconds = confirmation_hours * HOUR;
                 let actual = evaluate(&windows, confirmation_seconds)
                     .expect("all oracle-generated windows are valid");
                 let expected_episodes = oracle_episodes(&states, confirmation_seconds);
