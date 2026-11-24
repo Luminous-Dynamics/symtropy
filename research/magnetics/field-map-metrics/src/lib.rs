@@ -40,8 +40,14 @@ pub struct ComparisonPolicy {
 
 impl ComparisonPolicy {
     #[must_use]
-    pub const fn new(absolute_vector_error_tolerance_t: f64, direction_magnitude_floor_t: f64) -> Self {
-        Self { absolute_vector_error_tolerance_t, direction_magnitude_floor_t }
+    pub const fn new(
+        absolute_vector_error_tolerance_t: f64,
+        direction_magnitude_floor_t: f64,
+    ) -> Self {
+        Self {
+            absolute_vector_error_tolerance_t,
+            direction_magnitude_floor_t,
+        }
     }
 }
 
@@ -101,11 +107,18 @@ impl fmt::Display for FieldMapError {
             Self::FrameMismatch => f.write_str("coordinate frame identifiers differ"),
             Self::GridMismatch => f.write_str("grid identifiers differ"),
             Self::SampleCountMismatch => f.write_str("field maps have different sample counts"),
-            Self::SampleIdMismatch { index } => write!(f, "sample identifiers differ at index {index}"),
-            Self::PositionMismatch { sample_id } => write!(f, "sample {sample_id} positions differ"),
+            Self::SampleIdMismatch { index } => {
+                write!(f, "sample identifiers differ at index {index}")
+            }
+            Self::PositionMismatch { sample_id } => {
+                write!(f, "sample {sample_id} positions differ")
+            }
             Self::InvalidPolicy => f.write_str("comparison policy contains an invalid threshold"),
             Self::NonFiniteArithmetic { sample_id } => {
-                write!(f, "comparison arithmetic is non-finite at sample {sample_id}")
+                write!(
+                    f,
+                    "comparison arithmetic is non-finite at sample {sample_id}"
+                )
             }
             Self::MetricOverflow => f.write_str("a field-map metric is outside the f64 range"),
         }
@@ -204,7 +217,10 @@ pub fn compare_field_maps(
             let next_count = (directional_sample_count + 1) as f64;
             mean_direction_error_rad += (angle - mean_direction_error_rad) / next_count;
             max_direction_error_rad = max_direction_error_rad.max(angle);
-            let cosine = dot(normalize(r.field.0, reference_norm), normalize(p.field.0, predicted_norm));
+            let cosine = dot(
+                normalize(r.field.0, reference_norm),
+                normalize(p.field.0, predicted_norm),
+            );
             if cosine < 0.0 {
                 reversed_directional_sample_count += 1;
             }
@@ -271,7 +287,10 @@ pub fn compare_field_maps(
         metrics.max_vector_error_t,
         metrics.p95_vector_error_t,
         metrics.within_absolute_tolerance_fraction,
-    ].iter().all(|value| value.is_finite()) {
+    ]
+    .iter()
+    .all(|value| value.is_finite())
+    {
         return Err(FieldMapError::MetricOverflow);
     }
     Ok(metrics)
@@ -385,7 +404,11 @@ mod tests {
     use super::*;
 
     fn sample(id: u64, position: [f64; 3], field: [f64; 3]) -> FieldSample {
-        FieldSample { id, position: PositionMeters(position), field: FieldVectorTesla(field) }
+        FieldSample {
+            id,
+            position: PositionMeters(position),
+            field: FieldVectorTesla(field),
+        }
     }
 
     fn map(samples: Vec<FieldSample>) -> FieldMap {
@@ -401,8 +424,10 @@ mod tests {
     }
 
     fn close(actual: f64, expected: f64, tolerance: f64) {
-        assert!((actual - expected).abs() <= tolerance,
-            "actual {actual}, expected {expected}, tolerance {tolerance}");
+        assert!(
+            (actual - expected).abs() <= tolerance,
+            "actual {actual}, expected {expected}, tolerance {tolerance}"
+        );
     }
 
     #[test]
@@ -437,7 +462,11 @@ mod tests {
         close(result.vector_mae_t, 0.5, 1.0e-15);
         close(result.vector_rmse_t, 0.5_f64.sqrt(), 1.0e-15);
         close(result.reference_rms_t, 2.5_f64.sqrt(), 1.0e-15);
-        close(result.normalized_vector_rmse.unwrap(), 0.2_f64.sqrt(), 1.0e-15);
+        close(
+            result.normalized_vector_rmse.unwrap(),
+            0.2_f64.sqrt(),
+            1.0e-15,
+        );
         close(result.max_vector_error_t, 1.0, 1.0e-15);
         close(result.p95_vector_error_t, 1.0, 1.0e-15);
         assert_eq!(result.worst_sample_id, 7);
@@ -453,7 +482,11 @@ mod tests {
         let predicted = map(vec![sample(42, [0.0; 3], [0.0, 0.0, -1.0])]);
         let result = compare_field_maps(&reference, &predicted, policy(2.0, 0.01)).unwrap();
         close(result.max_vector_error_t, 2.0, 1.0e-15);
-        close(result.mean_direction_error_rad.unwrap(), std::f64::consts::PI, 1.0e-12);
+        close(
+            result.mean_direction_error_rad.unwrap(),
+            std::f64::consts::PI,
+            1.0e-12,
+        );
         assert_eq!(result.direction_reversal_fraction, Some(1.0));
         assert_eq!(result.reversed_directional_sample_count, 1);
         assert!(result.all_samples_within_absolute_tolerance);
@@ -495,14 +528,25 @@ mod tests {
         let original = compare_field_maps(&reference, &predicted, policy(0.2, 0.01)).unwrap();
         let rotate = |v: [f64; 3]| [-v[1], v[0], v[2]];
         let rotate_map = |input: &FieldMap| {
-            map(input.samples.iter().map(|s| sample(
-                s.id, rotate(s.position.0), rotate(s.field.0)
-            )).collect())
+            map(input
+                .samples
+                .iter()
+                .map(|s| sample(s.id, rotate(s.position.0), rotate(s.field.0)))
+                .collect())
         };
-        let rotated = compare_field_maps(&rotate_map(&reference), &rotate_map(&predicted), policy(0.2, 0.01)).unwrap();
+        let rotated = compare_field_maps(
+            &rotate_map(&reference),
+            &rotate_map(&predicted),
+            policy(0.2, 0.01),
+        )
+        .unwrap();
         close(rotated.vector_mae_t, original.vector_mae_t, 1.0e-14);
         close(rotated.vector_rmse_t, original.vector_rmse_t, 1.0e-14);
-        close(rotated.mean_direction_error_rad.unwrap(), original.mean_direction_error_rad.unwrap(), 1.0e-12);
+        close(
+            rotated.mean_direction_error_rad.unwrap(),
+            original.mean_direction_error_rad.unwrap(),
+            1.0e-12,
+        );
         assert_eq!(rotated.worst_sample_id, original.worst_sample_id);
     }
 
@@ -514,7 +558,11 @@ mod tests {
         let rs = map(vec![sample(1, [0.0; 3], [0.0, 0.0, 6.0])]);
         let ps = map(vec![sample(1, [0.0; 3], [0.0, 0.0, 3.0])]);
         let scaled = compare_field_maps(&rs, &ps, policy(6.0, 0.01)).unwrap();
-        close(scaled.normalized_vector_rmse.unwrap(), base.normalized_vector_rmse.unwrap(), 1.0e-15);
+        close(
+            scaled.normalized_vector_rmse.unwrap(),
+            base.normalized_vector_rmse.unwrap(),
+            1.0e-15,
+        );
         close(scaled.vector_rmse_t, base.vector_rmse_t * 3.0, 1.0e-15);
     }
 
@@ -523,42 +571,75 @@ mod tests {
         let reference = map(vec![sample(1, [0.0; 3], [0.0, 0.0, 1.0])]);
         let mut other_frame = reference.clone();
         other_frame.frame_id = "other-frame".to_owned();
-        assert_eq!(compare_field_maps(&reference, &other_frame, policy(1.0, 0.0)), Err(FieldMapError::FrameMismatch));
+        assert_eq!(
+            compare_field_maps(&reference, &other_frame, policy(1.0, 0.0)),
+            Err(FieldMapError::FrameMismatch)
+        );
         let mut other_grid = reference.clone();
         other_grid.grid_id = "other-grid".to_owned();
-        assert_eq!(compare_field_maps(&reference, &other_grid, policy(1.0, 0.0)), Err(FieldMapError::GridMismatch));
+        assert_eq!(
+            compare_field_maps(&reference, &other_grid, policy(1.0, 0.0)),
+            Err(FieldMapError::GridMismatch)
+        );
         let other_id = map(vec![sample(2, [0.0; 3], [0.0, 0.0, 1.0])]);
-        assert_eq!(compare_field_maps(&reference, &other_id, policy(1.0, 0.0)), Err(FieldMapError::SampleIdMismatch { index: 0 }));
+        assert_eq!(
+            compare_field_maps(&reference, &other_id, policy(1.0, 0.0)),
+            Err(FieldMapError::SampleIdMismatch { index: 0 })
+        );
         let other_position = map(vec![sample(1, [1.0, 0.0, 0.0], [0.0, 0.0, 1.0])]);
-        assert_eq!(compare_field_maps(&reference, &other_position, policy(1.0, 0.0)), Err(FieldMapError::PositionMismatch { sample_id: 1 }));
+        assert_eq!(
+            compare_field_maps(&reference, &other_position, policy(1.0, 0.0)),
+            Err(FieldMapError::PositionMismatch { sample_id: 1 })
+        );
     }
 
     #[test]
     fn empty_duplicate_and_count_mismatch_inputs_are_rejected() {
         let reference = map(vec![sample(1, [0.0; 3], [0.0, 0.0, 1.0])]);
         let empty = map(vec![]);
-        assert_eq!(compare_field_maps(&reference, &empty, policy(1.0, 0.0)), Err(FieldMapError::EmptySamples));
+        assert_eq!(
+            compare_field_maps(&reference, &empty, policy(1.0, 0.0)),
+            Err(FieldMapError::EmptySamples)
+        );
         let more = map(vec![
             sample(1, [0.0; 3], [0.0, 0.0, 1.0]),
             sample(2, [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]),
         ]);
-        assert_eq!(compare_field_maps(&reference, &more, policy(1.0, 0.0)), Err(FieldMapError::SampleCountMismatch));
+        assert_eq!(
+            compare_field_maps(&reference, &more, policy(1.0, 0.0)),
+            Err(FieldMapError::SampleCountMismatch)
+        );
         let duplicate = map(vec![
             sample(1, [0.0; 3], [0.0, 0.0, 1.0]),
             sample(1, [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]),
         ]);
-        assert_eq!(compare_field_maps(&duplicate, &duplicate, policy(1.0, 0.0)), Err(FieldMapError::DuplicateSampleId(1)));
+        assert_eq!(
+            compare_field_maps(&duplicate, &duplicate, policy(1.0, 0.0)),
+            Err(FieldMapError::DuplicateSampleId(1))
+        );
     }
 
     #[test]
     fn non_finite_values_and_invalid_policies_are_rejected() {
         let reference = map(vec![sample(1, [0.0; 3], [0.0, 0.0, 1.0])]);
         let nan_field = map(vec![sample(1, [0.0; 3], [f64::NAN, 0.0, 1.0])]);
-        assert_eq!(compare_field_maps(&reference, &nan_field, policy(1.0, 0.0)), Err(FieldMapError::NonFiniteField(1)));
+        assert_eq!(
+            compare_field_maps(&reference, &nan_field, policy(1.0, 0.0)),
+            Err(FieldMapError::NonFiniteField(1))
+        );
         let nan_position = map(vec![sample(1, [f64::INFINITY, 0.0, 0.0], [0.0, 0.0, 1.0])]);
-        assert_eq!(compare_field_maps(&reference, &nan_position, policy(1.0, 0.0)), Err(FieldMapError::NonFinitePosition(1)));
-        assert_eq!(compare_field_maps(&reference, &reference, policy(f64::INFINITY, 0.0)), Err(FieldMapError::InvalidPolicy));
-        assert_eq!(compare_field_maps(&reference, &reference, policy(1.0, -1.0)), Err(FieldMapError::InvalidPolicy));
+        assert_eq!(
+            compare_field_maps(&reference, &nan_position, policy(1.0, 0.0)),
+            Err(FieldMapError::NonFinitePosition(1))
+        );
+        assert_eq!(
+            compare_field_maps(&reference, &reference, policy(f64::INFINITY, 0.0)),
+            Err(FieldMapError::InvalidPolicy)
+        );
+        assert_eq!(
+            compare_field_maps(&reference, &reference, policy(1.0, -1.0)),
+            Err(FieldMapError::InvalidPolicy)
+        );
     }
 
     #[test]
