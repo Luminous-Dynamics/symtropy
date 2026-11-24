@@ -1,0 +1,45 @@
+name: Orbital Incumbent Sequential Receipt Bridge
+
+on:
+  push:
+    branches:
+      - "research/orbital-incumbent-sequential-receipt-v0-1"
+    paths:
+      - "research/orbital/INCUMBENT_ANYTIME_VALID_WORLD_SET_BRIDGE_V0_1.md"
+      - "tools/orbital-assurance-bundle-bench/schema/v0.1/incumbent-anytime-world-set-bridge.schema.json"
+      - "tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-anytime-world-set-receipt.synthetic.json"
+      - "tools/orbital-assurance-bundle-bench/tests/validate_anytime_world_set_bridge.mjs"
+      - ".github/workflows/orbital-incumbent-sequential-receipt.yml"
+  pull_request:
+    branches:
+      - "research/orbital-incumbent-loss-model-bridge-v0-1"
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "research/orbital/INCUMBENT_ANYTIME_VALID_WORLD_SET_BRIDGE_V0_1.md"
+      - "tools/orbital-assurance-bundle-bench/schema/v0.1/incumbent-anytime-world-set-bridge.schema.json"
+      - "tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-anytime-world-set-receipt.synthetic.json"
+      - "tools/orbital-assurance-bundle-bench/tests/validate_anytime_world_set_bridge.mjs"
+      - ".github/workflows/orbital-incumbent-sequential-receipt.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-synthetic-receipt-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact bridge head
+        uses: actions/checkout@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Parse strict receipt schema and frozen fixture
+        run: |
+          node -e 'JSON.parse(require("node:fs").readFileSync("tools/orbital-assurance-bundle-bench/schema/v0.1/incumbent-anytime-world-set-bridge.schema.json", "utf8"))'
+          node -e 'JSON.parse(require("node:fs").readFileSync("tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-anytime-world-set-receipt.synthetic.json", "utf8"))'
+      - name: Run independent receipt contract challenge cases
+        run: |
+          node --check tools/orbital-assurance-bundle-bench/tests/validate_anytime_world_set_bridge.mjs
+          node tools/orbital-assurance-bundle-bench/tests/validate_anytime_world_set_bridge.mjs tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-anytime-world-set-receipt.synthetic.json
