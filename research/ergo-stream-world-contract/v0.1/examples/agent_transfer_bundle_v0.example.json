@@ -1,8 +1,9 @@
 {
   "schema_version": "ergo-agent-transfer-bundle-v0",
   "agent_submission_binding": {
-    "submission_schema_version": "symthaea-open-world-research-episode-v0",
-    "submission_sha256": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "agent_protocol_version": "symthaea-open-world-research-episode-v0",
+    "agent_view_frame_sha256": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+    "agent_action_frame_sha256": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
     "source_episode_id": "source-episode-001",
     "target_episode_id": "target-episode-014",
     "source_evidence_prefix_sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
