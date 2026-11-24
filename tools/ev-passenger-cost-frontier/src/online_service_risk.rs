@@ -152,7 +152,7 @@ pub struct OnlineServiceRiskReport {
     pub input_digest: String,
     pub confidence_bound_kind: String,
     pub confidence_bound_assumption: String,
-    pub cUSUM_is_probability_guarantee: bool,
+    pub cusum_is_probability_guarantee: bool,
     pub model_update_performed: bool,
     pub field_qualification_granted: bool,
     pub operational_authority_granted: bool,
@@ -329,7 +329,7 @@ fn miscoverage_upper_bound_permille(
     let alpha = f64::from(alpha_permille) / 1_000.0;
     let delta_n = alpha * 6.0 / (std::f64::consts::PI.powi(2) * n * n);
     let empirical = misses as f64 / n;
-    let radius = (delta_n.ln().neg() / (2.0 * n)).sqrt();
+    let radius = (-delta_n.ln() / (2.0 * n)).sqrt();
     let upper = ((empirical + radius).min(1.0) * 1_000.0).ceil();
     Some(upper.clamp(0.0, 1_000.0) as u16)
 }
@@ -361,8 +361,7 @@ fn validate(input: &OnlineServiceRiskInput) -> Result<(bool, bool), Vec<String>>
         || input.benchmark_id != "ONLINE-SERVICE-RISK-CERTIFICATE-001"
         || input.audit_cutoff_unix_ms == 0
         || !(MIN_ALPHA_PERMILLE..=MAX_ALPHA_PERMILLE).contains(&input.alpha_permille)
-        || !(MIN_COVERAGE_PERMILLE..=MAX_COVERAGE_PERMILLE)
-            .contains(&input.maximum_miscoverage_permille.saturating_add(1_000_u16.saturating_sub(input.maximum_miscoverage_permille)).min(1_000))
+        || input.maximum_miscoverage_permille == 0
         || input.maximum_miscoverage_permille > 500
         || input.minimum_prior_observations < 2
         || input.minimum_prior_observations > 1_000
@@ -481,23 +480,24 @@ pub fn evaluate_online_service_risk(
         }
 
         let mut state = RiskState::new();
-        let mut pending: Vec<(u64, bool)> = Vec::new();
-        let mut pending_cursor = 0_usize;
+        let mut pending: BTreeMap<(u64, String), bool> = BTreeMap::new();
         let mut assessments = Vec::with_capacity(records.len());
 
         for record in &records {
-            while pending_cursor < pending.len()
-                && pending[pending_cursor].0 < record.forecast_issued_unix_ms
-            {
+            let ready: Vec<_> = pending
+                .range(..(record.forecast_issued_unix_ms, String::new()))
+                .map(|(key, miss)| (key.clone(), *miss))
+                .collect();
+            for (key, miss) in ready {
+                pending.remove(&key);
                 state
                     .observe(
-                        pending[pending_cursor].1,
+                        miss,
                         input.maximum_miscoverage_permille,
                         input.cusum_slack_permille,
                         input.cusum_alarm_threshold,
                     )
                     .map_err(|error| vec![error])?;
-                pending_cursor += 1;
             }
 
             let prior_upper =
@@ -512,24 +512,21 @@ pub fn evaluate_online_service_risk(
                 drift_alarm_latched_before_forecast: state.alarm_latched,
                 status: status(state, input),
             });
-            pending.push((
-                record.outcome_available_unix_ms,
+            pending.insert(
+                (record.outcome_available_unix_ms, record.sample_id.clone()),
                 is_interval_miss(record),
-            ));
+            );
         }
 
-        while pending_cursor < pending.len()
-            && pending[pending_cursor].0 <= input.audit_cutoff_unix_ms
-        {
+        for miss in pending.values().copied() {
             state
                 .observe(
-                    pending[pending_cursor].1,
+                    miss,
                     input.maximum_miscoverage_permille,
                     input.cusum_slack_permille,
                     input.cusum_alarm_threshold,
                 )
                 .map_err(|error| vec![error])?;
-            pending_cursor += 1;
         }
 
         let final_upper =
@@ -588,7 +585,7 @@ pub fn evaluate_online_service_risk(
         input_digest,
         confidence_bound_kind: "one_sided_time_uniform_hoeffding_azuma_martingale_upper_bound".to_owned(),
         confidence_bound_assumption: "Each interval-miss indicator is bounded in [0,1]; conditional expectations are taken with respect to the pre-issuance filtration; the martingale-difference sequence obeys the bounded-increment Hoeffding-Azuma assumptions. Union-bound allocation alpha_n=alpha*6/(pi^2*n^2) gives simultaneous coverage over observed prefix lengths. Bound targets average predictable historical miscoverage, not next-step conditional risk or arbitrary future shift.".to_owned(),
-        cUSUM_is_probability_guarantee: false,
+        cusum_is_probability_guarantee: false,
         model_update_performed: false,
         field_qualification_granted: false,
         operational_authority_granted: false,
@@ -671,7 +668,7 @@ mod tests {
         let report = evaluate_online_service_risk(&input(vec![
             observation("a", 1_000, 1_100, 1_500, 1_800, true, "cfg-1"),
             observation("b", 1_200, 1_300, 1_600, 1_900, true, "cfg-1"),
-            observation("c", 1_700, 1_800, 2_000, 2_300, false, "cfg-1"),
+            observation("c", 1_850, 1_900, 2_000, 2_300, false, "cfg-1"),
         ]))
         .unwrap();
         let assessments = &report.groups[0].assessments;
@@ -680,6 +677,19 @@ mod tests {
         assert_eq!(assessments[2].prior_observation_count, 1);
         assert_eq!(report.groups[0].observation_count_at_audit_cutoff, 3);
         assert_eq!(report.groups[0].interval_miss_count_at_audit_cutoff, 2);
+    }
+
+    #[test]
+    fn later_issued_forecast_outcome_can_arrive_before_older_pending_outcome() {
+        let report = evaluate_online_service_risk(&input(vec![
+            observation("a", 1_000, 1_100, 1_500, 5_000, false, "cfg-1"),
+            observation("b", 2_000, 2_100, 2_300, 2_500, false, "cfg-1"),
+            observation("c", 3_000, 3_100, 3_300, 3_500, false, "cfg-1"),
+        ]))
+        .unwrap();
+        let assessments = &report.groups[0].assessments;
+        assert_eq!(assessments[1].prior_observation_count, 0);
+        assert_eq!(assessments[2].prior_observation_count, 1);
     }
 
     #[test]
@@ -773,7 +783,7 @@ mod tests {
         assert!(!report.model_update_performed);
         assert!(!report.field_qualification_granted);
         assert!(!report.operational_authority_granted);
-        assert!(!report.cUSUM_is_probability_guarantee);
+        assert!(!report.cusum_is_probability_guarantee);
     }
 
     #[test]
