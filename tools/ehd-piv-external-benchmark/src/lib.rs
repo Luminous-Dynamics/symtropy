@@ -564,8 +564,6 @@ mod tests {
     }
 }
 
-
-
 /// Symmetric three-component Reynolds-stress tensor, with components in the
 /// order uu, vv, ww, uv, uw, vw. Off-diagonal terms are covariances, not
 /// correlation coefficients.
@@ -617,13 +615,8 @@ impl ReynoldsStressTensor3D {
         let e = self.vw / scale;
 
         let diagonal_minors = [a, d, f];
-        let second_order_minors = [
-            a * d - b * b,
-            a * f - c * c,
-            d * f - e * e,
-        ];
-        let determinant =
-            a * d * f + 2.0 * b * c * e - a * e * e - d * c * c - f * b * b;
+        let second_order_minors = [a * d - b * b, a * f - c * c, d * f - e * e];
+        let determinant = a * d * f + 2.0 * b * c * e - a * e * e - d * c * c - f * b * b;
 
         Ok(diagonal_minors
             .iter()
@@ -789,9 +782,12 @@ pub fn compare_reynolds_stress_profile(
         for (point, estimate) in &estimates {
             let reference_values = point.reference.components();
             let estimate_values = estimate.components();
-            for component_index in 0..6 {
-                let difference = estimate_values[component_index] - reference_values[component_index];
-                component_squared_errors[component_index] += difference * difference;
+            for (error_sum, (estimate_value, reference_value)) in component_squared_errors
+                .iter_mut()
+                .zip(estimate_values.iter().zip(reference_values.iter()))
+            {
+                let difference = estimate_value - reference_value;
+                *error_sum += difference * difference;
             }
 
             let tke_error =
@@ -799,16 +795,13 @@ pub fn compare_reynolds_stress_profile(
             tke_error_sum += tke_error;
             tke_squared_error_sum += tke_error * tke_error;
 
-            let [duu, dvv, dww, duv, duw, dvw] = std::array::from_fn(|index| {
-                estimate_values[index] - reference_values[index]
-            });
+            let [duu, dvv, dww, duv, duw, dvw] =
+                std::array::from_fn(|index| estimate_values[index] - reference_values[index]);
             tensor_squared_error_sum +=
                 duu * duu + dvv * dvv + dww * dww + 2.0 * (duv * duv + duw * duw + dvw * dvw);
             let [ruu, rvv, rww, ruv, ruw, rvw] = reference_values;
-            reference_tensor_squared_sum += ruu * ruu
-                + rvv * rvv
-                + rww * rww
-                + 2.0 * (ruv * ruv + ruw * ruw + rvw * rvw);
+            reference_tensor_squared_sum +=
+                ruu * ruu + rvv * rvv + rww * rww + 2.0 * (ruv * ruv + ruw * ruw + rvw * rvw);
         }
 
         let component_rmse = std::array::from_fn(|index| {
@@ -820,8 +813,7 @@ pub fn compare_reynolds_stress_profile(
         });
         let tke_bias = mean(tke_error_sum, estimated_points);
         let tke_rmse = mean(tke_squared_error_sum, estimated_points).map(f64::sqrt);
-        let tensor_frobenius_rmse =
-            mean(tensor_squared_error_sum, estimated_points).map(f64::sqrt);
+        let tensor_frobenius_rmse = mean(tensor_squared_error_sum, estimated_points).map(f64::sqrt);
         let tensor_frobenius_nrmse = if reference_tensor_squared_sum > 0.0 {
             safe_ratio(
                 tensor_squared_error_sum.sqrt(),
@@ -914,14 +906,16 @@ mod stress_tensor_tests {
     #[test]
     fn exact_reynolds_stress_profile_has_zero_component_and_tke_error() {
         let value = tensor(1.0);
-        let report = compare_reynolds_stress_profile(&stress_input(
-            [Some(value); 3],
-            [value; 3],
-        ))
-        .unwrap();
+        let report =
+            compare_reynolds_stress_profile(&stress_input([Some(value); 3], [value; 3])).unwrap();
         let metrics = &report.bands[0];
         assert_eq!(metrics.point_coverage_fraction, 1.0);
-        assert!(metrics.component_rmse.iter().all(|value| *value == Some(0.0)));
+        assert!(
+            metrics
+                .component_rmse
+                .iter()
+                .all(|value| *value == Some(0.0))
+        );
         assert_eq!(metrics.tke_bias, Some(0.0));
         assert_eq!(metrics.tke_rmse, Some(0.0));
         assert_eq!(metrics.estimate_non_psd_points, 0);
@@ -932,11 +926,9 @@ mod stress_tensor_tests {
         let reference = tensor(1.0);
         let mut changed = reference;
         changed.uv += 1.0;
-        let report = compare_reynolds_stress_profile(&stress_input(
-            [Some(changed); 3],
-            [reference; 3],
-        ))
-        .unwrap();
+        let report =
+            compare_reynolds_stress_profile(&stress_input([Some(changed); 3], [reference; 3]))
+                .unwrap();
         let components = report.bands[0].component_rmse;
         assert_eq!(components[0], Some(0.0));
         assert_eq!(components[3], Some(1.0));
@@ -953,11 +945,9 @@ mod stress_tensor_tests {
             uw: 0.0,
             vw: 0.0,
         };
-        let report = compare_reynolds_stress_profile(&stress_input(
-            [Some(invalid); 3],
-            [reference; 3],
-        ))
-        .unwrap();
+        let report =
+            compare_reynolds_stress_profile(&stress_input([Some(invalid); 3], [reference; 3]))
+                .unwrap();
         assert_eq!(report.bands[0].estimate_non_psd_points, 3);
         assert_eq!(
             report.bands[0].estimate_realizability_violation_fraction,
@@ -974,7 +964,10 @@ mod stress_tensor_tests {
         ))
         .unwrap();
         assert!((report.bands[0].point_coverage_fraction - 2.0 / 3.0).abs() < 1.0e-12);
-        assert_eq!(report.bands[0].estimate_realizability_violation_fraction, Some(0.0));
+        assert_eq!(
+            report.bands[0].estimate_realizability_violation_fraction,
+            Some(0.0)
+        );
     }
 
     #[test]
