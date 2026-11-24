@@ -60,10 +60,12 @@ def exact_fraction(value: Any, *, allow_zero: bool = True) -> Fraction | None:
     return Fraction(numerator, denominator)
 
 
-def fraction_json(value: Fraction) -> dict[str, str]:
+def fraction_json(value: Fraction) -> dict[str, int]:
+    if abs(value.numerator) > MAX_COMPONENT or value.denominator > MAX_COMPONENT:
+        raise ValueError("exact rational output exceeds the declared bound")
     return {
-        "numerator": str(value.numerator),
-        "denominator": str(value.denominator),
+        "numerator": value.numerator,
+        "denominator": value.denominator,
     }
 
 
