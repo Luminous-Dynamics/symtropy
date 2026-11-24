@@ -610,7 +610,7 @@ pub fn select_inertial_rank_basis(
         maximum_mass_symmetry_error: symmetry_error,
         mass_symmetry_tolerance: symmetry_tolerance,
         minimum_cholesky_diagonal: minimum_diagonal,
-        minimum_cholesky_diagonal_ratio,
+        minimum_cholesky_diagonal_ratio: minimum_diagonal_ratio,
         physical_omission_certified: false,
         row_diagnostics,
         whitened_contact_rows: whitened_rows,
