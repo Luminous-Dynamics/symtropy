@@ -232,10 +232,10 @@ pub fn reconcile_action_effects(
     if before.risk_semantics_digest != after.risk_semantics_digest {
         return Err(ActionPortfolioError::RiskSemanticsMismatch);
     }
-    if let Some(coordination_digest) = receipt.coordination_digest {
-        if is_zero_digest(&coordination_digest) {
-            return Err(ActionPortfolioError::InvalidCoordinationDigest);
-        }
+    if let Some(coordination_digest) = receipt.coordination_digest
+        && is_zero_digest(&coordination_digest)
+    {
+        return Err(ActionPortfolioError::InvalidCoordinationDigest);
     }
 
     let baseline = index_events(&before.events)?;
