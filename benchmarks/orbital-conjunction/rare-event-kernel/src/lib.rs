@@ -50,7 +50,7 @@ pub mod trajectory;
 pub use adaptive_importance_sampling::{
     AdaptiveImportanceDraw, AdaptiveImportanceSamplingConfidenceSequence,
     AdaptiveImportanceSamplingError, AdaptiveImportanceSamplingSummary,
-    BoundedMeanBettingConfidenceSequence, BoundedMeanBettingSequence,
+    BoundedMeanConfidenceSequence, BoundedMeanBettingSequence,
 };
 pub use conditional_velocity::{
     ConditionalDirectionReport, ConditionalVelocityConfig, ConditionalVelocityDiagnostics,
