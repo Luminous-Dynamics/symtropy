@@ -235,12 +235,16 @@ fn validate_case(case: &RgbCase) -> Result<(), String> {
 fn evaluate_sample(sample: &RgbSample, mode: &RgbMode) -> Result<RgbSampleResult, String> {
     let geometry = geometry_gate(sample);
     if !sample.rgb_response_asserted {
+        let joint_status = match geometry {
+            Gate::Fail => JointStatus::GeometryRejected,
+            Gate::Pass | Gate::Indeterminate => JointStatus::Indeterminate,
+        };
         return Ok(RgbSampleResult {
             sample_id: sample.sample_id.clone(),
             geometry_gate: geometry,
             rgb_micro_units: None,
             rgb_status: RgbStatus::Indeterminate,
-            joint_status: JointStatus::Indeterminate,
+            joint_status,
         });
     }
 
@@ -475,6 +479,16 @@ mod tests {
         sample.rgb_response_asserted = false;
         let result = evaluate_case(&case(vec![sample])).unwrap();
         assert_eq!(result.modes[0].samples[0].rgb_status, RgbStatus::Indeterminate);
+    }
+
+    #[test]
+    fn known_geometry_failure_is_not_hidden_by_unknown_rgb() {
+        let mut sample = sample("S1", [0.5, 0.4, 0.2]);
+        sample.camera_fov = Gate::Fail;
+        sample.rgb_response_asserted = false;
+        let result = evaluate_case(&case(vec![sample])).unwrap();
+        assert_eq!(result.modes[0].samples[0].rgb_status, RgbStatus::Indeterminate);
+        assert_eq!(result.modes[0].samples[0].joint_status, JointStatus::GeometryRejected);
     }
 
     #[test]
