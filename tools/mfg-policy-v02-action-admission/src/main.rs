@@ -377,6 +377,13 @@ fn evaluate(frame: &Value, proposal: &Value) -> Result<AdmissionReceipt, String>
         return Ok(receipt);
     }
 
+    // This first slice has no simulator-maintained post-dispatch operation/setup snapshot.
+    // Never re-admit work in a later epoch from the immutable initial state.
+    if decision_epoch != 0 {
+        mark_hold(&mut receipt, "dynamic_operation_state_snapshot_not_yet_supported");
+        return Ok(receipt);
+    }
+
     let operations = operation_index(static_case)?;
     let resources = resource_index(static_case)?;
     let (qualification_state, resource_state, inspection_override) =
@@ -819,38 +826,30 @@ mod tests {
     }
 
     #[test]
-    fn visible_failure_holds_until_visible_restoration() {
+    fn later_epoch_requires_live_operation_state_even_after_restoration() {
         let mut frame = sample_frame();
-        frame["observable_history"][0]["resource_events"] = json!([{
-            "source_event_id": "FAIL-1", "resource_id": "RESOURCE-A", "kind": "FAILED",
-            "occurred_at_epoch": 0, "observed_at_epoch": 0,
-            "common_cause_id": null, "recovery_forecast_min_epochs": 1,
-            "recovery_forecast_max_epochs": 2
-        }]);
-        assert_eq!(
-            evaluate(&frame, &sample_proposal()).unwrap().status,
-            AdmissionStatus::Hold
-        );
-
         frame["decision_epoch"] = Value::from(1);
-        frame["observable_history"]
-            .as_array_mut()
-            .unwrap()
-            .push(json!({
-                "epoch": 1, "resource_events": [{
-                    "source_event_id": "RESTORE-1", "resource_id": "RESOURCE-A", "kind": "RESTORED",
-                    "occurred_at_epoch": 1, "observed_at_epoch": 1,
-                    "common_cause_id": null, "recovery_forecast_min_epochs": null,
-                    "recovery_forecast_max_epochs": null
-                }],
-                "qualification_updates": [], "inspection_capacity_events": []
-            }));
+        frame["observable_history"].as_array_mut().unwrap().push(json!({
+            "epoch": 1, "resource_events": [{
+                "source_event_id": "FAIL-1", "resource_id": "RESOURCE-A", "kind": "FAILED",
+                "occurred_at_epoch": 0, "observed_at_epoch": 1,
+                "common_cause_id": null, "recovery_forecast_min_epochs": 1,
+                "recovery_forecast_max_epochs": 2
+            }, {
+                "source_event_id": "RESTORE-1", "resource_id": "RESOURCE-A", "kind": "RESTORED",
+                "occurred_at_epoch": 1, "observed_at_epoch": 1,
+                "common_cause_id": null, "recovery_forecast_min_epochs": null,
+                "recovery_forecast_max_epochs": null
+            }],
+            "qualification_updates": [], "inspection_capacity_events": []
+        }));
         let mut proposal = sample_proposal();
         proposal["decision_epoch"] = Value::from(1);
-        assert_eq!(
-            evaluate(&frame, &proposal).unwrap().status,
-            AdmissionStatus::Admissible
-        );
+        let receipt = evaluate(&frame, &proposal).unwrap();
+        assert_eq!(receipt.status, AdmissionStatus::Hold);
+        assert!(receipt.reason_codes.contains(
+            &"dynamic_operation_state_snapshot_not_yet_supported".to_string()
+        ));
     }
 
     #[test]
