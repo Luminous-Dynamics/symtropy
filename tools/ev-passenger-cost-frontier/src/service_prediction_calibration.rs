@@ -326,9 +326,9 @@ fn mean_u64(values: &[u64]) -> Option<u64> {
     if values.is_empty() {
         return None;
     }
-    let sum = values.iter().try_fold(0_u128, |sum, value| {
-        sum.checked_add(u128::from(*value))
-    })?;
+    let sum = values
+        .iter()
+        .try_fold(0_u128, |sum, value| sum.checked_add(u128::from(*value)))?;
     u64::try_from(sum / values.len() as u128).ok()
 }
 
@@ -343,8 +343,8 @@ fn quantile_rank(sample_count: usize, nominal_coverage_permille: u16) -> Option<
     if sample_count == 0 {
         return None;
     }
-    let numerator = (sample_count as u128 + 1)
-        .checked_mul(u128::from(nominal_coverage_permille))?;
+    let numerator =
+        (sample_count as u128 + 1).checked_mul(u128::from(nominal_coverage_permille))?;
     let rank = numerator.checked_add(999)? / 1_000;
     usize::try_from(rank).ok()
 }
@@ -382,8 +382,8 @@ fn interval_metrics(
         } else {
             0
         };
-        winkler_sum += adjusted_upper.saturating_sub(adjusted_lower) as f64
-            + 2.0 * miss as f64 / alpha;
+        winkler_sum +=
+            adjusted_upper.saturating_sub(adjusted_lower) as f64 + 2.0 * miss as f64 / alpha;
     }
 
     let n = pairs.len() as u64;
@@ -528,23 +528,16 @@ fn build_on_time_group(
         let upper = if bin == 9 { 1_000 } else { lower + 100 };
         let selected: Vec<_> = holdout
             .iter()
-            .filter(|(p, _)| {
-                *p >= lower && if bin == 9 { *p <= upper } else { *p < upper }
-            })
+            .filter(|(p, _)| *p >= lower && if bin == 9 { *p <= upper } else { *p < upper })
             .collect();
         if selected.is_empty() {
             continue;
         }
         let count = selected.len();
-        let predicted = selected
-            .iter()
-            .map(|(p, _)| u64::from(*p))
-            .sum::<u64>()
-            / count as u64;
+        let predicted = selected.iter().map(|(p, _)| u64::from(*p)).sum::<u64>() / count as u64;
         let bin_successes = selected.iter().filter(|(_, observed)| *observed).count();
         let observed_rate = (bin_successes as u64 * 1_000) / count as u64;
-        weighted_abs_gap +=
-            u128::from(predicted.abs_diff(observed_rate)) * count as u128;
+        weighted_abs_gap += u128::from(predicted.abs_diff(observed_rate)) * count as u128;
         reliability_bins.push(ReliabilityBin {
             lower_probability_permille: lower,
             upper_probability_permille: upper,
@@ -563,8 +556,14 @@ fn build_on_time_group(
         calibration_sample_count: calibration_count,
         holdout_sample_count: holdout.len(),
         holdout_brier_score_millionths: brier,
-        holdout_mean_predicted_probability_permille: u16::try_from(predicted_sum / holdout.len() as u64).ok()?,
-        holdout_observed_on_time_rate_permille: u16::try_from(successes as u64 * 1_000 / holdout.len() as u64).ok()?,
+        holdout_mean_predicted_probability_permille: u16::try_from(
+            predicted_sum / holdout.len() as u64,
+        )
+        .ok()?,
+        holdout_observed_on_time_rate_permille: u16::try_from(
+            successes as u64 * 1_000 / holdout.len() as u64,
+        )
+        .ok()?,
         holdout_observed_rate_wilson_95: wilson_interval(successes, holdout.len())?,
         holdout_expected_calibration_error_permille: ece,
         holdout_reliability_bins: reliability_bins,
@@ -597,7 +596,10 @@ fn validate_record(
         || record.metrics.is_empty()
         || record.metrics.len() > MAX_METRICS_PER_RECORD
     {
-        add_error(&mut errors, format!("record_identity_or_time_invalid:{}", record.sample_id));
+        add_error(
+            &mut errors,
+            format!("record_identity_or_time_invalid:{}", record.sample_id),
+        );
     }
 
     if !validate_outcome_evidence(
@@ -607,10 +609,19 @@ fn validate_record(
         record.target_end_unix_ms,
         audit_cutoff,
     ) {
-        add_error(&mut errors, format!("on_time_outcome_evidence_invalid:{}", record.sample_id));
+        add_error(
+            &mut errors,
+            format!("on_time_outcome_evidence_invalid:{}", record.sample_id),
+        );
     }
     if !evidence_references.insert(record.on_time_forecast_evidence.evidence_reference.clone()) {
-        add_error(&mut errors, format!("evidence_reference_reused:{}", record.on_time_forecast_evidence.evidence_reference));
+        add_error(
+            &mut errors,
+            format!(
+                "evidence_reference_reused:{}",
+                record.on_time_forecast_evidence.evidence_reference
+            ),
+        );
     }
     if !validate_forecast_evidence(
         &record.on_time_forecast_evidence,
@@ -619,10 +630,19 @@ fn validate_record(
         record.decision_time_unix_ms,
         record.target_end_unix_ms,
     ) {
-        add_error(&mut errors, format!("on_time_forecast_evidence_invalid:{}", record.sample_id));
+        add_error(
+            &mut errors,
+            format!("on_time_forecast_evidence_invalid:{}", record.sample_id),
+        );
     }
     if !evidence_references.insert(record.on_time_evidence.evidence_reference.clone()) {
-        add_error(&mut errors, format!("evidence_reference_reused:{}", record.on_time_evidence.evidence_reference));
+        add_error(
+            &mut errors,
+            format!(
+                "evidence_reference_reused:{}",
+                record.on_time_evidence.evidence_reference
+            ),
+        );
     }
     *all_source_grade &= matches!(
         record.on_time_forecast_evidence.evidence_class,
@@ -643,7 +663,10 @@ fn validate_record(
             metric.nominal_coverage_permille,
         );
         if !metric_keys.insert(key) {
-            add_error(&mut errors, format!("duplicate_metric_in_record:{}", record.sample_id));
+            add_error(
+                &mut errors,
+                format!("duplicate_metric_in_record:{}", record.sample_id),
+            );
         }
         if metric.measurement_boundary != expected_boundary(metric.metric_kind)
             || !(MIN_COVERAGE_PERMILLE..=MAX_COVERAGE_PERMILLE)
@@ -655,7 +678,10 @@ fn validate_record(
             || metric.predicted_upper > MAX_VALUE
             || metric.observed_value > MAX_VALUE
         {
-            add_error(&mut errors, format!("metric_boundary_or_interval_invalid:{}", record.sample_id));
+            add_error(
+                &mut errors,
+                format!("metric_boundary_or_interval_invalid:{}", record.sample_id),
+            );
         }
         if !validate_forecast_evidence(
             &metric.forecast_evidence,
@@ -664,7 +690,13 @@ fn validate_record(
             record.decision_time_unix_ms,
             record.target_end_unix_ms,
         ) {
-            add_error(&mut errors, format!("forecast_evidence_invalid:{}:{:?}", record.sample_id, metric.metric_kind));
+            add_error(
+                &mut errors,
+                format!(
+                    "forecast_evidence_invalid:{}:{:?}",
+                    record.sample_id, metric.metric_kind
+                ),
+            );
         }
         if !validate_outcome_evidence(
             &metric.observation_evidence,
@@ -673,11 +705,20 @@ fn validate_record(
             record.target_end_unix_ms,
             audit_cutoff,
         ) {
-            add_error(&mut errors, format!("metric_observation_evidence_invalid:{}:{:?}", record.sample_id, metric.metric_kind));
+            add_error(
+                &mut errors,
+                format!(
+                    "metric_observation_evidence_invalid:{}:{:?}",
+                    record.sample_id, metric.metric_kind
+                ),
+            );
         }
         for evidence in [&metric.forecast_evidence, &metric.observation_evidence] {
             if !evidence_references.insert(evidence.evidence_reference.clone()) {
-                add_error(&mut errors, format!("evidence_reference_reused:{}", evidence.evidence_reference));
+                add_error(
+                    &mut errors,
+                    format!("evidence_reference_reused:{}", evidence.evidence_reference),
+                );
             }
             *all_source_grade &= matches!(
                 evidence.evidence_class,
@@ -697,7 +738,9 @@ fn validate_record(
 
 fn input_digest(input: &ServicePredictionCalibrationInput) -> Result<String, String> {
     let mut canonical = input.clone();
-    canonical.records.sort_by(|a, b| a.sample_id.cmp(&b.sample_id));
+    canonical
+        .records
+        .sort_by(|a, b| a.sample_id.cmp(&b.sample_id));
     for record in &mut canonical.records {
         record.metrics.sort_by(|a, b| {
             (
@@ -752,7 +795,10 @@ pub fn evaluate_service_prediction_calibration(
     let mut any_synthetic = false;
     for record in &input.records {
         if !sample_ids.insert(record.sample_id.as_str()) {
-            add_error(&mut errors, format!("sample_id_duplicate:{}", record.sample_id));
+            add_error(
+                &mut errors,
+                format!("sample_id_duplicate:{}", record.sample_id),
+            );
         }
         if let Err(record_errors) = validate_record(
             record,
@@ -765,8 +811,10 @@ pub fn evaluate_service_prediction_calibration(
         }
     }
 
-    let mut metric_groups: BTreeMap<MetricGroupKey, (Vec<IntervalPair>, Vec<IntervalPair>, u64, u64)> =
-        BTreeMap::new();
+    let mut metric_groups: BTreeMap<
+        MetricGroupKey,
+        (Vec<IntervalPair>, Vec<IntervalPair>, u64, u64),
+    > = BTreeMap::new();
     let mut on_time_groups: BTreeMap<
         OnTimeGroupKey,
         (Vec<(u16, bool)>, Vec<(u16, bool)>, u64, u64),
@@ -782,14 +830,25 @@ pub fn evaluate_service_prediction_calibration(
             .entry(on_key)
             .or_insert_with(|| (Vec::new(), Vec::new(), 0, 0));
         if record.cohort == CalibrationCohort::Calibration {
-            on_entry.0.push((record.on_time_probability_permille, record.on_time_observed));
-            on_entry.2 = on_entry.2.max(
-                record.on_time_evidence.observed_at_unix_ms.unwrap_or(0)
-            );
+            on_entry
+                .0
+                .push((record.on_time_probability_permille, record.on_time_observed));
+            on_entry.2 = on_entry
+                .2
+                .max(record.on_time_evidence.observed_at_unix_ms.unwrap_or(0));
         } else {
-            on_entry.1.push((record.on_time_probability_permille, record.on_time_observed));
-            let forecasted = record.on_time_forecast_evidence.observed_at_unix_ms.unwrap_or(u64::MAX);
-            on_entry.3 = if on_entry.3 == 0 { forecasted } else { on_entry.3.min(forecasted) };
+            on_entry
+                .1
+                .push((record.on_time_probability_permille, record.on_time_observed));
+            let forecasted = record
+                .on_time_forecast_evidence
+                .observed_at_unix_ms
+                .unwrap_or(u64::MAX);
+            on_entry.3 = if on_entry.3 == 0 {
+                forecasted
+            } else {
+                on_entry.3.min(forecasted)
+            };
         }
 
         for metric in &record.metrics {
@@ -818,7 +877,10 @@ pub fn evaluate_service_prediction_calibration(
                 entry.2 = entry.2.max(observed);
             } else {
                 entry.1.push(pair);
-                let forecasted = metric.forecast_evidence.observed_at_unix_ms.unwrap_or(u64::MAX);
+                let forecasted = metric
+                    .forecast_evidence
+                    .observed_at_unix_ms
+                    .unwrap_or(u64::MAX);
                 entry.3 = if entry.3 == 0 {
                     forecasted
                 } else {
@@ -896,17 +958,25 @@ pub fn evaluate_service_prediction_calibration(
     let any_undercoverage_alarm = metric_results.iter().any(|group| group.undercoverage_alarm);
     let all_metric_groups_empirically_supported = all_source_grade
         && !metric_results.is_empty()
-        && metric_results.iter().all(|group| {
-            group.status == CalibrationGroupStatus::EmpiricallySupported
-        });
+        && metric_results
+            .iter()
+            .all(|group| group.status == CalibrationGroupStatus::EmpiricallySupported);
     let digest = input_digest(input).map_err(|error| vec![error])?;
     Ok(ServicePredictionCalibrationReport {
         schema_version: input.schema_version.clone(),
         benchmark_id: input.benchmark_id.clone(),
         audit_cutoff_unix_ms: input.audit_cutoff_unix_ms,
         record_count: input.records.len(),
-        calibration_record_count: input.records.iter().filter(|r| r.cohort == CalibrationCohort::Calibration).count(),
-        holdout_record_count: input.records.iter().filter(|r| r.cohort == CalibrationCohort::Holdout).count(),
+        calibration_record_count: input
+            .records
+            .iter()
+            .filter(|r| r.cohort == CalibrationCohort::Calibration)
+            .count(),
+        holdout_record_count: input
+            .records
+            .iter()
+            .filter(|r| r.cohort == CalibrationCohort::Holdout)
+            .count(),
         metric_group_count: metric_results.len(),
         on_time_group_count: on_time_results.len(),
         all_evidence_source_grade: all_source_grade,
@@ -928,8 +998,10 @@ mod tests {
     use super::*;
 
     fn fixture() -> ServicePredictionCalibrationInput {
-        serde_json::from_str(include_str!("../fixtures/service_prediction_calibration_v0_1.json"))
-            .expect("frozen calibration fixture must parse")
+        serde_json::from_str(include_str!(
+            "../fixtures/service_prediction_calibration_v0_1.json"
+        ))
+        .expect("frozen calibration fixture must parse")
     }
 
     #[test]
@@ -951,9 +1023,14 @@ mod tests {
     #[test]
     fn conformal_adjustment_is_calculated_from_calibration_only() {
         let report = evaluate_service_prediction_calibration(&fixture()).expect("fixture");
-        let group = report.metric_groups.iter().find(|g| {
-            g.stratum_id == "nominal" && g.metric_kind == ForecastMetricKind::MissionDurationSeconds
-        }).expect("mission duration group");
+        let group = report
+            .metric_groups
+            .iter()
+            .find(|g| {
+                g.stratum_id == "nominal"
+                    && g.metric_kind == ForecastMetricKind::MissionDurationSeconds
+            })
+            .expect("mission duration group");
         assert_eq!(group.calibration_sample_count, 20);
         assert_eq!(group.holdout_sample_count, 30);
         assert!(group.conformal_adjustment.is_some());
@@ -964,8 +1041,7 @@ mod tests {
         let report = evaluate_service_prediction_calibration(&fixture()).expect("fixture");
         assert!(report.any_undercoverage_alarm);
         assert!(report.metric_groups.iter().any(|g| {
-            g.stratum_id == "hot_shift"
-                && g.status == CalibrationGroupStatus::UndercoverageAlarm
+            g.stratum_id == "hot_shift" && g.status == CalibrationGroupStatus::UndercoverageAlarm
         }));
     }
 
@@ -973,7 +1049,9 @@ mod tests {
     fn holdout_probability_scores_are_not_computed_from_calibration_outcomes() {
         let input = fixture();
         let baseline = evaluate_service_prediction_calibration(&input).expect("baseline");
-        let baseline_hot = baseline.on_time_groups.iter()
+        let baseline_hot = baseline
+            .on_time_groups
+            .iter()
             .find(|group| group.stratum_id == "hot_shift")
             .expect("hot shift probability group");
         assert_eq!(baseline_hot.calibration_sample_count, 20);
@@ -981,7 +1059,9 @@ mod tests {
         assert_eq!(baseline_hot.holdout_brier_score_millionths, 330_000);
 
         let mut changed = fixture();
-        for record in changed.records.iter_mut()
+        for record in changed
+            .records
+            .iter_mut()
             .filter(|record| record.cohort == CalibrationCohort::Calibration)
         {
             record.on_time_observed = !record.on_time_observed;
@@ -989,7 +1069,9 @@ mod tests {
         }
         let changed_report = evaluate_service_prediction_calibration(&changed)
             .expect("calibration cohort changes remain auditable");
-        let changed_hot = changed_report.on_time_groups.iter()
+        let changed_hot = changed_report
+            .on_time_groups
+            .iter()
             .find(|group| group.stratum_id == "hot_shift")
             .expect("changed hot shift group");
         assert_eq!(
@@ -1005,38 +1087,58 @@ mod tests {
     #[test]
     fn coverage_report_keeps_width_and_wilson_support_separate() {
         let report = evaluate_service_prediction_calibration(&fixture()).expect("fixture");
-        let nominal = report.metric_groups.iter().find(|group| {
-            group.stratum_id == "nominal"
-                && group.metric_kind == ForecastMetricKind::MissionDurationSeconds
-        }).expect("nominal mission group");
+        let nominal = report
+            .metric_groups
+            .iter()
+            .find(|group| {
+                group.stratum_id == "nominal"
+                    && group.metric_kind == ForecastMetricKind::MissionDurationSeconds
+            })
+            .expect("nominal mission group");
         assert_eq!(nominal.conformal_adjustment, Some(70));
         assert_eq!(nominal.holdout_coverage_before_permille, Some(1_000));
         assert_eq!(nominal.holdout_coverage_after_permille, Some(1_000));
         assert_eq!(nominal.mean_interval_width_before, Some(160));
         assert_eq!(nominal.mean_interval_width_after, Some(300));
         assert!(
-            nominal.holdout_coverage_after_wilson_95.as_ref()
+            nominal
+                .holdout_coverage_after_wilson_95
+                .as_ref()
                 .expect("Wilson interval")
-                .lower_permille < nominal.nominal_coverage_permille
+                .lower_permille
+                < nominal.nominal_coverage_permille
         );
-        assert_eq!(nominal.status, CalibrationGroupStatus::CoverageNotDemonstrated);
+        assert_eq!(
+            nominal.status,
+            CalibrationGroupStatus::CoverageNotDemonstrated
+        );
     }
 
     #[test]
     fn temporal_leakage_is_rejected() {
         let mut input = fixture();
-        let holdout_time = input.records.iter()
+        let holdout_time = input
+            .records
+            .iter()
             .filter(|r| r.cohort == CalibrationCohort::Holdout)
             .map(|r| r.decision_time_unix_ms)
-            .min().unwrap();
-        let calibration = input.records.iter_mut()
-            .find(|r| r.cohort == CalibrationCohort::Calibration).unwrap();
+            .min()
+            .unwrap();
+        let calibration = input
+            .records
+            .iter_mut()
+            .find(|r| r.cohort == CalibrationCohort::Calibration)
+            .unwrap();
         for m in &mut calibration.metrics {
             m.observation_evidence.observed_at_unix_ms = Some(holdout_time + 1);
         }
         let errors = evaluate_service_prediction_calibration(&input)
             .expect_err("future calibration outcome must not precede holdout forecast");
-        assert!(errors.iter().any(|e| e.starts_with("calibration_outcome_after_holdout_forecast")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.starts_with("calibration_outcome_after_holdout_forecast"))
+        );
     }
 
     #[test]
@@ -1045,22 +1147,32 @@ mod tests {
         let report = evaluate_service_prediction_calibration(&input).expect("synthetic fixture");
         assert!(!report.all_evidence_source_grade);
         assert!(!report.all_metric_groups_empirically_supported);
-        assert!(report.metric_groups.iter().all(|group| {
-            group.status != CalibrationGroupStatus::EmpiricallySupported
-        }));
-        input.records[0].metrics[0].observation_evidence.evidence_class = EvidenceClass::Measured;
-        let mixed = evaluate_service_prediction_calibration(&input).expect("mixed evidence remains auditable");
+        assert!(
+            report
+                .metric_groups
+                .iter()
+                .all(|group| { group.status != CalibrationGroupStatus::EmpiricallySupported })
+        );
+        input.records[0].metrics[0]
+            .observation_evidence
+            .evidence_class = EvidenceClass::Measured;
+        let mixed = evaluate_service_prediction_calibration(&input)
+            .expect("mixed evidence remains auditable");
         assert!(!mixed.all_metric_groups_empirically_supported);
     }
 
     #[test]
     fn equal_timestamp_calibration_outcome_and_holdout_forecast_is_rejected() {
         let mut input = fixture();
-        let first_holdout = input.records.iter()
+        let first_holdout = input
+            .records
+            .iter()
             .find(|record| record.cohort == CalibrationCohort::Holdout)
             .expect("holdout record")
             .decision_time_unix_ms;
-        let calibration = input.records.iter_mut()
+        let calibration = input
+            .records
+            .iter_mut()
             .find(|record| record.cohort == CalibrationCohort::Calibration)
             .expect("calibration record");
         calibration.on_time_evidence.observed_at_unix_ms = Some(first_holdout);
@@ -1069,38 +1181,63 @@ mod tests {
         }
         let errors = evaluate_service_prediction_calibration(&input)
             .expect_err("equal timestamps do not establish outcome-before-prediction ordering");
-        assert!(errors.iter().any(|error| error.starts_with("calibration_outcome_after_holdout_forecast")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.starts_with("calibration_outcome_after_holdout_forecast"))
+        );
     }
 
     #[test]
     fn future_forecast_after_target_start_is_rejected() {
         let mut input = fixture();
-        input.records[0].metrics[0].forecast_evidence.observed_at_unix_ms =
-            Some(input.records[0].target_start_unix_ms + 1);
+        input.records[0].metrics[0]
+            .forecast_evidence
+            .observed_at_unix_ms = Some(input.records[0].target_start_unix_ms + 1);
         let errors = evaluate_service_prediction_calibration(&input)
             .expect_err("forecast after target start is leakage");
-        assert!(errors.iter().any(|e| e.contains("forecast_evidence_invalid")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("forecast_evidence_invalid"))
+        );
     }
 
     #[test]
     fn cross_boundary_energy_comparison_is_rejected() {
         let mut input = fixture();
-        let m = input.records[0].metrics.iter_mut()
-            .find(|m| m.metric_kind == ForecastMetricKind::PackTerminalEnergyWh).unwrap();
+        let m = input.records[0]
+            .metrics
+            .iter_mut()
+            .find(|m| m.metric_kind == ForecastMetricKind::PackTerminalEnergyWh)
+            .unwrap();
         m.measurement_boundary = MeasurementBoundary::ChargerInput;
         let errors = evaluate_service_prediction_calibration(&input)
             .expect_err("pack-terminal and charger-input are not interchangeable");
-        assert!(errors.iter().any(|e| e.contains("metric_boundary_or_interval_invalid")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("metric_boundary_or_interval_invalid"))
+        );
     }
 
     #[test]
     fn reused_observation_receipt_is_rejected() {
         let mut input = fixture();
-        let ref_id = input.records[0].metrics[0].observation_evidence.evidence_reference.clone();
-        input.records[1].metrics[0].observation_evidence.evidence_reference = ref_id;
+        let ref_id = input.records[0].metrics[0]
+            .observation_evidence
+            .evidence_reference
+            .clone();
+        input.records[1].metrics[0]
+            .observation_evidence
+            .evidence_reference = ref_id;
         let errors = evaluate_service_prediction_calibration(&input)
             .expect_err("one measurement receipt cannot score two cases");
-        assert!(errors.iter().any(|e| e.contains("evidence_reference_reused")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("evidence_reference_reused"))
+        );
     }
 
     #[test]
@@ -1109,17 +1246,25 @@ mod tests {
         input.records[0].metrics[0].observation_evidence.asset_id = "different-pack".to_owned();
         let errors = evaluate_service_prediction_calibration(&input)
             .expect_err("observation must bind to exact pack");
-        assert!(errors.iter().any(|e| e.contains("metric_observation_evidence_invalid")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("metric_observation_evidence_invalid"))
+        );
     }
 
     #[test]
     fn insufficient_calibration_samples_never_produce_qualification() {
         let mut input = fixture();
         input.minimum_calibration_samples_per_group = 100;
-        let report = evaluate_service_prediction_calibration(&input).expect("audit remains reportable");
-        assert!(report.metric_groups.iter().all(|g| {
-            g.status == CalibrationGroupStatus::InsufficientCalibrationSamples
-        }));
+        let report =
+            evaluate_service_prediction_calibration(&input).expect("audit remains reportable");
+        assert!(
+            report
+                .metric_groups
+                .iter()
+                .all(|g| { g.status == CalibrationGroupStatus::InsufficientCalibrationSamples })
+        );
         assert!(!report.all_metric_groups_empirically_supported);
     }
 
@@ -1156,7 +1301,11 @@ mod tests {
             input.records[0].metrics[0].predicted_upper + 1;
         let errors = evaluate_service_prediction_calibration(&input)
             .expect_err("point forecast must be inside its interval");
-        assert!(errors.iter().any(|e| e.contains("metric_boundary_or_interval_invalid")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("metric_boundary_or_interval_invalid"))
+        );
     }
 
     #[test]
