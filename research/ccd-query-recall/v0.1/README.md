@@ -11,7 +11,7 @@ The NYU sample dataset provides one oracle Boolean per eight-row edge-edge or ve
 Candidate layer:
 - Forwarded and fallback queries reach narrowphase.
 - A certified-pruned query must carry certificate digest, frozen-input digest, verifier identity and explicit accepted-and-replayed status.
-- Candidate recall, precision, false-positive rate, false-negative count and fallback rate are computed only over query labels.
+- Candidate recall, precision, false-positive rate, false-negative count and fallback rate are computed only over query labels. Results are stratified by dataset, scene, time step and query class; the aggregate score never replaces the per-stratum rows.
 
 Narrowphase layer:
 - Each forwarded/fallback query must record collision, no collision or indeterminate.
@@ -23,7 +23,7 @@ Narrowphase layer:
 
 The library depends on nyu-ccd-query-import and constructs query identity from dataset, scene, time step, query class and query index. Ground truth must already be attached to the imported query. It does not infer oracle labels from the tested algorithm.
 
-The evaluator does not count broadphase box pairs, map query indices to collider pairs, or prove a pruning certificate. The verifier receipt is a declared input and must come from the independently qualified checker (#7307). The score is not a cryptographic attestation.
+The evaluator does not count broadphase box pairs, map query indices to collider pairs, or prove a pruning certificate. The verifier receipt is a declared input and must come from the independently qualified checker (#7307). The score is not a cryptographic attestation. Safe negative certificate-backed prunes are counted as certified prunes and are allowed to qualify even though their narrowphase is correctly not run; oracle-positive prunes remain explicit candidate and narrowphase false negatives.
 
 ## Run
 
