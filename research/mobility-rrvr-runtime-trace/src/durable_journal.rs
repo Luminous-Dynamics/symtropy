@@ -1794,7 +1794,9 @@ mod tests {
             })
             .unwrap();
         assert_eq!(
-            reset_journal.recovery_projection().reset_reconciliation_required,
+            reset_journal
+                .recovery_projection()
+                .reset_reconciliation_required,
             Vec::<String>::new()
         );
         drop(reset_journal);
@@ -1838,8 +1840,16 @@ mod tests {
             reconciled_projection.dispatches[0].disposition,
             DispatchRecoveryDisposition::ReconciledRejected
         );
-        assert!(reconciled_projection.dispatch_ledger_reconciliation_required.is_empty());
-        assert!(reconciled_projection.dispatch_execution_evidence_pending.is_empty());
+        assert!(
+            reconciled_projection
+                .dispatch_ledger_reconciliation_required
+                .is_empty()
+        );
+        assert!(
+            reconciled_projection
+                .dispatch_execution_evidence_pending
+                .is_empty()
+        );
         drop(dispatch_journal);
         cleanup(&dispatch_path);
     }
