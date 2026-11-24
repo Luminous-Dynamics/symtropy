@@ -375,6 +375,26 @@ fn validate_experiment(
         return Err(DecisionValueErrorV0::DuplicateOutcomeId);
     }
 
+    let mut seen_likelihoods = BTreeSet::new();
+    for entry in &experiment.likelihoods {
+        if !problem
+            .hypotheses
+            .iter()
+            .any(|hypothesis| hypothesis.id == entry.hypothesis_id)
+        {
+            return Err(DecisionValueErrorV0::UnknownHypothesisId);
+        }
+        if !experiment.outcome_ids.contains(&entry.outcome_id) {
+            return Err(DecisionValueErrorV0::UnknownOutcomeId);
+        }
+        if entry.likelihood_weight > experiment.likelihood_scale {
+            return Err(DecisionValueErrorV0::LikelihoodExceedsScale);
+        }
+        if !seen_likelihoods.insert((entry.hypothesis_id, entry.outcome_id)) {
+            return Err(DecisionValueErrorV0::DuplicateLikelihoodEntry);
+        }
+    }
+
     let expected_likelihood_entries = problem
         .hypotheses
         .len()
@@ -384,46 +404,19 @@ fn validate_experiment(
         return Err(DecisionValueErrorV0::IncompleteLikelihoodTable);
     }
 
-    let mut seen_likelihoods = BTreeSet::new();
     for hypothesis in &problem.hypotheses {
-        let mut row_total = 0_u32;
-        for outcome_id in &experiment.outcome_ids {
-            let entry = experiment
-                .likelihoods
-                .iter()
-                .find(|entry| {
-                    entry.hypothesis_id == hypothesis.id && entry.outcome_id == *outcome_id
-                })
-                .ok_or(DecisionValueErrorV0::IncompleteLikelihoodTable)?;
-            if entry.likelihood_weight > experiment.likelihood_scale {
-                return Err(DecisionValueErrorV0::LikelihoodExceedsScale);
-            }
-            row_total = row_total
-                .checked_add(u32::from(entry.likelihood_weight))
-                .ok_or(DecisionValueErrorV0::ArithmeticOverflow)?;
-            if !seen_likelihoods.insert((entry.hypothesis_id, entry.outcome_id)) {
-                return Err(DecisionValueErrorV0::DuplicateLikelihoodEntry);
-            }
-        }
+        let row_total = experiment
+            .likelihoods
+            .iter()
+            .filter(|entry| entry.hypothesis_id == hypothesis.id)
+            .try_fold(0_u32, |total, entry| {
+                total
+                    .checked_add(u32::from(entry.likelihood_weight))
+                    .ok_or(DecisionValueErrorV0::ArithmeticOverflow)
+            })?;
         if row_total != u32::from(experiment.likelihood_scale) {
             return Err(DecisionValueErrorV0::LikelihoodRowDoesNotNormalize);
         }
-    }
-
-    if experiment.likelihoods.iter().any(|entry| {
-        !problem
-            .hypotheses
-            .iter()
-            .any(|hypothesis| hypothesis.id == entry.hypothesis_id)
-    }) {
-        return Err(DecisionValueErrorV0::UnknownHypothesisId);
-    }
-    if experiment
-        .likelihoods
-        .iter()
-        .any(|entry| !experiment.outcome_ids.contains(&entry.outcome_id))
-    {
-        return Err(DecisionValueErrorV0::UnknownOutcomeId);
     }
 
     Ok(())
