@@ -14,6 +14,8 @@ The input is a prescribed 2D velocity field in pixel/time units and a set of sub
 
 Noise values are inputs, not generated implicitly. The same frozen inputs therefore produce byte-identical image pairs.
 
+The returned pair also exposes floating-point analog detector values after gain/offset/noise/masking but before clipping/quantization. `central_difference_image_sensitivity(plus, minus, step)` builds a row-major two-frame image sensitivity column. Keep seeds, masks and explicit noise identical between parameter perturbations; assemble the resulting columns into an identifiability Jacobian only after separately qualified covariance whitening. The analog path preserves sub-LSB sensitivity that would disappear in the uint16 image.
+
 ## Units and limits
 
 - Particle x/y, velocity and optical sigma are in pixels and pixels/time.
@@ -36,3 +38,7 @@ The V0 crate currently contains 11 deterministic Rust tests covering stationary 
 ## Related high-throughput generator: SynthPix
 
 Use [SynthPix](https://github.com/antonioterpin/synthpix) (MIT, current public repository v0.4.0 at commit `0effe6e70b77d0d5c97348d8220e74d31bfaee2e`) for high-throughput batched JAX image generation, large nuisance sweeps and training-data production. This crate is not intended to compete on GPU throughput. Its role is a small deterministic reference/negative-control implementation for explicit exposure integration, RK2 particle paths, Gaussian sheet attenuation, PSF, fixed sensor-noise arrays and fail-closed numerical/domain behavior. Compare semantic coverage first and throughput only under matched settings/hardware. See the research note for the pinned paper and limitations.
+
+## Manufactured tests
+
+The current operator has 14 deterministic tests, including sub-LSB analog finite differences, gain/brightness confounding, and malformed sensitivity input rejection.
