@@ -193,8 +193,20 @@ pub enum OracleAdapterError {
     EmptyTailRiskSample,
     InvalidTailConfidence(f64),
     TailLossOutsideBound(u16),
-    /// Cluster-size weighting is not yet certified for this conversion.
-    EmptyDependenceCluster(String),
+    ClusterIdentityCountMismatch {
+        schedule_rows: usize,
+        cluster_ids: usize,
+    },
+    ClusterPolicyWidthMismatch {
+        cluster_id: String,
+        expected: usize,
+        found: usize,
+    },
+    ClusterLossOutsideBound {
+        cluster_id: String,
+        policy_index: usize,
+        value_milli: u16,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -301,9 +313,10 @@ impl OracleCalibrationBundle {
             return Err(OracleAdapterError::EmptyDataset);
         }
         if schedules.len() != cluster_ids.len() {
-            return Err(OracleAdapterError::EmptyDependenceCluster(
-                "row/cluster identity length mismatch".to_owned(),
-            ));
+            return Err(OracleAdapterError::ClusterIdentityCountMismatch {
+                schedule_rows: schedules.len(),
+                cluster_ids: cluster_ids.len(),
+            });
         }
 
         let mut groups: BTreeMap<&str, Vec<usize>> = BTreeMap::new();
@@ -315,21 +328,27 @@ impl OracleCalibrationBundle {
         let mut schedules_per_cluster = Vec::with_capacity(groups.len());
         let mut cluster_rows = Vec::with_capacity(groups.len());
         for (cluster_id, row_indices) in groups {
-            if row_indices.is_empty() {
-                return Err(OracleAdapterError::EmptyDependenceCluster(
-                    cluster_id.to_owned(),
-                ));
-            }
             let width = self.policy_ids.len();
             let mut sums = vec![0_u64; width];
             for row_index in &row_indices {
                 let row = &schedules[*row_index];
-                if row.len() != width || row.iter().any(|value| *value > MAX_LOSS_MILLI) {
-                    return Err(OracleAdapterError::EmptyDependenceCluster(
-                        cluster_id.to_owned(),
-                    ));
+                if row.len() != width {
+                    return Err(OracleAdapterError::ClusterPolicyWidthMismatch {
+                        cluster_id: cluster_id.to_owned(),
+                        expected: width,
+                        found: row.len(),
+                    });
                 }
-                for (sum, loss) in sums.iter_mut().zip(row.iter()) {
+                for (policy_index, (sum, loss)) in
+                    sums.iter_mut().zip(row.iter()).enumerate()
+                {
+                    if *loss > MAX_LOSS_MILLI {
+                        return Err(OracleAdapterError::ClusterLossOutsideBound {
+                            cluster_id: cluster_id.to_owned(),
+                            policy_index,
+                            value_milli: *loss,
+                        });
+                    }
                     *sum += u64::from(*loss);
                 }
             }
