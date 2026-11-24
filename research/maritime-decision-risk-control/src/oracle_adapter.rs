@@ -197,6 +197,7 @@ pub enum OracleAdapterError {
         schedule_rows: usize,
         cluster_ids: usize,
     },
+    EmptyDependenceClusterId,
     ClusterPolicyWidthMismatch {
         cluster_id: String,
         expected: usize,
@@ -326,6 +327,9 @@ impl OracleCalibrationBundle {
 
         let mut groups: BTreeMap<&str, Vec<usize>> = BTreeMap::new();
         for (row_index, cluster_id) in cluster_ids.iter().enumerate() {
+            if cluster_id.trim().is_empty() {
+                return Err(OracleAdapterError::EmptyDependenceClusterId);
+            }
             groups.entry(cluster_id.as_str()).or_default().push(row_index);
         }
 
@@ -1228,6 +1232,60 @@ mod tests {
             hard_means.loss.schedules,
             vec![vec![0, 0], vec![1_000, 0]]
         );
+    }
+
+    #[test]
+    fn cluster_mean_matrix_rejects_row_cluster_identity_length_mismatch() {
+        let bundle = compile_oracle_outcomes(&valid_dataset()).expect("valid bundle");
+        let mut corrupted = bundle.clone();
+        corrupted.calibration_dependence_cluster_ids.pop();
+        assert!(matches!(
+            corrupted.cluster_mean_matrix(DatasetRole::Calibration, LossAxis::ServiceLoss),
+            Err(OracleAdapterError::ClusterIdentityCountMismatch {
+                schedule_rows: 2,
+                cluster_ids: 1,
+            })
+        ));
+    }
+
+    #[test]
+    fn cluster_mean_matrix_rejects_policy_width_mismatch() {
+        let bundle = compile_oracle_outcomes(&valid_dataset()).expect("valid bundle");
+        let mut corrupted = bundle.clone();
+        corrupted.calibration_service_loss_milli[0].pop();
+        assert!(matches!(
+            corrupted.cluster_mean_matrix(DatasetRole::Calibration, LossAxis::ServiceLoss),
+            Err(OracleAdapterError::ClusterPolicyWidthMismatch {
+                expected: 2,
+                found: 1,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn cluster_mean_matrix_rejects_loss_outside_declared_bound() {
+        let bundle = compile_oracle_outcomes(&valid_dataset()).expect("valid bundle");
+        let mut corrupted = bundle.clone();
+        corrupted.calibration_service_loss_milli[0][0] = 1_001;
+        assert!(matches!(
+            corrupted.cluster_mean_matrix(DatasetRole::Calibration, LossAxis::ServiceLoss),
+            Err(OracleAdapterError::ClusterLossOutsideBound {
+                value_milli: 1_001,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn cluster_mean_matrix_rejects_empty_cluster_identity() {
+        let bundle = compile_oracle_outcomes(&valid_dataset()).expect("valid bundle");
+        let mut corrupted = bundle.clone();
+        corrupted.calibration_dependence_cluster_ids[0].clear();
+        assert!(matches!(
+            corrupted.cluster_mean_matrix(DatasetRole::Calibration, LossAxis::ServiceLoss),
+            Err(OracleAdapterError::EmptyDependenceClusterId)
+        ));
     }
 
     #[test]
