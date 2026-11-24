@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - "schemas/manufacturing/mfg_policy_v02_challenge_corpus.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_evaluator_labels.schema.json"
       - "tools/mfg-policy-v02-challenge-generator/**"
       - ".github/workflows/mfg-policy-v02-challenge-generator.yml"
   push:
