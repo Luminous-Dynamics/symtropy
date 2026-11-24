@@ -1,0 +1,353 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "NAV-TEMPORAL-ROBUST-VOI-V0_1",
+  "status": "synthetic_specification_only",
+  "execution_status": {
+    "fixture_definitions_instantiated": false,
+    "results_generated": false,
+    "dataset_payloads_admitted": 0,
+    "physical_campaigns_completed": 0
+  },
+  "reference_model": {
+    "horizon_actions": 2,
+    "max_candidate_actions": 4,
+    "persistent_models": 2,
+    "persistent_common_cause_states": 2,
+    "navigation_states": 2,
+    "joint_hidden_state_count": 8,
+    "outcome_alphabet": [
+      "no_observation",
+      "observed_zero",
+      "observed_one"
+    ],
+    "model_identity_persistent": true,
+    "common_cause_persistent": true,
+    "navigation_state_evolves_during_evidence_age": true,
+    "shared_observable_policy_across_models": true,
+    "second_action_capture_epoch": "first_action_use_epoch",
+    "resource_dimensions": [
+      "latency_ns",
+      "energy_uj",
+      "bandwidth_bytes"
+    ],
+    "probability_representation": "integer_fixed_point_with_checked_arithmetic",
+    "risk_objective": "mission_global_minimax",
+    "separate_regret_objective": true,
+    "branchwise_switching_model": "diagnostic_only"
+  },
+  "baselines": [
+    {
+      "id": "static_minimax",
+      "name": "Static-state mission-global minimax",
+      "role": "baseline"
+    },
+    {
+      "id": "time_aware_fixed_kernel",
+      "name": "Time-aware fixed-kernel exact policy (#7284)",
+      "role": "baseline"
+    },
+    {
+      "id": "persistent_bayesian_mixture",
+      "name": "Persistent Bayesian joint model mixture (#7275)",
+      "role": "baseline"
+    },
+    {
+      "id": "mission_global_minimax",
+      "name": "Mission-global minimax policy (#7277)",
+      "role": "primary_robust_comparator"
+    },
+    {
+      "id": "mission_global_minimax_regret",
+      "name": "Mission-global minimax regret (#7278)",
+      "role": "secondary_robust_comparator"
+    },
+    {
+      "id": "rectangular_switching",
+      "name": "Branchwise model-switching adversary",
+      "role": "diagnostic_only"
+    },
+    {
+      "id": "time_validity_gate",
+      "name": "Time-validity gate only (#7139)",
+      "role": "baseline"
+    },
+    {
+      "id": "one_step_greedy",
+      "name": "One-step greedy decision value",
+      "role": "baseline"
+    },
+    {
+      "id": "mutual_information",
+      "name": "Mutual information / expected information gain",
+      "role": "baseline"
+    },
+    {
+      "id": "periodic_random",
+      "name": "Periodic and random sensing",
+      "role": "operational_baseline"
+    },
+    {
+      "id": "kinematic_prediction",
+      "name": "Constant-velocity / kinematic extrapolation",
+      "role": "tracking_baseline"
+    },
+    {
+      "id": "deep_delay_compensation",
+      "name": "Deep trajectory delay-compensation",
+      "role": "sota_reproduction_baseline"
+    },
+    {
+      "id": "clairvoyant",
+      "name": "Clairvoyant future-state evaluator",
+      "role": "evaluator_only"
+    }
+  ],
+  "scoreboards": [
+    {
+      "id": "localization_tracking",
+      "metrics": [
+        "position_error_p50",
+        "position_error_p95",
+        "position_error_p99",
+        "mean_position_error",
+        "trajectory_error_accumulation",
+        "velocity_error",
+        "orientation_error",
+        "availability",
+        "latency"
+      ]
+    },
+    {
+      "id": "decision_integrity",
+      "metrics": [
+        "false_safe_exposure",
+        "false_degraded_exposure",
+        "use_epoch_calibration",
+        "stale_evidence_overconfidence",
+        "risk_coverage_curve",
+        "abstention_rate",
+        "invalid_decision_count"
+      ]
+    },
+    {
+      "id": "active_sensing",
+      "metrics": [
+        "expected_loss_by_model",
+        "worst_case_mission_loss",
+        "minimax_regret",
+        "exact_oracle_gap",
+        "clairvoyant_gap",
+        "acquisition_yield",
+        "redundant_acquisition_count",
+        "stop_timing"
+      ]
+    },
+    {
+      "id": "operations",
+      "metrics": [
+        "latency_ns",
+        "energy_uj_per_valid_decision",
+        "airtime_bytes",
+        "compute_time",
+        "memory_peak",
+        "time_degraded",
+        "recovery_time"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "S01_STATIC_VS_DYNAMIC",
+      "family": "temporal_ranking",
+      "challenge": "A capture-perfect action ages through state evolution while a noisier fresh action remains current.",
+      "expected_invariant": "The time-aware planner may prefer the fresher action even when static planning prefers the capture-perfect action.",
+      "expected_disposition": "evaluate",
+      "fixture_status": "not_instantiated",
+      "measurement_status": "not_measured"
+    },
+    {
+      "id": "S02_OPPOSING_TRANSITIONS",
+      "family": "model_set_disagreement",
+      "challenge": "Two persistent models assign opposing transition probabilities to the same action.",
+      "expected_invariant": "The robust policy is selected from one shared observable tree and minimizes the maximum complete-mission model risk.",
+      "expected_disposition": "evaluate",
+      "fixture_status": "not_instantiated",
+      "measurement_status": "not_measured"
+    },
+    {
+      "id": "S03_TRANSITION_ONLY_MISMATCH",
+      "family": "transition_model_shift",
+      "challenge": "Observation likelihoods are identical across models while transition kernels differ.",
+      "expected_invariant": "Any policy difference is attributable to temporal dynamics uncertainty, not observation likelihood.",
+      "expected_disposition": "evaluate",
+      "fixture_status": "not_instantiated",
+      "measurement_status": "not_measured"
+    },
+    {
+      "id": "S04_OBSERVATION_ONLY_MISMATCH",
+      "family": "observation_model_shift",
+      "challenge": "Transition kernels are identical across models while observation likelihoods differ.",
+      "expected_invariant": "Any policy difference is attributable to observation-model uncertainty, not state evolution.",
+      "expected_disposition": "evaluate",
+      "fixture_status": "not_instantiated",
+      "measurement_status": "not_measured"
+    },
+    {
+      "id": "S05_COMMON_CAUSE",
+      "family": "persistent_dependence",
+      "challenge": "A hidden shared-fault regime persists across the mission and affects multiple sensor outcomes.",
+      "expected_invariant": "Repeated observations must update one joint fault posterior; independent multiplication is prohibited.",
+      "expected_disposition": "evaluate",
+      "fixture_status": "not_instantiated",
+      "measurement_status": "not_measured"
+    },
+    {
+      "id": "S06_PERSISTENT_VS_RECTANGULAR",
+      "family": "adversary_semantics",
+      "challenge": "The mission-persistent model objective is compared with a branchwise model-switching adversary.",
+      "expected_invariant": "The two objectives are reported separately and are not substituted for each other.",
+      "expected_disposition": "evaluate",
+      "fixture_status": "not_instantiated",
+      "measurement_status": "not_measured"
+    },
+    {
+      "id": "S07_STATE_DEPENDENT_DROPOUT",
+      "family": "missing_observation",
+      "challenge": "No-observation likelihood differs between inside/outside states and the state then evolves.",
+      "expected_invariant": "No-observation conditions the capture belief before model-specific temporal propagation.",
+      "expected_disposition": "evaluate",
+      "fixture_status": "not_instantiated",
+      "measurement_status": "not_measured"
+    },
+    {
+      "id": "S08_OLD_CAPTURE_RECENT_RECEIPT",
+      "family": "age_semantics",
+      "challenge": "A delayed result arrives recently but was captured earlier.",
+      "expected_invariant": "Receipt time does not reset evidence age; use-epoch state is derived from capture time and elapsed age.",
+      "expected_disposition": "evaluate",
+      "fixture_status": "not_instantiated",
+      "measurement_status": "not_measured"
+    },
+    {
+      "id": "S09_MISSING_TRANSITION_EVIDENCE",
+      "family": "fail_closed",
+      "challenge": "Transition evidence or model commitment is absent.",
+      "expected_invariant": "Reject or explicitly mark unknown; never substitute identity transition or certainty.",
+      "expected_disposition": "reject",
+      "fixture_status": "not_instantiated",
+      "measurement_status": "not_measured"
+    },
+    {
+      "id": "S10_ZERO_AGE_IDENTITY",
+      "family": "temporal_boundary",
+      "challenge": "Evidence age is exactly zero for every model and common-cause regime.",
+      "expected_invariant": "Every zero-age transition must be identity; non-identity input rejects.",
+      "expected_disposition": "reject",
+      "fixture_status": "not_instantiated",
+      "measurement_status": "not_measured"
+    },
+    {
+      "id": "S11_MODEL_SET_EXPANSION",
+      "family": "robust_monotonicity",
+      "challenge": "A plausible model is added to the persistent candidate set while policy and previous models remain unchanged.",
+      "expected_invariant": "Worst-case risk of a fixed policy cannot decrease when the model set expands.",
+      "expected_disposition": "evaluate",
+      "fixture_status": "not_instantiated",
+      "measurement_status": "not_measured"
+    },
+    {
+      "id": "S12_MODEL_LABEL_PERMUTATION",
+      "family": "metamorphic_invariance",
+      "challenge": "Persistent model labels are permuted without changing model parameters.",
+      "expected_invariant": "Selected objective value and policy semantics remain invariant under label permutation.",
+      "expected_disposition": "evaluate",
+      "fixture_status": "not_instantiated",
+      "measurement_status": "not_measured"
+    },
+    {
+      "id": "S13_BRANCH_RESOURCE_CEILINGS",
+      "family": "operational_constraints",
+      "challenge": "Each observable first-outcome branch selects stop or a second action with different resource costs.",
+      "expected_invariant": "Every reachable branch respects latency, energy and bandwidth ceilings; no action is reused.",
+      "expected_disposition": "reject",
+      "fixture_status": "not_instantiated",
+      "measurement_status": "not_measured"
+    },
+    {
+      "id": "S14_FUTURE_INFORMATION_LEAKAGE",
+      "family": "chronology_integrity",
+      "challenge": "The policy input includes a future observation or a future transition/model digest.",
+      "expected_invariant": "Reject chronology leakage; controller decisions use only information available in the observable history.",
+      "expected_disposition": "reject",
+      "fixture_status": "not_instantiated",
+      "measurement_status": "not_measured"
+    }
+  ],
+  "dataset_tracks": [
+    {
+      "id": "MILUV_DYNAMIC",
+      "name": "MILUV",
+      "role": "dynamic replay candidate",
+      "admission_status": "not_admitted",
+      "use_limit": "candidate only after payload-rights, provenance, timestamp, frame, synchronization, and motion-capture truth audits"
+    },
+    {
+      "id": "HYMN_SPATIAL",
+      "name": "HYMN",
+      "role": "stationary spatial-generalization track",
+      "admission_status": "not_admitted",
+      "use_limit": "published v1 fixed-reference stationary sampling; not evidence for continuous-motion delay compensation"
+    }
+  ],
+  "proposed_targets": {
+    "exact_tiny_oracle_agreement": "100%",
+    "seeded_negative_control_rejection": "100%",
+    "medium_suite_relative_regret_target": "<=1% where exact oracle is tractable; report tails and worst-case separately",
+    "delay_compensation_reproduction": "reproduce the published baseline on identical dataset, target epoch, and split before claiming superiority",
+    "stretch_tracking_target": "at least 10% lower mean error and >85% within 0.5m, without worse P95/P99, valid coverage, or false-safe exposure",
+    "operational_target": "at least 20% lower energy or airtime than periodic sensing at equal or lower worst-case use-epoch risk"
+  },
+  "references": [
+    {
+      "name": "Modaberi and Far 2026 delay-compensated UWB tracking",
+      "url": "https://doi.org/10.1016/j.eswa.2026.132248",
+      "scope": "dynamic accuracy baseline; not an integrity guarantee"
+    },
+    {
+      "name": "HYMN dataset descriptor",
+      "url": "https://arxiv.org/abs/2604.20349",
+      "scope": "multitechnology spatial and transition-location dataset; published v1 static sampling"
+    },
+    {
+      "name": "HYMN methods comparison",
+      "url": "https://arxiv.org/abs/2609.25835",
+      "scope": "spatial generalization comparison; not continuous trajectory replay"
+    },
+    {
+      "name": "MILUV dataset paper",
+      "url": "https://doi.org/10.1177/02783649251405898",
+      "scope": "dynamic UWB and vision/UAV trajectories with motion-capture truth"
+    },
+    {
+      "name": "UWB CIR NLOS survey November 2026",
+      "url": "https://doi.org/10.1016/j.compeleceng.2026.111418",
+      "scope": "method taxonomy and cross-domain generalization limitations"
+    },
+    {
+      "name": "ISO/IEC 21134:2026",
+      "url": "https://www.iso.org/standard/86651.html",
+      "scope": "integrated localization/tracking benchmark framework"
+    },
+    {
+      "name": "FiRa Core 4.1 announcement",
+      "url": "https://www.firaconsortium.org/news/press-releases/2026/10/fira-consortium-launches-core-4-1-specifications-and-enhanced",
+      "scope": "UWB subsystem feature and certification changes"
+    },
+    {
+      "name": "FiRa certification scope",
+      "url": "https://www.firaconsortium.org/certifications/certification-program",
+      "scope": "PHY, MAC, and Link-layer subsystem compliance"
+    }
+  ],
+  "claim_ceiling": "Synthetic protocol only. No fixtures or results are currently generated; no dataset payload is admitted; no physical transition model, empirical accuracy, integrity risk, PHMI, safety certification, or navigation authority is established."
+}
