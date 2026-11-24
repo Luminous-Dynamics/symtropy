@@ -85,12 +85,6 @@ jobs:
         cargo fmt --manifest-path research/planar-patch-parameter-set/v0.1/Cargo.toml -- --check
         cargo test --manifest-path research/planar-patch-parameter-set/v0.1/Cargo.toml --locked
         cargo run --manifest-path research/planar-patch-parameter-set/v0.1/Cargo.toml --example parameter_set_tournament --locked
-        cargo clippy --manifest-path research/planar-patch-parameter-set/v0.1/Cargo.toml --locked --all-targets -- -D warnings
-
-    - name: Qualify Planar Patch Support Envelope
-      run: |
-        cargo fmt --manifest-path research/planar-patch-parameter-set/v0.1/Cargo.toml -- --check
-        cargo test --manifest-path research/planar-patch-parameter-set/v0.1/Cargo.toml --locked
         cargo run --manifest-path research/planar-patch-parameter-set/v0.1/Cargo.toml --example patch_support_envelope_tournament --locked
         cargo clippy --manifest-path research/planar-patch-parameter-set/v0.1/Cargo.toml --locked --all-targets -- -D warnings
 
