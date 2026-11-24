@@ -796,25 +796,15 @@ mod tests {
         )
         .expect("rank report");
         assert_eq!(report.whitened_contact_rows.len(), 3);
-        for i in 0..3 {
-            for j in 0..3 {
-                let gram = dot(
-                    &report.whitened_contact_rows[i],
-                    &report.whitened_contact_rows[j],
-                )
-                .expect("finite whitened gram");
-                // Independent reference for W_ij = J_i M^-1 J_j^T.
-                // Solve M x = J_j^T using a direct 2x2 inverse formula.
-                let det = 4.0 * 2.0 - 0.5 * 0.5;
-                let rhs = [if j == 0 { 1.0 } else if j == 1 { 0.0 } else { 1.0 },
-                           if j == 0 { 0.0 } else if j == 1 { 2.0 } else { 1.0 }];
+
+        let reference_rows = [[1.0, 0.0], [0.0, 2.0], [1.0, 1.0]];
+        let determinant = 4.0 * 2.0 - 0.5 * 0.5;
+        for (whitened_i, row_i) in report.whitened_contact_rows.iter().zip(reference_rows.iter()) {
+            for (whitened_j, row_j) in report.whitened_contact_rows.iter().zip(reference_rows.iter()) {
+                let gram = dot(whitened_i, whitened_j).expect("finite whitened gram");
                 let solved = [
-                    (2.0 * rhs[0] - 0.5 * rhs[1]) / det,
-                    (-0.5 * rhs[0] + 4.0 * rhs[1]) / det,
-                ];
-                let row_i = [
-                    if i == 0 { 1.0 } else if i == 1 { 0.0 } else { 1.0 },
-                    if i == 0 { 0.0 } else if i == 1 { 2.0 } else { 1.0 },
+                    (2.0 * row_j[0] - 0.5 * row_j[1]) / determinant,
+                    (-0.5 * row_j[0] + 4.0 * row_j[1]) / determinant,
                 ];
                 let direct = row_i[0] * solved[0] + row_i[1] * solved[1];
                 close(gram, direct, 1.0e-12);
