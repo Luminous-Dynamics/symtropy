@@ -9289,6 +9289,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-mobility-network-adapter"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "symtropy-dc-network-screen",
+]
+
+[[package]]
 name = "symtropy-net"
 version = "0.1.0"
 dependencies = [
