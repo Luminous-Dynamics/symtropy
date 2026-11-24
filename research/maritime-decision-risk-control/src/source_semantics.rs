@@ -449,6 +449,12 @@ pub fn admit_claim(claim: &SourceClaim) -> Result<AdmissionDecision, ArtifactVal
         ));
     }
 
+    let Some(evidence_class) = supported_evidence(claim.artifact_class, claim.claim_kind) else {
+        return Ok(AdmissionDecision::Blocked(
+            AdmissionBlock::SourceClassDoesNotSupportClaim,
+        ));
+    };
+
     if claim.claim_kind.requires_physical_observation() && claim.event_time_unix.is_none() {
         return Ok(AdmissionDecision::Blocked(AdmissionBlock::EventTimeUnknown));
     }
@@ -475,12 +481,6 @@ pub fn admit_claim(claim: &SourceClaim) -> Result<AdmissionDecision, ArtifactVal
             ));
         }
     }
-
-    let Some(evidence_class) = supported_evidence(claim.artifact_class, claim.claim_kind) else {
-        return Ok(AdmissionDecision::Blocked(
-            AdmissionBlock::SourceClassDoesNotSupportClaim,
-        ));
-    };
 
     match evidence_class {
         AdmittedEvidenceClass::IndependentPhysicalObservation => {
@@ -1325,6 +1325,7 @@ mod tests {
         );
         candidate.artifact.independence_evidence_ref =
             Some("synthetic-independent-witness-review".to_owned());
+        candidate.artifact.valid_from_unix = None;
         candidate.artifact.valid_until_unix = Some(FIXTURE_EVENT_TIME - 1);
         assert_eq!(
             admit_claim(&candidate),
