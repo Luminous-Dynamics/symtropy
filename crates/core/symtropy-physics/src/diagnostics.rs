@@ -15,6 +15,52 @@ use serde::{Deserialize, Serialize};
 use crate::body::BodyType;
 use crate::world::PhysicsWorld;
 
+/// Deterministic work counters for the most recently executed narrowphase.
+///
+/// These counters are instrumentation, not a physical-validity verdict. They
+/// contain no wall-clock timing and can therefore be compared across exact
+/// replays. A future contact-recycling implementation can add explicit reuse
+/// and invalidation counters without overloading impulse-cache statistics.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NarrowphaseStats {
+    /// Candidate body pairs emitted by the broadphase.
+    pub candidate_pairs: usize,
+    /// Candidate pairs whose body handles could not be resolved.
+    pub invalid_handle_pairs: usize,
+    /// Calls to the analytical half-space contact path.
+    pub halfspace_analytic_checks: usize,
+    /// Half-space path calls that returned a contact manifold.
+    pub halfspace_analytic_hits: usize,
+    /// Half-space pairs authoritatively rejected without GJK/EPA.
+    pub halfspace_no_contact_skips: usize,
+    /// Calls to the analytical box SAT path.
+    pub box_sat_checks: usize,
+    /// Box SAT calls that returned a contact manifold.
+    pub box_sat_hits: usize,
+    /// Box pairs authoritatively rejected without GJK/EPA.
+    pub box_sat_no_contact_skips: usize,
+    /// Calls into a registered mesh contact provider.
+    pub mesh_provider_calls: usize,
+    /// Manifolds returned by mesh contact providers (including sensor pairs).
+    pub mesh_manifolds_returned: usize,
+    /// Generic transformed GJK calls.
+    pub gjk_calls: usize,
+    /// GJK calls that reported an intersection.
+    pub gjk_intersections: usize,
+    /// EPA calls made after a non-sensor GJK intersection.
+    pub epa_calls: usize,
+    /// EPA calls that returned a penetration result.
+    pub epa_successes: usize,
+    /// Positive-depth manifolds generated from EPA results.
+    pub epa_manifolds_generated: usize,
+    /// Sensor overlaps emitted during narrowphase.
+    pub sensor_overlaps: usize,
+    /// Non-sensor manifolds retained for contact resolution.
+    pub contact_manifolds: usize,
+    /// Total contact points retained for contact resolution.
+    pub contact_points: usize,
+}
+
 /// A quantitative snapshot of world-level physical invariants and health.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InvariantSnapshot<const D: usize> {
@@ -171,9 +217,9 @@ impl<const D: usize> PhysicsWorld<D> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::body::{BodyHandle, RigidBody};
+    use crate::body::{BodyHandle, BodyType, RigidBody};
     use nalgebra::SVector;
-    use symtropy_math::Point;
+    use symtropy_math::{HalfSpace, HyperBox, Point, Transform};
 
     #[test]
     fn snapshot_reports_mass_center_and_momentum() {
@@ -219,5 +265,79 @@ mod tests {
         let snapshot = world.invariant_snapshot();
         assert_eq!(snapshot.non_finite_body_count, 1);
         assert!(!snapshot.is_numerically_healthy(1e-9));
+    }
+    #[test]
+    fn narrowphase_stats_count_analytic_halfspace_without_gjk_or_epa() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.add_sphere(Point::new([0.0, 0.4, 0.0]), 0.5, 1.0);
+        world.add_body(RigidBody::<3>::static_body(
+            BodyHandle(1),
+            Point::origin(),
+            Box::new(HalfSpace::<3>::new(
+                SVector::<f64, 3>::new(0.0, 1.0, 0.0),
+                0.0,
+            )),
+        ));
+
+        world.step(1.0 / 60.0);
+
+        let stats = world.narrowphase_stats();
+        assert_eq!(stats.candidate_pairs, 1);
+        assert_eq!(stats.halfspace_analytic_checks, 1);
+        assert_eq!(stats.halfspace_analytic_hits, 1);
+        assert_eq!(stats.gjk_calls, 0);
+        assert_eq!(stats.epa_calls, 0);
+        assert_eq!(stats.contact_manifolds, 1);
+        assert!(stats.contact_points > 0);
+    }
+
+    #[test]
+    fn narrowphase_stats_count_box_sat_without_gjk_or_epa() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.add_body(RigidBody::<3>::new(
+            BodyHandle(0),
+            BodyType::Dynamic,
+            Transform::identity(),
+            Box::new(HyperBox::<3>::cube(0.5)),
+            1.0,
+            SVector::from_element(1.0),
+        ));
+        world.add_body(RigidBody::<3>::new(
+            BodyHandle(1),
+            BodyType::Dynamic,
+            Transform::from_translation(Point::new([0.8, 0.0, 0.0])),
+            Box::new(HyperBox::<3>::cube(0.5)),
+            1.0,
+            SVector::from_element(1.0),
+        ));
+
+        world.step(1.0 / 60.0);
+
+        let stats = world.narrowphase_stats();
+        assert_eq!(stats.candidate_pairs, 1);
+        assert_eq!(stats.box_sat_checks, 1);
+        assert_eq!(stats.box_sat_hits, 1);
+        assert_eq!(stats.gjk_calls, 0);
+        assert_eq!(stats.epa_calls, 0);
+        assert_eq!(stats.contact_manifolds, 1);
+    }
+
+    #[test]
+    fn narrowphase_stats_distinguish_gjk_separation_from_intersection() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.add_sphere(Point::origin(), 0.5, 1.0);
+        world.add_sphere(Point::new([0.8, 0.8, 0.0]), 0.5, 1.0);
+
+        // The AABBs overlap in x and y, but the sphere centres are more than
+        // one diameter apart. Broadphase therefore emits a candidate while
+        // narrowphase must reject the actual separation.
+        world.step(1.0 / 60.0);
+
+        let stats = world.narrowphase_stats();
+        assert_eq!(stats.candidate_pairs, 1);
+        assert_eq!(stats.gjk_calls, 1);
+        assert_eq!(stats.gjk_intersections, 0);
+        assert_eq!(stats.epa_calls, 0);
+        assert_eq!(stats.contact_manifolds, 0);
     }
 }
