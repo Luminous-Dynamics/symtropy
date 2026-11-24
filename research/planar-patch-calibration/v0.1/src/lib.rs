@@ -278,11 +278,20 @@ fn validate(
 ///
 /// The returned solution is in original column order. Pivoted twice-reorthogonalized
 /// MGS diagnoses rank before back-substitution; no normal equations are formed.
+#[derive(Clone, Debug)]
+struct LeastSquaresResult {
+    rank: usize,
+    pivot_order: Vec<usize>,
+    pivot_norms: Vec<f64>,
+    basis: Vec<Vec<f64>>,
+    coefficients: Option<[f64; 3]>,
+}
+
 fn pivoted_weighted_least_squares(
     columns: &[Vec<f64>; 3],
     target: &[f64],
     rank_relative_tolerance: f64,
-) -> Result<(usize, Vec<usize>, Vec<f64>, Vec<Vec<f64>>, Option<[f64; 3]>), CalibrationError> {
+) -> Result<LeastSquaresResult, CalibrationError> {
     let rows = target.len();
     if rows == 0 || columns.iter().any(|column| column.len() != rows) {
         return Err(CalibrationError::new(
@@ -324,8 +333,8 @@ fn pivoted_weighted_least_squares(
                 continue;
             }
             let mut residual = columns[index].clone();
-            for basis_index in 0..basis.len() {
-                r[basis_index][index] = 0.0;
+            for row in r.iter_mut().take(basis.len()) {
+                row[index] = 0.0;
             }
             for _ in 0..2 {
                 for (basis_index, direction) in basis.iter().enumerate() {
@@ -388,7 +397,13 @@ fn pivoted_weighted_least_squares(
 
     let rank = basis.len();
     if rank < 3 {
-        return Ok((rank, selected_order, pivot_norms, basis, None));
+        return Ok(LeastSquaresResult {
+            rank,
+            pivot_order: selected_order,
+            pivot_norms,
+            basis,
+            coefficients: None,
+        });
     }
 
     let mut triangular = vec![vec![0.0_f64; 3]; 3];
@@ -428,7 +443,13 @@ fn pivoted_weighted_least_squares(
     for index in 0..3 {
         solution[selected_order[index]] = permuted_solution[index];
     }
-    Ok((rank, selected_order, pivot_norms, basis, Some(solution)))
+    Ok(LeastSquaresResult {
+        rank,
+        pivot_order: selected_order,
+        pivot_norms,
+        basis,
+        coefficients: Some(solution),
+    })
 }
 
 pub fn calibrate_planar_patch(
@@ -486,8 +507,13 @@ pub fn calibrate_planar_patch(
         }
     }
 
-    let (rank, pivot_order, pivot_norms, basis, coefficients) =
-        pivoted_weighted_least_squares(&columns, &target, config.rank_relative_tolerance)?;
+    let LeastSquaresResult {
+        rank,
+        pivot_order,
+        pivot_norms,
+        basis,
+        coefficients,
+    } = pivoted_weighted_least_squares(&columns, &target, config.rank_relative_tolerance)?;
 
     let mut axis_excitation = Vec::with_capacity(3);
     for (axis, column) in columns.iter().enumerate() {
