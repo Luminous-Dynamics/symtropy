@@ -874,7 +874,7 @@ mod tests {
         let report = evaluate_online_service_risk(&input(observations)).unwrap();
         assert!(!report.groups[0].drift_alarm_latched);
         assert_eq!(report.groups_with_shift_alarm, 0);
-        assert_eq!(report.groups[0].observation_count_at_audit_cutoff, 80);
+        assert_eq!(report.groups[0].observed_outcome_count_at_audit_cutoff, 80);
     }
 
     #[test]
