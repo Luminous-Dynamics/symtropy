@@ -200,6 +200,7 @@ pub enum OracleProjectionError {
     DuplicateEvidenceReference { source_id: String },
     UnknownEvidenceReference { source_id: String },
     AuthorityEvidenceKindMissing { episode_id: String, policy_id: String },
+    PhysicalEvidenceKindMissing { episode_id: String, policy_id: String },
     ServiceEvidenceKindMissing { episode_id: String, policy_id: String },
     InvalidServiceLoss { episode_id: String, policy_id: String, value_milli: u16 },
     DuplicateParticipantReceipt { episode_id: String, policy_id: String, participant_id: String },
@@ -479,7 +480,7 @@ fn validate_policy_projection(
     validate_digest(&outcome.authority.receipt_sha256, "authority_receipt_sha256")?;
     validate_digest(&outcome.service_loss.receipt_sha256, "service_loss_receipt_sha256")?;
 
-    validate_source_refs(
+    let physical_kinds = validate_source_refs(
         &outcome.physical.source_evidence_ids,
         sources,
         episode_id,
@@ -487,6 +488,19 @@ fn validate_policy_projection(
         "physical",
         true,
     )?;
+    if !physical_kinds.iter().any(|kind| {
+        matches!(
+            kind,
+            SourceEvidenceKind::PhysicalObservation
+                | SourceEvidenceKind::OperationalObservation
+                | SourceEvidenceKind::ModelParameter
+        )
+    }) {
+        return Err(OracleProjectionError::PhysicalEvidenceKindMissing {
+            episode_id: episode_id.to_owned(),
+            policy_id: policy_id.to_owned(),
+        });
+    }
     let authority_kinds = validate_source_refs(
         &outcome.authority.source_evidence_ids,
         sources,
@@ -523,8 +537,24 @@ fn validate_policy_projection(
                 }
             })?;
             validate_digest(digest, "authority_record_sha256")?;
+            let authority_record_matches_source = outcome
+                .authority
+                .source_evidence_ids
+                .iter()
+                .any(|source_id| {
+                    sources.get(source_id.as_str()).is_some_and(|source| {
+                        source.kind == SourceEvidenceKind::AuthorityRecord
+                            && source.source_sha256 == digest
+                    })
+                });
             if !authority_kinds.contains(&SourceEvidenceKind::AuthorityRecord) {
                 return Err(OracleProjectionError::AuthorityEvidenceKindMissing {
+                    episode_id: episode_id.to_owned(),
+                    policy_id: policy_id.to_owned(),
+                });
+            }
+            if !authority_record_matches_source {
+                return Err(OracleProjectionError::AuthorityRecordDigestMismatch {
                     episode_id: episode_id.to_owned(),
                     policy_id: policy_id.to_owned(),
                 });
@@ -871,6 +901,16 @@ mod tests {
                     valid_to_time_utc: None,
                 },
                 SourceArtifactEvidence {
+                    source_id: "physical-model".to_owned(),
+                    source_revision: "physics-model-v1".to_owned(),
+                    source_sha256: B.to_owned(),
+                    kind: SourceEvidenceKind::ModelParameter,
+                    retrieved_at_utc: "2026-11-24T01:00:00Z".to_owned(),
+                    publication_time_utc: None,
+                    valid_from_time_utc: None,
+                    valid_to_time_utc: None,
+                },
+                SourceArtifactEvidence {
                     source_id: "authority-record".to_owned(),
                     source_revision: "grant-v1".to_owned(),
                     source_sha256: D.to_owned(),
@@ -932,7 +972,10 @@ mod tests {
                 oracle_id: "physical-oracle".to_owned(),
                 oracle_revision: "physical-v1".to_owned(),
                 disposition: physical,
-                source_evidence_ids: vec!["schedule-input".to_owned()],
+                source_evidence_ids: vec![
+                    "schedule-input".to_owned(),
+                    "physical-model".to_owned(),
+                ],
                 receipt_sha256: A.to_owned(),
             },
             authority: AuthorityOracleReceipt {
@@ -1132,6 +1175,30 @@ mod tests {
         assert!(matches!(
             audit_independent_oracle_projection(&data),
             Err(OracleProjectionError::UnknownEvidenceReference { .. })
+        ));
+    }
+
+    #[test]
+    fn authority_record_digest_must_match_the_registered_source_bytes() {
+        let mut data = valid_projection();
+        data.schedules[0].policy_outcomes[1]
+            .authority
+            .authority_record_sha256 = Some(C.to_owned());
+        assert!(matches!(
+            audit_independent_oracle_projection(&data),
+            Err(OracleProjectionError::AuthorityRecordDigestMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn physical_receipt_requires_a_model_or_observation_source() {
+        let mut data = valid_projection();
+        data.schedules[0].policy_outcomes[0]
+            .physical
+            .source_evidence_ids = vec!["schedule-input".to_owned()];
+        assert!(matches!(
+            audit_independent_oracle_projection(&data),
+            Err(OracleProjectionError::PhysicalEvidenceKindMissing { .. })
         ));
     }
 
