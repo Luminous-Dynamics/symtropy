@@ -492,8 +492,7 @@ pub fn evaluate_imported_queries(
     let mut consumed = HashSet::with_capacity(queries.len());
     let mut evaluations = Vec::with_capacity(queries.len());
     for query in queries {
-        let identity =
-            QueryIdentity::from_imported(&dataset, &scene, time_step, query);
+        let identity = QueryIdentity::from_imported(&dataset, &scene, time_step, query);
         if !consumed.insert(identity.clone()) {
             errors.push(QueryJoinError::DuplicateImportedQueryIdentity);
             continue;
@@ -514,7 +513,10 @@ pub fn evaluate_imported_queries(
         ));
     }
 
-    if by_identity.keys().any(|identity| !consumed.contains(identity)) {
+    if by_identity
+        .keys()
+        .any(|identity| !consumed.contains(identity))
+    {
         errors.push(QueryJoinError::UnmatchedRunResult);
     }
     if !errors.is_empty() {
@@ -949,9 +951,8 @@ mod tests {
 
     #[test]
     fn joins_run_results_by_identity_independent_of_order() {
-        const CSV: &str = include_str!(
-            "../../../nyu-ccd-query-import/v0.1/fixtures/armadillo-rollers-3ee.csv"
-        );
+        const CSV: &str =
+            include_str!("../../../nyu-ccd-query-import/v0.1/fixtures/armadillo-rollers-3ee.csv");
         const BOOLS: &str = include_str!(
             "../../../nyu-ccd-query-import/v0.1/fixtures/armadillo-rollers-3ee-mma-bool.json"
         );
@@ -972,14 +973,9 @@ mod tests {
                 )
             })
             .collect::<Vec<_>>();
-        let score = evaluate_imported_queries(
-            "nyu-fixture-v1",
-            "armadillo-rollers",
-            3,
-            &queries,
-            &results,
-        )
-        .unwrap();
+        let score =
+            evaluate_imported_queries("nyu-fixture-v1", "armadillo-rollers", 3, &queries, &results)
+                .unwrap();
 
         assert_eq!(score.counts.total_queries, 2);
         assert_eq!(score.counts.oracle_negative_queries, 2);
