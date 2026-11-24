@@ -401,15 +401,6 @@ pub fn render_csv() -> String {
                 case.reversibility,
                 Some("source-specific subreason omitted by target vocabulary"),
             ),
-            "lossy_mapping_with_explicit_reason" => rule(
-                "eventTypeCode",
-                "LOAD",
-                case.target_field,
-                "urn:epcglobal:cbv:bizstep:loading",
-                case.kind,
-                case.reversibility,
-                Some("source-specific subreason omitted by target vocabulary"),
-            ),
             "lossy_mapping_without_reason_rejected" => rule(
                 "eventTypeCode",
                 "LOAD",
