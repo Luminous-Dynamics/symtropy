@@ -269,9 +269,9 @@ pub fn render_csv() -> String {
                 result.eligible_policy_indices.len(),
             )),
             Err(HighProbabilityError::NoPolicyMeetsTarget) => output.push_str(&format!(
-                "{n},4,200,0.050,NA,NA,NA,NA,0,NO_POLICY_MEETS_TARGET\n"
+                "{n},4,100,0.050,NA,NA,NA,NA,0,NO_POLICY_MEETS_TARGET\n"
             )),
-            Err(_) => output.push_str(&format!("{n},4,200,0.050,NA,NA,NA,NA,0,NO_RISK_CLAIM\n")),
+            Err(_) => output.push_str(&format!("{n},4,100,0.050,NA,NA,NA,NA,0,NO_RISK_CLAIM\n")),
         }
     }
     output
