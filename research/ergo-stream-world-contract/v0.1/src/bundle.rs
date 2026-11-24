@@ -21,7 +21,7 @@ use super::behaviour::{
     validate_behavioural_correspondence,
 };
 use super::scoped::{
-    ScopedStructuralCandidateV0, ScopedTransferErrorV0, ScopedStructuralWitnessV0,
+    ScopedStructuralCandidateV0, ScopedStructuralWitnessV0, ScopedTransferErrorV0,
     validate_scoped_structural_correspondence,
 };
 use super::transfer::StructureV0;
@@ -238,7 +238,9 @@ impl fmt::Display for BundleValidationErrorV0 {
             Self::DuplicateAvailableEvidenceId => {
                 "public evidence prefix contains duplicate evidence IDs"
             }
-            Self::InvalidEvidenceId => "evidence ID does not match the public evidence identifier format",
+            Self::InvalidEvidenceId => {
+                "evidence ID does not match the public evidence identifier format"
+            }
             Self::DuplicateEntityEvidenceBinding => {
                 "entity evidence bindings contain a duplicate entity ID"
             }
@@ -352,10 +354,8 @@ pub fn validate_transfer_submission_binding(
     }
 
     if source_receipt.episode_id != binding.source_episode_id
-        || source_receipt.process_episode_receipt_sha256
-            != binding.source_episode_receipt_sha256
-        || source_receipt.final_evidence_prefix_sha256
-            != binding.source_evidence_prefix_sha256
+        || source_receipt.process_episode_receipt_sha256 != binding.source_episode_receipt_sha256
+        || source_receipt.final_evidence_prefix_sha256 != binding.source_evidence_prefix_sha256
     {
         return Err(BundleValidationErrorV0::SourceReceiptBindingMismatch);
     }
