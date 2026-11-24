@@ -242,10 +242,10 @@ impl fmt::Display for TransferCalibrationErrorV0 {
             Self::InvalidClaimScopeDigest => "claim scope digest must be a lowercase sha256 digest",
             Self::InvalidCalibrationIdentityDigest => {
                 "predictor, preprocessing, score-function and calibration artifact identities must be lowercase sha256 digests"
-            },
+            }
             Self::InvalidCalibrationReceiptIdentity => {
                 "conformal calibration identity requires a non-empty owner-issued receipt ID"
-            },
+            }
             Self::ClaimIdentityMismatch => {
                 "forecast and evaluator outcome do not bind to the same claim type and scope digest"
             }
@@ -787,9 +787,8 @@ impl SplitConformalBinaryTransferV0 {
             return Err(TransferCalibrationErrorV0::ProbabilityOutOfRange);
         }
 
-        let calibration_scope_admitted =
-            validate_conformal_identity(prediction_identity).is_ok()
-                && prediction_identity == &self.identity;
+        let calibration_scope_admitted = validate_conformal_identity(prediction_identity).is_ok()
+            && prediction_identity == &self.identity;
         if !calibration_scope_admitted {
             return Ok(TransferPredictionSetV0 {
                 sample_id,
@@ -962,9 +961,7 @@ mod tests {
         }
     }
 
-    fn conformal_identity(
-        evaluation_stratum_id: u16,
-    ) -> SplitConformalCalibrationIdentityV0 {
+    fn conformal_identity(evaluation_stratum_id: u16) -> SplitConformalCalibrationIdentityV0 {
         SplitConformalCalibrationIdentityV0 {
             receipt_id: "receipt-test-001".to_owned(),
             receipt_status: ConformalCalibrationReceiptStatusV0::Active,
@@ -1017,14 +1014,21 @@ mod tests {
     #[test]
     fn split_conformal_fits_finite_sample_order_statistic_and_predicts_singleton() {
         let (forecasts, outcomes) = conformal_calibration_fixture();
-        let calibrator =
-            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &conformal_identity(7), 250_000).unwrap();
+        let calibrator = fit_split_conformal_binary_transfer(
+            &forecasts,
+            &outcomes,
+            &conformal_identity(7),
+            250_000,
+        )
+        .unwrap();
 
         assert_eq!(calibrator.calibration_count, 3);
         assert_eq!(calibrator.quantile_rank, 3);
         assert_eq!(calibrator.quantile_nonconformity_ppm, 500_000);
 
-        let predicted = calibrator.predict(204, &conformal_identity(7), 900_000).unwrap();
+        let predicted = calibrator
+            .predict(204, &conformal_identity(7), 900_000)
+            .unwrap();
         assert!(predicted.include_transfer);
         assert!(!predicted.include_non_transfer);
         assert_eq!(predicted.decision, Some(TransferDecisionV0::AssertTransfer));
@@ -1039,16 +1043,25 @@ mod tests {
             evaluation_stratum_id: 9,
             transfer_qualified: true,
         }];
-        let calibrator =
-            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &conformal_identity(9), 500_000).unwrap();
+        let calibrator = fit_split_conformal_binary_transfer(
+            &forecasts,
+            &outcomes,
+            &conformal_identity(9),
+            500_000,
+        )
+        .unwrap();
 
         assert_eq!(calibrator.quantile_nonconformity_ppm, 100_000);
-        let tied = calibrator.predict(402, &conformal_identity(9), 900_000).unwrap();
+        let tied = calibrator
+            .predict(402, &conformal_identity(9), 900_000)
+            .unwrap();
         assert!(tied.include_transfer);
         assert!(!tied.include_non_transfer);
         assert_eq!(tied.decision, Some(TransferDecisionV0::AssertTransfer));
 
-        let empty = calibrator.predict(403, &conformal_identity(9), 500_000).unwrap();
+        let empty = calibrator
+            .predict(403, &conformal_identity(9), 500_000)
+            .unwrap();
         assert!(!empty.include_transfer);
         assert!(!empty.include_non_transfer);
         assert_eq!(empty.decision, None);
@@ -1063,15 +1076,22 @@ mod tests {
             evaluation_stratum_id: 2,
             transfer_qualified: true,
         }];
-        let calibrator =
-            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &conformal_identity(2), 100_000).unwrap();
+        let calibrator = fit_split_conformal_binary_transfer(
+            &forecasts,
+            &outcomes,
+            &conformal_identity(2),
+            100_000,
+        )
+        .unwrap();
 
         assert_eq!(calibrator.quantile_rank, 2);
         assert_eq!(
             calibrator.quantile_nonconformity_ppm,
             PROBABILITY_SCALE_PPM_V0
         );
-        let predicted = calibrator.predict(302, &conformal_identity(2), 900_000).unwrap();
+        let predicted = calibrator
+            .predict(302, &conformal_identity(2), 900_000)
+            .unwrap();
         assert!(predicted.include_transfer);
         assert!(predicted.include_non_transfer);
         assert_eq!(predicted.decision, None);
@@ -1081,15 +1101,30 @@ mod tests {
     fn split_conformal_rejects_mixed_strata_and_invalid_alpha() {
         let (forecasts, outcomes) = conformal_calibration_fixture();
         assert_eq!(
-            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &conformal_identity(8), 100_000),
+            fit_split_conformal_binary_transfer(
+                &forecasts,
+                &outcomes,
+                &conformal_identity(8),
+                100_000
+            ),
             Err(TransferCalibrationErrorV0::MixedCalibrationStrata)
         );
         assert_eq!(
-            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &conformal_identity(7), 0),
+            fit_split_conformal_binary_transfer(
+                &forecasts,
+                &outcomes,
+                &conformal_identity(7),
+                0
+            ),
             Err(TransferCalibrationErrorV0::AlphaOutOfRange)
         );
         assert_eq!(
-            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &conformal_identity(7), 1_000_000),
+            fit_split_conformal_binary_transfer(
+                &forecasts,
+                &outcomes,
+                &conformal_identity(7),
+                1_000_000
+            ),
             Err(TransferCalibrationErrorV0::AlphaOutOfRange)
         );
     }
@@ -1098,12 +1133,22 @@ mod tests {
     fn split_conformal_rejects_missing_and_duplicate_calibration_records() {
         let (forecasts, outcomes) = conformal_calibration_fixture();
         assert_eq!(
-            fit_split_conformal_binary_transfer(&forecasts[..2], &outcomes, &conformal_identity(7), 100_000),
+            fit_split_conformal_binary_transfer(
+                &forecasts[..2],
+                &outcomes,
+                &conformal_identity(7),
+                100_000
+            ),
             Err(TransferCalibrationErrorV0::MissingOutcome)
         );
         let duplicate = [forecasts[0], forecasts[0]];
         assert_eq!(
-            fit_split_conformal_binary_transfer(&duplicate, &outcomes[..1], &conformal_identity(7), 100_000),
+            fit_split_conformal_binary_transfer(
+                &duplicate,
+                &outcomes[..1],
+                &conformal_identity(7),
+                100_000
+            ),
             Err(TransferCalibrationErrorV0::DuplicateSampleId)
         );
     }
@@ -1119,7 +1164,9 @@ mod tests {
         )
         .unwrap();
 
-        let prediction = calibrator.predict(205, &conformal_identity(8), 950_000).unwrap();
+        let prediction = calibrator
+            .predict(205, &conformal_identity(8), 950_000)
+            .unwrap();
 
         assert_eq!(prediction.evaluation_stratum_id, 8);
         assert!(!prediction.calibration_scope_admitted);
@@ -1130,10 +1177,7 @@ mod tests {
 
     #[test]
     fn split_conformal_rejects_duplicate_independent_unit_ids() {
-        let forecasts = [
-            forecast(501, 900_000, None),
-            forecast(502, 100_000, None),
-        ];
+        let forecasts = [forecast(501, 900_000, None), forecast(502, 100_000, None)];
         let outcomes = [
             SplitConformalCalibrationOutcomeV0 {
                 sample_id: 501,
@@ -1150,7 +1194,12 @@ mod tests {
         ];
 
         assert_eq!(
-            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &conformal_identity(3), 100_000),
+            fit_split_conformal_binary_transfer(
+                &forecasts,
+                &outcomes,
+                &conformal_identity(3),
+                100_000
+            ),
             Err(TransferCalibrationErrorV0::DuplicateIndependentUnitId)
         );
     }
@@ -1159,7 +1208,12 @@ mod tests {
     fn split_conformal_fails_closed_when_claim_or_model_identity_changes() {
         let (forecasts, outcomes) = conformal_calibration_fixture();
         let calibrator =
-            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &conformal_identity(7), 100_000)
+            fit_split_conformal_binary_transfer(
+                &forecasts,
+                &outcomes,
+                &conformal_identity(7),
+                100_000
+            )
                 .unwrap();
 
         let baseline = conformal_identity(7);
@@ -1272,7 +1326,13 @@ mod tests {
     fn split_conformal_predict_rejects_probability_out_of_range() {
         let (forecasts, outcomes) = conformal_calibration_fixture();
         let calibrator =
-            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &conformal_identity(7), 100_000).unwrap();
+        let calibrator = fit_split_conformal_binary_transfer(
+            &forecasts,
+            &outcomes,
+            &conformal_identity(7),
+            100_000,
+        )
+        .unwrap();
         assert_eq!(
             calibrator.predict(999, &conformal_identity(7), 1_000_001),
             Err(TransferCalibrationErrorV0::ProbabilityOutOfRange)
