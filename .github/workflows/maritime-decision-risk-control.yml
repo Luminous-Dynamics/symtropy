@@ -103,4 +103,62 @@ jobs:
           grep -q "NO_POLICY_MEETS_TARGET$" /tmp/simultaneous-risk.csv
           grep -q "SIMULTANEOUS_UCB_SYNTHETIC$" /tmp/simultaneous-risk.csv
           awk -F, '$1==50000 { if ($6 != 1 || $7 > 100) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/simultaneous-risk.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin repeated-sampling-risk-audit > /tmp/repeated-sampling-risk.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin repeated-sampling-risk-audit > /tmp/repeated-sampling-risk-replay.csv
+          cmp /tmp/repeated-sampling-risk.csv /tmp/repeated-sampling-risk-replay.csv
+          test "$(wc -l < /tmp/repeated-sampling-risk.csv)" -eq 21
+          head -n 1 /tmp/repeated-sampling-risk.csv | awk -F, '{ if (NF != 27) exit 1 }'
+          awk -F, 'NF != 27 { exit 1 }' /tmp/repeated-sampling-risk.csv
+          grep -q "MARGINAL_EXPECTED_RISK" /tmp/repeated-sampling-risk.csv
+          grep -q "FIXED_GRID_HIGH_PROBABILITY" /tmp/repeated-sampling-risk.csv
+          grep -q ",NO_POSITIVE_ADJUSTED_TARGET$" /tmp/repeated-sampling-risk.csv
+          awk -F, '$2=="SIMULTANEOUS_HOEFFDING" && $6==200 { if ($8 <= 0 || $9 >= 2000 || $19=="NA") exit 1; found++; } END { if (found != 2) exit 1 }' /tmp/repeated-sampling-risk.csv
+          awk -F, '$2=="SIMULTANEOUS_HOEFFDING" && $6==10 { if ($8 != 0 || $9 != 2000 || $25!="NA") exit 1; found++; } END { if (found != 2) exit 1 }' /tmp/repeated-sampling-risk.csv
+          cargo run --release --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin repeated-sampling-risk-audit -- --full > /tmp/repeated-sampling-risk-full.csv
+          cargo run --release --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin repeated-sampling-risk-audit -- --full > /tmp/repeated-sampling-risk-full-replay.csv
+          cmp /tmp/repeated-sampling-risk-full.csv /tmp/repeated-sampling-risk-full-replay.csv
+          test "$(wc -l < /tmp/repeated-sampling-risk-full.csv)" -eq 141
+          awk -F, 'NF != 27 { exit 1 }' /tmp/repeated-sampling-risk-full.csv
+          for n in 50 120 500 1200 5000 10000 50000; do
+            awk -F, -v n="$n" '$4==n { count++ } END { if (count != 20) exit 1 }' /tmp/repeated-sampling-risk-full.csv
+          done
+          awk -F, '$2=="SIMULTANEOUS_HOEFFDING" { count++ } END { if (count != 56) exit 1 }' /tmp/repeated-sampling-risk-full.csv
+          grep -q "MARGINAL_EXPECTED_RISK" /tmp/repeated-sampling-risk-full.csv
+          grep -q "FIXED_GRID_HIGH_PROBABILITY" /tmp/repeated-sampling-risk-full.csv
+          echo "Maritime repeated-sampling risk tournament smoke receipt passed."
           echo "Maritime decision-risk and finite-grid non-monotone receipts passed."
+
+      - name: Hash exact deterministic receipts
+        env:
+          EXACT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          printf "head_sha=%s\nrun_id=%s\n" "$EXACT_HEAD_SHA" "$GITHUB_RUN_ID" > /tmp/maritime-receipt-manifest.txt
+          sha256sum \
+            /tmp/decision-risk.csv \
+            /tmp/non-monotone-risk.csv \
+            /tmp/weighted-shift-risk.csv \
+            /tmp/lipschitz-risk.csv \
+            /tmp/bernstein-risk.csv \
+            /tmp/simultaneous-risk.csv \
+            /tmp/repeated-sampling-risk.csv \
+            /tmp/repeated-sampling-risk-full.csv \
+            > /tmp/maritime-receipt-sha256.txt
+
+      - name: Upload reproducible maritime risk receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-risk-receipts-${{ github.event.pull_request.number || github.run_number }}
+          path: |
+            /tmp/maritime-receipt-manifest.txt
+            /tmp/maritime-receipt-sha256.txt
+            /tmp/decision-risk.csv
+            /tmp/non-monotone-risk.csv
+            /tmp/weighted-shift-risk.csv
+            /tmp/lipschitz-risk.csv
+            /tmp/bernstein-risk.csv
+            /tmp/simultaneous-risk.csv
+            /tmp/repeated-sampling-risk.csv
+            /tmp/repeated-sampling-risk-full.csv
+          if-no-files-found: error
+          retention-days: 30

@@ -34,3 +34,7 @@ path = "src/bin/bernstein_risk_audit.rs"
 [[bin]]
 name = "simultaneous-hoeffding-risk-audit"
 path = "src/bin/simultaneous_hoeffding_risk_audit.rs"
+
+[[bin]]
+name = "repeated-sampling-risk-audit"
+path = "src/bin/repeated_sampling_risk_audit.rs"
