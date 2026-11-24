@@ -241,7 +241,7 @@ fn expected_boundary(metric: OnlineForecastMetric) -> OnlineMeasurementBoundary 
         OnlineForecastMetric::PackTerminalEnergyWh => OnlineMeasurementBoundary::PackTerminal,
         OnlineForecastMetric::ChargeRestorationSeconds | OnlineForecastMetric::QueueWaitSeconds => {
             OnlineMeasurementBoundary::ChargerServiceClock
-        },
+        }
         OnlineForecastMetric::ChargerInputEnergyWh => OnlineMeasurementBoundary::ChargerInput,
         OnlineForecastMetric::SitePccPeakImportW => OnlineMeasurementBoundary::SitePccMeter,
     }
