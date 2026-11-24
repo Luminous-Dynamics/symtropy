@@ -507,3 +507,16 @@ Added `schemas/split_conformal_calibration_outcomes_v0.schema.json` and `example
 Added `CONFORMAL_CALIBRATION_TRANSFER_V0_2_PROTOCOL.md` defining a future structural-map-gated calibration transport tournament against DS-CP, Transported Conformal Calibration and KMM-CP. The protocol explicitly distinguishes exchangeability, covariate shift with support, paired calibration transport and concept/mechanism shift. It defines a paired-world factorial matrix, owner-bound transport receipt, baselines, metrics, acceptance gates and integration with #7041/#7193/#5990/#11171.
 
 This remains a research protocol, not an implemented weighted/TCC/KMM method or a claim of target-domain coverage outside the admitted split-conformal stratum.
+
+## Full conformal calibration identity binding — implementation added, verification pending
+
+The split-conformal Rust API now stores `SplitConformalCalibrationIdentityV0` in the calibrator. It binds:
+- owner-issued receipt ID;
+- evaluator-assigned stratum and independent-unit kind;
+- claim type and scope digest;
+- predictor, preprocessing and score-function digests;
+- calibration cohort, sample-ID set, split manifest and evidence-prefix digests.
+
+Fit rejects malformed identity digests and empty receipt IDs. Prediction takes the owner-resolved full identity; any mismatch returns the full two-label set, no decision and `calibration_scope_admitted=false`. Tests cover changes to claim type/scope, predictor, preprocessing, score function, independent-unit kind and receipt/cohort/manifest/evidence identity.
+
+The schema/example now mirror the complete identity. The Rust code validates digest shape and field equality only; active receipt signature, custody, revocation, expiry and chronology remain owner-side checks. This is a new source head after the 129-test pass and requires exact-head Rust 1.96 formatting, tests/doctests and strict Clippy.
