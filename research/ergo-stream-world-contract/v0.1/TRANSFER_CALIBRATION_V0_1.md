@@ -14,7 +14,7 @@ This creates a measurable separation between:
 - deciding whether confidence is high enough to make the claim;
 - independent evaluator outcome.
 
-The evaluator owns the labels, binning, thresholds and final scores. The learner does not get to tune the acceptance threshold on the confirmatory outcomes.
+The evaluator owns the labels, binning, thresholds and final scores. The learner does not get to tune the acceptance threshold on the confirmatory outcomes. Outcomes also carry an evaluator-assigned `evaluation_stratum_id`; it is not present in the candidate forecast. `evaluate_transfer_calibration_by_stratum` returns a deterministic per-stratum report after validating the complete cohort.
 
 ## Forecast contract
 
@@ -76,7 +76,8 @@ The Rust test suite currently checks:
 4. confidence in a rejection is \(1-p\), not \(p\);
 5. missing, duplicate and out-of-range records are rejected;
 6. duplicate/out-of-range confidence thresholds and invalid bin counts are rejected;
-7. duplicate evaluator outcome IDs and orphan outcomes are rejected.
+7. duplicate evaluator outcome IDs and orphan outcomes are rejected;
+8. per-stratum calibration surfaces a shift-specific false-transfer failure that would be diluted by pooled metrics.
 
 ## Benchmark protocol
 
