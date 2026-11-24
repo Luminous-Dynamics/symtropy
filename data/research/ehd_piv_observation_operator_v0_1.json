@@ -1,0 +1,33 @@
+{
+  "contract_id": "ehd_piv_observation_operator_v0_1",
+  "version": "0.1.0",
+  "status": "deterministic_synthetic_2d2c_measurement_operator",
+  "coordinate_units": "x_y_pixels; velocities_pixels_per_time; z_sheet_units",
+  "model_components": [
+    "prescribed_2d2c_velocity_field",
+    "subpixel_particle_seeds",
+    "bilinear_velocity_sampling",
+    "midpoint_RK2_particle_advection",
+    "finite_exposure_midpoint_quadrature",
+    "gaussian_illumination_sheet_attenuation",
+    "gaussian_particle_image",
+    "gaussian_optical_PSF_combination",
+    "sensor_gain_and_offset",
+    "explicit_additive_noise_arrays",
+    "active_pixel_mask",
+    "clipping_and_quantization"
+  ],
+  "deterministic_noise": "frozen_per_pixel_noise_inputs; no implicit random generator",
+  "non_extrapolation": "particle trajectory leaving velocity support returns VelocitySupportExceeded",
+  "manufactured_tests": 9,
+  "explicit_nonclaims": [
+    "no_tracer_inertia",
+    "no_Mie_scattering",
+    "no_nonGaussian_PSF_or_aberration",
+    "no_rolling_shutter_or_camera_nonlinearity",
+    "no_solved_3D_velocity_or_3D_PIV",
+    "no_particle_tracking_or_Shake_the_Box",
+    "no_real_EHD_observer_validation",
+    "no_raw_image_inverse_model_or_PIV_processing"
+  ]
+}
