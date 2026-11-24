@@ -738,13 +738,13 @@ pub fn audit_independent_oracle_projection(
                 ));
             }
             physical_failure_count +=
-                usize::from(outcome.physical.disposition == PhysicalDisposition::Infeasible);
+                (outcome.physical.disposition == PhysicalDisposition::Infeasible) as usize;
             physical_unknown_count +=
-                usize::from(outcome.physical.disposition == PhysicalDisposition::Unknown);
+                (outcome.physical.disposition == PhysicalDisposition::Unknown) as usize;
             authority_denied_count +=
-                usize::from(outcome.authority.disposition == AuthorityDisposition::Denied);
+                (outcome.authority.disposition == AuthorityDisposition::Denied) as usize;
             authority_unknown_count +=
-                usize::from(outcome.authority.disposition == AuthorityDisposition::Unknown);
+                (outcome.authority.disposition == AuthorityDisposition::Unknown) as usize;
             maximum_loss = Some(maximum_loss.map_or(
                 outcome.service_loss.loss_milli,
                 |current: u16| current.max(outcome.service_loss.loss_milli),
