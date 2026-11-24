@@ -1,0 +1,223 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "NAV-TEMPORAL-TAIL-RISK-V0_1",
+  "status": "specification_only",
+  "execution_status": {
+    "exact_fixtures_instantiated": false,
+    "executable_solver_implemented": false,
+    "scores_generated": false,
+    "real_payloads_admitted": 0,
+    "physical_campaigns_completed": 0
+  },
+  "policy_contract": {
+    "information_access": "observable_history_only",
+    "persistent_mission_model": true,
+    "persistent_common_cause": true,
+    "loss_epoch": "actual_evidence_use_epoch",
+    "outer_risk_aggregation": "maximum_over_complete_persistent_mission_models",
+    "inner_risk_aggregation": "CVaR_over_stochastic_mission_paths_within_fixed_model",
+    "expected_risk_and_minimax_regret_retained_as_separate_objectives": true,
+    "risk_levels": [
+      0.95,
+      0.99,
+      0.999
+    ],
+    "risk_level_0_999_requires_adequate_independent_tail_support": true,
+    "resource_handling": "hard_constraints_or_separate_pareto_dimensions"
+  },
+  "scoreboards": [
+    {
+      "id": "localization_tracking",
+      "metrics": [
+        "position_error_p50",
+        "position_error_p95",
+        "position_error_p99",
+        "mean_position_error",
+        "trajectory_drift",
+        "orientation_error",
+        "availability"
+      ]
+    },
+    {
+      "id": "decision_integrity",
+      "metrics": [
+        "false_safe_probability",
+        "false_safe_exposure",
+        "false_degraded_probability",
+        "false_degraded_exposure",
+        "cvar_95",
+        "cvar_99",
+        "use_epoch_calibration",
+        "risk_coverage",
+        "abstention"
+      ]
+    },
+    {
+      "id": "robust_policy",
+      "metrics": [
+        "expected_loss_by_model",
+        "cvar_by_model",
+        "worst_case_expected_loss",
+        "worst_case_cvar",
+        "minimax_regret",
+        "exact_oracle_gap"
+      ]
+    },
+    {
+      "id": "tail_evidence",
+      "metrics": [
+        "independent_mission_clusters",
+        "tail_sample_count",
+        "quantile_confidence_bounds",
+        "coverage_shortfall",
+        "scenario_support"
+      ]
+    },
+    {
+      "id": "operations",
+      "metrics": [
+        "latency_p50",
+        "latency_p95",
+        "latency_p99",
+        "energy",
+        "airtime",
+        "bytes",
+        "compute",
+        "memory",
+        "time_degraded",
+        "recovery_time"
+      ]
+    }
+  ],
+  "baselines": [
+    {
+      "id": "mission_global_minimax_expected",
+      "role": "primary_comparator"
+    },
+    {
+      "id": "mission_global_minimax_regret",
+      "role": "distinct_objective"
+    },
+    {
+      "id": "mission_global_robust_cvar",
+      "role": "proposed_objective"
+    },
+    {
+      "id": "bayesian_mixture_cvar",
+      "role": "prior_dependent_comparator"
+    },
+    {
+      "id": "rectangular_switching_cvar",
+      "role": "diagnostic_only"
+    },
+    {
+      "id": "greedy_decision_value",
+      "role": "baseline"
+    },
+    {
+      "id": "expected_information_gain",
+      "role": "information_baseline"
+    },
+    {
+      "id": "periodic_random",
+      "role": "operational_baseline"
+    },
+    {
+      "id": "time_validity_gate",
+      "role": "baseline"
+    },
+    {
+      "id": "constant_velocity",
+      "role": "tracking_baseline"
+    },
+    {
+      "id": "cnn_transformer_delay_compensation",
+      "role": "published_sota_reproduction"
+    },
+    {
+      "id": "clairvoyant_future_state",
+      "role": "evaluator_only"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "T01_TAIL_VS_EXPECTATION",
+      "expected": "Expected-loss and CVaR objectives can select different policies on a valid rare-event counterexample.",
+      "status": "not_instantiated"
+    },
+    {
+      "id": "T02_PERSISTENT_COMMON_CAUSE",
+      "expected": "Common-cause identity is held fixed throughout each mission path.",
+      "status": "not_instantiated"
+    },
+    {
+      "id": "T03_PERSISTENT_MODEL_DISAGREEMENT",
+      "expected": "One observable policy is evaluated under each fixed joint mission model.",
+      "status": "not_instantiated"
+    },
+    {
+      "id": "T04_USE_EPOCH_LOSS",
+      "expected": "Loss uses the actual evidence-use epoch.",
+      "status": "not_instantiated"
+    },
+    {
+      "id": "T05_STATE_DEPENDENT_DROPOUT",
+      "expected": "No-observation conditions belief and still propagates state.",
+      "status": "not_instantiated"
+    },
+    {
+      "id": "T06_MODEL_SET_EXPANSION",
+      "expected": "Worst-case CVaR for a fixed policy cannot decrease when plausible models are added.",
+      "status": "not_instantiated"
+    },
+    {
+      "id": "T07_ALPHA_MONOTONICITY",
+      "expected": "CVaR is nondecreasing in alpha for a fixed loss distribution.",
+      "status": "not_instantiated"
+    },
+    {
+      "id": "T08_CONSTANT_LOSS",
+      "expected": "CVaR equals expected loss for a constant loss.",
+      "status": "not_instantiated"
+    },
+    {
+      "id": "T09_AFFINE_LOSS_INVARIANCE",
+      "expected": "CVaR obeys positive scaling and translation identities.",
+      "status": "not_instantiated"
+    },
+    {
+      "id": "T10_NO_FEASIBLE_RISK_POLICY",
+      "expected": "Planner abstains instead of relaxing the risk constraint.",
+      "status": "not_instantiated"
+    },
+    {
+      "id": "T11_RECTANGULAR_DIAGNOSTIC",
+      "expected": "Branchwise switching remains separate from persistent-model evaluation.",
+      "status": "not_instantiated"
+    },
+    {
+      "id": "T12_ORDER_AND_LABEL_INVARIANCE",
+      "expected": "Harmless candidate and model permutations preserve objective values.",
+      "status": "not_instantiated"
+    },
+    {
+      "id": "T13_RESOURCE_AND_REUSE",
+      "expected": "Every branch obeys hard budgets and no action is reused.",
+      "status": "not_instantiated"
+    },
+    {
+      "id": "T14_NO_PRIVILEGED_INFORMATION",
+      "expected": "Policy cannot access hidden model identity or future state.",
+      "status": "not_instantiated"
+    }
+  ],
+  "targets_not_achievements": {
+    "exact_oracle_agreement": 1,
+    "seeded_negative_control_rejection": 1,
+    "cvar_95_reduction_vs_expected_risk_policy": 0.2,
+    "cvar_target_comparison": "matched resource limits and matched valid coverage",
+    "reproduce_uwb_reference_mean_error_m": 0.26,
+    "reproduce_uwb_reference_success_within_0_5m": 0.85
+  },
+  "claim_boundary": "No executable planner, measured risk, dataset admission, physical result, PHMI, certification, or operational authority is claimed."
+}
