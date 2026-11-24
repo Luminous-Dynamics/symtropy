@@ -37,7 +37,7 @@ The report preserves:
 - specimen, patch, coordinate-frame, rig and observation-profile digests;
 - characteristic length and observation/trial-group counts;
 - design rank, rank threshold and pivot order/norms;
-- each axis's original weighted column norm and final residual after projection onto the full fitted basis;
+- each axis's original weighted column norm and its leave-one-axis-out residual after projection onto the other two channels (independent excitation);
 - dimensionless inverse-squared scales and physical shape scales when identified;
 - maximum absolute and weighted RMS normalized-boundary residual;
 - separate held-out maximum-dissipation directional residuals and observed-power violations;
