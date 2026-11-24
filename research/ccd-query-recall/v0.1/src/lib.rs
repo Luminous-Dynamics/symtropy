@@ -948,6 +948,108 @@ mod tests {
     }
 
     #[test]
+    fn joins_run_results_by_identity_independent_of_order() {
+        const CSV: &str = include_str!(
+            "../../../nyu-ccd-query-import/v0.1/fixtures/armadillo-rollers-3ee.csv"
+        );
+        const BOOLS: &str = include_str!(
+            "../../../nyu-ccd-query-import/v0.1/fixtures/armadillo-rollers-3ee-mma-bool.json"
+        );
+        let mut queries = parse_queries_csv(CSV, QueryKind::EdgeEdge).unwrap();
+        attach_ground_truth(&mut queries, &parse_boolean_json(BOOLS).unwrap()).unwrap();
+
+        let results = queries
+            .iter()
+            .rev()
+            .map(|query| {
+                QueryRunResult::from_imported(
+                    "nyu-fixture-v1",
+                    "armadillo-rollers",
+                    3,
+                    query,
+                    CandidateDisposition::Forwarded,
+                    NarrowphaseOutcome::NoCollision,
+                )
+            })
+            .collect::<Vec<_>>();
+        let score = evaluate_imported_queries(
+            "nyu-fixture-v1",
+            "armadillo-rollers",
+            3,
+            &queries,
+            &results,
+        )
+        .unwrap();
+
+        assert_eq!(score.counts.total_queries, 2);
+        assert_eq!(score.counts.oracle_negative_queries, 2);
+        assert_eq!(score.counts.candidate_false_positives, 2);
+        let reversed_results = results.into_iter().rev().collect::<Vec<_>>();
+        let reversed_score = evaluate_imported_queries(
+            "nyu-fixture-v1",
+            "armadillo-rollers",
+            3,
+            &queries,
+            &reversed_results,
+        )
+        .unwrap();
+        assert_eq!(score, reversed_score);
+    }
+
+    #[test]
+    fn rejects_missing_duplicate_and_orphan_algorithm_results() {
+        let queries = imported_queries_with_labels(&[false, false]);
+        let first = QueryRunResult::from_imported(
+            "nyu-fixture-v1",
+            "adapter-scene",
+            3,
+            &queries[0],
+            CandidateDisposition::Forwarded,
+            NarrowphaseOutcome::NoCollision,
+        );
+        let second = QueryRunResult::from_imported(
+            "nyu-fixture-v1",
+            "adapter-scene",
+            3,
+            &queries[1],
+            CandidateDisposition::Forwarded,
+            NarrowphaseOutcome::NoCollision,
+        );
+
+        let missing = evaluate_imported_queries(
+            "nyu-fixture-v1",
+            "adapter-scene",
+            3,
+            &queries,
+            std::slice::from_ref(&first),
+        )
+        .unwrap_err();
+        assert!(missing.contains(&QueryJoinError::MissingRunResult));
+
+        let duplicate = evaluate_imported_queries(
+            "nyu-fixture-v1",
+            "adapter-scene",
+            3,
+            &queries,
+            &[first.clone(), first.clone()],
+        )
+        .unwrap_err();
+        assert!(duplicate.contains(&QueryJoinError::DuplicateRunResultIdentity));
+        assert!(duplicate.contains(&QueryJoinError::MissingRunResult));
+
+        let orphan = evaluate_imported_queries(
+            "nyu-fixture-v1",
+            "adapter-scene",
+            3,
+            &queries[..1],
+            &[second],
+        )
+        .unwrap_err();
+        assert!(orphan.contains(&QueryJoinError::MissingRunResult));
+        assert!(orphan.contains(&QueryJoinError::UnmatchedRunResult));
+    }
+
+    #[test]
     fn rejects_missing_oracle_ground_truth() {
         let csv = (0..8)
             .map(|index| format!("{index},1,0,1,0,1"))
