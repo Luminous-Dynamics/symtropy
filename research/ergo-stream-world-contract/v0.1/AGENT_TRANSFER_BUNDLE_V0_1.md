@@ -13,13 +13,13 @@ It is designed to be attached to an existing submission as a second, versioned a
 ## Binding and freeze order
 
 The bundle's `agent_submission_binding` records:
-- the base AgentSubmission protocol version;
-- the digest of the exact serialized submission frame;
-- source and target episode IDs;
+- the unchanged AgentEpisode/AgentAction protocol version;
+- the exact `agent_view_frame_sha256` and `agent_action_frame_sha256` emitted by the existing `ProcessActionExchange` (the hashes include the JSONL newline);
+- source and target episode IDs plus the owner-held ProcessEpisodeReceipt digests for both episodes;
 - source and target evidence-prefix SHA-256 digests.
 
 The owner must verify that:
-1. the submission digest resolves to the exact already-received Submit frame;
+1. the view/action frame digests resolve to the exact request and the `AgentAction::Submit` response in the trusted process receipt;
 2. each episode ID exists in the trusted episode owner;
 3. each evidence-prefix hash matches the public view actually delivered for that episode;
 4. `structural_transfer.source/target` repeat the same episode IDs and evidence-prefix hashes as the bundle binding;
@@ -138,3 +138,9 @@ The current example demonstrates a source/target induced embedding and two froze
 ## Owner-issued split-conformal receipt
 
 The split-conformal quantile and its calibration evidence are never placed in the candidate-authored AgentTransferBundle. The trusted episode/calibration owner issues a separate receipt using `schemas/split_conformal_transfer_receipt_v0.schema.json`. That receipt binds the frozen predictor, preprocessing, score function, calibration cohort, sample-ID manifest, evidence-prefix, evaluator stratum, independent unit, claim scope, alpha, rank and quantile, as well as the custody receipt. A model or cohort change requires a new receipt; a revoked receipt is unusable. See `TRANSFER_CALIBRATION_V0_1.md`.
+
+## Transport compatibility with the current process runner
+
+The existing Symthaea v0 process bridge exposes `ProcessActionExchange.agent_view_frame_sha256` and `agent_action_frame_sha256`, each hashing the exact JSONL bytes including the newline. The bundle now binds directly to those names and to owner-held source/target ProcessEpisodeReceipt digests. This avoids inventing a nested-AgentSubmission hash that the runner does not emit.
+
+The current v0 child protocol still exchanges one AgentView frame for one AgentAction frame and rejects unsolicited trailing stdout after the final action. Therefore this bundle is currently a separately stored, owner-received sidecar artifact bound to those existing frame/episode receipts; it is **not yet a live second JSONL frame**. Do not append it to stdout or weaken the v0 trailing-output rule. A live learner emission path must be approved by #11060/#11171 as an explicit versioned extension or a separately bounded artifact channel.
