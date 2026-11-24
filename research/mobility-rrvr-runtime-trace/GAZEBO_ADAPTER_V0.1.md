@@ -167,3 +167,17 @@ Missing members, duplicate/unpinned observers, stale epochs, invalid digests and
 The request commitment includes the explicit canonicalization identifier serde-json-value-sorted-keys-v0.1. This lets an injector implementation reproduce the digest outside Rust without guessing a serialization profile. The standard industry pattern of storing the original request parameters with a client idempotency token and rejecting parameter changes is also described in [AWS Builder's Library: Making retries safe with idempotent APIs](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/). RRVR applies that principle to a physical fault command, where a payload mismatch must be a hard conflict rather than a second target mutation.
 
 This implementation advances part of [#7148 — crash-safe dispatch journaling and blinded observation](https://github.com/Luminous-Dynamics/symtropy/issues/7148). The append-only write-ahead journal, durable external injector implementation and authenticated raw observation artifacts remain separate acceptance items under that issue.
+
+
+## Verified-reset prerequisite for plan-derived dispatch
+
+The composed dispatch function now refuses a session created only by capability preflight. A GazeboAdapterSession carries a private reset-verification marker, which is populated only after reset_and_verify has:
+- revalidated the exact compiled plan and live simulator capability profile;
+- confirmed the current world epoch, clock and paused state against the session;
+- executed the campaign-declared reset;
+- verified a changed world epoch, paused state, step zero and the exact initial-state digest; and
+- retained the resulting epoch/clock and exact capability profile in the session marker.
+
+The dispatch path checks that the public session fields still equal the private marker, re-queries the live simulator capability profile and requires exact equality with the profile captured at reset. A preflight-only session, a caller-mutated epoch/profile/clock, a live capability drift, or a repeated reset attempt is rejected before injector dispatch. The preflight and reset functions also verify the compiled plan before issuing simulator operations, so a tampered plan cannot cause a reset.
+
+This marker is an in-process API invariant, not a durable reset receipt. It cannot establish that a concrete transport's reset record survived coordinator restart; the actual live adapter must persist reset receipts in the append-only ledger specified by #7148. A fresh coordinator after restart must not reconstruct a verified session merely from a remembered epoch string; it must reconcile the durable reset/evidence record and re-read live simulator state before resuming.
