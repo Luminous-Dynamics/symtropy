@@ -13,13 +13,26 @@
     "weak_joint_right_singular_directions",
     "physical_nuisance_pairwise_signed_correlation"
   ],
-  "authored_manufactured_tests": 12,
+  "authored_manufactured_tests": 14,
   "limits": [
     "no_observation_covariance_whitening",
     "no_global_or_structural_identifiability_proof",
     "no_nonlinear_profile_likelihood",
     "no_posterior_unimodality_proof",
     "no_model_correctness_or_physical_validation",
-    "does_not_authenticate_jacobian_or_noise_covariance_provenance"
-  ]
+    "does_not_authenticate_jacobian_or_noise_covariance_provenance",
+    "does_not_compute_FIM_from_raw_image_likelihood",
+    "does_not_whiten_correlated_noise_in_v0",
+    "does_not_select_an_optimal_acquisition_action_in_v0"
+  ],
+  "additional_controls": [
+    "configured_condition_number_threshold",
+    "minimum_effective_nuisance_sensitivity_floor",
+    "nuisance_confounding_vs_absent_physical_sensitivity",
+    "projection_and_correlation_overflow_fail_closed"
+  ],
+  "matrix_size_limits": {
+    "maximum_observation_rows": 65536,
+    "maximum_parameter_columns": 64
+  }
 }
