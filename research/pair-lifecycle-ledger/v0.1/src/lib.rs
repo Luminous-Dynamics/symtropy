@@ -292,7 +292,10 @@ pub enum LedgerError {
     },
     EmptySpawn,
     EmptyCandidateTrace,
-    RequestedDirectionCountMismatch { requested: usize, recorded: usize },
+    RequestedDirectionCountMismatch {
+        requested: usize,
+        recorded: usize,
+    },
     MissingPrimaryCandidate,
     MultiplePrimaryCandidates,
     DuplicateCandidateAttempt,
@@ -330,16 +333,33 @@ impl fmt::Display for LedgerError {
                 "{stage:?} input mismatch: expected {expected}, found {actual} (missing {missing}, unexpected {unexpected})"
             ),
             Self::EmptySpawn => write!(f, "spawn disposition must create at least one child"),
-            Self::EmptyCandidateTrace => write!(f, "candidate trace must contain at least one attempt"),
-            Self::RequestedDirectionCountMismatch { requested, recorded } => write!(
+            Self::EmptyCandidateTrace => {
+                write!(f, "candidate trace must contain at least one attempt")
+            }
+            Self::RequestedDirectionCountMismatch {
+                requested,
+                recorded,
+            } => write!(
                 f,
                 "candidate trace requested {requested} perturbation directions but records {recorded}"
             ),
-            Self::MissingPrimaryCandidate => write!(f, "candidate trace must contain exactly one primary witness"),
-            Self::MultiplePrimaryCandidates => write!(f, "candidate trace contains multiple primary witnesses"),
-            Self::DuplicateCandidateAttempt => write!(f, "candidate trace contains duplicate attempt identities"),
-            Self::InvalidCandidateAttempt => write!(f, "candidate attempt has inconsistent direction, query, or disposition fields"),
-            Self::CandidateTraceWrongStage => write!(f, "candidate trace is only valid at CandidateGeneration"),
+            Self::MissingPrimaryCandidate => write!(
+                f,
+                "candidate trace must contain exactly one primary witness"
+            ),
+            Self::MultiplePrimaryCandidates => {
+                write!(f, "candidate trace contains multiple primary witnesses")
+            }
+            Self::DuplicateCandidateAttempt => {
+                write!(f, "candidate trace contains duplicate attempt identities")
+            }
+            Self::InvalidCandidateAttempt => write!(
+                f,
+                "candidate attempt has inconsistent direction, query, or disposition fields"
+            ),
+            Self::CandidateTraceWrongStage => {
+                write!(f, "candidate trace is only valid at CandidateGeneration")
+            }
             Self::ChildHasDifferentPair => write!(f, "child lineage changed pair identity"),
             Self::ChildPathNotImmediate => {
                 write!(f, "child path must extend parent by exactly one ordinal")
@@ -386,7 +406,7 @@ impl PairLedger {
     pub fn record(&mut self, mut event: StageEvent) -> Result<(), LedgerError> {
         match &mut event.outcome {
             Outcome::Spawn { children, .. } => children.sort(),
-            Outcome::CandidateTrace { attempts } => attempts.sort_by(|a, b| a.id.cmp(&b.id)),
+            Outcome::CandidateTrace { attempts, .. } => attempts.sort_by(|a, b| a.id.cmp(&b.id)),
             _ => {}
         }
         let records = self.events.entry(event.stage).or_default();
@@ -450,11 +470,14 @@ impl PairLedger {
                             return Err(LedgerError::InvalidTerminalReason { stage, reason });
                         }
                     }
-                    Outcome::CandidateTrace { requested_directions, attempts } => {
+                    Outcome::CandidateTrace {
+                        requested_directions,
+                        attempts,
+                    } => {
                         if stage != Stage::CandidateGeneration {
                             return Err(LedgerError::CandidateTraceWrongStage);
                         }
-                        validate_candidate_trace(input, requested_directions, &attempts)?;
+                        validate_candidate_trace(&input, requested_directions, &attempts)?;
                         for attempt in attempts {
                             if is_candidate_admitted(attempt.disposition) {
                                 if !next.insert(attempt.id) {
@@ -502,15 +525,22 @@ impl PairLedger {
                         stats.terminal += 1;
                         DispositionCode::Terminated(*r)
                     }
-                    Outcome::CandidateTrace { requested_directions, attempts } => {
+                    Outcome::CandidateTrace {
+                        requested_directions,
+                        attempts,
+                    } => {
                         stats.requested_directions += requested_directions;
                         for attempt in attempts {
                             stats.candidate_attempts += 1;
                             stats.spawned += 1;
                             if attempt.kind == CandidateAttemptKind::PerturbationDirection {
                                 match attempt.direction {
-                                    DirectionDisposition::Generated => stats.generated_directions += 1,
-                                    DirectionDisposition::InvalidOrDegenerate => stats.invalid_directions += 1,
+                                    DirectionDisposition::Generated => {
+                                        stats.generated_directions += 1
+                                    }
+                                    DirectionDisposition::InvalidOrDegenerate => {
+                                        stats.invalid_directions += 1
+                                    }
                                     DirectionDisposition::NotApplicable => {}
                                 }
                             }
@@ -535,10 +565,17 @@ impl PairLedger {
                                 match attempt.disposition {
                                     CandidateDisposition::InvalidDirection => {}
                                     CandidateDisposition::SupportQueryFailed => {}
-                                    CandidateDisposition::ShallowRejected => stats.shallow_rejections += 1,
-                                    CandidateDisposition::DuplicateRejected => stats.duplicate_rejections += 1,
-                                    CandidateDisposition::CapacityRejected => stats.capacity_rejections += 1,
-                                    CandidateDisposition::PrimaryAdmitted | CandidateDisposition::Admitted => {}
+                                    CandidateDisposition::ShallowRejected => {
+                                        stats.shallow_rejections += 1
+                                    }
+                                    CandidateDisposition::DuplicateRejected => {
+                                        stats.duplicate_rejections += 1
+                                    }
+                                    CandidateDisposition::CapacityRejected => {
+                                        stats.capacity_rejections += 1
+                                    }
+                                    CandidateDisposition::PrimaryAdmitted
+                                    | CandidateDisposition::Admitted => {}
                                 }
                             }
                             let code = DispositionCode::CandidateAttempt(attempt.disposition);
@@ -810,9 +847,12 @@ impl Fnv64 {
                 self.byte(3);
                 self.byte(*r as u8);
             }
-            Outcome::CandidateTrace { requested_directions, attempts } => {
+            Outcome::CandidateTrace {
+                requested_directions,
+                attempts,
+            } => {
                 self.byte(4);
-                self.u64(requested_directions as u64);
+                self.u64(*requested_directions as u64);
                 self.u64(attempts.len() as u64);
                 for attempt in attempts {
                     self.lineage(&attempt.id);
@@ -1090,48 +1130,63 @@ mod tests {
             Stage::Broadphase,
             Stage::Narrowphase,
         ] {
-            ledger.record(StageEvent {
-                stage,
-                input: root.clone(),
-                outcome: Outcome::Forward,
-            }).unwrap();
+            ledger
+                .record(StageEvent {
+                    stage,
+                    input: root.clone(),
+                    outcome: Outcome::Forward,
+                })
+                .unwrap();
         }
-        ledger.record(StageEvent {
-            stage: Stage::CandidateGeneration,
-            input: root,
-            outcome: Outcome::CandidateTrace {
-                requested_directions: 6,
-                attempts,
-            },
-        }).unwrap();
+        ledger
+            .record(StageEvent {
+                stage: Stage::CandidateGeneration,
+                input: root,
+                outcome: Outcome::CandidateTrace {
+                    requested_directions: 6,
+                    attempts,
+                },
+            })
+            .unwrap();
 
         // Only the primary witness and explicitly admitted perturbation reach
         // manifold reduction; invalid directions and all rejected queries do not.
-        ledger.record(StageEvent {
-            stage: Stage::ManifoldReduction,
-            input: primary,
-            outcome: Outcome::Terminate(TerminalReason::DeliberatelyReduced),
-        }).unwrap();
-        ledger.record(StageEvent {
-            stage: Stage::ManifoldReduction,
-            input: admitted.clone(),
-            outcome: Outcome::ForwardWithReason(ForwardReason::ManifoldRetained),
-        }).unwrap();
-        ledger.record(StageEvent {
-            stage: Stage::SolverMapping,
-            input: admitted.clone(),
-            outcome: Outcome::ForwardWithReason(ForwardReason::SolverRowSubmitted),
-        }).unwrap();
-        ledger.record(StageEvent {
-            stage: Stage::Solve,
-            input: admitted,
-            outcome: Outcome::Terminate(TerminalReason::Converged),
-        }).unwrap();
+        ledger
+            .record(StageEvent {
+                stage: Stage::ManifoldReduction,
+                input: primary,
+                outcome: Outcome::Terminate(TerminalReason::DeliberatelyReduced),
+            })
+            .unwrap();
+        ledger
+            .record(StageEvent {
+                stage: Stage::ManifoldReduction,
+                input: admitted.clone(),
+                outcome: Outcome::ForwardWithReason(ForwardReason::ManifoldRetained),
+            })
+            .unwrap();
+        ledger
+            .record(StageEvent {
+                stage: Stage::SolverMapping,
+                input: admitted.clone(),
+                outcome: Outcome::ForwardWithReason(ForwardReason::SolverRowSubmitted),
+            })
+            .unwrap();
+        ledger
+            .record(StageEvent {
+                stage: Stage::Solve,
+                input: admitted,
+                outcome: Outcome::Terminate(TerminalReason::Converged),
+            })
+            .unwrap();
 
         let receipt = ledger.receipt().unwrap();
-        let candidate_stats = receipt.stages.iter()
+        let candidate_stats = receipt
+            .stages
+            .iter()
             .find(|(stage, _)| *stage == Stage::CandidateGeneration)
-            .unwrap().1;
+            .unwrap()
+            .1;
         assert_eq!(candidate_stats.candidate_attempts, 7);
         assert_eq!(candidate_stats.requested_directions, 6);
         assert_eq!(candidate_stats.generated_directions, 5);
@@ -1157,37 +1212,41 @@ mod tests {
             Stage::Broadphase,
             Stage::Narrowphase,
         ] {
-            ledger.record(StageEvent {
-                stage,
-                input: root.clone(),
-                outcome: Outcome::Forward,
-            }).unwrap();
+            ledger
+                .record(StageEvent {
+                    stage,
+                    input: root.clone(),
+                    outcome: Outcome::Forward,
+                })
+                .unwrap();
         }
-        ledger.record(StageEvent {
-            stage: Stage::CandidateGeneration,
-            input: root.clone(),
-            outcome: Outcome::CandidateTrace {
-                requested_directions: 1,
-                attempts: vec![
-                    CandidateAttempt {
-                        id: root.child(0),
-                        kind: CandidateAttemptKind::PrimaryWitness,
-                        direction: DirectionDisposition::NotApplicable,
-                        support_a: SupportQueryDisposition::NotAttempted,
-                        support_b: SupportQueryDisposition::NotAttempted,
-                        disposition: CandidateDisposition::PrimaryAdmitted,
-                    },
-                    CandidateAttempt {
-                        id: root.child(1),
-                        kind: CandidateAttemptKind::PerturbationDirection,
-                        direction: DirectionDisposition::Generated,
-                        support_a: SupportQueryDisposition::Failed,
-                        support_b: SupportQueryDisposition::Completed,
-                        disposition: CandidateDisposition::Admitted,
-                    },
-                ],
-            },
-        }).unwrap();
+        ledger
+            .record(StageEvent {
+                stage: Stage::CandidateGeneration,
+                input: root.clone(),
+                outcome: Outcome::CandidateTrace {
+                    requested_directions: 1,
+                    attempts: vec![
+                        CandidateAttempt {
+                            id: root.child(0),
+                            kind: CandidateAttemptKind::PrimaryWitness,
+                            direction: DirectionDisposition::NotApplicable,
+                            support_a: SupportQueryDisposition::NotAttempted,
+                            support_b: SupportQueryDisposition::NotAttempted,
+                            disposition: CandidateDisposition::PrimaryAdmitted,
+                        },
+                        CandidateAttempt {
+                            id: root.child(1),
+                            kind: CandidateAttemptKind::PerturbationDirection,
+                            direction: DirectionDisposition::Generated,
+                            support_a: SupportQueryDisposition::Failed,
+                            support_b: SupportQueryDisposition::Completed,
+                            disposition: CandidateDisposition::Admitted,
+                        },
+                    ],
+                },
+            })
+            .unwrap();
         assert_eq!(ledger.validate(), Err(LedgerError::InvalidCandidateAttempt));
     }
 
@@ -1202,19 +1261,21 @@ mod tests {
             Stage::Broadphase,
             Stage::Narrowphase,
         ] {
-            ledger.record(StageEvent {
-                stage,
-                input: root.clone(),
-                outcome: Outcome::Forward,
-            }).unwrap();
+            ledger
+                .record(StageEvent {
+                    stage,
+                    input: root.clone(),
+                    outcome: Outcome::Forward,
+                })
+                .unwrap();
         }
-        ledger.record(StageEvent {
-            stage: Stage::CandidateGeneration,
-            input: root,
-            outcome: Outcome::CandidateTrace {
-                requested_directions: 1,
-                attempts: vec![
-                    CandidateAttempt {
+        ledger
+            .record(StageEvent {
+                stage: Stage::CandidateGeneration,
+                input: root,
+                outcome: Outcome::CandidateTrace {
+                    requested_directions: 1,
+                    attempts: vec![CandidateAttempt {
                         id: LineageId::root(pair(1, 2)).child(3),
                         kind: CandidateAttemptKind::PerturbationDirection,
                         direction: DirectionDisposition::InvalidOrDegenerate,
@@ -1239,37 +1300,41 @@ mod tests {
             Stage::Broadphase,
             Stage::Narrowphase,
         ] {
-            ledger.record(StageEvent {
-                stage,
-                input: root.clone(),
-                outcome: Outcome::Forward,
-            }).unwrap();
+            ledger
+                .record(StageEvent {
+                    stage,
+                    input: root.clone(),
+                    outcome: Outcome::Forward,
+                })
+                .unwrap();
         }
-        ledger.record(StageEvent {
-            stage: Stage::CandidateGeneration,
-            input: root.clone(),
-            outcome: Outcome::CandidateTrace {
-                requested_directions: 2,
-                attempts: vec![
-                    CandidateAttempt {
-                        id: root.child(0),
-                        kind: CandidateAttemptKind::PrimaryWitness,
-                        direction: DirectionDisposition::NotApplicable,
-                        support_a: SupportQueryDisposition::NotAttempted,
-                        support_b: SupportQueryDisposition::NotAttempted,
-                        disposition: CandidateDisposition::PrimaryAdmitted,
-                    },
-                    CandidateAttempt {
-                        id: root.child(1),
-                        kind: CandidateAttemptKind::PerturbationDirection,
-                        direction: DirectionDisposition::InvalidOrDegenerate,
-                        support_a: SupportQueryDisposition::NotAttempted,
-                        support_b: SupportQueryDisposition::NotAttempted,
-                        disposition: CandidateDisposition::InvalidDirection,
-                    },
-                ],
-            },
-        }).unwrap();
+        ledger
+            .record(StageEvent {
+                stage: Stage::CandidateGeneration,
+                input: root.clone(),
+                outcome: Outcome::CandidateTrace {
+                    requested_directions: 2,
+                    attempts: vec![
+                        CandidateAttempt {
+                            id: root.child(0),
+                            kind: CandidateAttemptKind::PrimaryWitness,
+                            direction: DirectionDisposition::NotApplicable,
+                            support_a: SupportQueryDisposition::NotAttempted,
+                            support_b: SupportQueryDisposition::NotAttempted,
+                            disposition: CandidateDisposition::PrimaryAdmitted,
+                        },
+                        CandidateAttempt {
+                            id: root.child(1),
+                            kind: CandidateAttemptKind::PerturbationDirection,
+                            direction: DirectionDisposition::InvalidOrDegenerate,
+                            support_a: SupportQueryDisposition::NotAttempted,
+                            support_b: SupportQueryDisposition::NotAttempted,
+                            disposition: CandidateDisposition::InvalidDirection,
+                        },
+                    ],
+                },
+            })
+            .unwrap();
         assert_eq!(
             ledger.validate(),
             Err(LedgerError::RequestedDirectionCountMismatch {
