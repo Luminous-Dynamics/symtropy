@@ -375,9 +375,7 @@ impl ClusterMeanMatrix {
         delta: f64,
     ) -> Result<ClusteredHighProbabilityResult, ClusterRiskControlError> {
         if self.role != DatasetRole::Calibration {
-            return Err(ClusterRiskControlError::CalibrationRoleRequired {
-                found: self.role,
-            });
+            return Err(ClusterRiskControlError::CalibrationRoleRequired { found: self.role });
         }
         if service_loss.role != DatasetRole::Calibration {
             return Err(ClusterRiskControlError::CalibrationRoleRequired {
