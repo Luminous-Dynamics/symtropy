@@ -766,7 +766,10 @@ mod tests {
             observation("spin", "spin-trial", [0.0, 0.0, -0.25], 0.0),
         ]);
         let report = compute_parameter_set(&problem, config()).expect("signed channels");
-        assert_eq!(report.status, ParameterSetStatus::FeasibleWithFiniteIntervals);
+        assert_eq!(
+            report.status,
+            ParameterSetStatus::FeasibleWithFiniteIntervals
+        );
         assert!(
             report
                 .intervals
@@ -806,7 +809,10 @@ mod tests {
             observation("spin", "spin-trial", [0.0, 0.0, 0.25], 0.05),
         ]);
         let report = compute_parameter_set(&problem, config()).expect("bounded intervals");
-        assert_eq!(report.status, ParameterSetStatus::FeasibleWithFiniteIntervals);
+        assert_eq!(
+            report.status,
+            ParameterSetStatus::FeasibleWithFiniteIntervals
+        );
         for interval in report.intervals {
             assert!(interval.beta_lower.unwrap() > 0.0);
             assert!(interval.beta_upper.unwrap() > interval.beta_lower.unwrap());
