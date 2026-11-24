@@ -22,7 +22,7 @@ cargo clippy --manifest-path research/nyu-ccd-query-import/v0.1/Cargo.toml --loc
 
 ## Real upstream smoke fixture
 
-The test suite now imports the public `armadillo-rollers/queries/3ee.csv`, `mma_bool/3ee_mma_bool.json` and `boxes/3ee.json` sample files. It verifies two queries, both false ground-truth labels, two broadphase box pairs, exact rational lexeme preservation and row-role mapping. The small sample excerpt is retained in `fixtures/` under the upstream Apache-2.0 license; its license text is included at `LICENSES/Apache-2.0.txt`. This is an import smoke test, not the full benchmark or a CCD-accuracy result.
+The test suite now imports the public `armadillo-rollers/queries/3ee.csv`, `mma_bool/3ee_mma_bool.json` and `boxes/3ee.json` sample files. It verifies two queries, both false ground-truth labels, two broadphase box pairs, exact rational lexeme preservation and row-role mapping. The small sample excerpt is retained in `fixtures/` under the upstream Apache-2.0 license; its license text is included at `LICENSES/Apache-2.0.txt`. The fixture manifest records SHA-256 checksums, byte sizes and expected denominators. This is an import smoke test, not the full benchmark or a CCD-accuracy result.
 
 ## Sources
 
