@@ -660,6 +660,35 @@ mod tests {
     }
 
     #[test]
+    fn insufficient_total_sample_cohort_suppresses_aggregate_values() {
+        let mut input = fixture_input();
+        input.minimum_total_calibration_samples = 31;
+        let report = evaluate_federated_calibration(&input).unwrap();
+        assert_eq!(report.status, FederatedAggregationStatus::SuppressedMinimumSamples);
+        assert_eq!(report.participating_site_count, None);
+        assert_eq!(report.total_calibration_sample_count, None);
+        assert_eq!(report.merged_calibration_score_bin_counts, None);
+    }
+
+    #[test]
+    fn non_finite_conformal_rank_is_rejected() {
+        let mut input = fixture_input();
+        input.compatibility.nominal_coverage_permille = 990;
+        input.summaries = vec![
+            summary("depot-a", vec![1, 0, 0], 9, LocalCalibrationStatus::LocallySupported),
+            summary("depot-b", vec![1, 0, 0], 7, LocalCalibrationStatus::UndercoverageAlarm),
+            summary("depot-c", vec![1, 0, 0], 8, LocalCalibrationStatus::InsufficientLocalSupport),
+        ];
+        for summary in &mut input.summaries {
+            summary.compatibility.nominal_coverage_permille = 990;
+        }
+        input.minimum_total_calibration_samples = 3;
+        input.maximum_samples_per_site = 1;
+        input.maximum_count_per_bin_per_site = 1;
+        assert!(evaluate_federated_calibration(&input).is_err());
+    }
+
+    #[test]
     fn synthetic_arithmetic_does_not_establish_privacy_or_qualification() {
         let report = evaluate_federated_calibration(&fixture_input()).unwrap();
         assert_eq!(report.membership_cryptographically_verified, false);
