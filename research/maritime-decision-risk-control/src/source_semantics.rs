@@ -20,6 +20,7 @@ const FIXTURE_PUBLICATION_TIME: i64 = 1_900_000_000;
 const FIXTURE_RETRIEVAL_TIME: i64 = 1_900_000_010;
 const FIXTURE_EVENT_TIME: i64 = 1_899_999_900;
 const FIXTURE_DIGEST: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+#[cfg(test)]
 const FIXTURE_CUSTODY_DIGEST: &str =
     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
@@ -757,6 +758,16 @@ pub fn render_csv() -> String {
     for case in benchmark_cases() {
         match evaluate_case(case) {
             Ok(decision) => {
+                let observed = match decision {
+                    AdmissionDecision::Admitted(class) => class.label(),
+                    AdmissionDecision::Blocked(reason) => reason.label(),
+                };
+                assert_eq!(
+                    observed,
+                    case.expected,
+                    "source-claim benchmark case {}",
+                    case.id
+                );
                 let _ = writeln!(
                     output,
                     "{},{},{},{},{},{},SYNTHETIC_ONLY",
