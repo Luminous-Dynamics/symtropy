@@ -9,6 +9,7 @@ fn branch(
 ) -> ConditionalLossBranch {
     ConditionalLossBranch {
         branch_id,
+        continuation_action_id: branch_id,
         probability_mass,
         continuation_losses: continuation
             .iter()
