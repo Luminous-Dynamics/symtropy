@@ -1196,7 +1196,7 @@ mod tests {
             false,
         );
         assert_eq!(
-            evaluate_bound_transfer_calibration(&duplicate, &[outcome.clone()], 2, &[0]),
+            evaluate_bound_transfer_calibration(&duplicate, std::slice::from_ref(&outcome), 2, &[0]),
             Err(TransferCalibrationErrorV0::DuplicateClaimId)
         );
         let orphan = bound_outcome(
@@ -1208,7 +1208,7 @@ mod tests {
         );
         assert_eq!(
             evaluate_bound_transfer_calibration(
-                &[forecast.clone()],
+                std::slice::from_ref(&forecast),
                 &[outcome.clone(), orphan],
                 2,
                 &[0],
