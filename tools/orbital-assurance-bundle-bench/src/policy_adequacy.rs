@@ -90,6 +90,7 @@ pub struct SourceReceipt {
     pub source_decision_cutoff_id: String,
     pub source_world_set_receipt_id: String,
     pub source_joint_loss_receipt_id: String,
+    pub source_joint_scenario_manifest_sha256: String,
     pub policy_payload_sha256: String,
     pub receipt_id: String,
     pub receipt_sha256: String,
@@ -344,6 +345,8 @@ fn validate_source(case: &Case) -> Result<(), String> {
         || source.source_world_set_receipt_id != case.world_set_receipt_id
         || !valid_id(&source.source_joint_loss_receipt_id)
         || source.source_joint_loss_receipt_id != case.joint_loss_receipt_id
+        || !valid_sha256(&source.source_joint_scenario_manifest_sha256)
+        || source.source_joint_scenario_manifest_sha256 != case.joint_scenario_manifest_sha256
         || !valid_sha256(&source.policy_payload_sha256)
         || !valid_id(&source.receipt_id)
         || !valid_sha256(&source.receipt_sha256)
@@ -921,6 +924,22 @@ mod tests {
         }
     }
 
+    fn refresh_source_digests(case: &mut Case) {
+        let ids = case
+            .expected_joint_scenarios
+            .iter()
+            .map(|scenario| scenario.scenario_id.clone())
+            .collect::<Vec<_>>();
+        case.expected_scenario_ids_sha256 = digest_ids(&ids).expect("scenario ID digest");
+        case.expected_joint_scenarios_sha256 =
+            digest_scenarios(&case.expected_joint_scenarios).expect("joint scenario digest");
+        case.source_receipt.policy_payload_sha256 = policy_payload_digest(
+            &case.policy_pareto_frontier_ids,
+            &case.policies,
+        )
+        .expect("policy payload digest");
+    }
+
     fn fixture_case(candidate_loss: u64, margin: u64, budget_trials: u64) -> Case {
         let scenarios = vec![
             JointScenarioIdentity {
@@ -1007,6 +1026,7 @@ mod tests {
                 source_decision_cutoff_id: "cutoff-106".to_owned(),
                 source_world_set_receipt_id: "world-receipt-1".to_owned(),
                 source_joint_loss_receipt_id: "loss-receipt-1".to_owned(),
+                source_joint_scenario_manifest_sha256: "d".repeat(64),
                 policy_payload_sha256: "0".repeat(64),
                 receipt_id: "discovery-receipt-1".to_owned(),
                 receipt_sha256: "b".repeat(64),
@@ -1128,6 +1148,7 @@ mod tests {
             1,
             row("s-A-model-2", "w-A", "loss-A2", "south", "south-action", 1),
         );
+        refresh_source_digests(&mut case);
         let result = evaluate_case(&case);
         assert_eq!(result.status, "INVALID_INPUT");
         assert!(
@@ -1226,6 +1247,7 @@ mod tests {
             1,
             row("s-A-model-2", "w-A", "loss-A2", "north", "north-action", 1),
         );
+        refresh_source_digests(&mut case);
         assert_eq!(evaluate_case(&case).status, "POLICY_REVIEW_WARRANTED");
     }
 }
