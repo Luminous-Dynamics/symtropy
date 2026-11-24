@@ -524,7 +524,7 @@ struct BenchmarkCase {
     event_time: Option<i64>,
 }
 
-fn benchmark_cases() -> [BenchmarkCase; 18] {
+fn benchmark_cases() -> [BenchmarkCase; 20] {
     [
         BenchmarkCase {
             id: "dgt_vessel_status_as_reported",
@@ -722,6 +722,28 @@ fn benchmark_cases() -> [BenchmarkCase; 18] {
             retrieval_time: FIXTURE_AS_OF + 20,
             independence_ref: None,
             custody_digest: None,
+            event_time: Some(FIXTURE_EVENT_TIME),
+        },
+        BenchmarkCase {
+            id: "terminal_notice_as_notice_only",
+            artifact_class: ArtifactClass::OfficialTerminalNotice,
+            claim_kind: ClaimKind::SourceReportedTerminalNotice,
+            expected: "NOTICE_ONLY",
+            publication_time: Some(FIXTURE_PUBLICATION_TIME),
+            retrieval_time: FIXTURE_RETRIEVAL_TIME,
+            independence_ref: None,
+            custody_digest: None,
+            event_time: None,
+        },
+        BenchmarkCase {
+            id: "receiver_acceptance_with_custody_digest",
+            artifact_class: ArtifactClass::IndependentReceiverAcceptance,
+            claim_kind: ClaimKind::ReceiverAcceptedDelivery,
+            expected: "RECEIVER_ACCEPTANCE",
+            publication_time: Some(FIXTURE_PUBLICATION_TIME),
+            retrieval_time: FIXTURE_RETRIEVAL_TIME,
+            independence_ref: Some("synthetic-independent-receiver-review"),
+            custody_digest: Some("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
             event_time: Some(FIXTURE_EVENT_TIME),
         },
     ]
@@ -1298,7 +1320,7 @@ mod tests {
     fn benchmark_receipt_is_deterministic_and_contains_all_negative_controls() {
         let first = render_csv();
         assert_eq!(first, render_csv());
-        assert_eq!(first.lines().count(), 19);
+        assert_eq!(first.lines().count(), 21);
         let width = first.lines().next().expect("CSV header").split(',').count();
         assert_eq!(width, 7);
         for row in first.lines().skip(1) {
