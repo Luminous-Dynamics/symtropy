@@ -1086,10 +1086,11 @@ fn evaluate_with_snapshot(
             mark_rejected(&mut receipt, "continuation_has_no_remaining_work");
             return Ok(receipt);
         }
-        if resource_state.capacity_units_used == 0
-            || resource_state.capacity_units_remaining != 0
-        {
-            mark_hold(&mut receipt, "continuation_resource_occupancy_not_reconciled");
+        if resource_state.capacity_units_used == 0 || resource_state.capacity_units_remaining != 0 {
+            mark_hold(
+                &mut receipt,
+                "continuation_resource_occupancy_not_reconciled",
+            );
         }
         receipt.processing_duration_ticks = Some(operation_state.remaining_processing_ticks);
     }
