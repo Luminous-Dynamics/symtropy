@@ -513,7 +513,12 @@ mod tests {
                 .contains(&ReceiptError::IncompleteExecution)
         );
         receipt.status = RunStatus::OutOfMemory;
-        assert!(receipt.validate().unwrap_err().contains(&ReceiptError::IncompleteExecution));
+        assert!(
+            receipt
+                .validate()
+                .unwrap_err()
+                .contains(&ReceiptError::IncompleteExecution)
+        );
     }
 
     #[test]
