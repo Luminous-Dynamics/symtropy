@@ -12,7 +12,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
-use super::dynamics::{FiniteTransitionSystemV0, TransitionV0};
+use super::dynamics::FiniteTransitionSystemV0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StateClassMappingV0 {
@@ -338,6 +338,7 @@ fn fixture() -> (FiniteTransitionSystemV0, StatePartitionV0) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::dynamics::TransitionV0;
 
     #[test]
     fn builds_a_valid_nontrivial_finite_quotient() {
