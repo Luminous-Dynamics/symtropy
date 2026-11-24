@@ -913,9 +913,9 @@ fn generate_corpus() -> (Corpus, EvaluatorLabels) {
     (policy_corpus, evaluator_labels)
 }
 
-fn validate_schema(instance: &serde_json::Value) -> Result<(), String> {
-    let schema: serde_json::Value =
-        serde_json::from_str(SCHEMA_JSON).map_err(|error| format!("schema_parse:{error}"))?;
+fn validate_with_schema(instance: &serde_json::Value, schema_source: &str) -> Result<(), String> {
+    let schema: serde_json::Value = serde_json::from_str(schema_source)
+        .map_err(|error| format!("schema_parse:{error}"))?;
     let validator = jsonschema::draft202012::options()
         .offline()
         .build(&schema)
@@ -923,6 +923,14 @@ fn validate_schema(instance: &serde_json::Value) -> Result<(), String> {
     validator
         .validate(instance)
         .map_err(|error| format!("schema_validation:{error}"))
+}
+
+fn validate_schema(instance: &serde_json::Value) -> Result<(), String> {
+    validate_with_schema(instance, SCHEMA_JSON)
+}
+
+fn validate_evaluator_schema(instance: &serde_json::Value) -> Result<(), String> {
+    validate_with_schema(instance, EVALUATOR_SCHEMA_JSON)
 }
 
 fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
@@ -1191,11 +1199,6 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
                     }
                 }
             }
-            for outcome in &scenario.hidden_terminal_quality_outcomes {
-                if !operation_ids.contains(outcome.operation_id.as_str()) {
-                    return Err("hidden_quality_outcome_references_unknown_operation".into());
-                }
-            }
         }
         if probability_total != PROBABILITY_TOTAL_PPM {
             return Err("scenario_probabilities_must_sum_to_one_million".into());
@@ -1204,13 +1207,6 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
         if case.scenarios[0].observations_by_epoch != case.scenarios[1].observations_by_epoch {
             return Err(
                 "hidden_quality_counterfactuals_must_share_identical_visible_history".into(),
-            );
-        }
-        if case.scenarios[0].hidden_terminal_quality_outcomes
-            == case.scenarios[1].hidden_terminal_quality_outcomes
-        {
-            return Err(
-                "hidden_quality_counterfactuals_must_differ_only_in_evaluator_outcome".into(),
             );
         }
     }
@@ -1228,18 +1224,121 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
     Ok(())
 }
 
-fn build_and_validate() -> Result<Corpus, String> {
-    let corpus = generate_corpus();
-    let value = serde_json::to_value(&corpus).map_err(|error| format!("corpus_to_json:{error}"))?;
-    validate_schema(&value)?;
+fn validate_evaluator_labels(
+    corpus: &Corpus,
+    labels: &EvaluatorLabels,
+) -> Result<(), String> {
+    if labels.schema_id != "https://luminousdynamics.io/schemas/mfg-policy-v0.2-evaluator-labels"
+        || labels.benchmark_id != corpus.benchmark_id
+        || labels.evidence_class != "synthetic_evaluator_only"
+        || labels.case_count != corpus.case_count
+        || labels.cases.len() != corpus.case_count
+        || labels.claim_ceiling.trim().is_empty()
+    {
+        return Err("evaluator_label_manifest_or_count_invalid".into());
+    }
+
+    let mut evaluator_cases = BTreeMap::new();
+    for evaluator_case in &labels.cases {
+        if evaluator_cases
+            .insert(evaluator_case.case_id.as_str(), evaluator_case)
+            .is_some()
+        {
+            return Err("duplicate_evaluator_case_id".into());
+        }
+    }
+
+    for case in &corpus.cases {
+        let evaluator_case = evaluator_cases
+            .get(case.case_id.as_str())
+            .ok_or_else(|| "evaluator_labels_missing_case".to_string())?;
+        if evaluator_case.scenario_family_id != case.scenario_family_id
+            || evaluator_case.scenario_outcomes.len() != case.scenarios.len()
+        {
+            return Err("evaluator_case_scope_or_scenario_count_mismatch".into());
+        }
+
+        let policy_scenarios: BTreeMap<&str, &Scenario> = case.scenarios.iter()
+            .map(|scenario| (scenario.scenario_id.as_str(), scenario))
+            .collect();
+        let operation_ids: BTreeSet<&str> = case.jobs.iter()
+            .flat_map(|job| &job.operations)
+            .map(|operation| operation.operation_id.as_str())
+            .collect();
+        let mut outcome_scenario_ids = BTreeSet::new();
+
+        for scenario_outcome in &evaluator_case.scenario_outcomes {
+            if !outcome_scenario_ids.insert(scenario_outcome.scenario_id.as_str())
+                || !policy_scenarios.contains_key(scenario_outcome.scenario_id.as_str())
+                || scenario_outcome.hidden_terminal_quality_outcomes.is_empty()
+            {
+                return Err("evaluator_scenario_identity_or_scope_invalid".into());
+            }
+            let mut outcome_ids = BTreeSet::new();
+            for outcome in &scenario_outcome.hidden_terminal_quality_outcomes {
+                if outcome.outcome_id.trim().is_empty()
+                    || !outcome_ids.insert(outcome.outcome_id.as_str())
+                    || !operation_ids.contains(outcome.operation_id.as_str())
+                {
+                    return Err("evaluator_outcome_identity_or_operation_invalid".into());
+                }
+            }
+        }
+        if outcome_scenario_ids != policy_scenarios.keys().copied().collect() {
+            return Err("evaluator_scenario_coverage_mismatch".into());
+        }
+
+        let accepted = evaluator_case.scenario_outcomes.iter()
+            .find(|outcome| outcome.scenario_id == "NOMINAL-ACCEPTED")
+            .ok_or_else(|| "nominal_accepted_evaluator_label_missing".to_string())?;
+        let rejected = evaluator_case.scenario_outcomes.iter()
+            .find(|outcome| outcome.scenario_id == "NOMINAL-HIDDEN-REJECT")
+            .ok_or_else(|| "nominal_reject_evaluator_label_missing".to_string())?;
+        if accepted.hidden_terminal_quality_outcomes == rejected.hidden_terminal_quality_outcomes
+            || accepted.hidden_terminal_quality_outcomes.iter()
+                .all(|outcome| outcome.disposition == QualityDisposition::Accepted)
+            || !rejected.hidden_terminal_quality_outcomes.iter()
+                .any(|outcome| outcome.disposition == QualityDisposition::Rejected)
+        {
+            return Err("paired_hidden_quality_labels_do_not_create_counterfactual".into());
+        }
+    }
+
+    if evaluator_cases.len() != corpus.case_count {
+        return Err("evaluator_case_coverage_mismatch".into());
+    }
+    Ok(())
+}
+
+fn build_and_validate() -> Result<(Corpus, EvaluatorLabels), String> {
+    let (corpus, labels) = generate_corpus();
+
+    let corpus_value = serde_json::to_value(&corpus)
+        .map_err(|error| format!("corpus_to_json:{error}"))?;
+    validate_schema(&corpus_value)?;
     validate_corpus(&corpus)?;
-    Ok(corpus)
+
+    let labels_value = serde_json::to_value(&labels)
+        .map_err(|error| format!("evaluator_labels_to_json:{error}"))?;
+    validate_evaluator_schema(&labels_value)?;
+    validate_evaluator_labels(&corpus, &labels)?;
+
+    Ok((corpus, labels))
 }
 
 fn main() -> ExitCode {
-    match build_and_validate().and_then(|corpus| {
-        serde_json::to_string_pretty(&corpus).map_err(|error| format!("corpus_serialize:{error}"))
-    }) {
+    let output_kind = std::env::args().nth(1);
+    let result = build_and_validate().and_then(|(corpus, labels)| {
+        let json = match output_kind.as_deref() {
+            None | Some("--policy-corpus") => serde_json::to_string_pretty(&corpus)
+                .map_err(|error| format!("policy_corpus_serialize:{error}"))?,
+            Some("--evaluator-labels") => serde_json::to_string_pretty(&labels)
+                .map_err(|error| format!("evaluator_labels_serialize:{error}"))?,
+            Some(other) => return Err(format!("unsupported_output_kind:{other}")),
+        };
+        Ok(json)
+    });
+    match result {
         Ok(json) => {
             println!("{json}");
             ExitCode::SUCCESS
