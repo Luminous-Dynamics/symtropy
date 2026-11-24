@@ -1,0 +1,46 @@
+name: AERO Material Qualification Contract
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/domains/symtropy-aero-material-qual/**"
+      - "docs/research/aviation/AERO_MATERIAL_PROCESS_QUAL_001_V0_1.md"
+      - "docs/research/aviation/schemas/aero_material_process_case_v0_1.schema.json"
+      - "docs/research/aviation/examples/synthetic_material_process_case_v0_1.json"
+      - ".github/workflows/aero-material-qual.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aero-material-qual-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    name: Rust semantic contract (targeted)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check evaluator formatting
+        run: cargo fmt --manifest-path Cargo.toml --package symtropy-aero-material-qual -- --check
+
+      - name: Run evaluator tests
+        run: cargo test --locked --package symtropy-aero-material-qual
+
+      - name: Run evaluator Clippy
+        run: cargo clippy --locked --package symtropy-aero-material-qual --all-targets -- -D warnings
