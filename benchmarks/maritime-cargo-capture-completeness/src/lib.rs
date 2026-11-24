@@ -656,6 +656,49 @@ mod tests {
     }
 
     #[test]
+    fn claim_from_different_source_or_event_class_is_not_admitted() {
+        let report = evaluate(&case(
+            Some(reference(&["e1"])),
+            vec![captured("e1")],
+        ));
+        let mut claim = claim_for_event("e1");
+        claim.source_id = "different-terminal-gate".to_owned();
+        assert_eq!(
+            admit_claim_against_capture(&report, &claim),
+            CaptureClaimAdmission::EvidenceDoesNotMatchClaim
+        );
+        claim = claim_for_event("e1");
+        claim.event_class = "VESSEL_ARRIVAL".to_owned();
+        assert_eq!(
+            admit_claim_against_capture(&report, &claim),
+            CaptureClaimAdmission::EvidenceDoesNotMatchClaim
+        );
+    }
+
+    #[test]
+    fn claim_for_wrong_event_time_is_not_admitted() {
+        let report = evaluate(&case(
+            Some(reference(&["e1"])),
+            vec![captured("e1")],
+        ));
+        let mut claim = claim_for_event("e1");
+        claim.event_time = 11;
+        assert_eq!(
+            admit_claim_against_capture(&report, &claim),
+            CaptureClaimAdmission::EvidenceDoesNotMatchClaim
+        );
+    }
+
+    #[test]
+    fn malformed_report_without_provenance_cannot_admit_claim() {
+        let report = CaptureReport::with_disposition(Disposition::QualifiedWithinDeclaredEnvelope);
+        assert_eq!(
+            admit_claim_against_capture(&report, &claim_for_event("e1")),
+            CaptureClaimAdmission::NotEvaluable
+        );
+    }
+
+    #[test]
     fn failed_capture_window_cannot_admit_an_individual_claim() {
         let report = evaluate(&case(
             Some(reference(&["e1", "e2"])),
