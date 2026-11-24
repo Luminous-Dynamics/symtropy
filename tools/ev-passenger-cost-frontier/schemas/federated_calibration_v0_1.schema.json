@@ -44,7 +44,8 @@
     "query_scope_digest": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 256
+      "maxLength": 256,
+      "pattern": "^sha256:[0-9a-f]{64}$"
     },
     "compatibility": {
       "$ref": "#/$defs/compatibility"
@@ -178,17 +179,20 @@
         "configuration_cohort_digest": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 256
+          "maxLength": 256,
+          "pattern": "^sha256:[0-9a-f]{64}$"
         },
         "stratum_taxonomy_digest": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 256
+          "maxLength": 256,
+          "pattern": "^sha256:[0-9a-f]{64}$"
         },
         "calibration_policy_digest": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 256
+          "maxLength": 256,
+          "pattern": "^sha256:[0-9a-f]{64}$"
         }
       }
     },
@@ -268,7 +272,8 @@
         "local_evidence_digest": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 256
+          "maxLength": 256,
+          "pattern": "^sha256:[0-9a-f]{64}$"
         }
       }
     },
@@ -310,7 +315,8 @@
           "items": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 256
+            "maxLength": 256,
+            "pattern": "^sha256:[0-9a-f]{64}$"
           }
         }
       }
