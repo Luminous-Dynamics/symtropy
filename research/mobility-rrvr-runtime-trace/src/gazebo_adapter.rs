@@ -1267,6 +1267,7 @@ mod tests {
         target: GazeboTargetBinding,
         mutate_state_after_target_resolution: bool,
         reset_response_unknown: bool,
+        reset_effect_applied: bool,
     }
 
     impl GazeboSimulationTransport for MockGazebo {
@@ -1291,12 +1292,14 @@ mod tests {
 
         fn reset_simulation(&mut self, _world_name: &str) -> Result<(), Self::Error> {
             self.reset_calls += 1;
-            self.world.world_epoch = format!("{}-reset", self.world.world_epoch);
-            self.target.world_epoch = self.world.world_epoch.clone();
-            self.world.simulation_step = 0;
-            self.world.simulation_time_ns = 0;
-            self.world.state = SimulationState::Paused;
-            self.world.state_sha256 = self.initial_state_sha256.clone();
+            if self.reset_effect_applied {
+                self.world.world_epoch = format!("{}-reset", self.world.world_epoch);
+                self.target.world_epoch = self.world.world_epoch.clone();
+                self.world.simulation_step = 0;
+                self.world.simulation_time_ns = 0;
+                self.world.state = SimulationState::Paused;
+                self.world.state_sha256 = self.initial_state_sha256.clone();
+            }
             if self.reset_response_unknown {
                 Err("reset may have completed before response loss")
             } else {
@@ -1359,6 +1362,7 @@ mod tests {
             },
             mutate_state_after_target_resolution: false,
             reset_response_unknown: false,
+            reset_effect_applied: true,
         }
     }
 
@@ -1578,6 +1582,31 @@ mod tests {
         assert_eq!(
             reset_and_verify(&mut simulator, &plan, &mut session),
             Err(GazeboAdapterError::ResetAlreadyVerified)
+        );
+        assert_eq!(simulator.reset_calls, 1);
+    }
+
+    #[test]
+    fn reset_reconciliation_does_not_infer_success_when_old_epoch_remains() {
+        let plan = plan();
+        let mut simulator = mock_transport(&plan);
+        simulator.reset_response_unknown = true;
+        simulator.reset_effect_applied = false;
+        let mut session = preflight_transport(&mut simulator, &plan).unwrap();
+
+        assert_eq!(
+            reset_and_verify(&mut simulator, &plan, &mut session),
+            Err(GazeboAdapterError::ResetOutcomeUnknown)
+        );
+        assert_eq!(simulator.reset_calls, 1);
+        assert_eq!(
+            reconcile_reset(&mut simulator, &plan, &mut session),
+            Err(GazeboAdapterError::ResetOutcomeUnresolved)
+        );
+        assert_eq!(session.world_epoch, "world-epoch-1");
+        assert_eq!(
+            reset_and_verify(&mut simulator, &plan, &mut session),
+            Err(GazeboAdapterError::ResetOutcomeUnresolved)
         );
         assert_eq!(simulator.reset_calls, 1);
     }
