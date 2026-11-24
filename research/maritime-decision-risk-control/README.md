@@ -100,6 +100,71 @@ The deterministic receipt compares three finite-grid cases: 1,200 schedules at 2
 
 The original monotone CRC, CRC with a monotone envelope, and finite-grid CRC-NM are different methods with different theorem assumptions. They must be compared at matched loss definitions and clearly reported guarantee types; do not treat them as interchangeable.
 
+
+## Known-weight distribution-shift comparator (November 2026)
+
+The third executable, `weighted-shift-risk-audit`, implements the **known, bounded importance-weight** case in Proposition 4 of the same arXiv preprint (Section 7):
+
+https://arxiv.org/abs/2604.01502
+
+It intentionally uses an exactly known synthetic source-to-target likelihood ratio. Source calibration episodes have P_train(severe)=0.10; independent target episodes have P_test(severe)=0.50. The exact ratios are:
+
+- severe episode: w = 0.50 / 0.10 = 5;
+- normal episode: w = 0.50 / 0.90 = 5/9.
+
+Therefore P_test is absolutely continuous with respect to P_train and 0 <= w <= W=5 in this constructed fixture. This is a controlled mathematical test, not an estimate of the DCT-to-DGT regime ratio.
+
+For bounded per-schedule loss 0 <= L <= B, the weighted empirical risk is:
+
+`Rhat_w(lambda) = (1/n) sum_i w_i L_i(lambda)`
+
+The paper's selector is:
+
+`lambda_hat = inf {lambda : n/(n+1) * Rhat_w(lambda) + W*B/(n+1) <= alpha}`
+
+with the terminal-policy convention when the set is empty. Under Proposition 4's assumptions, including the independent target episode and its explicit terminal-risk margin, the expected target risk is bounded by:
+
+`alpha + D_W(m,n) + (B-alpha) * exp(-2*n*a^2/(W^2*B^2))`
+
+where:
+
+`D_W(m,n) = W*B*sqrt(log(2m)/(2n)) + W*B/(2*sqrt(2n*log(2m)))`.
+
+This is an **expected-risk** guarantee over calibration and the independent target observation. It is not a high-probability bound conditional on the realized calibration set. A large W increases the correction and may make the bound uninformative.
+
+### Synthetic counterexample: source-calibrated policy can fail after shift
+
+The four-policy fixture has non-monotone schedule-level hard-failure losses:
+
+- deterministic policy: fails in severe episodes;
+- buffered policy: avoids the severe failure but introduces a smaller failure in normal episodes;
+- third policy: has a different severe-regime trade-off;
+- terminal fallback: zero hard-failure loss by construction.
+
+The unweighted source calibration can select the deterministic policy because severe episodes are rare in P_train. On the independent target distribution, that selected policy has a much higher hard-failure rate. The known-weight selector instead selects the buffered policy. The receipt reports both policies' target hard-failure loss and their separate service-loss metric.
+
+The terminal fallback's zero hard-failure loss does **not** mean zero service loss: its service-loss metric is maximal because it performs no service. This is deliberately separate from the CRC risk bound. A risk certificate for one failure outcome is not a certificate for delivered cargo, service quality, participant fairness or cost.
+
+The three calibration sizes are 120, 1,200 and 50,000 complete synthetic schedules. Small-sample or overly large-weight cases can return an uninformative upper bound; the receipt records this rather than silently clipping it.
+
+### What this does not establish
+
+The theorem assumes a **known** likelihood ratio w=dP_test/dP_train and a finite upper bound W. The paper's remark on estimated weights provides a fixed-policy L1 approximation relation, but explicitly leaves a finite-sample guarantee for the data-dependent selector with estimated weights to future work. Consequently:
+
+- a domain-classifier probability is not a known density ratio;
+- a capped/truncated estimated ratio does not satisfy the theorem without a bias/error bound;
+- ESS and observed weight histograms do not prove W or support overlap;
+- P_test not being absolutely continuous with respect to P_train means the historical data cannot certify unseen target regimes;
+- covariate weighting does not fix conditional/concept shift, measurement/ontology shift, or MNAR source loss.
+
+The DCT-to-DGT transfer therefore remains a research question owned by [#7274](https://github.com/Luminous-Dynamics/symtropy/issues/7274), not an achieved result.
+
+Reproduction command:
+
+```sh
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin weighted-shift-risk-audit
+```
+
 ## Important release preconditions
 
 The future #7231 integration must establish all of the following before interpreting a risk output as operationally meaningful:
@@ -141,6 +206,7 @@ cargo check --locked --manifest-path research/maritime-decision-risk-control/Car
 cargo test --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --all-targets
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin decision-risk-audit
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin non-monotone-risk-audit
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin weighted-shift-risk-audit
 ```
 
 ## Claim ceiling
