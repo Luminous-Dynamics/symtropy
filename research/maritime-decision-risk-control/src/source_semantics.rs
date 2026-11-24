@@ -761,7 +761,9 @@ fn benchmark_cases() -> [BenchmarkCase; 21] {
             publication_time: Some(FIXTURE_PUBLICATION_TIME),
             retrieval_time: FIXTURE_RETRIEVAL_TIME,
             independence_ref: Some("synthetic-independent-receiver-review"),
-            custody_digest: Some("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+            custody_digest: Some(
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            ),
             event_time: Some(FIXTURE_EVENT_TIME),
         },
     ]
