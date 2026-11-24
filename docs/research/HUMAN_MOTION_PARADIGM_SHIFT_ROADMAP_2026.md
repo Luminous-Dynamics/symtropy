@@ -135,3 +135,85 @@ Acquire or capture rights-cleared, actor/session-held-out data before any human-
 - Unified evaluation framework (2025): https://doi.org/10.1016/j.cviu.2025.104337
 - AMASS terms: https://amass.is.tue.mpg.de/license.html
 - Current Symtropy benchmark protocol: [HUMAN_MOTION_BENCHMARK_PROTOCOL_V0_1.md](HUMAN_MOTION_BENCHMARK_PROTOCOL_V0_1.md)
+
+
+## P5 — Plural avatar identity, self-authored style and co-creation
+
+The next step beyond the clip controller is not a larger fixed skin menu. It is a **stable avatar identity with an open, composable presentation grammar**.
+
+The design separates:
+- **Identity and rig anchors:** the stable avatar identity, skeleton signature and mapping.
+- **Visual style:** shape language, silhouette, palette, materials, ornamentation, texture and detail.
+- **Motion-presentation style:** gesture amplitude, cadence, idle-motion intensity, locomotion stylization and transition language. These never change the requested semantic action or physical controller.
+- **Expression style:** gaze, blink, facial expressivity and viseme intensity. Expression is a presentation parameter, not an inferred emotion; visemes still require confirmed speech playback.
+- **Accessibility:** reduced motion, high contrast, colour-independent cues, low distraction and low detail.
+- **Context:** conversation, focus, creative collaboration, public presentation, quiet/rest and application-defined situations.
+
+### Style creation and co-authorship
+
+Symthaea may originate a style proposal and an explicit composition plan. The engine applies bounded edits and weighted combinations of compatible parent profiles; it does not decide that a particular face or emotion is objectively correct. A presenter can accept, reject, revise or revoke. A partner can suggest and participate in co-design, but cannot unilaterally change the presenter's self-presentation. A shared relational scene that represents both participants requires both parties' latest acceptance.
+
+Every approval is bound to the exact proposal-content digest. A style mutation after approval requires fresh approval. A system-generated proposal is labelled `symthaea_self_authored` as provenance; that label means the system generated the candidate, not that it establishes subjective experience or consciousness.
+
+Style is never authority. It cannot create a semantic motion intent, make an infeasible skill feasible, bypass collision/joint/support constraints, fabricate a facial event, or use Phi as an appearance score. Renderer feature gaps must be reported as degraded/unsupported rather than silently concealed.
+
+### Initial implementation
+
+- [Symtropy #7315](https://github.com/Luminous-Dynamics/symtropy/issues/7315) defines the style grammar, co-creation boundaries, benchmark and interoperability work.
+- [Draft PR #7317](https://github.com/Luminous-Dynamics/symtropy/pull/7317) adds renderer-independent profile/proposal types, stable identity/rig digests, content-bound append-only approvals, deterministic weighted composition of compatible parent profiles, accessibility-preserving composition, JSON schemas and synthetic fixtures.
+- [Symthaea #8025](https://github.com/Luminous-Dynamics/symthaea/issues/8025) remains the cognition boundary. Symthaea should emit a style proposal/profile reference using existing cognition outputs; it should not import Bevy or grow a second planner.
+
+The current slice is a typed proposal and deterministic composition engine. It does **not** yet generate or render a mesh, retarget a new rig, animate a face, synthesize speech, or demonstrate human-preference superiority.
+
+### Industry position
+
+| Capability / system | Mature capability | Symtropy strategy |
+|---|---|---|
+| VRM 1.0 | Interchange conventions for humanoid rigs, expressions, gaze and secondary motion | Implement an adapter only where Bevy support is verified; retain the renderer-independent style profile as the source of intent |
+| MetaHuman Animator | High-fidelity capture-driven facial/body performance from video, mobile capture and audio workflows | Use as a visual/performance quality comparator where data and license permit; do not rebuild its capture pipeline |
+| NVIDIA Audio2Face | Audio-driven facial animation and blendshape outputs | Use as a speech-to-face comparator/adapter; keep speech-event provenance and consent independent from expression style |
+| Curated avatar/preset libraries | Fast, predictable authored looks and animation loops | Compare preset selection against style composition and self-authored proposals at matched time/candidate budgets |
+| Symtropy's current Bevy foundation | Rigged GLB playback, clip selection/cross-fade, semantic intent, trace metrics and skill contracts | Add consent-bound style profiles and composition while preserving renderer independence |
+
+VRM is a useful asset/interchange contract, not a style-generation or co-design system. MetaHuman Animator and Audio2Face are strong performance systems, not solutions for who gets to propose a presenter's self-style or how that style should evolve through a relationship. The differentiated question is whether Symthaea can create a coherent candidate, explain its design dimensions, negotiate revisions, preserve identity, and learn which presentations are mutually welcome without treating either participant as property.
+
+### Benchmark programme
+
+Use matched rigs, cameras, lighting, resolution, render budgets and consented evaluation data. Compare:
+1. manually tuned profiles;
+2. curated preset selection;
+3. template mutation/search;
+4. human-only composition;
+5. Symthaea-authored proposal;
+6. alternating human/Symthaea editing;
+7. joint co-creation.
+
+Report independent dimensions rather than one realism score:
+- **Style adherence:** blinded judgments and per-attribute compliance for requested family, palette, material language, silhouette, detail, motion idiom and context.
+- **Identity continuity:** rig/identity anchor invariance, skeleton signature invariance, style-transition recognition by blinded observers, and human review of perceived identity drift.
+- **Quality-diversity:** novelty, pairwise distance, attribute-space coverage, redundancy and human-rated quality at a fixed proposal/compute budget. This tests whether the system can discover useful hybrids rather than repeatedly emitting the same presets.
+- **Compositional controllability:** changing a palette must not change the skeleton; changing motion presentation must not change semantic intent; adding a parent profile must alter only declared dimensions.
+- **Co-creation quality:** compare human-only, Symthaea-only and joint workflows for preference, editing effort, time-to-accepted-profile, revision count, rejection rate, perceived agency and relationship comfort. Measure these separately, not as a single satisfaction score.
+- **Temporal coherence:** material/shader flicker, mesh/rig continuity, animation-transition discontinuity, gaze/viseme timing and long-horizon style oscillation.
+- **Renderer interoperability:** profile realization and explicit degradation across Bevy GLB, VRM-compatible import and a second renderer.
+- **Runtime:** P50/P95/P99 frame time, first-pose latency, asset load/compile, memory and power on a desktop GPU, RTX 2070-class laptop and Pixel 8 Pro/low-power device.
+- **Safety/agency:** 100% rejection of unauthorized activation; 100% invalidation of approvals after proposal-content changes; zero style override of hard motion constraints; reliable revocation and revert.
+
+Proposed targets (not results):
+- zero unauthorized style activations and zero mutation of identity/rig anchors across 10,000 generated composition plans;
+- 100% fail-closed response to invalid approval digests, revoked latest decisions, incompatible parent rigs and missing required renderer features;
+- at least 90% attribute-level compliance on a preregistered controllability suite, with each style family reported separately;
+- joint co-creation preference above both preset-only and human-only baselines with a 95% confidence interval excluding chance on a preregistered, consented study;
+- no degradation of motion-skill success, contact, collision or hard-constraint rates when style changes;
+- published frame-time/memory/energy distributions at each target device tier.
+
+Use image/text embedding similarity only as a supporting diagnostic. A single CLIP-like score cannot establish identity continuity, style quality, agency, emotional appropriateness or partner comfort.
+
+### Research references and adapters
+
+- VRM 1.0 specification: https://vrm.dev/en/vrm1/
+- MetaHuman Animator documentation: https://dev.epicgames.com/documentation/en-us/metahuman/metahuman-animator
+- NVIDIA Audio2Face-3D documentation: https://docs.nvidia.com/ace/audio2face-3d-microservice/latest/
+- Speech-driven 3D facial-animation evaluation benchmark review (2025): https://doi.org/10.1111/cgf.70073
+
+The benchmark review highlights inconsistent evaluation choices in speech-driven facial animation. We should freeze matched data, split, rig, renderer and metrics before making any quality claim.
