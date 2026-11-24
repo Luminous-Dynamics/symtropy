@@ -361,7 +361,7 @@ pub enum BoundAvailability<'a, const D: usize> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum CullingDecision<const D: usize> {
-    CertifiedDisjoint(AabbSeparationCertificate<D>),
+    CertifiedDisjoint(Box<AabbSeparationCertificate<D>>),
     OverlapPossible(NonPruneReason),
     Unsupported(UnsupportedReason),
     Invalid(BoundInputError),
@@ -404,11 +404,14 @@ pub fn classify_pair<const D: usize>(
     let mut best: Option<(usize, SeparationOrdering, GapInterval)> = None;
     let mut strict_separation_found = false;
 
-    for axis in 0..D {
-        let first_min = first.aabb.min[axis];
-        let first_max = first.aabb.max[axis];
-        let second_min = second.aabb.min[axis];
-        let second_max = second.aabb.max[axis];
+    for (axis, ((&first_min, &first_max), (&second_min, &second_max))) in first
+        .aabb
+        .min
+        .iter()
+        .zip(first.aabb.max.iter())
+        .zip(second.aabb.min.iter().zip(second.aabb.max.iter()))
+        .enumerate()
+    {
         let separation = if first_max < second_min {
             Some((
                 second_min - first_max,
@@ -438,7 +441,7 @@ pub fn classify_pair<const D: usize>(
 
     match best {
         Some((axis, ordering, gap)) => {
-            CullingDecision::CertifiedDisjoint(AabbSeparationCertificate {
+            CullingDecision::CertifiedDisjoint(Box::new(AabbSeparationCertificate {
                 pair,
                 context: first.context.clone(),
                 first: first.clone(),
@@ -446,7 +449,7 @@ pub fn classify_pair<const D: usize>(
                 axis,
                 ordering,
                 gap,
-            })
+            }))
         }
         None if strict_separation_found => {
             CullingDecision::OverlapPossible(NonPruneReason::GapMarginNotStrictlyPositive)
@@ -613,7 +616,7 @@ mod tests {
             BoundAvailability::Available(left),
             BoundAvailability::Available(right),
         ) {
-            CullingDecision::CertifiedDisjoint(proof) => proof,
+            CullingDecision::CertifiedDisjoint(proof) => *proof,
             other => panic!("expected certificate, got {other:?}"),
         }
     }
