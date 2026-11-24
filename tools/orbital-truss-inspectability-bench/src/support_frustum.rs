@@ -574,8 +574,7 @@ mod tests {
         let mut support_case = positive_support_case();
         support_case.support.normal_cone_asserted = false;
         let frustum_case = frustum_case_for_support(&support_case, 2.8);
-        let pair =
-            evaluate_support_precondition_pair(&support_case, &frustum_case).unwrap();
+        let pair = evaluate_support_precondition_pair(&support_case, &frustum_case).unwrap();
         assert_eq!(pair.rectilinear_frustum.status, FrustumStatus::Within);
         assert_eq!(pair.status, SupportPreconditionStatus::Indeterminate);
         assert!(!pair.may_count_toward_visibility);
@@ -585,8 +584,7 @@ mod tests {
     fn narrow_vertical_fov_prevents_next_gate_eligibility() {
         let support_case = positive_support_case();
         let frustum_case = frustum_case_for_support(&support_case, 0.001);
-        let pair =
-            evaluate_support_precondition_pair(&support_case, &frustum_case).unwrap();
+        let pair = evaluate_support_precondition_pair(&support_case, &frustum_case).unwrap();
         assert_ne!(pair.rectilinear_frustum.status, FrustumStatus::Within);
         assert_ne!(pair.status, SupportPreconditionStatus::NextGateEligible);
         assert!(!pair.may_count_toward_visibility);
