@@ -172,6 +172,17 @@ pub struct GateReceiptSummary {
     pub evidence_reference: String,
     pub digest: String,
     pub disposition: GateDisposition,
+    pub pcc_bus_id: Option<String>,
+    pub asset_id: Option<String>,
+    pub asset_configuration_digest: Option<String>,
+    pub observed_at_unix_ms: u64,
+    pub valid_from_unix_ms: u64,
+    pub valid_until_unix_ms: u64,
+    pub recovery_deadline_unix_ms: Option<u64>,
+    pub network_model_digest: Option<String>,
+    pub topology_digest: Option<String>,
+    pub baseline_trace_digest: Option<String>,
+    pub flexible_trace_digest: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -190,6 +201,7 @@ pub struct MobilityNetworkAdapterReport {
     pub topology_digest: String,
     pub horizon_start_unix_ms: u64,
     pub horizon_end_unix_ms: u64,
+    pub required_recovery_by_unix_ms: u64,
     pub disposition: CompositeDisposition,
     /// Requested PCC trajectory volume, not actual measured delivery.
     pub site_requested_response_energy_mwh: f64,
@@ -204,6 +216,9 @@ pub struct MobilityNetworkAdapterReport {
     pub dc_network_report: Option<DcNetworkDeliverabilityReport>,
     pub upstream_receipts: Vec<GateReceiptSummary>,
     pub actual_metered_delivery_assessed: bool,
+    pub upstream_receipt_signatures_verified: bool,
+    pub network_model_digest_verified_against_content: bool,
+    pub topology_digest_verified_against_content: bool,
     pub adequacy_contribution_computed: bool,
     pub ac_feasibility_established: bool,
     pub market_eligibility_granted: bool,
@@ -548,6 +563,17 @@ fn validate_receipts(
             evidence_reference: receipt.evidence_reference.clone(),
             digest: receipt.digest.clone(),
             disposition: receipt.disposition,
+            pcc_bus_id: receipt.pcc_bus_id.clone(),
+            asset_id: receipt.asset_id.clone(),
+            asset_configuration_digest: receipt.asset_configuration_digest.clone(),
+            observed_at_unix_ms: receipt.observed_at_unix_ms,
+            valid_from_unix_ms: receipt.valid_from_unix_ms,
+            valid_until_unix_ms: receipt.valid_until_unix_ms,
+            recovery_deadline_unix_ms: receipt.recovery_deadline_unix_ms,
+            network_model_digest: receipt.network_model_digest.clone(),
+            topology_digest: receipt.topology_digest.clone(),
+            baseline_trace_digest: receipt.baseline_trace_digest.clone(),
+            flexible_trace_digest: receipt.flexible_trace_digest.clone(),
         });
     }
 
@@ -776,6 +802,7 @@ pub fn evaluate_mobility_network_adapter(
         topology_digest: input.network.topology_digest.clone(),
         horizon_start_unix_ms: input.horizon_start_unix_ms,
         horizon_end_unix_ms: input.horizon_end_unix_ms,
+        required_recovery_by_unix_ms: input.required_recovery_by_unix_ms,
         disposition: CompositeDisposition::HeldUnknownGate,
         site_requested_response_energy_mwh: site_requested_energy,
         maximum_dc_network_deliverable_response_energy_mwh: None,
@@ -786,6 +813,9 @@ pub fn evaluate_mobility_network_adapter(
         dc_network_report: None,
         upstream_receipts: receipt_summaries,
         actual_metered_delivery_assessed: false,
+        upstream_receipt_signatures_verified: false,
+        network_model_digest_verified_against_content: true,
+        topology_digest_verified_against_content: true,
         adequacy_contribution_computed: false,
         ac_feasibility_established: false,
         market_eligibility_granted: false,
@@ -1011,6 +1041,11 @@ mod tests {
         assert_eq!(report.dc_network_report.as_ref().unwrap().interval_count, 1);
         assert_eq!(report.actual_measured_pcc_response_energy_mwh, None);
         assert!(!report.actual_metered_delivery_assessed);
+        assert!(!report.upstream_receipt_signatures_verified);
+        assert!(report.network_model_digest_verified_against_content);
+        assert!(report.topology_digest_verified_against_content);
+        assert_eq!(report.required_recovery_by_unix_ms, 3_900_000);
+        assert_eq!(report.upstream_receipts[1].recovery_deadline_unix_ms, Some(3_900_000));
         assert!(!report.adequacy_contribution_computed);
         assert!(!report.ac_feasibility_established);
         assert!(!report.market_eligibility_granted);
