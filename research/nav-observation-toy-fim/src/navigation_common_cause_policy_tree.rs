@@ -651,6 +651,11 @@ mod tests {
         let exact = plan_exact_horizon_two(&model, &actions, budget).unwrap();
         let greedy = plan_one_step_greedy(&model, &actions, budget).unwrap();
         assert!(exact.expected_terminal_loss_numerator <= greedy.expected_terminal_loss_numerator);
+        assert_eq!(exact.first_action_id, Some(1));
+        assert_eq!(
+            exact.branches.iter().map(|branch| branch.second_action_id).collect::<Vec<_>>(),
+            vec![None, None, Some(3)]
+        );
         assert!(exact.authority_transition_not_authorized_by_plan);
         assert!(greedy.authority_transition_not_authorized_by_plan);
     }
