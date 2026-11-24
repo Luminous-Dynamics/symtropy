@@ -139,21 +139,37 @@ impl fmt::Display for BehaviouralTransferErrorV0 {
             Self::DuplicateTransition => "transition table contains a duplicate labelled edge",
             Self::DuplicateScopeId => "scope contains duplicate state or action IDs",
             Self::UnknownScopeId => "scope references an unknown state or action",
-            Self::TransitionLeavesScope => "an in-scope transition leaves the declared state/action scope",
+            Self::TransitionLeavesScope => {
+                "an in-scope transition leaves the declared state/action scope"
+            }
             Self::EmptyStateRelation => "behavioural state relation must not be empty",
             Self::DuplicateStatePair => "behavioural state relation contains a duplicate pair",
             Self::UnknownSourceRelationState => "state relation references an unknown source state",
             Self::UnknownTargetRelationState => "state relation references an unknown target state",
-            Self::SourceStateNotRelated => "every source scope state must appear in the state relation",
-            Self::TargetStateNotRelated => "every target scope state must appear in the state relation",
+            Self::SourceStateNotRelated => {
+                "every source scope state must appear in the state relation"
+            }
+            Self::TargetStateNotRelated => {
+                "every target scope state must appear in the state relation"
+            }
             Self::IncompleteActionMap => "every source scope action must have an action mapping",
             Self::DuplicateSourceActionMapping => "source action mapping must be one-to-one",
             Self::DuplicateTargetActionMapping => "target action mapping must be one-to-one",
-            Self::UnknownSourceActionMapping => "action mapping references an unknown source action",
-            Self::UnknownTargetActionMapping => "action mapping references an unknown target action",
-            Self::ActionKindMismatch => "declared action kinds do not match their source/target actions",
-            Self::ActionKindMapNotInjective => "distinct source action kinds map to one target kind",
-            Self::InconsistentActionKindMapping => "one source action kind maps to inconsistent target kinds",
+            Self::UnknownSourceActionMapping => {
+                "action mapping references an unknown source action"
+            }
+            Self::UnknownTargetActionMapping => {
+                "action mapping references an unknown target action"
+            }
+            Self::ActionKindMismatch => {
+                "declared action kinds do not match their source/target actions"
+            }
+            Self::ActionKindMapNotInjective => {
+                "distinct source action kinds map to one target kind"
+            }
+            Self::InconsistentActionKindMapping => {
+                "one source action kind maps to inconsistent target kinds"
+            }
             Self::BisimulationActionMapNotSurjective => {
                 "bisimulation action mapping must cover the complete target action scope"
             }
@@ -185,8 +201,16 @@ pub fn validate_behavioural_correspondence(
     validate_system(source, true)?;
     validate_system(target, false)?;
     validate_scope(source, target, &candidate.scope)?;
-    validate_scope_transitions(source, &candidate.scope.source_state_ids, &candidate.scope.source_action_ids)?;
-    validate_scope_transitions(target, &candidate.scope.target_state_ids, &candidate.scope.target_action_ids)?;
+    validate_scope_transitions(
+        source,
+        &candidate.scope.source_state_ids,
+        &candidate.scope.source_action_ids,
+    )?;
+    validate_scope_transitions(
+        target,
+        &candidate.scope.target_state_ids,
+        &candidate.scope.target_action_ids,
+    )?;
     validate_state_relation(source, target, &candidate.scope, &candidate.state_relation)?;
     let action_maps = validate_action_mappings(
         source,
@@ -202,7 +226,10 @@ pub fn validate_behavioural_correspondence(
     for pair in &candidate.state_relation {
         let source_transitions = source.transitions.iter().filter(|transition| {
             transition.from_state_id == pair.source_state_id
-                && candidate.scope.source_action_ids.contains(&transition.action_id)
+                && candidate
+                    .scope
+                    .source_action_ids
+                    .contains(&transition.action_id)
         });
         for source_transition in source_transitions {
             checked_source_transitions += 1;
@@ -234,7 +261,10 @@ pub fn validate_behavioural_correspondence(
         for pair in &candidate.state_relation {
             let target_transitions = target.transitions.iter().filter(|transition| {
                 transition.from_state_id == pair.target_state_id
-                    && candidate.scope.target_action_ids.contains(&transition.action_id)
+                    && candidate
+                        .scope
+                        .target_action_ids
+                        .contains(&transition.action_id)
             });
             for target_transition in target_transitions {
                 checked_target_transitions += 1;
@@ -425,12 +455,18 @@ fn validate_state_relation(
             return Err(BehaviouralTransferErrorV0::DuplicateStatePair);
         }
         if !scope.source_state_ids.contains(&pair.source_state_id)
-            || !source.states.iter().any(|state| state.id == pair.source_state_id)
+            || !source
+                .states
+                .iter()
+                .any(|state| state.id == pair.source_state_id)
         {
             return Err(BehaviouralTransferErrorV0::UnknownSourceRelationState);
         }
         if !scope.target_state_ids.contains(&pair.target_state_id)
-            || !target.states.iter().any(|state| state.id == pair.target_state_id)
+            || !target
+                .states
+                .iter()
+                .any(|state| state.id == pair.target_state_id)
         {
             return Err(BehaviouralTransferErrorV0::UnknownTargetRelationState);
         }
@@ -545,7 +581,9 @@ fn unique_by<T>(values: &[T], id_of: impl Fn(&T) -> u32) -> bool {
 }
 
 fn unique_ids(ids: &[u32]) -> bool {
-    ids.iter().enumerate().all(|(index, id)| !ids[index + 1..].contains(id))
+    ids.iter()
+        .enumerate()
+        .all(|(index, id)| !ids[index + 1..].contains(id))
 }
 
 #[cfg(test)]
@@ -701,19 +739,23 @@ mod tests {
         let target = target_with_extra_behaviour();
         let candidate = many_to_many_candidate();
 
-        assert!(candidate
-            .state_relation
-            .iter()
-            .filter(|pair| pair.source_state_id == 2)
-            .count()
-            == 2);
-        assert!(validate_behavioural_correspondence(
-            &source,
-            &target,
-            BehaviouralMapKindV0::Simulation,
-            &candidate
-        )
-        .is_ok());
+        assert!(
+            candidate
+                .state_relation
+                .iter()
+                .filter(|pair| pair.source_state_id == 2)
+                .count()
+                == 2
+        );
+        assert!(
+            validate_behavioural_correspondence(
+                &source,
+                &target,
+                BehaviouralMapKindV0::Simulation,
+                &candidate
+            )
+            .is_ok()
+        );
     }
 
     #[test]
