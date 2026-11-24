@@ -6,12 +6,10 @@ on:
       - research/safrb-v0.2-grade-network
     paths:
       - "benchmarks/fuel-resilience/south-africa/v0.2/**"
-      - "benchmarks/fuel-resilience/south-africa/README.md"
       - ".github/workflows/safrb-v0.2.yml"
   pull_request:
     paths:
       - "benchmarks/fuel-resilience/south-africa/v0.2/**"
-      - "benchmarks/fuel-resilience/south-africa/README.md"
       - ".github/workflows/safrb-v0.2.yml"
   workflow_dispatch:
 

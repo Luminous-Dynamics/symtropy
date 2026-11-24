@@ -1,0 +1,16 @@
+[package]
+name = "safrb-planner"
+version = "0.3.0"
+edition = "2024"
+publish = false
+license = "Apache-2.0"
+description = "Deterministic time-expanded min-cost-flow baseline for SAFRB"
+
+[dependencies]
+
+[[bin]]
+name = "safrb-planner"
+path = "src/main.rs"
+
+[workspace]
+# Standalone baseline, intentionally outside the parent Symtropy workspace.
