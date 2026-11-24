@@ -1017,10 +1017,30 @@ mod tests {
             .unwrap();
     }
 
+    fn dispatch_payload_sha256() -> String {
+        let request = crate::gazebo_adapter::GazeboDispatchRequest {
+            plan_sha256: digest('a'),
+            campaign_id: "campaign-1".into(),
+            pair_id: "pair-1".into(),
+            scenario_id: "scenario-1".into(),
+            fault_id: "fault-1".into(),
+            fault_sequence: 1,
+            world_epoch: "world-epoch-2".into(),
+            clock_id: "clock-1".into(),
+            target_id: "entity-1".into(),
+            fault_domain_id: "injector-domain-1".into(),
+            scheduled_simulation_step: 42,
+            parameters_sha256: digest('f'),
+            payload_sha256: String::new(),
+            idempotency_key: "rrvr/v0.1/test-key-1".into(),
+        };
+        crate::gazebo_adapter::dispatch_request_fingerprint(&request).unwrap()
+    }
+
     fn append_dispatch_intent(journal: &mut Journal) {
         journal.append_dispatch_intent(DispatchIntentRecord {
             idempotency_key: "rrvr/v0.1/test-key-1".into(),
-            payload_sha256: digest('e'),
+            payload_sha256: dispatch_payload_sha256(),
             reset_id: "reset-1".into(),
             plan_sha256: digest('a'),
             simulator_profile_sha256: digest('b'),
@@ -1081,7 +1101,7 @@ mod tests {
             assert_eq!(
                 journal.append_dispatch_intent(DispatchIntentRecord {
                 idempotency_key: "premature-key".into(),
-                payload_sha256: digest('e'),
+                payload_sha256: dispatch_payload_sha256(),
                 reset_id: "reset-1".into(),
                 plan_sha256: digest('a'),
                 simulator_profile_sha256: digest('b'),
@@ -1108,7 +1128,7 @@ mod tests {
             append_dispatch_intent(&mut journal);
             journal.append_dispatch_outcome(DispatchOutcomeRecord {
                 idempotency_key: "rrvr/v0.1/test-key-1".into(),
-                payload_sha256: digest('e'),
+                payload_sha256: dispatch_payload_sha256(),
                 source: DispatchOutcomeSource::TransportResponse,
                 status: DispatchOutcomeStatus::ResponseUnknown,
                 dispatch_id: None,
@@ -1117,7 +1137,7 @@ mod tests {
                 .unwrap();
             journal.append_dispatch_outcome(DispatchOutcomeRecord {
                 idempotency_key: "rrvr/v0.1/test-key-1".into(),
-                payload_sha256: digest('e'),
+                payload_sha256: dispatch_payload_sha256(),
                 source: DispatchOutcomeSource::InjectorLedgerLookup,
                 status: DispatchOutcomeStatus::ReconciledAccepted,
                 dispatch_id: Some("dispatch-1".into()),
@@ -1193,7 +1213,7 @@ mod tests {
         assert_eq!(
             journal.append_dispatch_intent(DispatchIntentRecord {
                 idempotency_key: "rrvr/v0.1/test-key-1".into(),
-                payload_sha256: digest('e'),
+                payload_sha256: dispatch_payload_sha256(),
                 reset_id: "reset-1".into(),
                 plan_sha256: digest('a'),
                 simulator_profile_sha256: digest('b'),
@@ -1239,7 +1259,7 @@ mod tests {
         append_dispatch_intent(&mut journal);
         journal.append_dispatch_outcome(DispatchOutcomeRecord {
             idempotency_key: "rrvr/v0.1/test-key-1".into(),
-            payload_sha256: digest('e'),
+            payload_sha256: dispatch_payload_sha256(),
             source: DispatchOutcomeSource::InjectorLedgerLookup,
             status: DispatchOutcomeStatus::NoDispatchProven,
             dispatch_id: None,
@@ -1248,7 +1268,7 @@ mod tests {
         assert_eq!(
             journal.append_dispatch_outcome(DispatchOutcomeRecord {
                 idempotency_key: "rrvr/v0.1/test-key-1".into(),
-                payload_sha256: digest('e'),
+                payload_sha256: dispatch_payload_sha256(),
                 source: DispatchOutcomeSource::TransportResponse,
                 status: DispatchOutcomeStatus::ResponseAccepted,
                 dispatch_id: Some("dispatch-late".into()),
@@ -1270,7 +1290,7 @@ mod tests {
             journal
                 .append_dispatch_outcome(DispatchOutcomeRecord {
                     idempotency_key: "rrvr/v0.1/test-key-1".into(),
-                    payload_sha256: digest('e'),
+                    payload_sha256: dispatch_payload_sha256(),
                     source: DispatchOutcomeSource::TransportResponse,
                     status: DispatchOutcomeStatus::ResponseUnknown,
                     dispatch_id: None,
@@ -1288,7 +1308,7 @@ mod tests {
             reopened
                 .append_dispatch_outcome(DispatchOutcomeRecord {
                     idempotency_key: "rrvr/v0.1/test-key-1".into(),
-                    payload_sha256: digest('e'),
+                    payload_sha256: dispatch_payload_sha256(),
                     source: DispatchOutcomeSource::InjectorLedgerLookup,
                     status: DispatchOutcomeStatus::NoDispatchProven,
                     dispatch_id: None,
@@ -1299,7 +1319,7 @@ mod tests {
             assert_eq!(
                 reopened.append_dispatch_outcome(DispatchOutcomeRecord {
                     idempotency_key: "rrvr/v0.1/test-key-1".into(),
-                    payload_sha256: digest('e'),
+                    payload_sha256: dispatch_payload_sha256(),
                     source: DispatchOutcomeSource::TransportResponse,
                     status: DispatchOutcomeStatus::ResponseAccepted,
                     dispatch_id: Some("late-dispatch".into()),
