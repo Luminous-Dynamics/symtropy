@@ -382,8 +382,7 @@ fn push_row(
     if selected == 0 {
         output.push_str("NA,NA");
     } else {
-        let conditional_rate =
-            accumulator.unsafe_selections as f64 / selected as f64;
+        let conditional_rate = accumulator.unsafe_selections as f64 / selected as f64;
         let mean_service_cost = accumulator.service_cost_sum / selected as f64;
         let _ = write!(output, "{conditional_rate:.6},{mean_service_cost:.3}");
     }
@@ -408,28 +407,16 @@ fn run_experiment(
         let seed = MASTER_SEED
             ^ (experiment.independent_clusters as u64).rotate_left(17)
             ^ (replicate as u64).wrapping_mul(0xD134_2543_DE82_EF95);
-        let severe_clusters = sample_severe_cluster_count(
-            experiment.independent_clusters,
-            seed,
-        );
-        let cluster_sums = cluster_loss_sums(
-            fixture,
-            experiment.independent_clusters,
-            severe_clusters,
-        );
+        let severe_clusters = sample_severe_cluster_count(experiment.independent_clusters, seed);
+        let cluster_sums =
+            cluster_loss_sums(fixture, experiment.independent_clusters, severe_clusters);
 
         let (calibration_sums, calibration_units) = match unit {
             CalibrationUnit::SchedulePseudoReplicate => (
-                schedule_pseudo_replicated_sums(
-                    &cluster_sums,
-                    experiment.schedules_per_cluster,
-                ),
+                schedule_pseudo_replicated_sums(&cluster_sums, experiment.schedules_per_cluster),
                 experiment.total_schedules,
             ),
-            CalibrationUnit::IndependentCluster => (
-                cluster_sums,
-                experiment.independent_clusters,
-            ),
+            CalibrationUnit::IndependentCluster => (cluster_sums, experiment.independent_clusters),
         };
 
         let selected = match method {
@@ -466,8 +453,7 @@ pub fn render_csv() -> String {
                     CalibrationUnit::SchedulePseudoReplicate,
                     CalibrationUnit::IndependentCluster,
                 ] {
-                    let accumulator =
-                        run_experiment(fixture, method, unit, experiment);
+                    let accumulator = run_experiment(fixture, method, unit, experiment);
                     push_row(
                         &mut output,
                         RowMetadata {
@@ -490,10 +476,7 @@ pub fn render_csv() -> String {
 mod tests {
     use super::*;
     use crate::non_monotone::WholeScheduleLossGrid;
-    use crate::{
-        FrozenRevisions, LossMatrix, MaxParameterContract, MonotonicityMode,
-        calibrate,
-    };
+    use crate::{FrozenRevisions, LossMatrix, MaxParameterContract, MonotonicityMode, calibrate};
 
     #[test]
     fn cluster_level_population_risks_match_exact_known_answers() {
@@ -514,13 +497,9 @@ mod tests {
         assert_eq!(experiment.total_schedules, 50_000);
 
         let cluster_sums = cluster_loss_sums(Fixture::ExpectedRiskCrc, 50, 0);
-        let pseudo_sums =
-            schedule_pseudo_replicated_sums(&cluster_sums, 1_000);
+        let pseudo_sums = schedule_pseudo_replicated_sums(&cluster_sums, 1_000);
 
-        assert_eq!(
-            select_crc(&pseudo_sums, experiment.total_schedules),
-            0
-        );
+        assert_eq!(select_crc(&pseudo_sums, experiment.total_schedules), 0);
         assert_eq!(select_crc(&cluster_sums, 50), 3);
     }
 
@@ -562,8 +541,7 @@ mod tests {
             experiment,
         );
 
-        let naive_unsafe_rate =
-            naive.unsafe_selections as f64 / REPLICATES as f64;
+        let naive_unsafe_rate = naive.unsafe_selections as f64 / REPLICATES as f64;
         assert!(naive_unsafe_rate > DELTA);
         assert_eq!(cluster.selected_runs, 0);
         assert_eq!(cluster.unsafe_selections, 0);
@@ -587,12 +565,7 @@ mod tests {
         let first = render_csv();
         assert_eq!(first, render_csv());
         assert_eq!(first.lines().count(), 33);
-        let width = first
-            .lines()
-            .next()
-            .expect("CSV header")
-            .split(',')
-            .count();
+        let width = first.lines().next().expect("CSV header").split(',').count();
         assert_eq!(width, 22);
         for row in first.lines().skip(1) {
             assert_eq!(row.split(',').count(), width);
@@ -626,10 +599,7 @@ mod tests {
         )
         .expect("existing cluster-unit CRC implementation");
         let sums = cluster_loss_sums(Fixture::ExpectedRiskCrc, 50, 0);
-        assert_eq!(
-            select_crc(&sums, 50),
-            reference.selected_parameter_index
-        );
+        assert_eq!(select_crc(&sums, 50), reference.selected_parameter_index);
     }
 
     #[test]
