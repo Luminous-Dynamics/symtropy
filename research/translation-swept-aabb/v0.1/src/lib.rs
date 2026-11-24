@@ -191,9 +191,7 @@ impl<const D: usize> Aabb<D> {
 
     #[must_use]
     pub fn contains(&self, other: &Self) -> bool {
-        (0..D).all(|axis| {
-            self.min[axis] <= other.min[axis] && self.max[axis] >= other.max[axis]
-        })
+        (0..D).all(|axis| self.min[axis] <= other.min[axis] && self.max[axis] >= other.max[axis])
     }
 }
 
@@ -334,9 +332,7 @@ pub enum SweepDecision<const D: usize> {
 /// Rotation is supported only when the integrator's actual rotor-update
 /// threshold proves no rotation update occurred. Other cases must fall back.
 #[must_use]
-pub fn produce_swept_aabb<const D: usize>(
-    input: &TranslationSweepInput<D>,
-) -> SweepDecision<D> {
+pub fn produce_swept_aabb<const D: usize>(input: &TranslationSweepInput<D>) -> SweepDecision<D> {
     if input.post_angular_velocity_norm_squared > ROTATION_UPDATE_NORM_SQUARED_THRESHOLD {
         return SweepDecision::Unsupported(UnsupportedReason::RotationUpdated);
     }
@@ -684,17 +680,32 @@ mod tests {
     #[test]
     fn malformed_time_and_state_are_rejected() {
         assert_eq!(
-            SweepContext::new(1, 1, f64::NAN, "i", "1", QuantizationProfile::NativeBinary64, "b", "1"),
+            SweepContext::new(
+                1,
+                1,
+                f64::NAN,
+                "i",
+                "1",
+                QuantizationProfile::NativeBinary64,
+                "b",
+                "1"
+            ),
             Err(SweepError::NonFiniteTimeStep)
         );
         assert_eq!(
-            SweepContext::new(1, 1, -1.0, "i", "1", QuantizationProfile::NativeBinary64, "b", "1"),
+            SweepContext::new(
+                1,
+                1,
+                -1.0,
+                "i",
+                "1",
+                QuantizationProfile::NativeBinary64,
+                "b",
+                "1"
+            ),
             Err(SweepError::NegativeTimeStep)
         );
-        assert_eq!(
-            Aabb::<0>::new([], []),
-            Err(SweepError::ZeroDimension)
-        );
+        assert_eq!(Aabb::<0>::new([], []), Err(SweepError::ZeroDimension));
         assert_eq!(
             Aabb::new([f64::NAN, 0.0], [1.0, 1.0]),
             Err(SweepError::NonFiniteState)
@@ -775,7 +786,10 @@ mod tests {
             let velocity = [next() * 0.01, next() * 0.01];
             let dt = 0.25;
             let expected_displacement = [velocity[0] * dt, velocity[1] * dt];
-            let observed_delta = [expected_displacement[0] + 1.0e-7, expected_displacement[1] - 1.0e-7];
+            let observed_delta = [
+                expected_displacement[0] + 1.0e-7,
+                expected_displacement[1] - 1.0e-7,
+            ];
             let post_position = [
                 start_position[0] + observed_delta[0],
                 start_position[1] + observed_delta[1],
