@@ -985,6 +985,28 @@ fn verify_receipt_matches(
         Some(epoch),
         Some(transition_id),
     )?;
+    let exact_frame_digest = digest_value(frame, Some(epoch), Some(transition_id))?;
+    if required_string(
+        receipt,
+        "decision_frame_digest",
+        "admission_receipt",
+        Some(epoch),
+        Some(transition_id),
+    )? != exact_frame_digest
+        || required_string(
+            proposal,
+            "decision_frame_digest",
+            "proposal",
+            Some(epoch),
+            Some(transition_id),
+        )? != exact_frame_digest
+    {
+        return Err(violation(
+            "proposal_or_receipt_frame_digest_mismatch",
+            Some(epoch),
+            Some(transition_id),
+        ));
+    }
     if required_string(
         receipt,
         "status",
@@ -2313,11 +2335,13 @@ mod tests {
         setup_ticks: u64,
         inspection_method_id: Option<&str>,
     ) -> Value {
+        let frame_digest = digest_value(&frame(epoch), Some(epoch), None).unwrap();
         json!({
             "schema_id": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-action-admission-receipt",
             "benchmark_id": "MFG-POLICY-V02-CHALLENGE-001",
             "case_id": "CASE-REPLAY-01",
             "decision_epoch": epoch,
+            "decision_frame_digest": frame_digest,
             "operation_id": operation_id,
             "resource_id": "RESOURCE-A",
             "status": "ADMISSIBLE",
@@ -2340,6 +2364,7 @@ mod tests {
         processing_ticks: u64,
         setup_ticks: u64,
     ) -> Value {
+        let frame_digest = digest_value(&frame(epoch), Some(epoch), None).unwrap();
         json!({
             "transition_id": id,
             "kind": "START_ACTION",
@@ -2348,6 +2373,7 @@ mod tests {
                 "benchmark_id": "MFG-POLICY-V02-CHALLENGE-001",
                 "case_id": "CASE-REPLAY-01",
                 "decision_epoch": epoch,
+                "decision_frame_digest": frame_digest,
                 "operation_id": operation_id,
                 "resource_id": "RESOURCE-A",
                 "action_kind": action_kind,
