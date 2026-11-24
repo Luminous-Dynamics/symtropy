@@ -149,6 +149,7 @@ pub struct CaseResult {
     pub motion_budget_micro_px: u64,
     pub maximum_row_offset_ns: u64,
     pub projector_frame_interval_ns: Option<[i128; 2]>,
+    pub projector_pattern_assessed: bool,
     pub status: AcquisitionStatus,
     pub reason_codes: Vec<String>,
     pub may_enter_measurement_pipeline: bool,
@@ -466,12 +467,8 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
         .ok_or_else(|| "EXPOSURE_DURATION_OVERFLOW".to_owned())?
         / 2;
 
+    let mut projector_pattern_assessed = false;
     let projector_frame_interval_ns = if case.requires_projector {
-        let interval = checked_projector_interval(
-            case,
-            half_exposure_ns,
-            maximum_row_offset_ns,
-        )?;
         if case.timestamp_reference != TimestampReference::CenterRowExposureMidpoint {
             add_reason(
                 AcquisitionStatus::Indeterminate,
@@ -479,33 +476,50 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
                 &mut statuses,
                 &mut reasons,
             );
-        } else if let Some(window) = &case.projector_window {
-            let stable_start = i128::from(window.stable_start_ns);
-            let stable_end = i128::from(window.stable_end_ns);
-            if interval[1] < stable_start || interval[0] >= stable_end {
-                add_reason(
-                    AcquisitionStatus::ProjectorPatternMismatch,
-                    "PROJECTOR_PATTERN_WINDOW_DISJOINT",
-                    &mut statuses,
-                    &mut reasons,
-                );
-            } else if interval[0] < stable_start || interval[1] >= stable_end {
+            None
+        } else if case.clock_map_state != ClockMapState::Valid {
+            add_reason(
+                AcquisitionStatus::Indeterminate,
+                "PROJECTOR_CLOCK_MAP_NOT_QUALIFIED",
+                &mut statuses,
+                &mut reasons,
+            );
+            None
+        } else {
+            let interval = checked_projector_interval(
+                case,
+                half_exposure_ns,
+                maximum_row_offset_ns,
+            )?;
+            if let Some(window) = &case.projector_window {
+                let stable_start = i128::from(window.stable_start_ns);
+                let stable_end = i128::from(window.stable_end_ns);
+                projector_pattern_assessed = true;
+                if interval[1] < stable_start || interval[0] >= stable_end {
+                    add_reason(
+                        AcquisitionStatus::ProjectorPatternMismatch,
+                        "PROJECTOR_PATTERN_WINDOW_DISJOINT",
+                        &mut statuses,
+                        &mut reasons,
+                    );
+                } else if interval[0] < stable_start || interval[1] >= stable_end {
+                    add_reason(
+                        AcquisitionStatus::Indeterminate,
+                        "PROJECTOR_PATTERN_WINDOW_BOUNDARY_OVERLAP",
+                        &mut statuses,
+                        &mut reasons,
+                    );
+                }
+            } else {
                 add_reason(
                     AcquisitionStatus::Indeterminate,
-                    "PROJECTOR_PATTERN_WINDOW_BOUNDARY_OVERLAP",
+                    "PROJECTOR_PATTERN_EVIDENCE_MISSING",
                     &mut statuses,
                     &mut reasons,
                 );
             }
-        } else {
-            add_reason(
-                AcquisitionStatus::Indeterminate,
-                "PROJECTOR_PATTERN_EVIDENCE_MISSING",
-                &mut statuses,
-                &mut reasons,
-            );
+            Some(interval)
         }
-        Some(interval)
     } else {
         None
     };
@@ -541,6 +555,7 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
         motion_budget_micro_px: case.motion_budget_micro_px,
         maximum_row_offset_ns,
         projector_frame_interval_ns,
+        projector_pattern_assessed,
         status: choose_status(&statuses),
         reason_codes: reasons.into_iter().collect(),
         may_enter_measurement_pipeline: choose_status(&statuses)
@@ -736,6 +751,24 @@ mod tests {
     }
 
     #[test]
+    fn unknown_clock_map_does_not_claim_projector_pattern_mismatch() {
+        let mut value = base_case();
+        value.exposure_duration_ns = 1_000;
+        value.requires_projector = true;
+        value.clock_map_state = ClockMapState::Unknown;
+        value.projector_window = Some(ProjectorWindow {
+            pattern_id: "PATTERN-1".to_owned(),
+            stable_start_ns: 0,
+            stable_end_ns: 1_000,
+            pattern_receipt_sha256: "c".repeat(64),
+        });
+        let result = evaluate_case(&value).expect("valid input");
+        assert_eq!(result.status, AcquisitionStatus::Indeterminate);
+        assert!(!result.projector_pattern_assessed);
+        assert_eq!(result.projector_frame_interval_ns, None);
+    }
+
+    #[test]
     fn disjoint_projector_pattern_window_is_rejected() {
         let mut value = base_case();
         value.exposure_duration_ns = 1_000;
@@ -748,6 +781,7 @@ mod tests {
         });
         let result = evaluate_case(&value).expect("valid input");
         assert_eq!(result.status, AcquisitionStatus::ProjectorPatternMismatch);
+        assert!(result.projector_pattern_assessed);
     }
 
     #[test]
