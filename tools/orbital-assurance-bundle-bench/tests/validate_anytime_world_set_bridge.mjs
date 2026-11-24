@@ -267,6 +267,18 @@ const tests = [
     r.qualification.model_family_state = "PROBABLY_ADEQUATE";
     return r;
   }, "INVALID_INPUT", "qualification object has unknown fields or malformed state enums"],
+  ["non-string adapter disposition", r => {
+    r.adapter_disposition = [];
+    return r;
+  }, "INVALID_INPUT", "envelope identity, claim ceiling, disposition or authority field is invalid"],
+  ["non-string guarantee disposition", r => {
+    r.contract.guarantee_disposition = [];
+    return r;
+  }, "INVALID_INPUT", "sequential process, filtration, policy or kernel commitment is malformed"],
+  ["non-string qualification state", r => {
+    r.qualification.source_state = [];
+    return r;
+  }, "INVALID_INPUT", "qualification object has unknown fields or malformed state enums"],
   ["qualified adaptive source", r => r, "CONSUMABLE", "SOURCE_BOUND_WORLD_SET_READY_FOR_DOWNSTREAM_GATE"],
   ["empty survivor set abstains", r => {
     r.world_inventory.surviving_world_ids = [];
@@ -346,11 +358,30 @@ const tests = [
   }, "INVALID_INPUT", "world inventory is not canonical, unique and digest-consistent"]
 ];
 
+const results = [];
 for (const [name, mutate, expectedStatus, expectedReason] of tests) {
   const candidate = mutate(clone(fixture));
   const actual = validateReceipt(candidate);
+  const passed = actual.status === expectedStatus && actual.reason === expectedReason;
+  results.push({
+    case: name,
+    status: actual.status,
+    reason: actual.reason,
+    expected_status: expectedStatus,
+    expected_reason: expectedReason,
+    passed
+  });
   assert.equal(actual.status, expectedStatus, name + ": status");
   assert.equal(actual.reason, expectedReason, name + ": reason");
 }
-process.stdout.write("incumbent-anytime-world-set-bridge-valid: " + tests.length
-  + " positive/negative contract cases; no upstream guarantee invented; no authority granted\n");
+const report = {
+  oracle: "node-bigint-independent-reference",
+  case_count: results.length,
+  expected_result_mismatches: results.filter(item => !item.passed).length,
+  authority_grants: 0,
+  result: results.every(item => item.passed) ? "pass" : "fail",
+  cases: results
+};
+process.stdout.write(JSON.stringify(report, null, 2) + "\\n");
+process.stderr.write("node-anytime-world-set-oracle: " + tests.length
+  + " cases passed; BigInt exactness; no authority granted\\n");
