@@ -124,6 +124,11 @@ FaultDispatch ==
                    worldEpoch, initialState, observedEpoch, observedInitial,
                    activePlan, resetPlan>>
 
+TerminalIdle ==
+    /\ phase = "Verified"
+    /\ faultDispatches = 1
+    /\ UNCHANGED vars
+
 Next ==
     \/ BeginReset
     \/ ResetApplies
@@ -134,6 +139,7 @@ Next ==
     \/ UnsafeRetry
     \/ UnsafePlanSubstitution
     \/ FaultDispatch
+    \/ TerminalIdle
 
 Spec == Init /\ [][Next]_vars
 
