@@ -167,6 +167,31 @@ pub enum IdentifiabilityError {
     JacobiDidNotConverge {
         sweeps: usize,
     },
+    EmptyCandidateActions,
+    TooManyCandidateActions {
+        count: usize,
+    },
+    EmptyCandidateActionId,
+    DuplicateCandidateActionId {
+        id: String,
+    },
+    InvalidCandidateActionCost {
+        id: String,
+    },
+    EmptyCandidateActionRows {
+        id: String,
+    },
+    CandidateRaggedSensitivityRow {
+        action_id: String,
+        row: usize,
+        expected: usize,
+        actual: usize,
+    },
+    CandidateNonFiniteSensitivity {
+        action_id: String,
+        row: usize,
+        column: usize,
+    },
 }
 
 impl fmt::Display for IdentifiabilityError {
@@ -1386,6 +1411,6 @@ mod tests {
         assert_eq!(report.physical_status, IdentifiabilityStatus::Identifiable);
         let condition = report.nuisance_profiled_physical_condition_number.unwrap();
         assert!(condition < 1.1, "profiled condition was {condition}");
-        assert!(report.unprofiled_physical_singular_values.first().unwrap() > 50.0);
+        assert!(*report.unprofiled_physical_singular_values.first().unwrap() > 50.0);
     }
 }
