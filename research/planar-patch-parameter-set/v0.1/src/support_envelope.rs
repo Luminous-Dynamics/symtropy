@@ -148,7 +148,10 @@ fn validate_parameter_set(
         ));
     }
     for vertex in &report.feasible_vertices {
-        if !vertex.iter().all(|value| value.is_finite() && *value >= 0.0) {
+        if !vertex
+            .iter()
+            .all(|value| value.is_finite() && *value >= 0.0)
+        {
             return Err(invalid(
                 ParameterSetErrorKind::InvalidInput,
                 "joint feasible vertices must be finite and non-negative",
@@ -181,10 +184,7 @@ fn validate_parameter_set(
             ));
         }
         if let Some(upper) = interval.beta_upper {
-            if !upper.is_finite()
-                || upper < 0.0
-                || !near(upper, maximum, tolerance)
-            {
+            if !upper.is_finite() || upper < 0.0 || !near(upper, maximum, tolerance) {
                 return Err(invalid(
                     ParameterSetErrorKind::InvalidInput,
                     "beta upper bound excludes a supplied joint vertex",
@@ -253,39 +253,40 @@ pub fn compute_patch_support_envelope(
         ));
     }
     let active: Vec<usize> = (0..3).filter(|axis| direction[*axis] != 0.0).collect();
-    let build_report = |status: SupportEnvelopeStatus,
-                        lower: Option<f64>,
-                        upper: Option<f64>,
-                        method: SupportLowerBoundMethod,
-                        lower_exact: bool,
-                        maximum_vertex: Option<[f64; 3]>,
-                        unbounded_vertex: Option<[f64; 3]>,
-                        maximum_beta_sum: Option<f64>| PatchSupportEnvelopeReport {
-        schema_version: "planar-patch-support-envelope-v0.1".to_owned(),
-        parameter_set_schema_version: parameter_set.schema_version.clone(),
-        specimen_digest: parameter_set.specimen_digest.clone(),
-        patch_geometry_digest: parameter_set.patch_geometry_digest.clone(),
-        coordinate_frame_digest: parameter_set.coordinate_frame_digest.clone(),
-        rig_calibration_digest: parameter_set.rig_calibration_digest.clone(),
-        observation_profile_digest: parameter_set.observation_profile_digest.clone(),
-        capacity_convention_digest: parameter_set.capacity_convention_digest.clone(),
-        characteristic_length_m: length,
-        capacity_scale: input.capacity_scale,
-        slip_twist: input.slip_twist,
-        nondimensional_slip_direction: direction,
-        active_axis_count: active.len(),
-        feasible_vertex_count: parameter_set.feasible_vertices.len(),
-        status,
-        support_lower_bound: lower,
-        support_upper_bound: upper,
-        lower_bound_method: method,
-        lower_bound_is_exact: lower_exact,
-        upper_bound_is_exact_over_feasible_set: true,
-        maximum_support_vertex: maximum_vertex,
-        unbounded_support_vertex: unbounded_vertex,
-        maximum_active_beta_sum: maximum_beta_sum,
-        parameter_set_enumeration_complete: parameter_set.enumeration_complete,
-    };
+    let build_report =
+        |status: SupportEnvelopeStatus,
+         lower: Option<f64>,
+         upper: Option<f64>,
+         method: SupportLowerBoundMethod,
+         lower_exact: bool,
+         maximum_vertex: Option<[f64; 3]>,
+         unbounded_vertex: Option<[f64; 3]>,
+         maximum_beta_sum: Option<f64>| PatchSupportEnvelopeReport {
+            schema_version: "planar-patch-support-envelope-v0.1".to_owned(),
+            parameter_set_schema_version: parameter_set.schema_version.clone(),
+            specimen_digest: parameter_set.specimen_digest.clone(),
+            patch_geometry_digest: parameter_set.patch_geometry_digest.clone(),
+            coordinate_frame_digest: parameter_set.coordinate_frame_digest.clone(),
+            rig_calibration_digest: parameter_set.rig_calibration_digest.clone(),
+            observation_profile_digest: parameter_set.observation_profile_digest.clone(),
+            capacity_convention_digest: parameter_set.capacity_convention_digest.clone(),
+            characteristic_length_m: length,
+            capacity_scale: input.capacity_scale,
+            slip_twist: input.slip_twist,
+            nondimensional_slip_direction: direction,
+            active_axis_count: active.len(),
+            feasible_vertex_count: parameter_set.feasible_vertices.len(),
+            status,
+            support_lower_bound: lower,
+            support_upper_bound: upper,
+            lower_bound_method: method,
+            lower_bound_is_exact: lower_exact,
+            upper_bound_is_exact_over_feasible_set: true,
+            maximum_support_vertex: maximum_vertex,
+            unbounded_support_vertex: unbounded_vertex,
+            maximum_active_beta_sum: maximum_beta_sum,
+            parameter_set_enumeration_complete: parameter_set.enumeration_complete,
+        };
 
     if active.is_empty() {
         return Ok(build_report(
@@ -496,8 +497,16 @@ mod tests {
         )
         .expect("joint support envelope");
         assert_eq!(result.status, SupportEnvelopeStatus::Bounded);
-        close(result.support_upper_bound.unwrap(), 2.0 * 11.0_f64.sqrt(), 1.0e-10);
-        close(result.support_lower_bound.unwrap(), 4.0 / 1.1_f64.sqrt(), 1.0e-10);
+        close(
+            result.support_upper_bound.unwrap(),
+            2.0 * 11.0_f64.sqrt(),
+            1.0e-10,
+        );
+        close(
+            result.support_lower_bound.unwrap(),
+            4.0 / 1.1_f64.sqrt(),
+            1.0e-10,
+        );
         let independent_box_upper = 2.0 * 20.0_f64.sqrt();
         assert!(result.support_upper_bound.unwrap() < independent_box_upper);
         assert!(result.upper_bound_is_exact_over_feasible_set);
@@ -629,7 +638,11 @@ mod tests {
         )
         .expect("inactive unbounded axis");
         assert_eq!(result.status, SupportEnvelopeStatus::Bounded);
-        close(result.support_upper_bound.unwrap(), 2.0 * 2.0_f64.sqrt(), 1.0e-12);
+        close(
+            result.support_upper_bound.unwrap(),
+            2.0 * 2.0_f64.sqrt(),
+            1.0e-12,
+        );
     }
 
     #[test]
@@ -716,10 +729,7 @@ mod tests {
             ],
             ParameterSetStatus::FeasibleWithFiniteIntervals,
         );
-        for (capacity_scale, slip_twist) in [
-            (0.0, [1.0, 0.0, 0.0]),
-            (1.0, [f64::NAN, 0.0, 0.0]),
-        ] {
+        for (capacity_scale, slip_twist) in [(0.0, [1.0, 0.0, 0.0]), (1.0, [f64::NAN, 0.0, 0.0])] {
             assert_eq!(
                 compute_patch_support_envelope(
                     &PatchSupportEnvelopeInput {
