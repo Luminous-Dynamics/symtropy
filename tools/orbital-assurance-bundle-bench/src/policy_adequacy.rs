@@ -1582,6 +1582,10 @@ mod tests {
             numerator: 9,
             denominator: 1,
         });
+        wrong_baseline
+            .source_receipt
+            .source_best_no_query_worst_case_loss =
+            wrong_baseline.best_no_query_worst_case_loss.clone();
         let result = evaluate_case(&wrong_baseline);
         assert_eq!(result.status, "INVALID_INPUT");
         assert_eq!(
