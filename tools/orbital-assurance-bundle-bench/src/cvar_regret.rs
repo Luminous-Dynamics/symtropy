@@ -412,6 +412,7 @@ fn validate_receipt(
     let expected_ids = case.expected_scenario_ids.iter().cloned().collect::<BTreeSet<_>>();
     let scenario_ids_digest = digest_ids(&case.expected_scenario_ids)?;
     if case.expected_scenario_ids.is_empty()
+        || case.expected_scenario_ids.len() > MAX_SCENARIOS
         || expected_ids.len() != case.expected_scenario_ids.len()
         || case.expected_scenario_ids.windows(2).any(|pair| pair[0] >= pair[1])
         || scenario_ids_digest != case.expected_scenario_ids_sha256
@@ -420,7 +421,8 @@ fn validate_receipt(
             "expected joint scenario ID inventory is malformed or digest-inconsistent".to_owned(),
         );
     }
-    if case.joint_scenarios.len() != expected_ids.len()
+    if case.joint_scenarios.len() > MAX_SCENARIOS
+        || case.joint_scenarios.len() != expected_ids.len()
         || case
             .joint_scenarios
             .iter()
