@@ -473,3 +473,13 @@ New executable additions after the previous green 118-test head:
 - The versioned claim-scope envelope and registry schema/example define RFC 8785 JCS plus SHA-256. Three example vectors cover structural, simulation and mechanism claim payloads.
 
 **Verification:** the exact code head with these new validators has not yet passed formatting/tests/doctests/strict Clippy. An earlier run on the mechanism code passed formatting but failed test compilation because a test-only import referenced `SourceInterventionEvidenceV0` from the wrong module; that import was corrected in the latest code. Do not inherit the previous 118-test pass for these new source changes.
+
+## Calibration implementation audit and stratum fail-closed correction — 24 November 2026
+
+A source audit identified and corrected two issues:
+1. calibration-bin records were all initialized with `bin_index = 0`; initialization now assigns each bin its actual index, and the boundary test asserts the complete index sequence;
+2. split-conformal prediction did not require the evaluator-assigned target stratum. The prediction API now takes the owner-assigned stratum and, when it differs from the calibration stratum, returns the full binary prediction set, no decision, and `exchangeability_admitted = false`.
+
+This protects against accidentally carrying a split-conformal statement across a declared stratum boundary. It does **not** detect distribution shift within a stratum or create a guarantee under arbitrary mechanism/concept shift. Such claims require separate shift diagnostics and assumptions.
+
+The current branch exact head `3da8b62e8a29720a7cba2d2d4fd453f23f467f51` passed focused Rust 1.96 workflow [#45400521911](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45400521911): formatting, **129 unit tests plus doctests**, strict Clippy. The stratum fail-closed change is newer and now requires a fresh exact-head run.
