@@ -79,8 +79,13 @@ jobs:
               "physical_validation": "NOT_ASSESSED",
           }
           actual = {key: receipt.get(key) for key in expected}
-          assert actual == expected, {"expected": expected, "actual": actual}
-          print("25-case deterministic Rust receipt metadata verified")
+          print("ACTUAL_RECEIPT_METADATA=" + json.dumps(actual, sort_keys=True), flush=True)
+          print("EXPECTED_RECEIPT_METADATA=" + json.dumps(expected, sort_keys=True), flush=True)
+          for key, expected_value in expected.items():
+              actual_value = actual.get(key)
+              if actual_value != expected_value:
+                  raise SystemExit(f"RECEIPT_METADATA_MISMATCH field={key} actual={actual_value!r} expected={expected_value!r}")
+          print("25-case deterministic Rust receipt metadata verified", flush=True)
           PY
       - name: Independent Python oracle
         run: |
