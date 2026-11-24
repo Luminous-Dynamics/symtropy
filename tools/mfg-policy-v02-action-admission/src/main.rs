@@ -766,18 +766,22 @@ mod tests {
         })
     }
 
-    fn sample_proposal() -> Value {
+    fn sample_proposal_for(frame: &Value) -> Value {
         json!({
             "schema_id": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-action-proposal",
             "benchmark_id": "MFG-POLICY-V02-CHALLENGE-001",
             "case_id": "CASE-01",
-            "decision_epoch": 0,
-            "decision_frame_digest": digest_value(&sample_frame()).unwrap(),
+            "decision_epoch": frame["decision_epoch"],
+            "decision_frame_digest": digest_value(frame).unwrap(),
             "operation_id": "OP-3",
             "resource_id": "RESOURCE-A",
             "action_kind": "START",
             "inspection_method_id": "DIMENSIONAL"
         })
+    }
+
+    fn sample_proposal() -> Value {
+        sample_proposal_for(&sample_frame())
     }
 
     #[test]
@@ -799,7 +803,7 @@ mod tests {
         let mut frame = sample_frame();
         frame["static_case"]["resources"][0]["initial_qualifications"][0]["disposition"] =
             Value::from("UNKNOWN");
-        let receipt = evaluate(&frame, &sample_proposal()).unwrap();
+        let receipt = evaluate(&frame, &sample_proposal_for(&frame)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Hold);
         assert!(
             receipt
@@ -887,7 +891,7 @@ mod tests {
                 }],
                 "qualification_updates": [], "inspection_capacity_events": []
             }));
-        let mut proposal = sample_proposal();
+        let mut proposal = sample_proposal_for(&frame);
         proposal["decision_epoch"] = Value::from(1);
         let receipt = evaluate(&frame, &proposal).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Hold);
