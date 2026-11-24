@@ -78,6 +78,9 @@ pub enum TailRiskError {
     InvalidBranchId,
     DuplicateBranchId(u64),
     PersistentPolicyMismatch,
+    InvalidPolicyCandidateId,
+    DuplicatePolicyCandidateId(u64),
+    PolicyModelSetMismatch,
     InvalidParticleId,
     DuplicateParticleId(u64),
     InvalidTailMass(u32),
@@ -100,6 +103,9 @@ impl core::fmt::Display for TailRiskError {
             Self::InvalidBranchId => write!(f, "observable branch identity and probability mass must be nonzero"),
             Self::DuplicateBranchId(id) => write!(f, "observable branch identity is duplicated: {id}"),
             Self::PersistentPolicyMismatch => write!(f, "persistent models do not share the same observable branch-to-action policy"),
+            Self::InvalidPolicyCandidateId => write!(f, "policy candidate identity must be nonzero"),
+            Self::DuplicatePolicyCandidateId(id) => write!(f, "policy candidate identity is duplicated: {id}"),
+            Self::PolicyModelSetMismatch => write!(f, "policy candidates must be evaluated against the same persistent model set"),
             Self::InvalidParticleId => write!(f, "belief particle identity must be nonzero"),
             Self::DuplicateParticleId(id) => write!(f, "belief particle identity is duplicated: {id}"),
             Self::InvalidTailMass(mass) => write!(f, "belief CVaR tail mass must be in 1..=1000000 PPM, got {mass}"),
@@ -405,6 +411,126 @@ pub struct RobustIteratedCvar {
     pub worst_case_cvar: ExactRisk,
     /// Tail probability mass at each recursion level (PPM, not confidence).
     pub tail_mass_ppm: u32,
+}
+
+
+
+/// One complete observable policy candidate, represented by a branch tree
+/// for each plausible persistent mission model. Model-specific probabilities
+/// and loss distributions may differ; the action/decision signature must not.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct IteratedPolicyCandidate {
+    pub policy_id: u64,
+    pub models: Vec<PersistentMissionBranchSet>,
+}
+
+/// Auditable ICVaR score for one complete observable policy candidate.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct IteratedPolicyScore {
+    pub policy_id: u64,
+    pub robust_risk: RobustIteratedCvar,
+}
+
+/// Selection result over a finite caller-supplied set of observable policies.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RobustIteratedPolicySelection {
+    pub selected_policy_id: u64,
+    pub selected_risk: RobustIteratedCvar,
+    /// Scores are returned in ascending policy identity order for reproducible
+    /// audits, not sorted by score or by caller insertion order.
+    pub candidate_scores: Vec<IteratedPolicyScore>,
+    pub candidates_evaluated: usize,
+}
+
+/// Select the observable policy candidate minimizing outer worst-case
+/// two-level ICVaR over the same complete persistent mission-model set.
+///
+/// This is an exact finite selector over candidate policy trees supplied by
+/// the caller. It does not generate the candidate set or claim a full Bellman
+/// search over the navigation state/action space. Every candidate is evaluated
+/// against the identical model identities, and each candidate's root action,
+/// branch continuation actions, and terminal decisions are checked to be
+/// shared across all persistent models.
+pub fn select_robust_iterated_cvar_policy(
+    candidates: &[IteratedPolicyCandidate],
+    tail_mass_ppm: u32,
+) -> Result<RobustIteratedPolicySelection, TailRiskError> {
+    validate_tail_mass(tail_mass_ppm)?;
+    if candidates.is_empty() {
+        return Err(TailRiskError::EmptyDistribution);
+    }
+
+    let mut ordered = candidates.to_vec();
+    ordered.sort_unstable_by_key(|candidate| candidate.policy_id);
+    for candidate in &ordered {
+        if candidate.policy_id == 0 {
+            return Err(TailRiskError::InvalidPolicyCandidateId);
+        }
+    }
+    for pair in ordered.windows(2) {
+        if pair[0].policy_id == pair[1].policy_id {
+            return Err(TailRiskError::DuplicatePolicyCandidateId(pair[0].policy_id));
+        }
+    }
+
+    let reference_models = model_identity_signature(&ordered[0].models)?;
+    let mut candidate_scores = Vec::with_capacity(ordered.len());
+    for candidate in ordered {
+        if model_identity_signature(&candidate.models)? != reference_models {
+            return Err(TailRiskError::PolicyModelSetMismatch);
+        }
+        let robust_risk = worst_case_iterated_cvar(&candidate.models, tail_mass_ppm)?;
+        candidate_scores.push(IteratedPolicyScore {
+            policy_id: candidate.policy_id,
+            robust_risk,
+        });
+    }
+
+    let mut best: Option<&IteratedPolicyScore> = None;
+    for score in &candidate_scores {
+        let replace = match best {
+            None => true,
+            Some(incumbent) => {
+                match score.robust_risk.worst_case_cvar
+                    .compare(incumbent.robust_risk.worst_case_cvar)
+                {
+                    Ordering::Less => true,
+                    Ordering::Greater => false,
+                    Ordering::Equal => score.policy_id < incumbent.policy_id,
+                }
+            }
+        };
+        if replace {
+            best = Some(score);
+        }
+    }
+    let selected = best.ok_or(TailRiskError::EmptyDistribution)?;
+
+    Ok(RobustIteratedPolicySelection {
+        selected_policy_id: selected.policy_id,
+        selected_risk: selected.robust_risk.clone(),
+        candidates_evaluated: candidate_scores.len(),
+        candidate_scores,
+    })
+}
+
+fn model_identity_signature(
+    models: &[PersistentMissionBranchSet],
+) -> Result<Vec<u64>, TailRiskError> {
+    if models.is_empty() {
+        return Err(TailRiskError::EmptyDistribution);
+    }
+    let mut identities = models.iter().map(|model| model.model_id).collect::<Vec<_>>();
+    if identities.iter().any(|identity| *identity == 0) {
+        return Err(TailRiskError::InvalidModelId);
+    }
+    identities.sort_unstable();
+    for pair in identities.windows(2) {
+        if pair[0] == pair[1] {
+            return Err(TailRiskError::DuplicateModelId(pair[0]));
+        }
+    }
+    Ok(identities)
 }
 
 /// Exact two-level Iterated CVaR for one complete persistent mission model.
@@ -1797,4 +1923,135 @@ mod iterated_cvar_tests {
         );
     }
 
+}
+
+
+#[cfg(test)]
+mod iterated_policy_selector_tests {
+    use super::*;
+
+    fn branch(id: u64, action: u64, mass: u128, loss: u64) -> ConditionalLossBranch {
+        ConditionalLossBranch {
+            branch_id: id,
+            continuation_action_id: action,
+            terminal_decisions: [TerminalDecision::DeclareSafe; 3],
+            probability_mass: mass,
+            continuation_losses: vec![LossMass { loss, mass: 1 }],
+        }
+    }
+
+    fn model(
+        model_id: u64,
+        root_action_id: u64,
+        high_tail_mass: u128,
+        low_loss: u64,
+        high_loss: u64,
+    ) -> PersistentMissionBranchSet {
+        PersistentMissionBranchSet {
+            model_id,
+            root_action_id,
+            branches: vec![
+                branch(1, 11, 1_000_000 - high_tail_mass, low_loss),
+                branch(2, 12, high_tail_mass, high_loss),
+            ],
+        }
+    }
+
+    fn candidates() -> Vec<IteratedPolicyCandidate> {
+        vec![
+            // Policy 1 has lower mean but a severe upper tail.
+            IteratedPolicyCandidate {
+                policy_id: 1,
+                models: vec![
+                    model(1, 101, 50_000, 0, 100),
+                    model(2, 101, 100_000, 0, 100),
+                ],
+            },
+            // Policy 2 has a higher but bounded continuation loss.
+            IteratedPolicyCandidate {
+                policy_id: 2,
+                models: vec![
+                    model(1, 202, 50_000, 20, 20),
+                    model(2, 202, 50_000, 30, 30),
+                ],
+            },
+        ]
+    }
+
+    #[test]
+    fn robust_iterated_selector_picks_lower_tail_policy_not_lower_mean_policy() {
+        let items = candidates();
+        let risk_neutral = select_robust_iterated_cvar_policy(&items, 1_000_000).unwrap();
+        let risk_averse = select_robust_iterated_cvar_policy(&items, 50_000).unwrap();
+
+        assert_eq!(risk_neutral.selected_policy_id, 1);
+        assert_eq!(risk_neutral.selected_risk.worst_case_cvar, ExactRisk::from_ratio(10, 1).unwrap());
+
+        assert_eq!(risk_averse.selected_policy_id, 2);
+        assert_eq!(risk_averse.selected_risk.worst_case_cvar, ExactRisk::from_ratio(30, 1).unwrap());
+        assert_eq!(risk_averse.candidates_evaluated, 2);
+    }
+
+    #[test]
+    fn robust_iterated_selector_is_invariant_to_candidate_order() {
+        let items = candidates();
+        let forward = select_robust_iterated_cvar_policy(&items, 50_000).unwrap();
+        let mut reversed = items;
+        reversed.reverse();
+        let reverse = select_robust_iterated_cvar_policy(&reversed, 50_000).unwrap();
+
+        assert_eq!(forward.selected_policy_id, reverse.selected_policy_id);
+        assert_eq!(forward.selected_risk.worst_case_cvar, reverse.selected_risk.worst_case_cvar);
+        assert_eq!(
+            forward.candidate_scores.iter().map(|score| score.policy_id).collect::<Vec<_>>(),
+            [1, 2]
+        );
+    }
+
+    #[test]
+    fn robust_iterated_selector_uses_stable_policy_id_tie_break() {
+        let mut items = candidates();
+        items[1].models = items[0].models.clone();
+        items[1].policy_id = 9;
+        items[0].policy_id = 3;
+        let selected = select_robust_iterated_cvar_policy(&items, 50_000).unwrap();
+        assert_eq!(selected.selected_policy_id, 3);
+    }
+
+    #[test]
+    fn robust_iterated_selector_rejects_invalid_and_duplicate_policy_ids() {
+        let mut items = candidates();
+        items[0].policy_id = 0;
+        assert_eq!(
+            select_robust_iterated_cvar_policy(&items, 50_000),
+            Err(TailRiskError::InvalidPolicyCandidateId)
+        );
+
+        let mut items = candidates();
+        items[1].policy_id = items[0].policy_id;
+        assert_eq!(
+            select_robust_iterated_cvar_policy(&items, 50_000),
+            Err(TailRiskError::DuplicatePolicyCandidateId(1))
+        );
+    }
+
+    #[test]
+    fn robust_iterated_selector_requires_identical_model_sets() {
+        let mut items = candidates();
+        items[1].models.pop();
+        assert_eq!(
+            select_robust_iterated_cvar_policy(&items, 50_000),
+            Err(TailRiskError::PolicyModelSetMismatch)
+        );
+    }
+
+    #[test]
+    fn robust_iterated_selector_rejects_model_specific_policy_for_same_history() {
+        let mut items = candidates();
+        items[0].models[1].branches[0].continuation_action_id = 999;
+        assert_eq!(
+            select_robust_iterated_cvar_policy(&items, 50_000),
+            Err(TailRiskError::PersistentPolicyMismatch)
+        );
+    }
 }
