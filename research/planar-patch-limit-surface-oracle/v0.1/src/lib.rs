@@ -29,7 +29,10 @@ pub struct PatchError {
 
 impl PatchError {
     fn new(kind: PatchErrorKind, reason: impl Into<String>) -> Self {
-        Self { kind, reason: reason.into() }
+        Self {
+            kind,
+            reason: reason.into(),
+        }
     }
 }
 
@@ -177,10 +180,7 @@ impl PlanarPatchModel {
                 "friction-load product overflowed",
             ));
         }
-        if self.friction_coefficient > 0.0
-            && self.normal_load > 0.0
-            && common_scale == 0.0
-        {
+        if self.friction_coefficient > 0.0 && self.normal_load > 0.0 && common_scale == 0.0 {
             return Err(PatchError::new(
                 PatchErrorKind::UnderflowedCapacity,
                 "positive friction and normal load underflowed to zero capacity",
@@ -204,10 +204,7 @@ impl PlanarPatchModel {
     }
 
     /// Analytic support h(d) = ||diag(a) d|| and a maximizing boundary witness.
-    pub fn support(
-        self,
-        direction: WrenchDirection3,
-    ) -> Result<PatchSupportReport, PatchError> {
+    pub fn support(self, direction: WrenchDirection3) -> Result<PatchSupportReport, PatchError> {
         if !finite3(direction.components) {
             return Err(PatchError::new(
                 PatchErrorKind::NonFiniteInput,
@@ -377,18 +374,15 @@ impl PlanarPatchModel {
             });
         }
 
-        let friction = std::array::from_fn(|i| {
-            -(axes[i] * scaled_slip[i]) / slip_power_norm
-        });
+        let friction = std::array::from_fn(|i| -(axes[i] * scaled_slip[i]) / slip_power_norm);
         if !finite3(friction) {
             return Err(PatchError::new(
                 PatchErrorKind::NonFiniteEvaluation,
                 "maximum-dissipation wrench is non-finite",
             ));
         }
-        let power = velocity[0] * friction[0]
-            + velocity[1] * friction[1]
-            + velocity[2] * friction[2];
+        let power =
+            velocity[0] * friction[0] + velocity[1] * friction[1] + velocity[2] * friction[2];
         if !power.is_finite() || power > tolerance.positive_power_tolerance {
             return Err(PatchError::new(
                 PatchErrorKind::NonFiniteEvaluation,
@@ -397,8 +391,10 @@ impl PlanarPatchModel {
         }
 
         let mut boundary_coordinates = [0.0; 3];
-        for ((output, value), axis) in
-            boundary_coordinates.iter_mut().zip(friction.iter()).zip(axes.iter())
+        for ((output, value), axis) in boundary_coordinates
+            .iter_mut()
+            .zip(friction.iter())
+            .zip(axes.iter())
         {
             if *axis == 0.0 {
                 if *value != 0.0 {
@@ -453,13 +449,17 @@ mod tests {
     #[test]
     fn tangential_and_torsional_support_have_known_answers() {
         let tangent = model()
-            .support(WrenchDirection3 { components: [1.0, 0.0, 0.0] })
+            .support(WrenchDirection3 {
+                components: [1.0, 0.0, 0.0],
+            })
             .expect("tangent support");
         close(tangent.support_value, 1.0);
         assert_eq!(wrench_array(tangent.maximizing_wrench), [1.0, 0.0, 0.0]);
 
         let torsion = model()
-            .support(WrenchDirection3 { components: [0.0, 0.0, 2.0] })
+            .support(WrenchDirection3 {
+                components: [0.0, 0.0, 2.0],
+            })
             .expect("torsional support");
         close(torsion.support_value, 0.5);
         assert_eq!(wrench_array(torsion.maximizing_wrench), [0.0, 0.0, 0.25]);
@@ -473,7 +473,9 @@ mod tests {
             ellipsoid_scales: [2.0, 1.0, 0.5],
         };
         let report = anisotropic
-            .support(WrenchDirection3 { components: [1.0, 1.0, 1.0] })
+            .support(WrenchDirection3 {
+                components: [1.0, 1.0, 1.0],
+            })
             .expect("anisotropic support");
         let expected = 5.25_f64.sqrt();
         close(report.support_value, expected);
@@ -486,7 +488,9 @@ mod tests {
     #[test]
     fn support_witness_is_on_boundary() {
         let report = model()
-            .support(WrenchDirection3 { components: [2.0, -3.0, 4.0] })
+            .support(WrenchDirection3 {
+                components: [2.0, -3.0, 4.0],
+            })
             .expect("support");
         let membership = model
             .membership(report.maximizing_wrench, 1.0e-12)
@@ -499,15 +503,24 @@ mod tests {
     fn membership_distinguishes_interior_boundary_and_outside() {
         let patch = model();
         assert_eq!(
-            patch.membership(wrench([0.0; 3]), 1.0e-12).expect("interior").status,
+            patch
+                .membership(wrench([0.0; 3]), 1.0e-12)
+                .expect("interior")
+                .status,
             MembershipStatus::Interior
         );
         assert_eq!(
-            patch.membership(wrench([1.0, 0.0, 0.0]), 1.0e-12).expect("boundary").status,
+            patch
+                .membership(wrench([1.0, 0.0, 0.0]), 1.0e-12)
+                .expect("boundary")
+                .status,
             MembershipStatus::Boundary
         );
         assert_eq!(
-            patch.membership(wrench([1.01, 0.0, 0.0]), 1.0e-12).expect("outside").status,
+            patch
+                .membership(wrench([1.01, 0.0, 0.0]), 1.0e-12)
+                .expect("outside")
+                .status,
             MembershipStatus::Outside
         );
     }
@@ -530,7 +543,8 @@ mod tests {
             dissipation_rate,
             normalized_boundary_radius,
             ..
-        } = result else {
+        } = result
+        else {
             panic!("nonzero slip must select sliding");
         };
         close(friction_wrench.tangent_u_force, -0.6);
@@ -552,7 +566,12 @@ mod tests {
                 MaxDissipationTolerance::default(),
             )
             .expect("torsional sliding");
-        let MaxDissipationResult::Sliding { friction_wrench, power, .. } = result else {
+        let MaxDissipationResult::Sliding {
+            friction_wrench,
+            power,
+            ..
+        } = result
+        else {
             panic!("torsional slip must slide");
         };
         close(friction_wrench.normal_torsional_moment, -0.25);
@@ -581,7 +600,8 @@ mod tests {
             power,
             normalized_boundary_radius,
             ..
-        } = result else {
+        } = result
+        else {
             panic!("anisotropic nonzero slip must slide");
         };
         close(friction_wrench.tangent_u_force, -4.0 / 3.0);
@@ -631,7 +651,9 @@ mod tests {
             MembershipStatus::ZeroCapacityZeroWrench
         );
         assert_eq!(
-            zero.membership(wrench([0.1, 0.0, 0.0]), 0.0).expect("nonzero").status,
+            zero.membership(wrench([0.1, 0.0, 0.0]), 0.0)
+                .expect("nonzero")
+                .status,
             MembershipStatus::ZeroCapacityNonzeroWrench
         );
     }
@@ -639,8 +661,13 @@ mod tests {
     #[test]
     fn load_scaling_scales_support_linearly() {
         let base = model();
-        let scaled = PlanarPatchModel { normal_load: 6.0, ..base };
-        let direction = WrenchDirection3 { components: [1.0, 2.0, -3.0] };
+        let scaled = PlanarPatchModel {
+            normal_load: 6.0,
+            ..base
+        };
+        let direction = WrenchDirection3 {
+            components: [1.0, 2.0, -3.0],
+        };
         let first = base.support(direction).expect("base");
         let second = scaled.support(direction).expect("scaled");
         close(second.support_value, 3.0 * first.support_value);
@@ -654,9 +681,14 @@ mod tests {
 
     #[test]
     fn zero_normal_load_has_zero_capacity() {
-        let patch = PlanarPatchModel { normal_load: 0.0, ..model() };
+        let patch = PlanarPatchModel {
+            normal_load: 0.0,
+            ..model()
+        };
         let report = patch
-            .support(WrenchDirection3 { components: [1.0, 2.0, 3.0] })
+            .support(WrenchDirection3 {
+                components: [1.0, 2.0, 3.0],
+            })
             .expect("zero normal load");
         assert_eq!(report.support_value, 0.0);
         assert_eq!(wrench_array(report.maximizing_wrench), [0.0; 3]);
@@ -665,12 +697,30 @@ mod tests {
     #[test]
     fn invalid_model_parameters_are_rejected() {
         for invalid in [
-            PlanarPatchModel { friction_coefficient: f64::NAN, ..model() },
-            PlanarPatchModel { friction_coefficient: -0.1, ..model() },
-            PlanarPatchModel { normal_load: f64::INFINITY, ..model() },
-            PlanarPatchModel { normal_load: -1.0, ..model() },
-            PlanarPatchModel { ellipsoid_scales: [1.0, 0.0, 0.2], ..model() },
-            PlanarPatchModel { ellipsoid_scales: [1.0, 1.0, f64::NAN], ..model() },
+            PlanarPatchModel {
+                friction_coefficient: f64::NAN,
+                ..model()
+            },
+            PlanarPatchModel {
+                friction_coefficient: -0.1,
+                ..model()
+            },
+            PlanarPatchModel {
+                normal_load: f64::INFINITY,
+                ..model()
+            },
+            PlanarPatchModel {
+                normal_load: -1.0,
+                ..model()
+            },
+            PlanarPatchModel {
+                ellipsoid_scales: [1.0, 0.0, 0.2],
+                ..model()
+            },
+            PlanarPatchModel {
+                ellipsoid_scales: [1.0, 1.0, f64::NAN],
+                ..model()
+            },
         ] {
             assert!(invalid.validate().is_err());
         }
@@ -763,11 +813,15 @@ mod tests {
     fn support_is_positive_homogeneous() {
         let patch = model();
         let base = patch
-            .support(WrenchDirection3 { components: [1.0, -2.0, 0.5] })
+            .support(WrenchDirection3 {
+                components: [1.0, -2.0, 0.5],
+            })
             .expect("base")
             .support_value;
         let scaled = patch
-            .support(WrenchDirection3 { components: [7.0, -14.0, 3.5] })
+            .support(WrenchDirection3 {
+                components: [7.0, -14.0, 3.5],
+            })
             .expect("scaled")
             .support_value;
         close(scaled, 7.0 * base);
