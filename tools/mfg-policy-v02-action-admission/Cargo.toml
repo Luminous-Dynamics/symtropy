@@ -10,5 +10,6 @@ description = "Independent fail-closed admissibility verifier for one manufactur
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 jsonschema = { version = "=0.63.0", default-features = false }
+sha2 = "0.10"
 
 [workspace]
