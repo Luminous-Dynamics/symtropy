@@ -56,6 +56,19 @@ It intentionally does not parse TIFF/MAT/HDF5 in V0. A later importer must recor
 
 ## Comparison protocol
 
+### Audit of the published reference scripts
+
+The pinned README and `scripts/benchmark_comparison.py` expose important baseline choices that must not be hidden inside a generic "PIVtools pipeline":
+
+- Noisy planar and experimental cases ship separate instantaneous and ensemble configurations. The published instantaneous pipeline uses a `ssmin 7×7` preprocessing filter; the ensemble pipeline uses raw images because filtering changes ensemble stresses. These are separate operation classes and must remain separate matched baselines.
+- Stereo results in the published capsule are instantaneous only; do not invent a stereo-ensemble comparator.
+- The published profile helper excludes the first and last four x-vectors, x-averages the remaining field, and compares (y^+ = 10ldots500) by default.
+- Its illustrative alignment sets a wall-origin offset from the minimum measured y-coordinate and then applies a +1 wall-unit shift. Treat this as a published script choice to reproduce and audit, not as an unconstrained tuning parameter. A candidate-specific y+ shift chosen to improve its score is prohibited.
+- The helper reports profile error after x-averaging. That can hide localized wakes, streaks or weak vortices, so every profile report must be paired with the separate field/structure scorecard from [#7209](https://github.com/Luminous-Dynamics/symtropy/issues/7209).
+
+Record the exact configuration digest, preprocessing, interrogation-window pass, run index/window size, x-edge mask, wall-origin rule, y+ shift, unit conversion and evaluated y+ intervals for every baseline. Keep the original shipped configuration as the reproduction lane; any alternate preprocessing or calibration is a new named lane, not a silent "fairness" edit.
+
+
 ### Tier 0 — reproduce the capsule
 
 Use the supplied `reference_results` and ground-truth statistics without reprocessing raw images. Reproduce the dataset's reference figures/statistics and verify paths, case identity, unit metadata, calibration sidecars, scale, dt and coordinate signs. This qualifies our importer/plotting pipeline before any algorithm comparison.
