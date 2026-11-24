@@ -476,23 +476,19 @@ pub fn compute_parameter_set(
         planes.push(Plane {
             normal: [-x[0], -x[1], -x[2]],
             bound: -(1.0 - epsilon),
-            observation_index: Some(index),
         });
     }
     planes.push(Plane {
         normal: [-1.0, 0.0, 0.0],
         bound: 0.0,
-        observation_index: None,
     });
     planes.push(Plane {
         normal: [0.0, -1.0, 0.0],
         bound: 0.0,
-        observation_index: None,
     });
     planes.push(Plane {
         normal: [0.0, 0.0, -1.0],
         bound: 0.0,
-        observation_index: None,
     });
 
     let plane_count = planes.len();
