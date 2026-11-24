@@ -247,6 +247,7 @@ fn validate_case(case: &Case) -> Result<(), String> {
         }
         let mut option_ids = BTreeSet::new();
         for option in &event.options {
+            let mut gate_ids = BTreeSet::new();
             if !valid_text(&option.option_id)
                 || !valid_text(&option.segment_id)
                 || !valid_text(&option.speed_id)
@@ -256,7 +257,9 @@ fn validate_case(case: &Case) -> Result<(), String> {
                 || option.gates.is_empty()
                 || !segment.speed_choices.iter().any(|speed| speed.speed_id == option.speed_id)
                 || !option.gates.iter().all(|gate| {
-                    valid_text(&gate.gate_id) && valid_sha256(&gate.receipt_sha256)
+                    valid_text(&gate.gate_id)
+                        && valid_sha256(&gate.receipt_sha256)
+                        && gate_ids.insert(gate.gate_id.clone())
                 })
             {
                 return Err("ACQUISITION_OPTION_INVALID".to_owned());
@@ -275,6 +278,15 @@ fn validate_case(case: &Case) -> Result<(), String> {
             || !segment_ids.contains(&transition.to_segment_id)
         {
             return Err("TRANSITION_INVALID".to_owned());
+        }
+        let from_segment = case.segments.iter().find(|segment| segment.segment_id == transition.from_segment_id)
+            .ok_or_else(|| "TRANSITION_FROM_SEGMENT_UNKNOWN".to_owned())?;
+        let to_segment = case.segments.iter().find(|segment| segment.segment_id == transition.to_segment_id)
+            .ok_or_else(|| "TRANSITION_TO_SEGMENT_UNKNOWN".to_owned())?;
+        if !from_segment.speed_choices.iter().any(|speed| speed.speed_id == transition.from_speed_id)
+            || !to_segment.speed_choices.iter().any(|speed| speed.speed_id == transition.to_speed_id)
+        {
+            return Err("TRANSITION_SPEED_REFERENCE_INVALID".to_owned());
         }
         let key = (
             transition.from_segment_id.clone(),
@@ -688,5 +700,16 @@ mod tests {
     fn unknown_gate_is_not_a_pass() {
         let gate = GateEvidence { gate_id: "calibration".to_owned(), state: GateState::Unknown, receipt_sha256: "b".repeat(64) };
         assert_eq!(gate.state, GateState::Unknown);
+    }
+
+    #[test]
+    fn frozen_corpus_matches_exact_frontiers() {
+        let bytes = include_bytes!("../../../docs/research/orbital-truss/fixtures/acquisition-codesign-v0_1.json");
+        let receipt = audit_corpus(bytes, "0123456789abcdef0123456789abcdef01234567").expect("frozen corpus validates");
+        assert_eq!(receipt.case_count, 8);
+        assert_eq!(receipt.expected_outcome_matches, 8);
+        assert_eq!(receipt.expected_outcome_mismatches, 0);
+        assert!(receipt.cases.iter().filter(|case| case.status == SearchStatus::SearchLimitNotProven).all(|case| !case.exactness_proven));
+        assert!(receipt.cases.iter().filter(|case| case.indeterminate_schedule_count > 0).all(|case| !case.exactness_proven));
     }
 }
