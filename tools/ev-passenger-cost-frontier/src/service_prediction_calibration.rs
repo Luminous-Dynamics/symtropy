@@ -13,7 +13,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::sustainable_mobility_service_quality::{EvidenceClass, EvidenceEnvelope};
+use crate::battery_service_network::EvidenceEnvelope;
+use crate::sustainable_mobility_service_quality::EvidenceClass;
 
 const MAX_RECORDS: usize = 2_000;
 const MAX_METRICS_PER_RECORD: usize = 8;
@@ -1036,6 +1037,7 @@ mod tests {
         assert!(!a.field_qualification_granted);
         assert!(!a.model_update_performed);
         assert!(!a.operational_authority_granted);
+        assert!(a.wilson_reference_assumes_iid_samples);
     }
 
     #[test]
@@ -1290,9 +1292,9 @@ mod tests {
     fn probability_forecasts_report_brier_and_reliability_bins() {
         let report = evaluate_service_prediction_calibration(&fixture()).expect("fixture");
         for group in &report.on_time_groups {
-            assert!(group.brier_score_millionths <= 1_000_000);
-            assert!(!group.reliability_bins.is_empty());
-            assert!(group.expected_calibration_error_permille <= 1_000);
+            assert!(group.holdout_brier_score_millionths <= 1_000_000);
+            assert!(!group.holdout_reliability_bins.is_empty());
+            assert!(group.holdout_expected_calibration_error_permille <= 1_000);
         }
     }
 
