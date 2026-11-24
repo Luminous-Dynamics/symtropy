@@ -492,6 +492,7 @@ pub enum GazeboDispatchOutcome {
     },
     DuplicateSuppressed,
     PayloadConflict { idempotency_key: String },
+    InvalidDispatchRequest,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -589,12 +590,7 @@ pub fn dispatch_fault_once<T: GazeboFaultInjectorTransport>(
     injector: &mut T,
     request: &GazeboDispatchRequest,
 ) -> GazeboDispatchOutcome {
-    if !nonempty(&request.idempotency_key)
-        || !valid_sha256(&request.plan_sha256)
-        || !registry
-            .attempted_idempotency_keys
-            .insert(request.idempotency_key.clone())
-    {
+    if !nonempty(&request.idempotency_key) || !valid_sha256(&request.plan_sha256) {
         return GazeboDispatchOutcome::InvalidDispatchRequest;
     }
     let fingerprint = match dispatch_request_fingerprint(request) {
