@@ -440,10 +440,7 @@ mod tests {
     #[test]
     fn spearman_rank_correlation_uses_average_ranks_for_ties() {
         assert_eq!(
-            spearman_rank_correlation(
-                &[1.0, 2.0, 2.0, 4.0, 5.0],
-                &[10.0, 20.0, 20.0, 40.0, 50.0],
-            ),
+            spearman_rank_correlation(&[1.0, 2.0, 2.0, 4.0, 5.0], &[10.0, 20.0, 20.0, 40.0, 50.0],),
             Some(1.0)
         );
     }
