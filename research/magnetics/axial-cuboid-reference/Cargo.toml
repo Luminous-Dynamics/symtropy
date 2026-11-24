@@ -1,0 +1,13 @@
+[package]
+name = "symtropy-magnetic-axial-cuboid-reference"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Exact analytic axial field reference for a uniformly polarized cuboid"
+
+[lib]
+path = "src/lib.rs"
+
+# Isolated research oracle; not a production workspace member.
+[workspace]
