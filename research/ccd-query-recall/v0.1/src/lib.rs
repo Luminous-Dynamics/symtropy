@@ -427,7 +427,7 @@ fn accumulate_counts(
         }
     }
 
-    if matches!(evaluation.candidate, CandidateDisposition::Fallback(_)) {
+    if matches!(&evaluation.candidate, CandidateDisposition::Fallback(_)) {
         counts.fallback_queries += 1;
         if evaluation.oracle_collision {
             counts.fallback_oracle_positives += 1;
