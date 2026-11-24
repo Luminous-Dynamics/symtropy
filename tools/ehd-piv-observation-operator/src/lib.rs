@@ -154,6 +154,8 @@ pub struct ParticleImagePair {
 pub enum ObservationError {
     InvalidFieldShape { field: &'static str, expected: usize, actual: usize },
     InvalidFieldDimensions,
+    FieldSupportOutsideSensor,
+    PixelCountExceeded,
     InvalidFieldMetadata { field: &'static str },
     NonFiniteFieldValue { index: usize },
     InvalidSensorDimensions,
@@ -165,6 +167,7 @@ pub enum ObservationError {
     InvalidParticle { index: usize, field: &'static str },
     InvalidNoiseShape { frame: &'static str, expected: usize, actual: usize },
     NonFiniteNoise { frame: &'static str, index: usize },
+    NonFiniteSensorSignal { index: usize },
     VelocitySupportExceeded,
     ExcessiveIntegrationSteps,
 }
@@ -226,12 +229,12 @@ pub fn render_particle_image_pair(
         &first_intensity,
         &noise.first_frame,
         sensor,
-    );
+    )?;
     let (second_pixels, saturated_pixel_count_second) = digitize(
         &second_intensity,
         &noise.second_frame,
         sensor,
-    );
+    )?;
 
     let masked_pixel_count = sensor
         .active_pixel_mask
@@ -277,7 +280,11 @@ fn validate_inputs(
     if field.width < 2 || field.height < 2 {
         return Err(ObservationError::InvalidFieldDimensions);
     }
-    let field_len = field.width.saturating_mul(field.height);
+    let field_len = field
+        .width
+        .checked_mul(field.height)
+        .filter(|count| *count <= 16_777_216)
+        .ok_or(ObservationError::PixelCountExceeded)?;
     for (name, actual) in [
         ("u_px_per_time", field.u_px_per_time.len()),
         ("v_px_per_time", field.v_px_per_time.len()),
@@ -335,6 +342,17 @@ fn validate_inputs(
             actual: sensor.active_pixel_mask.len(),
         });
     }
+    let field_max_x = field.origin_x_px + (field.width - 1) as f64 * field.spacing_x_px;
+    let field_max_y = field.origin_y_px + (field.height - 1) as f64 * field.spacing_y_px;
+    if field.origin_x_px < 0.0
+        || field.origin_y_px < 0.0
+        || !field_max_x.is_finite()
+        || !field_max_y.is_finite()
+        || field_max_x > (sensor.width - 1) as f64
+        || field_max_y > (sensor.height - 1) as f64
+    {
+        return Err(ObservationError::FieldSupportOutsideSensor);
+    }
 
     if !illumination.sigma_sheet_units.is_finite() || illumination.sigma_sheet_units <= 0.0 {
         return Err(ObservationError::InvalidIlluminationMetadata);
@@ -366,6 +384,16 @@ fn validate_inputs(
         return Err(ObservationError::EmptyParticleSet);
     }
     for (index, particle) in particles.iter().enumerate() {
+        if particle.x_px < 0.0
+            || particle.x_px > (sensor.width - 1) as f64
+            || particle.y_px < 0.0
+            || particle.y_px > (sensor.height - 1) as f64
+        {
+            return Err(ObservationError::InvalidParticle {
+                index,
+                field: "image_support",
+            });
+        }
         for (name, value, strictly_positive) in [
             ("x_px", particle.x_px, false),
             ("y_px", particle.y_px, false),
@@ -385,6 +413,18 @@ fn validate_inputs(
                 return Err(ObservationError::InvalidParticle { index, field: name });
             }
         }
+        if particle.particle_sigma_px > sensor.width.max(sensor.height) as f64 {
+            return Err(ObservationError::InvalidParticle {
+                index,
+                field: "particle_sigma_px",
+            });
+        }
+    }
+
+    if sensor.optical_psf_sigma_px > sensor.width.max(sensor.height) as f64 {
+        return Err(ObservationError::InvalidSensorMetadata {
+            field: "optical_psf_sigma_px",
+        });
     }
 
     for (frame, values) in [
@@ -475,6 +515,7 @@ fn advect_particle(
         let (u_mid, v_mid) = field.sample(midpoint_x, midpoint_y)?;
         x += dt * u_mid;
         y += dt * v_mid;
+        field.sample(x, y)?;
     }
     Ok((x, y))
 }
@@ -519,25 +560,29 @@ fn digitize(
     intensity: &[f64],
     noise: &[f64],
     sensor: &SensorConfig,
-) -> (Vec<u16>, usize) {
+) -> Result<(Vec<u16>, usize), ObservationError> {
     let maximum = sensor.maximum_digital_value() as f64;
     let mut saturated = 0usize;
     let pixels = intensity
         .iter()
         .zip(noise.iter())
         .zip(sensor.active_pixel_mask.iter())
-        .map(|((signal, noise), active)| {
+        .enumerate()
+        .map(|(index, ((signal, noise), active))| {
             if !active {
-                return 0;
+                return Ok(0);
             }
             let analog = sensor.gain * signal + sensor.offset + noise;
+            if !analog.is_finite() {
+                return Err(ObservationError::NonFiniteSensorSignal { index });
+            }
             if analog >= maximum {
                 saturated += 1;
             }
-            analog.round().clamp(0.0, maximum) as u16
+            Ok(analog.round().clamp(0.0, maximum) as u16)
         })
-        .collect();
-    (pixels, saturated)
+        .collect::<Result<Vec<u16>, ObservationError>>()?;
+    Ok((pixels, saturated))
 }
 
 #[cfg(test)]
