@@ -17,31 +17,9 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "identity",
-        "alpha_ppm",
-        "calibration_count",
-        "quantile_rank",
-        "quantile_nonconformity_ppm"
+        "identity"
       ],
       "properties": {
-        "alpha_ppm": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 999999
-        },
-        "calibration_count": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "quantile_rank": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "quantile_nonconformity_ppm": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 1000000
-        },
         "identity": {
           "$ref": "#/$defs/calibration_identity"
         }
@@ -113,7 +91,11 @@
         "calibration_cohort_sha256",
         "sample_ids_sha256",
         "split_manifest_sha256",
-        "evidence_prefix_sha256"
+        "evidence_prefix_sha256",
+        "alpha_ppm",
+        "calibration_count",
+        "quantile_rank",
+        "quantile_nonconformity_ppm"
       ],
       "properties": {
         "receipt_id": {
@@ -174,6 +156,24 @@
             "revoked",
             "expired"
           ]
+        },
+        "alpha_ppm": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 999999
+        },
+        "calibration_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "quantile_rank": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "quantile_nonconformity_ppm": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
         }
       }
     }
