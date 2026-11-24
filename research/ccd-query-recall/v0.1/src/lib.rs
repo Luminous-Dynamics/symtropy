@@ -157,6 +157,7 @@ pub struct QueryEvaluation {
     oracle_collision: bool,
     candidate: CandidateDisposition,
     narrowphase: NarrowphaseOutcome,
+    narrowphase_elapsed_ns: Option<u64>,
 }
 
 impl QueryEvaluation {
@@ -171,7 +172,14 @@ impl QueryEvaluation {
             oracle_collision,
             candidate,
             narrowphase,
+            narrowphase_elapsed_ns: None,
         }
+    }
+
+    #[must_use]
+    pub fn with_narrowphase_elapsed_ns(mut self, elapsed_ns: u64) -> Self {
+        self.narrowphase_elapsed_ns = Some(elapsed_ns);
+        self
     }
 
     /// Construct a result from an imported query after its independent Boolean
@@ -204,6 +212,7 @@ pub struct QueryRunResult {
     identity: QueryIdentity,
     candidate: CandidateDisposition,
     narrowphase: NarrowphaseOutcome,
+    narrowphase_elapsed_ns: Option<u64>,
 }
 
 impl QueryRunResult {
@@ -217,7 +226,14 @@ impl QueryRunResult {
             identity,
             candidate,
             narrowphase,
+            narrowphase_elapsed_ns: None,
         }
+    }
+
+    #[must_use]
+    pub fn with_narrowphase_elapsed_ns(mut self, elapsed_ns: u64) -> Self {
+        self.narrowphase_elapsed_ns = Some(elapsed_ns);
+        self
     }
 
     #[must_use]
