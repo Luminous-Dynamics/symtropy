@@ -922,15 +922,18 @@ mod tests {
         );
         let binary_score =
             evaluate_queries_with_profile(binary64, std::slice::from_ref(&result)).unwrap();
-        let q16_score = evaluate_queries_with_profile(q16, &[result.clone()]).unwrap();
+        let q16_score = evaluate_queries_with_profile(q16, std::slice::from_ref(&result)).unwrap();
         let unspecified = evaluate_queries(std::slice::from_ref(&result)).unwrap();
 
         assert!(binary_score.benchmark_qualified());
         assert!(q16_score.benchmark_qualified());
         assert!(binary_score.can_pool_with(&binary_score));
         assert!(!binary_score.can_pool_with(&q16_score));
-        let other_score =
-            evaluate_queries_with_profile(other_algorithm, &[result.clone()]).unwrap();
+        let other_score = evaluate_queries_with_profile(
+            other_algorithm,
+            std::slice::from_ref(&result),
+        )
+        .unwrap();
         assert!(!binary_score.can_pool_with(&other_score));
         assert!(!unspecified.benchmark_qualified());
         assert!(!unspecified.can_pool_with(&binary_score));
