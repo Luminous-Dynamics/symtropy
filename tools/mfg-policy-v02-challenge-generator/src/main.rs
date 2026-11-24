@@ -937,7 +937,7 @@ fn validate_corpus(corpus: &Corpus) -> Result<(), String> {
     if corpus.schema_id != "https://luminousdynamics.io/schemas/mfg-policy-v0.2-challenge-corpus"
         || corpus.benchmark_id != "MFG-POLICY-V02-CHALLENGE-001"
         || corpus.generator_version != "mfg-policy-v02-challenge-generator/0.2.0"
-        || corpus.evidence_class != "synthetic_offline"
+        || corpus.evidence_class != "synthetic_offline_policy_visible"
         || corpus.horizon_epochs != HORIZON_EPOCHS
         || corpus.family_count != FAMILY_COUNT
         || corpus.family_manifest.len() != FAMILY_COUNT
