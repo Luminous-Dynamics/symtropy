@@ -13,7 +13,9 @@
       "expected_violation_codes": [
         "DANGLING_REFERENCE"
       ],
-      "expected_blocker_codes": []
+      "expected_blocker_codes": [
+        "CALIBRATION_NOT_DECLARED_ACTIVE"
+      ]
     },
     {
       "case_id": "dangling-product-configuration-reference",
@@ -25,7 +27,9 @@
       "expected_violation_codes": [
         "DANGLING_REFERENCE"
       ],
-      "expected_blocker_codes": []
+      "expected_blocker_codes": [
+        "CALIBRATION_NOT_DECLARED_ACTIVE"
+      ]
     },
     {
       "case_id": "holdout-to-training-group-leakage",
@@ -37,7 +41,9 @@
       "expected_violation_codes": [
         "SPLIT_GROUP_OVERLAP"
       ],
-      "expected_blocker_codes": []
+      "expected_blocker_codes": [
+        "CALIBRATION_NOT_DECLARED_ACTIVE"
+      ]
     },
     {
       "case_id": "unknown-plus-out-of-domain-process",
@@ -49,7 +55,8 @@
       "expected_violation_codes": [],
       "expected_blocker_codes": [
         "PROCESS_DOMAIN_UNKNOWN",
-        "PROCESS_OUT_OF_DOMAIN"
+        "PROCESS_OUT_OF_DOMAIN",
+        "CALIBRATION_NOT_DECLARED_ACTIVE"
       ]
     },
     {
@@ -76,7 +83,8 @@
         "INVALID_OBSERVED_VALUE"
       ],
       "expected_blocker_codes": [
-        "PROCESS_OUT_OF_DOMAIN"
+        "PROCESS_OUT_OF_DOMAIN",
+        "CALIBRATION_NOT_DECLARED_ACTIVE"
       ]
     },
     {
@@ -90,7 +98,8 @@
         "NON_SYNTHETIC_QUANTITY"
       ],
       "expected_blocker_codes": [
-        "PROCESS_OUT_OF_DOMAIN"
+        "PROCESS_OUT_OF_DOMAIN",
+        "CALIBRATION_NOT_DECLARED_ACTIVE"
       ]
     },
     {
@@ -104,7 +113,8 @@
         "UNKNOWN_PARTITION"
       ],
       "expected_blocker_codes": [
-        "PROCESS_OUT_OF_DOMAIN"
+        "PROCESS_OUT_OF_DOMAIN",
+        "CALIBRATION_NOT_DECLARED_ACTIVE"
       ]
     },
     {
@@ -118,7 +128,8 @@
         "INCOMPLETE_CENSORED_RECORD"
       ],
       "expected_blocker_codes": [
-        "PROCESS_OUT_OF_DOMAIN"
+        "PROCESS_OUT_OF_DOMAIN",
+        "CALIBRATION_NOT_DECLARED_ACTIVE"
       ]
     },
     {
@@ -135,7 +146,8 @@
         "DUPLICATE_SPECIMEN_ASSIGNMENT"
       ],
       "expected_blocker_codes": [
-        "PROCESS_OUT_OF_DOMAIN"
+        "PROCESS_OUT_OF_DOMAIN",
+        "CALIBRATION_NOT_DECLARED_ACTIVE"
       ]
     },
     {
@@ -149,7 +161,8 @@
         "DUPLICATE_ID"
       ],
       "expected_blocker_codes": [
-        "PROCESS_OUT_OF_DOMAIN"
+        "PROCESS_OUT_OF_DOMAIN",
+        "CALIBRATION_NOT_DECLARED_ACTIVE"
       ]
     },
     {
@@ -163,7 +176,8 @@
         "UNKNOWN_OBSERVATION_STATUS"
       ],
       "expected_blocker_codes": [
-        "PROCESS_OUT_OF_DOMAIN"
+        "PROCESS_OUT_OF_DOMAIN",
+        "CALIBRATION_NOT_DECLARED_ACTIVE"
       ]
     }
   ]
