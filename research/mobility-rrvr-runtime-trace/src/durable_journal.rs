@@ -1030,6 +1030,28 @@ mod tests {
     }
 
     #[test]
+    fn cross_language_known_answer_record_matches_canonical_digest() {
+        let line = include_str!("../fixtures/durable_journal_known_answer_v0_1.jsonl").trim();
+        let entry: JournalEntry = serde_json::from_str(line).unwrap();
+        assert_eq!(entry.sequence, 1);
+        assert_eq!(
+            entry.entry_sha256,
+            "4c825e86529c6b88e2ccf3f4086186203363c257832ff0a975b981de749328c1"
+        );
+        assert_eq!(
+            entry_digest(
+                entry.sequence,
+                &entry.previous_entry_sha256,
+                &entry.event
+            )
+            .unwrap(),
+            entry.entry_sha256
+        );
+        let mut index = JournalIndex::default();
+        index.apply(&entry.event).unwrap();
+    }
+
+    #[test]
     fn journal_hash_chain_round_trips_and_gates_dispatch_on_verified_reset() {
         let path = temp_journal_path("roundtrip");
         {
