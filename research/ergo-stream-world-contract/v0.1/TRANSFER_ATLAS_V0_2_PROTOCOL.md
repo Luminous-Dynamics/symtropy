@@ -57,10 +57,12 @@ Other map kinds remain future work:
 |---|---|---|
 | Homomorphism | Relation-preserving many-to-one mapping | Explicitly declared collapsed distinctions and relation preservation |
 | Quotient / coarse-graining | Partition fine states/entities into abstract classes | Equivalence partition and induced abstract relations/observables |
-| Simulation | Every in-scope source transition is matched by a target transition | One-way action/state mapped transition coverage |
-| Bisimulation | Both systems mutually simulate each other | Forward and backward transition coverage |
+| Simulation | Implemented in `src/behaviour.rs`: every in-scope source transition is matched by a target transition under a many-to-many state relation; extra target behaviour is permitted | One-way source-to-target coverage |
+| Bisimulation | Implemented in `src/behaviour.rs`: adds reverse target-to-source coverage and requires target action-scope coverage | Forward and backward response coverage |
 | Approximate simulation / bisimulation | Dynamics correspond within declared error bounds | Norm, tolerance, horizon, support and uncertainty fixed before holdout |
 | Conjugacy / semiconjugacy | Continuous dynamics commute under state/action/time maps | Clock map, flow support, hybrid event/reset semantics and trajectory-level validation |
+
+The finite simulation/bisimulation implementation supports nondeterministic labelled transitions and many-to-many state relations. It is specified in `FINITE_SIMULATION_BISIMULATION_V0_1.md`. It does not yet implement weak/silent-transition simulation, probabilistic bisimulation, approximate simulation, timed automata, or continuous-time conjugacy.
 
 The evaluator must score the declared map kind, not silently upgrade an embedding to an isomorphism or a one-way simulation to a bisimulation. This implementation is still a finite structural validator; it does not qualify mechanism or dynamics transfer by itself.
 
