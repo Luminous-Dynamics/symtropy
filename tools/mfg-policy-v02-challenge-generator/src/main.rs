@@ -1354,8 +1354,12 @@ fn main() -> ExitCode {
 mod tests {
     use super::*;
 
+    fn bundle() -> (Corpus, EvaluatorLabels) {
+        build_and_validate().expect("policy corpus and isolated evaluator labels must validate")
+    }
+
     fn corpus() -> Corpus {
-        build_and_validate().expect("v0.2 corpus must satisfy its strict schema and invariants")
+        bundle().0
     }
 
     #[test]
@@ -1466,18 +1470,41 @@ mod tests {
     }
 
     #[test]
-    fn identical_visible_prefixes_can_have_different_hidden_terminal_quality() {
-        let corpus = corpus();
+    fn evaluator_counterfactuals_are_separate_from_policy_visible_event_histories() {
+        let (corpus, labels) = bundle();
+        let policy_json = serde_json::to_string(&corpus).unwrap();
+        assert!(!policy_json.contains("hidden_terminal_quality_outcomes"));
+        assert!(!policy_json.contains("Q-HIDDEN-REJECT"));
+
         for case in &corpus.cases {
             assert_eq!(
                 case.scenarios[0].observations_by_epoch,
                 case.scenarios[1].observations_by_epoch
             );
-            assert_ne!(
-                case.scenarios[0].hidden_terminal_quality_outcomes,
-                case.scenarios[1].hidden_terminal_quality_outcomes
-            );
+            let evaluator_case = labels.cases.iter()
+                .find(|labels| labels.case_id == case.case_id)
+                .expect("matching evaluator sidecar case exists");
+            let accepted = evaluator_case.scenario_outcomes.iter()
+                .find(|outcome| outcome.scenario_id == "NOMINAL-ACCEPTED")
+                .expect("nominal acceptance label");
+            let rejected = evaluator_case.scenario_outcomes.iter()
+                .find(|outcome| outcome.scenario_id == "NOMINAL-HIDDEN-REJECT")
+                .expect("nominal rejection label");
+            assert_ne!(accepted.hidden_terminal_quality_outcomes, rejected.hidden_terminal_quality_outcomes);
+            assert!(rejected.hidden_terminal_quality_outcomes.iter()
+                .any(|outcome| outcome.disposition == QualityDisposition::Rejected));
         }
+    }
+
+    #[test]
+    fn evaluator_sidecar_rejects_unknown_operation_labels() {
+        let (corpus, mut labels) = bundle();
+        labels.cases[0].scenario_outcomes[0].hidden_terminal_quality_outcomes[0].operation_id =
+            "UNKNOWN-OPERATION".into();
+        assert_eq!(
+            validate_evaluator_labels(&corpus, &labels),
+            Err("evaluator_outcome_identity_or_operation_invalid".into())
+        );
     }
 
     #[test]
@@ -1607,14 +1634,18 @@ mod tests {
 
     #[test]
     fn generator_is_deterministic_and_seed_provenance_is_explicit() {
-        let first = corpus();
-        let second = corpus();
+        let first = bundle();
+        let second = bundle();
         assert_eq!(
-            serde_json::to_vec(&first).unwrap(),
-            serde_json::to_vec(&second).unwrap()
+            serde_json::to_vec(&first.0).unwrap(),
+            serde_json::to_vec(&second.0).unwrap()
         );
-        assert_eq!(first.generation.root_seed, ROOT_SEED);
-        assert_eq!(first.generation.seed_algorithm, "SplitMix64-v1");
+        assert_eq!(
+            serde_json::to_vec(&first.1).unwrap(),
+            serde_json::to_vec(&second.1).unwrap()
+        );
+        assert_eq!(first.0.generation.root_seed, ROOT_SEED);
+        assert_eq!(first.0.generation.seed_algorithm, "SplitMix64-v1");
     }
 
     #[test]
