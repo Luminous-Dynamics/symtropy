@@ -382,6 +382,6 @@ const report = {
   result: results.every(item => item.passed) ? "pass" : "fail",
   cases: results
 };
-process.stdout.write(JSON.stringify(report, null, 2) + "\\n");
+process.stdout.write(JSON.stringify(report, null, 2) + "\n");
 process.stderr.write("node-anytime-world-set-oracle: " + tests.length
   + " cases passed; BigInt exactness; no authority granted\\n");
