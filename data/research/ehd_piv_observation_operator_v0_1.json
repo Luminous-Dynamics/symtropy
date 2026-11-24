@@ -19,7 +19,7 @@
   ],
   "deterministic_noise": "frozen_per_pixel_noise_inputs; no implicit random generator",
   "non_extrapolation": "particle trajectory leaving velocity support returns VelocitySupportExceeded",
-  "manufactured_tests": 9,
+  "manufactured_tests": 11,
   "explicit_nonclaims": [
     "no_tracer_inertia",
     "no_Mie_scattering",
@@ -29,5 +29,9 @@
     "no_particle_tracking_or_Shake_the_Box",
     "no_real_EHD_observer_validation",
     "no_raw_image_inverse_model_or_PIV_processing"
+  ],
+  "additional_failure_controls": [
+    "field_support_outside_sensor",
+    "nonfinite_rendered_sensor_signal"
   ]
 }
