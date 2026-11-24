@@ -137,7 +137,7 @@ impl MappingRule {
             return Err(CrosswalkError::MissingMappingEvidence);
         }
 
-        if self.source_standard_version == DCSA_TT_VERSION
+        if self.source_standard_version.starts_with("DCSA-")
             && self.source_field == "eventClassifierCode"
         {
             if self.target_field == "bizStep" {
@@ -510,6 +510,24 @@ mod tests {
             };
             assert_eq!(mapping_rule.validate(), Err(expected));
         }
+    }
+
+    #[test]
+    fn classifier_firewall_covers_other_dsca_releases() {
+        let mut future_release = rule(
+            "eventClassifierCode",
+            "ACT",
+            "bizStep",
+            "urn:epcglobal:cbv:bizstep:loading",
+            MappingKind::Exact,
+            MappingReversibility::Reversible,
+            None,
+        );
+        future_release.source_standard_version = "DCSA-PC-2.0.0".to_owned();
+        assert_eq!(
+            future_release.validate(),
+            Err(CrosswalkError::DscaClassifierCannotMapToBusinessStep)
+        );
     }
 
     #[test]
