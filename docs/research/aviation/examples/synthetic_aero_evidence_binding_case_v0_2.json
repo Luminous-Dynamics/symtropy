@@ -1,0 +1,102 @@
+{
+  "case_id": "synthetic-aero-evidence-binding-0001",
+  "profile_id": "aero-evidence-binding-v0.2",
+  "synthetic_only": true,
+  "claim_ceiling": "synthetic_binding_contract_only",
+  "validity_interval_semantics": "[valid_from_utc, valid_until_utc)",
+  "evaluated_at_utc": "2026-11-24T10:30:00Z",
+  "hierarchy": {
+    "material_lots": [
+      {
+        "id": "LOT-A"
+      }
+    ],
+    "process_batches": [
+      {
+        "id": "BATCH-A",
+        "material_lot_id": "LOT-A"
+      }
+    ],
+    "panels": [
+      {
+        "id": "PANEL-A",
+        "process_batch_id": "BATCH-A"
+      }
+    ],
+    "specimens": [
+      {
+        "id": "SPEC-A",
+        "panel_id": "PANEL-A",
+        "configuration_id": "CONFIG-A"
+      }
+    ],
+    "test_campaigns": [
+      {
+        "id": "CAMPAIGN-A",
+        "instrument_id": "INSTRUMENT-A",
+        "protocol_revision_id": "METHOD-A",
+        "calibration_id": "CAL-A"
+      }
+    ],
+    "configurations": [
+      {
+        "id": "CONFIG-A",
+        "product_definition_revision_id": "PRODUCT-REV-A"
+      }
+    ]
+  },
+  "specimen_source_assertions": [
+    {
+      "id": "SOURCE-ASSERTION-A",
+      "specimen_id": "SPEC-A",
+      "declared_material_lot_id": "LOT-A",
+      "declared_process_batch_id": "BATCH-A",
+      "declared_panel_id": "PANEL-A",
+      "verified_material_lot_id": "LOT-A",
+      "verified_process_batch_id": "BATCH-A",
+      "verified_panel_id": "PANEL-A",
+      "identity_status": "verified",
+      "source_system": "SYNTHETIC-TRAVELER-SYSTEM",
+      "source_record_id": "TRAVELER-0001",
+      "assertion_method": "independent-record-reconciliation",
+      "issuer_id": "SYNTHETIC-ISSUER-A",
+      "provenance_ref": "synthetic://traveler/0001"
+    }
+  ],
+  "intended_configuration_assertions": [
+    {
+      "id": "CONFIG-ASSERTION-A",
+      "specimen_id": "SPEC-A",
+      "declared_intended_configuration_id": "CONFIG-A",
+      "verified_intended_configuration_id": "CONFIG-A",
+      "identity_status": "verified",
+      "source_system": "SYNTHETIC-PLM",
+      "source_record_id": "PLM-RELEASE-0001",
+      "assertion_method": "independent-release-record-reconciliation",
+      "issuer_id": "SYNTHETIC-ISSUER-B",
+      "provenance_ref": "synthetic://plm/release/0001"
+    }
+  ],
+  "observations": [
+    {
+      "id": "OBS-A",
+      "specimen_id": "SPEC-A",
+      "campaign_id": "CAMPAIGN-A",
+      "acquired_at_utc": "2026-11-24T10:00:00Z",
+      "time_basis": "UTC"
+    }
+  ],
+  "calibration_certificates": [
+    {
+      "id": "CAL-A",
+      "instrument_id": "INSTRUMENT-A",
+      "method_revision_id": "METHOD-A",
+      "calibration_lab": "SYNTHETIC-LAB-A",
+      "certificate_artifact_ref": "mycelix-packet://synthetic/CAL-A",
+      "authenticity_status": "authenticated",
+      "valid_from_utc": "2026-11-24T09:00:00Z",
+      "valid_until_utc": "2026-11-24T11:00:00Z"
+    }
+  ],
+  "calibration_events": []
+}
