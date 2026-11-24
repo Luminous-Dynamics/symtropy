@@ -296,9 +296,9 @@ fn check_sha256(field: &str, value: &str) -> Result<(), AdapterError> {
 }
 
 fn checked_ms_to_ns(value: u64, field: &str) -> Result<u64, AdapterError> {
-    value
-        .checked_mul(1_000_000)
-        .ok_or_else(|| AdapterError::Arithmetic(format!("{field} milliseconds-to-nanoseconds overflow")))
+    value.checked_mul(1_000_000).ok_or_else(|| {
+        AdapterError::Arithmetic(format!("{field} milliseconds-to-nanoseconds overflow"))
+    })
 }
 
 #[derive(Serialize)]
@@ -372,12 +372,15 @@ pub fn expected_topology_digest(network: &NetworkModelInput) -> Result<String, A
 
 fn canonical_input_digest(input: &MobilityNetworkAdapterInput) -> Result<String, AdapterError> {
     let mut canonical = input.clone();
-    canonical.upstream_receipts.sort_by_key(|receipt| receipt.gate);
+    canonical
+        .upstream_receipts
+        .sort_by_key(|receipt| receipt.gate);
     canonical.n_minus_one_contingencies.sort();
     canonical.network.buses.sort_by(|a, b| a.id.cmp(&b.id));
     canonical.network.branches.sort_by(|a, b| a.id.cmp(&b.id));
-    let bytes = serde_json::to_vec(&canonical)
-        .map_err(|error| AdapterError::Arithmetic(format!("canonical input serialization failed: {error}")))?;
+    let bytes = serde_json::to_vec(&canonical).map_err(|error| {
+        AdapterError::Arithmetic(format!("canonical input serialization failed: {error}"))
+    })?;
     Ok(format!("sha256:{:x}", Sha256::digest(bytes)))
 }
 
@@ -459,8 +462,7 @@ fn validate_receipts(
                     ));
                 }
                 if receipt.gate == GateKind::ReserveRecovery {
-                    if receipt.recovery_deadline_unix_ms
-                        != Some(input.required_recovery_by_unix_ms)
+                    if receipt.recovery_deadline_unix_ms != Some(input.required_recovery_by_unix_ms)
                         || receipt.valid_until_unix_ms < input.required_recovery_by_unix_ms
                     {
                         return Err(AdapterError::EvidenceTimeInvalid(
@@ -607,10 +609,22 @@ fn validate_input(input: &MobilityNetworkAdapterInput) -> Result<(), AdapterErro
         require_nonempty(field, value)?;
     }
     for (field, digest) in [
-        ("asset configuration digest", input.asset_configuration_digest.as_str()),
-        ("baseline trace digest", input.baseline_trace_digest.as_str()),
-        ("flexible trace digest", input.flexible_trace_digest.as_str()),
-        ("network model digest", input.network.network_model_digest.as_str()),
+        (
+            "asset configuration digest",
+            input.asset_configuration_digest.as_str(),
+        ),
+        (
+            "baseline trace digest",
+            input.baseline_trace_digest.as_str(),
+        ),
+        (
+            "flexible trace digest",
+            input.flexible_trace_digest.as_str(),
+        ),
+        (
+            "network model digest",
+            input.network.network_model_digest.as_str(),
+        ),
         ("topology digest", input.network.topology_digest.as_str()),
     ] {
         check_sha256(field, digest)?;
@@ -687,14 +701,20 @@ fn validate_input(input: &MobilityNetworkAdapterInput) -> Result<(), AdapterErro
         }
         next_start = next_start
             .checked_add(interval.duration_ms)
-            .ok_or_else(|| AdapterError::Arithmetic("interval end timestamp overflow".to_owned()))?;
+            .ok_or_else(|| {
+                AdapterError::Arithmetic("interval end timestamp overflow".to_owned())
+            })?;
     }
     if next_start != input.horizon_end_unix_ms {
         return Err(AdapterError::InvalidHorizon(
             "intervals do not cover the exact declared offer horizon".to_owned(),
         ));
     }
-    if input.network.buses.iter().any(|bus| bus.id.trim().is_empty())
+    if input
+        .network
+        .buses
+        .iter()
+        .any(|bus| bus.id.trim().is_empty())
         || input.network.branches.iter().any(|branch| {
             branch.id.trim().is_empty()
                 || branch.from_bus.trim().is_empty()
@@ -750,9 +770,7 @@ fn build_network(input: &MobilityNetworkAdapterInput) -> Result<DcNetworkModel, 
     .map_err(|error| AdapterError::InvalidNetwork(error.to_string()))
 }
 
-fn requested_energy_mwh(
-    intervals: &[MobilityResponseIntervalInput],
-) -> Result<f64, AdapterError> {
+fn requested_energy_mwh(intervals: &[MobilityResponseIntervalInput]) -> Result<f64, AdapterError> {
     let energy = intervals.iter().try_fold(0.0_f64, |sum, interval| {
         let duration_hours = interval.duration_ms as f64 / 3_600_000.0;
         let increment = interval.requested_pcc_reduction_mw * duration_hours;
@@ -901,8 +919,7 @@ pub fn evaluate_mobility_network_adapter(
     let conservation_error = site_requested_energy - maximum_deliverable - curtailed;
     if conservation_error.abs() > input.flow_tolerance_mw.max(1.0e-9) {
         return Err(AdapterError::Arithmetic(
-            "requested = network-deliverable + undeliverable energy conservation failed"
-                .to_owned(),
+            "requested = network-deliverable + undeliverable energy conservation failed".to_owned(),
         ));
     }
 
@@ -973,14 +990,44 @@ mod tests {
             topology_effective_at_ns: 0,
             base_mva: 100.0,
             buses: vec![
-                NetworkBusInput { id: "S".to_owned(), slack: true },
-                NetworkBusInput { id: "A".to_owned(), slack: false },
-                NetworkBusInput { id: "B".to_owned(), slack: false },
+                NetworkBusInput {
+                    id: "S".to_owned(),
+                    slack: true,
+                },
+                NetworkBusInput {
+                    id: "A".to_owned(),
+                    slack: false,
+                },
+                NetworkBusInput {
+                    id: "B".to_owned(),
+                    slack: false,
+                },
             ],
             branches: vec![
-                NetworkBranchInput { id: "S-A".to_owned(), from_bus: "S".to_owned(), to_bus: "A".to_owned(), reactance_pu: 0.1, normal_limit_mw: 100.0, emergency_limit_mw: 120.0 },
-                NetworkBranchInput { id: "A-B".to_owned(), from_bus: "A".to_owned(), to_bus: "B".to_owned(), reactance_pu: 0.1, normal_limit_mw: 40.0, emergency_limit_mw: 60.0 },
-                NetworkBranchInput { id: "S-B".to_owned(), from_bus: "S".to_owned(), to_bus: "B".to_owned(), reactance_pu: 0.1, normal_limit_mw: 45.0, emergency_limit_mw: 80.0 },
+                NetworkBranchInput {
+                    id: "S-A".to_owned(),
+                    from_bus: "S".to_owned(),
+                    to_bus: "A".to_owned(),
+                    reactance_pu: 0.1,
+                    normal_limit_mw: 100.0,
+                    emergency_limit_mw: 120.0,
+                },
+                NetworkBranchInput {
+                    id: "A-B".to_owned(),
+                    from_bus: "A".to_owned(),
+                    to_bus: "B".to_owned(),
+                    reactance_pu: 0.1,
+                    normal_limit_mw: 40.0,
+                    emergency_limit_mw: 60.0,
+                },
+                NetworkBranchInput {
+                    id: "S-B".to_owned(),
+                    from_bus: "S".to_owned(),
+                    to_bus: "B".to_owned(),
+                    reactance_pu: 0.1,
+                    normal_limit_mw: 45.0,
+                    emergency_limit_mw: 80.0,
+                },
             ],
         };
         network.network_model_digest = expected_network_model_digest(&network).unwrap();
@@ -1019,11 +1066,41 @@ mod tests {
             }],
             n_minus_one_contingencies: vec!["S-A".to_owned(), "A-B".to_owned(), "S-B".to_owned()],
             upstream_receipts: vec![
-                receipt(GateKind::MobilityFlexibility, 0, GateDisposition::Passed, &model_digest, &topology_digest),
-                receipt(GateKind::ReserveRecovery, 1, GateDisposition::Passed, &model_digest, &topology_digest),
-                receipt(GateKind::CommitmentLease, 2, GateDisposition::Passed, &model_digest, &topology_digest),
-                receipt(GateKind::CommitmentJournal, 3, GateDisposition::Passed, &model_digest, &topology_digest),
-                receipt(GateKind::PccMetrology, 4, GateDisposition::Passed, &model_digest, &topology_digest),
+                receipt(
+                    GateKind::MobilityFlexibility,
+                    0,
+                    GateDisposition::Passed,
+                    &model_digest,
+                    &topology_digest,
+                ),
+                receipt(
+                    GateKind::ReserveRecovery,
+                    1,
+                    GateDisposition::Passed,
+                    &model_digest,
+                    &topology_digest,
+                ),
+                receipt(
+                    GateKind::CommitmentLease,
+                    2,
+                    GateDisposition::Passed,
+                    &model_digest,
+                    &topology_digest,
+                ),
+                receipt(
+                    GateKind::CommitmentJournal,
+                    3,
+                    GateDisposition::Passed,
+                    &model_digest,
+                    &topology_digest,
+                ),
+                receipt(
+                    GateKind::PccMetrology,
+                    4,
+                    GateDisposition::Passed,
+                    &model_digest,
+                    &topology_digest,
+                ),
             ],
             claim_ceiling: "synthetic known-truth adapter fixture only".to_owned(),
         }
@@ -1032,9 +1109,19 @@ mod tests {
     #[test]
     fn three_bus_known_truth_reports_partial_delivery_and_energy_conservation() {
         let report = evaluate_mobility_network_adapter(&fixture_input()).unwrap();
-        assert_eq!(report.disposition, CompositeDisposition::ScreenedPartialRequest);
+        assert_eq!(
+            report.disposition,
+            CompositeDisposition::ScreenedPartialRequest
+        );
         assert!((report.site_requested_response_energy_mwh - 30.0).abs() < 1.0e-9);
-        assert!((report.maximum_dc_network_deliverable_response_energy_mwh.unwrap() - 17.5).abs() < 1.0e-8);
+        assert!(
+            (report
+                .maximum_dc_network_deliverable_response_energy_mwh
+                .unwrap()
+                - 17.5)
+                .abs()
+                < 1.0e-8
+        );
         assert!((report.dc_undeliverable_or_curtailed_energy_mwh.unwrap() - 12.5).abs() < 1.0e-8);
         assert!(report.energy_conservation_error_mwh.unwrap().abs() < 1.0e-9);
         assert_eq!(report.full_requested_trajectory_dc_deliverable, Some(false));
@@ -1045,7 +1132,10 @@ mod tests {
         assert!(report.network_model_digest_verified_against_content);
         assert!(report.topology_digest_verified_against_content);
         assert_eq!(report.required_recovery_by_unix_ms, 3_900_000);
-        assert_eq!(report.upstream_receipts[1].recovery_deadline_unix_ms, Some(3_900_000));
+        assert_eq!(
+            report.upstream_receipts[1].recovery_deadline_unix_ms,
+            Some(3_900_000)
+        );
         assert!(!report.adequacy_contribution_computed);
         assert!(!report.ac_feasibility_established);
         assert!(!report.market_eligibility_granted);
@@ -1061,7 +1151,11 @@ mod tests {
         let report = evaluate_mobility_network_adapter(&input).unwrap();
         assert_eq!(report.disposition, CompositeDisposition::HeldUnknownGate);
         assert!(report.dc_network_report.is_none());
-        assert!(report.maximum_dc_network_deliverable_response_energy_mwh.is_none());
+        assert!(
+            report
+                .maximum_dc_network_deliverable_response_energy_mwh
+                .is_none()
+        );
     }
 
     #[test]
@@ -1089,7 +1183,9 @@ mod tests {
         input.upstream_receipts[4].gate = GateKind::CommitmentJournal;
         assert!(matches!(
             evaluate_mobility_network_adapter(&input),
-            Err(AdapterError::DuplicateGateReceipt(GateKind::CommitmentJournal))
+            Err(AdapterError::DuplicateGateReceipt(
+                GateKind::CommitmentJournal
+            ))
         ));
     }
 
@@ -1298,7 +1394,11 @@ mod tests {
         input.upstream_receipts[0].disposition = GateDisposition::Unknown;
         let report = evaluate_mobility_network_adapter(&input).unwrap();
         assert!((report.site_requested_response_energy_mwh - 30.0).abs() < 1.0e-9);
-        assert!(report.maximum_dc_network_deliverable_response_energy_mwh.is_none());
+        assert!(
+            report
+                .maximum_dc_network_deliverable_response_energy_mwh
+                .is_none()
+        );
     }
 
     #[test]
@@ -1323,8 +1423,7 @@ mod tests {
                 emergency_limit_mw: 1_200.0,
             },
         ];
-        input.network.network_model_digest =
-            expected_network_model_digest(&input.network).unwrap();
+        input.network.network_model_digest = expected_network_model_digest(&input.network).unwrap();
         input.network.topology_digest = expected_topology_digest(&input.network).unwrap();
         input.upstream_receipts[0].network_model_digest =
             Some(input.network.network_model_digest.clone());
@@ -1332,9 +1431,27 @@ mod tests {
         input.n_minus_one_contingencies = vec!["A-B".to_owned()];
 
         let report = evaluate_mobility_network_adapter(&input).unwrap();
-        assert!(report.dc_network_report.as_ref().unwrap().n_minus_one_required);
-        assert!(!report.dc_network_report.as_ref().unwrap().network_deliverable);
-        assert_eq!(report.disposition, CompositeDisposition::ScreenedUndeliverable);
-        assert_eq!(report.maximum_dc_network_deliverable_response_energy_mwh, Some(0.0));
+        assert!(
+            report
+                .dc_network_report
+                .as_ref()
+                .unwrap()
+                .n_minus_one_required
+        );
+        assert!(
+            !report
+                .dc_network_report
+                .as_ref()
+                .unwrap()
+                .network_deliverable
+        );
+        assert_eq!(
+            report.disposition,
+            CompositeDisposition::ScreenedUndeliverable
+        );
+        assert_eq!(
+            report.maximum_dc_network_deliverable_response_energy_mwh,
+            Some(0.0)
+        );
     }
 }
