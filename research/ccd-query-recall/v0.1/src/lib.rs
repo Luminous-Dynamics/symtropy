@@ -779,10 +779,13 @@ mod tests {
     #[test]
     fn reports_independent_scene_frame_and_primitive_type_strata() {
         let edge_queries = imported_queries_with_labels(&[true, false]);
-        let vertex_csv = (0..8)
-            .map(|index| format!("{index},1,0,1,0,1,false"))
-            .collect::<Vec<_>>()
-            .join("\\n");
+        let mut vertex_csv = String::new();
+        for index in 0..8 {
+            if !vertex_csv.is_empty() {
+                vertex_csv.push('\\n');
+            }
+            vertex_csv.push_str(&format!("{index},1,0,1,0,1,false"));
+        }
         let vertex_queries = parse_queries_csv(&vertex_csv, QueryKind::VertexFace).unwrap();
 
         let edge_positive = evaluation(
