@@ -2,8 +2,7 @@
 //! Deterministic CSV smoke tournament for the aggregate planar patch oracle.
 
 use planar_patch_limit_surface_oracle::{
-    MaxDissipationResult, MaxDissipationTolerance, PlanarPatchModel, SlipTwist3,
-    WrenchDirection3,
+    MaxDissipationResult, MaxDissipationTolerance, PlanarPatchModel, SlipTwist3, WrenchDirection3,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
