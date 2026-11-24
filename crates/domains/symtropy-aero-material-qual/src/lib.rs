@@ -649,7 +649,7 @@ pub fn evaluate_case(case: &Value) -> EvaluationReport {
 
 #[cfg(test)]
 mod tests {
-    use super::evaluate_case;
+    use super::{evaluate_case, field_str};
     use serde_json::Value;
 
     const FIXTURE: &str = include_str!(
@@ -813,7 +813,7 @@ mod tests {
             .get("cases")
             .and_then(Value::as_array)
             .expect("mutation cases array");
-        assert_eq!(cases.len(), 11);
+        assert_eq!(cases.len(), 12);
 
         for mutation in cases {
             let case_id = field_str(mutation, "case_id").expect("case id");
