@@ -933,14 +933,15 @@ mod tests {
     fn rendered_signal_overflow_fails_closed() {
         let width = 8;
         let height = 8;
-        let mut seed = particle(4.0, 4.0);
-        seed.brightness = f64::MAX;
-        let mut sensor = sensor(width, height);
-        sensor.gain = f64::MAX;
+        let mut first = particle(4.0, 4.0);
+        first.brightness = f64::MAX;
+        let mut second = first.clone();
+        second.brightness = f64::MAX;
+        let sensor = sensor(width, height);
         assert_eq!(
             render_particle_image_pair(
                 &field(width, height, 0.0, 0.0),
-                &[seed],
+                &[first, second],
                 &illumination(),
                 &acquisition(0.0, 1),
                 &sensor,
