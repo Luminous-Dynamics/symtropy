@@ -19,14 +19,16 @@
           "configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           }
         },
         {
           "component_id": "ROBOT-01",
           "configuration": {
             "tool": "SCAN-HEAD-A",
-            "handeye_revision": "HX-4"
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
           }
         }
       ],
@@ -41,13 +43,16 @@
           "required_configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           },
           "certificate_state": "VALID",
           "check_required": true,
           "check_state": "PASS",
           "last_check_time_ns": 450,
-          "max_check_age_ns": 100
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         },
         {
           "scope_id": "camera-to-robot",
@@ -58,13 +63,16 @@
           "valid_until_ns": 1000,
           "required_configuration": {
             "tool": "SCAN-HEAD-A",
-            "handeye_revision": "HX-4"
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
           },
           "certificate_state": "VALID",
           "check_required": false,
           "check_state": "NOT_REQUIRED",
           "last_check_time_ns": null,
-          "max_check_age_ns": null
+          "max_check_age_ns": null,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": null
         }
       ],
       "events": [],
@@ -84,14 +92,16 @@
           "configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           }
         },
         {
           "component_id": "ROBOT-01",
           "configuration": {
             "tool": "SCAN-HEAD-A",
-            "handeye_revision": "HX-4"
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
           }
         }
       ],
@@ -106,13 +116,16 @@
           "required_configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           },
           "certificate_state": "VALID",
           "check_required": true,
           "check_state": "PASS",
           "last_check_time_ns": 450,
-          "max_check_age_ns": 100
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         }
       ],
       "events": [],
@@ -132,14 +145,16 @@
           "configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           }
         },
         {
           "component_id": "ROBOT-01",
           "configuration": {
             "tool": "SCAN-HEAD-A",
-            "handeye_revision": "HX-4"
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
           }
         }
       ],
@@ -154,13 +169,16 @@
           "required_configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           },
           "certificate_state": "VALID",
           "check_required": true,
           "check_state": "PASS",
           "last_check_time_ns": 450,
-          "max_check_age_ns": 100
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         }
       ],
       "events": [],
@@ -180,14 +198,16 @@
           "configuration": {
             "lens": "L-2",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           }
         },
         {
           "component_id": "ROBOT-01",
           "configuration": {
             "tool": "SCAN-HEAD-A",
-            "handeye_revision": "HX-4"
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
           }
         }
       ],
@@ -202,13 +222,16 @@
           "required_configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           },
           "certificate_state": "VALID",
           "check_required": true,
           "check_state": "PASS",
           "last_check_time_ns": 450,
-          "max_check_age_ns": 100
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         }
       ],
       "events": [],
@@ -228,14 +251,16 @@
           "configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           }
         },
         {
           "component_id": "ROBOT-01",
           "configuration": {
             "tool": "SCAN-HEAD-A",
-            "handeye_revision": "HX-4"
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
           }
         }
       ],
@@ -250,13 +275,16 @@
           "required_configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           },
           "certificate_state": "REVOKED",
           "check_required": true,
           "check_state": "PASS",
           "last_check_time_ns": 450,
-          "max_check_age_ns": 100
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         }
       ],
       "events": [],
@@ -276,14 +304,16 @@
           "configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           }
         },
         {
           "component_id": "ROBOT-01",
           "configuration": {
             "tool": "SCAN-HEAD-A",
-            "handeye_revision": "HX-4"
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
           }
         }
       ],
@@ -298,13 +328,16 @@
           "required_configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           },
           "certificate_state": "VALID",
           "check_required": true,
           "check_state": "HOLD",
           "last_check_time_ns": 450,
-          "max_check_age_ns": 100
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         }
       ],
       "events": [],
@@ -324,14 +357,16 @@
           "configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           }
         },
         {
           "component_id": "ROBOT-01",
           "configuration": {
             "tool": "SCAN-HEAD-A",
-            "handeye_revision": "HX-4"
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
           }
         }
       ],
@@ -346,13 +381,16 @@
           "required_configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           },
           "certificate_state": "VALID",
           "check_required": true,
           "check_state": "PASS",
           "last_check_time_ns": 300,
-          "max_check_age_ns": 100
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         }
       ],
       "events": [],
@@ -372,14 +410,16 @@
           "configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           }
         },
         {
           "component_id": "ROBOT-01",
           "configuration": {
             "tool": "SCAN-HEAD-A",
-            "handeye_revision": "HX-4"
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
           }
         }
       ],
@@ -394,13 +434,16 @@
           "required_configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           },
           "certificate_state": "VALID",
           "check_required": true,
           "check_state": "PASS",
           "last_check_time_ns": 450,
-          "max_check_age_ns": 100
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         }
       ],
       "events": [
@@ -430,14 +473,16 @@
           "configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           }
         },
         {
           "component_id": "ROBOT-01",
           "configuration": {
             "tool": "SCAN-HEAD-A",
-            "handeye_revision": "HX-4"
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
           }
         }
       ],
@@ -452,13 +497,16 @@
           "required_configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           },
           "certificate_state": "VALID",
           "check_required": true,
           "check_state": "PASS",
           "last_check_time_ns": 450,
-          "max_check_age_ns": 100
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         }
       ],
       "events": [
@@ -489,14 +537,16 @@
           "configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           }
         },
         {
           "component_id": "ROBOT-01",
           "configuration": {
             "tool": "SCAN-HEAD-A",
-            "handeye_revision": "HX-4"
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
           }
         }
       ],
@@ -511,13 +561,16 @@
           "required_configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           },
           "certificate_state": "VALID",
           "check_required": true,
           "check_state": "PASS",
           "last_check_time_ns": 450,
-          "max_check_age_ns": 100
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         },
         {
           "scope_id": "camera-to-robot",
@@ -528,13 +581,16 @@
           "valid_until_ns": 1000,
           "required_configuration": {
             "tool": "SCAN-HEAD-A",
-            "handeye_revision": "HX-4"
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
           },
           "certificate_state": "VALID",
           "check_required": false,
           "check_state": "NOT_REQUIRED",
           "last_check_time_ns": null,
-          "max_check_age_ns": null
+          "max_check_age_ns": null,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": null
         }
       ],
       "events": [],
@@ -553,14 +609,16 @@
           "component_id": "CAM-01",
           "configuration": {
             "lens": "L-1",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           }
         },
         {
           "component_id": "ROBOT-01",
           "configuration": {
             "tool": "SCAN-HEAD-A",
-            "handeye_revision": "HX-4"
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
           }
         }
       ],
@@ -575,13 +633,16 @@
           "required_configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           },
           "certificate_state": "VALID",
           "check_required": true,
           "check_state": "PASS",
           "last_check_time_ns": 450,
-          "max_check_age_ns": 100
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         }
       ],
       "events": [],
@@ -601,14 +662,16 @@
           "configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           }
         },
         {
           "component_id": "ROBOT-01",
           "configuration": {
             "tool": "SCAN-HEAD-A",
-            "handeye_revision": "HX-4"
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
           }
         }
       ],
@@ -623,13 +686,16 @@
           "required_configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           },
           "certificate_state": "VALID",
           "check_required": true,
           "check_state": "PASS",
           "last_check_time_ns": 450,
-          "max_check_age_ns": 100
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         }
       ],
       "events": [
@@ -659,14 +725,16 @@
           "configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           }
         },
         {
           "component_id": "ROBOT-01",
           "configuration": {
             "tool": "SCAN-HEAD-A",
-            "handeye_revision": "HX-4"
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
           }
         }
       ],
@@ -681,13 +749,16 @@
           "required_configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           },
           "certificate_state": "VALID",
           "check_required": true,
           "check_state": "PASS",
           "last_check_time_ns": 450,
-          "max_check_age_ns": 100
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         }
       ],
       "events": [
@@ -717,14 +788,16 @@
           "configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           }
         },
         {
           "component_id": "ROBOT-01",
           "configuration": {
             "tool": "SCAN-HEAD-A",
-            "handeye_revision": "HX-4"
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
           }
         }
       ],
@@ -739,13 +812,16 @@
           "required_configuration": {
             "lens": "L-1",
             "resolution": "1920x1080",
-            "sensor_mode": "global"
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
           },
           "certificate_state": "VALID",
           "check_required": true,
           "check_state": "PASS",
           "last_check_time_ns": 450,
-          "max_check_age_ns": 100
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         }
       ],
       "events": [
