@@ -28,6 +28,12 @@ Per full profile and each named y+ band:
 
 The interval metrics are diagnostics only. They do not establish calibrated uncertainty or finite-sample coverage guarantees. Trapezoidal metrics integrate over nonuniform y+ spacing and omit adjacent segments where either estimate is missing.
 
+## Full Reynolds-stress tensor
+
+The same crate also provides `compare_reynolds_stress_profile` for the six independent entries of a symmetric 3D Reynolds-stress covariance tensor: `uu, vv, ww, uv, uw, vw`. It reports per-component RMSE, TKE bias/RMSE from half the tensor trace, and full-tensor Frobenius RMSE/NRMSE (off-diagonal entries count twice). It checks positive-semidefinite realizability and reports reference/prediction violation counts separately. A perfect TKE trace cannot hide offsetting errors in `uu` and `vv`.
+
+This full 3D realizability diagnostic applies only when all six components are actually available. Planar two-component measurements and one-dimensional hot-wire profiles must not be silently promoted to full 3D tensor evidence.
+
 ## Run
 
     cargo fmt --manifest-path tools/ehd-piv-external-benchmark/Cargo.toml -- --check
