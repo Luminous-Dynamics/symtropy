@@ -295,11 +295,18 @@ struct NetworkModelDigestPayload {
 }
 
 #[derive(Serialize)]
+struct TopologyBranchIdentity {
+    id: String,
+    from_bus: String,
+    to_bus: String,
+}
+
+#[derive(Serialize)]
 struct TopologyDigestPayload {
     topology_id: String,
     topology_effective_at_ns: u64,
-    bus_ids: Vec<String>,
-    branch_ids: Vec<String>,
+    buses: Vec<NetworkBusInput>,
+    branches: Vec<TopologyBranchIdentity>,
 }
 
 fn digest_serializable(value: &impl Serialize, field: &str) -> Result<String, AdapterError> {
@@ -327,15 +334,23 @@ pub fn expected_network_model_digest(network: &NetworkModelInput) -> Result<Stri
 
 /// Hashes topology identity and membership separately from line parameters.
 pub fn expected_topology_digest(network: &NetworkModelInput) -> Result<String, AdapterError> {
-    let mut bus_ids: Vec<_> = network.buses.iter().map(|bus| bus.id.clone()).collect();
-    let mut branch_ids: Vec<_> = network.branches.iter().map(|branch| branch.id.clone()).collect();
-    bus_ids.sort();
-    branch_ids.sort();
+    let mut buses = network.buses.clone();
+    buses.sort_by(|a, b| a.id.cmp(&b.id));
+    let mut branches: Vec<_> = network
+        .branches
+        .iter()
+        .map(|branch| TopologyBranchIdentity {
+            id: branch.id.clone(),
+            from_bus: branch.from_bus.clone(),
+            to_bus: branch.to_bus.clone(),
+        })
+        .collect();
+    branches.sort_by(|a, b| a.id.cmp(&b.id));
     let payload = TopologyDigestPayload {
         topology_id: network.topology_id.clone(),
         topology_effective_at_ns: network.topology_effective_at_ns,
-        bus_ids,
-        branch_ids,
+        buses,
+        branches,
     };
     digest_serializable(&payload, "network topology")
 }
