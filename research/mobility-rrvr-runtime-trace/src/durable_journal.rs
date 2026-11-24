@@ -1159,8 +1159,8 @@ mod tests {
         assert_eq!(summary.entry_count, 6);
         assert_eq!(summary.reset_verified_count, 1);
         assert_eq!(summary.dispatch_accepted_count, 1);
-        assert_eq!(summary.authority_created, false);
-        assert_eq!(summary.transport_calls_performed, false);
+        assert!(!summary.authority_created);
+        assert!(!summary.transport_calls_performed);
         cleanup(&path);
     }
 
