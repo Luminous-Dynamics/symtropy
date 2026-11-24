@@ -557,7 +557,7 @@ fn branch_policy_signature(
             ))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    signature.sort_unstable_by_key(|(branch_id, _)| *branch_id);
+    signature.sort_unstable_by_key(|(branch_id, _, _)| *branch_id);
     for pair in signature.windows(2) {
         if pair[0].0 == pair[1].0 {
             return Err(TailRiskError::DuplicateBranchId(pair[0].0));
