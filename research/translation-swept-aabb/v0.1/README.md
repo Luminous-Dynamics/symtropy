@@ -4,19 +4,20 @@ A dependency-free Rust research crate that constructs conservative swept AABBs f
 
 ## Why this model
 
-The current Symtropy integrator updates linear velocity, applies exponential damping and a speed clamp, then advances position using post-integration velocity times dt. The physics step captures pre-integration positions and documents the CCD path as a straight-line sweep from those positions using post-integration velocity. Under `deterministic-net`, position and velocity are additionally quantized to Q16.16 after integration.
+The current Symtropy integrator updates linear velocity, applies exponential damping and a speed clamp, then advances position using that **pre-quantization post-integration velocity** times dt. The physics step captures pre-integration positions and documents the CCD path as a straight-line sweep from those positions using the **post-quantization velocity**. Under `deterministic-net`, position and velocity are quantized to Q16.16 after the integrator has already advanced position.
 
-The producer therefore consumes an observed state snapshot rather than trying to re-integrate forces. It covers both:
-- the straight-line CCD path `p_start + v_post * dt`; and
-- the observed post-position endpoint, which can differ because of deterministic position quantization or a CCD time-of-impact clamp.
+The producer therefore consumes both velocity snapshots instead of re-integrating forces. Native-binary64 mode requires the snapshots to match bit-for-bit. Q16.16 mode permits the expected difference and includes three translated endpoint sets:
+- the integrator's pre-quantization path `p_start + v_integrator * dt`;
+- the CCD pass's post-quantization path `p_start + v_ccd * dt`; and
+- the observed post-position endpoint, which can differ due to position quantization or a CCD time-of-impact clamp.
 
-The swept AABB is the coordinate-wise union of the starting shape AABB translated over both endpoints. For a fixed-orientation shape and linear translation, the union of translated AABBs is bounded by the minima and maxima of the endpoint translations. Non-zero translated endpoints are expanded outward by one representable binary64 value. Arithmetic that cannot produce finite outward bounds forces fallback.
+The swept AABB is the coordinate-wise union of the starting shape AABB translated over these paths. For a fixed-orientation shape and linear translation, the union of translated AABBs is bounded by the minima and maxima of the endpoint translations. The observed post-position subtraction is itself outward-enclosed before being composed with the starting AABB. Non-zero translated endpoints are expanded outward by one representable binary64 value. Arithmetic that cannot produce finite outward bounds forces fallback.
 
 ## Supported and unsupported cases
 
 Supported:
 - finite, ordered world-space starting AABB;
-- finite start position, post-position and post-integration linear velocity;
+- finite start position, post-position, pre-quantization integrator velocity and post-quantization CCD velocity;
 - finite non-negative dt;
 - known numeric profile (`NativeBinary64` or `Q16_16`);
 - post-integration angular-velocity norm squared at or below the integrator's (10^{-24}) rotor-update threshold, which means the current integrator does not update orientation during this step.
@@ -30,7 +31,7 @@ Unsupported and never certified:
 
 Invalid state, non-finite endpoints, malformed AABBs and invalid time values are rejected.
 
-The receipt binds body/collider/subshape identity, world revision, step, dt, integrator/profile labels, exact starting AABB and exact observed state bit patterns. Labels are declarative provenance, not signatures or authenticated producer identity. Replay recomputes the envelope against the supplied state.
+The receipt binds body/collider/subshape identity, world revision, step, dt, integrator/profile labels, exact starting AABB and exact observed state bit patterns, including both velocity snapshots. Native-binary64 mode rejects mismatched velocity snapshots. Labels are declarative provenance, not signatures or authenticated producer identity. Replay recomputes the envelope against the supplied state.
 
 ## Claim boundary
 
@@ -44,7 +45,7 @@ The first integration must still:
 
 ## Tests
 
-The tests cover positive, negative and multi-axis translation, stationary motion, observed post-position divergence, rotor-threshold fallback, unknown quantization fallback, Q16.16 context binding, non-finite and negative time, state errors, multiplication/outward-rounding overflow, replay invalidation, 3D behavior, and 256 deterministic randomized 2D segment cases with 101 samples along each represented segment.
+The tests cover positive, negative and multi-axis translation, stationary motion, observed post-position divergence, rotor-threshold fallback, unknown quantization fallback, Q16.16 context binding and distinct velocity snapshots, native-mode velocity mismatch rejection, non-finite and negative time, state errors, multiplication/outward-rounding overflow, replay invalidation, 3D behavior, and 256 deterministic randomized 2D cases with 101 samples along each of the three represented translation segments.
 
 ## Run
 
