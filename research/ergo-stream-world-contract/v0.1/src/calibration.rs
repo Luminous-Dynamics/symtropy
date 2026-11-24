@@ -677,10 +677,7 @@ mod tests {
         let tied = calibrator.predict(402, 900_000).unwrap();
         assert!(tied.include_transfer);
         assert!(!tied.include_non_transfer);
-        assert_eq!(
-            tied.decision,
-            Some(TransferDecisionV0::AssertTransfer)
-        );
+        assert_eq!(tied.decision, Some(TransferDecisionV0::AssertTransfer));
 
         let empty = calibrator.predict(403, 500_000).unwrap();
         assert!(!empty.include_transfer);
