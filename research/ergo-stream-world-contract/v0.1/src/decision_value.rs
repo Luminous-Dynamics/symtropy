@@ -790,20 +790,20 @@ mod tests {
         experiment.outcome_ids.push(2);
         experiment.likelihoods.extend([
             ExperimentLikelihoodV0 {
-                    hypothesis_id: 0,
-                    outcome_id: 2,
-                    likelihood_weight: 0,
-                },
+                hypothesis_id: 0,
+                outcome_id: 2,
+                likelihood_weight: 0,
+            },
             ExperimentLikelihoodV0 {
-                    hypothesis_id: 1,
-                    outcome_id: 2,
-                    likelihood_weight: 0,
-                },
+                hypothesis_id: 1,
+                outcome_id: 2,
+                likelihood_weight: 0,
+            },
             ExperimentLikelihoodV0 {
-                    hypothesis_id: 2,
-                    outcome_id: 2,
-                    likelihood_weight: 0,
-                },
+                hypothesis_id: 2,
+                outcome_id: 2,
+                likelihood_weight: 0,
+            },
         ]);
         let report = evaluate_decision_value(&problem, &experiment).unwrap();
         let impossible = report
