@@ -2324,17 +2324,27 @@ mod tests {
             GazeboDispatchOutcome::Accepted { .. }
         ));
         assert_eq!(durable.effects, 1);
+        assert_eq!(
+            dispatch_fault_once(&mut first_process_registry, &mut durable, &request),
+            GazeboDispatchOutcome::DuplicateSuppressed
+        );
+        assert_eq!(durable.effects, 1);
 
         // A new coordinator has an empty local registry, but the injector's
         // durable key-to-payload mapping survives and rejects the changed target.
         let mut restarted_process_registry = DispatchAttemptRegistry::default();
         request.target_id = "different-target".into();
         request.payload_sha256 = dispatch_request_fingerprint(&request).unwrap();
+        let expected_conflict = GazeboDispatchOutcome::PayloadConflict {
+            idempotency_key: request.idempotency_key.clone(),
+        };
         assert_eq!(
             dispatch_fault_once(&mut restarted_process_registry, &mut durable, &request),
-            GazeboDispatchOutcome::PayloadConflict {
-                idempotency_key: request.idempotency_key.clone()
-            }
+            expected_conflict
+        );
+        assert_eq!(
+            dispatch_fault_once(&mut restarted_process_registry, &mut durable, &request),
+            expected_conflict
         );
         assert_eq!(durable.effects, 1);
     }
