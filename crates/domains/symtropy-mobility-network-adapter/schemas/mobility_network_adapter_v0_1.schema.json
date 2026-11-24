@@ -5,51 +5,140 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema_version", "benchmark_id", "offer_id", "commitment_epoch_id",
-    "site_id", "pcc_id", "pcc_bus_id", "asset_id", "asset_configuration_digest",
-    "baseline_trace_digest", "flexible_trace_digest", "decision_cutoff_unix_ms",
-    "horizon_start_unix_ms", "horizon_end_unix_ms", "maximum_topology_age_ns",
-    "flow_tolerance_mw", "pivot_tolerance", "require_n_minus_one", "network",
-    "intervals", "n_minus_one_contingencies", "upstream_receipts", "claim_ceiling"
+    "schema_version",
+    "benchmark_id",
+    "offer_id",
+    "commitment_epoch_id",
+    "site_id",
+    "pcc_id",
+    "pcc_bus_id",
+    "asset_id",
+    "asset_configuration_digest",
+    "baseline_trace_digest",
+    "flexible_trace_digest",
+    "decision_cutoff_unix_ms",
+    "horizon_start_unix_ms",
+    "horizon_end_unix_ms",
+    "required_recovery_by_unix_ms",
+    "maximum_topology_age_ns",
+    "flow_tolerance_mw",
+    "pivot_tolerance",
+    "require_n_minus_one",
+    "network",
+    "intervals",
+    "n_minus_one_contingencies",
+    "upstream_receipts",
+    "claim_ceiling"
   ],
   "properties": {
-    "schema_version": {"const": "0.1.0"},
-    "benchmark_id": {"const": "MOBILITY-NETWORK-DELIVERY-ADAPTER-001"},
-    "offer_id": {"type": "string", "minLength": 1, "maxLength": 128},
-    "commitment_epoch_id": {"type": "string", "minLength": 1, "maxLength": 128},
-    "site_id": {"type": "string", "minLength": 1, "maxLength": 128},
-    "pcc_id": {"type": "string", "minLength": 1, "maxLength": 128},
-    "pcc_bus_id": {"type": "string", "minLength": 1, "maxLength": 128},
-    "asset_id": {"type": "string", "minLength": 1, "maxLength": 128},
-    "asset_configuration_digest": {"$ref": "#/$defs/digest"},
-    "baseline_trace_digest": {"$ref": "#/$defs/digest"},
-    "flexible_trace_digest": {"$ref": "#/$defs/digest"},
-    "decision_cutoff_unix_ms": {"type": "integer", "minimum": 1},
-    "horizon_start_unix_ms": {"type": "integer", "minimum": 1},
-    "horizon_end_unix_ms": {"type": "integer", "minimum": 2},
-    "maximum_topology_age_ns": {"type": "integer", "minimum": 1},
-    "flow_tolerance_mw": {"type": "number", "exclusiveMinimum": 0},
-    "pivot_tolerance": {"type": "number", "exclusiveMinimum": 0},
-    "require_n_minus_one": {"type": "boolean"},
-    "network": {"$ref": "#/$defs/network"},
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "MOBILITY-NETWORK-DELIVERY-ADAPTER-001"
+    },
+    "offer_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "commitment_epoch_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "site_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "pcc_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "pcc_bus_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "asset_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "asset_configuration_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "baseline_trace_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "flexible_trace_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "decision_cutoff_unix_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "horizon_start_unix_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "horizon_end_unix_ms": {
+      "type": "integer",
+      "minimum": 2
+    },
+    "maximum_topology_age_ns": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "flow_tolerance_mw": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "pivot_tolerance": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "require_n_minus_one": {
+      "type": "boolean"
+    },
+    "network": {
+      "$ref": "#/$defs/network"
+    },
     "intervals": {
       "type": "array",
       "minItems": 1,
       "maxItems": 96,
-      "items": {"$ref": "#/$defs/interval"}
+      "items": {
+        "$ref": "#/$defs/interval"
+      }
     },
     "n_minus_one_contingencies": {
       "type": "array",
       "uniqueItems": true,
-      "items": {"type": "string", "minLength": 1, "maxLength": 128}
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      }
     },
     "upstream_receipts": {
       "type": "array",
       "minItems": 5,
       "maxItems": 5,
-      "items": {"$ref": "#/$defs/receipt"}
+      "items": {
+        "$ref": "#/$defs/receipt"
+      }
     },
-    "claim_ceiling": {"type": "string", "minLength": 1}
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "required_recovery_by_unix_ms": {
+      "type": "integer",
+      "minimum": 1
+    }
   },
   "$defs": {
     "digest": {
@@ -60,16 +149,40 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "network_model_id", "network_model_digest", "topology_id", "topology_digest",
-        "topology_effective_at_ns", "base_mva", "buses", "branches"
+        "network_model_id",
+        "network_model_digest",
+        "topology_id",
+        "topology_digest",
+        "topology_effective_at_ns",
+        "base_mva",
+        "buses",
+        "branches"
       ],
       "properties": {
-        "network_model_id": {"type": "string", "minLength": 1, "maxLength": 128},
-        "network_model_digest": {"$ref": "#/$defs/digest"},
-        "topology_id": {"type": "string", "minLength": 1, "maxLength": 128},
-        "topology_digest": {"$ref": "#/$defs/digest"},
-        "topology_effective_at_ns": {"type": "integer", "minimum": 0},
-        "base_mva": {"type": "number", "exclusiveMinimum": 0},
+        "network_model_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "network_model_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "topology_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "topology_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "topology_effective_at_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "base_mva": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
         "buses": {
           "type": "array",
           "minItems": 1,
@@ -77,10 +190,19 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "slack"],
+            "required": [
+              "id",
+              "slack"
+            ],
             "properties": {
-              "id": {"type": "string", "minLength": 1, "maxLength": 128},
-              "slack": {"type": "boolean"}
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "slack": {
+                "type": "boolean"
+              }
             }
           }
         },
@@ -91,14 +213,42 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "from_bus", "to_bus", "reactance_pu", "normal_limit_mw", "emergency_limit_mw"],
+            "required": [
+              "id",
+              "from_bus",
+              "to_bus",
+              "reactance_pu",
+              "normal_limit_mw",
+              "emergency_limit_mw"
+            ],
             "properties": {
-              "id": {"type": "string", "minLength": 1, "maxLength": 128},
-              "from_bus": {"type": "string", "minLength": 1, "maxLength": 128},
-              "to_bus": {"type": "string", "minLength": 1, "maxLength": 128},
-              "reactance_pu": {"type": "number", "exclusiveMinimum": 0},
-              "normal_limit_mw": {"type": "number", "exclusiveMinimum": 0},
-              "emergency_limit_mw": {"type": "number", "exclusiveMinimum": 0}
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "from_bus": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "to_bus": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "reactance_pu": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "normal_limit_mw": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "emergency_limit_mw": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
             }
           }
         }
@@ -107,45 +257,192 @@
     "interval": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["start_unix_ms", "duration_ms", "baseline_non_slack_injections_mw", "requested_pcc_reduction_mw"],
+      "required": [
+        "start_unix_ms",
+        "duration_ms",
+        "baseline_non_slack_injections_mw",
+        "requested_pcc_reduction_mw"
+      ],
       "properties": {
-        "start_unix_ms": {"type": "integer", "minimum": 1},
-        "duration_ms": {"type": "integer", "minimum": 1},
+        "start_unix_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
         "baseline_non_slack_injections_mw": {
           "type": "object",
-          "additionalProperties": {"type": "number"}
+          "additionalProperties": {
+            "type": "number"
+          }
         },
-        "requested_pcc_reduction_mw": {"type": "number", "minimum": 0, "maximum": 1000000}
+        "requested_pcc_reduction_mw": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000
+        }
       }
     },
     "receipt": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "gate", "receipt_id", "evidence_reference", "digest", "disposition", "offer_id",
-        "commitment_epoch_id", "site_id", "pcc_id", "asset_id", "asset_configuration_digest",
-        "observed_at_unix_ms", "valid_from_unix_ms", "valid_until_unix_ms",
-        "network_model_digest", "topology_digest", "baseline_trace_digest", "flexible_trace_digest"
+        "gate",
+        "receipt_id",
+        "evidence_reference",
+        "digest",
+        "disposition",
+        "offer_id",
+        "commitment_epoch_id",
+        "site_id",
+        "pcc_id",
+        "pcc_bus_id",
+        "asset_id",
+        "asset_configuration_digest",
+        "observed_at_unix_ms",
+        "valid_from_unix_ms",
+        "valid_until_unix_ms",
+        "recovery_deadline_unix_ms",
+        "network_model_digest",
+        "topology_digest",
+        "baseline_trace_digest",
+        "flexible_trace_digest"
       ],
       "properties": {
-        "gate": {"enum": ["mobility_flexibility", "reserve_recovery", "commitment_lease", "commitment_journal", "pcc_metrology"]},
-        "receipt_id": {"type": "string", "minLength": 1, "maxLength": 128},
-        "evidence_reference": {"type": "string", "minLength": 1, "maxLength": 256},
-        "digest": {"$ref": "#/$defs/digest"},
-        "disposition": {"enum": ["passed", "failed", "unknown"]},
-        "offer_id": {"type": "string", "minLength": 1, "maxLength": 128},
-        "commitment_epoch_id": {"type": "string", "minLength": 1, "maxLength": 128},
-        "site_id": {"type": "string", "minLength": 1, "maxLength": 128},
-        "pcc_id": {"type": "string", "minLength": 1, "maxLength": 128},
-        "asset_id": {"type": ["string", "null"], "maxLength": 128},
-        "asset_configuration_digest": {"anyOf": [{"$ref": "#/$defs/digest"}, {"type": "null"}]},
-        "observed_at_unix_ms": {"type": "integer", "minimum": 1},
-        "valid_from_unix_ms": {"type": "integer", "minimum": 0},
-        "valid_until_unix_ms": {"type": "integer", "minimum": 1},
-        "network_model_digest": {"anyOf": [{"$ref": "#/$defs/digest"}, {"type": "null"}]},
-        "topology_digest": {"anyOf": [{"$ref": "#/$defs/digest"}, {"type": "null"}]},
-        "baseline_trace_digest": {"anyOf": [{"$ref": "#/$defs/digest"}, {"type": "null"}]},
-        "flexible_trace_digest": {"anyOf": [{"$ref": "#/$defs/digest"}, {"type": "null"}]}
+        "gate": {
+          "enum": [
+            "mobility_flexibility",
+            "reserve_recovery",
+            "commitment_lease",
+            "commitment_journal",
+            "pcc_metrology"
+          ]
+        },
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "evidence_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "disposition": {
+          "enum": [
+            "passed",
+            "failed",
+            "unknown"
+          ]
+        },
+        "offer_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "commitment_epoch_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "pcc_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "asset_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 128
+        },
+        "asset_configuration_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "observed_at_unix_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "valid_from_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_unix_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "network_model_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "topology_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baseline_trace_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "flexible_trace_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pcc_bus_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 128
+        },
+        "recovery_deadline_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
       }
     }
   }
