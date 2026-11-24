@@ -1,6 +1,7 @@
 use nav_observation_toy_fim::navigation_temporal_mission_minimax::{
     plan_temporal_mission_minimax, OutcomeLikelihoods, ResourceVector, StateTransition,
-    TemporalMinimaxProblem, TimedJointAction, MAX_TERMINAL_LOSS, PROBABILITY_SCALE,
+    TemporalMinimaxError, TemporalMinimaxPlans, TemporalMinimaxProblem, TimedJointAction,
+    MAX_TERMINAL_LOSS, PROBABILITY_SCALE,
 };
 
 fn likelihoods(no: u64, zero: u64, one: u64) -> OutcomeLikelihoods {
@@ -35,7 +36,7 @@ fn action(id: u64, age_ns: u64, inside: OutcomeLikelihoods, outside: OutcomeLike
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn build_plans() -> Result<TemporalMinimaxPlans, TemporalMinimaxError> {
     let problem = TemporalMinimaxProblem {
         prior_by_model_ppm: [
             [250_000, 250_000, 250_000, 250_000],
@@ -61,12 +62,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     ];
 
-    // Action 2 has ten-percent symmetric observation error and zero evidence age.
+    // Action 2 has symmetric ten-percent observation error and zero evidence age.
     let fresh_inside = likelihoods(0, 900_000, 100_000);
     let fresh_outside = likelihoods(0, 100_000, 900_000);
     let fresh_noisy = action(2, 0, fresh_inside, fresh_outside);
 
-    let plans = plan_temporal_mission_minimax(
+    plan_temporal_mission_minimax(
         &problem,
         &[stale_perfect, fresh_noisy],
         ResourceVector {
@@ -74,15 +75,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             energy_uj: 10,
             bandwidth_bytes: 10,
         },
-    )?;
+    )
+}
 
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let plans = build_plans()?;
     let robust = &plans.mission_global_minimax_risk;
-    if robust.first_action_id != Some(2) {
-        return Err("synthetic fixture did not select the fresh, noisier action".into());
-    }
-    if robust.risk_denominator != 1_000_000_000_000_000_000_000_000_000_000 {
-        return Err("unexpected exact PPM risk denominator".into());
-    }
+    assert_eq!(robust.first_action_id, Some(2), "fresh noisier evidence must win");
+    assert_eq!(robust.risk_denominator, 1_000_000_000_000_000_000_000_000_000_000_u128);
 
     println!("claim_class=synthetic_exact_fixture_only");
     println!("action_1=perfect_at_capture; evidence_age_ns=100; model_0_inside_to_outside_ppm=500000");
@@ -97,4 +97,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("terminal_loss_cap={MAX_TERMINAL_LOSS}");
     println!("authority_transition_not_authorized={}", plans.authority_transition_not_authorized_by_plan);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn executable_demo_selects_fresh_sensor_at_use_epoch() {
+        let plans = build_plans().unwrap();
+        assert_eq!(plans.mission_global_minimax_risk.first_action_id, Some(2));
+        assert_eq!(
+            plans.mission_global_minimax_risk.risk_denominator,
+            1_000_000_000_000_000_000_000_000_000_000_u128
+        );
+    }
+
+    #[test]
+    fn executable_demo_reports_exact_model_risks_oracles_and_enumeration() {
+        let plans = build_plans().unwrap();
+        let selected = &plans.mission_global_minimax_risk;
+        let expected = 100_000_000_000_000_000_000_000_000_000_u128;
+        assert_eq!(selected.model_loss_numerators, [expected, expected]);
+        assert_eq!(selected.worst_case_risk_numerator, expected);
+        assert_eq!(plans.model_aware_oracle_risk_numerators, [expected, 0]);
+        assert_eq!(
+            plans.mission_global_minimax_regret.maximum_model_regret_numerator,
+            expected
+        );
+        assert_eq!(plans.policy_trees_evaluated, 18);
+    }
 }
