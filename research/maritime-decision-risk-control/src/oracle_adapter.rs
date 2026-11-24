@@ -339,7 +339,10 @@ impl OracleCalibrationBundle {
             if cluster_id.trim().is_empty() {
                 return Err(OracleAdapterError::EmptyDependenceClusterId);
             }
-            groups.entry(cluster_id.as_str()).or_default().push(row_index);
+            groups
+                .entry(cluster_id.as_str())
+                .or_default()
+                .push(row_index);
         }
 
         let mut ordered_cluster_ids = Vec::with_capacity(groups.len());
@@ -357,9 +360,7 @@ impl OracleCalibrationBundle {
                         found: row.len(),
                     });
                 }
-                for (policy_index, (sum, loss)) in
-                    sums.iter_mut().zip(row.iter()).enumerate()
-                {
+                for (policy_index, (sum, loss)) in sums.iter_mut().zip(row.iter()).enumerate() {
                     if *loss > MAX_LOSS_MILLI {
                         return Err(OracleAdapterError::ClusterLossOutsideBound {
                             cluster_id: cluster_id.to_owned(),
@@ -724,22 +725,18 @@ pub fn compile_oracle_outcomes(
             .collect::<Vec<_>>();
 
         match episode.role {
-            DatasetRole::Calibration => {
-                calibration_rows.push((
-                    episode.episode_id.clone(),
-                    episode.dependence_cluster_id.clone(),
-                    hard_row,
-                    service_row,
-                ))
-            }
-            DatasetRole::Evaluation => {
-                evaluation_rows.push((
-                    episode.episode_id.clone(),
-                    episode.dependence_cluster_id.clone(),
-                    hard_row,
-                    service_row,
-                ))
-            }
+            DatasetRole::Calibration => calibration_rows.push((
+                episode.episode_id.clone(),
+                episode.dependence_cluster_id.clone(),
+                hard_row,
+                service_row,
+            )),
+            DatasetRole::Evaluation => evaluation_rows.push((
+                episode.episode_id.clone(),
+                episode.dependence_cluster_id.clone(),
+                hard_row,
+                service_row,
+            )),
         }
     }
 
@@ -1237,10 +1234,7 @@ mod tests {
         let hard_means = bundle
             .cluster_mean_matrix(DatasetRole::Calibration, LossAxis::HardPhysicalFailure)
             .expect("cluster hard-failure means");
-        assert_eq!(
-            hard_means.loss.schedules,
-            vec![vec![0, 0], vec![1_000, 0]]
-        );
+        assert_eq!(hard_means.loss.schedules, vec![vec![0, 0], vec![1_000, 0]]);
 
         let high_probability = crate::high_probability::select_simultaneous_hoeffding(
             &hard_means.non_monotone_grid(),
