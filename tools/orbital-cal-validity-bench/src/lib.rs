@@ -153,6 +153,9 @@ pub struct CaseResult {
     pub event_inventory_receipt_sha256: String,
     pub scope_results: Vec<ScopeResult>,
     pub may_enter_geometry_precondition: bool,
+    pub visibility_assessed: bool,
+    pub photometric_usability_assessed: bool,
+    pub feature_measurability_assessed: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -701,6 +704,9 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
         event_inventory_receipt_sha256: case.event_inventory_receipt_sha256.clone(),
         may_enter_geometry_precondition: status == ValidityStatus::ValidWithinScope,
         scope_results,
+        visibility_assessed: false,
+        photometric_usability_assessed: false,
+        feature_measurability_assessed: false,
     })
 }
 
@@ -828,6 +834,9 @@ mod tests {
         let result = evaluate_case(&case()).expect("valid case");
         assert_eq!(result.status, ValidityStatus::ValidWithinScope);
         assert!(result.may_enter_geometry_precondition);
+        assert!(!result.visibility_assessed);
+        assert!(!result.photometric_usability_assessed);
+        assert!(!result.feature_measurability_assessed);
     }
 
     #[test]
