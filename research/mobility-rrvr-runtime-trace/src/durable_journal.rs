@@ -977,9 +977,22 @@ impl WriterLease {
 
 impl Drop for WriterLease {
     fn drop(&mut self) {
-        // Only a process that successfully created the lease removes it.
-        // A process crash leaves a stale lock that requires operator recovery.
-        let _ = fs::remove_file(&self.path);
+        // Only unlink the exact inode this writer created. If the path was
+        // replaced while the writer was active, do not remove another owner's
+        // lease. A process crash leaves a stale lock for operator recovery.
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            if let (Ok(owned), Ok(current)) = (self._file.metadata(), fs::metadata(&self.path)) {
+                if owned.dev() == current.dev() && owned.ino() == current.ino() {
+                    let _ = fs::remove_file(&self.path);
+                }
+            }
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = fs::remove_file(&self.path);
+        }
     }
 }
 
