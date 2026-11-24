@@ -32,7 +32,7 @@ The model uses bilinear field sampling, midpoint RK2 advection and fixed midpoin
 
 ## Manufactured tests
 
-The nine V0 tests cover:
+The eleven V0 tests cover:
 1. identical stationary frames;
 2. analytic centroid translation under uniform advection;
 3. increased blur for a longer exposure;
@@ -41,7 +41,9 @@ The nine V0 tests cover:
 6. deterministic gain/offset/noise/quantization/saturation;
 7. masked pixels forced to zero;
 8. no silent velocity extrapolation;
-9. malformed noise and acquisition metadata.
+9. malformed noise and acquisition metadata;
+10. field support outside the sensor bounds;
+11. non-finite sensor signal overflow.
 
 These are analytic/constructed controls, not comparisons to measured hardware.
 
