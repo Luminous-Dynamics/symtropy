@@ -16,6 +16,7 @@ const CLAIM_CEILING: &str = "synthetic-observable-policy-maintenance-algebra-onl
 const SOURCE_RECEIPT_SCHEMA: &str = "luminous.orbital-feasibility-discovery.receipt.v0.1";
 const SOURCE_CLAIM_CEILING: &str = "finite-passive-query-policy-tree-algebra-only";
 const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
+const MAX_RATIONAL_COMPONENT: u64 = 1_000_000_000_000;
 const MAX_SCENARIOS: usize = 16_384;
 const MAX_POLICIES: usize = 4_096;
 const NO_QUERY_OUTCOME: &str = "__NO_QUERY__";
@@ -30,8 +31,8 @@ pub struct Rational {
 impl Rational {
     fn valid(&self) -> bool {
         self.denominator > 0
-            && self.numerator <= MAX_SAFE_INTEGER
-            && self.denominator <= MAX_SAFE_INTEGER
+            && self.numerator <= MAX_RATIONAL_COMPONENT
+            && self.denominator <= MAX_RATIONAL_COMPONENT
     }
 
     fn compare_exact(&self, other: &Self) -> Ordering {
@@ -82,6 +83,7 @@ pub struct SourceReceipt {
     pub claim_ceiling: String,
     pub source_commit: String,
     pub source_case_id: String,
+    pub source_scope_id: String,
     pub receipt_id: String,
     pub receipt_sha256: String,
     pub state: String,
@@ -126,6 +128,7 @@ pub struct PolicySnapshot {
 #[serde(deny_unknown_fields)]
 pub struct Case {
     pub case_id: String,
+    pub source_policy_case_id: String,
     pub decision_scope_id: String,
     pub scope_sha256: String,
     pub decision_cutoff_id: String,
@@ -284,6 +287,9 @@ fn validate_source(case: &Case) -> Result<(), String> {
         || source.claim_ceiling != SOURCE_CLAIM_CEILING
         || !valid_commit(&source.source_commit)
         || !valid_id(&source.source_case_id)
+        || source.source_case_id != case.source_policy_case_id
+        || !valid_id(&source.source_scope_id)
+        || source.source_scope_id != case.decision_scope_id
         || !valid_id(&source.receipt_id)
         || !valid_sha256(&source.receipt_sha256)
         || source.result != "pass"
@@ -359,9 +365,9 @@ fn signed_difference(incumbent: &Rational, alternative: &Rational) -> SignedDiff
             let gcd = gcd_u128(numerator, denominator);
             SignedDifference {
                 direction: "positive_improvement".to_owned(),
-                magnitude: Rational {
-                    numerator: (numerator / gcd) as u64,
-                    denominator: (denominator / gcd) as u64,
+                magnitude: WideRational {
+                    numerator: (numerator / gcd).to_string(),
+                    denominator: (denominator / gcd).to_string(),
                 },
             }
         }
@@ -374,20 +380,33 @@ fn signed_difference(incumbent: &Rational, alternative: &Rational) -> SignedDiff
             let gcd = gcd_u128(numerator, denominator);
             SignedDifference {
                 direction: "negative_improvement".to_owned(),
-                magnitude: Rational {
-                    numerator: (numerator / gcd) as u64,
-                    denominator: (denominator / gcd) as u64,
+                magnitude: WideRational {
+                    numerator: (numerator / gcd).to_string(),
+                    denominator: (denominator / gcd).to_string(),
                 },
             }
         }
         Ordering::Equal => SignedDifference {
             direction: "no_change".to_owned(),
-            magnitude: Rational {
-                numerator: 0,
-                denominator: 1,
+            magnitude: WideRational {
+                numerator: "0".to_owned(),
+                denominator: "1".to_owned(),
             },
         },
     }
+}
+
+fn improvement_exceeds_margin(improvement: &SignedDifference, margin: &Rational) -> bool {
+    if improvement.direction != "positive_improvement" {
+        return false;
+    }
+    let numerator = improvement.magnitude.numerator.parse::<u128>();
+    let denominator = improvement.magnitude.denominator.parse::<u128>();
+    let (Ok(numerator), Ok(denominator)) = (numerator, denominator) else {
+        return false;
+    };
+    numerator * u128::from(margin.denominator)
+        > u128::from(margin.numerator) * denominator
 }
 
 fn gcd_u128(mut a: u128, mut b: u128) -> u128 {
@@ -537,9 +556,11 @@ fn evaluate_case(case: &Case) -> CaseResult {
     {
         return invalid(case, "scenario or policy count exceeds the declared finite bound");
     }
-    if digest_scenarios(&case.expected_joint_scenarios)
-        .is_err_or(|digest| digest != case.expected_scenario_ids_sha256)
-    {
+    let scenario_digest = match digest_scenarios(&case.expected_joint_scenarios) {
+        Ok(digest) => digest,
+        Err(_) => return invalid(case, "joint scenario inventory cannot be encoded"),
+    };
+    if scenario_digest != case.expected_scenario_ids_sha256 {
         return invalid(case, "joint scenario inventory digest mismatch");
     }
 
@@ -629,7 +650,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
         if *policy_id == case.incumbent_policy_id {
             continue;
         }
-        let (policy, loss) = policy_metrics[policy_id];
+        let (policy, loss) = &policy_metrics[*policy_id];
         let Some(total_with_switch) = add_world_cost(
             &policy.total_cost_upper_bound,
             &case.policy_switch_cost,
@@ -670,8 +691,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
     };
 
     let improvement = signed_difference(incumbent_loss, &reference_loss);
-    let material = improvement.direction == "positive_improvement"
-        && improvement.magnitude.compare_exact(&case.materiality_margin) == Ordering::Greater;
+    let material = improvement_exceeds_margin(&improvement, &case.materiality_margin);
     CaseResult {
         case_id: case.case_id.clone(),
         status: if material {
@@ -799,6 +819,7 @@ mod tests {
         };
         Case {
             case_id: "policy-case".to_owned(),
+            source_policy_case_id: "discovery-case-1".to_owned(),
             decision_scope_id: "scope-1".to_owned(),
             scope_sha256: "c".repeat(64),
             decision_cutoff_id: "cutoff-106".to_owned(),
@@ -841,7 +862,7 @@ mod tests {
         assert_eq!(result.trigger_reason, "OBSERVABLE_POLICY_IMPROVEMENT_EXCEEDS_MATERIALITY_MARGIN");
         let improvement = result.worst_case_improvement.expect("improvement");
         assert_eq!(improvement.direction, "positive_improvement");
-        assert_eq!(improvement.magnitude, Rational { numerator: 9, denominator: 1 });
+        assert_eq!(improvement.magnitude, WideRational { numerator: "9".to_owned(), denominator: "1".to_owned() });
         assert_eq!(result.eligible_reference_policy_count, 1);
         assert!(!result.authority_granted);
     }
@@ -851,7 +872,7 @@ mod tests {
         let result = evaluate_case(&fixture_case(8, 2, 3));
         assert_eq!(result.status, "RETAIN_INCUMBENT_POLICY");
         assert_eq!(result.trigger_reason, "WITHIN_POLICY_RETENTION_ENVELOPE");
-        assert_eq!(result.worst_case_improvement.unwrap().magnitude, Rational { numerator: 2, denominator: 1 });
+        assert_eq!(result.worst_case_improvement.unwrap().magnitude, WideRational { numerator: "2".to_owned(), denominator: "1".to_owned() });
     }
 
     #[test]
