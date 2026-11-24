@@ -12,6 +12,7 @@
     "primary_estimand",
     "service_product_id",
     "primary_outcome_id",
+    "primary_outcome_unit",
     "measurement_boundary_id",
     "protocol_reference",
     "pre_registration_digest",
@@ -147,6 +148,11 @@
     "claim_ceiling": {
       "type": "string",
       "minLength": 1
+    },
+    "primary_outcome_unit": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
     }
   },
   "$defs": {
