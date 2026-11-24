@@ -274,6 +274,9 @@ pub enum QueryRunImportError {
     MissingPruneEvidence,
     InvalidVerificationStatus,
     InvalidNarrowphaseOutcome,
+    MissingNarrowphaseDuration,
+    InvalidNarrowphaseDuration,
+    UnexpectedNarrowphaseDuration,
 }
 
 impl fmt::Display for QueryRunImportError {
@@ -313,7 +316,7 @@ pub fn parse_query_run_results_tsv(
             return Err(QueryRunImportError::BlankRow);
         }
         let fields: Vec<&str> = line.split('\t').collect();
-        if fields.len() != 12 {
+        if fields.len() != 13 {
             return Err(QueryRunImportError::WrongFieldCount);
         }
 
@@ -377,8 +380,29 @@ pub fn parse_query_run_results_tsv(
             "not_run" => NarrowphaseOutcome::NotRun,
             _ => return Err(QueryRunImportError::InvalidNarrowphaseOutcome),
         };
+        let elapsed_ns = if narrowphase == NarrowphaseOutcome::NotRun {
+            if !fields[12].is_empty() {
+                return Err(QueryRunImportError::UnexpectedNarrowphaseDuration);
+            }
+            None
+        } else {
+            if fields[12].is_empty() {
+                return Err(QueryRunImportError::MissingNarrowphaseDuration);
+            }
+            let elapsed = fields[12]
+                .parse::<u64>()
+                .map_err(|_| QueryRunImportError::InvalidNarrowphaseDuration)?;
+            if elapsed == 0 {
+                return Err(QueryRunImportError::InvalidNarrowphaseDuration);
+            }
+            Some(elapsed)
+        };
 
-        results.push(QueryRunResult::new(identity, candidate, narrowphase));
+        let result = QueryRunResult::new(identity, candidate, narrowphase);
+        results.push(match elapsed_ns {
+            Some(elapsed) => result.with_narrowphase_elapsed_ns(elapsed),
+            None => result,
+        });
     }
 
     if results.is_empty() {
