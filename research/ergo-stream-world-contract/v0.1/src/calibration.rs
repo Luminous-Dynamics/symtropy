@@ -233,12 +233,8 @@ impl fmt::Display for TransferCalibrationErrorV0 {
             }
             Self::EmptyClaimId => "bound transfer forecast/outcome requires a non-empty claim ID",
             Self::DuplicateClaimId => "bound transfer forecasts contain a duplicate claim ID",
-            Self::DuplicateClaimOutcomeId => {
-                "bound transfer outcomes contain a duplicate claim ID"
-            }
-            Self::InvalidClaimScopeDigest => {
-                "claim scope digest must be a lowercase sha256 digest"
-            }
+            Self::DuplicateClaimOutcomeId => "bound transfer outcomes contain a duplicate claim ID",
+            Self::InvalidClaimScopeDigest => "claim scope digest must be a lowercase sha256 digest",
             Self::ClaimIdentityMismatch => {
                 "forecast and evaluator outcome do not bind to the same claim type and scope digest"
             }
@@ -1063,7 +1059,6 @@ mod tests {
         );
     }
 
-
     fn bound_forecast(
         claim_id: &str,
         claim_type: TransferClaimTypeV0,
@@ -1132,8 +1127,7 @@ mod tests {
         ];
 
         let report =
-            evaluate_bound_transfer_calibration(&forecasts, &outcomes, 5, &[0, 900_000])
-                .unwrap();
+            evaluate_bound_transfer_calibration(&forecasts, &outcomes, 5, &[0, 900_000]).unwrap();
         assert_eq!(report.pooled.sample_count, 2);
         assert_eq!(report.by_stratum.len(), 2);
         assert_eq!(report.pooled.decision_coverage, 1.0);
@@ -1249,12 +1243,7 @@ mod tests {
             false,
         );
         assert_eq!(
-            evaluate_bound_transfer_calibration(
-                &[forecast],
-                &[outcome.clone(), outcome],
-                2,
-                &[0],
-            ),
+            evaluate_bound_transfer_calibration(&[forecast], &[outcome.clone(), outcome], 2, &[0],),
             Err(TransferCalibrationErrorV0::DuplicateClaimOutcomeId)
         );
     }
