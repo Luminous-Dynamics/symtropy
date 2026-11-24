@@ -226,6 +226,9 @@ pub struct OracleCalibrationBundle {
     pub evaluation_service_loss_milli: Vec<Vec<u16>>,
     pub oracle_id: String,
     pub oracle_revision: String,
+    pub oracle_evidence_ref: String,
+    pub independence_evidence_ref: String,
+    pub exchangeability_scope: String,
     pub evaluator_revision: String,
     pub loss_contract_revision: String,
     pub policy_grid_sha256: String,
@@ -234,6 +237,29 @@ pub struct OracleCalibrationBundle {
     pub calibration_dependence_cluster_ids: Vec<String>,
     /// Dependence-cluster identifier parallel to each evaluation matrix row.
     pub evaluation_dependence_cluster_ids: Vec<String>,
+}
+
+/// Evidence identity carried from the original schedule oracle bundle into
+/// every cluster-unit statistical result.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClusterCalibrationProvenance {
+    pub oracle_id: String,
+    pub oracle_revision: String,
+    pub oracle_evidence_ref: String,
+    /// Caller-declared review reference, not proof of statistical independence.
+    pub independence_evidence_ref: String,
+    /// Caller-declared exchangeability scope, not a proof.
+    pub exchangeability_scope: String,
+    pub evaluator_revision: String,
+    pub loss_contract_revision: String,
+    pub policy_grid_sha256: String,
+    pub regime_id: String,
+    /// Sorted identifiers of independent units used in this matrix.
+    pub cluster_ids: Vec<String>,
+    /// Number of source schedule episodes represented by each cluster row.
+    pub schedules_per_cluster: Vec<usize>,
+    pub independent_cluster_count: usize,
+    pub source_schedule_count: usize,
 }
 
 /// Equal-cluster-weighted, conservative cluster-mean loss matrix.
@@ -246,27 +272,160 @@ pub struct OracleCalibrationBundle {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ClusterMeanMatrix {
     pub policy_ids: Vec<String>,
-    pub cluster_ids: Vec<String>,
-    pub schedules_per_cluster: Vec<usize>,
     pub axis: LossAxis,
     pub role: DatasetRole,
+    pub provenance: ClusterCalibrationProvenance,
     pub loss: crate::LossMatrix,
+}
+
+/// Expected-risk CRC result with its calibration unit and source-row footprint.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ClusteredRiskControlResult {
+    pub result: crate::RiskControlResult,
+    pub loss_axis: LossAxis,
+    pub calibration_provenance: ClusterCalibrationProvenance,
+}
+
+/// An explicit no-selection outcome is retained as an abstention, not a pass.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ClusterHighProbabilitySelection {
+    Selected(crate::high_probability::SimultaneousHoeffdingResult),
+    Abstained(crate::high_probability::HighProbabilityError),
+}
+
+/// High-probability result carrying both risk and service calibration provenance.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ClusteredHighProbabilityResult {
+    pub selection: ClusterHighProbabilitySelection,
+    pub target_risk_milli: u16,
+    pub delta: f64,
+    pub risk_provenance: ClusterCalibrationProvenance,
+    pub service_provenance: ClusterCalibrationProvenance,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum ClusterRiskControlError {
+    CalibrationRoleRequired { found: DatasetRole },
+    HardPhysicalFailureAxisRequired { found: LossAxis },
+    ServiceLossAxisRequired { found: LossAxis },
+    ClusterMatricesNotAligned,
+    EvaluatorRevisionMismatch,
+    LossContractRevisionMismatch,
+    RiskControl(crate::RiskControlError),
+    HighProbability(crate::high_probability::HighProbabilityError),
 }
 
 impl ClusterMeanMatrix {
     /// Converts the cluster means into the existing CRC loss-matrix contract.
-    /// Each resulting row is one independent cluster, not one schedule.
+    /// Each resulting row is one independent cluster, not one schedule. This
+    /// low-level projection does not retain provenance in the returned matrix;
+    /// prefer calibrate_marginal_expected_risk when issuing a typed claim.
     pub fn matrix(&self) -> crate::LossMatrix {
         self.loss.clone()
     }
 
     /// Converts cluster means into the existing non-monotone CRC grid contract.
-    /// The returned rows remain one per cluster; this does not validate IID
-    /// cluster independence or the method's endpoint-risk assumption.
+    /// The returned rows remain one per cluster; this is a low-level projection.
     pub fn non_monotone_grid(&self) -> crate::non_monotone::WholeScheduleLossGrid {
         crate::non_monotone::WholeScheduleLossGrid {
             schedule_losses_milli: self.loss.schedules.clone(),
         }
+    }
+
+    /// Runs marginal expected-risk CRC while preserving cluster identity and
+    /// schedule-count provenance in the returned result. The loss axis is
+    /// explicit; physical failure and service loss remain separate quantities.
+    pub fn calibrate_marginal_expected_risk(
+        &self,
+        target_risk_milli: u16,
+        mode: crate::MonotonicityMode,
+        maximum_parameter_contract: Option<&crate::MaxParameterContract>,
+        revisions: &crate::FrozenRevisions,
+    ) -> Result<ClusteredRiskControlResult, ClusterRiskControlError> {
+        if self.role != DatasetRole::Calibration {
+            return Err(ClusterRiskControlError::CalibrationRoleRequired {
+                found: self.role,
+            });
+        }
+        if revisions.evaluator_revision != self.provenance.evaluator_revision {
+            return Err(ClusterRiskControlError::EvaluatorRevisionMismatch);
+        }
+        if revisions.loss_contract_revision != self.provenance.loss_contract_revision {
+            return Err(ClusterRiskControlError::LossContractRevisionMismatch);
+        }
+        let result = crate::calibrate(
+            &self.loss,
+            target_risk_milli,
+            mode,
+            maximum_parameter_contract,
+            revisions,
+        )
+        .map_err(ClusterRiskControlError::RiskControl)?;
+
+        Ok(ClusteredRiskControlResult {
+            result,
+            loss_axis: self.axis,
+            calibration_provenance: self.provenance.clone(),
+        })
+    }
+
+    /// Runs fixed-grid simultaneous Hoeffding control on cluster-unit risk and
+    /// service matrices. The method requires identical cluster populations and
+    /// policy ordering; insufficient evidence is an explicit abstention.
+    pub fn select_fixed_grid_high_probability(
+        &self,
+        service_loss: &ClusterMeanMatrix,
+        target_risk_milli: u16,
+        delta: f64,
+    ) -> Result<ClusteredHighProbabilityResult, ClusterRiskControlError> {
+        if self.role != DatasetRole::Calibration {
+            return Err(ClusterRiskControlError::CalibrationRoleRequired {
+                found: self.role,
+            });
+        }
+        if service_loss.role != DatasetRole::Calibration {
+            return Err(ClusterRiskControlError::CalibrationRoleRequired {
+                found: service_loss.role,
+            });
+        }
+        if self.axis != LossAxis::HardPhysicalFailure {
+            return Err(ClusterRiskControlError::HardPhysicalFailureAxisRequired {
+                found: self.axis,
+            });
+        }
+        if service_loss.axis != LossAxis::ServiceLoss {
+            return Err(ClusterRiskControlError::ServiceLossAxisRequired {
+                found: service_loss.axis,
+            });
+        }
+        if self.policy_ids != service_loss.policy_ids
+            || self.provenance != service_loss.provenance
+        {
+            return Err(ClusterRiskControlError::ClusterMatricesNotAligned);
+        }
+
+        let selection = match crate::high_probability::select_simultaneous_hoeffding(
+            &self.non_monotone_grid(),
+            &service_loss.non_monotone_grid(),
+            target_risk_milli,
+            delta,
+        ) {
+            Ok(result) => ClusterHighProbabilitySelection::Selected(result),
+            Err(crate::high_probability::HighProbabilityError::NoPolicyMeetsTarget) => {
+                ClusterHighProbabilitySelection::Abstained(
+                    crate::high_probability::HighProbabilityError::NoPolicyMeetsTarget,
+                )
+            }
+            Err(error) => return Err(ClusterRiskControlError::HighProbability(error)),
+        };
+
+        Ok(ClusteredHighProbabilityResult {
+            selection,
+            target_risk_milli,
+            delta,
+            risk_provenance: self.provenance.clone(),
+            service_provenance: service_loss.provenance.clone(),
+        })
     }
 }
 
@@ -381,12 +540,27 @@ impl OracleCalibrationBundle {
             cluster_rows.push(mean);
         }
 
+        let source_schedule_count = schedules_per_cluster.iter().sum();
+        let independent_cluster_count = ordered_cluster_ids.len();
         Ok(ClusterMeanMatrix {
             policy_ids: self.policy_ids.clone(),
-            cluster_ids: ordered_cluster_ids,
-            schedules_per_cluster,
             axis,
             role,
+            provenance: ClusterCalibrationProvenance {
+                oracle_id: self.oracle_id.clone(),
+                oracle_revision: self.oracle_revision.clone(),
+                oracle_evidence_ref: self.oracle_evidence_ref.clone(),
+                independence_evidence_ref: self.independence_evidence_ref.clone(),
+                exchangeability_scope: self.exchangeability_scope.clone(),
+                evaluator_revision: self.evaluator_revision.clone(),
+                loss_contract_revision: self.loss_contract_revision.clone(),
+                policy_grid_sha256: self.policy_grid_sha256.clone(),
+                regime_id: self.regime_id.clone(),
+                cluster_ids: ordered_cluster_ids,
+                schedules_per_cluster,
+                independent_cluster_count,
+                source_schedule_count,
+            },
             loss: crate::LossMatrix {
                 schedules: cluster_rows,
             },
