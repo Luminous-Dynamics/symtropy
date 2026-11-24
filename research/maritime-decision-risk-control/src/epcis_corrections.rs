@@ -365,15 +365,6 @@ enum ReceiptCase {
 }
 
 impl ReceiptCase {
-    const ALL: [Self; 6] = [
-        Self::BeforeDeclaration,
-        Self::DeclarationNotYetRecorded,
-        Self::DeclaredCorrectionPending,
-        Self::CorrectiveEventAvailable,
-        Self::SubjectMismatchRejected,
-        Self::PayloadMismatchRejected,
-    ];
-
     const fn label(self) -> &'static str {
         match self {
             Self::BeforeDeclaration => "BEFORE_DECLARATION",
@@ -717,7 +708,6 @@ mod tests {
         let first = render_csv();
         assert_eq!(first, render_csv());
         assert_eq!(first.lines().count(), 7);
-        assert_eq!(ReceiptCase::ALL.len(), 6);
         let header_width = first.lines().next().expect("header").split(',').count();
         assert_eq!(header_width, 7);
         for row in first.lines().skip(1) {
