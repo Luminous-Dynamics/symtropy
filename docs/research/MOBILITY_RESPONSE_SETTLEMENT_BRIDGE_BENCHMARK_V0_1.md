@@ -65,10 +65,13 @@ Source values remain separate. The bridge checks:
 - baseline conservative net equals the sum of baseline interval lower-bound contributions;
 - grid target kW × service duration equals requested response kWh;
 - the grid requested quantity equals the mobility/network offer quantity;
+- every dispatch sample's signed tracking kW matches the calibrated PCC power reduction within a separately declared kW tolerance; opposing interval errors cannot cancel in an aggregate;
+- every dispatch and recovery PCC interval's measured/lower-bound Wh equals reported W × interval duration, and every baseline interval's conservative kWh equals its lower-bound kW × duration;
+- the signed dispatch sample power × duration sum equals the dispatch report's delivered energy;
 - signed response tracking versus PCC dispatch and PCC net versus counterfactual net remain separately visible;
 - the uncapped conservative technical lower bound does not exceed the DC-network-deliverable cap. A contradiction rejects reconciliation; it is never clipped into plausible credit.
 
-The conservative event-plus-recovery energy lower bound is the minimum of the PCC summed interval lower bound and the counterfactual conservative net energy, subject to all source gates and the network cap. A separate **minimum dispatch-period service-power lower bound (kW)** is the minimum across dispatch intervals of the PCC calibrated lower bound, the counterfactual baseline lower bound and the matching per-interval DC network cap. The two values are intentionally not interconverted: the kW floor is never derived by dividing event-plus-recovery net kWh by dispatch duration. Neither value implies a joint probability across intervals. The baseline owner's `event_lower_bound_is_joint_probability` flag is preserved. The PCC and grid response flags for sub-interval transients remain explicit.
+The conservative event-plus-recovery energy lower bound is the minimum of the PCC summed interval lower bound and the counterfactual conservative net energy, subject to all source gates and the network cap. A new per-interval contract prevents over-delivery in one dispatch interval from masking under-delivery in another, and reconciles power × duration against signed energy for dispatch and recovery intervals. A separate **minimum dispatch-period service-power lower bound (kW)** is the minimum across dispatch intervals of the PCC calibrated lower bound, the counterfactual baseline lower bound and the matching per-interval DC network cap. The two values are intentionally not interconverted: the kW floor is never derived by dividing event-plus-recovery net kWh by dispatch duration. Neither value implies a joint probability across intervals. The baseline owner's `event_lower_bound_is_joint_probability` flag is preserved. The PCC and grid response flags for sub-interval transients remain explicit.
 
 ## 5. Frozen synthetic known answer
 
