@@ -68,6 +68,41 @@ impl SelectiveRiskPointV0 {
     pub fn selective_risk(self) -> Option<f64> {
         (self.covered_samples > 0).then(|| self.errors as f64 / self.covered_samples as f64)
     }
+
+    /// Two-sided 95% Wilson interval for empirical coverage.
+    ///
+    /// This is an IID binomial reference interval. It is not a valid
+    /// uncertainty bound for clustered or temporally dependent claims.
+    pub fn coverage_wilson_95(self) -> Option<(f64, f64)> {
+        wilson_interval_95(self.covered_samples, self.total_samples)
+    }
+
+    /// Two-sided 95% Wilson interval for selective risk.
+    ///
+    /// The denominator is the number of claims selected at this threshold.
+    /// This is an IID binomial reference interval only; use campaign/block
+    /// bootstrap or another cluster-aware method for dependent episodes.
+    pub fn selective_risk_wilson_95(self) -> Option<(f64, f64)> {
+        wilson_interval_95(self.errors, self.covered_samples)
+    }
+}
+
+fn wilson_interval_95(successes: usize, trials: usize) -> Option<(f64, f64)> {
+    if trials == 0 || successes > trials {
+        return None;
+    }
+
+    const Z_95: f64 = 1.959_963_984_540_054;
+    let n = trials as f64;
+    let p = successes as f64 / n;
+    let z_squared = Z_95 * Z_95;
+    let denominator = 1.0 + z_squared / n;
+    let centre = (p + z_squared / (2.0 * n)) / denominator;
+    let half_width = Z_95
+        * ((p * (1.0 - p) / n) + z_squared / (4.0 * n * n)).sqrt()
+        / denominator;
+
+    Some(((centre - half_width).max(0.0), (centre + half_width).min(1.0)))
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -428,6 +463,50 @@ mod tests {
             probability_transfer_ppm,
             decision,
         }
+    }
+
+    #[test]
+    fn zero_observed_selective_errors_does_not_mean_zero_risk() {
+        let point = SelectiveRiskPointV0 {
+            confidence_threshold_ppm: 900_000,
+            total_samples: 100,
+            covered_samples: 5,
+            errors: 0,
+        };
+        let (lower, upper) = point.selective_risk_wilson_95().unwrap();
+
+        assert_eq!(lower, 0.0);
+        assert!(upper > 0.0);
+        assert!(upper < 1.0);
+    }
+
+    #[test]
+    fn selective_risk_and_coverage_have_separate_denominators() {
+        let point = SelectiveRiskPointV0 {
+            confidence_threshold_ppm: 800_000,
+            total_samples: 20,
+            covered_samples: 5,
+            errors: 1,
+        };
+        let (coverage_lower, coverage_upper) = point.coverage_wilson_95().unwrap();
+        let (risk_lower, risk_upper) = point.selective_risk_wilson_95().unwrap();
+
+        assert!(coverage_lower < 0.25 && coverage_upper > 0.25);
+        assert!(risk_lower < 0.2 && risk_upper > 0.2);
+        assert_ne!((coverage_lower, coverage_upper), (risk_lower, risk_upper));
+    }
+
+    #[test]
+    fn empty_selective_denominator_has_no_risk_interval() {
+        let point = SelectiveRiskPointV0 {
+            confidence_threshold_ppm: 1_000_000,
+            total_samples: 10,
+            covered_samples: 0,
+            errors: 0,
+        };
+
+        assert_eq!(point.selective_risk_wilson_95(), None);
+        assert!(point.coverage_wilson_95().is_some());
     }
 
     #[test]
