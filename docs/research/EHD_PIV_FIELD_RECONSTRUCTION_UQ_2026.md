@@ -230,6 +230,10 @@ Report observed-time and between-observation-time errors separately, plus worst-
 - Use two independent cycles per occupied bin as a first **candidate design constraint** for the paper-reproduction lane, not an acceptance rule for other flows.
 - Search the Pareto frontier between phase coverage, independent replication, acquisition count and functional uncertainty instead of optimising the count of unique phases alone.
 
+### Executable V0 reference kernel
+
+The Rust crate `tools/ehd-piv-phase-design/` implements the phase-bin scorecard. Each observation carries a phase fraction and a dependence-cluster ID. The evaluator reports occupied/empty/singleton bins, independent-cycle replication, median/minimum replication, normalized occupancy entropy, maximum cyclic phase gap and explicit failure reasons. Repeated frames from one cycle increase raw observation count but cannot increase independent-cycle replication. The threshold is supplied in the benchmark config; the code does not encode a universal two-repeat rule. The crate contains eight manufactured unit tests, including the source-inspired one-observation-per-phase, repeat-at-one-phase and 81-phase/two-cycle designs.
+
 **Claim boundary:** these source results are synthetic periodic impinging-jet evidence. They do not establish an EHD threshold, and no phase-known reconstruction result may be promoted to a physical EHD conclusion without matched acquisition and independent validation.
 
 ## 8. Dataset admission register
