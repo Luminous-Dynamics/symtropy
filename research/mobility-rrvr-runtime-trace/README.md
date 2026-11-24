@@ -220,3 +220,6 @@ Plan-derived dispatch now requires a private reset-verification marker created o
 
 
 An ambiguous ResetSimulation response is non-retryable. The session moves to OutcomeUnresolved, a second reset and any fault dispatch are blocked, and reconcile_reset may restore Verified only from a read-only observation that matches the exact planned new epoch and initial state. This protects the live-process case; reset intent and outcome still need durable write-ahead journaling under #7148 to survive coordinator crashes.
+
+
+The process-local dispatch guard retains the last observed outcome as well as the payload digest: Unknown and PayloadConflict are not collapsed into DuplicateSuppressed on repeat calls. Independent delivery observation is bound to the exact scheduled simulation step in this v0.1 contract; later-step observations are rejected unless a future plan version explicitly commits an observation window.
