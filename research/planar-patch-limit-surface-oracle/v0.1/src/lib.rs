@@ -194,7 +194,7 @@ impl PlanarPatchModel {
                 "patch friction ellipsoid semi-axes overflowed",
             ));
         }
-        if common_scale > 0.0 && axes.iter().any(|axis| *axis == 0.0) {
+        if common_scale > 0.0 && axes.contains(&0.0) {
             return Err(PatchError::new(
                 PatchErrorKind::UnderflowedCapacity,
                 "positive patch semi-axis underflowed to zero",
