@@ -1,6 +1,6 @@
 # NAV-TEMPORAL-TAIL-RISK v0.1 — Decision-risk-sensitive active sensing
 
-**Status:** research specification only. No executable tail-risk solver, synthetic score run, admitted real payload, or physical campaign is claimed by this document.
+**Status:** research specification and benchmark contract. The executable static mission-path CVaR evaluator/optimizer is separately implemented in open draft PR #7343; the belief-state CVaR primitive and static-replanning counterexample are in #7344; the two-level ICVaR evaluator is in #7345. Those are separate, unmerged increments. This document itself contains no benchmark score, admitted real payload, or physical campaign.
 
 ## Parentage
 
@@ -152,6 +152,11 @@ All policies must receive the same candidate actions, observations, model set, r
 10. Constant-velocity / kinematic delay compensation.
 11. CNN–Transformer CIR plus motion-history delay compensation, reproduced under its published target epoch, dataset and split.
 12. Clairvoyant future-state evaluator, privileged and never deployable.
+13. NLOS reject-only ranging, where classified observations are excluded rather than corrected.
+14. Learned NLOS range correction / raw-CIR Transformer, with exact target-domain supervision and environment holdout recorded.
+15. A three-way accept-as-measured / correct-with-qualified-model / reject-or-abstain disposition policy.
+16. Per-step split-conformal calibration (negative-control baseline), whole-episode maximum-score calibration, alpha-spending risk control, and trajectory-adaptive calibration.
+17. Static mission-path CVaR, two-level ICVaR, and immediate belief-cost CVaR as distinct risk formulations, with their different semantics reported rather than pooled.
 
 Report both each method's result under every objective and the policy selected by each objective. Do not score a CVaR policy only with CVaR or a minimax policy only with expected loss.
 
@@ -207,6 +212,51 @@ This is a strong source for dynamic replay and passive-evidence experiments, but
 
 Use HYMN for spatial generalization and cross-technology transfer, not dynamic delay or transition calibration: its published v1 records stationary measurements at 48 reference points, with no sensor logging during transit. Hold out reference points and sites; random sample splits conceal the generalization penalty reported in the 2026 benchmark.
 
+### NLOS evidence disposition: accept, correct, or reject
+
+A raw UWB range classified as NLOS should not be forced into a binary “trust / correct” decision. The system should choose among three observable dispositions:
+
+1. **Accept as measured** when the raw observation satisfies the declared measurement-integrity and applicability contract.
+2. **Correct** only when a qualified correction model is valid for the current environment, device, CIR regime and target use epoch, with a bounded residual / uncertainty commitment.
+3. **Reject or abstain** when neither raw acceptance nor the correction model is supportable.
+
+This is a direct research priority from Kovaci et al., *Ultra-wideband indoor positioning: a critical survey of ranging, AI-based error mitigation, sensor fusion, and 6G integration* (published 23 November 2026; DOI 10.1186/s13638-026-02703-9). The survey reports method-specific results that must not be mixed into one ranking: REMnet reduces NLOS range MAE from 12.42 to 6.87 cm in a held-out medium room; neural reliability weighting reduces mean position error from 3.41 to 2.45 m on a five-anchor corridor after office training; calibrated anchor optimization reduces 3D RMSE from 29.1 to 7.1 cm in a cluttered-space experiment. It also highlights a cross-scenario study where rejecting NLOS-classified observations improved position while learned range correction increased error. These are different tasks and conditions, not directly comparable SOTA numbers.
+
+Required matched experiment:
+- raw range;
+- NLOS rejection only;
+- learned correction;
+- reliability-weighted fusion;
+- correction plus uncertainty envelope;
+- decision-focused accept/correct/reject policy.
+
+Report ranging and position P50/P95/P99, false acceptance of harmful NLOS, false rejection of valid LOS, accepted-observation coverage, protection-region size, trajectory availability, use-epoch calibration, latency, energy and adaptation-label privilege. Hold out entire rooms/sites/hardware/anchor layouts. Record target-domain supervision; do not call a within-site cross-trajectory result cross-building generalization.
+
+### Whole-trajectory calibration is not per-step calibration
+
+A multi-step mission-level event is often “at least one decision epoch violates its valid position / protection region.” Marginal coverage at each timestamp does not automatically control this union event.
+
+Ning et al., *Per-Step Conformal Calibration Does Not Transfer to Agent Trajectories* (EMNLP 2026; DOI 10.18653/2026.emnlp-main.1808), report that nominal 10% per-step split-conformal miscoverage yields 83.5% trajectory score-threshold miscoverage on a 15-step web-navigation agent. The paper studies iid resampling, memoryless covariate shift and state-dependent Markov transitions, and evaluates alpha-spending schedules. This is not a navigation experiment, but it is a strong warning against assuming per-frame calibration composes into mission-level calibration.
+
+Add these distinct comparators:
+- per-step split conformal, explicitly labelled as a negative control for trajectory-union coverage;
+- maximum-score whole-episode conformal calibration;
+- alpha-spending / time-uniform risk control over decision epochs;
+- trajectory-adaptive calibration such as TRACE-CRC;
+- dependence-aware mission-block calibration where complete episodes, flights, devices or sites are the independent units.
+
+Measure both marginal per-step coverage and the mission union event: any false-safe or any true-state-outside-protection-region event during an episode. Also report region size / volume, valid availability, abstention, time degraded, effective independent cluster count and uncertainty bounds. Do not infer mission PHMI from per-frame conformal coverage.
+
+### Risk semantics remain separate
+
+The benchmark must distinguish:
+- immediate belief-state CVaR over hidden-state costs at the current decision epoch;
+- static CVaR over complete mission-path loss;
+- iterated / nested conditional CVaR for sequential replanning;
+- outer worst-case aggregation over complete persistent mission models.
+
+Do not sum or interchange these measures without a justified composition result. The R03 counterexample in #7344 demonstrates why static trajectory CVaR is not automatically preserved by fresh conditional replanning. The two-level evaluator in #7345 is not yet a full robust ICVaR Bellman policy optimizer.
+
 ### Standards and product certification
 
 - ISO/IEC 21134:2026 supplies a benchmark framework for integrated indoor localization/tracking using dead reckoning. Align applicable reporting; it is not an end-to-end safety certificate.
@@ -246,7 +296,7 @@ The 20% target is a research ambition, not a forecast or achieved result. It mus
 2. Add a separate exact discrete tail-risk evaluator for a fully enumerated path-loss distribution.
 3. Cross-check it against a second independent implementation and hand-derived distributions, including fractional quantile mass.
 4. Add robust CVaR policy selection over the same observable policy trees and fixed mission model set.
-5. Add the fourteen synthetic challenges and verify all metamorphic properties.
+5. Add the synthetic challenges for tail-vs-expectation, persistent common cause, model-set expansion, NLOS accept/correct/reject, and whole-trajectory coverage; verify all metamorphic properties.
 6. Keep common-cause prior-weighted and common-cause outer-worst-case semantics as separate declared protocols.
 7. Connect only evidence-qualified transition model sets from #7304.
 8. Reproduce tracking baselines on their own admitted datasets before running active-policy comparisons.
@@ -260,7 +310,10 @@ The 20% target is a research ambition, not a forecast or achieved result. It mus
 - *From Least Squares to Deep Learning: Benchmarking Indoor Positioning on the HYMN Multi-Technology Dataset* (IPIN 2026). https://ieeexplore.ieee.org/abstract/document/11772473
 - ISO/IEC 21134:2026. https://www.iso.org/standard/86651.html
 - FiRa Core 4.1 announcement (20 October 2026). https://www.firaconsortium.org/news/press-releases/2026/10/fira-consortium-launches-core-4-1-specifications-and-enhanced
+- Kovaci et al. (2026), *Ultra-wideband indoor positioning: a critical survey of ranging, AI-based error mitigation, sensor fusion, and 6G integration*. https://doi.org/10.1186/s13638-026-02703-9
+- Ning et al. (2026), *Per-Step Conformal Calibration Does Not Transfer to Agent Trajectories*, EMNLP 2026. https://doi.org/10.18653/2026.emnlp-main.1808
+- Rezaei et al. (2026), *TRACE-CRC: Trajectory-Adaptive Conformal Risk Control for Multi-Step Channel State Information Prediction*. https://proceedings.mlr.press/v329/rezaei26a.html
 
 ## Claim boundary
 
-This specification adds a research objective and benchmark protocol only. No executable CVaR planner, risk estimate, physical navigation result, transition-model coverage guarantee, PHMI estimate, safety approval, FiRa certification or operational authority is claimed.
+This specification adds a research objective and benchmark protocol. Related executable finite mathematical software is tracked separately in open draft PRs #7343–#7345 and is not merged into this specification branch. No measured benchmark score, admitted real payload, calibrated physical risk estimate, transition-model coverage guarantee, PHMI estimate, safety approval, FiRa certification or operational authority is claimed.
