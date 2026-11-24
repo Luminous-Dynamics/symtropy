@@ -598,6 +598,21 @@ fn validate_policy(
         .keys()
         .map(String::as_str)
         .collect::<BTreeSet<_>>();
+    let hidden_identity_ids = expected_scenarios
+        .iter()
+        .flat_map(|(scenario_id, (world_id, loss_model_id))| {
+            [*scenario_id, *world_id, *loss_model_id]
+        })
+        .collect::<BTreeSet<_>>();
+    if observed_outcomes
+        .iter()
+        .any(|outcome| hidden_identity_ids.contains(outcome))
+    {
+        return Err(format!(
+            "policy {} uses a hidden scenario/world/loss-model identity as an observable branch",
+            policy.policy_id
+        ));
+    }
     if branch_ids != observed_outcomes {
         return Err(format!(
             "policy {} has missing or extra observable branches",
@@ -1172,6 +1187,21 @@ mod tests {
                 .trigger_reason
                 .contains("selected action does not match its observable branch")
         );
+    }
+
+    #[test]
+    fn hidden_identity_cannot_be_smuggled_in_as_an_observation_label() {
+        let mut case = fixture_case(1, 2, 3);
+        case.policies[1].branch_actions = BTreeMap::from([
+            ("w-A".to_owned(), "north-action".to_owned()),
+            ("w-B".to_owned(), "south-action".to_owned()),
+        ]);
+        case.policies[1].per_scenario[0].observed_outcome_id = "w-A".to_owned();
+        case.policies[1].per_scenario[1].observed_outcome_id = "w-B".to_owned();
+        refresh_source_digests(&mut case);
+        let result = evaluate_case(&case);
+        assert_eq!(result.status, "INVALID_INPUT");
+        assert!(result.trigger_reason.contains("uses a hidden scenario/world/loss-model identity"));
     }
 
     #[test]
