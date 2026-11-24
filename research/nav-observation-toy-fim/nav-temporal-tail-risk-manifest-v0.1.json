@@ -7,7 +7,8 @@
     "executable_solver_implemented": false,
     "scores_generated": false,
     "real_payloads_admitted": 0,
-    "physical_campaigns_completed": 0
+    "physical_campaigns_completed": 0,
+    "specification_scenarios": 20
   },
   "policy_contract": {
     "information_access": "observable_history_only",
@@ -81,7 +82,10 @@
         "worst_case_expected_loss",
         "worst_case_cvar",
         "minimax_regret",
-        "exact_oracle_gap"
+        "exact_oracle_gap",
+        "exact_vs_sampled_policy_gap",
+        "sampled_risk_estimation_error",
+        "branch_action_agreement"
       ]
     },
     {
@@ -106,7 +110,10 @@
         "compute",
         "memory",
         "time_degraded",
-        "recovery_time"
+        "recovery_time",
+        "particle_count",
+        "belief_tree_branching_factor",
+        "policy_search_sample_budget"
       ]
     },
     {
@@ -210,6 +217,30 @@
     {
       "id": "belief_immediate_cvar",
       "role": "belief_state_risk_comparator"
+    },
+    {
+      "id": "pomcpow",
+      "role": "risk_neutral_sampled_belief_tree_baseline"
+    },
+    {
+      "id": "icvar_pomcpow",
+      "role": "risk_sensitive_sampled_belief_tree_baseline"
+    },
+    {
+      "id": "pft_dpw",
+      "role": "risk_neutral_sampled_belief_tree_baseline"
+    },
+    {
+      "id": "icvar_pft_dpw",
+      "role": "risk_sensitive_sampled_belief_tree_baseline"
+    },
+    {
+      "id": "icvar_sparse_sampling",
+      "role": "risk_sensitive_sampled_belief_tree_baseline"
+    },
+    {
+      "id": "exact_policy_tree_oracle",
+      "role": "tractable_reference_for_sampled_planners"
     }
   ],
   "scenarios": [
@@ -302,6 +333,16 @@
       "id": "T18_MARKOV_DEPENDENT_MIS_COVERAGE",
       "expected": "Per-step coverage is not treated as mission-level coverage under state-dependent temporal dependence.",
       "status": "not_instantiated"
+    },
+    {
+      "id": "T19_EXACT_VS_SAMPLED_BELIEF_TREE",
+      "expected": "Sampled belief-tree methods are evaluated against exact finite policy-tree oracles on tractable cases under matched observable histories and resources.",
+      "status": "not_instantiated"
+    },
+    {
+      "id": "T20_PERSISTENT_MODEL_BELIEF_TREE",
+      "expected": "Sampled ICVaR policies retain one coherent mission model through all branches; no hidden model switching or model-specific action leakage.",
+      "status": "not_instantiated"
     }
   ],
   "targets_not_achievements": {
@@ -314,10 +355,22 @@
     "nlos_disposition": "report false_accept_harmful_nlos and false_reject_valid_los separately",
     "trajectory_coverage": "predeclare mission union-event coverage and independent episode/block unit"
   },
-  "claim_boundary": "Benchmark specification only; separate executable finite mathematical PRs are open drafts; no real payload admitted, physical result, calibrated navigation integrity, PHMI, certification, or authority claim.",
+  "claim_boundary": "Benchmark specification only; separate finite software PRs are open drafts. No real payload admitted, physical result, calibrated navigation integrity, PHMI, certification, or authority claim.",
   "related_implementation_prs": [
     "#7343",
     "#7344",
     "#7345"
+  ],
+  "research_comparators": [
+    {
+      "id": "ICVaR_POMDP_2026",
+      "reference": "https://arxiv.org/abs/2601.20554",
+      "algorithms": [
+        "ICVaR_sparse_sampling",
+        "ICVaR_POMCPOW",
+        "ICVaR_PFT_DPW"
+      ],
+      "transfer_boundary": "Algorithmic comparator only; published LaserTag/LightDark results are not UWB performance evidence."
+    }
   ]
 }
