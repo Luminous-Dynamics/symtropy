@@ -165,6 +165,7 @@ Reproduction command:
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin weighted-shift-risk-audit
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin lipschitz-risk-audit
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin bernstein-risk-audit
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin simultaneous-hoeffding-risk-audit
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin bernstein-risk-audit
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin lipschitz-risk-audit
 ```
@@ -236,9 +237,35 @@ cargo run --quiet --locked --manifest-path research/maritime-decision-risk-contr
 ```
 
 
+
+## Simultaneous high-probability finite-grid risk control
+
+The sixth executable, `simultaneous-hoeffding-risk-audit`, is a transparent high-probability baseline. It is **not** labeled as Learn-Then-Test or RCPS.
+
+For a fixed, predeclared finite grid of m candidate policies, complete-schedule losses in [0,B], and i.i.d. calibration schedules, the one-sided Hoeffding + union-bound radius is:
+
+`epsilon(n,m,delta) = B * sqrt(log(m/delta)/(2n))`.
+
+With probability at least 1-delta over the calibration sample, every candidate's population hard-failure risk is bounded by its empirical calibration mean plus this radius. Because the guarantee holds simultaneously over the entire candidate grid, the selector can choose the candidate with the lowest empirical **service loss** among those whose hard-risk upper bound is at most alpha.
+
+This is a different guarantee class from marginal expected-risk CRC:
+- CRC controls risk in expectation over calibration datasets and a future schedule.
+- The simultaneous selector gives a high-probability guarantee for the realized calibration sample, conditional on the frozen i.i.d. sampling setup.
+- The direct union-bound selector can be more conservative, especially at small n or small delta.
+- If no policy meets the simultaneous upper bound, it returns NO_POLICY_MEETS_TARGET. It does not fall back to an uncertified policy.
+- The service-loss metric is used only to select within the certified subset; it is not combined with the hard-failure axis.
+
+The synthetic receipt uses a 10% target, delta=0.05 and a four-policy grid. The 120-schedule arm has no eligible candidate; the larger arms test whether the narrower confidence radius admits a service-efficient policy. This is a finite-grid Hoeffding baseline, not a reproduction of LTT/RCPS or an anytime-valid method.
+
+Reproduction command:
+
+```sh
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin simultaneous-hoeffding-risk-audit
+```
+
 ## Independent oracle outcome adapter
 
-The sixth research component is an adapter, not another feasibility engine: `oracle_adapter.rs` consumes versioned per-episode/per-policy adjudications from an independent oracle such as the #7231 owner. It compiles separate whole-schedule matrices for hard physical failure and service loss.
+The seventh research component is an adapter, not another feasibility engine: `oracle_adapter.rs` consumes versioned per-episode/per-policy adjudications from an independent oracle such as the #7231 owner. It compiles separate whole-schedule matrices for hard physical failure and service loss.
 
 ### Input contract
 
