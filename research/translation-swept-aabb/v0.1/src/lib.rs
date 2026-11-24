@@ -21,6 +21,7 @@ pub enum SweepError {
     NegativeTimeStep,
     NonFiniteState,
     InvalidAngularSpeed,
+    NativeVelocityMismatch,
     EmptyProvenance,
 }
 
@@ -203,6 +204,7 @@ pub struct TranslationSweepInput<const D: usize> {
     context: SweepContext,
     start_position: [f64; D],
     post_position: [f64; D],
+    integrator_post_linear_velocity: [f64; D],
     post_linear_velocity: [f64; D],
     post_angular_velocity_norm_squared: f64,
     start_world_aabb: Aabb<D>,
@@ -215,12 +217,16 @@ impl<const D: usize> TranslationSweepInput<D> {
         context: SweepContext,
         start_position: [f64; D],
         post_position: [f64; D],
+        integrator_post_linear_velocity: [f64; D],
         post_linear_velocity: [f64; D],
         post_angular_velocity_norm_squared: f64,
         start_world_aabb: Aabb<D>,
     ) -> Result<Self, SweepError> {
         if !start_position.iter().all(|value| value.is_finite())
             || !post_position.iter().all(|value| value.is_finite())
+            || !integrator_post_linear_velocity
+                .iter()
+                .all(|value| value.is_finite())
             || !post_linear_velocity.iter().all(|value| value.is_finite())
         {
             return Err(SweepError::NonFiniteState);
@@ -230,11 +236,20 @@ impl<const D: usize> TranslationSweepInput<D> {
         {
             return Err(SweepError::InvalidAngularSpeed);
         }
+        if context.quantization == QuantizationProfile::NativeBinary64
+            && !same_array(
+                &integrator_post_linear_velocity,
+                &post_linear_velocity,
+            )
+        {
+            return Err(SweepError::NativeVelocityMismatch);
+        }
         Ok(Self {
             identity,
             context,
             start_position,
             post_position,
+            integrator_post_linear_velocity,
             post_linear_velocity,
             post_angular_velocity_norm_squared,
             start_world_aabb,
@@ -259,6 +274,11 @@ impl<const D: usize> TranslationSweepInput<D> {
     #[must_use]
     pub fn post_position(&self) -> &[f64; D] {
         &self.post_position
+    }
+
+    #[must_use]
+    pub fn integrator_post_linear_velocity(&self) -> &[f64; D] {
+        &self.integrator_post_linear_velocity
     }
 
     #[must_use]
@@ -347,8 +367,9 @@ pub fn produce_swept_aabb<const D: usize>(input: &TranslationSweepInput<D>) -> S
     for axis in 0..D {
         // This multiplication is the same represented operation used by the
         // integrator when it computes post_velocity * dt for displacement.
-        let path_delta = input.post_linear_velocity[axis] * dt;
-        if !path_delta.is_finite() {
+        let integrated_delta = input.integrator_post_linear_velocity[axis] * dt;
+        let ccd_delta = input.post_linear_velocity[axis] * dt;
+        if !integrated_delta.is_finite() || !ccd_delta.is_finite() {
             return SweepDecision::Unsupported(UnsupportedReason::VelocityDisplacementOverflow);
         }
 
@@ -374,8 +395,14 @@ pub fn produce_swept_aabb<const D: usize>(input: &TranslationSweepInput<D>) -> S
             return SweepDecision::Unsupported(UnsupportedReason::ObservedEndpointDeltaOverflow);
         }
 
-        let lower_delta = 0.0_f64.min(path_delta).min(observed_delta_lower);
-        let upper_delta = 0.0_f64.max(path_delta).max(observed_delta_upper);
+        let lower_delta = 0.0_f64
+            .min(integrated_delta)
+            .min(ccd_delta)
+            .min(observed_delta_lower);
+        let upper_delta = 0.0_f64
+            .max(integrated_delta)
+            .max(ccd_delta)
+            .max(observed_delta_upper);
 
         let lower = outward_lower_sum(input.start_world_aabb.min[axis], lower_delta);
         let upper = outward_upper_sum(input.start_world_aabb.max[axis], upper_delta);
@@ -454,6 +481,10 @@ fn same_input<const D: usize>(
         && left.context == right.context
         && same_array(&left.start_position, &right.start_position)
         && same_array(&left.post_position, &right.post_position)
+        && same_array(
+            &left.integrator_post_linear_velocity,
+            &right.integrator_post_linear_velocity,
+        )
         && same_array(&left.post_linear_velocity, &right.post_linear_velocity)
         && left.post_angular_velocity_norm_squared.to_bits()
             == right.post_angular_velocity_norm_squared.to_bits()
