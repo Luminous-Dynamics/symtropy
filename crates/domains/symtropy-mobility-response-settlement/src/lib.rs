@@ -1192,7 +1192,7 @@ mod tests {
     fn report_artifact(pr: u32, source_path: &str, report: Value) -> SourceReportArtifact {
         SourceReportArtifact {
             source_pr: pr,
-            source_commit_sha: sha_commit(char::from_u32(b'a' as u32 + (pr % 20) as u32).unwrap()),
+            source_commit_sha: sha_commit(char::from_u32(b'a' as u32 + (pr % 6) as u32).unwrap()),
             source_path: source_path.to_owned(),
             report,
         }
