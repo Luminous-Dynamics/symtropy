@@ -41,3 +41,7 @@ This full 3D realizability diagnostic applies only when all six components are a
     cargo clippy --manifest-path tools/ehd-piv-external-benchmark/Cargo.toml --all-targets -- -D warnings
 
 The crate does not read TIFF, MAT or HDF5 files. A later importer must preserve units, calibration, coordinate orientation, case identity, data revision and conversion receipt.
+
+## Manufactured tests
+
+The current V0 kernel has 19 deterministic Rust tests: 9 scalar-profile tests and 10 Reynolds-stress tensor tests. They cover metric semantics and known failure modes; they are not empirical PIV performance results.
