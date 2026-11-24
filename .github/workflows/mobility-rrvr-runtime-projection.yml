@@ -50,6 +50,12 @@ jobs:
           printf '%s  %s\n' "e599cffcf0e82887af8ba627470c026da1109a5becc81e9a21c6755919495168" "$MODEL_CFG" | sha256sum --check
           printf '%s  %s\n' "281c17f88823c88edf070b4d7b320738f8c5b46645ec41cb1059213c69a5e3aa" "$TRACE_SPEC" | sha256sum --check
           printf '%s  %s\n' "b4e7c14733a757a9923e9837519586708b85ee23c6bb35995fff245695a365dc" "$TRACE_CFG" | sha256sum --check
+          RESET_MODEL="research/mobility-rrvr-runtime-trace/model/GazeboResetLifecycle.tla"
+          RESET_CFG="research/mobility-rrvr-runtime-trace/model/GazeboResetLifecycle.cfg"
+          RESET_UNSAFE_CFG="research/mobility-rrvr-runtime-trace/model/GazeboResetLifecycle_NaiveRetry.cfg"
+          printf '%s  %s\\n' "c5395d1d14856240ef295f3fd0a346b5593a2e0d56b0880ce1ce6bd6b0fa8744" "$RESET_MODEL" | sha256sum --check
+          printf '%s  %s\\n' "bcb16d766bc232c0f2dadc4f9eaa20d1fc90d763f751753564bb0e353467fe4f" "$RESET_CFG" | sha256sum --check
+          printf '%s  %s\\n' "42de512cdc7838b38a18ad381bef2401e737105ddffa6b387a20e790f4976d7a" "$RESET_UNSAFE_CFG" | sha256sum --check
 
       - name: Validate schema and known-answer fixtures
         shell: bash
@@ -718,6 +724,76 @@ jobs:
               RestartSafeEffectContinuity.tla tla2tools.jar tlc-reservation.log tlc-no-effect-recovery.log \
               tlc-negative-wrong-action.log formal-conformance-manifest.json >> SHA256SUMS
           )
+
+      - name: Model-check Gazebo reset uncertainty lifecycle and naive-retry counterexample
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace/model"
+          MODEL="$ROOT/GazeboResetLifecycle.tla"
+          SAFE_CFG="$ROOT/GazeboResetLifecycle.cfg"
+          UNSAFE_CFG="$ROOT/GazeboResetLifecycle_NaiveRetry.cfg"
+          JAR="$RUNNER_TEMP/tla/tla2tools.jar"
+          OUT="$RUNNER_TEMP/rrvr-runtime-projection"
+          SAFE_DIR="$OUT/tla-gazebo-reset-safe"
+          UNSAFE_DIR="$OUT/tla-gazebo-reset-unsafe"
+          mkdir -p "$SAFE_DIR" "$UNSAFE_DIR"
+
+          cp "$MODEL" "$SAFE_DIR/GazeboResetLifecycle.tla"
+          cp "$SAFE_CFG" "$SAFE_DIR/GazeboResetLifecycle.cfg"
+          (
+            cd "$SAFE_DIR"
+            java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \\
+              -workers 1 \\
+              -metadir "$RUNNER_TEMP/tlc-gazebo-reset-safe" \\
+              -config GazeboResetLifecycle.cfg \\
+              GazeboResetLifecycle.tla
+          ) | tee "$OUT/tlc-gazebo-reset-safe.log"
+          grep -Fq "Model checking completed. No error has been found." "$OUT/tlc-gazebo-reset-safe.log"
+          grep -Fq "0 states left on queue" "$OUT/tlc-gazebo-reset-safe.log"
+
+          cp "$MODEL" "$UNSAFE_DIR/GazeboResetLifecycle.tla"
+          cp "$UNSAFE_CFG" "$UNSAFE_DIR/GazeboResetLifecycle_NaiveRetry.cfg"
+          set +e
+          (
+            cd "$UNSAFE_DIR"
+            java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \\
+              -workers 1 \\
+              -metadir "$RUNNER_TEMP/tlc-gazebo-reset-unsafe" \\
+              -config GazeboResetLifecycle_NaiveRetry.cfg \\
+              GazeboResetLifecycle.tla
+          ) > "$OUT/tlc-gazebo-reset-unsafe.log" 2>&1
+          unsafe_status=$?
+          set -e
+          if [ "$unsafe_status" -eq 0 ]; then
+            echo "TLC accepted an unsafe retry from OutcomeUnresolved."
+            exit 1
+          fi
+          grep -Fq "AtMostOneResetRequest" "$OUT/tlc-gazebo-reset-unsafe.log"
+          grep -Fq "Invariant AtMostOneResetRequest is violated" "$OUT/tlc-gazebo-reset-unsafe.log"
+
+          MODEL_SHA=$(sha256sum "$MODEL" | cut -d ' ' -f 1)
+          SAFE_CFG_SHA=$(sha256sum "$SAFE_CFG" | cut -d ' ' -f 1)
+          UNSAFE_CFG_SHA=$(sha256sum "$UNSAFE_CFG" | cut -d ' ' -f 1)
+          SAFE_LOG_SHA=$(sha256sum "$OUT/tlc-gazebo-reset-safe.log" | cut -d ' ' -f 1)
+          UNSAFE_LOG_SHA=$(sha256sum "$OUT/tlc-gazebo-reset-unsafe.log" | cut -d ' ' -f 1)
+          JAR_SHA=$(sha256sum "$JAR" | cut -d ' ' -f 1)
+          jq -n \\
+            --arg model_sha256 "$MODEL_SHA" \\
+            --arg safe_config_sha256 "$SAFE_CFG_SHA" \\
+            --arg unsafe_config_sha256 "$UNSAFE_CFG_SHA" \\
+            --arg safe_log_sha256 "$SAFE_LOG_SHA" \\
+            --arg unsafe_log_sha256 "$UNSAFE_LOG_SHA" \\
+            --arg tlc_jar_sha256 "$JAR_SHA" \\
+            '{
+              schema_version:"0.1",
+              model:"GazeboResetLifecycle",
+              safe_model_check:{result:"passed",invariants:["TypeOK","AtMostOneResetRequest","NoFaultDispatchBeforeVerified","VerifiedRequiresObservedReset"],log_sha256:$safe_log_sha256},
+              negative_control:{mutation:"Enable UnsafeRetry from OutcomeUnresolved",expected:"AtMostOneResetRequest counterexample",result:"rejected",log_sha256:$unsafe_log_sha256},
+              pins:{model_sha256:$model_sha256,safe_config_sha256:$safe_config_sha256,unsafe_config_sha256:$unsafe_config_sha256,tlc_jar_sha256:$tlc_jar_sha256},
+              claim_ceiling:"Bounded reset lifecycle abstraction; no proof of ROS/Gazebo transport behavior or physical reset."
+            }' > "$OUT/gazebo-reset-formal-manifest.json"
+          sha256sum "$MODEL" "$SAFE_CFG" "$UNSAFE_CFG" "$OUT/tlc-gazebo-reset-safe.log" "$OUT/tlc-gazebo-reset-unsafe.log" "$OUT/gazebo-reset-formal-manifest.json" >> "$OUT/SHA256SUMS"
 
       - name: Upload projection conformance package
         if: success()
