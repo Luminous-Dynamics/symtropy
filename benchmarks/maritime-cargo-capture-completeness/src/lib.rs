@@ -36,6 +36,7 @@ pub struct CaptureProfile {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ReferenceEvent {
     pub event_id: String,
+    pub canonical_subject_id: String,
     pub event_class: String,
     pub event_time: i64,
 }
@@ -55,6 +56,10 @@ pub struct IndependentReference {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CapturedEvent {
     pub event_id: String,
+    /// Source-native row/record identity, not interchangeable with event_id.
+    pub source_record_id: String,
+    /// Canonical vessel/container/visit identity carried by the source row.
+    pub canonical_subject_id: String,
     pub event_class: String,
     pub event_time: i64,
     pub published_at: i64,
@@ -72,6 +77,31 @@ pub struct CaptureCase {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CaptureProvenance {
+    pub source_id: String,
+    pub event_class: String,
+    pub configuration_digest: String,
+    pub window_start: i64,
+    pub window_end: i64,
+    pub as_of: i64,
+    pub reference_id: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ReconciledCaptureEvent {
+    pub source_id: String,
+    pub reference_id: String,
+    pub configuration_digest: String,
+    pub event_id: String,
+    pub source_record_id: String,
+    pub canonical_subject_id: String,
+    pub event_class: String,
+    pub event_time: i64,
+    pub published_at: i64,
+    pub payload_digest: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CaptureReport {
     pub disposition: Disposition,
     pub expected_event_count: usize,
@@ -81,6 +111,45 @@ pub struct CaptureReport {
     pub unexpected_event_count: usize,
     pub conflicting_identity_count: usize,
     pub shared_failure_domains: Vec<String>,
+    /// Available for qualified or incomplete reports with a known profile/reference.
+    pub provenance: Option<CaptureProvenance>,
+    /// Exact, durable event matches; a qualified window is still not enough
+    /// unless a particular claim binds to one of these rows.
+    pub reconciled_events: Vec<ReconciledCaptureEvent>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CaptureClaimBinding {
+    pub source_id: String,
+    pub event_class: String,
+    pub configuration_digest: String,
+    pub event_id: String,
+    pub source_record_id: String,
+    pub canonical_subject_id: String,
+    pub event_time: i64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CaptureClaimAdmission {
+    Qualified,
+    Incomplete,
+    NotIdentifiable,
+    NotEvaluable,
+    Unknown,
+    EvidenceDoesNotMatchClaim,
+}
+
+impl CaptureClaimAdmission {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Qualified => "QUALIFIED_CAPTURE_BOUND_TO_CLAIM",
+            Self::Incomplete => "CAPTURE_INCOMPLETE",
+            Self::NotIdentifiable => "CAPTURE_NOT_IDENTIFIABLE",
+            Self::NotEvaluable => "CAPTURE_NOT_EVALUABLE",
+            Self::Unknown => "CAPTURE_UNKNOWN",
+            Self::EvidenceDoesNotMatchClaim => "CAPTURE_EVIDENCE_DOES_NOT_MATCH_CLAIM",
+        }
+    }
 }
 
 impl CaptureReport {
@@ -94,6 +163,8 @@ impl CaptureReport {
             unexpected_event_count: 0,
             conflicting_identity_count: 0,
             shared_failure_domains: Vec::new(),
+            provenance: None,
+            reconciled_events: Vec::new(),
         }
     }
 }
