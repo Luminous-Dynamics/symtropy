@@ -54,6 +54,14 @@ The implementation uses a fixed, evaluator-selected number of equal-width probab
 
 ECE depends on binning and can hide within-bin errors. It is secondary to proper scoring rules and must be reported with the bin count. Never tune bins on the held-out confirmatory cohort.
 
+### Uncertainty around empirical risk and coverage
+
+Each selective-risk point also exposes a two-sided 95% Wilson interval for:
+- coverage, with denominator = all scored claims;
+- selective risk, with denominator = claims actually selected above the confidence threshold.
+
+These are descriptive IID binomial reference intervals. They are not valid as-is for clustered experiments, repeated measures, overlapping windows or temporally dependent claims. A real campaign must identify the independent unit (campaign, world seed/family, episode cluster, site, or other common-cause unit) and use cluster-aware bootstrap or another justified dependence-aware method. Do not let a large number of correlated frames create artificial precision.
+
 ### Selective risk / coverage
 
 For a decided forecast, confidence is the probability of its selected class:
@@ -77,7 +85,8 @@ The Rust test suite currently checks:
 5. missing, duplicate and out-of-range records are rejected;
 6. duplicate/out-of-range confidence thresholds and invalid bin counts are rejected;
 7. duplicate evaluator outcome IDs and orphan outcomes are rejected;
-8. per-stratum calibration surfaces a shift-specific false-transfer failure that would be diluted by pooled metrics.
+8. per-stratum calibration surfaces a shift-specific false-transfer failure that would be diluted by pooled metrics;
+9. zero observed errors in a small selected sample still has a nonzero Wilson upper risk bound, and coverage/risk use distinct denominators.
 
 ## Benchmark protocol
 
