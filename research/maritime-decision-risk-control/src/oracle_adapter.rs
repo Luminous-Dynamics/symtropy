@@ -530,7 +530,7 @@ pub fn compile_oracle_outcomes(
             .contract
             .policy_grid
             .iter()
-            .map(|entry| entry.policy_id.as_str())
+            .map(|entry| entry.policy_id.clone())
             .collect::<Vec<_>>();
         let hard_row = policy_ids
             .iter()
