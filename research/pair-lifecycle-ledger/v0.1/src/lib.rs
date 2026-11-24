@@ -222,7 +222,11 @@ pub enum Outcome {
     Terminate(TerminalReason),
     /// Complete candidate-generation trace. Every attempt is explicitly
     /// admitted to the next stage or terminated with a classified reason.
-    CandidateTrace { attempts: Vec<CandidateAttempt> },
+    CandidateTrace {
+        /// Declared number of perturbation directions requested from the generator.
+        requested_directions: usize,
+        attempts: Vec<CandidateAttempt>,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -288,6 +292,7 @@ pub enum LedgerError {
     },
     EmptySpawn,
     EmptyCandidateTrace,
+    RequestedDirectionCountMismatch { requested: usize, recorded: usize },
     MissingPrimaryCandidate,
     MultiplePrimaryCandidates,
     DuplicateCandidateAttempt,
@@ -326,6 +331,10 @@ impl fmt::Display for LedgerError {
             ),
             Self::EmptySpawn => write!(f, "spawn disposition must create at least one child"),
             Self::EmptyCandidateTrace => write!(f, "candidate trace must contain at least one attempt"),
+            Self::RequestedDirectionCountMismatch { requested, recorded } => write!(
+                f,
+                "candidate trace requested {requested} perturbation directions but records {recorded}"
+            ),
             Self::MissingPrimaryCandidate => write!(f, "candidate trace must contain exactly one primary witness"),
             Self::MultiplePrimaryCandidates => write!(f, "candidate trace contains multiple primary witnesses"),
             Self::DuplicateCandidateAttempt => write!(f, "candidate trace contains duplicate attempt identities"),
@@ -441,11 +450,11 @@ impl PairLedger {
                             return Err(LedgerError::InvalidTerminalReason { stage, reason });
                         }
                     }
-                    Outcome::CandidateTrace { attempts } => {
+                    Outcome::CandidateTrace { requested_directions, attempts } => {
                         if stage != Stage::CandidateGeneration {
                             return Err(LedgerError::CandidateTraceWrongStage);
                         }
-                        validate_candidate_trace(input, &attempts)?;
+                        validate_candidate_trace(input, requested_directions, &attempts)?;
                         for attempt in attempts {
                             if is_candidate_admitted(attempt.disposition) {
                                 if !next.insert(attempt.id) {
@@ -493,12 +502,12 @@ impl PairLedger {
                         stats.terminal += 1;
                         DispositionCode::Terminated(*r)
                     }
-                    Outcome::CandidateTrace { attempts } => {
+                    Outcome::CandidateTrace { requested_directions, attempts } => {
+                        stats.requested_directions += requested_directions;
                         for attempt in attempts {
                             stats.candidate_attempts += 1;
                             stats.spawned += 1;
                             if attempt.kind == CandidateAttemptKind::PerturbationDirection {
-                                stats.requested_directions += 1;
                                 match attempt.direction {
                                     DirectionDisposition::Generated => stats.generated_directions += 1,
                                     DirectionDisposition::InvalidOrDegenerate => stats.invalid_directions += 1,
@@ -591,6 +600,7 @@ fn is_candidate_admitted(disposition: CandidateDisposition) -> bool {
 
 fn validate_candidate_trace(
     input: &LineageId,
+    requested_directions: usize,
     attempts: &[CandidateAttempt],
 ) -> Result<(), LedgerError> {
     if attempts.is_empty() {
@@ -598,7 +608,11 @@ fn validate_candidate_trace(
     }
     let mut seen = BTreeSet::new();
     let mut primary_count = 0usize;
+    let mut recorded_directions = 0usize;
     for attempt in attempts {
+        if attempt.kind == CandidateAttemptKind::PerturbationDirection {
+            recorded_directions += 1;
+        }
         if attempt.id.pair != input.pair
             || attempt.id.path.len() != input.path.len() + 1
             || !attempt.id.path.starts_with(&input.path)
@@ -646,6 +660,12 @@ fn validate_candidate_trace(
         if !valid {
             return Err(LedgerError::InvalidCandidateAttempt);
         }
+    }
+    if requested_directions != recorded_directions {
+        return Err(LedgerError::RequestedDirectionCountMismatch {
+            requested: requested_directions,
+            recorded: recorded_directions,
+        });
     }
     match primary_count {
         0 => Err(LedgerError::MissingPrimaryCandidate),
@@ -790,8 +810,9 @@ impl Fnv64 {
                 self.byte(3);
                 self.byte(*r as u8);
             }
-            Outcome::CandidateTrace { attempts } => {
+            Outcome::CandidateTrace { requested_directions, attempts } => {
                 self.byte(4);
+                self.u64(requested_directions as u64);
                 self.u64(attempts.len() as u64);
                 for attempt in attempts {
                     self.lineage(&attempt.id);
@@ -1078,7 +1099,10 @@ mod tests {
         ledger.record(StageEvent {
             stage: Stage::CandidateGeneration,
             input: root,
-            outcome: Outcome::CandidateTrace { attempts },
+            outcome: Outcome::CandidateTrace {
+                requested_directions: 6,
+                attempts,
+            },
         }).unwrap();
 
         // Only the primary witness and explicitly admitted perturbation reach
@@ -1143,6 +1167,7 @@ mod tests {
             stage: Stage::CandidateGeneration,
             input: root.clone(),
             outcome: Outcome::CandidateTrace {
+                requested_directions: 1,
                 attempts: vec![
                     CandidateAttempt {
                         id: root.child(0),
@@ -1187,6 +1212,7 @@ mod tests {
             stage: Stage::CandidateGeneration,
             input: root,
             outcome: Outcome::CandidateTrace {
+                requested_directions: 1,
                 attempts: vec![
                     CandidateAttempt {
                         id: LineageId::root(pair(1, 2)).child(3),
