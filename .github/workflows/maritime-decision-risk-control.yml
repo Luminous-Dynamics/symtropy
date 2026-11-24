@@ -75,4 +75,10 @@ jobs:
           grep -q "EXPECTED_RISK_BOUND$" /tmp/weighted-shift-risk.csv
           awk -F, '$1=="N1200" { if ($9 != 1 || $10 != 0 || $12 <= $11) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/weighted-shift-risk.csv
 
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin lipschitz-risk-audit > /tmp/lipschitz-risk.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin lipschitz-risk-audit > /tmp/lipschitz-risk-replay.csv
+          cmp /tmp/lipschitz-risk.csv /tmp/lipschitz-risk-replay.csv
+          test "$(wc -l < /tmp/lipschitz-risk.csv)" -eq 7
+          head -n 1 /tmp/lipschitz-risk.csv | awk -F, '{ if (NF != 12) exit 1 }'
+          awk -F, '$2==10000 { if ($8 >= $7 || $10 != $8) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/lipschitz-risk.csv
           echo "Maritime decision-risk and finite-grid non-monotone receipts passed."
