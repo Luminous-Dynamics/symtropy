@@ -601,3 +601,28 @@ cargo run --quiet --locked --manifest-path research/maritime-decision-risk-contr
 ~~~
 
 The synthetic tournament covers all four maturity values, unknown classifier, wrong version, unknown publication, late retrieval, ACT without event time, planned event with future eventTime and publication-after-retrieval. These tests qualify our mapping, not the external DCSA API conformance. For live implementation, pin and run the official DCSA T&T 2.2 / Port Call 2.0.0 reference conformance suites.
+
+
+## Cross-standard mapping contract: preserve meaning, declare loss (24 November 2026)
+
+The `cross_standard_mapping` module treats cross-standard translation as an explicit, versioned evidence operation rather than an informal field rename. Each mapping rule records:
+- exact source and target standard versions;
+- source field/value and target field/value;
+- mapping class: EXACT, CONTEXTUAL or LOSSY;
+- reversibility: REVERSIBLE or IRREVERSIBLE;
+- mapping-review evidence reference;
+- an explicit reason for contextual or lossy translation.
+
+The mapper binds each receipt to the source event ID, source-native record ID and raw source-payload SHA-256. It never mutates the source message. An EXACT mapping must be declared reversible; CONTEXTUAL and LOSSY mappings must be declared irreversible and include a reason. A rule without a review evidence reference is rejected.
+
+A key semantic firewall prohibits mapping DCSA `eventClassifierCode` directly to EPCIS `bizStep` or `disposition`. DCSA EST/REQ/PLN/ACT describes milestone maturity; EPCIS/CBV business-step and disposition describe what business process/condition an event represents. The code domains are related but not interchangeable. A source-specific DCSA event type may map contextually to a CBV business-step only through an explicit reviewed rule; the synthetic fixture shows this as CONTEXTUAL / IRREVERSIBLE, not a silent exact rewrite.
+
+Run the deterministic crosswalk receipt:
+
+~~~sh
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin cross-standard-mapping-audit
+~~~
+
+The receipt covers exact extension-field transfer, contextual event-type to business-step translation, the forbidden classifier-to-bizStep and classifier-to-disposition shortcuts, non-exact claims of reversibility, missing lossiness reason, standard-version drift, invalid source digest and source-value mismatch. The raw source payload remains preserved in every accepted mapping receipt.
+
+This is not a full DCSA/EPCIS parser, JSON-LD serializer, CBV vocabulary validator, or official conformance tool. It is the contract that any future parser/crosswalk must satisfy before its normalized output can enter the downstream assurance and risk layers.
