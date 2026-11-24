@@ -472,3 +472,16 @@ This tests measurement independence and calibration separately from quorum membe
 
 
 The same-key/different-payload conflict rule is not claimed as novel distributed-systems theory. It follows an established idempotent API pattern: store the original request parameters with a client token and reject reuse of that token with changed parameters ([AWS Builder's Library](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)). RRVR's research question is whether this invariant can be preserved across physical-effect identity, coordinator/injector restarts, actuator outcomes and independently observed recovery.
+
+
+### Reset-qualified dispatch and capability-drift controls
+
+The composed adapter must not permit dispatch from a session that has only completed capability preflight. Evaluate separately:
+- preflight-only session -> zero reset/step/dispatch mutations;
+- tampered compiled plan -> rejected before capability discovery, reset or pause;
+- reset epoch unchanged, wrong clock, nonzero initial step, state digest mismatch or simulator not paused -> no reset-qualified session;
+- repeated reset attempt within one qualified session -> rejected without a second ResetSimulation call;
+- caller-mutated session epoch/clock/profile or changed live simulator/plugin capability profile -> zero injector calls;
+- fresh coordinator restart -> must recover reset qualification from a durable journal receipt, not an in-memory marker or remembered epoch string.
+
+Targets: zero injector calls for every invalid-control case, zero simulator mutation from a tampered plan, and 100% valid positive-control admission only when the exact reset and capability receipts are present. The private session marker is a software guard, not durable reset evidence; that remains part of #7148.
