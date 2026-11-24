@@ -1,0 +1,12 @@
+[package]
+name = "symtropy-grid-causal-itt"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Cluster-level intention-to-treat estimation and randomization inference for grid-flexibility experiments."
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+symtropy-grid-causal-design = { path = "../symtropy-grid-causal-design" }
