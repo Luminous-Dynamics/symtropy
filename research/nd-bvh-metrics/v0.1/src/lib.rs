@@ -184,6 +184,73 @@ pub fn normalized_internal_boundary_content<const D: usize>(
     ratio.is_finite().then_some(ratio)
 }
 
+/// Spearman rank correlation between a structural metric and observed p95 work.
+///
+/// Average ranks are used for ties. This helper requires at least five paired,
+/// finite observations and returns None for constant inputs, mismatched lengths
+/// or an unavailable correlation. A high correlation on a training corpus is
+/// not sufficient for selector promotion; #7257 requires held-out families.
+#[must_use]
+pub fn spearman_rank_correlation(
+    structural_metric: &[f64],
+    observed_p95_work: &[f64],
+) -> Option<f64> {
+    if structural_metric.len() != observed_p95_work.len()
+        || structural_metric.len() < 5
+        || structural_metric
+            .iter()
+            .chain(observed_p95_work.iter())
+            .any(|value| !value.is_finite())
+    {
+        return None;
+    }
+
+    let x = average_ranks(structural_metric)?;
+    let y = average_ranks(observed_p95_work)?;
+    let mean_rank = (structural_metric.len() as f64 + 1.0) / 2.0;
+
+    let mut covariance = 0.0;
+    let mut x_variance = 0.0;
+    let mut y_variance = 0.0;
+    for (x_rank, y_rank) in x.iter().zip(y.iter()) {
+        let dx = x_rank - mean_rank;
+        let dy = y_rank - mean_rank;
+        covariance += dx * dy;
+        x_variance += dx * dx;
+        y_variance += dy * dy;
+    }
+
+    let denominator = (x_variance * y_variance).sqrt();
+    if !denominator.is_finite() || denominator <= 0.0 {
+        return None;
+    }
+    let rho = covariance / denominator;
+    rho.is_finite().then_some(rho.clamp(-1.0, 1.0))
+}
+
+fn average_ranks(values: &[f64]) -> Option<Vec<f64>> {
+    if values.iter().any(|value| !value.is_finite()) {
+        return None;
+    }
+    let mut order: Vec<usize> = (0..values.len()).collect();
+    order.sort_unstable_by(|left, right| values[*left].total_cmp(&values[*right]));
+
+    let mut ranks = vec![0.0; values.len()];
+    let mut start = 0usize;
+    while start < order.len() {
+        let mut end = start + 1;
+        while end < order.len() && values[order[end]] == values[order[start]] {
+            end += 1;
+        }
+        let average_rank = ((start + 1) as f64 + end as f64) / 2.0;
+        for index in &order[start..end] {
+            ranks[*index] = average_rank;
+        }
+        start = end;
+    }
+    Some(ranks)
+}
+
 /// Summary of sibling overlap measurements. None values are preserved in
 /// the unavailable count and excluded from mean/max; they are never coerced
 /// to zero.
@@ -346,6 +413,59 @@ mod tests {
             AabbError::InvertedBounds
         );
         assert_eq!(Aabb::<0>::new([], []), Err(AabbError::ZeroDimension));
+    }
+
+    #[test]
+    fn spearman_rank_correlation_detects_perfect_positive_ordering() {
+        assert_eq!(
+            spearman_rank_correlation(
+                &[1.0, 2.0, 3.0, 4.0, 5.0],
+                &[10.0, 20.0, 30.0, 40.0, 50.0],
+            ),
+            Some(1.0)
+        );
+    }
+
+    #[test]
+    fn spearman_rank_correlation_detects_inverse_ordering() {
+        assert_eq!(
+            spearman_rank_correlation(
+                &[1.0, 2.0, 3.0, 4.0, 5.0],
+                &[50.0, 40.0, 30.0, 20.0, 10.0],
+            ),
+            Some(-1.0)
+        );
+    }
+
+    #[test]
+    fn spearman_rank_correlation_uses_average_ranks_for_ties() {
+        assert_eq!(
+            spearman_rank_correlation(
+                &[1.0, 2.0, 2.0, 4.0, 5.0],
+                &[10.0, 20.0, 20.0, 40.0, 50.0],
+            ),
+            Some(1.0)
+        );
+    }
+
+    #[test]
+    fn spearman_rank_correlation_fails_closed_on_unqualified_samples() {
+        assert_eq!(spearman_rank_correlation(&[1.0, 2.0], &[4.0, 5.0]), None);
+        assert_eq!(
+            spearman_rank_correlation(&[1.0, 2.0, 3.0, 4.0, 5.0], &[1.0, 2.0]),
+            None
+        );
+        assert_eq!(
+            spearman_rank_correlation(&[1.0, 1.0, 1.0, 1.0, 1.0], &[1.0, 2.0, 3.0, 4.0, 5.0]),
+            None
+        );
+        assert_eq!(
+            spearman_rank_correlation(
+                &[1.0, 2.0, 3.0, 4.0, f64::NAN],
+                &[1.0, 2.0, 3.0, 4.0, 5.0],
+            ),
+            None
+        );
     }
 
     #[test]
