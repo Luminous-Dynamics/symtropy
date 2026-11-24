@@ -278,8 +278,9 @@ mod tests {
     }
 
     #[test]
-    fn zero_measure_root_makes_normalized_ratio_unavailable() {
-        let root = box3([0.0, 0.0, 0.0], [2.0, 3.0, 0.0]);
+    fn zero_boundary_measure_root_makes_normalized_ratio_unavailable() {
+        let root = box3([0.0, 0.0, 0.0], [2.0, 0.0, 0.0]);
+        assert_eq!(root.boundary_content(), Some(0.0));
         assert_eq!(normalized_internal_boundary_content(&root, &[root]), None);
     }
 
