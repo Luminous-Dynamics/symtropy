@@ -20,6 +20,10 @@ If the residual noise covariance is unknown, correlated or not independently qua
 
 The central diagnostic is not merely whether the joint Jacobian is full rank. It is whether physical sensitivity remains after nuisance directions are allowed to explain the same observations. A deficiency confined to nuisance parameters can coexist with identifiable physical parameters.
 
+## Observation covariance whitening
+
+`whiten_sensitivity_with_covariance` performs Cholesky whitening for dense SPD covariance matrices with at most 512 observation rows. It computes `L^-1 J` so the whitened Gram matrix is `J^T Sigma^-1 J`. It rejects asymmetric, ragged, non-finite and singular covariance inputs; no symmetrization or jitter is silently introduced. This is a reference implementation only; large images require structured covariance operators with cross-pixel and cross-frame terms.
+
 ## Candidate measurement ranking
 
 The crate accepts candidate actions whose new rows are conditional-whitened innovations, including covariance with existing observations. It ranks actions by physical rank gain, smallest nuisance-profiled physical singular-value gain per cost, then deterministic tie-break. A candidate that only adds nuisance information does not earn a physical-information recommendation. V0 is a local E-optimal-style heuristic, not full EVSI or D-optimal Bayesian design, and does not actuate hardware.
@@ -43,3 +47,5 @@ The current crate contains 14 deterministic tests, including exact and near flow
 The crate currently contains 18 deterministic manufactured tests, including candidate actions that resolve or preserve flow/gain confounding, cost-aware ranking, and nuisance-only actions that receive no physical-information credit.
 
 Condition number is the ratio of largest to smallest nuisance-profiled physical singular values; it is not computed using the unprofiled physical maximum.
+
+The current manufactured suite contains 23 tests, including analytic correlated-noise oracles and fail-closed covariance validation.
