@@ -335,16 +335,15 @@ pub fn aggregate_orbital_hybrid_leaf_portfolio(
                 sample_stream_digest,
                 proposal_history_digest,
             } => {
-                if is_zero_digest(&sample_stream_digest) || is_zero_digest(&proposal_history_digest) {
+                if is_zero_digest(&sample_stream_digest) || is_zero_digest(&proposal_history_digest)
+                {
                     return Err(OrbitalHybridPortfolioError::MissingEvidenceDigest);
                 }
                 if confidence_alpha <= zero || confidence_alpha >= one {
                     return Err(OrbitalHybridPortfolioError::InvalidLeafConfidenceAlpha);
                 }
                 if !validate_interval(conditional_probability, one) {
-                    return Err(
-                        OrbitalHybridPortfolioError::InvalidConditionalProbabilityInterval
-                    );
+                    return Err(OrbitalHybridPortfolioError::InvalidConditionalProbabilityInterval);
                 }
                 allocated_alpha = checked_add(allocated_alpha, confidence_alpha)?;
                 if allocated_alpha > portfolio.global_confidence_alpha {
@@ -364,12 +363,9 @@ pub fn aggregate_orbital_hybrid_leaf_portfolio(
                 risk_lower = checked_add(risk_lower, lower_contribution)?;
                 uncapped_risk_upper = checked_add(uncapped_risk_upper, upper_contribution)?;
 
-                let probability_width = checked_sub(
-                    conditional_probability.upper,
-                    conditional_probability.lower,
-                )?;
-                let mass_width =
-                    checked_sub(leaf.target_mass.upper, leaf.target_mass.lower)?;
+                let probability_width =
+                    checked_sub(conditional_probability.upper, conditional_probability.lower)?;
+                let mass_width = checked_sub(leaf.target_mass.upper, leaf.target_mass.lower)?;
                 statistical_width = checked_add(
                     statistical_width,
                     leaf.target_mass
