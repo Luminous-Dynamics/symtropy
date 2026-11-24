@@ -758,7 +758,7 @@ fn validate_timelines(
         .collect();
     let mut sample_evidence_ids = BTreeSet::new();
     let mut tracked_sample_energy_kwh = 0.0_f64;
-    for ((index, (sample, baseline_interval)), network_interval_index) in samples
+    for (network_interval_index, (index, (sample, baseline_interval))) in samples
         .iter()
         .zip(dispatch_intervals)
         .enumerate()
