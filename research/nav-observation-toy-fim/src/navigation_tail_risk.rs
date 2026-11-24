@@ -74,6 +74,9 @@ pub enum TailRiskError {
     ZeroTotalMass,
     InvalidAlpha(u32),
     DuplicateModelId(u64),
+    InvalidParticleId,
+    DuplicateParticleId(u64),
+    InvalidTailMass(u32),
     MissingAction(u64),
     InvalidPolicyTree,
     ArithmeticOverflow,
@@ -89,6 +92,9 @@ impl core::fmt::Display for TailRiskError {
                 "CVaR alpha must be below one million PPM, got {alpha}"
             ),
             Self::DuplicateModelId(id) => write!(f, "mission model identity is duplicated: {id}"),
+            Self::InvalidParticleId => write!(f, "belief particle identity must be nonzero"),
+            Self::DuplicateParticleId(id) => write!(f, "belief particle identity is duplicated: {id}"),
+            Self::InvalidTailMass(mass) => write!(f, "belief CVaR tail mass must be in 1..=1000000 PPM, got {mass}"),
             Self::MissingAction(id) => write!(f, "policy references an unavailable action: {id}"),
             Self::InvalidPolicyTree => write!(f, "observable policy tree is incomplete or inconsistent"),
             Self::ArithmeticOverflow => write!(f, "checked exact tail-risk arithmetic overflowed"),
@@ -100,7 +106,87 @@ impl std::error::Error for TailRiskError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ModelLossDistribution<'a> {
-    /// Stable identity of one complete mission-persistent model.
+    
+
+/// One weighted particle in the current belief for a state-dependent
+/// immediate action cost. The caller must construct these particles using
+/// only information available at the current decision epoch.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct BeliefCostParticle {
+    /// Stable, nonzero identity unique within this belief snapshot.
+    pub particle_id: u64,
+    /// Immediate cost if the hidden state represented by this particle is true.
+    pub immediate_cost: u64,
+    /// Non-negative importance / posterior weight. Weights need not sum to a
+    /// particular constant, but their total must be positive.
+    pub weight: u128,
+}
+
+/// Risk of the immediate state-dependent cost under one current belief.
+///
+/// This is the belief-state risk layer, not a full mission-path risk measure.
+/// It evaluates the cost distribution across hidden states represented by the
+/// belief particles. Call it separately for each persistent candidate model;
+/// do not combine particles from different epistemic models before the
+/// outer robust-model aggregation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct BeliefImmediateRisk {
+    pub expected_cost: ExactRisk,
+    pub cvar_cost: ExactRisk,
+    /// Upper-tail probability mass in PPM. 50_000 means the worst 5%.
+    pub tail_mass_ppm: u32,
+    pub particle_count: usize,
+}
+
+/// Evaluate state uncertainty in one current belief using upper-tail CVaR of
+/// the immediate state-dependent cost.
+///
+/// The public input uses tail mass (e.g. 50_000 for the worst 5%), matching
+/// the convention in Pariente & Indelman's CVaR-cost POMDP formulation. The
+/// lower-level cvar() API uses confidence alpha (e.g. 950_000 for CVaR95), so
+/// this function performs the explicit conversion. This API does not optimize
+/// future trajectory return or replace mission-path CVaR.
+pub fn belief_immediate_cvar(
+    particles: &[BeliefCostParticle],
+    tail_mass_ppm: u32,
+) -> Result<BeliefImmediateRisk, TailRiskError> {
+    if particles.is_empty() {
+        return Err(TailRiskError::EmptyDistribution);
+    }
+    if tail_mass_ppm == 0 || tail_mass_ppm as u128 > PROBABILITY_SCALE_PPM {
+        return Err(TailRiskError::InvalidTailMass(tail_mass_ppm));
+    }
+
+    let mut seen = std::collections::BTreeSet::new();
+    let mut costs = Vec::with_capacity(particles.len());
+    for particle in particles {
+        if particle.particle_id == 0 {
+            return Err(TailRiskError::InvalidParticleId);
+        }
+        if !seen.insert(particle.particle_id) {
+            return Err(TailRiskError::DuplicateParticleId(particle.particle_id));
+        }
+        costs.push(LossMass {
+            loss: particle.immediate_cost,
+            mass: particle.weight,
+        });
+    }
+
+    let expected = expected_loss(&costs)?;
+    let confidence_alpha_ppm =
+        u32::try_from(PROBABILITY_SCALE_PPM - tail_mass_ppm as u128)
+            .map_err(|_| TailRiskError::ArithmeticOverflow)?;
+    let tail = cvar(&costs, confidence_alpha_ppm)?;
+
+    Ok(BeliefImmediateRisk {
+        expected_cost: expected,
+        cvar_cost: tail,
+        tail_mass_ppm,
+        particle_count: particles.len(),
+    })
+}
+
+/// Stable identity of one complete mission-persistent model.
     pub model_id: u64,
     /// Complete stochastic mission-path loss distribution under one fixed
     /// model and one fixed observable policy.
@@ -1021,5 +1107,97 @@ mod mission_path_distribution_tests {
         assert_matches_expected_loss(policy, &distributions);
         assert_eq!(cvar(&distributions[0], 950_000).unwrap(), ExactRisk::from_ratio(0, 1).unwrap());
         assert_eq!(cvar(&distributions[1], 950_000).unwrap(), ExactRisk::from_ratio(0, 1).unwrap());
+    }
+}
+
+
+#[cfg(test)]
+mod belief_immediate_cvar_tests {
+    use super::*;
+
+    fn particle(id: u64, cost: u64, weight: u128) -> BeliefCostParticle {
+        BeliefCostParticle {
+            particle_id: id,
+            immediate_cost: cost,
+            weight,
+        }
+    }
+
+    #[test]
+    fn belief_tail_risk_separates_rare_high_consequence_states_at_equal_mean() {
+        // Both actions have expected immediate cost 5. The first places 5%
+        // of the current belief in a high-cost state; the second is uniform.
+        let rare_catastrophic = [
+            particle(1, 100, 1),
+            particle(2, 0, 19),
+        ];
+        let steady = [particle(3, 5, 20)];
+
+        let first = belief_immediate_cvar(&rare_catastrophic, 50_000).unwrap();
+        let second = belief_immediate_cvar(&steady, 50_000).unwrap();
+
+        assert_eq!(first.expected_cost, ExactRisk::from_ratio(5, 1).unwrap());
+        assert_eq!(second.expected_cost, ExactRisk::from_ratio(5, 1).unwrap());
+        assert_eq!(first.cvar_cost, ExactRisk::from_ratio(100, 1).unwrap());
+        assert_eq!(second.cvar_cost, ExactRisk::from_ratio(5, 1).unwrap());
+        assert_eq!(first.tail_mass_ppm, 50_000);
+        assert_eq!(first.particle_count, 2);
+    }
+
+    #[test]
+    fn full_tail_mass_recovers_expected_immediate_cost() {
+        let belief = [
+            particle(1, 10, 2),
+            particle(2, 3, 5),
+            particle(3, 0, 3),
+        ];
+        let risk = belief_immediate_cvar(&belief, 1_000_000).unwrap();
+        assert_eq!(risk.cvar_cost, risk.expected_cost);
+    }
+
+    #[test]
+    fn belief_particle_order_does_not_change_immediate_risk() {
+        let forward = [
+            particle(1, 100, 1),
+            particle(2, 0, 19),
+            particle(3, 5, 10),
+        ];
+        let reverse = [forward[2], forward[1], forward[0]];
+        assert_eq!(
+            belief_immediate_cvar(&forward, 50_000),
+            belief_immediate_cvar(&reverse, 50_000)
+        );
+    }
+
+    #[test]
+    fn invalid_or_duplicate_belief_particle_id_rejects() {
+        assert_eq!(
+            belief_immediate_cvar(&[particle(0, 1, 1)], 50_000),
+            Err(TailRiskError::InvalidParticleId)
+        );
+        assert_eq!(
+            belief_immediate_cvar(&[particle(7, 1, 1), particle(7, 2, 1)], 50_000),
+            Err(TailRiskError::DuplicateParticleId(7))
+        );
+    }
+
+    #[test]
+    fn invalid_tail_mass_empty_belief_and_zero_total_weight_reject() {
+        assert_eq!(
+            belief_immediate_cvar(&[], 50_000),
+            Err(TailRiskError::EmptyDistribution)
+        );
+        assert_eq!(
+            belief_immediate_cvar(&[particle(1, 1, 1)], 0),
+            Err(TailRiskError::InvalidTailMass(0))
+        );
+        assert_eq!(
+            belief_immediate_cvar(&[particle(1, 1, 1)], 1_000_001),
+            Err(TailRiskError::InvalidTailMass(1_000_001))
+        );
+        assert_eq!(
+            belief_immediate_cvar(&[particle(1, 1, 0)], 50_000),
+            Err(TailRiskError::ZeroTotalMass)
+        );
     }
 }
