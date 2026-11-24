@@ -248,9 +248,7 @@ impl OracleCalibrationBundle {
             (DatasetRole::Evaluation, LossAxis::HardPhysicalFailure) => {
                 &self.evaluation_hard_failure_milli
             }
-            (DatasetRole::Evaluation, LossAxis::ServiceLoss) => {
-                &self.evaluation_service_loss_milli
-            }
+            (DatasetRole::Evaluation, LossAxis::ServiceLoss) => &self.evaluation_service_loss_milli,
         };
 
         crate::non_monotone::WholeScheduleLossGrid {
@@ -316,7 +314,9 @@ fn validate_contract(contract: &OracleDatasetContract) -> Result<(), OracleAdapt
             ));
         }
         if !frozen_ids.insert(entry.policy_id.clone()) {
-            return Err(OracleAdapterError::DuplicateFrozenPolicyId(entry.policy_id.clone()));
+            return Err(OracleAdapterError::DuplicateFrozenPolicyId(
+                entry.policy_id.clone(),
+            ));
         }
     }
 
@@ -414,8 +414,13 @@ fn validate_policy_outcome(
     }
     let authority_matches_action = matches!(
         (outcome.action_class, outcome.authority),
-        (PolicyActionClass::Mutating, AuthorityDisposition::Authorized)
-            | (PolicyActionClass::NoMutation, AuthorityDisposition::NotRequired)
+        (
+            PolicyActionClass::Mutating,
+            AuthorityDisposition::Authorized
+        ) | (
+            PolicyActionClass::NoMutation,
+            AuthorityDisposition::NotRequired
+        )
     );
     if !authority_matches_action {
         return Err(OracleAdapterError::AuthorityActionMismatch {
@@ -934,7 +939,9 @@ mod tests {
         data.episodes[2].policy_outcomes[0].policy_revision = "policy-A-rev-2".to_owned();
         assert!(matches!(
             compile_oracle_outcomes(&data),
-            Err(OracleAdapterError::FrozenPolicyRevisionMismatch("policy-A".to_owned()))
+            Err(OracleAdapterError::FrozenPolicyRevisionMismatch(
+                "policy-A".to_owned()
+            ))
         ));
     }
 
