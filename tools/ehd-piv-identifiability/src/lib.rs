@@ -217,6 +217,25 @@ pub enum IdentifiabilityError {
     NoiseCovarianceNotPositiveDefinite {
         pivot: usize,
     },
+    EmptyConditionalMeasurement,
+    ConditionalInnovationTooLarge {
+        observations: usize,
+        maximum: usize,
+    },
+    ConditionalCrossCovarianceDimensionMismatch {
+        row: usize,
+        expected: usize,
+        actual: usize,
+    },
+    ConditionalParameterCountMismatch {
+        row: usize,
+        expected: usize,
+        actual: usize,
+    },
+    ConditionalCrossCovarianceNonFinite {
+        row: usize,
+        column: usize,
+    },
 }
 
 impl fmt::Display for IdentifiabilityError {
@@ -375,6 +394,168 @@ pub fn whiten_sensitivity_with_covariance(
         }
     }
     Ok(whitened)
+}
+
+
+/// Compute and whiten candidate observation sensitivities conditional on
+/// measurements already acquired.
+///
+/// Inputs are raw (unwhitened) residual sensitivities:
+/// - `J0`: existing observations x parameters;
+/// - `J1`: candidate observations x parameters;
+/// - `Sigma00`: existing observation covariance;
+/// - `Sigma11`: candidate observation covariance;
+/// - `Sigma10`: candidate-by-existing cross-covariance.
+///
+/// Let `Sigma01 = Sigma10^T`. The conditional innovation sensitivity and
+/// covariance are:
+///
+/// `J_cond = J1 - Sigma10 * Sigma00^-1 * J0`
+/// `S_cond = Sigma11 - Sigma10 * Sigma00^-1 * Sigma01`
+///
+/// The returned rows are `L_cond^-1 * J_cond`, where
+/// `S_cond = L_cond * L_cond^T`. This is the correct incremental information
+/// after accounting for correlation with previously observed data. It avoids
+/// crediting a repeat measurement as independent information.
+///
+/// The dense reference is capped at 512 total existing + candidate rows.
+pub fn whiten_conditional_innovation_sensitivities(
+    existing_sensitivity: &[Vec<f64>],
+    candidate_sensitivity: &[Vec<f64>],
+    existing_covariance: &[Vec<f64>],
+    candidate_covariance: &[Vec<f64>],
+    candidate_existing_cross_covariance: &[Vec<f64>],
+    symmetry_relative_tolerance: f64,
+) -> Result<Vec<Vec<f64>>, IdentifiabilityError> {
+    if existing_sensitivity.is_empty() || candidate_sensitivity.is_empty() {
+        return Err(IdentifiabilityError::EmptyConditionalMeasurement);
+    }
+    let existing_count = existing_sensitivity.len();
+    let candidate_count = candidate_sensitivity.len();
+    let total_count = existing_count.saturating_add(candidate_count);
+    if total_count > 512 {
+        return Err(IdentifiabilityError::ConditionalInnovationTooLarge {
+            observations: total_count,
+            maximum: 512,
+        });
+    }
+    let parameter_count = existing_sensitivity[0].len();
+    if parameter_count == 0 {
+        return Err(IdentifiabilityError::EmptyParameterSet);
+    }
+    for (row_index, row) in candidate_sensitivity.iter().enumerate() {
+        if row.len() != parameter_count {
+            return Err(IdentifiabilityError::ConditionalParameterCountMismatch {
+                row: row_index,
+                expected: parameter_count,
+                actual: row.len(),
+            });
+        }
+        for (column_index, value) in row.iter().enumerate() {
+            if !value.is_finite() {
+                return Err(IdentifiabilityError::NonFiniteSensitivity {
+                    row: row_index,
+                    column: column_index,
+                });
+            }
+        }
+    }
+    if candidate_existing_cross_covariance.len() != candidate_count {
+        return Err(IdentifiabilityError::NoiseCovarianceDimensionMismatch {
+            expected: candidate_count,
+            actual: candidate_existing_cross_covariance.len(),
+        });
+    }
+    for (row_index, row) in candidate_existing_cross_covariance.iter().enumerate() {
+        if row.len() != existing_count {
+            return Err(IdentifiabilityError::ConditionalCrossCovarianceDimensionMismatch {
+                row: row_index,
+                expected: existing_count,
+                actual: row.len(),
+            });
+        }
+        for (column_index, value) in row.iter().enumerate() {
+            if !value.is_finite() {
+                return Err(IdentifiabilityError::ConditionalCrossCovarianceNonFinite {
+                    row: row_index,
+                    column: column_index,
+                });
+            }
+        }
+    }
+
+    // Transpose Sigma_10 into Sigma_01. Whiten it with the existing
+    // covariance so the Schur complement can be expressed as a Gram matrix.
+    let sigma_01: Vec<Vec<f64>> = (0..existing_count)
+        .map(|existing_index| {
+            candidate_existing_cross_covariance
+                .iter()
+                .map(|candidate_row| candidate_row[existing_index])
+                .collect()
+        })
+        .collect();
+    let whitened_existing = whiten_sensitivity_with_covariance(
+        existing_sensitivity,
+        existing_covariance,
+        symmetry_relative_tolerance,
+    )?;
+    let whitened_sigma_01 = whiten_sensitivity_with_covariance(
+        &sigma_01,
+        existing_covariance,
+        symmetry_relative_tolerance,
+    )?;
+
+    let mut conditional_sensitivity = candidate_sensitivity.to_vec();
+    for candidate_index in 0..candidate_count {
+        for parameter_index in 0..parameter_count {
+            let correction = whitened_sigma_01
+                .iter()
+                .zip(whitened_existing.iter())
+                .map(|(cross_row, existing_row)| {
+                    cross_row[candidate_index] * existing_row[parameter_index]
+                })
+                .sum::<f64>();
+            conditional_sensitivity[candidate_index][parameter_index] -= correction;
+            if !conditional_sensitivity[candidate_index][parameter_index].is_finite() {
+                return Err(IdentifiabilityError::NumericalOverflow);
+            }
+        }
+    }
+
+    let mut conditional_covariance = candidate_covariance.to_vec();
+    for candidate_row in 0..candidate_count {
+        for candidate_column in 0..candidate_count {
+            let correction = whitened_sigma_01
+                .iter()
+                .map(|cross_row| {
+                    cross_row[candidate_row] * cross_row[candidate_column]
+                })
+                .sum::<f64>();
+            let row = conditional_covariance
+                .get_mut(candidate_row)
+                .ok_or(IdentifiabilityError::NoiseCovarianceDimensionMismatch {
+                    expected: candidate_count,
+                    actual: conditional_covariance.len(),
+                })?;
+            let value = row.get_mut(candidate_column).ok_or(
+                IdentifiabilityError::NoiseCovarianceRagged {
+                    row: candidate_row,
+                    expected: candidate_count,
+                    actual: row.len(),
+                },
+            )?;
+            *value -= correction;
+            if !value.is_finite() {
+                return Err(IdentifiabilityError::NumericalOverflow);
+            }
+        }
+    }
+
+    whiten_sensitivity_with_covariance(
+        &conditional_sensitivity,
+        &conditional_covariance,
+        symmetry_relative_tolerance,
+    )
 }
 
 #[derive(Clone, Debug)]
@@ -1665,4 +1846,74 @@ mod tests {
             Err(IdentifiabilityError::NoiseCovarianceNotPositiveDefinite { pivot: 1 })
         );
     }
+    #[test]
+    fn conditional_innovation_whitening_removes_redundant_correlated_repeat() {
+        let existing_j = vec![vec![1.0]];
+        let candidate_j = vec![vec![1.0]];
+        let sigma_00 = vec![vec![1.0]];
+        let sigma_11 = vec![vec![1.0]];
+        let sigma_10 = vec![vec![0.9]];
+        let whitened = whiten_conditional_innovation_sensitivities(
+            &existing_j,
+            &candidate_j,
+            &sigma_00,
+            &sigma_11,
+            &sigma_10,
+            1.0e-12,
+        )
+        .unwrap();
+        let expected = 0.1 / 0.19_f64.sqrt();
+        assert!((whitened[0][0] - expected).abs() < 1.0e-10);
+        assert!(whitened[0][0] < 0.25);
+    }
+
+    #[test]
+    fn independent_candidate_measurement_keeps_its_raw_sensitivity_scale() {
+        let whitened = whiten_conditional_innovation_sensitivities(
+            &[vec![2.0]],
+            &[vec![3.0]],
+            &[vec![1.0]],
+            &[vec![1.0]],
+            &[vec![0.0]],
+            1.0e-12,
+        )
+        .unwrap();
+        assert!((whitened[0][0] - 3.0).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn conditional_innovation_rejects_invalid_cross_covariance_dimensions() {
+        assert_eq!(
+            whiten_conditional_innovation_sensitivities(
+                &[vec![1.0]],
+                &[vec![1.0]],
+                &[vec![1.0]],
+                &[vec![1.0]],
+                &[vec![0.1, 0.2]],
+                1.0e-12,
+            ),
+            Err(IdentifiabilityError::ConditionalCrossCovarianceDimensionMismatch {
+                row: 0,
+                expected: 1,
+                actual: 2
+            })
+        );
+    }
+
+    #[test]
+    fn conditional_innovation_rejects_non_spd_schur_complement() {
+        let result = whiten_conditional_innovation_sensitivities(
+            &[vec![1.0]],
+            &[vec![1.0]],
+            &[vec![1.0]],
+            &[vec![0.5]],
+            &[vec![0.9]],
+            1.0e-12,
+        );
+        assert!(matches!(
+            result,
+            Err(IdentifiabilityError::NoiseCovarianceNotPositiveDefinite { .. })
+        ));
+    }
+
 }
