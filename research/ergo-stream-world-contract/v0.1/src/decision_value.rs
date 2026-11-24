@@ -539,12 +539,36 @@ mod tests {
             outcome_ids: vec![0, 1],
             likelihood_scale: 2,
             likelihoods: vec![
-                ExperimentLikelihoodV0 { hypothesis_id: 0, outcome_id: 0, likelihood_weight: 2 },
-                ExperimentLikelihoodV0 { hypothesis_id: 0, outcome_id: 1, likelihood_weight: 0 },
-                ExperimentLikelihoodV0 { hypothesis_id: 1, outcome_id: 0, likelihood_weight: 0 },
-                ExperimentLikelihoodV0 { hypothesis_id: 1, outcome_id: 1, likelihood_weight: 2 },
-                ExperimentLikelihoodV0 { hypothesis_id: 2, outcome_id: 0, likelihood_weight: 1 },
-                ExperimentLikelihoodV0 { hypothesis_id: 2, outcome_id: 1, likelihood_weight: 1 },
+                ExperimentLikelihoodV0 {
+                    hypothesis_id: 0,
+                    outcome_id: 0,
+                    likelihood_weight: 2,
+                },
+                ExperimentLikelihoodV0 {
+                    hypothesis_id: 0,
+                    outcome_id: 1,
+                    likelihood_weight: 0,
+                },
+                ExperimentLikelihoodV0 {
+                    hypothesis_id: 1,
+                    outcome_id: 0,
+                    likelihood_weight: 0,
+                },
+                ExperimentLikelihoodV0 {
+                    hypothesis_id: 1,
+                    outcome_id: 1,
+                    likelihood_weight: 2,
+                },
+                ExperimentLikelihoodV0 {
+                    hypothesis_id: 2,
+                    outcome_id: 0,
+                    likelihood_weight: 1,
+                },
+                ExperimentLikelihoodV0 {
+                    hypothesis_id: 2,
+                    outcome_id: 1,
+                    likelihood_weight: 1,
+                },
             ],
             cost_units,
         }
@@ -556,12 +580,36 @@ mod tests {
             outcome_ids: vec![0, 1],
             likelihood_scale: 2,
             likelihoods: vec![
-                ExperimentLikelihoodV0 { hypothesis_id: 0, outcome_id: 0, likelihood_weight: 2 },
-                ExperimentLikelihoodV0 { hypothesis_id: 0, outcome_id: 1, likelihood_weight: 0 },
-                ExperimentLikelihoodV0 { hypothesis_id: 1, outcome_id: 0, likelihood_weight: 2 },
-                ExperimentLikelihoodV0 { hypothesis_id: 1, outcome_id: 1, likelihood_weight: 0 },
-                ExperimentLikelihoodV0 { hypothesis_id: 2, outcome_id: 0, likelihood_weight: 0 },
-                ExperimentLikelihoodV0 { hypothesis_id: 2, outcome_id: 1, likelihood_weight: 2 },
+                ExperimentLikelihoodV0 {
+                    hypothesis_id: 0,
+                    outcome_id: 0,
+                    likelihood_weight: 2,
+                },
+                ExperimentLikelihoodV0 {
+                    hypothesis_id: 0,
+                    outcome_id: 1,
+                    likelihood_weight: 0,
+                },
+                ExperimentLikelihoodV0 {
+                    hypothesis_id: 1,
+                    outcome_id: 0,
+                    likelihood_weight: 2,
+                },
+                ExperimentLikelihoodV0 {
+                    hypothesis_id: 1,
+                    outcome_id: 1,
+                    likelihood_weight: 0,
+                },
+                ExperimentLikelihoodV0 {
+                    hypothesis_id: 2,
+                    outcome_id: 0,
+                    likelihood_weight: 0,
+                },
+                ExperimentLikelihoodV0 {
+                    hypothesis_id: 2,
+                    outcome_id: 1,
+                    likelihood_weight: 2,
+                },
             ],
             cost_units,
         }
@@ -607,8 +655,7 @@ mod tests {
     #[test]
     fn experiment_cost_can_make_positive_evsi_net_negative() {
         let problem = decision_problem();
-        let report =
-            evaluate_decision_value(&problem, &decision_relevant_experiment(3)).unwrap();
+        let report = evaluate_decision_value(&problem, &decision_relevant_experiment(3)).unwrap();
 
         assert_eq!(report.evsi_numerator, 40);
         assert_eq!(report.net_evsi_numerator, -20);
@@ -713,9 +760,21 @@ mod tests {
         let mut experiment = decision_relevant_experiment(0);
         experiment.outcome_ids.push(2);
         experiment.likelihoods.extend([
-            ExperimentLikelihoodV0 { hypothesis_id: 0, outcome_id: 2, likelihood_weight: 0 },
-            ExperimentLikelihoodV0 { hypothesis_id: 1, outcome_id: 2, likelihood_weight: 0 },
-            ExperimentLikelihoodV0 { hypothesis_id: 2, outcome_id: 2, likelihood_weight: 0 },
+            ExperimentLikelihoodV0 {
+                    hypothesis_id: 0,
+                    outcome_id: 2,
+                    likelihood_weight: 0,
+                },
+            ExperimentLikelihoodV0 {
+                    hypothesis_id: 1,
+                    outcome_id: 2,
+                    likelihood_weight: 0,
+                },
+            ExperimentLikelihoodV0 {
+                    hypothesis_id: 2,
+                    outcome_id: 2,
+                    likelihood_weight: 0,
+                },
         ]);
         let report = evaluate_decision_value(&problem, &experiment).unwrap();
         let impossible = report
