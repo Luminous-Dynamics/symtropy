@@ -15,7 +15,18 @@ The two statements differ by date, source quality and reporting basis. The nomin
 
 ## 2. Days of cover are denominator-specific
 
-The September report's “about 30 days” is described as crude-oil needs. It must not be silently translated into:
+The September report's “about 30 days” is described as crude-oil cover against crude-processing capacity, not as days of national refined-product consumption. Newsday's 5 October account of the parliamentary answer quotes the denominator as **200,000 barrels/day of crude-processing capacity**. A transparent arithmetic check gives:
+
+\[
+6{,}900{,}000\ \text{barrels} \div 200{,}000\ \text{barrels/day}
+= 34.5\ \text{nominal processing days}.
+\]
+
+That is approximately 35 days at the reported rounded inputs, while the reported parliamentary statement says “about 30 days”. This is not enough to declare the Minister's figure wrong: the underlying usable-stock numerator, exact throughput denominator, rounding convention, measurement date and any operational deductions have not been published in the secondary account. The difference is a **reconciliation question**, not a proven error. Request the exact calculation and inputs.
+
+The MP's question, as reported by Newsday, asked how many days of national consumption the stock represented; the reported answer instead grounds the estimate in crude-processing capacity. Keep those denominators distinct.
+
+It must not be silently translated into:
 - 30 days of diesel consumption;
 - 30 days of all refined petroleum product demand;
 - 30 days of immediately deliverable fuel at a specified depot or service zone; or
@@ -43,6 +54,7 @@ Until those fields are reconciled, retain each statement as an attributed claim,
 - Parliament, National Assembly Unrevised Hansard, Wednesday 25 March 2026, Question 260: Mr Lorimer's crude-oil question is on printed p. 5 and the Minister's SFF response is on printed p. 6: https://www.parliament.gov.za/storage/app/media/Docs/hansard/01mfgh4vqebdhkps6o35hybjq2binzrfd6.pdf
 - EWN, 30 September 2026, report of the Minister's parliamentary remarks: https://www.ewn.co.za/2026/09/30-mantashe-assures-sa-wont-run-out-of-fuel-due-to-middle-east-war
 - IOL, 3 October 2026, report on the 6.9-million-barrel statement: https://iol.co.za/business/2026-10-03-fuel-price-crisis--how-long-can-south-africa-keep-the-fuel-pumps-running-if-oil-supplies-tighten/
+- Newsday, 5 October 2026, secondary account quoting the 200,000 barrels/day calculation basis and describing the MP's question about national-consumption cover: https://newsday.co.za/business/28619/south-africas-strategic-oil-reserves-fell-by-96-from-158-5-million-barrels-to-6-9-million-barrels/
 - Cabinet statement, 1 July 2026, proposed 60-day net-import target with phased 90-day ambition: https://dirco.gov.za/full-statement-on-the-cabinet-meeting-of-1-july-2026/
 - Cabinet summary, 1 July 2026: https://www.gcis.gov.za/full-statement-on-the-cabinet-meeting-of-wednesday-1-july-2026
 
