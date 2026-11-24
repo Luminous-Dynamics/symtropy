@@ -130,23 +130,51 @@ pub struct IdentifiabilityReport {
 pub enum IdentifiabilityError {
     EmptyObservationMatrix,
     EmptyParameterSet,
-    TooManyObservations { count: usize },
-    TooManyParameters { count: usize },
+    TooManyObservations {
+        count: usize,
+    },
+    TooManyParameters {
+        count: usize,
+    },
     NoPhysicalParameters,
-    RaggedSensitivityMatrix { row: usize, expected: usize, actual: usize },
-    EmptyParameterIdentity { index: usize, field: &'static str },
-    DuplicateParameterId { id: String },
-    InvalidCharacteristicScale { parameter_id: String },
-    NonFiniteSensitivity { row: usize, column: usize },
-    SensitivityScalingOverflow { row: usize, column: usize },
-    InvalidConfiguration { field: &'static str },
+    RaggedSensitivityMatrix {
+        row: usize,
+        expected: usize,
+        actual: usize,
+    },
+    EmptyParameterIdentity {
+        index: usize,
+        field: &'static str,
+    },
+    DuplicateParameterId {
+        id: String,
+    },
+    InvalidCharacteristicScale {
+        parameter_id: String,
+    },
+    NonFiniteSensitivity {
+        row: usize,
+        column: usize,
+    },
+    SensitivityScalingOverflow {
+        row: usize,
+        column: usize,
+    },
+    InvalidConfiguration {
+        field: &'static str,
+    },
     NumericalOverflow,
-    JacobiDidNotConverge { sweeps: usize },
+    JacobiDidNotConverge {
+        sweeps: usize,
+    },
 }
 
 impl fmt::Display for IdentifiabilityError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "invalid PIV identifiability input or decomposition: {self:?}")
+        write!(
+            f,
+            "invalid PIV identifiability input or decomposition: {self:?}"
+        )
     }
 }
 
@@ -186,11 +214,8 @@ pub fn analyze_local_identifiability(
     let joint_max = joint_svd.singular_values.first().copied().unwrap_or(0.0);
     let joint_threshold = joint_max * input.config.rank_relative_tolerance;
     let joint_rank = count_above(&joint_svd.singular_values, joint_threshold);
-    let joint_condition_number = condition_number(
-        &joint_svd.singular_values,
-        joint_rank,
-        parameter_count,
-    );
+    let joint_condition_number =
+        condition_number(&joint_svd.singular_values, joint_rank, parameter_count);
     let joint_status = set_status_threshold(
         classify_status(joint_rank, parameter_count, joint_condition_number),
         joint_condition_number,
@@ -229,9 +254,9 @@ pub fn analyze_local_identifiability(
         .unwrap_or(0.0);
     let nuisance_threshold = (nuisance_max * input.config.rank_relative_tolerance)
         .max(input.config.minimum_profiled_physical_sensitivity);
-    let nuisance_rank = nuisance_svd
-        .as_ref()
-        .map_or(0, |svd| count_above(&svd.singular_values, nuisance_threshold));
+    let nuisance_rank = nuisance_svd.as_ref().map_or(0, |svd| {
+        count_above(&svd.singular_values, nuisance_threshold)
+    });
 
     let nuisance_basis = if let Some(svd) = &nuisance_svd {
         left_singular_basis(&nuisance_columns, svd, nuisance_threshold)?
@@ -279,11 +304,8 @@ pub fn analyze_local_identifiability(
     } else {
         None
     };
-    let physical_base_status = if unprofiled_physical_max
-        < input.config.minimum_profiled_physical_sensitivity
-    {
-        IdentifiabilityStatus::NoInformativeSensitivity
-    } else {
+    let physical_base_status =
+        if unprofiled_physical_max < input.config.minimum_profiled_physical_sensitivity {
         classify_status(
             physical_rank,
             physical_indices.len(),
@@ -332,13 +354,10 @@ pub fn analyze_local_identifiability(
     let mut physical_nuisance_confounding = Vec::new();
     for physical_index in &physical_indices {
         for nuisance_index in &nuisance_indices {
-            let correlation = normalized_correlation(
-                &columns[*physical_index],
-                &columns[*nuisance_index],
-            )?;
+            let correlation =
+                normalized_correlation(&columns[*physical_index], &columns[*nuisance_index])?;
             if let Some(signed_correlation) = correlation {
-                if signed_correlation.abs()
-                    >= input.config.physical_nuisance_correlation_threshold
+                if signed_correlation.abs() >= input.config.physical_nuisance_correlation_threshold
                 {
                     physical_nuisance_confounding.push(PhysicalNuisanceConfounding {
                         physical_parameter_id: input.parameters[*physical_index].id.clone(),
@@ -382,10 +401,14 @@ fn validate_input(input: &IdentifiabilityInput) -> Result<(), IdentifiabilityErr
     let row_count = input.whitened_sensitivity_matrix.len();
     let column_count = input.parameters.len();
     if row_count > 65_536 {
-        return Err(IdentifiabilityError::TooManyObservations { count: row_count });
+        return Err(IdentifiabilityError::TooManyObservations {
+            count: row_count,
+        });
     }
     if column_count > 64 {
-        return Err(IdentifiabilityError::TooManyParameters { count: column_count });
+        return Err(IdentifiabilityError::TooManyParameters {
+            count: column_count,
+        });
     }
     if !input
         .parameters
@@ -398,10 +421,7 @@ fn validate_input(input: &IdentifiabilityInput) -> Result<(), IdentifiabilityErr
     let mut seen_ids = std::collections::BTreeSet::new();
     for (index, parameter) in input.parameters.iter().enumerate() {
         if parameter.id.trim().is_empty() {
-            return Err(IdentifiabilityError::EmptyParameterIdentity {
-                index,
-                field: "id",
-            });
+            return Err(IdentifiabilityError::EmptyParameterIdentity { index, field: "id" });
         }
         if parameter.name.trim().is_empty() {
             return Err(IdentifiabilityError::EmptyParameterIdentity {
@@ -420,9 +440,7 @@ fn validate_input(input: &IdentifiabilityInput) -> Result<(), IdentifiabilityErr
                 id: parameter.id.clone(),
             });
         }
-        if !parameter.characteristic_scale.is_finite()
-            || parameter.characteristic_scale <= 0.0
-        {
+        if !parameter.characteristic_scale.is_finite() || parameter.characteristic_scale <= 0.0 {
             return Err(IdentifiabilityError::InvalidCharacteristicScale {
                 parameter_id: parameter.id.clone(),
             });
@@ -456,9 +474,7 @@ fn validate_input(input: &IdentifiabilityInput) -> Result<(), IdentifiabilityErr
             field: "rank_relative_tolerance",
         });
     }
-    if !config.maximum_condition_number.is_finite()
-        || config.maximum_condition_number <= 1.0
-    {
+    if !config.maximum_condition_number.is_finite() || config.maximum_condition_number <= 1.0 {
         return Err(IdentifiabilityError::InvalidConfiguration {
             field: "maximum_condition_number",
         });
@@ -707,9 +723,7 @@ fn normalized_correlation(
     let value = left
         .iter()
         .zip(right.iter())
-        .map(|(left_value, right_value)| {
-            (left_value / left_norm) * (right_value / right_norm)
-        })
+        .map(|(left_value, right_value)| (left_value / left_norm) * (right_value / right_norm))
         .sum::<f64>();
     if !value.is_finite() {
         return Err(IdentifiabilityError::NumericalOverflow);
@@ -756,10 +770,7 @@ mod tests {
         }
     }
 
-    fn input(
-        parameters: Vec<ParameterSpec>,
-        matrix: Vec<Vec<f64>>,
-    ) -> IdentifiabilityInput {
+    fn input(parameters: Vec<ParameterSpec>, matrix: Vec<Vec<f64>>) -> IdentifiabilityInput {
         IdentifiabilityInput {
             parameters,
             whitened_sensitivity_matrix: matrix,
@@ -797,10 +808,7 @@ mod tests {
         assert_eq!(report.joint_numerical_rank, 1);
         assert_eq!(report.joint_status, IdentifiabilityStatus::RankDeficient);
         assert_eq!(report.nuisance_profiled_physical_rank, 0);
-        assert_eq!(
-            report.physical_status,
-            IdentifiabilityStatus::RankDeficient
-        );
+        assert_eq!(report.physical_status, IdentifiabilityStatus::RankDeficient);
         assert_eq!(report.physical_nuisance_confounding.len(), 1);
         assert!((report.physical_nuisance_confounding[0].signed_correlation - 1.0).abs() < 1.0e-10);
     }
@@ -841,10 +849,7 @@ mod tests {
             report.physical_status,
             IdentifiabilityStatus::IllConditioned
         );
-        assert!(report
-            .nuisance_profiled_physical_condition_number
-            .unwrap()
-            > 1.0e5);
+        assert!(report.nuisance_profiled_physical_condition_number.unwrap() > 1.0e5);
     }
 
     #[test]
@@ -890,12 +895,11 @@ mod tests {
             vec![2.0, 1.0, 0.0],
             vec![1.0, 3.0, 1.0],
         ];
-        let forward = analyze_local_identifiability(&input(parameters.clone(), rows.clone()))
-            .unwrap();
+        let forward =
+            analyze_local_identifiability(&input(parameters.clone(), rows.clone())).unwrap();
         let mut reversed_rows = rows;
         reversed_rows.reverse();
-        let reverse =
-            analyze_local_identifiability(&input(parameters, reversed_rows)).unwrap();
+        let reverse = analyze_local_identifiability(&input(parameters, reversed_rows)).unwrap();
         assert_eq!(forward.joint_numerical_rank, reverse.joint_numerical_rank);
         for (left, right) in forward
             .joint_singular_values
@@ -941,10 +945,7 @@ mod tests {
         .unwrap();
         assert_eq!(report.joint_numerical_rank, 1);
         assert_eq!(report.weak_joint_parameter_directions.len(), 1);
-        assert_eq!(
-            report.physical_status,
-            IdentifiabilityStatus::Identifiable
-        );
+        assert_eq!(report.physical_status, IdentifiabilityStatus::Identifiable);
     }
 
     #[test]
@@ -983,24 +984,22 @@ mod tests {
         malformed.whitened_sensitivity_matrix = vec![vec![f64::NAN, 0.0]];
         assert_eq!(
             analyze_local_identifiability(&malformed),
-            Err(IdentifiabilityError::NonFiniteSensitivity {
-                row: 0,
-                column: 0
-            })
+            Err(IdentifiabilityError::NonFiniteSensitivity { row: 0, column: 0 })
         );
     }
 
     #[test]
     fn invalid_ids_scales_and_no_physical_parameter_fail_closed() {
         let mut problem = input(
-            vec![parameter("flow", ParameterRole::Physical), parameter("flow", ParameterRole::Nuisance)],
+            vec![
+                parameter("flow", ParameterRole::Physical),
+                parameter("flow", ParameterRole::Nuisance),
+            ],
             vec![vec![1.0, 0.0]],
         );
         assert_eq!(
             analyze_local_identifiability(&problem),
-            Err(IdentifiabilityError::DuplicateParameterId {
-                id: "flow".into()
-            })
+            Err(IdentifiabilityError::DuplicateParameterId { id: "flow".into() })
         );
         problem.parameters[1].id = "gain".into();
         problem.parameters[1].characteristic_scale = 0.0;
@@ -1063,5 +1062,4 @@ mod tests {
             IdentifiabilityStatus::NoInformativeSensitivity
         );
     }
-
 }
