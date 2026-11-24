@@ -1300,14 +1300,12 @@ fn validate_evaluator_labels(corpus: &Corpus, labels: &EvaluatorLabels) -> Resul
             .find(|outcome| outcome.scenario_id == "NOMINAL-HIDDEN-REJECT")
             .ok_or_else(|| "nominal_reject_evaluator_label_missing".to_string())?;
         if accepted.hidden_terminal_quality_outcomes == rejected.hidden_terminal_quality_outcomes
-            || accepted
-                .hidden_terminal_quality_outcomes
-                .iter()
-                .all(|outcome| outcome.disposition == QualityDisposition::Accepted)
-            || !rejected
-                .hidden_terminal_quality_outcomes
-                .iter()
-                .any(|outcome| outcome.disposition == QualityDisposition::Rejected)
+            || accepted.hidden_terminal_quality_outcomes.len() != 1
+            || accepted.hidden_terminal_quality_outcomes[0].disposition
+                != QualityDisposition::Accepted
+            || rejected.hidden_terminal_quality_outcomes.len() != 1
+            || rejected.hidden_terminal_quality_outcomes[0].disposition
+                != QualityDisposition::Rejected
         {
             return Err("paired_hidden_quality_labels_do_not_create_counterfactual".into());
         }
