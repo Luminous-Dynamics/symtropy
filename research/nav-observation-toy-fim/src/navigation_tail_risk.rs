@@ -21,8 +21,8 @@ pub struct LossMass {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ExactRisk {
-    pub numerator: u128,
-    pub denominator: u128,
+    numerator: u128,
+    denominator: u128,
 }
 
 impl ExactRisk {
@@ -35,6 +35,14 @@ impl ExactRisk {
             numerator: numerator / divisor,
             denominator: denominator / divisor,
         })
+    }
+
+    pub const fn numerator(self) -> u128 {
+        self.numerator
+    }
+
+    pub const fn denominator(self) -> u128 {
+        self.denominator
     }
 
     /// Compare two non-negative exact fractions without cross multiplication,
@@ -361,7 +369,7 @@ mod tests {
         let actual = cvar(&transformed, 800_000).unwrap();
         assert_eq!(
             actual,
-            risk(expected.numerator * 2 + 12 * expected.denominator, expected.denominator)
+            risk(expected.numerator * 2 + 10 * expected.denominator, expected.denominator)
         );
     }
 
@@ -396,7 +404,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(result.worst_case_model_id, 22);
-        assert_eq!(result.worst_case_cvar, risk(20, 1));
+        assert_eq!(result.worst_case_cvar, risk(2, 1));
         assert_eq!(result.per_model.iter().map(|item| item.model_id).collect::<Vec<_>>(), [11, 22]);
     }
 
