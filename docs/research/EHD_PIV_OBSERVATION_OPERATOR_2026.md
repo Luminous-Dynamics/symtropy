@@ -63,6 +63,14 @@ The paper explicitly describes the v0.1 sensor model as simplified and orthogona
 
 Do not rank the Rust reference kernel against SynthPix by pairs/second. Compare semantic coverage and controlled output behavior first; benchmark throughput separately only on matched hardware, image dimensions, particle density, particle kernel support, batch size, data-loading path and numerical precision.
 
+## V0.2 interface: analog image sensitivities for identifiability
+
+The renderer now retains the detector-domain floating-point values after gain, offset, supplied noise and masking but before clipping/ADC quantization. The public helper `central_difference_image_sensitivity(plus, minus, step)` returns a derivative vector ordered as first-frame row-major pixels followed by second-frame row-major pixels.
+
+This is the bridge to [EHD-PIV-ID-001 #7270 / draft PR #7271](https://github.com/Luminous-Dynamics/symtropy/pull/7271): perturb one physical or nuisance parameter by (+h/-h), freeze all other inputs (especially particle seeds, per-pixel noise arrays, masks and timing), render both cases, then use the returned vector as one sensitivity column. Assemble all columns into a residual Jacobian only after a separately qualified observation-covariance whitening step.
+
+Analog values prevent sub-LSB changes disappearing during ADC rounding. They are not photon-electron or calibrated radiometric truth. Finite-difference step selection remains a scientific design variable: test step convergence, truncation error, saturation proximity and robustness across noise realizations. The helper validates dimensions and finite values but cannot prove that all unrelated nuisance inputs were held fixed or that the resulting Jacobian is correct.
+
 ## V1 research agenda
 
 The next physically meaningful additions require source-pinned device metadata and independent measurements:
