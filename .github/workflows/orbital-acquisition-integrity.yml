@@ -43,7 +43,7 @@ jobs:
           Draft202012Validator.check_schema(schema)
           errors = list(Draft202012Validator(schema).iter_errors(fixture))
           assert not errors, errors
-          assert len(fixture["cases"]) == 18
+          assert len(fixture["cases"]) == 19
           assert len({case["case_id"] for case in fixture["cases"]}) == 18
           print("18 frozen acquisition-integrity cases and Draft 2020-12 schema validated")
           PY
@@ -60,7 +60,7 @@ jobs:
           cmp /tmp/acq-rust-a.json /tmp/acq-rust-b.json
           jq -e '
             .schema == "luminous.orbital-acquisition-integrity.receipt.v0.1" and
-            .case_count == 18 and .expected_outcome_matches == 18 and
+            .case_count == 19 and .expected_outcome_matches == 19 and
             .expected_outcome_mismatches == 0 and .authority_granted == false and
             .physical_validation == "NOT_ASSESSED" and
             (.cases | all(.[]; .visibility_assessed == false and .photometric_usability_assessed == false and .feature_measurability_assessed == false))
@@ -85,7 +85,8 @@ jobs:
           assert cases["ACQ-015-PROJECTOR-WINDOW-DISJOINT"]["status"] == "PROJECTOR_PATTERN_MISMATCH"
           assert cases["ACQ-016-PROJECTOR-WINDOW-OVERLAPS-TRANSITION"]["status"] == "INDETERMINATE"
           assert cases["ACQ-017-PROJECTOR-WINDOW-FULLY-STABLE"]["status"] == "ACQUISITION_VALID_WITHIN_BUDGET"
-          print("Rust and independent Python oracle agree on all 18 acquisition-integrity cases")
+          assert cases["ACQ-019-PROJECTOR-CLOCK-MAP-UNKNOWN"]["status"] == "INDETERMINATE"
+          print("Rust and independent Python oracle agree on all 19 acquisition-integrity cases")
           PY
       - name: Retain exact-head evidence
         if: success()
