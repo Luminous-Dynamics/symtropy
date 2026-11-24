@@ -182,6 +182,28 @@ ErgoStream must not rank acquisition actions by entropy reduction alone. The fin
 
 The benchmark must include experiments that reveal more about latent hypotheses without changing the optimal action, alongside lower-information probes that change the optimal action and reduce regret. The same idea should scale to the active research policy only after a forecast-before-outcome contract and counterfactual branch evaluation are in place. This finite oracle is an evaluator baseline, not a deployable controller.
 
+## Transfer forecast calibration and selective risk
+
+Structural and behavioural validators answer whether a *proposed* finite map satisfies its declared contract. A separate probability forecast answers how likely that exact scoped claim is to qualify on owner-side evidence. Score both.
+
+The Rust reference `calibration.rs` computes:
+- Brier score and log loss over all forecast claims;
+- fixed-bin ECE from evaluator-selected bins;
+- selective risk versus coverage over preregistered confidence thresholds;
+- explicit abstention handling (abstention is neither a false prediction nor a negative class).
+
+The learner bundle can include an optional `transfer_forecasts` array with claim ID/type, transfer probability in ppm and decision (assert / reject / abstain). It cannot submit evaluator labels or select confirmatory bins/thresholds. The owner binds each forecast to its exact scoped claim.
+
+Add the following to the v0.2 scorecard by shift axis and claim kind:
+- Brier, log loss, fixed-bin ECE and reliability curves;
+- risk at 50%, 70%, 80%, 90% and 95% coverage, where sample size supports those operating points;
+- coverage at fixed risk ceilings (e.g. 1%, 5%, 10%);
+- high-confidence false-unification / false-mechanism-transfer rates;
+- abstention rate and correctness of abstention on non-identifiable/out-of-scope cases;
+- calibration drift between in-domain, representation-only, semantic/mechanism and combined shifts.
+
+These are reporting thresholds for experiments, not claims that the system has already achieved them. The confirmatory cohort must not be used to fit a calibration transform, choose thresholds or tune bins.
+
 ## 5. Scorecard
 
 Report per family, transformation class, size regime and budget. Do not collapse to a single ErgoScore.
