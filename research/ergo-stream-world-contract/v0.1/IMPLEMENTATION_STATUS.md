@@ -463,3 +463,13 @@ The exact executable code head is `ca85791f015d9446cd6559fb8d2a7718e2c88399`. Fo
 - `cargo clippy --locked --all-targets -- -D warnings`: passed.
 
 The subsequent current PR/branch commits are documentation/schema/example additions after that code head; no executable Rust source changed after the verified code head. The pass is focused microcosm qualification, not repository-wide cross-platform CI, production #11171 integration, a sealed multi-process evaluator, block/online conformal, physical deployment, or external SOTA performance.
+
+## Bound-claim identity and evidence-bound mechanism transfer — implementation added, verification pending
+
+New executable additions after the previous green 118-test head:
+- `TransferClaimTypeV0`, `BoundTransferForecastV0`, `BoundTransferOutcomeV0`, and `evaluate_bound_transfer_calibration`: bind each probability to exact claim ID, type and owner-recomputed scope digest before scoring.
+- `EvidenceBoundMechanismCandidateV0`, `OwnerInterventionOutcomeV0`, and `validate_evidence_bound_mechanism_transfer`: verify source intervention evidence against the public source prefix, require a complete action map/source observation/target prediction/owner outcome set, compare predictions to evaluator-held target effects and delegate to the existing preserve/negate effect-transform witness.
+- The bundle schema now requires a mechanism candidate artifact whenever a `mechanism_transfer` forecast exists.
+- The versioned claim-scope envelope and registry schema/example define RFC 8785 JCS plus SHA-256. Three example vectors cover structural, simulation and mechanism claim payloads.
+
+**Verification:** the exact code head with these new validators has not yet passed formatting/tests/doctests/strict Clippy. An earlier run on the mechanism code passed formatting but failed test compilation because a test-only import referenced `SourceInterventionEvidenceV0` from the wrong module; that import was corrected in the latest code. Do not inherit the previous 118-test pass for these new source changes.
