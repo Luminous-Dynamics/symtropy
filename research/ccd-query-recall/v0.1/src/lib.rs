@@ -243,6 +243,158 @@ impl QueryRunResult {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum QueryRunImportError {
+    EmptyInput,
+    BlankRow,
+    WrongFieldCount,
+    InvalidIdentityToken,
+    InvalidTimeStep,
+    InvalidQueryIndex,
+    InvalidQueryClass,
+    InvalidCandidateDisposition,
+    InvalidFallbackReason,
+    MissingFallbackReason,
+    UnexpectedDispositionMetadata,
+    MissingPruneEvidence,
+    InvalidVerificationStatus,
+    InvalidNarrowphaseOutcome,
+}
+
+/// Parse the strict tab-separated per-query result interchange format.
+///
+/// Optional first line: `#ccd-query-run-results-v1`.
+/// Each data row has twelve fields:
+/// dataset, scene, timestep, query class, query index, disposition,
+/// fallback reason, certificate SHA-256, frozen-input SHA-256, verifier ID,
+/// verification status, narrowphase outcome.
+///
+/// Forwarded rows must leave fields 6-10 empty. Fallback rows require only a
+/// reason in field 6. Certified-pruned rows require all proof fields 7-10 and
+/// no fallback reason. Oracle labels are intentionally absent from this file;
+/// they are joined only from the independently imported dataset.
+pub fn parse_query_run_results_tsv(
+    input: &str,
+) -> Result<Vec<QueryRunResult>, QueryRunImportError> {
+    if input.trim().is_empty() {
+        return Err(QueryRunImportError::EmptyInput);
+    }
+
+    let mut results = Vec::new();
+    for (line_index, raw_line) in input.lines().enumerate() {
+        let line = raw_line.strip_suffix('\r').unwrap_or(raw_line);
+        if line_index == 0 && line == "#ccd-query-run-results-v1" {
+            continue;
+        }
+        if line.trim().is_empty() {
+            return Err(QueryRunImportError::BlankRow);
+        }
+        let fields: Vec<&str> = line.split('\t').collect();
+        if fields.len() != 12 {
+            return Err(QueryRunImportError::WrongFieldCount);
+        }
+
+        if !valid_identity_token(fields[0]) || !valid_identity_token(fields[1]) {
+            return Err(QueryRunImportError::InvalidIdentityToken);
+        }
+        let time_step = fields[2]
+            .parse::<u64>()
+            .map_err(|_| QueryRunImportError::InvalidTimeStep)?;
+        let query_index = fields[4]
+            .parse::<usize>()
+            .map_err(|_| QueryRunImportError::InvalidQueryIndex)?;
+        let query_class = match fields[3] {
+            "edge_edge" => QueryClass::EdgeEdge,
+            "vertex_face" => QueryClass::VertexFace,
+            _ => return Err(QueryRunImportError::InvalidQueryClass),
+        };
+        let identity = QueryIdentity::new(
+            fields[0],
+            fields[1],
+            time_step,
+            query_class,
+            query_index,
+        );
+
+        let candidate = match fields[5] {
+            "forwarded" => {
+                if fields[6..11].iter().any(|field| !field.is_empty()) {
+                    return Err(QueryRunImportError::UnexpectedDispositionMetadata);
+                }
+                CandidateDisposition::Forwarded
+            }
+            "fallback" => {
+                if fields[6].is_empty() {
+                    return Err(QueryRunImportError::MissingFallbackReason);
+                }
+                if fields[7..11].iter().any(|field| !field.is_empty()) {
+                    return Err(QueryRunImportError::UnexpectedDispositionMetadata);
+                }
+                CandidateDisposition::Fallback(parse_fallback_reason(fields[6])?)
+            }
+            "certified_pruned" => {
+                if !fields[6].is_empty() {
+                    return Err(QueryRunImportError::UnexpectedDispositionMetadata);
+                }
+                if fields[7..11].iter().any(|field| field.is_empty()) {
+                    return Err(QueryRunImportError::MissingPruneEvidence);
+                }
+                let status = match fields[10] {
+                    "accepted_and_replayed" => VerificationStatus::AcceptedAndReplayed,
+                    "rejected" => VerificationStatus::Rejected,
+                    "not_run" => VerificationStatus::NotRun,
+                    _ => return Err(QueryRunImportError::InvalidVerificationStatus),
+                };
+                CandidateDisposition::CertifiedPruned(PruneEvidence::new(
+                    fields[7],
+                    fields[8],
+                    fields[9],
+                    status,
+                ))
+            }
+            _ => return Err(QueryRunImportError::InvalidCandidateDisposition),
+        };
+
+        let narrowphase = match fields[11] {
+            "collision" => NarrowphaseOutcome::Collision,
+            "no_collision" => NarrowphaseOutcome::NoCollision,
+            "indeterminate" => NarrowphaseOutcome::Indeterminate,
+            "not_run" => NarrowphaseOutcome::NotRun,
+            _ => return Err(QueryRunImportError::InvalidNarrowphaseOutcome),
+        };
+
+        results.push(QueryRunResult::new(identity, candidate, narrowphase));
+    }
+
+    if results.is_empty() {
+        Err(QueryRunImportError::EmptyInput)
+    } else {
+        Ok(results)
+    }
+}
+
+fn parse_fallback_reason(value: &str) -> Result<FallbackReason, QueryRunImportError> {
+    match value {
+        "unsupported_motion" => Ok(FallbackReason::UnsupportedMotion),
+        "unknown_numeric_profile" => Ok(FallbackReason::UnknownNumericProfile),
+        "invalid_input" => Ok(FallbackReason::InvalidInput),
+        "arithmetic_overflow" => Ok(FallbackReason::ArithmeticOverflow),
+        "rejected_certificate" => Ok(FallbackReason::RejectedCertificate),
+        "missing_proof" => Ok(FallbackReason::MissingProof),
+        "capacity_limit" => Ok(FallbackReason::CapacityLimit),
+        _ => Err(QueryRunImportError::InvalidFallbackReason),
+    }
+}
+
+fn valid_identity_token(value: &str) -> bool {
+    !value.is_empty()
+        && value.bytes().all(|byte| {
+            byte.is_ascii_lowercase()
+                || byte.is_ascii_digit()
+                || matches!(byte, b'-' | b'_' | b'.')
+        })
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum QueryJoinError {
     DuplicateRunResultIdentity,
     DuplicateImportedQueryIdentity,
