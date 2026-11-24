@@ -83,6 +83,12 @@ It is a probability for the exact scoped claim, not general confidence in an ana
 
 The trusted evaluator resolves claim IDs and computes calibration after the bundle is frozen. It owns the binary outcome labels, fixed reliability bins and selective-risk confidence thresholds. Do not include evaluator labels or tune thresholds against the sealed confirmatory outcomes. See `TRANSFER_CALIBRATION_V0_1.md`.
 
+The optional `transfer_forecasts` field lets the learner forecast an exact scoped claim with a unique claim ID, claim type, transfer probability in ppm and one decision: `assert_transfer`, `reject_transfer` or `abstain`. Forecasts remain separate for structural correspondence, deterministic dynamics, simulation, bisimulation and mechanism transfer. A valid structural map is not evidence that a mechanism claim is valid.
+
+The evaluator attaches `evaluation_stratum_id` to each owner-side outcome. That label is never included in the learner forecast and cannot be self-selected by the candidate. The metric helper validates the complete forecast/outcome cohort before producing per-stratum Brier, log-loss, ECE and selective-risk reports. This makes representation-only, semantic/mechanism, combined-shift and claim-family failures visible rather than hiding them in a pooled score. Bins, thresholds and outcome labels remain evaluator-owned. See `TRANSFER_CALIBRATION_V0_1.md`.
+
+
+
 ## Decision value and prospective forecasts
 
 Do not add a new scheduler or VoC implementation to this bundle. A future action-selection record should compose with Symthaea #5476/#5478/#8721:
