@@ -40,6 +40,24 @@ For an episode:
 
 All ratios use integer arithmetic and floor rounding. The report keeps episode-level vectors and family-level totals/counts; it intentionally does not collapse quality, evidence and service into a single weighted score.
 
+
+## Evaluator extension 0.2.0 — censor-aware recovery
+
+The input corpus and its four independent known answers remain frozen as v0.1. Evaluator 0.2.0 adds a cohort-level time-to-event view without changing the underlying accepted-output counting rules.
+
+For **first independently accepted output** and **reaching the predeclared accepted-output recovery target**, each episode contributes:
+- an event time when the qualified event occurred; or
+- a right-censored observation at the end of its declared follow-up when it did not occur.
+
+The report now emits Kaplan–Meier-style survival curves at observed event/censor times. Each point retains the time, number at risk immediately before that time, events, right-censored episodes, and the estimated probability that the cohort has not yet reached the event. Event observations are applied before censoring at tied timestamps.
+
+To avoid comparing unlike observation windows, each cohort uses the **shortest declared episode follow-up as its common analysis horizon**. Episodes with longer follow-up are administratively censored at that shared horizon. The restricted mean time to event (RMST) is the area under the estimated non-event survival curve from zero through that horizon, rounded to the nearest millisecond. Lower RMST means faster recovery within the shared window; it does not imply anything beyond that window.
+
+The episode-level nullable times and unrecovered counts remain present. The existing worst-time-to-recovery field is still only the maximum among observed recoveries and must not be read as a failure-inclusive worst case; the new event/censor counts, survival curve and RMST provide the cohort view that includes non-recovery. A cohort with no recovery has an RMST equal to its analysis horizon rather than disappearing from the statistic.
+
+Survival probabilities use fixed-point arithmetic (1e9 internal scale, reported in PPM); RMST uses checked integer arithmetic. The evaluator is descriptive over synthetic episodes. Four cases are far too few for inferential claims, and this addition does not establish a plant recovery distribution. The v0.2 policy tournament must use predeclared, family-stratified paired uncertainty analysis on its larger held-out cohorts.
+
+
 ## Frozen v0.1 synthetic cases
 
 The four fixture cases exercise:
