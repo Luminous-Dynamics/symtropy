@@ -939,7 +939,7 @@ pub fn validate_delivery_observer_quorum(
         if observation.world_epoch != expected_world_epoch {
             return Err(GazeboAdapterError::ObserverEpochMismatch);
         }
-        if observation.simulation_step < fault.scheduled_simulation_step {
+        if observation.simulation_step != fault.scheduled_simulation_step {
             return Err(GazeboAdapterError::ObserverStepMismatch);
         }
         observed_signatures.insert(observation.signature_sha256.as_str());
@@ -2114,6 +2114,18 @@ mod tests {
         assert_eq!(
             validate_delivery_observer_quorum(&binary, &plan, &fault.fault_id, "world-epoch-2"),
             Err(GazeboAdapterError::ObserverIdentityMismatch)
+        );
+
+        let mut late_step = observer_quorum(&plan);
+        late_step[0].simulation_step += 1;
+        assert_eq!(
+            validate_delivery_observer_quorum(
+                &late_step,
+                &plan,
+                &fault.fault_id,
+                "world-epoch-2"
+            ),
+            Err(GazeboAdapterError::ObserverStepMismatch)
         );
 
         let mut epoch = observer_quorum(&plan);
