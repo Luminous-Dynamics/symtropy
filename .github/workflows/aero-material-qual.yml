@@ -2,7 +2,7 @@ name: AERO Material Qualification Contract
 
 on:
   pull_request:
-    branches: ["main"]
+    branches: ["main", "research/aero-material-process-qual-v0.1"]
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
