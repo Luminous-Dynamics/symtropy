@@ -158,6 +158,7 @@
       "expected_structurally_complete": false,
       "expected_process_domain_status": "PARTIALLY_OUT_OF_DOMAIN",
       "expected_violation_codes": [
+        "DANGLING_REFERENCE",
         "DUPLICATE_ID"
       ],
       "expected_blocker_codes": [
