@@ -43,3 +43,18 @@ All cases are synthetic. The test helper creates the candidate input; the TSV in
 ## Claim ceiling
 
 A pass proves only this synthetic evaluator's declared rules. It does not qualify any real terminal, sensor, PLC, OCR, gate, rail, broker, API, archive or receiver; it does not establish physical occurrence, detection probability, legal access, source truth, identity, custody, delivery, port performance or network effects. Actual source-specific qualification requires independent reference instrumentation, rights-cleared records, metrology/clock traceability, configuration control, and an independently adjudicated physical test protocol.
+
+## Per-event claim binding (24 November 2026)
+
+The completeness result now carries a typed provenance envelope:
+- source ID and event class;
+- exact configuration digest;
+- capture window start/end and historical as-of cutoff;
+- independent reference ID;
+- one row per independently reconciled, durably persisted event with event ID, source-native record ID, canonical subject/container ID, event time, publication time and payload digest.
+
+Use admit_claim_against_capture(report, binding) before admitting an individual physical/source claim. It requires an exact match on source, event class, configuration, event ID, source-record ID, canonical subject and event time, and checks that the event was reconciled under the report's independent reference and visible by its as-of cutoff.
+
+A window-level pass no longer implies that an arbitrary event or container claim can borrow the qualification. Partial/incomplete windows propagate as INCOMPLETE; absent/overlapping reference failures propagate as NOT_IDENTIFIABLE; malformed/mismatched profile evidence propagates as NOT_EVALUABLE; unknown profiles remain UNKNOWN. A qualified no-event window cannot be used to admit an event that is not present.
+
+This creates the intended bridge between #6974 (was the acquisition channel complete for this source/configuration/class/window?) and #7386 (what claim is being made about this exact source record and canonical subject?). It does not by itself prove that the independent reference instrumentation is valid or that the physical event caused a later receiver outcome.
