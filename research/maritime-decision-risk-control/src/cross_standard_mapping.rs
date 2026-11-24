@@ -290,7 +290,7 @@ struct Case {
     reversibility: MappingReversibility,
 }
 
-fn cases() -> [Case; 9] {
+fn cases() -> [Case; 10] {
     [
         Case {
             id: "classifier_to_extension_field_exact",
@@ -326,6 +326,13 @@ fn cases() -> [Case; 9] {
             target_field: "bizStep",
             kind: MappingKind::Contextual,
             reversibility: MappingReversibility::Reversible,
+        },
+        Case {
+            id: "lossy_mapping_with_explicit_reason",
+            expected: "LOSSY",
+            target_field: "bizStep",
+            kind: MappingKind::Lossy,
+            reversibility: MappingReversibility::Irreversible,
         },
         Case {
             id: "lossy_mapping_without_reason_rejected",
@@ -391,6 +398,15 @@ pub fn render_csv() -> String {
                 case.kind,
                 case.reversibility,
                 Some("contextual mapping"),
+            ),
+            "lossy_mapping_with_explicit_reason" => rule(
+                "eventTypeCode",
+                "LOAD",
+                case.target_field,
+                "urn:epcglobal:cbv:bizstep:loading",
+                case.kind,
+                case.reversibility,
+                Some("source-specific subreason omitted by target vocabulary"),
             ),
             "lossy_mapping_without_reason_rejected" => rule(
                 "eventTypeCode",
@@ -565,6 +581,24 @@ mod tests {
     }
 
     #[test]
+    fn mapping_rule_requires_a_review_evidence_reference() {
+        let mut candidate = rule(
+            "eventClassifierCode",
+            "ACT",
+            "sourceMaturity",
+            "ACT",
+            MappingKind::Exact,
+            MappingReversibility::Reversible,
+            None,
+        );
+        candidate.mapping_evidence_ref.clear();
+        assert_eq!(
+            candidate.validate(),
+            Err(CrosswalkError::MissingMappingEvidence)
+        );
+    }
+
+    #[test]
     fn source_and_target_versions_are_pinned() {
         let source = source_fixture();
         let exact = rule(
@@ -623,7 +657,7 @@ mod tests {
     fn receipt_is_deterministic_and_contains_every_mapping_boundary() {
         let first = render_csv();
         assert_eq!(first, render_csv());
-        assert_eq!(first.lines().count(), 10);
+        assert_eq!(first.lines().count(), 11);
         let width = first.lines().next().expect("header").split(',').count();
         assert_eq!(width, 7);
         for row in first.lines().skip(1) {
@@ -633,6 +667,6 @@ mod tests {
         assert!(first.contains("CONTEXTUAL"));
         assert!(first.contains("DCSA_CLASSIFIER_CANNOT_MAP_TO_BIZSTEP"));
         assert!(first.contains("DCSA_CLASSIFIER_CANNOT_MAP_TO_DISPOSITION"));
-        assert!(first.contains("SOURCE_PAYLOAD_PRESERVED"));
+        assert!(first.contains("source_payload_preserved"));
     }
 }
