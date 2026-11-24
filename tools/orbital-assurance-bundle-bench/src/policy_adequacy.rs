@@ -1555,6 +1555,16 @@ mod tests {
             1,
             row("s-A-model-2", "w-A", "loss-A2", "north", "north-action", 1),
         );
+        let updated_worst_ids = vec![
+            "s-A".to_owned(),
+            "s-A-model-2".to_owned(),
+            "s-B".to_owned(),
+        ];
+        for policy in &mut case.policies {
+            policy.worst_loss_scenario_ids = updated_worst_ids.clone();
+            policy.worst_wait_and_see_scenario_ids = updated_worst_ids.clone();
+            policy.worst_outcome_class_regret_scenario_ids = updated_worst_ids.clone();
+        }
         refresh_source_digests(&mut case);
         assert_eq!(evaluate_case(&case).status, "POLICY_REVIEW_WARRANTED");
     }
