@@ -58,7 +58,11 @@ jobs:
         run: |
           cargo run --quiet --locked --manifest-path tools/orbital-cal-validity-bench/Cargo.toml --bin orbital-cal-validity-bench -- docs/research/orbital-truss/fixtures/calibration-validity-v0_1.json "$GITHUB_SHA" > /tmp/cal-rust-a.json
           cargo run --quiet --locked --manifest-path tools/orbital-cal-validity-bench/Cargo.toml --bin orbital-cal-validity-bench -- docs/research/orbital-truss/fixtures/calibration-validity-v0_1.json "$GITHUB_SHA" > /tmp/cal-rust-b.json
-          cmp /tmp/cal-rust-a.json /tmp/cal-rust-b.json
+          if ! cmp -s /tmp/cal-rust-a.json /tmp/cal-rust-b.json; then
+            echo "Rust receipt replay is not byte-identical; showing exact diff"
+            diff -u /tmp/cal-rust-a.json /tmp/cal-rust-b.json || true
+            exit 1
+          fi
           test -s /tmp/cal-rust-a.json
           test -s /tmp/cal-rust-b.json
       - name: Independent Python oracle
