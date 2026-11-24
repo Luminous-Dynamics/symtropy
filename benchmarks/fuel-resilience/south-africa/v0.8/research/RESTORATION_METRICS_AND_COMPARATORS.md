@@ -114,7 +114,23 @@ The differentiator is not a faster LP solver, a more decorative digital twin, or
 7. **Independent replay:** publish frozen inputs, provenance, code/configuration digests, failed cases and an independent verifier result.
 8. **Human authority:** keep execution separate from proposal and qualification; initial deployments remain read-only.
 
-## 8. External references
+## 8. Composition with the Power Fabric restoration benchmark
+
+Do not duplicate the generic infrastructure already being developed in Symtropy #6320 and its child contracts. SAFRB contributes the domain-specific input qualification and service outcome:
+
+| Layer | Existing owner | SAFRB contribution |
+|---|---|---|
+| Frozen case, topology, observation profile | #6346 / PR #6347 | Tokenized South African port/fuel-chain profile, asset/service boundaries, fuel/access evidence references. |
+| Planner proposal and actions | #6348 / PR #6350 | Fuel logistics and service alternatives are represented as candidate proposals, not authorization. |
+| Information requests/results | #6369 / PR #6370; #6397 / PR #6401 | Symthaea EVSI may request cargo-status, assay, tank-gauge, route, generator or service-meter observations; request and result remain separate and time-indexed. |
+| Run receipt and trajectory | #6352 / PR #6366 | v0.8 service-floor trajectory and metrics are attached as content-addressed per-step/final service artifacts. |
+| Artifact and claim verification | #6402 / PR #6405; #6419 | Independent byte, signature, parent-link and role verifier qualifies the complete chain. |
+| Authority and access | Mycelix | Verifies issuer, rights, provider offer, reservation and commitment receipts; it does not make physical truth self-authenticating. |
+| Spatial context | Sol-Atlas | Supplies governed asset/site/route geometry and affected service cohorts. |
+
+This is a proposed interop mapping, not a claim that the draft contracts have already been merged or that the end-to-end pipeline is implemented. No generic action, restoration or signature schema should be forked inside SAFRB.
+
+## 9. External references
 
 - IEEE 1366 distribution reliability-index family; use the current edition and licensed standard text for formal calculations.
 - U.S. EIA Electric Power Annual: public SAIDI, SAIFI and CAIDI definitions and reporting notes: https://www.eia.gov/electricity/Annual/table.php?t=epa_11_01.html
@@ -123,3 +139,27 @@ The differentiator is not a faster LP solver, a more decorative digital twin, or
 - Nature Energy discussion of outage analysis, monitoring, mitigation and restoration, 2026: https://www.nature.com/articles/s44287-026-00298-3
 - PyPSA stochastic optimization and CVaR: https://docs.pypsa.org/latest/user-guide/optimization/stochastic/
 - NIST AI Risk Management Framework 1.0: https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-ai-rmf-10
+
+
+## 10. Frontier comparison and dataset discipline
+
+The existing Power Fabric comparator programme #6320 has already identified several mandatory external baselines. SAFRB should reuse that reproduction work and keep benchmark tiers distinct:
+
+- **Feeder restoration / degraded observation:** reproduce LARA (Findings of EACL 2026) and FLARE (arXiv:2610.23251) on their exact case sets, observation profiles, action budgets and reward definitions before attempting extensions. FLARE's public data release must be confirmed before claiming a reproduction.
+- **Electrical feasibility / whole-process restoration:** compare against the 2026 distributionally robust IEEE-118 formulation only with its exact uncertainty model and independent AC-OPF checks at every proposed time step. A topology-only or DC-only result must not be described as AC feasible.
+- **Restoration benchmark systems:** use the public benchmark model/review dataset (Zenodo DOI 10.5281/zenodo.17340051) as a separately versioned physical-restoration lane; record its model fidelity and scenario conversion receipt.
+- **Fuel logistics / service delivery:** freeze the South African case and pair every planner with identical cargo, tank, berth, pipeline, access, generation and demand evidence. Compare operational outcomes, not software-stack branding.
+- **Assurance overlay:** compare the same optimizer with and without SAFRB's evidence/service verifier. Count how many false accepts, unsupported stock promotions, infeasible schedules, hidden tail shortfalls and restoration false claims are prevented, and measure false rejects/latency as well.
+
+These are not one leaderboard. LARA, FLARE, IEEE-118 AC restoration, fuel-network flow and industrial process simulation have different physics, action spaces, observation semantics and objective functions. Publish separate tables and only aggregate after an explicit common service contract is defined.
+
+## 11. Research hypotheses beyond the current prototype
+
+1. **Service-floor-first optimization:** hard constraints for critical services, with cost, emissions and noncritical curtailment optimized only after those floors are protected.
+2. **Restoration-as-a-trajectory:** evaluate service at each time slice and require sustained recovery; a single recovered interval is not a restoration claim.
+3. **Evidence-budgeted decision-making:** value measurements by expected reduction in decision loss, but include diagnostic latency, shared crews/tools and dependence between sources.
+4. **Common-cause-aware resilience:** model correlated supplier, port, pipeline, grid, weather and communications disruptions explicitly rather than multiply independent event probabilities.
+5. **Transition and recovery quality:** distinguish temporary service compensation (diesel generator, mobile power, battery) from restoration of the original service mechanism, and measure both.
+6. **Build-back-better option value:** evaluate repair, temporary bypass, replacement, storage, grid reinforcement and alternative transport/energy pathways over a stated horizon, including staged financing/commissioning evidence.
+
+The v0.8 evaluator only measures time-bounded service-floor outcomes. It does not yet model grid dynamics, black-start, protection, transformer inrush, cold-load pickup, pipeline hydraulics or restoration control sequences. Those must be independently validated by their engineering model owners.

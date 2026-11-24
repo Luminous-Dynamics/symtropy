@@ -239,13 +239,16 @@ impl EpisodeBuilder {
         let confirmation_delay = confirmed_at
             .checked_sub(first_recovery_start)
             .ok_or_else(|| "restoration confirmation precedes its candidate start".to_string())?;
+        let observed_duration = confirmed_at
+            .checked_sub(self.start_unix_s)
+            .ok_or_else(|| "restoration confirmation precedes episode start".to_string())?;
         Ok(RestorationEpisode {
             episode_start_unix_s: self.start_unix_s,
             recovery_candidate_start_unix_s: Some(first_recovery_start),
             recovery_confirmed_at_unix_s: Some(confirmed_at),
             restoration_latency_seconds: Some(latency),
             confirmation_delay_seconds: Some(confirmation_delay),
-            observed_duration_seconds: latency,
+            observed_duration_seconds: observed_duration,
             confirmed_shortfall_windows: self.confirmed_shortfall_windows,
             uncertain_windows: self.uncertain_windows,
             critical_shortfall_lower_wh: self.critical_shortfall_lower_wh,
@@ -595,6 +598,7 @@ mod tests {
         let episode = &certificate.restoration_episodes[0];
         assert_eq!(episode.restoration_latency_seconds, Some(3_600));
         assert_eq!(episode.confirmation_delay_seconds, Some(7_200));
+        assert_eq!(episode.observed_duration_seconds, 10_800);
         assert!(!episode.right_censored);
     }
 
