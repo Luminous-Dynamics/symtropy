@@ -438,7 +438,9 @@ fn validate_inputs(
                 return Err(ObservationError::InvalidParticle { index, field: name });
             }
         }
-        if particle.particle_sigma_px > sensor.width.max(sensor.height) as f64 {
+        if particle.particle_sigma_px < 1.0e-6
+            || particle.particle_sigma_px > sensor.width.max(sensor.height) as f64
+        {
             return Err(ObservationError::InvalidParticle {
                 index,
                 field: "particle_sigma_px",
@@ -597,7 +599,7 @@ fn digitize(
         .zip(sensor.active_pixel_mask.iter())
         .enumerate()
         .map(|(index, ((signal, noise), active))| {
-            if !active {
+            if !*active {
                 return Ok(0);
             }
             let analog = sensor.gain * signal + sensor.offset + noise;
