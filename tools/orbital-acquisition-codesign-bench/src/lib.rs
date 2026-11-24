@@ -248,12 +248,14 @@ fn validate_case(case: &Case) -> Result<(), String> {
         let mut option_ids = BTreeSet::new();
         for option in &event.options {
             let mut gate_ids = BTreeSet::new();
+            let segment = case.segments.iter()
+                .find(|segment| segment.segment_id == option.segment_id)
+                .ok_or_else(|| "ACQUISITION_OPTION_SEGMENT_UNKNOWN".to_owned())?;
             if !valid_text(&option.option_id)
                 || !valid_text(&option.segment_id)
                 || !valid_text(&option.speed_id)
                 || !valid_text(&option.illumination_mode_id)
                 || !option_ids.insert(option.option_id.clone())
-                || !segment_ids.contains(&option.segment_id)
                 || option.gates.is_empty()
                 || !segment.speed_choices.iter().any(|speed| speed.speed_id == option.speed_id)
                 || !option.gates.iter().all(|gate| {
