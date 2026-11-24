@@ -1235,7 +1235,7 @@ mod tests {
         gain_minus.gain -= gain_step;
         let gain_plus_pair = render_particle_image_pair(
             &field,
-            &[seed.clone()],
+            std::slice::from_ref(&seed),
             &illumination,
             &acquisition,
             &gain_plus,
@@ -1244,7 +1244,7 @@ mod tests {
         .unwrap();
         let gain_minus_pair = render_particle_image_pair(
             &field,
-            &[seed],
+            std::slice::from_ref(&seed),
             &illumination,
             &acquisition,
             &gain_minus,
@@ -1355,7 +1355,7 @@ mod tests {
         let psf_sensitivity = central_difference_image_sensitivity(
             &render_particle_image_pair(
                 &field,
-                &[seed.clone()],
+                std::slice::from_ref(&seed),
                 &illumination,
                 &acquisition,
                 &psf_plus,
@@ -1364,7 +1364,7 @@ mod tests {
             .unwrap(),
             &render_particle_image_pair(
                 &field,
-                &[seed],
+                std::slice::from_ref(&seed),
                 &illumination,
                 &acquisition,
                 &psf_minus,
@@ -1434,7 +1434,7 @@ mod tests {
         let sheet_sensitivity = central_difference_image_sensitivity(
             &render_particle_image_pair(
                 &field,
-                &[seed.clone()],
+                std::slice::from_ref(&seed),
                 &sheet_plus,
                 &acquisition,
                 &sensor,
@@ -1443,7 +1443,7 @@ mod tests {
             .unwrap(),
             &render_particle_image_pair(
                 &field,
-                &[seed],
+                std::slice::from_ref(&seed),
                 &sheet_minus,
                 &acquisition,
                 &sensor,
@@ -1477,7 +1477,7 @@ mod tests {
         let velocity_sensitivity = central_difference_image_sensitivity(
             &render_particle_image_pair(
                 &velocity_plus,
-                &[seed.clone()],
+                std::slice::from_ref(&seed),
                 &illumination,
                 &acquisition,
                 &sensor,
@@ -1486,7 +1486,7 @@ mod tests {
             .unwrap(),
             &render_particle_image_pair(
                 &velocity_minus,
-                &[seed.clone()],
+                std::slice::from_ref(&seed),
                 &illumination,
                 &acquisition,
                 &sensor,
@@ -1505,7 +1505,7 @@ mod tests {
         let time_sensitivity = central_difference_image_sensitivity(
             &render_particle_image_pair(
                 &fixed_field,
-                &[seed.clone()],
+                std::slice::from_ref(&seed),
                 &illumination,
                 &time_plus,
                 &sensor,
@@ -1514,7 +1514,7 @@ mod tests {
             .unwrap(),
             &render_particle_image_pair(
                 &fixed_field,
-                &[seed],
+                std::slice::from_ref(&seed),
                 &illumination,
                 &time_minus,
                 &sensor,
