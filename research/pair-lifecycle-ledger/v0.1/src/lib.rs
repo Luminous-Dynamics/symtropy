@@ -362,7 +362,10 @@ impl fmt::Display for LedgerError {
                 write!(f, "candidate trace is only valid at CandidateGeneration")
             }
             Self::CandidateGenerationRequiresTrace => {
-                write!(f, "candidate generation requires a complete candidate trace")
+                write!(
+                    f,
+                    "candidate generation requires a complete candidate trace"
+                )
             }
             Self::ChildHasDifferentPair => write!(f, "child lineage changed pair identity"),
             Self::ChildPathNotImmediate => {
