@@ -637,7 +637,6 @@ pub fn validate_evidence_bound_behavioural_transfer(
     })
 }
 
-
 /// Validate a precommitted mechanism-transfer claim against owner-held intervention outcomes.
 ///
 /// Source effect observations and their evidence IDs must be present in the
