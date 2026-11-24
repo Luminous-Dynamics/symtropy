@@ -473,6 +473,6 @@ The evaluator groups exact site, asset/configuration, model/version, stratum, me
 
 The confidence bound is not a bound on the next conditional error rate or arbitrary future shift. CUSUM is a deterministic alarm, not a probability guarantee. New asset configurations start with no inherited history. The module never updates a model or grants field/operational authority, and all existing reserve/recovery/lease/PCC/network gates remain authoritative.
 
-The five-observation synthetic fixture expects two interval misses, prior-history counts [0,0,0,2,3], one latched shift alarm and final empirical miscoverage of 400 permille. Fifteen focused Rust tests cover delayed/out-of-order outcomes, no future leakage, CUSUM latching, configuration isolation, deterministic replay, evidence chronology, duplicate references, interval endpoints and claim ceilings.
+The six-forecast synthetic fixture has five observed outcomes and one still-pending outcome. It expects two interval misses, prior-history counts [0,0,0,2,3,5], one latched shift alarm and final empirical miscoverage of 400 permille. Fifteen focused Rust tests cover delayed/out-of-order outcomes, no future leakage, CUSUM latching, configuration isolation, deterministic replay, evidence chronology, duplicate references, interval endpoints and claim ceilings.
 
 Files: src/online_service_risk.rs, src/bin/online_service_risk_screen.rs, schemas/online_service_risk_v0_1.schema.json, fixtures/online_service_risk_v0_1.json. All fixture evidence is synthetic; no physical or field qualification is implied.
