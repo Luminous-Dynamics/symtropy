@@ -362,9 +362,24 @@ pub fn produce_swept_aabb<const D: usize>(
         if !observed_delta.is_finite() {
             return SweepDecision::Unsupported(UnsupportedReason::ObservedEndpointDeltaOverflow);
         }
+        // The subtraction itself rounds. Enclose its exact real difference
+        // before composing it with the starting world-space shape bound.
+        let observed_delta_lower = if observed_delta == 0.0 {
+            observed_delta
+        } else {
+            next_down(observed_delta)
+        };
+        let observed_delta_upper = if observed_delta == 0.0 {
+            observed_delta
+        } else {
+            next_up(observed_delta)
+        };
+        if !observed_delta_lower.is_finite() || !observed_delta_upper.is_finite() {
+            return SweepDecision::Unsupported(UnsupportedReason::ObservedEndpointDeltaOverflow);
+        }
 
-        let lower_delta = 0.0_f64.min(path_delta).min(observed_delta);
-        let upper_delta = 0.0_f64.max(path_delta).max(observed_delta);
+        let lower_delta = 0.0_f64.min(path_delta).min(observed_delta_lower);
+        let upper_delta = 0.0_f64.max(path_delta).max(observed_delta_upper);
 
         let lower = outward_lower_sum(input.start_world_aabb.min[axis], lower_delta);
         let upper = outward_upper_sum(input.start_world_aabb.max[axis], upper_delta);
