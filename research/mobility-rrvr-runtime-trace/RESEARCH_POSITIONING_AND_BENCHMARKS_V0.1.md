@@ -444,3 +444,15 @@ The Gazebo live adapter must also report service wall-clock latency separately f
 - [ROS 2 launch_testing integration-test documentation](https://docs.ros.org/en/rolling/Tutorials/Intermediate/Testing/Integration.html).
 - [ros2_tracing](https://github.com/ros2/ros2_tracing).
 - [Gazebo Simulation Interfaces timing and limitations](https://gazebosim.org/docs/rotary/ros2_sim_interfaces/).
+
+
+### Idempotency-ledger integrity as a separate benchmark dimension
+
+A restart-safe dispatch key must bind to one immutable request payload. Measure this independently from ordinary duplicate suppression:
+- identical key + identical payload after coordinator restart returns the prior outcome and creates zero additional effects;
+- identical key + changed target, fault parameters, schedule, or platform-bound context is rejected as PayloadConflict;
+- coordinator restart, injector restart and durable-store restart are tested separately;
+- crash cuts are inserted before ledger reservation, after reservation/before effect, after effect/before outcome persistence, and after persistence/before response;
+- report duplicate-effect count, payload-conflict detection rate, unresolved-ledger rate, and false NoDispatchProven rate.
+
+The local Rust registry is only a process-local guard. The hard target is zero duplicate effects and zero silent payload aliasing across a real durable injector ledger. A test double is not a deployed injector qualification.
