@@ -1281,7 +1281,10 @@ mod tests {
         let result = evaluate_case(&case);
         assert_eq!(result.status, "RETAIN_INCUMBENT_POLICY");
         assert_eq!(result.resource_blocked_policy_count, 1);
-        assert_eq!(result.trigger_reason, "ALTERNATIVES_EXCEED_RESOURCE_ENVELOPE");
+        assert_eq!(
+            result.trigger_reason,
+            "ALTERNATIVES_EXCEED_RESOURCE_ENVELOPE"
+        );
     }
 
     #[test]
