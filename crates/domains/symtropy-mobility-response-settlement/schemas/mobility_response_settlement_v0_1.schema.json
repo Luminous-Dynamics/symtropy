@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/domains/symtropy-mobility-response-settlement/schemas/mobility_response_settlement_v0_1.schema.json",
+  "title": "Mobility Response Settlement Evidence Bridge v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "benchmark_id", "event_id", "offer_id", "commitment_epoch_id",
+    "service_product_id", "measurement_boundary_id", "baseline_model_id",
+    "response_configuration_digest", "site_id", "pcc_id", "meter_chain_configuration_digest",
+    "asset_id", "asset_configuration_digest", "pcc_bus_id", "network_model_digest",
+    "topology_digest", "instruction_issued_at_ns", "dispatch_end_ns",
+    "observation_horizon_end_ns", "maximum_dispatch_energy_disagreement_kwh",
+    "maximum_net_energy_disagreement_kwh", "grid_response", "pcc_metrology",
+    "counterfactual_baseline", "mobility_network", "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "benchmark_id": {"const": "MOBILITY-RESPONSE-SETTLEMENT-BRIDGE-001"},
+    "event_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "offer_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "commitment_epoch_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "service_product_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "measurement_boundary_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "baseline_model_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "response_configuration_digest": {"$ref": "#/$defs/digest"},
+    "site_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "pcc_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "meter_chain_configuration_digest": {"$ref": "#/$defs/digest"},
+    "asset_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "asset_configuration_digest": {"$ref": "#/$defs/digest"},
+    "pcc_bus_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "network_model_digest": {"$ref": "#/$defs/digest"},
+    "topology_digest": {"$ref": "#/$defs/digest"},
+    "instruction_issued_at_ns": {"type": "integer", "minimum": 1},
+    "dispatch_end_ns": {"type": "integer", "minimum": 2},
+    "observation_horizon_end_ns": {"type": "integer", "minimum": 3},
+    "maximum_dispatch_energy_disagreement_kwh": {"type": "number", "minimum": 0},
+    "maximum_net_energy_disagreement_kwh": {"type": "number", "minimum": 0},
+    "grid_response": {"$ref": "#/$defs/grid_response"},
+    "pcc_metrology": {"$ref": "#/$defs/pcc_metrology"},
+    "counterfactual_baseline": {"$ref": "#/$defs/counterfactual_baseline"},
+    "mobility_network": {"$ref": "#/$defs/mobility_network"},
+    "claim_ceiling": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-fA-F]{64}$"},
+    "source_commit": {"type": "string", "pattern": "^[0-9a-fA-F]{40}$"},
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_pr", "source_commit_sha", "source_path", "report"],
+      "properties": {
+        "source_pr": {"type": "integer"},
+        "source_commit_sha": {"$ref": "#/$defs/source_commit"},
+        "source_path": {"type": "string", "minLength": 1},
+        "report": {"type": "object"}
+      }
+    },
+    "grid_response": {
+      "allOf": [
+        {"$ref": "#/$defs/artifact"},
+        {"properties": {"source_pr": {"const": 3649}, "source_path": {"const": "crates/domains/symtropy-energy-systems/src/grid_response.rs"}}}
+      ]
+    },
+    "pcc_metrology": {
+      "allOf": [
+        {"$ref": "#/$defs/artifact"},
+        {"properties": {"source_pr": {"const": 3772}, "source_path": {"const": "crates/domains/symtropy-pcc-metrology/src/lib.rs"}}}
+      ]
+    },
+    "counterfactual_baseline": {
+      "allOf": [
+        {"$ref": "#/$defs/artifact"},
+        {"properties": {"source_pr": {"const": 3807}, "source_path": {"const": "crates/domains/symtropy-counterfactual-baseline/src/lib.rs"}}}
+      ]
+    },
+    "mobility_network": {
+      "allOf": [
+        {"$ref": "#/$defs/artifact"},
+        {"properties": {"source_pr": {"const": 7313}, "source_path": {"const": "crates/domains/symtropy-mobility-network-adapter/src/lib.rs"}}}
+      ]
+    }
+  }
+}
