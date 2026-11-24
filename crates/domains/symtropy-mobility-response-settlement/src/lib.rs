@@ -1326,6 +1326,8 @@ mod tests {
             {"gate":"pcc_metrology","disposition":"passed"}
         ]);
         let network_report = json!({
+            "offer_id":"mobility-offer-001",
+            "commitment_epoch_id":"commitment-epoch-007",
             "site_id":"depot-01",
             "pcc_id":"pcc-01",
             "pcc_bus_id":"B",
