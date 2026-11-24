@@ -74,6 +74,9 @@ pub enum TailRiskError {
     ZeroTotalMass,
     InvalidAlpha(u32),
     DuplicateModelId(u64),
+    InvalidParticleId,
+    DuplicateParticleId(u64),
+    InvalidTailMass(u32),
     MissingAction(u64),
     InvalidPolicyTree,
     ArithmeticOverflow,
@@ -89,6 +92,9 @@ impl core::fmt::Display for TailRiskError {
                 "CVaR alpha must be below one million PPM, got {alpha}"
             ),
             Self::DuplicateModelId(id) => write!(f, "mission model identity is duplicated: {id}"),
+            Self::InvalidParticleId => write!(f, "belief particle identity must be nonzero"),
+            Self::DuplicateParticleId(id) => write!(f, "belief particle identity is duplicated: {id}"),
+            Self::InvalidTailMass(mass) => write!(f, "belief CVaR tail mass must be in 1..=1000000 PPM, got {mass}"),
             Self::MissingAction(id) => write!(f, "policy references an unavailable action: {id}"),
             Self::InvalidPolicyTree => write!(f, "observable policy tree is incomplete or inconsistent"),
             Self::ArithmeticOverflow => write!(f, "checked exact tail-risk arithmetic overflowed"),
@@ -105,6 +111,84 @@ pub struct ModelLossDistribution<'a> {
     /// Complete stochastic mission-path loss distribution under one fixed
     /// model and one fixed observable policy.
     pub outcomes: &'a [LossMass],
+}
+
+/// One weighted particle in the current belief for a state-dependent
+/// immediate action cost. The caller must construct these particles using
+/// only information available at the current decision epoch.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct BeliefCostParticle {
+    /// Stable, nonzero identity unique within this belief snapshot.
+    pub particle_id: u64,
+    /// Immediate cost if the hidden state represented by this particle is true.
+    pub immediate_cost: u64,
+    /// Non-negative importance / posterior weight. Weights need not sum to a
+    /// particular constant, but their total must be positive.
+    pub weight: u128,
+}
+
+/// Risk of the immediate state-dependent cost under one current belief.
+///
+/// This is the belief-state risk layer, not a full mission-path risk measure.
+/// It evaluates the cost distribution across hidden states represented by the
+/// belief particles. Call it separately for each persistent candidate model;
+/// do not combine particles from different epistemic models before the
+/// outer robust-model aggregation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct BeliefImmediateRisk {
+    pub expected_cost: ExactRisk,
+    pub cvar_cost: ExactRisk,
+    /// Upper-tail probability mass in PPM. 50_000 means the worst 5%.
+    pub tail_mass_ppm: u32,
+    pub particle_count: usize,
+}
+
+/// Evaluate state uncertainty in one current belief using upper-tail CVaR of
+/// the immediate state-dependent cost.
+///
+/// The public input uses tail mass (e.g. 50_000 for the worst 5%), matching
+/// the convention in Pariente & Indelman's CVaR-cost POMDP formulation. The
+/// lower-level cvar() API uses confidence alpha (e.g. 950_000 for CVaR95), so
+/// this function performs the explicit conversion. This API does not optimize
+/// future trajectory return or replace mission-path CVaR.
+pub fn belief_immediate_cvar(
+    particles: &[BeliefCostParticle],
+    tail_mass_ppm: u32,
+) -> Result<BeliefImmediateRisk, TailRiskError> {
+    if particles.is_empty() {
+        return Err(TailRiskError::EmptyDistribution);
+    }
+    if tail_mass_ppm == 0 || tail_mass_ppm as u128 > PROBABILITY_SCALE_PPM {
+        return Err(TailRiskError::InvalidTailMass(tail_mass_ppm));
+    }
+
+    let mut seen = std::collections::BTreeSet::new();
+    let mut costs = Vec::with_capacity(particles.len());
+    for particle in particles {
+        if particle.particle_id == 0 {
+            return Err(TailRiskError::InvalidParticleId);
+        }
+        if !seen.insert(particle.particle_id) {
+            return Err(TailRiskError::DuplicateParticleId(particle.particle_id));
+        }
+        costs.push(LossMass {
+            loss: particle.immediate_cost,
+            mass: particle.weight,
+        });
+    }
+
+    let expected = expected_loss(&costs)?;
+    let confidence_alpha_ppm =
+        u32::try_from(PROBABILITY_SCALE_PPM - tail_mass_ppm as u128)
+            .map_err(|_| TailRiskError::ArithmeticOverflow)?;
+    let tail = cvar(&costs, confidence_alpha_ppm)?;
+
+    Ok(BeliefImmediateRisk {
+        expected_cost: expected,
+        cvar_cost: tail,
+        tail_mass_ppm,
+        particle_count: particles.len(),
+    })
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -402,9 +486,9 @@ pub fn mission_path_loss_distributions(
         let decision = policy
             .root_terminal_decision
             .ok_or(TailRiskError::InvalidPolicyTree)?;
-        for model in 0..2 {
+        for (model, distribution) in distributions.iter_mut().enumerate() {
             append_terminal_state_masses(
-                &mut distributions[model],
+                distribution,
                 problem.prior_by_model_ppm[model].map(u128::from),
                 decision,
                 problem,
@@ -435,7 +519,7 @@ pub fn mission_path_loss_distributions(
         }
         seen[first_index] = true;
 
-        for model in 0..2 {
+        for (model, distribution) in distributions.iter_mut().enumerate() {
             let initial = problem.prior_by_model_ppm[model].map(u128::from);
             let first_outcomes = propagate_action(model, initial, first_action)?;
             let first_state_mass = first_outcomes[first_index];
@@ -443,7 +527,7 @@ pub fn mission_path_loss_distributions(
             match &branch.choice {
                 ObservableBranchChoice::Stop { terminal_decision } => {
                     append_terminal_state_masses(
-                        &mut distributions[model],
+                        distribution,
                         first_state_mass,
                         *terminal_decision,
                         problem,
@@ -462,10 +546,12 @@ pub fn mission_path_loss_distributions(
                         .find(|action| action.action_id == *second_action_id)
                         .ok_or(TailRiskError::MissingAction(*second_action_id))?;
                     let second_outcomes = propagate_action(model, first_state_mass, second_action)?;
-                    for second_outcome_index in 0..3 {
+                    for (second_outcome_index, second_outcome_mass) in
+                        second_outcomes.iter().enumerate()
+                    {
                         append_terminal_state_masses(
-                            &mut distributions[model],
-                            second_outcomes[second_outcome_index],
+                            distribution,
+                            *second_outcome_mass,
                             terminal_decisions[second_outcome_index],
                             problem,
                             1,
@@ -515,7 +601,7 @@ fn propagate_action(
 ) -> Result<[[u128; 4]; 3], TailRiskError> {
     let scale = PROBABILITY_SCALE_PPM;
     let mut outcomes = [[0_u128; 4]; 3];
-    for outcome_index in 0..3 {
+    for (outcome_index, outcome_mass) in outcomes.iter_mut().enumerate() {
         let likelihood_for_state = |state: usize| {
             let likelihoods = action.likelihoods[model][state];
             match outcome_index {
@@ -526,8 +612,8 @@ fn propagate_action(
         };
 
         let mut capture = [0_u128; 4];
-        for state in 0..4 {
-            capture[state] = mass[state]
+        for (state, capture_mass) in capture.iter_mut().enumerate() {
+            *capture_mass = mass[state]
                 .checked_mul(likelihood_for_state(state) as u128)
                 .ok_or(TailRiskError::ArithmeticOverflow)?;
         }
@@ -544,13 +630,13 @@ fn propagate_action(
             let inside_to_inside = scale - inside_to_outside;
             let outside_to_outside = scale - outside_to_inside;
 
-            outcomes[outcome_index][inside] = capture[inside]
+            outcome_mass[inside] = capture[inside]
                 .checked_mul(inside_to_inside)
                 .and_then(|value| value.checked_add(
                     capture[outside].checked_mul(outside_to_inside)?,
                 ))
                 .ok_or(TailRiskError::ArithmeticOverflow)?;
-            outcomes[outcome_index][outside] = capture[inside]
+            outcome_mass[outside] = capture[inside]
                 .checked_mul(inside_to_outside)
                 .and_then(|value| value.checked_add(
                     capture[outside].checked_mul(outside_to_outside)?,
@@ -982,8 +1068,8 @@ mod mission_path_distribution_tests {
         let mut reveal_cause = action(1, 0, 100, 0, 0);
         let reveal_nominal = likelihoods(0, PROBABILITY_SCALE, 0);
         let reveal_shared = likelihoods(0, 0, PROBABILITY_SCALE);
-        for model in 0..2 {
-            reveal_cause.likelihoods[model] = [
+        for likelihood_rows in &mut reveal_cause.likelihoods {
+            *likelihood_rows = [
                 reveal_nominal,
                 reveal_nominal,
                 reveal_shared,
@@ -994,10 +1080,16 @@ mod mission_path_distribution_tests {
         let mut nominal_specialist = action(2, 0, 100, 0, 0);
         let mut shared_specialist = action(3, 0, 100, 0, 0);
         let uninformative = likelihoods(0, 500_000, 500_000);
-        for model in 0..2 {
-            for state in 0..2 {
-                nominal_specialist.likelihoods[model][2 + state] = uninformative;
-                shared_specialist.likelihoods[model][state] = uninformative;
+        for (nominal_rows, shared_rows) in nominal_specialist
+            .likelihoods
+            .iter_mut()
+            .zip(shared_specialist.likelihoods.iter_mut())
+        {
+            for (nominal_slot, shared_slot) in
+                nominal_rows[2..].iter_mut().zip(shared_rows[..2].iter_mut())
+            {
+                *nominal_slot = uninformative;
+                *shared_slot = uninformative;
             }
         }
 
@@ -1021,5 +1113,160 @@ mod mission_path_distribution_tests {
         assert_matches_expected_loss(policy, &distributions);
         assert_eq!(cvar(&distributions[0], 950_000).unwrap(), ExactRisk::from_ratio(0, 1).unwrap());
         assert_eq!(cvar(&distributions[1], 950_000).unwrap(), ExactRisk::from_ratio(0, 1).unwrap());
+    }
+}
+
+
+#[cfg(test)]
+mod belief_immediate_cvar_tests {
+    use super::*;
+
+    fn particle(id: u64, cost: u64, weight: u128) -> BeliefCostParticle {
+        BeliefCostParticle {
+            particle_id: id,
+            immediate_cost: cost,
+            weight,
+        }
+    }
+
+    #[test]
+    fn belief_tail_risk_separates_rare_high_consequence_states_at_equal_mean() {
+        // Both actions have expected immediate cost 5. The first places 5%
+        // of the current belief in a high-cost state; the second is uniform.
+        let rare_catastrophic = [
+            particle(1, 100, 1),
+            particle(2, 0, 19),
+        ];
+        let steady = [particle(3, 5, 20)];
+
+        let first = belief_immediate_cvar(&rare_catastrophic, 50_000).unwrap();
+        let second = belief_immediate_cvar(&steady, 50_000).unwrap();
+
+        assert_eq!(first.expected_cost, ExactRisk::from_ratio(5, 1).unwrap());
+        assert_eq!(second.expected_cost, ExactRisk::from_ratio(5, 1).unwrap());
+        assert_eq!(first.cvar_cost, ExactRisk::from_ratio(100, 1).unwrap());
+        assert_eq!(second.cvar_cost, ExactRisk::from_ratio(5, 1).unwrap());
+        assert_eq!(first.tail_mass_ppm, 50_000);
+        assert_eq!(first.particle_count, 2);
+    }
+
+    #[test]
+    fn full_tail_mass_recovers_expected_immediate_cost() {
+        let belief = [
+            particle(1, 10, 2),
+            particle(2, 3, 5),
+            particle(3, 0, 3),
+        ];
+        let risk = belief_immediate_cvar(&belief, 1_000_000).unwrap();
+        assert_eq!(risk.cvar_cost, risk.expected_cost);
+    }
+
+    #[test]
+    fn belief_particle_order_does_not_change_immediate_risk() {
+        let forward = [
+            particle(1, 100, 1),
+            particle(2, 0, 19),
+            particle(3, 5, 10),
+        ];
+        let reverse = [forward[2], forward[1], forward[0]];
+        assert_eq!(
+            belief_immediate_cvar(&forward, 50_000),
+            belief_immediate_cvar(&reverse, 50_000)
+        );
+    }
+
+    #[test]
+    fn invalid_or_duplicate_belief_particle_id_rejects() {
+        assert_eq!(
+            belief_immediate_cvar(&[particle(0, 1, 1)], 50_000),
+            Err(TailRiskError::InvalidParticleId)
+        );
+        assert_eq!(
+            belief_immediate_cvar(&[particle(7, 1, 1), particle(7, 2, 1)], 50_000),
+            Err(TailRiskError::DuplicateParticleId(7))
+        );
+    }
+
+    #[test]
+    fn invalid_tail_mass_empty_belief_and_zero_total_weight_reject() {
+        assert_eq!(
+            belief_immediate_cvar(&[], 50_000),
+            Err(TailRiskError::EmptyDistribution)
+        );
+        assert_eq!(
+            belief_immediate_cvar(&[particle(1, 1, 1)], 0),
+            Err(TailRiskError::InvalidTailMass(0))
+        );
+        assert_eq!(
+            belief_immediate_cvar(&[particle(1, 1, 1)], 1_000_001),
+            Err(TailRiskError::InvalidTailMass(1_000_001))
+        );
+        assert_eq!(
+            belief_immediate_cvar(&[particle(1, 1, 0)], 50_000),
+            Err(TailRiskError::ZeroTotalMass)
+        );
+    }
+}
+
+
+#[cfg(test)]
+mod static_cvar_time_consistency_tests {
+    use super::*;
+
+    #[test]
+    fn static_root_cvar_and_conditional_replanning_can_prefer_opposite_actions() {
+        // Two first-observation branches:
+        // H has 1% mission probability; L has 99%.
+        // On L, a common exogenous event causes loss 300 with 4% total
+        // mission probability. On H, the controller chooses A or B.
+        //
+        // Root policy A on H:
+        //   mission mass 4% at 300, 0.05% at 200, 0.95% at 150, 95% at 0.
+        // Root policy B on H:
+        //   mission mass 4% at 300, 1% at 180, 95% at 0.
+        let root_a = [
+            LossMass { loss: 300, mass: 80 },
+            LossMass { loss: 200, mass: 1 },
+            LossMass { loss: 150, mass: 19 },
+            LossMass { loss: 0, mass: 1_900 },
+        ];
+        let root_b = [
+            LossMass { loss: 300, mass: 80 },
+            LossMass { loss: 180, mass: 20 },
+            LossMass { loss: 0, mass: 1_900 },
+        ];
+
+        // After H is observed, conditional A has a 5% tail at 200 while B
+        // is constant at 180. A fresh conditional CVaR replan therefore
+        // changes the continuation from A to B.
+        let conditional_h_a = [
+            LossMass { loss: 200, mass: 1 },
+            LossMass { loss: 150, mass: 19 },
+        ];
+        let conditional_h_b = [LossMass { loss: 180, mass: 20 }];
+
+        let root_cvar_a = cvar(&root_a, 950_000).unwrap();
+        let root_cvar_b = cvar(&root_b, 950_000).unwrap();
+        let branch_cvar_a = cvar(&conditional_h_a, 950_000).unwrap();
+        let branch_cvar_b = cvar(&conditional_h_b, 950_000).unwrap();
+
+        assert_eq!(root_cvar_a, ExactRisk::from_ratio(541, 2).unwrap()); // 270.5
+        assert_eq!(root_cvar_b, ExactRisk::from_ratio(276, 1).unwrap());
+        assert_eq!(branch_cvar_a, ExactRisk::from_ratio(200, 1).unwrap());
+        assert_eq!(branch_cvar_b, ExactRisk::from_ratio(180, 1).unwrap());
+
+        // The original static root objective selects A (270.5 < 276), but
+        // after H is observed a new conditional CVaR solve selects B (180 < 200).
+        assert_eq!(root_cvar_a.compare(root_cvar_b), core::cmp::Ordering::Less);
+        assert_eq!(branch_cvar_b.compare(branch_cvar_a), core::cmp::Ordering::Less);
+
+        // Replacing A by B after H is realized changes the original root
+        // distribution from root_a to root_b, raising static mission CVaR
+        // from 270.5 to 276. This is the finite counterexample to assuming
+        // static trajectory CVaR is automatically time-consistent.
+        assert_eq!(
+            root_cvar_b.compare(root_cvar_a),
+            core::cmp::Ordering::Greater
+        );
     }
 }

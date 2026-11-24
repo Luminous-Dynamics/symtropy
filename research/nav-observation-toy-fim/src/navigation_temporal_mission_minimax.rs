@@ -676,11 +676,6 @@ fn consider(
     Ok(())
 }
 
-/// Enumerates one observable two-action policy tree. Model identity and the
-/// common-cause regime are fixed through the mission; only navigation state
-/// transitions between capture and use epochs. The returned policies are
-/// exact over the supplied finite model set and integer probabilities.
-
 /// Exact robust-CVaR policy selected from the same observable finite policy
 /// trees as the mission-global expected-risk planner. The model is held fixed
 /// outside the stochastic mission-path distribution.
@@ -693,6 +688,10 @@ pub struct TemporalCvarPlan {
     pub authority_transition_not_authorized_by_plan: bool,
 }
 
+/// Enumerates one observable two-action policy tree. Model identity and the
+/// common-cause regime are fixed through the mission; only navigation state
+/// transitions between capture and use epochs. The returned policies are
+/// exact over the supplied finite model set and integer probabilities.
 pub fn plan_temporal_mission_minimax(
     problem: &TemporalMinimaxProblem,
     actions: &[TimedJointAction],
