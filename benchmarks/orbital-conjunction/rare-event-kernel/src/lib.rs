@@ -100,7 +100,8 @@ pub use pop_convergence::{
     decide_peak_overlap_convergence,
 };
 pub use predictable_empirical_bernstein::{
-    DEFAULT_BET_FRACTION_CAP, PrPlEbConfidenceSequence, PrPlEbError,
+    AdaptiveImportanceSamplingPrPlEbSequence, DEFAULT_BET_FRACTION_CAP,
+    PrPlEbConfidenceSequence, PrPlEbError,
 };
 pub use refinement_scheduler::{
     RankedRefinementCandidate, RefinementCandidate, RefinementCandidateId, RefinementScheduleError,
