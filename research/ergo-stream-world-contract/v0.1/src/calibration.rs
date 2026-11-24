@@ -98,11 +98,12 @@ fn wilson_interval_95(successes: usize, trials: usize) -> Option<(f64, f64)> {
     let z_squared = Z_95 * Z_95;
     let denominator = 1.0 + z_squared / n;
     let centre = (p + z_squared / (2.0 * n)) / denominator;
-    let half_width = Z_95
-        * ((p * (1.0 - p) / n) + z_squared / (4.0 * n * n)).sqrt()
-        / denominator;
+    let half_width = Z_95 * ((p * (1.0 - p) / n) + z_squared / (4.0 * n * n)).sqrt() / denominator;
 
-    Some(((centre - half_width).max(0.0), (centre + half_width).min(1.0)))
+    Some((
+        (centre - half_width).max(0.0),
+        (centre + half_width).min(1.0),
+    ))
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -174,9 +175,13 @@ impl fmt::Display for TransferCalibrationErrorV0 {
             Self::ProbabilityOutOfRange => "transfer probability must be in 0..=1_000_000 ppm",
             Self::ThresholdOutOfRange => "confidence threshold must be in 0..=1_000_000 ppm",
             Self::ArithmeticOverflow => "calibration metric arithmetic overflowed",
-            Self::EmptyConformalCalibration => "split-conformal calibration requires at least one matched sample",
+            Self::EmptyConformalCalibration => {
+                "split-conformal calibration requires at least one matched sample"
+            }
             Self::AlphaOutOfRange => "conformal miscoverage alpha must be in 1..999999 ppm",
-            Self::MixedCalibrationStrata => "split-conformal calibration samples must belong to one evaluator-owned stratum",
+            Self::MixedCalibrationStrata => {
+                "split-conformal calibration samples must belong to one evaluator-owned stratum"
+            }
         };
         formatter.write_str(message)
     }
@@ -527,7 +532,10 @@ pub fn fit_split_conformal_binary_transfer(
         if forecast.probability_transfer_ppm > PROBABILITY_SCALE_PPM_V0 {
             return Err(TransferCalibrationErrorV0::ProbabilityOutOfRange);
         }
-        if forecast_by_id.insert(forecast.sample_id, *forecast).is_some() {
+        if forecast_by_id
+            .insert(forecast.sample_id, *forecast)
+            .is_some()
+        {
             return Err(TransferCalibrationErrorV0::DuplicateSampleId);
         }
     }
@@ -578,8 +586,8 @@ pub fn fit_split_conformal_binary_transfer(
         .checked_add(u128::from(PROBABILITY_SCALE_PPM_V0 - 1))
         .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?
         / u128::from(PROBABILITY_SCALE_PPM_V0);
-    let quantile_rank = usize::try_from(rank)
-        .map_err(|_| TransferCalibrationErrorV0::ArithmeticOverflow)?;
+    let quantile_rank =
+        usize::try_from(rank).map_err(|_| TransferCalibrationErrorV0::ArithmeticOverflow)?;
 
     let quantile_nonconformity_ppm = if quantile_rank > calibration_count {
         PROBABILITY_SCALE_PPM_V0
@@ -651,10 +659,7 @@ mod tests {
         let predicted = calibrator.predict(204, 900_000).unwrap();
         assert!(predicted.include_transfer);
         assert!(!predicted.include_non_transfer);
-        assert_eq!(
-            predicted.decision,
-            Some(TransferDecisionV0::AssertTransfer)
-        );
+        assert_eq!(predicted.decision, Some(TransferDecisionV0::AssertTransfer));
     }
 
     #[test]
@@ -665,11 +670,14 @@ mod tests {
             evaluation_stratum_id: 2,
             transfer_qualified: true,
         }];
-        let calibrator = fit_split_conformal_binary_transfer(&forecasts, &outcomes, 2, 100_000)
-            .unwrap();
+        let calibrator =
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, 2, 100_000).unwrap();
 
         assert_eq!(calibrator.quantile_rank, 2);
-        assert_eq!(calibrator.quantile_nonconformity_ppm, PROBABILITY_SCALE_PPM_V0);
+        assert_eq!(
+            calibrator.quantile_nonconformity_ppm,
+            PROBABILITY_SCALE_PPM_V0
+        );
         let predicted = calibrator.predict(302, 900_000).unwrap();
         assert!(predicted.include_transfer);
         assert!(predicted.include_non_transfer);
