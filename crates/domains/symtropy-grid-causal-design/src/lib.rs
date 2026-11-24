@@ -91,6 +91,7 @@ pub struct GridCausalDesignInput {
     pub primary_estimand: PrimaryEstimand,
     pub service_product_id: String,
     pub primary_outcome_id: String,
+    pub primary_outcome_unit: String,
     pub measurement_boundary_id: String,
     pub protocol_reference: String,
     pub pre_registration_digest: String,
@@ -128,6 +129,8 @@ pub struct GridCausalDesignAuditReport {
     pub experiment_id: String,
     pub design_class: DesignClass,
     pub primary_estimand: PrimaryEstimand,
+    pub primary_outcome_id: String,
+    pub primary_outcome_unit: String,
     pub design_qualified: bool,
     pub cluster_count: usize,
     pub site_count: usize,
@@ -273,6 +276,7 @@ fn validate_input(input: &GridCausalDesignInput) -> Result<(), DesignAuditError>
         ("experiment_id", input.experiment_id.as_str()),
         ("service_product_id", input.service_product_id.as_str()),
         ("primary_outcome_id", input.primary_outcome_id.as_str()),
+        ("primary_outcome_unit", input.primary_outcome_unit.as_str()),
         (
             "measurement_boundary_id",
             input.measurement_boundary_id.as_str(),
@@ -669,6 +673,8 @@ pub fn audit_causal_design(
         experiment_id: input.experiment_id.clone(),
         design_class: input.design_class,
         primary_estimand: input.primary_estimand,
+        primary_outcome_id: input.primary_outcome_id.clone(),
+        primary_outcome_unit: input.primary_outcome_unit.clone(),
         design_qualified: true,
         cluster_count: input.clusters.len(),
         site_count: input
