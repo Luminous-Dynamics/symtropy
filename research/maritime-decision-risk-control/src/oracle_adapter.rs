@@ -343,9 +343,7 @@ impl ClusterMeanMatrix {
         revisions: &crate::FrozenRevisions,
     ) -> Result<ClusteredRiskControlResult, ClusterRiskControlError> {
         if self.role != DatasetRole::Calibration {
-            return Err(ClusterRiskControlError::CalibrationRoleRequired {
-                found: self.role,
-            });
+            return Err(ClusterRiskControlError::CalibrationRoleRequired { found: self.role });
         }
         if revisions.evaluator_revision != self.provenance.evaluator_revision {
             return Err(ClusterRiskControlError::EvaluatorRevisionMismatch);
@@ -398,8 +396,7 @@ impl ClusterMeanMatrix {
                 found: service_loss.axis,
             });
         }
-        if self.policy_ids != service_loss.policy_ids
-            || self.provenance != service_loss.provenance
+        if self.policy_ids != service_loss.policy_ids || self.provenance != service_loss.provenance
         {
             return Err(ClusterRiskControlError::ClusterMatricesNotAligned);
         }
