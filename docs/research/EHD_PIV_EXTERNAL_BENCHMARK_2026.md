@@ -50,6 +50,8 @@ The crate `tools/ehd-piv-external-benchmark` accepts one normalized scalar profi
 
 The metric kernel requires strictly increasing y+ coordinates and explicit units. It does not interpolate mismatched grids. Trapezoidal quadrature respects nonuniform y+ spacing and skips adjacent intervals when either estimate is missing. Each channel (mean velocity, each stress component, TKE/trace) is scored separately. Confidence-interval diagnostics are not proofs of uncertainty calibration.
 
+The crate also provides a full six-component symmetric Reynolds-stress tensor scorecard: component-wise RMSE, TKE trace error, full-tensor Frobenius error and positive-semidefinite realizability counts. This is enabled only when all six components are present; planar two-component PIV and hot-wire profiles do not support a full 3D realizability claim.
+
 It intentionally does not parse TIFF/MAT/HDF5 in V0. A later importer must record conversions, units, coordinate orientation, input file digests and source revision.
 
 ## Comparison protocol
