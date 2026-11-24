@@ -1,6 +1,7 @@
 use nav_observation_toy_fim::navigation_tail_risk::{
     cvar, iterated_cvar, ConditionalLossBranch, ExactRisk, LossMass,
 };
+use nav_observation_toy_fim::navigation_temporal_mission_minimax::TerminalDecision;
 
 fn branch(
     branch_id: u64,
@@ -10,6 +11,7 @@ fn branch(
     ConditionalLossBranch {
         branch_id,
         continuation_action_id: branch_id,
+        terminal_decisions: [TerminalDecision::DeclareSafe; 3],
         probability_mass,
         continuation_losses: continuation
             .iter()
