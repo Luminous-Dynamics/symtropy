@@ -107,7 +107,7 @@ impl BoundedMeanBettingSequence {
             });
         }
 
-        let threshold = (2.0 / alpha).ln();
+        let threshold = 2.0_f64.ln() - alpha.ln();
         let lower = self.lower_bound(threshold)?;
         let upper = self.upper_bound(threshold)?;
         if lower > upper {
