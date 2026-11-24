@@ -14,9 +14,11 @@
     "physical_nuisance_pairwise_signed_correlation",
     "candidate_acquisition_rank_gain",
     "candidate_smallest_profiled_physical_sensitivity_gain_per_cost",
-    "dense_covariance_cholesky_whitening_reference"
+    "dense_covariance_cholesky_whitening_reference",
+    "conditional_innovation_sensitivity_after_existing_measurements",
+    "Schur_complement_covariance_for_incremental_measurement"
   ],
-  "authored_manufactured_tests": 23,
+  "authored_manufactured_tests": 27,
   "limits": [
     "no_observation_covariance_whitening",
     "no_global_or_structural_identifiability_proof",
@@ -80,6 +82,35 @@
       "asymmetric_covariance_rejected",
       "semidefinite_covariance_rejected_without_jitter",
       "ragged_covariance_rejected"
+    ]
+  },
+  "conditional_innovation_whitening": {
+    "function": "whiten_conditional_innovation_sensitivities",
+    "raw_inputs": [
+      "existing_sensitivity_J0",
+      "candidate_sensitivity_J1",
+      "existing_covariance_Sigma00",
+      "candidate_covariance_Sigma11",
+      "candidate_existing_cross_covariance_Sigma10"
+    ],
+    "equations": [
+      "Sigma01 = transpose(Sigma10)",
+      "J_cond = J1 - Sigma10 * inverse(Sigma00) * J0",
+      "S_cond = Sigma11 - Sigma10 * inverse(Sigma00) * Sigma01",
+      "J_cond_white = inverse(cholesky(S_cond)) * J_cond"
+    ],
+    "bounded_dense_total_observations": 512,
+    "limits": [
+      "all_covariance_blocks_must_be_qualified",
+      "does_not_repair_non_spd_schur_complement",
+      "does_not_add_hidden_jitter",
+      "no_sparse_or_low_rank_scalable_covariance_operator_v0"
+    ],
+    "tests": [
+      "correlated_repeat_has_only_conditional_increment",
+      "independent_candidate_retains_raw_sensitivity",
+      "cross_covariance_shape_rejected",
+      "non_spd_schur_complement_rejected"
     ]
   }
 }
