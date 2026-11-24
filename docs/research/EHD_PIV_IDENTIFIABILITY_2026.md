@@ -38,6 +38,8 @@ The Rust kernel performs a one-sided Jacobi SVD and reports:
 - physical/nuisance signed sensitivity correlations;
 - per-parameter scaled sensitivity norm.
 
+The physical condition number is computed from the largest and smallest **profiled** physical singular values, not from the unprofiled maximum. Otherwise a nuisance projection that uniformly reduces physical sensitivity could be mistaken for severe conditioning. A manufactured regression test covers this case.
+
 The crucial difference is separating joint rank from physical rank after nuisance profiling. Two nuisance parameters may be mutually confounded while a flow parameter remains well identified. Conversely, a joint fit can be ill-conditioned because a physical parameter and camera gain explain almost the same image change.
 
 ## Fail-closed acceptance semantics
@@ -50,7 +52,7 @@ The crucial difference is separating joint rank from physical rank after nuisanc
 
 ## Manufactured tests
 
-The 18 current deterministic tests cover orthogonal and exact/near-collinear physical/nuisance effects, nuisance-only rank deficiency, characteristic scaling, row permutation, positive/negative confounding, zero-sensitivity parameters, underdetermined observations, malformed/non-finite inputs, one-column decomposition, Jacobi non-convergence and the distinction between absent physical sensitivity and nuisance confounding.
+The 19 current deterministic tests cover orthogonal and exact/near-collinear physical/nuisance effects, nuisance-only rank deficiency, characteristic scaling, row permutation, positive/negative confounding, zero-sensitivity parameters, underdetermined observations, malformed/non-finite inputs, one-column decomposition, Jacobi non-convergence and the distinction between absent physical sensitivity and nuisance confounding.
 
 ## V0.1: candidate measurement ranking
 
