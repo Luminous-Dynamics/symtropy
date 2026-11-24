@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/ev-passenger-cost-frontier/schemas/service_decision_impact_v0_1.schema.json",
+  "title": "Service Decision-Impact Calibration Audit v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "benchmark_id", "audit_cutoff_unix_ms", "records", "claim_ceiling"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "benchmark_id": {"const": "SERVICE-DECISION-IMPACT-001"},
+    "audit_cutoff_unix_ms": {"type": "integer", "minimum": 1},
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2000,
+      "items": {"$ref": "#/$defs/record"}
+    },
+    "claim_ceiling": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["asset_id", "configuration_digest", "producer_id", "method_id", "evidence_reference", "evidence_class", "observed_at_unix_ms", "valid_from_unix_ms", "valid_until_unix_ms"],
+      "properties": {
+        "asset_id": {"type": "string", "minLength": 1},
+        "configuration_digest": {"type": "string", "minLength": 1},
+        "producer_id": {"type": "string", "minLength": 1},
+        "method_id": {"type": "string", "minLength": 1},
+        "evidence_reference": {"type": "string", "minLength": 1},
+        "evidence_class": {"enum": ["synthetic", "measured", "independent_test", "unknown"]},
+        "observed_at_unix_ms": {"type": ["integer", "null"], "minimum": 0},
+        "valid_from_unix_ms": {"type": ["integer", "null"], "minimum": 0},
+        "valid_until_unix_ms": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_id", "site_id", "site_configuration_digest", "asset_id", "asset_configuration_digest",
+        "stratum_id", "forecast_model_id", "forecast_model_version", "policy_id", "policy_version",
+        "decision_time_unix_ms", "target_start_unix_ms", "target_end_unix_ms", "direction",
+        "threshold_value", "predicted_lower", "predicted_point", "predicted_upper", "observed_value",
+        "hard_gate_disposition", "service_value_units", "forecast_evidence", "hard_gate_evidence", "outcome_evidence"
+      ],
+      "properties": {
+        "sample_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "site_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "site_configuration_digest": {"type": "string", "minLength": 1},
+        "asset_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "asset_configuration_digest": {"type": "string", "minLength": 1},
+        "stratum_id": {"type": "string", "minLength": 1, "maxLength": 96},
+        "forecast_model_id": {"type": "string", "minLength": 1, "maxLength": 96},
+        "forecast_model_version": {"type": "string", "minLength": 1, "maxLength": 64},
+        "policy_id": {"type": "string", "minLength": 1, "maxLength": 96},
+        "policy_version": {"type": "string", "minLength": 1, "maxLength": 64},
+        "decision_time_unix_ms": {"type": "integer", "minimum": 1},
+        "target_start_unix_ms": {"type": "integer", "minimum": 1},
+        "target_end_unix_ms": {"type": "integer", "minimum": 1},
+        "direction": {"enum": ["minimum_at_least_threshold", "maximum_at_most_threshold"]},
+        "threshold_value": {"type": "integer", "minimum": 0, "maximum": 1000000000000},
+        "predicted_lower": {"type": "integer", "minimum": 0, "maximum": 1000000000000},
+        "predicted_point": {"type": "integer", "minimum": 0, "maximum": 1000000000000},
+        "predicted_upper": {"type": "integer", "minimum": 0, "maximum": 1000000000000},
+        "observed_value": {"type": "integer", "minimum": 0, "maximum": 1000000000000},
+        "hard_gate_disposition": {"enum": ["passed", "failed", "unknown"]},
+        "service_value_units": {"type": "integer", "minimum": 0, "maximum": 1000000000000},
+        "forecast_evidence": {"$ref": "#/$defs/evidence"},
+        "hard_gate_evidence": {"$ref": "#/$defs/evidence"},
+        "outcome_evidence": {"$ref": "#/$defs/evidence"}
+      }
+    }
+  }
+}
