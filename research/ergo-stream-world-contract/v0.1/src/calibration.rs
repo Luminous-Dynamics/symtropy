@@ -455,13 +455,9 @@ mod tests {
             },
         ];
 
-        let reports = evaluate_transfer_calibration_by_stratum(
-            &forecasts,
-            &outcomes,
-            10,
-            &[0, 900_000],
-        )
-        .unwrap();
+        let reports =
+            evaluate_transfer_calibration_by_stratum(&forecasts, &outcomes, 10, &[0, 900_000])
+                .unwrap();
 
         assert_eq!(reports.len(), 2);
         assert_eq!(reports[0].evaluation_stratum_id, 0);
