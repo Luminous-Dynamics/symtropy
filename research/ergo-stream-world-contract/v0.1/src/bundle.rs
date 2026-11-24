@@ -25,9 +25,8 @@ use super::scoped::{
     validate_scoped_structural_correspondence,
 };
 use super::transfer::{
-    ActionCorrespondenceV0, EffectSignV0, InterventionObservationV0,
-    InterventionTransferWitnessV0, StructureV0, TransferErrorV0,
-    validate_intervention_correspondence,
+    ActionCorrespondenceV0, EffectSignV0, InterventionObservationV0, InterventionTransferWitnessV0,
+    StructureV0, TransferErrorV0, validate_intervention_correspondence,
 };
 
 pub const AGENT_PROTOCOL_VERSION_V0: &str = "symthaea-open-world-research-episode-v0";
@@ -816,11 +815,9 @@ pub fn validate_evidence_bound_mechanism_transfer(
         }
     }
 
-    let intervention = validate_intervention_correspondence(
-        &candidate.action_mappings,
-        &observations,
-    )
-    .map_err(BundleValidationErrorV0::MechanismWitnessRejected)?;
+    let intervention =
+        validate_intervention_correspondence(&candidate.action_mappings, &observations)
+            .map_err(BundleValidationErrorV0::MechanismWitnessRejected)?;
 
     Ok(EvidenceBoundMechanismWitnessV0 {
         intervention,
