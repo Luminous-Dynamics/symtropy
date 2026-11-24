@@ -312,7 +312,8 @@ enum GazeboResetLifecycle {
     Verified(GazeboResetVerification),
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[must_use = "retain and reconcile the session before any plan-bound simulator mutation"]
+#[derive(Debug, Eq, PartialEq)]
 pub struct GazeboAdapterSession {
     pub profile: GazeboCapabilityProfile,
     pub stepping_method: SteppingMethod,
