@@ -20,6 +20,8 @@ Every policy in a future tournament must receive the same case bytes, scenario l
 
 The family split is declared before case generation. The held-out families must never be used for policy selection, parameter tuning, model selection, or deciding which result to report.
 
+The crossed-bottleneck development family gives RESOURCE-A and RESOURCE-B complementary capacity calendars (A is unavailable in epoch 1; B is unavailable in epoch 2), while their eligible operation sets overlap. This creates interacting time-window constraints rather than a single permanent scarce-machine toy pattern. Each operation's process family maps to an explicit setup family, and each resource has a complete directed transition matrix. The validator checks that operation setup targets, eligibility, processing-time keys and resource capability scopes agree.
+
 The generator uses an explicit SplitMix64-v1 seed derivation. Its root seed, seed derivation, pairing rule, split rule and tuning rule are serialized into the corpus. Re-running the generator must produce byte-identical JSON.
 
 ## Scenario families
@@ -44,7 +46,8 @@ Each case contains:
 - overlapping resource eligibility (each operation has two eligible resources);
 - per-resource processing times;
 - resource capacity calendars;
-- sequence-dependent setup transitions;
+- operation-specific setup families linked to each eligible resource;
+- a complete directed setup-transition matrix per resource (all six non-identity transitions among three setup families);
 - initial setup families;
 - one in-process, resource-committed operation and one completed predecessor;
 - explicit Unknown / Admissible qualification dispositions with evidence receipt identities;
