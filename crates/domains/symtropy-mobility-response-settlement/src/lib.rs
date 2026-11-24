@@ -127,6 +127,10 @@ pub struct MobilityResponseSettlementReport {
     pub dispatch_tracking_vs_metrology_dispatch_delta_kwh: f64,
     pub metrology_vs_counterfactual_net_delta_kwh: f64,
     pub maximum_dc_network_deliverable_energy_kwh: f64,
+    /// Minimum dispatch-period power lower bound across all dispatch intervals,
+    /// after PCC metrology, counterfactual baseline, and per-interval DC caps.
+    /// This is service-period kW, not event+recovery energy divided by duration.
+    pub minimum_dispatch_interval_lower_bound_kw: Option<f64>,
     pub conservative_net_response_lower_bound_kwh: Option<f64>,
     pub conservative_lower_bound_is_joint_probability: bool,
     pub pcc_sub_interval_transients_unverified: bool,
@@ -692,6 +696,13 @@ fn validate_timelines(
         ));
     }
 
+    let dc_report = value(network, "/dc_network_report")?;
+    let network_intervals = array(dc_report, "/intervals")?;
+    if network_intervals.len() != dispatch_count {
+        return Err(BridgeError::IntervalMismatch(
+            "DC network intervals must match the dispatch interval count exactly".to_owned(),
+        ));
+    }
     let sample_interval_ns = unsigned(grid, "/sample_interval_ns")?;
     let sample_count = unsigned(grid, "/sample_count")? as usize;
     let samples = array(grid, "/sample_receipts")?;
@@ -709,7 +720,7 @@ fn validate_timelines(
                 .is_some_and(|phase| phase == "dispatch")
         })
         .collect();
-    let mut evidence_ids = BTreeSet::new();
+    let mut network_interval_index = 0_usize;
     for (index, (sample, baseline_interval)) in samples.iter().zip(dispatch_intervals).enumerate() {
         let elapsed = unsigned(sample, "/elapsed_ns")?;
         let expected_elapsed = (index as u64 + 1)
@@ -743,6 +754,27 @@ fn validate_timelines(
                 BridgeError::Arithmetic("dispatch interval start overflow".to_owned())
             })?;
         same_u64(interval_start, expected_start, "dispatch interval start")?;
+        let network_interval = &network_intervals[network_interval_index];
+        same_u64(
+            unsigned(network_interval, "/interval_start_ns")?,
+            interval_start,
+            "network/dispatch interval start",
+        )?;
+        same_u64(
+            unsigned(network_interval, "/interval_duration_ns")?,
+            interval_duration,
+            "network/dispatch interval duration",
+        )?;
+        let network_max_kw = number(
+            network_interval,
+            "/maximum_network_deliverable_reduction_mw",
+        )? * 1_000.0;
+        if network_max_kw < 0.0 {
+            return Err(BridgeError::InvalidField(
+                "per-interval network deliverability cannot be negative".to_owned(),
+            ));
+        }
+        network_interval_index += 1;
 
         let baseline_id = string(sample, "/baseline_evidence_id")?;
         let response_id = string(sample, "/response_evidence_id")?;
@@ -876,6 +908,65 @@ fn evaluate_component_flags(
         network_passed,
         n1_passed,
     ))
+}
+
+fn minimum_dispatch_interval_lower_bound_kw(
+    input: &MobilityResponseSettlementInput,
+) -> Result<f64, BridgeError> {
+    let pcc = &input.pcc_metrology.report;
+    let baseline = &input.counterfactual_baseline.report;
+    let network = &input.mobility_network.report;
+    let pcc_intervals = array(pcc, "/intervals")?;
+    let baseline_intervals = array(baseline, "/intervals")?;
+    let network_intervals = array(value(network, "/dc_network_report")?, "/intervals")?;
+    let mut lower_bounds = Vec::new();
+
+    for (index, (pcc_interval, baseline_interval)) in
+        pcc_intervals.iter().zip(baseline_intervals).enumerate()
+    {
+        if string(baseline_interval, "/phase")? != "dispatch" {
+            continue;
+        }
+        let network_interval = network_intervals.get(lower_bounds.len()).ok_or_else(|| {
+            BridgeError::IntervalMismatch(
+                "missing per-interval DC network result for dispatch interval".to_owned(),
+            )
+        })?;
+        same_u64(
+            unsigned(pcc_interval, "/interval_start_ns")?,
+            unsigned(network_interval, "/interval_start_ns")?,
+            "PCC/network dispatch interval start",
+        )?;
+        same_u64(
+            unsigned(pcc_interval, "/interval_duration_ns")?,
+            unsigned(network_interval, "/interval_duration_ns")?,
+            "PCC/network dispatch interval duration",
+        )?;
+        let pcc_lower_kw =
+            number(pcc_interval, "/conservative_reduction_lower_bound_w")? / 1_000.0;
+        let baseline_lower_kw =
+            number(baseline_interval, "/conservative_reduction_lower_bound_kw")?;
+        let network_lower_kw =
+            number(network_interval, "/maximum_network_deliverable_reduction_mw")? * 1_000.0;
+        if network_lower_kw < 0.0 {
+            return Err(BridgeError::InvalidField(
+                "network-deliverable power cap must be non-negative".to_owned(),
+            ));
+        }
+        let interval_lower = pcc_lower_kw.min(baseline_lower_kw).min(network_lower_kw);
+        if !interval_lower.is_finite() {
+            return Err(BridgeError::Arithmetic(
+                "dispatch interval service-power lower bound is non-finite".to_owned(),
+            ));
+        }
+        let _interval_index = index;
+        lower_bounds.push(interval_lower);
+    }
+    lower_bounds.into_iter().reduce(f64::min).ok_or_else(|| {
+        BridgeError::IntervalMismatch(
+            "no dispatch interval is available for a service-power lower bound".to_owned(),
+        )
+    })
 }
 
 fn canonical_input_digest(input: &MobilityResponseSettlementInput) -> Result<String, BridgeError> {
@@ -1037,6 +1128,7 @@ pub fn evaluate_mobility_response_settlement(
             net_delta,
             network_max_kwh,
             None,
+            None,
             boolean(baseline, "/event_lower_bound_is_joint_probability")?,
             boolean(pcc, "/sub_interval_transients_unverified")?,
             boolean(grid, "/sub_sample_transients_unverified")?,
@@ -1092,6 +1184,11 @@ pub fn evaluate_mobility_response_settlement(
         dispatch_delta,
         net_delta,
         network_max_kwh,
+        if all_physical_evidence_passed {
+            Some(minimum_dispatch_interval_lower_bound_kw(input)?)
+        } else {
+            None
+        },
         lower_bound,
         boolean(baseline, "/event_lower_bound_is_joint_probability")?,
         boolean(pcc, "/sub_interval_transients_unverified")?,
@@ -1120,6 +1217,7 @@ fn build_report(
     dispatch_tracking_vs_metrology_dispatch_delta_kwh: f64,
     metrology_vs_counterfactual_net_delta_kwh: f64,
     maximum_dc_network_deliverable_energy_kwh: f64,
+    minimum_dispatch_interval_lower_bound_kw: Option<f64>,
     conservative_net_response_lower_bound_kwh: Option<f64>,
     conservative_lower_bound_is_joint_probability: bool,
     pcc_sub_interval_transients_unverified: bool,
@@ -1160,6 +1258,7 @@ fn build_report(
         dispatch_tracking_vs_metrology_dispatch_delta_kwh,
         metrology_vs_counterfactual_net_delta_kwh,
         maximum_dc_network_deliverable_energy_kwh,
+        minimum_dispatch_interval_lower_bound_kw,
         conservative_net_response_lower_bound_kwh,
         conservative_lower_bound_is_joint_probability,
         pcc_sub_interval_transients_unverified,
