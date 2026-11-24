@@ -2598,6 +2598,16 @@ mod tests {
             "occurred_at_epoch": 2,
             "observed_at_epoch": 2
         }]);
+        let frame_digest = digest_value(
+            &value["steps"][2]["decision_frame"],
+            Some(2),
+            None,
+        )
+        .unwrap();
+        value["steps"][2]["transitions"][0]["proposal"]["decision_frame_digest"] =
+            Value::from(frame_digest.clone());
+        value["steps"][2]["transitions"][0]["admission_receipt"]["decision_frame_digest"] =
+            Value::from(frame_digest);
         let error = replay_ledger(&value).unwrap_err();
         assert_eq!(error.code, "inspection_capacity_exhausted");
     }
