@@ -178,7 +178,7 @@ fn hard_loss(fixture: Fixture, state: usize, policy_index: usize) -> u16 {
             _ => unreachable!("four-state fixture"),
         },
     };
-    if failed { 1_000 } else { 0 }
+    u16::from(failed) * 1_000
 }
 
 fn service_loss(state: usize, policy_index: usize) -> u16 {
@@ -428,13 +428,7 @@ fn push_row(output: &mut String, metadata: RowMetadata, accumulator: &Accumulato
         output.push_str("NA,NA,NA,NA,NA,NA,NA");
     }
 
-    let _ = writeln!(
-        output,
-        ",{},{},{}",
-        metadata.guarantee.label(),
-        metadata.status,
-        ""
-    );
+    let _ = writeln!(output, ",{},{}", metadata.guarantee.label(), metadata.status);
 }
 
 fn render_for(sample_sizes: &[usize], replicates: usize) -> String {
@@ -692,7 +686,7 @@ mod tests {
         assert_eq!(width, 27);
         assert!(first.contains("MARGINAL_EXPECTED_RISK"));
         assert!(first.contains("FIXED_GRID_HIGH_PROBABILITY"));
-        assert!(first.contains("NO_POSITIVE_ADJUSTED_TARGET"));
+        assert!(first.contains("NO_RISK_CLAIM,NO_POSITIVE_ADJUSTED_TARGET"));
     }
 
     #[test]
@@ -823,8 +817,8 @@ mod tests {
     fn sum_rows(rows: &[Vec<u16>]) -> [u64; POLICY_COUNT] {
         let mut sums = [0_u64; POLICY_COUNT];
         for row in rows {
-            for index in 0..POLICY_COUNT {
-                sums[index] += u64::from(row[index]);
+            for (sum, loss) in sums.iter_mut().zip(row.iter()) {
+                *sum += u64::from(*loss);
             }
         }
         sums
@@ -833,8 +827,8 @@ mod tests {
     fn sum_f64_rows(rows: &[Vec<u16>]) -> [f64; POLICY_COUNT] {
         let mut sums = [0.0_f64; POLICY_COUNT];
         for row in rows {
-            for index in 0..POLICY_COUNT {
-                sums[index] += f64::from(row[index]);
+            for (sum, loss) in sums.iter_mut().zip(row.iter()) {
+                *sum += f64::from(*loss);
             }
         }
         sums
