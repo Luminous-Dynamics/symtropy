@@ -111,6 +111,10 @@ pub struct RgbCorpus {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RgbSampleResult {
     pub sample_id: String,
+    pub camera_fov: Gate,
+    pub projector_fov: Gate,
+    pub camera_depth_of_field: Gate,
+    pub camera_line_of_sight: Gate,
     pub geometry_gate: Gate,
     pub rgb_micro_units: Option<[u64; 3]>,
     pub rgb_status: RgbStatus,
@@ -241,6 +245,10 @@ fn evaluate_sample(sample: &RgbSample, mode: &RgbMode) -> Result<RgbSampleResult
         };
         return Ok(RgbSampleResult {
             sample_id: sample.sample_id.clone(),
+            camera_fov: sample.camera_fov,
+            projector_fov: sample.projector_fov,
+            camera_depth_of_field: sample.camera_depth_of_field,
+            camera_line_of_sight: sample.camera_line_of_sight,
             geometry_gate: geometry,
             rgb_micro_units: None,
             rgb_status: RgbStatus::Indeterminate,
@@ -275,6 +283,10 @@ fn evaluate_sample(sample: &RgbSample, mode: &RgbMode) -> Result<RgbSampleResult
 
     Ok(RgbSampleResult {
         sample_id: sample.sample_id.clone(),
+        camera_fov: sample.camera_fov,
+        projector_fov: sample.projector_fov,
+        camera_depth_of_field: sample.camera_depth_of_field,
+        camera_line_of_sight: sample.camera_line_of_sight,
         geometry_gate: geometry,
         rgb_micro_units: Some(rgb),
         rgb_status,
