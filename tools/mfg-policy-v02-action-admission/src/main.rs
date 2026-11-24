@@ -107,9 +107,9 @@ fn mark_rejected(receipt: &mut AdmissionReceipt, reason: &str) {
     }
 }
 
-fn operation_index<'a>(
-    static_case: &'a Value,
-) -> Result<BTreeMap<String, (&'a Value, &'a Value)>, String> {
+fn operation_index(
+    static_case: &Value,
+) -> Result<BTreeMap<String, (&Value, &Value)>, String> {
     let jobs = required_array(static_case, "jobs", "static_case")?;
     let mut job_ids = BTreeSet::new();
     let mut operations = BTreeMap::new();
@@ -131,7 +131,7 @@ fn operation_index<'a>(
     Ok(operations)
 }
 
-fn resource_index<'a>(static_case: &'a Value) -> Result<BTreeMap<String, &'a Value>, String> {
+fn resource_index(static_case: &Value) -> Result<BTreeMap<String, &Value>, String> {
     let resources = required_array(static_case, "resources", "static_case")?;
     let mut index = BTreeMap::new();
     for resource in resources {
@@ -143,19 +143,18 @@ fn resource_index<'a>(static_case: &'a Value) -> Result<BTreeMap<String, &'a Val
     Ok(index)
 }
 
+struct VisibleEvidenceState {
+    qualification_by_resource_family: BTreeMap<(String, String), String>,
+    resource_status_by_id: BTreeMap<String, String>,
+    inspection_capacity_override: Option<u64>,
+}
+
 fn validate_visible_history(
     frame: &Value,
     static_case: &Value,
     resources: &BTreeMap<String, &Value>,
     decision_epoch: u64,
-) -> Result<
-    (
-        BTreeMap<(String, String), String>,
-        BTreeMap<String, String>,
-        Option<u64>,
-    ),
-    String,
-> {
+) -> Result<VisibleEvidenceState, String> {
     let mut qualification_state = BTreeMap::<(String, String), String>::new();
     let mut evidence_receipts = BTreeSet::<String>::new();
 
@@ -327,11 +326,11 @@ fn validate_visible_history(
     }
 
     let _ = static_case;
-    Ok((
-        qualification_state,
-        visible_resource_state,
+    Ok(VisibleEvidenceState {
+        qualification_by_resource_family: qualification_state,
+        resource_status_by_id: visible_resource_state,
         inspection_capacity_override,
-    ))
+    })
 }
 
 fn evaluate(frame: &Value, proposal: &Value) -> Result<AdmissionReceipt, String> {
@@ -389,8 +388,7 @@ fn evaluate(frame: &Value, proposal: &Value) -> Result<AdmissionReceipt, String>
 
     let operations = operation_index(static_case)?;
     let resources = resource_index(static_case)?;
-    let (qualification_state, resource_state, inspection_override) =
-        validate_visible_history(frame, static_case, &resources, decision_epoch)?;
+    let visible_state = validate_visible_history(frame, static_case, &resources, decision_epoch)?;
 
     let Some((_, operation)) = operations.get(&operation_id).copied() else {
         mark_rejected(&mut receipt, "operation_not_found");
@@ -507,14 +505,17 @@ fn evaluate(frame: &Value, proposal: &Value) -> Result<AdmissionReceipt, String>
             "resource_capacity_unavailable_in_current_epoch",
         );
     }
-    if resource_state
+    if visible_state
+        .resource_status_by_id
         .get(&resource_id)
         .is_some_and(|state| state == "FAILED")
     {
         mark_hold(&mut receipt, "resource_has_visible_unrestored_failure");
     }
 
-    let qualification = qualification_state.get(&(resource_id.clone(), process_family.to_string()));
+    let qualification = visible_state
+        .qualification_by_resource_family
+        .get(&(resource_id.clone(), process_family.to_string()));
     match qualification.map(String::as_str) {
         Some("ADMISSIBLE") => {
             receipt.qualification_disposition = Some("ADMISSIBLE".to_string());
@@ -582,7 +583,7 @@ fn evaluate(frame: &Value, proposal: &Value) -> Result<AdmissionReceipt, String>
         .get(decision_epoch as usize)
         .and_then(Value::as_u64)
         .ok_or_else(|| fail("inspection_capacity_for_decision_epoch_missing"))?;
-    if let Some(override_capacity) = inspection_override {
+    if let Some(override_capacity) = visible_state.inspection_capacity_override {
         current_inspection_capacity = override_capacity;
     }
 
