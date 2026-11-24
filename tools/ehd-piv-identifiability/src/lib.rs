@@ -281,15 +281,10 @@ pub fn analyze_local_identifiability(
         .collect::<Result<Vec<_>, _>>()?;
     let profiled_physical_svd = jacobi_svd(&profiled_physical_columns, &input.config)?;
 
-    let physical_threshold = (unprofiled_physical_max
-        * input.config.rank_relative_tolerance)
+    let physical_threshold = (unprofiled_physical_max * input.config.rank_relative_tolerance)
         .max(input.config.minimum_profiled_physical_sensitivity);
-    let physical_rank = count_above(
-        &profiled_physical_svd.singular_values,
-        physical_threshold,
-    );
-    let physical_condition_number = if physical_rank == physical_indices.len()
-        && physical_rank > 0
+    let physical_rank = count_above(&profiled_physical_svd.singular_values, physical_threshold);
+    let physical_condition_number = if physical_rank == physical_indices.len() && physical_rank > 0
     {
         let weakest = profiled_physical_svd
             .singular_values
