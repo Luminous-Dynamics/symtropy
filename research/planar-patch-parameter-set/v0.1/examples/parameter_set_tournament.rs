@@ -41,13 +41,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     println!(
-        "schema,status,rank_proxy,observations,trial_groups,vertices,plane_triples,\
+        "schema,status,excited_axes,observations,trial_groups,vertices,plane_triples,\
 u_beta_low,u_beta_high,v_beta_low,v_beta_high,n_beta_low,n_beta_high"
     );
     println!(
-        "{},{:?},3,{},{},{},{},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9}",
+        "{},{:?},{},{},{},{},{},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9}",
         report.schema_version,
         report.status,
+        report
+            .intervals
+            .iter()
+            .filter(|interval| interval.axis_was_excited)
+            .count(),
         report.observation_count,
         report.unique_trial_group_count,
         report.feasible_vertex_count,
