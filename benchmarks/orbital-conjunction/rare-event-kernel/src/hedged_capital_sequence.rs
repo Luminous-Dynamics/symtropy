@@ -117,7 +117,7 @@ impl HedgedCapitalConfidenceSequence {
         if !alpha.is_finite() || alpha <= 0.0 || alpha >= 1.0 {
             return Err(HedgedConfidenceSequenceError::InvalidAlpha);
         }
-        if !stake_cap.is_finite() || stake_cap < 0.0 || stake_cap >= 1.0 {
+        if !stake_cap.is_finite() || !(0.0..1.0).contains(&stake_cap) {
             return Err(HedgedConfidenceSequenceError::InvalidStakeCap);
         }
         if !hedge_weight.is_finite() || hedge_weight <= 0.0 || hedge_weight >= 1.0 {
