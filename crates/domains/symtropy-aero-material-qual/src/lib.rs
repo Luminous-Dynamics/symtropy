@@ -39,6 +39,8 @@ pub struct EvaluationReport {
     pub structurally_complete: bool,
     pub structural_status: String,
     pub process_domain_status: String,
+    pub model_applicability_status: String,
+    pub evidence_sufficiency_status: String,
     pub decision_status: String,
     pub physical_qualification_status: String,
     pub entity_counts: BTreeMap<String, usize>,
@@ -609,12 +611,11 @@ pub fn evaluate_case(case: &Value) -> EvaluationReport {
     }
     .to_owned();
 
-    let process_domain_status = if out_of_domain_batches > 0 {
-        "PARTIALLY_OUT_OF_DOMAIN"
-    } else if unknown_domain_batches > 0 {
-        "INDETERMINATE"
-    } else {
-        "DECLARED_IN_DOMAIN"
+    let process_domain_status = match (out_of_domain_batches > 0, unknown_domain_batches > 0) {
+        (true, true) => "MIXED_OUT_OF_DOMAIN_AND_UNKNOWN",
+        (true, false) => "PARTIALLY_OUT_OF_DOMAIN",
+        (false, true) => "INDETERMINATE",
+        (false, false) => "DECLARED_IN_DOMAIN",
     }
     .to_owned();
 
@@ -628,6 +629,8 @@ pub fn evaluate_case(case: &Value) -> EvaluationReport {
         structurally_complete,
         structural_status,
         process_domain_status,
+        model_applicability_status: "NOT_EVALUATED_V0_1".to_owned(),
+        evidence_sufficiency_status: "NOT_EVALUATED_V0_1".to_owned(),
         decision_status: "NOT_ELIGIBLE_SYNTHETIC_ONLY".to_owned(),
         physical_qualification_status: "OUT_OF_SCOPE_NOT_CLAIMED".to_owned(),
         entity_counts,
@@ -667,6 +670,9 @@ mod tests {
         let report = evaluate_case(&fixture());
         assert!(report.structurally_complete, "{:?}", report.violations);
         assert_eq!(report.structural_status, "STRUCTURALLY_COMPLETE");
+        assert_eq!(report.process_domain_status, "PARTIALLY_OUT_OF_DOMAIN");
+        assert_eq!(report.model_applicability_status, "NOT_EVALUATED_V0_1");
+        assert_eq!(report.evidence_sufficiency_status, "NOT_EVALUATED_V0_1");
         assert_eq!(report.decision_status, "NOT_ELIGIBLE_SYNTHETIC_ONLY");
         assert_eq!(
             report.physical_qualification_status,
@@ -742,6 +748,20 @@ mod tests {
         assert!(report.structurally_complete);
         assert!(has_code(&report, "CALIBRATION_NOT_DECLARED_ACTIVE"));
         assert_eq!(report.decision_status, "NOT_ELIGIBLE_SYNTHETIC_ONLY");
+    }
+
+    #[test]
+    fn mixed_unknown_and_out_of_domain_process_is_not_collapsed() {
+        let mut case = fixture();
+        case["hierarchy"]["process_batches"][0]["process_state"] =
+            Value::String("unknown".to_owned());
+        let report = evaluate_case(&case);
+        assert_eq!(
+            report.process_domain_status,
+            "MIXED_OUT_OF_DOMAIN_AND_UNKNOWN"
+        );
+        assert!(has_code(&report, "PROCESS_DOMAIN_UNKNOWN"));
+        assert!(has_code(&report, "PROCESS_OUT_OF_DOMAIN"));
     }
 
     #[test]
