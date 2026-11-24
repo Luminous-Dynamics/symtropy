@@ -373,7 +373,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
     let campaign_index = index_by_id(&campaigns, "test_campaigns", &mut violations);
     let configuration_index = index_by_id(&configurations, "configurations", &mut violations);
     let certificate_index = index_by_id(&certificates, "calibration_certificates", &mut violations);
-    let _event_index = index_by_id(&events, "calibration_events", &mut violations);
+    let event_index = index_by_id(&events, "calibration_events", &mut violations);
 
     let mut source_record_ids = BTreeSet::new();
     let mut source_record_replay = false;
@@ -506,6 +506,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
     }
 
     let mut event_ids = BTreeSet::new();
+    let mut corrected_event_targets = BTreeMap::<String, String>::new();
     for event in &events {
         let event_id = field_str(event, "id").unwrap_or("event");
         if !event_ids.insert(event_id.to_owned()) {
@@ -543,20 +544,57 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
                 );
             }
         }
-        if !matches!(
-            field_str(event, "event_type"),
-            Some("revoked" | "suspended" | "corrected" | "superseded")
-        ) {
-            push(
-                &mut violations,
-                "UNKNOWN_CALIBRATION_EVENT_TYPE",
-                event_id,
-            );
-            push(
-                &mut blockers,
-                "CALIBRATION_EVENT_HISTORY_UNRESOLVED",
-                event_id,
-            );
+        match field_str(event, "event_type") {
+            Some("corrected" | "superseded") => {
+                let target_id = field_str(event, "corrects_event_id");
+                match target_id.and_then(|target| event_index.get(target).map(|row| (target, *row))) {
+                    Some((target, target_event))
+                        if field_str(target_event, "certificate_id") == Some(certificate_id)
+                            && target != event_id =>
+                    {
+                        if corrected_event_targets
+                            .insert(target.to_owned(), event_id.to_owned())
+                            .is_some()
+                        {
+                            push(
+                                &mut violations,
+                                "CONTRADICTORY_CALIBRATION_CORRECTIONS",
+                                target,
+                            );
+                            push(
+                                &mut blockers,
+                                "CALIBRATION_EVENT_HISTORY_UNRESOLVED",
+                                target,
+                            );
+                        }
+                    }
+                    _ => {
+                        push(
+                            &mut violations,
+                            "CALIBRATION_CORRECTION_TARGET_INVALID",
+                            event_id,
+                        );
+                        push(
+                            &mut blockers,
+                            "CALIBRATION_EVENT_HISTORY_UNRESOLVED",
+                            event_id,
+                        );
+                    }
+                }
+            }
+            Some("revoked" | "suspended") => {}
+            _ => {
+                push(
+                    &mut violations,
+                    "UNKNOWN_CALIBRATION_EVENT_TYPE",
+                    event_id,
+                );
+                push(
+                    &mut blockers,
+                    "CALIBRATION_EVENT_HISTORY_UNRESOLVED",
+                    event_id,
+                );
+            }
         }
     }
 
@@ -952,6 +990,57 @@ mod tests {
         assert!(has_violation(
             &evaluate_binding_case(&replayed_event),
             "CALIBRATION_EVENT_REPLAY"
+        ));
+    }
+
+    #[test]
+    fn correction_events_require_a_unique_prior_event_target() {
+        let mut missing_target = fixture();
+        missing_target["calibration_events"] = serde_json::json!([{
+            "id": "EVENT-CORRECT-1",
+            "certificate_id": "CAL-A",
+            "event_type": "corrected",
+            "corrects_event_id": "EVENT-NOT-FOUND",
+            "effective_at_utc": "2026-11-24T10:30:00Z",
+            "recorded_at_utc": "2026-11-24T10:35:00Z",
+            "retroactive": true
+        }]);
+        assert!(has_violation(
+            &evaluate_binding_case(&missing_target),
+            "CALIBRATION_CORRECTION_TARGET_INVALID"
+        ));
+
+        let mut contradictory = fixture();
+        let original = serde_json::json!({
+            "id": "EVENT-ORIGINAL",
+            "certificate_id": "CAL-A",
+            "event_type": "suspended",
+            "effective_at_utc": "2026-11-24T10:15:00Z",
+            "recorded_at_utc": "2026-11-24T10:16:00Z",
+            "retroactive": false
+        });
+        let correction_a = serde_json::json!({
+            "id": "EVENT-CORRECT-A",
+            "certificate_id": "CAL-A",
+            "event_type": "corrected",
+            "corrects_event_id": "EVENT-ORIGINAL",
+            "effective_at_utc": "2026-11-24T10:20:00Z",
+            "recorded_at_utc": "2026-11-24T10:21:00Z",
+            "retroactive": true
+        });
+        let correction_b = serde_json::json!({
+            "id": "EVENT-CORRECT-B",
+            "certificate_id": "CAL-A",
+            "event_type": "superseded",
+            "corrects_event_id": "EVENT-ORIGINAL",
+            "effective_at_utc": "2026-11-24T10:22:00Z",
+            "recorded_at_utc": "2026-11-24T10:23:00Z",
+            "retroactive": true
+        });
+        contradictory["calibration_events"] = serde_json::json!([original, correction_a, correction_b]);
+        assert!(has_violation(
+            &evaluate_binding_case(&contradictory),
+            "CONTRADICTORY_CALIBRATION_CORRECTIONS"
         ));
     }
 
