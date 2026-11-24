@@ -67,7 +67,10 @@
     "linear_Kalman_filter_and_smoother",
     "SVGP_KAN",
     "covariance_aware_GP_or_reduced_rank_GP",
-    "Symtropy_or_Symthaea_HDC_CfC_experimental_challenger"
+    "Symtropy_or_Symthaea_HDC_CfC_experimental_challenger",
+    "adversarially_trained_neural_operator_adv_NO_for_forward_super_resolution_and_forecasting",
+    "conditional_score_based_diffusion_EDM_for_sparse_inverse_reconstruction",
+    "conditional_GAN_for_sparse_inverse_reconstruction"
   ],
   "matched_privileges": [
     "same_observations",
@@ -75,7 +78,11 @@
     "same_train_selection_calibration_test_partitions",
     "same_preprocessing_information",
     "same_inference_cutoff",
-    "same_compute_budget_policy"
+    "same_compute_budget_policy",
+    "keep_forward_operator_super_resolution_forecasting_and_inverse_sparse_posterior_reconstruction_as_distinct_tracks",
+    "for_generative_methods_report_posterior_sample_count_and_sampling_cost",
+    "same_geometry_unseen_mask_generalization_is_not_unseen_geometry_generalization",
+    "PTV_like_velocity_masks_generated_from_DNS_are_not_raw_PIV_image_measurements"
   ],
   "scoreboards": {
     "reconstruction": [
@@ -87,7 +94,12 @@
       "vorticity_divergence",
       "spectral_and_structure_function_error",
       "temporal_phase_and_event_timing",
-      "declared_ensemble_statistics"
+      "declared_ensemble_statistics",
+      "bandwise_energy_spectrum_error",
+      "high_wavenumber_tail_energy_retention",
+      "velocity_gradient_invariant_QR_joint_PDF_error_when_3D_available",
+      "conditional_measurement_consistency_residual",
+      "phase_alignment_near_observed_measurements"
     ],
     "uncertainty": [
       "pointwise_coverage_50_80_90_95_99",
@@ -100,7 +112,9 @@
       "energy_score",
       "variogram_score",
       "interval_width_or_region_volume",
-      "cluster_bootstrap_confidence_intervals"
+      "cluster_bootstrap_confidence_intervals",
+      "posterior_sample_coverage_and_sharpness_for_generative_inverse_models",
+      "conditional_measurement_consistency_of_posterior_samples"
     ],
     "selective_prediction": [
       "risk_coverage_curve",
@@ -197,7 +211,9 @@
     "matched_compute_improvement_criterion": "lower_error_without_worse_calibration_or_sharper_regions_at_matched_coverage_or_lower_selective_risk_at_matched_useful_coverage",
     "reproduce_PIVPostProcess_exact_matched_cohort_before_classifier_superiority": true,
     "valid_vector_retention_and_low_corruption_metrics_required": true,
-    "synthetic_DNS_or_non_EHD_success_never_promoted_to_physical_EHD_result": true
+    "synthetic_DNS_or_non_EHD_success_never_promoted_to_physical_EHD_result": true,
+    "multi_scale_fidelity": "At matched field NRMSE or matched measurement consistency, reduce bandwise energy-spectrum error and preserve high-wavenumber tail energy without inflating false physical structure.",
+    "generative_inverse": "Report posterior measurement consistency, calibration/coverage, sample diversity, sampling cost and same-geometry versus cross-geometry generalization separately."
   },
   "qualification_dispositions": [
     "QualifiedInDomain",
@@ -227,7 +243,8 @@
     "inrae_experimental_piv": "https://doi.org/10.57745/DHJXM6",
     "inrae_dns_lpt": "https://doi.org/10.15454/GLNRHK",
     "piv_uncertainty": "https://doi.org/10.1088/0957-0233/27/8/084006",
-    "nistir_8298": "https://doi.org/10.6028/NIST.IR.8298"
+    "nistir_8298": "https://doi.org/10.6028/NIST.IR.8298",
+    "oommen_2026": "https://doi.org/10.1038/s41467-026-70145-4"
   },
   "periodic_sampling_design": {
     "status": "source_reported_synthetic_baseline_and_prospective_benchmark_lane",
@@ -343,5 +360,47 @@
   },
   "tools": [
     "tools/ehd-piv-phase-design"
-  ]
+  ],
+  "sota_comparator_notes": {
+    "adv_NO": {
+      "task": "forward operator for super_resolution_and_forecasting",
+      "source": "Oommen et al. (2026), Nature Communications 17:3707",
+      "schlieren_jet": {
+        "vanilla_NO": {
+          "field_NRMSE": 0.0542,
+          "energy_spectrum_NRMSE": 0.1601
+        },
+        "adv_NO": {
+          "field_NRMSE": 0.0662,
+          "energy_spectrum_NRMSE": 0.0109
+        },
+        "inference_seconds_per_sample_on_H100": 0.01
+      },
+      "hit_Re_lambda_90": {
+        "vanilla_NO": {
+          "field_NRMSE": 0.0326,
+          "energy_spectrum_NRMSE": 0.0865
+        },
+        "adv_NO": {
+          "field_NRMSE": 0.0265,
+          "energy_spectrum_NRMSE": 0.0235
+        },
+        "inference_seconds_per_sample_on_H100": 0.082,
+        "GenCFD_inference_seconds_per_sample_on_H100": 7.804
+      },
+      "caution": "Not interchangeable with inverse sparse-measurement reconstruction; spectrum and pointwise error move in different directions."
+    },
+    "conditional_diffusion": {
+      "task": "inverse sparse PTV-like observation posterior",
+      "flow": "DNS cylinder wake Re=11000",
+      "snapshots": {
+        "training": 150,
+        "validation": 18,
+        "test": 17
+      },
+      "generalization": "unseen masking layouts within the same geometry only; not unseen geometry",
+      "observation": "sparse PTV-like velocity masks applied to DNS fields; not raw PIV image processing",
+      "limit": "posterior calibration and experimental measurement-domain transfer require separate evaluation"
+    }
+  }
 }
