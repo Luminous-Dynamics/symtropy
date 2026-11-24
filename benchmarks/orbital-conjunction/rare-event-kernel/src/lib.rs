@@ -40,6 +40,7 @@ pub mod normal_positive_part;
 pub mod pop_col_adjustment;
 pub mod pop_col_energy;
 pub mod pop_convergence;
+pub mod predictable_empirical_bernstein;
 pub mod refinement_scheduler;
 pub mod residual;
 pub mod sequential;
@@ -92,6 +93,9 @@ pub use pop_col_adjustment::{
 };
 pub use pop_col_energy::{
     PopColEnergyInput, PopColEnergyReport, calculate_pop_col_energy, conditional_velocity_at_col,
+};
+pub use predictable_empirical_bernstein::{
+    DEFAULT_BET_FRACTION_CAP, PrPlEbConfidenceSequence, PrPlEbError,
 };
 pub use pop_convergence::{
     PeakOverlapConvergenceConfig, PeakOverlapConvergenceDecision,
