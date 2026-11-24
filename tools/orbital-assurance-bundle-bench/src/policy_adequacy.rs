@@ -478,7 +478,6 @@ fn gcd_u128(mut a: u128, mut b: u128) -> u128 {
 }
 
 fn validate_policy(
-    case: &Case,
     policy: &PolicySnapshot,
     expected_scenarios: &BTreeMap<&str, (&str, &str)>,
 ) -> Result<Rational, String> {
@@ -629,7 +628,6 @@ fn validate_policy(
             policy.policy_id
         ));
     }
-    let _ = case;
     Ok(worst_loss)
 }
 
@@ -732,7 +730,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
 
     let mut policy_metrics = BTreeMap::new();
     for policy in &case.policies {
-        let loss = match validate_policy(case, policy, &expected_scenarios) {
+        let loss = match validate_policy(policy, &expected_scenarios) {
             Ok(loss) => loss,
             Err(reason) => return invalid(case, &reason),
         };
@@ -1229,6 +1227,61 @@ mod tests {
                 .trigger_reason
                 .contains("does not cover the exact joint scenario inventory")
         );
+    }
+
+    #[test]
+    fn source_receipt_scope_and_cutoff_must_match_the_policy_case() {
+        let mut wrong_scope = fixture_case(1, 2, 3);
+        wrong_scope.source_receipt.source_scope_sha256 = "e".repeat(64);
+        assert_eq!(
+            evaluate_case(&wrong_scope).trigger_reason,
+            "upstream feasibility-discovery receipt pins are malformed"
+        );
+
+        let mut wrong_cutoff = fixture_case(1, 2, 3);
+        wrong_cutoff.source_receipt.source_decision_cutoff_id = "cutoff-future".to_owned();
+        assert_eq!(
+            evaluate_case(&wrong_cutoff).trigger_reason,
+            "upstream feasibility-discovery receipt pins are malformed"
+        );
+    }
+
+    #[test]
+    fn altered_joint_world_or_loss_model_mapping_fails_its_full_record_digest() {
+        let mut case = fixture_case(1, 2, 3);
+        case.expected_joint_scenarios[0].loss_model_id = "substituted-loss-model".to_owned();
+        let result = evaluate_case(&case);
+        assert_eq!(result.status, "INVALID_INPUT");
+        assert_eq!(
+            result.trigger_reason,
+            "joint scenario identity mapping digest mismatch"
+        );
+    }
+
+    #[test]
+    fn altered_policy_frontier_metrics_fail_the_source_payload_pin() {
+        let mut case = fixture_case(1, 2, 3);
+        case.policies[1].per_scenario[0].loss = Rational {
+            numerator: 0,
+            denominator: 1,
+        };
+        let result = evaluate_case(&case);
+        assert_eq!(result.status, "INVALID_INPUT");
+        assert_eq!(
+            result.trigger_reason,
+            "policy frontier payload digest differs from source receipt pin"
+        );
+    }
+
+    #[test]
+    fn candidate_transition_cost_is_applied_in_each_native_resource_dimension() {
+        let mut case = fixture_case(1, 2, 3);
+        case.policy_switch_cost.exposure_micro_units = 6;
+        case.resource_budget.exposure_micro_units = 10;
+        let result = evaluate_case(&case);
+        assert_eq!(result.status, "RETAIN_INCUMBENT_POLICY");
+        assert_eq!(result.resource_blocked_policy_count, 1);
+        assert_eq!(result.trigger_reason, "ALTERNATIVES_EXCEED_RESOURCE_ENVELOPE");
     }
 
     #[test]
