@@ -76,3 +76,16 @@ A future solver adapter should first be compared against independent analytic fi
 4. IEC 60404-5:2015, [methods of magnetic property measurement](https://webstore.iec.ch/en/publication/22142).
 5. IEC 60404-8-1:2023, [permanent-magnet material specifications](https://webstore.iec.ch/en/publication/68440).
 6. IEC 60404-18:2025, [open-circuit SCM/VSM method and self-demagnetization correction](https://webstore.iec.ch/en/publication/76495).
+
+## External solver and analytics baselines
+
+Do not build a general field solver as the first response to this problem. Magpylib provides independently implemented closed-form field solutions for cuboid and cylindrical permanent magnets, triangular surface-charge geometries and current loops. Use those finite-geometry analytic solutions as an independent known-answer layer for simple homogeneous geometries before any external numerical solver is trusted. Its assumptions and accuracy boundary must be respected: these analytical models do not establish the behaviour of heterogeneous, nonlinear soft-magnetic regions, process-induced microstructure or hysteresis.
+
+Commercial engineering baselines already support optimization around electromagnetic models. COMSOL describes parameter, shape and topology optimization, including optimization of permanent-magnet position/shape against motor torque. JMAG describes integrated FEA and optimization, sensitivity analysis, response surfaces, Pareto analysis and topology methods. These tools should be part of the baseline tournament rather than dismissed or reimplemented.
+
+The Luminous differentiator should therefore be the evidence-carrying bridge between target field function, multi-material/process feasibility, measured manufacturing variability and repeatable field-map qualification—not a claim to have a universally superior FEM kernel or optimizer.
+
+References:
+- Magpylib 6, [Physics and Computation: analytical field solutions](https://magpylib.readthedocs.io/en/stable/_pages/user_guide/guide_resources_01_physics.html).
+- COMSOL, [Optimization Module](https://www.comsol.com/optimization-module).
+- JMAG, [Optimization and topology optimization](https://www.jmag-international.com/products/jmag-designer/optimization/).
