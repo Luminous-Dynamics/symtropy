@@ -1,0 +1,187 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MOBILITY-NETWORK-DELIVERY-ADAPTER-001",
+  "offer_id": "mobility-offer-001",
+  "commitment_epoch_id": "commitment-epoch-007",
+  "site_id": "depot-01",
+  "pcc_id": "pcc-01",
+  "pcc_bus_id": "B",
+  "asset_id": "ess-01",
+  "asset_configuration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "baseline_trace_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+  "flexible_trace_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+  "decision_cutoff_unix_ms": 90000,
+  "horizon_start_unix_ms": 100000,
+  "horizon_end_unix_ms": 3700000,
+  "maximum_topology_age_ns": 4000000000000,
+  "flow_tolerance_mw": 1e-9,
+  "pivot_tolerance": 1e-12,
+  "require_n_minus_one": false,
+  "network": {
+    "network_model_id": "triangle-model-v1",
+    "network_model_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "topology_id": "topology-2026-11-24",
+    "topology_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "topology_effective_at_ns": 0,
+    "base_mva": 100,
+    "buses": [
+      {
+        "id": "S",
+        "slack": true
+      },
+      {
+        "id": "A",
+        "slack": false
+      },
+      {
+        "id": "B",
+        "slack": false
+      }
+    ],
+    "branches": [
+      {
+        "id": "S-A",
+        "from_bus": "S",
+        "to_bus": "A",
+        "reactance_pu": 0.1,
+        "normal_limit_mw": 100,
+        "emergency_limit_mw": 120
+      },
+      {
+        "id": "A-B",
+        "from_bus": "A",
+        "to_bus": "B",
+        "reactance_pu": 0.1,
+        "normal_limit_mw": 40,
+        "emergency_limit_mw": 60
+      },
+      {
+        "id": "S-B",
+        "from_bus": "S",
+        "to_bus": "B",
+        "reactance_pu": 0.1,
+        "normal_limit_mw": 45,
+        "emergency_limit_mw": 80
+      }
+    ]
+  },
+  "intervals": [
+    {
+      "start_unix_ms": 100000,
+      "duration_ms": 3600000,
+      "baseline_non_slack_injections_mw": {
+        "A": 100,
+        "B": 0
+      },
+      "requested_pcc_reduction_mw": 30
+    }
+  ],
+  "n_minus_one_contingencies": [
+    "S-A",
+    "A-B",
+    "S-B"
+  ],
+  "upstream_receipts": [
+    {
+      "gate": "mobility_flexibility",
+      "receipt_id": "receipt-0",
+      "evidence_reference": "evidence-ref-0",
+      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "disposition": "passed",
+      "offer_id": "mobility-offer-001",
+      "commitment_epoch_id": "commitment-epoch-007",
+      "site_id": "depot-01",
+      "pcc_id": "pcc-01",
+      "asset_id": "ess-01",
+      "asset_configuration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "observed_at_unix_ms": 90000,
+      "valid_from_unix_ms": 0,
+      "valid_until_unix_ms": 4000000,
+      "network_model_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "topology_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "baseline_trace_digest": null,
+      "flexible_trace_digest": null
+    },
+    {
+      "gate": "reserve_recovery",
+      "receipt_id": "receipt-1",
+      "evidence_reference": "evidence-ref-1",
+      "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "disposition": "passed",
+      "offer_id": "mobility-offer-001",
+      "commitment_epoch_id": "commitment-epoch-007",
+      "site_id": "depot-01",
+      "pcc_id": "pcc-01",
+      "asset_id": "ess-01",
+      "asset_configuration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "observed_at_unix_ms": 90000,
+      "valid_from_unix_ms": 0,
+      "valid_until_unix_ms": 4000000,
+      "network_model_digest": null,
+      "topology_digest": null,
+      "baseline_trace_digest": null,
+      "flexible_trace_digest": null
+    },
+    {
+      "gate": "commitment_lease",
+      "receipt_id": "receipt-2",
+      "evidence_reference": "evidence-ref-2",
+      "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "disposition": "passed",
+      "offer_id": "mobility-offer-001",
+      "commitment_epoch_id": "commitment-epoch-007",
+      "site_id": "depot-01",
+      "pcc_id": "pcc-01",
+      "asset_id": "ess-01",
+      "asset_configuration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "observed_at_unix_ms": 90000,
+      "valid_from_unix_ms": 0,
+      "valid_until_unix_ms": 4000000,
+      "network_model_digest": null,
+      "topology_digest": null,
+      "baseline_trace_digest": null,
+      "flexible_trace_digest": null
+    },
+    {
+      "gate": "commitment_journal",
+      "receipt_id": "receipt-3",
+      "evidence_reference": "evidence-ref-3",
+      "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "disposition": "passed",
+      "offer_id": "mobility-offer-001",
+      "commitment_epoch_id": "commitment-epoch-007",
+      "site_id": "depot-01",
+      "pcc_id": "pcc-01",
+      "asset_id": "ess-01",
+      "asset_configuration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "observed_at_unix_ms": 90000,
+      "valid_from_unix_ms": 0,
+      "valid_until_unix_ms": 4000000,
+      "network_model_digest": null,
+      "topology_digest": null,
+      "baseline_trace_digest": null,
+      "flexible_trace_digest": null
+    },
+    {
+      "gate": "pcc_metrology",
+      "receipt_id": "receipt-4",
+      "evidence_reference": "evidence-ref-4",
+      "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "disposition": "passed",
+      "offer_id": "mobility-offer-001",
+      "commitment_epoch_id": "commitment-epoch-007",
+      "site_id": "depot-01",
+      "pcc_id": "pcc-01",
+      "asset_id": null,
+      "asset_configuration_digest": null,
+      "observed_at_unix_ms": 90000,
+      "valid_from_unix_ms": 0,
+      "valid_until_unix_ms": 4000000,
+      "network_model_digest": null,
+      "topology_digest": null,
+      "baseline_trace_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "flexible_trace_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+    }
+  ],
+  "claim_ceiling": "Synthetic known-truth adapter fixture only."
+}
