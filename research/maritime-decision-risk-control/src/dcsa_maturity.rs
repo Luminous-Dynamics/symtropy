@@ -82,7 +82,7 @@ impl DcsaEventMaturity {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DcsaClassifierError {
     UnknownClassifier(String),
     WrongStandardVersion,
@@ -373,7 +373,7 @@ fn benchmark_cases() -> [BenchmarkCase; 11] {
             id: "publication_after_retrieval_rejected",
             code: "ACT",
             expected: "PUBLICATION_AFTER_RETRIEVAL",
-            published: Some(FIXTURE_RETRIEVAL + 10),
+            published: Some(FIXTURE_RETRIEVED + 10),
             retrieved: FIXTURE_RETRIEVED,
             record_time: FIXTURE_RETRIEVED,
             event_time: Some(FIXTURE_EVENT_TIME),
