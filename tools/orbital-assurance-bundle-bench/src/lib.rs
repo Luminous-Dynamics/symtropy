@@ -4,6 +4,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 pub mod dependency_graph_adequacy;
 pub mod incumbent_adequacy;
 pub mod invalidation;
+pub mod policy_adequacy;
 
 const SCHEMA: &str = "luminous.orbital-assurance-bundle.corpus.v0.1";
 const CLAIM_CEILING: &str = "synthetic-assurance-graph-structure-only";

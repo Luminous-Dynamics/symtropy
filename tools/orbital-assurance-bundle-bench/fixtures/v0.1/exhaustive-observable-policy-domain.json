@@ -1,0 +1,149 @@
+{
+  "schema": "luminous.orbital-observable-policy-exhaustive-domain.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "tiny-finite-domain-exhaustive-observable-policy-oracle-only",
+  "decision_cutoff_sequence": 106,
+  "incumbent_policy_id": "static::safe",
+  "materiality_margin": {
+    "numerator": 2,
+    "denominator": 1
+  },
+  "resource_budget": {
+    "reference_trials": 10,
+    "exposure_micro_units": 20,
+    "elapsed_millis": 100
+  },
+  "policy_switch_cost": {
+    "reference_trials": 1,
+    "exposure_micro_units": 1,
+    "elapsed_millis": 1
+  },
+  "action_costs": {
+    "safe": {
+      "reference_trials": 0,
+      "exposure_micro_units": 0,
+      "elapsed_millis": 0
+    },
+    "slow_safe": {
+      "reference_trials": 0,
+      "exposure_micro_units": 0,
+      "elapsed_millis": 0
+    },
+    "north_action": {
+      "reference_trials": 1,
+      "exposure_micro_units": 2,
+      "elapsed_millis": 2
+    },
+    "south_action": {
+      "reference_trials": 1,
+      "exposure_micro_units": 2,
+      "elapsed_millis": 2
+    }
+  },
+  "scenarios": [
+    {
+      "scenario_id": "s-A1",
+      "world_id": "w-A",
+      "loss_model_id": "lm-A1",
+      "action_losses": {
+        "safe": {
+          "numerator": 10,
+          "denominator": 1
+        },
+        "slow_safe": {
+          "numerator": 11,
+          "denominator": 1
+        },
+        "north_action": {
+          "numerator": 1,
+          "denominator": 1
+        }
+      }
+    },
+    {
+      "scenario_id": "s-A2",
+      "world_id": "w-A",
+      "loss_model_id": "lm-A2",
+      "action_losses": {
+        "safe": {
+          "numerator": 10,
+          "denominator": 1
+        },
+        "slow_safe": {
+          "numerator": 11,
+          "denominator": 1
+        },
+        "north_action": {
+          "numerator": 1,
+          "denominator": 1
+        }
+      }
+    },
+    {
+      "scenario_id": "s-B1",
+      "world_id": "w-B",
+      "loss_model_id": "lm-B1",
+      "action_losses": {
+        "safe": {
+          "numerator": 10,
+          "denominator": 1
+        },
+        "slow_safe": {
+          "numerator": 11,
+          "denominator": 1
+        },
+        "south_action": {
+          "numerator": 1,
+          "denominator": 1
+        }
+      }
+    }
+  ],
+  "queries": [
+    {
+      "query_id": "measure",
+      "observation_sequence": 90,
+      "evidence_state": "CURRENT",
+      "safety_state": "QUALIFIED",
+      "outcome_by_world": {
+        "w-A": "north",
+        "w-B": "south"
+      },
+      "query_cost": {
+        "reference_trials": 1,
+        "exposure_micro_units": 2,
+        "elapsed_millis": 5
+      }
+    },
+    {
+      "query_id": "measure-expensive",
+      "observation_sequence": 91,
+      "evidence_state": "CURRENT",
+      "safety_state": "QUALIFIED",
+      "outcome_by_world": {
+        "w-A": "north",
+        "w-B": "south"
+      },
+      "query_cost": {
+        "reference_trials": 3,
+        "exposure_micro_units": 8,
+        "elapsed_millis": 30
+      }
+    },
+    {
+      "query_id": "blind",
+      "observation_sequence": 92,
+      "evidence_state": "CURRENT",
+      "safety_state": "QUALIFIED",
+      "outcome_by_world": {
+        "w-A": "same",
+        "w-B": "same"
+      },
+      "query_cost": {
+        "reference_trials": 1,
+        "exposure_micro_units": 1,
+        "elapsed_millis": 2
+      }
+    }
+  ]
+}

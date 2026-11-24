@@ -1,0 +1,832 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Incumbent policy adequacy corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-incumbent-policy-adequacy.corpus.v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic-observable-policy-maintenance-algebra-only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "source_policy_case_id",
+          "decision_scope_id",
+          "query_universe_receipt_id",
+          "query_universe_scope_id",
+          "expected_query_ids_sha256",
+          "queries_sha256",
+          "scope_sha256",
+          "decision_cutoff_id",
+          "world_set_receipt_id",
+          "joint_loss_receipt_id",
+          "joint_scenario_manifest_sha256",
+          "source_receipt",
+          "world_set_state",
+          "loss_model_state",
+          "model_family_state",
+          "domain_closure_state",
+          "dependency_graph_state",
+          "evidence_state",
+          "incumbent_feasibility_state",
+          "loss_unit",
+          "incumbent_policy_id",
+          "best_no_query_worst_case_loss",
+          "materiality_margin",
+          "policy_switch_cost",
+          "resource_budget",
+          "expected_joint_scenarios",
+          "expected_scenario_ids_sha256",
+          "expected_joint_scenarios_sha256",
+          "policy_pareto_frontier_ids",
+          "policies"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_policy_case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "decision_scope_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "decision_cutoff_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "world_set_receipt_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "joint_loss_receipt_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "joint_scenario_manifest_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "source_receipt": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "receipt_schema",
+              "claim_ceiling",
+              "source_commit",
+              "source_case_id",
+              "source_scope_id",
+              "source_query_universe_receipt_id",
+              "source_query_universe_scope_id",
+              "source_expected_query_ids_sha256",
+              "source_queries_sha256",
+              "source_incumbent_policy_id",
+              "source_best_no_query_worst_case_loss",
+              "source_scope_sha256",
+              "source_decision_cutoff_id",
+              "source_world_set_receipt_id",
+              "source_joint_loss_receipt_id",
+              "source_joint_scenario_manifest_sha256",
+              "policy_payload_sha256",
+              "receipt_id",
+              "receipt_sha256",
+              "state",
+              "result"
+            ],
+            "properties": {
+              "receipt_schema": {
+                "const": "luminous.orbital-feasibility-discovery.receipt.v0.1"
+              },
+              "claim_ceiling": {
+                "const": "finite-passive-query-policy-tree-algebra-only"
+              },
+              "source_commit": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "source_case_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_scope_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_scope_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "source_decision_cutoff_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_world_set_receipt_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_joint_loss_receipt_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_joint_scenario_manifest_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "policy_payload_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "receipt_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "receipt_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "state": {
+                "enum": [
+                  "CURRENT",
+                  "STALE",
+                  "REVOKED",
+                  "CONTRADICTED",
+                  "INDETERMINATE"
+                ]
+              },
+              "result": {
+                "const": "pass"
+              },
+              "source_query_universe_receipt_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_query_universe_scope_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_expected_query_ids_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "source_queries_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "source_incumbent_policy_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_best_no_query_worst_case_loss": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "numerator",
+                      "denominator"
+                    ],
+                    "properties": {
+                      "numerator": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000000000000
+                      },
+                      "denominator": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000000000000
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "world_set_state": {
+            "enum": [
+              "CURRENT",
+              "STALE",
+              "UNAVAILABLE"
+            ]
+          },
+          "loss_model_state": {
+            "enum": [
+              "CURRENT",
+              "STALE",
+              "INDETERMINATE",
+              "INADEQUATE",
+              "OUT_OF_PROFILE"
+            ]
+          },
+          "model_family_state": {
+            "enum": [
+              "ADEQUATE",
+              "INADEQUATE",
+              "INDETERMINATE"
+            ]
+          },
+          "domain_closure_state": {
+            "enum": [
+              "CLOSED_WITHIN_DECLARED_SCOPE",
+              "OPEN",
+              "STALE",
+              "INADEQUATE"
+            ]
+          },
+          "dependency_graph_state": {
+            "enum": [
+              "GRAPH_COMPLETE_WITHIN_DECLARED_GRAMMAR",
+              "INADEQUATE",
+              "STALE",
+              "INDETERMINATE"
+            ]
+          },
+          "evidence_state": {
+            "enum": [
+              "CURRENT",
+              "STALE",
+              "CONTRADICTED",
+              "INDETERMINATE"
+            ]
+          },
+          "incumbent_feasibility_state": {
+            "enum": [
+              "FEASIBLE",
+              "INFEASIBLE",
+              "INDETERMINATE"
+            ]
+          },
+          "loss_unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "incumbent_policy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "materiality_margin": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "numerator",
+              "denominator"
+            ],
+            "properties": {
+              "numerator": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000
+              },
+              "denominator": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000000000000
+              }
+            }
+          },
+          "policy_switch_cost": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "reference_trials",
+              "exposure_micro_units",
+              "elapsed_millis"
+            ],
+            "properties": {
+              "reference_trials": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "exposure_micro_units": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "elapsed_millis": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            }
+          },
+          "resource_budget": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "reference_trials",
+              "exposure_micro_units",
+              "elapsed_millis"
+            ],
+            "properties": {
+              "reference_trials": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "exposure_micro_units": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "elapsed_millis": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            }
+          },
+          "expected_joint_scenarios": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16384,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "scenario_id",
+                "world_id",
+                "loss_model_id"
+              ],
+              "properties": {
+                "scenario_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "world_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "loss_model_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "expected_scenario_ids_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "expected_joint_scenarios_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "policy_pareto_frontier_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "policies": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4096,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "policy_id",
+                "query_id",
+                "branch_actions",
+                "observation_class_world_ids",
+                "worst_case_loss",
+                "worst_case_wait_and_see_regret",
+                "worst_case_outcome_class_regret",
+                "worst_loss_scenario_ids",
+                "worst_wait_and_see_scenario_ids",
+                "worst_outcome_class_regret_scenario_ids",
+                "worst_loss_reduction_vs_best_no_query",
+                "query_cost",
+                "branch_action_cost_upper_bound",
+                "total_cost_upper_bound",
+                "per_scenario"
+              ],
+              "properties": {
+                "policy_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "query_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "branch_actions": {
+                  "type": "object",
+                  "minProperties": 1,
+                  "additionalProperties": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "query_cost": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference_trials",
+                    "exposure_micro_units",
+                    "elapsed_millis"
+                  ],
+                  "properties": {
+                    "reference_trials": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "exposure_micro_units": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "elapsed_millis": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  }
+                },
+                "branch_action_cost_upper_bound": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference_trials",
+                    "exposure_micro_units",
+                    "elapsed_millis"
+                  ],
+                  "properties": {
+                    "reference_trials": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "exposure_micro_units": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "elapsed_millis": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  }
+                },
+                "total_cost_upper_bound": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference_trials",
+                    "exposure_micro_units",
+                    "elapsed_millis"
+                  ],
+                  "properties": {
+                    "reference_trials": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "exposure_micro_units": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "elapsed_millis": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  }
+                },
+                "per_scenario": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 16384,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "scenario_id",
+                      "world_id",
+                      "loss_model_id",
+                      "observed_outcome_id",
+                      "selected_action_id",
+                      "loss",
+                      "wait_and_see_regret",
+                      "outcome_class_regret"
+                    ],
+                    "properties": {
+                      "scenario_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "world_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "loss_model_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "observed_outcome_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "selected_action_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "loss": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "numerator",
+                          "denominator"
+                        ],
+                        "properties": {
+                          "numerator": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1000000000000
+                          },
+                          "denominator": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000000000000
+                          }
+                        }
+                      },
+                      "wait_and_see_regret": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "numerator",
+                          "denominator"
+                        ],
+                        "properties": {
+                          "numerator": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1000000000000
+                          },
+                          "denominator": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000000000000
+                          }
+                        }
+                      },
+                      "outcome_class_regret": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "numerator",
+                          "denominator"
+                        ],
+                        "properties": {
+                          "numerator": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1000000000000
+                          },
+                          "denominator": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000000000000
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "observation_class_world_ids": {
+                  "type": "object",
+                  "minProperties": 1,
+                  "additionalProperties": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                "worst_case_wait_and_see_regret": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "numerator",
+                    "denominator"
+                  ],
+                  "properties": {
+                    "numerator": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000
+                    },
+                    "denominator": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1000000000000
+                    }
+                  }
+                },
+                "worst_case_outcome_class_regret": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "numerator",
+                    "denominator"
+                  ],
+                  "properties": {
+                    "numerator": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000
+                    },
+                    "denominator": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1000000000000
+                    }
+                  }
+                },
+                "worst_loss_scenario_ids": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "worst_wait_and_see_scenario_ids": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "worst_outcome_class_regret_scenario_ids": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "worst_loss_reduction_vs_best_no_query": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/source_signed_difference"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "worst_case_loss": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "numerator",
+                    "denominator"
+                  ],
+                  "properties": {
+                    "numerator": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000000
+                    },
+                    "denominator": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1000000000000
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "query_universe_receipt_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "query_universe_scope_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_query_ids_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "queries_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "best_no_query_worst_case_loss": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "numerator",
+                  "denominator"
+                ],
+                "properties": {
+                  "numerator": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000000000
+                  },
+                  "denominator": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000000000000
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "source_signed_difference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "direction",
+        "magnitude"
+      ],
+      "properties": {
+        "direction": {
+          "enum": [
+            "positive_improvement",
+            "negative_improvement",
+            "no_change"
+          ]
+        },
+        "magnitude": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "numerator",
+            "denominator"
+          ],
+          "properties": {
+            "numerator": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000000000
+            },
+            "denominator": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000000000
+            }
+          }
+        }
+      }
+    }
+  }
+}
