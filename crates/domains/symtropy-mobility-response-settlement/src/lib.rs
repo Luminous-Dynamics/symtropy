@@ -1815,13 +1815,28 @@ mod tests {
             evaluate_mobility_response_settlement(&bad_bound),
             Err(BridgeError::EnergyMismatch(_))
         ));
+
+        let mut bad_recovery = input();
+        bad_recovery.pcc_metrology.report["intervals"][3]["measured_reduction_energy_wh"] =
+            json!(-0.5);
+        assert!(matches!(
+            evaluate_mobility_response_settlement(&bad_recovery),
+            Err(BridgeError::EnergyMismatch(_))
+        ));
+
+        let mut bad_baseline_recovery = input();
+        bad_baseline_recovery.counterfactual_baseline.report["intervals"][3]
+            ["conservative_reduction_energy_kwh"] = json!(0.0);
+        assert!(matches!(
+            evaluate_mobility_response_settlement(&bad_baseline_recovery),
+            Err(BridgeError::EnergyMismatch(_))
+        ));
     }
 
     #[test]
     fn grid_response_total_must_equal_signed_sample_energy() {
         let mut bad = input();
-        bad.grid_response.report["sample_receipts"][0]["delivered_reduction_kw"] = json!(11.0);
-        bad.grid_response.report["sample_receipts"][1]["delivered_reduction_kw"] = json!(10.0);
+        bad.grid_response.report["delivered_reduction_energy_kwh"] = json!(0.009);
         assert!(matches!(
             evaluate_mobility_response_settlement(&bad),
             Err(BridgeError::EnergyMismatch(_))
