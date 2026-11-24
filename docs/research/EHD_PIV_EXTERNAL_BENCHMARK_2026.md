@@ -12,6 +12,29 @@ PIVtools is a contemporary open-source planar, stereo and ensemble PIV platform.
 
 The PIVtools Turbulent Channel Validation Dataset is a particularly valuable external challenge because its current Hugging Face card combines clean/noisy synthetic planar and stereo measurements with an experimental image set and a same-facility hot-wire comparison. The card declares CC-BY-4.0 and approximately 171 GB total size. [Dataset card](https://huggingface.co/datasets/MTT69/TurbulentChannel).
 
+## Additional synthetic-generator baseline: SynthPix v0.4.0
+
+Use [SynthPix](https://github.com/antonioterpin/synthpix), MIT-licensed JAX generator pinned at commit `0effe6e70b77d0d5c97348d8220e74d31bfaee2e` (repository version 0.4.0), for high-throughput controlled image generation. It can load HDF5, MAT and NPY flow data and batch image generation while exposing seeding, particle diameter/intensity/shape (`rho`), per-frame appearance variability, hide probability, noise, masks and histogram matching. The June 2026 paper reports orders-of-magnitude throughput against selected generator alternatives and mean/max relative EPE discrepancy of 0.001/0.005 on its own tuned synthetic benchmark (DOI 10.1016/j.softx.2026.102642).
+
+Do not treat SynthPix as a PIV estimator. The generator tournament is separate from the estimator tournament:
+- **Generator lane:** SynthPix vs Rust reference operator vs dataset's shipped generator/reference image pairs. Compare semantic effects, analytic controls, downstream error prediction and throughput.
+- **Estimator lane:** PIVtools/OpenPIV/PIVlab and reconstruction/postprocessing methods on the same raw image pairs.
+- **End-to-end transfer lane:** test whether synthetic-generator-based ranking predicts method ranking/error on held-out real Cam4 image blocks.
+
+The Rust operator PR #7259 is intentionally not a speed competitor. Use it as a deterministic, transparent reference for finite exposure, RK2 motion, explicit sheet attenuation, PSF, fixed noise and fail-closed sensor/domain controls. Use SynthPix for large GPU parameter sweeps. The paper's v0.1 orthogonal camera model and missing pixel-fill-factor support are recorded limitations; verify the exact v0.4.0 source before asserting which limitations remain. No SynthPix run has been performed by this benchmark contract.
+
+### Generator tournament protocol
+
+At matched flow fields, image shape, particle density, diameter/intensity distribution, frame separation, image-noise distribution, masks, output bit depth and hardware:
+- measure image-pair throughput and p50/p95 batch latency;
+- compare particle count/density, centroid and diameter distributions, intensity histogram, spatial illumination variation and particle shape;
+- check displacement/blur and estimator EPE against an independently declared flow reference;
+- compare sensitivity curves over seeded parameter sweeps, including low seeding, high gradients, large displacement, out-of-plane loss proxy and noisy backgrounds;
+- validate determinism by fixed seeds and exact config digests;
+- report GPU memory, precision, data-loader overhead and batch size.
+
+Use a separate *camera-model extension* challenge for pixel fill factor, non-orthogonal mapping, PSF/aberration, exposure timing and stereo/volumetric views; neither generator receives credit for effects it does not model.
+
 ## Pinned external data
 
 - Repository: [MTT69/TurbulentChannel](https://huggingface.co/datasets/MTT69/TurbulentChannel)
