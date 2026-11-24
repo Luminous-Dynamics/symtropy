@@ -44,7 +44,11 @@ fn required_string<'a>(value: &'a Value, key: &str, context: &str) -> Result<&'a
         .ok_or_else(|| fail(format!("{context}_{key}_missing_or_invalid")))
 }
 
-fn validate_stream_case(policy_case: &Value, stream_case: &Value) -> Result<(), String> {
+fn validate_stream_case(
+    policy_case: &Value,
+    stream_case: &Value,
+    decision_epoch: usize,
+) -> Result<(), String> {
     let resources = policy_case
         .get("resources")
         .and_then(Value::as_array)
@@ -269,9 +273,18 @@ fn validate_stream_case(policy_case: &Value, stream_case: &Value) -> Result<(), 
         return Err(fail("scenario_probabilities_must_sum_to_one_million"));
     }
 
-    if scenarios[0]
+    let paired_first = scenarios[0]
         .get("observations_by_epoch")
-        .is_none_or(|left| scenarios[1].get("observations_by_epoch") != Some(left))
+        .and_then(Value::as_array)
+        .ok_or_else(|| fail("paired_scenario_observations_missing"))?;
+    let paired_second = scenarios[1]
+        .get("observations_by_epoch")
+        .and_then(Value::as_array)
+        .ok_or_else(|| fail("paired_scenario_observations_missing"))?;
+    let visible_len = decision_epoch + 1;
+    if paired_first.len() < visible_len
+        || paired_second.len() < visible_len
+        || paired_first[..visible_len] != paired_second[..visible_len]
     {
         return Err(fail(
             "paired_scenarios_must_share_identical_visible_history",
@@ -339,7 +352,7 @@ fn project_prefix(
         .get("scenarios")
         .and_then(Value::as_array)
         .ok_or_else(|| fail("scenario_streams_missing"))?;
-    validate_stream_case(policy_case, stream_case)?;
+    validate_stream_case(policy_case, stream_case, decision_epoch)?;
     let scenario = scenarios
         .get(scenario_slot)
         .ok_or_else(|| fail("scenario_slot_out_of_range"))?;
@@ -656,6 +669,34 @@ mod tests {
             )
             .unwrap_err(),
             "scenario_slot_out_of_range"
+        );
+    }
+
+    #[test]
+    fn paired_scenario_divergence_is_checked_only_after_it_becomes_visible() {
+        let policy_case = sample_policy_case();
+        let mut stream_case = sample_stream_case();
+        stream_case["scenarios"][1]["observations_by_epoch"][3]["resource_events"][0]
+            ["source_event_id"] = Value::from("LATE-DIVERGENCE");
+
+        assert!(project_prefix(
+            "MFG-POLICY-V02-CHALLENGE-001",
+            &policy_case,
+            &stream_case,
+            0,
+            1,
+        )
+        .is_ok());
+        assert_eq!(
+            project_prefix(
+                "MFG-POLICY-V02-CHALLENGE-001",
+                &policy_case,
+                &stream_case,
+                0,
+                3,
+            )
+            .unwrap_err(),
+            "paired_scenarios_must_share_identical_visible_history"
         );
     }
 
