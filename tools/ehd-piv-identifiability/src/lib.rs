@@ -396,7 +396,6 @@ pub fn whiten_sensitivity_with_covariance(
     Ok(whitened)
 }
 
-
 /// Compute and whiten candidate observation sensitivities conditional on
 /// measurements already acquired.
 ///
@@ -491,11 +490,13 @@ pub fn whiten_conditional_innovation_sensitivities(
     }
     for (row_index, row) in candidate_existing_cross_covariance.iter().enumerate() {
         if row.len() != existing_count {
-            return Err(IdentifiabilityError::ConditionalCrossCovarianceDimensionMismatch {
-                row: row_index,
-                expected: existing_count,
-                actual: row.len(),
-            });
+            return Err(
+                IdentifiabilityError::ConditionalCrossCovarianceDimensionMismatch {
+                    row: row_index,
+                    expected: existing_count,
+                    actual: row.len(),
+                },
+            );
         }
         for (column_index, value) in row.iter().enumerate() {
             if !value.is_finite() {
@@ -550,9 +551,7 @@ pub fn whiten_conditional_innovation_sensitivities(
         for candidate_column in 0..candidate_count {
             let correction = whitened_sigma_01
                 .iter()
-                .map(|cross_row| {
-                    cross_row[candidate_row] * cross_row[candidate_column]
-                })
+                .map(|cross_row| cross_row[candidate_row] * cross_row[candidate_column])
                 .sum::<f64>();
             conditional_covariance[candidate_row][candidate_column] -= correction;
             if !conditional_covariance[candidate_row][candidate_column].is_finite() {
@@ -1902,11 +1901,13 @@ mod tests {
                 &[vec![0.1, 0.2]],
                 1.0e-12,
             ),
-            Err(IdentifiabilityError::ConditionalCrossCovarianceDimensionMismatch {
-                row: 0,
-                expected: 1,
-                actual: 2
-            })
+            Err(
+                IdentifiabilityError::ConditionalCrossCovarianceDimensionMismatch {
+                    row: 0,
+                    expected: 1,
+                    actual: 2
+                }
+            )
         );
     }
 
@@ -1925,5 +1926,4 @@ mod tests {
             Err(IdentifiabilityError::NoiseCovarianceNotPositiveDefinite { .. })
         ));
     }
-
 }
