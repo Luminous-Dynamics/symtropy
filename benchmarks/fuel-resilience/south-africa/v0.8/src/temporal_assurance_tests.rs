@@ -66,7 +66,6 @@ fn windows_from_states(states: &[u8]) -> Vec<ServiceWindow> {
 struct OracleEpisode {
     start_index: usize,
     recovery_candidate_index: Option<usize>,
-    recovery_confirmed_end_index: Option<usize>,
     recovery_streak_seconds: u64,
     confirmed_shortfall_windows: u32,
     uncertain_windows: u32,
@@ -100,9 +99,7 @@ fn oracle_episodes(states: &[u8], confirmation_seconds: u64) -> Vec<ExpectedEpis
         match state {
             2 => {
                 if let Some(mut episode) = active.take() {
-                    episode
-                        .recovery_candidate_index
-                        .get_or_insert(index);
+                    episode.recovery_candidate_index.get_or_insert(index);
                     episode.recovery_streak_seconds += HOUR;
                     if episode.recovery_streak_seconds >= confirmation_seconds {
                         let candidate = episode
@@ -112,15 +109,13 @@ fn oracle_episodes(states: &[u8], confirmation_seconds: u64) -> Vec<ExpectedEpis
                         expected.push(ExpectedEpisode {
                             start_index: episode.start_index,
                             recovery_candidate_index: Some(candidate),
-                            recovery_confirmed_end_index: Some(confirmed_end),
                             restoration_latency_seconds: Some(
                                 (candidate - episode.start_index) as u64 * HOUR,
                             ),
                             confirmation_delay_seconds: Some(
                                 (confirmed_end - candidate) as u64 * HOUR,
                             ),
-                            observed_duration_seconds: (confirmed_end
-                                - episode.start_index) as u64
+                            observed_duration_seconds: (confirmed_end - episode.start_index) as u64
                                 * HOUR,
                             confirmed_shortfall_windows: episode.confirmed_shortfall_windows,
                             uncertain_windows: episode.uncertain_windows,
@@ -137,7 +132,6 @@ fn oracle_episodes(states: &[u8], confirmation_seconds: u64) -> Vec<ExpectedEpis
                 let episode = active.get_or_insert_with(|| OracleEpisode {
                     start_index: index,
                     recovery_candidate_index: None,
-                    recovery_confirmed_end_index: None,
                     recovery_streak_seconds: 0,
                     confirmed_shortfall_windows: 0,
                     uncertain_windows: 0,
@@ -228,21 +222,21 @@ fn exhaustive_temporal_sequences_match_independent_oracle() {
                     CertificateDisposition::ContinuitySupportedWithinHorizon
                 };
 
-                assert_eq!(actual.disposition, expected_disposition, "states={states:?}");
+                assert_eq!(
+                    actual.disposition, expected_disposition,
+                    "states={states:?}"
+                );
                 assert_eq!(actual.windows_total as usize, length, "states={states:?}");
                 assert_eq!(
-                    actual.confirmed_shortfall_windows as usize,
-                    expected_confirmed,
+                    actual.confirmed_shortfall_windows as usize, expected_confirmed,
                     "states={states:?}"
                 );
                 assert_eq!(
-                    actual.uncertain_windows as usize,
-                    expected_uncertain,
+                    actual.uncertain_windows as usize, expected_uncertain,
                     "states={states:?}"
                 );
                 assert_eq!(
-                    actual.guaranteed_windows as usize,
-                    expected_guaranteed,
+                    actual.guaranteed_windows as usize, expected_guaranteed,
                     "states={states:?}"
                 );
                 assert_eq!(
@@ -314,8 +308,7 @@ fn exhaustive_temporal_sequences_match_independent_oracle() {
                         "states={states:?}"
                     );
                     assert_eq!(
-                        actual_episode.uncertain_windows,
-                        expected_episode.uncertain_windows,
+                        actual_episode.uncertain_windows, expected_episode.uncertain_windows,
                         "states={states:?}"
                     );
                     assert_eq!(
@@ -329,8 +322,7 @@ fn exhaustive_temporal_sequences_match_independent_oracle() {
                         "states={states:?}"
                     );
                     assert_eq!(
-                        actual_episode.right_censored,
-                        expected_episode.right_censored,
+                        actual_episode.right_censored, expected_episode.right_censored,
                         "states={states:?}"
                     );
                 }
@@ -368,12 +360,8 @@ fn widening_delivery_intervals_never_improves_continuity_certainty() {
                 ),
             }
 
-            assert!(
-                widened.critical_shortfall_lower_wh <= original.critical_shortfall_lower_wh
-            );
-            assert!(
-                widened.critical_shortfall_upper_wh >= original.critical_shortfall_upper_wh
-            );
+            assert!(widened.critical_shortfall_lower_wh <= original.critical_shortfall_lower_wh);
+            assert!(widened.critical_shortfall_upper_wh >= original.critical_shortfall_upper_wh);
         }
     }
 }
@@ -382,11 +370,8 @@ fn widening_delivery_intervals_never_improves_continuity_certainty() {
 fn improving_both_delivery_bounds_never_worsens_continuity() {
     for lower in 0_u128..=100 {
         for upper in lower..=100 {
-            let original = evaluate(
-                &[service_window(0, BASE, HOUR, lower, upper, 50, 80)],
-                HOUR,
-            )
-            .expect("original interval");
+            let original = evaluate(&[service_window(0, BASE, HOUR, lower, upper, 50, 80)], HOUR)
+                .expect("original interval");
             for delta in [1_u128, 5, 25, 100] {
                 let improved = evaluate(
                     &[service_window(
@@ -406,8 +391,12 @@ fn improving_both_delivery_bounds_never_worsens_continuity() {
                     disposition_rank(improved.window_assessments[0].disposition)
                         >= disposition_rank(original.window_assessments[0].disposition)
                 );
-                assert!(improved.critical_shortfall_lower_wh <= original.critical_shortfall_lower_wh);
-                assert!(improved.critical_shortfall_upper_wh <= original.critical_shortfall_upper_wh);
+                assert!(
+                    improved.critical_shortfall_lower_wh <= original.critical_shortfall_lower_wh
+                );
+                assert!(
+                    improved.critical_shortfall_upper_wh <= original.critical_shortfall_upper_wh
+                );
             }
         }
     }
@@ -431,7 +420,10 @@ fn equivalent_time_partition_and_clock_translation_preserve_service_outcomes() {
     let split_result = evaluate(&split, 2 * HOUR).expect("partitioned trajectory");
 
     assert_eq!(original_result.disposition, split_result.disposition);
-    assert_eq!(original_result.horizon_seconds, split_result.horizon_seconds);
+    assert_eq!(
+        original_result.horizon_seconds,
+        split_result.horizon_seconds
+    );
     assert_eq!(
         original_result.guaranteed_service_seconds,
         split_result.guaranteed_service_seconds
@@ -476,7 +468,10 @@ fn equivalent_time_partition_and_clock_translation_preserve_service_outcomes() {
     let translated_result = evaluate(&translated, 2 * HOUR).expect("translated trajectory");
 
     assert_eq!(original_result.disposition, translated_result.disposition);
-    assert_eq!(original_result.horizon_seconds, translated_result.horizon_seconds);
+    assert_eq!(
+        original_result.horizon_seconds,
+        translated_result.horizon_seconds
+    );
     assert_eq!(
         original_result.guaranteed_service_seconds,
         translated_result.guaranteed_service_seconds
@@ -494,13 +489,31 @@ fn equivalent_time_partition_and_clock_translation_preserve_service_outcomes() {
         .iter()
         .zip(&translated_result.restoration_episodes)
     {
-        assert_eq!(left.restoration_latency_seconds, right.restoration_latency_seconds);
-        assert_eq!(left.confirmation_delay_seconds, right.confirmation_delay_seconds);
-        assert_eq!(left.observed_duration_seconds, right.observed_duration_seconds);
-        assert_eq!(left.confirmed_shortfall_windows, right.confirmed_shortfall_windows);
+        assert_eq!(
+            left.restoration_latency_seconds,
+            right.restoration_latency_seconds
+        );
+        assert_eq!(
+            left.confirmation_delay_seconds,
+            right.confirmation_delay_seconds
+        );
+        assert_eq!(
+            left.observed_duration_seconds,
+            right.observed_duration_seconds
+        );
+        assert_eq!(
+            left.confirmed_shortfall_windows,
+            right.confirmed_shortfall_windows
+        );
         assert_eq!(left.uncertain_windows, right.uncertain_windows);
-        assert_eq!(left.critical_shortfall_lower_wh, right.critical_shortfall_lower_wh);
-        assert_eq!(left.critical_shortfall_upper_wh, right.critical_shortfall_upper_wh);
+        assert_eq!(
+            left.critical_shortfall_lower_wh,
+            right.critical_shortfall_lower_wh
+        );
+        assert_eq!(
+            left.critical_shortfall_upper_wh,
+            right.critical_shortfall_upper_wh
+        );
         assert_eq!(left.right_censored, right.right_censored);
     }
 }
