@@ -310,3 +310,32 @@ Cabinet's 1 July 2026 statement proposed SANPC strategic reserves equal to 60 da
 - South African Government, Cabinet statement, 1 July 2026, draft strategic petroleum stocks policy: https://www.gov.za/news/cabinet-statements/full-statement-cabinet-meeting-1-july-2026-03-jul-2026
 
 These papers and standards define comparison contexts, not a single common leaderboard. Paper-reported metrics must be reproduced under their published assumptions before comparison. A software or synthetic-fixture pass does not establish AC feasibility, protection coordination, HIL performance, commissioning, operator authority or field reliability.
+
+
+## 10. 2026 comparator update — reproduce the strongest relevant ideas
+
+The current comparator set should retain these separate tracks and their own claim boundaries:
+
+- **HAPPO / OpenDSS (IEEE TPEC 2026):** heterogeneous decentralized agents with a centralized critic and a physics-informed OpenDSS environment; the paper reports IEEE-123-bus and 8,500-node tests and more than 95% of available load restored under a 2,400 kW generation cap. Reproduce the exact multi-microgrid layout, DER constraints, training seeds, cap and runtime before comparing.
+- **Two-stage CoT/LoRA (Applied Energy, 15 November 2026):** reports 100% physical feasibility under its modified IEEE-123 test protocol with unseen-topology/sequence perturbations and around 44% faster average inference using soft prompts. Treat the 100% as a paper-scoped result, not a universal guarantee or an independent safety certificate; replay the exact test split and use an independent physical verifier.
+- **Explainable agentic LLM restoration (arXiv:2611.22016, 17 November 2026):** uses specialized LLM agents constrained to feasible actions and deterministic AC power-flow checks; evaluates IEEE-33, IEEE-69 and IEEE-118 cases. It is a useful recent preprint comparator for multi-agent decomposition, explanation quality and receding-horizon plan evaluation, not evidence of field qualification.
+- **Distributionally robust whole-process restoration (Applied Sciences, 26 October 2026):** jointly models black-start, network reconfiguration and load restoration with PV-BESS uncertainty and flexible loads. On its IEEE-118 study, the authors report every proposed schedule passing AC-OPF while a DC-only schedule had no AC operating point at 8 of 22 steps. It is a strong reason to make physical-fidelity tiers and per-step feasibility explicit.
+- **Bottom-up renewable blackstart (Nature Communications review, 17 August 2026):** emphasizes deliverable inverter headroom, current/apparent-power limits, low-inertia frequency dynamics, cold-load pickup, protection admissibility and imperfect situational awareness. Installed DER capacity must not be substituted for dynamically deliverable headroom.
+
+### What to take from this research
+
+1. **Joint the restoration process, not just the dispatch snapshot.** Where the domain model supports it, couple black-start, network energization, load pickup, fuel availability and generator startup constraints over the same time horizon. SAFRB should qualify the resulting service trajectory; it should not solve these dynamics itself.
+2. **Make AC feasibility a per-step gate.** A plan that is topologically connected or DC-feasible can still have no AC operating point. Native three-phase, voltage, reactive, thermal and frequency claims remain owned by the relevant specialist models.
+3. **Measure DER deliverable headroom.** Record current/apparent-power limits, grid-forming mode, state of charge, energy duration, ramp, frequency response and cold-load pickup envelope; do not score nameplate MW as firm service.
+4. **Benchmark explanation against evidence.** An LLM rationale should cite the exact constraints and evidence that made an action admissible or rejected. The explanation itself is not an independent witness.
+5. **Use the assurance overlay as a common cross-planner instrument.** Keep each planner's published case track, then replay identical output artifacts through SAFRB and the independent verifier. Report changes in false-safe claims, critical-floor outcomes, uncertainty/abstention, p95/CVaR95 regret and verification overhead.
+
+### Additional source register
+
+- HAPPO / OpenDSS, *Heterogeneous Multi-Agent Proximal Policy Optimization for Power Distribution System Restoration*, IEEE TPEC 2026, DOI: https://doi.org/10.1109/TPEC67884.2026.11513130
+- Liu et al., *Two-stage fine-tuning of large language models for distribution network service restoration via CoT reasoning*, Applied Energy 423 (15 November 2026), article 128417, DOI: https://doi.org/10.1016/j.apenergy.2026.128417
+- Chowdhury and Li, *An Explainable Agentic AI Framework for Distribution System Load Restoration*, arXiv:2611.22016: https://arxiv.org/abs/2611.22016
+- Lin and Xu, *Distributionally Robust Whole-Process Restoration of Power Systems with Photovoltaic–Battery Energy Storage Stations and Flexible Loads*, Applied Sciences 16(21), 10584 (26 October 2026), DOI: https://doi.org/10.3390/app162110584
+- Shi, Bai and Wang, *Power distribution system blackstart restoration using renewable energy*, Nature Communications 17, 8498 (17 August 2026): https://www.nature.com/articles/s41467-026-76692-0
+
+All reported numerical results above are claims from the named papers under their respective study assumptions. They are not SAFRB results, not a common leaderboard, and not field reliability evidence.
