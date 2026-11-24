@@ -583,8 +583,7 @@ pub fn select_inertial_rank_basis(
                     "relative row projection residual is non-finite",
                 ));
             }
-            maximum_relative_projection_residual =
-                maximum_relative_projection_residual.max(value);
+            maximum_relative_projection_residual = maximum_relative_projection_residual.max(value);
         }
 
         let disposition = if selected[index] {
