@@ -69,7 +69,9 @@ impl ActionCost {
     fn checked_add(&self, other: &Self) -> Option<Self> {
         let result = Self {
             reference_trials: self.reference_trials.checked_add(other.reference_trials)?,
-            exposure_micro_units: self.exposure_micro_units.checked_add(other.exposure_micro_units)?,
+            exposure_micro_units: self
+                .exposure_micro_units
+                .checked_add(other.exposure_micro_units)?,
             elapsed_millis: self.elapsed_millis.checked_add(other.elapsed_millis)?,
         };
         result.valid().then_some(result)
@@ -367,8 +369,8 @@ fn signed_difference(incumbent: &Rational, alternative: &Rational) -> SignedDiff
             let left = u128::from(incumbent.numerator) * u128::from(alternative.denominator);
             let right = u128::from(alternative.numerator) * u128::from(incumbent.denominator);
             let numerator = left - right;
-            let denominator = u128::from(incumbent.denominator)
-                * u128::from(alternative.denominator);
+            let denominator =
+                u128::from(incumbent.denominator) * u128::from(alternative.denominator);
             let gcd = gcd_u128(numerator, denominator);
             SignedDifference {
                 direction: "positive_improvement".to_owned(),
@@ -382,8 +384,8 @@ fn signed_difference(incumbent: &Rational, alternative: &Rational) -> SignedDiff
             let left = u128::from(alternative.numerator) * u128::from(incumbent.denominator);
             let right = u128::from(incumbent.numerator) * u128::from(alternative.denominator);
             let numerator = left - right;
-            let denominator = u128::from(incumbent.denominator)
-                * u128::from(alternative.denominator);
+            let denominator =
+                u128::from(incumbent.denominator) * u128::from(alternative.denominator);
             let gcd = gcd_u128(numerator, denominator);
             SignedDifference {
                 direction: "negative_improvement".to_owned(),
@@ -412,8 +414,7 @@ fn improvement_exceeds_margin(improvement: &SignedDifference, margin: &Rational)
     let (Ok(numerator), Ok(denominator)) = (numerator, denominator) else {
         return false;
     };
-    numerator * u128::from(margin.denominator)
-        > u128::from(margin.numerator) * denominator
+    numerator * u128::from(margin.denominator) > u128::from(margin.numerator) * denominator
 }
 
 fn gcd_u128(mut a: u128, mut b: u128) -> u128 {
@@ -439,7 +440,10 @@ fn validate_policy(
         || policy.branch_actions.is_empty()
         || policy.per_scenario.is_empty()
     {
-        return Err(format!("policy {} identity, cost or bounds are malformed", policy.policy_id));
+        return Err(format!(
+            "policy {} identity, cost or bounds are malformed",
+            policy.policy_id
+        ));
     }
 
     let recomputed_total = policy
@@ -447,22 +451,34 @@ fn validate_policy(
         .checked_add(&policy.branch_action_cost_upper_bound)
         .ok_or_else(|| format!("policy {} cost addition overflows", policy.policy_id))?;
     if recomputed_total != policy.total_cost_upper_bound {
-        return Err(format!("policy {} total cost does not equal query plus branch cost", policy.policy_id));
+        return Err(format!(
+            "policy {} total cost does not equal query plus branch cost",
+            policy.policy_id
+        ));
     }
 
     for (outcome, action) in &policy.branch_actions {
         if !valid_id(outcome) || !valid_id(action) {
-            return Err(format!("policy {} contains malformed branch identity", policy.policy_id));
+            return Err(format!(
+                "policy {} contains malformed branch identity",
+                policy.policy_id
+            ));
         }
     }
     if policy.query_id.is_none()
         && (policy.branch_actions.len() != 1
             || !policy.branch_actions.contains_key(NO_QUERY_OUTCOME))
     {
-        return Err(format!("static incumbent policy {} must use the no-query branch", policy.policy_id));
+        return Err(format!(
+            "static incumbent policy {} must use the no-query branch",
+            policy.policy_id
+        ));
     }
     if policy.query_id.is_some() && policy.branch_actions.contains_key(NO_QUERY_OUTCOME) {
-        return Err(format!("query policy {} cannot use the no-query sentinel", policy.policy_id));
+        return Err(format!(
+            "query policy {} cannot use the no-query sentinel",
+            policy.policy_id
+        ));
     }
 
     let mut seen_scenarios = BTreeSet::new();
@@ -479,18 +495,30 @@ fn validate_policy(
             || !row.loss.valid()
             || !seen_scenarios.insert(row.scenario_id.as_str())
         {
-            return Err(format!("policy {} has malformed or duplicate scenario rows", policy.policy_id));
+            return Err(format!(
+                "policy {} has malformed or duplicate scenario rows",
+                policy.policy_id
+            ));
         }
         let Some((expected_world, expected_model)) =
             expected_scenarios.get(row.scenario_id.as_str())
         else {
-            return Err(format!("policy {} contains an unplanned joint scenario", policy.policy_id));
+            return Err(format!(
+                "policy {} contains an unplanned joint scenario",
+                policy.policy_id
+            ));
         };
         if *expected_world != row.world_id || *expected_model != row.loss_model_id {
-            return Err(format!("policy {} scenario identity differs from the source joint inventory", policy.policy_id));
+            return Err(format!(
+                "policy {} scenario identity differs from the source joint inventory",
+                policy.policy_id
+            ));
         }
         if policy.branch_actions.get(&row.observed_outcome_id) != Some(&row.selected_action_id) {
-            return Err(format!("policy {} selected action does not match its observable branch", policy.policy_id));
+            return Err(format!(
+                "policy {} selected action does not match its observable branch",
+                policy.policy_id
+            ));
         }
         if let Some(previous) = world_outcomes.insert(&row.world_id, &row.observed_outcome_id)
             && previous != row.observed_outcome_id
@@ -511,16 +539,29 @@ fn validate_policy(
 
     let expected_ids = expected_scenarios.keys().copied().collect::<BTreeSet<_>>();
     if seen_scenarios != expected_ids {
-        return Err(format!("policy {} does not cover the exact joint scenario inventory", policy.policy_id));
+        return Err(format!(
+            "policy {} does not cover the exact joint scenario inventory",
+            policy.policy_id
+        ));
     }
-    let branch_ids = policy.branch_actions.keys().map(String::as_str).collect::<BTreeSet<_>>();
+    let branch_ids = policy
+        .branch_actions
+        .keys()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
     if branch_ids != observed_outcomes {
-        return Err(format!("policy {} has missing or extra observable branches", policy.policy_id));
+        return Err(format!(
+            "policy {} has missing or extra observable branches",
+            policy.policy_id
+        ));
     }
 
     let worst_loss = worst_loss.expect("nonempty policy scenarios were validated");
     if !worst_loss.equal_exact(&policy.declared_worst_case_loss) {
-        return Err(format!("policy {} declared worst-case loss disagrees with scenario rows", policy.policy_id));
+        return Err(format!(
+            "policy {} declared worst-case loss disagrees with scenario rows",
+            policy.policy_id
+        ));
     }
     let _ = case;
     Ok(worst_loss)
@@ -561,7 +602,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
         || case.policies.is_empty()
         || case.policies.len() > MAX_POLICIES
     {
-        return invalid(case, "scenario or policy count exceeds the declared finite bound");
+        return invalid(
+            case,
+            "scenario or policy count exceeds the declared finite bound",
+        );
     }
     let scenario_digest = match digest_scenarios(&case.expected_joint_scenarios) {
         Ok(digest) => digest,
@@ -583,7 +627,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
                 )
                 .is_some()
         {
-            return invalid(case, "planned joint scenario identities are malformed or duplicated");
+            return invalid(
+                case,
+                "planned joint scenario identities are malformed or duplicated",
+            );
         }
     }
 
@@ -600,7 +647,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
             Ok(loss) => loss,
             Err(reason) => return invalid(case, &reason),
         };
-        if policy_metrics.insert(policy.policy_id.as_str(), (policy, loss)).is_some() {
+        if policy_metrics
+            .insert(policy.policy_id.as_str(), (policy, loss))
+            .is_some()
+        {
             return invalid(case, "policy IDs are duplicated");
         }
     }
@@ -634,7 +684,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
         return abstain(case, "INCUMBENT_POLICY_NOT_PRESENT_IN_SOURCE_FRONTIER");
     };
     let incumbent = policy_metrics[case.incumbent_policy_id.as_str()].0;
-    if !incumbent.total_cost_upper_bound.within(&case.resource_budget) {
+    if !incumbent
+        .total_cost_upper_bound
+        .within(&case.resource_budget)
+    {
         return CaseResult {
             case_id: case.case_id.clone(),
             status: "POLICY_REVIEW_WARRANTED".to_owned(),
@@ -658,10 +711,9 @@ fn evaluate_case(case: &Case) -> CaseResult {
             continue;
         }
         let (policy, loss) = &policy_metrics[*policy_id];
-        let Some(total_with_switch) = add_world_cost(
-            &policy.total_cost_upper_bound,
-            &case.policy_switch_cost,
-        ) else {
+        let Some(total_with_switch) =
+            add_world_cost(&policy.total_cost_upper_bound, &case.policy_switch_cost)
+        else {
             return invalid(case, "candidate policy plus transition cost overflows");
         };
         if !total_with_switch.within(&case.resource_budget) {
@@ -750,7 +802,10 @@ pub fn evaluate(corpus: &Corpus) -> Result<Evaluation, String> {
         policy_review_warranted_cases: count("POLICY_REVIEW_WARRANTED"),
         abstain_cases: count("ABSTAIN"),
         invalid_input_cases: count("INVALID_INPUT"),
-        resource_blocked_cases: cases.iter().filter(|case| case.resource_blocked_policy_count > 0).count(),
+        resource_blocked_cases: cases
+            .iter()
+            .filter(|case| case.resource_blocked_policy_count > 0)
+            .count(),
         expected_result_mismatches: 0,
         authority_grants: cases.iter().filter(|case| case.authority_granted).count(),
     };
@@ -777,29 +832,53 @@ mod tests {
         }
     }
 
-    fn row(scenario: &str, world: &str, model: &str, outcome: &str, action: &str, loss: u64) -> PolicyScenario {
+    fn row(
+        scenario: &str,
+        world: &str,
+        model: &str,
+        outcome: &str,
+        action: &str,
+        loss: u64,
+    ) -> PolicyScenario {
         PolicyScenario {
             scenario_id: scenario.to_owned(),
             world_id: world.to_owned(),
             loss_model_id: model.to_owned(),
             observed_outcome_id: outcome.to_owned(),
             selected_action_id: action.to_owned(),
-            loss: Rational { numerator: loss, denominator: 1 },
+            loss: Rational {
+                numerator: loss,
+                denominator: 1,
+            },
         }
     }
 
     fn fixture_case(candidate_loss: u64, margin: u64, budget_trials: u64) -> Case {
         let scenarios = vec![
-            JointScenarioIdentity { scenario_id: "s-A".to_owned(), world_id: "w-A".to_owned(), loss_model_id: "loss-A".to_owned() },
-            JointScenarioIdentity { scenario_id: "s-B".to_owned(), world_id: "w-B".to_owned(), loss_model_id: "loss-B".to_owned() },
+            JointScenarioIdentity {
+                scenario_id: "s-A".to_owned(),
+                world_id: "w-A".to_owned(),
+                loss_model_id: "loss-A".to_owned(),
+            },
+            JointScenarioIdentity {
+                scenario_id: "s-B".to_owned(),
+                world_id: "w-B".to_owned(),
+                loss_model_id: "loss-B".to_owned(),
+            },
         ];
-        let scenario_ids = scenarios.iter().map(|item| item.scenario_id.clone()).collect::<Vec<_>>();
+        let scenario_ids = scenarios
+            .iter()
+            .map(|item| item.scenario_id.clone())
+            .collect::<Vec<_>>();
         let scenario_digest = digest_ids(&scenario_ids).expect("scenario digest");
         let incumbent = PolicySnapshot {
             policy_id: "incumbent-static".to_owned(),
             query_id: None,
             branch_actions: BTreeMap::from([(NO_QUERY_OUTCOME.to_owned(), "safe".to_owned())]),
-            declared_worst_case_loss: Rational { numerator: 10, denominator: 1 },
+            declared_worst_case_loss: Rational {
+                numerator: 10,
+                denominator: 1,
+            },
             query_cost: cost(0, 0, 0),
             branch_action_cost_upper_bound: cost(0, 0, 0),
             total_cost_upper_bound: cost(0, 0, 0),
@@ -815,13 +894,30 @@ mod tests {
                 ("north".to_owned(), "north-action".to_owned()),
                 ("south".to_owned(), "south-action".to_owned()),
             ]),
-            declared_worst_case_loss: Rational { numerator: candidate_loss, denominator: 1 },
+            declared_worst_case_loss: Rational {
+                numerator: candidate_loss,
+                denominator: 1,
+            },
             query_cost: cost(1, 5, 10),
             branch_action_cost_upper_bound: cost(1, 0, 5),
             total_cost_upper_bound: cost(2, 5, 15),
             per_scenario: vec![
-                row("s-A", "w-A", "loss-A", "north", "north-action", candidate_loss),
-                row("s-B", "w-B", "loss-B", "south", "south-action", candidate_loss),
+                row(
+                    "s-A",
+                    "w-A",
+                    "loss-A",
+                    "north",
+                    "north-action",
+                    candidate_loss,
+                ),
+                row(
+                    "s-B",
+                    "w-B",
+                    "loss-B",
+                    "south",
+                    "south-action",
+                    candidate_loss,
+                ),
             ],
         };
         Case {
@@ -852,7 +948,10 @@ mod tests {
             incumbent_feasibility_state: "FEASIBLE".to_owned(),
             loss_unit: "loss_micro_units".to_owned(),
             incumbent_policy_id: "incumbent-static".to_owned(),
-            materiality_margin: Rational { numerator: margin, denominator: 1 },
+            materiality_margin: Rational {
+                numerator: margin,
+                denominator: 1,
+            },
             policy_switch_cost: cost(1, 2, 20),
             resource_budget: cost(budget_trials, 10, 1_000),
             expected_joint_scenarios: scenarios,
@@ -866,10 +965,19 @@ mod tests {
     fn observable_policy_can_justify_review_without_selecting_or_authorizing_it() {
         let result = evaluate_case(&fixture_case(1, 2, 3));
         assert_eq!(result.status, "POLICY_REVIEW_WARRANTED");
-        assert_eq!(result.trigger_reason, "OBSERVABLE_POLICY_IMPROVEMENT_EXCEEDS_MATERIALITY_MARGIN");
+        assert_eq!(
+            result.trigger_reason,
+            "OBSERVABLE_POLICY_IMPROVEMENT_EXCEEDS_MATERIALITY_MARGIN"
+        );
         let improvement = result.worst_case_improvement.expect("improvement");
         assert_eq!(improvement.direction, "positive_improvement");
-        assert_eq!(improvement.magnitude, WideRational { numerator: "9".to_owned(), denominator: "1".to_owned() });
+        assert_eq!(
+            improvement.magnitude,
+            WideRational {
+                numerator: "9".to_owned(),
+                denominator: "1".to_owned()
+            }
+        );
         assert_eq!(result.eligible_reference_policy_count, 1);
         assert!(!result.authority_granted);
     }
@@ -879,14 +987,23 @@ mod tests {
         let result = evaluate_case(&fixture_case(8, 2, 3));
         assert_eq!(result.status, "RETAIN_INCUMBENT_POLICY");
         assert_eq!(result.trigger_reason, "WITHIN_POLICY_RETENTION_ENVELOPE");
-        assert_eq!(result.worst_case_improvement.unwrap().magnitude, WideRational { numerator: "2".to_owned(), denominator: "1".to_owned() });
+        assert_eq!(
+            result.worst_case_improvement.unwrap().magnitude,
+            WideRational {
+                numerator: "2".to_owned(),
+                denominator: "1".to_owned()
+            }
+        );
     }
 
     #[test]
     fn a_lower_loss_policy_outside_resource_budget_is_not_admissible() {
         let result = evaluate_case(&fixture_case(1, 2, 2));
         assert_eq!(result.status, "RETAIN_INCUMBENT_POLICY");
-        assert_eq!(result.trigger_reason, "ALTERNATIVES_EXCEED_RESOURCE_ENVELOPE");
+        assert_eq!(
+            result.trigger_reason,
+            "ALTERNATIVES_EXCEED_RESOURCE_ENVELOPE"
+        );
         assert_eq!(result.resource_blocked_policy_count, 1);
         assert_eq!(result.eligible_reference_policy_count, 0);
     }
@@ -894,18 +1011,48 @@ mod tests {
     #[test]
     fn multiple_loss_models_for_one_physical_world_must_share_the_observable_branch() {
         let mut case = fixture_case(1, 2, 3);
-        case.expected_joint_scenarios.insert(1, JointScenarioIdentity {
-            scenario_id: "s-A-model-2".to_owned(),
-            world_id: "w-A".to_owned(),
-            loss_model_id: "loss-A2".to_owned(),
-        });
-        case.expected_scenario_ids_sha256 = digest_ids(&case.expected_joint_scenarios.iter().map(|item| item.scenario_id.clone()).collect::<Vec<_>>()).unwrap();
-        case.policies[0].per_scenario.insert(1, row("s-A-model-2", "w-A", "loss-A2", NO_QUERY_OUTCOME, "safe", 10));
-        case.policies[0].declared_worst_case_loss = Rational { numerator: 10, denominator: 1 };
-        case.policies[1].per_scenario.insert(1, row("s-A-model-2", "w-A", "loss-A2", "south", "south-action", 1));
+        case.expected_joint_scenarios.insert(
+            1,
+            JointScenarioIdentity {
+                scenario_id: "s-A-model-2".to_owned(),
+                world_id: "w-A".to_owned(),
+                loss_model_id: "loss-A2".to_owned(),
+            },
+        );
+        case.expected_scenario_ids_sha256 = digest_ids(
+            &case
+                .expected_joint_scenarios
+                .iter()
+                .map(|item| item.scenario_id.clone())
+                .collect::<Vec<_>>(),
+        )
+        .unwrap();
+        case.policies[0].per_scenario.insert(
+            1,
+            row(
+                "s-A-model-2",
+                "w-A",
+                "loss-A2",
+                NO_QUERY_OUTCOME,
+                "safe",
+                10,
+            ),
+        );
+        case.policies[0].declared_worst_case_loss = Rational {
+            numerator: 10,
+            denominator: 1,
+        };
+        case.policies[1].per_scenario.insert(
+            1,
+            row("s-A-model-2", "w-A", "loss-A2", "south", "south-action", 1),
+        );
         let result = evaluate_case(&case);
         assert_eq!(result.status, "INVALID_INPUT");
-        assert!(result.trigger_reason.contains("branches on hidden loss-model identity"));
+        assert!(
+            result
+                .trigger_reason
+                .contains("branches on hidden loss-model identity")
+        );
     }
 
     #[test]
@@ -917,7 +1064,11 @@ mod tests {
         ]);
         let result = evaluate_case(&case);
         assert_eq!(result.status, "INVALID_INPUT");
-        assert!(result.trigger_reason.contains("selected action does not match its observable branch"));
+        assert!(
+            result
+                .trigger_reason
+                .contains("selected action does not match its observable branch")
+        );
     }
 
     #[test]
@@ -926,20 +1077,31 @@ mod tests {
         missing_branch.policies[1].branch_actions.remove("south");
         let result = evaluate_case(&missing_branch);
         assert_eq!(result.status, "INVALID_INPUT");
-        assert!(result.trigger_reason.contains("selected action does not match its observable branch"));
+        assert!(
+            result
+                .trigger_reason
+                .contains("selected action does not match its observable branch")
+        );
 
         let mut missing_scenario = fixture_case(1, 2, 3);
         missing_scenario.policies[1].per_scenario.pop();
         let result = evaluate_case(&missing_scenario);
         assert_eq!(result.status, "INVALID_INPUT");
-        assert!(result.trigger_reason.contains("does not cover the exact joint scenario inventory"));
+        assert!(
+            result
+                .trigger_reason
+                .contains("does not cover the exact joint scenario inventory")
+        );
     }
 
     #[test]
     fn stale_source_abstains_and_infeasible_incumbent_triggers_review() {
         let mut stale = fixture_case(1, 2, 3);
         stale.source_receipt.state = "STALE".to_owned();
-        assert_eq!(evaluate_case(&stale).trigger_reason, "SOURCE_RECEIPT_NOT_CURRENT");
+        assert_eq!(
+            evaluate_case(&stale).trigger_reason,
+            "SOURCE_RECEIPT_NOT_CURRENT"
+        );
 
         let mut infeasible = fixture_case(1, 2, 3);
         infeasible.incumbent_feasibility_state = "INFEASIBLE".to_owned();
@@ -951,14 +1113,37 @@ mod tests {
     #[test]
     fn multiple_loss_models_same_world_with_same_observation_are_valid() {
         let mut case = fixture_case(1, 2, 3);
-        case.expected_joint_scenarios.insert(1, JointScenarioIdentity {
-            scenario_id: "s-A-model-2".to_owned(),
-            world_id: "w-A".to_owned(),
-            loss_model_id: "loss-A2".to_owned(),
-        });
-        case.expected_scenario_ids_sha256 = digest_ids(&case.expected_joint_scenarios.iter().map(|item| item.scenario_id.clone()).collect::<Vec<_>>()).unwrap();
-        case.policies[0].per_scenario.insert(1, row("s-A-model-2", "w-A", "loss-A2", NO_QUERY_OUTCOME, "safe", 10));
-        case.policies[1].per_scenario.insert(1, row("s-A-model-2", "w-A", "loss-A2", "north", "north-action", 1));
+        case.expected_joint_scenarios.insert(
+            1,
+            JointScenarioIdentity {
+                scenario_id: "s-A-model-2".to_owned(),
+                world_id: "w-A".to_owned(),
+                loss_model_id: "loss-A2".to_owned(),
+            },
+        );
+        case.expected_scenario_ids_sha256 = digest_ids(
+            &case
+                .expected_joint_scenarios
+                .iter()
+                .map(|item| item.scenario_id.clone())
+                .collect::<Vec<_>>(),
+        )
+        .unwrap();
+        case.policies[0].per_scenario.insert(
+            1,
+            row(
+                "s-A-model-2",
+                "w-A",
+                "loss-A2",
+                NO_QUERY_OUTCOME,
+                "safe",
+                10,
+            ),
+        );
+        case.policies[1].per_scenario.insert(
+            1,
+            row("s-A-model-2", "w-A", "loss-A2", "north", "north-action", 1),
+        );
         assert_eq!(evaluate_case(&case).status, "POLICY_REVIEW_WARRANTED");
     }
 }
