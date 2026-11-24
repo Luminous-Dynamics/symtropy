@@ -224,17 +224,10 @@ mod tests {
 
     #[test]
     fn unrepresentable_exact_interval_width_fails_closed() {
-        let bounds = interval(
-            rational(1, u128::MAX),
-            rational(1, u128::MAX - 1),
-        );
+        let bounds = interval(rational(1, u128::MAX), rational(1, u128::MAX - 1));
 
         assert_eq!(
-            assess_risk_threshold(
-                bounds,
-                rational(1, 2),
-                RiskThresholdRule::AtOrAbove,
-            ),
+            assess_risk_threshold(bounds, rational(1, 2), RiskThresholdRule::AtOrAbove,),
             Err(DecisionGateError::ArithmeticOverflow)
         );
     }
