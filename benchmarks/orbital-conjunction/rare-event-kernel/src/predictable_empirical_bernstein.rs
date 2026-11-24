@@ -44,12 +44,12 @@ impl core::fmt::Display for PrPlEbError {
             Self::InvalidAlpha => "confidence alpha must lie strictly between zero and one",
             Self::InvalidBetFractionCap => {
                 "betting-fraction cap must lie strictly between zero and one"
-            },
+            }
             Self::InvalidObservation => "bounded-mean observation must lie in [0, 1]",
             Self::CounterOverflow => "bounded-mean observation counter overflowed",
             Self::NumericalFailure => {
                 "PrPl-EB update or confidence intersection failed numerically"
-            },
+            }
         };
         formatter.write_str(message)
     }
