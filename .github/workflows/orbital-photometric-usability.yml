@@ -70,12 +70,12 @@ jobs:
           r=Path("/tmp/rust.json").read_bytes();o=Path("/tmp/oracle.json").read_bytes()
           f=Path("tools/orbital-photometric-usability-bench/docs/photometric-usability-v0_1.json").read_bytes()
           s=Path("tools/orbital-photometric-usability-bench/docs/photometric-usability-v0_1.schema.json").read_bytes()
-          m={"source_commit":"\${{ github.sha }}","rust_sha256":hashlib.sha256(r).hexdigest(),"oracle_sha256":hashlib.sha256(o).hexdigest(),"fixture_sha256":hashlib.sha256(f).hexdigest(),"schema_sha256":hashlib.sha256(s).hexdigest(),"authority_granted":False,"physical_validation":"NOT_ASSESSED"}
+          m={"source_commit":"${{ github.sha }}","rust_sha256":hashlib.sha256(r).hexdigest(),"oracle_sha256":hashlib.sha256(o).hexdigest(),"fixture_sha256":hashlib.sha256(f).hexdigest(),"schema_sha256":hashlib.sha256(s).hexdigest(),"authority_granted":False,"physical_validation":"NOT_ASSESSED"}
           Path("/tmp/evidence.json").write_text(json.dumps(m,indent=2)+"\n")
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: orbital-photometric-usability-\${{ github.sha }}
+          name: orbital-photometric-usability-${{ github.sha }}
           path: |
             /tmp/rust.json
             /tmp/oracle.json
