@@ -15,7 +15,9 @@ use std::{error::Error, fmt, time::Duration};
 
 use crate::human_motion_intent::{IntentValidationError, MotionIntentKind, SemanticMotionIntent};
 use bevy::animation::{
-    AnimationGraph, AnimationGraphHandle, AnimationNodeIndex, AnimationPlayer, AnimationTransitions,
+    graph::{AnimationGraph, AnimationGraphHandle, AnimationNodeIndex},
+    transition::AnimationTransitions,
+    AnimationPlayer,
 };
 use bevy::prelude::*;
 
