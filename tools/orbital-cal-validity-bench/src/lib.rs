@@ -328,6 +328,8 @@ fn evaluate_scope(
                         let max_age = i128::from(max_age);
                         if check_time > acquisition[1] {
                             add_reason(ValidityStatus::Indeterminate, "REFERENCE_CHECK_AFTER_ACQUISITION", &mut statuses, &mut reasons);
+                        } else if check_time >= acquisition[0] {
+                            add_reason(ValidityStatus::Indeterminate, "REFERENCE_CHECK_TIME_OVERLAPS_ACQUISITION", &mut statuses, &mut reasons);
                         } else if acquisition[0] - check_time > max_age {
                             add_reason(ValidityStatus::Expired, "REFERENCE_CHECK_STALE", &mut statuses, &mut reasons);
                         } else if acquisition[1] - check_time > max_age {
@@ -355,12 +357,12 @@ fn evaluate_scope(
             }
         };
         let calibration_epoch = i128::from(scope.calibration_epoch_ns);
-        if event_interval[1] <= calibration_epoch {
+        if event_interval[1] < calibration_epoch {
             continue;
         }
         if event_interval[0] <= calibration_epoch {
             add_reason(ValidityStatus::Indeterminate, "EVENT_TIME_OVERLAPS_CALIBRATION_EPOCH", &mut statuses, &mut reasons);
-        } else if event_interval[1] <= acquisition[0] {
+        } else if event_interval[1] < acquisition[0] {
             match event.impact {
                 EventImpact::Invalidates => add_reason(ValidityStatus::Invalidated, "CALIBRATION_INVALIDATED_BY_EVENT", &mut statuses, &mut reasons),
                 EventImpact::UnknownImpact => add_reason(ValidityStatus::Indeterminate, "EVENT_IMPACT_UNKNOWN", &mut statuses, &mut reasons),
@@ -574,6 +576,16 @@ mod tests {
         let result = evaluate_case(&value).expect("well-formed case");
         assert_eq!(result.status, ValidityStatus::Indeterminate);
         assert!(result.reason_codes.contains(&"REFERENCE_CHECK_AGE_BOUNDARY_OVERLAP".to_owned()));
+    }
+
+    #[test]
+    fn reference_check_at_acquisition_boundary_is_indeterminate() {
+        let mut value = case();
+        value.acquisition_uncertainty_ns = 0;
+        value.scopes[0].last_check_time_ns = Some(500);
+        let result = evaluate_case(&value).expect("well-formed case");
+        assert_eq!(result.status, ValidityStatus::Indeterminate);
+        assert!(result.reason_codes.contains(&"REFERENCE_CHECK_TIME_OVERLAPS_ACQUISITION".to_owned()));
     }
 
     #[test]
