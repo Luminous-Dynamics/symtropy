@@ -310,6 +310,8 @@ pub fn preflight_transport<T: GazeboSimulationTransport>(
     transport: &mut T,
     plan: &CompiledCampaignPlan,
 ) -> Result<GazeboAdapterSession, GazeboAdapterError> {
+    plan.verify_integrity()
+        .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
     let profile = transport
         .get_simulator_features()
         .map_err(|_| GazeboAdapterError::TransportFailure)?;
@@ -347,6 +349,8 @@ pub fn reset_and_verify<T: GazeboSimulationTransport>(
     plan: &CompiledCampaignPlan,
     session: &mut GazeboAdapterSession,
 ) -> Result<GazeboWorldSnapshot, GazeboAdapterError> {
+    plan.verify_integrity()
+        .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
     if session.reset_verification.is_some() {
         return Err(GazeboAdapterError::ResetAlreadyVerified);
     }
@@ -1192,6 +1196,21 @@ mod tests {
         ) -> Result<DispatchLedgerResult, Self::Error> {
             Ok(self.lookup)
         }
+    }
+
+    #[test]
+    fn preflight_rejects_tampered_plan_before_simulator_discovery_or_pause() {
+        let original = plan();
+        let mut simulator = mock_transport(&original);
+        let mut tampered = original.clone();
+        tampered.plan_sha256 = "0".repeat(64);
+
+        assert!(matches!(
+            preflight_transport(&mut simulator, &tampered),
+            Err(GazeboAdapterError::InvalidCompiledPlan)
+        ));
+        assert_eq!(simulator.pause_calls, 0);
+        assert_eq!(simulator.reset_calls, 0);
     }
 
     #[test]
