@@ -1362,7 +1362,7 @@ mod tests {
     }
 
     fn mechanism_candidate() -> EvidenceBoundMechanismCandidateV0 {
-        use super::super::transfer::{EffectTransformV0, SourceInterventionEvidenceV0};
+        use super::super::transfer::EffectTransformV0;
 
         EvidenceBoundMechanismCandidateV0 {
             source_episode_id: "source-episode-001".to_owned(),
