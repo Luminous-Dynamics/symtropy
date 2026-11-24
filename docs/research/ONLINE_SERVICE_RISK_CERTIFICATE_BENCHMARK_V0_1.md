@@ -91,9 +91,9 @@ Forecast evidence must be observed no later than forecast issue; outcome evidenc
 
 ## 6. Frozen synthetic known answer
 
-The fixture contains five forecast events for one exact site/ESS/configuration/model/stratum/metric cohort. The event contract allows an all-or-none absent outcome tuple for forecasts whose outcome has not arrived by the audit cutoff; partial outcome tuples are rejected. Reports publish forecast, observed-outcome and pending-outcome denominators separately. Pending may mean delayed, unavailable or missing—the monitor does not infer which without source events.
+The fixture contains six forecast events for one exact site/ESS/configuration/model/stratum/metric cohort. The event contract allows an all-or-none absent outcome tuple for forecasts whose outcome has not arrived by the audit cutoff; partial outcome tuples are rejected. Reports publish forecast, observed-outcome and pending-outcome denominators separately. Pending may mean delayed, unavailable or missing—the monitor does not infer which without source events.
 
-The frozen fixture itself contains five observed outcomes:
+The frozen fixture itself contains five observed outcomes and one forecast still pending at the audit cutoff:
 - two interval misses arrive before the fourth forecast is issued;
 - the third observation arrives after its own forecast and before the fourth;
 - two later forecasts are issued while the CUSUM alarm is already latched.
@@ -104,15 +104,16 @@ Expected report:
 |---|---:|
 | Forecasts | 5 |
 | Observed outcomes / pending outcomes | 5 / 0 |
+| Observed outcomes / pending outcomes | 5 / 1 |
 | Exact groups | 1 |
 | Interval misses | 2 |
 | Final empirical miscoverage | 400‰ |
 | Shift-alarmed groups | 1 |
 | Risk-above-budget groups | 1 (reported independently of drift status) |
 | Insufficient-history groups | 0 |
-| Prior-observation counts at forecast issue | [0, 0, 0, 2, 3] |
+| Prior-observation counts at forecast issue | [0, 0, 0, 2, 3, 5] |
 | First three prequential statuses | insufficient_history |
-| Fourth/fifth prequential statuses | drift_alarm_latched |
+| Fourth/fifth/sixth prequential statuses | drift_alarm_latched |
 | Model update / field qualification / operational authority | false |
 
 All evidence is synthetic. This fixture checks chronology, arithmetic, report determinism and claim ceilings; it is not a battery or mobility performance result.
