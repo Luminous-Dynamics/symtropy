@@ -267,6 +267,9 @@ def evaluate_case(case):
         "event_inventory_receipt_sha256": case["event_inventory_receipt_sha256"],
         "scope_results": scope_results,
         "may_enter_geometry_precondition": status == "VALID_WITHIN_SCOPE",
+        "visibility_assessed": False,
+        "photometric_usability_assessed": False,
+        "feature_measurability_assessed": False,
     }
 
 
