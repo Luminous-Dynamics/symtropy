@@ -382,11 +382,7 @@ fn solve_three_planes(
     Ok(Some(solution))
 }
 
-fn is_feasible(
-    beta: [f64; 3],
-    planes: &[Plane],
-    tolerance: f64,
-) -> bool {
+fn is_feasible(beta: [f64; 3], planes: &[Plane], tolerance: f64) -> bool {
     if !finite3(beta) || beta.iter().any(|value| *value < -tolerance) {
         return false;
     }
@@ -405,14 +401,10 @@ fn is_feasible(
     })
 }
 
-fn same_vertex(
-    left: [f64; 3],
-    right: [f64; 3],
-    tolerance: f64,
-) -> bool {
-    left.iter().zip(right.iter()).all(|(a, b)| {
-        (a - b).abs() <= tolerance * (1.0 + a.abs().max(b.abs()))
-    })
+fn same_vertex(left: [f64; 3], right: [f64; 3], tolerance: f64) -> bool {
+    left.iter()
+        .zip(right.iter())
+        .all(|(a, b)| (a - b).abs() <= tolerance * (1.0 + a.abs().max(b.abs())))
 }
 
 fn empty_intervals() -> [ParameterInterval; 3] {
@@ -447,9 +439,10 @@ pub fn compute_parameter_set(
                 "squared normalized boundary channels overflowed",
             ));
         }
-        if z.iter().zip(x.iter()).any(|(component, square)| {
-            *component != 0.0 && *square == 0.0
-        }) {
+        if z.iter()
+            .zip(x.iter())
+            .any(|(component, square)| *component != 0.0 && *square == 0.0)
+        {
             return Err(ParameterSetError::new(
                 ParameterSetErrorKind::NonFiniteEvaluation,
                 "squared normalized boundary channel underflowed to zero",
@@ -531,7 +524,8 @@ pub fn compute_parameter_set(
                 let Some(mut candidate) = solve_three_planes(
                     [planes[first], planes[second], planes[third]],
                     config.plane_pivot_relative_tolerance,
-                )? else {
+                )?
+                else {
                     continue;
                 };
                 for value in &mut candidate {
@@ -542,10 +536,9 @@ pub fn compute_parameter_set(
                 if !is_feasible(candidate, &planes, config.feasibility_tolerance) {
                     continue;
                 }
-                if vertices
-                    .iter()
-                    .any(|existing| same_vertex(*existing, candidate, config.vertex_deduplication_tolerance))
-                {
+                if vertices.iter().any(|existing| {
+                    same_vertex(*existing, candidate, config.vertex_deduplication_tolerance)
+                }) {
                     duplicates += 1;
                 } else {
                     vertices.push(candidate);
@@ -588,22 +581,25 @@ pub fn compute_parameter_set(
             .iter()
             .map(|vertex| vertex[axis])
             .fold(0.0_f64, f64::max);
-        let excited = input.observations.iter().any(|observation| {
-            observation.normalized_boundary_components[axis] != 0.0
-        });
+        let excited = input
+            .observations
+            .iter()
+            .any(|observation| observation.normalized_boundary_components[axis] != 0.0);
         let beta_upper = if excited { Some(maximum) } else { None };
         let characteristic_scale = if axis == 2 {
             input.characteristic_length_m
         } else {
             1.0
         };
-        let shape_lower = beta_upper.map(|upper| {
-            if upper > 0.0 {
-                characteristic_scale / upper.sqrt()
-            } else {
-                f64::INFINITY
-            }
-        }).map(|value| if value.is_finite() { value } else { 0.0 });
+        let shape_lower = beta_upper
+            .map(|upper| {
+                if upper > 0.0 {
+                    characteristic_scale / upper.sqrt()
+                } else {
+                    f64::INFINITY
+                }
+            })
+            .map(|value| if value.is_finite() { value } else { 0.0 });
         let shape_upper = if minimum > config.feasibility_tolerance {
             Some(characteristic_scale / minimum.sqrt())
         } else {
@@ -634,9 +630,9 @@ pub fn compute_parameter_set(
         }
     }
 
-    let has_unbounded_axis = intervals.iter().any(|interval| {
-        interval.beta_upper.is_none() || interval.shape_scale_upper.is_none()
-    });
+    let has_unbounded_axis = intervals
+        .iter()
+        .any(|interval| interval.beta_upper.is_none() || interval.shape_scale_upper.is_none());
     let status = if has_unbounded_axis {
         ParameterSetStatus::FeasibleWithUnboundedAxes
     } else {
@@ -740,14 +736,25 @@ mod tests {
             observation("spin", "spin-trial", [0.0, 0.0, 0.25], 0.0),
         ]);
         let report = compute_parameter_set(&problem, config()).expect("exact parameter set");
-        assert_eq!(report.status, ParameterSetStatus::FeasibleWithFiniteIntervals);
+        assert_eq!(
+            report.status,
+            ParameterSetStatus::FeasibleWithFiniteIntervals
+        );
         assert!(report.feasible_vertex_count >= 1);
         let expected_beta = [0.25, 4.0, 16.0];
         for (interval, expected) in report.intervals.iter().zip(expected_beta) {
             close(interval.beta_lower.unwrap(), expected, 1.0e-8);
             close(interval.beta_upper.unwrap(), expected, 1.0e-8);
-            close(interval.shape_scale_lower.unwrap(), 1.0 / expected.sqrt(), 1.0e-8);
-            close(interval.shape_scale_upper.unwrap(), 1.0 / expected.sqrt(), 1.0e-8);
+            close(
+                interval.shape_scale_lower.unwrap(),
+                1.0 / expected.sqrt(),
+                1.0e-8,
+            );
+            close(
+                interval.shape_scale_upper.unwrap(),
+                1.0 / expected.sqrt(),
+                1.0e-8,
+            );
         }
     }
 
@@ -760,7 +767,12 @@ mod tests {
         ]);
         let report = compute_parameter_set(&problem, config()).expect("signed channels");
         assert_eq!(report.status, ParameterSetStatus::FeasibleWithFiniteIntervals);
-        assert!(report.intervals.iter().all(|interval| interval.axis_was_excited));
+        assert!(
+            report
+                .intervals
+                .iter()
+                .all(|interval| interval.axis_was_excited)
+        );
         close(report.intervals[0].beta_lower.unwrap(), 0.25, 1.0e-8);
         close(report.intervals[1].beta_lower.unwrap(), 4.0, 1.0e-8);
         close(report.intervals[2].beta_lower.unwrap(), 16.0, 1.0e-8);
@@ -774,8 +786,16 @@ mod tests {
             observation("spin", "spin-trial", [0.0, 0.0, 0.25], 0.0),
         ]);
         let report = compute_parameter_set(&problem, config()).expect("torsional units");
-        close(report.intervals[2].shape_scale_lower.unwrap(), 0.125, 1.0e-8);
-        close(report.intervals[2].shape_scale_upper.unwrap(), 0.125, 1.0e-8);
+        close(
+            report.intervals[2].shape_scale_lower.unwrap(),
+            0.125,
+            1.0e-8,
+        );
+        close(
+            report.intervals[2].shape_scale_upper.unwrap(),
+            0.125,
+            1.0e-8,
+        );
     }
 
     #[test]
@@ -815,9 +835,12 @@ mod tests {
 
     #[test]
     fn normalized_channel_square_underflow_is_rejected() {
-        let problem = input(vec![
-            observation("tiny", "tiny-trial", [1.0e-300, 0.0, 0.0], 0.05),
-        ]);
+        let problem = input(vec![observation(
+            "tiny",
+            "tiny-trial",
+            [1.0e-300, 0.0, 0.0],
+            0.05,
+        )]);
         assert_eq!(
             compute_parameter_set(&problem, config())
                 .expect_err("underflowed squared design")
@@ -882,14 +905,16 @@ mod tests {
             observation("u", "u", [2.0, 0.0, 0.0], 0.05),
             observation("v", "v", [0.0, 0.5, 0.0], 0.05),
             observation("spin", "spin", [0.0, 0.0, 0.25], 0.05),
-            observation("mixed", "mixed", [1.154700538, 0.2886751345, 0.14433756725], 0.05),
+            observation(
+                "mixed",
+                "mixed",
+                [1.154700538, 0.2886751345, 0.14433756725],
+                0.05,
+            ),
         ];
         let a = compute_parameter_set(&input(observations.clone()), config()).expect("forward");
-        let b = compute_parameter_set(
-            &input(observations.into_iter().rev().collect()),
-            config(),
-        )
-        .expect("reverse");
+        let b = compute_parameter_set(&input(observations.into_iter().rev().collect()), config())
+            .expect("reverse");
         for (left, right) in a.intervals.iter().zip(&b.intervals) {
             close(left.beta_lower.unwrap(), right.beta_lower.unwrap(), 1.0e-8);
             close(left.beta_upper.unwrap(), right.beta_upper.unwrap(), 1.0e-8);
