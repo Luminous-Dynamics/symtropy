@@ -581,6 +581,7 @@ mod tests {
             start_position,
             post_position,
             post_velocity,
+            post_velocity,
             angular_norm_sq,
             Aabb::new(
                 [start_position[0] - 1.0, start_position[1] - 2.0],
@@ -678,6 +679,7 @@ mod tests {
             [0.0, 0.0],
             [1.0, 0.0],
             [1.0, 0.0],
+            [1.0, 0.0],
             0.0,
             Aabb::new([-1.0, -1.0], [1.0, 1.0]).unwrap(),
         )
@@ -695,6 +697,7 @@ mod tests {
             context(1.0 / 60.0, QuantizationProfile::Q16_16),
             [0.0, 0.0],
             [0.125, 0.0],
+            [7.5001, 0.0],
             [7.5, 0.0],
             0.0,
             Aabb::new([-1.0, -1.0], [1.0, 1.0]).unwrap(),
@@ -705,6 +708,7 @@ mod tests {
             other => panic!("expected certified sweep, got {other:?}"),
         };
         assert_eq!(proof.context.quantization(), QuantizationProfile::Q16_16);
+        assert!(proof.bounds.max()[0] > 1.125001);
         verify_swept_aabb(&proof, &source).unwrap();
     }
 
@@ -748,6 +752,7 @@ mod tests {
                 [f64::INFINITY, 0.0],
                 [1.0, 0.0],
                 [1.0, 0.0],
+                [1.0, 0.0],
                 0.0,
                 Aabb::new([-1.0, -1.0], [1.0, 1.0]).unwrap(),
             ),
@@ -762,6 +767,7 @@ mod tests {
             context(2.0, QuantizationProfile::NativeBinary64),
             [0.0, 0.0],
             [0.0, 0.0],
+            [f64::MAX, 0.0],
             [f64::MAX, 0.0],
             0.0,
             Aabb::new([-1.0, -1.0], [1.0, 1.0]).unwrap(),
@@ -780,6 +786,7 @@ mod tests {
             context(1.0, QuantizationProfile::NativeBinary64),
             [f64::MAX, 0.0],
             [f64::MAX, 0.0],
+            [1.0, 0.0],
             [1.0, 0.0],
             0.0,
             Aabb::new([f64::MAX, 0.0], [f64::MAX, 1.0]).unwrap(),
@@ -831,6 +838,7 @@ mod tests {
                 start_position,
                 post_position,
                 velocity,
+                velocity,
                 0.0,
                 Aabb::new(
                     [start_position[0] - 0.5, start_position[1] - 0.25],
@@ -876,6 +884,7 @@ mod tests {
             context(0.5, QuantizationProfile::NativeBinary64),
             [0.0, 0.0, 0.0],
             [1.0, -2.0, 3.0],
+            [2.0, -4.0, 6.0],
             [2.0, -4.0, 6.0],
             0.0,
             Aabb::new([-1.0; 3], [1.0; 3]).unwrap(),
