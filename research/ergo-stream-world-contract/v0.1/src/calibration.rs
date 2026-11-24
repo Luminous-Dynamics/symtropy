@@ -434,7 +434,7 @@ fn tie_aware_right_step_aurc(
             predicted.map(|predicted| (*confidence, predicted != *truth))
         })
         .collect::<Vec<_>>();
-    decided.sort_by(|left, right| right.0.cmp(&left.0));
+    decided.sort_by_key(|entry| std::cmp::Reverse(entry.0));
 
     let mut covered = 0_usize;
     let mut errors = 0_usize;
