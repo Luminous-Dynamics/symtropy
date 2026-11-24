@@ -205,3 +205,16 @@ The idempotency key itself is now a versioned SHA-256 digest of a canonical iden
 
 
 The private reset-attempt and reset-verification records also commit the exact compiled plan SHA-256. Dispatch and read-only reset reconciliation reject a different plan, even when it targets the same simulator build and world profile. The adapter session itself is non-cloneable, and the raw injector dispatch helper is private; the only exported fault-dispatch path requires the plan-bound reset state. This closes accidental session duplication and plan substitution at the API layer, while the durable journal remains necessary for process-restart safety.
+
+
+## Bounded formal model for reset uncertainty
+
+The adapter increment now includes model/GazeboResetLifecycle.tla with a safe config and a deliberately unsafe retry config. The model separates coordinator phase from physical reset application and read-only observation, so a lost response can occur either before or after the simulator applies the reset. The safe model checks:
+- AtMostOneResetRequest;
+- NoFaultDispatchBeforeVerified;
+- VerifiedRequiresObservedReset; and
+- TypeOK.
+
+The unsafe control enables a second ResetSimulation request from OutcomeUnresolved and is expected to produce a TLC counterexample to AtMostOneResetRequest. The existing pinned TLC jar is reused, and the model/config source hashes are checked before model execution; safe and negative logs are included in the conformance artifact.
+
+Claim ceiling: this is a bounded abstract protocol model. It does not establish that a concrete ROS 2 client or Gazebo server obeys the modeled call/response semantics, does not prove liveness or fairness, and is not yet a state-by-state refinement proof against the Rust session lifecycle. A follow-on differential projection should map Rust reset lifecycle states/transitions to this TLA state space and use the same replayable traces for both.
