@@ -89,7 +89,7 @@ Use the ADAPT/EVENT workstreams to choose additional frames or measurement setti
 - Reproduce the capsule's supplied reference outputs under recorded numerical tolerances.
 - No aggregate score may conceal a failing near-wall band or a deteriorating individual Reynolds-stress component.
 - At matched acquisition/compute budgets, reduce worst-band profile and structure errors while maintaining reference-interval and prediction-interval diagnostics.
-- Adaptive acquisition target: reach the same predeclared profile/stress error within at least 25% fewer image pairs than a fixed-grid strategy. This is a proposed target, not a current result.
+- Adaptive acquisition primary target: reach the same predeclared profile/stress error with at least 20% fewer image pairs than a fixed periodic/fixed-grid strategy, aligned with ADAPT-001. A 25% reduction is a stretch target. Both are prospective and require matched evidence coverage, worst-band errors, weak-structure retention and uncertainty diagnostics.
 - Every result must identify dataset revision, case, image count, method commit, config digest, units, coordinate convention, and reference semantics.
 
 ## Claim boundary
