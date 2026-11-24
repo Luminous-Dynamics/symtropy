@@ -1050,10 +1050,15 @@ mod tests {
     fn near_collinear_physical_and_nuisance_directions_are_ill_conditioned() {
         let mut problem = input(
             vec![
-                parameter("flow_velocity", ParameterRole::Physical),
+                parameter("flow_x", ParameterRole::Physical),
+                parameter("flow_y", ParameterRole::Physical),
                 parameter("camera_timing", ParameterRole::Nuisance),
             ],
-            vec![vec![1.0, 1.0], vec![0.0, 1.0e-7], vec![0.0, 0.0]],
+            vec![
+                vec![1.0, 0.0, 1.0],
+                vec![0.0, 0.0, 1.0e-7],
+                vec![0.0, 1.0, 0.0],
+            ],
         );
         problem.config.maximum_condition_number = 1.0e5;
         let report = analyze_local_identifiability(&problem).unwrap();
