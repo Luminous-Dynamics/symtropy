@@ -549,7 +549,10 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
                 match target_id.and_then(|target| event_index.get(target).map(|row| (target, *row))) {
                     Some((target, target_event))
                         if field_str(target_event, "certificate_id") == Some(certificate_id)
-                            && target != event_id =>
+                            && target != event_id
+                            && field_str(target_event, "recorded_at_utc")
+                                .zip(field_str(event, "recorded_at_utc"))
+                                .is_some_and(|(prior, current)| prior < current) =>
                     {
                         if corrected_event_targets
                             .insert(target.to_owned(), event_id.to_owned())
