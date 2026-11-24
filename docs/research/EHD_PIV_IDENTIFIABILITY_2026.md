@@ -52,7 +52,33 @@ The crucial difference is separating joint rank from physical rank after nuisanc
 
 ## Manufactured tests
 
-The 23 current deterministic tests cover orthogonal and exact/near-collinear physical/nuisance effects, nuisance-only rank deficiency, characteristic scaling, row permutation, positive/negative confounding, zero-sensitivity parameters, underdetermined observations, malformed/non-finite inputs, one-column decomposition, Jacobi non-convergence, the distinction between absent physical sensitivity and nuisance confounding, correlated-noise whitening, positive-definite covariance validation and no-jitter rejection.
+The 27 current deterministic tests cover orthogonal and exact/near-collinear physical/nuisance effects, nuisance-only rank deficiency, characteristic scaling, row permutation, positive/negative confounding, zero-sensitivity parameters, underdetermined observations, malformed/non-finite inputs, one-column decomposition, Jacobi non-convergence, the distinction between absent physical sensitivity and nuisance confounding, correlated-noise whitening, positive-definite covariance validation, no-jitter rejection, and conditional innovation/Schur-complement controls for candidate measurements.
+
+## V0.3: conditional innovation whitening for candidate measurements
+
+The crate now also accepts raw sensitivity blocks and the full covariance partition for existing and candidate observations. For existing residuals (y_0) and candidate residuals (y_1), define:
+
+[
+Sigma =
+egin{bmatrix}
+Sigma_{00} & Sigma_{01}\
+Sigma_{10} & Sigma_{11}
+end{bmatrix},
+qquad
+Sigma_{01}=Sigma_{10}^{	op}.
+]
+
+The conditional sensitivity and covariance are:
+
+[
+J_{1|0}=J_1-Sigma_{10}Sigma_{00}^{-1}J_0,
+qquad
+S_{1|0}=Sigma_{11}-Sigma_{10}Sigma_{00}^{-1}Sigma_{01}.
+]
+
+The API `whiten_conditional_innovation_sensitivities` returns (L_{1|0}^{-1}J_{1|0}), where (S_{1|0}=L_{1|0}L_{1|0}^{	op}). This is the incremental information in the candidate action after conditioning on the already observed images. It can be passed into `rank_candidate_measurement_actions`.
+
+Manufactured tests cover a highly correlated repeat, an independent observation, malformed cross-covariance and a non-positive-definite Schur complement. This bounded dense implementation is limited to 512 total rows. It does not add jitter or “repair” a non-SPD Schur complement. A production-scale image pipeline needs qualified block/structured/low-rank covariance operators and frame-common-mode terms.
 
 ## V0.2: explicit dense covariance whitening reference
 
