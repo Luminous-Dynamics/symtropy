@@ -57,6 +57,7 @@ pub enum MeasurementBoundary {
 #[serde(rename_all = "snake_case")]
 pub enum CalibrationGroupStatus {
     EmpiricallySupported,
+    SyntheticEvidenceOnly,
     UndercoverageAlarm,
     CoverageNotDemonstrated,
     InsufficientCalibrationSamples,
@@ -832,7 +833,7 @@ pub fn evaluate_service_prediction_calibration(
     {
         if !calibration.is_empty()
             && !holdout.is_empty()
-            && last_calibration_outcome > first_holdout_forecast
+            && last_calibration_outcome >= first_holdout_forecast
         {
             add_error(
                 &mut errors,
@@ -885,8 +886,16 @@ pub fn evaluate_service_prediction_calibration(
         }
     }
 
+    if any_synthetic {
+        for group in &mut metric_results {
+            if group.status == CalibrationGroupStatus::EmpiricallySupported {
+                group.status = CalibrationGroupStatus::SyntheticEvidenceOnly;
+            }
+        }
+    }
     let any_undercoverage_alarm = metric_results.iter().any(|group| group.undercoverage_alarm);
-    let all_metric_groups_empirically_supported = !metric_results.is_empty()
+    let all_metric_groups_empirically_supported = all_source_grade
+        && !metric_results.is_empty()
         && metric_results.iter().all(|group| {
             group.status == CalibrationGroupStatus::EmpiricallySupported
         });
@@ -975,6 +984,41 @@ mod tests {
         let errors = evaluate_service_prediction_calibration(&input)
             .expect_err("future calibration outcome must not precede holdout forecast");
         assert!(errors.iter().any(|e| e.starts_with("calibration_outcome_after_holdout_forecast")));
+    }
+
+    #[test]
+    fn synthetic_holdout_evidence_cannot_be_labelled_empirically_supported() {
+        let mut input = fixture();
+        let report = evaluate_service_prediction_calibration(&input).expect("synthetic fixture");
+        assert!(!report.all_evidence_source_grade);
+        assert!(!report.all_metric_groups_empirically_supported);
+        assert!(report.metric_groups.iter().all(|group| {
+            group.status != CalibrationGroupStatus::EmpiricallySupported
+                && group.status != CalibrationGroupStatus::SyntheticEvidenceOnly
+                || report.any_synthetic_evidence
+        }));
+        input.records[0].metrics[0].observation_evidence.evidence_class = EvidenceClass::Measured;
+        let mixed = evaluate_service_prediction_calibration(&input).expect("mixed evidence remains auditable");
+        assert!(!mixed.all_metric_groups_empirically_supported);
+    }
+
+    #[test]
+    fn equal_timestamp_calibration_outcome_and_holdout_forecast_is_rejected() {
+        let mut input = fixture();
+        let first_holdout = input.records.iter()
+            .find(|record| record.cohort == CalibrationCohort::Holdout)
+            .expect("holdout record")
+            .decision_time_unix_ms;
+        let calibration = input.records.iter_mut()
+            .find(|record| record.cohort == CalibrationCohort::Calibration)
+            .expect("calibration record");
+        calibration.on_time_evidence.observed_at_unix_ms = Some(first_holdout);
+        for metric in &mut calibration.metrics {
+            metric.observation_evidence.observed_at_unix_ms = Some(first_holdout);
+        }
+        let errors = evaluate_service_prediction_calibration(&input)
+            .expect_err("equal timestamps do not establish outcome-before-prediction ordering");
+        assert!(errors.iter().any(|error| error.starts_with("calibration_outcome_after_holdout_forecast")));
     }
 
     #[test]
