@@ -953,6 +953,13 @@ mod tests {
         );
         assert_eq!(
             supervisor.observe(&evidence("e-1", 12)),
+            Disposition::AbstainInsufficientEvidence {
+                reason: Reason::EvidenceReplayOrOutOfOrder
+            }
+        );
+        assert!(supervisor.is_suspended());
+        assert_eq!(
+            supervisor.observe(&evidence("e-2", 13)),
             Disposition::AlreadySuspended {
                 action: FailureAction::AbstainInsufficientEvidence,
                 reason: Reason::EvidenceReplayOrOutOfOrder
