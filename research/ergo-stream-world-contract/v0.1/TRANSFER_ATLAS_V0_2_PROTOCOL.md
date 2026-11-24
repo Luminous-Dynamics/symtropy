@@ -256,6 +256,58 @@ A visual prediction or graph score is not a substitute for measured action utili
 - Pin source commit, model / weight hash or API revision, prompts, preprocessing, action semantics, tool access, environment config, dependencies and hardware.
 - Publish replay inputs, evaluator version, output digests and counterexamples subject to licensing and safety constraints.
 
+## 7A. Adaptive benchmark refresh without moving the confirmatory target
+
+AutoSciBench demonstrates a useful maintenance pattern: solver trajectories identify shortcuts, then task recipes and data are revised to close them. ErgoStream should borrow the *development* loop but protect scientific reproducibility.
+
+Maintain two separate benchmark corpora:
+
+1. **Adaptive development corpus:** public or access-controlled worlds where solver trajectories, false-transfer errors and successful shortcuts can drive new generator families, counterexamples, transformations and modalities. Each revision receives a new immutable generator/version ID and an oracle review.
+2. **Sealed confirmatory corpus:** independently seeded/family-held-out worlds fixed before the comparison. It is never rewritten in response to the tested learner's failures. If a discovered shortcut requires a new adversarial case, that case belongs to a new confirmatory version and a new preregistration, not retroactively to the existing cohort.
+
+Every generated world must carry:
+- generator commit and version;
+- independent oracle identity and qualification receipt;
+- task/family/shift labels withheld from the learner;
+- seed custody and replay recipe;
+- schema and public-view digest;
+- oracle test report and adversarial mutation set;
+- reviewer sign-off for scientific validity.
+
+Use a third-party or independently implemented oracle for new counterexample families wherever possible. Do not let the model under test author both the hidden truth and the judge.
+
+## 7B. Separate semantic/mechanism shift from representation-format shift
+
+Graph foundation-model evaluations now distinguish topic/semantic domains from graph-format domains. ErgoStream should do the same, rather than pooling every transfer failure into a single OOD score.
+
+Factorial test axes:
+- **Semantic / mechanism shift:** relation meaning, state/action semantics, generating mechanism, causal orientation or functional role changes.
+- **Representation-format shift:** node/edge identifier relabeling, order, serialization, feature encoding, coordinate system, modality representation or graph construction changes.
+
+Run:
+1. semantic shift only;
+2. representation shift only;
+3. both simultaneously;
+4. neither (in-domain control).
+
+Include strong graph foundation-model transfer baselines and graphon / relabeling-invariant domain-discrepancy diagnostics where the graph-density assumptions apply. The key incremental claim is not simply better graph OOD accuracy: it is that explicit map scope, declared transformations, counterexamples and abstention predict *which* transfer is valid and prevent false mechanism unification.
+
+## 7C. Distinguish scientific ideation, grounding, discovery and learning
+
+AgentIdeaBench reports that active exploration improves feasibility, clarity and specificity, while measured originality does not improve under its critics. Autonomous Science Bench 0.1 measures complete laboratory experiment loops, including discovery quality and ranking of unmeasured designs. These are complementary capability levels.
+
+ErgoStream reporting must therefore separate:
+- **Ideation:** novelty against retrieved prior art, falsifiability and specificity.
+- **Grounding:** support from available evidence, methodological feasibility and uncertainty.
+- **Discovery:** independently verified improvement or rediscovery of a target property.
+- **Learning:** generalization to designs, mechanisms, worlds or compositions never measured during the campaign.
+- **Transfer:** success and false-unification risk on a held-out target domain.
+- **Decision value:** regret/EVSI after acquisition and experiment cost.
+
+Do not call an increase in feasibility or specificity a novelty improvement; do not call success on measured designs generalization to unmeasured designs.
+
+For laboratory-style evaluations, follow the Autonomous Science Bench progression where possible: replay oracle, digital twin, then live laboratory. Early v0.1 leaderboard values (six tasks, three trials per task) are pilot context rather than decisive SOTA margins.
+
 ## 8. Proposed go / no-go gates
 
 These are prospective internal research targets, not standards or achieved results:
