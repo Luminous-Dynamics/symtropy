@@ -382,12 +382,78 @@ pub struct QueryStratumScore {
     pub counts: QueryCounts,
 }
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum MotionProfile {
+    LinearizedConstantVelocity,
+    SemiImplicitEulerNative,
+    SemiImplicitEulerQ16_16,
+    GeneralRigidBodyRotation,
+    Unspecified,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum ArithmeticProfile {
+    Binary64,
+    ExactRational,
+    OutwardIntervalBinary64,
+    FixedQ16_16,
+    MixedPrecision,
+    Unspecified,
+}
+
+/// Run-wide motion and arithmetic models. One QueryScore represents exactly
+/// one profile; scores may only be pooled when both profiles are explicit and
+/// identical.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct RunProfile {
+    pub motion: MotionProfile,
+    pub arithmetic: ArithmeticProfile,
+}
+
+impl RunProfile {
+    pub const UNSPECIFIED: Self = Self {
+        motion: MotionProfile::Unspecified,
+        arithmetic: ArithmeticProfile::Unspecified,
+    };
+
+    #[must_use]
+    pub const fn new(motion: MotionProfile, arithmetic: ArithmeticProfile) -> Self {
+        Self { motion, arithmetic }
+    }
+
+    #[must_use]
+    pub const fn is_explicit(self) -> bool {
+        !matches!(self.motion, MotionProfile::Unspecified)
+            && !matches!(self.arithmetic, ArithmeticProfile::Unspecified)
+    }
+
+    #[must_use]
+    pub const fn can_pool_with(self, other: Self) -> bool {
+        self.is_explicit() && other.is_explicit() && self.motion as u8 == other.motion as u8
+            && self.arithmetic as u8 == other.arithmetic as u8
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryScore {
+    /// Exact motion and arithmetic stratum of this score.
+    pub profile: RunProfile,
     /// Micro-aggregated counts over the full evaluated query population.
     pub counts: QueryCounts,
     /// Independently reported per dataset/scene/time-step/query-kind strata.
     pub strata: Vec<QueryStratumScore>,
+}
+
+impl QueryScore {
+    #[must_use]
+    pub fn benchmark_qualified(&self) -> bool {
+        self.profile.is_explicit() && self.counts.correctness_qualified()
+    }
+
+    #[must_use]
+    pub fn can_pool_with(&self, other: &Self) -> bool {
+        self.profile.can_pool_with(other.profile)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -414,7 +480,17 @@ impl Error for EvaluationError {}
 ///
 /// Query metrics are not broadphase box-pair or Symtropy body/collider-pair
 /// metrics. Those require independent identity-preserving populations.
+/// Convenience evaluator for metric/unit tests. Its profile is deliberately
+/// unspecified, so the result is not eligible for benchmark pooling or release.
 pub fn evaluate_queries(
+    evaluations: &[QueryEvaluation],
+) -> Result<QueryScore, Vec<EvaluationError>> {
+    evaluate_queries_with_profile(RunProfile::UNSPECIFIED, evaluations)
+}
+
+/// Evaluate one run under an explicitly declared motion and arithmetic model.
+pub fn evaluate_queries_with_profile(
+    profile: RunProfile,
     evaluations: &[QueryEvaluation],
 ) -> Result<QueryScore, Vec<EvaluationError>> {
     let mut errors = Vec::new();
@@ -473,6 +549,7 @@ pub fn evaluate_queries(
 
     if errors.is_empty() {
         Ok(QueryScore {
+            profile,
             counts,
             strata: strata
                 .into_iter()
@@ -488,7 +565,29 @@ pub fn evaluate_queries(
 ///
 /// The input query list is the denominator. Missing results, duplicate result
 /// IDs and orphan results are hard errors. Record ordering is irrelevant.
+/// Convenience join for unit tests and profile-independent diagnostics. It
+/// returns an unspecified profile and cannot be pooled as a benchmark score.
 pub fn evaluate_imported_queries(
+    dataset: impl Into<String>,
+    scene: impl Into<String>,
+    time_step: u64,
+    queries: &[CcdQuery],
+    run_results: &[QueryRunResult],
+) -> Result<QueryScore, Vec<QueryJoinError>> {
+    evaluate_imported_queries_with_profile(
+        RunProfile::UNSPECIFIED,
+        dataset,
+        scene,
+        time_step,
+        queries,
+        run_results,
+    )
+}
+
+/// Join algorithm output by stable query identity and qualify it under one
+/// explicit motion/arithmetic profile.
+pub fn evaluate_imported_queries_with_profile(
+    profile: RunProfile,
     dataset: impl Into<String>,
     scene: impl Into<String>,
     time_step: u64,
@@ -543,7 +642,7 @@ pub fn evaluate_imported_queries(
         return Err(errors);
     }
 
-    evaluate_queries(&evaluations).map_err(|evaluation_errors| {
+    evaluate_queries_with_profile(profile, &evaluations).map_err(|evaluation_errors| {
         evaluation_errors
             .into_iter()
             .map(QueryJoinError::Evaluation)
