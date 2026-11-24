@@ -89,6 +89,22 @@ impl fmt::Display for JournalError {
 
 impl std::error::Error for JournalError {}
 
+#[cfg(unix)]
+fn sync_parent_directory(path: &Path) -> Result<(), JournalError> {
+    let parent = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    File::open(parent).and_then(|directory| directory.sync_all()).map_err(io_error)
+}
+
+#[cfg(not(unix))]
+fn sync_parent_directory(_path: &Path) -> Result<(), JournalError> {
+    // The target deployment is Linux/NixOS. Other platforms must qualify
+    // directory-entry durability separately before claiming crash durability.
+    Ok(())
+}
+
 fn io_error(error: std::io::Error) -> JournalError {
     JournalError::Io {
         kind: format!("{:?}", error.kind()),
@@ -390,9 +406,10 @@ impl JournalIndex {
                     world_id.clone(),
                     prior_world_epoch.clone(),
                 );
-                if !self.reset_scopes.insert(reset_scope) {
+                if self.reset_scopes.contains(&reset_scope) {
                     return Err(JournalError::DuplicateResetId);
                 }
+                self.reset_scopes.insert(reset_scope);
                 self.reset_intents.insert(
                     reset_id.clone(),
                     ResetIntentBinding {
@@ -561,6 +578,13 @@ impl JournalIndex {
                     return Err(JournalError::DispatchPayloadMismatch);
                 }
                 let previous = self.dispatch_status.get(idempotency_key).copied();
+                if *source == DispatchOutcomeSource::InjectorLedgerLookup
+                    && !ledger_artifact_sha256
+                        .as_deref()
+                        .is_some_and(valid_sha256)
+                {
+                    return Err(JournalError::InvalidOutcomeEvidence);
+                }
                 match (previous, source, status) {
                     (None, DispatchOutcomeSource::TransportResponse,
                      DispatchOutcomeStatus::ResponseAccepted | DispatchOutcomeStatus::ResponseRejected | DispatchOutcomeStatus::ResponseUnknown) => {}
@@ -661,8 +685,15 @@ impl WriterLease {
                     io_error(error)
                 }
             })?;
-        writeln!(file, "pid={}", std::process::id()).map_err(io_error)?;
-        file.sync_all().map_err(io_error)?;
+        let write_result = writeln!(file, "pid={}", std::process::id())
+            .and_then(|_| file.sync_all())
+            .map_err(io_error)
+            .and_then(|_| sync_parent_directory(&path));
+        if let Err(error) = write_result {
+            drop(file);
+            let _ = fs::remove_file(&path);
+            return Err(error);
+        }
         Ok(Self { path, _file: file })
     }
 }
@@ -698,12 +729,16 @@ impl Journal {
         }
         fs::create_dir_all(parent).map_err(io_error)?;
         let lease = WriterLease::acquire(&path)?;
+        let existed = path.exists();
         let mut file = OpenOptions::new()
             .create(true)
             .read(true)
             .write(true)
             .open(&path)
             .map_err(io_error)?;
+        if !existed {
+            sync_parent_directory(&path)?;
+        }
         let (index, next_sequence, head_sha256) = replay_file(&mut file)?;
         file.seek(SeekFrom::End(0)).map_err(io_error)?;
         Ok(Self {
