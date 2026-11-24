@@ -14,6 +14,8 @@ const RECEIPT_SCHEMA_JSON: &str = include_str!(
 const SNAPSHOT_SCHEMA_JSON: &str = include_str!(
     "../../../schemas/manufacturing/mfg_policy_v02_operational_state_snapshot.schema.json"
 );
+const REPLAY_RECEIPT_SCHEMA_JSON: &str =
+    include_str!("../../../schemas/manufacturing/mfg_policy_v02_replay_receipt.schema.json");
 
 const RECEIPT_SCHEMA_ID: &str =
     "https://luminousdynamics.io/schemas/mfg-policy-v0.2-action-admission-receipt";
@@ -373,6 +375,150 @@ fn valid_digest(value: &str) -> bool {
         && value
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn validate_replay_receipt_chain(
+    replay_receipt: &Value,
+    frame: &Value,
+    decision_epoch: u64,
+) -> Result<Value, String> {
+    validate_schema(replay_receipt, REPLAY_RECEIPT_SCHEMA_JSON, "replay_receipt")?;
+    let benchmark_id = required_string(frame, "benchmark_id", "decision_frame")?;
+    let case_id = required_string(frame, "case_id", "decision_frame")?;
+    if required_string(replay_receipt, "status", "replay_receipt")? != "VERIFIED"
+        || required_string(replay_receipt, "benchmark_id", "replay_receipt")? != benchmark_id
+        || required_string(replay_receipt, "case_id", "replay_receipt")? != case_id
+    {
+        return Err(fail("replay_receipt_identity_or_status_invalid"));
+    }
+
+    let ledger_digest = required_string(replay_receipt, "ledger_digest", "replay_receipt")?;
+    if !valid_digest(ledger_digest) {
+        return Err(fail("replay_receipt_ledger_digest_invalid"));
+    }
+    if !required_array(replay_receipt, "violation_ledger", "replay_receipt")?.is_empty() {
+        return Err(fail("replay_receipt_contains_violations"));
+    }
+
+    let snapshots = required_array(replay_receipt, "snapshots", "replay_receipt")?;
+    if snapshots.len() as u64 != decision_epoch + 1 {
+        return Err(fail("replay_receipt_snapshot_chain_length_mismatch"));
+    }
+
+    let mut previous_snapshot_digest: Option<String> = None;
+    let mut previous_transition_ids = Vec::<String>::new();
+    let mut previous_event_ids = BTreeSet::<String>::new();
+    let mut last_digest = None;
+
+    for (expected_epoch, snapshot) in snapshots.iter().enumerate() {
+        validate_schema(snapshot, SNAPSHOT_SCHEMA_JSON, "operational_state_snapshot")?;
+        if required_string(snapshot, "benchmark_id", "operational_state_snapshot")? != benchmark_id
+            || required_string(snapshot, "case_id", "operational_state_snapshot")? != case_id
+            || required_u64(snapshot, "decision_epoch", "operational_state_snapshot")?
+                != expected_epoch as u64
+        {
+            return Err(fail("replay_receipt_snapshot_identity_or_order_invalid"));
+        }
+
+        match previous_snapshot_digest.as_deref() {
+            None => {
+                if !snapshot
+                    .get("previous_snapshot_digest")
+                    .is_some_and(Value::is_null)
+                {
+                    return Err(fail("replay_receipt_genesis_snapshot_has_parent"));
+                }
+            }
+            Some(expected_parent) => {
+                if required_string(
+                    snapshot,
+                    "previous_snapshot_digest",
+                    "operational_state_snapshot",
+                )? != expected_parent
+                {
+                    return Err(fail("replay_receipt_snapshot_parent_link_mismatch"));
+                }
+            }
+        }
+
+        let mut snapshot_body = snapshot.clone();
+        snapshot_body
+            .as_object_mut()
+            .ok_or_else(|| fail("snapshot_must_be_object"))?
+            .remove("snapshot_digest");
+        let recomputed_digest = digest_value(&snapshot_body)?;
+        if required_string(snapshot, "snapshot_digest", "operational_state_snapshot")?
+            != recomputed_digest
+        {
+            return Err(fail("replay_receipt_snapshot_digest_mismatch"));
+        }
+
+        let transition_ids = required_array(
+            snapshot,
+            "applied_transition_ids",
+            "operational_state_snapshot",
+        )?
+        .iter()
+        .map(|value| {
+            value
+                .as_str()
+                .filter(|text| !text.trim().is_empty())
+                .map(str::to_string)
+                .ok_or_else(|| fail("replay_receipt_transition_id_invalid"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+        if transition_ids.len() < previous_transition_ids.len()
+            || transition_ids[..previous_transition_ids.len()] != previous_transition_ids
+        {
+            return Err(fail("replay_receipt_transition_lineage_not_monotonic"));
+        }
+        previous_transition_ids = transition_ids;
+
+        let event_cut = snapshot
+            .get("event_cut")
+            .ok_or_else(|| fail("snapshot_event_cut_missing"))?;
+        if required_u64(event_cut, "decision_epoch", "snapshot_event_cut")? != expected_epoch as u64
+        {
+            return Err(fail("replay_receipt_event_cut_epoch_mismatch"));
+        }
+        let event_ids =
+            required_array(event_cut, "visible_source_event_ids", "snapshot_event_cut")?
+                .iter()
+                .map(|value| {
+                    value
+                        .as_str()
+                        .filter(|text| !text.trim().is_empty())
+                        .map(str::to_string)
+                        .ok_or_else(|| fail("replay_receipt_event_id_invalid"))
+                })
+                .collect::<Result<BTreeSet<_>, _>>()?;
+        if !previous_event_ids.is_subset(&event_ids) {
+            return Err(fail("replay_receipt_event_cut_not_monotonic"));
+        }
+        previous_event_ids = event_ids;
+
+        previous_snapshot_digest = Some(recomputed_digest.clone());
+        last_digest = Some(recomputed_digest);
+    }
+
+    let last_digest = last_digest.ok_or_else(|| fail("replay_receipt_snapshot_chain_empty"))?;
+    if required_string(replay_receipt, "final_snapshot_digest", "replay_receipt")? != last_digest {
+        return Err(fail("replay_receipt_final_snapshot_digest_mismatch"));
+    }
+
+    let target = snapshots
+        .last()
+        .ok_or_else(|| fail("replay_receipt_snapshot_chain_empty"))?;
+    let frame_digest = digest_value(frame)?;
+    if required_string(
+        target,
+        "decision_frame_digest",
+        "operational_state_snapshot",
+    )? != frame_digest
+    {
+        return Err(fail("replay_receipt_target_frame_digest_mismatch"));
+    }
+    Ok(target.clone())
 }
 
 fn initial_live_state(
@@ -875,13 +1021,13 @@ fn snapshot_live_state(
 }
 
 fn evaluate(frame: &Value, proposal: &Value) -> Result<AdmissionReceipt, String> {
-    evaluate_with_snapshot(frame, proposal, None)
+    evaluate_with_replay_receipt(frame, proposal, None)
 }
 
-fn evaluate_with_snapshot(
+fn evaluate_with_replay_receipt(
     frame: &Value,
     proposal: &Value,
-    snapshot: Option<&Value>,
+    replay_receipt: Option<&Value>,
 ) -> Result<AdmissionReceipt, String> {
     validate_schema(frame, FRAME_SCHEMA_JSON, "decision_frame")?;
     validate_schema(proposal, PROPOSAL_SCHEMA_JSON, "action_proposal")?;
@@ -934,7 +1080,7 @@ fn evaluate_with_snapshot(
     }
 
     // A post-epoch action is never evaluated against immutable initial state.
-    if decision_epoch > 0 && snapshot.is_none() {
+    if decision_epoch > 0 && replay_receipt.is_none() {
         mark_hold(&mut receipt, "trusted_operational_state_snapshot_required");
         return Ok(receipt);
     }
@@ -943,25 +1089,35 @@ fn evaluate_with_snapshot(
     let resources = resource_index(static_case)?;
     let visible_state = validate_visible_history(frame, static_case, &resources, decision_epoch)?;
 
-    let live_state = match snapshot {
-        Some(snapshot) => match snapshot_live_state(
-            snapshot,
-            LiveSnapshotValidationContext {
-                frame,
-                static_case,
-                resources: &resources,
-                operations: &operations,
-                visible: &visible_state,
-                decision_frame_digest: &decision_frame_digest,
-                decision_epoch,
-            },
-        ) {
-            Ok(state) => state,
-            Err(error) => {
-                mark_hold(&mut receipt, &format!("snapshot_invalid:{error}"));
-                return Ok(receipt);
+    let live_state = match replay_receipt {
+        Some(replay_receipt) => {
+            let target_snapshot =
+                match validate_replay_receipt_chain(replay_receipt, frame, decision_epoch) {
+                    Ok(snapshot) => snapshot,
+                    Err(error) => {
+                        mark_hold(&mut receipt, &format!("replay_receipt_invalid:{error}"));
+                        return Ok(receipt);
+                    }
+                };
+            match snapshot_live_state(
+                &target_snapshot,
+                LiveSnapshotValidationContext {
+                    frame,
+                    static_case,
+                    resources: &resources,
+                    operations: &operations,
+                    visible: &visible_state,
+                    decision_frame_digest: &decision_frame_digest,
+                    decision_epoch,
+                },
+            ) {
+                Ok(state) => state,
+                Err(error) => {
+                    mark_hold(&mut receipt, &format!("snapshot_invalid:{error}"));
+                    return Ok(receipt);
+                }
             }
-        },
+        }
         None if decision_epoch == 0 => initial_live_state(
             static_case,
             &resources,
@@ -1236,7 +1392,7 @@ fn run() -> Result<(), String> {
     let args: Vec<String> = std::env::args().collect();
     if args.len() != 3 && args.len() != 4 {
         return Err(
-            "usage: mfg-policy-v02-action-admission <decision-frame.json> <action-proposal.json> [operational-state-snapshot.json]"
+            "usage: mfg-policy-v02-action-admission <decision-frame.json> <action-proposal.json> [replay-receipt.json]"
                 .into(),
         );
     }
@@ -1248,20 +1404,17 @@ fn run() -> Result<(), String> {
         .map_err(|error| fail(format!("decision_frame_json:{error}")))?;
     let proposal: Value = serde_json::from_slice(&proposal_bytes)
         .map_err(|error| fail(format!("action_proposal_json:{error}")))?;
-    let snapshot = if args.len() == 4 {
+    let replay_receipt = if args.len() == 4 {
         let bytes = std::fs::read(&args[3])
-            .map_err(|error| fail(format!("operational_state_snapshot_read:{error}")))?;
+            .map_err(|error| fail(format!("replay_receipt_read:{error}")))?;
         Some(
             serde_json::from_slice(&bytes)
-                .map_err(|error| fail(format!("operational_state_snapshot_json:{error}")))?,
+                .map_err(|error| fail(format!("replay_receipt_json:{error}")))?,
         )
     } else {
         None
     };
-    let receipt = match snapshot.as_ref() {
-        Some(snapshot) => evaluate_with_snapshot(&frame, &proposal, Some(snapshot))?,
-        None => evaluate(&frame, &proposal)?,
-    };
+    let receipt = evaluate_with_replay_receipt(&frame, &proposal, replay_receipt.as_ref())?;
     let receipt_value = serde_json::to_value(&receipt)
         .map_err(|error| fail(format!("admission_receipt_serialize:{error}")))?;
     validate_schema(
@@ -1389,15 +1542,37 @@ mod tests {
         frame_for_epoch(2)
     }
 
-    fn valid_snapshot_for_epoch(frame: &Value, epoch: u64, operation_two_completed: bool) -> Value {
+    fn recompute_snapshot_digest(snapshot: &mut Value) {
+        let mut body = snapshot.clone();
+        body.as_object_mut().unwrap().remove("snapshot_digest");
+        snapshot["snapshot_digest"] = Value::from(digest_value(&body).unwrap());
+    }
+
+    fn valid_snapshot_for_epoch(
+        frame: &Value,
+        epoch: u64,
+        operation_two_completed: bool,
+        previous_snapshot_digest: Option<&str>,
+    ) -> Value {
         let frame_digest = digest_value(frame).unwrap();
         let history = frame["observable_history"].as_array().unwrap().clone();
         let history_digest = digest_value(&Value::Array(history)).unwrap();
-        let mut applied_transition_ids = vec!["START-OP2-E0", "TICK-OP2-E0"];
-        if epoch > 1 {
+        let mut applied_transition_ids = Vec::<&str>::new();
+        if epoch >= 1 {
+            applied_transition_ids.extend(["START-OP2-E0", "TICK-OP2-E0"]);
+        }
+        if epoch >= 2 {
             applied_transition_ids.push("TICK-OP2-E1");
         }
-        let operation_two = if operation_two_completed {
+        let operation_two = if epoch == 0 {
+            json!({
+                "operation_id": "OP-2",
+                "status": "WAITING",
+                "remaining_processing_ticks": 0,
+                "committed_resource_id": null,
+                "quality_disposition": null
+            })
+        } else if operation_two_completed {
             json!({
                 "operation_id": "OP-2",
                 "status": "COMPLETED",
@@ -1421,21 +1596,23 @@ mod tests {
             "committed_resource_id": null,
             "quality_disposition": null
         });
+        let active = epoch == 1 && !operation_two_completed;
+        let setup = if epoch == 0 { "SETUP-A" } else { "SETUP-B" };
         let resource = json!({
             "resource_id": "RESOURCE-A",
-            "current_setup_family": if operation_two_completed { "SETUP-B" } else { "SETUP-B" },
-            "active_operation_id": if operation_two_completed { Value::Null } else { Value::from("OP-2") },
+            "current_setup_family": setup,
+            "active_operation_id": if active { Value::from("OP-2") } else { Value::Null },
             "availability_status": "AVAILABLE",
             "capacity_units_total": 1,
-            "capacity_units_used": if operation_two_completed { 0 } else { 1 },
-            "capacity_units_remaining": if operation_two_completed { 1 } else { 0 }
+            "capacity_units_used": if active { 1 } else { 0 },
+            "capacity_units_remaining": if active { 0 } else { 1 }
         });
         let mut snapshot = json!({
             "schema_id": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-operational-state-snapshot",
             "benchmark_id": "MFG-POLICY-V02-CHALLENGE-001",
             "case_id": "CASE-01",
             "decision_epoch": epoch,
-            "previous_snapshot_digest": "a".repeat(64),
+            "previous_snapshot_digest": previous_snapshot_digest,
             "decision_frame_digest": frame_digest,
             "visible_history_digest": history_digest,
             "transition_version": "mfg-policy-v02-state-replay/0.1.0",
@@ -1465,10 +1642,38 @@ mod tests {
             "snapshot_digest": "",
             "claim_ceiling": "Synthetic replay-derived operational state only; not physical truth, source authentication, production authorization or whole-factory feasibility."
         });
-        let mut body = snapshot.clone();
-        body.as_object_mut().unwrap().remove("snapshot_digest");
-        snapshot["snapshot_digest"] = Value::from(digest_value(&body).unwrap());
+        recompute_snapshot_digest(&mut snapshot);
         snapshot
+    }
+
+    fn valid_replay_receipt_for_epoch(epoch: u64, operation_two_completed: bool) -> Value {
+        let mut snapshots = Vec::new();
+        let mut previous_digest: Option<String> = None;
+        for decision_epoch in 0..=epoch {
+            let frame = frame_for_epoch(decision_epoch);
+            let completed = decision_epoch >= 2 && operation_two_completed;
+            let mut snapshot = valid_snapshot_for_epoch(
+                &frame,
+                decision_epoch,
+                completed,
+                previous_digest.as_deref(),
+            );
+            // Recompute the child digest after linking it to the previous snapshot.
+            recompute_snapshot_digest(&mut snapshot);
+            previous_digest = Some(snapshot["snapshot_digest"].as_str().unwrap().to_string());
+            snapshots.push(snapshot);
+        }
+        json!({
+            "schema_id": "https://luminousdynamics.io/schemas/mfg-policy-v0.2-replay-receipt",
+            "benchmark_id": "MFG-POLICY-V02-CHALLENGE-001",
+            "case_id": "CASE-01",
+            "status": "VERIFIED",
+            "ledger_digest": "b".repeat(64),
+            "snapshots": snapshots,
+            "violation_ledger": [],
+            "final_snapshot_digest": previous_digest,
+            "claim_ceiling": "Synthetic event-sourced schedule-state replay; no physical execution, source authentication, product acceptance, ISO conformance or SOTA superiority."
+        })
     }
 
     fn sample_proposal_for(frame: &Value) -> Value {
@@ -1728,13 +1933,13 @@ mod tests {
     #[test]
     fn valid_snapshot_allows_continuation_on_live_resource_commitment() {
         let frame = frame_epoch_one();
-        let snapshot = valid_snapshot_for_epoch(&frame, 1, false);
+        let snapshot = valid_replay_receipt_for_epoch(1, false);
         let mut proposal = sample_proposal_for(&frame);
         proposal["operation_id"] = Value::from("OP-2");
         proposal["action_kind"] = Value::from("CONTINUE");
         proposal["decision_epoch"] = Value::from(1);
         proposal["inspection_method_id"] = Value::Null;
-        let receipt = evaluate_with_snapshot(&frame, &proposal, Some(&snapshot)).unwrap();
+        let receipt = evaluate_with_replay_receipt(&frame, &proposal, Some(&snapshot)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Admissible);
         assert_eq!(receipt.processing_duration_ticks, Some(1));
         assert_eq!(receipt.setup_duration_ticks, Some(0));
@@ -1743,12 +1948,12 @@ mod tests {
     #[test]
     fn valid_snapshot_allows_new_start_after_live_lane_is_released() {
         let frame = frame_epoch_two();
-        let snapshot = valid_snapshot_for_epoch(&frame, 2, true);
+        let snapshot = valid_replay_receipt_for_epoch(2, true);
         let mut proposal = sample_proposal_for(&frame);
         proposal["operation_id"] = Value::from("OP-3");
         proposal["action_kind"] = Value::from("START");
         proposal["decision_epoch"] = Value::from(2);
-        let receipt = evaluate_with_snapshot(&frame, &proposal, Some(&snapshot)).unwrap();
+        let receipt = evaluate_with_replay_receipt(&frame, &proposal, Some(&snapshot)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Admissible);
         assert_eq!(receipt.processing_duration_ticks, Some(2));
         assert_eq!(receipt.setup_duration_ticks, Some(0));
@@ -1757,14 +1962,36 @@ mod tests {
     #[test]
     fn tampered_snapshot_digest_holds_later_epoch_action() {
         let frame = frame_epoch_one();
-        let mut snapshot = valid_snapshot_for_epoch(&frame, 1, false);
-        snapshot["snapshot_digest"] = Value::from("0".repeat(64));
+        let mut snapshot = valid_replay_receipt_for_epoch(1, false);
+        snapshot["snapshots"][1]["snapshot_digest"] = Value::from("0".repeat(64));
         let mut proposal = sample_proposal_for(&frame);
         proposal["operation_id"] = Value::from("OP-2");
         proposal["action_kind"] = Value::from("CONTINUE");
         proposal["decision_epoch"] = Value::from(1);
         proposal["inspection_method_id"] = Value::Null;
-        let receipt = evaluate_with_snapshot(&frame, &proposal, Some(&snapshot)).unwrap();
+        let receipt = evaluate_with_replay_receipt(&frame, &proposal, Some(&snapshot)).unwrap();
+        assert_eq!(receipt.status, AdmissionStatus::Hold);
+        assert!(
+            receipt
+                .reason_codes
+                .iter()
+                .any(|reason| reason.starts_with("replay_receipt_invalid:"))
+        );
+    }
+
+    #[test]
+    fn snapshot_cannot_change_operation_resource_commitment() {
+        let frame = frame_epoch_one();
+        let mut snapshot = valid_replay_receipt_for_epoch(1, false);
+        snapshot["snapshots"][1]["resources"][0]["active_operation_id"] = Value::from("OP-3");
+        recompute_snapshot_digest(&mut snapshot["snapshots"][1]);
+        snapshot["final_snapshot_digest"] = snapshot["snapshots"][1]["snapshot_digest"].clone();
+        let mut proposal = sample_proposal_for(&frame);
+        proposal["operation_id"] = Value::from("OP-2");
+        proposal["action_kind"] = Value::from("CONTINUE");
+        proposal["decision_epoch"] = Value::from(1);
+        proposal["inspection_method_id"] = Value::Null;
+        let receipt = evaluate_with_replay_receipt(&frame, &proposal, Some(&snapshot)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Hold);
         assert!(
             receipt
@@ -1775,25 +2002,25 @@ mod tests {
     }
 
     #[test]
-    fn snapshot_cannot_change_operation_resource_commitment() {
+    fn broken_previous_snapshot_link_holds_later_epoch_action() {
         let frame = frame_epoch_one();
-        let mut snapshot = valid_snapshot_for_epoch(&frame, 1, false);
-        snapshot["resources"][0]["active_operation_id"] = Value::from("OP-3");
-        let mut body = snapshot.clone();
-        body.as_object_mut().unwrap().remove("snapshot_digest");
-        snapshot["snapshot_digest"] = Value::from(digest_value(&body).unwrap());
+        let mut replay_receipt = valid_replay_receipt_for_epoch(1, false);
+        replay_receipt["snapshots"][1]["previous_snapshot_digest"] = Value::from("c".repeat(64));
+        recompute_snapshot_digest(&mut replay_receipt["snapshots"][1]);
+        replay_receipt["final_snapshot_digest"] =
+            replay_receipt["snapshots"][1]["snapshot_digest"].clone();
         let mut proposal = sample_proposal_for(&frame);
         proposal["operation_id"] = Value::from("OP-2");
         proposal["action_kind"] = Value::from("CONTINUE");
-        proposal["decision_epoch"] = Value::from(1);
         proposal["inspection_method_id"] = Value::Null;
-        let receipt = evaluate_with_snapshot(&frame, &proposal, Some(&snapshot)).unwrap();
+        let receipt =
+            evaluate_with_replay_receipt(&frame, &proposal, Some(&replay_receipt)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Hold);
         assert!(
             receipt
                 .reason_codes
                 .iter()
-                .any(|reason| reason.starts_with("snapshot_invalid:"))
+                .any(|reason| { reason.contains("replay_receipt_snapshot_parent_link_mismatch") })
         );
     }
 
