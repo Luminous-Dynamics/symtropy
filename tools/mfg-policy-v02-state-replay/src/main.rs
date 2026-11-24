@@ -2468,7 +2468,11 @@ mod tests {
             epoch1.resources[0].active_operation_id.as_deref(),
             Some("OP-2")
         );
-        assert!(epoch1.applied_transition_ids.contains(&"START-OP2".to_string()));
+        assert!(
+            epoch1
+                .applied_transition_ids
+                .contains(&"START-OP2".to_string())
+        );
 
         let epoch2 = &receipt.snapshots[2];
         let op2_e2 = epoch2
