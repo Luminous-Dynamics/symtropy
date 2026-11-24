@@ -319,5 +319,132 @@
   "known_non_transfer_boundaries": [
     "No claim is made about states or actions outside the declared dynamics scope.",
     "Qualitative effect-sign agreement is not causal qualification."
-  ]
+  ],
+  "behavioural_transfer": {
+    "map_kind": "simulation",
+    "source_scope": {
+      "source_state_ids": [
+        1,
+        2
+      ],
+      "target_state_ids": [],
+      "source_action_ids": [
+        10
+      ],
+      "target_action_ids": []
+    },
+    "target_scope": {
+      "source_state_ids": [],
+      "target_state_ids": [
+        11,
+        12,
+        13
+      ],
+      "source_action_ids": [],
+      "target_action_ids": [
+        110
+      ]
+    },
+    "source_state_snapshot": [
+      {
+        "id": 1,
+        "evidence_ids": [
+          "E0006"
+        ]
+      },
+      {
+        "id": 2,
+        "evidence_ids": [
+          "E0007"
+        ]
+      },
+      {
+        "id": 3,
+        "evidence_ids": [
+          "E0008"
+        ]
+      }
+    ],
+    "target_state_snapshot": [
+      {
+        "id": 11,
+        "evidence_ids": [
+          "E0016"
+        ]
+      },
+      {
+        "id": 12,
+        "evidence_ids": [
+          "E0017"
+        ]
+      },
+      {
+        "id": 13,
+        "evidence_ids": [
+          "E0018"
+        ]
+      }
+    ],
+    "source_action_snapshot": [
+      {
+        "id": 10,
+        "kind": 1,
+        "evidence_ids": [
+          "E0009"
+        ]
+      }
+    ],
+    "target_action_snapshot": [
+      {
+        "id": 110,
+        "kind": 100,
+        "evidence_ids": [
+          "E0019"
+        ]
+      }
+    ],
+    "state_relation": [
+      {
+        "source_state_id": 1,
+        "target_state_id": 11
+      },
+      {
+        "source_state_id": 2,
+        "target_state_id": 12
+      },
+      {
+        "source_state_id": 2,
+        "target_state_id": 13
+      }
+    ],
+    "action_mappings": [
+      {
+        "source_action_id": 10,
+        "target_action_id": 110,
+        "source_action_kind": 1,
+        "target_action_kind": 100
+      }
+    ],
+    "response_predictions": [
+      {
+        "direction": "source_to_target",
+        "observed_side": "source",
+        "observed_from_state_id": 1,
+        "observed_action_id": 10,
+        "observed_to_state_id": 2,
+        "observed_evidence_ids": [
+          "E0010"
+        ],
+        "predicted_from_state_id": 11,
+        "predicted_action_id": 110,
+        "predicted_to_state_id": 12
+      }
+    ],
+    "assumptions": [
+      "The source transition is an observed public-prefix transition.",
+      "The target response is a frozen candidate prediction, not evaluator-owned target truth.",
+      "Simulation permits additional target transitions; no bisimulation claim is made."
+    ],
+    "unresolved": false
+  }
 }
