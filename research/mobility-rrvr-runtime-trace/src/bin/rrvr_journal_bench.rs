@@ -8,7 +8,7 @@
 //! workload measurements, not durability or physical-safety certification.
 
 use mobility_rrvr_runtime_trace::durable_journal::{
-    DispatchOutcomeRecord, DispatchOutcomeSource, DispatchOutcomeStatus, DispatchIntentRecord,
+    DispatchIntentRecord, DispatchOutcomeRecord, DispatchOutcomeSource, DispatchOutcomeStatus,
     Journal, ResetIntentRecord, ResetOutcomeRecord, ResetOutcomeSource, ResetOutcomeStatus,
     recovery_projection_file,
 };
@@ -24,7 +24,8 @@ use std::time::Instant;
 
 const PLAN_SHA256: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const PROFILE_SHA256: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
-const INITIAL_STATE_SHA256: &str = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+const INITIAL_STATE_SHA256: &str =
+    "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
 const OBSERVATION_SHA256: &str = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
 const PARAMETERS_SHA256: &str = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
@@ -233,7 +234,10 @@ fn main() -> ExitCode {
     }
     match run(dispatch_count, path) {
         Ok(report) => {
-            println!("{}", serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".into()));
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".into())
+            );
             ExitCode::SUCCESS
         }
         Err(error) => {
