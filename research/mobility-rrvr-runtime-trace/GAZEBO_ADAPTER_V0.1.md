@@ -105,3 +105,31 @@ The next integration is a version-pinned ROS 2 service/action client implementin
 ## Cross-event trace ordering
 
 The execution-evidence contract checks one continuous simulation clock from reset through every fault event. It requires both phase-local order and cross-event nondecreasing step/time coordinates. This catches a replay where each fault's local receipts appear valid but the sequence of fault events is globally reordered.
+
+
+## Plan-derived dispatch composition extension
+
+The new dispatch_planned_fault_once function is the composed plan-to-injector boundary. It does not accept a free-form fault event: it first verifies the compiled plan, selects the named scenario and fault from that plan, and revalidates the capability profile and stepping method carried by the session. It then:
+
+1. Advances to the exact planned simulation iteration.
+2. Resolves the logical component to its pinned world/entity/revision/profile/fault-domain binding.
+3. Re-reads the world immediately before dispatch and requires the same world epoch, clock identity, paused state, exact iteration, simulation time and world-state digest as the cut-point snapshot.
+4. Resolves the target a second time and requires an identical binding.
+5. Derives the idempotency key from plan, pair, scenario, fault, run and run epoch, constructs the request from the committed fault definition, and makes at most one dispatch call through the registry.
+
+A changed world digest or target binding is not retried; it becomes a failed precondition for dispatch. A lost injector response remains Unknown and must be reconciled by looking up the same idempotency key. The result includes the exact cut snapshot, target binding, plan-derived request and dispatch outcome. It does not emit authenticated execution receipts or grant retry/actuation authority.
+
+### Important residual: Gazebo does not provide an exclusive-world lease
+
+The final re-read narrows the time-of-check/time-of-use window; it does not make a read followed by a dispatch atomic. Gazebo's standard Simulation Interfaces do not, by themselves, prevent another ROS/Gazebo client from mutating the same world between the final snapshot and injector acceptance.
+
+A live campaign must therefore demonstrate exclusive mutation ownership. The preferred deployment is a dedicated simulator process/ROS domain in which only the campaign coordinator can invoke world-mutating services, with all reset/spawn/delete/set-state clients routed through that coordinator. A lease/lock that is not enforced by every mutator is not evidence of exclusivity. If this property cannot be established, report the campaign as external_mutation_uncontrolled and do not promote it to a race-free live qualification.
+
+Gazebo's current documentation adds concrete reasons for this gate:
+- ResetSimulation can be detected through SceneBroadcaster's /scene/info; spawning an entity concurrently with reset can trigger reset detection early.
+- The documented GetEntities/GetEntitiesStates interfaces enumerate top-level models; nested models are not included, and GetEntityState expects a model entity. Target resolution must not silently treat a nested link or a partial entity inventory as complete.
+- Simulation Interfaces service calls synchronize with SceneBroadcaster state updates. The default throttles are nominally 60 Hz while running and 30 Hz while paused, while step completion feedback is tracked from the separate /stats stream at 10 Hz. The documented one-second synchronization timeout is a wall-clock timeout, not a simulation-time bound.
+
+Consequently, the live adapter must record separately: (a) requested and observed simulation iterations/time, (b) wall-clock request/response latency, and (c) SceneBroadcaster state synchronization latency. Do not infer simulation-step completion from wall-clock sleep or infer world freshness from the 10 Hz stats stream alone.
+
+References: [Gazebo Simulation Interfaces: dependencies, timing and known limitations](https://gazebosim.org/docs/rotary/ros2_sim_interfaces/); [Gazebo latest Simulation Interfaces](https://gazebosim.org/docs/latest/ros2_sim_interfaces/).
