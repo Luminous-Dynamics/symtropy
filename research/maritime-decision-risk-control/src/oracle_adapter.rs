@@ -1463,7 +1463,7 @@ mod tests {
         let mut service = bundle
             .cluster_mean_matrix(DatasetRole::Calibration, LossAxis::ServiceLoss)
             .expect("service cluster means");
-        service.provenance.schedules_per_cluster.reverse();
+        service.provenance.schedules_per_cluster[0] += 1;
         assert!(matches!(
             risk.select_fixed_grid_high_probability(&service, 100, 0.05),
             Err(ClusterRiskControlError::ClusterMatricesNotAligned)
