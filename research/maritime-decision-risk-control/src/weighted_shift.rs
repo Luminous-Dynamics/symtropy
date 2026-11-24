@@ -335,7 +335,7 @@ fn render_row(name: &str, calibration: &LossMatrix, test: &LossMatrix) -> String
     };
 
     format!(
-        "{name},KNOWN_EXACT_RATIO,{},10000,4,{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{status}\n",
+        "{name},KNOWN_EXACT_RATIO,{},10000,4,{:.3},{:.3},{:.3},{},{},{:.3},{:.3},{:.3},{:.3},{:.3},{status}\n",
         weighted.calibration_episodes,
         weighted.target_alpha,
         weighted.weight_bound,
@@ -353,7 +353,7 @@ fn render_row(name: &str, calibration: &LossMatrix, test: &LossMatrix) -> String
 /// Deterministic 15-column receipt comparing naive and exact known-weight selection.
 pub fn render_csv() -> String {
     let mut output = String::from(
-        "experiment,shift_type,calibration_episodes,target_test_episodes,policy_grid_size,target_alpha,known_weight_bound,terminal_margin_a,weighted_selected_policy,naive_unweighted_selected_policy,weighted_policy_target_hard_risk,naive_policy_target_hard_risk,weighted_policy_service_loss,naive_policy_service_loss,weighted_expected_risk_upper_bound\n",
+        "experiment,shift_type,calibration_episodes,target_test_episodes,policy_grid_size,target_alpha,known_weight_bound,terminal_margin_a,weighted_selected_policy,naive_unweighted_selected_policy,weighted_policy_target_hard_risk,naive_policy_target_hard_risk,weighted_policy_service_loss,naive_policy_service_loss,weighted_expected_risk_upper_bound,status\n",
     );
 
     for (name, n, seed) in [
@@ -469,9 +469,9 @@ mod tests {
         let first = render_csv();
         assert_eq!(first, render_csv());
         assert_eq!(first.lines().count(), 4);
-        assert_eq!(first.lines().next().expect("header").split(',').count(), 15);
+        assert_eq!(first.lines().next().expect("header").split(',').count(), 16);
         for row in first.lines().skip(1) {
-            assert_eq!(row.split(',').count(), 15);
+            assert_eq!(row.split(',').count(), 16);
         }
     }
 }
