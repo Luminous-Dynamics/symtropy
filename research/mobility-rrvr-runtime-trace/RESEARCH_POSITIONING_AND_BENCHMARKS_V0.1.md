@@ -388,3 +388,59 @@ Publish:
 - observer binary/revision drift rejection rate.
 
 A more demanding benchmark should deliberately inject common-cause cuts across two nominally different observers and compare naive distinct-ID logic against dependency-qualified quorum logic. The target is zero false quorum qualifications in the frozen common-cause negative controls, alongside complete admission of valid positive controls. This is a target, not an achieved empirical rate.
+
+
+## 2026-11 research update: narrow the novelty claim
+
+A newly relevant preprint, **EAST: Embodied AI Safety Testing via Systematic Fault Injection in Digital Twins** (25 October 2026), already combines a literature-grounded hazard taxonomy, executable fault operators, validity/applicability constraints, verification that a fault was realized during simulation, independent safety evaluation, simulator-state evidence and replayable records. Its reported evaluation covers six RoboTwin manipulation tasks and ACT/RDT policy architectures; it targets 74 admissible task-policy-operator combinations, obtains valid evidence for 63, and reports 82 valid executions that complete the task despite safety violations.
+
+This is direct prior art for the broad proposition "connect systematic fault injection, simulator-state observation, independent evaluation and reproducible evidence." RRVR must not claim to invent that bridge. EAST should be included as a primary comparator in future evaluations, not described as a gap in the field.
+
+Other complementary tooling already exists:
+- ROS-RVFT publishes design guidance for APIs that inject faults and emulate errors in ROS-based execution scenarios.
+- ros2_fault_injection provides configurable seeded faults for selected ROS topic streams (including odometry, scans, joint states and IMU), assertions over injector events/topic rates, and a campaign runner.
+- ROS 2 launch_testing supports active integration tests while nodes run, post-shutdown assertions and isolated ROS domain IDs.
+- ros2_tracing provides runtime instrumentation and trace capture for execution/performance analysis.
+
+The defensible RRVR differentiation is therefore the cross-restart physical-effect and authority-continuity problem, not generic digital-twin fault testing:
+1. A stable logical physical-effect identity is retained across distinct attempts and process/controller epochs.
+2. A retry is admitted only after durable persistence reconciliation, independent physical NoEffect evidence, mission resolution, controller-queue fencing and downstream graph quiescence.
+3. Physical outcome and command-path quiescence are separate claims, each qualified against a declared common-cause model.
+4. An indeterminate injector/owner result is reconciled against the same durable identity; it cannot become a blind retry.
+5. The existing native adapter remains the only authority boundary; benchmark instrumentation cannot create a permit or capability.
+
+This contribution is still a research hypothesis until it is tested against the relevant baselines and a live, version-pinned stack. It is not a claim of superiority over EAST, RoboRecover or SafeVLA on their native task/safety metrics.
+
+### Comparator matrix to freeze before the live campaign
+
+| Comparator | What to run unchanged | RRVR question |
+|---|---|---|
+| ROS-RVFT / ros2_fault_injection | Existing fault API, seed/replay configuration and assertions for supported ROS-level fault classes | Does a fault event/dispatch assertion correspond to independently observed fault delivery and to an exact physical-effect attempt? |
+| EAST | Its hazard/operator applicability rules, fault-realization checks, independent task-safety evaluation and replay records | What additional restart, persistence, actuator-queue and native-authority continuity failures appear across crash cuts? |
+| ros2_tracing + ordinary launch integration tests | Standard tracing and process/service/action assertions, with tracing-disabled overhead control | Which failures are visible in traces, and which require owner receipts plus independent physical outcome/quiescence evidence? |
+| RRVR full chain | Same task, policy, action prefix, seed, world and fault schedule; compiled plan plus attempt lineage, receipts and observer fault model | Can it prevent unsafe retry/false recovery admission without hiding valid positives or imposing unacceptable recovery cost? |
+
+### New benchmark strata
+
+Do not pool the following into a single "fault coverage" number:
+
+- Fault realization: planned/dispatch/execution/observed event agreement; precision, recall, unknown and not-observed counts.
+- Reset isolation: reset correctness under concurrent spawn/delete/set-state attempts; world-epoch integrity; external-mutation-control failures.
+- Crash-cut continuity: cuts before/after dispatch, injector execution, persistence acknowledgement, physical effect, controller fence, downstream fence and observer capture.
+- Attempt lineage: duplicate physical effects, stale receipts, cross-attempt evidence reuse and false NoEffect/Applied classification.
+- Observer assurance: false quorum qualification under shared power/host/clock/network/firmware/calibration faults.
+- Recovery utility: valid positive admission, false holds, operator intervention, recovery time and mission makespan.
+- Diagnosis: replay-complete rate, signature-preserving reduction, minimization determinism and localization yield.
+
+Hard gates remain separate from utility metrics: zero false Confirmed delivery and zero duplicate effects on the frozen negative corpus; no admission under Unknown critical evidence; zero false observer quorum qualification for declared common-cause controls; and complete positive-control admission for the declared platform profile. These are targets, not achieved rates. Report confidence intervals and experimental-unit counts; repeated frames from one run are not independent trials.
+
+The Gazebo live adapter must also report service wall-clock latency separately from simulation iterations and SceneBroadcaster synchronization latency. Current Gazebo documentation describes a nominal 60 Hz running / 30 Hz paused SceneBroadcaster update rate, a separate 10 Hz stats stream for step feedback, and a one-second state synchronization timeout. These are distinct clocks and mechanisms; one aggregate "step latency" obscures which subsystem caused delay.
+
+### Research references
+
+- [EAST, arXiv:2610.34358](https://arxiv.org/abs/2610.34358), 25 October 2026.
+- [ROS-RVFT guideline I3: fault-injection APIs](https://ros-rvft.github.io/guidelines/guideline-i3).
+- [ros2_fault_injection](https://github.com/reeceholland/ros2_fault_injection).
+- [ROS 2 launch_testing integration-test documentation](https://docs.ros.org/en/rolling/Tutorials/Intermediate/Testing/Integration.html).
+- [ros2_tracing](https://github.com/ros2/ros2_tracing).
+- [Gazebo Simulation Interfaces timing and limitations](https://gazebosim.org/docs/rotary/ros2_sim_interfaces/).
