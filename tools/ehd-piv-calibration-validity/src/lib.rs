@@ -1099,5 +1099,4 @@ mod tests {
             Err(RequalificationError::SealedTestCohortMismatch)
         );
     }
-
 }
