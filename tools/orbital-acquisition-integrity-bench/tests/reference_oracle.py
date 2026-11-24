@@ -90,6 +90,11 @@ def validate_case(case):
                                                      "image_height_px", "motion_budget_micro_px") else 1,
                         U64_MAX, "UNSIGNED_FIELD_OUT_OF_RANGE")
 
+    if case["image_height_px"] > 2**32 - 1:
+        raise ValueError("IMAGE_HEIGHT_OUT_OF_RANGE")
+    if case["exposure_duration_ns"] == U64_MAX:
+        raise ValueError("EXPOSURE_DURATION_OVERFLOW")
+
     if case["shutter_mode"] == "GLOBAL_SHUTTER":
         if case["readout_duration_ns"] != 0 or case["readout_uncertainty_ns"] != 0:
             raise ValueError("GLOBAL_SHUTTER_HAS_ROLLING_READOUT")
@@ -103,6 +108,8 @@ def validate_case(case):
         raise ValueError("UNEXPECTED_PROJECTOR_WINDOW")
     window = case["projector_window"]
     if window is not None:
+        checked_integer(window["stable_start_ns"], I64_MIN, I64_MAX, "SIGNED_FIELD_OUT_OF_RANGE")
+        checked_integer(window["stable_end_ns"], I64_MIN, I64_MAX, "SIGNED_FIELD_OUT_OF_RANGE")
         if (not valid_text(window["pattern_id"])
                 or not valid_sha256(window["pattern_receipt_sha256"])
                 or window["stable_end_ns"] <= window["stable_start_ns"]):
