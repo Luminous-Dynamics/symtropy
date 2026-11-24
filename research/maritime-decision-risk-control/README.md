@@ -164,6 +164,7 @@ Reproduction command:
 ```sh
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin weighted-shift-risk-audit
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin lipschitz-risk-audit
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin lipschitz-risk-audit
 ```
 
 
@@ -199,6 +200,39 @@ Reproduction command:
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin lipschitz-risk-audit
 ```
 
+
+## Independent oracle outcome adapter
+
+The fifth research component is an adapter, not another feasibility engine: `oracle_adapter.rs` consumes versioned per-episode/per-policy adjudications from an independent oracle such as the #7231 owner. It compiles separate whole-schedule matrices for hard physical failure and service loss.
+
+### Input contract
+
+Each dataset declares:
+- schema version `maritime.oracle-outcomes.v1`;
+- oracle identity/revision and an evidence reference;
+- an independence-evidence reference describing separation from policy/production feasibility helpers;
+- one declared exchangeability scope and one operating-regime ID;
+- frozen evaluator and loss-contract revisions;
+- a SHA-256-shaped digest for the pre-frozen policy grid.
+
+Each complete scheduling episode declares its unique episode ID, unique dependence-cluster ID, scenario family, regime ID, and Calibration or Evaluation role. Each episode carries exactly one oracle outcome for every candidate policy. Each policy outcome includes policy/evaluator/loss revisions, an authority disposition, physical feasibility disposition, bounded service-loss value, and receipt digest.
+
+### Fail-closed rules
+
+- A denied or unknown authority disposition rejects the dataset. `NotRequired` is reserved for a policy that made no mutating action; the adapter does not infer consent.
+- An unknown physical outcome rejects the dataset. It is never converted to a zero loss or silently dropped.
+- Physical `Infeasible` becomes hard-failure loss 1,000; `Feasible` becomes 0. Service loss remains its own value in [0, 1,000]. They are not added or averaged.
+- A reused dependence-cluster ID across any episodes or split roles is rejected. Clustered operations must first be aggregated into one complete schedule-level sampling unit or handled under a separate dependence-aware method.
+- A missing/extra policy candidate, policy revision drift, evaluator revision drift, loss-contract drift, mixed operating regimes, duplicate episode IDs, malformed receipt digest, or out-of-range loss rejects the whole dataset.
+- Calibration and Evaluation matrices remain separate. Evaluation outcomes cannot enter calibration selection through this adapter.
+- Matrices and policy columns are sorted deterministically, so input episode order and policy-outcome order do not change the compiled result.
+
+The adapter does **not** prove that the oracle is independent, that the evidence reference is truthful, that an external digest matches the policy-grid contents, or that the declared exchangeability scope holds. Those remain owner/evidence assertions. It does not implement physical feasibility, estimate importance weights, or convert a CRC expected-risk result into an authorization decision.
+
+The root `crate::LossMatrix` and finite-grid CRC-NM grid can consume the emitted matrices independently for each loss axis. Known-weight shift selection is deliberately not wired to this adapter: a real bounded likelihood ratio must be independently justified, not inferred from these receipts.
+
+The adapter has 13 unit tests for separate axes, deterministic permutation invariance, authority denial/unknown, physical unknown, bounded-loss violations, dependence-cluster leakage, policy-grid/revision drift, mixed regimes, digest validation, and role separation.
+
 ## Important release preconditions
 
 The future #7231 integration must establish all of the following before interpreting a risk output as operationally meaningful:
@@ -209,7 +243,7 @@ The future #7231 integration must establish all of the following before interpre
 - For standard CRC, the policy parameter must be genuinely monotone for the declared loss, or a justified monotone upper envelope must be used. The separate finite-grid non-monotone method does not require monotonicity, but instead pays its explicit sample-size/grid-resolution correction and requires the stated population-risk condition for the terminal policy.
 - A maximum-parameter policy with loss at most `α` exists **by construction**. A fail-closed abstention is not automatically a low-service-loss policy; if abstention counts as failure, its loss must be included.
 - Hard authority/consent checks remain deterministic gates. A statistical risk budget cannot authorize an action.
-- The exact small-instance oracle independently adjudicates physical feasibility and unauthorized actions.
+- The exact small-instance oracle independently adjudicates physical feasibility and unauthorized actions. Its outcome receipts are consumed through `oracle_adapter.rs`; the adapter does not reimplement those constraints.
 - Missing, censored, and outcome-dependent observations are separately identified; hidden outcomes never enter the deployed-style calibrator.
 
 The maximum-parameter assumption is especially strong. If the exact evaluator cannot establish a safe fallback within the declared scope, the correct result is **NO_MAX_PARAMETER_CONTRACT**, not an extrapolated certificate.
