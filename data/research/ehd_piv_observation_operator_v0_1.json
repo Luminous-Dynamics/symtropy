@@ -33,5 +33,62 @@
   "additional_failure_controls": [
     "field_support_outside_sensor",
     "nonfinite_rendered_sensor_signal"
-  ]
+  ],
+  "industry_comparators": {
+    "synthpix": {
+      "repository": "https://github.com/antonioterpin/synthpix",
+      "pinned_commit": "0effe6e70b77d0d5c97348d8220e74d31bfaee2e",
+      "current_repository_version": "0.4.0",
+      "license": "MIT",
+      "paper": {
+        "title": "SynthPix: A lightspeed PIV image generator",
+        "venue": "SoftwareX",
+        "volume": 34,
+        "article_number": 102642,
+        "year": 2026,
+        "doi": "10.1016/j.softx.2026.102642",
+        "url": "https://doi.org/10.1016/j.softx.2026.102642",
+        "reported_performance": "orders-of-magnitude image-pair throughput vs selected synthetic generator alternatives",
+        "own_benchmark_relative_endpoint_error_discrepancy": {
+          "mean": 0.001,
+          "maximum": 0.005
+        },
+        "caveat": "paper-specific evaluation after tuning generator parameters to match those benchmark image conditions"
+      },
+      "current_capabilities": [
+        "JAX_accelerator_batched_and_on_the_fly_generation",
+        "HDF5_MAT_NPY_flow_sources",
+        "seeding_density_range",
+        "particle_diameter_ranges",
+        "particle_intensity_ranges",
+        "particle_shape_correlation_rho",
+        "per_frame_particle_size_intensity_shape_variation",
+        "particle_hide_probability",
+        "uniform_and_gaussian_image_noise",
+        "pixel_masks",
+        "intensity_histogram_matching"
+      ],
+      "known_paper_v0_1_limitations": [
+        "orthogonal_camera_geometry_assumption",
+        "no_finite_pixel_fill_factor",
+        "no_multicamera_volumetric_generation_in_paper_version"
+      ],
+      "role": "high_throughput_generation_baseline_and_robustness_sweep_engine",
+      "execution_status": "not_executed_in_this_PR"
+    },
+    "rust_reference_operator": {
+      "role": "deterministic_small_scale_analytic_reference_and_negative_control_kernel",
+      "not_competing_on": "accelerator_image_pair_throughput",
+      "distinguishing_behaviors": [
+        "explicit_RK2_trajectory_integration",
+        "finite_exposure_time_quadrature",
+        "Gaussian_out_of_plane_light_sheet_attenuation",
+        "explicit_optical_PSF_sigma",
+        "frozen_per_pixel_noise_inputs",
+        "gain_offset_mask_and_quantization",
+        "fail_closed_domain_and_numeric_validation"
+      ]
+    }
+  },
+  "architecture_decision": "Use SynthPix for high-throughput synthetic data generation; retain the Rust implementation as an independently inspectable deterministic measurement-operator reference and analytic control. Do not compare throughput without matched configurations and hardware."
 }
