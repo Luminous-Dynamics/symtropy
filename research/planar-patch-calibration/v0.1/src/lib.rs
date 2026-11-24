@@ -282,16 +282,7 @@ fn pivoted_weighted_least_squares(
     columns: &[Vec<f64>; 3],
     target: &[f64],
     rank_relative_tolerance: f64,
-) -> Result<
-    (
-        usize,
-        Vec<usize>,
-        Vec<f64>,
-        Vec<Vec<f64>>,
-        Option<[f64; 3]>,
-    ),
-    CalibrationError,
-> {
+) -> Result<(usize, Vec<usize>, Vec<f64>, Vec<Vec<f64>>, Option<[f64; 3]>), CalibrationError> {
     let rows = target.len();
     if rows == 0 || columns.iter().any(|column| column.len() != rows) {
         return Err(CalibrationError::new(
@@ -362,8 +353,7 @@ fn pivoted_weighted_least_squares(
             let replace = match best_index {
                 None => true,
                 Some(current) => {
-                    residual_norm > best_norm
-                        || (residual_norm == best_norm && index < current)
+                    residual_norm > best_norm || (residual_norm == best_norm && index < current)
                 }
             };
             if replace {
@@ -394,18 +384,11 @@ fn pivoted_weighted_least_squares(
         selected_order.push(index);
         pivot_norms.push(best_norm);
         basis.push(best_residual);
-
     }
 
     let rank = basis.len();
     if rank < 3 {
-        return Ok((
-            rank,
-            selected_order,
-            pivot_norms,
-            basis,
-            None,
-        ));
+        return Ok((rank, selected_order, pivot_norms, basis, None));
     }
 
     let mut triangular = vec![vec![0.0_f64; 3]; 3];
@@ -445,13 +428,7 @@ fn pivoted_weighted_least_squares(
     for index in 0..3 {
         solution[selected_order[index]] = permuted_solution[index];
     }
-    Ok((
-        rank,
-        selected_order,
-        pivot_norms,
-        basis,
-        Some(solution),
-    ))
+    Ok((rank, selected_order, pivot_norms, basis, Some(solution)))
 }
 
 pub fn calibrate_planar_patch(
@@ -546,8 +523,14 @@ pub fn calibrate_planar_patch(
             unique_trial_group_count: trial_groups.len(),
             design_rank: rank,
             rank_threshold: config.rank_relative_tolerance
-                * columns.iter().map(|column| stable_norm(column)).fold(0.0_f64, f64::max),
-            pivot_order: pivot_order.iter().map(|index| axis_from_index(*index)).collect(),
+                * columns
+                    .iter()
+                    .map(|column| stable_norm(column))
+                    .fold(0.0_f64, f64::max),
+            pivot_order: pivot_order
+                .iter()
+                .map(|index| axis_from_index(*index))
+                .collect(),
             pivot_residual_norms: pivot_norms,
             axis_excitation,
             status: CalibrationStatus::Unidentifiable,
@@ -574,7 +557,10 @@ pub fn calibrate_planar_patch(
         dimensionless_shape_scales[1],
         dimensionless_shape_scales[2] * input.characteristic_length_m,
     ];
-    if !shape_scales.iter().all(|value| value.is_finite() && *value > 0.0) {
+    if !shape_scales
+        .iter()
+        .all(|value| value.is_finite() && *value > 0.0)
+    {
         return Err(CalibrationError::new(
             CalibrationErrorKind::NonFiniteEvaluation,
             "calibrated ellipsoid shape scale is non-finite or non-positive",
@@ -630,8 +616,14 @@ pub fn calibrate_planar_patch(
         unique_trial_group_count: trial_groups.len(),
         design_rank: rank,
         rank_threshold: config.rank_relative_tolerance
-            * columns.iter().map(|column| stable_norm(column)).fold(0.0_f64, f64::max),
-        pivot_order: pivot_order.iter().map(|index| axis_from_index(*index)).collect(),
+            * columns
+                .iter()
+                .map(|column| stable_norm(column))
+                .fold(0.0_f64, f64::max),
+        pivot_order: pivot_order
+            .iter()
+            .map(|index| axis_from_index(*index))
+            .collect(),
         pivot_residual_norms: pivot_norms,
         axis_excitation,
         status: if max_residual <= config.maximum_boundary_residual {
@@ -701,7 +693,10 @@ mod tests {
             observation("torsion", "spin-trial", [0.0, 0.0, 0.25], 1.0, 1.0),
         ]);
         let report = calibrate_planar_patch(&problem, config()).expect("calibration");
-        assert_eq!(report.status, CalibrationStatus::IdentifiedWithinResidualTolerance);
+        assert_eq!(
+            report.status,
+            CalibrationStatus::IdentifiedWithinResidualTolerance
+        );
         assert_eq!(report.design_rank, 3);
         let scales = report.ellipsoid_shape_scales.expect("identified scales");
         close(scales[0], 2.0, 1.0e-12);
@@ -736,10 +731,8 @@ mod tests {
         short_length.characteristic_length_m = 0.5;
         let mut long_length = input(observations);
         long_length.characteristic_length_m = 2.0;
-        let short_report =
-            calibrate_planar_patch(&short_length, config()).expect("short scale");
-        let long_report =
-            calibrate_planar_patch(&long_length, config()).expect("long scale");
+        let short_report = calibrate_planar_patch(&short_length, config()).expect("short scale");
+        let long_report = calibrate_planar_patch(&long_length, config()).expect("long scale");
         let short_axes = short_report.ellipsoid_shape_scales.expect("short axes");
         let long_axes = long_report.ellipsoid_shape_scales.expect("long axes");
         close(short_axes[0], long_axes[0], 1.0e-12);
@@ -750,13 +743,7 @@ mod tests {
 
     #[test]
     fn invalid_characteristic_length_is_rejected() {
-        let mut problem = input(vec![observation(
-            "u",
-            "u",
-            [2.0, 0.0, 0.0],
-            1.0,
-            1.0,
-        )]);
+        let mut problem = input(vec![observation("u", "u", [2.0, 0.0, 0.0], 1.0, 1.0)]);
         problem.characteristic_length_m = f64::NAN;
         assert_eq!(
             calibrate_planar_patch(&problem, config())
@@ -819,14 +806,18 @@ mod tests {
             observation("u", "u", [2.0, 0.0, 0.0], 1.0, 1.0),
             observation("v", "v", [0.0, 0.5, 0.0], 1.0, 1.0),
             observation("spin", "spin", [0.0, 0.0, 0.25], 1.0, 1.0),
-            observation("mixed", "mixed", [1.1547005383792515, 0.2886751345948129, 0.14433756729740646], 1.0, 1.0),
+            observation(
+                "mixed",
+                "mixed",
+                [1.1547005383792515, 0.2886751345948129, 0.14433756729740646],
+                1.0,
+                1.0,
+            ),
         ];
         let first = calibrate_planar_patch(&input(observations.clone()), config()).expect("first");
-        let second = calibrate_planar_patch(
-            &input(observations.into_iter().rev().collect()),
-            config(),
-        )
-        .expect("permuted");
+        let second =
+            calibrate_planar_patch(&input(observations.into_iter().rev().collect()), config())
+                .expect("permuted");
         let a = first.ellipsoid_shape_scales.expect("first scales");
         let b = second.ellipsoid_shape_scales.expect("second scales");
         close(a[0], 2.0, 1.0e-9);
@@ -850,13 +841,7 @@ mod tests {
             CalibrationErrorKind::DuplicateObservationId
         );
 
-        let mut missing = input(vec![observation(
-            "u",
-            "u",
-            [2.0, 0.0, 0.0],
-            1.0,
-            1.0,
-        )]);
+        let mut missing = input(vec![observation("u", "u", [2.0, 0.0, 0.0], 1.0, 1.0)]);
         missing.rig_calibration_digest.clear();
         assert_eq!(
             calibrate_planar_patch(&missing, config())
@@ -865,13 +850,7 @@ mod tests {
             CalibrationErrorKind::InvalidIdentity
         );
 
-        let bad_weight = input(vec![observation(
-            "u",
-            "u",
-            [2.0, 0.0, 0.0],
-            1.0,
-            0.0,
-        )]);
+        let bad_weight = input(vec![observation("u", "u", [2.0, 0.0, 0.0], 1.0, 0.0)]);
         assert_eq!(
             calibrate_planar_patch(&bad_weight, config())
                 .expect_err("zero weight")
@@ -882,13 +861,7 @@ mod tests {
 
     #[test]
     fn nonfinite_wrench_and_invalid_tolerances_are_rejected() {
-        let bad = input(vec![observation(
-            "u",
-            "u",
-            [f64::NAN, 0.0, 0.0],
-            1.0,
-            1.0,
-        )]);
+        let bad = input(vec![observation("u", "u", [f64::NAN, 0.0, 0.0], 1.0, 1.0)]);
         assert_eq!(
             calibrate_planar_patch(&bad, config())
                 .expect_err("nonfinite wrench")
