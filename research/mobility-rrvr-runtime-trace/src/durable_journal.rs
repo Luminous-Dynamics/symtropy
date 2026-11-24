@@ -953,7 +953,9 @@ impl JournalIndex {
             .filter(|status| {
                 matches!(
                     **status,
-                    ResetOutcomeStatus::ResponseUnknown | ResetOutcomeStatus::Unresolved
+                    ResetOutcomeStatus::ResponseUnknown
+                        | ResetOutcomeStatus::ResponseRejected
+                        | ResetOutcomeStatus::Unresolved
                 )
             })
             .count();
@@ -977,6 +979,7 @@ impl JournalIndex {
             dispatch_rejected_count: dispatch_count(DispatchOutcomeStatus::ResponseRejected)
                 + dispatch_count(DispatchOutcomeStatus::ReconciledRejected),
             dispatch_unknown_count: dispatch_count(DispatchOutcomeStatus::ResponseUnknown)
+                + dispatch_count(DispatchOutcomeStatus::ResponseRejected)
                 + dispatch_count(DispatchOutcomeStatus::Unresolved),
             dispatch_no_dispatch_proven_count: dispatch_count(
                 DispatchOutcomeStatus::NoDispatchProven,
