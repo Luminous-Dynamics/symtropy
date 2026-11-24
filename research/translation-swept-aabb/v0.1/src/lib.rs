@@ -758,6 +758,19 @@ mod tests {
             ),
             Err(SweepError::NonFiniteState)
         );
+        assert_eq!(
+            TranslationSweepInput::new(
+                identity(),
+                context(1.0, QuantizationProfile::NativeBinary64),
+                [0.0, 0.0],
+                [1.0, 0.0],
+                [1.0, 0.0],
+                [0.999, 0.0],
+                0.0,
+                Aabb::new([-1.0, -1.0], [1.0, 1.0]).unwrap(),
+            ),
+            Err(SweepError::NativeVelocityMismatch)
+        );
     }
 
     #[test]
