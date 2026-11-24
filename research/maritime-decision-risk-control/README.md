@@ -427,3 +427,36 @@ Prinster et al., *Conformal Policy Control*, ICML 2026, introduces a different p
 Reference: [PMLR paper](https://proceedings.mlr.press/v306/prinster26a.html), [arXiv version](https://arxiv.org/abs/2603.02196), [authors' implementation](https://github.com/samuelstanton/conformal-policy-control).
 
 A maritime adaptation is admissible only when all of the following are explicit: an independently qualified reference policy with risk at or below the target; a common and sufficiently stable context distribution; support overlap / absolute continuity between reference and candidate action distributions; and evaluable likelihood ratios for the relevant action or trajectory. A deterministic optimizer generally does not provide these quantities merely because it emits a schedule. Where the policy is deterministic or trajectory support cannot be justified, the comparator must return NOT_APPLICABLE rather than manufacturing a CPC certificate. The #7231 hard-feasibility and authority gates remain conjunctive and are not replaced by a safe-policy likelihood ratio.
+
+
+## Dependence-aware calibration and cluster-unit falsification (24 November 2026)
+
+The **clustered-dependence-risk-audit** executable is a synthetic negative control for pseudo-replication. Each experiment contains exactly 50,000 nominal schedule rows, but the rows are partitioned into 10, 25, 50, 100, 250, 500, 1,000 or 2,000 independent operating clusters. The number of schedule rows per cluster changes so that the nominal row count stays fixed. Every schedule in a cluster shares the same latent regime (intra-cluster correlation = 1.0 by construction).
+
+For each configuration it compares:
+
+- **SCHEDULE_ROWS_AS_IID:** an intentionally invalid baseline which treats repeated, perfectly correlated schedule rows as independent calibration units.
+- **INDEPENDENT_CLUSTER_MEANS:** one bounded mean-loss vector per independent cluster. This is the valid unit for the declared synthetic estimand: expected per-schedule loss for a new independently drawn cluster with fixed cluster sizes.
+
+Two risk-control families are kept separate:
+
+- **FINITE_SAMPLE_CRC** reports mean selected population risk over repeated calibration runs. Its theorem is a marginal expected-risk statement; the replicate-level unsafe-selection frequency is only a secondary diagnostic.
+- **SIMULTANEOUS_HOEFFDING_UCB** reports the frequency of selecting a policy whose exact population risk exceeds the target, including the Wilson interval, conditional selected-only rate and abstentions.
+
+The CRC negative-control fixture has exact population risks [78.05, 38.05, 30.25, 0.0] milli against a target of 40 milli. The Hoeffding fixture has exact population risks [70, 38, 30, 0] milli. The final policy has exact zero loss by construction. All loss vectors are bounded in [0, 1000] milli; the candidate grid and service-cost ordering are frozen.
+
+Run the deterministic receipt:
+
+~~~sh
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin clustered-dependence-risk-audit
+~~~
+
+The negative control is deliberately extreme (intra-cluster correlation = 1), not an estimate of DGT/DCT correlation. Cluster-unit calibration assumes that the declared clusters are independently sampled. Different source systems, days or event IDs do not automatically imply independent clusters: common weather, labour, vessel-convoy, grid, equipment, broker, sensor and publication failures must be mapped before making that claim.
+
+For unequal cluster sizes, pooled schedule weighting and equal-cluster weighting estimate different quantities. This first fixture keeps cluster sizes equal within each experiment and targets a typical randomly sampled cluster's mean schedule loss. Cluster-average risk is not a per-day maximum, worst-cohort guarantee, conditional-risk bound or tail-risk guarantee. Such outcomes remain separate and require their own contracts.
+
+Research comparators:
+- Ramos, Graziadei and Cabezas, *Conformal Prediction via Transported Beta Laws*, PMLR 329 (2026), explicitly analyzes how calibration dependence and clustering deform the i.i.d. calibration-conditional coverage law: https://proceedings.mlr.press/v329/r-ramos26a.html
+- Allohibi, *Grouped Validation and Conformal Calibration for Clustered Cross-National Data*, Mathematics 14(21), 4055 (5 November 2026), compares pooled, equal-cluster and subsampling calibration: https://doi.org/10.3390/math14214055
+
+The software experiment can falsify the assumption that 50,000 rows necessarily mean 50,000 independent units. It cannot determine a real port's cluster structure, establish DCT/DGT exchangeability, or confer an operational statistical guarantee.

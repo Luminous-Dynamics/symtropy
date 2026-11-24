@@ -125,6 +125,19 @@ jobs:
           awk -F, '$2=="SIMULTANEOUS_HOEFFDING" { count++ } END { if (count != 56) exit 1 }' /tmp/repeated-sampling-risk-full.csv
           grep -q "MARGINAL_EXPECTED_RISK" /tmp/repeated-sampling-risk-full.csv
           grep -q "FIXED_GRID_HIGH_PROBABILITY" /tmp/repeated-sampling-risk-full.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin clustered-dependence-risk-audit > /tmp/clustered-dependence-risk.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin clustered-dependence-risk-audit > /tmp/clustered-dependence-risk-replay.csv
+          cmp /tmp/clustered-dependence-risk.csv /tmp/clustered-dependence-risk-replay.csv
+          test "$(wc -l < /tmp/clustered-dependence-risk.csv)" -eq 65
+          head -n 1 /tmp/clustered-dependence-risk.csv | awk -F, '{ if (NF != 22) exit 1 }'
+          awk -F, 'NF != 22 { exit 1 }' /tmp/clustered-dependence-risk.csv
+          grep -q "INVALID_IID_PSEUDOREPLICATION_NEGATIVE_CONTROL" /tmp/clustered-dependence-risk.csv
+          grep -q "IID_CLUSTERS_SYNTHETIC_ONLY" /tmp/clustered-dependence-risk.csv
+          awk -F, '$1=="EXPECTED_RISK_CRC_PROFILE" && $4==50 && $2=="FINITE_SAMPLE_CRC" && $3=="SCHEDULE_ROWS_AS_IID" { if ($13 <= 40) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/clustered-dependence-risk.csv
+          awk -F, '$1=="EXPECTED_RISK_CRC_PROFILE" && $4==50 && $2=="FINITE_SAMPLE_CRC" && $3=="INDEPENDENT_CLUSTER_MEANS" { if ($13 > 40) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/clustered-dependence-risk.csv
+          awk -F, '$1=="HIGH_PROBABILITY_UCB_PROFILE" && $4==50 && $2=="SIMULTANEOUS_HOEFFDING_UCB" && $3=="SCHEDULE_ROWS_AS_IID" { if ($16 <= 0.05) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/clustered-dependence-risk.csv
+          awk -F, '$1=="HIGH_PROBABILITY_UCB_PROFILE" && $4==50 && $2=="SIMULTANEOUS_HOEFFDING_UCB" && $3=="INDEPENDENT_CLUSTER_MEANS" { if ($11 != 0 || $12 != 2000 || $19 != "NA") exit 1; found=1 } END { if (!found) exit 1 }' /tmp/clustered-dependence-risk.csv
+          awk -F, '$1=="HIGH_PROBABILITY_UCB_PROFILE" && $4==2000 && $2=="SIMULTANEOUS_HOEFFDING_UCB" && $3=="INDEPENDENT_CLUSTER_MEANS" { if ($11 <= 0 || $16 != 0) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/clustered-dependence-risk.csv
           echo "Maritime repeated-sampling risk tournament smoke receipt passed."
           echo "Maritime decision-risk and finite-grid non-monotone receipts passed."
 
@@ -143,6 +156,7 @@ jobs:
             /tmp/simultaneous-risk.csv \
             /tmp/repeated-sampling-risk.csv \
             /tmp/repeated-sampling-risk-full.csv \
+            /tmp/clustered-dependence-risk.csv \
             > /tmp/maritime-receipt-sha256.txt
 
       - name: Upload reproducible maritime risk receipts
@@ -160,5 +174,6 @@ jobs:
             /tmp/simultaneous-risk.csv
             /tmp/repeated-sampling-risk.csv
             /tmp/repeated-sampling-risk-full.csv
+            /tmp/clustered-dependence-risk.csv
           if-no-files-found: error
           retention-days: 30
