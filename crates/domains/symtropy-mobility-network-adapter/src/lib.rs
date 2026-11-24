@@ -571,9 +571,9 @@ fn build_network(input: &MobilityNetworkAdapterInput) -> Result<DcNetworkModel, 
         .collect::<Result<Vec<_>, _>>()?;
     buses.sort_by(|a, b| a.id().cmp(b.id()));
 
-    let mut branches = input
-        .network
-        .branches
+    let mut branch_inputs = input.network.branches.clone();
+    branch_inputs.sort_by(|a, b| a.id.cmp(&b.id));
+    let branches = branch_inputs
         .iter()
         .map(|branch| {
             DcBranch::new(
@@ -587,10 +587,6 @@ fn build_network(input: &MobilityNetworkAdapterInput) -> Result<DcNetworkModel, 
             .map_err(|error| AdapterError::InvalidNetwork(error.to_string()))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    branches.sort_by(|a, b| {
-        // Branch IDs are unique and order-independent in the DC screen.
-        a.id().cmp(b.id())
-    });
 
     DcNetworkModel::new(
         input.network.network_model_id.clone(),
