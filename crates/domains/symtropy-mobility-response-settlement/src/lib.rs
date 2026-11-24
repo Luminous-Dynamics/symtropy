@@ -1309,8 +1309,8 @@ mod tests {
                 "response_threshold_pass": true,
                 "expanded_uncertainty_pass": true,
                 "interval_qualified": true,
-                "measured_reduction_energy_wh": 0.002777777777777778,
-                "lower_bound_reduction_energy_wh": 0.002752932777777778,
+                "measured_reduction_energy_wh": 2.777777777777778,
+                "lower_bound_reduction_energy_wh": 2.752932777777778,
                 "baseline_evidence_id": "base-2",
                 "candidate_evidence_id": "resp-2"
             },
@@ -1332,7 +1332,7 @@ mod tests {
                 "expanded_uncertainty_pass": true,
                 "interval_qualified": true,
                 "measured_reduction_energy_wh": 0.0,
-                "lower_bound_reduction_energy_wh": -0.000024845,
+                "lower_bound_reduction_energy_wh": -0.024845,
                 "baseline_evidence_id": "base-3",
                 "candidate_evidence_id": "resp-3"
             },
@@ -1353,8 +1353,8 @@ mod tests {
                 "response_threshold_pass": false,
                 "expanded_uncertainty_pass": true,
                 "interval_qualified": true,
-                "measured_reduction_energy_wh": -0.000138888888888889,
-                "lower_bound_reduction_energy_wh": -0.000163734,
+                "measured_reduction_energy_wh": -0.138888888888889,
+                "lower_bound_reduction_energy_wh": -0.163734,
                 "baseline_evidence_id": "base-4",
                 "candidate_evidence_id": "resp-4"
             }
