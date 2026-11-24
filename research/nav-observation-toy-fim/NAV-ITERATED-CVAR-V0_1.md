@@ -47,7 +47,7 @@ This differs from the mission-path cvar API, which takes confidence alpha (e.g. 
 
 ## Persistent-model semantics
 
-The API accepts a separate branch tree for every complete mission model. It computes the two-level ICVaR independently per model, then takes:
+The API accepts a separate branch tree for every complete mission model. It requires the same root acquisition action and the same branch-to-continuation-action mapping across every model, while allowing each model to assign its own branch probabilities and conditional loss distributions. It computes the two-level ICVaR independently per model, then takes:
 
 \[
 \max_{m\in\mathcal M} \rho^{\mathrm{ICVaR}}_{\alpha}(\pi,m).
@@ -89,6 +89,7 @@ The Rust module provides:
 - worst_case_iterated_cvar for independent per-model evaluation followed by an outer maximum;
 - exact CVaR over rational-valued conditional outcomes;
 - deterministic model / branch ordering and identity validation;
+- shared root-action and branch-to-continuation-action signature checks across persistent models;
 - checked arithmetic and explicit tail-mass validation.
 
 Tests cover:
