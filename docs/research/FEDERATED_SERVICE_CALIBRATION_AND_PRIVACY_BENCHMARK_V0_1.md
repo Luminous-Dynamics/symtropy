@@ -185,3 +185,131 @@ Targets, not achievements:
 - #6803/#6809/#6829/#6837 remain hard flexibility, recovery, capability lease and promise journal gates.
 
 This v0.1 specification is not a privacy guarantee, differential privacy implementation, secure aggregation implementation or a statistical guarantee under arbitrary non-IID shift. It defines a bounded testable path toward those capabilities without exporting raw mobility telemetry.
+
+---
+
+## 8. Executable v0.1 bounded reducer
+
+The protocol now has a deterministic Rust reducer and CLI:
+
+- \`tools/ev-passenger-cost-frontier/src/federated_calibration.rs\`
+- \`tools/ev-passenger-cost-frontier/src/bin/federated_calibration_screen.rs\`
+- \`tools/ev-passenger-cost-frontier/schemas/federated_calibration_v0_1.schema.json\`
+- \`tools/ev-passenger-cost-frontier/fixtures/federated_calibration_v0_1.json\`
+
+This first executable implementation consumes already-prepared site summaries. It does **not** authenticate credentials, verify signatures, hide individual contributions from the coordinator, perform secure aggregation, add DP noise or commit the release ledger.
+
+### 8.1 Reducer contract
+
+Every summary must match the exact compatibility key: model ID/version, forecast horizon, metric kind, measurement boundary, unit, stratum, nominal coverage, score definition and fixed histogram edges. It rejects mismatched boundaries (for example pack-terminal Wh against charger-input Wh), model versions, strata, bins, or epochs.
+
+The reducer also enforces:
+- a registered roster and one contribution per site per epoch;
+- one unique local evidence digest per site summary;
+- per-site calibration sample and per-bin count caps;
+- exact histogram mass = declared calibration sample count;
+- holdout covered count no greater than holdout count and bounded width sums;
+- bounded local audit age and exact epoch match;
+- release-ledger presence for each participating site;
+- rejection of exhausted per-epoch release budgets and repeated query-scope digests;
+- deterministic merge and canonical input digest independent of input order;
+- minimum participating-site and minimum total calibration-sample thresholds.
+
+When a cohort is too small, the report withholds participant counts and aggregate distribution values. It does not publish a seemingly harmless histogram with a sparse cohort.
+
+The quantile uses the bounded histogram and reports the selected bin's upper edge. This is an approximation at the declared bin resolution, not an exact residual quantile. A non-finite conformal order-statistic rank is rejected rather than silently clipped into a valid-looking rank.
+
+### 8.2 Local authority is not pooled
+
+The reducer reports how many sites declare:
+- locally supported;
+- undercoverage alarm;
+- insufficient local support;
+- unsupported stratum or unknown status.
+
+The fleet distribution cannot turn a local undercoverage alarm or unsupported stratum into local support. The output permanently sets site-local qualification, fleet field qualification and operational authority to false. The local status is a site-supplied audit result; this reducer does not independently verify that result.
+
+### 8.3 Frozen synthetic known answer
+
+The fixture contains three sites with one compatible metric/stratum:
+
+| Measure | Expected |
+|---|---:|
+| Participating sites | 3 |
+| Total calibration samples | 30 |
+| Merged score-bin counts | [6, 9, 15] |
+| 90% order-statistic rank | 28 |
+| Quantile upper bin edge | 40 |
+| Holdout samples | 30 |
+| Holdout covered | 24 |
+| Pooled holdout empirical coverage | 800‰ |
+| Holdout interval-width sum | 300 |
+| Mean holdout interval width | 10 |
+| Reported local undercoverage alarms | 1 |
+| Reported local insufficient-support sites | 1 |
+
+All three contributions and their local evidence digests are synthetic placeholders. The fixture tests deterministic arithmetic and policy semantics only.
+
+### 8.4 Privacy and security boundary
+
+The current reducer processes summaries in cleartext. It is not a secure aggregation protocol and does not protect a site from a curious coordinator. Its cohort threshold is only a release-suppression rule; it is not a privacy guarantee. The local evidence digest is an opaque reference, not a cryptographic signature or verified credential.
+
+Secure aggregation requires a separately specified protocol, member authentication, threshold/collusion semantics, dropout handling, replay protection and an adversarial implementation review. Differential privacy additionally requires a declared adjacency relation, clipping, sensitivity, mechanism, per-release and cumulative \`epsilon/delta\` accounting, and utility measurements. These must not be inferred from the reducer's functional tests.
+
+The output marks:
+- \`membership_cryptographically_verified=false\`;
+- \`secure_aggregation_performed=false\`;
+- \`differential_privacy_applied=false\`;
+- \`release_budget_consumed=false\`;
+- all local, fleet and operational qualification flags false.
+
+The coordinator's ledger snapshot is only a preflight view. A production release must use an atomic compare-and-swap or consume-once operation at publication time; this reducer does not reserve or consume a release token.
+
+## 9. Updated comparator and benchmark plan
+
+The federated method should be evaluated against:
+1. **Centralized pooled residuals** as an exact reference when raw data are permitted in a benchmark environment.
+2. **Fixed-bin deterministic aggregation** as implemented here, with error reported against the centralized empirical quantile.
+3. **Quantile sketches** (for example KLL or t-digest variants) with a declared approximation metric and bounded memory.
+4. **Federated Conformal Prediction for Joint Shift**, Shi et al., UAI 2026 / PMLR 337:6232–6260, whose approach shares privacy-preserving score sketches and performs local importance-weighted calibration under its stated distribution-shift assumptions.
+5. **Online certificate-driven calibration** for dependent time series, Huang et al., UAI 2026 / PMLR 337:2244–2273, as a different way to reason about temporal dependence and distribution shift.
+
+These methods address different assumptions. Federated score sketches do not automatically solve concept shift, non-IID temporal dependence, poisoned membership or absent target-domain evidence. A fleet result remains an input to a local decision, not a local certificate.
+
+### 9.1 Targets (research goals, not achievements)
+
+| Benchmark | Target |
+|---|---|
+| Merge vs independent centralized histogram | 100% exact bin-count agreement |
+| Input permutation | 100% identical canonical digest and output |
+| Duplicate site/epoch contribution | 0 accepted |
+| Compatibility mismatch | 0 merged |
+| Per-site/per-bin cap overflow | 0 accepted |
+| Stale or future summary | 0 accepted |
+| Cohort below configured minimum | 100% aggregate suppression |
+| Local undercoverage alarm masked by fleet aggregate | 0 cases |
+| Release-budget replay | 0 repeated query releases |
+| Quantile approximation | Publish absolute and normalized error vs exact pooled rank |
+| Resource cost | Publish bytes, memory, merge p50/p95/p99 and site count |
+| Poisoning robustness | Report worst-site influence and bounded-contribution impact |
+| DP utility (future work) | Publish epsilon/delta, accounting horizon and coverage/width degradation |
+
+A useful federation must improve calibration sample efficiency or aggregate quantile efficiency without making the worst-supported site less safe. Reject-all and publish-everything are both failures: the former destroys utility, the latter may disclose sensitive site information.
+
+### 9.2 Negative controls required before v0.2
+
+- same site contributes twice under different IDs in an epoch;
+- site summary appears with a stale or future audit cutoff;
+- summary carries a different bin edge, unit, score definition or nominal level;
+- cross-boundary summaries are merged;
+- local undercoverage is hidden by high fleet coverage;
+- one site contributes at or above a prohibited count cap;
+- query-scope digest is replayed after publication;
+- release ledger is exhausted or has conflicting duplicate rows;
+- cohort threshold is bypassed by including registered-but-nonparticipating sites in the count;
+- histogram mass differs from the declared sample count;
+- quantile rank is non-finite at small sample sizes;
+- input order changes merged output or digest;
+- a synthetic summary is labelled source-authenticated, privacy-preserving or field-qualified.
+
+The next security increment must implement authenticated membership and atomic release-ledger consumption. The next privacy increment must implement and independently audit secure aggregation and/or DP accounting. Neither can be claimed from this reducer.
