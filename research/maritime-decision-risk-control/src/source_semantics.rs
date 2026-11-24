@@ -220,6 +220,113 @@ impl ArtifactEnvelope {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ArtifactSnapshot {
+    pub snapshot_id: String,
+    /// Stable logical family ID; e.g. one day's export-stack source.
+    pub artifact_family_id: String,
+    /// Monotonic revision sequence within the family, beginning at one.
+    pub revision_sequence: u64,
+    /// The immediate prior immutable snapshot in the same source family.
+    pub supersedes_snapshot_id: Option<String>,
+    pub envelope: ArtifactEnvelope,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LedgerAppendError {
+    EmptySnapshotIdentity,
+    DuplicateSnapshotId,
+    RootRevisionMustStartAtOne,
+    SupersededSnapshotUnknown,
+    SupersessionFamilyMismatch,
+    SupersessionMustBeLatest,
+    RevisionSequenceMustBeContiguous,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct AppendOnlyArtifactLedger {
+    snapshots: Vec<ArtifactSnapshot>,
+}
+
+impl AppendOnlyArtifactLedger {
+    pub fn snapshots(&self) -> &[ArtifactSnapshot] {
+        &self.snapshots
+    }
+
+    /// Appends a new immutable revision. There is no update or delete API.
+    pub fn append(
+        &mut self,
+        snapshot: ArtifactSnapshot,
+    ) -> Result<(), LedgerAppendError> {
+        if snapshot.snapshot_id.trim().is_empty()
+            || snapshot.artifact_family_id.trim().is_empty()
+            || snapshot.revision_sequence == 0
+        {
+            return Err(LedgerAppendError::EmptySnapshotIdentity);
+        }
+        if self
+            .snapshots
+            .iter()
+            .any(|existing| existing.snapshot_id == snapshot.snapshot_id)
+        {
+            return Err(LedgerAppendError::DuplicateSnapshotId);
+        }
+        if let Some(parent_id) = snapshot.supersedes_snapshot_id.as_deref() {
+            let parent = self
+                .snapshots
+                .iter()
+                .find(|existing| existing.snapshot_id == parent_id)
+                .ok_or(LedgerAppendError::SupersededSnapshotUnknown)?;
+            if parent.artifact_family_id != snapshot.artifact_family_id {
+                return Err(LedgerAppendError::SupersessionFamilyMismatch);
+            }
+            if self.snapshots.iter().any(|existing| {
+                existing.artifact_family_id == snapshot.artifact_family_id
+                    && existing.revision_sequence > parent.revision_sequence
+            }) {
+                return Err(LedgerAppendError::SupersessionMustBeLatest);
+            }
+            if snapshot.revision_sequence != parent.revision_sequence + 1 {
+                return Err(LedgerAppendError::RevisionSequenceMustBeContiguous);
+            }
+        } else if snapshot.revision_sequence != 1
+            || self
+                .snapshots
+                .iter()
+                .any(|existing| existing.artifact_family_id == snapshot.artifact_family_id)
+        {
+            return Err(LedgerAppendError::RootRevisionMustStartAtOne);
+        }
+
+        snapshot
+            .envelope
+            .validate()
+            .map_err(|_| LedgerAppendError::EmptySnapshotIdentity)?;
+        self.snapshots.push(snapshot);
+        Ok(())
+    }
+
+    /// Returns the highest revision that was both published and retrieved by
+    /// the historical cutoff. Later corrections cannot rewrite an old replay.
+    pub fn latest_available_as_of(
+        &self,
+        artifact_family_id: &str,
+        as_of_unix: i64,
+    ) -> Option<&ArtifactSnapshot> {
+        self.snapshots
+            .iter()
+            .filter(|snapshot| snapshot.artifact_family_id == artifact_family_id)
+            .filter(|snapshot| {
+                snapshot
+                    .envelope
+                    .published_at_unix
+                    .is_some_and(|published| published <= as_of_unix)
+                    && snapshot.envelope.retrieved_at_unix <= as_of_unix
+            })
+            .max_by_key(|snapshot| snapshot.revision_sequence)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SourceClaim {
     pub artifact_class: ArtifactClass,
     pub artifact: ArtifactEnvelope,
@@ -683,6 +790,130 @@ mod tests {
             as_of_unix: FIXTURE_AS_OF,
             event_time_unix: Some(FIXTURE_EVENT_TIME),
         }
+    }
+
+    fn snapshot(
+        snapshot_id: &str,
+        family_id: &str,
+        sequence: u64,
+        supersedes: Option<&str>,
+        published_at: Option<i64>,
+        retrieved_at: i64,
+    ) -> ArtifactSnapshot {
+        ArtifactSnapshot {
+            snapshot_id: snapshot_id.to_owned(),
+            artifact_family_id: family_id.to_owned(),
+            revision_sequence: sequence,
+            supersedes_snapshot_id: supersedes.map(str::to_owned),
+            envelope: ArtifactEnvelope {
+                artifact_id: snapshot_id.to_owned(),
+                source_owner: "Durban Gateway Terminal / ICTSI".to_owned(),
+                source_revision: format!("revision-{sequence}"),
+                raw_sha256: if sequence == 1 {
+                    FIXTURE_DIGEST.to_owned()
+                } else {
+                    FIXTURE_CUSTODY_DIGEST.to_owned()
+                },
+                retrieved_at_unix: retrieved_at,
+                published_at_unix: published_at,
+                valid_from_unix: None,
+                valid_until_unix: None,
+                receiver_custody_sha256: None,
+                independence_evidence_ref: None,
+            },
+        }
+    }
+
+    #[test]
+    fn append_only_ledger_preserves_revisions_and_historical_asof_view() {
+        let mut ledger = AppendOnlyArtifactLedger::default();
+        ledger
+            .append(snapshot(
+                "stack-am",
+                "dgt-export-stack-2026-11-24",
+                1,
+                None,
+                Some(1_900_000_000),
+                1_900_000_010,
+            ))
+            .expect("append first revision");
+        ledger
+            .append(snapshot(
+                "stack-pm",
+                "dgt-export-stack-2026-11-24",
+                2,
+                Some("stack-am"),
+                Some(1_900_100_000),
+                1_900_100_010,
+            ))
+            .expect("append correction revision");
+
+        assert_eq!(ledger.snapshots().len(), 2);
+        let historical = ledger
+            .latest_available_as_of("dgt-export-stack-2026-11-24", 1_900_050_000)
+            .expect("AM revision was available");
+        assert_eq!(historical.snapshot_id, "stack-am");
+        let latest = ledger
+            .latest_available_as_of("dgt-export-stack-2026-11-24", 1_900_200_000)
+            .expect("PM revision was available");
+        assert_eq!(latest.snapshot_id, "stack-pm");
+    }
+
+    #[test]
+    fn append_only_ledger_rejects_duplicate_and_nonlatest_supersession() {
+        let mut ledger = AppendOnlyArtifactLedger::default();
+        ledger
+            .append(snapshot("rev-1", "family", 1, None, Some(100), 110))
+            .expect("append root");
+        ledger
+            .append(snapshot("rev-2", "family", 2, Some("rev-1"), Some(200), 210))
+            .expect("append second");
+        assert_eq!(
+            ledger.append(snapshot("rev-2", "family", 2, Some("rev-1"), Some(200), 210)),
+            Err(LedgerAppendError::DuplicateSnapshotId)
+        );
+        assert_eq!(
+            ledger.append(snapshot("rev-3", "family", 3, Some("rev-1"), Some(300), 310)),
+            Err(LedgerAppendError::SupersessionMustBeLatest)
+        );
+        assert_eq!(ledger.snapshots().len(), 2);
+    }
+
+    #[test]
+    fn append_only_ledger_rejects_broken_revision_chains() {
+        let mut ledger = AppendOnlyArtifactLedger::default();
+        assert_eq!(
+            ledger.append(snapshot("rev-2", "family", 2, None, Some(100), 110)),
+            Err(LedgerAppendError::RootRevisionMustStartAtOne)
+        );
+        assert_eq!(
+            ledger.append(snapshot("rev-1", "family", 1, Some("missing"), Some(100), 110)),
+            Err(LedgerAppendError::SupersededSnapshotUnknown)
+        );
+        ledger
+            .append(snapshot("rev-1", "family", 1, None, Some(100), 110))
+            .expect("append root");
+        assert_eq!(
+            ledger.append(snapshot("rev-3", "family", 3, Some("rev-1"), Some(300), 310)),
+            Err(LedgerAppendError::RevisionSequenceMustBeContiguous)
+        );
+        assert_eq!(
+            ledger.append(snapshot("rev-2-cross-family", "other-family", 2, Some("rev-1"), Some(200), 210)),
+            Err(LedgerAppendError::SupersessionFamilyMismatch)
+        );
+    }
+
+    #[test]
+    fn unknown_publication_time_is_never_selected_by_historical_ledger_query() {
+        let mut ledger = AppendOnlyArtifactLedger::default();
+        ledger
+            .append(snapshot("unknown-pub", "unknown-family", 1, None, None, 100))
+            .expect("append unknown publication timestamp");
+        assert!(
+            ledger
+                .latest_available_as_of("unknown-family", 1_000)
+                .is_none()
+        );
     }
 
     #[test]
