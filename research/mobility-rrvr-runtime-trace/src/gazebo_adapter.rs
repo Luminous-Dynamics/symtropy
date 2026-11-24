@@ -2223,6 +2223,24 @@ mod tests {
             first,
             dispatch_idempotency_key(&plan, scenario, fault, "run-2", "epoch-1")
         );
+        let delimiter_left =
+            dispatch_idempotency_key(&plan, scenario, fault, "run/a", "b").unwrap();
+        let delimiter_right =
+            dispatch_idempotency_key(&plan, scenario, fault, "run", "a/b").unwrap();
+        assert_ne!(delimiter_left, delimiter_right);
+
+        let mut uncommitted_scenario = scenario.clone();
+        uncommitted_scenario.pair_id.push_str("-tampered");
+        assert_eq!(
+            dispatch_idempotency_key(
+                &plan,
+                &uncommitted_scenario,
+                fault,
+                "run-1",
+                "epoch-1"
+            ),
+            Err(GazeboAdapterError::InvalidIdempotencyContext)
+        );
     }
 
     #[test]
