@@ -1195,10 +1195,10 @@ mod tests {
                         support_a: SupportQueryDisposition::NotAttempted,
                         support_b: SupportQueryDisposition::NotAttempted,
                         disposition: CandidateDisposition::InvalidDirection,
-                    },
-                ],
-            },
-        }).unwrap();
+                    }],
+                },
+            })
+            .unwrap();
         assert_eq!(ledger.validate(), Err(LedgerError::MissingPrimaryCandidate));
     }
 
