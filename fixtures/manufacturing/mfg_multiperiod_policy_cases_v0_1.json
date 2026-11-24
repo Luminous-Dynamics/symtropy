@@ -1,0 +1,2220 @@
+{
+  "schema_id": "https://luminousdynamics.io/schemas/mfg-multiperiod-policy-case-v0.1",
+  "benchmark_id": "MFG-MULTIPERIOD-POLICY-001",
+  "evidence_class": "synthetic",
+  "horizon": 3,
+  "family_manifest": [
+    {
+      "scenario_family_id": "nominal-resource-window",
+      "case_count": 2,
+      "replication_seeds": [
+        1,
+        2
+      ]
+    },
+    {
+      "scenario_family_id": "local-resource-outage",
+      "case_count": 2,
+      "replication_seeds": [
+        1,
+        2
+      ]
+    },
+    {
+      "scenario_family_id": "correlated-common-cause",
+      "case_count": 2,
+      "replication_seeds": [
+        1,
+        2
+      ]
+    },
+    {
+      "scenario_family_id": "qualification-unknown",
+      "case_count": 2,
+      "replication_seeds": [
+        1,
+        2
+      ]
+    },
+    {
+      "scenario_family_id": "deadline-capacity-pressure",
+      "case_count": 2,
+      "replication_seeds": [
+        1,
+        2
+      ]
+    },
+    {
+      "scenario_family_id": "quality-outcome-uncertainty",
+      "case_count": 2,
+      "replication_seeds": [
+        1,
+        2
+      ]
+    }
+  ],
+  "case_count": 12,
+  "cases": [
+    {
+      "case_id": "MP-NOMINAL-RESOURCE-WINDOW-01",
+      "scenario_family_id": "nominal-resource-window",
+      "seed": 1,
+      "horizon": 3,
+      "jobs": [
+        {
+          "job_id": "JOB-FLEX",
+          "due_period": 2,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 30,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 1,
+              "expected_quality_loss_units": 0
+            },
+            {
+              "resource_id": "RESOURCE-B",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 1
+            },
+            {
+              "resource_id": "RESOURCE-C",
+              "production_cost_units": 3,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        },
+        {
+          "job_id": "JOB-ONLY-A",
+          "due_period": 1,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 50,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resource_id": "RESOURCE-A",
+          "capacity_units_by_period": [
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-B",
+          "capacity_units_by_period": [
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-C",
+          "capacity_units_by_period": [
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "scenario_id": "B-AVAILABLE-NO-REJECT",
+          "probability_ppm": 400000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-AVAILABLE-HIDDEN-REJECT",
+          "probability_ppm": 100000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": [
+            {
+              "job_id": "JOB-FLEX",
+              "resource_id": "RESOURCE-B"
+            }
+          ]
+        },
+        {
+          "scenario_id": "B-FAILED-C-AVAILABLE",
+          "probability_ppm": 200000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-UNKNOWN-C-AVAILABLE",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": [
+                "RESOURCE-B"
+              ]
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-FAILED-C-FAILED",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-C"
+              ],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        }
+      ]
+    },
+    {
+      "case_id": "MP-NOMINAL-RESOURCE-WINDOW-02",
+      "scenario_family_id": "nominal-resource-window",
+      "seed": 2,
+      "horizon": 3,
+      "jobs": [
+        {
+          "job_id": "JOB-FLEX",
+          "due_period": 2,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 30,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 1,
+              "expected_quality_loss_units": 0
+            },
+            {
+              "resource_id": "RESOURCE-B",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 1
+            },
+            {
+              "resource_id": "RESOURCE-C",
+              "production_cost_units": 3,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        },
+        {
+          "job_id": "JOB-ONLY-A",
+          "due_period": 1,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 50,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resource_id": "RESOURCE-A",
+          "capacity_units_by_period": [
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-B",
+          "capacity_units_by_period": [
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-C",
+          "capacity_units_by_period": [
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "scenario_id": "B-AVAILABLE-NO-REJECT",
+          "probability_ppm": 350000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-AVAILABLE-HIDDEN-REJECT",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": [
+            {
+              "job_id": "JOB-FLEX",
+              "resource_id": "RESOURCE-B"
+            }
+          ]
+        },
+        {
+          "scenario_id": "B-FAILED-C-AVAILABLE",
+          "probability_ppm": 200000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-UNKNOWN-C-AVAILABLE",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": [
+                "RESOURCE-B"
+              ]
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-FAILED-C-FAILED",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-C"
+              ],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        }
+      ]
+    },
+    {
+      "case_id": "MP-LOCAL-RESOURCE-OUTAGE-01",
+      "scenario_family_id": "local-resource-outage",
+      "seed": 1,
+      "horizon": 3,
+      "jobs": [
+        {
+          "job_id": "JOB-FLEX",
+          "due_period": 2,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 30,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 1,
+              "expected_quality_loss_units": 0
+            },
+            {
+              "resource_id": "RESOURCE-B",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 1
+            },
+            {
+              "resource_id": "RESOURCE-C",
+              "production_cost_units": 3,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        },
+        {
+          "job_id": "JOB-ONLY-A",
+          "due_period": 1,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 50,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resource_id": "RESOURCE-A",
+          "capacity_units_by_period": [
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-B",
+          "capacity_units_by_period": [
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-C",
+          "capacity_units_by_period": [
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "scenario_id": "B-AVAILABLE-NO-REJECT",
+          "probability_ppm": 300000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-AVAILABLE-HIDDEN-REJECT",
+          "probability_ppm": 100000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": [
+            {
+              "job_id": "JOB-FLEX",
+              "resource_id": "RESOURCE-B"
+            }
+          ]
+        },
+        {
+          "scenario_id": "B-FAILED-C-AVAILABLE",
+          "probability_ppm": 250000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-UNKNOWN-C-AVAILABLE",
+          "probability_ppm": 200000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": [
+                "RESOURCE-B"
+              ]
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-FAILED-C-FAILED",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-C"
+              ],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        }
+      ]
+    },
+    {
+      "case_id": "MP-LOCAL-RESOURCE-OUTAGE-02",
+      "scenario_family_id": "local-resource-outage",
+      "seed": 2,
+      "horizon": 3,
+      "jobs": [
+        {
+          "job_id": "JOB-FLEX",
+          "due_period": 2,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 30,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 1,
+              "expected_quality_loss_units": 0
+            },
+            {
+              "resource_id": "RESOURCE-B",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 1
+            },
+            {
+              "resource_id": "RESOURCE-C",
+              "production_cost_units": 3,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        },
+        {
+          "job_id": "JOB-ONLY-A",
+          "due_period": 1,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 50,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resource_id": "RESOURCE-A",
+          "capacity_units_by_period": [
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-B",
+          "capacity_units_by_period": [
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-C",
+          "capacity_units_by_period": [
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "scenario_id": "B-AVAILABLE-NO-REJECT",
+          "probability_ppm": 250000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-AVAILABLE-HIDDEN-REJECT",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": [
+            {
+              "job_id": "JOB-FLEX",
+              "resource_id": "RESOURCE-B"
+            }
+          ]
+        },
+        {
+          "scenario_id": "B-FAILED-C-AVAILABLE",
+          "probability_ppm": 250000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-UNKNOWN-C-AVAILABLE",
+          "probability_ppm": 200000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": [
+                "RESOURCE-B"
+              ]
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-FAILED-C-FAILED",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-C"
+              ],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        }
+      ]
+    },
+    {
+      "case_id": "MP-CORRELATED-COMMON-CAUSE-01",
+      "scenario_family_id": "correlated-common-cause",
+      "seed": 1,
+      "horizon": 3,
+      "jobs": [
+        {
+          "job_id": "JOB-FLEX",
+          "due_period": 2,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 30,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 1,
+              "expected_quality_loss_units": 0
+            },
+            {
+              "resource_id": "RESOURCE-B",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 1
+            },
+            {
+              "resource_id": "RESOURCE-C",
+              "production_cost_units": 3,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        },
+        {
+          "job_id": "JOB-ONLY-A",
+          "due_period": 1,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 50,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resource_id": "RESOURCE-A",
+          "capacity_units_by_period": [
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-B",
+          "capacity_units_by_period": [
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-C",
+          "capacity_units_by_period": [
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "scenario_id": "B-AVAILABLE-NO-REJECT",
+          "probability_ppm": 200000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-AVAILABLE-HIDDEN-REJECT",
+          "probability_ppm": 100000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": [
+            {
+              "job_id": "JOB-FLEX",
+              "resource_id": "RESOURCE-B"
+            }
+          ]
+        },
+        {
+          "scenario_id": "B-FAILED-C-AVAILABLE",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-UNKNOWN-C-AVAILABLE",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": [
+                "RESOURCE-B"
+              ]
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-FAILED-C-FAILED",
+          "probability_ppm": 400000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-C"
+              ],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        }
+      ]
+    },
+    {
+      "case_id": "MP-CORRELATED-COMMON-CAUSE-02",
+      "scenario_family_id": "correlated-common-cause",
+      "seed": 2,
+      "horizon": 3,
+      "jobs": [
+        {
+          "job_id": "JOB-FLEX",
+          "due_period": 2,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 30,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 1,
+              "expected_quality_loss_units": 0
+            },
+            {
+              "resource_id": "RESOURCE-B",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 1
+            },
+            {
+              "resource_id": "RESOURCE-C",
+              "production_cost_units": 3,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        },
+        {
+          "job_id": "JOB-ONLY-A",
+          "due_period": 1,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 50,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resource_id": "RESOURCE-A",
+          "capacity_units_by_period": [
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-B",
+          "capacity_units_by_period": [
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-C",
+          "capacity_units_by_period": [
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "scenario_id": "B-AVAILABLE-NO-REJECT",
+          "probability_ppm": 200000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-AVAILABLE-HIDDEN-REJECT",
+          "probability_ppm": 100000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": [
+            {
+              "job_id": "JOB-FLEX",
+              "resource_id": "RESOURCE-B"
+            }
+          ]
+        },
+        {
+          "scenario_id": "B-FAILED-C-AVAILABLE",
+          "probability_ppm": 100000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-UNKNOWN-C-AVAILABLE",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": [
+                "RESOURCE-B"
+              ]
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-FAILED-C-FAILED",
+          "probability_ppm": 450000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-C"
+              ],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        }
+      ]
+    },
+    {
+      "case_id": "MP-QUALIFICATION-UNKNOWN-01",
+      "scenario_family_id": "qualification-unknown",
+      "seed": 1,
+      "horizon": 3,
+      "jobs": [
+        {
+          "job_id": "JOB-FLEX",
+          "due_period": 2,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 30,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 1,
+              "expected_quality_loss_units": 0
+            },
+            {
+              "resource_id": "RESOURCE-B",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 1
+            },
+            {
+              "resource_id": "RESOURCE-C",
+              "production_cost_units": 3,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        },
+        {
+          "job_id": "JOB-ONLY-A",
+          "due_period": 1,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 50,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resource_id": "RESOURCE-A",
+          "capacity_units_by_period": [
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-B",
+          "capacity_units_by_period": [
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-C",
+          "capacity_units_by_period": [
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "scenario_id": "B-AVAILABLE-NO-REJECT",
+          "probability_ppm": 250000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-AVAILABLE-HIDDEN-REJECT",
+          "probability_ppm": 50000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": [
+            {
+              "job_id": "JOB-FLEX",
+              "resource_id": "RESOURCE-B"
+            }
+          ]
+        },
+        {
+          "scenario_id": "B-FAILED-C-AVAILABLE",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-UNKNOWN-C-AVAILABLE",
+          "probability_ppm": 400000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": [
+                "RESOURCE-B"
+              ]
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-FAILED-C-FAILED",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-C"
+              ],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        }
+      ]
+    },
+    {
+      "case_id": "MP-QUALIFICATION-UNKNOWN-02",
+      "scenario_family_id": "qualification-unknown",
+      "seed": 2,
+      "horizon": 3,
+      "jobs": [
+        {
+          "job_id": "JOB-FLEX",
+          "due_period": 2,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 30,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 1,
+              "expected_quality_loss_units": 0
+            },
+            {
+              "resource_id": "RESOURCE-B",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 1
+            },
+            {
+              "resource_id": "RESOURCE-C",
+              "production_cost_units": 3,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        },
+        {
+          "job_id": "JOB-ONLY-A",
+          "due_period": 1,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 50,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resource_id": "RESOURCE-A",
+          "capacity_units_by_period": [
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-B",
+          "capacity_units_by_period": [
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-C",
+          "capacity_units_by_period": [
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "scenario_id": "B-AVAILABLE-NO-REJECT",
+          "probability_ppm": 200000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-AVAILABLE-HIDDEN-REJECT",
+          "probability_ppm": 100000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": [
+            {
+              "job_id": "JOB-FLEX",
+              "resource_id": "RESOURCE-B"
+            }
+          ]
+        },
+        {
+          "scenario_id": "B-FAILED-C-AVAILABLE",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-UNKNOWN-C-AVAILABLE",
+          "probability_ppm": 400000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": [
+                "RESOURCE-B"
+              ]
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-FAILED-C-FAILED",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-C"
+              ],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        }
+      ]
+    },
+    {
+      "case_id": "MP-DEADLINE-CAPACITY-PRESSURE-01",
+      "scenario_family_id": "deadline-capacity-pressure",
+      "seed": 1,
+      "horizon": 3,
+      "jobs": [
+        {
+          "job_id": "JOB-FLEX",
+          "due_period": 2,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 30,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 1,
+              "expected_quality_loss_units": 0
+            },
+            {
+              "resource_id": "RESOURCE-B",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 1
+            },
+            {
+              "resource_id": "RESOURCE-C",
+              "production_cost_units": 3,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        },
+        {
+          "job_id": "JOB-ONLY-A",
+          "due_period": 1,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 50,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resource_id": "RESOURCE-A",
+          "capacity_units_by_period": [
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-B",
+          "capacity_units_by_period": [
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-C",
+          "capacity_units_by_period": [
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "scenario_id": "B-AVAILABLE-NO-REJECT",
+          "probability_ppm": 300000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-AVAILABLE-HIDDEN-REJECT",
+          "probability_ppm": 100000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": [
+            {
+              "job_id": "JOB-FLEX",
+              "resource_id": "RESOURCE-B"
+            }
+          ]
+        },
+        {
+          "scenario_id": "B-FAILED-C-AVAILABLE",
+          "probability_ppm": 300000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-UNKNOWN-C-AVAILABLE",
+          "probability_ppm": 100000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": [
+                "RESOURCE-B"
+              ]
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-FAILED-C-FAILED",
+          "probability_ppm": 200000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-C"
+              ],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        }
+      ]
+    },
+    {
+      "case_id": "MP-DEADLINE-CAPACITY-PRESSURE-02",
+      "scenario_family_id": "deadline-capacity-pressure",
+      "seed": 2,
+      "horizon": 3,
+      "jobs": [
+        {
+          "job_id": "JOB-FLEX",
+          "due_period": 1,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 30,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 1,
+              "expected_quality_loss_units": 0
+            },
+            {
+              "resource_id": "RESOURCE-B",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 1
+            },
+            {
+              "resource_id": "RESOURCE-C",
+              "production_cost_units": 3,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        },
+        {
+          "job_id": "JOB-ONLY-A",
+          "due_period": 1,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 50,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resource_id": "RESOURCE-A",
+          "capacity_units_by_period": [
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-B",
+          "capacity_units_by_period": [
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-C",
+          "capacity_units_by_period": [
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "scenario_id": "B-AVAILABLE-NO-REJECT",
+          "probability_ppm": 250000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-AVAILABLE-HIDDEN-REJECT",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": [
+            {
+              "job_id": "JOB-FLEX",
+              "resource_id": "RESOURCE-B"
+            }
+          ]
+        },
+        {
+          "scenario_id": "B-FAILED-C-AVAILABLE",
+          "probability_ppm": 300000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-UNKNOWN-C-AVAILABLE",
+          "probability_ppm": 100000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": [
+                "RESOURCE-B"
+              ]
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-FAILED-C-FAILED",
+          "probability_ppm": 200000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-C"
+              ],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        }
+      ]
+    },
+    {
+      "case_id": "MP-QUALITY-OUTCOME-UNCERTAINTY-01",
+      "scenario_family_id": "quality-outcome-uncertainty",
+      "seed": 1,
+      "horizon": 3,
+      "jobs": [
+        {
+          "job_id": "JOB-FLEX",
+          "due_period": 2,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 30,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 1,
+              "expected_quality_loss_units": 0
+            },
+            {
+              "resource_id": "RESOURCE-B",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 1
+            },
+            {
+              "resource_id": "RESOURCE-C",
+              "production_cost_units": 3,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        },
+        {
+          "job_id": "JOB-ONLY-A",
+          "due_period": 1,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 50,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resource_id": "RESOURCE-A",
+          "capacity_units_by_period": [
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-B",
+          "capacity_units_by_period": [
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-C",
+          "capacity_units_by_period": [
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "scenario_id": "B-AVAILABLE-NO-REJECT",
+          "probability_ppm": 200000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-AVAILABLE-HIDDEN-REJECT",
+          "probability_ppm": 350000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": [
+            {
+              "job_id": "JOB-FLEX",
+              "resource_id": "RESOURCE-B"
+            }
+          ]
+        },
+        {
+          "scenario_id": "B-FAILED-C-AVAILABLE",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-UNKNOWN-C-AVAILABLE",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": [
+                "RESOURCE-B"
+              ]
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-FAILED-C-FAILED",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-C"
+              ],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        }
+      ]
+    },
+    {
+      "case_id": "MP-QUALITY-OUTCOME-UNCERTAINTY-02",
+      "scenario_family_id": "quality-outcome-uncertainty",
+      "seed": 2,
+      "horizon": 3,
+      "jobs": [
+        {
+          "job_id": "JOB-FLEX",
+          "due_period": 2,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 30,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 1,
+              "expected_quality_loss_units": 0
+            },
+            {
+              "resource_id": "RESOURCE-B",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 1
+            },
+            {
+              "resource_id": "RESOURCE-C",
+              "production_cost_units": 3,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        },
+        {
+          "job_id": "JOB-ONLY-A",
+          "due_period": 1,
+          "tardiness_penalty_per_period": 2,
+          "unserved_penalty_units": 50,
+          "routes": [
+            {
+              "resource_id": "RESOURCE-A",
+              "production_cost_units": 2,
+              "expected_quality_loss_units": 0
+            }
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "resource_id": "RESOURCE-A",
+          "capacity_units_by_period": [
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-B",
+          "capacity_units_by_period": [
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "resource_id": "RESOURCE-C",
+          "capacity_units_by_period": [
+            0,
+            0,
+            1
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "scenario_id": "B-AVAILABLE-NO-REJECT",
+          "probability_ppm": 200000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-AVAILABLE-HIDDEN-REJECT",
+          "probability_ppm": 450000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": [
+            {
+              "job_id": "JOB-FLEX",
+              "resource_id": "RESOURCE-B"
+            }
+          ]
+        },
+        {
+          "scenario_id": "B-FAILED-C-AVAILABLE",
+          "probability_ppm": 100000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-UNKNOWN-C-AVAILABLE",
+          "probability_ppm": 150000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": [
+                "RESOURCE-B"
+              ]
+            },
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        },
+        {
+          "scenario_id": "B-FAILED-C-FAILED",
+          "probability_ppm": 100000,
+          "observations_by_period": [
+            {
+              "failed_resource_ids": [],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-B"
+              ],
+              "unknown_resource_ids": []
+            },
+            {
+              "failed_resource_ids": [
+                "RESOURCE-C"
+              ],
+              "unknown_resource_ids": []
+            }
+          ],
+          "hidden_quality_rejections": []
+        }
+      ]
+    }
+  ],
+  "claim_ceiling": "synthetic-small-exact-multijob-multiperiod-policy-reference-only; no production scheduling, qualification, execution, or physical acceptance claim"
+}
