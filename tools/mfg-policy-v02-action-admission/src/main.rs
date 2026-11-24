@@ -1952,13 +1952,13 @@ mod tests {
     #[test]
     fn valid_snapshot_allows_continuation_on_live_resource_commitment() {
         let frame = frame_epoch_one();
-        let snapshot = valid_snapshot_for_epoch(&frame, 1, false);
+        let snapshot = valid_replay_receipt_for_epoch(1, false);
         let mut proposal = sample_proposal_for(&frame);
         proposal["operation_id"] = Value::from("OP-2");
         proposal["action_kind"] = Value::from("CONTINUE");
         proposal["decision_epoch"] = Value::from(1);
         proposal["inspection_method_id"] = Value::Null;
-        let receipt = evaluate_with_snapshot(&frame, &proposal, Some(&snapshot)).unwrap();
+        let receipt = evaluate_with_replay_receipt(&frame, &proposal, Some(&snapshot)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Admissible);
         assert_eq!(receipt.processing_duration_ticks, Some(1));
         assert_eq!(receipt.setup_duration_ticks, Some(0));
@@ -1967,12 +1967,12 @@ mod tests {
     #[test]
     fn valid_snapshot_allows_new_start_after_live_lane_is_released() {
         let frame = frame_epoch_two();
-        let snapshot = valid_snapshot_for_epoch(&frame, 2, true);
+        let snapshot = valid_replay_receipt_for_epoch(2, true);
         let mut proposal = sample_proposal_for(&frame);
         proposal["operation_id"] = Value::from("OP-3");
         proposal["action_kind"] = Value::from("START");
         proposal["decision_epoch"] = Value::from(2);
-        let receipt = evaluate_with_snapshot(&frame, &proposal, Some(&snapshot)).unwrap();
+        let receipt = evaluate_with_replay_receipt(&frame, &proposal, Some(&snapshot)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Admissible);
         assert_eq!(receipt.processing_duration_ticks, Some(2));
         assert_eq!(receipt.setup_duration_ticks, Some(0));
@@ -1981,44 +1981,64 @@ mod tests {
     #[test]
     fn tampered_snapshot_digest_holds_later_epoch_action() {
         let frame = frame_epoch_one();
-        let mut snapshot = valid_snapshot_for_epoch(&frame, 1, false);
-        snapshot["snapshot_digest"] = Value::from("0".repeat(64));
+        let mut snapshot = valid_replay_receipt_for_epoch(1, false);
+        snapshot["snapshots"][1]["snapshot_digest"] = Value::from("0".repeat(64));
         let mut proposal = sample_proposal_for(&frame);
         proposal["operation_id"] = Value::from("OP-2");
         proposal["action_kind"] = Value::from("CONTINUE");
         proposal["decision_epoch"] = Value::from(1);
         proposal["inspection_method_id"] = Value::Null;
-        let receipt = evaluate_with_snapshot(&frame, &proposal, Some(&snapshot)).unwrap();
+        let receipt = evaluate_with_replay_receipt(&frame, &proposal, Some(&snapshot)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Hold);
         assert!(
             receipt
                 .reason_codes
                 .iter()
-                .any(|reason| reason.starts_with("snapshot_invalid:"))
+                .any(|reason| reason.starts_with("replay_receipt_invalid:"))
         );
     }
 
     #[test]
     fn snapshot_cannot_change_operation_resource_commitment() {
         let frame = frame_epoch_one();
-        let mut snapshot = valid_snapshot_for_epoch(&frame, 1, false);
-        snapshot["resources"][0]["active_operation_id"] = Value::from("OP-3");
-        let mut body = snapshot.clone();
-        body.as_object_mut().unwrap().remove("snapshot_digest");
-        snapshot["snapshot_digest"] = Value::from(digest_value(&body).unwrap());
+        let mut snapshot = valid_replay_receipt_for_epoch(1, false);
+        snapshot["snapshots"][1]["resources"][0]["active_operation_id"] = Value::from("OP-3");
+        recompute_snapshot_digest(&mut snapshot["snapshots"][1]);
+        snapshot["final_snapshot_digest"] =
+            snapshot["snapshots"][1]["snapshot_digest"].clone();
         let mut proposal = sample_proposal_for(&frame);
         proposal["operation_id"] = Value::from("OP-2");
         proposal["action_kind"] = Value::from("CONTINUE");
         proposal["decision_epoch"] = Value::from(1);
         proposal["inspection_method_id"] = Value::Null;
-        let receipt = evaluate_with_snapshot(&frame, &proposal, Some(&snapshot)).unwrap();
+        let receipt = evaluate_with_replay_receipt(&frame, &proposal, Some(&snapshot)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Hold);
         assert!(
             receipt
                 .reason_codes
                 .iter()
-                .any(|reason| reason.starts_with("snapshot_invalid:"))
+                .any(|reason| reason.starts_with("replay_receipt_invalid:"))
         );
+    }
+
+    #[test]
+    fn broken_previous_snapshot_link_holds_later_epoch_action() {
+        let frame = frame_epoch_one();
+        let mut replay_receipt = valid_replay_receipt_for_epoch(1, false);
+        replay_receipt["snapshots"][1]["previous_snapshot_digest"] =
+            Value::from("c".repeat(64));
+        recompute_snapshot_digest(&mut replay_receipt["snapshots"][1]);
+        replay_receipt["final_snapshot_digest"] =
+            replay_receipt["snapshots"][1]["snapshot_digest"].clone();
+        let mut proposal = sample_proposal_for(&frame);
+        proposal["operation_id"] = Value::from("OP-2");
+        proposal["action_kind"] = Value::from("CONTINUE");
+        proposal["inspection_method_id"] = Value::Null;
+        let receipt = evaluate_with_replay_receipt(&frame, &proposal, Some(&replay_receipt)).unwrap();
+        assert_eq!(receipt.status, AdmissionStatus::Hold);
+        assert!(receipt.reason_codes.iter().any(|reason| {
+            reason.contains("replay_receipt_snapshot_parent_link_mismatch")
+        }));
     }
 
     #[test]
