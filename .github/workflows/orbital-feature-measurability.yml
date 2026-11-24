@@ -1,0 +1,119 @@
+name: Orbital Feature Measurability Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/orbital-feature-measurability-bench/**"
+      - "docs/research/orbital-truss/fixtures/feature-measurement-quality-v0_1.json"
+      - "docs/research/orbital-truss/orbital_feature_measurability_v0_1.schema.json"
+      - ".github/workflows/orbital-feature-measurability.yml"
+  push:
+    branches:
+      - "research/orbital-fmq-v0-1"
+    paths:
+      - "tools/orbital-feature-measurability-bench/**"
+      - "docs/research/orbital-truss/fixtures/feature-measurement-quality-v0_1.json"
+      - "docs/research/orbital-truss/orbital_feature_measurability_v0_1.schema.json"
+      - ".github/workflows/orbital-feature-measurability.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Analytic feature-measurability contract and independent oracle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.1
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate frozen feature corpus and schema
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          fixture = json.loads(Path("docs/research/orbital-truss/fixtures/feature-measurement-quality-v0_1.json").read_text())
+          schema = json.loads(Path("docs/research/orbital-truss/orbital_feature_measurability_v0_1.schema.json").read_text())
+          assert fixture["benchmark_id"] == "ORBITAL-FMQ-ANALYTIC-001"
+          assert fixture["schema"] == "luminous.orbital-feature-measurability.corpus.v0.1"
+          assert fixture["evidence_class"] == "synthetic"
+          assert fixture["claim_ceiling"] == "synthetic_2d_circle_geometric_identifiability_only"
+          assert len(fixture["cases"]) == 6
+          assert len({case["case_id"] for case in fixture["cases"]}) == 6
+          assert schema["properties"]["cases"]["minItems"] == 6
+          assert schema["properties"]["cases"]["maxItems"] == 6
+          assert all(case["observations"] for case in fixture["cases"])
+          assert all(case["feature_model"] == "CIRCLE_2D_CENTER_X_CENTER_Y_RADIUS" for case in fixture["cases"])
+          assert all(
+              not observation["robustly_observed"] or observation["nominally_observed"]
+              for case in fixture["cases"] for observation in case["observations"]
+          )
+          print("six frozen analytic feature cases and strict schema validated")
+          PY
+      - name: Format
+        run: cargo fmt --manifest-path tools/orbital-feature-measurability-bench/Cargo.toml -- --check
+      - name: Rust tests
+        run: cargo test --locked --manifest-path tools/orbital-feature-measurability-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/orbital-feature-measurability-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Deterministic Rust receipt replay
+        run: |
+          cargo run --quiet --locked --manifest-path tools/orbital-feature-measurability-bench/Cargo.toml --bin feature-measurability-bench -- docs/research/orbital-truss/fixtures/feature-measurement-quality-v0_1.json "$GITHUB_SHA" > /tmp/fmq-rust-a.json
+          cargo run --quiet --locked --manifest-path tools/orbital-feature-measurability-bench/Cargo.toml --bin feature-measurability-bench -- docs/research/orbital-truss/fixtures/feature-measurement-quality-v0_1.json "$GITHUB_SHA" > /tmp/fmq-rust-b.json
+          cmp /tmp/fmq-rust-a.json /tmp/fmq-rust-b.json
+          jq -e '
+            .schema == "luminous.orbital-feature-measurability.receipt.v0.1" and
+            .case_count == 6 and .expected_outcome_matches == 6 and
+            .expected_outcome_mismatches == 0 and .authority_granted == false and
+            .measurement_uncertainty_estimated == false and
+            .probability_of_detection_assessed == false and
+            .physical_validation == "NOT_ASSESSED"
+          ' /tmp/fmq-rust-a.json
+      - name: Independent Python oracle
+        run: |
+          python3 tools/orbital-feature-measurability-bench/tests/reference_oracle.py docs/research/orbital-truss/fixtures/feature-measurement-quality-v0_1.json "$GITHUB_SHA" > /tmp/fmq-python.json
+      - name: Compare complete Rust and Python receipts
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rust = json.loads(Path("/tmp/fmq-rust-a.json").read_text())
+          oracle = json.loads(Path("/tmp/fmq-python.json").read_text())
+          assert rust == oracle
+          cases = {case["case_id"]: case for case in rust["cases"]}
+          cardinal = cases["FMQ-001-CARDINAL-FOUR"]["nominal"]
+          assert cardinal["numerical_rank"] == 3
+          assert cardinal["condition_number_q1e4"] == 20000
+          clustered = cases["FMQ-002-CLUSTERED-ARC"]["nominal"]
+          assert clustered["status"] == "ILL_CONDITIONED"
+          repeated = cases["FMQ-003-REPEATED-DIRECTION"]["nominal"]
+          assert repeated["unique_geometric_support_count"] == 1
+          assert repeated["numerical_rank"] == 1
+          robust = cases["FMQ-004-ROBUSTNESS-LOSS"]
+          assert robust["nominal"]["status"] == "MEASURABLE"
+          assert robust["robust"]["status"] == "NOT_MEASURABLE"
+          rotated = cases["FMQ-005-ROTATED-CARDINAL"]["nominal"]
+          assert rotated["eigenvalues_q1e9"] == cardinal["eigenvalues_q1e9"]
+          even7 = cases["FMQ-006-SEVEN-VIEWS-SAME-COUNT"]["nominal"]
+          assert even7["observation_row_count"] == clustered["observation_row_count"] == 7
+          assert even7["unique_geometric_support_count"] == clustered["unique_geometric_support_count"] == 7
+          assert even7["status"] == "MEASURABLE"
+          assert even7["condition_number_q1e4"] * 50 < clustered["condition_number_q1e4"]
+          print("Rust and independent Python oracle agree on all six cases and matched-count conditioning controls")
+          PY
+      - name: Retain exact-head evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-feature-measurability-evidence
+          path: |
+            /tmp/fmq-rust-a.json
+            /tmp/fmq-python.json
+            docs/research/orbital-truss/fixtures/feature-measurement-quality-v0_1.json
+            docs/research/orbital-truss/orbital_feature_measurability_v0_1.schema.json
+          if-no-files-found: error
+          retention-days: 30
