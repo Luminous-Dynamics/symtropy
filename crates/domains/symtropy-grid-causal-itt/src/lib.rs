@@ -122,6 +122,7 @@ pub struct ClusterIttAnalysisReport {
     pub external_randomness_source_authenticated: bool,
     pub treatment_on_treated_identified: bool,
     pub effect_transportability_established: bool,
+    pub causal_claim_authorized: bool,
     pub settlement_authority_granted: bool,
     pub payment_authorized: bool,
     pub dispatch_authority_granted: bool,
@@ -543,6 +544,22 @@ fn permutation_p_value(
     observed_effect: f64,
     permutation_budget: usize,
 ) -> Result<(RandomizationInferenceMethod, bool, usize, usize, f64), IttAnalysisError> {
+    permutation_p_value_with_exact_limit(
+        design,
+        outcomes,
+        observed_effect,
+        permutation_budget,
+        MAX_EXACT_ASSIGNMENTS,
+    )
+}
+
+fn permutation_p_value_with_exact_limit(
+    design: &GridCausalDesignInput,
+    outcomes: &BTreeMap<String, f64>,
+    observed_effect: f64,
+    permutation_budget: usize,
+    max_exact_assignments: u128,
+) -> Result<(RandomizationInferenceMethod, bool, usize, usize, f64), IttAnalysisError> {
     let mut assignment_space = 1_u128;
     for stratum in &design.strata {
         let clusters_in_stratum = design
@@ -558,7 +575,7 @@ fn permutation_p_value(
 
     let observed_abs = observed_effect.abs();
     let tolerance = 1.0e-12;
-    if assignment_space <= MAX_EXACT_ASSIGNMENTS {
+    if assignment_space <= max_exact_assignments {
         let mut per_stratum_choices = Vec::with_capacity(design.strata.len());
         for stratum in &design.strata {
             let mut cluster_ids: Vec<_> = design
@@ -854,6 +871,7 @@ pub fn estimate_cluster_itt(
         external_randomness_source_authenticated: false,
         treatment_on_treated_identified: false,
         effect_transportability_established: false,
+        causal_claim_authorized: false,
         settlement_authority_granted: false,
         payment_authorized: false,
         dispatch_authority_granted: false,
@@ -1047,6 +1065,45 @@ mod tests {
             estimate_cluster_itt(&bad_digest),
             Err(IttAnalysisError::InvalidDigest(_))
         ));
+    }
+
+    #[test]
+    fn deterministic_monte_carlo_randomization_inference_is_reproducible() {
+        let input = input();
+        let audit = audit_causal_design(&input.design).unwrap();
+        let outcomes = validate_outcomes(&input, &audit).unwrap();
+        let treated_ids: BTreeSet<_> = input
+            .design
+            .clusters
+            .iter()
+            .filter(|cluster| cluster.assigned_arm == AssignmentArm::Treatment)
+            .map(|cluster| cluster.cluster_id.clone())
+            .collect();
+        let (observed_effect, _) =
+            stratified_effect(&input.design, &outcomes, &treated_ids).unwrap();
+        let first = permutation_p_value_with_exact_limit(
+            &input.design,
+            &outcomes,
+            observed_effect,
+            1_000,
+            1,
+        )
+        .unwrap();
+        let second = permutation_p_value_with_exact_limit(
+            &input.design,
+            &outcomes,
+            observed_effect,
+            1_000,
+            1,
+        )
+        .unwrap();
+        assert_eq!(
+            first.0,
+            RandomizationInferenceMethod::DeterministicSha256MonteCarlo
+        );
+        assert!(!first.1);
+        assert_eq!(first.2, 1_000);
+        assert_eq!(first, second);
     }
 
     #[test]
