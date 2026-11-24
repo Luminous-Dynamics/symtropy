@@ -53,7 +53,7 @@ The API accepts a separate branch tree for every complete mission model. It comp
 \max_{m\in\mathcal M} \rho^{\mathrm{ICVaR}}_{\alpha}(\pi,m).
 \]
 
-No probabilities or branch values are pooled across epistemic models. Model identity is fixed throughout each model's tree. The outer maximum is applied only after each model has been evaluated.
+No probabilities or branch values are pooled across epistemic models. Model identity is fixed throughout each model's tree. The outer maximum is applied only after each model has been evaluated. The evaluator also checks that every model uses the same observable branch-to-continuation-action mapping; model-specific action choices for the same observable branch are rejected.
 
 This is an evaluation primitive for a fixed contingent policy / conditional continuation family. It does not yet solve the full non-rectangular robust Bellman problem or determine how the plausible-model set should be updated after an observation.
 
