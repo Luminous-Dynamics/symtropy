@@ -751,7 +751,10 @@ mod tests {
 
         let mut inverted = artifact("r1", 1_000, 1_100, None);
         inverted.valid_time.to_unix_ms = Some(999);
-        assert_eq!(inverted.validate(), Err(SourceArtifactError::InvertedValidTime));
+        assert_eq!(
+            inverted.validate(),
+            Err(SourceArtifactError::InvertedValidTime)
+        );
     }
 
     #[test]
