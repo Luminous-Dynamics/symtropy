@@ -669,7 +669,9 @@ jobs:
             > online-service-risk-report.json
           jq -e '
             .benchmark_id == "ONLINE-SERVICE-RISK-CERTIFICATE-001"
-            and .observation_count == 5
+            and .forecast_count == 5
+            and .observed_outcome_count == 5
+            and .pending_outcome_count == 0
             and .group_count == 1
             and .groups_with_shift_alarm == 1
             and .groups_with_risk_above_budget == 1
@@ -682,7 +684,9 @@ jobs:
             and .field_qualification_granted == false
             and .operational_authority_granted == false
             and (.input_digest | test("^sha256:[0-9a-f]{64}$"))
-            and .groups[0].observation_count_at_audit_cutoff == 5
+            and .groups[0].forecast_count == 5
+            and .groups[0].observed_outcome_count_at_audit_cutoff == 5
+            and .groups[0].pending_outcome_count_at_audit_cutoff == 0
             and .groups[0].interval_miss_count_at_audit_cutoff == 2
             and .groups[0].empirical_miscoverage_permille_at_audit_cutoff == 400
             and .groups[0].drift_alarm_latched == true
