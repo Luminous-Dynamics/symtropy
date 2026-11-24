@@ -637,10 +637,7 @@ mod tests {
 
     #[test]
     fn claim_for_different_source_record_or_configuration_is_not_admitted() {
-        let report = evaluate(&case(
-            Some(reference(&["e1"])),
-            vec![captured("e1")],
-        ));
+        let report = evaluate(&case(Some(reference(&["e1"])), vec![captured("e1")]));
         let mut claim = claim_for_event("e1");
         claim.source_record_id = "different-source-row".to_owned();
         assert_eq!(
