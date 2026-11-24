@@ -382,11 +382,7 @@ fn validate_replay_receipt_chain(
     frame: &Value,
     decision_epoch: u64,
 ) -> Result<Value, String> {
-    validate_schema(
-        replay_receipt,
-        REPLAY_RECEIPT_SCHEMA_JSON,
-        "replay_receipt",
-    )?;
+    validate_schema(replay_receipt, REPLAY_RECEIPT_SCHEMA_JSON, "replay_receipt")?;
     let benchmark_id = required_string(frame, "benchmark_id", "decision_frame")?;
     let case_id = required_string(frame, "case_id", "decision_frame")?;
     if required_string(replay_receipt, "status", "replay_receipt")? != "VERIFIED"
@@ -416,8 +412,7 @@ fn validate_replay_receipt_chain(
 
     for (expected_epoch, snapshot) in snapshots.iter().enumerate() {
         validate_schema(snapshot, SNAPSHOT_SCHEMA_JSON, "operational_state_snapshot")?;
-        if required_string(snapshot, "benchmark_id", "operational_state_snapshot")?
-            != benchmark_id
+        if required_string(snapshot, "benchmark_id", "operational_state_snapshot")? != benchmark_id
             || required_string(snapshot, "case_id", "operational_state_snapshot")? != case_id
             || required_u64(snapshot, "decision_epoch", "operational_state_snapshot")?
                 != expected_epoch as u64
@@ -482,25 +477,21 @@ fn validate_replay_receipt_chain(
         let event_cut = snapshot
             .get("event_cut")
             .ok_or_else(|| fail("snapshot_event_cut_missing"))?;
-        if required_u64(event_cut, "decision_epoch", "snapshot_event_cut")?
-            != expected_epoch as u64
+        if required_u64(event_cut, "decision_epoch", "snapshot_event_cut")? != expected_epoch as u64
         {
             return Err(fail("replay_receipt_event_cut_epoch_mismatch"));
         }
-        let event_ids = required_array(
-            event_cut,
-            "visible_source_event_ids",
-            "snapshot_event_cut",
-        )?
-        .iter()
-        .map(|value| {
-            value
-                .as_str()
-                .filter(|text| !text.trim().is_empty())
-                .map(str::to_string)
-                .ok_or_else(|| fail("replay_receipt_event_id_invalid"))
-        })
-        .collect::<Result<BTreeSet<_>, _>>()?;
+        let event_ids =
+            required_array(event_cut, "visible_source_event_ids", "snapshot_event_cut")?
+                .iter()
+                .map(|value| {
+                    value
+                        .as_str()
+                        .filter(|text| !text.trim().is_empty())
+                        .map(str::to_string)
+                        .ok_or_else(|| fail("replay_receipt_event_id_invalid"))
+                })
+                .collect::<Result<BTreeSet<_>, _>>()?;
         if !previous_event_ids.is_subset(&event_ids) {
             return Err(fail("replay_receipt_event_cut_not_monotonic"));
         }
@@ -511,9 +502,7 @@ fn validate_replay_receipt_chain(
     }
 
     let last_digest = last_digest.ok_or_else(|| fail("replay_receipt_snapshot_chain_empty"))?;
-    if required_string(replay_receipt, "final_snapshot_digest", "replay_receipt")?
-        != last_digest
-    {
+    if required_string(replay_receipt, "final_snapshot_digest", "replay_receipt")? != last_digest {
         return Err(fail("replay_receipt_final_snapshot_digest_mismatch"));
     }
 
@@ -521,8 +510,11 @@ fn validate_replay_receipt_chain(
         .last()
         .ok_or_else(|| fail("replay_receipt_snapshot_chain_empty"))?;
     let frame_digest = digest_value(frame)?;
-    if required_string(target, "decision_frame_digest", "operational_state_snapshot")?
-        != frame_digest
+    if required_string(
+        target,
+        "decision_frame_digest",
+        "operational_state_snapshot",
+    )? != frame_digest
     {
         return Err(fail("replay_receipt_target_frame_digest_mismatch"));
     }
@@ -1125,7 +1117,7 @@ fn evaluate_with_replay_receipt(
                     return Ok(receipt);
                 }
             }
-        },
+        }
         None if decision_epoch == 0 => initial_live_state(
             static_case,
             &resources,
@@ -1654,10 +1646,7 @@ mod tests {
         snapshot
     }
 
-    fn valid_replay_receipt_for_epoch(
-        epoch: u64,
-        operation_two_completed: bool,
-    ) -> Value {
+    fn valid_replay_receipt_for_epoch(epoch: u64, operation_two_completed: bool) -> Value {
         let mut snapshots = Vec::new();
         let mut previous_digest: Option<String> = None;
         for decision_epoch in 0..=epoch {
@@ -1671,12 +1660,7 @@ mod tests {
             );
             // Recompute the child digest after linking it to the previous snapshot.
             recompute_snapshot_digest(&mut snapshot);
-            previous_digest = Some(
-                snapshot["snapshot_digest"]
-                    .as_str()
-                    .unwrap()
-                    .to_string(),
-            );
+            previous_digest = Some(snapshot["snapshot_digest"].as_str().unwrap().to_string());
             snapshots.push(snapshot);
         }
         json!({
@@ -2001,8 +1985,7 @@ mod tests {
         let mut snapshot = valid_replay_receipt_for_epoch(1, false);
         snapshot["snapshots"][1]["resources"][0]["active_operation_id"] = Value::from("OP-3");
         recompute_snapshot_digest(&mut snapshot["snapshots"][1]);
-        snapshot["final_snapshot_digest"] =
-            snapshot["snapshots"][1]["snapshot_digest"].clone();
+        snapshot["final_snapshot_digest"] = snapshot["snapshots"][1]["snapshot_digest"].clone();
         let mut proposal = sample_proposal_for(&frame);
         proposal["operation_id"] = Value::from("OP-2");
         proposal["action_kind"] = Value::from("CONTINUE");
@@ -2022,8 +2005,7 @@ mod tests {
     fn broken_previous_snapshot_link_holds_later_epoch_action() {
         let frame = frame_epoch_one();
         let mut replay_receipt = valid_replay_receipt_for_epoch(1, false);
-        replay_receipt["snapshots"][1]["previous_snapshot_digest"] =
-            Value::from("c".repeat(64));
+        replay_receipt["snapshots"][1]["previous_snapshot_digest"] = Value::from("c".repeat(64));
         recompute_snapshot_digest(&mut replay_receipt["snapshots"][1]);
         replay_receipt["final_snapshot_digest"] =
             replay_receipt["snapshots"][1]["snapshot_digest"].clone();
@@ -2031,11 +2013,15 @@ mod tests {
         proposal["operation_id"] = Value::from("OP-2");
         proposal["action_kind"] = Value::from("CONTINUE");
         proposal["inspection_method_id"] = Value::Null;
-        let receipt = evaluate_with_replay_receipt(&frame, &proposal, Some(&replay_receipt)).unwrap();
+        let receipt =
+            evaluate_with_replay_receipt(&frame, &proposal, Some(&replay_receipt)).unwrap();
         assert_eq!(receipt.status, AdmissionStatus::Hold);
-        assert!(receipt.reason_codes.iter().any(|reason| {
-            reason.contains("replay_receipt_snapshot_parent_link_mismatch")
-        }));
+        assert!(
+            receipt
+                .reason_codes
+                .iter()
+                .any(|reason| { reason.contains("replay_receipt_snapshot_parent_link_mismatch") })
+        );
     }
 
     #[test]
