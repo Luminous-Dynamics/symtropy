@@ -3,10 +3,9 @@
 //! This is a model smoke test, not physical calibration evidence.
 
 use planar_patch_calibration::{
-    BoundaryObservation, CalibrationConfig, DirectionObservationDisposition,
-    MaximumDissipationObservation, MaximumDissipationValidationConfig,
-    MaximumDissipationValidationInput, PatchCalibrationInput, calibrate_planar_patch,
-    validate_maximum_dissipation,
+    BoundaryObservation, CalibrationConfig, MaximumDissipationObservation,
+    MaximumDissipationValidationConfig, MaximumDissipationValidationInput,
+    PatchCalibrationInput, calibrate_planar_patch, validate_maximum_dissipation,
 };
 
 fn observation(id: &str, group: &str, wrench: [f64; 3]) -> BoundaryObservation {
@@ -164,6 +163,5 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .unwrap_or_else(|| "NA".to_owned()),
         direction_report.non_dissipative_observation_count,
     );
-    let _zero_slip_is_not_directional = DirectionObservationDisposition::ZeroSlipStickingSetNotDirectional;
     Ok(())
 }
