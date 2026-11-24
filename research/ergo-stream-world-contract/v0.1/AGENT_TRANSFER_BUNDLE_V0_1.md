@@ -110,6 +110,18 @@ The result qualifies only the declared qualitative effect-sign mapping for the m
 
 A forecast with `claim_type: "mechanism_transfer"` requires a `mechanism_transfer` artifact in the bundle schema. The exact artifact is included in the claim-scope digest envelope; the actual target outcomes are excluded.
 
+## Calibration forecast and owner-issued conformal receipt
+
+The optional calibration forecast is bound to an exact transfer claim (claim ID/type/scope digest). A downstream split-conformal prediction must additionally be bound to an owner-issued active calibration receipt carrying:
+- receipt ID and owner status;
+- evaluation stratum and independent-unit kind;
+- claim type and scope digest;
+- predictor, preprocessing and score-function digests;
+- calibration cohort, sample-ID set, split manifest and evidence-prefix digests;
+- alpha, independent-unit count, finite-sample rank and quantile.
+
+The evaluator resolves this identity from the owner-verified receipt. The Rust calibration API checks digest shape and exact identity equality; it does not verify receipt signatures/custody, status/revocation or chronology. If a receipt is expired/revoked or any identity component changes, the owner must not supply it as active. On prediction identity mismatch, the calibrator emits the full two-label set and no decision.
+
 ## Decision value and prospective forecasts
 
 Do not add a new scheduler or VoC implementation to this bundle. A future action-selection record should compose with Symthaea #5476/#5478/#8721:
