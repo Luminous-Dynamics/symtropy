@@ -943,21 +943,14 @@ pub fn calibrate_planar_patch(
             })
             .collect::<Vec<_>>();
         let norm = stable_norm(column);
-        let residual = leave_one_axis_out_residual(
-            column,
-            &other_columns,
-            config.rank_relative_tolerance,
-        )?;
+        let residual =
+            leave_one_axis_out_residual(column, &other_columns, config.rank_relative_tolerance)?;
         axis_excitation.push(AxisExcitation {
             axis: axis_from_index(axis),
             weighted_column_norm: norm,
             // Independent excitation after projecting onto the other two channels.
             final_projection_residual: residual,
-            relative_projection_residual: if norm > 0.0 {
-                residual / norm
-            } else {
-                0.0
-            },
+            relative_projection_residual: if norm > 0.0 { residual / norm } else { 0.0 },
         });
     }
 
