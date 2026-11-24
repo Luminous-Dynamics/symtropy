@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/manufacturing/mfg_accepted_output_scorecard_cases_v0_1.schema.json",
+  "title": "Manufacturing accepted-output resilience scorecard cases v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "benchmark_id",
+    "evidence_class",
+    "case_count",
+    "cases",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schema_id": {
+      "const": "mfg-accepted-output-scorecard-cases-v0.1"
+    },
+    "benchmark_id": {
+      "const": "MFG-ACCEPTED-OUTPUT-SCORECARD-001"
+    },
+    "evidence_class": {
+      "const": "synthetic_offline"
+    },
+    "case_count": {
+      "type": "integer",
+      "minimum": 3
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "scenario_family_id",
+        "disturbance_at_ms",
+        "horizon_end_ms",
+        "demand_units",
+        "recovery_target_units",
+        "outputs"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenario_family_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disturbance_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "horizon_end_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "demand_units": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "recovery_target_units": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/output"
+          }
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "output_id",
+        "produced_at_ms",
+        "unit_ids",
+        "disposition",
+        "disposition_at_ms",
+        "verifier_class",
+        "evidence_disposition"
+      ],
+      "properties": {
+        "output_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "produced_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "disposition": {
+          "enum": [
+            "ACCEPTED",
+            "REJECTED",
+            "UNKNOWN",
+            "NOT_INSPECTED"
+          ]
+        },
+        "disposition_at_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "verifier_class": {
+          "enum": [
+            "INDEPENDENT",
+            "PRODUCER",
+            "UNKNOWN"
+          ]
+        },
+        "evidence_disposition": {
+          "enum": [
+            "ADMITTED",
+            "UNKNOWN",
+            "CONFLICTED"
+          ]
+        },
+        "unit_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

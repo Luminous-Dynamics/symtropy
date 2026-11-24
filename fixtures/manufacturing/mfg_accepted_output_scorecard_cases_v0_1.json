@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_id": "mfg-accepted-output-scorecard-cases-v0.1",
+  "benchmark_id": "MFG-ACCEPTED-OUTPUT-SCORECARD-001",
+  "evidence_class": "synthetic_offline",
+  "case_count": 4,
+  "cases": [
+    {
+      "case_id": "CASE-NOMINAL",
+      "scenario_family_id": "nominal_recovery",
+      "disturbance_at_ms": 100,
+      "horizon_end_ms": 1000,
+      "demand_units": 10,
+      "recovery_target_units": 6,
+      "outputs": [
+        {
+          "output_id": "N-01",
+          "produced_at_ms": 120,
+          "disposition": "ACCEPTED",
+          "disposition_at_ms": 150,
+          "verifier_class": "INDEPENDENT",
+          "evidence_disposition": "ADMITTED",
+          "unit_ids": [
+            "N-01-UNIT-001",
+            "N-01-UNIT-002",
+            "N-01-UNIT-003"
+          ]
+        },
+        {
+          "output_id": "N-02",
+          "produced_at_ms": 250,
+          "disposition": "ACCEPTED",
+          "disposition_at_ms": 400,
+          "verifier_class": "INDEPENDENT",
+          "evidence_disposition": "ADMITTED",
+          "unit_ids": [
+            "N-02-UNIT-001",
+            "N-02-UNIT-002",
+            "N-02-UNIT-003",
+            "N-02-UNIT-004"
+          ]
+        },
+        {
+          "output_id": "N-03",
+          "produced_at_ms": 500,
+          "disposition": "REJECTED",
+          "disposition_at_ms": 600,
+          "verifier_class": "INDEPENDENT",
+          "evidence_disposition": "ADMITTED",
+          "unit_ids": [
+            "N-03-UNIT-001",
+            "N-03-UNIT-002"
+          ]
+        },
+        {
+          "output_id": "N-04",
+          "produced_at_ms": 700,
+          "disposition": "ACCEPTED",
+          "disposition_at_ms": 750,
+          "verifier_class": "PRODUCER",
+          "evidence_disposition": "ADMITTED",
+          "unit_ids": [
+            "N-04-UNIT-001",
+            "N-04-UNIT-002",
+            "N-04-UNIT-003",
+            "N-04-UNIT-004",
+            "N-04-UNIT-005"
+          ]
+        },
+        {
+          "output_id": "N-05",
+          "produced_at_ms": 800,
+          "disposition": "ACCEPTED",
+          "disposition_at_ms": 850,
+          "verifier_class": "INDEPENDENT",
+          "evidence_disposition": "UNKNOWN",
+          "unit_ids": [
+            "N-05-UNIT-001"
+          ]
+        },
+        {
+          "output_id": "N-06",
+          "produced_at_ms": 900,
+          "disposition": "UNKNOWN",
+          "disposition_at_ms": null,
+          "verifier_class": "UNKNOWN",
+          "evidence_disposition": "UNKNOWN",
+          "unit_ids": [
+            "N-06-UNIT-001",
+            "N-06-UNIT-002"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "CASE-COMMON-CAUSE",
+      "scenario_family_id": "correlated_disruption",
+      "disturbance_at_ms": 0,
+      "horizon_end_ms": 1000,
+      "demand_units": 10,
+      "recovery_target_units": 5,
+      "outputs": [
+        {
+          "output_id": "C-01",
+          "produced_at_ms": 100,
+          "disposition": "ACCEPTED",
+          "disposition_at_ms": 200,
+          "verifier_class": "INDEPENDENT",
+          "evidence_disposition": "ADMITTED",
+          "unit_ids": [
+            "C-01-UNIT-001",
+            "C-01-UNIT-002"
+          ]
+        },
+        {
+          "output_id": "C-02",
+          "produced_at_ms": 550,
+          "disposition": "ACCEPTED",
+          "disposition_at_ms": 600,
+          "verifier_class": "INDEPENDENT",
+          "evidence_disposition": "ADMITTED",
+          "unit_ids": [
+            "C-02-UNIT-001",
+            "C-02-UNIT-002",
+            "C-02-UNIT-003"
+          ]
+        },
+        {
+          "output_id": "C-03",
+          "produced_at_ms": 700,
+          "disposition": "REJECTED",
+          "disposition_at_ms": 750,
+          "verifier_class": "INDEPENDENT",
+          "evidence_disposition": "ADMITTED",
+          "unit_ids": [
+            "C-03-UNIT-001",
+            "C-03-UNIT-002"
+          ]
+        },
+        {
+          "output_id": "C-04",
+          "produced_at_ms": 800,
+          "disposition": "ACCEPTED",
+          "disposition_at_ms": 900,
+          "verifier_class": "INDEPENDENT",
+          "evidence_disposition": "CONFLICTED",
+          "unit_ids": [
+            "C-04-UNIT-001",
+            "C-04-UNIT-002",
+            "C-04-UNIT-003",
+            "C-04-UNIT-004"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "CASE-NO-ACCEPTANCE",
+      "scenario_family_id": "measurement_unknown",
+      "disturbance_at_ms": 50,
+      "horizon_end_ms": 500,
+      "demand_units": 5,
+      "recovery_target_units": 3,
+      "outputs": [
+        {
+          "output_id": "U-01",
+          "produced_at_ms": 100,
+          "disposition": "REJECTED",
+          "disposition_at_ms": 150,
+          "verifier_class": "INDEPENDENT",
+          "evidence_disposition": "ADMITTED",
+          "unit_ids": [
+            "U-01-UNIT-001",
+            "U-01-UNIT-002"
+          ]
+        },
+        {
+          "output_id": "U-02",
+          "produced_at_ms": 200,
+          "disposition": "ACCEPTED",
+          "disposition_at_ms": 300,
+          "verifier_class": "PRODUCER",
+          "evidence_disposition": "ADMITTED",
+          "unit_ids": [
+            "U-02-UNIT-001",
+            "U-02-UNIT-002",
+            "U-02-UNIT-003"
+          ]
+        },
+        {
+          "output_id": "U-03",
+          "produced_at_ms": 400,
+          "disposition": "UNKNOWN",
+          "disposition_at_ms": null,
+          "verifier_class": "UNKNOWN",
+          "evidence_disposition": "UNKNOWN",
+          "unit_ids": [
+            "U-03-UNIT-001"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "CASE-NO-OUTPUT",
+      "scenario_family_id": "complete_outage",
+      "disturbance_at_ms": 0,
+      "horizon_end_ms": 1000,
+      "demand_units": 4,
+      "recovery_target_units": 2,
+      "outputs": []
+    }
+  ],
+  "claim_ceiling": "Synthetic offline metric contract only; no physical acceptance, product conformity, production release, or industrial resilience claim."
+}
