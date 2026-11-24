@@ -1,9 +1,7 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use symtropy_grid_causal_design::{
-    GridCausalDesignInput, audit_causal_design,
-};
+use symtropy_grid_causal_design::{GridCausalDesignInput, audit_causal_design};
 
 fn fixture() -> GridCausalDesignInput {
     serde_json::from_str(include_str!("../fixtures/grid_causal_design_v0_1.json"))
