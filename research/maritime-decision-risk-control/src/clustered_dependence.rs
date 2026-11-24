@@ -151,7 +151,6 @@ struct Accumulator {
     true_risk_sum: f64,
     true_risk_square_sum: f64,
     service_cost_sum: f64,
-    service_cost_square_sum: f64,
 }
 
 impl Accumulator {
@@ -170,7 +169,6 @@ impl Accumulator {
         self.true_risk_square_sum += risk * risk;
         let service_cost = f64::from(SERVICE_COST_MILLI[policy_index]);
         self.service_cost_sum += service_cost;
-        self.service_cost_square_sum += service_cost * service_cost;
         if risk > f64::from(TARGET_RISK_MILLI) {
             self.unsafe_selections += 1;
         }
@@ -497,14 +495,14 @@ mod tests {
 
     #[test]
     fn cluster_level_population_risks_match_exact_known_answers() {
-        assert_eq!(
-            Fixture::ExpectedRiskCrc.population_risk(),
-            [78.05, 38.05, 30.25, 0.0]
-        );
-        assert_eq!(
-            Fixture::HighProbabilityUcb.population_risk(),
-            [70.0, 38.0, 30.0, 0.0]
-        );
+        let crc_risk = Fixture::ExpectedRiskCrc.population_risk();
+        let ucb_risk = Fixture::HighProbabilityUcb.population_risk();
+        for (actual, expected) in crc_risk.iter().zip([78.05, 38.05, 30.25, 0.0]) {
+            assert!((actual - expected).abs() < 1e-9);
+        }
+        for (actual, expected) in ucb_risk.iter().zip([70.0, 38.0, 30.0, 0.0]) {
+            assert!((actual - expected).abs() < 1e-9);
+        }
     }
 
     #[test]
@@ -635,10 +633,10 @@ mod tests {
     #[test]
     fn custom_hoeffding_selector_matches_existing_fixed_grid_implementation() {
         let risk_grid = WholeScheduleLossGrid {
-            schedule_losses_milli: vec![UCB_NORMAL_LOSS.to_vec(); 1_200],
+            schedule_losses_milli: vec![UCB_NORMAL_LOSS.to_vec(); 2_000],
         };
         let service_grid = WholeScheduleLossGrid {
-            schedule_losses_milli: vec![SERVICE_COST_MILLI.to_vec(); 1_200],
+            schedule_losses_milli: vec![SERVICE_COST_MILLI.to_vec(); 2_000],
         };
         let reference = crate::high_probability::select_simultaneous_hoeffding(
             &risk_grid,
@@ -647,8 +645,8 @@ mod tests {
             DELTA,
         )
         .expect("existing high-probability selector");
-        let sums = cluster_loss_sums(Fixture::HighProbabilityUcb, 1_200, 0);
-        let repeated = select_hoeffding(&sums, 1_200);
+        let sums = cluster_loss_sums(Fixture::HighProbabilityUcb, 2_000, 0);
+        let repeated = select_hoeffding(&sums, 2_000);
         assert_eq!(repeated, Some(reference.selected_policy_index));
     }
 
