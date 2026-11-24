@@ -102,7 +102,8 @@
                 "required": [
                   "reset_id",
                   "source",
-                  "status"
+                  "status",
+                  "transport_response_artifact_sha256"
                 ],
                 "properties": {
                   "reset_id": {
@@ -123,6 +124,13 @@
                       "verified",
                       "unresolved"
                     ]
+                  },
+                  "transport_response_artifact_sha256": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^[a-fA-F0-9]{64}$"
                   }
                 }
               },
@@ -276,7 +284,9 @@
                   "idempotency_key",
                   "payload_sha256",
                   "source",
-                  "status"
+                  "status",
+                  "transport_response_artifact_sha256",
+                  "ledger_artifact_sha256"
                 ],
                 "properties": {
                   "idempotency_key": {
@@ -303,6 +313,20 @@
                       "payload_conflict",
                       "unresolved"
                     ]
+                  },
+                  "transport_response_artifact_sha256": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^[a-fA-F0-9]{64}$"
+                  },
+                  "ledger_artifact_sha256": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^[a-fA-F0-9]{64}$"
                   }
                 }
               },
