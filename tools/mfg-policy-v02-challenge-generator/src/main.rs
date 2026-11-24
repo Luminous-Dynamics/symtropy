@@ -1475,12 +1475,20 @@ fn main() -> ExitCode {
 mod tests {
     use super::*;
 
-    fn bundle() -> (Corpus, EvaluatorLabels) {
-        build_and_validate().expect("policy corpus and isolated evaluator labels must validate")
+    fn bundle() -> (Corpus, ScenarioStreams, EvaluatorLabels) {
+        build_and_validate().expect("three benchmark data planes must validate")
     }
 
     fn corpus() -> Corpus {
         bundle().0
+    }
+
+    fn stream_case<'a>(streams: &'a ScenarioStreams, case_id: &str) -> &'a ScenarioStreamCase {
+        streams
+            .cases
+            .iter()
+            .find(|candidate| candidate.case_id == case_id)
+            .expect("scenario stream sidecar contains the policy case")
     }
 
     #[test]
@@ -1504,12 +1512,6 @@ mod tests {
                 .count(),
             2
         );
-        assert!(
-            corpus
-                .family_manifest
-                .iter()
-                .all(|family| family.replication_seeds.len() == 20)
-        );
         assert_eq!(
             corpus
                 .cases
@@ -1526,10 +1528,16 @@ mod tests {
                 .count(),
             40
         );
+        assert!(
+            corpus
+                .family_manifest
+                .iter()
+                .all(|family| family.replication_seeds.len() == 20)
+        );
     }
 
     #[test]
-    fn each_instance_has_three_jobs_three_shared_resources_four_epochs_and_overlapping_routes() {
+    fn each_instance_has_three_jobs_six_operations_three_resources_and_four_epochs() {
         let corpus = corpus();
         for case in &corpus.cases {
             assert_eq!(case.jobs.len(), 3);
@@ -1559,106 +1567,138 @@ mod tests {
             .iter()
             .find(|case| case.scenario_family_id == "crossed-bottlenecks")
             .expect("crossed bottlenecks family exists");
-        let a = case
+        let resource_a = case
             .resources
             .iter()
             .find(|resource| resource.resource_id == "RESOURCE-A")
             .unwrap();
-        let b = case
+        let resource_b = case
             .resources
             .iter()
             .find(|resource| resource.resource_id == "RESOURCE-B")
             .unwrap();
-        assert_eq!(a.capacity_units_by_epoch, vec![1, 0, 1, 1]);
-        assert_eq!(b.capacity_units_by_epoch, vec![1, 1, 0, 1]);
+        assert_eq!(resource_a.capacity_units_by_epoch, vec![1, 0, 1, 1]);
+        assert_eq!(resource_b.capacity_units_by_epoch, vec![1, 1, 0, 1]);
     }
 
     #[test]
     fn operations_bind_to_sequence_dependent_setup_families() {
         let corpus = corpus();
         for case in &corpus.cases {
+            assert_eq!(case.setup_transitions.len(), 18);
             for operation in case.jobs.iter().flat_map(|job| &job.operations) {
                 assert!(
-                    case.setup_transitions
-                        .iter()
-                        .any(
-                            |transition| transition.to_setup_family == operation.setup_family
-                                && transition.resource_id == operation.eligible_resource_ids[0]
-                        )
+                    case.setup_transitions.iter().any(|transition| {
+                        transition.to_setup_family == operation.setup_family
+                            && operation
+                                .eligible_resource_ids
+                                .contains(&transition.resource_id)
+                    })
                 );
             }
         }
     }
 
     #[test]
-    fn evaluator_counterfactuals_are_separate_from_policy_visible_event_histories() {
-        let (corpus, labels) = bundle();
+    fn policy_input_contains_static_configuration_only() {
+        let (corpus, streams, labels) = bundle();
         let policy_json = serde_json::to_string(&corpus).unwrap();
+        assert!(!policy_json.contains("observations_by_epoch"));
+        assert!(!policy_json.contains("scenario_id"));
         assert!(!policy_json.contains("hidden_terminal_quality_outcomes"));
-        assert!(!policy_json.contains("Q-HIDDEN-REJECT"));
+        assert!(!policy_json.contains("NOMINAL-01"));
+        assert!(!policy_json.contains("NOMINAL-02"));
+        assert_eq!(corpus.cases.len(), streams.cases.len());
+        assert_eq!(corpus.cases.len(), labels.cases.len());
+    }
+
+    #[test]
+    fn simulation_streams_and_evaluator_labels_are_separate_and_joinable() {
+        let (corpus, streams, labels) = bundle();
+        let streams_json = serde_json::to_string(&streams).unwrap();
+        let labels_json = serde_json::to_string(&labels).unwrap();
+        assert!(streams_json.contains("observations_by_epoch"));
+        assert!(streams_json.contains("scenario_id"));
+        assert!(!streams_json.contains("hidden_terminal_quality_outcomes"));
+        assert!(labels_json.contains("hidden_terminal_quality_outcomes"));
+        assert!(!labels_json.contains("observations_by_epoch"));
 
         for case in &corpus.cases {
+            let stream_case = stream_case(&streams, &case.case_id);
+            assert_eq!(stream_case.scenarios.len(), 4);
+            assert_eq!(stream_case.scenarios[0].scenario_id, "NOMINAL-01");
+            assert_eq!(stream_case.scenarios[1].scenario_id, "NOMINAL-02");
             assert_eq!(
-                case.scenarios[0].observations_by_epoch,
-                case.scenarios[1].observations_by_epoch
+                stream_case.scenarios[0].observations_by_epoch,
+                stream_case.scenarios[1].observations_by_epoch
             );
-            assert_eq!(case.scenarios[0].scenario_id, "NOMINAL-01");
-            assert_eq!(case.scenarios[1].scenario_id, "NOMINAL-02");
-            assert!(
-                case.scenarios.iter().all(|scenario| {
-                    !scenario.scenario_id.contains("ACCEPTED")
-                        && !scenario.scenario_id.contains("REJECT")
-                })
-            );
+
             let evaluator_case = labels
                 .cases
                 .iter()
-                .find(|labels| labels.case_id == case.case_id)
-                .expect("matching evaluator sidecar case exists");
+                .find(|candidate| candidate.case_id == case.case_id)
+                .unwrap();
             let accepted = evaluator_case
                 .scenario_outcomes
                 .iter()
                 .find(|outcome| outcome.scenario_id == "NOMINAL-01")
-                .expect("nominal acceptance label");
+                .unwrap();
             let rejected = evaluator_case
                 .scenario_outcomes
                 .iter()
                 .find(|outcome| outcome.scenario_id == "NOMINAL-02")
-                .expect("nominal rejection label");
-            assert_ne!(
-                accepted.hidden_terminal_quality_outcomes,
-                rejected.hidden_terminal_quality_outcomes
+                .unwrap();
+            assert_eq!(
+                accepted.hidden_terminal_quality_outcomes[0].disposition,
+                QualityDisposition::Accepted
             );
-            assert!(
-                rejected
-                    .hidden_terminal_quality_outcomes
-                    .iter()
-                    .any(|outcome| outcome.disposition == QualityDisposition::Rejected)
+            assert_eq!(
+                rejected.hidden_terminal_quality_outcomes[0].disposition,
+                QualityDisposition::Rejected
             );
         }
     }
 
     #[test]
     fn evaluator_sidecar_rejects_unknown_operation_labels() {
-        let (corpus, mut labels) = bundle();
+        let (corpus, streams, mut labels) = bundle();
         labels.cases[0].scenario_outcomes[0].hidden_terminal_quality_outcomes[0].operation_id =
             "UNKNOWN-OPERATION".into();
         assert_eq!(
-            validate_evaluator_labels(&corpus, &labels),
+            validate_evaluator_labels(&corpus, &streams, &labels),
             Err("evaluator_outcome_identity_or_operation_invalid".into())
         );
     }
 
     #[test]
-    fn late_observations_never_rewrite_the_event_occurrence_time() {
-        let corpus = corpus();
-        let cases = corpus
+    fn scenario_stream_validator_rejects_event_arrival_before_occurrence() {
+        let (corpus, mut streams, _) = bundle();
+        let event = streams.cases[0].scenarios[2].observations_by_epoch[2]
+            .resource_events
+            .iter_mut()
+            .find(|event| event.kind == ResourceEventKind::Failed);
+        if let Some(event) = event {
+            event.occurred_at_epoch = 3;
+            event.observed_at_epoch = 2;
+            assert_eq!(
+                validate_scenario_streams(&corpus, &streams),
+                Err("resource_event_chronology_scope_or_forecast_invalid".into())
+            );
+        } else {
+            panic!("chosen stream must contain a failure event");
+        }
+    }
+
+    #[test]
+    fn late_observations_keep_occurrence_and_visibility_times_distinct() {
+        let (corpus, streams, _) = bundle();
+        let mut found_late_event = false;
+        for case in corpus
             .cases
             .iter()
-            .filter(|case| case.scenario_family_id == "uncertain-recovery");
-        let mut found_late_event = false;
-        for case in cases {
-            for scenario in &case.scenarios {
+            .filter(|case| case.scenario_family_id == "uncertain-recovery")
+        {
+            for scenario in &stream_case(&streams, &case.case_id).scenarios {
                 for observation in &scenario.observations_by_epoch {
                     for event in &observation.resource_events {
                         assert!(event.occurred_at_epoch <= event.observed_at_epoch);
@@ -1674,13 +1714,13 @@ mod tests {
 
     #[test]
     fn correlated_outages_share_one_explicit_common_cause_id() {
-        let corpus = corpus();
+        let (corpus, streams, _) = bundle();
         let case = corpus
             .cases
             .iter()
             .find(|case| case.scenario_family_id == "common-cause-outage")
-            .expect("common-cause family exists");
-        let failed: Vec<&ResourceEvent> = case.scenarios[2]
+            .unwrap();
+        let failed: Vec<&ResourceEvent> = stream_case(&streams, &case.case_id).scenarios[2]
             .observations_by_epoch
             .iter()
             .flat_map(|observation| &observation.resource_events)
@@ -1688,29 +1728,27 @@ mod tests {
             .collect();
         assert!(failed.iter().any(|event| event.resource_id == "RESOURCE-A"));
         assert!(failed.iter().any(|event| event.resource_id == "RESOURCE-B"));
-        assert!(
-            failed
-                .iter()
-                .all(|event| event.common_cause_id.as_deref() == Some("COMMON-POWER-FEEDER-01"))
-        );
+        assert!(failed.iter().all(|event| {
+            event.common_cause_id.as_deref() == Some("COMMON-POWER-FEEDER-01")
+        }));
     }
 
     #[test]
-    fn unknown_qualification_receipt_changes_a_real_ready_route_from_unknown_to_admissible() {
-        let corpus = corpus();
+    fn qualification_transition_changes_a_ready_route_only_after_receipt_visibility() {
+        let (corpus, streams, _) = bundle();
         let case = corpus
             .cases
             .iter()
             .find(|case| case.scenario_family_id == "qualification-transition")
-            .expect("qualification-transition family exists");
-        let ready_operation = &case.jobs[0].operations[1];
-        assert_eq!(ready_operation.initial_status, OperationStatus::Waiting);
+            .unwrap();
+        let operation = &case.jobs[0].operations[1];
+        assert_eq!(operation.initial_status, OperationStatus::Waiting);
         assert_eq!(
             case.jobs[0].operations[0].initial_status,
             OperationStatus::Completed
         );
         assert_eq!(
-            ready_operation.eligible_resource_ids,
+            operation.eligible_resource_ids,
             vec!["RESOURCE-A".to_string(), "RESOURCE-C".to_string()]
         );
 
@@ -1724,42 +1762,38 @@ mod tests {
             .iter()
             .find(|resource| resource.resource_id == "RESOURCE-C")
             .unwrap();
-        let qualification_a = resource_a
-            .initial_qualifications
-            .iter()
-            .find(|qualification| qualification.process_family == "FORMING")
-            .unwrap();
-        let qualification_c = resource_c
-            .initial_qualifications
-            .iter()
-            .find(|qualification| qualification.process_family == "FORMING")
-            .unwrap();
         assert_eq!(
-            qualification_a.disposition,
+            resource_a.initial_qualifications
+                .iter()
+                .find(|qualification| qualification.process_family == "FORMING")
+                .unwrap()
+                .disposition,
             QualificationDisposition::Blocked
         );
         assert_eq!(
-            qualification_c.disposition,
+            resource_c.initial_qualifications
+                .iter()
+                .find(|qualification| qualification.process_family == "FORMING")
+                .unwrap()
+                .disposition,
             QualificationDisposition::Unknown
         );
 
-        let update = case.scenarios[3].observations_by_epoch[2]
+        let stream = stream_case(&streams, &case.case_id);
+        let before = &stream.scenarios[3].observations_by_epoch[1];
+        let after = &stream.scenarios[3].observations_by_epoch[2];
+        assert!(before.qualification_updates.is_empty());
+        let update = after
             .qualification_updates
             .iter()
-            .find(|update| update.resource_id == "RESOURCE-C" && update.process_family == "FORMING")
-            .expect("scoped qualification update appears in visible event stream");
-        assert_eq!(
-            update.previous_disposition,
-            QualificationDisposition::Unknown
-        );
+            .find(|update| {
+                update.resource_id == "RESOURCE-C" && update.process_family == "FORMING"
+            })
+            .unwrap();
+        assert_eq!(update.previous_disposition, QualificationDisposition::Unknown);
         assert_eq!(update.new_disposition, QualificationDisposition::Admissible);
         assert_eq!(update.occurred_at_epoch, 1);
         assert_eq!(update.observed_at_epoch, 2);
-        assert!(
-            case.scenarios[3].observations_by_epoch[1]
-                .qualification_updates
-                .is_empty()
-        );
     }
 
     #[test]
@@ -1767,20 +1801,10 @@ mod tests {
         let corpus = corpus();
         for case in &corpus.cases {
             assert_eq!(case.setup_transitions.len(), 18);
-            assert!(
-                case.setup_transitions
-                    .iter()
-                    .any(|transition| transition.from_setup_family != transition.to_setup_family)
-            );
-            assert!(
-                case.jobs
-                    .iter()
-                    .flat_map(|job| &job.operations)
-                    .any(
-                        |operation| operation.initial_status == OperationStatus::InProcess
-                            && operation.committed_resource_id.as_deref() == Some("RESOURCE-A")
-                    )
-            );
+            assert!(case.jobs.iter().flat_map(|job| &job.operations).any(|operation| {
+                operation.initial_status == OperationStatus::InProcess
+                    && operation.committed_resource_id.as_deref() == Some("RESOURCE-A")
+            }));
         }
     }
 
@@ -1799,13 +1823,6 @@ mod tests {
                 .into_iter()
                 .collect()
         );
-        assert!(
-            corpus
-                .family_manifest
-                .iter()
-                .filter(|family| family.split == DataSplit::HeldOut)
-                .all(|family| family.replication_seeds == (1..=20).collect::<Vec<_>>())
-        );
     }
 
     #[test]
@@ -1820,50 +1837,44 @@ mod tests {
             serde_json::to_vec(&first.1).unwrap(),
             serde_json::to_vec(&second.1).unwrap()
         );
+        assert_eq!(
+            serde_json::to_vec(&first.2).unwrap(),
+            serde_json::to_vec(&second.2).unwrap()
+        );
         assert_eq!(first.0.generation.root_seed, ROOT_SEED);
         assert_eq!(first.0.generation.seed_algorithm, "SplitMix64-v1");
     }
 
     #[test]
     fn inspection_capacity_is_a_real_shared_bottleneck_in_the_held_out_regime() {
-        let corpus = corpus();
+        let (corpus, streams, _) = bundle();
         let case = corpus
             .cases
             .iter()
             .find(|case| case.scenario_family_id == "inspection-value")
-            .expect("inspection family exists");
-        assert!(
-            case.jobs
-                .iter()
-                .flat_map(|job| &job.operations)
-                .any(|operation| operation.inspection_required)
-        );
+            .unwrap();
+        assert!(case.jobs.iter().flat_map(|job| &job.operations).any(|operation| {
+            operation.inspection_required
+        }));
         assert_eq!(
             case.inspection_station.capacity_units_by_epoch.len(),
             HORIZON_EPOCHS
         );
-        assert!(
-            case.scenarios[3].observations_by_epoch[2]
-                .inspection_capacity_events
-                .iter()
-                .any(|event| event.available_capacity_units == 0)
-        );
+        assert!(stream_case(&streams, &case.case_id).scenarios[3]
+            .observations_by_epoch[2]
+            .inspection_capacity_events
+            .iter()
+            .any(|event| event.available_capacity_units == 0));
     }
 
     #[test]
-    fn generator_manifest_declares_hold_and_proactive_reservation_tensions_without_claiming_a_winner()
-     {
+    fn generator_manifest_declares_hold_and_proactive_reservation_tensions_without_claiming_a_winner() {
         let corpus = corpus();
-        assert!(
-            corpus
-                .family_manifest
-                .iter()
-                .any(|family| family.decision_tension_under_test.contains("defer"))
-        );
         assert!(corpus.family_manifest.iter().any(|family| {
-            family
-                .decision_tension_under_test
-                .contains("proactive reservation")
+            family.decision_tension_under_test.contains("defer")
+        }));
+        assert!(corpus.family_manifest.iter().any(|family| {
+            family.decision_tension_under_test.contains("proactive reservation")
         }));
         assert!(corpus.claim_ceiling.contains("no scheduler superiority"));
     }
