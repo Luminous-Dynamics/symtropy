@@ -19,8 +19,7 @@ const FIXTURE_AS_OF: i64 = 2_000_000_000;
 const FIXTURE_PUBLICATION_TIME: i64 = 1_900_000_000;
 const FIXTURE_RETRIEVAL_TIME: i64 = 1_900_000_010;
 const FIXTURE_EVENT_TIME: i64 = 1_899_999_900;
-const FIXTURE_DIGEST: &str =
-    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const FIXTURE_DIGEST: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const FIXTURE_CUSTODY_DIGEST: &str =
     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
@@ -254,10 +253,7 @@ impl AppendOnlyArtifactLedger {
     }
 
     /// Appends a new immutable revision. There is no update or delete API.
-    pub fn append(
-        &mut self,
-        snapshot: ArtifactSnapshot,
-    ) -> Result<(), LedgerAppendError> {
+    pub fn append(&mut self, snapshot: ArtifactSnapshot) -> Result<(), LedgerAppendError> {
         if snapshot.snapshot_id.trim().is_empty()
             || snapshot.artifact_family_id.trim().is_empty()
             || snapshot.revision_sequence == 0
@@ -376,41 +372,34 @@ fn supported_evidence(
     claim_kind: ClaimKind,
 ) -> Option<AdmittedEvidenceClass> {
     match (artifact_class, claim_kind) {
-        (
-            ArtifactClass::OfficialVesselUpdate,
-            ClaimKind::SourceReportedVesselStatus,
-        ) => Some(AdmittedEvidenceClass::SourceReported),
+        (ArtifactClass::OfficialVesselUpdate, ClaimKind::SourceReportedVesselStatus) => {
+            Some(AdmittedEvidenceClass::SourceReported)
+        }
         (ArtifactClass::OfficialFirmBerthPlan, ClaimKind::PlannedBerthWindow) => {
             Some(AdmittedEvidenceClass::PlanOnly)
         }
-        (
-            ArtifactClass::OfficialExportStackWindow,
-            ClaimKind::ExportCargoGateWindow,
-        ) => Some(AdmittedEvidenceClass::CargoWindowOnly),
-        (
-            ArtifactClass::OfficialImportStorageSnapshot,
-            ClaimKind::ImportStorageState,
-        ) => Some(AdmittedEvidenceClass::InventorySnapshotOnly),
-        (
-            ArtifactClass::OfficialTerminalNotice,
-            ClaimKind::SourceReportedTerminalNotice,
-        ) => Some(AdmittedEvidenceClass::NoticeOnly),
-        (
-            ArtifactClass::ThirdPartyDerivedAggregator,
-            ClaimKind::ThirdPartyDerivedStatus,
-        ) => Some(AdmittedEvidenceClass::ThirdPartyDerivedOnly),
-        (
-            ArtifactClass::DcsaApiConformanceReport,
-            ClaimKind::ApiInteroperabilityConformance,
-        ) => Some(AdmittedEvidenceClass::InteroperabilityOnly),
+        (ArtifactClass::OfficialExportStackWindow, ClaimKind::ExportCargoGateWindow) => {
+            Some(AdmittedEvidenceClass::CargoWindowOnly)
+        }
+        (ArtifactClass::OfficialImportStorageSnapshot, ClaimKind::ImportStorageState) => {
+            Some(AdmittedEvidenceClass::InventorySnapshotOnly)
+        }
+        (ArtifactClass::OfficialTerminalNotice, ClaimKind::SourceReportedTerminalNotice) => {
+            Some(AdmittedEvidenceClass::NoticeOnly)
+        }
+        (ArtifactClass::ThirdPartyDerivedAggregator, ClaimKind::ThirdPartyDerivedStatus) => {
+            Some(AdmittedEvidenceClass::ThirdPartyDerivedOnly)
+        }
+        (ArtifactClass::DcsaApiConformanceReport, ClaimKind::ApiInteroperabilityConformance) => {
+            Some(AdmittedEvidenceClass::InteroperabilityOnly)
+        }
         (
             ArtifactClass::IndependentPhysicalObservation,
             ClaimKind::ObservedBerthOccupancy | ClaimKind::ObservedCargoMovement,
         ) => Some(AdmittedEvidenceClass::IndependentPhysicalObservation),
-        (
-            ArtifactClass::IndependentReceiverAcceptance,
-            ClaimKind::ReceiverAcceptedDelivery,
-        ) => Some(AdmittedEvidenceClass::IndependentReceiverAcceptance),
+        (ArtifactClass::IndependentReceiverAcceptance, ClaimKind::ReceiverAcceptedDelivery) => {
+            Some(AdmittedEvidenceClass::IndependentReceiverAcceptance)
+        }
         _ => None,
     }
 }
@@ -791,10 +780,7 @@ mod tests {
         }
     }
 
-    fn claim(
-        artifact_class: ArtifactClass,
-        claim_kind: ClaimKind,
-    ) -> SourceClaim {
+    fn claim(artifact_class: ArtifactClass, claim_kind: ClaimKind) -> SourceClaim {
         SourceClaim {
             artifact_class,
             artifact: valid_artifact(),
@@ -878,14 +864,35 @@ mod tests {
             .append(snapshot("rev-1", "family", 1, None, Some(100), 110))
             .expect("append root");
         ledger
-            .append(snapshot("rev-2", "family", 2, Some("rev-1"), Some(200), 210))
+            .append(snapshot(
+                "rev-2",
+                "family",
+                2,
+                Some("rev-1"),
+                Some(200),
+                210,
+            ))
             .expect("append second");
         assert_eq!(
-            ledger.append(snapshot("rev-2", "family", 2, Some("rev-1"), Some(200), 210)),
+            ledger.append(snapshot(
+                "rev-2",
+                "family",
+                2,
+                Some("rev-1"),
+                Some(200),
+                210
+            )),
             Err(LedgerAppendError::DuplicateSnapshotId)
         );
         assert_eq!(
-            ledger.append(snapshot("rev-3", "family", 3, Some("rev-1"), Some(300), 310)),
+            ledger.append(snapshot(
+                "rev-3",
+                "family",
+                3,
+                Some("rev-1"),
+                Some(300),
+                310
+            )),
             Err(LedgerAppendError::SupersessionMustBeLatest)
         );
         assert_eq!(ledger.snapshots().len(), 2);
@@ -899,18 +906,39 @@ mod tests {
             Err(LedgerAppendError::RootRevisionMustStartAtOne)
         );
         assert_eq!(
-            ledger.append(snapshot("rev-1", "family", 1, Some("missing"), Some(100), 110)),
+            ledger.append(snapshot(
+                "rev-1",
+                "family",
+                1,
+                Some("missing"),
+                Some(100),
+                110
+            )),
             Err(LedgerAppendError::SupersededSnapshotUnknown)
         );
         ledger
             .append(snapshot("rev-1", "family", 1, None, Some(100), 110))
             .expect("append root");
         assert_eq!(
-            ledger.append(snapshot("rev-3", "family", 3, Some("rev-1"), Some(300), 310)),
+            ledger.append(snapshot(
+                "rev-3",
+                "family",
+                3,
+                Some("rev-1"),
+                Some(300),
+                310
+            )),
             Err(LedgerAppendError::RevisionSequenceMustBeContiguous)
         );
         assert_eq!(
-            ledger.append(snapshot("rev-2-cross-family", "other-family", 2, Some("rev-1"), Some(200), 210)),
+            ledger.append(snapshot(
+                "rev-2-cross-family",
+                "other-family",
+                2,
+                Some("rev-1"),
+                Some(200),
+                210
+            )),
             Err(LedgerAppendError::SupersessionFamilyMismatch)
         );
     }
@@ -919,7 +947,14 @@ mod tests {
     fn unknown_publication_time_is_never_selected_by_historical_ledger_query() {
         let mut ledger = AppendOnlyArtifactLedger::default();
         ledger
-            .append(snapshot("unknown-pub", "unknown-family", 1, None, None, 100))
+            .append(snapshot(
+                "unknown-pub",
+                "unknown-family",
+                1,
+                None,
+                None,
+                100,
+            ))
             .expect("append unknown publication timestamp");
         assert!(
             ledger
@@ -1089,8 +1124,7 @@ mod tests {
                 AdmissionBlock::ReceiverCustodyDigestMissing
             ))
         );
-        receipt.artifact.receiver_custody_sha256 =
-            Some(FIXTURE_CUSTODY_DIGEST.to_owned());
+        receipt.artifact.receiver_custody_sha256 = Some(FIXTURE_CUSTODY_DIGEST.to_owned());
         assert_eq!(
             admit_claim(&receipt),
             Ok(AdmissionDecision::Admitted(
