@@ -22,6 +22,7 @@ pub mod decision_impact_interval_robustness;
 pub mod navigation_outcome_risk;
 pub mod navigation_outcome_risk_frontier;
 pub mod navigation_policy_tree;
+pub mod navigation_common_cause_policy_tree;
 pub mod active_evidence_discrimination;
 pub mod active_evidence_decision_planner;
 pub mod active_evidence_reliability_planner;
