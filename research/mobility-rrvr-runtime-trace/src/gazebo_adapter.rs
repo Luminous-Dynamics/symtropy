@@ -14,6 +14,8 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const GAZEBO_ADAPTER_CONTRACT_VERSION: &str = "0.1";
+pub const GAZEBO_DISPATCH_CANONICALIZATION_ID: &str =
+    "serde-json-value-sorted-keys-v0.1";
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -127,6 +129,7 @@ pub enum GazeboAdapterError {
     WorldChangedAtCutPoint,
     TargetBindingChanged,
     InvalidDispatchRequest,
+    InvalidCompiledPlan,
 }
 
 fn nonempty(value: &str) -> bool {
@@ -515,6 +518,7 @@ impl DispatchAttemptRegistry {
 /// The idempotency key is included; payload_sha256 itself is excluded.
 #[derive(Serialize)]
 struct GazeboDispatchPayload<'a> {
+    canonicalization: &'static str,
     plan_sha256: &'a str,
     campaign_id: &'a str,
     pair_id: &'a str,
@@ -546,6 +550,7 @@ pub fn dispatch_request_fingerprint(
         return Err(GazeboAdapterError::InvalidDispatchRequest);
     }
     let payload = GazeboDispatchPayload {
+        canonicalization: GAZEBO_DISPATCH_CANONICALIZATION_ID,
         plan_sha256: &request.plan_sha256,
         campaign_id: &request.campaign_id,
         pair_id: &request.pair_id,
@@ -872,7 +877,7 @@ where
     I: GazeboFaultInjectorTransport,
 {
     plan.verify_integrity()
-        .map_err(|_| GazeboAdapterError::InvalidCapabilityProfile)?;
+        .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
     let selected_method = session.profile.validate_for_plan(plan)?;
     if selected_method != session.stepping_method
         || !nonempty(&session.world_epoch)
@@ -1129,6 +1134,42 @@ mod tests {
         ) -> Result<DispatchLedgerResult, Self::Error> {
             Ok(self.lookup)
         }
+    }
+
+    #[test]
+    fn planned_dispatch_rejects_tampered_compiled_plan_before_any_transport_call() {
+        let original = plan();
+        let mut simulator = mock_transport(&original);
+        let session = preflight_transport(&mut simulator, &original).unwrap();
+        let mut tampered = original.clone();
+        tampered.plan_sha256 = "0".repeat(64);
+        let scenario = original
+            .scenarios
+            .iter()
+            .find(|s| !s.fault_events.is_empty())
+            .unwrap();
+        let fault = &scenario.fault_events[0];
+        let mut injector = MockInjector {
+            dispatch_calls: 0,
+            lookup: DispatchLedgerResult::Accepted,
+        };
+        let mut registry = DispatchAttemptRegistry::default();
+
+        assert_eq!(
+            dispatch_planned_fault_once(
+                &mut simulator,
+                &mut injector,
+                &mut registry,
+                &tampered,
+                &session,
+                &scenario.scenario_id,
+                &fault.fault_id,
+                "run-tampered",
+                "epoch-tampered"
+            ),
+            Err(GazeboAdapterError::InvalidCompiledPlan)
+        );
+        assert_eq!(injector.dispatch_calls, 0);
     }
 
     #[test]
