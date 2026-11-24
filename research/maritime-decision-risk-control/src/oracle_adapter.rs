@@ -1418,6 +1418,27 @@ mod tests {
             .expect("cluster hard-failure means");
         assert_eq!(hard_means.loss.schedules, vec![vec![0, 0], vec![1_000, 0]]);
 
+        let crc = hard_means
+            .calibrate_marginal_expected_risk(
+                100,
+                crate::MonotonicityMode::UseUpperEnvelope,
+                Some(&crate::MaxParameterContract {
+                    scope: "typed oracle cluster fixture".to_owned(),
+                    evidence_ref: "synthetic-terminal-zero-loss-contract".to_owned(),
+                    declared_loss_bound_milli: 0,
+                }),
+                &crate::FrozenRevisions {
+                    policy_revision: "frozen-policy-grid".to_owned(),
+                    evaluator_revision: "evaluator-v1".to_owned(),
+                    loss_contract_revision: "loss-v1".to_owned(),
+                },
+            )
+            .expect("typed cluster-unit expected-risk CRC result");
+        assert_eq!(crc.result.calibration_schedules, 2);
+        assert_eq!(crc.calibration_provenance.source_schedule_count, 3);
+        assert_eq!(crc.calibration_provenance.independent_cluster_count, 2);
+        assert_eq!(crc.loss_axis, LossAxis::HardPhysicalFailure);
+
         let high_probability = hard_means
             .select_fixed_grid_high_probability(&cluster_means, 100, 0.05)
             .expect("cluster-unit high-probability evaluation");
@@ -1431,6 +1452,22 @@ mod tests {
             high_probability.risk_provenance.independent_cluster_count,
             2
         );
+    }
+
+    #[test]
+    fn high_probability_cluster_projection_rejects_unaligned_service_clusters() {
+        let bundle = compile_oracle_outcomes(&valid_dataset()).expect("valid bundle");
+        let risk = bundle
+            .cluster_mean_matrix(DatasetRole::Calibration, LossAxis::HardPhysicalFailure)
+            .expect("risk cluster means");
+        let mut service = bundle
+            .cluster_mean_matrix(DatasetRole::Calibration, LossAxis::ServiceLoss)
+            .expect("service cluster means");
+        service.provenance.schedules_per_cluster.reverse();
+        assert!(matches!(
+            risk.select_fixed_grid_high_probability(&service, 100, 0.05),
+            Err(ClusterRiskControlError::ClusterMatricesNotAligned)
+        ));
     }
 
     #[test]
