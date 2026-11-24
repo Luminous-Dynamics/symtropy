@@ -1178,6 +1178,7 @@ mod tests {
             ("w-A".to_owned(), "north-action".to_owned()),
             ("w-B".to_owned(), "south-action".to_owned()),
         ]);
+        refresh_source_digests(&mut case);
         let result = evaluate_case(&case);
         assert_eq!(result.status, "INVALID_INPUT");
         assert!(
@@ -1210,6 +1211,7 @@ mod tests {
     fn incomplete_observation_branch_or_scenario_coverage_fails_closed() {
         let mut missing_branch = fixture_case(1, 2, 3);
         missing_branch.policies[1].branch_actions.remove("south");
+        refresh_source_digests(&mut missing_branch);
         let result = evaluate_case(&missing_branch);
         assert_eq!(result.status, "INVALID_INPUT");
         assert!(
@@ -1220,6 +1222,7 @@ mod tests {
 
         let mut missing_scenario = fixture_case(1, 2, 3);
         missing_scenario.policies[1].per_scenario.pop();
+        refresh_source_digests(&mut missing_scenario);
         let result = evaluate_case(&missing_scenario);
         assert_eq!(result.status, "INVALID_INPUT");
         assert!(
