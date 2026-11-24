@@ -105,7 +105,8 @@
         "95_percent_confidence_intervals",
         "friction_velocity",
         "viscous_length",
-        "Re_tau"
+        "Re_tau",
+        "case_matched_full_symmetric_Reynolds_stress_tensor_profile_with_uu_vv_ww_uv_uw_vw"
       ],
       "not_provided": [
         "framewise_instantaneous_2D_velocity_truth",
@@ -141,7 +142,15 @@
     "trapezoidal_bias",
     "trapezoidal_rmse",
     "trapezoidal_nrmse_reference_rms",
-    "integrated_absolute_error"
+    "integrated_absolute_error",
+    "reynolds_stress_component_rmse_uu_vv_ww_uv_uw_vw",
+    "tke_bias",
+    "tke_rmse",
+    "reynolds_stress_tensor_frobenius_rmse",
+    "reynolds_stress_tensor_frobenius_nrmse",
+    "reference_reynolds_stress_non_psd_count",
+    "prediction_reynolds_stress_non_psd_count",
+    "prediction_reynolds_stress_realizability_violation_fraction"
   ],
   "bootstrap_unit": "contiguous_temporal_blocks_not_individual_frames_or_pixels",
   "download_policy": "do_not_bulk_download_171GB_capsule_in_initial_phase",
@@ -162,6 +171,13 @@
     "no_framewise_ground_truth_claim_for_supplied_DNS_profiles",
     "no_full_field_truth_claim_from_hotwire",
     "no_171GB_bulk_download_performed",
-    "no_MAT_TIFF_HDF5_importer_in_v0"
+    "no_MAT_TIFF_HDF5_importer_in_v0",
+    "no_independent_EHD_reynolds_stress_validation"
+  ],
+  "v0_kernel_additions": [
+    "six_component_symmetric_reynolds_stress_profile",
+    "TKE_from_half_trace",
+    "full_tensor_frobenius_error_with_double_weighted_off_diagonal_terms",
+    "positive_semidefinite_realizability_diagnostic"
   ]
 }
