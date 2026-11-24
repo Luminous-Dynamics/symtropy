@@ -526,7 +526,7 @@ impl OracleCalibrationBundle {
             let count = row_indices.len() as u64;
             let mean = sums
                 .into_iter()
-                .map(|sum| ((sum + count - 1) / count) as u16)
+                .map(|sum| sum.div_ceil(count) as u16)
                 .collect::<Vec<_>>();
             ordered_cluster_ids.push(cluster_id.to_owned());
             schedules_per_cluster.push(row_indices.len());
