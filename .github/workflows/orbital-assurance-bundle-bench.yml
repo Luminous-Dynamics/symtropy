@@ -6,6 +6,7 @@ on:
       - "research/orbital-assurance-bundle-v0-1"
       - "research/orbital-incumbent-sequential-receipt-v0-1"
       - "research/orbital-incumbent-policy-adequacy-v0-1"
+      - "research/orbital-policy-source-provenance-v0-1"
       - "research/orbital-incumbent-adequacy-v0-1"
       - "research/orbital-incumbent-loss-model-bridge-v0-1"
       - "research/orbital-incumbent-policy-adequacy-v0-1"
