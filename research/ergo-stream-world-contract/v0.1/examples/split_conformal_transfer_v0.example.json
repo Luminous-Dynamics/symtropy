@@ -14,12 +14,12 @@
       "sample_ids_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "split_manifest_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       "evidence_prefix_sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-      "receipt_status": "active"
-    },
-    "alpha_ppm": 100000,
-    "calibration_count": 19,
-    "quantile_rank": 18,
-    "quantile_nonconformity_ppm": 220000
+      "receipt_status": "active",
+      "alpha_ppm": 100000,
+      "calibration_count": 19,
+      "quantile_rank": 18,
+      "quantile_nonconformity_ppm": 220000
+    }
   },
   "prediction_sets": [
     {
