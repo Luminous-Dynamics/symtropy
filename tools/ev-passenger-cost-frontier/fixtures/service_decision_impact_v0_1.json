@@ -57,6 +57,17 @@
         "observed_at_unix_ms": 2100,
         "valid_from_unix_ms": 2000,
         "valid_until_unix_ms": 2500
+      },
+      "site_evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "site-config-sha256-fixture",
+        "producer_id": "synthetic-fixture",
+        "method_id": "deterministic-reference",
+        "evidence_reference": "ess-good-site",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 900,
+        "valid_from_unix_ms": 800,
+        "valid_until_unix_ms": 2500
       }
     },
     {
@@ -112,6 +123,17 @@
         "evidence_class": "synthetic",
         "observed_at_unix_ms": 2100,
         "valid_from_unix_ms": 2000,
+        "valid_until_unix_ms": 2500
+      },
+      "site_evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "site-config-sha256-fixture",
+        "producer_id": "synthetic-fixture",
+        "method_id": "deterministic-reference",
+        "evidence_reference": "ess-false-safe-site",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 900,
+        "valid_from_unix_ms": 800,
         "valid_until_unix_ms": 2500
       }
     },
@@ -169,6 +191,17 @@
         "observed_at_unix_ms": 2100,
         "valid_from_unix_ms": 2000,
         "valid_until_unix_ms": 2500
+      },
+      "site_evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "site-config-sha256-fixture",
+        "producer_id": "synthetic-fixture",
+        "method_id": "deterministic-reference",
+        "evidence_reference": "ess-false-abstain-site",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 900,
+        "valid_from_unix_ms": 800,
+        "valid_until_unix_ms": 2500
       }
     },
     {
@@ -224,6 +257,17 @@
         "evidence_class": "synthetic",
         "observed_at_unix_ms": 2100,
         "valid_from_unix_ms": 2000,
+        "valid_until_unix_ms": 2500
+      },
+      "site_evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "site-config-sha256-fixture",
+        "producer_id": "synthetic-fixture",
+        "method_id": "deterministic-reference",
+        "evidence_reference": "ess-gate-failed-site",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 900,
+        "valid_from_unix_ms": 800,
         "valid_until_unix_ms": 2500
       }
     },
@@ -281,6 +325,17 @@
         "observed_at_unix_ms": 2100,
         "valid_from_unix_ms": 2000,
         "valid_until_unix_ms": 2500
+      },
+      "site_evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "site-config-sha256-fixture",
+        "producer_id": "synthetic-fixture",
+        "method_id": "deterministic-reference",
+        "evidence_reference": "ess-gate-unknown-site",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 900,
+        "valid_from_unix_ms": 800,
+        "valid_until_unix_ms": 2500
       }
     },
     {
@@ -336,6 +391,17 @@
         "evidence_class": "synthetic",
         "observed_at_unix_ms": 2100,
         "valid_from_unix_ms": 2000,
+        "valid_until_unix_ms": 2500
+      },
+      "site_evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "site-config-sha256-fixture",
+        "producer_id": "synthetic-fixture",
+        "method_id": "deterministic-reference",
+        "evidence_reference": "charger-good-site",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 900,
+        "valid_from_unix_ms": 800,
         "valid_until_unix_ms": 2500
       }
     },
@@ -393,6 +459,17 @@
         "observed_at_unix_ms": 2100,
         "valid_from_unix_ms": 2000,
         "valid_until_unix_ms": 2500
+      },
+      "site_evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "site-config-sha256-fixture",
+        "producer_id": "synthetic-fixture",
+        "method_id": "deterministic-reference",
+        "evidence_reference": "charger-false-safe-site",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 900,
+        "valid_from_unix_ms": 800,
+        "valid_until_unix_ms": 2500
       }
     },
     {
@@ -448,6 +525,17 @@
         "evidence_class": "synthetic",
         "observed_at_unix_ms": 2100,
         "valid_from_unix_ms": 2000,
+        "valid_until_unix_ms": 2500
+      },
+      "site_evidence": {
+        "asset_id": "depot-01",
+        "configuration_digest": "site-config-sha256-fixture",
+        "producer_id": "synthetic-fixture",
+        "method_id": "deterministic-reference",
+        "evidence_reference": "charger-false-abstain-site",
+        "evidence_class": "synthetic",
+        "observed_at_unix_ms": 900,
+        "valid_from_unix_ms": 800,
         "valid_until_unix_ms": 2500
       }
     }
