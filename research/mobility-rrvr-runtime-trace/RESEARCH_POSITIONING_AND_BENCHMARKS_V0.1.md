@@ -456,3 +456,16 @@ A restart-safe dispatch key must bind to one immutable request payload. Measure 
 - report duplicate-effect count, payload-conflict detection rate, unresolved-ledger rate, and false NoDispatchProven rate.
 
 The local Rust registry is only a process-local guard. The hard target is zero duplicate effects and zero silent payload aliasing across a real durable injector ledger. A test double is not a deployed injector qualification.
+
+
+### Observer-blinding and verdict-calibration tests
+
+Independent delivery observers must not receive the plan-committed expected fault signature as an input. The evaluator may compare measurements to that expected value only after evidence capture. Benchmark:
+- oracle-leakage tests: observers cannot read the expected signature or hidden evaluator labels;
+- unanimous expected signature -> Confirmed;
+- unanimous valid mismatch -> Refuted;
+- observer disagreement -> InsufficientEvidence;
+- invalid digest, stale epoch, duplicate identity or common-cause overlap -> qualification error / no verdict;
+- false Confirmed and false Refuted rates on adjudicated positive/negative controls, with uncertainty intervals.
+
+This tests measurement independence and calibration separately from quorum membership independence. A set of physically distinct sensors can still share an evaluation oracle or data path.
