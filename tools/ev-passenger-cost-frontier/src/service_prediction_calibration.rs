@@ -994,8 +994,6 @@ mod tests {
         assert!(!report.all_metric_groups_empirically_supported);
         assert!(report.metric_groups.iter().all(|group| {
             group.status != CalibrationGroupStatus::EmpiricallySupported
-                && group.status != CalibrationGroupStatus::SyntheticEvidenceOnly
-                || report.any_synthetic_evidence
         }));
         input.records[0].metrics[0].observation_evidence.evidence_class = EvidenceClass::Measured;
         let mixed = evaluate_service_prediction_calibration(&input).expect("mixed evidence remains auditable");
