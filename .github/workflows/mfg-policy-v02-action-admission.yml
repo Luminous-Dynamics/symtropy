@@ -5,16 +5,25 @@ on:
       - "schemas/manufacturing/mfg_policy_v02_decision_frame.schema.json"
       - "schemas/manufacturing/mfg_policy_v02_action_proposal.schema.json"
       - "schemas/manufacturing/mfg_policy_v02_action_admission_receipt.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_operational_state_snapshot.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_execution_ledger.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_replay_receipt.schema.json"
+      - "tools/mfg-policy-v02-state-replay/**"
       - "tools/mfg-policy-v02-action-admission/**"
       - ".github/workflows/mfg-policy-v02-action-admission.yml"
   push:
     branches:
       - main
       - research/mfg-policy-v02-action-admission
+      - research/mfg-policy-v02-live-snapshot-admission
     paths:
       - "schemas/manufacturing/mfg_policy_v02_decision_frame.schema.json"
       - "schemas/manufacturing/mfg_policy_v02_action_proposal.schema.json"
       - "schemas/manufacturing/mfg_policy_v02_action_admission_receipt.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_operational_state_snapshot.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_execution_ledger.schema.json"
+      - "schemas/manufacturing/mfg_policy_v02_replay_receipt.schema.json"
+      - "tools/mfg-policy-v02-state-replay/**"
       - "tools/mfg-policy-v02-action-admission/**"
       - ".github/workflows/mfg-policy-v02-action-admission.yml"
 
@@ -31,5 +40,17 @@ jobs:
         run: cargo fmt --manifest-path tools/mfg-policy-v02-action-admission/Cargo.toml -- --check
       - name: Independent action-admission contract tests
         run: cargo test --manifest-path tools/mfg-policy-v02-action-admission/Cargo.toml
+      - name: Live snapshot producer-consumer smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --quiet --manifest-path tools/mfg-policy-v02-state-replay/Cargo.toml -- tools/mfg-policy-v02-state-replay/testdata/live-snapshot-smoke-ledger.json > "$RUNNER_TEMP/replay-receipt.json"
+          jq -e '.status == "VERIFIED"' "$RUNNER_TEMP/replay-receipt.json" >/dev/null
+          jq -e '[.snapshots[] | select(.decision_epoch == 1)] | length == 1' "$RUNNER_TEMP/replay-receipt.json" >/dev/null
+          jq -c '.snapshots[] | select(.decision_epoch == 1)' "$RUNNER_TEMP/replay-receipt.json" > "$RUNNER_TEMP/epoch-1-snapshot.json"
+          jq -c '.steps[] | select(.epoch == 1) | .decision_frame' tools/mfg-policy-v02-state-replay/testdata/live-snapshot-smoke-ledger.json > "$RUNNER_TEMP/epoch-1-frame.json"
+          cargo run --quiet --manifest-path tools/mfg-policy-v02-action-admission/Cargo.toml -- "$RUNNER_TEMP/epoch-1-frame.json" tools/mfg-policy-v02-action-admission/testdata/live-snapshot-smoke-proposal.json "$RUNNER_TEMP/epoch-1-snapshot.json" > "$RUNNER_TEMP/admission-receipt.json"
+          jq -e '.status == "ADMISSIBLE" and .setup_duration_ticks == 2 and .processing_duration_ticks == 1' "$RUNNER_TEMP/admission-receipt.json" >/dev/null
+          echo "Replay-derived epoch-1 snapshot admitted OP-3 with setup=2 and processing=1."
       - name: Strict Clippy
         run: cargo clippy --manifest-path tools/mfg-policy-v02-action-admission/Cargo.toml -- -D warnings
