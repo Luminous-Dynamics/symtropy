@@ -430,29 +430,41 @@ struct JournalIndex {
 }
 
 #[derive(Clone, Debug)]
+struct ResetIntentDelta {
+    reset_id: String,
+    scope: (String, String, String),
+    binding: ResetIntentBinding,
+    record: ResetIntentRecord,
+}
+
+#[derive(Clone, Debug)]
+struct ResetOutcomeDelta {
+    reset_id: String,
+    status: ResetOutcomeStatus,
+    verified_world_epoch: Option<String>,
+    record: ResetOutcomeRecord,
+}
+
+#[derive(Clone, Debug)]
+struct DispatchIntentDelta {
+    idempotency_key: String,
+    binding: DispatchIntentBinding,
+    record: DispatchIntentRecord,
+}
+
+#[derive(Clone, Debug)]
+struct DispatchOutcomeDelta {
+    idempotency_key: String,
+    status: DispatchOutcomeStatus,
+    record: DispatchOutcomeRecord,
+}
+
+#[derive(Clone, Debug)]
 enum JournalIndexDelta {
-    ResetIntent {
-        reset_id: String,
-        scope: (String, String, String),
-        binding: ResetIntentBinding,
-        record: ResetIntentRecord,
-    },
-    ResetOutcome {
-        reset_id: String,
-        status: ResetOutcomeStatus,
-        verified_world_epoch: Option<String>,
-        record: ResetOutcomeRecord,
-    },
-    DispatchIntent {
-        idempotency_key: String,
-        binding: DispatchIntentBinding,
-        record: DispatchIntentRecord,
-    },
-    DispatchOutcome {
-        idempotency_key: String,
-        status: DispatchOutcomeStatus,
-        record: DispatchOutcomeRecord,
-    },
+    ResetIntent(Box<ResetIntentDelta>),
+    ResetOutcome(Box<ResetOutcomeDelta>),
+    DispatchIntent(Box<DispatchIntentDelta>),
+    DispatchOutcome(Box<DispatchOutcomeDelta>),
 }
 
 impl JournalIndex {
@@ -491,7 +503,7 @@ impl JournalIndex {
                 if self.reset_scopes.contains(&scope) {
                     return Err(JournalError::DuplicateResetId);
                 }
-                Ok(JournalIndexDelta::ResetIntent {
+                Ok(JournalIndexDelta::ResetIntent(Box::new(ResetIntentDelta {
                     reset_id: reset_id.clone(),
                     scope,
                     binding: ResetIntentBinding {
@@ -506,7 +518,7 @@ impl JournalIndex {
                         verified_world_epoch: None,
                     },
                     record: record.as_ref().clone(),
-                })
+                })))
             }
             JournalEvent::ResetOutcome(record) => {
                 let ResetOutcomeRecord {
@@ -613,12 +625,12 @@ impl JournalIndex {
                     }
                     None
                 };
-                Ok(JournalIndexDelta::ResetOutcome {
+                Ok(JournalIndexDelta::ResetOutcome(Box::new(ResetOutcomeDelta {
                     reset_id: reset_id.clone(),
                     status: *status,
                     verified_world_epoch,
                     record: record.as_ref().clone(),
-                })
+                })))
             }
             JournalEvent::DispatchIntent(record) => {
                 let DispatchIntentRecord {
@@ -707,13 +719,13 @@ impl JournalIndex {
                 {
                     return Err(JournalError::ResetBindingMismatch);
                 }
-                Ok(JournalIndexDelta::DispatchIntent {
+                Ok(JournalIndexDelta::DispatchIntent(Box::new(DispatchIntentDelta {
                     idempotency_key: idempotency_key.clone(),
                     binding: DispatchIntentBinding {
                         payload_sha256: payload_sha256.clone(),
                     },
                     record: record.as_ref().clone(),
-                })
+                })))
             }
             JournalEvent::DispatchOutcome(record) => {
                 let DispatchOutcomeRecord {
@@ -823,61 +835,49 @@ impl JournalIndex {
                     DispatchOutcomeStatus::ResponseRejected
                     | DispatchOutcomeStatus::ResponseUnknown => {}
                 }
-                Ok(JournalIndexDelta::DispatchOutcome {
+                Ok(JournalIndexDelta::DispatchOutcome(Box::new(DispatchOutcomeDelta {
                     idempotency_key: idempotency_key.clone(),
                     status: *status,
                     record: record.as_ref().clone(),
-                })
+                })))
             }
         }
     }
 
     fn commit(&mut self, delta: JournalIndexDelta) {
         match delta {
-            JournalIndexDelta::ResetIntent {
-                reset_id,
-                scope,
-                binding,
-                record,
-            } => {
-                self.reset_scopes.insert(scope);
-                self.reset_intents.insert(reset_id.clone(), binding);
-                self.reset_intent_records.insert(reset_id, record);
+            JournalIndexDelta::ResetIntent(delta) => {
+                self.reset_scopes.insert(delta.scope.clone());
+                self.reset_intents
+                    .insert(delta.reset_id.clone(), delta.binding.clone());
+                self.reset_intent_records
+                    .insert(delta.reset_id.clone(), delta.record.clone());
             }
-            JournalIndexDelta::ResetOutcome {
-                reset_id,
-                status,
-                verified_world_epoch,
-                record,
-            } => {
-                if let Some(epoch) = verified_world_epoch {
-                    if let Some(intent) = self.reset_intents.get_mut(&reset_id) {
+            JournalIndexDelta::ResetOutcome(delta) => {
+                if let Some(epoch) = delta.verified_world_epoch.clone() {
+                    if let Some(intent) = self.reset_intents.get_mut(&delta.reset_id) {
                         intent.verified_world_epoch = Some(epoch);
                     }
                 }
-                self.reset_status.insert(reset_id.clone(), status);
-                self.reset_outcome_records.insert(reset_id, record);
+                self.reset_status.insert(delta.reset_id.clone(), delta.status);
+                self.reset_outcome_records
+                    .insert(delta.reset_id.clone(), delta.record.clone());
             }
-            JournalIndexDelta::DispatchIntent {
-                idempotency_key,
-                binding,
-                record,
-            } => {
+            JournalIndexDelta::DispatchIntent(delta) => {
                 self.dispatch_intents
-                    .insert(idempotency_key.clone(), binding);
-                self.dispatch_intent_records.insert(idempotency_key, record);
+                    .insert(delta.idempotency_key.clone(), delta.binding.clone());
+                self.dispatch_intent_records
+                    .insert(delta.idempotency_key.clone(), delta.record.clone());
             }
-            JournalIndexDelta::DispatchOutcome {
-                idempotency_key,
-                status,
-                record,
-            } => {
-                self.dispatch_status.insert(idempotency_key.clone(), status);
+            JournalIndexDelta::DispatchOutcome(delta) => {
+                self.dispatch_status
+                    .insert(delta.idempotency_key.clone(), delta.status);
                 self.dispatch_outcome_records
-                    .insert(idempotency_key, record);
+                    .insert(delta.idempotency_key.clone(), delta.record.clone());
             }
         }
     }
+
 
     fn apply(&mut self, event: &JournalEvent) -> Result<(), JournalError> {
         let delta = self.prepare(event)?;
