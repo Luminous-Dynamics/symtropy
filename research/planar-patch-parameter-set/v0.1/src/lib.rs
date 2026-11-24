@@ -179,14 +179,6 @@ struct Plane {
     bound: f64,
 }
 
-fn axis_from_index(index: usize) -> ShapeAxis {
-    match index {
-        0 => ShapeAxis::TangentialU,
-        1 => ShapeAxis::TangentialV,
-        _ => ShapeAxis::TorsionalNormal,
-    }
-}
-
 fn finite3(values: [f64; 3]) -> bool {
     values.iter().all(|value| value.is_finite())
 }
