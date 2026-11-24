@@ -11,6 +11,7 @@ For a finite ordered D-dimensional AABB with widths w_i:
 - Normalized internal boundary-content ratio: sum of supplied internal-node boundary contents divided by the root boundary content.
 - Pair overlap ratio: intersection hypervolume divided by the smaller input hypervolume.
 - Axis-normalized extent: each node width divided by the root width on that axis.
+- Spearman rank correlation with average ranks for ties, requiring at least five paired finite observations and returning None for mismatched, constant or insufficient samples.
 
 In 2D, boundary content is perimeter. In 3D, it is surface area. Its units depend on dimension and raw values must not be compared cross-dimensionally.
 
