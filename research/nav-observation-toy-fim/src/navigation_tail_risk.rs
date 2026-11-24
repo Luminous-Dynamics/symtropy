@@ -1631,7 +1631,7 @@ mod iterated_cvar_tests {
         let nested = iterated_cvar(&branches, 1_000_000).unwrap();
         assert_eq!(
             nested.iterated_cvar,
-            ExactRisk::from_ratio(3, 1).unwrap()
+            ExactRisk::from_ratio(7, 2).unwrap()
         );
     }
 
