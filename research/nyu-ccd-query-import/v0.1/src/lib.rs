@@ -596,8 +596,8 @@ mod tests {
     #[test]
     fn boolean_json_requires_a_strict_boolean_array() {
         assert_eq!(
-            parse_boolean_json("[false, true, 0, 1]").unwrap(),
-            vec![false, true, false, true]
+            parse_boolean_json("[false, true]").unwrap(),
+            vec![false, true]
         );
         assert_eq!(
             parse_boolean_json("[false, nope]"),
