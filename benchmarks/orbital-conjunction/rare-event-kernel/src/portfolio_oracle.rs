@@ -92,7 +92,9 @@ impl core::fmt::Display for PortfolioOracleError {
             Self::SelfConflict => "an action cannot be declared incompatible with itself",
             Self::UnknownConflictAction => "portfolio conflict references an unknown action",
             Self::DuplicateConflictPair => "portfolio incompatibility pair is duplicated",
-            Self::ArithmeticOverflow => "exact portfolio objective or resource arithmetic overflowed",
+            Self::ArithmeticOverflow => {
+                "exact portfolio objective or resource arithmetic overflowed"
+            },
         };
         formatter.write_str(message)
     }
@@ -206,8 +208,7 @@ pub fn exact_portfolio_oracle(
         if benefit > best_benefit
             || (benefit == best_benefit
                 && (resource_units < best_resource_units
-                    || (resource_units == best_resource_units
-                        && selected_ids < best_action_ids)))
+                    || (resource_units == best_resource_units && selected_ids < best_action_ids)))
         {
             best_benefit = benefit;
             best_resource_units = resource_units;
@@ -350,7 +351,8 @@ mod tests {
     fn input_permutation_produces_an_identical_portfolio_report() {
         let actions = [action(3, 9, 3), action(1, 6, 2), action(2, 8, 2)];
         let forward = exact_portfolio_oracle(4, &actions, &[]).unwrap();
-        let reverse = exact_portfolio_oracle(4, &[actions[2], actions[1], actions[0]], &[]).unwrap();
+        let reverse =
+            exact_portfolio_oracle(4, &[actions[2], actions[1], actions[0]], &[]).unwrap();
 
         assert_eq!(forward, reverse);
     }
@@ -425,7 +427,8 @@ mod tests {
         let actions = [rejected_first, action(1, 5, 1), rejected_second];
 
         let forward = exact_portfolio_oracle(1, &actions, &[]).unwrap();
-        let reverse = exact_portfolio_oracle(1, &[actions[2], actions[1], actions[0]], &[]).unwrap();
+        let reverse =
+            exact_portfolio_oracle(1, &[actions[2], actions[1], actions[0]], &[]).unwrap();
 
         assert_eq!(forward, reverse);
         assert_eq!(forward.rejected_non_actionable_ids, [3, 9]);
