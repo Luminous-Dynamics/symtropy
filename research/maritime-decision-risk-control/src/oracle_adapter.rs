@@ -929,7 +929,7 @@ mod tests {
         );
         assert_eq!(
             bundle.calibration_hard_failure_milli,
-            vec![vec![1_000, 0], vec![0, 0]]
+            vec![vec![0, 0], vec![1_000, 0]]
         );
         assert_eq!(
             bundle.calibration_service_loss_milli,
