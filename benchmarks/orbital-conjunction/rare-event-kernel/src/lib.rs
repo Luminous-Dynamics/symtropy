@@ -29,6 +29,7 @@ use core::fmt;
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod adaptive_importance_sampling;
 pub mod conditional_velocity;
+pub mod confidence_sequence_benchmark;
 pub mod coverage;
 pub mod decision_gate;
 pub mod decision_refinement;
@@ -58,6 +59,11 @@ pub use conditional_velocity::{
     ConditionalDirectionReport, ConditionalVelocityConfig, ConditionalVelocityDiagnostics,
     ConditionalVelocityDistribution, Matrix3, RelativePositionVelocityCovarianceBlocks,
     ZeroConditionalVarianceMode,
+};
+pub use confidence_sequence_benchmark::{
+    ConfidenceSequenceBenchmarkError, ConfidenceSequenceBenchmarkReport,
+    ConfidenceSequenceBenchmarkSnapshot, ConfidenceSequenceMethod,
+    ConfidenceSequenceMethodBenchmark, ConfidenceThresholdDecision, benchmark_confidence_sequences,
 };
 pub use decision_gate::{
     DecisionGateError, DecisionSufficiency, DecisionSufficiencyReport, RiskThresholdRule,
