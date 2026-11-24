@@ -28,7 +28,7 @@ A small residual and converged optimizer do not resolve these ambiguities. A pos
 
 Crate: `tools/ehd-piv-identifiability/`.
 
-The caller supplies a row-major sensitivity matrix after whitening residual rows using a qualified observation covariance. Columns are multiplied by declared characteristic parameter scales so each column represents one characteristic parameter perturbation in unit-noise residual coordinates.
+The caller supplies a row-major sensitivity matrix after whitening residual rows using a qualified observation covariance. V0 bounds the reference calculation to 65,536 rows and 64 parameters. Columns are multiplied by declared characteristic parameter scales so each column represents one characteristic parameter perturbation in unit-noise residual coordinates.
 
 The Rust kernel performs a one-sided Jacobi SVD and reports:
 - joint singular values, numerical rank, condition and weak right-singular parameter combinations;
@@ -50,7 +50,7 @@ The crucial difference is separating joint rank from physical rank after nuisanc
 
 ## Manufactured tests
 
-The 12 current deterministic tests cover orthogonal and exact/near-collinear physical/nuisance effects, nuisance-only rank deficiency, characteristic scaling, row permutation, positive/negative confounding, zero-sensitivity parameters, underdetermined observations, malformed/non-finite inputs and one-column decomposition.
+The 14 current deterministic tests cover orthogonal and exact/near-collinear physical/nuisance effects, nuisance-only rank deficiency, characteristic scaling, row permutation, positive/negative confounding, zero-sensitivity parameters, underdetermined observations, malformed/non-finite inputs, one-column decomposition, Jacobi non-convergence and the distinction between absent physical sensitivity and nuisance confounding.
 
 ## V1: from an audit to experiment selection
 
