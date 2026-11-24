@@ -1,0 +1,129 @@
+{
+  "contract_id": "ehd_piv_structure_preservation_v0_1",
+  "version": "0.1.0",
+  "status": "manufactured_2d_metric_kernel_not_physical_validation",
+  "issue": 7209,
+  "derivative": {
+    "quantity": "omega=dv_dx-du_dy",
+    "stencil": "centered_five_point",
+    "boundary": "only evaluate where center and four cardinal neighbours lie inside the declared evaluation domain",
+    "grid_spacing": "explicit positive finite dx and dy"
+  },
+  "weak_structure_estimand": {
+    "definition": "reference-defined band weak_vorticity_min <= abs(omega_ref) <= weak_vorticity_max",
+    "retention": "prediction exists, sign agrees and abs(omega_pred) >= minimum_retained_amplitude_fraction * abs(omega_ref)",
+    "background": "abs(omega_ref) < weak_vorticity_min",
+    "strong_reference_regions": "excluded from weak-positive and background false-support denominators"
+  },
+  "metrics": [
+    "relative_l2_on_available_vectors",
+    "normalized_rmse_on_available_vectors",
+    "vector_coverage_fraction",
+    "relative_vorticity_l2_on_available_cells",
+    "derivative_coverage_fraction",
+    "weak_structure_recall",
+    "weak_structure_precision",
+    "weak_structure_dice",
+    "weak_structure_sign_agreement",
+    "weak_structure_signed_amplitude_ratio",
+    "weak_structure_signed_amplitude_bias",
+    "false_support_rate_in_background",
+    "predicted_weak_support_cells",
+    "false_positive_weak_support_cells",
+    "background_prediction_available_cells"
+  ],
+  "prospective_targets": {
+    "weak_structure_recall": 0.95,
+    "false_support_rate_in_background": 0.05,
+    "amplitude_bias_abs_max": 0.05,
+    "require_cluster_bootstrap_for_empirical_data": true,
+    "compare_at_matched_relative_l2": true,
+    "compare_at_matched_vector_retention": true
+  },
+  "baselines": [
+    "no_removal",
+    "local_median",
+    "universal_outlier_detection",
+    "adaptive_gaussian_window",
+    "PIVPostProcess",
+    "vector_imputation",
+    "POD",
+    "LSE",
+    "SAMM_RR",
+    "SVGP_KAN",
+    "covariance_aware_GP",
+    "HDC_CfC_experimental_challenger",
+    "adv_NO_multiscale_comparator_from_Oommen_2026"
+  ],
+  "manufactured_cases": [
+    "exact_field",
+    "weak_vortex_erasure",
+    "weak_vortex_attenuation",
+    "vorticity_sign_reversal",
+    "invented_vortex_false_support",
+    "missing_vectors_on_weak_structure",
+    "irregular_domain_mask",
+    "reference_holes",
+    "nonfinite_values",
+    "insufficient_coverage"
+  ],
+  "explicit_nonclaims": [
+    "no_PIV_image_processing",
+    "no_real_flow_vortex_classifier",
+    "no_3D_validation",
+    "no_empirical_uncertainty_calibration",
+    "no_physical_EHD_experiment",
+    "no_SOTA_superiority_claim",
+    "no_bandwise_energy_spectrum_metric_in_v0"
+  ],
+  "precision_definition": "true retained weak structures divided by all predicted weak support (wrong sign or inadequate amplitude and background false support count as false positives)",
+  "false_support_rate_definition": "false support in reference-defined background divided by background cells with valid reconstructed derivative stencils",
+  "v1_multiscale_spectral_extension": {
+    "status": "specified_research_target_not_in_v0_kernel",
+    "comparator_source": "Oommen et al. (2026), Nature Communications 17:3707, DOI 10.1038/s41467-026-70145-4",
+    "reported_example": {
+      "task": "2D Schlieren jet super_resolution",
+      "vanilla_neural_operator": {
+        "field_nrmse": 0.0542,
+        "energy_spectrum_nrmse": 0.1601
+      },
+      "adversarial_neural_operator": {
+        "field_nrmse": 0.0662,
+        "energy_spectrum_nrmse": 0.0109
+      },
+      "inference_seconds_per_sample_h100": 0.01,
+      "implication": "pointwise field NRMSE and multiscale spectral fidelity can rank methods differently"
+    },
+    "metrics": [
+      "directional_1D_and_2D_energy_spectra_where_assumptions_admit",
+      "predeclared_wavenumber_band_log_energy_error",
+      "high_wavenumber_tail_energy_retention",
+      "spectral_slope_error_over_common_resolvable_band",
+      "phase_alignment_and_spatial_displacement",
+      "velocity_gradient_pdf_and_intermittency_tails",
+      "Q_R_joint_pdf_only_with_supported_full_3D_gradient_tensor",
+      "observed_vector_measurement_consistency",
+      "posterior_energy_score_variogram_score_and_sample_diversity_for_generative_inverse_methods"
+    ],
+    "measurement_resolution_guard": {
+      "required_metadata": [
+        "interrogation_window_transfer",
+        "optical_blur_or_psf",
+        "pixel_and_vector_spacing",
+        "filtering",
+        "sampling_and_nyquist_limit",
+        "noise_floor",
+        "domain_mask_and_edge_window"
+      ],
+      "policy": "score only the common resolvable wavenumber band; do not reward energy above instrument resolution or noise floor",
+      "no_zero_fill_fft_on_masked_data": true,
+      "no_radial_spectrum_unless_isotropy_justified": true
+    },
+    "non_substitution_rule": "spectral fidelity cannot excuse wrong vortex phase/location/sign, false structures or measurement inconsistency; low pointwise error cannot excuse erased high-frequency structure",
+    "explicit_nonclaims": [
+      "no_spectral_metric_implemented_in_v0",
+      "no_3D_QR_metric_from_2D2C_fields",
+      "no_EHD_validation_from_Schlieren_or_DNS_results"
+    ]
+  }
+}
