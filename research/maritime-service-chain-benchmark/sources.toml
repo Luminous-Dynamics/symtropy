@@ -1,0 +1,220 @@
+# SPDX-License-Identifier: CC0-1.0
+# Research source catalog for MARITIME-SERVICE-CHAIN-001.
+# Metadata only: raw datasets have NOT been mirrored in this commit.
+# Never infer a licence from a DOI, paper, or web-accessible file.
+
+schema_version = 1
+catalog_revision = "2026-11-24"
+benchmark_id = "MARITIME-SERVICE-CHAIN-001"
+benchmark_owner = "Symtropy"
+default_ingest_state = "catalogued_not_downloaded"
+default_claim_ceiling = "source-specific sub-benchmark only; no operational or physical qualification"
+
+[[sources]]
+id = "tuhh-logms-horizontal-transport-v2"
+kind = "dataset"
+title = "Performance Metrics and Approximations for Container Terminal Horizontal Transport (LOGMS Data)"
+publisher = "Hamburg University of Technology (TUHH), TORE"
+doi = "10.15480/882.17476"
+canonical_uri = "https://doi.org/10.15480/882.17476"
+repository_uri = "https://tore.tuhh.de/entities/product/da604a58-f07f-4330-b8db-f5847d1847f5"
+version = "2"
+date_issued = "2026-07-14"
+data_class = "simulation"
+rights_marker = "Creative Commons Public Domain Mark 1.0"
+rights_uri = "https://creativecommons.org/publicdomain/mark/1.0/"
+ingest_state = "catalogued_not_downloaded"
+redistribution_state = "not_mirrored"
+intended_benchmark_role = "quay-crane and terminal-truck horizontal-transport sub-benchmark"
+known_scope = "Fixed versus combined allocation scenarios; simulation productivity, waiting times, equipment utilization, and analytical approximations."
+claim_ceiling = "simulation-model comparison only; not observed terminal telemetry, operator performance, vessel-to-receiver service, or physical qualification"
+source_citation = "Ilenburg, Möhle, and Witte (2026), TUHH TORE dataset, version 2."
+notes = "PDM is a public-domain status mark, not a Creative Commons licence grant. Preserve the repository's exact rights statement and source metadata. Attribution is recommended as research provenance even where not legally required."
+
+[[sources.files]]
+name = "LOGMS_data.csv"
+media_type = "text/csv"
+reported_size = "74.57 KB"
+
+[[sources.files]]
+name = "README.md"
+media_type = "text/markdown"
+reported_size = "3.86 KB"
+
+[[sources]]
+id = "tuhh-closed-queueing-logistic-operating-curves-v2"
+kind = "dataset"
+title = "Dataset of Simulated and Approximated Logistic Operating Curves for Closed Queueing Systems at Seaport Container Terminals"
+publisher = "Hamburg University of Technology (TUHH), TORE"
+doi = "10.15480/882.16722"
+canonical_uri = "https://doi.org/10.15480/882.16722"
+repository_uri = "https://tore.tuhh.de/entities/product/2ad8f861-ce3c-4e91-b79f-ac01f3f5a0bb"
+version = "2.0"
+date_issued = "2026-02-20"
+data_class = "simulation"
+rights_marker = "Creative Commons Public Domain Mark 1.0"
+rights_uri = "https://creativecommons.org/publicdomain/mark/1.0/"
+ingest_state = "catalogued_not_downloaded"
+redistribution_state = "not_mirrored"
+intended_benchmark_role = "closed-queueing and ship-to-shore crane productivity sub-benchmark"
+known_scope = "Discrete-event simulation results and Logistic Operating Curve approximations; ship-to-shore crane productivity as horizontal-transport vehicle count changes; includes shared queueing scenarios."
+claim_ceiling = "simulation and analytical-approximation comparison only; not observed terminal telemetry, vessel-to-receiver service, or physical qualification"
+source_citation = "Möhle, Jahn, and Lödding (2026), TUHH TORE dataset, version 2.0; associated APMS 2026 paper."
+notes = "Keep this dataset separate from LOGMS_data.csv. They have different scenario definitions and must not be pooled without an explicit harmonization study."
+
+[[sources.files]]
+name = "Dataset of Simulated and Approximated Logistic Operating Curves for Closed Queueing Systems at Seaport Container Terminals.csv"
+media_type = "text/csv"
+reported_size = "14.4 KB"
+
+[[sources.files]]
+name = "Scenario1.csv"
+media_type = "text/csv"
+reported_size = "1.03 KB"
+
+[[sources.files]]
+name = "Scenario2.csv"
+media_type = "text/csv"
+reported_size = "1.03 KB"
+
+[[sources.files]]
+name = "Scenario3.csv"
+media_type = "text/csv"
+reported_size = "1.03 KB"
+
+[[sources.files]]
+name = "Scenario4.csv"
+media_type = "text/csv"
+reported_size = "1.03 KB"
+
+[[sources.files]]
+name = "Scenario5.csv"
+media_type = "text/csv"
+reported_size = "1.02 KB"
+
+[[sources.files]]
+name = "Scenario6.csv"
+media_type = "text/csv"
+reported_size = "1.03 KB"
+
+[[sources.files]]
+name = "Scenario7.csv"
+media_type = "text/csv"
+reported_size = "1.05 KB"
+
+[[sources.files]]
+name = "ReadMe.txt"
+media_type = "text/plain"
+reported_size = "4.72 KB"
+
+[[sources]]
+id = "duisburg-test-case-shallow-water-2026"
+kind = "experimental-benchmark-reference"
+title = "Duisburg Test Case: post-Panamax container ship for benchmarking resistance and propulsion under shallow water conditions"
+publisher = "Journal of Marine Science and Engineering / Taylor & Francis"
+doi = "10.1080/09377255.2026.2644800"
+canonical_uri = "https://doi.org/10.1080/09377255.2026.2644800"
+date_published = "2026-03-27"
+data_class = "physical_model_experiment"
+rights_marker = "not_established_in_this_catalog"
+ingest_state = "reference_only"
+redistribution_state = "not_mirrored_rights_review_required"
+intended_benchmark_role = "held-out hydrodynamic resistance and self-propulsion validation reference for shallow-water regimes"
+known_scope = "Publicly described experimental data for a 14,000-TEU post-Panamax benchmark hull at water-depth-to-draught ratios h/T = 4.0, 2.0, and 1.2; calm-water model tests."
+claim_ceiling = "hydrodynamic model validation within the experiment's hull, scale, and calm-water conditions; not port scheduling, field navigability, or universal vessel applicability"
+notes = "The paper states that data are publicly available, but this catalog has not established an item-level redistribution licence. Do not mirror the files until the applicable rights and attribution conditions are checked."
+
+[[sources]]
+id = "robust-bqcyap-2026"
+kind = "optimization-paper"
+title = "Robust optimization for the integrated berth allocation, quay crane assignment, and yard assignment problem"
+publisher = "Computers & Industrial Engineering"
+doi = "10.1016/j.cie.2026.112092"
+canonical_uri = "https://doi.org/10.1016/j.cie.2026.112092"
+date_published = "2026-08"
+data_class = "published_synthetic_or_case_experiments"
+intended_benchmark_role = "two-stage robust berth/quay-crane/yard comparator; column-and-constraint generation exact method for tractable instances and heuristic for larger cases"
+claim_ceiling = "matched-problem optimization comparator only; published case-specific results are not transferable to Durban or the service-chain benchmark"
+ingest_state = "reference_catalogued"
+
+[[sources]]
+id = "berth-qc-agv-coordinated-scheduling-2026"
+kind = "optimization-paper"
+title = "A Multi-Resource Coordinated Scheduling Optimization Framework Integrating Berth Allocation, Quay Crane Operation, and AGV Transportation in Automated Container Terminals"
+publisher = "Journal of Marine Science and Engineering"
+doi = "10.3390/jmse14181714"
+canonical_uri = "https://doi.org/10.3390/jmse14181714"
+date_published = "2026-09-15"
+data_class = "published_computational_experiments"
+intended_benchmark_role = "integrated berth, quay-crane, and AGV scheduling comparator"
+claim_ceiling = "matched berth/quay/AGV experiments only; paper's stated model does not compose full-yard, rail, feeder, and receiver stages"
+ingest_state = "reference_catalogued"
+
+[[sources]]
+id = "robust-berth-yard-shore-power-2026"
+kind = "optimization-paper"
+title = "An integrated robust framework for berth, yard, and shore power planning considering vessel arrival uncertainty"
+publisher = "Ocean Engineering"
+doi = "10.1016/j.oceaneng.2026.125850"
+canonical_uri = "https://doi.org/10.1016/j.oceaneng.2026.125850"
+date_published = "2026-06-15"
+data_class = "published_computational_experiments"
+intended_benchmark_role = "robust berth/yard/shore-power planning comparator under vessel-arrival uncertainty"
+claim_ceiling = "matched BYAOP/shore-power experiments only; published 4-13 percent cost savings are study-specific and are not project results"
+ingest_state = "reference_catalogued"
+
+[[sources]]
+id = "disrupted-seaside-planning-review-2026"
+kind = "systematic-review"
+title = "Recovery strategies for disrupted seaside planning in container terminals: a systematic review"
+publisher = "International Journal of Production Research"
+doi = "10.1080/00207543.2026.2719841"
+canonical_uri = "https://doi.org/10.1080/00207543.2026.2719841"
+date_published = "2026"
+data_class = "literature_review"
+intended_benchmark_role = "research-gap and recovery-strategy taxonomy"
+known_scope = "Systematic synthesis of 46 studies published between 2007 and 2025, covering berth allocation, quay-crane assignment, and quay-crane scheduling recovery."
+claim_ceiling = "literature synthesis; not a benchmark dataset or evidence that any one system is superior"
+ingest_state = "reference_catalogued"
+
+[[sources]]
+id = "dcsa-port-call-standard"
+kind = "industry-data-standard"
+title = "DCSA Port Call Standard"
+publisher = "Digital Container Shipping Association"
+canonical_uri = "https://dcsa.org/standards/just-in-time-port-call-"
+intended_benchmark_role = "interoperable port-call planning and event exchange semantics"
+claim_ceiling = "port-call data exchange standard; not cargo custody, receiver handoff proof, or a complete terminal operating model"
+ingest_state = "reference_catalogued"
+
+[[sources]]
+id = "iaph-ihma-port-call-optimization-guide-2026"
+kind = "industry-data-guide"
+title = "Guide for Harmonized Communication and Electronic Exchange of Nautical and Operational Data for Port Calls"
+publisher = "IAPH and IHMA"
+canonical_uri = "https://www.iaphworldports.org/pickup/21900/"
+date_published = "2026-03-25"
+intended_benchmark_role = "minimum port-call data exchange and interoperability design comparator"
+claim_ceiling = "harmonized nautical and operational port-call data; not full cargo-to-receiver lifecycle evidence"
+ingest_state = "reference_catalogued"
+
+[[sources]]
+id = "kaleris-n4-tos"
+kind = "commercial-platform"
+title = "Kaleris N4 Terminal Operating System"
+publisher = "Kaleris"
+canonical_uri = "https://kaleris.com/terminal-operating-system/kaleris-n4-tos/"
+intended_benchmark_role = "industry integration comparator for vessel, yard, rail, gate, and control-room operations"
+claim_ceiling = "vendor-published product capability; vendor adoption figures are not independently verified in this catalog"
+ingest_state = "reference_catalogued"
+
+[[sources]]
+id = "world-bank-cppi-2025"
+kind = "industry-performance-index"
+title = "Container Port Performance Index 2025"
+publisher = "World Bank and S&P Global Market Intelligence"
+canonical_uri = "https://www.worldbank.org/en/topic/transport/publication/cppi"
+date_published = "2026-06-10"
+intended_benchmark_role = "port-level vessel time-in-port comparator"
+claim_ceiling = "aggregate port-level vessel time in port, including waiting and berth time; not terminal-specific cargo-to-receiver delivery or participant-level service fairness"
+ingest_state = "reference_catalogued"
