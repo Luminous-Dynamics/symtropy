@@ -104,8 +104,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let selected = &plans.mission_global_minimax_risk;
     let path_distributions = mission_path_loss_distributions(&problem, &actions, selected)?;
 
-    for model in 0..2 {
-        let reconstructed_mean = expected_loss(&path_distributions[model])?;
+    for (model, distribution) in path_distributions.iter().enumerate() {
+        let reconstructed_mean = expected_loss(distribution)?;
         let oracle_mean = ExactRisk::from_ratio(
             selected.model_loss_numerators[model],
             selected.risk_denominator,
