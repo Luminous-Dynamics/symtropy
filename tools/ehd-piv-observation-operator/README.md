@@ -28,3 +28,7 @@ Noise values are inputs, not generated implicitly. The same frozen inputs theref
     cargo fmt --manifest-path tools/ehd-piv-observation-operator/Cargo.toml -- --check
     cargo test --manifest-path tools/ehd-piv-observation-operator/Cargo.toml
     cargo clippy --manifest-path tools/ehd-piv-observation-operator/Cargo.toml --all-targets -- -D warnings
+
+## Manufactured test inventory
+
+The V0 crate currently contains 11 deterministic Rust tests covering stationary frames, analytic translation, exposure smear, out-of-plane illumination attenuation, optical PSF width, sensor gain/noise/quantization/saturation, pixel masking, fail-closed domain boundaries, malformed inputs, field/image support and numeric overflow.
