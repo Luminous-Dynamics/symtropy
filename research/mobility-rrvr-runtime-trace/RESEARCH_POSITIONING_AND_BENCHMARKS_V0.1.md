@@ -528,3 +528,8 @@ Do not call the current abstract TLC check a Rust refinement proof. The physical
 ### World-generation and clock-identity substitution controls
 
 For identical plan/run/fault/target fields, vary only the verified simulator world epoch, then only the clock ID. Both the derived idempotency key and payload digest must change. A dispatch request reconstructed with a stale pre-reset epoch or a different clock must be rejected before injector admission. This is distinct from controller boot/controller epochs and should be included in the crash-cut corpus.
+
+
+### Reconciliation-to-dispatch replay controls
+
+For a single registered request, exercise ledger outcomes Accepted, Rejected, NoDispatchProven, Unknown and PayloadConflict. After recording each decision locally, repeat the same dispatch request and require zero additional injector calls; the returned status must preserve the reconciled decision. Reconcile a request with a modified target under the same key and require PayloadConflict. Attempt reconciliation before the journal restores the local request binding and require Unresolved. A new physical retry must use a new attempt identity and must pass RRVR recovery qualification; NoDispatchProven on the old key is not by itself authority to issue a new effect.
