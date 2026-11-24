@@ -512,7 +512,7 @@ mod tests {
             &PatchSupportEnvelopeInput {
                 parameter_set: &parameters,
                 capacity_scale_interval: [2.0, 2.0],
-                capacity_scale_digest: "capacity-2N-synthetic-v1".to_owned(),
+                    capacity_scale_digest: "capacity-2N-synthetic-v1".to_owned(),
                 slip_twist: [1.0, 1.0, 0.0],
             },
             SupportEnvelopeConfig::default(),
@@ -581,7 +581,7 @@ mod tests {
             &PatchSupportEnvelopeInput {
                 parameter_set: &parameters,
                 capacity_scale_interval: [1.0, 1.0],
-                capacity_scale_digest: "capacity-1N-synthetic-v1".to_owned(),
+            capacity_scale_digest: "capacity-1N-synthetic-v1".to_owned(),
                 slip_twist: [1.0, 0.0, 0.0],
             },
             SupportEnvelopeConfig::default(),
@@ -634,7 +634,7 @@ mod tests {
             &PatchSupportEnvelopeInput {
                 parameter_set: &parameters,
                 capacity_scale_interval: [2.0, 2.0],
-                capacity_scale_digest: "capacity-2N-synthetic-v1".to_owned(),
+                    capacity_scale_digest: "capacity-2N-synthetic-v1".to_owned(),
                 slip_twist: [0.0, 0.0, 2.0],
             },
             SupportEnvelopeConfig::default(),
@@ -659,7 +659,7 @@ mod tests {
             &PatchSupportEnvelopeInput {
                 parameter_set: &parameters,
                 capacity_scale_interval: [2.0, 2.0],
-                capacity_scale_digest: "capacity-2N-synthetic-v1".to_owned(),
+                    capacity_scale_digest: "capacity-2N-synthetic-v1".to_owned(),
                 slip_twist: [1.0, 1.0, 0.0],
             },
             SupportEnvelopeConfig::default(),
@@ -688,7 +688,7 @@ mod tests {
         let input = PatchSupportEnvelopeInput {
             parameter_set: &parameters,
             capacity_scale_interval: [1.0, 1.0],
-                capacity_scale_digest: "capacity-1N-synthetic-v1".to_owned(),
+            capacity_scale_digest: "capacity-1N-synthetic-v1".to_owned(),
             slip_twist: [1.0, 0.0, 0.0],
         };
         assert_eq!(
@@ -731,7 +731,7 @@ mod tests {
                 &PatchSupportEnvelopeInput {
                     parameter_set,
                     capacity_scale_interval: [2.0, 2.0],
-                capacity_scale_digest: "capacity-2N-synthetic-v1".to_owned(),
+                    capacity_scale_digest: "capacity-2N-synthetic-v1".to_owned(),
                     slip_twist: [1.0, 1.0, 0.0],
                 },
                 SupportEnvelopeConfig::default(),
@@ -745,6 +745,36 @@ mod tests {
         assert_eq!(
             evaluate(&first).support_lower_bound,
             evaluate(&second).support_lower_bound
+        );
+    }
+
+    #[test]
+    fn capacity_interval_scales_lower_and_upper_support_monotonically() {
+        let parameters = report(
+            vec![[1.0, 1.0, 1.0]],
+            [
+                interval(1.0, Some(1.0)),
+                interval(1.0, Some(1.0)),
+                interval(1.0, Some(1.0)),
+            ],
+            ParameterSetStatus::FeasibleWithFiniteIntervals,
+        );
+        let result = compute_patch_support_envelope(
+            &PatchSupportEnvelopeInput {
+                parameter_set: &parameters,
+                capacity_scale_interval: [1.0, 2.0],
+                capacity_scale_digest: "mu-normal-load-bracket-synthetic-v1".to_owned(),
+                slip_twist: [1.0, 0.0, 0.0],
+            },
+            SupportEnvelopeConfig::default(),
+        )
+        .expect("capacity interval");
+        close(result.support_lower_bound.unwrap(), 1.0, 1.0e-12);
+        close(result.support_upper_bound.unwrap(), 2.0, 1.0e-12);
+        assert_eq!(result.capacity_scale_interval, [1.0, 2.0]);
+        assert_eq!(
+            result.capacity_scale_digest,
+            "mu-normal-load-bracket-synthetic-v1"
         );
     }
 
