@@ -167,6 +167,7 @@ pub enum JournalEvent {
         clock_id: String,
         expected_initial_state_sha256: String,
         run_id: String,
+        run_epoch: String,
     },
     ResetOutcome {
         reset_id: String,
@@ -182,6 +183,8 @@ pub enum JournalEvent {
         payload_sha256: String,
         reset_id: String,
         plan_sha256: String,
+        simulator_profile_sha256: String,
+        world_id: String,
         logical_effect_id: String,
         attempt_id: String,
         campaign_id: String,
@@ -206,6 +209,69 @@ pub enum JournalEvent {
         dispatch_id: Option<String>,
         ledger_artifact_sha256: Option<String>,
     },
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResetIntentRecord {
+    pub reset_id: String,
+    pub plan_sha256: String,
+    pub simulator_profile_sha256: String,
+    pub world_id: String,
+    pub prior_world_epoch: String,
+    pub clock_id: String,
+    pub expected_initial_state_sha256: String,
+    pub run_id: String,
+    pub run_epoch: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResetOutcomeRecord {
+    pub reset_id: String,
+    pub source: ResetOutcomeSource,
+    pub status: ResetOutcomeStatus,
+    pub observed_world_epoch: Option<String>,
+    pub observed_clock_id: Option<String>,
+    pub observed_initial_state_sha256: Option<String>,
+    pub observation_artifact_sha256: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct DispatchIntentRecord {
+    pub idempotency_key: String,
+    pub payload_sha256: String,
+    pub reset_id: String,
+    pub plan_sha256: String,
+    pub simulator_profile_sha256: String,
+    pub world_id: String,
+    pub logical_effect_id: String,
+    pub attempt_id: String,
+    pub campaign_id: String,
+    pub pair_id: String,
+    pub scenario_id: String,
+    pub fault_id: String,
+    pub fault_sequence: u32,
+    pub run_id: String,
+    pub run_epoch: String,
+    pub world_epoch: String,
+    pub clock_id: String,
+    pub target_id: String,
+    pub fault_domain_id: String,
+    pub scheduled_simulation_step: u64,
+    pub parameters_sha256: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct DispatchOutcomeRecord {
+    pub idempotency_key: String,
+    pub payload_sha256: String,
+    pub source: DispatchOutcomeSource,
+    pub status: DispatchOutcomeStatus,
+    pub dispatch_id: Option<String>,
+    pub ledger_artifact_sha256: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -272,6 +338,7 @@ struct ResetIntentBinding {
     clock_id: String,
     expected_initial_state_sha256: String,
     run_id: String,
+    run_epoch: String,
     verified_world_epoch: Option<String>,
 }
 
@@ -284,6 +351,7 @@ struct DispatchIntentBinding {
 struct JournalIndex {
     reset_intents: BTreeMap<String, ResetIntentBinding>,
     reset_status: BTreeMap<String, ResetOutcomeStatus>,
+    reset_scopes: std::collections::BTreeSet<(String, String, String)>,
     dispatch_intents: BTreeMap<String, DispatchIntentBinding>,
     dispatch_status: BTreeMap<String, DispatchOutcomeStatus>,
 }
@@ -300,6 +368,7 @@ impl JournalIndex {
                 clock_id,
                 expected_initial_state_sha256,
                 run_id,
+                run_epoch,
             } => {
                 if !nonempty(reset_id)
                     || !valid_sha256(plan_sha256)
@@ -309,10 +378,19 @@ impl JournalIndex {
                     || !nonempty(clock_id)
                     || !valid_sha256(expected_initial_state_sha256)
                     || !nonempty(run_id)
+                    || !nonempty(run_epoch)
                 {
                     return Err(JournalError::MissingIdentity);
                 }
                 if self.reset_intents.contains_key(reset_id) {
+                    return Err(JournalError::DuplicateResetId);
+                }
+                let reset_scope = (
+                    run_id.clone(),
+                    world_id.clone(),
+                    prior_world_epoch.clone(),
+                );
+                if !self.reset_scopes.insert(reset_scope) {
                     return Err(JournalError::DuplicateResetId);
                 }
                 self.reset_intents.insert(
@@ -325,6 +403,7 @@ impl JournalIndex {
                         clock_id: clock_id.clone(),
                         expected_initial_state_sha256: expected_initial_state_sha256.clone(),
                         run_id: run_id.clone(),
+                        run_epoch: run_epoch.clone(),
                         verified_world_epoch: None,
                     },
                 );
@@ -400,6 +479,8 @@ impl JournalIndex {
                 payload_sha256,
                 reset_id,
                 plan_sha256,
+                simulator_profile_sha256,
+                world_id,
                 logical_effect_id,
                 attempt_id,
                 campaign_id,
@@ -420,6 +501,8 @@ impl JournalIndex {
                     || !nonempty(logical_effect_id)
                     || !nonempty(attempt_id)
                     || !valid_sha256(plan_sha256)
+                    || !valid_sha256(simulator_profile_sha256)
+                    || !nonempty(world_id)
                     || !nonempty(campaign_id)
                     || !nonempty(pair_id)
                     || !nonempty(scenario_id)
@@ -445,7 +528,10 @@ impl JournalIndex {
                     return Err(JournalError::ResetNotVerified);
                 }
                 if reset.plan_sha256 != *plan_sha256
+                    || reset.simulator_profile_sha256 != *simulator_profile_sha256
+                    || reset.world_id != *world_id
                     || reset.run_id != *run_id
+                    || reset.run_epoch != *run_epoch
                     || reset.clock_id != *clock_id
                     || reset.verified_world_epoch.as_deref() != Some(world_epoch.as_str())
                 {
@@ -603,7 +689,13 @@ impl Journal {
     /// Open a single-writer journal. A stale writer lock is never stolen.
     pub fn open(path: impl AsRef<Path>) -> Result<Self, JournalError> {
         let path = path.as_ref().to_path_buf();
-        let parent = path.parent().ok_or(JournalError::InvalidPath)?;
+        let parent = path
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+            .unwrap_or_else(|| Path::new("."));
+        if path.file_name().is_none() {
+            return Err(JournalError::InvalidPath);
+        }
         fs::create_dir_all(parent).map_err(io_error)?;
         let lease = WriterLease::acquire(&path)?;
         let mut file = OpenOptions::new()
@@ -636,114 +728,82 @@ impl Journal {
 
     /// Persist a reset intent before calling ResetSimulation. Do not call the
     /// simulator unless this method returns Ok.
+    /// Persist a reset intent before calling ResetSimulation. Do not call the
+    /// simulator unless this method returns Ok.
     pub fn append_reset_intent(
         &mut self,
-        reset_id: impl Into<String>,
-        plan_sha256: impl Into<String>,
-        simulator_profile_sha256: impl Into<String>,
-        world_id: impl Into<String>,
-        prior_world_epoch: impl Into<String>,
-        clock_id: impl Into<String>,
-        expected_initial_state_sha256: impl Into<String>,
-        run_id: impl Into<String>,
+        record: ResetIntentRecord,
     ) -> Result<JournalEntry, JournalError> {
         self.append(JournalEvent::ResetIntent {
-            reset_id: reset_id.into(),
-            plan_sha256: plan_sha256.into(),
-            simulator_profile_sha256: simulator_profile_sha256.into(),
-            world_id: world_id.into(),
-            prior_world_epoch: prior_world_epoch.into(),
-            clock_id: clock_id.into(),
-            expected_initial_state_sha256: expected_initial_state_sha256.into(),
-            run_id: run_id.into(),
+            reset_id: record.reset_id,
+            plan_sha256: record.plan_sha256,
+            simulator_profile_sha256: record.simulator_profile_sha256,
+            world_id: record.world_id,
+            prior_world_epoch: record.prior_world_epoch,
+            clock_id: record.clock_id,
+            expected_initial_state_sha256: record.expected_initial_state_sha256,
+            run_id: record.run_id,
+            run_epoch: record.run_epoch,
         })
     }
 
     pub fn append_reset_outcome(
         &mut self,
-        reset_id: impl Into<String>,
-        source: ResetOutcomeSource,
-        status: ResetOutcomeStatus,
-        observed_world_epoch: Option<String>,
-        observed_clock_id: Option<String>,
-        observed_initial_state_sha256: Option<String>,
-        observation_artifact_sha256: Option<String>,
+        record: ResetOutcomeRecord,
     ) -> Result<JournalEntry, JournalError> {
         self.append(JournalEvent::ResetOutcome {
-            reset_id: reset_id.into(),
-            source,
-            status,
-            observed_world_epoch,
-            observed_clock_id,
-            observed_initial_state_sha256,
-            observation_artifact_sha256,
+            reset_id: record.reset_id,
+            source: record.source,
+            status: record.status,
+            observed_world_epoch: record.observed_world_epoch,
+            observed_clock_id: record.observed_clock_id,
+            observed_initial_state_sha256: record.observed_initial_state_sha256,
+            observation_artifact_sha256: record.observation_artifact_sha256,
         })
     }
 
     /// Persist a plan/run/world/clock/target-bound dispatch intent before
     /// calling the injector. A failed return MUST suppress the transport call.
-    #[allow(clippy::too_many_arguments)]
     pub fn append_dispatch_intent(
         &mut self,
-        idempotency_key: impl Into<String>,
-        payload_sha256: impl Into<String>,
-        reset_id: impl Into<String>,
-        plan_sha256: impl Into<String>,
-        logical_effect_id: impl Into<String>,
-        attempt_id: impl Into<String>,
-        campaign_id: impl Into<String>,
-        pair_id: impl Into<String>,
-        scenario_id: impl Into<String>,
-        fault_id: impl Into<String>,
-        fault_sequence: u32,
-        run_id: impl Into<String>,
-        run_epoch: impl Into<String>,
-        world_epoch: impl Into<String>,
-        clock_id: impl Into<String>,
-        target_id: impl Into<String>,
-        fault_domain_id: impl Into<String>,
-        scheduled_simulation_step: u64,
-        parameters_sha256: impl Into<String>,
+        record: DispatchIntentRecord,
     ) -> Result<JournalEntry, JournalError> {
         self.append(JournalEvent::DispatchIntent {
-            idempotency_key: idempotency_key.into(),
-            payload_sha256: payload_sha256.into(),
-            reset_id: reset_id.into(),
-            plan_sha256: plan_sha256.into(),
-            logical_effect_id: logical_effect_id.into(),
-            attempt_id: attempt_id.into(),
-            campaign_id: campaign_id.into(),
-            pair_id: pair_id.into(),
-            scenario_id: scenario_id.into(),
-            fault_id: fault_id.into(),
-            fault_sequence,
-            run_id: run_id.into(),
-            run_epoch: run_epoch.into(),
-            world_epoch: world_epoch.into(),
-            clock_id: clock_id.into(),
-            target_id: target_id.into(),
-            fault_domain_id: fault_domain_id.into(),
-            scheduled_simulation_step,
-            parameters_sha256: parameters_sha256.into(),
+            idempotency_key: record.idempotency_key,
+            payload_sha256: record.payload_sha256,
+            reset_id: record.reset_id,
+            plan_sha256: record.plan_sha256,
+            simulator_profile_sha256: record.simulator_profile_sha256,
+            world_id: record.world_id,
+            logical_effect_id: record.logical_effect_id,
+            attempt_id: record.attempt_id,
+            campaign_id: record.campaign_id,
+            pair_id: record.pair_id,
+            scenario_id: record.scenario_id,
+            fault_id: record.fault_id,
+            fault_sequence: record.fault_sequence,
+            run_id: record.run_id,
+            run_epoch: record.run_epoch,
+            world_epoch: record.world_epoch,
+            clock_id: record.clock_id,
+            target_id: record.target_id,
+            fault_domain_id: record.fault_domain_id,
+            scheduled_simulation_step: record.scheduled_simulation_step,
+            parameters_sha256: record.parameters_sha256,
         })
     }
 
     pub fn append_dispatch_outcome(
         &mut self,
-        idempotency_key: impl Into<String>,
-        payload_sha256: impl Into<String>,
-        source: DispatchOutcomeSource,
-        status: DispatchOutcomeStatus,
-        dispatch_id: Option<String>,
-        ledger_artifact_sha256: Option<String>,
+        record: DispatchOutcomeRecord,
     ) -> Result<JournalEntry, JournalError> {
         self.append(JournalEvent::DispatchOutcome {
-            idempotency_key: idempotency_key.into(),
-            payload_sha256: payload_sha256.into(),
-            source,
-            status,
-            dispatch_id,
-            ledger_artifact_sha256,
+            idempotency_key: record.idempotency_key,
+            payload_sha256: record.payload_sha256,
+            source: record.source,
+            status: record.status,
+            dispatch_id: record.dispatch_id,
+            ledger_artifact_sha256: record.ledger_artifact_sha256,
         })
     }
 
@@ -866,65 +926,64 @@ mod tests {
     }
 
     fn append_verified_reset(journal: &mut Journal) {
-        journal
-            .append_reset_intent(
-                "reset-1",
-                digest('a'),
-                digest('b'),
-                "world-1",
-                "world-epoch-1",
-                "clock-1",
-                digest('c'),
-                "run-1",
-            )
+        journal.append_reset_intent(ResetIntentRecord {
+            reset_id: "reset-1".into(),
+            plan_sha256: digest('a'),
+            simulator_profile_sha256: digest('b'),
+            world_id: "world-1".into(),
+            prior_world_epoch: "world-epoch-1".into(),
+            clock_id: "clock-1".into(),
+            expected_initial_state_sha256: digest('c'),
+            run_id: "run-1".into(),
+            run_epoch: "run-epoch-1".into(),
+        })
             .unwrap();
-        journal
-            .append_reset_outcome(
-                "reset-1",
-                ResetOutcomeSource::TransportResponse,
-                ResetOutcomeStatus::ResponseUnknown,
-                None,
-                None,
-                None,
-                None,
-            )
+        journal.append_reset_outcome(ResetOutcomeRecord {
+            reset_id: "reset-1".into(),
+            source: ResetOutcomeSource::TransportResponse,
+            status: ResetOutcomeStatus::ResponseUnknown,
+            observed_world_epoch: None,
+            observed_clock_id: None,
+            observed_initial_state_sha256: None,
+            observation_artifact_sha256: None,
+        })
             .unwrap();
-        journal
-            .append_reset_outcome(
-                "reset-1",
-                ResetOutcomeSource::Reconciliation,
-                ResetOutcomeStatus::Verified,
-                Some("world-epoch-2".into()),
-                Some("clock-1".into()),
-                Some(digest('c')),
-                Some(digest('d')),
-            )
+        journal.append_reset_outcome(ResetOutcomeRecord {
+            reset_id: "reset-1".into(),
+            source: ResetOutcomeSource::Reconciliation,
+            status: ResetOutcomeStatus::Verified,
+            observed_world_epoch: Some("world-epoch-2".into()),
+            observed_clock_id: Some("clock-1".into()),
+            observed_initial_state_sha256: Some(digest('c')),
+            observation_artifact_sha256: Some(digest('d')),
+        })
             .unwrap();
     }
 
     fn append_dispatch_intent(journal: &mut Journal) {
-        journal
-            .append_dispatch_intent(
-                "rrvr/v0.1/test-key-1",
-                digest('e'),
-                "reset-1",
-                digest('a'),
-                "logical-effect-1",
-                "attempt-1",
-                "campaign-1",
-                "pair-1",
-                "scenario-1",
-                "fault-1",
-                1,
-                "run-1",
-                "run-epoch-1",
-                "world-epoch-2",
-                "clock-1",
-                "entity-1",
-                "injector-domain-1",
-                42,
-                digest('f'),
-            )
+        journal.append_dispatch_intent(DispatchIntentRecord {
+            idempotency_key: "rrvr/v0.1/test-key-1".into(),
+            payload_sha256: digest('e'),
+            reset_id: "reset-1".into(),
+            plan_sha256: digest('a'),
+            simulator_profile_sha256: digest('b'),
+            world_id: "world-1".into(),
+            logical_effect_id: "logical-effect-1".into(),
+            attempt_id: "attempt-1".into(),
+            campaign_id: "campaign-1".into(),
+            pair_id: "pair-1".into(),
+            scenario_id: "scenario-1".into(),
+            fault_id: "fault-1".into(),
+            fault_sequence: 1,
+            run_id: "run-1".into(),
+            run_epoch: "run-epoch-1".into(),
+            world_epoch: "world-epoch-2".into(),
+            clock_id: "clock-1".into(),
+            target_id: "entity-1".into(),
+            fault_domain_id: "injector-domain-1".into(),
+            scheduled_simulation_step: 42,
+            parameters_sha256: digest('f'),
+        })
             .unwrap();
     }
 
@@ -952,25 +1011,23 @@ mod tests {
             );
             append_verified_reset(&mut journal);
             append_dispatch_intent(&mut journal);
-            journal
-                .append_dispatch_outcome(
-                    "rrvr/v0.1/test-key-1",
-                    digest('e'),
-                    DispatchOutcomeSource::TransportResponse,
-                    DispatchOutcomeStatus::ResponseUnknown,
-                    None,
-                    None,
-                )
+            journal.append_dispatch_outcome(DispatchOutcomeRecord {
+                idempotency_key: "rrvr/v0.1/test-key-1".into(),
+                payload_sha256: digest('e'),
+                source: DispatchOutcomeSource::TransportResponse,
+                status: DispatchOutcomeStatus::ResponseUnknown,
+                dispatch_id: None,
+                ledger_artifact_sha256: None,
+            })
                 .unwrap();
-            journal
-                .append_dispatch_outcome(
-                    "rrvr/v0.1/test-key-1",
-                    digest('e'),
-                    DispatchOutcomeSource::InjectorLedgerLookup,
-                    DispatchOutcomeStatus::ReconciledAccepted,
-                    Some("dispatch-1".into()),
-                    Some(digest('9')),
-                )
+            journal.append_dispatch_outcome(DispatchOutcomeRecord {
+                idempotency_key: "rrvr/v0.1/test-key-1".into(),
+                payload_sha256: digest('e'),
+                source: DispatchOutcomeSource::InjectorLedgerLookup,
+                status: DispatchOutcomeStatus::ReconciledAccepted,
+                dispatch_id: Some("dispatch-1".into()),
+                ledger_artifact_sha256: Some(digest('9')),
+            })
                 .unwrap();
             assert_eq!(journal.summary().entry_count, 5);
         }
@@ -987,7 +1044,10 @@ mod tests {
     fn writer_lease_is_exclusive_and_not_stolen() {
         let path = temp_journal_path("lease");
         let journal = Journal::open(&path).unwrap();
-        assert_eq!(Journal::open(&path).unwrap_err(), JournalError::WriterLeaseExists);
+        assert!(matches!(
+            Journal::open(&path),
+            Err(JournalError::WriterLeaseExists)
+        ));
         drop(journal);
         assert!(Journal::open(&path).is_ok());
         cleanup(&path);
@@ -1014,7 +1074,11 @@ mod tests {
             append_verified_reset(&mut journal);
         }
         let mut bytes = fs::read(&path).unwrap();
-        let position = bytes.windows(9).position(|window| window == b"world-1\"").unwrap();
+        let needle = b"world-1\"";
+        let position = bytes
+            .windows(needle.len())
+            .position(|window| window == needle)
+            .unwrap();
         bytes[position + 6] = b'2';
         fs::write(&path, bytes).unwrap();
         assert!(matches!(
