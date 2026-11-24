@@ -166,7 +166,7 @@ These are frozen synthetic known answers, not measured deployments or predictive
 
 ## 8. Negative controls
 
-The focused Rust tests include:
+The module currently contains 17 focused Rust test definitions. They include:
 - future forecast after target start;
 - calibration outcome at or after earliest holdout forecast;
 - exact metric measurement-boundary mismatch;
@@ -175,6 +175,8 @@ The focused Rust tests include:
 - insufficient calibration support;
 - interval point outside its lower/upper bounds;
 - deterministic report under input permutation;
+- on-time probability scoring uses holdout outcomes only;
+- interval coverage, Wilson lower bounds and interval width remain separate outputs;
 - synthetic evidence cannot produce field qualification or empirical support.
 
 The evaluator should be extended with more adversarial cases before production use: repeated measurements from one pack counted as independent samples, chemistry/configuration pooling, an unobserved regime, post-selection of a calibration cohort, changed model version, missing target labels, and a shift that preserves mean error but breaks tail coverage.
