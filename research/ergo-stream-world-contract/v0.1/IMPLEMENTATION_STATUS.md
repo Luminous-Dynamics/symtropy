@@ -398,3 +398,10 @@ The fitter requires matched forecast/outcome IDs in one evaluator-owned stratum.
 Five additional tests cover finite-sample rank and singleton output, conservative full-set fallback when calibration is small, mixed-stratum/invalid-alpha rejection, unmatched/duplicate calibration rows and prediction-probability range.
 
 **This split-conformal addition is newer than the last successful e9a5fbf… run; exact-head Rust 1.96 formatting, test/doctest and strict-Clippy verification are pending.**
+
+## Split-conformal preconditions and set-valued edge cases
+
+The split-conformal contract now states that predictor, preprocessing, probability forecast and nonconformity mapping must be frozen independently of calibration outcomes; the calibration cohort cannot be used to fit/select that predictor. Exchangeability is required between independent calibration and future claims within one predeclared evaluator-owned stratum.
+
+A new test covers inclusive quantile ties and the empty prediction set. Empty and both-label sets are distinct in the set-membership fields but both produce no forced class decision. This protects the core reject-option behaviour.
+
