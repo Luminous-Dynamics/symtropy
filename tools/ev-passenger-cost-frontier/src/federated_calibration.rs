@@ -853,6 +853,17 @@ mod tests {
     }
 
     #[test]
+    fn malformed_digest_references_are_rejected() {
+        let mut input = fixture_input();
+        input.query_scope_digest = "sha256:query-01".to_owned();
+        assert!(evaluate_federated_calibration(&input).is_err());
+
+        let mut input = fixture_input();
+        input.summaries[0].local_evidence_digest = "not-a-digest".to_owned();
+        assert!(evaluate_federated_calibration(&input).is_err());
+    }
+
+    #[test]
     fn synthetic_arithmetic_does_not_establish_privacy_or_qualification() {
         let report = evaluate_federated_calibration(&fixture_input()).unwrap();
         assert_eq!(report.membership_cryptographically_verified, false);
