@@ -1,0 +1,292 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/ev-passenger-cost-frontier/schemas/service_prediction_calibration_v0_1.schema.json",
+  "title": "Service Prediction Calibration and Deployment-Shift Audit v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "audit_cutoff_unix_ms",
+    "minimum_calibration_samples_per_group",
+    "minimum_holdout_samples_per_group",
+    "undercoverage_tolerance_permille",
+    "records",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SERVICE-PREDICTION-CALIBRATION-001"
+    },
+    "audit_cutoff_unix_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "minimum_calibration_samples_per_group": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 1000
+    },
+    "minimum_holdout_samples_per_group": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 1000
+    },
+    "undercoverage_tolerance_permille": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 250
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2000,
+      "items": {
+        "$ref": "#/$defs/record"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "configuration_digest",
+        "producer_id",
+        "method_id",
+        "evidence_reference",
+        "evidence_class",
+        "observed_at_unix_ms",
+        "valid_from_unix_ms",
+        "valid_until_unix_ms"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "enum": [
+            "synthetic",
+            "measured",
+            "independent_test",
+            "unknown"
+          ]
+        },
+        "observed_at_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "valid_from_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "valid_until_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_kind",
+        "measurement_boundary",
+        "nominal_coverage_permille",
+        "asset_id",
+        "configuration_digest",
+        "predicted_lower",
+        "predicted_point",
+        "predicted_upper",
+        "observed_value",
+        "forecast_evidence",
+        "observation_evidence"
+      ],
+      "properties": {
+        "metric_kind": {
+          "enum": [
+            "mission_duration_seconds",
+            "pack_terminal_energy_wh",
+            "charge_restoration_seconds",
+            "charger_input_energy_wh",
+            "queue_wait_seconds",
+            "site_pcc_peak_import_w"
+          ]
+        },
+        "measurement_boundary": {
+          "enum": [
+            "mission_clock",
+            "pack_terminal",
+            "charger_service_clock",
+            "charger_input",
+            "site_pcc_meter"
+          ]
+        },
+        "nominal_coverage_permille": {
+          "type": "integer",
+          "minimum": 500,
+          "maximum": 990
+        },
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "predicted_lower": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000
+        },
+        "predicted_point": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000
+        },
+        "predicted_upper": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000
+        },
+        "observed_value": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000
+        },
+        "forecast_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "observation_evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_id",
+        "cohort",
+        "site_id",
+        "site_configuration_digest",
+        "stratum_id",
+        "forecast_model_id",
+        "forecast_model_version",
+        "decision_time_unix_ms",
+        "target_start_unix_ms",
+        "target_end_unix_ms",
+        "on_time_probability_permille",
+        "on_time_observed",
+        "on_time_forecast_evidence",
+        "on_time_evidence",
+        "metrics"
+      ],
+      "properties": {
+        "sample_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "cohort": {
+          "enum": [
+            "calibration",
+            "holdout"
+          ]
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stratum_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96
+        },
+        "forecast_model_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96
+        },
+        "forecast_model_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "decision_time_unix_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "target_start_unix_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "target_end_unix_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "on_time_probability_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "on_time_observed": {
+          "type": "boolean"
+        },
+        "on_time_forecast_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "on_time_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "metrics": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/metric"
+          }
+        }
+      }
+    }
+  }
+}

@@ -438,3 +438,25 @@ Exact-head verification for the 12×16 bitmask-DP plus explicit offline-informat
 
 
 **Information boundary:** a full-horizon exact assignment can use later revealed requests when choosing earlier opportunity assignments. The result is therefore labelled `clairvoyant_full_horizon_offline_upper_bound` and `deployable_online_policy=false`. A separate nonanticipative scenario-tree oracle is tracked in [#7133](https://github.com/Luminous-Dynamics/symtropy/issues/7133).
+
+
+## SERVICE-PREDICTION-CALIBRATION-001 — chronological calibration and deployment-shift audit
+
+Tracked by [#7240](https://github.com/Luminous-Dynamics/symtropy/issues/7240). Research protocol: [Service Prediction Calibration and Deployment-Shift Benchmark v0.1](../../docs/research/SERVICE_PREDICTION_CALIBRATION_AND_DEPLOYMENT_SHIFT_BENCHMARK_V0_1.md).
+
+Run:
+
+```bash
+cargo run --quiet --manifest-path tools/ev-passenger-cost-frontier/Cargo.toml --bin service_prediction_calibration_screen -- \
+  tools/ev-passenger-cost-frontier/fixtures/service_prediction_calibration_v0_1.json
+```
+
+The evaluator separates a chronological calibration cohort from a later holdout and groups metrics by model/version, site configuration, operating stratum, exact resource configuration, metric and measurement boundary. It performs a finite-sample split-conformal interval expansion using calibration residuals only, then reports pre/post holdout coverage, Wilson 95% coverage bounds, interval width, MAE and Winkler score. On-time probability calibration is evaluated separately on holdout with Brier score and reliability bins.
+
+The evidence contract binds every forecast and outcome to exact site/asset/configuration, producer, method, unique evidence reference and time validity. Forecasts must precede the target interval; outcomes must follow it and remain before the audit cutoff. Calibration outcomes must be observed strictly before the earliest holdout forecast in the same group. Pack-terminal Wh, charger-input Wh and PCC-meter values cannot be interchanged.
+
+The frozen synthetic fixture has 100 records (40 calibration, 60 holdout), two strata (`nominal`, `hot_shift`) and 300 metric observations across mission duration, pack-terminal energy and PCC peak import. Expected post-calibration coverage is 1000 permille for each nominal group, and 0 permille with an undercoverage alarm for each hot-shift group. The hot-shift on-time outcome rate is 600 permille despite a constant 900-permille predicted probability.
+
+These are synthetic controls. The evaluator explicitly sets field qualification, model mutation and operational authority to false. Its report labels Wilson intervals as an IID reference calculation; temporal/common-cause dependence needs cluster-aware inference. Synthetic evidence cannot produce an empirically supported status. Split conformal is reported as an empirical diagnostic only; no distribution-free guarantee under arbitrary temporal dependence or deployment shift is claimed.
+
+Files: `src/service_prediction_calibration.rs`, `src/bin/service_prediction_calibration_screen.rs`, `schemas/service_prediction_calibration_v0_1.schema.json`, `fixtures/service_prediction_calibration_v0_1.json`. The module currently contains 17 focused Rust test definitions. Exact-head Actions run [#45333671953](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45333671953) at `9f61b00ea3b4077f5f67409222e27dc20806f835` passed schema/fixture parsing, workspace formatting, Cargo tests, known-answer report assertions and artifact upload (241 tests passed, 0 failed across test binaries). Clippy and field/physical qualification remain separate.
