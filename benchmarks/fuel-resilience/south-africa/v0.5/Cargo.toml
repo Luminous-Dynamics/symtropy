@@ -1,0 +1,16 @@
+[package]
+name = "safrb-service"
+version = "0.5.0"
+edition = "2024"
+publish = false
+license = "Apache-2.0"
+description = "Evidence-aware fuel-to-useful-energy service accounting for SAFRB"
+
+[dependencies]
+
+[[bin]]
+name = "safrb-service"
+path = "src/main.rs"
+
+[workspace]
+# Standalone research crate, intentionally outside the root Symtropy workspace.

@@ -1,0 +1,92 @@
+case_id = "safrb.voi.001"
+revision = 1
+research_cut = "2026-11-24"
+status = "synthetic_finite_world_exact_oracle"
+claim_ceiling = "conditional_exact_enumeration_only"
+cost_unit = "abstract_loss_points"
+probability_unit = "basis_points"
+time_unit = "hours"
+
+[hypotheses.H1]
+description = "Import/cargo delay or physical supply unavailable"
+prior_bps = 3000
+
+[hypotheses.H2]
+description = "Product quality hold, grade mismatch or unusable batch"
+prior_bps = 2500
+
+[hypotheses.H3]
+description = "Generator underperformance or auxiliary-load increase"
+prior_bps = 2500
+
+[hypotheses.H4]
+description = "Demand estimate or service-meter artifact"
+prior_bps = 2000
+
+[actions.A0]
+description = "Wait and monitor"
+loss_points_by_hypothesis = [180, 170, 140, 0]
+
+[actions.A1]
+description = "Procure alternate supply"
+loss_points_by_hypothesis = [35, 160, 145, 80]
+
+[actions.A2]
+description = "Quarantine and replace batch"
+loss_points_by_hypothesis = [145, 30, 140, 90]
+
+[actions.A3]
+description = "Repair or reroute generator"
+loss_points_by_hypothesis = [150, 145, 35, 90]
+
+[actions.A4]
+description = "Validate demand and meter"
+loss_points_by_hypothesis = [150, 150, 130, 20]
+
+[measurements.M1]
+description = "Vessel status"
+positive_outcome = "delayed"
+positive_likelihood_bps_by_hypothesis = [9000, 800, 1200, 1500]
+acquisition_cost = 10
+latency_hours = 1
+source_dependency_group = "SUPPLIER_AND_VESSEL_FEED"
+
+[measurements.M2]
+description = "Laboratory quality sample"
+positive_outcome = "off_spec"
+positive_likelihood_bps_by_hypothesis = [800, 9500, 800, 400]
+acquisition_cost = 20
+latency_hours = 4
+source_dependency_group = "LAB_SAMPLE_CHAIN"
+
+[measurements.M3]
+description = "Generator load-bank performance test"
+positive_outcome = "underperforming"
+positive_likelihood_bps_by_hypothesis = [500, 800, 9500, 500]
+acquisition_cost = 25
+latency_hours = 3
+source_dependency_group = "INDEPENDENT_TEST_INSTRUMENT"
+
+[measurements.M4]
+description = "Independent demand meter check"
+positive_outcome = "discrepancy"
+positive_likelihood_bps_by_hypothesis = [500, 400, 500, 9000]
+acquisition_cost = 8
+latency_hours = 1
+source_dependency_group = "INDEPENDENT_DEMAND_METROLOGY"
+
+[oracle]
+no_test_action = "A1"
+no_test_expected_loss = 102.75
+M1_expected_loss_after_test = 76.75
+M1_gross_evsi = 26.0
+M1_net_evsi = 16.0
+M2_expected_loss_after_test = 74.495
+M2_gross_evsi = 28.255
+M2_net_evsi = 8.255
+M3_expected_loss_after_test = 78.15
+M3_gross_evsi = 24.60
+M3_net_evsi = -0.40
+M4_expected_loss_after_test = 89.725
+M4_gross_evsi = 13.025
+M4_net_evsi = 5.025
