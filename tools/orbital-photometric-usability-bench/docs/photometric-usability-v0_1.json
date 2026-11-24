@@ -1,0 +1,474 @@
+{
+  "schema": "luminous.orbital-photometric-usability.corpus.v0.1",
+  "benchmark_id": "ORBITAL-PHOTO-USABILITY-001",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_declared_brdf_signal_and_sensor_dynamic_range_only",
+  "cases": [
+    {
+      "case_id": "PH-001-DIFFUSE-USABLE",
+      "frame_id": "SYNTHETIC-PHOTOMETRIC-FRAME",
+      "light": {
+        "direction": [
+          0,
+          0,
+          1
+        ],
+        "incident_radiance": 1,
+        "illumination_factor": 1,
+        "asserted": true
+      },
+      "modes": [
+        {
+          "id": "CAMERA-A",
+          "exposure_gain": 1,
+          "noise_floor": 0.01,
+          "saturation": 1,
+          "asserted": true
+        }
+      ],
+      "samples": [
+        {
+          "id": "P1",
+          "geometry": "PASS",
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "view_direction": [
+            0,
+            0,
+            1
+          ],
+          "material_asserted": true,
+          "brdf": {
+            "model": "LAMBERTIAN",
+            "albedo": 0.8
+          }
+        },
+        {
+          "id": "P2",
+          "geometry": "PASS",
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "view_direction": [
+            0,
+            0,
+            1
+          ],
+          "material_asserted": true,
+          "brdf": {
+            "model": "LAMBERTIAN",
+            "albedo": 0.55
+          }
+        }
+      ],
+      "expected": [
+        {
+          "mode_id": "CAMERA-A",
+          "summary": "FULLY_USABLE",
+          "acquisition": "USABLE"
+        }
+      ]
+    },
+    {
+      "case_id": "PH-002-SPECULAR-SATURATION",
+      "frame_id": "SYNTHETIC-PHOTOMETRIC-FRAME",
+      "light": {
+        "direction": [
+          0,
+          0,
+          1
+        ],
+        "incident_radiance": 1,
+        "illumination_factor": 1,
+        "asserted": true
+      },
+      "modes": [
+        {
+          "id": "CAMERA-A",
+          "exposure_gain": 1,
+          "noise_floor": 0.01,
+          "saturation": 1,
+          "asserted": true
+        }
+      ],
+      "samples": [
+        {
+          "id": "P",
+          "geometry": "PASS",
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "view_direction": [
+            0,
+            0,
+            1
+          ],
+          "material_asserted": true,
+          "brdf": {
+            "model": "BLINN_PHONG",
+            "albedo": 0.1,
+            "specular": 0.5,
+            "shininess": 16
+          }
+        }
+      ],
+      "expected": [
+        {
+          "mode_id": "CAMERA-A",
+          "summary": "NOT_USABLE",
+          "acquisition": "UNUSABLE"
+        }
+      ]
+    },
+    {
+      "case_id": "PH-003-SHADOW",
+      "frame_id": "SYNTHETIC-PHOTOMETRIC-FRAME",
+      "light": {
+        "direction": [
+          0,
+          0,
+          1
+        ],
+        "incident_radiance": 1,
+        "illumination_factor": 0,
+        "asserted": true
+      },
+      "modes": [
+        {
+          "id": "CAMERA-A",
+          "exposure_gain": 1,
+          "noise_floor": 0.01,
+          "saturation": 1,
+          "asserted": true
+        }
+      ],
+      "samples": [
+        {
+          "id": "P",
+          "geometry": "PASS",
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "view_direction": [
+            0,
+            0,
+            1
+          ],
+          "material_asserted": true,
+          "brdf": {
+            "model": "LAMBERTIAN",
+            "albedo": 0.8
+          }
+        }
+      ],
+      "expected": [
+        {
+          "mode_id": "CAMERA-A",
+          "summary": "NOT_USABLE",
+          "acquisition": "UNUSABLE"
+        }
+      ]
+    },
+    {
+      "case_id": "PH-004-DARK-UNDEREXPOSED",
+      "frame_id": "SYNTHETIC-PHOTOMETRIC-FRAME",
+      "light": {
+        "direction": [
+          0,
+          0,
+          1
+        ],
+        "incident_radiance": 1,
+        "illumination_factor": 1,
+        "asserted": true
+      },
+      "modes": [
+        {
+          "id": "CAMERA-A",
+          "exposure_gain": 1,
+          "noise_floor": 0.01,
+          "saturation": 1,
+          "asserted": true
+        }
+      ],
+      "samples": [
+        {
+          "id": "P",
+          "geometry": "PASS",
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "view_direction": [
+            0,
+            0,
+            1
+          ],
+          "material_asserted": true,
+          "brdf": {
+            "model": "LAMBERTIAN",
+            "albedo": 0.001
+          }
+        }
+      ],
+      "expected": [
+        {
+          "mode_id": "CAMERA-A",
+          "summary": "NOT_USABLE",
+          "acquisition": "UNUSABLE"
+        }
+      ]
+    },
+    {
+      "case_id": "PH-005-ROUGHNESS-PARTIAL",
+      "frame_id": "SYNTHETIC-PHOTOMETRIC-FRAME",
+      "light": {
+        "direction": [
+          0,
+          0,
+          1
+        ],
+        "incident_radiance": 1,
+        "illumination_factor": 1,
+        "asserted": true
+      },
+      "modes": [
+        {
+          "id": "CAMERA-A",
+          "exposure_gain": 1,
+          "noise_floor": 0.01,
+          "saturation": 1,
+          "asserted": true
+        }
+      ],
+      "samples": [
+        {
+          "id": "SMOOTH",
+          "geometry": "PASS",
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "view_direction": [
+            0,
+            0,
+            1
+          ],
+          "material_asserted": true,
+          "brdf": {
+            "model": "COOK_TORRANCE_GGX",
+            "albedo": 0.5,
+            "f0": 0.04,
+            "roughness": 0.05,
+            "metallic": 0
+          }
+        },
+        {
+          "id": "ROUGH",
+          "geometry": "PASS",
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "view_direction": [
+            0,
+            0,
+            1
+          ],
+          "material_asserted": true,
+          "brdf": {
+            "model": "COOK_TORRANCE_GGX",
+            "albedo": 0.5,
+            "f0": 0.04,
+            "roughness": 0.6,
+            "metallic": 0
+          }
+        }
+      ],
+      "expected": [
+        {
+          "mode_id": "CAMERA-A",
+          "summary": "PARTIAL",
+          "acquisition": "PARTIAL"
+        }
+      ]
+    },
+    {
+      "case_id": "PH-006-EXPOSURE-MODES",
+      "frame_id": "SYNTHETIC-PHOTOMETRIC-FRAME",
+      "light": {
+        "direction": [
+          0,
+          0,
+          1
+        ],
+        "incident_radiance": 1,
+        "illumination_factor": 1,
+        "asserted": true
+      },
+      "modes": [
+        {
+          "id": "LOW",
+          "exposure_gain": 0.2,
+          "noise_floor": 0.01,
+          "saturation": 1,
+          "asserted": true
+        },
+        {
+          "id": "HIGH",
+          "exposure_gain": 5,
+          "noise_floor": 0.01,
+          "saturation": 1,
+          "asserted": true
+        }
+      ],
+      "samples": [
+        {
+          "id": "P",
+          "geometry": "PASS",
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "view_direction": [
+            0,
+            0,
+            1
+          ],
+          "material_asserted": true,
+          "brdf": {
+            "model": "LAMBERTIAN",
+            "albedo": 0.05
+          }
+        }
+      ],
+      "expected": [
+        {
+          "mode_id": "LOW",
+          "summary": "NOT_USABLE",
+          "acquisition": "UNUSABLE"
+        },
+        {
+          "mode_id": "HIGH",
+          "summary": "FULLY_USABLE",
+          "acquisition": "USABLE"
+        }
+      ]
+    },
+    {
+      "case_id": "PH-007-MATERIAL-UNKNOWN",
+      "frame_id": "SYNTHETIC-PHOTOMETRIC-FRAME",
+      "light": {
+        "direction": [
+          0,
+          0,
+          1
+        ],
+        "incident_radiance": 1,
+        "illumination_factor": 1,
+        "asserted": true
+      },
+      "modes": [
+        {
+          "id": "CAMERA-A",
+          "exposure_gain": 1,
+          "noise_floor": 0.01,
+          "saturation": 1,
+          "asserted": true
+        }
+      ],
+      "samples": [
+        {
+          "id": "P",
+          "geometry": "PASS",
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "view_direction": [
+            0,
+            0,
+            1
+          ],
+          "material_asserted": false,
+          "brdf": {
+            "model": "LAMBERTIAN",
+            "albedo": 0.8
+          }
+        }
+      ],
+      "expected": [
+        {
+          "mode_id": "CAMERA-A",
+          "summary": "INDETERMINATE",
+          "acquisition": "INDETERMINATE"
+        }
+      ]
+    },
+    {
+      "case_id": "PH-008-GEOMETRY-FAIL",
+      "frame_id": "SYNTHETIC-PHOTOMETRIC-FRAME",
+      "light": {
+        "direction": [
+          0,
+          0,
+          1
+        ],
+        "incident_radiance": 1,
+        "illumination_factor": 1,
+        "asserted": true
+      },
+      "modes": [
+        {
+          "id": "CAMERA-A",
+          "exposure_gain": 1,
+          "noise_floor": 0.01,
+          "saturation": 1,
+          "asserted": true
+        }
+      ],
+      "samples": [
+        {
+          "id": "P",
+          "geometry": "FAIL",
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "view_direction": [
+            0,
+            0,
+            1
+          ],
+          "material_asserted": true,
+          "brdf": {
+            "model": "LAMBERTIAN",
+            "albedo": 0.8
+          }
+        }
+      ],
+      "expected": [
+        {
+          "mode_id": "CAMERA-A",
+          "summary": "FULLY_USABLE",
+          "acquisition": "GEOMETRY_REJECTED"
+        }
+      ]
+    }
+  ]
+}
