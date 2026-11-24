@@ -524,6 +524,117 @@ pub fn render_csv() -> String {
     output
 }
 
+const VARIANCE_POLICY_PROBABILITIES: [f64; 4] = [0.17, 0.04, 0.12, 0.05];
+const VARIANCE_KNOWN_SIGMA_MAX_MILLI: u16 = 376;
+const VARIANCE_ENDPOINT_RISK_MILLI: u16 = 50;
+
+fn synthetic_known_variance_grid(count: usize, seed: u64) -> WholeScheduleLossGrid {
+    let mut rng = SplitMix64::new(seed);
+    let schedules = (0..count)
+        .map(|_| {
+            let draw = (rng.next_u64() >> 11) as f64 / ((1_u64 << 53) as f64);
+            VARIANCE_POLICY_PROBABILITIES
+                .iter()
+                .map(|probability| {
+                    if draw < *probability {
+                        LOSS_BOUND_MILLI
+                    } else {
+                        0
+                    }
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    WholeScheduleLossGrid {
+        schedule_losses_milli: schedules,
+    }
+}
+
+fn synthetic_variance_revisions(name: &str) -> FrozenRevisions {
+    FrozenRevisions {
+        policy_revision: format!("{name}-policy-v1"),
+        evaluator_revision: format!("{name}-evaluator-v1"),
+        loss_contract_revision: format!("{name}-loss-v1"),
+    }
+}
+
+fn synthetic_variance_endpoint() -> EndpointPopulationRiskContract {
+    EndpointPopulationRiskContract {
+        scope: "SYNTHETIC_KNOWN_BERNOULLI_POLICY_GRID".to_owned(),
+        evidence_ref: "synthetic-generator-exact-population-risk".to_owned(),
+        population_expected_loss_upper_milli: VARIANCE_ENDPOINT_RISK_MILLI,
+    }
+}
+
+/// Deterministic benchmark receipt comparing Hoeffding and known-variance
+/// Bernstein corrections on the same non-monotone whole-schedule policy grid.
+pub fn render_bernstein_csv() -> String {
+    let mut output = String::from(
+        "calibration_schedules,parameter_count,target_risk_milli,sigma_max_milli,hoeffding_correction_milli,bernstein_correction_milli,selected_correction_milli,adjusted_risk_milli,selected_policy_index,selected_calibration_loss_mean_milli,synthetic_population_loss_milli,independent_test_loss_mean_milli,endpoint_risk_upper_milli,monotonicity_violations,status\\n",
+    );
+
+    for (n, seed, name) in [
+        (120, 0xBE12_0120_u64, "N120"),
+        (1_200, 0xBE12_1200_u64, "N1200"),
+        (50_000, 0xBE12_5000_u64, "N50000"),
+    ] {
+        let calibration = synthetic_known_variance_grid(n, seed);
+        let test = synthetic_known_variance_grid(TEST_SCHEDULES, seed.wrapping_add(1));
+        match calibrate_bernstein(
+            &calibration,
+            200,
+            VARIANCE_KNOWN_SIGMA_MAX_MILLI,
+            Some(&synthetic_variance_endpoint()),
+            &synthetic_variance_revisions(name),
+        ) {
+            Ok(result) => {
+                let index = result.selected_parameter_index;
+                let test_mean = test
+                    .schedule_losses_milli
+                    .iter()
+                    .map(|row| u64::from(row[index]))
+                    .sum::<u64>() as f64
+                    / test.schedule_count() as f64;
+                let population_mean =
+                    VARIANCE_POLICY_PROBABILITIES[index] * f64::from(LOSS_BOUND_MILLI);
+                output.push_str(&format!(
+                    "{},{},{},{},{},{},{},{},{},{:.3},{:.3},{:.3},{},{},EXPECTED_RISK_BOUND_SYNTHETIC\\n",
+                    result.calibration_schedules,
+                    result.parameter_count,
+                    result.target_risk_milli,
+                    result.sigma_max_milli,
+                    result.hoeffding_correction_milli,
+                    result.bernstein_correction_milli,
+                    result.selected_correction_milli,
+                    result.adjusted_risk_milli,
+                    result.selected_parameter_index,
+                    result.selected_calibration_loss_mean_milli,
+                    population_mean,
+                    test_mean,
+                    result.endpoint_population_risk_upper_milli,
+                    result.monotonicity_violations,
+                ));
+            }
+            Err(RiskControlError::NoPositiveAdjustedTarget { .. }) => {
+                output.push_str(&format!(
+                    "{n},4,200,{VARIANCE_KNOWN_SIGMA_MAX_MILLI},NA,NA,NA,NA,NA,NA,NA,NA,{VARIANCE_ENDPOINT_RISK_MILLI},NA,NO_POSITIVE_ADJUSTED_TARGET\\n"
+                ));
+            }
+            Err(RiskControlError::EndpointPopulationRiskContractExceedsAdjustedTarget) => {
+                output.push_str(&format!(
+                    "{n},4,200,{VARIANCE_KNOWN_SIGMA_MAX_MILLI},NA,NA,NA,NA,NA,NA,NA,NA,{VARIANCE_ENDPOINT_RISK_MILLI},NA,ENDPOINT_MARGIN_FAIL\\n"
+                ));
+            }
+            Err(_) => {
+                output.push_str(&format!(
+                    "{n},4,200,{VARIANCE_KNOWN_SIGMA_MAX_MILLI},NA,NA,NA,NA,NA,NA,NA,NA,{VARIANCE_ENDPOINT_RISK_MILLI},NA,NO_RISK_CLAIM\\n"
+                ));
+            }
+        }
+    }
+    output
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
