@@ -638,6 +638,76 @@ mod tests {
     }
 
     #[test]
+    fn rejects_duplicate_hypothesis_ids() {
+        let mut problem = decision_problem();
+        problem.hypotheses[2].id = problem.hypotheses[1].id;
+
+        assert_eq!(
+            evaluate_decision_value(&problem, &decision_relevant_experiment(0)),
+            Err(DecisionValueErrorV0::DuplicateHypothesisId)
+        );
+    }
+
+    #[test]
+    fn rejects_duplicate_action_ids() {
+        let mut problem = decision_problem();
+        problem.actions[1].id = problem.actions[0].id;
+
+        assert_eq!(
+            evaluate_decision_value(&problem, &decision_relevant_experiment(0)),
+            Err(DecisionValueErrorV0::DuplicateActionId)
+        );
+    }
+
+    #[test]
+    fn rejects_duplicate_outcome_ids() {
+        let problem = decision_problem();
+        let mut experiment = decision_relevant_experiment(0);
+        experiment.outcome_ids[1] = experiment.outcome_ids[0];
+
+        assert_eq!(
+            evaluate_decision_value(&problem, &experiment),
+            Err(DecisionValueErrorV0::DuplicateOutcomeId)
+        );
+    }
+
+    #[test]
+    fn rejects_duplicate_likelihood_pairs() {
+        let problem = decision_problem();
+        let mut experiment = decision_relevant_experiment(0);
+        experiment.likelihoods[1].outcome_id = experiment.likelihoods[0].outcome_id;
+
+        assert_eq!(
+            evaluate_decision_value(&problem, &experiment),
+            Err(DecisionValueErrorV0::DuplicateLikelihoodEntry)
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_outcome_references() {
+        let problem = decision_problem();
+        let mut experiment = decision_relevant_experiment(0);
+        experiment.likelihoods[5].outcome_id = 99;
+
+        assert_eq!(
+            evaluate_decision_value(&problem, &experiment),
+            Err(DecisionValueErrorV0::UnknownOutcomeId)
+        );
+    }
+
+    #[test]
+    fn rejects_likelihood_weights_above_the_scale() {
+        let problem = decision_problem();
+        let mut experiment = decision_relevant_experiment(0);
+        experiment.likelihoods[0].likelihood_weight = 3;
+
+        assert_eq!(
+            evaluate_decision_value(&problem, &experiment),
+            Err(DecisionValueErrorV0::LikelihoodExceedsScale)
+        );
+    }
+
+    #[test]
     fn impossible_outcomes_have_no_selected_action() {
         let problem = decision_problem();
         let mut experiment = decision_relevant_experiment(0);
