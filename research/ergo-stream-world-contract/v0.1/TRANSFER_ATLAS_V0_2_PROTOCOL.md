@@ -220,6 +220,12 @@ The stratum ID is attached to the evaluator outcome, never to the learner-author
 
 These are reporting thresholds for experiments, not claims that the system has already achieved them. The confirmatory cohort must not be used to fit a calibration transform, choose thresholds or tune bins.
 
+## Split-conformal reference for binary transfer claims
+
+The current Rust calibration module includes a narrow split-conformal classifier for the exact binary claim "this scoped transfer qualifies." It uses nonconformity 1-p for true transfer and p for false transfer, with the finite-sample order statistic ceil((n+1)(1-alpha)). It emits a set over {transfer, non-transfer}; a singleton set yields an assert/reject recommendation, while both-label or empty sets remain undecided. If the order statistic rank is n+1, the conservative full-label set is returned.
+
+The guarantee is **marginal prediction-set coverage under exchangeability within the same evaluator-owned calibration stratum**. It is not conditional coverage, arbitrary-shift coverage, a sequential guarantee or cross-stratum pooling. The fit function requires matched calibration forecasts/outcomes and one explicit stratum ID. This is the split-conformal baseline only; compare CAP and online martingale methods separately, with their respective selection/dependence assumptions.
+
 ## 5. Scorecard
 
 Report per family, transformation class, size regime and budget. Do not collapse to a single ErgoScore.
