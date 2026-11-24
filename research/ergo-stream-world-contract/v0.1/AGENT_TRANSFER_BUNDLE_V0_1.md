@@ -58,6 +58,20 @@ It deliberately does **not** include the evaluator's actual hidden target transi
 
 The current Rust finite dynamics validator expects complete deterministic source and target transition systems and total one-to-one state/action maps. It does not implement nondeterministic simulation, bisimulation, quotient dynamics or approximate/continuous transfer.
 
+## Behavioural transfer proposal
+
+The optional `behavioural_transfer` property uses the finite LTS contract in `src/behaviour.rs`. It carries:
+- one combined source/target state/action scope matching `BehaviouralScopeV0`;
+- evidence-backed source and target state/action snapshots;
+- a many-to-many state relation (not a forced function);
+- a one-to-one mapped action correspondence and consistent action-kind map;
+- frozen response predictions bound to observed transition evidence;
+- a declared map kind: `simulation` or `bisimulation`.
+
+A simulation proposal predicts target responses to observed source transitions; additional target behaviours are allowed. A bisimulation proposal must also predict source responses to observed target transitions. The evaluator compares those frozen predictions with owner-side transitions after bundle freeze. Actual held-out transitions are never included in the learner sidecar.
+
+The schema models candidate predictions; it does not itself prove the predictions correct. The Rust validator checks finite LTSs, while the trusted evaluator still has to construct the owner-side systems from public and hidden data and verify the custody/freeze order.
+
 ## Decision value and prospective forecasts
 
 Do not add a new scheduler or VoC implementation to this bundle. A future action-selection record should compose with Symthaea #5476/#5478/#8721:
