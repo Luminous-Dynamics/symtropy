@@ -149,6 +149,8 @@ def evaluate_scope(case, scope, acquisition):
             else:
                 if check_time > acquisition[1]:
                     add("INDETERMINATE", "REFERENCE_CHECK_AFTER_ACQUISITION")
+                elif check_time >= acquisition[0]:
+                    add("INDETERMINATE", "REFERENCE_CHECK_TIME_OVERLAPS_ACQUISITION")
                 elif acquisition[0] - check_time > max_age:
                     add("EXPIRED", "REFERENCE_CHECK_STALE")
                 elif acquisition[1] - check_time > max_age:
@@ -160,11 +162,11 @@ def evaluate_scope(case, scope, acquisition):
         if event["impact"] == "NO_CALIBRATION_IMPACT":
             continue
         event_time = interval(event["effective_time_ns"], event["time_uncertainty_ns"])
-        if event_time[1] <= scope["calibration_epoch_ns"]:
+        if event_time[1] < scope["calibration_epoch_ns"]:
             continue
         if event_time[0] <= scope["calibration_epoch_ns"]:
             add("INDETERMINATE", "EVENT_TIME_OVERLAPS_CALIBRATION_EPOCH")
-        elif event_time[1] <= acquisition[0]:
+        elif event_time[1] < acquisition[0]:
             if event["impact"] == "INVALIDATES":
                 add("INVALIDATED", "CALIBRATION_INVALIDATED_BY_EVENT")
             elif event["impact"] == "UNKNOWN_IMPACT":
