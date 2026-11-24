@@ -46,3 +46,7 @@ path = "src/bin/clustered_dependence_risk_audit.rs"
 [[bin]]
 name = "source-claim-admission-audit"
 path = "src/bin/source_claim_admission_audit.rs"
+
+[[bin]]
+name = "epcis-correction-audit"
+path = "src/bin/epcis_correction_audit.rs"

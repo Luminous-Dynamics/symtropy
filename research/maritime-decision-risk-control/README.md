@@ -542,3 +542,38 @@ cargo run --quiet --locked --manifest-path research/maritime-decision-risk-contr
 The receipt exercises 21 synthetic claim cases, including plan-to-actual, vessel-status-to-physical, stack-window-to-loaded, import-storage-to-receiver, third-party-to-independent-witness and DCSA-conformance-to-physical-truth negative controls; publication-time unknown; retrieval/publication after the historical cutoff; missing independence reference, missing physical event time, and missing receiver custody digest; plus positive terminal-notice and receiver-acceptance cases.
 
 No DGT raw XLSX/PDF bytes are bundled in the fixture. The receipt validates the *class/claim contract*, not the truth of a particular vessel or cargo event.
+
+
+## EPCIS 2.0 event correction semantics (24 November 2026)
+
+The `epcis_corrections` module adds a narrow typed implementation of the GS1 EPCIS 2.0 error-declaration lifecycle. It is intentionally separate from the source-artifact revision ledger:
+
+- The artifact ledger versions documents/snapshots (for example a DGT AM/PM source file).
+- The EPCIS correction ledger versions the interpretation of a particular business event (for example a container gate event later declared erroneous).
+
+An `EpcisEventRecord` retains:
+- globally unique eventID URI (enforced as unique within this ledger; global uniqueness still requires cross-system governance);
+- canonical subject/EPC identifiers;
+- eventTime in UTC plus the original eventTimeZoneOffset;
+- recordTime, retained separately from the physical event time;
+- source-native record identity;
+- digest of the original assertion payload.
+
+An `EpcisErrorDeclaration`:
+- references the same eventID as the prior event;
+- requires identical subjects, eventTime, timezone offset and assertion payload digest;
+- records a separate declarationTime and repository recordTime;
+- preserves the original source event and lists any correctiveEventIDs;
+- cannot overwrite/delete the original event.
+
+Historical as-of replay is recordTime-aware. Before the error declaration is available in the repository, the view remains AS_REPORTED. After the declaration is available, the old event remains visible but is DECLARED_IN_ERROR. Corrective events are shown as available only after their own recordTime; unresolved correctiveEventIDs remain explicit rather than being treated as an already-captured movement.
+
+Run the deterministic receipt:
+
+~~~sh
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin epcis-correction-audit
+~~~
+
+The six synthetic receipt cases cover: original event before correction, declaration known by its declared time but not yet recorded, declaration visible while the correction is still pending, correction event later available, subject mismatch rejection, and assertion-payload mismatch rejection. Tests also retain eventTime/recordTime/timezone separately and preserve the original event after declaration.
+
+This is a targeted EPCIS compatibility fixture, **not** the complete EPCIS parser, JSON-LD or REST implementation, CBV vocabulary validator, DCSA conformance implementation, globally unique event-ID authority or physical observation system. It does not prove that the source captured every real event.

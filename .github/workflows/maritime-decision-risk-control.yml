@@ -154,6 +154,17 @@ jobs:
           grep -q "THIRD_PARTY_DERIVED_ONLY" /tmp/source-claim-admission.csv
           grep -q "INTEROPERABILITY_ONLY" /tmp/source-claim-admission.csv
           grep -q "RECEIVER_ACCEPTANCE" /tmp/source-claim-admission.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin epcis-correction-audit > /tmp/epcis-corrections.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin epcis-correction-audit > /tmp/epcis-corrections-replay.csv
+          cmp /tmp/epcis-corrections.csv /tmp/epcis-corrections-replay.csv
+          test "$(wc -l < /tmp/epcis-corrections.csv)" -eq 7
+          head -n 1 /tmp/epcis-corrections.csv | awk -F, '{ if (NF != 7) exit 1 }'
+          awk -F, 'NF != 7 { exit 1 }' /tmp/epcis-corrections.csv
+          grep -q "AS_REPORTED" /tmp/epcis-corrections.csv
+          grep -q "DECLARED_IN_ERROR" /tmp/epcis-corrections.csv
+          grep -q "CORRECTIVE_EVENT_AVAILABLE" /tmp/epcis-corrections.csv
+          grep -q "SUBJECT_MISMATCH_REJECTED" /tmp/epcis-corrections.csv
+          grep -q "PAYLOAD_MISMATCH_REJECTED" /tmp/epcis-corrections.csv
           echo "Maritime repeated-sampling risk tournament smoke receipt passed."
           echo "Maritime decision-risk and finite-grid non-monotone receipts passed."
 
@@ -174,6 +185,7 @@ jobs:
             /tmp/repeated-sampling-risk-full.csv \
             /tmp/clustered-dependence-risk.csv \
             /tmp/source-claim-admission.csv \
+            /tmp/epcis-corrections.csv \
             > /tmp/maritime-receipt-sha256.txt
 
       - name: Upload reproducible maritime risk receipts
@@ -193,5 +205,6 @@ jobs:
             /tmp/repeated-sampling-risk-full.csv
             /tmp/clustered-dependence-risk.csv
             /tmp/source-claim-admission.csv
+            /tmp/epcis-corrections.csv
           if-no-files-found: error
           retention-days: 30

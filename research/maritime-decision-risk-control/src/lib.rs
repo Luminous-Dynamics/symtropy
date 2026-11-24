@@ -7,6 +7,7 @@ pub mod repeated_sampling;
 pub mod source_semantics;
 pub mod weighted_shift;
 
+pub mod epcis_corrections;
 pub mod non_monotone;
 
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics

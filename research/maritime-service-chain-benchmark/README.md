@@ -151,3 +151,55 @@ Sources:
 - [World Bank/S&P Global CPPI methodology, 10 June 2026](https://thedocs.worldbank.org/en/doc/aac122f6df85534428d66a7b9af4b7f6-0400012026/original/CPPI-Methodology-Note.pdf)
 - [Mendeley Event Log Dwelling Time Dataset v2](https://data.mendeley.com/datasets/yvp2b4rtp3/2)
 - [Data in Brief dataset paper](https://doi.org/10.1016/j.dib.2024.110906)
+
+
+## Standards-aligned event, correction and regulatory exchange architecture (24 November 2026)
+
+A robust maritime evidence layer should not define a competing global event ontology. Use the standards at their proper layers:
+
+| Standard / system | What it standardizes | What it does **not** prove |
+|---|---|---|
+| DCSA Port Call 2.0.0 | Port-call event exchange and publisher/subscriber API conformance | That the physical event occurred or every event was captured |
+| DCSA Track & Trace 2.2 | Container/shipment visibility event definitions and API mapping | Complete physical custody, source independence or receiver acceptance |
+| GS1 EPCIS 2.0.0 | Visibility-event data model: subject/object IDs, eventTime, timezone, recordTime, readPoint, bizLocation, business step/disposition, sensor/source/destination context | That a sensor or source actually captured every event or that a business claim is independently true |
+| GS1 CBV 2.0.0 | Standard business-step, disposition and event vocabulary alongside EPCIS | Physical proof or authority |
+| IMO FAL Maritime Single Window | Regulatory declarations and one-time electronic exchange for ship arrival, stay and departure across public authorities | Terminal operational event capture, cargo movement, custody or receiver delivery |
+| South African SARS Customs Single Window | Phased national customs / multi-agency information exchange, including inspection, permits and declarations | A complete maritime terminal event ledger or physical cargo outcome |
+
+GS1 EPCIS is especially relevant because it already separates the core evidence dimensions: **what** object/subject, **when** eventTime plus timezone and repository recordTime, **where** readPoint and business location, and **why** business step/disposition/transaction context. Its ErrorDeclaration semantics are also important: a later declaration says that a prior event's assertions were erroneous as of declarationTime; the prior event is not modified and subsequent queries return both original and declaration. Use this to represent corrections instead of overwriting earlier event rows.
+
+The new append-only EPCIS correction fixture in [draft PR #7389](https://github.com/Luminous-Dynamics/symtropy/pull/7387) implements this narrow rule: the ErrorDeclaration shares the prior eventID and is bound to the same subject IDs, eventTime, timezone and assertion-payload digest; correctiveEventIDs remain references until the corresponding corrected events have been recorded. The test preserves the original event, time-of-knowledge and correction availability separately. This is not a full EPCIS implementation or proof that the event source is truthful.
+
+### South African interoperability opportunity
+
+The IMO FAL amendments requiring a Maritime Single Window for public authorities entered into force on **1 January 2024**. IMO reported that a Durban workshop on 10–12 September 2024 brought together the Department of Transport, TNPA, SAMSA, SARS, BMA and shipping stakeholders to plan national implementation. SARS publishes a phased Customs Single Window programme; a Freight News report on 8 September 2026 stated that no overall completion date had yet been supplied. Treat that as a time-bounded secondary status report and re-check official government updates before making a current implementation claim.
+
+This creates a valuable local integration requirement:
+- Port-call and ship-clearance declarations belong to the authority/Maritime Single Window layer.
+- DCSA Port Call and T&T carry standardized operational shipping events.
+- EPCIS/CBV can represent item/container-level visibility and event corrections.
+- TOS/terminal sources report operational statuses, plans, movements and inventory.
+- An independent receiver record closes physical custody and delivery.
+- Mycelix/authority systems must preserve who may submit, read, correct or act on each record, including purpose and participant permission.
+
+Keep these systems federated. A successful API POST, FAL declaration, customs release, TOS status or EPCIS capture operation is not interchangeable with proof that a container physically moved or reached a consignee.
+
+### Proposed conformance campaign
+
+1. **DCSA Port Call 2.0.0**: run the official publisher/subscriber conformance scenarios and pin the schema/test version.
+2. **DCSA Track & Trace 2.2**: run official API reference/conformance scenarios and map the event families into the source-claim adapter.
+3. **GS1 EPCIS 2.0 / CBV 2.0**: run JSON/JSON-LD schema and semantic validation, including eventTime, eventTimeZoneOffset, repository recordTime, EPC/eventID, readPoint/bizLocation, bizStep/disposition, source/destination, and ErrorDeclaration/correctiveEventIDs.
+4. **FAL / national single window**: only test authorized sandbox or partner interfaces; keep customs/ship-clearance decisions and public-authority records under the relevant government authority. Do not simulate regulatory permission by merely passing a JSON schema.
+5. **Cross-standard bridge**: preserve the original native message, standard version, mapping revision, source record ID, canonical subject, publication/retrieval/valid/event/record times, rights and claim ceiling. Mapping must be reversible or explicitly lossy.
+6. **Physical/receiver closeout**: link the event chain to qualified independent observations, custody handoffs and receiver acceptance. Unresolved identity, source coverage, custody or authority remains UNKNOWN/NOT_EVALUABLE.
+
+Proposed acceptance targets (not achieved): 100% applicable standard conformance scenarios; 100% replay of raw message digests; zero lossy cross-standard mappings silently marked reversible; zero event corrections that delete the original; zero planned/status/declaration records promoted to physical events; zero custody closure without an independently qualified receiver record.
+
+Sources:
+- [GS1 EPCIS 2.0.0](https://ref.gs1.org/standards/epcis/2.0.0/)
+- [GS1 CBV 2.0.0](https://ref.gs1.org/standards/cbv/2.0.0/)
+- [DCSA Track & Trace implementation guide](https://reference.dcsa.org/content/standards/guidelines/implementation-guides/implementing-track-and-trace)
+- [IMO FAL Convention](https://www.imo.org/en/about/conventions/pages/convention-on-facilitation-of-international-maritime-traffic-(fal).aspx)
+- [IMO report on South Africa Maritime Single Window planning, 17 September 2024](https://www.imo.org/en/mediacentre/pages/whatsnew-2137.aspx)
+- [SARS Customs Single Window](https://www.sars.gov.za/customs-and-excise/customs-single-window-solution/)
+- [Freight News report, 8 September 2026](https://www.freightnews.co.za/article/no-completion-date-for-sas-single-window)
