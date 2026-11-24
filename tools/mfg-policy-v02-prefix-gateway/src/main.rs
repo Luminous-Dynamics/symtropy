@@ -407,10 +407,34 @@ mod tests {
         assert!(value.get("scenario_slot").is_none());
         assert!(value.get("probability_ppm").is_none());
         assert!(value.get("scenario_family_id").is_none());
-        assert!(value.get("static_case").unwrap().get("generator_seed").is_none());
-        assert!(value.get("static_case").unwrap().get("replication_seed").is_none());
-        assert!(value.get("static_case").unwrap().get("paired_seed_id").is_none());
-        assert!(value.get("static_case").unwrap().get("decision_visibility_rule").is_none());
+        assert!(
+            value
+                .get("static_case")
+                .unwrap()
+                .get("generator_seed")
+                .is_none()
+        );
+        assert!(
+            value
+                .get("static_case")
+                .unwrap()
+                .get("replication_seed")
+                .is_none()
+        );
+        assert!(
+            value
+                .get("static_case")
+                .unwrap()
+                .get("paired_seed_id")
+                .is_none()
+        );
+        assert!(
+            value
+                .get("static_case")
+                .unwrap()
+                .get("decision_visibility_rule")
+                .is_none()
+        );
         assert!(
             value
                 .get("observable_history")
