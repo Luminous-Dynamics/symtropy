@@ -140,7 +140,7 @@ mod tests {
     #[test]
     fn inclusive_rule_is_not_met_when_the_complete_interval_is_below_threshold() {
         let report = assess_risk_threshold(
-            interval(rational(1, 10), rational(9, 100)),
+            interval(rational(1, 20), rational(9, 100)),
             rational(1, 10),
             RiskThresholdRule::AtOrAbove,
         )
@@ -165,7 +165,7 @@ mod tests {
     fn interval_straddling_threshold_remains_indeterminate() {
         let report = assess_risk_threshold(
             interval(rational(9, 100_000), rational(11, 100_000)),
-            rational(1, 100_000),
+            rational(1, 10_000),
             RiskThresholdRule::AtOrAbove,
         )
         .unwrap();
@@ -220,6 +220,23 @@ mod tests {
 
         assert_eq!(report.interval_width, rational(1, 10));
         assert_eq!(report.disposition, DecisionSufficiency::Indeterminate);
+    }
+
+    #[test]
+    fn unrepresentable_exact_interval_width_fails_closed() {
+        let interval = interval(
+            rational(1, u128::MAX),
+            rational(1, u128::MAX - 1),
+        );
+
+        assert_eq!(
+            assess_risk_threshold(
+                interval,
+                rational(1, 2),
+                RiskThresholdRule::AtOrAbove,
+            ),
+            Err(DecisionGateError::ArithmeticOverflow)
+        );
     }
 
     #[test]
