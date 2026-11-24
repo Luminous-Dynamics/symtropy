@@ -18,7 +18,7 @@
       "$ref": "#/$defs/submission_binding"
     },
     "structural_transfer": {
-      "$ref": "ergo-transfer-proposal-v0.schema.json"
+      "$ref": "scoped_transfer_proposal_v0.schema.json"
     },
     "dynamics_transfer": {
       "$ref": "#/$defs/dynamics_transfer"
@@ -189,7 +189,8 @@
         "source_to_state_id",
         "predicted_target_from_state_id",
         "predicted_target_action_id",
-        "predicted_target_to_state_id"
+        "predicted_target_to_state_id",
+        "source_evidence_ids"
       ],
       "properties": {
         "source_from_state_id": {
@@ -221,6 +222,15 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 4294967295
+        },
+        "source_evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^E[0-9]{4,}$"
+          }
         }
       }
     },
@@ -231,6 +241,10 @@
         "map_kind",
         "source_scope",
         "target_scope",
+        "source_state_snapshot",
+        "target_state_snapshot",
+        "source_action_snapshot",
+        "target_action_snapshot",
         "state_mappings",
         "action_mappings",
         "predicted_transitions",
@@ -275,6 +289,84 @@
         },
         "unresolved": {
           "type": "boolean"
+        },
+        "source_state_snapshot": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/state_snapshot"
+          }
+        },
+        "target_state_snapshot": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/state_snapshot"
+          }
+        },
+        "source_action_snapshot": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action_snapshot"
+          }
+        },
+        "target_action_snapshot": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action_snapshot"
+          }
+        }
+      }
+    },
+    "state_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "evidence_ids"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^E[0-9]{4,}$"
+          }
+        }
+      }
+    },
+    "action_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "evidence_ids"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "kind": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^E[0-9]{4,}$"
+          }
         }
       }
     }
