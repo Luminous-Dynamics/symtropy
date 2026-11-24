@@ -1590,6 +1590,7 @@ mod iterated_cvar_tests {
     fn branch(id: u64, mass: u128, outcomes: &[(u64, u128)]) -> ConditionalLossBranch {
         ConditionalLossBranch {
             branch_id: id,
+            continuation_action_id: id,
             probability_mass: mass,
             continuation_losses: losses(outcomes),
         }
