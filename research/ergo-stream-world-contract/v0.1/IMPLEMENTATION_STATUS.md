@@ -388,3 +388,13 @@ The 96 tests include the evaluator-stratified calibration regression, which demo
 These are explicitly IID binomial reference intervals only. They are not valid under repeated measures, campaign/world clustering, overlapping frames or temporal dependence. The confirmatory benchmark must declare the independent unit and use block/campaign bootstrap or another justified dependence-aware procedure when observations are clustered.
 
 **This source addition is newer than exact head e9a5… and requires its own Rust 1.96 formatting, tests/doctests and strict-Clippy qualification.**
+
+## Split-conformal transfer prediction sets — new implementation
+
+The calibration module now includes a binary split-conformal reference. It calibrates nonconformity score 1-p_transfer for true transfer examples and p_transfer for false transfer examples. The finite-sample quantile rank is ceil((n+1)(1-alpha)); when the rank is n+1, it uses the conservative full-scale quantile. At prediction time it returns a set over {transfer, non-transfer}; singleton sets map to assert/reject recommendations, while both-label or empty sets do not produce a decision.
+
+The fitter requires matched forecast/outcome IDs in one evaluator-owned stratum. Its claim ceiling is finite-sample **marginal set coverage under exchangeability within that stratum**. It is not conditional coverage, arbitrary-shift robustness, a cross-stratum guarantee or an online sequential guarantee.
+
+Five additional tests cover finite-sample rank and singleton output, conservative full-set fallback when calibration is small, mixed-stratum/invalid-alpha rejection, unmatched/duplicate calibration rows and prediction-probability range.
+
+**This split-conformal addition is newer than the last successful e9a5fbf… run; exact-head Rust 1.96 formatting, test/doctest and strict-Clippy verification are pending.**
