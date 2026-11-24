@@ -165,6 +165,7 @@ Reproduction command:
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin weighted-shift-risk-audit
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin lipschitz-risk-audit
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin bernstein-risk-audit
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin bernstein-risk-audit
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin lipschitz-risk-audit
 ```
 
@@ -265,7 +266,7 @@ The adapter does **not** prove that the oracle is independent, that the evidence
 
 The root `crate::LossMatrix` and finite-grid CRC-NM grid can consume the emitted matrices independently for each loss axis. Known-weight shift selection is deliberately not wired to this adapter: a real bounded likelihood ratio must be independently justified, not inferred from these receipts.
 
-The adapter has 18 unit tests for separate axes, deterministic permutation invariance, authority denial/unknown, physical unknown, bounded-loss violations, dependence-cluster leakage, policy-grid/revision drift, mixed regimes, digest validation, role separation, and empirical upper-tail CVaR.
+The adapter has 18 unit tests for separate axes, deterministic permutation invariance, exact frozen policy-order preservation, authority/action-class binding, authority denial/unknown, physical unknown, bounded-loss violations, dependence-cluster leakage, policy-grid/revision drift, mixed regimes, digest validation, role separation, and empirical upper-tail CVaR.
 
 ## Important release preconditions
 
@@ -277,7 +278,7 @@ The future #7231 integration must establish all of the following before interpre
 - For standard CRC, the policy parameter must be genuinely monotone for the declared loss, or a justified monotone upper envelope must be used. The separate finite-grid non-monotone method does not require monotonicity, but instead pays its explicit sample-size/grid-resolution correction and requires the stated population-risk condition for the terminal policy.
 - A maximum-parameter policy with loss at most `α` exists **by construction**. A fail-closed abstention is not automatically a low-service-loss policy; if abstention counts as failure, its loss must be included.
 - Hard authority/consent checks remain deterministic gates. A statistical risk budget cannot authorize an action.
-- The exact small-instance oracle independently adjudicates physical feasibility and unauthorized actions. Its outcome receipts are consumed through `oracle_adapter.rs`; the adapter does not reimplement those constraints.
+- The exact small-instance oracle independently adjudicates physical feasibility and unauthorized actions. Its outcome receipts are consumed through `oracle_adapter.rs`; the adapter does not reimplement those constraints. The adapter preserves the pre-frozen policy parameter order rather than sorting by ID, and requires `Mutating` actions to have `Authorized` disposition while `NoMutation` may use `NotRequired`.
 - Missing, censored, and outcome-dependent observations are separately identified; hidden outcomes never enter the deployed-style calibrator.
 
 The maximum-parameter assumption is especially strong. If the exact evaluator cannot establish a safe fallback within the declared scope, the correct result is **NO_MAX_PARAMETER_CONTRACT**, not an extrapolated certificate.
