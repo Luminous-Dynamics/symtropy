@@ -14,7 +14,8 @@ The generator emits 120 cases:
 - 20 replication seeds per family;
 - four entire development families (80 cases);
 - two entirely held-out families (40 cases);
-- four probability-weighted scenario leaves per case with paired hidden-quality counterfactuals.
+- four probability-weighted policy-visible scenario leaves per case;
+- a distinct evaluator-only sidecar keyed by case and scenario IDs, carrying hidden terminal-quality outcomes.
 
 Every policy in a future tournament must receive the same case bytes, scenario leaves, visible event prefixes and decision-time budgets. Replication seeds are paired across policy arms; policies may not receive future events or evaluator-only terminal quality.
 
@@ -22,7 +23,9 @@ The family split is declared before case generation. The held-out families must 
 
 The crossed-bottleneck development family gives RESOURCE-A and RESOURCE-B complementary capacity calendars (A is unavailable in epoch 1; B is unavailable in epoch 2), while their eligible operation sets overlap. This creates interacting time-window constraints rather than a single permanent scarce-machine toy pattern. Each operation's process family maps to an explicit setup family, and each resource has a complete directed transition matrix. The validator checks that operation setup targets, eligibility, processing-time keys and resource capability scopes agree.
 
-The generator uses an explicit SplitMix64-v1 seed derivation. Its root seed, seed derivation, pairing rule, split rule and tuning rule are serialized into the corpus. Re-running the generator must produce byte-identical JSON.
+The generator uses an explicit SplitMix64-v1 seed derivation. Its root seed, seed derivation, pairing rule, split rule and tuning rule are serialized into the policy-visible corpus. Re-running the generator must produce byte-identical policy JSON and byte-identical evaluator-sidecar JSON.
+
+The default CLI output is the policy-visible corpus only. The evaluator-label sidecar requires the explicit `--evaluator-labels` argument. The schema and validator check that every sidecar case, scenario and operation maps to the policy corpus. A negative-control test serializes the policy input and asserts that hidden outcome fields and IDs are absent. The focused workflow generates both outputs twice and checks exact-byte determinism separately.
 
 ## Scenario families
 
@@ -58,7 +61,7 @@ Two resource families share POWER-DOMAIN-1, permitting explicit common-cause out
 
 The qualification-transition regime begins with RESOURCE-C / FORMING as Unknown. A scoped admission receipt occurs at epoch 1 but becomes visible only at epoch 2. A policy may not consume that qualification before its receipt is visible.
 
-The inspection-value held-out family introduces required independent inspection on selected final operations and a synthetic inspection-capacity loss. Terminal quality outcomes are evaluator-only. In particular, the first two leaves in each case have identical observation histories but different hidden terminal dispositions; a policy must take the same actions for those indistinguishable histories.
+The inspection-value held-out family introduces required independent inspection on selected final operations and a synthetic inspection-capacity loss. The policy corpus contains only observable histories. In the evaluator sidecar, the first two scenario labels in each case have different terminal-quality dispositions while their policy-visible histories are identical. The evaluator joins those labels only after policy actions have been committed/replayed; a policy receives no terminal-quality field.
 
 ## Strict invariants and negative controls
 
@@ -73,8 +76,10 @@ The generator validates its output against a Draft 2020-12 JSON Schema and Rust 
 8. common-cause identity for correlated outages;
 9. Unknown-to-Admissible qualification transition with a later visible receipt;
 10. inspection-capacity contention in the held-out inspection regime;
-11. identical visible histories with different hidden terminal quality outcomes;
-12. deterministic output bytes under repeated generation.
+11. paired identical policy-visible histories are joined to different evaluator-only terminal dispositions in the sidecar;
+12. evaluator labels that reference unknown cases, scenarios or operations are rejected;
+13. policy corpus serialization contains no evaluator-label field or hidden outcome identifier;
+14. policy corpus and evaluator sidecar are each deterministic under repeated generation.
 
 These checks validate corpus construction only. They do not independently solve or replay a production schedule, prove that a generated action is feasible, or establish that any policy wins.
 
@@ -147,3 +152,5 @@ Lin and Yang's November 2026 SLR2 paper, [An incumbent-aware selective-repair fr
 The dedicated workflow checks formatting, runs structural/schema/adversarial tests, generates the corpus twice and requires byte-identical output, then runs strict Clippy. The full repository CI remains a separate qualification boundary.
 
 The generated corpus is synthetic and offline. It does not establish real provider reliability, source authenticity, qualification authority, physical product acceptance, factory recovery, savings, production authority, industrial readiness or SOTA superiority.
+
+**Blind-test limitation:** this public generator's root seed and derivation are published, so the evaluator sidecar can be deterministically regenerated by anyone with the repository. The separate CLI output prevents accidental policy-process access when the harness supplies only the policy corpus, but it does not provide secrecy or a cryptographically sealed holdout. A prospective blind performance claim must use evaluator-held entropy or an independently generated held-out corpus whose seed, labels and digest are withheld from policy developers until the final evaluation. The current two held-out families are structural regime holdouts, not a secret test set.
