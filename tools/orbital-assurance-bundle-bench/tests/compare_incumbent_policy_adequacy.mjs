@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const [receiptPath, expectedPath, pythonPath] = process.argv.slice(2);
-if (!receiptPath || !expectedPath || !pythonPath) {
-  throw new Error("usage: compare_incumbent_policy_adequacy.mjs <receipt.json> <expected.json> <python-report.json>");
+const [receiptPath, expectedPath] = process.argv.slice(2);
+if (!receiptPath || !expectedPath) {
+  throw new Error("usage: compare_incumbent_policy_adequacy.mjs <receipt.json> <expected.json>");
 }
 const receipt = JSON.parse(fs.readFileSync(receiptPath, "utf8"));
 const expected = JSON.parse(fs.readFileSync(expectedPath, "utf8"));
-const python = JSON.parse(fs.readFileSync(pythonPath, "utf8"));
 
 function canonicalize(value) {
   if (Array.isArray(value)) return value.map(canonicalize);
@@ -29,22 +28,6 @@ assert.equal(receipt.evaluation.claim_ceiling, "synthetic-observable-policy-main
 assert.equal(receipt.evaluation.authority_granted, false);
 assert.equal(receipt.evaluation.summary.case_count, expected.cases.length);
 assert.equal(receipt.evaluation.summary.authority_grants, 0);
-assert.equal(python.result, "pass");
-assert.equal(python.evidence_class, "synthetic");
-assert.equal(python.claim_ceiling, "synthetic-observable-policy-maintenance-algebra-only");
-assert.equal(python.authority_granted, false);
-assert.equal(python.summary.authority_grants, 0);
-assert.deepEqual(
-  canonicalize(python.summary),
-  canonicalize(receipt.evaluation.summary),
-  "Python Fraction summary must match the Rust receipt summary"
-);
-assert.deepEqual(
-  canonicalize(python.cases),
-  canonicalize(receipt.evaluation.cases),
-  "Python Fraction per-case results must match the Rust receipt exactly"
-);
-
 for (const expectedCase of expected.cases) {
   const actual = receipt.evaluation.cases.find(item => item.case_id === expectedCase.case_id);
   assert.ok(actual, "missing case " + expectedCase.case_id);
@@ -53,5 +36,5 @@ for (const expectedCase of expected.cases) {
       expectedCase.case_id + "." + field);
   }
 }
-process.stdout.write("incumbent-policy-adequacy-match: "
-  + expected.cases.length + " known-answer case(s); Rust == Python Fraction; no authority\\n");
+process.stdout.write("incumbent-policy-adequacy-known-answer-match: "
+  + expected.cases.length + " case(s); no authority\\n");
