@@ -112,7 +112,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-002-ACQUISITION-AFTER-EXPIRY",
@@ -192,7 +193,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-003-TIME-BOUNDARY-OVERLAP",
@@ -272,7 +274,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-004-LENS-IDENTITY-MISMATCH",
@@ -352,7 +355,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-005-REVOKED-CERTIFICATE",
@@ -432,7 +436,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-006-REFERENCE-CHECK-HOLD",
@@ -512,7 +517,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-007-STALE-REFERENCE-CHECK",
@@ -592,7 +598,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-008-PRIOR-INVALIDATING-EVENT",
@@ -683,7 +690,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-009-EVENT-TIME-OVERLAPS-ACQUISITION",
@@ -774,7 +782,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-010-INCOMPLETE-EVENT-INVENTORY",
@@ -884,7 +893,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-011-MISSING-CONFIGURATION-FIELD",
@@ -963,7 +973,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-012-EVENT-AFTER-ACQUISITION",
@@ -1054,7 +1065,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-013-NONINVALIDATING-EVENT",
@@ -1145,7 +1157,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-014-UNKNOWN-EVENT-IMPACT",
@@ -1236,7 +1249,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-015-EVENT-BEFORE-CALIBRATION-EPOCH",
@@ -1327,7 +1341,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-016-EVENT-OVERLAPS-CALIBRATION-EPOCH",
@@ -1418,7 +1433,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-017-REFERENCE-CHECK-AGE-BOUNDARY-OVERLAP",
@@ -1498,7 +1514,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-018-REFERENCE-CHECK-AT-ACQUISITION",
@@ -1578,7 +1595,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-019-TEMPERATURE-DEFINITIVELY-OUT-OF-SCOPE",
@@ -1658,7 +1676,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-020-TEMPERATURE-UNCERTAINTY-CROSSES-LIMIT",
@@ -1738,7 +1757,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-021-TEMPERATURE-MEASUREMENT-MISSING",
@@ -1810,7 +1830,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-022-TEMPERATURE-UNIT-MISMATCH",
@@ -1890,7 +1911,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-023-TEMPERATURE-MEASUREMENT-STALE",
@@ -1970,7 +1992,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-024-TEMPERATURE-MEASUREMENT-AGE-BOUNDARY",
@@ -2050,7 +2073,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     },
     {
       "case_id": "CAL-025-STALE-OUT-OF-RANGE-CONDITION",
@@ -2130,7 +2154,8 @@
           "time_uncertainty_ns": 1,
           "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         }
-      }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     }
   ]
 }
