@@ -30,7 +30,7 @@ Dispatch samples must align one-to-one with PCC metrology intervals and the corr
 
 ### 2.2 Technical reconciliation is not settlement authority
 
-The output is a conservative technical evidence summary only. The bridge does not authenticate source signatures or GitHub provenance, identify a causal treatment effect, calculate a market settlement statement, determine a tariff, issue an invoice, authorise a payment, certify a market product, approve a connection or dispatch equipment.
+The output is a conservative technical evidence summary only. It separates **technical reconciliation** (the reports are internally consistent and correctly aligned) from **service-performance qualification** (all source gates pass, the full request is DC-deliverable, the minimum dispatch-period lower bound is positive, and event-plus-recovery net lower-bound energy is positive). A negative or network-limited event may be technically reconciled without being qualified as successful service. The bridge does not authenticate source signatures or GitHub provenance, identify a causal treatment effect, calculate a market settlement statement, determine a tariff, issue an invoice, authorise a payment, certify a market product, approve a connection or dispatch equipment.
 
 All these flags stay false: source signatures verified, settlement authority, payment authorised, market eligibility, dispatch authority, interconnection approval and field qualification.
 
@@ -108,7 +108,7 @@ This should be a core planning comparator for fleet demand, inventory and servic
 
 ### 7.2 Distributionally robust reinforcement learning
 
-Du and Zhu, *Optimal Scheduling of Electric Heavy-Truck Battery Swapping Stations via Distributionally Robust Deep Reinforcement Learning*, Applied Sciences 16(22), 11346 (November 2026), report DR-SAC with 78.9% peak shaving in their medium-demand peak window. Across the high-demand scenario, DR-SAC has 5.3 scarcity-violating periods/day, SAC 2.9, TD3 12.4 and DDPG 21.7; DDPG reaches 86.7% peak shaving but at 21.7 violations/day. The authors conclude that a safety layer is still needed under high demand. Their data represent one mining-area station and stated tariff/service definitions; these figures must not be transferred to an aerial mobility fleet.
+Du and Zhu, *Optimal Scheduling of Electric Heavy-Truck Battery Swapping Stations via Distributionally Robust Deep Reinforcement Learning*, Applied Sciences 16(22), 11346 (16 November 2026), report DR-SAC with 78.9% peak shaving in their high-demand scenario. Across the full 31-day test window, DR-SAC averages 0.8 scarcity-violating periods/day; its high-demand scenario rises to 5.3/day, compared with SAC at 2.9, TD3 at 12.4 and DDPG at 21.7. DDPG reaches 86.7% peak shaving but at 21.7 violations/day. Therefore DR-SAC is not uniformly the safest policy: in the high-demand scenario SAC violates less often, while DR-SAC achieves higher peak shaving and profit. The authors explicitly say a safety layer is still needed under high demand, and disclose that the work uses one mining-area station, its own tariffs and a 15-minute transition model that omits charger-bay limits and battery degradation. These figures must not be transferred to a mobility fleet.
 
 Paper: https://doi.org/10.3390/app162211346
 
