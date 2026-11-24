@@ -302,12 +302,10 @@ pub fn analyze_local_identifiability(
     let physical_base_status =
         if unprofiled_physical_max < input.config.minimum_profiled_physical_sensitivity {
             IdentifiabilityStatus::NoInformativeSensitivity
+        } else if physical_rank < physical_indices.len() {
+            IdentifiabilityStatus::RankDeficient
         } else {
-            classify_status(
-                physical_rank,
-                physical_indices.len(),
-                physical_condition_number,
-            )
+            IdentifiabilityStatus::Identifiable
         };
     let physical_status = set_status_threshold(
         physical_base_status,
