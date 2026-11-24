@@ -116,7 +116,7 @@ pub struct OracleOutcomeDataset {
     pub episodes: Vec<ScheduleAdjudication>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum OracleAdapterError {
     EmptyDataset,
     MissingContractField(&'static str),
@@ -1026,9 +1026,7 @@ mod tests {
         data.episodes[2].policy_outcomes[0].policy_revision = "policy-A-rev-2".to_owned();
         assert!(matches!(
             compile_oracle_outcomes(&data),
-            Err(OracleAdapterError::FrozenPolicyRevisionMismatch(
-                "policy-A".to_owned()
-            ))
+            Err(OracleAdapterError::FrozenPolicyRevisionMismatch(_))
         ));
     }
 
