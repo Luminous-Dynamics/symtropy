@@ -313,15 +313,14 @@ pub fn evaluate_transfer_calibration(
         }
     }
 
-    let mut bins = vec![
-        CalibrationBinV0 {
-            bin_index: 0,
+    let mut bins = (0..calibration_bin_count)
+        .map(|bin_index| CalibrationBinV0 {
+            bin_index,
             sample_count: 0,
             positive_count: 0,
             probability_sum_ppm: 0,
-        };
-        calibration_bin_count
-    ];
+        })
+        .collect::<Vec<_>>();
     let mut brier_numerator = 0_u128;
     let mut log_loss_sum = 0.0_f64;
     let mut log_loss_clipped_samples = 0_usize;
@@ -698,6 +697,10 @@ pub struct SplitConformalBinaryTransferV0 {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TransferPredictionSetV0 {
     pub sample_id: u64,
+    /// The evaluator-assigned stratum of this prediction, not learner input.
+    pub evaluation_stratum_id: u16,
+    /// False means the calibrator's exchangeability scope was not admitted.
+    pub exchangeability_admitted: bool,
     pub include_transfer: bool,
     pub include_non_transfer: bool,
     /// A singleton prediction set can be turned into a decision. Both labels
@@ -706,14 +709,33 @@ pub struct TransferPredictionSetV0 {
 }
 
 impl SplitConformalBinaryTransferV0 {
+    /// Predict only after the owner supplies the target claim's stratum.
+    ///
+    /// If the owner-assigned stratum differs from the calibration stratum, the
+    /// method returns the full binary set and no decision. The caller must not
+    /// treat the split-conformal marginal coverage guarantee as admitted for
+    /// that prediction. A learner-supplied stratum is not authoritative.
     pub fn predict(
         self,
         sample_id: u64,
+        evaluation_stratum_id: u16,
         probability_transfer_ppm: u32,
     ) -> Result<TransferPredictionSetV0, TransferCalibrationErrorV0> {
         if probability_transfer_ppm > PROBABILITY_SCALE_PPM_V0 {
             return Err(TransferCalibrationErrorV0::ProbabilityOutOfRange);
         }
+        let exchangeability_admitted = evaluation_stratum_id == self.evaluation_stratum_id;
+        if !exchangeability_admitted {
+            return Ok(TransferPredictionSetV0 {
+                sample_id,
+                evaluation_stratum_id,
+                exchangeability_admitted: false,
+                include_transfer: true,
+                include_non_transfer: true,
+                decision: None,
+            });
+        }
+
         let transfer_score = PROBABILITY_SCALE_PPM_V0 - probability_transfer_ppm;
         let non_transfer_score = probability_transfer_ppm;
         let include_transfer = transfer_score <= self.quantile_nonconformity_ppm;
@@ -725,6 +747,8 @@ impl SplitConformalBinaryTransferV0 {
         };
         Ok(TransferPredictionSetV0 {
             sample_id,
+            evaluation_stratum_id,
+            exchangeability_admitted: true,
             include_transfer,
             include_non_transfer,
             decision,
@@ -880,7 +904,7 @@ mod tests {
         assert_eq!(calibrator.quantile_rank, 3);
         assert_eq!(calibrator.quantile_nonconformity_ppm, 500_000);
 
-        let predicted = calibrator.predict(204, 900_000).unwrap();
+        let predicted = calibrator.predict(204, 7, 900_000).unwrap();
         assert!(predicted.include_transfer);
         assert!(!predicted.include_non_transfer);
         assert_eq!(predicted.decision, Some(TransferDecisionV0::AssertTransfer));
@@ -898,12 +922,12 @@ mod tests {
             fit_split_conformal_binary_transfer(&forecasts, &outcomes, 9, 500_000).unwrap();
 
         assert_eq!(calibrator.quantile_nonconformity_ppm, 100_000);
-        let tied = calibrator.predict(402, 900_000).unwrap();
+        let tied = calibrator.predict(402, 9, 900_000).unwrap();
         assert!(tied.include_transfer);
         assert!(!tied.include_non_transfer);
         assert_eq!(tied.decision, Some(TransferDecisionV0::AssertTransfer));
 
-        let empty = calibrator.predict(403, 500_000).unwrap();
+        let empty = calibrator.predict(403, 9, 500_000).unwrap();
         assert!(!empty.include_transfer);
         assert!(!empty.include_non_transfer);
         assert_eq!(empty.decision, None);
@@ -925,7 +949,7 @@ mod tests {
             calibrator.quantile_nonconformity_ppm,
             PROBABILITY_SCALE_PPM_V0
         );
-        let predicted = calibrator.predict(302, 900_000).unwrap();
+        let predicted = calibrator.predict(302, 2, 900_000).unwrap();
         assert!(predicted.include_transfer);
         assert!(predicted.include_non_transfer);
         assert_eq!(predicted.decision, None);
@@ -963,12 +987,27 @@ mod tests {
     }
 
     #[test]
+    fn split_conformal_fails_closed_outside_the_admitted_evaluation_stratum() {
+        let (forecasts, outcomes) = conformal_calibration_fixture();
+        let calibrator =
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, 7, 100_000).unwrap();
+
+        let prediction = calibrator.predict(205, 8, 950_000).unwrap();
+
+        assert_eq!(prediction.evaluation_stratum_id, 8);
+        assert!(!prediction.exchangeability_admitted);
+        assert!(prediction.include_transfer);
+        assert!(prediction.include_non_transfer);
+        assert_eq!(prediction.decision, None);
+    }
+
+    #[test]
     fn split_conformal_predict_rejects_probability_out_of_range() {
         let (forecasts, outcomes) = conformal_calibration_fixture();
         let calibrator =
             fit_split_conformal_binary_transfer(&forecasts, &outcomes, 7, 100_000).unwrap();
         assert_eq!(
-            calibrator.predict(999, 1_000_001),
+            calibrator.predict(999, 7, 1_000_001),
             Err(TransferCalibrationErrorV0::ProbabilityOutOfRange)
         );
     }
@@ -1324,6 +1363,11 @@ mod tests {
         assert_eq!(report.calibration_bins[0].sample_count, 0);
         assert_eq!(report.calibration_bins[1].sample_count, 1);
         assert_eq!(report.calibration_bins[9].sample_count, 1);
+        assert!(report
+            .calibration_bins
+            .iter()
+            .enumerate()
+            .all(|(expected_index, bin)| bin.bin_index == expected_index));
     }
 
     #[test]
