@@ -71,8 +71,8 @@ class ProbabilityReceiptTests(unittest.TestCase):
         self.assertEqual(result["status"], "PASS")
         self.assertFalse(result["authority_granted"])
         by_id = {item["policy_id"]: item for item in result["policies"]}
-        incumbent = by_id["incumbent-static"]["metrics"]["wait_and_see_regret"]
-        candidate = by_id["candidate-observable"]["metrics"]["wait_and_see_regret"]
+        incumbent = by_id["incumbent-static"]["wait_and_see_regret"]
+        candidate = by_id["candidate-observable"]["wait_and_see_regret"]
         self.assertEqual(incumbent["expected_regret"], fraction_json(Fraction(16, 25)))
         self.assertEqual(incumbent["worst_case_regret"], fraction_json(Fraction(10)))
         self.assertEqual(
