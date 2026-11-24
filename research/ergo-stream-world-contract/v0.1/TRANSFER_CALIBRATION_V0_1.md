@@ -153,6 +153,26 @@ The machine-readable owner-side outcomes are:
 
 The domain support fingerprint and minimum independent-block threshold should be resolved by [Symtropy #7041](https://github.com/Luminous-Dynamics/symtropy/issues/7041). This calibrator consumes the owner-approved stratum ID; it is not itself the domain support registry or proof of independence.
 
+## Adaptive observations and delayed calibration feedback
+
+The current `fit_split_conformal_binary_transfer` is an **offline split** baseline. It does not cover calibration under an adaptive measurement policy, optional stopping, non-mature labels, or sequential updates.
+
+Compose rather than duplicate:
+- Symtropy [#6887](https://github.com/Luminous-Dynamics/symtropy/issues/6887) owns anytime-valid surviving-world / decision sets under adaptive observations, e-process assumptions and optional-stopping controls.
+- Symthaea [#13280](https://github.com/Luminous-Dynamics/symthaea/issues/13280) owns online conformal under delayed metrology feedback and process drift, including label maturation, revision/supersession, clock alignment, regime changes and update policy.
+- Symtropy [#6943](https://github.com/Luminous-Dynamics/symtropy/issues/6943) owns trajectory dependence and defensible independence-group contracts.
+- Symtropy [#5285](https://github.com/Luminous-Dynamics/symtropy/issues/5285) owns conservative block-maximum conformal and transfer-failure controls.
+
+Rules for ErgoStream:
+1. Do not treat adaptively selected probes as exchangeable merely because sample IDs differ.
+2. Do not update calibration from a target result until its outcome is owner-validated and mature.
+3. Do not double-count a revised/superseded measurement.
+4. Preserve the policy/action receipt and exact public history used to choose each probe.
+5. When no defensible block-independence or sequential validity contract applies, mark the coverage guarantee unavailable and abstain rather than inventing an effective sample size.
+6. Never label the static v0 split-conformal result as anytime-valid or online.
+
+A future adaptive calibration track should compare fixed-window split conformal, campaign/block maximum, EnbPI/AcMCP where their assumptions fit, drift-triggered online calibration, and #6887's time-uniform e-process decision sets. Report sustained local undercoverage and longest miss runs, not only signed long-run average coverage.
+
 ## Owner-issued calibration receipt
 
 The Rust runtime identity is represented by `SplitConformalCalibrationIdentityV0`. Both fitting and prediction bind the exact:
