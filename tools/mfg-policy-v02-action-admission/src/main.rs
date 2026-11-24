@@ -1400,7 +1400,7 @@ fn run() -> Result<(), String> {
     let args: Vec<String> = std::env::args().collect();
     if args.len() != 3 && args.len() != 4 {
         return Err(
-            "usage: mfg-policy-v02-action-admission <decision-frame.json> <action-proposal.json> [operational-state-snapshot.json]"
+            "usage: mfg-policy-v02-action-admission <decision-frame.json> <action-proposal.json> [replay-receipt.json]"
                 .into(),
         );
     }
@@ -1412,20 +1412,17 @@ fn run() -> Result<(), String> {
         .map_err(|error| fail(format!("decision_frame_json:{error}")))?;
     let proposal: Value = serde_json::from_slice(&proposal_bytes)
         .map_err(|error| fail(format!("action_proposal_json:{error}")))?;
-    let snapshot = if args.len() == 4 {
+    let replay_receipt = if args.len() == 4 {
         let bytes = std::fs::read(&args[3])
-            .map_err(|error| fail(format!("operational_state_snapshot_read:{error}")))?;
+            .map_err(|error| fail(format!("replay_receipt_read:{error}")))?;
         Some(
             serde_json::from_slice(&bytes)
-                .map_err(|error| fail(format!("operational_state_snapshot_json:{error}")))?,
+                .map_err(|error| fail(format!("replay_receipt_json:{error}")))?,
         )
     } else {
         None
     };
-    let receipt = match snapshot.as_ref() {
-        Some(snapshot) => evaluate_with_snapshot(&frame, &proposal, Some(snapshot))?,
-        None => evaluate(&frame, &proposal)?,
-    };
+    let receipt = evaluate_with_replay_receipt(&frame, &proposal, replay_receipt.as_ref())?;
     let receipt_value = serde_json::to_value(&receipt)
         .map_err(|error| fail(format!("admission_receipt_serialize:{error}")))?;
     validate_schema(
