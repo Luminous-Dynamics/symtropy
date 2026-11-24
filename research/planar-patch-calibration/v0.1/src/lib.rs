@@ -162,6 +162,359 @@ pub struct PatchCalibrationReport {
     pub physical_model_validated: bool,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct MaximumDissipationObservation {
+    pub observation_id: String,
+    pub trial_group_id: String,
+    /// Local [tangent-u velocity, tangent-v velocity, normal angular velocity].
+    pub slip_twist: [f64; 3],
+    pub measured_wrench: MeasuredPatchWrench,
+    /// Independently measured mu * N for this observation.
+    pub capacity_scale: f64,
+    pub weight: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MaximumDissipationValidationInput {
+    pub specimen_digest: String,
+    pub patch_geometry_digest: String,
+    pub coordinate_frame_digest: String,
+    pub rig_calibration_digest: String,
+    pub observation_profile_digest: String,
+    pub calibration_parameter_digest: String,
+    pub held_out_split_digest: String,
+    pub characteristic_length_m: f64,
+    /// [e_u, e_v, e_n] where e_n is in metres.
+    pub ellipsoid_shape_scales: [f64; 3],
+    pub observations: Vec<MaximumDissipationObservation>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MaximumDissipationValidationConfig {
+    /// Treat ||diag(a) v|| at or below this value as zero slip (watts).
+    pub slip_power_tolerance: f64,
+    /// Maximum tolerated positive measured power (watts).
+    pub positive_power_tolerance: f64,
+    /// Maximum weighted RMS normalized wrench error for a consistent result.
+    pub maximum_weighted_rms_wrench_error: f64,
+}
+
+impl Default for MaximumDissipationValidationConfig {
+    fn default() -> Self {
+        Self {
+            slip_power_tolerance: 1.0e-12,
+            positive_power_tolerance: 1.0e-8,
+            maximum_weighted_rms_wrench_error: 1.0e-3,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DirectionObservationDisposition {
+    SlidingDirectionEvaluated,
+    ZeroSlipStickingSetNotDirectional,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct DirectionObservationDiagnostic {
+    pub observation_id: String,
+    pub trial_group_id: String,
+    pub disposition: DirectionObservationDisposition,
+    pub predicted_wrench: Option<MeasuredPatchWrench>,
+    pub observed_power: Option<f64>,
+    pub predicted_power: Option<f64>,
+    /// Dimensionless L2 error after dividing each channel by its ellipsoid axis.
+    pub normalized_wrench_error: Option<f64>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum MaximumDissipationValidationStatus {
+    ConsistentWithinTolerance,
+    Inconsistent,
+    NoInformativeSlidingObservations,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MaximumDissipationValidationReport {
+    pub schema_version: String,
+    pub specimen_digest: String,
+    pub patch_geometry_digest: String,
+    pub coordinate_frame_digest: String,
+    pub rig_calibration_digest: String,
+    pub observation_profile_digest: String,
+    pub calibration_parameter_digest: String,
+    pub held_out_split_digest: String,
+    pub characteristic_length_m: f64,
+    pub ellipsoid_shape_scales: [f64; 3],
+    pub observation_count: usize,
+    pub sliding_observation_count: usize,
+    pub zero_slip_observation_count: usize,
+    pub non_dissipative_observation_count: usize,
+    pub maximum_positive_observed_power: Option<f64>,
+    pub maximum_normalized_wrench_error: Option<f64>,
+    pub weighted_rms_normalized_wrench_error: Option<f64>,
+    pub positive_power_tolerance: f64,
+    pub maximum_weighted_rms_wrench_error: f64,
+    pub status: MaximumDissipationValidationStatus,
+    pub diagnostics: Vec<DirectionObservationDiagnostic>,
+}
+
+/// Validate calibrated ellipsoid shape scales against held-out sliding
+/// force-torque / slip-twist observations. Zero-slip data are retained as
+/// set-valued sticking diagnostics and excluded from the directional score.
+pub fn validate_maximum_dissipation(
+    input: &MaximumDissipationValidationInput,
+    config: MaximumDissipationValidationConfig,
+) -> Result<MaximumDissipationValidationReport, CalibrationError> {
+    for (label, digest) in [
+        ("specimen", &input.specimen_digest),
+        ("patch geometry", &input.patch_geometry_digest),
+        ("coordinate frame", &input.coordinate_frame_digest),
+        ("rig calibration", &input.rig_calibration_digest),
+        ("observation profile", &input.observation_profile_digest),
+        ("calibration parameters", &input.calibration_parameter_digest),
+        ("held-out split", &input.held_out_split_digest),
+    ] {
+        if digest.trim().is_empty() {
+            return Err(CalibrationError::new(
+                CalibrationErrorKind::InvalidIdentity,
+                format!("{label} digest must be non-empty"),
+            ));
+        }
+    }
+    if !input.characteristic_length_m.is_finite()
+        || input.characteristic_length_m <= 0.0
+        || !input
+            .ellipsoid_shape_scales
+            .iter()
+            .all(|value| value.is_finite() && *value > 0.0)
+    {
+        return Err(CalibrationError::new(
+            CalibrationErrorKind::InvalidParameter,
+            "characteristic length and calibrated ellipsoid shape scales must be finite and positive",
+        ));
+    }
+    if !config.slip_power_tolerance.is_finite()
+        || config.slip_power_tolerance < 0.0
+        || !config.positive_power_tolerance.is_finite()
+        || config.positive_power_tolerance < 0.0
+        || !config.maximum_weighted_rms_wrench_error.is_finite()
+        || config.maximum_weighted_rms_wrench_error <= 0.0
+    {
+        return Err(CalibrationError::new(
+            CalibrationErrorKind::InvalidTolerance,
+            "directional validation tolerances must be finite and non-negative, with positive RMS tolerance",
+        ));
+    }
+    if input.observations.is_empty() {
+        return Err(CalibrationError::new(
+            CalibrationErrorKind::EmptyObservations,
+            "at least one held-out direction observation is required",
+        ));
+    }
+
+    let mut ids = BTreeSet::new();
+    let mut trial_groups = BTreeSet::new();
+    let mut diagnostics = Vec::with_capacity(input.observations.len());
+    let mut sliding_count = 0_usize;
+    let mut zero_slip_count = 0_usize;
+    let mut non_dissipative_count = 0_usize;
+    let mut maximum_positive_power = 0.0_f64;
+    let mut maximum_error = 0.0_f64;
+    let mut weighted_error_sum = 0.0_f64;
+    let mut total_sliding_weight = 0.0_f64;
+
+    for observation in &input.observations {
+        if observation.observation_id.trim().is_empty()
+            || observation.trial_group_id.trim().is_empty()
+        {
+            return Err(CalibrationError::new(
+                CalibrationErrorKind::InvalidIdentity,
+                "direction observation and trial-group IDs must be non-empty",
+            ));
+        }
+        if !ids.insert(observation.observation_id.as_str()) {
+            return Err(CalibrationError::new(
+                CalibrationErrorKind::DuplicateObservationId,
+                "direction observation IDs must be unique",
+            ));
+        }
+        trial_groups.insert(observation.trial_group_id.as_str());
+        if !observation.slip_twist.iter().all(|value| value.is_finite())
+            || !finite_wrench(observation.measured_wrench)
+        {
+            return Err(CalibrationError::new(
+                CalibrationErrorKind::NonFiniteInput,
+                "slip twist and measured wrench must be finite",
+            ));
+        }
+        if !observation.capacity_scale.is_finite()
+            || observation.capacity_scale <= 0.0
+            || !observation.weight.is_finite()
+            || observation.weight <= 0.0
+        {
+            return Err(CalibrationError::new(
+                CalibrationErrorKind::InvalidParameter,
+                "capacity scale and observation weight must be finite and positive",
+            ));
+        }
+
+        let axes = input
+            .ellipsoid_shape_scales
+            .map(|shape| shape * observation.capacity_scale);
+        if !axes.iter().all(|value| value.is_finite() && *value > 0.0) {
+            return Err(CalibrationError::new(
+                CalibrationErrorKind::NonFiniteEvaluation,
+                "directional validation ellipsoid axes are invalid",
+            ));
+        }
+        let scaled_slip = std::array::from_fn::<_, 3, _>(|index| {
+            axes[index] * observation.slip_twist[index]
+        });
+        if !scaled_slip.iter().all(|value| value.is_finite()) {
+            return Err(CalibrationError::new(
+                CalibrationErrorKind::NonFiniteEvaluation,
+                "capacity-scaled slip twist is non-finite",
+            ));
+        }
+        let slip_power_norm = stable_norm(&scaled_slip);
+        if !slip_power_norm.is_finite() {
+            return Err(CalibrationError::new(
+                CalibrationErrorKind::NonFiniteEvaluation,
+                "slip-power norm is non-finite",
+            ));
+        }
+
+        if slip_power_norm <= config.slip_power_tolerance {
+            zero_slip_count += 1;
+            diagnostics.push(DirectionObservationDiagnostic {
+                observation_id: observation.observation_id.clone(),
+                trial_group_id: observation.trial_group_id.clone(),
+                disposition: DirectionObservationDisposition::ZeroSlipStickingSetNotDirectional,
+                predicted_wrench: None,
+                observed_power: None,
+                predicted_power: None,
+                normalized_wrench_error: None,
+            });
+            continue;
+        }
+
+        let predicted_values = std::array::from_fn::<_, 3, _>(|index| {
+            -(axes[index] * scaled_slip[index]) / slip_power_norm
+        });
+        if !predicted_values.iter().all(|value| value.is_finite()) {
+            return Err(CalibrationError::new(
+                CalibrationErrorKind::NonFiniteEvaluation,
+                "predicted maximum-dissipation wrench is non-finite",
+            ));
+        }
+        let measured_values = [
+            observation.measured_wrench.tangent_u_force,
+            observation.measured_wrench.tangent_v_force,
+            observation.measured_wrench.normal_torsional_moment,
+        ];
+        let difference = std::array::from_fn::<_, 3, _>(|index| {
+            (measured_values[index] - predicted_values[index]) / axes[index]
+        });
+        if !difference.iter().all(|value| value.is_finite()) {
+            return Err(CalibrationError::new(
+                CalibrationErrorKind::NonFiniteEvaluation,
+                "normalized maximum-dissipation residual is non-finite",
+            ));
+        }
+        let normalized_error = stable_norm(&difference);
+        let observed_power = dot(&observation.slip_twist, &measured_values)?;
+        let predicted_power = dot(&observation.slip_twist, &predicted_values)?;
+        if !normalized_error.is_finite() || !observed_power.is_finite() || !predicted_power.is_finite() {
+            return Err(CalibrationError::new(
+                CalibrationErrorKind::NonFiniteEvaluation,
+                "maximum-dissipation residual or power is non-finite",
+            ));
+        }
+        if observed_power > config.positive_power_tolerance {
+            non_dissipative_count += 1;
+            maximum_positive_power = maximum_positive_power.max(observed_power);
+        }
+        maximum_error = maximum_error.max(normalized_error);
+        weighted_error_sum += observation.weight * normalized_error * normalized_error;
+        total_sliding_weight += observation.weight;
+        if !weighted_error_sum.is_finite() || !total_sliding_weight.is_finite() {
+            return Err(CalibrationError::new(
+                CalibrationErrorKind::NonFiniteEvaluation,
+                "weighted maximum-dissipation residual accumulation overflowed",
+            ));
+        }
+        sliding_count += 1;
+        diagnostics.push(DirectionObservationDiagnostic {
+            observation_id: observation.observation_id.clone(),
+            trial_group_id: observation.trial_group_id.clone(),
+            disposition: DirectionObservationDisposition::SlidingDirectionEvaluated,
+            predicted_wrench: Some(MeasuredPatchWrench {
+                tangent_u_force: predicted_values[0],
+                tangent_v_force: predicted_values[1],
+                normal_torsional_moment: predicted_values[2],
+            }),
+            observed_power: Some(observed_power),
+            predicted_power: Some(predicted_power),
+            normalized_wrench_error: Some(normalized_error),
+        });
+    }
+
+    let weighted_rms = if sliding_count > 0 {
+        Some((weighted_error_sum / total_sliding_weight).sqrt())
+    } else {
+        None
+    };
+    if weighted_rms.is_some_and(|value| !value.is_finite()) {
+        return Err(CalibrationError::new(
+            CalibrationErrorKind::NonFiniteEvaluation,
+            "weighted maximum-dissipation RMS is non-finite",
+        ));
+    }
+    let status = match weighted_rms {
+        None => MaximumDissipationValidationStatus::NoInformativeSlidingObservations,
+        Some(value)
+            if value <= config.maximum_weighted_rms_wrench_error
+                && non_dissipative_count == 0 =>
+        {
+            MaximumDissipationValidationStatus::ConsistentWithinTolerance
+        }
+        Some(_) => MaximumDissipationValidationStatus::Inconsistent,
+    };
+
+    Ok(MaximumDissipationValidationReport {
+        schema_version: SCHEMA_VERSION.to_owned(),
+        specimen_digest: input.specimen_digest.clone(),
+        patch_geometry_digest: input.patch_geometry_digest.clone(),
+        coordinate_frame_digest: input.coordinate_frame_digest.clone(),
+        rig_calibration_digest: input.rig_calibration_digest.clone(),
+        observation_profile_digest: input.observation_profile_digest.clone(),
+        calibration_parameter_digest: input.calibration_parameter_digest.clone(),
+        held_out_split_digest: input.held_out_split_digest.clone(),
+        characteristic_length_m: input.characteristic_length_m,
+        ellipsoid_shape_scales: input.ellipsoid_shape_scales,
+        observation_count: input.observations.len(),
+        sliding_observation_count: sliding_count,
+        zero_slip_observation_count: zero_slip_count,
+        non_dissipative_observation_count: non_dissipative_count,
+        maximum_positive_observed_power: if non_dissipative_count > 0 {
+            Some(maximum_positive_power)
+        } else {
+            None
+        },
+        maximum_normalized_wrench_error: if sliding_count > 0 {
+            Some(maximum_error)
+        } else {
+            None
+        },
+        weighted_rms_normalized_wrench_error: weighted_rms,
+        positive_power_tolerance: config.positive_power_tolerance,
+        maximum_weighted_rms_wrench_error: config.maximum_weighted_rms_wrench_error,
+        status,
+        diagnostics,
+    })
+}
+
 fn axis_from_index(index: usize) -> PatchAxis {
     match index {
         0 => PatchAxis::TangentialU,
