@@ -241,6 +241,8 @@ pub struct ResetOutcomeRecord {
     pub observed_clock_id: Option<String>,
     pub observed_initial_state_sha256: Option<String>,
     pub observation_artifact_sha256: Option<String>,
+    /// Hash of the exact transport response artifact, when one was received.
+    pub transport_response_artifact_sha256: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -277,6 +279,8 @@ pub struct DispatchOutcomeRecord {
     pub source: DispatchOutcomeSource,
     pub status: DispatchOutcomeStatus,
     pub dispatch_id: Option<String>,
+    /// Hash of the exact transport response artifact, when one was received.
+    pub transport_response_artifact_sha256: Option<String>,
     pub ledger_artifact_sha256: Option<String>,
 }
 
@@ -499,6 +503,7 @@ impl JournalIndex {
                     observed_clock_id,
                     observed_initial_state_sha256,
                     observation_artifact_sha256,
+                    transport_response_artifact_sha256,
                 } = record.as_ref();
                 let intent = self
                     .reset_intents
@@ -542,6 +547,32 @@ impl JournalIndex {
                         // a response record could be appended.
                     }
                     _ => return Err(JournalError::InvalidResetTransition),
+                }
+
+                match source {
+                    ResetOutcomeSource::TransportResponse => {
+                        if matches!(
+                            status,
+                            ResetOutcomeStatus::ResponseAccepted | ResetOutcomeStatus::ResponseRejected
+                        ) && !transport_response_artifact_sha256
+                            .as_deref()
+                            .is_some_and(valid_sha256)
+                        {
+                            return Err(JournalError::InvalidOutcomeEvidence);
+                        }
+                        if transport_response_artifact_sha256
+                            .as_deref()
+                            .is_some_and(|digest| !valid_sha256(digest))
+                            || observation_artifact_sha256.is_some()
+                        {
+                            return Err(JournalError::InvalidOutcomeEvidence);
+                        }
+                    }
+                    ResetOutcomeSource::ReadOnlyObservation | ResetOutcomeSource::Reconciliation => {
+                        if transport_response_artifact_sha256.is_some() {
+                            return Err(JournalError::InvalidOutcomeEvidence);
+                        }
+                    }
                 }
 
                 if *status == ResetOutcomeStatus::Verified {
@@ -588,6 +619,7 @@ impl JournalIndex {
                         observed_clock_id: observed_clock_id.clone(),
                         observed_initial_state_sha256: observed_initial_state_sha256.clone(),
                         observation_artifact_sha256: observation_artifact_sha256.clone(),
+                        transport_response_artifact_sha256: transport_response_artifact_sha256.clone(),
                     },
                 );
                 Ok(())
@@ -721,6 +753,7 @@ impl JournalIndex {
                     status,
                     dispatch_id,
                     ledger_artifact_sha256,
+                    transport_response_artifact_sha256,
                 } = record.as_ref();
                 let intent = self
                     .dispatch_intents
@@ -730,10 +763,32 @@ impl JournalIndex {
                     return Err(JournalError::DispatchPayloadMismatch);
                 }
                 let previous = self.dispatch_status.get(idempotency_key).copied();
-                if *source == DispatchOutcomeSource::InjectorLedgerLookup
-                    && !ledger_artifact_sha256.as_deref().is_some_and(valid_sha256)
-                {
-                    return Err(JournalError::InvalidOutcomeEvidence);
+                match source {
+                    DispatchOutcomeSource::TransportResponse => {
+                        if matches!(
+                            status,
+                            DispatchOutcomeStatus::ResponseAccepted | DispatchOutcomeStatus::ResponseRejected
+                        ) && !transport_response_artifact_sha256
+                            .as_deref()
+                            .is_some_and(valid_sha256)
+                        {
+                            return Err(JournalError::InvalidOutcomeEvidence);
+                        }
+                        if transport_response_artifact_sha256
+                            .as_deref()
+                            .is_some_and(|digest| !valid_sha256(digest))
+                            || ledger_artifact_sha256.is_some()
+                        {
+                            return Err(JournalError::InvalidOutcomeEvidence);
+                        }
+                    }
+                    DispatchOutcomeSource::InjectorLedgerLookup => {
+                        if !ledger_artifact_sha256.as_deref().is_some_and(valid_sha256)
+                            || transport_response_artifact_sha256.is_some()
+                        {
+                            return Err(JournalError::InvalidOutcomeEvidence);
+                        }
+                    }
                 }
                 match (previous, source, status) {
                     (
@@ -805,6 +860,7 @@ impl JournalIndex {
                         source: *source,
                         status: *status,
                         dispatch_id: dispatch_id.clone(),
+                        transport_response_artifact_sha256: transport_response_artifact_sha256.clone(),
                         ledger_artifact_sha256: ledger_artifact_sha256.clone(),
                     },
                 );
@@ -1314,6 +1370,7 @@ mod tests {
                 observed_clock_id: None,
                 observed_initial_state_sha256: None,
                 observation_artifact_sha256: None,
+                transport_response_artifact_sha256: None,
             })
             .unwrap();
         journal
@@ -1325,6 +1382,7 @@ mod tests {
                 observed_clock_id: Some("clock-1".into()),
                 observed_initial_state_sha256: Some(digest('c')),
                 observation_artifact_sha256: Some(digest('d')),
+                transport_response_artifact_sha256: None,
             })
             .unwrap();
     }
@@ -1446,6 +1504,7 @@ mod tests {
                     status: DispatchOutcomeStatus::ResponseUnknown,
                     dispatch_id: None,
                     ledger_artifact_sha256: None,
+                    transport_response_artifact_sha256: None,
                 })
                 .unwrap();
             journal
@@ -1456,6 +1515,7 @@ mod tests {
                     status: DispatchOutcomeStatus::ReconciledAccepted,
                     dispatch_id: Some("dispatch-1".into()),
                     ledger_artifact_sha256: Some(digest('9')),
+                    transport_response_artifact_sha256: None,
                 })
                 .unwrap();
             let recovery = journal.recovery_projection();
@@ -1573,6 +1633,7 @@ mod tests {
                 status: DispatchOutcomeStatus::NoDispatchProven,
                 dispatch_id: None,
                 ledger_artifact_sha256: Some(digest('9')),
+                transport_response_artifact_sha256: None,
             }),
             Err(JournalError::DispatchPayloadMismatch)
         );
@@ -1594,6 +1655,7 @@ mod tests {
                 status: DispatchOutcomeStatus::NoDispatchProven,
                 dispatch_id: None,
                 ledger_artifact_sha256: Some(digest('9')),
+                transport_response_artifact_sha256: None,
             })
             .unwrap();
         assert_eq!(
@@ -1604,6 +1666,7 @@ mod tests {
                 status: DispatchOutcomeStatus::ResponseAccepted,
                 dispatch_id: Some("dispatch-late".into()),
                 ledger_artifact_sha256: None,
+                transport_response_artifact_sha256: None,
             }),
             Err(JournalError::InvalidDispatchTransition)
         );
@@ -1626,6 +1689,7 @@ mod tests {
                     status: DispatchOutcomeStatus::ResponseUnknown,
                     dispatch_id: None,
                     ledger_artifact_sha256: None,
+                    transport_response_artifact_sha256: None,
                 })
                 .unwrap();
         }
@@ -1644,6 +1708,7 @@ mod tests {
                     status: DispatchOutcomeStatus::NoDispatchProven,
                     dispatch_id: None,
                     ledger_artifact_sha256: Some(digest('9')),
+                    transport_response_artifact_sha256: None,
                 })
                 .unwrap();
             assert_eq!(reopened.summary().dispatch_no_dispatch_proven_count, 1);
@@ -1665,6 +1730,7 @@ mod tests {
                     status: DispatchOutcomeStatus::ResponseAccepted,
                     dispatch_id: Some("late-dispatch".into()),
                     ledger_artifact_sha256: None,
+                    transport_response_artifact_sha256: None,
                 }),
                 Err(JournalError::InvalidDispatchTransition)
             );
@@ -1771,6 +1837,7 @@ mod tests {
                 observed_clock_id: None,
                 observed_initial_state_sha256: None,
                 observation_artifact_sha256: None,
+                transport_response_artifact_sha256: Some(digest('8')),
             })
             .unwrap();
         let reset_projection = reset_journal.recovery_projection();
@@ -1791,6 +1858,7 @@ mod tests {
                 observed_clock_id: Some("clock-1".into()),
                 observed_initial_state_sha256: Some(digest('c')),
                 observation_artifact_sha256: Some(digest('d')),
+                transport_response_artifact_sha256: None,
             })
             .unwrap();
         assert_eq!(
@@ -1814,6 +1882,7 @@ mod tests {
                 status: DispatchOutcomeStatus::ResponseRejected,
                 dispatch_id: None,
                 ledger_artifact_sha256: None,
+                transport_response_artifact_sha256: Some(digest('8')),
             })
             .unwrap();
         let rejected_projection = dispatch_journal.recovery_projection();
@@ -1833,6 +1902,7 @@ mod tests {
                 status: DispatchOutcomeStatus::ReconciledRejected,
                 dispatch_id: None,
                 ledger_artifact_sha256: Some(digest('9')),
+                transport_response_artifact_sha256: None,
             })
             .unwrap();
         let reconciled_projection = dispatch_journal.recovery_projection();
@@ -1880,6 +1950,7 @@ mod tests {
                 observed_clock_id: Some("wrong-clock".into()),
                 observed_initial_state_sha256: Some(digest('c')),
                 observation_artifact_sha256: Some(digest('d')),
+                transport_response_artifact_sha256: None,
             }),
             Err(JournalError::InvalidOutcomeEvidence)
         );
