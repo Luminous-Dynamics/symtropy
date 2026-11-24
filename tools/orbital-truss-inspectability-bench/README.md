@@ -244,3 +244,14 @@ The camera basis is right-handed: right = forward cross image-up; corrected up =
 The output is WITHIN only when the entire cap is inside all five half-spaces. It is OUTSIDE only when the entire cap violates at least one common half-space. Boundary intersection is INDETERMINATE. The receipt reports signed angular margins for all five planes.
 
 This is a frustum-geometric precondition only. The enclosing-ball assertion is caller-supplied and not independently proved here. Range, GSD, occlusion, calibration and physical visibility are not assessed; may_count_toward_visibility is always false. The contract has nine frozen controls, a standalone Rust CLI, an independent standard-library Python oracle and exact-head artifact retention.
+
+
+## Rectilinear camera frustum envelope v0.1
+
+A separate frozen contract evaluates a declared spherical support-direction cap against a rectangular pinhole camera frustum. It uses both horizontal and vertical field of view and an explicit image-up vector, so camera roll is represented rather than approximating the image boundary as a circular cone around the optical axis.
+
+The camera basis is right-handed: right = forward cross image-up; corrected up = right cross forward. The five frustum half-spaces are the forward hemisphere and the left, right, top and bottom image planes. The evaluator uses the spherical-cap support function to determine whether the entire support-direction cap is inside a half-space, wholly outside a half-space, or straddles its boundary.
+
+The output is WITHIN only when the entire cap is inside all five half-spaces. It is OUTSIDE only when the entire cap violates at least one common half-space. Boundary intersection is INDETERMINATE. The receipt reports signed angular margins for all five planes.
+
+This is a frustum-geometric precondition only. The enclosing-ball assertion is caller-supplied and not independently proved here. Range, GSD, occlusion, calibration and physical visibility are not assessed; may_count_toward_visibility is always false. The contract has nine frozen controls, a standalone Rust CLI, an independent standard-library Python oracle and exact-head artifact retention.

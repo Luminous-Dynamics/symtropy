@@ -12,6 +12,8 @@ on:
       - "docs/research/orbital-truss/support_envelope_v0_1.schema.json"
       - "docs/research/orbital-truss/fixtures/rectilinear-frustum-v0_1.json"
       - "docs/research/orbital-truss/rectilinear_frustum_v0_1.schema.json"
+      - "docs/research/orbital-truss/fixtures/rectilinear-frustum-v0_1.json"
+      - "docs/research/orbital-truss/rectilinear_frustum_v0_1.schema.json"
       - ".github/workflows/orbital-truss-inspectability.yml"
   push:
     branches:
@@ -24,6 +26,8 @@ on:
       - "docs/research/orbital-truss/orbital_truss_planning_v0_2.schema.json"
       - "docs/research/orbital-truss/fixtures/support-envelope-v0_1.json"
       - "docs/research/orbital-truss/support_envelope_v0_1.schema.json"
+      - "docs/research/orbital-truss/fixtures/rectilinear-frustum-v0_1.json"
+      - "docs/research/orbital-truss/rectilinear_frustum_v0_1.schema.json"
       - "docs/research/orbital-truss/fixtures/rectilinear-frustum-v0_1.json"
       - "docs/research/orbital-truss/rectilinear_frustum_v0_1.schema.json"
       - ".github/workflows/orbital-truss-inspectability.yml"
@@ -223,6 +227,10 @@ jobs:
       - name: Independent support-envelope oracle
         run: |
           python3 tools/orbital-truss-inspectability-bench/tests/support_envelope_reference_oracle.py docs/research/orbital-truss/fixtures/support-envelope-v0_1.json "$GITHUB_SHA" > /tmp/support-envelope-oracle.json
+            /tmp/rectilinear-frustum-a.json
+            /tmp/rectilinear-frustum-oracle.json
+            docs/research/orbital-truss/fixtures/rectilinear-frustum-v0_1.json
+            docs/research/orbital-truss/rectilinear_frustum_v0_1.schema.json
       - name: Compare Rust support-envelope receipt with independent oracle
         run: |
           python3 - <<'PY'
@@ -255,6 +263,56 @@ jobs:
           assert all(not case["full_support_visibility_certified"] for case in rust["cases"])
           assert all(case["precondition_proofs_verified_independently"] is False for case in rust["cases"])
           print("Rust support-envelope certificates match the independent Python oracle on all 13 frozen controls")
+          PY
+      - name: Validate rectilinear-frustum corpus and schema
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          fixture = json.loads(Path("docs/research/orbital-truss/fixtures/rectilinear-frustum-v0_1.json").read_text())
+          schema = json.loads(Path("docs/research/orbital-truss/rectilinear_frustum_v0_1.schema.json").read_text())
+          assert fixture["schema"] == "luminous.orbital-truss-rectilinear-frustum.corpus.v0.1"
+          assert fixture["benchmark_id"] == "ORBITAL-TRUSS-RECTILINEAR-FRUSTUM-001"
+          assert fixture["evidence_class"] == "synthetic"
+          assert fixture["claim_ceiling"] == "synthetic_3d_support_direction_cap_vs_rectilinear_pinhole_frustum_only_occlusion_not_assessed"
+          assert len(fixture["cases"]) == 9
+          assert len({case["case_id"] for case in fixture["cases"]}) == 9
+          assert schema["properties"]["cases"]["minItems"] == 9
+          assert schema["properties"]["cases"]["maxItems"] == 9
+          assert all(case["camera"]["horizontal_fov_rad"] > 0 and case["camera"]["vertical_fov_rad"] > 0 for case in fixture["cases"])
+          print("frozen rectilinear-frustum corpus/schema: 9 unique cases")
+          PY
+      - name: Deterministic Rust rectilinear-frustum receipt replay
+        run: |
+          cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-rectilinear-frustum-bench -- docs/research/orbital-truss/fixtures/rectilinear-frustum-v0_1.json "$GITHUB_SHA" > /tmp/rectilinear-frustum-a.json
+          cargo run --quiet --locked --manifest-path tools/orbital-truss-inspectability-bench/Cargo.toml --bin orbital-truss-rectilinear-frustum-bench -- docs/research/orbital-truss/fixtures/rectilinear-frustum-v0_1.json "$GITHUB_SHA" > /tmp/rectilinear-frustum-b.json
+          cmp /tmp/rectilinear-frustum-a.json /tmp/rectilinear-frustum-b.json
+          jq -e '
+            .schema == "luminous.orbital-truss-rectilinear-frustum.receipt.v0.1" and
+            .case_count == 9 and .expected_outcome_matches == 9 and
+            .expected_outcome_mismatches == 0 and .authority_granted == false and
+            .occlusion_assessed == false and .physical_validation == "NOT_ASSESSED" and
+            all(.cases[]; .may_count_toward_visibility == false)
+          ' /tmp/rectilinear-frustum-a.json
+      - name: Independent rectilinear-frustum oracle
+        run: |
+          python3 tools/orbital-truss-inspectability-bench/tests/rectilinear_frustum_reference_oracle.py docs/research/orbital-truss/fixtures/rectilinear-frustum-v0_1.json "$GITHUB_SHA" > /tmp/rectilinear-frustum-oracle.json
+      - name: Compare Rust rectilinear-frustum receipt with independent oracle
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rust = json.loads(Path("/tmp/rectilinear-frustum-a.json").read_text())
+          oracle = json.loads(Path("/tmp/rectilinear-frustum-oracle.json").read_text())
+          assert rust == oracle
+          assert rust["case_count"] == 9
+          cases = {case["case_id"]: case for case in rust["cases"]}
+          assert cases["RF-002-NARROW-VERTICAL-FOV-OUTSIDE"]["status"] == "OUTSIDE"
+          assert cases["RF-004-HORIZONTAL-BOUNDARY-STRADDLE"]["status"] == "INDETERMINATE"
+          assert cases["RF-006-CAMERA-ROLL-WHOLE-SUPPORT-PASS"]["status"] == "WITHIN"
+          assert cases["RF-008-UNASSERTED-SUPPORT-BOUND-INDETERMINATE"]["status"] == "INDETERMINATE"
+          assert all(case["may_count_toward_visibility"] is False for case in rust["cases"])
+          print("Rust and independent Python rectilinear-frustum certificates agree on all nine controls")
           PY
       - name: Validate rectilinear-frustum corpus and schema
         run: |
@@ -343,6 +401,12 @@ jobs:
               "planning_case_count": planning_rust["case_count"],
               "planning_expected_outcome_matches": planning_rust["expected_outcome_matches"],
               "planning_expected_outcome_mismatches": planning_rust["expected_outcome_mismatches"],
+              "rectilinear_frustum_benchmark_id": "ORBITAL-TRUSS-RECTILINEAR-FRUSTUM-001",
+              "rectilinear_frustum_fixture_sha256": hashlib.sha256(Path("docs/research/orbital-truss/fixtures/rectilinear-frustum-v0_1.json").read_bytes()).hexdigest(),
+              "rectilinear_frustum_schema_sha256": hashlib.sha256(Path("docs/research/orbital-truss/rectilinear_frustum_v0_1.schema.json").read_bytes()).hexdigest(),
+              "rectilinear_frustum_rust_receipt_sha256": hashlib.sha256(Path("/tmp/rectilinear-frustum-a.json").read_bytes()).hexdigest(),
+              "rectilinear_frustum_oracle_receipt_sha256": hashlib.sha256(Path("/tmp/rectilinear-frustum-oracle.json").read_bytes()).hexdigest(),
+              "rectilinear_frustum_case_count": 9,
               "rectilinear_frustum_benchmark_id": "ORBITAL-TRUSS-RECTILINEAR-FRUSTUM-001",
               "rectilinear_frustum_fixture_sha256": hashlib.sha256(Path("docs/research/orbital-truss/fixtures/rectilinear-frustum-v0_1.json").read_bytes()).hexdigest(),
               "rectilinear_frustum_schema_sha256": hashlib.sha256(Path("docs/research/orbital-truss/rectilinear_frustum_v0_1.schema.json").read_bytes()).hexdigest(),
