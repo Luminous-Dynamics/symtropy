@@ -27,6 +27,7 @@
 use core::fmt;
 
 /// Outward-rounded affine geometry used by the independent coverage research.
+pub mod action_effect_portfolio;
 pub mod adaptive_importance_sampling;
 pub mod conditional_velocity;
 pub mod coverage;
@@ -47,6 +48,11 @@ pub mod space_time_partition;
 pub mod stats;
 pub mod trajectory;
 
+pub use action_effect_portfolio::{
+    ActionEffectReceipt, ActionPortfolioDisposition, ActionPortfolioError,
+    ActionPortfolioEvidenceGap, ActionPortfolioReport, ConjunctionEventProbabilityEnvelope,
+    ConjunctionPortfolioSnapshot, reconcile_action_effects,
+};
 pub use adaptive_importance_sampling::{
     AdaptiveImportanceDraw, AdaptiveImportanceSamplingConfidenceSequence,
     AdaptiveImportanceSamplingError, AdaptiveImportanceSamplingSummary, BoundedMeanBettingSequence,
