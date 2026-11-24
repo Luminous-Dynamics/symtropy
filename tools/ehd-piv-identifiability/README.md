@@ -16,8 +16,13 @@ If the residual noise covariance is unknown, correlated or not independently qua
 - Projection of physical sensitivity columns onto the orthogonal complement of the nuisance span.
 - Nuisance-profiled physical singular values, rank and condition.
 - High-correlation physical/nuisance parameter pairs and weak joint parameter combinations.
+- Cost-aware candidate acquisition ranking by rank gain and weakest nuisance-profiled physical sensitivity gain.
 
 The central diagnostic is not merely whether the joint Jacobian is full rank. It is whether physical sensitivity remains after nuisance directions are allowed to explain the same observations. A deficiency confined to nuisance parameters can coexist with identifiable physical parameters.
+
+## Candidate measurement ranking
+
+The crate accepts candidate actions whose new rows are conditional-whitened innovations, including covariance with existing observations. It ranks actions by physical rank gain, smallest nuisance-profiled physical singular-value gain per cost, then deterministic tie-break. A candidate that only adds nuisance information does not earn a physical-information recommendation. V0 is a local E-optimal-style heuristic, not full EVSI or D-optimal Bayesian design, and does not actuate hardware.
 
 ## Interpretation
 
@@ -34,3 +39,5 @@ A full-rank local Jacobian is not a proof of global/structural identifiability, 
 ## Manufactured tests
 
 The current crate contains 14 deterministic tests, including exact and near flow/nuisance confounding, nuisance-only rank deficiency, absent physical sensitivity, parameter scaling, row permutation, underdetermined systems, malformed data and decomposition non-convergence.
+
+The crate currently contains 18 deterministic manufactured tests, including candidate actions that resolve or preserve flow/gain confounding, cost-aware ranking, and nuisance-only actions that receive no physical-information credit.
