@@ -1,0 +1,47 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MAG-FINITE-REF-001",
+  "evidence_status": "analytic_synthetic_reference_not_physical_measurement",
+  "model": "uniformly_polarized_rectangular_prism_axial_Bz",
+  "coordinate_frame": "right_handed_cartesian",
+  "units": {
+    "half_dimensions": "m",
+    "axial_position": "m",
+    "polarization_J": "T",
+    "Bz": "T"
+  },
+  "assumptions": [
+    "cuboid_centred_at_origin",
+    "uniform_polarization_parallel_to_z",
+    "free_space_outside_and_linear_vacuum_field_relation",
+    "observer_on_symmetry_axis_only"
+  ],
+  "cases": [
+    {"case_id":"CUBE-CENTRE-001","half_dimensions_m":[0.05,0.05,0.05],"polarization_J_T":1.2,"observer_z_m":0.0,"expected_Bz_T":0.8},
+    {"case_id":"CUBE-INTERIOR-001","half_dimensions_m":[0.05,0.05,0.05],"polarization_J_T":1.2,"observer_z_m":0.025,"expected_Bz_T":0.7263312300430116},
+    {"case_id":"CUBE-UPPER-FACE-001","half_dimensions_m":[0.05,0.05,0.05],"polarization_J_T":1.2,"observer_z_m":0.05,"expected_Bz_T":0.52308693978123},
+    {"case_id":"CUBE-EXTERIOR-001","half_dimensions_m":[0.05,0.05,0.05],"polarization_J_T":1.2,"observer_z_m":0.1,"expected_Bz_T":0.16173886348488808},
+    {"case_id":"NONCUBE-CENTRE-001","half_dimensions_m":[0.02,0.03,0.04],"polarization_J_T":0.9,"observer_z_m":0.0,"expected_Bz_T":0.7443519333861158},
+    {"case_id":"NONCUBE-FACE-001","half_dimensions_m":[0.02,0.03,0.04],"polarization_J_T":0.9,"observer_z_m":0.04,"expected_Bz_T":0.42557388850781436},
+    {"case_id":"NONCUBE-EXTERIOR-001","half_dimensions_m":[0.02,0.03,0.04],"polarization_J_T":0.9,"observer_z_m":0.08,"expected_Bz_T":0.06639834278427732}
+  ],
+  "metamorphic_controls": [
+    "Bz_is_even_in_axial_position",
+    "field_is_linear_in_uniform_polarization",
+    "reversing_polarization_reverses_Bz",
+    "common_geometric_scaling_with_fixed_J_preserves_Bz",
+    "far_field_converges_to_point_dipole_of_same_volume_and_polarization"
+  ],
+  "exclusions": [
+    "off_axis_observation",
+    "general_three_component_cuboid_field",
+    "nonlinear_BH",
+    "iterative_self_demagnetization",
+    "hysteresis",
+    "eddy_currents",
+    "temperature",
+    "multi_material_interfaces",
+    "physical_measurement",
+    "component_qualification"
+  ]
+}
