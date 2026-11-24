@@ -335,7 +335,7 @@ impl<const D: usize> SweptAabbCertificate<D> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum SweepDecision<const D: usize> {
-    Certified(SweptAabbCertificate<D>),
+    Certified(Box<SweptAabbCertificate<D>>),
     Unsupported(UnsupportedReason),
     Invalid(InvalidReason),
 }
@@ -418,12 +418,12 @@ pub fn produce_swept_aabb<const D: usize>(input: &TranslationSweepInput<D>) -> S
         Err(error) => return SweepDecision::Invalid(InvalidReason::MalformedInput(error)),
     };
 
-    SweepDecision::Certified(SweptAabbCertificate {
+    SweepDecision::Certified(Box::new(SweptAabbCertificate {
         identity: input.identity.clone(),
         context: input.context.clone(),
         source: input.clone(),
         bounds,
-    })
+    }))
 }
 
 /// Recompute the envelope from the supplied current state and compare every
@@ -591,7 +591,7 @@ mod tests {
 
     fn certified(input: &TranslationSweepInput<2>) -> SweptAabbCertificate<2> {
         match produce_swept_aabb(input) {
-            SweepDecision::Certified(certificate) => certificate,
+            SweepDecision::Certified(certificate) => *certificate,
             other => panic!("expected certified sweep, got {other:?}"),
         }
     }
@@ -701,7 +701,7 @@ mod tests {
         )
         .unwrap();
         let proof = match produce_swept_aabb(&source) {
-            SweepDecision::Certified(proof) => proof,
+            SweepDecision::Certified(proof) => *proof,
             other => panic!("expected certified sweep, got {other:?}"),
         };
         assert_eq!(proof.context.quantization(), QuantizationProfile::Q16_16);
