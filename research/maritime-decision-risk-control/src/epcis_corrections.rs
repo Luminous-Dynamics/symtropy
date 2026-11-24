@@ -15,10 +15,8 @@
 
 use std::fmt::Write as FmtWrite;
 
-const EVENT_DIGEST_A: &str =
-    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-const EVENT_DIGEST_B: &str =
-    "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+const EVENT_DIGEST_A: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const EVENT_DIGEST_B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EpcisEventRecord {
@@ -211,7 +209,11 @@ impl EpcisCorrectionLedger {
         event: EpcisEventRecord,
     ) -> Result<(), EpcisRecordValidationError> {
         event.validate()?;
-        if self.events.iter().any(|existing| existing.event_id == event.event_id) {
+        if self
+            .events
+            .iter()
+            .any(|existing| existing.event_id == event.event_id)
+        {
             return Err(EpcisRecordValidationError::DuplicateEventId);
         }
         self.events.push(event);
@@ -306,17 +308,14 @@ impl EpcisCorrectionLedger {
     /// Before declaration.recordTime, the historical view remains AS_REPORTED.
     /// Once the ErrorDeclaration is available, the original is marked in error.
     /// Corrective events are listed only if their own recordTime is also in view.
-    pub fn event_as_of(
-        &self,
-        event_id: &str,
-        as_of_unix: i64,
-    ) -> Option<EventAsOfView> {
+    pub fn event_as_of(&self, event_id: &str, as_of_unix: i64) -> Option<EventAsOfView> {
         if as_of_unix < 0 {
             return None;
         }
-        let original = self.events.iter().find(|event| {
-            event.event_id == event_id && event.record_time_unix <= as_of_unix
-        })?;
+        let original = self
+            .events
+            .iter()
+            .find(|event| event.event_id == event_id && event.record_time_unix <= as_of_unix)?;
         let declaration = self.declarations.iter().find(|declaration| {
             declaration.event_id == event_id
                 && declaration.declaration_time_unix <= as_of_unix
@@ -409,9 +408,7 @@ fn error_declaration() -> EpcisErrorDeclaration {
         record_time_unix: 1_900_000_400,
         declaration_time_unix: 1_900_000_300,
         reason: "SOURCE_CAPTURE_DUPLICATE_OR_INCORRECT".to_owned(),
-        corrective_event_ids: vec![
-            "urn:uuid:33333333-3333-4333-8333-333333333333".to_owned(),
-        ],
+        corrective_event_ids: vec!["urn:uuid:33333333-3333-4333-8333-333333333333".to_owned()],
         assertion_payload_sha256: EVENT_DIGEST_A.to_owned(),
     }
 }
@@ -430,13 +427,18 @@ fn corrective_event() -> EpcisEventRecord {
 
 pub fn render_csv() -> String {
     let mut ledger = EpcisCorrectionLedger::default();
-    ledger.append_event(original_event()).expect("valid original EPCIS event");
+    ledger
+        .append_event(original_event())
+        .expect("valid original EPCIS event");
     let mut output = String::from(
         "case_id,as_of_unix,original_retained,interpretation,available_correctives,unavailable_correctives,claim_ceiling\n",
     );
 
     let before = ledger
-        .event_as_of("urn:uuid:11111111-1111-4111-8111-111111111111", 1_900_000_200)
+        .event_as_of(
+            "urn:uuid:11111111-1111-4111-8111-111111111111",
+            1_900_000_200,
+        )
         .expect("original event available");
     let _ = writeln!(
         output,
@@ -451,7 +453,10 @@ pub fn render_csv() -> String {
         .expect("valid error declaration");
 
     let not_recorded = ledger
-        .event_as_of("urn:uuid:11111111-1111-4111-8111-111111111111", 1_900_000_350)
+        .event_as_of(
+            "urn:uuid:11111111-1111-4111-8111-111111111111",
+            1_900_000_350,
+        )
         .expect("original event still visible before declaration recordTime");
     let _ = writeln!(
         output,
@@ -462,7 +467,10 @@ pub fn render_csv() -> String {
     );
 
     let pending = ledger
-        .event_as_of("urn:uuid:11111111-1111-4111-8111-111111111111", 1_900_000_450)
+        .event_as_of(
+            "urn:uuid:11111111-1111-4111-8111-111111111111",
+            1_900_000_450,
+        )
         .expect("error declaration is now visible");
     let (available, unavailable) = match &pending.interpretation {
         EventInterpretation::DeclaredInError {
@@ -485,7 +493,10 @@ pub fn render_csv() -> String {
         .append_event(corrective_event())
         .expect("valid corrective EPCIS event");
     let corrected = ledger
-        .event_as_of("urn:uuid:11111111-1111-4111-8111-111111111111", 1_900_000_600)
+        .event_as_of(
+            "urn:uuid:11111111-1111-4111-8111-111111111111",
+            1_900_000_600,
+        )
         .expect("original event retained after correction arrival");
     let (available, unavailable) = match &corrected.interpretation {
         EventInterpretation::DeclaredInError {
@@ -505,7 +516,8 @@ pub fn render_csv() -> String {
     );
 
     let mut subject_mismatch = error_declaration();
-    subject_mismatch.declaration_record_id = "urn:uuid:44444444-4444-4444-8444-444444444444".to_owned();
+    subject_mismatch.declaration_record_id =
+        "urn:uuid:44444444-4444-4444-8444-444444444444".to_owned();
     subject_mismatch.subject_ids = vec!["urn:epc:id:sscc:0614141.9999999999".to_owned()];
     let _ = writeln!(
         output,
@@ -518,7 +530,8 @@ pub fn render_csv() -> String {
     );
 
     let mut payload_mismatch = error_declaration();
-    payload_mismatch.declaration_record_id = "urn:uuid:55555555-5555-4555-8555-555555555555".to_owned();
+    payload_mismatch.declaration_record_id =
+        "urn:uuid:55555555-5555-4555-8555-555555555555".to_owned();
     payload_mismatch.assertion_payload_sha256 = EVENT_DIGEST_B.to_owned();
     let _ = writeln!(
         output,
@@ -551,7 +564,9 @@ mod tests {
         let mut ledger = EpcisCorrectionLedger::default();
         let original = original_event();
         let event_id = original.event_id.clone();
-        ledger.append_event(original.clone()).expect("append original");
+        ledger
+            .append_event(original.clone())
+            .expect("append original");
 
         let before = ledger
             .event_as_of(&event_id, 1_900_000_200)
@@ -590,7 +605,10 @@ mod tests {
             .expect("error declaration");
 
         let pending = ledger
-            .event_as_of("urn:uuid:11111111-1111-4111-8111-111111111111", 1_900_000_450)
+            .event_as_of(
+                "urn:uuid:11111111-1111-4111-8111-111111111111",
+                1_900_000_450,
+            )
             .expect("declared event");
         assert!(matches!(
             pending.interpretation,
@@ -606,7 +624,10 @@ mod tests {
             .append_event(corrective_event())
             .expect("corrective event");
         let resolved = ledger
-            .event_as_of("urn:uuid:11111111-1111-4111-8111-111111111111", 1_900_000_600)
+            .event_as_of(
+                "urn:uuid:11111111-1111-4111-8111-111111111111",
+                1_900_000_600,
+            )
             .expect("corrective event now available");
         assert!(matches!(
             resolved.interpretation,
@@ -617,7 +638,10 @@ mod tests {
             } if corrective_events_available.len() == 1
                 && corrective_events_not_yet_available.is_empty()
         ));
-        assert_eq!(resolved.original_event.event_id, "urn:uuid:11111111-1111-4111-8111-111111111111");
+        assert_eq!(
+            resolved.original_event.event_id,
+            "urn:uuid:11111111-1111-4111-8111-111111111111"
+        );
     }
 
     #[test]
@@ -668,7 +692,10 @@ mod tests {
     fn invalid_uri_timezone_and_record_order_are_rejected() {
         let mut event = original_event();
         event.event_id = "not a URI".to_owned();
-        assert_eq!(event.validate(), Err(EpcisRecordValidationError::InvalidEventIdUri));
+        assert_eq!(
+            event.validate(),
+            Err(EpcisRecordValidationError::InvalidEventIdUri)
+        );
 
         let mut event = original_event();
         event.event_time_zone_offset = "+15:00".to_owned();
