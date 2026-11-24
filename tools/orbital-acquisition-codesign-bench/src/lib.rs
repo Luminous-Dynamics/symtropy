@@ -130,6 +130,7 @@ pub struct Schedule {
     pub schedule_id: String,
     pub selected_speed_ids: BTreeMap<String, String>,
     pub selected_option_ids: BTreeMap<String, String>,
+    pub evidence_receipt_sha256: Vec<String>,
     pub objective: ObjectiveVector,
 }
 
@@ -252,6 +253,8 @@ fn validate_case(case: &Case) -> Result<(), String> {
                 || !valid_text(&option.illumination_mode_id)
                 || !option_ids.insert(option.option_id.clone())
                 || !segment_ids.contains(&option.segment_id)
+                || option.gates.is_empty()
+                || !segment.speed_choices.iter().any(|speed| speed.speed_id == option.speed_id)
                 || !option.gates.iter().all(|gate| {
                     valid_text(&gate.gate_id) && valid_sha256(&gate.receipt_sha256)
                 })
@@ -383,6 +386,7 @@ impl<'a> Enumeration<'a> {
     fn evaluate_current(&mut self) -> Result<(), String> {
         let mut selected_speeds = BTreeMap::new();
         let mut selected_options = BTreeMap::new();
+        let mut evidence_receipts = BTreeSet::new();
         let mut objective = ObjectiveVector {
             elapsed_ms: 0,
             robot_motion_energy_mj: 0,
@@ -400,6 +404,8 @@ impl<'a> Enumeration<'a> {
                 .find(|choice| &choice.speed_id == speed_id)
                 .ok_or_else(|| "SELECTED_SPEED_NOT_FOUND".to_owned())?;
             selected_speeds.insert(segment.segment_id.clone(), speed.speed_id.clone());
+            evidence_receipts.insert(segment.path_feasibility_receipt_sha256.clone());
+            evidence_receipts.insert(speed.motion_profile_receipt_sha256.clone());
             objective.elapsed_ms = checked_add(objective.elapsed_ms, speed.duration_ms, "ELAPSED_OVERFLOW")?;
             objective.robot_motion_energy_mj = checked_add(
                 objective.robot_motion_energy_mj,
@@ -414,6 +420,9 @@ impl<'a> Enumeration<'a> {
             let option = event.options.iter().find(|option| &option.option_id == option_id)
                 .ok_or_else(|| "SELECTED_OPTION_NOT_FOUND".to_owned())?;
             selected_options.insert(event.event_id.clone(), option.option_id.clone());
+            for gate in &option.gates {
+                evidence_receipts.insert(gate.receipt_sha256.clone());
+            }
 
             let selected_speed = selected_speeds.get(&option.segment_id);
             if selected_speed != Some(&option.speed_id) {
@@ -447,7 +456,7 @@ impl<'a> Enumeration<'a> {
                 "PROJECTOR_ENERGY_OVERFLOW",
             )?;
             objective.retakes = checked_add(
-                u64::from(objective.retakes as u32),
+                objective.retakes,
                 u64::from(option.retakes),
                 "RETAKE_OVERFLOW",
             )?;
@@ -458,12 +467,15 @@ impl<'a> Enumeration<'a> {
                 .ok_or_else(|| "PREVIOUS_SPEED_MISSING".to_owned())?;
             let to_speed = selected_speeds.get(&pair[1].segment_id)
                 .ok_or_else(|| "NEXT_SPEED_MISSING".to_owned())?;
-            let allowed = self.case.allowed_transitions.iter().any(|transition| {
+            let allowed = self.case.allowed_transitions.iter().find(|transition| {
                 transition.from_segment_id == pair[0].segment_id
                     && transition.from_speed_id == *from_speed
                     && transition.to_segment_id == pair[1].segment_id
                     && transition.to_speed_id == *to_speed
             });
+            if let Some(transition) = allowed {
+                evidence_receipts.insert(transition.transition_receipt_sha256.clone());
+            }
             if !allowed {
                 hard_failure = true;
                 reasons.insert("PATH_SPEED_TRANSITION_NOT_ADMITTED".to_owned());
@@ -506,6 +518,7 @@ impl<'a> Enumeration<'a> {
                 schedule_id: id,
                 selected_speed_ids: selected_speeds,
                 selected_option_ids: selected_options,
+                evidence_receipt_sha256: evidence_receipts.into_iter().collect(),
                 objective,
             });
             self.dispositions.push(ScheduleDisposition {
@@ -566,10 +579,10 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
     let mut enumeration = Enumeration::new(case);
     enumeration.recurse(0)?;
     let frontier = pareto_frontier(enumeration.feasible.clone());
-    let status = if !frontier.is_empty() {
-        SearchStatus::OptimalWithinDeclaredFiniteUniverse
-    } else if enumeration.indeterminate_count > 0 {
+    let status = if enumeration.indeterminate_count > 0 {
         SearchStatus::Indeterminate
+    } else if !frontier.is_empty() {
+        SearchStatus::OptimalWithinDeclaredFiniteUniverse
     } else {
         SearchStatus::Infeasible
     };
@@ -584,7 +597,7 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
         infeasible_schedule_count: enumeration.infeasible_count,
         pareto_frontier: frontier,
         dispositions: enumeration.dispositions,
-        exactness_proven: true,
+        exactness_proven: enumeration.indeterminate_count == 0,
     })
 }
 
@@ -652,11 +665,11 @@ mod tests {
 
     #[test]
     fn exact_frontier_keeps_incomparable_time_energy_tradeoffs() {
-        let a = Schedule { schedule_id: "A".to_owned(), selected_speed_ids: BTreeMap::new(), selected_option_ids: BTreeMap::new(),
+        let a = Schedule { schedule_id: "A".to_owned(), selected_speed_ids: BTreeMap::new(), selected_option_ids: BTreeMap::new(), evidence_receipt_sha256: Vec::new(),
             objective: ObjectiveVector { elapsed_ms: 5, robot_motion_energy_mj: 20, illumination_energy_mj: 2, projector_energy_mj: 0, retakes: 0 } };
-        let b = Schedule { schedule_id: "B".to_owned(), selected_speed_ids: BTreeMap::new(), selected_option_ids: BTreeMap::new(),
+        let b = Schedule { schedule_id: "B".to_owned(), selected_speed_ids: BTreeMap::new(), selected_option_ids: BTreeMap::new(), evidence_receipt_sha256: Vec::new(),
             objective: ObjectiveVector { elapsed_ms: 10, robot_motion_energy_mj: 10, illumination_energy_mj: 2, projector_energy_mj: 0, retakes: 0 } };
-        let c = Schedule { schedule_id: "C".to_owned(), selected_speed_ids: BTreeMap::new(), selected_option_ids: BTreeMap::new(),
+        let c = Schedule { schedule_id: "C".to_owned(), selected_speed_ids: BTreeMap::new(), selected_option_ids: BTreeMap::new(), evidence_receipt_sha256: Vec::new(),
             objective: ObjectiveVector { elapsed_ms: 12, robot_motion_energy_mj: 12, illumination_energy_mj: 3, projector_energy_mj: 0, retakes: 1 } };
         let frontier = pareto_frontier(vec![a, b, c]);
         assert_eq!(frontier.len(), 2);
