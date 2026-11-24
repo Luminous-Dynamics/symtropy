@@ -11,9 +11,9 @@ The v0.1 evaluator does not calibrate instruments, estimate measurement uncertai
 ## Semantics
 
 - Acquisition time is an interval: [center - uncertainty, center + uncertainty].
-- Calibration validity uses [valid_from, valid_until). The full acquisition interval must lie inside it.
+- Calibration validity uses [valid_from, valid_until). The full acquisition interval must lie inside it, and the calibration epoch must not follow valid_from.
 - A boundary-straddling acquisition is INDETERMINATE.
-- A definitely prior invalidating event invalidates only its explicitly affected scopes.
+- A definitely prior invalidating event after the calibration epoch invalidates only its explicitly affected scopes; an event definitely before that calibration epoch is superseded by the later calibration, while overlap with the epoch is INDETERMINATE.
 - An event whose time interval overlaps acquisition is INDETERMINATE.
 - An incomplete event inventory cannot produce VALID_WITHIN_SCOPE.
 - Certificate, reference-check and change-event receipts are bound by 64-hex SHA-256 identifiers. These are references, not cryptographic authenticity verification.
