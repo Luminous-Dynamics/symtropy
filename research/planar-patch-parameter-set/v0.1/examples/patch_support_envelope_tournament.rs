@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use planar_patch_parameter_set::{
-    BoundedBoundaryObservation, ParameterSetConfig, ParameterSetInput,
-    PatchSupportEnvelopeInput, SupportEnvelopeConfig, compute_parameter_set,
-    compute_patch_support_envelope,
+    BoundedBoundaryObservation, ParameterSetConfig, ParameterSetInput, PatchSupportEnvelopeInput,
+    SupportEnvelopeConfig, compute_parameter_set, compute_patch_support_envelope,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
