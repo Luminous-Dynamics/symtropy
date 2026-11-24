@@ -166,11 +166,7 @@ pub fn sample_test_episodes(count: usize, seed: u64) -> LossMatrix {
         .copied()
         .map(hard_failure_losses)
         .collect();
-    let service_loss_milli = severe_regime
-        .iter()
-        .copied()
-        .map(service_losses)
-        .collect();
+    let service_loss_milli = severe_regime.iter().copied().map(service_losses).collect();
     LossMatrix {
         hard_failure_loss_milli,
         service_loss_milli,
@@ -334,7 +330,7 @@ fn render_row(name: &str, calibration: &LossMatrix, test: &LossMatrix) -> String
     )
 }
 
-/// Deterministic 15-column receipt comparing naive and exact known-weight selection.
+/// Deterministic 16-column receipt comparing naive and exact known-weight selection.
 pub fn render_csv() -> String {
     let mut output = String::from(
         "experiment,shift_type,calibration_episodes,target_test_episodes,policy_grid_size,target_alpha,known_weight_bound,terminal_margin_a,weighted_selected_policy,naive_unweighted_selected_policy,weighted_policy_target_hard_risk,naive_policy_target_hard_risk,weighted_policy_service_loss,naive_policy_service_loss,weighted_expected_risk_upper_bound,status\n",
