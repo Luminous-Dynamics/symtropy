@@ -135,7 +135,7 @@ pub struct PolicySnapshot {
     pub branch_actions: BTreeMap<String, String>,
     /// Upstream outcome -> exact distinct physical worlds in that observation class.
     pub observation_class_world_ids: BTreeMap<String, Vec<String>>,
-    pub declared_worst_case_loss: Rational,
+    pub worst_case_loss: Rational,
     pub worst_case_wait_and_see_regret: Rational,
     pub worst_case_outcome_class_regret: Rational,
     pub worst_loss_scenario_ids: Vec<String>,
@@ -527,7 +527,7 @@ fn validate_policy(
 ) -> Result<Rational, String> {
     if !valid_id(&policy.policy_id)
         || policy.query_id.as_deref().is_some_and(|id| !valid_id(id))
-        || !policy.declared_worst_case_loss.valid()
+        || !policy.worst_case_loss.valid()
         || !policy.worst_case_wait_and_see_regret.valid()
         || !policy.worst_case_outcome_class_regret.valid()
         || !policy.query_cost.valid()
@@ -700,7 +700,7 @@ fn validate_policy(
     }
 
     let worst_loss = worst_loss.expect("nonempty policy scenarios were validated");
-    if !worst_loss.equal_exact(&policy.declared_worst_case_loss) {
+    if !worst_loss.equal_exact(&policy.worst_case_loss) {
         return Err(format!(
             "policy {} declared worst-case loss disagrees with scenario rows",
             policy.policy_id
@@ -1104,7 +1104,7 @@ mod tests {
                 NO_QUERY_OUTCOME.to_owned(),
                 vec!["w-A".to_owned(), "w-B".to_owned()],
             )]),
-            declared_worst_case_loss: Rational {
+            worst_case_loss: Rational {
                 numerator: 10,
                 denominator: 1,
             },
@@ -1133,7 +1133,7 @@ mod tests {
                 ("north".to_owned(), vec!["w-A".to_owned()]),
                 ("south".to_owned(), vec!["w-B".to_owned()]),
             ]),
-            declared_worst_case_loss: Rational {
+            worst_case_loss: Rational {
                 numerator: candidate_loss,
                 denominator: 1,
             },
@@ -1297,7 +1297,7 @@ mod tests {
                 10,
             ),
         );
-        case.policies[0].declared_worst_case_loss = Rational {
+        case.policies[0].worst_case_loss = Rational {
             numerator: 10,
             denominator: 1,
         };
