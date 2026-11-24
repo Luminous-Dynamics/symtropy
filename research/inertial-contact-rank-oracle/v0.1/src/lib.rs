@@ -303,10 +303,7 @@ fn cholesky_mass(
 }
 
 /// Solve L x = rhs for a lower-triangular Cholesky factor L.
-fn solve_lower(
-    lower: &[Vec<f64>],
-    rhs: &[f64],
-) -> Result<Vec<f64>, RankError> {
+fn solve_lower(lower: &[Vec<f64>], rhs: &[f64]) -> Result<Vec<f64>, RankError> {
     let dof = lower.len();
     if rhs.len() != dof {
         return Err(RankError::new(
@@ -334,10 +331,7 @@ fn solve_lower(
 
 /// Compute the twice-reorthogonalized residual of a row against the current
 /// orthonormal basis. This is deterministic modified Gram-Schmidt.
-fn orthogonal_residual(
-    row: &[f64],
-    basis: &[Vec<f64>],
-) -> Result<Vec<f64>, RankError> {
+fn orthogonal_residual(row: &[f64], basis: &[Vec<f64>]) -> Result<Vec<f64>, RankError> {
     let mut residual = row.to_vec();
     for _ in 0..2 {
         for direction in basis {
@@ -473,10 +467,7 @@ pub fn select_inertial_rank_basis(
             "inertial row norm is non-finite",
         ));
     }
-    let first_pivot_norm = inertial_row_norms
-        .iter()
-        .copied()
-        .fold(0.0_f64, f64::max);
+    let first_pivot_norm = inertial_row_norms.iter().copied().fold(0.0_f64, f64::max);
     let rank_threshold = config.rank_relative * first_pivot_norm;
     if !rank_threshold.is_finite() {
         return Err(RankError::new(
@@ -574,8 +565,7 @@ pub fn select_inertial_rank_basis(
                     "relative row projection residual is non-finite",
                 ));
             }
-            maximum_relative_projection_residual =
-                maximum_relative_projection_residual.max(value);
+            maximum_relative_projection_residual = maximum_relative_projection_residual.max(value);
         }
 
         let disposition = if selected[index] {
@@ -628,11 +618,7 @@ pub fn select_inertial_rank_basis(
 mod tests {
     use super::*;
 
-    fn input(
-        ids: &[&str],
-        mass: Vec<Vec<f64>>,
-        jacobian: Vec<Vec<f64>>,
-    ) -> InertialRankInput {
+    fn input(ids: &[&str], mass: Vec<Vec<f64>>, jacobian: Vec<Vec<f64>>) -> InertialRankInput {
         InertialRankInput {
             candidate_set_digest: "candidate-set-fixture-001".to_owned(),
             mass_properties_digest: "mass-fixture-001".to_owned(),
@@ -683,7 +669,12 @@ mod tests {
     #[test]
     fn inertial_whitening_selects_independent_rows_not_geometric_labels() {
         let problem = input(
-            &["base-contact", "tip-contact", "side-contact", "duplicate-base"],
+            &[
+                "base-contact",
+                "tip-contact",
+                "side-contact",
+                "duplicate-base",
+            ],
             vec![vec![4.0, 0.0], vec![0.0, 1.0]],
             vec![
                 vec![2.0, 0.0],
@@ -700,10 +691,7 @@ mod tests {
         );
         assert_eq!(
             report.excluded_contact_ids,
-            vec![
-                "base-contact".to_owned(),
-                "duplicate-base".to_owned()
-            ]
+            vec!["base-contact".to_owned(), "duplicate-base".to_owned()]
         );
         assert!(report.maximum_projection_residual < 1.0e-12);
         assert!(!report.physical_omission_certified);
@@ -801,10 +789,7 @@ mod tests {
         ];
         let transform = vec![vec![1.2, 0.3], vec![-0.4, 0.9]];
 
-        let transformed_mass = multiply(
-            &multiply(&transpose(&transform), &mass),
-            &transform,
-        );
+        let transformed_mass = multiply(&multiply(&transpose(&transform), &mass), &transform);
         let transformed_jacobian = multiply(&jacobian, &transform);
 
         let original = select_inertial_rank_basis(
@@ -912,11 +897,7 @@ mod tests {
             RankErrorKind::DimensionMismatch
         );
 
-        let bad_id = input(
-            &[""],
-            vec![vec![1.0]],
-            vec![vec![1.0]],
-        );
+        let bad_id = input(&[""], vec![vec![1.0]], vec![vec![1.0]]);
         assert_eq!(
             select_inertial_rank_basis(&bad_id, config())
                 .expect_err("empty id")
@@ -927,11 +908,7 @@ mod tests {
 
     #[test]
     fn non_finite_mass_or_jacobian_is_rejected() {
-        let mass = input(
-            &["a"],
-            vec![vec![f64::NAN]],
-            vec![vec![1.0]],
-        );
+        let mass = input(&["a"], vec![vec![f64::NAN]], vec![vec![1.0]]);
         assert_eq!(
             select_inertial_rank_basis(&mass, config())
                 .expect_err("non-finite mass")
@@ -939,11 +916,7 @@ mod tests {
             RankErrorKind::NonFiniteInput
         );
 
-        let jacobian = input(
-            &["a"],
-            vec![vec![1.0]],
-            vec![vec![f64::INFINITY]],
-        );
+        let jacobian = input(&["a"], vec![vec![1.0]], vec![vec![f64::INFINITY]]);
         assert_eq!(
             select_inertial_rank_basis(&jacobian, config())
                 .expect_err("non-finite Jacobian")
@@ -954,11 +927,7 @@ mod tests {
 
     #[test]
     fn invalid_tolerances_and_missing_digests_are_rejected() {
-        let problem = input(
-            &["a"],
-            vec![vec![1.0]],
-            vec![vec![1.0]],
-        );
+        let problem = input(&["a"], vec![vec![1.0]], vec![vec![1.0]]);
         let invalid = RankSelectionConfig {
             rank_relative: 0.0,
             ..config()
