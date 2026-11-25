@@ -624,7 +624,7 @@ mod tests {
     }
 
     #[test]
-    fn lbvh_matches_brute_force() {
+    fn lbvh_matches_cached_brute_force_pair_set_and_aabb_work_is_linear() {
         let mut bodies = Vec::new();
         for i in 0..(BRUTE_FORCE_THRESHOLD + 10) {
             let x = (i as f64) * 0.5;
@@ -635,12 +635,26 @@ mod tests {
                 1.0,
             ));
         }
-        let mut brute = find_pairs_brute(&bodies);
-        brute.sort_by_key(|p| (p.0, p.1));
-        let lbvh = find_pairs(&bodies);
-        for pair in &brute {
-            assert!(lbvh.contains(pair), "LBVH missing pair {:?}", pair);
-        }
+
+        let (mut brute, stats) = find_pairs_brute_with_stats(&bodies);
+        brute.sort_unstable_by_key(|pair| (pair.0, pair.1));
+        let mut lbvh = Lbvh::build(&bodies).query_pairs(&bodies);
+        lbvh.sort_unstable_by_key(|pair| (pair.0, pair.1));
+
+        assert_eq!(lbvh, brute);
+        assert_eq!(
+            stats.possible_unfiltered_pairs,
+            (bodies.len() as u128) * (bodies.len() as u128 - 1) / 2
+        );
+        assert_eq!(
+            stats.unique_aabbs_computed,
+            bodies.len() as u64
+        );
+        assert_eq!(stats.aabb_overlap_pairs, brute.len() as u128);
+        assert_eq!(
+            stats.pairs_after_collision_filter,
+            stats.possible_unfiltered_pairs
+        );
     }
 
     #[test]
