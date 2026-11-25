@@ -149,6 +149,9 @@ pub fn derive_finite_pathwise_proposal_support(
     if definition.event_id().trim().is_empty() || definition.revision().trim().is_empty() {
         return Err(PathwiseProposalError::InvalidEventDefinitionIdentity);
     }
+    if trajectories.is_empty() {
+        return Err(PathwiseProposalError::EmptyTrajectorySupport);
+    }
     if is_zero_digest(&manifest.manifest_digest)
         || manifest.expected_atom_ids.is_empty()
         || manifest
@@ -164,9 +167,6 @@ pub fn derive_finite_pathwise_proposal_support(
     }
     if manifest.expected_atom_ids.len() > TICKET_SPACE as usize {
         return Err(PathwiseProposalError::TooManyTrajectoryAtoms);
-    }
-    if trajectories.is_empty() {
-        return Err(PathwiseProposalError::EmptyTrajectorySupport);
     }
     if trajectories.len() > TICKET_SPACE as usize {
         return Err(PathwiseProposalError::TooManyTrajectoryAtoms);
@@ -355,6 +355,7 @@ mod tests {
             .map(|trajectory| trajectory.atom_id)
             .collect::<Vec<_>>();
         expected_atom_ids.sort_unstable();
+        expected_atom_ids.dedup();
         let manifest = FinitePathwiseSupportManifest {
             manifest_digest: [200; 32],
             expected_atom_ids,
