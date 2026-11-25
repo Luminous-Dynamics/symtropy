@@ -1,0 +1,58 @@
+name: Mobility RRVR Temporal Closure
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-temporal-closure-v0-1
+    paths:
+      - "research/mobility-rrvr-temporal-closure/**"
+      - ".github/workflows/mobility-rrvr-temporal-closure.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-temporal-closure/**"
+      - ".github/workflows/mobility-rrvr-temporal-closure.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  temporal-closure-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Validate temporal-closure schema and fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCHEMA="research/mobility-rrvr-temporal-closure/schemas/temporal_closure_cases_v0_1.schema.json"
+          FIXTURE="research/mobility-rrvr-temporal-closure/fixtures/temporal_closure_cases_v0_1.json"
+          jq empty "$SCHEMA"
+          jq empty "$FIXTURE"
+          jq -e '
+            .version == "0.1"
+            and (.cases | length == 6)
+            and ([.cases[].case_id] | unique | length == 6)
+            and ([.cases[] | select(.class == "positive")] | length == 2)
+            and ([.cases[] | select(.class == "negative")] | length == 4)
+            and ([.cases[] | select(.expected_decision == "hold" and .expected_horizon_ms == null)] | length == 4)
+            and any(.cases[]; .case_id == "TCL-003" and .expected_reason == "UnboundedTransit")
+            and any(.cases[]; .case_id == "TCL-004" and .expected_reason == "OriginalAgeNotPreserved")
+            and any(.cases[]; .case_id == "TCL-005" and .expected_reason == "InvalidClockProfile")
+            and any(.cases[]; .case_id == "TCL-006" and .expected_reason == "IncompleteInventory")
+            and all(.cases[]; (.envelope.current_authority_epoch > .envelope.old_authority_epoch))
+          ' "$FIXTURE"
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path research/mobility-rrvr-temporal-closure/Cargo.toml -- --check
+
+      - name: Run temporal-closure reference tests
+        run: cargo test --locked --manifest-path research/mobility-rrvr-temporal-closure/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/mobility-rrvr-temporal-closure/Cargo.toml --all-targets -- -D warnings
