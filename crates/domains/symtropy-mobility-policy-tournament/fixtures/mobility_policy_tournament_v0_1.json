@@ -39,7 +39,7 @@
   "runs": [
     {
       "scenario_id": "scenario-1",
-      "scenario_family": "family-a",
+      "scenario_family": "family-1",
       "cluster_id": "site-day-1",
       "replication_id": "rep-scenario-1",
       "random_seed": 101,
@@ -77,7 +77,7 @@
     },
     {
       "scenario_id": "scenario-1",
-      "scenario_family": "family-a",
+      "scenario_family": "family-1",
       "cluster_id": "site-day-1",
       "replication_id": "rep-scenario-1",
       "random_seed": 101,
@@ -115,7 +115,7 @@
     },
     {
       "scenario_id": "scenario-1",
-      "scenario_family": "family-a",
+      "scenario_family": "family-1",
       "cluster_id": "site-day-1",
       "replication_id": "rep-scenario-1",
       "random_seed": 101,
@@ -153,7 +153,7 @@
     },
     {
       "scenario_id": "scenario-2",
-      "scenario_family": "family-b",
+      "scenario_family": "family-2",
       "cluster_id": "site-day-2",
       "replication_id": "rep-scenario-2",
       "random_seed": 102,
@@ -191,7 +191,7 @@
     },
     {
       "scenario_id": "scenario-2",
-      "scenario_family": "family-b",
+      "scenario_family": "family-2",
       "cluster_id": "site-day-2",
       "replication_id": "rep-scenario-2",
       "random_seed": 102,
@@ -229,7 +229,7 @@
     },
     {
       "scenario_id": "scenario-2",
-      "scenario_family": "family-b",
+      "scenario_family": "family-2",
       "cluster_id": "site-day-2",
       "replication_id": "rep-scenario-2",
       "random_seed": 102,
@@ -267,7 +267,7 @@
     },
     {
       "scenario_id": "scenario-3",
-      "scenario_family": "family-c",
+      "scenario_family": "family-3",
       "cluster_id": "site-day-3",
       "replication_id": "rep-scenario-3",
       "random_seed": 103,
@@ -305,7 +305,7 @@
     },
     {
       "scenario_id": "scenario-3",
-      "scenario_family": "family-c",
+      "scenario_family": "family-3",
       "cluster_id": "site-day-3",
       "replication_id": "rep-scenario-3",
       "random_seed": 103,
@@ -343,7 +343,7 @@
     },
     {
       "scenario_id": "scenario-3",
-      "scenario_family": "family-c",
+      "scenario_family": "family-3",
       "cluster_id": "site-day-3",
       "replication_id": "rep-scenario-3",
       "random_seed": 103,
@@ -381,7 +381,7 @@
     },
     {
       "scenario_id": "scenario-4",
-      "scenario_family": "family-d",
+      "scenario_family": "family-4",
       "cluster_id": "site-day-4",
       "replication_id": "rep-scenario-4",
       "random_seed": 104,
@@ -419,7 +419,7 @@
     },
     {
       "scenario_id": "scenario-4",
-      "scenario_family": "family-d",
+      "scenario_family": "family-4",
       "cluster_id": "site-day-4",
       "replication_id": "rep-scenario-4",
       "random_seed": 104,
@@ -457,7 +457,7 @@
     },
     {
       "scenario_id": "scenario-4",
-      "scenario_family": "family-d",
+      "scenario_family": "family-4",
       "cluster_id": "site-day-4",
       "replication_id": "rep-scenario-4",
       "random_seed": 104,
