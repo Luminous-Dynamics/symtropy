@@ -204,7 +204,7 @@ fn graph_indexes(
         }
     }
     let mut processed = 0_usize;
-    let mut remaining = indegree;
+    let mut remaining = indegree.clone();
     while let Some(node) = queue.pop_front() {
         processed += 1;
         for &next in &adjacency[node] {
