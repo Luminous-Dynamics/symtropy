@@ -222,11 +222,6 @@ The SHM tournament should include two distinct benchmark tiers instead of collap
 
 The cross-study stretch goal is not to beat either published headline number on a different testbed. It is to demonstrate a better risk–resource Pareto frontier on a preregistered, matched testbed: no increase in missed-damage risk or unsupported healthy clearances, lower reconstruction/model-update error, calibrated uncertainty, and lower compute/inspection burden.
 
-## 9. Non-claims
-
-This benchmark does not establish physical POD, structural health monitoring acceptance, fatigue/damage tolerance, maintenance interval, repair approval, structural substantiation, part acceptance, airworthiness, aircraft certification or authority to operate. It is an experiment and software-benchmark contract only.
-
-
 ## 8.2 Public physical-data comparators: add a separate replication tier
 
 The two 2026 comparators above should remain separate: Di Fiore et al. is a simulated composite-panel benchmark, while Yan et al. is an experimental scaled-spacecraft virtual-sensing/model-updating study. Do not pool their metrics or describe either as an aircraft qualification result.
@@ -303,3 +298,7 @@ Do not use a random row/window split where adjacent measurements share the same 
 The sequence is a research prioritization, not a universal ranking of dataset quality. Dataset-specific results must remain separate. A model that performs well on the Utah outdoor plate has not thereby demonstrated composite-wing generalization; a model that reconstructs masked spacecraft channels has not thereby demonstrated reliable NDE probability of detection.
 
 AERO should publish a benchmark card for every dataset with scope, rights, article identity, channels, time coverage, damage truth, independent grouping, preprocessing and claim ceiling. Cross-dataset transfer is a separate experiment with a held-out target domain and explicit abstention, not a pooled score.
+
+## 9. Non-claims
+
+This benchmark does not establish physical POD, structural health monitoring acceptance, fatigue/damage tolerance, maintenance interval, repair approval, structural substantiation, part acceptance, airworthiness, aircraft certification or authority to operate. It is an experiment and software-benchmark contract only.
