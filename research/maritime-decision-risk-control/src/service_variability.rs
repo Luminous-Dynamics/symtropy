@@ -25,6 +25,12 @@ const ARRIVAL_BURST_WINDOW_MINUTES: u64 = 60;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DeliveryDisposition {
     ReceiverAccepted,
+    /// Source says delivered, but no per-unit independent receiver receipt is available.
+    SourceReportedDeliveredUnverified,
+    /// Cargo is expected in the wider national/port system but has not yet arrived.
+    InTransitExpected,
+    /// Shipping line has not nominated a vessel or berth for this expected cargo.
+    AwaitingBerthNomination,
     NotDelivered,
     Diverted,
     Cancelled,
@@ -117,6 +123,9 @@ pub struct ServiceMetrics {
     pub distribution: Option<DistributionMetrics>,
     pub expected_count: usize,
     pub receiver_accepted_count: usize,
+    pub source_reported_delivered_unverified_count: usize,
+    pub in_transit_expected_count: usize,
+    pub awaiting_berth_nomination_count: usize,
     pub not_delivered_count: usize,
     pub diverted_count: usize,
     pub cancelled_count: usize,
@@ -235,6 +244,25 @@ fn service_metrics(observations: &[&ServiceObservation]) -> ServiceMetrics {
             observation.delivery_disposition == DeliveryDisposition::ReceiverAccepted
         })
         .count();
+    let source_reported_delivered_unverified_count = observations
+        .iter()
+        .filter(|observation| {
+            observation.delivery_disposition
+                == DeliveryDisposition::SourceReportedDeliveredUnverified
+        })
+        .count();
+    let in_transit_expected_count = observations
+        .iter()
+        .filter(|observation| {
+            observation.delivery_disposition == DeliveryDisposition::InTransitExpected
+        })
+        .count();
+    let awaiting_berth_nomination_count = observations
+        .iter()
+        .filter(|observation| {
+            observation.delivery_disposition == DeliveryDisposition::AwaitingBerthNomination
+        })
+        .count();
     let not_delivered_count = observations
         .iter()
         .filter(|observation| {
@@ -258,6 +286,9 @@ fn service_metrics(observations: &[&ServiceObservation]) -> ServiceMetrics {
         distribution: (!delivered.is_empty()).then(|| distribution(&delivered)),
         expected_count: observations.len(),
         receiver_accepted_count,
+        source_reported_delivered_unverified_count,
+        in_transit_expected_count,
+        awaiting_berth_nomination_count,
         not_delivered_count,
         diverted_count,
         cancelled_count,
@@ -319,14 +350,20 @@ impl ServiceReliabilityReport {
                 {
                     return Err(ServiceMetricError::ReceiverAcceptanceEvidenceMissing);
                 }
-                (DeliveryDisposition::NotDelivered
+                (DeliveryDisposition::SourceReportedDeliveredUnverified
+                    | DeliveryDisposition::InTransitExpected
+                    | DeliveryDisposition::AwaitingBerthNomination
+                    | DeliveryDisposition::NotDelivered
                     | DeliveryDisposition::Diverted
                     | DeliveryDisposition::Cancelled
                     | DeliveryDisposition::Unknown, Some(_), _) =>
                 {
                     return Err(ServiceMetricError::NonAcceptedOutcomeHasDeliveryTime);
                 }
-                (DeliveryDisposition::NotDelivered
+                (DeliveryDisposition::SourceReportedDeliveredUnverified
+                    | DeliveryDisposition::InTransitExpected
+                    | DeliveryDisposition::AwaitingBerthNomination
+                    | DeliveryDisposition::NotDelivered
                     | DeliveryDisposition::Diverted
                     | DeliveryDisposition::Cancelled
                     | DeliveryDisposition::Unknown, None, Some(_)) =>
