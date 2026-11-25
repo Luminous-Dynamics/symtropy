@@ -32,6 +32,8 @@ pub struct FiniteProposalAtom {
 /// Pinned finite-support target and adaptive defensive-proposal contract.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FiniteAdaptiveProposalConfig {
+    /// Frozen, finite-support manifest identity that defines the ordered atom universe.
+    pub support_manifest_digest: [u8; 32],
     /// Collision-event identity.
     pub event_digest: [u8; 32],
     /// Frozen target-measure identity.
@@ -77,6 +79,8 @@ pub struct FiniteProposalExecutionReceipt {
     pub sequence_index: u64,
     /// Unique identity for this sample.
     pub sample_id: [u8; 32],
+    /// Frozen finite-support manifest identity.
+    pub support_manifest_digest: [u8; 32],
     /// Event identity.
     pub event_digest: [u8; 32],
     /// Target-measure identity.
@@ -112,6 +116,8 @@ pub struct FiniteProposalExecutionReceipt {
 /// The exact result independently reconstructed from one execution receipt.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct VerifiedFiniteProposalDraw {
+    /// Frozen finite-support manifest identity.
+    pub support_manifest_digest: [u8; 32],
     /// Collision-event identity.
     pub event_digest: [u8; 32],
     /// Target-measure identity.
@@ -361,6 +367,7 @@ impl FiniteProposalExecutionVerifier {
         self.prior_event_history.push(selected_atom.is_event);
 
         Ok(VerifiedFiniteProposalDraw {
+            support_manifest_digest: self.config.support_manifest_digest,
             event_digest: self.config.event_digest,
             target_measure_digest: self.config.target_measure_digest,
             defensive_component_digest: self.config.defensive_component_digest,
@@ -384,6 +391,7 @@ fn validate_config(
     config: &FiniteAdaptiveProposalConfig,
 ) -> Result<(), FiniteProposalExecutionError> {
     let identities = [
+        &config.support_manifest_digest,
         &config.event_digest,
         &config.target_measure_digest,
         &config.defensive_component_digest,
@@ -445,7 +453,8 @@ fn same_receipt_scope(
     config: &FiniteAdaptiveProposalConfig,
     receipt: FiniteProposalExecutionReceipt,
 ) -> bool {
-    receipt.event_digest == config.event_digest
+    receipt.support_manifest_digest == config.support_manifest_digest
+        && receipt.event_digest == config.event_digest
         && receipt.target_measure_digest == config.target_measure_digest
         && receipt.defensive_component_digest == config.defensive_component_digest
         && receipt.proposal_policy_digest == config.proposal_policy_digest
@@ -482,6 +491,7 @@ mod tests {
     };
     use crate::predictable_empirical_bernstein::AdaptiveImportanceSamplingPrPlEbSequence;
 
+    const SUPPORT_MANIFEST: [u8; 32] = [14; 32];
     const EVENT: [u8; 32] = [1; 32];
     const TARGET: [u8; 32] = [2; 32];
     const DEFENSIVE: [u8; 32] = [3; 32];
@@ -498,6 +508,7 @@ mod tests {
 
     fn config() -> FiniteAdaptiveProposalConfig {
         FiniteAdaptiveProposalConfig {
+            support_manifest_digest: SUPPORT_MANIFEST,
             event_digest: EVENT,
             target_measure_digest: TARGET,
             defensive_component_digest: DEFENSIVE,
@@ -548,6 +559,7 @@ mod tests {
         FiniteProposalExecutionReceipt {
             sequence_index,
             sample_id,
+            support_manifest_digest: c.support_manifest_digest,
             event_digest: c.event_digest,
             target_measure_digest: c.target_measure_digest,
             defensive_component_digest: c.defensive_component_digest,
@@ -735,6 +747,14 @@ mod tests {
             verifier.verify_next(wrong_scope),
             Err(FiniteProposalExecutionError::ReceiptScopeMismatch)
         );
+
+        let mut wrong_support_manifest = receipt(1, [109; 32], RESIDUAL_BEFORE, 0, 0, 0);
+        wrong_support_manifest.support_manifest_digest = [78; 32];
+        assert_eq!(
+            verifier.verify_next(wrong_support_manifest),
+            Err(FiniteProposalExecutionError::ReceiptScopeMismatch)
+        );
+        assert_eq!(verifier.sample_count(), 1);
     }
 
     #[test]
