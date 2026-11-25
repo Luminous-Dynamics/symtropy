@@ -20,6 +20,8 @@ ORACLE_ONLY = {
     "authorityEventId", "validFromHour", "validUntilHour", "encumberedGrams",
     "maxTransferGrams", "authorityRef", "transfers", "fuelIssues", "hourlyTrajectory",
     "batchBalances", "inTransitGrams", "deliveredToGeneratorGrams", "fuelIssuedGrams",
+    "custodyEventId", "custodyRecords", "effectiveFromHour", "effectiveUntilHour",
+    "custodiedLowerGrams", "title", "contract",
 }
 
 
@@ -64,6 +66,7 @@ def validate_case(planner: dict[str, Any], truth: dict[str, Any]) -> tuple[int, 
     receipts = {item["batchId"]: item for item in truth["receipts"]}
     assays = {item["batchId"]: item for item in truth["qualityAssessments"]}
     authorities = {item["batchId"]: item for item in truth["authorizations"]}
+    custody_records = {item["batchId"]: item for item in truth["custodyRecords"]}
     routes = {item["routeId"]: item for item in truth["routes"]}
     transfers = {item["transferEventId"]: item for item in truth["transfers"]}
     issues = truth["fuelIssues"]
@@ -74,6 +77,7 @@ def validate_case(planner: dict[str, Any], truth: dict[str, Any]) -> tuple[int, 
         (truth["receipts"], "receiptEventId"),
         (truth["qualityAssessments"], "assayEventId"),
         (truth["authorizations"], "authorityEventId"),
+        (truth["custodyRecords"], "custodyEventId"),
         (truth["transfers"], "transferEventId"),
         (issues, "issueEventId"),
     ):
@@ -82,6 +86,7 @@ def validate_case(planner: dict[str, Any], truth: dict[str, Any]) -> tuple[int, 
     require(len(receipts) == len(truth["receipts"]), f"{case_id}: duplicate batch receipt")
     require(len(assays) == len(truth["qualityAssessments"]), f"{case_id}: duplicate batch assay")
     require(len(authorities) == len(truth["authorizations"]), f"{case_id}: duplicate batch authority")
+    require(len(custody_records) == len(truth["custodyRecords"]), f"{case_id}: duplicate batch custody record")
 
     for receipt in truth["receipts"]:
         manifest = manifests.get(receipt["cargoId"])
@@ -111,6 +116,20 @@ def validate_case(planner: dict[str, Any], truth: dict[str, Any]) -> tuple[int, 
         if receipt["evidence"] == "verified" and assay is not None and assay["disposition"] == "passed":
             admitted = assay["releasedLowerGrams"]
         admitted_by_batch[batch_id] = admitted
+
+    for batch_id, custody in custody_records.items():
+        receipt = receipts.get(batch_id)
+        assay = assays.get(batch_id)
+        require(receipt is not None and assay is not None, f"{case_id}: custody without receipt/assay")
+        require(custody["effectiveFromHour"] >= receipt["receivedAtHour"], f"{case_id}: custody predates receipt")
+        require(custody["effectiveFromHour"] >= assay["assessedAtHour"], f"{case_id}: custody predates assay")
+        require(custody["effectiveUntilHour"] > custody["effectiveFromHour"], f"{case_id}: invalid custody time window")
+        if custody["status"] == "verified":
+            require(receipt["evidence"] == "verified" and assay["disposition"] == "passed", f"{case_id}: custody promotes inadmissible stock")
+            require(custody["custodiedLowerGrams"] <= admitted_by_batch[batch_id], f"{case_id}: custody exceeds admitted stock")
+            require(bool(custody["evidenceRef"]) and bool(custody["evidenceDigest"]), f"{case_id}: verified custody lacks evidence")
+        else:
+            require(custody["custodiedLowerGrams"] == 0, f"{case_id}: conflicting custody claims usable stock")
 
     for batch_id, authority in authorities.items():
         receipt = receipts.get(batch_id)
@@ -142,14 +161,18 @@ def validate_case(planner: dict[str, Any], truth: dict[str, Any]) -> tuple[int, 
         receipt = receipts.get(batch_id)
         assay = assays.get(batch_id)
         authority = authorities.get(batch_id)
+        custody = custody_records.get(batch_id)
         route = routes.get(transfer["routeId"])
-        require(receipt is not None and assay is not None and authority is not None and route is not None, f"{case_id}: transfer missing parent")
+        require(receipt is not None and assay is not None and authority is not None and custody is not None and route is not None, f"{case_id}: transfer missing parent")
         require(receipt["evidence"] == "verified" and assay["disposition"] == "passed" and authority["disposition"] == "authorized", f"{case_id}: transfer promotes inadmissible stock")
+        require(custody["status"] == "verified" and custody["title"] == "established" and custody["contract"] == "active", f"{case_id}: transfer lacks custody/title/contract eligibility")
         require(transfer["loadStartHour"] >= receipt["receivedAtHour"], f"{case_id}: transfer predates receipt")
         require(transfer["loadStartHour"] >= assay["assessedAtHour"], f"{case_id}: transfer predates assay")
         require(transfer["loadStartHour"] >= authority["validFromHour"], f"{case_id}: transfer predates authority")
+        require(transfer["loadStartHour"] >= custody["effectiveFromHour"], f"{case_id}: transfer predates custody/title/contract")
         require(transfer["dispatchHour"] > transfer["loadStartHour"], f"{case_id}: empty/negative loading window")
         require(transfer["dispatchHour"] < authority["validUntilHour"], f"{case_id}: dispatch outside authority window")
+        require(transfer["dispatchHour"] < custody["effectiveUntilHour"], f"{case_id}: dispatch outside custody/title/contract window")
         require(
             transfer["arrivalHour"] >= transfer["dispatchHour"] + route["transitDelayHours"],
             f"{case_id}: transit time understated",
@@ -170,8 +193,10 @@ def validate_case(planner: dict[str, Any], truth: dict[str, Any]) -> tuple[int, 
 
     for batch_id, source in transferred.items():
         authority = authorities[batch_id]
+        custody = custody_records[batch_id]
         admitted = admitted_by_batch[batch_id]
         accessible = max(0, admitted - authority["encumberedGrams"])
+        require(source <= custody["custodiedLowerGrams"], f"{case_id}: transfer exceeds custodied quantity")
         require(source <= accessible, f"{case_id}: transfer exceeds accessible stock")
         require(source <= authority["maxTransferGrams"], f"{case_id}: transfer exceeds authority maximum")
 
@@ -221,14 +246,21 @@ def validate_case(planner: dict[str, Any], truth: dict[str, Any]) -> tuple[int, 
             admitted_total += admitted
             terminal_total += terminal
             authority = authorities.get(batch_id)
+            custody = custody_records.get(batch_id)
             if (
                 authority is not None
                 and authority["disposition"] == "authorized"
+                and custody is not None
+                and custody["status"] == "verified"
+                and custody["title"] == "established"
+                and custody["contract"] == "active"
                 and authority["validFromHour"] <= hour < authority["validUntilHour"]
+                and custody["effectiveFromHour"] <= hour < custody["effectiveUntilHour"]
             ):
                 available = max(0, admitted - authority["encumberedGrams"] - dispatched)
                 transfer_remaining = max(0, authority["maxTransferGrams"] - dispatched)
-                accessible_total += min(available, transfer_remaining)
+                custody_remaining = max(0, custody["custodiedLowerGrams"] - dispatched)
+                accessible_total += min(available, transfer_remaining, custody_remaining)
         for issue in issues:
             if issue["issuedAtHour"] <= hour:
                 issue_total += issue["issuedQuantityGrams"]
@@ -300,8 +332,8 @@ def validate(root: Path) -> None:
     planners = read_jsonl(root / "planner-manifests.jsonl")
     truths = read_jsonl(root / "oracle-ledger-truth.jsonl")
     report = json.loads((root / "cargo-ledger-report.json").read_text(encoding="utf-8"))
-    require(len(planners) == len(truths) == 9, "expected nine planner/oracle cases")
-    require(report["caseCount"] == 9 and report["plannerOracleFilesSeparate"] is True, "report shape/boundary")
+    require(len(planners) == len(truths) == 12, "expected twelve planner/oracle cases")
+    require(report["caseCount"] == 12 and report["plannerOracleFilesSeparate"] is True, "report shape/boundary")
     require([row["caseId"] for row in planners] == [row["caseId"] for row in truths], "planner/oracle pairing")
     totals = [validate_case(planner, truth) for planner, truth in zip(planners, truths)]
     require(report["manifestCount"] == sum(len(row["manifests"]) for row in planners), "manifest total mismatch")
