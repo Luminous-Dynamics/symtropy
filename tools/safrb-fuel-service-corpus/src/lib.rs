@@ -424,12 +424,19 @@ pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
     let critical_floor_wh = hourly_trajectory.iter().map(|row| row.critical_floor_wh).sum();
     let delivered_lower_wh = hourly_trajectory.iter().map(|row| row.delivered_lower_wh).sum();
     let delivered_upper_wh = hourly_trajectory.iter().map(|row| row.delivered_upper_wh).sum();
-    let disposition = service_disposition(
-        telemetry_state,
-        delivered_lower_wh,
-        delivered_upper_wh,
-        critical_floor_wh,
-    );
+    let disposition = if hourly_trajectory
+        .iter()
+        .any(|row| row.disposition == ServiceDisposition::ConfirmedShortfall)
+    {
+        ServiceDisposition::ConfirmedShortfall
+    } else if hourly_trajectory
+        .iter()
+        .any(|row| row.disposition == ServiceDisposition::Indeterminate)
+    {
+        ServiceDisposition::Indeterminate
+    } else {
+        ServiceDisposition::Guaranteed
+    };
 
     FuelServiceCase {
         schema_version: SCHEMA_VERSION,
@@ -619,9 +626,10 @@ pub fn validate_case(case: &FuelServiceCase) -> Result<(), Vec<String>> {
     let expected_fuel_energy = generator.fuel_consumed_grams
         .saturating_mul(generator.synthetic_lhv_milli_wh_per_gram)
         .saturating_mul(generator.efficiency_basis_points) / 10_000 / 1_000;
+    let active_hours = case.horizon_hours.saturating_sub(transport.transit_delay_hours);
     let rated_cap = generator.rated_power_capacity_kw
         .saturating_mul(1_000)
-        .saturating_mul(u64::from(case.horizon_hours))
+        .saturating_mul(u64::from(active_hours))
         .saturating_mul(generator.derate_basis_points) / 10_000;
     if generator.gross_electricity_wh != expected_fuel_energy.min(rated_cap) {
         errors.push("generator output does not reconcile with declared synthetic fuel, efficiency and power cap".to_string());
@@ -658,14 +666,141 @@ pub fn validate_case(case: &FuelServiceCase) -> Result<(), Vec<String>> {
     if service.delivered_lower_wh != expected_lower || service.delivered_upper_wh != expected_upper {
         errors.push("service bounds do not reconcile with network-deliverable energy and declared uncertainty".to_string());
     }
-    let expected_disposition = service_disposition(
-        service.telemetry_state,
-        service.delivered_lower_wh,
-        service.delivered_upper_wh,
-        service.critical_floor_wh,
-    );
+    if case.hourly_trajectory.len() != case.horizon_hours as usize {
+        errors.push("hourly service trajectory length does not match the frozen horizon".to_string());
+    }
+
+    let mut route_total = 0_u64;
+    let mut conversion_input_total = 0_u64;
+    let mut conversion_output_total = 0_u64;
+    let mut process_loss_total = 0_u64;
+    let mut fuel_total = 0_u64;
+    let mut gross_generation_total = 0_u64;
+    let mut network_delivery_total = 0_u64;
+    let mut demand_total = 0_u64;
+    let mut critical_floor_total = 0_u64;
+    let mut delivered_lower_total = 0_u64;
+    let mut delivered_upper_total = 0_u64;
+    let hourly_power_cap = generator.rated_power_capacity_kw
+        .saturating_mul(1_000)
+        .saturating_mul(generator.derate_basis_points) / 10_000;
+
+    for (index, row) in case.hourly_trajectory.iter().enumerate() {
+        let expected_hour = index as u32;
+        let expected_time = case.scenario_start_unix_s
+            .checked_add(u64::from(expected_hour).saturating_mul(3_600));
+        if row.hour_index != expected_hour
+            || expected_time != Some(row.interval_start_unix_s)
+        {
+            errors.push(format!("hourly trajectory row {index} has invalid hour or timestamp"));
+        }
+        if expected_hour < transport.transit_delay_hours
+            && (row.route_delivery_grams != 0
+                || row.conversion_input_grams != 0
+                || row.conversion_output_grams != 0
+                || row.fuel_consumed_grams != 0
+                || row.gross_generation_wh != 0
+                || row.network_deliverable_wh != 0)
+        {
+            errors.push(format!("hourly row {index} delivers service before the declared transit delay"));
+        }
+        if row.route_delivery_grams > transport.effective_capacity_grams_per_hour {
+            errors.push(format!("hourly row {index} exceeds transport throughput capacity"));
+        }
+        if row.conversion_input_grams > row.route_delivery_grams
+            || row.conversion_input_grams > conversion.process_capacity_grams
+        {
+            errors.push(format!("hourly row {index} converts more feedstock than was deliverable or allowed"));
+        }
+        if row.conversion_output_grams > row.conversion_input_grams
+            || row.process_loss_grams.checked_add(row.conversion_output_grams)
+                != Some(row.conversion_input_grams)
+        {
+            errors.push(format!("hourly row {index} conversion mass balance is invalid"));
+        }
+        if row.fuel_consumed_grams > row.conversion_output_grams
+            || (!generator.fuel_grade_compatible && row.fuel_consumed_grams != 0)
+        {
+            errors.push(format!("hourly row {index} generator fuel consumption is invalid"));
+        }
+        if row.gross_generation_wh > hourly_power_cap
+            || row.network_deliverable_wh > row.gross_generation_wh
+        {
+            errors.push(format!("hourly row {index} exceeds generator or network delivery capability"));
+        }
+        if row.critical_floor_wh > row.demand_wh
+            || row.delivered_lower_wh > row.delivered_upper_wh
+            || row.delivered_upper_wh > row.demand_wh
+        {
+            errors.push(format!("hourly row {index} has inconsistent service bounds/floor"));
+        }
+        let expected_hour_lower = row.network_deliverable_wh
+            .saturating_mul(10_000_u64.saturating_sub(service.uncertainty_basis_points)) / 10_000;
+        let expected_hour_upper = row.demand_wh.min(
+            row.network_deliverable_wh
+                .saturating_mul(10_000_u64.saturating_add(service.uncertainty_basis_points)) / 10_000,
+        );
+        if row.delivered_lower_wh != expected_hour_lower
+            || row.delivered_upper_wh != expected_hour_upper
+        {
+            errors.push(format!("hourly row {index} bounds do not reconcile with its delivered energy"));
+        }
+        let expected_hour_disposition = service_disposition(
+            row.telemetry_state,
+            row.delivered_lower_wh,
+            row.delivered_upper_wh,
+            row.critical_floor_wh,
+        );
+        if row.disposition != expected_hour_disposition {
+            errors.push(format!("hourly row {index} has an invalid interval/telemetry disposition"));
+        }
+        if row.telemetry_state != service.telemetry_state {
+            errors.push(format!("hourly row {index} telemetry state differs from the parent service receipt"));
+        }
+
+        route_total = route_total.saturating_add(row.route_delivery_grams);
+        conversion_input_total = conversion_input_total.saturating_add(row.conversion_input_grams);
+        conversion_output_total = conversion_output_total.saturating_add(row.conversion_output_grams);
+        process_loss_total = process_loss_total.saturating_add(row.process_loss_grams);
+        fuel_total = fuel_total.saturating_add(row.fuel_consumed_grams);
+        gross_generation_total = gross_generation_total.saturating_add(row.gross_generation_wh);
+        network_delivery_total = network_delivery_total.saturating_add(row.network_deliverable_wh);
+        demand_total = demand_total.saturating_add(row.demand_wh);
+        critical_floor_total = critical_floor_total.saturating_add(row.critical_floor_wh);
+        delivered_lower_total = delivered_lower_total.saturating_add(row.delivered_lower_wh);
+        delivered_upper_total = delivered_upper_total.saturating_add(row.delivered_upper_wh);
+    }
+
+    if route_total != transport.deliverable_grams
+        || conversion_input_total != conversion.input_grams
+        || conversion_output_total != conversion.output_grams
+        || process_loss_total != conversion.declared_process_loss_grams
+        || fuel_total != generator.fuel_consumed_grams
+        || gross_generation_total != generator.gross_electricity_wh
+        || network_delivery_total != generator.network_deliverable_wh
+        || demand_total != service.demand_wh
+        || critical_floor_total != service.critical_floor_wh
+        || delivered_lower_total != service.delivered_lower_wh
+        || delivered_upper_total != service.delivered_upper_wh
+    {
+        errors.push("hourly trajectory does not reconcile exactly with aggregate case totals".to_string());
+    }
+
+    let expected_disposition = if case.hourly_trajectory
+        .iter()
+        .any(|row| row.disposition == ServiceDisposition::ConfirmedShortfall)
+    {
+        ServiceDisposition::ConfirmedShortfall
+    } else if case.hourly_trajectory
+        .iter()
+        .any(|row| row.disposition == ServiceDisposition::Indeterminate)
+    {
+        ServiceDisposition::Indeterminate
+    } else {
+        ServiceDisposition::Guaranteed
+    };
     if service.disposition != expected_disposition {
-        errors.push("service disposition violates the non-compensatory interval/telemetry rule".to_string());
+        errors.push("aggregate service disposition must preserve any hourly shortfall or indeterminate interval".to_string());
     }
 
     if errors.is_empty() { Ok(()) } else { Err(errors) }
