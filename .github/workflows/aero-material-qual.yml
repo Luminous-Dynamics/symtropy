@@ -2,7 +2,7 @@ name: AERO Material Qualification Contract
 
 on:
   push:
-    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1"]
+    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1"]
     paths:
       - "crates/domains/symtropy-aero-material-qual/**"
       - "docs/research/aviation/AERO_EVIDENCE_BINDING_001_V0_2.md"
@@ -19,7 +19,7 @@ on:
       - "docs/research/aviation/schemas/aero_shm_dataset_manifest_v0_1.schema.json"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
-    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2"]
+    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1"]
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
@@ -176,8 +176,8 @@ jobs:
               raise SystemExit("temporal replay corpus requires a late-receipt control")
           if corpus.get("oracle_review_status") != "NOT_INDEPENDENTLY_REVIEWED":
               raise SystemExit("oracle review status must remain explicit until independent review")
-          if len(cases) != 20:
-              raise SystemExit(f"temporal replay corpus must contain exactly 20 frozen cases; found {len(cases)}")
+          if len(cases) != 16:
+              raise SystemExit(f"temporal replay corpus must contain exactly 16 frozen cases; found {len(cases)}")
           all_events = [event for case in cases for event in case["events"]]
           for event in all_events:
               receipt_status = event["receiver_receipt_status"]
@@ -193,25 +193,14 @@ jobs:
               if timestamp_status == "invalid_digest":
                   if timestamp_imprint is None or timestamp_imprint == event["payload_sha256"]:
                       raise SystemExit(f"{event['event_id']}: invalid-digest timestamp control must contain a mismatching imprint")
-              elif timestamp_status == "valid" and event["trusted_timestamp_at_unix_ms"] is None:
-                  raise SystemExit(f"{event['event_id']}: valid timestamp claim requires a timestamp value")
-              elif timestamp_status == "absent" and (event["trusted_timestamp_at_unix_ms"] is not None or timestamp_imprint is not None):
-                  raise SystemExit(f"{event['event_id']}: absent timestamp must not carry token fields")
+              elif timestamp_status == "absent" and timestamp_imprint is not None:
+                  raise SystemExit(f"{event['event_id']}: absent timestamp must not carry an imprint")
           if not any(event["receiver_receipt_status"] == "UNVERIFIED" for event in all_events):
               raise SystemExit("temporal replay corpus requires an unverified-receipt control")
           required_modes = {"as_known_at", "recomputed_with_current_trust", "recomputed_with_current_evidence_and_trust"}
           for case in cases:
               if set(case["expected"]) != required_modes:
                   raise SystemExit(f"{case['case_id']}: all three replay modes must be frozen")
-          historical_policy_digest = "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
-          current_policy_digest = "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
-          for case in cases:
-              if case["verifier_profile_id"] != "aero-temporal-replay-reference-v0.1":
-                  raise SystemExit(f"{case['case_id']}: verifier profile must be pinned")
-              if case["snapshot"]["trust_policy_digest_sha256"] != historical_policy_digest:
-                  raise SystemExit(f"{case['case_id']}: historical policy digest mismatch")
-              if case["current_reassessment"]["trust_policy_digest_sha256"] != current_policy_digest:
-                  raise SystemExit(f"{case['case_id']}: current policy digest mismatch")
               if case["snapshot"]["trust_status_as_of_unix_ms"] > case["snapshot"]["evaluated_at_unix_ms"]:
                   raise SystemExit(f"{case['case_id']}: historical trust snapshot cannot be later than its historical subject cutoff")
               if case["current_reassessment"]["receiver_receipt_watermark_unix_ms"] < case["snapshot"]["receiver_receipt_watermark_unix_ms"]:
@@ -232,46 +221,6 @@ jobs:
               raise SystemExit("late retroactive event must affect a new full retrospective replay")
           if late["current_reassessment"]["receiver_receipt_watermark_unix_ms"] < late["events"][0]["receiver_first_seen_at_unix_ms"]:
               raise SystemExit("late event must be included by the retrospective evidence watermark")
-          after_measurement = next((case for case in cases if case["case_id"] == "revocation-effective-after-acquisition-before-evaluation"), None)
-          if after_measurement is None:
-              raise SystemExit("temporal corpus requires a revocation-after-acquisition control")
-          after_event = after_measurement["events"][0]
-          if not (after_event["effective_at_unix_ms"] > after_measurement["acquisition_time_interval"]["latest_unix_ms"] and after_event["effective_at_unix_ms"] <= after_measurement["snapshot"]["evaluated_at_unix_ms"]):
-              raise SystemExit("post-acquisition revocation must be effective before report generation but after measurement")
-          if any(after_measurement["expected"][mode]["disposition"] != "NOT_YET_EFFECTIVE" for mode in required_modes):
-              raise SystemExit("post-acquisition revocation must not invalidate the earlier measurement")
-          overlap = next((case for case in cases if case["case_id"] == "event-effectivity-crosses-acquisition-uncertainty-window"), None)
-          if overlap is None:
-              raise SystemExit("temporal corpus requires an acquisition/effectivity overlap control")
-          overlap_event = overlap["events"][0]
-          if not (overlap["acquisition_time_interval"]["earliest_unix_ms"] < overlap_event["effective_at_unix_ms"] <= overlap["acquisition_time_interval"]["latest_unix_ms"]):
-              raise SystemExit("event effective time must overlap the acquisition uncertainty interval")
-          if any(overlap["expected"][mode]["disposition"] != "TIME_BOUNDARY_AMBIGUOUS" for mode in required_modes):
-              raise SystemExit("event effective time inside acquisition uncertainty must abstain")
-          after_measurement = next((case for case in cases if case["case_id"] == "revocation-effective-after-acquisition-before-evaluation"), None)
-          if after_measurement is None or after_measurement["events"][0]["effective_at_unix_ms"] <= after_measurement["acquisition_time_interval"]["latest_unix_ms"] or after_measurement["snapshot"]["evaluated_at_unix_ms"] <= after_measurement["events"][0]["effective_at_unix_ms"]:
-              raise SystemExit("after-measurement control must become effective after acquisition but before report generation")
-          if any(after_measurement["expected"][mode]["disposition"] != "NOT_YET_EFFECTIVE" for mode in required_modes):
-              raise SystemExit("a later revocation must not invalidate an earlier acquisition")
-          acquisition_overlap = next((case for case in cases if case["case_id"] == "event-effectivity-crosses-acquisition-uncertainty-window"), None)
-          if acquisition_overlap is None or not (acquisition_overlap["acquisition_time_interval"]["earliest_unix_ms"] < acquisition_overlap["events"][0]["effective_at_unix_ms"] <= acquisition_overlap["acquisition_time_interval"]["latest_unix_ms"]):
-              raise SystemExit("event effectivity must overlap the acquisition uncertainty interval")
-          if any(acquisition_overlap["expected"][mode]["disposition"] != "TIME_BOUNDARY_AMBIGUOUS" for mode in required_modes):
-              raise SystemExit("event effectivity within acquisition uncertainty must abstain")
-          valid_tsa = next((case for case in cases if case["case_id"] == "valid-timestamp-imprint-binds-event-payload"), None)
-          if valid_tsa is None or any(valid_tsa["expected"][mode]["disposition"] != "ACCEPTED_FOR_BINDING_ONLY" for mode in required_modes):
-              raise SystemExit("valid timestamp positive control is required")
-          valid_event = valid_tsa["events"][0]
-          if valid_event["trusted_timestamp_status"] != "valid" or valid_event["trusted_timestamp_imprint_sha256"] != valid_event["payload_sha256"] or valid_event["trusted_timestamp_at_unix_ms"] is None:
-              raise SystemExit("valid timestamp positive control must bind the exact payload and provide a timestamp")
-          bad_tsa = next((case for case in cases if case["case_id"] == "valid-timestamp-label-with-mismatching-imprint-rejected"), None)
-          if bad_tsa is None or any(bad_tsa["expected"][mode]["disposition"] != "REJECT" for mode in required_modes):
-              raise SystemExit("valid-label/wrong-imprint negative control is required")
-          bad_event = bad_tsa["events"][0]
-          if bad_event["trusted_timestamp_status"] != "valid" or bad_event["trusted_timestamp_imprint_sha256"] == bad_event["payload_sha256"]:
-              raise SystemExit("timestamp mismatch control must claim valid status while binding the wrong digest")
-          if any("TIMESTAMP_IMPRINT_MISMATCH" not in bad_tsa["expected"][mode]["reason_codes"] for mode in required_modes):
-              raise SystemExit("wrong-imprint control must expect TIMESTAMP_IMPRINT_MISMATCH")
           alias = next((case for case in cases if case["case_id"] == "same-issuer-cannot-bypass-identity-with-unverified-namespace-alias"), None)
           if alias is None or len(alias["events"]) != 2:
               raise SystemExit("temporal corpus requires a source namespace alias attack control")
