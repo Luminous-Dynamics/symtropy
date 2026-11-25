@@ -82,7 +82,7 @@ Eight tests cover:
 3. rejection of same-slot pairings in the shuffled negative;
 4. four-way periodic correspondence ambiguity even when clock anchors make the affine map identifiable;
 5. clock scoring invariance to semantic shuffling;
-6. clock abstention when shared anchors are absent;
+6. clock abstention with zero or one shared anchor, including a one-anchor prefix of an otherwise identifiable world;
 7. causal arrival-prefix filtering;
 8. deterministic out-of-order sensor-time delivery and fail-closed configuration checks.
 
