@@ -38,9 +38,8 @@ pub enum AssociationRegimeV0 {
     /// Beta carries a permutation of Alpha's event identities. The per-
     /// modality symbol and timestamp marginals are preserved exactly.
     MarginalMatchedShuffled,
-    /// A periodic prefix admits four equally valid phase correspondences.
-    /// No shared clock anchors are emitted, so a unique clock/event map is
-    /// not identifiable from the public observations.
+    /// A periodic stream admits four equally valid event-phase correspondences.
+    /// Clock-anchor presence is an independent configuration factor.
     PeriodicAmbiguous,
 }
 
@@ -64,6 +63,10 @@ pub struct MultimodalConfigV0 {
     pub beta_clock: ClockModelV0,
     pub alpha_drop_per_mille: u16,
     pub beta_drop_per_mille: u16,
+    /// Emit two public shared calibration pulses independently of the
+    /// semantic association regime. This orthogonalizes clock and event
+    /// correspondence identifiability.
+    pub emit_shared_clock_anchors: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -436,7 +439,7 @@ impl MultimodalWorldV0 {
             }
         }
 
-        if config.regime != AssociationRegimeV0::PeriodicAmbiguous {
+        if config.emit_shared_clock_anchors {
             let end_event_number = u64::try_from(count + 1)
                 .map_err(|_| MultimodalWorldErrorV0::TimeOverflow)?;
             let end_tick = end_event_number
@@ -789,6 +792,7 @@ mod tests {
             beta_clock: clock(100, 3, 2),
             alpha_drop_per_mille: 0,
             beta_drop_per_mille: 0,
+            emit_shared_clock_anchors: true,
         }
     }
 
@@ -919,6 +923,20 @@ mod tests {
         let (set_score, _) = world.evaluate_alignment(&alternatives);
         assert!(set_score.correctly_set_valued);
         assert!(set_score.accepted_valid);
+
+        // The same periodic event stream can have independently identifiable
+        // clocks when public calibration anchors are present.
+        let clock_score = world.evaluate_clock_map(
+            &all_observations(&world),
+            Some(ClockMapProposalV0 {
+                offset: 20.0 - (2.0 / 3.0) * 100.0,
+                scale: 2.0 / 3.0,
+            }),
+        );
+        assert_eq!(
+            clock_score.disposition,
+            ClockDispositionV0::IdentifiableFromSharedAnchors
+        );
     }
 
     #[test]
@@ -947,8 +965,9 @@ mod tests {
 
     #[test]
     fn periodic_world_correctly_abstains_on_clock_registration() {
-        let world =
-            MultimodalWorldV0::generate(config(AssociationRegimeV0::PeriodicAmbiguous)).unwrap();
+        let mut ambiguous_config = config(AssociationRegimeV0::PeriodicAmbiguous);
+        ambiguous_config.emit_shared_clock_anchors = false;
+        let world = MultimodalWorldV0::generate(ambiguous_config).unwrap();
         let score = world.evaluate_clock_map(&all_observations(&world), None);
         assert_eq!(
             score.disposition,
