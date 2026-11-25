@@ -527,17 +527,14 @@ pub fn propagate_phase_uncertainty(
     reference: &AngularReferenceUncertainty,
 ) -> Result<PhaseUncertaintyMetrics, EvaluationError> {
     validate_requirements(requirements)?;
-    if !reference.uncertainty_record_id.trim().is_empty()
-        && !reference.phase_zero_calibration_id.trim().is_empty()
-        && reference.phase_zero_calibration_id == requirements.phase_zero_calibration_id
-        && reference.phase_zero_std_rad.is_finite()
-        && reference.phase_zero_std_rad >= 0.0
-        && reference.mechanical_angle_std_rad.is_finite()
-        && reference.mechanical_angle_std_rad >= 0.0
+    if reference.uncertainty_record_id.trim().is_empty()
+        || reference.phase_zero_calibration_id.trim().is_empty()
+        || reference.phase_zero_calibration_id != requirements.phase_zero_calibration_id
+        || !reference.phase_zero_std_rad.is_finite()
+        || reference.phase_zero_std_rad < 0.0
+        || !reference.mechanical_angle_std_rad.is_finite()
+        || reference.mechanical_angle_std_rad < 0.0
     {
-        // The uncertainty record is independently identified and bound to the
-        // calibration record used by the deterministic phase evaluator.
-    } else {
         return Err(EvaluationError::InvalidReferenceUncertainty);
     }
 
@@ -1106,6 +1103,154 @@ mod tests {
             trace.samples.len()
         );
         assert_eq!(metrics.rms_phase_error_over_total_std, None);
+    }
+
+
+    #[test]
+    fn mechanical_reference_uncertainty_scales_with_pole_pairs() {
+        let trace = make_trace(
+            "ten-pole-pair-reference-uncertainty",
+            EvidenceKind::SyntheticScenario,
+            720,
+            10,
+            -0.23,
+            0.0,
+            constant_amplitude,
+            0.0,
+        );
+        let covariance = FieldCovariance2d {
+            xx_t2: 0.0,
+            xy_t2: 0.0,
+            yy_t2: 0.0,
+        };
+        let metrics = propagate_phase_uncertainty(
+            &trace,
+            &covariance_trace(&trace, covariance),
+            &requirements(10, -0.23),
+            &reference_uncertainty(0.0, 0.0002),
+        )
+        .unwrap();
+
+        assert!((metrics.reference_mechanical_phase_std_rad - 0.002).abs() < 1.0e-15);
+        assert!((metrics.total_phase_std_mean_rad - 0.002).abs() < 1.0e-15);
+    }
+
+    #[test]
+    fn rejects_negative_reference_uncertainty() {
+        let trace = make_trace(
+            "negative-reference-uncertainty",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            constant_amplitude,
+            0.0,
+        );
+        let covariance = FieldCovariance2d {
+            xx_t2: 0.0,
+            xy_t2: 0.0,
+            yy_t2: 0.0,
+        };
+        assert_eq!(
+            propagate_phase_uncertainty(
+                &trace,
+                &covariance_trace(&trace, covariance),
+                &requirements(1, 0.0),
+                &reference_uncertainty(-1.0e-3, 0.0),
+            ),
+            Err(EvaluationError::InvalidReferenceUncertainty)
+        );
+    }
+
+    #[test]
+    fn rejects_mismatched_covariance_trace_identity() {
+        let trace = make_trace(
+            "field-trace-id",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            constant_amplitude,
+            0.0,
+        );
+        let covariance = FieldCovariance2d {
+            xx_t2: 0.0,
+            xy_t2: 0.0,
+            yy_t2: 0.0,
+        };
+        let mut covariance_trace = covariance_trace(&trace, covariance);
+        covariance_trace.trace_id = "different-trace".to_owned();
+
+        assert_eq!(
+            propagate_phase_uncertainty(
+                &trace,
+                &covariance_trace,
+                &requirements(1, 0.0),
+                &reference_uncertainty(0.0, 0.0),
+            ),
+            Err(EvaluationError::CovarianceTraceIdentityMismatch)
+        );
+    }
+
+    #[test]
+    fn rejects_mismatched_operating_condition() {
+        let trace = make_trace(
+            "condition-mismatch",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            constant_amplitude,
+            0.0,
+        );
+        let covariance = FieldCovariance2d {
+            xx_t2: 0.0,
+            xy_t2: 0.0,
+            yy_t2: 0.0,
+        };
+        let mut covariance_trace = covariance_trace(&trace, covariance);
+        covariance_trace.operating_condition_id = "other-gap".to_owned();
+
+        assert_eq!(
+            propagate_phase_uncertainty(
+                &trace,
+                &covariance_trace,
+                &requirements(1, 0.0),
+                &reference_uncertainty(0.0, 0.0),
+            ),
+            Err(EvaluationError::CovarianceTraceConditionMismatch)
+        );
+    }
+
+    #[test]
+    fn accepts_rank_one_positive_semidefinite_field_covariance() {
+        let trace = make_trace(
+            "rank-one-covariance",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            constant_amplitude,
+            0.0,
+        );
+        let covariance = FieldCovariance2d {
+            xx_t2: 1.0e-8,
+            xy_t2: 1.0e-8,
+            yy_t2: 1.0e-8,
+        };
+        let metrics = propagate_phase_uncertainty(
+            &trace,
+            &covariance_trace(&trace, covariance),
+            &requirements(1, 0.0),
+            &reference_uncertainty(0.0, 0.0),
+        )
+        .unwrap();
+
+        assert!(metrics.measurement_phase_std_max_rad.is_finite());
     }
 
     #[test]
