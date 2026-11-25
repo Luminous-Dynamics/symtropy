@@ -411,6 +411,12 @@ These are targets, not present operational results:
 - Use cluster-aware paired resampling or justified block methods for uncertainty intervals; do not treat repeated calls in a convoy/weather/labour/grid outage as IID.
 - A candidate service-chain improvement target is 5–10% lower end-to-end p95 or missed-deadline rate, but only with no protected-floor violation and no material deterioration in cost, energy, emissions, cargo loss, plan churn or worst-served cohort.
 
+### Durban's 2025 CPPI context
+
+Secondary reporting of World Bank CPPI Annex 2 lists Durban at **398/400** in 2025 with a score of **−241.7**, compared with **−721** in 2024 (a reported +479.3 score movement). This is a port-level result and the annex bytes were not retrieved in this pass, so the figure is catalogued as a secondary observation pending direct official-file verification. The World Bank/S&P methodology states that 2024 is the standardization reference year, and CPPI changes should be read as relative index movements—not minutes saved or a DGT productivity uplift. The index is still useful for setting a port-level context and peer comparison; it cannot be attributed to DGT individually or used as receiver-delivery evidence.
+
+Official CPPI index and methodology: [World Bank CPPI 2025](https://www.worldbank.org/en/topic/transport/publication/cppi), [10 June 2026 methodology note](https://thedocs.worldbank.org/en/doc/aac122f6df85534428d66a7b9af4b7f6-0400012026/original/CPPI-Methodology-Note.pdf). Secondary Annex 2 report: [Focus on Transport](https://focusontransport.co.za/ports-sa-leads-the-world-in-improvement-but-trails-in-performance/). The World Bank data link returned HTTP 403 during this intake; the exact official annex still needs retrieval, hash and cross-check.
+
 ### Competitive boundary
 
 The benchmark does not claim that incumbents lack variability reporting or receiver visibility. CPPI provides a strong global **port-level vessel time** comparator; Kaleris N4 covers extensive terminal operating workflows; DCSA and GS1 standardize important event exchange/visibility layers. Our opening is to demonstrate—under matched and independently qualified evidence—whether an assurance layer can prevent local metric gaming and verify actual service improvement across terminal, inland and receiver boundaries.
