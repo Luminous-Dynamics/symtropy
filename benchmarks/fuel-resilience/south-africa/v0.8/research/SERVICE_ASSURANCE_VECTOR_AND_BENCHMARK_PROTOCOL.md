@@ -339,3 +339,115 @@ The current comparator set should retain these separate tracks and their own cla
 - Shi, Bai and Wang, *Power distribution system blackstart restoration using renewable energy*, Nature Communications 17, 8498 (17 August 2026): https://www.nature.com/articles/s41467-026-76692-0
 
 All reported numerical results above are claims from the named papers under their respective study assumptions. They are not SAFRB results, not a common leaderboard, and not field reliability evidence.
+
+
+## 11. Industry boundary and optimizer-neutral assurance layer — 25 November 2026
+
+The benchmark should distinguish what commercial products already do from the missing assurance problem. SAFRB is not a replacement for a microgrid EMS, a dispatch optimizer or a terminal inventory-management system.
+
+### 11.1 Commercial capability comparison
+
+| Industry capability | Existing product scope (public product description) | SAFRB integration boundary |
+|---|---|---|
+| Microgrid forecast and dispatch | Schneider Electric EcoStruxure Microgrid Advisor describes forecasting, monitoring, optimization, tariff/site constraints, previews and model-predictive control for generation, storage and EV charging | Consume frozen forecasts, candidate schedules and controller outputs; verify that every relied-upon constraint, resource and service claim is evidence-qualified |
+| Local microgrid operation | Schneider Electric EcoStruxure Microgrid Operation describes real-time power management, grid/island operation, load sharing/shedding, black start and restoration | Do not replace control; independently qualify power/service intervals, transition preconditions, evidence freshness and restoration claims |
+| Terminal inventory and movement | DTN TIMS describes source-system inventory normalization, movement/inventory validation and exception surfacing; DTN TABS describes customer-specific product availability visibility at terminals | Do not rebuild a terminal inventory ledger; qualify whether the asserted quantity is physically received, product/grade matched, assay released, in custody/title, contractually accessible, authorized, transferable in time and service-relevant |
+| Grid and physical qualification | OpenDSS/AC solvers, protection studies, HIL and commissioning processes supply physical analyses at their declared tier | Treat their outputs as upstream evidence only after exact case/topology/configuration, solver/convergence, measurement and independent verification requirements are met |
+
+Public product descriptions are capability statements, not comparative benchmark results. SAFRB must not claim to exceed Schneider or DTN on control, optimization or inventory-management functionality. The differentiator to test is the **vendor-neutral claimability chain from source quantity to beneficiary service**, preserving unknowns and non-compensatory hard limits.
+
+Primary product references:
+- Schneider EcoStruxure Microgrid Advisor: https://www.se.com/us/en/product-range/65896-ecostruxure-microgrid-advisor/
+- Schneider EcoStruxure Microgrid Operation: https://www.se.com/us/en/product-range/65897-ecostruxure-microgrid-operation/
+- DTN TIMS: https://www.dtn.com/refined-fuels/seller/tims/
+
+### 11.2 Public-stock claimability is a benchmark dimension
+
+The South African 2026 Estimates of National Expenditure, Vote 34, Table 34.18 (printed pp. 729–730), lists medium-term targets of 60 days of strategic crude and 14 days of refined-product supply. The preceding audited-performance cells for the two days-on-hand indicators are recorded as `-1`, with the footnote “No historical data available.” A separate CEF performance indicator lists 10.3 million crude barrels maintained as per ministerial directive.
+
+The correct conclusion is narrowly scoped: the published table does not provide a historical achieved series for those two days-on-hand metrics. It neither proves stock is absent nor proves the target has been achieved. It also does not show product-grade, quality-release, custody, title, terminal location, drawdown rate, transfer latency or beneficiary service.
+
+Required claimability labels:
+- `POLICY_TARGET`
+- `ATTRIBUTED_PUBLIC_CLAIM`
+- `REPORTED_AGGREGATE`
+- `AUDITED_ACCOUNTING_ACTUAL`
+- `PHYSICALLY_MEASURED`
+- `QUALITY_ADMITTED`
+- `CUSTODY_TITLE_CONTRACT_ELIGIBLE`
+- `WITHDRAWAL_AUTHORIZED`
+- `ROUTE_DELIVERABLE_BY_DEADLINE`
+- `GENERATOR_READY`
+- `BENEFICIARY_SERVICE_PROVEN`
+
+Every transition between labels requires a separately attributable evidence receipt. There is no implicit promotion from a policy target to actual stock, from crude barrels to refined diesel, or from nominal storage to days of critical-service continuity.
+
+Source: National Treasury, 2026 Estimates of National Expenditure, Vote 34, Table 34.18, printed pp. 729–730: https://www.treasury.gov.za/documents/National%20Budget/2026/ene/FullENE.pdf
+
+### 11.3 Extended benchmark corpus and metrics
+
+Freeze a **claimability and event-transition suite** alongside the existing temporal/service oracle:
+- ETA without physical receipt; partial, late, duplicated, replayed or conflicting receipt;
+- wrong product/grade/terminal/batch identity;
+- failed, pending, stale or disputed assay; quality quarantine and later release;
+- stock physically present but custody, title, contract or withdrawal authority absent, expired or conflicting;
+- encumbrance, operating heel, route capacity, transit delay, berth/pump/terminal outage;
+- fuel delivered to generator but not issued; incompatible fuel grade; derating and power-cap curtailment;
+- generator output exists but network voltage/frequency/reactive-power/power-quality evidence is missing or outside hard limits;
+- beneficiary boundary/demand denominator changes, partial outage, restoration transient and right-censored observation;
+- common-cause supplier/port/grid/telecom dependencies and correlated evidence providers;
+- public policy target or ministerial statement incorrectly presented as measured accessible stock.
+
+Report, without collapsing them:
+- false-guarantee rate and 95% interval, by failure mechanism;
+- false-rejection rate on separately frozen known-admissible positive controls;
+- indeterminate/abstention rate and unresolved-exposure hours;
+- interval coverage, interval width and calibration score on held-out permissioned measurements;
+- p50/p95/p99 receipt→assay→custody/title/contract→authority→generator-ready latency;
+- p50/p95/p99 evaluation and evidence-verification overhead;
+- exact ledger closure, duplicate/replay rejection, time-order correctness and oracle disagreement;
+- service EENS/EUE, critical-floor breach Wh, service-hours, sustained-restoration time, P95/CVaR95 regret, tail beneficiary outcomes and fuel/energy costs.
+
+For zero observed failures in (N) independent Bernoulli trials, the rough one-sided 95% upper bound is (3/N) (rule of three). Thus 300 independent positive-control cases with zero false rejects only support an upper bound near 1%; 3,000 independent negative controls with zero false guarantees support an upper bound near 0.1%. These are not substitutes for exhaustive software-state exploration or stratified coverage. Correlated seeds/cases must be grouped by topology, common-cause event family and supplier/provider; they cannot be counted as independent trials merely because JSON rows differ.
+
+### 11.4 Proposed frozen benchmark gates
+
+These are research targets, not attained results, standards or field acceptance thresholds:
+
+| Gate | Proposed target | Qualification caveat |
+|---|---|---|
+| Event/ledger integrity | 100% exact identity, chronology and mass-balance reconciliation; zero duplicate/replay acceptance; zero backdating | Exhaustive bounded-state checks plus synthetic adversarial corpus |
+| Service safety | Zero false guarantees on all frozen hard-negative cases | Publish confidence bounds and failure-family coverage; no claim about all physical reality |
+| Positive controls | At least 300 distinct known-admissible controls; target false rejection ≤1% with confidence interval | Positive controls must not reuse training templates or be tuned after the freeze |
+| Generalization | ≥90% retention of pre-registered service-assurance performance on held-out topology, supplier, product/grade and compound-shock families | Grouped holdouts; no same-feeder/same-event leakage |
+| Matched risk outcome | ≥20% reduction in CVaR95 critical-service regret vs strongest matched planner+validator baseline, with no mandatory floor regression | Same planner output, objective, physical model, solver budget and compute |
+| Restoration outcome | ≥10% lower P95 time-to-sustained-restoration without worse worst-cohort service | Only on shared topologies and same outage/repair/control budget |
+| Runtime | P95 assurance overhead ≤10% of declared control/decision-loop budget | Report hardware, artifact size, verifier tier and all failed/abstained runs |
+| Evidence delay | Publish p50/p95/p99 and deadline miss rate for each availability state transition | Planned ETA and observed receipt remain distinct time series |
+| Interval quality | For nominal 90% intervals, 85–95% empirical coverage on a held-out, operator-approved dataset, with weighted interval score | Only after independent metrology/data review; do not calibrate on synthetic oracle alone |
+
+### 11.5 Optimizer- and vendor-neutral three-arm test
+
+For each matched physical case and fixed planner output, run:
+
+A. Planner/controller with its existing validation and acceptance logic.  
+B. The exact same output passed through SAFRB's typed resource/service, uncertainty, temporal and evidence gates.  
+C. The same run with SAFRB plus independent artifact/claim verification and parent/source-chain validation.
+
+Add a fourth integration-only observation (not a new decision arm): the cost and latency of binding public commercial EMS/terminal-system exports into the same assurance interface. Proprietary black-box vendor features are not to be inferred; use only documented exports and actual permitted test access.
+
+Hold constant: topology/revision, demand, assets, generator/fuel constraints, outage/cold-load-pickup sequence, observations, random seed, planner candidate action bytes, solver/runtime budget, and observation cutoff. Score the controller and assurance overlay separately. The benchmark winner is not whichever produces the most optimistic service claim; it is the stack with the best admissible service outcome subject to zero violations of declared hard gates.
+
+### 11.6 Qualification ladder and standards boundary
+
+Keep evidence maturity explicit:
+1. deterministic synthetic/exhaustive software oracle;
+2. frozen replay of permissioned historical evidence;
+3. software-in-loop with frozen controller/planner output;
+4. controller-in-loop and HIL under a qualified test plan;
+5. site commissioning and witnessed acceptance;
+6. periodic requalification after firmware, topology, asset, calibration, supplier, route or operating-envelope changes.
+
+IEC TS 62898-3-5:2026 expressly concerns HIL, commissioning and periodic testing for microgrid monitoring/control/energy-management systems. It supports this progression; it does not make the present synthetic corpus IEC-conformant or field-qualified. Source: https://webstore.iec.ch/en/publication/84175
+
+The programme should seek one permissioned, bounded site/service chain first, publish a data dictionary and evidence protocol, and keep all public-data claims distinct from physically measured inventory. The current Rust cargo/service crates are synthetic reference implementations and do not yet perform this physical/site qualification.
