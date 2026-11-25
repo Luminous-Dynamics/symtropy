@@ -315,6 +315,38 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
     let campaign_index = index_by_id(&campaigns, "test_campaigns", &mut violations);
     let configuration_index = index_by_id(&configurations, "configurations", &mut violations);
     let certificate_index = index_by_id(&certificates, "calibration_certificates", &mut violations);
+    let mut calibration_evidence_ids = BTreeSet::new();
+    for certificate in &certificates {
+        let certificate_id = field_str(certificate, "id").unwrap_or("certificate");
+        match field_str(certificate, "calibration_evidence_id") {
+            Some(evidence_id) if nonempty(Some(evidence_id)) => {
+                if !calibration_evidence_ids.insert(evidence_id.to_owned()) {
+                    push(
+                        &mut violations,
+                        "CALIBRATION_EVIDENCE_ID_REPLAY",
+                        evidence_id,
+                    );
+                    push(
+                        &mut blockers,
+                        "CALIBRATION_CERTIFICATE_EVIDENCE_UNBOUND",
+                        certificate_id,
+                    );
+                }
+            }
+            _ => {
+                push(
+                    &mut violations,
+                    "CALIBRATION_EVIDENCE_ID_MISSING",
+                    certificate_id,
+                );
+                push(
+                    &mut blockers,
+                    "CALIBRATION_CERTIFICATE_EVIDENCE_UNBOUND",
+                    certificate_id,
+                );
+            }
+        }
+    }
     let _observation_index = index_by_id(&observations, "observations", &mut violations);
     let _source_assertion_index =
         index_by_id(&specimen_assertions, "specimen_source_assertions", &mut violations);
@@ -633,7 +665,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
         }
 
         if let (Some(campaign), Some(certificate)) = (campaign, certificate) {
-            for required_field in ["instrument_id", "method_revision_id", "calibration_lab", "certificate_artifact_ref"] {
+            for required_field in ["instrument_id", "method_revision_id", "calibration_lab", "certificate_artifact_ref", "calibration_evidence_id"] {
                 if !nonempty(field_str(certificate, required_field)) {
                     reasons.insert("CALIBRATION_CERTIFICATE_METADATA_INCOMPLETE".to_owned());
                 }
