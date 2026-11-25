@@ -78,8 +78,21 @@ pub fn sphere_sphere<const D: usize>(
     for axis in 0..D {
         initial_scale = initial_scale.max(dp[axis].abs());
     }
-    if initial_scale == 0.0 || !initial_scale.is_finite() {
+    if !initial_scale.is_finite() {
         return None;
+    }
+    if initial_scale == 0.0 {
+        // Coincident zero-radius spheres are already in contact at t=0.
+        let mut normal = SVector::zeros();
+        if D == 0 {
+            return None;
+        }
+        normal[0] = 1.0;
+        return Some(CcdHit {
+            toi: 0.0,
+            point: *pos_a,
+            normal,
+        });
     }
     let dp_initial_scaled = dp / initial_scale;
     let radius_initial_scaled = combined_radius / initial_scale;
@@ -247,6 +260,25 @@ mod tests {
             "TOI = {}, expected ~0.2",
             hit.toi
         );
+    }
+
+    #[test]
+    fn coincident_zero_radius_spheres_are_initial_contact() {
+        let position = SVector::from([2.0, -1.0, 0.5]);
+        let velocity = SVector::zeros();
+        let hit = sphere_sphere(
+            &position,
+            &velocity,
+            0.0,
+            &position,
+            &velocity,
+            0.0,
+            1.0,
+        )
+        .unwrap();
+        assert_eq!(hit.toi, 0.0);
+        assert_eq!(hit.point, position);
+        assert!(hit.normal[0] > 0.99);
     }
 
     #[test]
