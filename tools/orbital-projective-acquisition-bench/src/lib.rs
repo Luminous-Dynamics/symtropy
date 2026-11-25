@@ -294,7 +294,7 @@ fn calculate_bounds(model: &MotionModel) -> Result<ProjectionBounds, String> {
 
 fn evaluate_case(case: &Case) -> CaseResult {
     let model = &case.model;
-    let mut result = |status, bounds, reason_codes| CaseResult {
+    let result = |status, bounds, reason_codes| CaseResult {
         case_id: case.case_id.clone(),
         status,
         bounds,
