@@ -56,6 +56,8 @@ These are published design calculations / analysis, not a universal industry SOT
 
 ## Scenario-set evaluation
 
+The sensor-configuration ID is caller-supplied and opaque. It is compared across the predicted evaluation and hardware capture, but this crate does not compute a configuration digest or authenticate the source of that ID.
+
 The crate also exposes a finite-scenario evaluator. One fixed latch/sensor configuration is applied to multiple traces. Scenario operating-condition IDs may differ (for example air gap, eccentricity, tilt or temperature), while evidence class, coordinate frame, angular-grid ID, sample count and every mechanical angle must match exactly. Trace IDs must be unique.
 
 Each scenario result is preserved. The set reports accepted/rejected scenario counts, worst missing/excess/illegal transitions, worst direction reversal, worst interval-bounded spacing error and worst transition bracket. A finite set is a deterministic robustness challenge only—not an IID manufacturing sample, probability of passing, production yield or CVaR.
