@@ -49,15 +49,30 @@ pub fn sphere_sphere<const D: usize>(
     radius_b: f64,
     dt: f64,
 ) -> Option<CcdHit<D>> {
+    if !dt.is_finite()
+        || dt < 0.0
+        || !radius_a.is_finite()
+        || !radius_b.is_finite()
+        || radius_a < 0.0
+        || radius_b < 0.0
+        || pos_a.iter().chain(pos_b.iter()).any(|value| !value.is_finite())
+        || vel_a.iter().chain(vel_b.iter()).any(|value| !value.is_finite())
+    {
+        return None;
+    }
+
     let dp = pos_b - pos_a;
     let dv = vel_b - vel_a;
-    let r = radius_a + radius_b;
+    let relative_displacement = dv * dt;
+    let combined_radius = radius_a + radius_b;
+    if !combined_radius.is_finite()
+        || relative_displacement.iter().any(|value| !value.is_finite())
+    {
+        return None;
+    }
 
-    let a = dv.dot(&dv);
-    let b = 2.0 * dp.dot(&dv);
-    let c = dp.dot(&dp) - r * r;
-
-    // Already overlapping at t=0
+    // Already overlapping at t=0.
+    let c = dp.dot(&dp) - combined_radius * combined_radius;
     if c <= 0.0 {
         let normal = if dp.norm() > 1e-15 {
             dp.normalize()
@@ -73,58 +88,73 @@ pub fn sphere_sphere<const D: usize>(
         });
     }
 
-    // No relative motion
-    if a < 1e-20 {
+    // Solve in normalized step time u ∈ [0, 1]:
+    // |dp + (dv * dt) * u|² = (ra + rb)².
+    //
+    // This avoids an absolute velocity-squared cutoff, which incorrectly
+    // rejects small relative velocities over long timesteps.
+    let a = relative_displacement.dot(&relative_displacement);
+    if a == 0.0 || !a.is_finite() || !c.is_finite() {
+        return None;
+    }
+    let b = 2.0 * dp.dot(&relative_displacement);
+    if !b.is_finite() {
         return None;
     }
 
-    let discriminant = b * b - 4.0 * a * c;
-    if discriminant < 0.0 {
-        return None; // No intersection
+    // One fused multiply-add reduces one rounding in the discriminant.
+    let discriminant = b.mul_add(b, -4.0 * a * c);
+    if !discriminant.is_finite() || discriminant < 0.0 {
+        return None;
     }
 
-    let sqrt_disc = discriminant.sqrt();
-    let t1 = (-b - sqrt_disc) / (2.0 * a);
-
-    // We want the earliest positive t within [0, dt]
-    if t1 >= 0.0 && t1 <= dt {
-        let pos_a_t = pos_a + vel_a * t1;
-        let pos_b_t = pos_b + vel_b * t1;
-        let delta = pos_b_t - pos_a_t;
-        let normal = if delta.norm() > 1e-15 {
-            delta.normalize()
-        } else {
-            let mut n = SVector::zeros();
-            n[0] = 1.0;
-            n
-        };
-        Some(CcdHit {
-            toi: t1,
-            point: pos_a_t + normal * radius_a,
-            normal,
-        })
+    let sqrt_discriminant = discriminant.sqrt();
+    // Cancellation-resistant quadratic formula. q/a and c/q are the two
+    // roots; unlike (-b ± sqrt(D))/(2a), the smaller-magnitude root is not
+    // obtained by subtracting nearly equal values.
+    let q = -0.5 * (b + sqrt_discriminant.copysign(b));
+    let (root_a, root_b) = if q == 0.0 {
+        let repeated = -b / (2.0 * a);
+        (repeated, repeated)
     } else {
-        let t2 = (-b + sqrt_disc) / (2.0 * a);
-        if t2 >= 0.0 && t2 <= dt {
-            let pos_a_t = pos_a + vel_a * t2;
-            let pos_b_t = pos_b + vel_b * t2;
-            let delta = pos_b_t - pos_a_t;
-            let normal = if delta.norm() > 1e-15 {
-                delta.normalize()
-            } else {
-                let mut n = SVector::zeros();
-                n[0] = 1.0;
-                n
-            };
-            Some(CcdHit {
-                toi: t2,
-                point: pos_a_t + normal * radius_a,
-                normal,
-            })
-        } else {
-            None // Intersection happens outside [0, dt]
-        }
+        (q / a, c / q)
+    };
+    if !root_a.is_finite() || !root_b.is_finite() {
+        return None;
     }
+    let (first, second) = if root_a <= root_b {
+        (root_a, root_b)
+    } else {
+        (root_b, root_a)
+    };
+
+    let toi_fraction = if (0.0..=1.0).contains(&first) {
+        first
+    } else if (0.0..=1.0).contains(&second) {
+        second
+    } else {
+        return None;
+    };
+    let toi = toi_fraction * dt;
+    if !toi.is_finite() {
+        return None;
+    }
+
+    let pos_a_t = pos_a + vel_a * toi;
+    let pos_b_t = pos_b + vel_b * toi;
+    let delta = pos_b_t - pos_a_t;
+    let normal = if delta.norm() > 1e-15 {
+        delta.normalize()
+    } else {
+        let mut n = SVector::zeros();
+        n[0] = 1.0;
+        n
+    };
+    Some(CcdHit {
+        toi,
+        point: pos_a_t + normal * radius_a,
+        normal,
+    })
 }
 
 /// Swept sphere vs half-space (infinite plane): find time of impact.
@@ -192,6 +222,40 @@ mod tests {
             "TOI = {}, expected ~0.2",
             hit.toi
         );
+    }
+
+    #[test]
+    fn sphere_sphere_small_velocity_large_dt_is_not_pruned_by_absolute_threshold() {
+        let pos_a = SVector::from([0.0, 0.0, 0.0]);
+        let vel_a = SVector::zeros();
+        let pos_b = SVector::from([2.0, 0.0, 0.0]);
+        let vel_b = SVector::from([-1.0e-11, 0.0, 0.0]);
+
+        let hit = sphere_sphere(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 2.0e11).unwrap();
+        assert!((hit.toi - 1.0e11).abs() <= 1.0e-3);
+    }
+
+    #[test]
+    fn sphere_sphere_near_start_contact_uses_stable_small_root() {
+        let gap = 1.0e-12;
+        let pos_a = SVector::from([0.0, 0.0, 0.0]);
+        let vel_a = SVector::zeros();
+        let pos_b = SVector::from([1.0 + gap, 0.0, 0.0]);
+        let vel_b = SVector::from([-1.0, 0.0, 0.0]);
+
+        let hit = sphere_sphere(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0).unwrap();
+        assert!((hit.toi - gap).abs() <= 2.0e-16);
+    }
+
+    #[test]
+    fn sphere_sphere_returns_elapsed_seconds_for_normalized_internal_root() {
+        let pos_a = SVector::from([0.0, 0.0, 0.0]);
+        let vel_a = SVector::from([1.0, 0.0, 0.0]);
+        let pos_b = SVector::from([5.0, 0.0, 0.0]);
+        let vel_b = SVector::from([-1.0, 0.0, 0.0]);
+
+        let hit = sphere_sphere(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 3.0).unwrap();
+        assert!((hit.toi - 2.0).abs() < 1e-12);
     }
 
     #[test]
