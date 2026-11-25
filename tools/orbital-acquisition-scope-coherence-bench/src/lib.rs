@@ -227,8 +227,14 @@ fn claims_to_map(claims: &[ScopeClaim]) -> Result<BTreeMap<String, String>, Stri
     Ok(values)
 }
 
-fn validate_interval(interval: &TimeInterval) -> Result<(), String> {
-    if !valid_text(&interval.time_basis_id) || interval.start_tai_ns >= interval.end_tai_ns {
+fn validate_interval(
+    interval: &TimeInterval,
+    allow_point: bool,
+) -> Result<(), String> {
+    if !valid_text(&interval.time_basis_id)
+        || interval.start_tai_ns > interval.end_tai_ns
+        || (!allow_point && interval.start_tai_ns == interval.end_tai_ns)
+    {
         return Err("TIME_INTERVAL_INVALID".to_owned());
     }
     Ok(())
@@ -256,7 +262,7 @@ fn evaluate_binding(
             receipt_sha256: binding.receipt_sha256.clone(),
         };
     }
-    if let Err(reason) = validate_interval(&binding.validity_interval) {
+    if let Err(reason) = validate_interval(&binding.validity_interval, false) {
         reason_codes.insert(reason);
         return BindingResult {
             evidence_id: binding.evidence_id.clone(),
@@ -392,7 +398,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
     if !valid_text(&case.case_id) {
         return invalid("CASE_ID_EMPTY".to_owned());
     }
-    if let Err(reason) = validate_interval(&case.acquisition_interval) {
+    if let Err(reason) = validate_interval(&case.acquisition_interval, true) {
         return invalid(reason);
     }
 
