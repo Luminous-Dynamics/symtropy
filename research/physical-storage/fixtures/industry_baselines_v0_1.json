@@ -1,0 +1,116 @@
+{
+  "schema_version": "physical-storage-industry-baseline-v0.1",
+  "snapshot_date": "2026-11-25",
+  "comparison_warning": "Capacity, density, throughput, retention and cost values use source-specific boundaries. Do not rank across media using a single raw number.",
+  "technologies": [
+    {
+      "id": "silica_fused_silica_birefringent",
+      "medium": "fused silica glass",
+      "use_case": "archival optical storage",
+      "status": "published_research_demonstrator",
+      "source_date": "2026-02-18",
+      "reported": {
+        "density_gbit_per_mm3": 1.59,
+        "capacity_tb_per_platter": 4.8,
+        "platter_dimensions_mm": [
+          120,
+          120,
+          2
+        ],
+        "layers": 301,
+        "write_throughput_mbit_per_s_per_beam": 25.6,
+        "write_energy_nj_per_bit": 10.1,
+        "voxel_pitch_um": [
+          0.5,
+          0.485
+        ],
+        "layer_spacing_um": 6
+      },
+      "unreported_or_not_comparable": [
+        "commercial cost per usable TB",
+        "full-system read throughput",
+        "random-access latency",
+        "field BER and post-ECC BER under matched archive workload",
+        "long-term whole-system retention"
+      ],
+      "source": "https://www.nature.com/articles/s41586-025-10042-w"
+    },
+    {
+      "id": "silica_borosilicate_phase_voxels",
+      "medium": "borosilicate glass",
+      "use_case": "archival optical storage",
+      "status": "published_research_regime",
+      "source_date": "2026-02-18",
+      "reported": {
+        "density_gbit_per_mm3": 0.678,
+        "capacity_tb_per_platter": 2.02,
+        "layers": 258,
+        "write_throughput_mbit_per_s_per_beam": 18.4,
+        "write_energy_nj_per_bit": 8.85,
+        "voxel_pitch_um": [
+          0.5,
+          0.7
+        ],
+        "layer_spacing_um": 7,
+        "accelerated_ageing_lifetime_suggested_years": 10000
+      },
+      "retention_qualification_note": "The >10,000-year value is an extrapolation from accelerated ageing of written voxels under the published protocol, not direct observation over that duration and not a whole-system service-life guarantee.",
+      "source": "https://www.nature.com/articles/s41586-025-10042-w"
+    },
+    {
+      "id": "seagate_mozaic_4_plus",
+      "medium": "HAMR magnetic disk",
+      "use_case": "nearline HDD",
+      "status": "production_ramp_with_hyperscale_customers",
+      "source_date": "2026-10-27",
+      "reported": {
+        "capacity_tb_per_drive": 44
+      },
+      "unreported_or_not_comparable": [
+        "write throughput in the cited earnings transcript",
+        "energy per written bit under a directly matched boundary",
+        "volume density in a directly comparable form"
+      ],
+      "source": "https://s24.q4cdn.com/101481333/files/content_files/STX-US-CORRECTED-TRANSCRIPT-Seagate-Technology-Holdings-PlcSTXUS-Q1-2027-Earnings-Call-27-ET-PM-26-10-2026-2026-10-26-0.pdf"
+    },
+    {
+      "id": "wd_40tb_ultrasmr_epmr",
+      "medium": "ePMR/UltraSMR magnetic disk",
+      "use_case": "nearline HDD",
+      "status": "shipping_ramp_reported",
+      "source_date": "2026-08-06",
+      "reported": {
+        "capacity_tb_per_drive": 40
+      },
+      "status_note": "StorageReview reports shipments began during the quarter ended 2026-07-03; this is not a vendor-issued full product specification.",
+      "source": "https://www.storagereview.com/news/wd-bets-8x-bandwidth-beats-more-terabytes-as-40tb-ultrasmr-starts-shipping"
+    },
+    {
+      "id": "lto10_40tb",
+      "medium": "strontium-doped barium ferrite tape",
+      "use_case": "offline / archival tape",
+      "status": "current_format",
+      "source_date": "2026-11-25",
+      "reported": {
+        "capacity_tb_native_per_cartridge": 40,
+        "capacity_tb_compressed_at_2_5_to_1": 100,
+        "transfer_rate_mb_per_s_native": 400
+      },
+      "compression_note": "100 TB compressed capacity assumes 2.5:1 data compression; native capacity is 40 TB.",
+      "source": "https://www.lto.org/lto-10/"
+    },
+    {
+      "id": "micron_6600_ion",
+      "medium": "G9 QLC NAND SSD",
+      "use_case": "high-capacity data-center flash",
+      "status": "commercial_product",
+      "source_date": "2026-11-25",
+      "reported": {
+        "usable_capacity_tb": 245.76,
+        "raw_capacity_tb": 256,
+        "interface": "PCIe Gen5"
+      },
+      "source": "https://www.micron.com/products/storage/ssd/data-center-ssd/6600-ion"
+    }
+  ]
+}
