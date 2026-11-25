@@ -561,7 +561,7 @@ fn build_correspondence(
 mod tests {
     use super::*;
     use crate::transfer::{
-        RelationV0, StructuralCorrespondenceV0, validate_structural_correspondence,
+        RelationV0, validate_structural_correspondence,
     };
 
     fn edge(
