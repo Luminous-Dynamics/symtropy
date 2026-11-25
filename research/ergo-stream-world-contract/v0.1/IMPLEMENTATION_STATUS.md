@@ -553,3 +553,18 @@ The v0.1 calibrator remains offline/static; no online update or anytime-valid cl
 The conformal identity now also carries the receipt's `alpha_ppm`, `calibration_count`, `quantile_rank` and `quantile_nonconformity_ppm`. The fitter recomputes the finite-sample count/rank/quantile from the supplied calibration outcomes and refuses the calibration with `CalibrationReceiptMismatch` unless all values and alpha match the owner receipt. Prediction equality includes those fields; a different nominal miscoverage level or quantile cannot reuse the calibrator.
 
 The JSON schema/example place these finite-sample values inside the bound calibration identity, avoiding a separate unbound copy on the calibrator object. Exact-head Rust verification is pending.
+
+
+## Independent exhaustive structural-isomorphism oracle — 25 November 2026
+
+A separate bounded whole-structure oracle is staged in `src/oracle.rs` and exposed as `oracle`:
+
+- Enumerates node bijections up to eight nodes, with incidence-signature pruning that cannot accept a match by itself.
+- Independently checks consistent directed preserve/reverse or undirected-unordered relation transforms and one-to-one relation-kind mapping.
+- Constructs a deterministic relation-instance mapping without calling the candidate structural validator.
+- Includes positive relabel/reversal, K3,3-versus-triangular-prism negative, malformed-input, size-limit and cardinality-mismatch tests.
+- The K3,3 / triangular-prism pair has identical 3-regular degree signatures; the oracle must check all 720 node bijections before rejecting it.
+
+The oracle is a finite fixture-truth reference for whole-structure isomorphism only. It does not decide scoped embeddings, quotients, simulation, mechanism transfer or causal validity. It must remain evaluator-side.
+
+**Verification:** not yet run. The branch is based on the current #7173 head, whose latest exact-head workflow failed at formatting before tests and Clippy. Do not infer a test or formatting pass from authored tests or earlier heads. See `INDEPENDENT_STRUCTURAL_ORACLE_V0_1.md`.
