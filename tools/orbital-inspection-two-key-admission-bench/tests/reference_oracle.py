@@ -113,6 +113,8 @@ def evaluate_case(case):
     if portfolio is not None:
         if (
             not valid_text(portfolio["action_id"])
+            or not valid_text(portfolio["vehicle_id"])
+            or not valid_text(portfolio["trajectory_revision"])
             or not valid_text(portfolio["horizon_id"])
             or not valid_text(portfolio["event_set_revision"])
             or not valid_sha256(portfolio["receipt_sha256"])
@@ -120,6 +122,8 @@ def evaluate_case(case):
             return result("INVALID_INPUT", "PORTFOLIO_BINDING_INVALID")
         if (
             portfolio["action_id"] != scope["action_id"]
+            or portfolio["vehicle_id"] != scope["vehicle_id"]
+            or portfolio["trajectory_revision"] != scope["trajectory_revision"]
             or portfolio["horizon_id"] != scope["horizon_id"]
         ):
             return result("OUT_OF_SCOPE", "POST_ACTION_PORTFOLIO_SCOPE_MISMATCH")
@@ -130,6 +134,9 @@ def evaluate_case(case):
                 valid_text(measurement[name])
                 for name in [
                     "action_id",
+                    "vehicle_id",
+                    "trajectory_revision",
+                    "horizon_id",
                     "acquisition_id",
                     "camera_id",
                     "asset_id",
@@ -147,6 +154,9 @@ def evaluate_case(case):
             measurement[left] != scope[right]
             for left, right in [
                 ("action_id", "action_id"),
+                ("vehicle_id", "vehicle_id"),
+                ("trajectory_revision", "trajectory_revision"),
+                ("horizon_id", "horizon_id"),
                 ("acquisition_id", "acquisition_id"),
                 ("camera_id", "camera_id"),
                 ("asset_id", "asset_id"),
