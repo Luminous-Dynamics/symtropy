@@ -669,6 +669,19 @@ mod tests {
     }
 
     #[test]
+    fn malformed_public_count_structs_return_unavailable_rates_without_panicking() {
+        let malformed = PairSetCounts {
+            eligible_pairs_after_filter: 1,
+            oracle_overlapping_pairs: 2,
+            emitted_candidate_pairs: 3,
+            false_positive_pairs: 1,
+            ..PairSetCounts::default()
+        };
+        assert_eq!(malformed.candidate_false_positive_rate_basis_points(), None);
+        assert_eq!(malformed.reduction_basis_points(), None);
+    }
+
+    #[test]
     fn workload_cost_components_are_checked() {
         let invalid = WorkloadFrame {
             collider_count: 1,
