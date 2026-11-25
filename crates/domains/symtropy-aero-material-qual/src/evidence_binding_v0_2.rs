@@ -197,14 +197,12 @@ fn check_independent_identity(
 
     match field_str(assertion, "identity_status") {
         Some("verified") => {
-            for (verified_field, expected_id) in expected
-                .iter()
-                .map(|(declared, expected)| {
-                    let verified = declared.replacen("declared_", "verified_", 1);
-                    (verified, *expected)
-                })
-            {
-                if field_str(assertion, &verified_field) != Some(verified_field_value(expected_id)) {
+            for (verified_field, expected_id) in expected.iter().map(|(declared, expected)| {
+                let verified = declared.replacen("declared_", "verified_", 1);
+                (verified, *expected)
+            }) {
+                if field_str(assertion, &verified_field) != Some(verified_field_value(expected_id))
+                {
                     push(
                         violations,
                         &format!("{identity_label}_VERIFIED_IDENTITY_MISMATCH"),
@@ -268,7 +266,11 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
         || field_str(case, "claim_ceiling") != Some(CLAIM_CEILING)
         || field_str(case, "validity_interval_semantics") != Some(INTERVAL_SEMANTICS)
     {
-        push(&mut violations, "CLAIM_CEILING_OR_PROFILE_VIOLATION", "case");
+        push(
+            &mut violations,
+            "CLAIM_CEILING_OR_PROFILE_VIOLATION",
+            "case",
+        );
     }
 
     let evaluated_at = field_u64(case, "evaluated_at_unix_ms");
@@ -284,8 +286,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
     let campaigns = array_at(case, "/hierarchy/test_campaigns", &mut violations);
     let configurations = array_at(case, "/hierarchy/configurations", &mut violations);
     let observations = array_at(case, "/observations", &mut violations);
-    let specimen_assertions =
-        array_at(case, "/specimen_source_assertions", &mut violations);
+    let specimen_assertions = array_at(case, "/specimen_source_assertions", &mut violations);
     let configuration_assertions =
         array_at(case, "/intended_configuration_assertions", &mut violations);
     let certificates = array_at(case, "/calibration_certificates", &mut violations);
@@ -300,7 +301,10 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
         ("configurations", configurations.as_slice()),
         ("observations", observations.as_slice()),
         ("specimen_source_assertions", specimen_assertions.as_slice()),
-        ("intended_configuration_assertions", configuration_assertions.as_slice()),
+        (
+            "intended_configuration_assertions",
+            configuration_assertions.as_slice(),
+        ),
         ("calibration_certificates", certificates.as_slice()),
     ] {
         if rows.is_empty() {
@@ -348,8 +352,11 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
         }
     }
     let _observation_index = index_by_id(&observations, "observations", &mut violations);
-    let _source_assertion_index =
-        index_by_id(&specimen_assertions, "specimen_source_assertions", &mut violations);
+    let _source_assertion_index = index_by_id(
+        &specimen_assertions,
+        "specimen_source_assertions",
+        &mut violations,
+    );
     let _configuration_assertion_index = index_by_id(
         &configuration_assertions,
         "intended_configuration_assertions",
@@ -409,11 +416,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
         match field_str(assertion, "specimen_item_id") {
             Some(item_id) if nonempty(Some(item_id)) => {
                 if !specimen_item_ids.insert(item_id.to_owned()) {
-                    push(
-                        &mut violations,
-                        "SPECIMEN_ITEM_ID_REPLAY",
-                        item_id,
-                    );
+                    push(&mut violations, "SPECIMEN_ITEM_ID_REPLAY", item_id);
                     push(
                         &mut blockers,
                         "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED",
@@ -423,11 +426,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
                 }
             }
             _ => {
-                push(
-                    &mut violations,
-                    "SPECIMEN_ITEM_ID_MISSING",
-                    specimen_id,
-                );
+                push(&mut violations, "SPECIMEN_ITEM_ID_MISSING", specimen_id);
                 push(
                     &mut blockers,
                     "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED",
@@ -440,17 +439,23 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
 
     let mut specimen_identity_ok = !specimen_source_identity_issue;
     for specimen in &specimens {
-        let specimen_id = field_str(specimen, "id")
-            .unwrap_or("specimen")
-            .to_owned();
+        let specimen_id = field_str(specimen, "id").unwrap_or("specimen").to_owned();
         let Some(panel_id) = field_str(specimen, "panel_id") else {
-            push(&mut violations, "SPECIMEN_PANEL_REFERENCE_MISSING", &specimen_id);
+            push(
+                &mut violations,
+                "SPECIMEN_PANEL_REFERENCE_MISSING",
+                &specimen_id,
+            );
             push(&mut blockers, "SPECIMEN_ANCESTRY_UNRESOLVED", &specimen_id);
             specimen_identity_ok = false;
             continue;
         };
         let Some(panel) = panel_index.get(panel_id) else {
-            push(&mut violations, "SPECIMEN_PANEL_REFERENCE_UNKNOWN", &specimen_id);
+            push(
+                &mut violations,
+                "SPECIMEN_PANEL_REFERENCE_UNKNOWN",
+                &specimen_id,
+            );
             push(&mut blockers, "SPECIMEN_ANCESTRY_UNRESOLVED", &specimen_id);
             specimen_identity_ok = false;
             continue;
@@ -480,8 +485,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
             continue;
         }
 
-        let assertions =
-            assertion_rows(&specimen_assertions, &specimen_id, "specimen_id");
+        let assertions = assertion_rows(&specimen_assertions, &specimen_id, "specimen_id");
         let expected = [
             ("declared_material_lot_id", lot_id),
             ("declared_process_batch_id", batch_id),
@@ -531,11 +535,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
             continue;
         }
 
-        let assertions = assertion_rows(
-            &configuration_assertions,
-            specimen_id,
-            "specimen_id",
-        );
+        let assertions = assertion_rows(&configuration_assertions, specimen_id, "specimen_id");
         let expected = [("declared_intended_configuration_id", configuration_id)];
         let valid = check_independent_identity(
             specimen_id,
@@ -590,7 +590,8 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
         match field_str(event, "event_type") {
             Some("corrected" | "superseded") => {
                 let target_id = field_str(event, "corrects_event_id");
-                match target_id.and_then(|target| event_index.get(target).map(|row| (target, *row))) {
+                match target_id.and_then(|target| event_index.get(target).map(|row| (target, *row)))
+                {
                     Some((target, target_event))
                         if field_str(target_event, "certificate_id") == Some(certificate_id)
                             && target != event_id
@@ -630,11 +631,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
             }
             Some("revoked" | "suspended") => {}
             _ => {
-                push(
-                    &mut violations,
-                    "UNKNOWN_CALIBRATION_EVENT_TYPE",
-                    event_id,
-                );
+                push(&mut violations, "UNKNOWN_CALIBRATION_EVENT_TYPE", event_id);
                 push(
                     &mut blockers,
                     "CALIBRATION_EVENT_HISTORY_UNRESOLVED",
@@ -654,7 +651,8 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
         }
         if acquired_at.is_none() {
             reasons.insert("ACQUISITION_TIMESTAMP_MISSING_OR_INVALID".to_owned());
-        } else if evaluated_at.is_some_and(|evaluated| acquired_at.is_some_and(|time| time > evaluated))
+        } else if evaluated_at
+            .is_some_and(|evaluated| acquired_at.is_some_and(|time| time > evaluated))
         {
             reasons.insert("ACQUISITION_AFTER_EVALUATION_TIME".to_owned());
         }
@@ -679,7 +677,12 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
         }
 
         if let (Some(campaign), Some(certificate)) = (campaign, certificate) {
-            for required_field in ["instrument_id", "method_revision_id", "calibration_lab", "certificate_artifact_ref"] {
+            for required_field in [
+                "instrument_id",
+                "method_revision_id",
+                "calibration_lab",
+                "certificate_artifact_ref",
+            ] {
                 if !nonempty(field_str(certificate, required_field)) {
                     reasons.insert("CALIBRATION_CERTIFICATE_METADATA_INCOMPLETE".to_owned());
                 }
@@ -725,7 +728,8 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
                 let Some(recorded_at) = field_u64(event, "recorded_at_unix_ms") else {
                     continue;
                 };
-                if evaluated_at.is_none_or(|evaluated| recorded_at > evaluated || effective_at > evaluated)
+                if evaluated_at
+                    .is_none_or(|evaluated| recorded_at > evaluated || effective_at > evaluated)
                 {
                     continue;
                 }
@@ -805,11 +809,14 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
         blockers,
         measurement_dispositions: dispositions,
         capability_gaps: vec![
-            "CERTIFICATE_AUTHENTICITY_IS_AN_IMPORTED_ASSERTION_NOT_CRYPTOGRAPHICALLY_VERIFIED".to_owned(),
+            "CERTIFICATE_AUTHENTICITY_IS_AN_IMPORTED_ASSERTION_NOT_CRYPTOGRAPHICALLY_VERIFIED"
+                .to_owned(),
             "SOURCE_RECORD_PROVENANCE_IS_NOT_PROOF_OF_PHYSICAL_IDENTITY".to_owned(),
-            "PHYSICAL_MEASUREMENT_TRUTH_AND_LAB_METHOD_VALIDATION_REMAIN_OUTSIDE_THIS_EVALUATOR".to_owned(),
+            "PHYSICAL_MEASUREMENT_TRUTH_AND_LAB_METHOD_VALIDATION_REMAIN_OUTSIDE_THIS_EVALUATOR"
+                .to_owned(),
             "MYCELIX_RETAINS_OWNERSHIP_OF_ARTIFACT_DIGEST_AND_BYTE_LENGTH_INTEGRITY".to_owned(),
-            "NO_MATERIAL_ALLOWABLE_PROCESS_CAPABILITY_PART_ACCEPTANCE_OR_AIRWORTHINESS_CLAIM".to_owned(),
+            "NO_MATERIAL_ALLOWABLE_PROCESS_CAPABILITY_PART_ACCEPTANCE_OR_AIRWORTHINESS_CLAIM"
+                .to_owned(),
         ],
     }
 }
@@ -842,7 +849,10 @@ mod tests {
     fn fixture_is_consistent_but_never_qualified() {
         let report = evaluate_binding_case(&fixture());
         assert!(report.structurally_complete, "{report:?}");
-        assert_eq!(report.specimen_identity_status, "INDEPENDENT_IDENTITY_CONSISTENT");
+        assert_eq!(
+            report.specimen_identity_status,
+            "INDEPENDENT_IDENTITY_CONSISTENT"
+        );
         assert_eq!(
             report.intended_configuration_status,
             "INTENDED_CONFIGURATION_CONSISTENT"
@@ -865,19 +875,28 @@ mod tests {
             Value::String("LOT-WRONG".to_owned());
         let report = evaluate_binding_case(&case);
         assert!(!report.structurally_complete);
-        assert!(has_violation(&report, "SPECIMEN_SOURCE_DECLARED_IDENTITY_MISMATCH"));
+        assert!(has_violation(
+            &report,
+            "SPECIMEN_SOURCE_DECLARED_IDENTITY_MISMATCH"
+        ));
         assert!(has_blocker(&report, "SPECIMEN_SOURCE_IDENTITY_CONFLICT"));
     }
 
     #[test]
     fn hierarchy_mutation_is_detected_against_independent_source_assertion() {
         let mut case = fixture();
-        case["hierarchy"]["material_lots"].as_array_mut().unwrap().push(serde_json::json!({"id":"LOT-B"}));
+        case["hierarchy"]["material_lots"]
+            .as_array_mut()
+            .unwrap()
+            .push(serde_json::json!({"id":"LOT-B"}));
         case["hierarchy"]["process_batches"][0]["material_lot_id"] =
             Value::String("LOT-B".to_owned());
         let report = evaluate_binding_case(&case);
         assert!(!report.structurally_complete);
-        assert!(has_violation(&report, "SPECIMEN_SOURCE_DECLARED_IDENTITY_MISMATCH"));
+        assert!(has_violation(
+            &report,
+            "SPECIMEN_SOURCE_DECLARED_IDENTITY_MISMATCH"
+        ));
     }
 
     #[test]
@@ -899,7 +918,10 @@ mod tests {
         case["calibration_certificates"][0]["valid_from_unix_ms"] =
             Value::from(1_795_514_400_000u64);
         let report = evaluate_binding_case(&case);
-        assert!(!has_blocker(&report, "CALIBRATION_OUTSIDE_VALIDITY_INTERVAL"));
+        assert!(!has_blocker(
+            &report,
+            "CALIBRATION_OUTSIDE_VALIDITY_INTERVAL"
+        ));
     }
 
     #[test]
@@ -918,8 +940,7 @@ mod tests {
     fn final_millisecond_before_exclusive_end_is_still_valid() {
         let mut case = fixture();
         case["evaluated_at_unix_ms"] = Value::from(1_795_518_000_000u64);
-        case["observations"][0]["acquired_at_unix_ms"] =
-            Value::from(1_795_517_999_999u64);
+        case["observations"][0]["acquired_at_unix_ms"] = Value::from(1_795_517_999_999u64);
         assert!(!has_blocker(
             &evaluate_binding_case(&case),
             "CALIBRATION_OUTSIDE_VALIDITY_INTERVAL"
@@ -929,8 +950,7 @@ mod tests {
     #[test]
     fn acquisition_after_evaluation_time_is_blocked() {
         let mut case = fixture();
-        case["observations"][0]["acquired_at_unix_ms"] =
-            Value::from(1_795_516_200_001u64);
+        case["observations"][0]["acquired_at_unix_ms"] = Value::from(1_795_516_200_001u64);
         assert!(has_blocker(
             &evaluate_binding_case(&case),
             "ACQUISITION_AFTER_EVALUATION_TIME"
@@ -940,16 +960,14 @@ mod tests {
     #[test]
     fn measurements_before_or_after_the_interval_are_blocked() {
         let mut before = fixture();
-        before["observations"][0]["acquired_at_unix_ms"] =
-            Value::from(1_795_510_799_999u64);
+        before["observations"][0]["acquired_at_unix_ms"] = Value::from(1_795_510_799_999u64);
         assert!(has_blocker(
             &evaluate_binding_case(&before),
             "CALIBRATION_OUTSIDE_VALIDITY_INTERVAL"
         ));
 
         let mut after = fixture();
-        after["observations"][0]["acquired_at_unix_ms"] =
-            Value::from(1_795_518_000_000u64);
+        after["observations"][0]["acquired_at_unix_ms"] = Value::from(1_795_518_000_000u64);
         assert!(has_blocker(
             &evaluate_binding_case(&after),
             "CALIBRATION_OUTSIDE_VALIDITY_INTERVAL"
@@ -1103,7 +1121,8 @@ mod tests {
             "recorded_at_unix_ms": 1795515780000,
             "retroactive": true
         });
-        contradictory["calibration_events"] = serde_json::json!([original, correction_a, correction_b]);
+        contradictory["calibration_events"] =
+            serde_json::json!([original, correction_a, correction_b]);
         assert!(has_violation(
             &evaluate_binding_case(&contradictory),
             "CONTRADICTORY_CALIBRATION_CORRECTIONS"
@@ -1138,9 +1157,7 @@ mod tests {
             Some(true)
         );
         assert_eq!(
-            oracle
-                .get("oracle_review_status")
-                .and_then(Value::as_str),
+            oracle.get("oracle_review_status").and_then(Value::as_str),
             Some("NOT_INDEPENDENTLY_REVIEWED")
         );
         let cases = oracle
@@ -1230,15 +1247,39 @@ mod tests {
         let baseline = evaluate_binding_case(&case);
 
         let mut permuted = case.clone();
-        permuted["hierarchy"]["material_lots"].as_array_mut().unwrap().reverse();
-        permuted["hierarchy"]["process_batches"].as_array_mut().unwrap().reverse();
-        permuted["hierarchy"]["panels"].as_array_mut().unwrap().reverse();
-        permuted["hierarchy"]["specimens"].as_array_mut().unwrap().reverse();
-        permuted["specimen_source_assertions"].as_array_mut().unwrap().reverse();
-        permuted["intended_configuration_assertions"].as_array_mut().unwrap().reverse();
-        permuted["calibration_certificates"].as_array_mut().unwrap().reverse();
+        permuted["hierarchy"]["material_lots"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
+        permuted["hierarchy"]["process_batches"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
+        permuted["hierarchy"]["panels"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
+        permuted["hierarchy"]["specimens"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
+        permuted["specimen_source_assertions"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
+        permuted["intended_configuration_assertions"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
+        permuted["calibration_certificates"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
         permuted["observations"].as_array_mut().unwrap().reverse();
-        permuted["calibration_events"].as_array_mut().unwrap().reverse();
+        permuted["calibration_events"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
 
         assert_eq!(baseline, evaluate_binding_case(&permuted));
     }
