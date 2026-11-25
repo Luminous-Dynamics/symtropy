@@ -38,6 +38,14 @@ The fused-silica birefringent regime reports 25.6 Mbit/s per beam. The borosilic
 
 Likewise, glass volumetric density, HDD areal density, tape cartridge capacity and SSD package capacity must remain separate dimensions. No direct ranking may be made by comparing those raw numbers.
 
+## 2.1 Glass substrate selection is a Pareto problem
+
+The April 2026 Optica material-screening study evaluated commercial glasses for multibit phase-voxel writing. In its tested set, SCHOTT K10 had the highest reported write efficiency (0.115 bit/nJ/voxel), while BOROFLOAT 33 had the highest reported voxel quality (1.76 bit/voxel). The same material cannot be declared the universal winner: write efficiency and state quality are separate objectives, and both can trade against net density, readout error, retention, batch variability and accepted-volume yield.
+
+The source-linked register is `glass_material_candidates_v0_1.json`, governed by `glass_material_screen_v0_1.schema.json`. It records SCHOTT's BOROFLOAT 33 supplier properties separately from the laser-writing research results. Thermal diffusivity, exact experimental lot identity, pulse-timescale thermal response and measured spatial defect maps remain unresolved rather than being imputed from nominal datasheet values. The study-specific thermal-diffusivity correlation (Pearson r = 0.78) is a useful hypothesis for substrate screening, not a universal causal law.
+
+Source: https://www.microsoft.com/en-us/research/publication/property-driven-analysis-of-glasses-for-data-storage-via-femtosecond-laser-writing/
+
 ## 3. Paradigm shifts to test
 
 ### 3.0 From storage density to verified information-years
@@ -169,6 +177,10 @@ This document and the baseline register are research specifications. They do not
 
 - Microsoft Research Project Silica Team, “Laser writing in glass for dense, fast and efficient archival data storage,” *Nature* 650, 606–612 (18 February 2026): https://www.nature.com/articles/s41586-025-10042-w
 - Microsoft Research paper landing page: https://www.microsoft.com/en-us/research/publication/laser-writing-in-glass-for-dense-fast-and-efficient-archival-data-storage/
+
+- Lawson et al., “Property-driven analysis of glasses for data storage via femtosecond laser writing,” *Optica* 13(4), 698–706 (2 April 2026): https://www.microsoft.com/en-us/research/publication/property-driven-analysis-of-glasses-for-data-storage-via-femtosecond-laser-writing/
+- SCHOTT BOROFLOAT 33 technical properties: https://www.schott.com/en-us/products/borofloat/technical-details
+- Micron 6600 ION technical product specification (245.76 TB SKU sequential read/write): https://tw.micron.com/content/dam/micron/global/public/products/storage/ssds/data-center/6600/6600-ion-ssd-technical-product-specification.pdf
 - Seagate Q1 FY2027 earnings call transcript (27 October 2026): https://s24.q4cdn.com/101481333/files/content_files/STX-US-CORRECTED-TRANSCRIPT-Seagate-Technology-Holdings-PlcSTXUS-Q1-2027-Earnings-Call-27-ET-PM-26-10-2026-2026-10-26-0.pdf
 - Seagate Mozaic 4+ launch and production qualification (3 March 2026): https://investors.seagate.com/news/news-details/2026/Seagate-Delivers-Industrys-Highest-Capacity-Hard-Drives-with-Next-Generation-Mozaic-4/default.aspx
 - Western Digital 40 TB UltraSMR shipping status (StorageReview, 6 August 2026): https://www.storagereview.com/news/wd-bets-8x-bandwidth-beats-more-terabytes-as-40tb-ultrasmr-starts-shipping
