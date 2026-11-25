@@ -45,6 +45,7 @@ The trace-level peak, RMS and nearest-rank p95 metrics are computed from the per
 - Field-vector radii must be deterministic absolute bounds, simultaneously valid for every sample in the trace.
 - Mechanical-reference and phase-zero values are absolute error bounds, not standard deviations.
 - Field-bound, angular-bound and phase-zero calibration records are independent of the trace under evaluation.
+- The angular-error record binds to the exact trace ID, coordinate frame, operating condition and grid, as well as the phase-zero calibration ID.
 - Calibration identity, coordinate frame, operating condition, grid and evidence class are preserved.
 - The trace must be a full, uniformly sampled revolution. No interpolation, sorting, offset fitting or implicit registration is performed.
 - Synthetic scenarios and physical builds remain different evidence classes.
