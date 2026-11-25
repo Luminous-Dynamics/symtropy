@@ -16,7 +16,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as FmtWrite;
 
-use crate::service_variability::{DeliveryDisposition, ServiceObservation};
+use crate::service_variability::{
+    DeliveryDisposition, ServiceObservation, ServiceReliabilityReport,
+};
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum ServiceQuantityUnit {
@@ -56,6 +58,7 @@ pub struct ExpectedUnitQuantity {
 pub enum QuantityWeightedError {
     EmptyObservations,
     EmptyQuantitySet,
+    InvalidServiceObservations,
     EmptyExpectedUnitIdentity,
     DuplicateExpectedUnitIdentity,
     QuantityUnitMismatch,
@@ -98,6 +101,10 @@ pub fn evaluate_quantity_weighted_service(
     if quantities.is_empty() {
         return Err(QuantityWeightedError::EmptyQuantitySet);
     }
+    // Reuse the canonical service-row validator; do not accept a weaker
+    // quantity-only subset of the source/cargo/receiver contract.
+    ServiceReliabilityReport::evaluate(observations, 1)
+        .map_err(|_| QuantityWeightedError::InvalidServiceObservations)?;
 
     let unit = quantities[0].unit;
     if quantities.iter().any(|quantity| quantity.unit != unit) {
