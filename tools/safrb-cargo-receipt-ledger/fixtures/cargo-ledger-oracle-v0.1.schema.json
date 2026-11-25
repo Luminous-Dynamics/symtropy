@@ -4,7 +4,7 @@
   "title": "SAFRB oracle-only cargo receipt and availability truth v0.1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion","recordKind","caseId","horizonHours","evidenceMaturity","receipts","qualityAssessments","authorizations","routes","transfers","fuelIssues","batchBalances","hourlyTrajectory"],
+  "required": ["schemaVersion","recordKind","caseId","horizonHours","evidenceMaturity","receipts","qualityAssessments","authorizations","custodyRecords","routes","transfers","fuelIssues","batchBalances","hourlyTrajectory"],
   "properties": {
     "schemaVersion": {"const":"0.1.0"},
     "recordKind": {"const":"oracle_truth"},
@@ -14,6 +14,7 @@
     "receipts": {"type":"array"},
     "qualityAssessments": {"type":"array"},
     "authorizations": {"type":"array"},
+    "custodyRecords": {"type":"array"},
     "routes": {"type":"array"},
     "transfers": {"type":"array"},
     "fuelIssues": {"type":"array"},
