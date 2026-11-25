@@ -564,6 +564,7 @@ A separate bounded whole-structure oracle is staged in `src/oracle.rs` and expos
 - Constructs a deterministic relation-instance mapping without calling the candidate structural validator.
 - Reports both explored and valid node-bijection counts; this preserves ambiguity rather than forcing a unique map. An undirected six-cycle has 12 valid node mappings (the D6 automorphism group) among 720 explored mappings.
 - Includes positive relabel/reversal, K3,3-versus-triangular-prism negative, Transfer Atlas family cross-checks, symmetric-cycle ambiguity, malformed-input, size-limit and cardinality-mismatch tests.
+- Adds an independent all-pairs differential test over the 33 non-empty isomorphism classes of simple undirected five-node graphs (1,089 ordered pairs). The canonicalizer enumerates all 120 vertex permutations per labeled graph and does not call the candidate witness validator or the exhaustive oracle.
 - The K3,3 / triangular-prism pair has identical 3-regular degree signatures; the oracle must check all 720 node bijections before rejecting it.
 
 The oracle is a finite fixture-truth reference for whole-structure isomorphism only. It does not decide scoped embeddings, quotients, simulation, mechanism transfer or causal validity. It must remain evaluator-side.
