@@ -37,7 +37,7 @@ It models:
 - angle/time sample brackets for each transition;
 - a caller-declared edge-rate budget derived from pole pairs and RPM.
 
-The model never invents a transition timestamp between samples. Its edge-rate ceiling is an explicit benchmark policy, not a vendor bandwidth equivalence.
+The model never invents a transition timestamp between samples. It computes bounded maximum quadrature edge-spacing error from each transition's sample bracket, including the end-to-start wrap gap. The edge-rate ceiling is an explicit benchmark policy, not a vendor bandwidth equivalence.
 
 ## Next scientific step
 
