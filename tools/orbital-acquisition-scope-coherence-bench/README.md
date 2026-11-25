@@ -13,7 +13,7 @@ Each owner-specific evidence receipt carries the subset of those exact identifie
 - Malformed intervals, duplicate/contradictory bindings, unsupported fields or malformed digest shape return INVALID_INPUT.
 - Only a complete exact match across the required owner bindings returns SCOPE_COHERENT.
 
-The interval adapter requires the acquisition interval to be contained strictly within each owner validity interval [start, end). It never compares raw timestamps from different clocks; all binding intervals must already use the same canonical time basis supplied by the clock owner.
+Owner validity intervals are half-open [start, end); acquisition time is a closed uncertainty envelope [start, end] and may be a single instant when uncertainty is zero. A definitely disjoint interval is OUT_OF_SCOPE; an envelope that overlaps or touches a validity boundary is INDETERMINATE; only an envelope wholly inside is SCOPE_COHERENT. A zero-width evidence-validity interval is invalid. The adapter never compares raw timestamps from different clocks; all intervals must already use the same canonical time basis supplied by the clock owner.
 
 SHA-256 strings are syntax-checked references only. The receipt hard-codes source_bytes_authenticated=false and authority_granted=false. Digest equality is not authentication and scope coherence is not measurement truth.
 
