@@ -520,11 +520,13 @@ pub fn validate_case(case: &FuelServiceCase) -> Result<(), Vec<String>> {
     if service.uncertainty_basis_points > 10_000 {
         errors.push("delivery uncertainty exceeds 100 percent".to_string());
     }
+    // Saturating arithmetic keeps adversarial out-of-range inputs fail-closed
+    // rather than panicking while the validator is trying to reject them.
     let expected_lower = generator.network_deliverable_wh
-        .saturating_mul(10_000 - service.uncertainty_basis_points) / 10_000;
+        .saturating_mul(10_000_u64.saturating_sub(service.uncertainty_basis_points)) / 10_000;
     let expected_upper = service.demand_wh.min(
         generator.network_deliverable_wh
-            .saturating_mul(10_000 + service.uncertainty_basis_points) / 10_000,
+            .saturating_mul(10_000_u64.saturating_add(service.uncertainty_basis_points)) / 10_000,
     );
     if service.delivered_lower_wh != expected_lower || service.delivered_upper_wh != expected_upper {
         errors.push("service bounds do not reconcile with network-deliverable energy and declared uncertainty".to_string());
