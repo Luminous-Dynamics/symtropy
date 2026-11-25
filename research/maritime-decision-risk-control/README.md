@@ -630,13 +630,15 @@ This is not a full DCSA/EPCIS parser, event-family schema validator, JSON-LD ser
 
 ## Current exact-head qualification — cross-standard mapping (25 November 2026)
 
-Exact head `16628ecce5001cadede37269408c003e1b0656a9`, workflow #271 (`45570245753`), pinned Rust 1.96.0:
+Final documentation-complete head `146d87719433c21be1b606f72515117d8ba72cd9`, workflow #273 (`45570820389`), pinned Rust 1.96.0:
 - formatting, strict Clippy, compilation: passed;
 - **165 tests passed, 0 failed**;
 - the 25-case DCSA↔EPCIS/CBV receipt replay, 13-column schema and adversarial semantic checks: passed;
 - exact TOML mapping-bundle SHA-256 verification: passed;
 - global receipt digest manifest and 30-day reproducible artifact upload: passed.
 
-Artifact: https://github.com/Luminous-Dynamics/symtropy/actions/runs/45570245753/artifacts/15001688142
+Artifact: https://github.com/Luminous-Dynamics/symtropy/actions/runs/45570820389/artifacts/15002041953
+
+Artifact ZIP SHA-256: `353ed3ddfd25e00d44fa43b42d8dd8bc64b6138d75d503376821c33b94138d64`.
 
 This is a synthetic software qualification. The mapping bundle is fixture-only, external approval references are not independently resolved by this crate, and no DCSA API conformance, live source truth, physical cargo movement or receiver delivery is certified.
