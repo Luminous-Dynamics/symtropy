@@ -704,7 +704,7 @@ mod tests {
             .get("cases")
             .and_then(Value::as_array)
             .expect("temporal replay cases");
-        assert_eq!(cases.len(), 16);
+        assert_eq!(cases.len(), 18);
 
         let modes = [
             ReplayMode::AsKnownAt,
@@ -776,6 +776,52 @@ mod tests {
             evaluate_case(case, ReplayMode::RecomputedWithCurrentEvidenceAndTrust).disposition,
             "BLOCK"
         );
+    }
+
+    #[test]
+    fn revocation_after_acquisition_does_not_retroactively_invalidate_the_measurement() {
+        let corpus: Value = serde_json::from_str(CORPUS).expect("temporal corpus parses");
+        let case = corpus["cases"]
+            .as_array()
+            .expect("cases")
+            .iter()
+            .find(|case| {
+                case["case_id"] == "revocation-effective-after-acquisition-before-evaluation"
+            })
+            .expect("post-acquisition revocation control");
+        for mode in [
+            ReplayMode::AsKnownAt,
+            ReplayMode::RecomputedWithCurrentTrust,
+            ReplayMode::RecomputedWithCurrentEvidenceAndTrust,
+        ] {
+            let report = evaluate_case(case, mode);
+            assert_eq!(report.disposition, "NOT_YET_EFFECTIVE");
+        }
+    }
+
+    #[test]
+    fn revocation_effectivity_inside_acquisition_uncertainty_requires_abstention() {
+        let corpus: Value = serde_json::from_str(CORPUS).expect("temporal corpus parses");
+        let case = corpus["cases"]
+            .as_array()
+            .expect("cases")
+            .iter()
+            .find(|case| {
+                case["case_id"] == "event-effectivity-crosses-acquisition-uncertainty-window"
+            })
+            .expect("acquisition/effectivity overlap control");
+        for mode in [
+            ReplayMode::AsKnownAt,
+            ReplayMode::RecomputedWithCurrentTrust,
+            ReplayMode::RecomputedWithCurrentEvidenceAndTrust,
+        ] {
+            let report = evaluate_case(case, mode);
+            assert_eq!(report.disposition, "TIME_BOUNDARY_AMBIGUOUS");
+            assert_eq!(
+                report.reason_codes,
+                vec!["EVENT_EFFECTIVITY_CROSSES_ACQUISITION_INTERVAL".to_owned()]
+            );
+        }
     }
 
     #[test]
