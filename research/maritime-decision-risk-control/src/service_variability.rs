@@ -148,6 +148,116 @@ pub struct CohortMetrics {
     pub meets_service_floor: bool,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AggregateCargoStatusError {
+    EmptySourceRecordId,
+    EmptySourceEvidenceReference,
+    NegativeTimestamp,
+    EvidenceNotAvailableAtAsOf,
+    StatusPartitionDoesNotMatchExpectedUnits,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AggregateCargoStatusSnapshot {
+    /// One source-native aggregate statement; deliberately not an individual cargo ID.
+    pub source_record_id: String,
+    pub source_evidence_ref: String,
+    pub published_at_unix: i64,
+    pub as_of_unix: i64,
+    pub expected_count: usize,
+    /// Transnet source-reported delivery; not independently verified receiver acceptance.
+    pub source_reported_delivered_unverified_count: usize,
+    pub in_transit_expected_count: usize,
+    pub awaiting_berth_nomination_count: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AggregateCargoStatusSummary {
+    pub source_record_id: String,
+    pub source_evidence_ref: String,
+    pub published_at_unix: i64,
+    pub as_of_unix: i64,
+    pub expected_count: usize,
+    pub source_reported_delivered_unverified_count: usize,
+    pub in_transit_expected_count: usize,
+    pub awaiting_berth_nomination_count: usize,
+    /// Aggregate source statement carries no per-unit receiver receipts.
+    pub independently_verified_receiver_acceptance_count: usize,
+    pub claim_ceiling: &'static str,
+}
+
+impl AggregateCargoStatusSnapshot {
+    /// Validates the exact aggregate partition without manufacturing per-unit IDs.
+    pub fn summarize(&self) -> Result<AggregateCargoStatusSummary, AggregateCargoStatusError> {
+        if self.source_record_id.trim().is_empty() {
+            return Err(AggregateCargoStatusError::EmptySourceRecordId);
+        }
+        if self.source_evidence_ref.trim().is_empty() {
+            return Err(AggregateCargoStatusError::EmptySourceEvidenceReference);
+        }
+        if self.published_at_unix < 0 || self.as_of_unix < 0 {
+            return Err(AggregateCargoStatusError::NegativeTimestamp);
+        }
+        if self.published_at_unix > self.as_of_unix {
+            return Err(AggregateCargoStatusError::EvidenceNotAvailableAtAsOf);
+        }
+        let partitioned = self.source_reported_delivered_unverified_count
+            + self.in_transit_expected_count
+            + self.awaiting_berth_nomination_count;
+        if partitioned != self.expected_count {
+            return Err(AggregateCargoStatusError::StatusPartitionDoesNotMatchExpectedUnits);
+        }
+        Ok(AggregateCargoStatusSummary {
+            source_record_id: self.source_record_id.clone(),
+            source_evidence_ref: self.source_evidence_ref.clone(),
+            published_at_unix: self.published_at_unix,
+            as_of_unix: self.as_of_unix,
+            expected_count: self.expected_count,
+            source_reported_delivered_unverified_count: self
+                .source_reported_delivered_unverified_count,
+            in_transit_expected_count: self.in_transit_expected_count,
+            awaiting_berth_nomination_count: self.awaiting_berth_nomination_count,
+            independently_verified_receiver_acceptance_count: 0,
+            claim_ceiling: "AGGREGATE_SOURCE_REPORTED_ONLY_NO_UNIT_RECEIPTS",
+        })
+    }
+}
+
+/// Synthetic known-answer projection of Transnet's public 23 November 2026
+/// pharmaceutical-container aggregate. No individual cargo IDs or receipts
+/// are invented; the three categories remain source claims.
+pub fn transnet_pharma_41_aggregate_fixture() -> AggregateCargoStatusSnapshot {
+    AggregateCargoStatusSnapshot {
+        source_record_id: "transnet-aggregate-pharma-41-2026-11-23".to_owned(),
+        source_evidence_ref: "https://www.sanews.gov.za/node/85835".to_owned(),
+        published_at_unix: 1_795_392_000,
+        as_of_unix: 1_795_392_000,
+        expected_count: 41,
+        source_reported_delivered_unverified_count: 18,
+        in_transit_expected_count: 7,
+        awaiting_berth_nomination_count: 16,
+    }
+}
+
+/// Deterministic aggregate-state receipt. The verified receiver-acceptance
+/// count remains zero because the aggregate statement contains no per-unit
+/// receiver evidence reference.
+pub fn render_aggregate_cargo_status_csv() -> String {
+    let summary = transnet_pharma_41_aggregate_fixture()
+        .summarize()
+        .expect("frozen 41-container status partition");
+    format!(
+        "source_record_id,expected_units,source_reported_delivered_unverified,in_transit_expected,awaiting_berth_nomination,independently_verified_receiver_acceptance,claim_ceiling\n{},{},{},{},{},{},{}\n",
+        summary.source_record_id,
+        summary.expected_count,
+        summary.source_reported_delivered_unverified_count,
+        summary.in_transit_expected_count,
+        summary.awaiting_berth_nomination_count,
+        summary.independently_verified_receiver_acceptance_count,
+        summary.claim_ceiling
+    )
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct FifoQueueMetrics {
     pub call_count: usize,
@@ -838,6 +948,45 @@ mod tests {
             ServiceReliabilityReport::evaluate(&stable, 950).expect("stable report"),
             ServiceReliabilityReport::evaluate(&bursty, 950).expect("bursty report"),
         )
+    }
+
+    #[test]
+    fn transnet_pharma_41_aggregate_preserves_three_distinct_source_states() {
+        let summary = transnet_pharma_41_aggregate_fixture()
+            .summarize()
+            .expect("valid 41-container aggregate");
+        assert_eq!(summary.expected_count, 41);
+        assert_eq!(summary.source_reported_delivered_unverified_count, 18);
+        assert_eq!(summary.in_transit_expected_count, 7);
+        assert_eq!(summary.awaiting_berth_nomination_count, 16);
+        assert_eq!(summary.independently_verified_receiver_acceptance_count, 0);
+        assert_eq!(
+            summary.claim_ceiling,
+            "AGGREGATE_SOURCE_REPORTED_ONLY_NO_UNIT_RECEIPTS"
+        );
+    }
+
+    #[test]
+    fn aggregate_cargo_status_rejects_wrong_denominator_and_future_publication() {
+        let mut snapshot = transnet_pharma_41_aggregate_fixture();
+        snapshot.expected_count = 40;
+        assert_eq!(
+            snapshot.summarize(),
+            Err(AggregateCargoStatusError::StatusPartitionDoesNotMatchExpectedUnits)
+        );
+        snapshot = transnet_pharma_41_aggregate_fixture();
+        snapshot.as_of_unix = snapshot.published_at_unix - 1;
+        assert_eq!(
+            snapshot.summarize(),
+            Err(AggregateCargoStatusError::EvidenceNotAvailableAtAsOf)
+        );
+    }
+
+    #[test]
+    fn aggregate_cargo_receipt_is_deterministic_and_does_not_claim_receiver_acceptance() {
+        let receipt = render_aggregate_cargo_status_csv();
+        assert_eq!(receipt, render_aggregate_cargo_status_csv());
+        assert!(receipt.contains(",41,18,7,16,0,AGGREGATE_SOURCE_REPORTED_ONLY_NO_UNIT_RECEIPTS"));
     }
 
     #[test]
