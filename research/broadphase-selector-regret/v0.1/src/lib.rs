@@ -894,12 +894,11 @@ mod tests {
         costs: &[(&str, u64, &str, u64)],
     ) -> SequenceInput {
         let mut observations = Vec::new();
-        for (frame, pair) in [(100_u64, 50_u64), (100, 50), (100, 100)]
-            .into_iter()
-            .enumerate()
+        for (frame, (a_cost, b_cost)) in
+            [(100_u64, 50_u64), (100, 50), (100, 100)].into_iter().enumerate()
         {
             for backend_id in ["A", "B"] {
-                let full = if backend_id == "A" { 100 } else { pair };
+                let full = if backend_id == "A" { a_cost } else { b_cost };
                 observations.push(observation(frame as u64, backend_id, full / 2, full, 0));
             }
         }
@@ -1084,11 +1083,12 @@ mod tests {
 
     #[test]
     fn transition_costs_are_directional() {
-        let mut value = input(&["B", "B", "A"], &[("B", 0, "A", 60)]);
-        value.initial_backend = Some(backend("A"));
-        // There is no A -> B startup edge, so the oracle must start with A
-        // only if A qualifies; it remains available throughout this fixture.
+        let mut value = input(&["A", "A", "A"], &[("B", 0, "A", 60)]);
+        value.initial_backend = Some(backend("B"));
+        // The B -> A transition exists and is charged to the selected policy.
+        // The reverse A -> B transition is absent and is not inferred.
         let score = evaluate_sequence(&value).unwrap();
-        assert_eq!(score.offline_oracle_path[0], backend("A"));
+        assert_eq!(score.transition_overhead_ns, 60);
+        assert!(score.offline_oracle_path.iter().all(|id| id == &backend("B")));
     }
 }
