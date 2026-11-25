@@ -590,6 +590,176 @@ impl<const D: usize> IncrementalAabbTree<D> {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorkloadFamily {
+    Uniform,
+    Clustered,
+    Corridor,
+    HighAspectRatio,
+    HighOverlap,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct WorkloadSpec {
+    pub proxy_count: usize,
+    pub seed: u64,
+    pub family: WorkloadFamily,
+    /// Dynamic proxy fraction in basis points: 0 = all static, 10_000 = all moving.
+    pub moving_basis_points: u16,
+}
+
+impl WorkloadSpec {
+    pub fn validate(self) -> Result<Self, WorkloadError> {
+        if self.moving_basis_points > 10_000 {
+            Err(WorkloadError::InvalidMovingFraction)
+        } else {
+            Ok(self)
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct WorkloadProxy<const D: usize> {
+    pub id: ProxyId,
+    pub tight_aabb: Aabb<D>,
+    pub moving: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct GeneratedWorkload<const D: usize> {
+    pub spec: WorkloadSpec,
+    pub proxies: Vec<WorkloadProxy<D>>,
+}
+
+impl<const D: usize> GeneratedWorkload<D> {
+    /// Non-cryptographic FNV-1a diagnostic hash over the generated proxy
+    /// sequence. Use a cryptographic manifest digest for published receipts.
+    #[must_use]
+    pub fn diagnostic_hash(&self) -> u64 {
+        let mut hash = 0xcbf2_9ce4_8422_2325_u64;
+        let mut mix = |word: u64| {
+            for byte in word.to_le_bytes() {
+                hash ^= u64::from(byte);
+                hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+            }
+        };
+        mix(self.spec.seed);
+        mix(self.spec.proxy_count as u64);
+        mix(self.spec.moving_basis_points as u64);
+        mix(self.spec.family as u64);
+        mix(D as u64);
+        for proxy in &self.proxies {
+            mix(proxy.id.0);
+            mix(u64::from(proxy.moving));
+            for axis in 0..D {
+                mix(proxy.tight_aabb.min[axis].to_bits());
+                mix(proxy.tight_aabb.max[axis].to_bits());
+            }
+        }
+        hash
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorkloadError {
+    InvalidMovingFraction,
+    InvalidGeneratedBounds,
+}
+
+impl fmt::Display for WorkloadError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+impl Error for WorkloadError {}
+
+/// Generate a stable workload from a seed and explicit distribution family.
+/// All generated coordinates are finite binary64 values; the spec and
+/// diagnostic hash identify the exact generated input for local comparisons.
+pub fn generate_workload<const D: usize>(
+    spec: WorkloadSpec,
+) -> Result<GeneratedWorkload<D>, WorkloadError> {
+    let spec = spec.validate()?;
+    let mut random = SplitMix64::new(spec.seed);
+    let mut proxies = Vec::with_capacity(spec.proxy_count);
+
+    for index in 0..spec.proxy_count {
+        let dominant_axis = index % D.max(1);
+        let mut min = [0.0; D];
+        let mut max = [0.0; D];
+        for axis in 0..D {
+            let (center, half_extent) = match spec.family {
+                WorkloadFamily::Uniform => {
+                    (random.range(0.0, 1_000.0), random.range(0.25, 2.0))
+                }
+                WorkloadFamily::Clustered => {
+                    let cluster = (random.next_u64() % 8) as f64 * 120.0;
+                    (
+                        cluster + random.range(-12.0, 12.0),
+                        random.range(0.5, 3.0),
+                    )
+                }
+                WorkloadFamily::Corridor => {
+                    if axis == 0 {
+                        (random.range(0.0, 1_000.0), random.range(3.0, 20.0))
+                    } else {
+                        (random.range(-3.0, 3.0), random.range(0.1, 1.0))
+                    }
+                }
+                WorkloadFamily::HighAspectRatio => {
+                    let half = if axis == dominant_axis {
+                        random.range(10.0, 40.0)
+                    } else {
+                        random.range(0.05, 0.5)
+                    };
+                    (random.range(0.0, 1_000.0), half)
+                }
+                WorkloadFamily::HighOverlap => {
+                    (50.0 + random.range(-5.0, 5.0), random.range(8.0, 12.0))
+                }
+            };
+            min[axis] = center - half_extent;
+            max[axis] = center + half_extent;
+        }
+        let tight_aabb = Aabb::new(min, max).map_err(|_| WorkloadError::InvalidGeneratedBounds)?;
+        let moving = random.next_u64() % 10_000 < u64::from(spec.moving_basis_points);
+        proxies.push(WorkloadProxy {
+            id: ProxyId(index as u64),
+            tight_aabb,
+            moving,
+        });
+    }
+
+    Ok(GeneratedWorkload { spec, proxies })
+}
+
+struct SplitMix64 {
+    state: u64,
+}
+
+impl SplitMix64 {
+    const fn new(seed: u64) -> Self {
+        Self { state: seed }
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        self.state = self.state.wrapping_add(0x9e37_79b9_7f4a_7c15);
+        let mut value = self.state;
+        value = (value ^ (value >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+        value = (value ^ (value >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+        value ^ (value >> 31)
+    }
+
+    fn unit(&mut self) -> f64 {
+        (self.next_u64() >> 11) as f64 * (1.0 / ((1_u64 << 53) as f64))
+    }
+
+    fn range(&mut self, minimum: f64, maximum: f64) -> f64 {
+        minimum + (maximum - minimum) * self.unit()
+    }
+}
+
 fn nonnegative_cost_delta(new_cost: f64, old_cost: f64) -> f64 {
     if new_cost.is_finite() && old_cost.is_finite() {
         (new_cost - old_cost).max(0.0)
