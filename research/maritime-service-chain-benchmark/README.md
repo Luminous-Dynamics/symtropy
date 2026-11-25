@@ -405,6 +405,9 @@ Transnet's 23 November 2026 public statement, reported by SAnews and Business Da
 
 The benchmark now has a separate aggregate-only typed receipt for this statement. It reconciles 41 = 18 + 7 + 16 and reports **zero independently verified receiver acceptances** because the public aggregate contains no individual container IDs, per-unit custody chain or receiver receipts. It does not create 41 synthetic cargo IDs or pretend that the 16 not-yet-nominated containers were physically waiting at DGT. The 18 are source-reported delivered, not admitted into the receiver-accepted metric until individual receipts become available.
 
+The executable `aggregate-cargo-status-audit` now validates the published partition as one aggregate statement. Its receipt is **41 expected containers / 18 source-reported delivered but unverified / 7 in-transit expected / 16 awaiting berth nomination / 0 independently verified receiver acceptances**. This is intentionally not expanded into individual cargo IDs because none were published in the aggregate summary.
+
+
 The service metric's per-unit disposition enum also distinguishes SOURCE_REPORTED_DELIVERED_UNVERIFIED, IN_TRANSIT_EXPECTED and AWAITING_BERTH_NOMINATION. None can have a receiver delivery time/receipt reference or count as accepted/on-time.
 
 A separate **20 November 2026 list of 16 vessels** (six completed, three expected to berth, seven still approaching/not berth-nominated) is a different vessel-level cohort. It must never be added to or joined to the 41-container count without a source-qualified cargo/voyage linkage. The benchmark catalogues both separately.
