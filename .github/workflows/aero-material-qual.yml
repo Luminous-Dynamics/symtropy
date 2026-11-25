@@ -8,6 +8,7 @@ on:
       - "docs/research/aviation/AERO_EVIDENCE_BINDING_001_V0_2.md"
       - "docs/research/aviation/AERO_BASALT_MYCELIX_CHANGE_IMPACT_ADAPTER_V0_1.md"
       - "docs/research/aviation/AERO_AP242_QIF_SEMANTIC_INTEROP_BENCHMARK_V0_1.md"
+      - "docs/research/aviation/AERO_DFI_SHM_CO_DESIGN_BENCHMARK_V0_1.md"
       - "docs/research/aviation/schemas/aero_evidence_binding_case_v0_2.schema.json"
       - "docs/research/aviation/examples/synthetic_aero_evidence_binding_case_v0_2.json"
       - "docs/research/aviation/examples/adversarial_evidence_binding_mutations_v0_2.json"
