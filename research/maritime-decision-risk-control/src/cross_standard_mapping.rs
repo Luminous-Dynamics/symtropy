@@ -222,7 +222,8 @@ impl MappingRule {
             return Err(CrosswalkError::MappingBundleReferenceMismatch);
         }
         match self.review_status {
-            MappingReviewStatus::SyntheticFixtureOnly | MappingReviewStatus::ExternallyApproved => {}
+            MappingReviewStatus::SyntheticFixtureOnly | MappingReviewStatus::ExternallyApproved => {
+            }
             MappingReviewStatus::Draft | MappingReviewStatus::Rejected => {
                 return Err(CrosswalkError::MappingRuleNotApproved);
             }
@@ -839,7 +840,10 @@ pub fn render_csv() -> String {
             source.event_family,
             case.target_field,
             mapping_rule.target_standard_version,
-            mapping_rule.target_vocabulary_version.as_deref().unwrap_or("NONE"),
+            mapping_rule
+                .target_vocabulary_version
+                .as_deref()
+                .unwrap_or("NONE"),
             mapping_rule.mapping_bundle_revision,
             mapping_rule.mapping_bundle_sha256,
             mapping_rule.review_status.label(),
@@ -1161,8 +1165,7 @@ mod tests {
             Err(CrosswalkError::ExternalApprovalRecordMissing)
         );
 
-        external_rule.approval_record_ref =
-            Some("urn:review-record:synthetic-example".to_owned());
+        external_rule.approval_record_ref = Some("urn:review-record:synthetic-example".to_owned());
         assert!(
             map_field(&source, EPCIS_VERSION, &external_rule).is_ok(),
             "the adapter checks that an approval reference is declared; governance must resolve and verify it"
