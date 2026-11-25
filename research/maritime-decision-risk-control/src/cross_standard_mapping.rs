@@ -18,11 +18,12 @@
 use std::collections::BTreeMap;
 use std::fmt::Write as FmtWrite;
 
-const DCSA_TT_VERSION: &str = "DCSA-TT-2.2";
-const EPCIS_VERSION: &str = "GS1-EPCIS-2.0.0";
+const DCSA_TT_VERSION: &str = "DCSA-TT-2.2.0";
+const EPCIS_VERSION: &str = "GS1-EPCIS-2.0.1";
+const CBV_VERSION: &str = "GS1-CBV-2.0.0";
 const FIXTURE_DIGEST: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const MAPPING_BUNDLE_DIGEST: &str =
-    "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+    "c9d2b17e1ef041bb6787849eda725021502d9822ab4b6980f357152dd9016e96";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MappingKind {
@@ -73,6 +74,10 @@ pub enum CrosswalkError {
     SourcePayloadReferenceMismatch,
     InvalidSourcePayloadDigest,
     MappingRuleNotApproved,
+    ExternalApprovalRecordMissing,
+    SyntheticRuleUsedForNonSyntheticSource,
+    SourceEventFamilyMismatch,
+    TargetVocabularyVersionMismatch,
     InvalidMappingBundleDigest,
     MappingBundleReferenceMissing,
     MappingBundleReferenceMismatch,
@@ -102,6 +107,12 @@ impl CrosswalkError {
             Self::SourcePayloadReferenceMismatch => "SOURCE_PAYLOAD_REFERENCE_MISMATCH",
             Self::InvalidSourcePayloadDigest => "INVALID_SOURCE_PAYLOAD_DIGEST",
             Self::MappingRuleNotApproved => "MAPPING_RULE_NOT_APPROVED",
+            Self::ExternalApprovalRecordMissing => "EXTERNAL_APPROVAL_RECORD_MISSING",
+            Self::SyntheticRuleUsedForNonSyntheticSource => {
+                "SYNTHETIC_RULE_USED_FOR_NON_SYNTHETIC_SOURCE"
+            }
+            Self::SourceEventFamilyMismatch => "SOURCE_EVENT_FAMILY_MISMATCH",
+            Self::TargetVocabularyVersionMismatch => "TARGET_VOCABULARY_VERSION_MISMATCH",
             Self::InvalidMappingBundleDigest => "INVALID_MAPPING_BUNDLE_DIGEST",
             Self::MappingBundleReferenceMissing => "MAPPING_BUNDLE_REFERENCE_MISSING",
             Self::MappingBundleReferenceMismatch => "MAPPING_BUNDLE_REFERENCE_MISMATCH",
@@ -116,10 +127,14 @@ impl CrosswalkError {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SourceMessage {
     pub standard_version: String,
+    /// DCSA event family, e.g. EquipmentEvent or ShipmentEvent.
+    pub event_family: String,
     pub source_record_id: String,
     pub source_event_id: String,
     /// Canonical container, vessel-call or shipment identity.
     pub subject_id: String,
+    /// Synthetic fixtures are never eligible to support live-source claims.
+    pub is_synthetic: bool,
     /// SHA-256 of the original, unmodified source message bytes.
     pub raw_payload_sha256: String,
     /// Immutable object-store or evidence-ledger reference. This module carries
@@ -131,7 +146,8 @@ pub struct SourceMessage {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MappingReviewStatus {
-    Approved,
+    SyntheticFixtureOnly,
+    ExternallyApproved,
     Draft,
     Rejected,
 }
@@ -139,7 +155,8 @@ pub enum MappingReviewStatus {
 impl MappingReviewStatus {
     pub const fn label(self) -> &'static str {
         match self {
-            Self::Approved => "APPROVED",
+            Self::SyntheticFixtureOnly => "SYNTHETIC_FIXTURE_ONLY",
+            Self::ExternallyApproved => "EXTERNALLY_APPROVED",
             Self::Draft => "DRAFT",
             Self::Rejected => "REJECTED",
         }
@@ -155,15 +172,20 @@ pub struct MappingRule {
     pub mapping_bundle_sha256: String,
     pub mapping_bundle_ref: String,
     pub source_standard_version: String,
+    pub source_event_family: String,
     pub source_field: String,
     pub source_value: String,
     pub target_standard_version: String,
+    /// Present only for fields governed by the GS1 Core Business Vocabulary.
+    pub target_vocabulary_version: Option<String>,
     pub target_field: String,
     pub target_value: String,
     pub kind: MappingKind,
     pub reversibility: MappingReversibility,
     pub review_status: MappingReviewStatus,
     pub reviewer_ref: String,
+    /// Required for externally approved rules; a reference only, not self-validating proof.
+    pub approval_record_ref: Option<String>,
     pub mapping_evidence_ref: String,
     /// Required for contextual and lossy mappings; describes the semantic gap.
     pub lossiness_reason: Option<String>,
@@ -173,6 +195,7 @@ impl MappingRule {
     pub fn validate(&self) -> Result<(), CrosswalkError> {
         if self.rule_id.trim().is_empty()
             || self.source_standard_version.trim().is_empty()
+            || self.source_event_family.trim().is_empty()
             || self.source_field.trim().is_empty()
             || self.source_value.trim().is_empty()
             || self.target_standard_version.trim().is_empty()
@@ -198,8 +221,19 @@ impl MappingRule {
         if self.mapping_bundle_ref != expected_bundle_ref {
             return Err(CrosswalkError::MappingBundleReferenceMismatch);
         }
-        if self.review_status != MappingReviewStatus::Approved {
-            return Err(CrosswalkError::MappingRuleNotApproved);
+        match self.review_status {
+            MappingReviewStatus::SyntheticFixtureOnly | MappingReviewStatus::ExternallyApproved => {}
+            MappingReviewStatus::Draft | MappingReviewStatus::Rejected => {
+                return Err(CrosswalkError::MappingRuleNotApproved);
+            }
+        }
+        if self.review_status == MappingReviewStatus::ExternallyApproved
+            && self
+                .approval_record_ref
+                .as_deref()
+                .is_none_or(str::is_empty)
+        {
+            return Err(CrosswalkError::ExternalApprovalRecordMissing);
         }
         if self.mapping_evidence_ref.trim().is_empty() {
             return Err(CrosswalkError::MissingMappingEvidence);
@@ -233,6 +267,13 @@ impl MappingRule {
                     return Err(CrosswalkError::MissingLossinessReason);
                 }
             }
+        }
+        if self.target_field == "bizStep" || self.target_field == "disposition" {
+            if self.target_vocabulary_version.as_deref() != Some(CBV_VERSION) {
+                return Err(CrosswalkError::TargetVocabularyVersionMismatch);
+            }
+        } else if self.target_vocabulary_version.is_some() {
+            return Err(CrosswalkError::TargetVocabularyVersionMismatch);
         }
         if self.target_field == "bizStep" && !is_supported_cbv_biz_step(&self.target_value) {
             return Err(CrosswalkError::InvalidTargetVocabularyValue);
@@ -305,7 +346,9 @@ pub struct CrosswalkReceipt {
     pub mapping_bundle_ref: String,
     pub review_status: MappingReviewStatus,
     pub reviewer_ref: String,
+    pub approval_record_ref: Option<String>,
     pub source_standard_version: String,
+    pub source_event_family: String,
     pub source_record_id: String,
     pub source_event_id: String,
     pub source_subject_id: String,
@@ -314,6 +357,7 @@ pub struct CrosswalkReceipt {
     pub source_field: String,
     pub source_value: String,
     pub target_standard_version: String,
+    pub target_vocabulary_version: Option<String>,
     pub target_field: String,
     pub target_value: String,
     pub kind: MappingKind,
@@ -337,6 +381,12 @@ pub fn map_field(
     }
     if target_standard_version != rule.target_standard_version {
         return Err(CrosswalkError::TargetStandardVersionMismatch);
+    }
+    if source.event_family != rule.source_event_family {
+        return Err(CrosswalkError::SourceEventFamilyMismatch);
+    }
+    if rule.review_status == MappingReviewStatus::SyntheticFixtureOnly && !source.is_synthetic {
+        return Err(CrosswalkError::SyntheticRuleUsedForNonSyntheticSource);
     }
     if source.source_record_id.trim().is_empty() || source.source_event_id.trim().is_empty() {
         return Err(CrosswalkError::SourceMessageIdentityMissing);
@@ -371,7 +421,9 @@ pub fn map_field(
         mapping_bundle_ref: rule.mapping_bundle_ref.clone(),
         review_status: rule.review_status,
         reviewer_ref: rule.reviewer_ref.clone(),
+        approval_record_ref: rule.approval_record_ref.clone(),
         source_standard_version: source.standard_version.clone(),
+        source_event_family: source.event_family.clone(),
         source_record_id: source.source_record_id.clone(),
         source_event_id: source.source_event_id.clone(),
         source_subject_id: source.subject_id.clone(),
@@ -380,6 +432,7 @@ pub fn map_field(
         source_field: rule.source_field.clone(),
         source_value: source_value.clone(),
         target_standard_version: rule.target_standard_version.clone(),
+        target_vocabulary_version: rule.target_vocabulary_version.clone(),
         target_field: rule.target_field.clone(),
         target_value: rule.target_value.clone(),
         kind: rule.kind,
@@ -401,9 +454,11 @@ fn source_fixture() -> SourceMessage {
     fields.insert("equipmentEventTypeCode".to_owned(), "LOAD".to_owned());
     SourceMessage {
         standard_version: DCSA_TT_VERSION.to_owned(),
+        event_family: "EquipmentEvent".to_owned(),
         source_record_id: "DCSA-SOURCE-RECORD-001".to_owned(),
         source_event_id: "urn:uuid:11111111-1111-4111-8111-111111111111".to_owned(),
         subject_id: "urn:epc:id:sscc:0614141.1234567890".to_owned(),
+        is_synthetic: true,
         raw_payload_sha256: FIXTURE_DIGEST.to_owned(),
         raw_payload_ref: format!("urn:source-artifact:sha256:{FIXTURE_DIGEST}"),
         fields,
@@ -426,15 +481,22 @@ fn rule(
         mapping_bundle_sha256: MAPPING_BUNDLE_DIGEST.to_owned(),
         mapping_bundle_ref: format!("urn:mapping-bundle:sha256:{MAPPING_BUNDLE_DIGEST}"),
         source_standard_version: DCSA_TT_VERSION.to_owned(),
+        source_event_family: "EquipmentEvent".to_owned(),
         source_field: source_field.to_owned(),
         source_value: source_value.to_owned(),
         target_standard_version: EPCIS_VERSION.to_owned(),
+        target_vocabulary_version: if target_field == "bizStep" || target_field == "disposition" {
+            Some(CBV_VERSION.to_owned())
+        } else {
+            None
+        },
         target_field: target_field.to_owned(),
         target_value: target_value.to_owned(),
         kind,
         reversibility,
-        review_status: MappingReviewStatus::Approved,
+        review_status: MappingReviewStatus::SyntheticFixtureOnly,
         reviewer_ref: "synthetic-reviewer:cross-standard-mapping-v1".to_owned(),
+        approval_record_ref: None,
         mapping_evidence_ref: "synthetic-cross-standard-review-v1".to_owned(),
         lossiness_reason: lossiness_reason.map(str::to_owned),
     }
@@ -593,7 +655,7 @@ pub fn render_csv() -> String {
     );
     for case in cases() {
         let mut source = source_fixture();
-        let mapping_rule = match case.id {
+        let mut mapping_rule = match case.id {
             "event_type_to_bizstep_contextual" => rule(
                 "equipmentEventTypeCode",
                 "LOAD",
