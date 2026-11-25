@@ -17,7 +17,7 @@ For a discrete two-latch arrangement, channel A and B can have different field v
 
 ## Hall latch model
 
-Each channel declares:
+Each sensor configuration has an opaque caller-supplied identity that is bound to predictions and any later captured-output reconciliation. Each channel declares:
 - an in-plane projection axis;
 - a set/high threshold BOP;
 - a reset/low threshold BRP;
@@ -81,3 +81,5 @@ Each captured edge carries an acquisition timestamp, independent mechanical refe
 The capture is never shifted or trimmed to force a match. The mechanical angle supplied for each edge must already reflect the declared synchronization/latency correction. The function records the correction and uncertainty but does not guess or apply one. Time uncertainties are not converted into angle without an independently established speed/time relationship.
 
 A synthetic generated capture only validates the record/reconciliation plumbing. It does not establish physical ASIC response, physical edge timing or a calibrated rotor-reference chain.
+
+The current source contains 41 authored unit tests. Test authorship is not a test pass; consult the current exact-head pull-request checks.
