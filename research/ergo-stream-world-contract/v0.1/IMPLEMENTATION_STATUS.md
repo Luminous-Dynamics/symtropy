@@ -562,7 +562,8 @@ A separate bounded whole-structure oracle is staged in `src/oracle.rs` and expos
 - Enumerates node bijections up to eight nodes, with incidence-signature pruning that cannot accept a match by itself.
 - Independently checks consistent directed preserve/reverse or undirected-unordered relation transforms and one-to-one relation-kind mapping.
 - Constructs a deterministic relation-instance mapping without calling the candidate structural validator.
-- Includes positive relabel/reversal, K3,3-versus-triangular-prism negative, malformed-input, size-limit and cardinality-mismatch tests.
+- Reports both explored and valid node-bijection counts; this preserves ambiguity rather than forcing a unique map. An undirected six-cycle has 12 valid node mappings (the D6 automorphism group) among 720 explored mappings.
+- Includes positive relabel/reversal, K3,3-versus-triangular-prism negative, Transfer Atlas family cross-checks, symmetric-cycle ambiguity, malformed-input, size-limit and cardinality-mismatch tests.
 - The K3,3 / triangular-prism pair has identical 3-regular degree signatures; the oracle must check all 720 node bijections before rejecting it.
 
 The oracle is a finite fixture-truth reference for whole-structure isomorphism only. It does not decide scoped embeddings, quotients, simulation, mechanism transfer or causal validity. It must remain evaluator-side.
