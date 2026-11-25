@@ -1487,7 +1487,11 @@ mod tests {
         }
         assert_eq!(
             tree.leaves.len(),
-            tree.nodes.iter().filter(|node| node.as_ref().is_some_and(Node::is_leaf)).count()
+            tree
+                .nodes
+                .iter()
+                .filter(|node| node.as_ref().is_some_and(|entry| entry.is_leaf()))
+                .count()
         );
         let mut free = std::collections::BTreeSet::new();
         for index in &tree.free_nodes {
