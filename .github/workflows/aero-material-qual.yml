@@ -169,6 +169,7 @@ jobs:
               raise SystemExit(f"temporal replay corpus failed schema validation ({len(errors)} errors)")
           cases = corpus["cases"]
           ids = [case["case_id"] for case in cases]
+          required_modes = {"as_known_at", "recomputed_with_current_trust", "recomputed_with_current_evidence_and_trust"}
           if len(ids) != len(set(ids)):
               raise SystemExit("temporal replay case IDs must be unique")
           if not any(case["expected"]["as_known_at"]["disposition"] == "ACCEPTED_FOR_BINDING_ONLY" for case in cases):
@@ -224,7 +225,6 @@ jobs:
               raise SystemExit("correction-of-correction target must point to prior correction")
           if any(nested_correction["expected"][mode]["reason_codes"] != ["CALIBRATION_CORRECTION_SEMANTICS_UNQUALIFIED"] for mode in required_modes):
               raise SystemExit("correction-of-correction semantics must remain unqualified")
-          required_modes = {"as_known_at", "recomputed_with_current_trust", "recomputed_with_current_evidence_and_trust"}
           for case in cases:
               if set(case["expected"]) != required_modes:
                   raise SystemExit(f"{case['case_id']}: all three replay modes must be frozen")
