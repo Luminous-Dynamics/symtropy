@@ -51,9 +51,12 @@ Every replay is keyed by three independent cutoffs, not one overloaded timestamp
 
 The replay coordinate is:
 
-`ReplayQuery = (T_subject, T_evidence, T_trust, policy_digest, verifier_version)`
+`ReplayQuery = (T_subject_interval, T_evidence, T_trust, trust_policy_id, trust_policy_digest, verifier_profile)`
 
 The same `T_subject` may be replayed with different `T_evidence` and `T_trust`. A trust-policy identifier without an immutable policy/status snapshot is insufficient.
+
+A replay report must persist this complete coordinate, not merely cite a human-readable policy name. A policy ID may be reused or its content changed; therefore the exact policy digest is mandatory. The verifier profile/version is separate from the policy digest. Production systems should additionally bind the concrete verifier binary/build digest in the owner-native execution receipt. The synthetic corpus includes a synthetic historical policy digest and a distinct synthetic current-policy digest to test that trust-only replay changes trust context without silently advancing the evidence watermark.
+
 
 ### 2.3 Three historical query modes
 
