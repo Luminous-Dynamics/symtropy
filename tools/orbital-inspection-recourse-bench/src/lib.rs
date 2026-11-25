@@ -5,7 +5,8 @@ use std::collections::{BTreeMap, BTreeSet};
 pub const CORPUS_SCHEMA: &str = "luminous.orbital-inspection-recourse.corpus.v0.1";
 pub const RECEIPT_SCHEMA: &str = "luminous.orbital-inspection-recourse.receipt.v0.1";
 pub const BENCHMARK_ID: &str = "ORBITAL-INSPECTION-RECOURSE-001";
-pub const CLAIM_CEILING: &str = "synthetic_finite_contingent_policy_over_declared_outcome_support_only";
+pub const CLAIM_CEILING: &str =
+    "synthetic_finite_contingent_policy_over_declared_outcome_support_only";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -286,7 +287,10 @@ fn action_rejections(case: &Case) -> BTreeMap<String, Vec<String>> {
 }
 
 fn action_is_admissible(action: &ObservationAction) -> bool {
-    action.gates.iter().all(|gate| gate.state == GateState::Pass)
+    action
+        .gates
+        .iter()
+        .all(|gate| gate.state == GateState::Pass)
         && action
             .outcomes_by_world
             .iter()
@@ -473,9 +477,7 @@ fn evaluate_case(case: &Case) -> Result<(CaseResult, Option<String>), String> {
     } else {
         (PolicyStatus::Abstain, true, None)
     };
-    let root_action = plan
-        .as_ref()
-        .and_then(|plan| plan.root.action_id.clone());
+    let root_action = plan.as_ref().and_then(|plan| plan.root.action_id.clone());
     Ok((
         CaseResult {
             case_id: case.case_id.clone(),
@@ -515,9 +517,7 @@ pub fn audit_corpus(bytes: &[u8], source_commit: &str) -> Result<Receipt, String
             return Err("CASE_ID_DUPLICATE".to_owned());
         }
         let (result, root_action) = evaluate_case(case)?;
-        if result.status == case.expected_status
-            && root_action == case.expected_root_action
-        {
+        if result.status == case.expected_status && root_action == case.expected_root_action {
             expected_outcome_matches += 1;
         }
         cases.push(result);
@@ -544,16 +544,15 @@ mod tests {
     use super::*;
 
     fn corpus_bytes() -> &'static [u8] {
-        include_bytes!("../../../docs/research/orbital-truss/fixtures/inspection-recourse-v0_1.json")
+        include_bytes!(
+            "../../../docs/research/orbital-truss/fixtures/inspection-recourse-v0_1.json"
+        )
     }
 
     #[test]
     fn frozen_corpus_matches_all_expected_policies() {
-        let receipt = audit_corpus(
-            corpus_bytes(),
-            "0123456789abcdef0123456789abcdef01234567",
-        )
-        .expect("frozen corpus validates");
+        let receipt = audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567")
+            .expect("frozen corpus validates");
         assert_eq!(receipt.case_count, 8);
         assert_eq!(receipt.expected_outcome_matches, 8);
         assert_eq!(receipt.expected_outcome_mismatches, 0);
@@ -561,24 +560,33 @@ mod tests {
 
     #[test]
     fn same_decision_worlds_need_no_extra_observation() {
-        let receipt = audit_corpus(
-            corpus_bytes(),
-            "0123456789abcdef0123456789abcdef01234567",
-        )
-        .expect("corpus validates");
-        let case = receipt.cases.iter().find(|case| case.case_id == "IR-003-SAME-DECISION").unwrap();
+        let receipt = audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567")
+            .expect("corpus validates");
+        let case = receipt
+            .cases
+            .iter()
+            .find(|case| case.case_id == "IR-003-SAME-DECISION")
+            .unwrap();
         assert_eq!(case.status, PolicyStatus::Resolved);
-        assert_eq!(case.policy.as_ref().unwrap().objective.worst_case_action_count, 0);
+        assert_eq!(
+            case.policy
+                .as_ref()
+                .unwrap()
+                .objective
+                .worst_case_action_count,
+            0
+        );
     }
 
     #[test]
     fn unknown_or_failed_gate_never_becomes_an_action() {
-        let receipt = audit_corpus(
-            corpus_bytes(),
-            "0123456789abcdef0123456789abcdef01234567",
-        )
-        .expect("corpus validates");
-        let case = receipt.cases.iter().find(|case| case.case_id == "IR-004-UNKNOWN-GATE").unwrap();
+        let receipt = audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567")
+            .expect("corpus validates");
+        let case = receipt
+            .cases
+            .iter()
+            .find(|case| case.case_id == "IR-004-UNKNOWN-GATE")
+            .unwrap();
         assert_eq!(case.status, PolicyStatus::Abstain);
         assert!(case.policy.is_none());
         assert!(case.rejected_actions.contains_key("UNQUALIFIED_VIEW"));
@@ -586,38 +594,46 @@ mod tests {
 
     #[test]
     fn overlapping_support_preserves_worlds_in_each_possible_branch() {
-        let receipt = audit_corpus(
-            corpus_bytes(),
-            "0123456789abcdef0123456789abcdef01234567",
-        )
-        .expect("corpus validates");
-        let case = receipt.cases.iter().find(|case| case.case_id == "IR-002-CONTINGENT-TREE").unwrap();
+        let receipt = audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567")
+            .expect("corpus validates");
+        let case = receipt
+            .cases
+            .iter()
+            .find(|case| case.case_id == "IR-002-CONTINGENT-TREE")
+            .unwrap();
         let policy = case.policy.as_ref().expect("policy resolves");
         assert_eq!(policy.root.action_id.as_deref(), Some("VIEW-1"));
-        let ambiguous = policy.root.branches.iter().find(|branch| branch.outcome == "AMBIGUOUS").unwrap();
+        let ambiguous = policy
+            .root
+            .branches
+            .iter()
+            .find(|branch| branch.outcome == "AMBIGUOUS")
+            .unwrap();
         assert_eq!(ambiguous.child.action_id.as_deref(), Some("VIEW-2"));
     }
 
     #[test]
     fn search_cap_never_claims_exactness() {
-        let receipt = audit_corpus(
-            corpus_bytes(),
-            "0123456789abcdef0123456789abcdef01234567",
-        )
-        .expect("corpus validates");
-        let case = receipt.cases.iter().find(|case| case.case_id == "IR-006-SEARCH-CAP").unwrap();
+        let receipt = audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567")
+            .expect("corpus validates");
+        let case = receipt
+            .cases
+            .iter()
+            .find(|case| case.case_id == "IR-006-SEARCH-CAP")
+            .unwrap();
         assert_eq!(case.status, PolicyStatus::SearchLimitNotProven);
         assert!(!case.exactness_proven);
     }
 
     #[test]
     fn common_outcome_support_cannot_resolve_opposite_decisions() {
-        let receipt = audit_corpus(
-            corpus_bytes(),
-            "0123456789abcdef0123456789abcdef01234567",
-        )
-        .expect("corpus validates");
-        let case = receipt.cases.iter().find(|case| case.case_id == "IR-005-COMMON-CAUSE").unwrap();
+        let receipt = audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567")
+            .expect("corpus validates");
+        let case = receipt
+            .cases
+            .iter()
+            .find(|case| case.case_id == "IR-005-COMMON-CAUSE")
+            .unwrap();
         assert_eq!(case.status, PolicyStatus::Abstain);
     }
 
