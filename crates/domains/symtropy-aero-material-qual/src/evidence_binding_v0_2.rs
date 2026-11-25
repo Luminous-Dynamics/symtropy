@@ -665,7 +665,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
         }
 
         if let (Some(campaign), Some(certificate)) = (campaign, certificate) {
-            for required_field in ["instrument_id", "method_revision_id", "calibration_lab", "certificate_artifact_ref", "calibration_evidence_id"] {
+            for required_field in ["instrument_id", "method_revision_id", "calibration_lab", "certificate_artifact_ref"] {
                 if !nonempty(field_str(certificate, required_field)) {
                     reasons.insert("CALIBRATION_CERTIFICATE_METADATA_INCOMPLETE".to_owned());
                 }
