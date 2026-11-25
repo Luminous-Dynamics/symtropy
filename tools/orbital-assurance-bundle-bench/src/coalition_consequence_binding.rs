@@ -182,7 +182,7 @@ pub struct PortfolioMetric {
     /// min_s (L(no_action,s) - L(portfolio,s)); signed and never clamped.
     pub lower_bound_avoided_ticks: i64,
     pub worst_absolute_loss_ticks: i64,
-    /// max_s (L(portfolio,s) - min_safe_q L(q,s)); hindsight diagnostic only.
+    /// max_s (L(portfolio,s) - min_below_threshold_q L(q,s)); hindsight diagnostic only.
     pub worst_scenario_regret_ticks: Option<i64>,
     pub nominal_mean_loss: Option<ExactRational>,
     pub nominal_cvar95_loss: Option<ExactRational>,
@@ -731,13 +731,13 @@ fn compute_portfolio_metrics(
             worst_loss = worst_loss.max(portfolio);
         }
 
-        let is_safe = row.risk_snapshot.screening_state == "BELOW_THRESHOLD";
-        let regret = if is_safe {
+        let is_below_threshold = row.risk_snapshot.screening_state == "BELOW_THRESHOLD";
+        let regret = if is_below_threshold {
             let mut worst_regret = 0_i64;
             for losses in scenario_losses.values() {
                 let portfolio_loss = *losses
                     .get(portfolio_id)
-                    .ok_or_else(|| "safe portfolio loss is missing".to_owned())?;
+                    .ok_or_else(|| "below-threshold portfolio loss is missing".to_owned())?;
                 let best_below_threshold_loss = below_threshold_ids
                     .iter()
                     .map(|safe_id| losses.get(safe_id).copied())
@@ -864,7 +864,10 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
     }
 
     let metrics = compute_portfolio_metrics(case, &scenario_losses, &records)?;
-    let below_threshold_portfolio_count = metrics.iter().filter(|metric| metric.risk_snapshot_below_threshold).count();
+    let below_threshold_portfolio_count = metrics
+        .iter()
+        .filter(|metric| metric.risk_snapshot_below_threshold)
+        .count();
     let expected_metrics = case
         .expected
         .portfolios
