@@ -867,7 +867,7 @@ mod tests {
                 assert_eq!(
                     report.isomorphic,
                     source_code == target_code,
-                    "oracle disagreed for canonical graph codes {source_code:#05x} and {target_code:#05x}"
+                    "oracle mismatch: {source_code:#05x} vs {target_code:#05x}"
                 );
                 comparisons += 1;
             }
