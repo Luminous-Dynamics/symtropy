@@ -77,6 +77,11 @@ pub struct ClockFitV0 {
     /// Beta -> Alpha: alpha_time ~= offset + scale * beta_time.
     pub offset: f64,
     pub scale: f64,
+    /// Exact integer origins for stable evaluation on large timestamp epochs.
+    pub alpha_reference_time: i64,
+    pub beta_reference_time: i64,
+    /// Fitted Alpha-minus-reference offset when Beta equals its reference.
+    pub reference_intercept: f64,
     pub anchor_count: usize,
     /// Residual metrics are calculated on the anchors used by the fit.
     pub residual_rms: f64,
@@ -84,6 +89,16 @@ pub struct ClockFitV0 {
     pub max_absolute_residual: f64,
     /// Zero for closed-form methods; actual reweighting iterations for Huber.
     pub iterations: usize,
+}
+
+impl ClockFitV0 {
+    /// Predict Alpha time relative to `alpha_reference_time`, avoiding a
+    /// lossy global-offset calculation for large absolute timestamp epochs.
+    pub fn predict_alpha_delta_v0(&self, beta_local_time: i64) -> f64 {
+        let beta_delta =
+            (i128::from(beta_local_time) - i128::from(self.beta_reference_time)) as f64;
+        self.reference_intercept + self.scale * beta_delta
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -255,6 +270,9 @@ fn build_fit(
     let fit = ClockFitV0 {
         offset,
         scale: line.scale,
+        alpha_reference_time: pairs[0].alpha_local_time,
+        beta_reference_time: pairs[0].beta_local_time,
+        reference_intercept: line.intercept,
         anchor_count: pairs.len(),
         residual_rms: rms,
         median_absolute_residual,
@@ -384,7 +402,7 @@ mod tests {
             .map(|index| {
                 let beta = 100_i64 + index * 100;
                 ClockAnchorPairV0 {
-                    anchor_id: index as u16,
+                    anchor_id: u16::try_from(index).unwrap_or(u16::MAX),
                     beta_local_time: beta,
                     alpha_local_time: offset
                         + (scale_numerator * beta) / scale_denominator,
@@ -480,6 +498,28 @@ mod tests {
         let reversed = fit_affine_huber_irls_v0(&pairs, 50, 1.0e-10).unwrap();
         assert!((forward.offset - reversed.offset).abs() < 1.0e-7);
         assert!((forward.scale - reversed.scale).abs() < 1.0e-9);
+    }
+
+    #[test]
+    fn centered_fit_preserves_rate_at_large_timestamp_epochs() {
+        let beta_origin = 8_000_000_000_000_000_000_i64;
+        let alpha_origin = -8_000_000_000_000_000_000_i64;
+        let pairs = (0..9)
+            .map(|index| {
+                let delta = index * 1_000;
+                ClockAnchorPairV0 {
+                    anchor_id: u16::try_from(index).unwrap_or(u16::MAX),
+                    beta_local_time: beta_origin + delta,
+                    alpha_local_time: alpha_origin + delta * 2,
+                }
+            })
+            .collect::<Vec<_>>();
+        let fit = fit_affine_ols_v0(&pairs).unwrap();
+        assert!((fit.scale - 2.0).abs() < 1.0e-12);
+        assert!(fit.residual_rms < 1.0e-9);
+        assert_eq!(fit.beta_reference_time, beta_origin);
+        assert_eq!(fit.alpha_reference_time, alpha_origin);
+        assert!(fit.predict_alpha_delta_v0(beta_origin + 4_000).abs() - 8_000.0 < 1.0e-9);
     }
 
     #[test]
