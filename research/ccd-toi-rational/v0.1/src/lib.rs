@@ -188,7 +188,11 @@ fn compare_fractions(
         let right_integer = right_numerator / right_denominator;
         if left_integer != right_integer {
             let ordering = left_integer.cmp(&right_integer);
-            return if reverse { ordering.reverse() } else { ordering };
+            return if reverse {
+                ordering.reverse()
+            } else {
+                ordering
+            };
         }
 
         let left_remainder = left_numerator % left_denominator;
@@ -385,14 +389,14 @@ impl ToiScore {
         }
         let mut widths = self.interval_widths.clone();
         widths.sort_by(|left, right| left.cmp_exact(*right));
-        let rank = (widths.len() * usize::from(percentile)).div_ceil(100).max(1);
+        let rank = (widths.len() * usize::from(percentile))
+            .div_ceil(100)
+            .max(1);
         widths.get(rank - 1).copied()
     }
 }
 
-pub fn evaluate_toi(
-    evaluations: &[ToiEvaluation],
-) -> Result<ToiScore, Vec<ToiError>> {
+pub fn evaluate_toi(evaluations: &[ToiEvaluation]) -> Result<ToiScore, Vec<ToiError>> {
     let mut errors = Vec::new();
     let mut identities = HashSet::with_capacity(evaluations.len());
     let mut counts = ToiCounts {
@@ -513,11 +517,7 @@ mod tests {
                 Some(root),
                 ToiClaim::ReportedInterval(interval),
             ),
-            ToiEvaluation::new(
-                key(QueryKind::EdgeEdge, 1),
-                None,
-                ToiClaim::Unavailable,
-            ),
+            ToiEvaluation::new(key(QueryKind::EdgeEdge, 1), None, ToiClaim::Unavailable),
         ])
         .unwrap();
 
@@ -526,10 +526,7 @@ mod tests {
         assert_eq!(score.counts.interval_root_enclosures, 1);
         assert_eq!(score.counts.interval_under_enclosures, 0);
         assert_eq!(score.counts.interval_enclosure_basis_points(), Some(10_000));
-        assert_eq!(
-            score.interval_width_percentile(95),
-            Some(rational(1, 2))
-        );
+        assert_eq!(score.interval_width_percentile(95), Some(rational(1, 2)));
         assert!(score.counts.toi_claims_qualified());
     }
 
