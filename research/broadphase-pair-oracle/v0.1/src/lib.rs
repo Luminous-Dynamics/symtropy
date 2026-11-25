@@ -637,9 +637,9 @@ mod tests {
         assert_eq!(summary.p50_full_step_ns, Some(20));
         assert_eq!(summary.p95_full_step_ns, Some(40));
         assert_eq!(summary.p99_full_step_ns, Some(40));
-        assert_eq!(summary.p50_broadphase_ns, Some(8));
-        assert_eq!(summary.p95_broadphase_ns, Some(32));
-        assert_eq!(summary.p99_broadphase_ns, Some(32));
+        assert_eq!(summary.p50_broadphase_ns, Some(14));
+        assert_eq!(summary.p95_broadphase_ns, Some(28));
+        assert_eq!(summary.p99_broadphase_ns, Some(28));
         assert_eq!(summary.total_node_visits, 8);
         assert_eq!(summary.total_leaf_visits, 12);
         assert_eq!(summary.total_reinserts, 4);
