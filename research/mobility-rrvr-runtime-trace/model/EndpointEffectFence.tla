@@ -116,6 +116,7 @@ RejectChangedPayload ==
     /\ deviceUp
     /\ tokenState # "none"
     /\ requestEpoch = endpointFenceEpoch
+    /\ acceptedEpoch = endpointFenceEpoch
     /\ requestPayload # acceptedPayload
     /\ reply' = "payload_conflict"
     /\ UNCHANGED <<deviceUp, deviceBoot, authorityEpoch, endpointFenceEpoch,
@@ -128,7 +129,7 @@ RejectFencedToken ==
     /\ tokenState # "none"
     /\ acceptedEpoch < endpointFenceEpoch
     /\ reply' = "stale_epoch"
-    /\ UNCHANGED <<vars>>
+    /\ UNCHANGED vars
 
 RejectStaleEpoch ==
     /\ deviceUp
@@ -166,7 +167,7 @@ DeviceCrash ==
     /\ deviceUp' = FALSE
     /\ IF DurableEndpointNvm
           THEN
-            /\ UNCHANGED <<endpointFenceEpoch, acceptedPayload,
+            /\ UNCHANGED <<endpointFenceEpoch, acceptedPayload, acceptedEpoch,
                            tokenState, historyLost>>
           ELSE
             /\ endpointFenceEpoch' = -1
