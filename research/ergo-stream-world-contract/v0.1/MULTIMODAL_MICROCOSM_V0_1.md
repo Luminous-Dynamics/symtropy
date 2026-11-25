@@ -45,7 +45,7 @@ The generator has three association regimes:
 
 Alpha and Beta have independent affine clocks with offset, rational rate, bounded timestamp jitter and bounded arrival delay. Event observations can arrive out of timestamp order. Missing events are retained as missingness rather than interpolated.
 
-For the identifiable clock arms, two explicit shared calibration pulses support a separate affine clock-map score. This is a transparent calibration-anchor reference, not a claim that the learner has solved blind clock registration.
+When enabled, two explicit shared calibration pulses support a separate affine clock-map score. This is a transparent calibration-anchor reference, not a claim that the learner has solved blind clock registration. The same periodic semantic ambiguity can be tested with or without those anchors; this separates temporal identifiability from event correspondence.
 
 ## Two independent score planes
 
