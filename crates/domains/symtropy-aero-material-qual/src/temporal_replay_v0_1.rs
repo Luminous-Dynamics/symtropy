@@ -199,7 +199,7 @@ fn has_correction_cycle(events: &[&Value]) -> bool {
 }
 
 fn valid_sha256(value: &str) -> bool {
-    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+    value.len() == 64 && value.bytes().all(|byte| matches!(byte, b'0'..=b'9' | b'a'..=b'f'))
 }
 
 /// Construct the complete historical replay coordinate for a case and mode.
@@ -213,16 +213,22 @@ pub fn replay_coordinate(case: &Value, mode: ReplayMode) -> Option<ReplayCoordin
     if subject_time_interval.earliest_unix_ms > subject_time_interval.latest_unix_ms {
         return None;
     }
-    let (receipt_path, trust_path, policy_id_path, policy_digest_path) = match mode {
+    let receipt_path = match mode {
+        ReplayMode::AsKnownAt | ReplayMode::RecomputedWithCurrentTrust => {
+            "/snapshot/receiver_receipt_watermark_unix_ms"
+        }
+        ReplayMode::RecomputedWithCurrentEvidenceAndTrust => {
+            "/current_reassessment/receiver_receipt_watermark_unix_ms"
+        }
+    };
+    let (trust_path, policy_id_path, policy_digest_path) = match mode {
         ReplayMode::AsKnownAt => (
-            "/snapshot/receiver_receipt_watermark_unix_ms",
             "/snapshot/trust_status_as_of_unix_ms",
             "/snapshot/trust_policy_id",
             "/snapshot/trust_policy_digest_sha256",
         ),
         ReplayMode::RecomputedWithCurrentTrust
         | ReplayMode::RecomputedWithCurrentEvidenceAndTrust => (
-            "/current_reassessment/receiver_receipt_watermark_unix_ms",
             "/current_reassessment/trust_status_as_of_unix_ms",
             "/current_reassessment/trust_policy_id",
             "/current_reassessment/trust_policy_digest_sha256",
@@ -807,7 +813,7 @@ pub fn evaluate_case(case: &Value, mode: ReplayMode) -> TemporalDisposition {
 
 #[cfg(test)]
 mod tests {
-    use super::{CORPUS, ReplayMode, TemporalDisposition, evaluate_case};
+    use super::{AcquisitionTimeInterval, CORPUS, ReplayMode, TemporalDisposition, evaluate_case};
     use serde_json::Value;
 
     fn expected(case: &Value, mode: ReplayMode) -> Value {
