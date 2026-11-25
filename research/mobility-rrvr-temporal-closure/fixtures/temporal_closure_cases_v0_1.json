@@ -21,13 +21,71 @@
         "elapsed_since_ingress_fence_ms": 0,
         "invalidated": false,
         "nodes": [
-          {"node_id":"controller","is_ingress":true,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":2,"receiver_enforces_expiry":true},
-          {"node_id":"driver","is_ingress":false,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":3,"receiver_enforces_expiry":true},
-          {"node_id":"actuator","is_ingress":false,"is_terminal":true,"rejects_old_epoch":true,"endpoint_fence_enforced":true,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":0,"receiver_enforces_expiry":true}
+          {
+            "node_id": "controller",
+            "is_ingress": true,
+            "is_terminal": false,
+            "rejects_old_epoch": true,
+            "endpoint_fence_enforced": false,
+            "last_accepted_sequence": 12,
+            "last_retired_sequence": 12,
+            "outstanding_commands": 0,
+            "retention_bound_ms": 2,
+            "receiver_enforces_expiry": true,
+            "sequence_generation_id": "generation-1",
+            "accepted_sequence_generation_id": "generation-1",
+            "retired_sequence_generation_id": "generation-1"
+          },
+          {
+            "node_id": "driver",
+            "is_ingress": false,
+            "is_terminal": false,
+            "rejects_old_epoch": true,
+            "endpoint_fence_enforced": false,
+            "last_accepted_sequence": 12,
+            "last_retired_sequence": 12,
+            "outstanding_commands": 0,
+            "retention_bound_ms": 3,
+            "receiver_enforces_expiry": true,
+            "sequence_generation_id": "generation-1",
+            "accepted_sequence_generation_id": "generation-1",
+            "retired_sequence_generation_id": "generation-1"
+          },
+          {
+            "node_id": "actuator",
+            "is_ingress": false,
+            "is_terminal": true,
+            "rejects_old_epoch": true,
+            "endpoint_fence_enforced": true,
+            "last_accepted_sequence": 12,
+            "last_retired_sequence": 12,
+            "outstanding_commands": 0,
+            "retention_bound_ms": 0,
+            "receiver_enforces_expiry": true,
+            "sequence_generation_id": "generation-1",
+            "accepted_sequence_generation_id": "generation-1",
+            "retired_sequence_generation_id": "generation-1"
+          }
         ],
         "edges": [
-          {"edge_id":"controller-driver","from_node_id":"controller","to_node_id":"driver","in_flight_messages":0,"no_future_old_epoch_enqueue":true,"transit_bound_ms":5,"preserves_original_age":true},
-          {"edge_id":"driver-actuator","from_node_id":"driver","to_node_id":"actuator","in_flight_messages":0,"no_future_old_epoch_enqueue":true,"transit_bound_ms":7,"preserves_original_age":true}
+          {
+            "edge_id": "controller-driver",
+            "from_node_id": "controller",
+            "to_node_id": "driver",
+            "in_flight_messages": 0,
+            "no_future_old_epoch_enqueue": true,
+            "transit_bound_ms": 5,
+            "preserves_original_age": true
+          },
+          {
+            "edge_id": "driver-actuator",
+            "from_node_id": "driver",
+            "to_node_id": "actuator",
+            "in_flight_messages": 0,
+            "no_future_old_epoch_enqueue": true,
+            "transit_bound_ms": 7,
+            "preserves_original_age": true
+          }
         ]
       }
     },
@@ -51,13 +109,71 @@
         "elapsed_since_ingress_fence_ms": 23,
         "invalidated": false,
         "nodes": [
-          {"node_id":"controller","is_ingress":true,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":2,"receiver_enforces_expiry":true},
-          {"node_id":"driver","is_ingress":false,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":1,"retention_bound_ms":3,"receiver_enforces_expiry":true},
-          {"node_id":"actuator","is_ingress":false,"is_terminal":true,"rejects_old_epoch":true,"endpoint_fence_enforced":true,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":0,"receiver_enforces_expiry":true}
+          {
+            "node_id": "controller",
+            "is_ingress": true,
+            "is_terminal": false,
+            "rejects_old_epoch": true,
+            "endpoint_fence_enforced": false,
+            "last_accepted_sequence": 12,
+            "last_retired_sequence": 12,
+            "outstanding_commands": 0,
+            "retention_bound_ms": 2,
+            "receiver_enforces_expiry": true,
+            "sequence_generation_id": "generation-1",
+            "accepted_sequence_generation_id": "generation-1",
+            "retired_sequence_generation_id": "generation-1"
+          },
+          {
+            "node_id": "driver",
+            "is_ingress": false,
+            "is_terminal": false,
+            "rejects_old_epoch": true,
+            "endpoint_fence_enforced": false,
+            "last_accepted_sequence": 12,
+            "last_retired_sequence": 12,
+            "outstanding_commands": 1,
+            "retention_bound_ms": 3,
+            "receiver_enforces_expiry": true,
+            "sequence_generation_id": "generation-1",
+            "accepted_sequence_generation_id": "generation-1",
+            "retired_sequence_generation_id": "generation-1"
+          },
+          {
+            "node_id": "actuator",
+            "is_ingress": false,
+            "is_terminal": true,
+            "rejects_old_epoch": true,
+            "endpoint_fence_enforced": true,
+            "last_accepted_sequence": 12,
+            "last_retired_sequence": 12,
+            "outstanding_commands": 0,
+            "retention_bound_ms": 0,
+            "receiver_enforces_expiry": true,
+            "sequence_generation_id": "generation-1",
+            "accepted_sequence_generation_id": "generation-1",
+            "retired_sequence_generation_id": "generation-1"
+          }
         ],
         "edges": [
-          {"edge_id":"controller-driver","from_node_id":"controller","to_node_id":"driver","in_flight_messages":1,"no_future_old_epoch_enqueue":false,"transit_bound_ms":5,"preserves_original_age":true},
-          {"edge_id":"driver-actuator","from_node_id":"driver","to_node_id":"actuator","in_flight_messages":0,"no_future_old_epoch_enqueue":true,"transit_bound_ms":7,"preserves_original_age":true}
+          {
+            "edge_id": "controller-driver",
+            "from_node_id": "controller",
+            "to_node_id": "driver",
+            "in_flight_messages": 1,
+            "no_future_old_epoch_enqueue": false,
+            "transit_bound_ms": 5,
+            "preserves_original_age": true
+          },
+          {
+            "edge_id": "driver-actuator",
+            "from_node_id": "driver",
+            "to_node_id": "actuator",
+            "in_flight_messages": 0,
+            "no_future_old_epoch_enqueue": true,
+            "transit_bound_ms": 7,
+            "preserves_original_age": true
+          }
         ]
       }
     },
@@ -81,13 +197,71 @@
         "elapsed_since_ingress_fence_ms": 999999999,
         "invalidated": false,
         "nodes": [
-          {"node_id":"controller","is_ingress":true,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":2,"receiver_enforces_expiry":true},
-          {"node_id":"driver","is_ingress":false,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":1,"retention_bound_ms":3,"receiver_enforces_expiry":true},
-          {"node_id":"actuator","is_ingress":false,"is_terminal":true,"rejects_old_epoch":true,"endpoint_fence_enforced":true,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":0,"receiver_enforces_expiry":true}
+          {
+            "node_id": "controller",
+            "is_ingress": true,
+            "is_terminal": false,
+            "rejects_old_epoch": true,
+            "endpoint_fence_enforced": false,
+            "last_accepted_sequence": 12,
+            "last_retired_sequence": 12,
+            "outstanding_commands": 0,
+            "retention_bound_ms": 2,
+            "receiver_enforces_expiry": true,
+            "sequence_generation_id": "generation-1",
+            "accepted_sequence_generation_id": "generation-1",
+            "retired_sequence_generation_id": "generation-1"
+          },
+          {
+            "node_id": "driver",
+            "is_ingress": false,
+            "is_terminal": false,
+            "rejects_old_epoch": true,
+            "endpoint_fence_enforced": false,
+            "last_accepted_sequence": 12,
+            "last_retired_sequence": 12,
+            "outstanding_commands": 1,
+            "retention_bound_ms": 3,
+            "receiver_enforces_expiry": true,
+            "sequence_generation_id": "generation-1",
+            "accepted_sequence_generation_id": "generation-1",
+            "retired_sequence_generation_id": "generation-1"
+          },
+          {
+            "node_id": "actuator",
+            "is_ingress": false,
+            "is_terminal": true,
+            "rejects_old_epoch": true,
+            "endpoint_fence_enforced": true,
+            "last_accepted_sequence": 12,
+            "last_retired_sequence": 12,
+            "outstanding_commands": 0,
+            "retention_bound_ms": 0,
+            "receiver_enforces_expiry": true,
+            "sequence_generation_id": "generation-1",
+            "accepted_sequence_generation_id": "generation-1",
+            "retired_sequence_generation_id": "generation-1"
+          }
         ],
         "edges": [
-          {"edge_id":"controller-driver","from_node_id":"controller","to_node_id":"driver","in_flight_messages":1,"no_future_old_epoch_enqueue":false,"transit_bound_ms":null,"preserves_original_age":true},
-          {"edge_id":"driver-actuator","from_node_id":"driver","to_node_id":"actuator","in_flight_messages":0,"no_future_old_epoch_enqueue":true,"transit_bound_ms":7,"preserves_original_age":true}
+          {
+            "edge_id": "controller-driver",
+            "from_node_id": "controller",
+            "to_node_id": "driver",
+            "in_flight_messages": 1,
+            "no_future_old_epoch_enqueue": false,
+            "transit_bound_ms": null,
+            "preserves_original_age": true
+          },
+          {
+            "edge_id": "driver-actuator",
+            "from_node_id": "driver",
+            "to_node_id": "actuator",
+            "in_flight_messages": 0,
+            "no_future_old_epoch_enqueue": true,
+            "transit_bound_ms": 7,
+            "preserves_original_age": true
+          }
         ]
       }
     },
@@ -111,13 +285,71 @@
         "elapsed_since_ingress_fence_ms": 999999999,
         "invalidated": false,
         "nodes": [
-          {"node_id":"controller","is_ingress":true,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":2,"receiver_enforces_expiry":true},
-          {"node_id":"driver","is_ingress":false,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":1,"retention_bound_ms":3,"receiver_enforces_expiry":true},
-          {"node_id":"actuator","is_ingress":false,"is_terminal":true,"rejects_old_epoch":true,"endpoint_fence_enforced":true,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":0,"receiver_enforces_expiry":true}
+          {
+            "node_id": "controller",
+            "is_ingress": true,
+            "is_terminal": false,
+            "rejects_old_epoch": true,
+            "endpoint_fence_enforced": false,
+            "last_accepted_sequence": 12,
+            "last_retired_sequence": 12,
+            "outstanding_commands": 0,
+            "retention_bound_ms": 2,
+            "receiver_enforces_expiry": true,
+            "sequence_generation_id": "generation-1",
+            "accepted_sequence_generation_id": "generation-1",
+            "retired_sequence_generation_id": "generation-1"
+          },
+          {
+            "node_id": "driver",
+            "is_ingress": false,
+            "is_terminal": false,
+            "rejects_old_epoch": true,
+            "endpoint_fence_enforced": false,
+            "last_accepted_sequence": 12,
+            "last_retired_sequence": 12,
+            "outstanding_commands": 1,
+            "retention_bound_ms": 3,
+            "receiver_enforces_expiry": true,
+            "sequence_generation_id": "generation-1",
+            "accepted_sequence_generation_id": "generation-1",
+            "retired_sequence_generation_id": "generation-1"
+          },
+          {
+            "node_id": "actuator",
+            "is_ingress": false,
+            "is_terminal": true,
+            "rejects_old_epoch": true,
+            "endpoint_fence_enforced": true,
+            "last_accepted_sequence": 12,
+            "last_retired_sequence": 12,
+            "outstanding_commands": 0,
+            "retention_bound_ms": 0,
+            "receiver_enforces_expiry": true,
+            "sequence_generation_id": "generation-1",
+            "accepted_sequence_generation_id": "generation-1",
+            "retired_sequence_generation_id": "generation-1"
+          }
         ],
         "edges": [
-          {"edge_id":"controller-driver","from_node_id":"controller","to_node_id":"driver","in_flight_messages":1,"no_future_old_epoch_enqueue":false,"transit_bound_ms":5,"preserves_original_age":false},
-          {"edge_id":"driver-actuator","from_node_id":"driver","to_node_id":"actuator","in_flight_messages":0,"no_future_old_epoch_enqueue":true,"transit_bound_ms":7,"preserves_original_age":true}
+          {
+            "edge_id": "controller-driver",
+            "from_node_id": "controller",
+            "to_node_id": "driver",
+            "in_flight_messages": 1,
+            "no_future_old_epoch_enqueue": false,
+            "transit_bound_ms": 5,
+            "preserves_original_age": false
+          },
+          {
+            "edge_id": "driver-actuator",
+            "from_node_id": "driver",
+            "to_node_id": "actuator",
+            "in_flight_messages": 0,
+            "no_future_old_epoch_enqueue": true,
+            "transit_bound_ms": 7,
+            "preserves_original_age": true
+          }
         ]
       }
     },
@@ -141,13 +373,71 @@
         "elapsed_since_ingress_fence_ms": 999999999,
         "invalidated": false,
         "nodes": [
-          {"node_id":"controller","is_ingress":true,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":2,"receiver_enforces_expiry":true},
-          {"node_id":"driver","is_ingress":false,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":1,"retention_bound_ms":3,"receiver_enforces_expiry":true},
-          {"node_id":"actuator","is_ingress":false,"is_terminal":true,"rejects_old_epoch":true,"endpoint_fence_enforced":true,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":0,"receiver_enforces_expiry":true}
+          {
+            "node_id": "controller",
+            "is_ingress": true,
+            "is_terminal": false,
+            "rejects_old_epoch": true,
+            "endpoint_fence_enforced": false,
+            "last_accepted_sequence": 12,
+            "last_retired_sequence": 12,
+            "outstanding_commands": 0,
+            "retention_bound_ms": 2,
+            "receiver_enforces_expiry": true,
+            "sequence_generation_id": "generation-1",
+            "accepted_sequence_generation_id": "generation-1",
+            "retired_sequence_generation_id": "generation-1"
+          },
+          {
+            "node_id": "driver",
+            "is_ingress": false,
+            "is_terminal": false,
+            "rejects_old_epoch": true,
+            "endpoint_fence_enforced": false,
+            "last_accepted_sequence": 12,
+            "last_retired_sequence": 12,
+            "outstanding_commands": 1,
+            "retention_bound_ms": 3,
+            "receiver_enforces_expiry": true,
+            "sequence_generation_id": "generation-1",
+            "accepted_sequence_generation_id": "generation-1",
+            "retired_sequence_generation_id": "generation-1"
+          },
+          {
+            "node_id": "actuator",
+            "is_ingress": false,
+            "is_terminal": true,
+            "rejects_old_epoch": true,
+            "endpoint_fence_enforced": true,
+            "last_accepted_sequence": 12,
+            "last_retired_sequence": 12,
+            "outstanding_commands": 0,
+            "retention_bound_ms": 0,
+            "receiver_enforces_expiry": true,
+            "sequence_generation_id": "generation-1",
+            "accepted_sequence_generation_id": "generation-1",
+            "retired_sequence_generation_id": "generation-1"
+          }
         ],
         "edges": [
-          {"edge_id":"controller-driver","from_node_id":"controller","to_node_id":"driver","in_flight_messages":1,"no_future_old_epoch_enqueue":false,"transit_bound_ms":5,"preserves_original_age":true},
-          {"edge_id":"driver-actuator","from_node_id":"driver","to_node_id":"actuator","in_flight_messages":0,"no_future_old_epoch_enqueue":true,"transit_bound_ms":7,"preserves_original_age":true}
+          {
+            "edge_id": "controller-driver",
+            "from_node_id": "controller",
+            "to_node_id": "driver",
+            "in_flight_messages": 1,
+            "no_future_old_epoch_enqueue": false,
+            "transit_bound_ms": 5,
+            "preserves_original_age": true
+          },
+          {
+            "edge_id": "driver-actuator",
+            "from_node_id": "driver",
+            "to_node_id": "actuator",
+            "in_flight_messages": 0,
+            "no_future_old_epoch_enqueue": true,
+            "transit_bound_ms": 7,
+            "preserves_original_age": true
+          }
         ]
       }
     },
@@ -171,13 +461,71 @@
         "elapsed_since_ingress_fence_ms": 0,
         "invalidated": false,
         "nodes": [
-          {"node_id":"controller","is_ingress":true,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":2,"receiver_enforces_expiry":true},
-          {"node_id":"driver","is_ingress":false,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":3,"receiver_enforces_expiry":true},
-          {"node_id":"actuator","is_ingress":false,"is_terminal":true,"rejects_old_epoch":true,"endpoint_fence_enforced":true,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":0,"receiver_enforces_expiry":true}
+          {
+            "node_id": "controller",
+            "is_ingress": true,
+            "is_terminal": false,
+            "rejects_old_epoch": true,
+            "endpoint_fence_enforced": false,
+            "last_accepted_sequence": 12,
+            "last_retired_sequence": 12,
+            "outstanding_commands": 0,
+            "retention_bound_ms": 2,
+            "receiver_enforces_expiry": true,
+            "sequence_generation_id": "generation-1",
+            "accepted_sequence_generation_id": "generation-1",
+            "retired_sequence_generation_id": "generation-1"
+          },
+          {
+            "node_id": "driver",
+            "is_ingress": false,
+            "is_terminal": false,
+            "rejects_old_epoch": true,
+            "endpoint_fence_enforced": false,
+            "last_accepted_sequence": 12,
+            "last_retired_sequence": 12,
+            "outstanding_commands": 0,
+            "retention_bound_ms": 3,
+            "receiver_enforces_expiry": true,
+            "sequence_generation_id": "generation-1",
+            "accepted_sequence_generation_id": "generation-1",
+            "retired_sequence_generation_id": "generation-1"
+          },
+          {
+            "node_id": "actuator",
+            "is_ingress": false,
+            "is_terminal": true,
+            "rejects_old_epoch": true,
+            "endpoint_fence_enforced": true,
+            "last_accepted_sequence": 12,
+            "last_retired_sequence": 12,
+            "outstanding_commands": 0,
+            "retention_bound_ms": 0,
+            "receiver_enforces_expiry": true,
+            "sequence_generation_id": "generation-1",
+            "accepted_sequence_generation_id": "generation-1",
+            "retired_sequence_generation_id": "generation-1"
+          }
         ],
         "edges": [
-          {"edge_id":"controller-driver","from_node_id":"controller","to_node_id":"driver","in_flight_messages":0,"no_future_old_epoch_enqueue":true,"transit_bound_ms":5,"preserves_original_age":true},
-          {"edge_id":"driver-actuator","from_node_id":"driver","to_node_id":"actuator","in_flight_messages":0,"no_future_old_epoch_enqueue":true,"transit_bound_ms":7,"preserves_original_age":true}
+          {
+            "edge_id": "controller-driver",
+            "from_node_id": "controller",
+            "to_node_id": "driver",
+            "in_flight_messages": 0,
+            "no_future_old_epoch_enqueue": true,
+            "transit_bound_ms": 5,
+            "preserves_original_age": true
+          },
+          {
+            "edge_id": "driver-actuator",
+            "from_node_id": "driver",
+            "to_node_id": "actuator",
+            "in_flight_messages": 0,
+            "no_future_old_epoch_enqueue": true,
+            "transit_bound_ms": 7,
+            "preserves_original_age": true
+          }
         ]
       }
     }
