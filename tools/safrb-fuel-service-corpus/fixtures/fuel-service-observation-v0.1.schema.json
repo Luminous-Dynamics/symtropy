@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/safrb-fuel-service-observation-v0.1.schema.json",
+  "title": "SAFRB planner-visible fuel-to-service observation v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "recordKind", "caseId", "archetype", "seed", "scenarioStartUnixS", "horizonHours", "evidenceMaturity", "inventoryObservation", "transportCapability", "conversionCapability", "generatorCapability", "serviceRequirement"],
+  "properties": {
+    "schemaVersion": { "const": "0.1.0" },
+    "recordKind": { "const": "planner_observation" },
+    "caseId": { "type": "string", "pattern": "^safrb-fuel-v0\\.1-" },
+    "archetype": { "enum": ["baseline-all-paths", "crude-cargo-delay", "refined-diesel-cargo-delay", "tank-quality-quarantine", "tank-gauge-uncertainty", "pump-pipeline-failure", "berth-discharge-restriction", "refinery-process-trip", "generator-derating", "generator-fuel-grade-mismatch", "grid-islanded-backup-constraint", "common-cause-supplier-port-grid-comms"] },
+    "seed": { "type": "integer", "minimum": 0 },
+    "scenarioStartUnixS": { "type": "integer", "minimum": 0 },
+    "horizonHours": { "const": 72 },
+    "evidenceMaturity": { "const": "synthetic_fixture" },
+    "inventoryObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["product", "measurementUncertaintyBasisPoints", "observedLowerGrams", "observedUpperGrams", "quarantinedGrams", "operatingHeelGrams", "encumberedGrams", "authorityAvailable"],
+      "properties": {
+        "product": { "enum": ["crude_oil", "diesel"] },
+        "measurementUncertaintyBasisPoints": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "observedLowerGrams": { "type": "integer", "minimum": 0 },
+        "observedUpperGrams": { "type": "integer", "minimum": 0 },
+        "quarantinedGrams": { "type": "integer", "minimum": 0 },
+        "operatingHeelGrams": { "type": "integer", "minimum": 0 },
+        "encumberedGrams": { "type": "integer", "minimum": 0 },
+        "authorityAvailable": { "type": "boolean" }
+      }
+    },
+    "transportCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cargoArrivalHour", "transitDelayHours", "primaryCapacityGramsPerHour", "alternateCapacityGramsPerHour", "effectiveCapacityGramsPerHour", "commonCauseGroup"],
+      "properties": {
+        "cargoArrivalHour": { "type": "integer", "minimum": 0 },
+        "transitDelayHours": { "type": "integer", "minimum": 0, "maximum": 72 },
+        "primaryCapacityGramsPerHour": { "type": "integer", "minimum": 0 },
+        "alternateCapacityGramsPerHour": { "type": "integer", "minimum": 0 },
+        "effectiveCapacityGramsPerHour": { "type": "integer", "minimum": 0 },
+        "commonCauseGroup": { "type": "string", "minLength": 1 }
+      }
+    },
+    "conversionCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inputProduct", "outputProduct", "processCapacityGrams", "yieldBasisPoints", "processModelId"],
+      "properties": {
+        "inputProduct": { "enum": ["crude_oil", "diesel"] },
+        "outputProduct": { "const": "diesel" },
+        "processCapacityGrams": { "type": "integer", "minimum": 0 },
+        "yieldBasisPoints": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "processModelId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "generatorCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fuelGradeCompatible", "syntheticLhvMilliWhPerGram", "efficiencyBasisPoints", "ratedPowerCapacityKw", "derateBasisPoints", "networkDeliveryBasisPoints"],
+      "properties": {
+        "fuelGradeCompatible": { "type": "boolean" },
+        "syntheticLhvMilliWhPerGram": { "type": "integer", "minimum": 0 },
+        "efficiencyBasisPoints": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "ratedPowerCapacityKw": { "type": "integer", "minimum": 0 },
+        "derateBasisPoints": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "networkDeliveryBasisPoints": { "type": "integer", "minimum": 0, "maximum": 10000 }
+      }
+    },
+    "serviceRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["demandWh", "criticalFloorWh", "telemetryState"],
+      "properties": {
+        "demandWh": { "type": "integer", "minimum": 1 },
+        "criticalFloorWh": { "type": "integer", "minimum": 1 },
+        "telemetryState": { "enum": ["fresh_synthetic", "stale_or_conflicting"] }
+      }
+    }
+  }
+}
