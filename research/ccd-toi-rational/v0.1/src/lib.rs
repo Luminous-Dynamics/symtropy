@@ -570,7 +570,11 @@ mod tests {
         .unwrap();
         assert_eq!(exact.counts.point_exact_matches, 1);
         assert_eq!(exact.counts.interval_claims, 0);
-        assert_eq!(exact.counts.interval_enclosure_basis_points(), None);
+        assert_eq!(exact.counts.interval_enclosure_basis_points(), Some(0));
+        assert_eq!(
+            exact.counts.interval_conditional_enclosure_basis_points(),
+            None
+        );
         assert!(exact.counts.toi_claims_qualified());
 
         let miss = evaluate_toi(&[ToiEvaluation::new(
