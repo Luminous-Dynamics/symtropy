@@ -45,11 +45,11 @@ jobs:
           SAFE_CONFLICT="$ROOT/InjectorLedgerLinearizability_SafeConflict.cfg"
           UNSAFE_RACE="$ROOT/InjectorLedgerLinearizability_UnsafeNonAtomic.cfg"
           UNSAFE_REPLAY="$ROOT/InjectorLedgerLinearizability_UnsafeReplay.cfg"
-          printf '%s  %s\n' "ec8e7dd3d18134281ca73fe94dad5fe3bfc558d757b11fe48be5e14212a9a109" "$MODEL" | sha256sum --check
-          printf '%s  %s\n' "f48669a2ff1b2b01e541f2d228f517165916e0b937225f71e7e892faa3e82d0d" "$SAFE_SAME" | sha256sum --check
-          printf '%s  %s\n' "c071c5cc0d84754f02e9664660d2f04c773a4aa27a54a33badb79f800bd5ac1b" "$SAFE_CONFLICT" | sha256sum --check
-          printf '%s  %s\n' "034108cecdb6aa90586ae3f9d9800e71bb39cd62b196119106fa22e1995dc739" "$UNSAFE_RACE" | sha256sum --check
-          printf '%s  %s\n' "b53880e69835946abdf4d941ea3ba076145aa7b9f44dd2bc5f0953a58262f3ac" "$UNSAFE_REPLAY" | sha256sum --check
+          printf '%s  %s\n' "6b8528978a7b2b2fc7e3086f9884ac2c5f77ebfac2c957b6f6ea5b7cbf15db21" "$MODEL" | sha256sum --check
+          printf '%s  %s\n' "cfde6d61c321d61659deff783c136f1a4d42149ca699d465a3affffd79c7db27" "$SAFE_SAME" | sha256sum --check
+          printf '%s  %s\n' "525dc2155c90cafd3a339df2f96eb1727d2758e1750a0cd50e4457965c78f3bd" "$SAFE_CONFLICT" | sha256sum --check
+          printf '%s  %s\n' "d119b14f2fa31edbd7da336039fefd55f11efd11cb57c8e5d79f28665a99b3e9" "$UNSAFE_RACE" | sha256sum --check
+          printf '%s  %s\n' "061ef7afbf4fae4dcfbea048fb298becf06965788529eb6a4143b4dab918ef37" "$UNSAFE_REPLAY" | sha256sum --check
 
       - name: Validate injector-ledger race catalogue
         shell: bash
