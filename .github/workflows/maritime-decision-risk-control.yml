@@ -172,15 +172,22 @@ jobs:
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin cross-standard-mapping-audit > /tmp/cross-standard-mapping.csv
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin cross-standard-mapping-audit > /tmp/cross-standard-mapping-replay.csv
           cmp /tmp/cross-standard-mapping.csv /tmp/cross-standard-mapping-replay.csv
-          test "$(wc -l < /tmp/cross-standard-mapping.csv)" -eq 11
-          head -n 1 /tmp/cross-standard-mapping.csv | awk -F, '{ if (NF != 7) exit 1 }'
-          awk -F, 'NF != 7 { exit 1 }' /tmp/cross-standard-mapping.csv
+          test "$(wc -l < /tmp/cross-standard-mapping.csv)" -eq 18
+          head -n 1 /tmp/cross-standard-mapping.csv | awk -F, '{ if (NF != 9) exit 1 }'
+          awk -F, 'NF != 9 { exit 1 }' /tmp/cross-standard-mapping.csv
           grep -q "DCSA_CLASSIFIER_CANNOT_MAP_TO_BIZSTEP" /tmp/cross-standard-mapping.csv
           grep -q "DCSA_CLASSIFIER_CANNOT_MAP_TO_DISPOSITION" /tmp/cross-standard-mapping.csv
           grep -q "CONTEXTUAL" /tmp/cross-standard-mapping.csv
           grep -q "LOSSY" /tmp/cross-standard-mapping.csv
           grep -q "NONEXACT_MAPPING_CLAIMS_REVERSIBILITY" /tmp/cross-standard-mapping.csv
           grep -q "INVALID_SOURCE_PAYLOAD_DIGEST" /tmp/cross-standard-mapping.csv
+          grep -q "MAPPING_RULE_NOT_APPROVED" /tmp/cross-standard-mapping.csv
+          grep -q "INVALID_TARGET_VOCABULARY_VALUE" /tmp/cross-standard-mapping.csv
+          grep -q "EXACT_MAPPING_VALUE_CHANGED" /tmp/cross-standard-mapping.csv
+          grep -q "SOURCE_SUBJECT_IDENTITY_MISSING" /tmp/cross-standard-mapping.csv
+          grep -q "SOURCE_PAYLOAD_REFERENCE_MISSING" /tmp/cross-standard-mapping.csv
+          grep -q "SOURCE_PAYLOAD_REFERENCE_MISMATCH" /tmp/cross-standard-mapping.csv
+          grep -q "MAPPING_BUNDLE_REFERENCE_MISMATCH" /tmp/cross-standard-mapping.csv
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin epcis-correction-audit > /tmp/epcis-corrections.csv
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin epcis-correction-audit > /tmp/epcis-corrections-replay.csv
           cmp /tmp/epcis-corrections.csv /tmp/epcis-corrections-replay.csv
