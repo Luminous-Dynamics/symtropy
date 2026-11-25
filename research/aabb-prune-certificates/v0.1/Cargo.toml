@@ -1,0 +1,12 @@
+[package]
+name = "aabb-prune-certificates"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Proof-carrying AABB disjointness checks for collision culling research"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
