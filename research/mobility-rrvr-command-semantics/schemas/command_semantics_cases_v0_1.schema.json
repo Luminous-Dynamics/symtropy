@@ -153,6 +153,12 @@
         },
         "downstream_queue_reconciliation_required": {
           "type": "boolean"
+        },
+        "device_model": {
+          "$ref": "#/$defs/identifier"
+        },
+        "endpoint_revision": {
+          "$ref": "#/$defs/identifier"
         }
       }
     },
