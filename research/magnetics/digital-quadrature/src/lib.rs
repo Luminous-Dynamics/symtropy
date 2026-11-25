@@ -152,6 +152,9 @@ pub struct QuadratureMetrics {
 pub struct SensorEvaluation {
     pub trace_id: String,
     pub sensor_configuration_id: String,
+    pub coordinate_frame_id: String,
+    pub operating_condition_id: String,
+    pub angular_grid_id: String,
     pub pole_pairs: u32,
     pub architecture: SensorArchitecture,
     pub start_angle_rad: f64,
@@ -191,6 +194,71 @@ pub struct ScenarioSetMetrics {
     pub scenarios: Vec<ScenarioResult>,
 }
 
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct CapturedQuadratureEdge {
+    /// Independent acquisition timestamp, in nanoseconds.
+    pub timestamp_ns: u64,
+    /// Rotor mechanical angle at the captured edge from the independent reference.
+    pub mechanical_angle_rad: f64,
+    /// Observed A/B state immediately after this edge.
+    pub state_after: QuadratureState,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CapturedQuadratureTrace {
+    pub capture_id: String,
+    pub source_field_trace_id: String,
+    pub sensor_part_id: String,
+    pub sensor_datasheet_revision: String,
+    pub channel_mapping_id: String,
+    pub sensor_configuration_id: String,
+    pub coordinate_frame_id: String,
+    pub operating_condition_id: String,
+    pub rotor_reference_record_id: String,
+    pub clock_calibration_record_id: String,
+    pub synchronization_record_id: String,
+    pub latency_calibration_record_id: String,
+    /// Signed correction already applied to the reference/capture alignment.
+    pub latency_correction_applied_ns: i64,
+    pub latency_standard_uncertainty_ns: f64,
+    pub clock_standard_uncertainty_ns: f64,
+    pub rotor_angle_standard_uncertainty_rad: f64,
+    pub start_angle_rad: f64,
+    pub end_angle_rad: f64,
+    pub initial_state: QuadratureState,
+    pub transitions: Vec<CapturedQuadratureEdge>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CaptureReconciliationMetrics {
+    pub capture_id: String,
+    pub source_field_trace_id: String,
+    pub sensor_part_id: String,
+    pub sensor_configuration_id: String,
+    pub predicted_transition_count: usize,
+    pub captured_transition_count: usize,
+    pub missing_captured_transition_count: usize,
+    pub extra_captured_transition_count: usize,
+    pub initial_state_match: bool,
+    pub captured_illegal_two_bit_transition_count: usize,
+    pub state_after_mismatch_count: usize,
+    pub direction_mismatch_count: usize,
+    pub captured_edges_inside_predicted_bracket_count: usize,
+    pub captured_edges_outside_predicted_bracket_count: usize,
+    pub maximum_angle_distance_to_predicted_bracket_rad: Option<f64>,
+    pub maximum_absolute_midpoint_residual_rad: Option<f64>,
+    pub mean_signed_midpoint_residual_rad: Option<f64>,
+    pub minimum_captured_edge_interval_ns: Option<u64>,
+    pub maximum_captured_edge_interval_ns: Option<u64>,
+    pub latency_correction_applied_ns: i64,
+    pub latency_standard_uncertainty_ns: f64,
+    pub clock_standard_uncertainty_ns: f64,
+    pub rotor_angle_standard_uncertainty_rad: f64,
+    /// Exact transition/state correspondence and bracket inclusion, not a physical qualification.
+    pub state_sequence_and_bracket_match: bool,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EvaluationError {
     InvalidMetadata,
@@ -217,6 +285,18 @@ pub enum EvaluationError {
     ScenarioFrameMismatch,
     ScenarioGridMismatch,
     ScenarioGridCoordinatesMismatch,
+    InvalidCaptureMetadata,
+    CaptureFieldTraceIdentityMismatch,
+    CaptureSensorConfigurationMismatch,
+    CaptureFrameMismatch,
+    CaptureOperatingConditionMismatch,
+    CaptureAngleWindowMismatch,
+    NonFiniteCapturedAngle { index: usize },
+    CapturedAngleOutOfWindow { index: usize },
+    NonMonotonicCapturedAngle { index: usize },
+    NonMonotonicCapturedTimestamp { index: usize },
+    CapturedNoStateChange { index: usize },
+    InvalidCaptureUncertainty,
 }
 
 fn nonempty(value: &str) -> bool {
@@ -413,6 +493,226 @@ pub fn evaluate_scenario_set(
         worst_spacing_error_upper_bound_rad,
         worst_transition_bracket_rad,
         scenarios,
+    })
+}
+
+
+/// Reconcile a timestamped hardware A/B capture against predicted Hall-latch
+/// transitions. The capture has its own identity and independent rotor/clock
+/// calibration provenance; it is not a magnetic field trace.
+///
+/// Captured edge angles are compared with the predicted field-sample brackets.
+/// No silent stream shifting, transition deletion or sub-sample interpolation is
+/// performed. The supplied angle values must already reflect the declared
+/// synchronization/latency correction; the correction and uncertainty are
+/// preserved in the output rather than being guessed or applied here.
+pub fn reconcile_captured_output(
+    predicted: &SensorEvaluation,
+    capture: &CapturedQuadratureTrace,
+) -> Result<CaptureReconciliationMetrics, EvaluationError> {
+    let required_ids = [
+        capture.capture_id.as_str(),
+        capture.source_field_trace_id.as_str(),
+        capture.sensor_part_id.as_str(),
+        capture.sensor_datasheet_revision.as_str(),
+        capture.channel_mapping_id.as_str(),
+        capture.sensor_configuration_id.as_str(),
+        capture.coordinate_frame_id.as_str(),
+        capture.operating_condition_id.as_str(),
+        capture.rotor_reference_record_id.as_str(),
+        capture.clock_calibration_record_id.as_str(),
+        capture.synchronization_record_id.as_str(),
+        capture.latency_calibration_record_id.as_str(),
+    ];
+    if required_ids.into_iter().any(|value| !nonempty(value)) {
+        return Err(EvaluationError::InvalidCaptureMetadata);
+    }
+
+    if capture.source_field_trace_id != predicted.trace_id {
+        return Err(EvaluationError::CaptureFieldTraceIdentityMismatch);
+    }
+    if capture.sensor_configuration_id != predicted.sensor_configuration_id {
+        return Err(EvaluationError::CaptureSensorConfigurationMismatch);
+    }
+    if capture.coordinate_frame_id != predicted.coordinate_frame_id {
+        return Err(EvaluationError::CaptureFrameMismatch);
+    }
+    if capture.operating_condition_id != predicted.operating_condition_id {
+        return Err(EvaluationError::CaptureOperatingConditionMismatch);
+    }
+
+    if !capture.start_angle_rad.is_finite()
+        || !capture.end_angle_rad.is_finite()
+        || (capture.start_angle_rad - predicted.start_angle_rad).abs() > ANGLE_TOLERANCE_RAD
+        || (capture.end_angle_rad - predicted.end_angle_rad).abs() > ANGLE_TOLERANCE_RAD
+        || (capture.end_angle_rad - capture.start_angle_rad - TAU).abs()
+            > ANGLE_TOLERANCE_RAD
+    {
+        return Err(EvaluationError::CaptureAngleWindowMismatch);
+    }
+
+    if !capture.latency_standard_uncertainty_ns.is_finite()
+        || capture.latency_standard_uncertainty_ns < 0.0
+        || !capture.clock_standard_uncertainty_ns.is_finite()
+        || capture.clock_standard_uncertainty_ns < 0.0
+        || !capture.rotor_angle_standard_uncertainty_rad.is_finite()
+        || capture.rotor_angle_standard_uncertainty_rad < 0.0
+    {
+        return Err(EvaluationError::InvalidCaptureUncertainty);
+    }
+
+    let initial_state_match = capture.initial_state
+        == predicted
+            .transitions
+            .first()
+            .map_or_else(
+                || predicted.states.first().copied().unwrap_or(capture.initial_state),
+                |transition| transition.from,
+            );
+
+    let mut captured_illegal_two_bit_transition_count = 0_usize;
+    let mut previous_state = capture.initial_state;
+    let mut previous_timestamp = None::<u64>;
+    let mut previous_angle = None::<f64>;
+    let mut minimum_captured_edge_interval_ns = None::<u64>;
+    let mut maximum_captured_edge_interval_ns = None::<u64>;
+
+    for (index, edge) in capture.transitions.iter().enumerate() {
+        if !edge.mechanical_angle_rad.is_finite() {
+            return Err(EvaluationError::NonFiniteCapturedAngle { index });
+        }
+        if edge.mechanical_angle_rad <= capture.start_angle_rad
+            || edge.mechanical_angle_rad > capture.end_angle_rad
+        {
+            return Err(EvaluationError::CapturedAngleOutOfWindow { index });
+        }
+        if previous_angle.is_some_and(|previous| edge.mechanical_angle_rad <= previous) {
+            return Err(EvaluationError::NonMonotonicCapturedAngle { index });
+        }
+        if previous_timestamp.is_some_and(|previous| edge.timestamp_ns <= previous) {
+            return Err(EvaluationError::NonMonotonicCapturedTimestamp { index });
+        }
+        if edge.state_after == previous_state {
+            return Err(EvaluationError::CapturedNoStateChange { index });
+        }
+
+        let (_, illegal) = classify_transition(previous_state, edge.state_after);
+        if illegal {
+            captured_illegal_two_bit_transition_count += 1;
+        }
+        if let Some(previous) = previous_timestamp {
+            let interval = edge.timestamp_ns - previous;
+            minimum_captured_edge_interval_ns =
+                Some(minimum_captured_edge_interval_ns.map_or(interval, |value| value.min(interval)));
+            maximum_captured_edge_interval_ns =
+                Some(maximum_captured_edge_interval_ns.map_or(interval, |value| value.max(interval)));
+        }
+
+        previous_state = edge.state_after;
+        previous_timestamp = Some(edge.timestamp_ns);
+        previous_angle = Some(edge.mechanical_angle_rad);
+    }
+
+    let predicted_transition_count = predicted.transitions.len();
+    let captured_transition_count = capture.transitions.len();
+    let matched_count = predicted_transition_count.min(captured_transition_count);
+    let missing_captured_transition_count =
+        predicted_transition_count.saturating_sub(captured_transition_count);
+    let extra_captured_transition_count =
+        captured_transition_count.saturating_sub(predicted_transition_count);
+
+    let mut state_after_mismatch_count = 0_usize;
+    let mut direction_mismatch_count = 0_usize;
+    let mut captured_edges_inside_predicted_bracket_count = 0_usize;
+    let mut captured_edges_outside_predicted_bracket_count = 0_usize;
+    let mut maximum_angle_distance_to_predicted_bracket_rad = None::<f64>;
+    let mut maximum_absolute_midpoint_residual_rad = None::<f64>;
+    let mut signed_midpoint_residual_sum_rad = 0.0_f64;
+
+    for index in 0..matched_count {
+        let expected = &predicted.transitions[index];
+        let observed = &capture.transitions[index];
+
+        if observed.state_after != expected.to {
+            state_after_mismatch_count += 1;
+        }
+        let observed_previous = if index == 0 {
+            capture.initial_state
+        } else {
+            capture.transitions[index - 1].state_after
+        };
+        let (observed_direction, observed_illegal) =
+            classify_transition(observed_previous, observed.state_after);
+        if observed_illegal || observed_direction != expected.direction {
+            direction_mismatch_count += 1;
+        }
+
+        let inside = observed.mechanical_angle_rad >= expected.lower_angle_rad
+            && observed.mechanical_angle_rad <= expected.upper_angle_rad;
+        if inside {
+            captured_edges_inside_predicted_bracket_count += 1;
+        } else {
+            captured_edges_outside_predicted_bracket_count += 1;
+        }
+
+        let distance_to_bracket = if observed.mechanical_angle_rad < expected.lower_angle_rad {
+            expected.lower_angle_rad - observed.mechanical_angle_rad
+        } else if observed.mechanical_angle_rad > expected.upper_angle_rad {
+            observed.mechanical_angle_rad - expected.upper_angle_rad
+        } else {
+            0.0
+        };
+        maximum_angle_distance_to_predicted_bracket_rad = Some(
+            maximum_angle_distance_to_predicted_bracket_rad
+                .map_or(distance_to_bracket, |value| value.max(distance_to_bracket)),
+        );
+
+        let midpoint = (expected.lower_angle_rad + expected.upper_angle_rad) / 2.0;
+        let midpoint_residual = observed.mechanical_angle_rad - midpoint;
+        signed_midpoint_residual_sum_rad += midpoint_residual;
+        maximum_absolute_midpoint_residual_rad = Some(
+            maximum_absolute_midpoint_residual_rad
+                .map_or(midpoint_residual.abs(), |value| value.max(midpoint_residual.abs())),
+        );
+    }
+
+    let mean_signed_midpoint_residual_rad = (matched_count > 0).then_some(
+        signed_midpoint_residual_sum_rad / matched_count as f64,
+    );
+    let state_sequence_and_bracket_match = initial_state_match
+        && missing_captured_transition_count == 0
+        && extra_captured_transition_count == 0
+        && captured_illegal_two_bit_transition_count == 0
+        && state_after_mismatch_count == 0
+        && direction_mismatch_count == 0
+        && predicted.metrics.illegal_two_bit_transitions == 0
+        && captured_edges_outside_predicted_bracket_count == 0;
+
+    Ok(CaptureReconciliationMetrics {
+        capture_id: capture.capture_id.clone(),
+        source_field_trace_id: capture.source_field_trace_id.clone(),
+        sensor_part_id: capture.sensor_part_id.clone(),
+        sensor_configuration_id: capture.sensor_configuration_id.clone(),
+        predicted_transition_count,
+        captured_transition_count,
+        missing_captured_transition_count,
+        extra_captured_transition_count,
+        initial_state_match,
+        captured_illegal_two_bit_transition_count,
+        state_after_mismatch_count,
+        direction_mismatch_count,
+        captured_edges_inside_predicted_bracket_count,
+        captured_edges_outside_predicted_bracket_count,
+        maximum_angle_distance_to_predicted_bracket_rad,
+        maximum_absolute_midpoint_residual_rad,
+        mean_signed_midpoint_residual_rad,
+        minimum_captured_edge_interval_ns,
+        maximum_captured_edge_interval_ns,
+        latency_correction_applied_ns: capture.latency_correction_applied_ns,
+        latency_standard_uncertainty_ns: capture.latency_standard_uncertainty_ns,
+        clock_standard_uncertainty_ns: capture.clock_standard_uncertainty_ns,
+        rotor_angle_standard_uncertainty_rad: capture.rotor_angle_standard_uncertainty_rad,
+        state_sequence_and_bracket_match,
     })
 }
 
@@ -716,6 +1016,9 @@ pub fn evaluate_trace(
     Ok(SensorEvaluation {
         trace_id: trace.trace_id.clone(),
         sensor_configuration_id: config.configuration_id.clone(),
+        coordinate_frame_id: trace.coordinate_frame_id.clone(),
+        operating_condition_id: trace.operating_condition_id.clone(),
+        angular_grid_id: trace.angular_grid_id.clone(),
         pole_pairs: config.pole_pairs,
         architecture: config.architecture,
         start_angle_rad: start_angle,
@@ -1176,6 +1479,163 @@ mod tests {
             evaluate_scenario_set("empty-set", &[], config(1)),
             Err(EvaluationError::EmptyScenarioSet)
         );
+    }
+
+
+    fn captured_trace_from_prediction(
+        prediction: &SensorEvaluation,
+    ) -> CapturedQuadratureTrace {
+        CapturedQuadratureTrace {
+            capture_id: "logic-analyzer-capture-001".to_owned(),
+            source_field_trace_id: prediction.trace_id.clone(),
+            sensor_part_id: "TMAG5111-EVM-001".to_owned(),
+            sensor_datasheet_revision: "TMAG5111-datasheet-rev-pinned".to_owned(),
+            channel_mapping_id: "A-to-CH1-B-to-CH2".to_owned(),
+            sensor_configuration_id: prediction.sensor_configuration_id.clone(),
+            coordinate_frame_id: prediction.coordinate_frame_id.clone(),
+            operating_condition_id: prediction.operating_condition_id.clone(),
+            rotor_reference_record_id: "rotary-reference-cal-001".to_owned(),
+            clock_calibration_record_id: "daq-clock-cal-001".to_owned(),
+            synchronization_record_id: "daq-rotor-sync-001".to_owned(),
+            latency_calibration_record_id: "sensor-latency-cal-001".to_owned(),
+            latency_correction_applied_ns: 1200,
+            latency_standard_uncertainty_ns: 50.0,
+            clock_standard_uncertainty_ns: 10.0,
+            rotor_angle_standard_uncertainty_rad: 1.0e-5,
+            start_angle_rad: prediction.start_angle_rad,
+            end_angle_rad: prediction.end_angle_rad,
+            initial_state: prediction.states[0],
+            transitions: prediction
+                .transitions
+                .iter()
+                .enumerate()
+                .map(|(index, transition)| CapturedQuadratureEdge {
+                    timestamp_ns: 1_000_000 + index as u64 * 100_000,
+                    mechanical_angle_rad: (transition.lower_angle_rad
+                        + transition.upper_angle_rad)
+                        / 2.0,
+                    state_after: transition.to,
+                })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn capture_reconciliation_accepts_exact_synthetic_edge_replay() {
+        let trace = sinusoidal_trace("predicted-field-trace-001", 10, 3601, 0.008, 1.0);
+        let prediction = evaluate_trace(&trace, config(10)).unwrap();
+        let capture = captured_trace_from_prediction(&prediction);
+
+        let metrics = reconcile_captured_output(&prediction, &capture).unwrap();
+
+        assert!(metrics.state_sequence_and_bracket_match);
+        assert_eq!(metrics.predicted_transition_count, 40);
+        assert_eq!(metrics.captured_transition_count, 40);
+        assert_eq!(metrics.captured_edges_inside_predicted_bracket_count, 40);
+        assert_eq!(metrics.captured_edges_outside_predicted_bracket_count, 0);
+        assert_eq!(metrics.latency_correction_applied_ns, 1200);
+    }
+
+    #[test]
+    fn capture_reconciliation_counts_missing_and_extra_edges() {
+        let trace = sinusoidal_trace("predicted-field-trace-counts", 2, 3601, 0.008, 1.0);
+        let prediction = evaluate_trace(&trace, config(2)).unwrap();
+        let mut capture = captured_trace_from_prediction(&prediction);
+        capture.transitions.pop();
+        capture.transitions.push(CapturedQuadratureEdge {
+            timestamp_ns: 9_000_000,
+            mechanical_angle_rad: prediction.end_angle_rad - 1.0e-5,
+            state_after: QuadratureState {
+                channel_a_high: !capture.transitions.last().unwrap().state_after.channel_a_high,
+                channel_b_high: capture.transitions.last().unwrap().state_after.channel_b_high,
+            },
+        });
+
+        let metrics = reconcile_captured_output(&prediction, &capture).unwrap();
+        assert_eq!(metrics.missing_captured_transition_count, 0);
+        assert_eq!(metrics.extra_captured_transition_count, 0);
+        assert!(!metrics.state_sequence_and_bracket_match);
+        assert!(metrics.state_after_mismatch_count > 0 || metrics.captured_edges_outside_predicted_bracket_count > 0);
+    }
+
+    #[test]
+    fn capture_reconciliation_detects_wrong_state_after_edge() {
+        let trace = sinusoidal_trace("predicted-field-trace-state", 1, 3601, 0.008, 1.0);
+        let prediction = evaluate_trace(&trace, config(1)).unwrap();
+        let mut capture = captured_trace_from_prediction(&prediction);
+        capture.transitions[0].state_after = QuadratureState {
+            channel_a_high: false,
+            channel_b_high: false,
+        };
+
+        let metrics = reconcile_captured_output(&prediction, &capture).unwrap();
+        assert!(metrics.state_after_mismatch_count > 0);
+        assert!(!metrics.state_sequence_and_bracket_match);
+    }
+
+    #[test]
+    fn capture_reconciliation_rejects_sensor_configuration_mismatch() {
+        let trace = sinusoidal_trace("predicted-field-trace-config", 1, 3601, 0.008, 1.0);
+        let prediction = evaluate_trace(&trace, config(1)).unwrap();
+        let mut capture = captured_trace_from_prediction(&prediction);
+        capture.sensor_configuration_id = "different-config".to_owned();
+
+        assert_eq!(
+            reconcile_captured_output(&prediction, &capture),
+            Err(EvaluationError::CaptureSensorConfigurationMismatch)
+        );
+    }
+
+    #[test]
+    fn capture_reconciliation_rejects_wrong_field_trace_and_condition() {
+        let trace = sinusoidal_trace("predicted-field-trace-identity", 1, 3601, 0.008, 1.0);
+        let prediction = evaluate_trace(&trace, config(1)).unwrap();
+        let mut capture = captured_trace_from_prediction(&prediction);
+        capture.source_field_trace_id = "other-trace".to_owned();
+        assert_eq!(
+            reconcile_captured_output(&prediction, &capture),
+            Err(EvaluationError::CaptureFieldTraceIdentityMismatch)
+        );
+
+        let mut condition_mismatch = captured_trace_from_prediction(&prediction);
+        condition_mismatch.operating_condition_id = "other-air-gap".to_owned();
+        assert_eq!(
+            reconcile_captured_output(&prediction, &condition_mismatch),
+            Err(EvaluationError::CaptureOperatingConditionMismatch)
+        );
+    }
+
+    #[test]
+    fn capture_reconciliation_rejects_nonmonotonic_timestamp_or_angle() {
+        let trace = sinusoidal_trace("predicted-field-trace-monotonic", 1, 3601, 0.008, 1.0);
+        let prediction = evaluate_trace(&trace, config(1)).unwrap();
+        let mut capture = captured_trace_from_prediction(&prediction);
+        capture.transitions[1].timestamp_ns = capture.transitions[0].timestamp_ns;
+        assert_eq!(
+            reconcile_captured_output(&prediction, &capture),
+            Err(EvaluationError::NonMonotonicCapturedTimestamp { index: 1 })
+        );
+
+        let mut angle_mismatch = captured_trace_from_prediction(&prediction);
+        angle_mismatch.transitions[1].mechanical_angle_rad =
+            angle_mismatch.transitions[0].mechanical_angle_rad;
+        assert_eq!(
+            reconcile_captured_output(&prediction, &angle_mismatch),
+            Err(EvaluationError::NonMonotonicCapturedAngle { index: 1 })
+        );
+    }
+
+    #[test]
+    fn capture_reconciliation_preserves_uncalibrated_latency_metadata() {
+        let trace = sinusoidal_trace("predicted-field-trace-latency", 1, 3601, 0.008, 1.0);
+        let prediction = evaluate_trace(&trace, config(1)).unwrap();
+        let mut capture = captured_trace_from_prediction(&prediction);
+        capture.latency_correction_applied_ns = -850;
+        capture.latency_standard_uncertainty_ns = 75.0;
+
+        let metrics = reconcile_captured_output(&prediction, &capture).unwrap();
+        assert_eq!(metrics.latency_correction_applied_ns, -850);
+        assert_eq!(metrics.latency_standard_uncertainty_ns, 75.0);
     }
 
     #[test]
