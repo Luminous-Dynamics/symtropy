@@ -60,6 +60,8 @@ Keep these independent:
 
 Do not compare a vector-sensor atan2 angle error with digital latch quadrature error or with an absolute on-axis encoder accuracy number.
 
+A machine-readable literature fixture now lives at `research/magnetics/digital-quadrature/fixtures/ti_sbaa449b_reference_v0_1.json`. It preserves the discrete-latch and integrated-2D design analyses separately from the TMAG5110 physical radial-position sweep. Approximate values are labelled as such; raw curve points have not yet been digitized.
+
 ## Evidence status
 
 - Latch / quadrature evaluator: authored; unit tests not yet run by CI.
