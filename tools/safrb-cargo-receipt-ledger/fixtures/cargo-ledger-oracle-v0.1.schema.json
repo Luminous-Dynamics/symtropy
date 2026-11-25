@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/safrb-cargo-ledger-oracle-v0.1.schema.json",
+  "title": "SAFRB oracle-only cargo receipt and availability truth v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion","recordKind","caseId","horizonHours","evidenceMaturity","receipts","qualityAssessments","authorizations","routes","transfers","fuelIssues","batchBalances","hourlyTrajectory"],
+  "properties": {
+    "schemaVersion": {"const":"0.1.0"},
+    "recordKind": {"const":"oracle_truth"},
+    "caseId": {"type":"string","minLength":1},
+    "horizonHours": {"const":72},
+    "evidenceMaturity": {"const":"synthetic_fixture"},
+    "receipts": {"type":"array"},
+    "qualityAssessments": {"type":"array"},
+    "authorizations": {"type":"array"},
+    "routes": {"type":"array"},
+    "transfers": {"type":"array"},
+    "fuelIssues": {"type":"array"},
+    "batchBalances": {"type":"array"},
+    "hourlyTrajectory": {"type":"array","minItems":72,"maxItems":72}
+  }
+}
