@@ -761,6 +761,120 @@ mod tests {
         }
     }
 
+    const FIVE_NODE_EDGE_COUNT: usize = 10;
+
+    fn permute_five(
+        values: &mut [u8; 5],
+        index: usize,
+        output: &mut Vec<[u8; 5]>,
+    ) {
+        if index == values.len() {
+            output.push(*values);
+            return;
+        }
+        for swap_index in index..values.len() {
+            values.swap(index, swap_index);
+            permute_five(values, index + 1, output);
+            values.swap(index, swap_index);
+        }
+    }
+
+    fn all_five_node_permutations() -> Vec<[u8; 5]> {
+        let mut values = [0, 1, 2, 3, 4];
+        let mut output = Vec::with_capacity(120);
+        permute_five(&mut values, 0, &mut output);
+        output
+    }
+
+    fn edge_bit_index(left: usize, right: usize) -> usize {
+        debug_assert!(left < right);
+        left * (9 - left) / 2 + (right - left - 1)
+    }
+
+    /// Independent graph canonicalization by trying every vertex permutation.
+    /// This does not call the exhaustive witness oracle or candidate validator.
+    fn canonical_five_node_graph(mask: u16, permutations: &[[u8; 5]]) -> u16 {
+        let mut best = u16::MAX;
+        for permutation in permutations {
+            let mut relabelled = 0_u16;
+            let mut source_bit = 0_usize;
+            for left in 0..5 {
+                for right in (left + 1)..5 {
+                    if mask & (1_u16 << source_bit) != 0 {
+                        let mapped_left = usize::from(permutation[left]);
+                        let mapped_right = usize::from(permutation[right]);
+                        let (first, second) = if mapped_left < mapped_right {
+                            (mapped_left, mapped_right)
+                        } else {
+                            (mapped_right, mapped_left)
+                        };
+                        let target_bit = edge_bit_index(first, second);
+                        relabelled |= 1_u16 << target_bit;
+                    }
+                    source_bit += 1;
+                }
+            }
+            best = best.min(relabelled);
+        }
+        best
+    }
+
+    fn structure_from_five_node_mask(mask: u16) -> StructureV0 {
+        let nodes = (0..5).map(|id| NodeV0 { id }).collect::<Vec<_>>();
+        let mut relations = Vec::new();
+        let mut bit = 0_usize;
+        let mut relation_id = 0_u32;
+        for left in 0..5 {
+            for right in (left + 1)..5 {
+                if mask & (1_u16 << bit) != 0 {
+                    relations.push(edge(
+                        relation_id,
+                        1,
+                        left as u32,
+                        right as u32,
+                        RelationOrientationV0::Undirected,
+                    ));
+                    relation_id += 1;
+                }
+                bit += 1;
+            }
+        }
+        StructureV0 { nodes, relations }
+    }
+
+    #[test]
+    fn differentially_checks_every_nonempty_five_node_simple_graph_class() {
+        let permutations = all_five_node_permutations();
+        assert_eq!(permutations.len(), 120);
+
+        // There are 34 unlabeled simple graphs on five vertices. The existing
+        // v0 transfer contract rejects relation-free structures, so exclude
+        // the empty graph and check the remaining 33 nonempty classes.
+        let mut representatives = BTreeMap::<u16, StructureV0>::new();
+        for mask in 1_u16..(1_u16 << FIVE_NODE_EDGE_COUNT) {
+            let canonical = canonical_five_node_graph(mask, &permutations);
+            representatives
+                .entry(canonical)
+                .or_insert_with(|| structure_from_five_node_mask(mask));
+        }
+        assert_eq!(representatives.len(), 33);
+
+        let classes = representatives.into_iter().collect::<Vec<_>>();
+        let mut comparisons = 0_usize;
+        for (source_code, source) in &classes {
+            for (target_code, target) in &classes {
+                let report = exhaustive_isomorphism_oracle(source, target).unwrap();
+                assert_eq!(
+                    report.isomorphic,
+                    source_code == target_code,
+                    "oracle disagreed for canonical graph codes {source_code:#05x} and {target_code:#05x}"
+                );
+                comparisons += 1;
+            }
+        }
+        assert_eq!(comparisons, 33 * 33);
+    }
+
     #[test]
     fn returns_non_isomorphic_for_cardinality_mismatch_without_search() {
         let source = k33();
