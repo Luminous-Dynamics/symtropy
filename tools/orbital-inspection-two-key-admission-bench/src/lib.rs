@@ -483,8 +483,8 @@ mod tests {
     fn frozen_corpus_matches_every_expected_disposition() {
         let receipt = audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567")
             .expect("corpus audits");
-        assert_eq!(receipt.case_count, 20);
-        assert_eq!(receipt.expected_disposition_matches, 20);
+        assert_eq!(receipt.case_count, 23);
+        assert_eq!(receipt.expected_disposition_matches, 23);
         assert_eq!(receipt.expected_disposition_mismatches, 0);
         assert!(!receipt.authority_granted);
         assert!(!receipt.source_bytes_authenticated);
@@ -544,6 +544,9 @@ mod tests {
             "TK-006-SCOPE-MISMATCH",
             "TK-009-TRAJECTORY-MISMATCH",
             "TK-010-ACQUISITION-MISMATCH",
+            "TK-021-PORTFOLIO-TRAJECTORY-MISMATCH",
+            "TK-022-MEASUREMENT-VEHICLE-MISMATCH",
+            "TK-023-MEASUREMENT-HORIZON-MISMATCH",
         ] {
             let case = input.cases.iter().find(|case| case.case_id == id).unwrap();
             assert_eq!(evaluate_case(case).disposition, Disposition::OutOfScope);
