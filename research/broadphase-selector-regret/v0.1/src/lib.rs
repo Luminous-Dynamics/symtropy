@@ -1075,6 +1075,29 @@ mod tests {
     }
 
     #[test]
+    fn filter_digest_may_change_between_frames_but_must_match_backends() {
+        let mut valid = input(&["A", "A", "A"], &[]);
+        for row in &mut valid.observations {
+            if row.frame_index == 1 {
+                row.collision_filter_sha256 = digest('7');
+            }
+        }
+        assert!(evaluate_sequence(&valid).is_ok());
+
+        let mut invalid = input(&["A", "A", "A"], &[]);
+        let row = invalid
+            .observations
+            .iter_mut()
+            .find(|row| row.frame_index == 1 && row.backend.as_str() == "B")
+            .unwrap();
+        row.collision_filter_sha256 = digest('7');
+        assert_eq!(
+            evaluate_sequence(&invalid),
+            Err(SelectorError::InconsistentCollisionFilter)
+        );
+    }
+
+    #[test]
     fn empty_positive_oracle_population_is_unavailable_not_a_perfect_score() {
         let mut value = input(&["A", "A", "A"], &[]);
         for row in &mut value.observations {
