@@ -1,0 +1,180 @@
+name: Mobility RRVR Crash-Cut Formal
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-crash-cut-formal-v0-1
+    paths:
+      - "research/mobility-rrvr-runtime-trace/CRASH_CUT_ASSURANCE_V0.1.md"
+      - "research/mobility-rrvr-runtime-trace/model/JournaledMutatorCrashCut*"
+      - "research/mobility-rrvr-runtime-trace/fixtures/crash_cut_matrix_v0_1.json"
+      - "research/mobility-rrvr-runtime-trace/schemas/crash_cut_matrix_v0_1.schema.json"
+      - ".github/workflows/mobility-rrvr-crash-cut-formal.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-runtime-trace/CRASH_CUT_ASSURANCE_V0.1.md"
+      - "research/mobility-rrvr-runtime-trace/model/JournaledMutatorCrashCut*"
+      - "research/mobility-rrvr-runtime-trace/fixtures/crash_cut_matrix_v0_1.json"
+      - "research/mobility-rrvr-runtime-trace/schemas/crash_cut_matrix_v0_1.schema.json"
+      - ".github/workflows/mobility-rrvr-crash-cut-formal.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  journaled-mutator-crash-cut:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download and verify pinned TLC
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/tla"
+          JAR="$RUNNER_TEMP/tla/tla2tools.jar"
+          curl --fail --location --retry 3 \
+            "https://github.com/microsoft/tlalink/releases/download/tla2tools-2ef2af8/tla2tools.jar" \
+            --output "$JAR"
+          printf '%s  %s\n' "d15655eeaff4b3f7b3d65c46b838bc0f35d131b2ef4b1e473689b62c98d4726f" "$JAR" | sha256sum --check
+          MODEL="research/mobility-rrvr-runtime-trace/model/JournaledMutatorCrashCut.tla"
+          SAFE_CFG="research/mobility-rrvr-runtime-trace/model/JournaledMutatorCrashCut.cfg"
+          RETRY_CFG="research/mobility-rrvr-runtime-trace/model/JournaledMutatorCrashCut_UnsafeRedispatch.cfg"
+          NO_EFFECT_CFG="research/mobility-rrvr-runtime-trace/model/JournaledMutatorCrashCut_UnsafeNoEffect.cfg"
+          printf '%s  %s\n' "10130cd8b87ed6ec05f509b6922b8c742686fd7c75b9b3b5b85bfe009733668c" "$MODEL" | sha256sum --check
+          printf '%s  %s\n' "db1160862c36292ea517750fe96f59f6a743910920ade765a9ccb564a70c8550" "$SAFE_CFG" | sha256sum --check
+          printf '%s  %s\n' "000a0b135fd9c46f4a5faede4ad5598d8951daedfef26c13c591e86910d2ef72" "$RETRY_CFG" | sha256sum --check
+          printf '%s  %s\n' "f894728817c9f420c84f1df117033e4921b97da90993a20a0006c70405d83b3c" "$NO_EFFECT_CFG" | sha256sum --check
+
+      - name: Validate frozen crash-cut obligation catalogue
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCHEMA="research/mobility-rrvr-runtime-trace/schemas/crash_cut_matrix_v0_1.schema.json"
+          FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/crash_cut_matrix_v0_1.json"
+          jq empty "$SCHEMA"
+          jq empty "$FIXTURE"
+          jq -e '
+            .schema_version == "0.1"
+            and .benchmark == "RRVR-JOURNALED-MUTATOR-CRASH-CUT"
+            and .model == "JournaledMutatorCrashCut"
+            and (.cut_points | length == 15)
+            and ([.cut_points[].id] | unique | length == 15)
+            and all(.cut_points[]; .new_attempt_admitted_by_adapter == false)
+            and any(.cut_points[]; .id == "after_effect_before_ack" and .owner_lookup_required == true)
+            and any(.cut_points[]; .id == "rejected_response_effect_possible")
+            and any(.cut_points[]; .id == "same_key_changed_payload_race" and .expected_disposition == "payload_conflict")
+          ' "$FIXTURE"
+
+      - name: Model-check safe journaled mutator lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace/model"
+          OUT="$RUNNER_TEMP/rrvr-crash-cut"
+          SAFE_DIR="$OUT/safe"
+          mkdir -p "$SAFE_DIR"
+          cp "$ROOT/JournaledMutatorCrashCut.tla" "$SAFE_DIR/"
+          cp "$ROOT/JournaledMutatorCrashCut.cfg" "$SAFE_DIR/"
+          (
+            cd "$SAFE_DIR"
+            java -XX:+UseParallelGC -cp "$RUNNER_TEMP/tla/tla2tools.jar" tlc2.TLC \
+              -workers 1 \
+              -metadir "$RUNNER_TEMP/tlc-crash-cut-safe" \
+              -config JournaledMutatorCrashCut.cfg \
+              JournaledMutatorCrashCut.tla
+          ) | tee "$OUT/tlc-safe.log"
+          grep -Fq "Model checking completed. No error has been found." "$OUT/tlc-safe.log"
+          grep -Fq "0 states left on queue" "$OUT/tlc-safe.log"
+
+      - name: Require unsafe redispatch counterexample
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace/model"
+          OUT="$RUNNER_TEMP/rrvr-crash-cut"
+          MUTANT_DIR="$OUT/unsafe-redispatch"
+          mkdir -p "$MUTANT_DIR"
+          cp "$ROOT/JournaledMutatorCrashCut.tla" "$MUTANT_DIR/"
+          cp "$ROOT/JournaledMutatorCrashCut_UnsafeRedispatch.cfg" "$MUTANT_DIR/"
+          set +e
+          (
+            cd "$MUTANT_DIR"
+            java -XX:+UseParallelGC -cp "$RUNNER_TEMP/tla/tla2tools.jar" tlc2.TLC \
+              -workers 1 \
+              -metadir "$RUNNER_TEMP/tlc-crash-cut-unsafe-redispatch" \
+              -config JournaledMutatorCrashCut_UnsafeRedispatch.cfg \
+              JournaledMutatorCrashCut.tla
+          ) > "$OUT/tlc-unsafe-redispatch.log" 2>&1
+          status=$?
+          set -e
+          test "$status" -ne 0
+          grep -Fq "Invariant AtMostOnePhysicalEffectPerAttempt is violated" "$OUT/tlc-unsafe-redispatch.log"
+
+      - name: Require false NoEffect counterexample
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace/model"
+          OUT="$RUNNER_TEMP/rrvr-crash-cut"
+          MUTANT_DIR="$OUT/unsafe-no-effect"
+          mkdir -p "$MUTANT_DIR"
+          cp "$ROOT/JournaledMutatorCrashCut.tla" "$MUTANT_DIR/"
+          cp "$ROOT/JournaledMutatorCrashCut_UnsafeNoEffect.cfg" "$MUTANT_DIR/"
+          set +e
+          (
+            cd "$MUTANT_DIR"
+            java -XX:+UseParallelGC -cp "$RUNNER_TEMP/tla/tla2tools.jar" tlc2.TLC \
+              -workers 1 \
+              -metadir "$RUNNER_TEMP/tlc-crash-cut-unsafe-no-effect" \
+              -config JournaledMutatorCrashCut_UnsafeNoEffect.cfg \
+              JournaledMutatorCrashCut.tla
+          ) > "$OUT/tlc-unsafe-no-effect.log" 2>&1
+          status=$?
+          set -e
+          test "$status" -ne 0
+          grep -Fq "Invariant NoFalseNoEffect is violated" "$OUT/tlc-unsafe-no-effect.log"
+
+      - name: Emit formal manifest and checksums
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace/model"
+          OUT="$RUNNER_TEMP/rrvr-crash-cut"
+          mkdir -p "$OUT"
+          MODEL="$ROOT/JournaledMutatorCrashCut.tla"
+          SAFE_CFG="$ROOT/JournaledMutatorCrashCut.cfg"
+          RETRY_CFG="$ROOT/JournaledMutatorCrashCut_UnsafeRedispatch.cfg"
+          NO_EFFECT_CFG="$ROOT/JournaledMutatorCrashCut_UnsafeNoEffect.cfg"
+          sha256sum "$MODEL" "$SAFE_CFG" "$RETRY_CFG" "$NO_EFFECT_CFG" \
+            "$OUT/tlc-safe.log" "$OUT/tlc-unsafe-redispatch.log" "$OUT/tlc-unsafe-no-effect.log" \
+            "research/mobility-rrvr-runtime-trace/fixtures/crash_cut_matrix_v0_1.json" \
+            "research/mobility-rrvr-runtime-trace/schemas/crash_cut_matrix_v0_1.schema.json" \
+            > "$OUT/SHA256SUMS"
+          jq -n \
+            --arg model_sha256 "$(sha256sum "$MODEL" | cut -d ' ' -f 1)" \
+            --arg safe_log_sha256 "$(sha256sum "$OUT/tlc-safe.log" | cut -d ' ' -f 1)" \
+            --arg retry_log_sha256 "$(sha256sum "$OUT/tlc-unsafe-redispatch.log" | cut -d ' ' -f 1)" \
+            --arg no_effect_log_sha256 "$(sha256sum "$OUT/tlc-unsafe-no-effect.log" | cut -d ' ' -f 1)" \
+            '{
+              schema_version:"0.1",
+              model:"JournaledMutatorCrashCut",
+              safe_check:{result:"passed",invariants:["TypeOK","NoMutationBeforeDurableIntent","AtMostOneDispatchCallPerAttempt","AtMostOnePhysicalEffectPerAttempt","NoFalseNoEffect","NoMutationAfterRestartForOldIntent","NoDispatchWhileRecoveryBlocked"],log_sha256:$safe_log_sha256},
+              mutants:[
+                {name:"unsafe_redispatch",result:"rejected_by_counterexample",log_sha256:$retry_log_sha256},
+                {name:"false_no_effect_from_rejection",result:"rejected_by_counterexample",log_sha256:$no_effect_log_sha256}
+              ],
+              pins:{model_sha256:$model_sha256},
+              claim_ceiling:"Bounded coordinator/owner-ledger abstraction only; no Rust refinement, live transport, power-loss, HIL or physical robot qualification."
+            }' > "$OUT/formal-manifest.json"
+
+      - name: Upload crash-cut formal evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rrvr-crash-cut-formal-${{ github.sha }}
+          path: ${{ runner.temp }}/rrvr-crash-cut
+          if-no-files-found: ignore
+          retention-days: 90

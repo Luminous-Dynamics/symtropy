@@ -1,0 +1,157 @@
+{
+  "schema_version": "0.1",
+  "benchmark": "RRVR-JOURNALED-MUTATOR-CRASH-CUT",
+  "model": "JournaledMutatorCrashCut",
+  "claim_ceiling": "Obligation catalogue only; no cut is claimed executed by this fixture.",
+  "qualification_levels": [
+    "process_crash",
+    "injected_io_failure",
+    "os_crash",
+    "physical_power_cut"
+  ],
+  "invariants": [
+    "NoMutationBeforeDurableIntent",
+    "AtMostOneDispatchCallPerAttempt",
+    "AtMostOnePhysicalEffectPerAttempt",
+    "NoFalseNoEffect",
+    "NoMutationAfterRestartForOldIntent",
+    "NoDispatchWhileRecoveryBlocked"
+  ],
+  "cut_points": [
+    {
+      "id": "before_intent_append",
+      "boundary": "before_intent",
+      "fault": "intent append returns error",
+      "expected_mutator_calls": 0,
+      "owner_lookup_required": false,
+      "expected_disposition": "not_attempted",
+      "new_attempt_admitted_by_adapter": false
+    },
+    {
+      "id": "partial_intent_write",
+      "boundary": "intent_write",
+      "fault": "partial record or write failure",
+      "expected_mutator_calls": 0,
+      "owner_lookup_required": false,
+      "expected_disposition": "journal_integrity_hold",
+      "new_attempt_admitted_by_adapter": false
+    },
+    {
+      "id": "intent_sync_uncertain",
+      "boundary": "intent_sync",
+      "fault": "sync returns error or uncertain completion",
+      "expected_mutator_calls": 0,
+      "owner_lookup_required": false,
+      "expected_disposition": "journal_integrity_hold",
+      "new_attempt_admitted_by_adapter": false
+    },
+    {
+      "id": "after_intent_before_mutator",
+      "boundary": "intent_durable",
+      "fault": "coordinator crashes after durable intent",
+      "expected_mutator_calls": 0,
+      "owner_lookup_required": true,
+      "expected_disposition": "no_dispatch_proven_terminal",
+      "new_attempt_admitted_by_adapter": false
+    },
+    {
+      "id": "after_effect_before_ack",
+      "boundary": "remote_effect",
+      "fault": "coordinator crashes after remote effect before acknowledgement",
+      "expected_mutator_calls": 1,
+      "owner_lookup_required": true,
+      "expected_disposition": "accepted_awaiting_evidence",
+      "new_attempt_admitted_by_adapter": false
+    },
+    {
+      "id": "after_ack_before_outcome_sync",
+      "boundary": "response_received",
+      "fault": "outcome append or sync fails after response",
+      "expected_mutator_calls": 1,
+      "owner_lookup_required": true,
+      "expected_disposition": "ledger_reconciliation_required",
+      "new_attempt_admitted_by_adapter": false
+    },
+    {
+      "id": "rejected_response_effect_possible",
+      "boundary": "transport_rejected",
+      "fault": "transport rejection while owner may have applied",
+      "expected_mutator_calls": 1,
+      "owner_lookup_required": true,
+      "expected_disposition": "owner_lookup_required",
+      "new_attempt_admitted_by_adapter": false
+    },
+    {
+      "id": "owner_history_lost",
+      "boundary": "owner_restart",
+      "fault": "remote ledger does not survive owner restart",
+      "expected_mutator_calls": 1,
+      "owner_lookup_required": true,
+      "expected_disposition": "unknown_hold",
+      "new_attempt_admitted_by_adapter": false
+    },
+    {
+      "id": "during_owner_lookup",
+      "boundary": "owner_lookup",
+      "fault": "coordinator crashes during read-only reconciliation",
+      "expected_mutator_calls": 1,
+      "owner_lookup_required": true,
+      "expected_disposition": "read_only_reconcile_required",
+      "new_attempt_admitted_by_adapter": false
+    },
+    {
+      "id": "stale_writer_lease",
+      "boundary": "writer_lease",
+      "fault": "stale single-writer lease after process death",
+      "expected_mutator_calls": 0,
+      "owner_lookup_required": false,
+      "expected_disposition": "operator_recovery_hold",
+      "new_attempt_admitted_by_adapter": false
+    },
+    {
+      "id": "torn_journal_tail",
+      "boundary": "journal_replay",
+      "fault": "invalid torn final record at restart",
+      "expected_mutator_calls": 0,
+      "owner_lookup_required": false,
+      "expected_disposition": "journal_integrity_hold",
+      "new_attempt_admitted_by_adapter": false
+    },
+    {
+      "id": "same_key_same_payload_race",
+      "boundary": "owner_concurrency",
+      "fault": "two coordinators race same key and same payload",
+      "expected_mutator_calls": 1,
+      "owner_lookup_required": true,
+      "expected_disposition": "same_result_no_duplicate_effect",
+      "new_attempt_admitted_by_adapter": false
+    },
+    {
+      "id": "same_key_changed_payload_race",
+      "boundary": "owner_concurrency",
+      "fault": "two coordinators race same key with different payload digests",
+      "expected_mutator_calls": 1,
+      "owner_lookup_required": true,
+      "expected_disposition": "payload_conflict",
+      "new_attempt_admitted_by_adapter": false
+    },
+    {
+      "id": "late_old_response",
+      "boundary": "late_response",
+      "fault": "old response arrives after new process incarnation",
+      "expected_mutator_calls": 1,
+      "owner_lookup_required": true,
+      "expected_disposition": "append_to_original_attempt_only",
+      "new_attempt_admitted_by_adapter": false
+    },
+    {
+      "id": "crash_after_lookup_before_projection",
+      "boundary": "recovery_projection",
+      "fault": "coordinator crashes after owner lookup before projection persistence",
+      "expected_mutator_calls": 1,
+      "owner_lookup_required": true,
+      "expected_disposition": "repeat_read_only_lookup",
+      "new_attempt_admitted_by_adapter": false
+    }
+  ]
+}
