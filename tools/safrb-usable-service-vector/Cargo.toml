@@ -1,0 +1,13 @@
+[package]
+name = "safrb-usable-service-vector"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "Apache-2.0"
+publish = false
+description = "Non-compensatory typed service-profile qualifier for SAFRB"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
