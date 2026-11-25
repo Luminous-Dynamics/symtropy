@@ -1,0 +1,369 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/physical-storage-systems-001/research/physical-storage/compiler/service_contract_v0_1.schema.json",
+  "title": "Physical Memory Compiler service contract v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "classification",
+    "service_tier",
+    "payload",
+    "access",
+    "retention",
+    "environment",
+    "integrity",
+    "failure_tolerance",
+    "constraints",
+    "evidence_policy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "physical-storage-service-contract-v0.1"
+    },
+    "contract_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9._-]{2,63}$"
+    },
+    "classification": {
+      "enum": [
+        "illustrative_not_customer_requirement",
+        "customer_requirement",
+        "internal_benchmark"
+      ]
+    },
+    "service_tier": {
+      "enum": [
+        "hot",
+        "warm",
+        "nearline",
+        "deep_archive",
+        "embedded_nvm",
+        "compute_in_memory",
+        "hybrid"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "logical_capacity_bytes",
+        "expected_growth_bytes_per_year",
+        "update_pattern"
+      ],
+      "properties": {
+        "logical_capacity_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "expected_growth_bytes_per_year": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "update_pattern": {
+          "enum": [
+            "write_once",
+            "append_mostly",
+            "periodic_rewrite",
+            "high_churn",
+            "mixed"
+          ]
+        },
+        "maximum_individual_object_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "object_count": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "access": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workload",
+        "sequential_read_fraction",
+        "random_read_fraction",
+        "maximum_full_restore_seconds"
+      ],
+      "properties": {
+        "workload": {
+          "enum": [
+            "sequential_archive",
+            "random_access",
+            "mixed",
+            "memory_like",
+            "compute_near_memory"
+          ]
+        },
+        "sequential_read_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "random_read_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maximum_full_restore_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "p99_random_read_latency_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "maximum_ingest_seconds": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      }
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_years",
+        "target_confidence",
+        "accelerated_ageing_allowed",
+        "same_degradation_mechanism_required"
+      ],
+      "properties": {
+        "minimum_years": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "target_confidence": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "accelerated_ageing_allowed": {
+          "type": "boolean"
+        },
+        "same_degradation_mechanism_required": {
+          "type": "boolean"
+        },
+        "direct_observation_required": {
+          "type": "boolean"
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "temperature_celsius",
+        "relative_humidity_percent",
+        "non_condensing"
+      ],
+      "properties": {
+        "temperature_celsius": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "minimum",
+            "maximum"
+          ],
+          "properties": {
+            "minimum": {
+              "type": "number"
+            },
+            "maximum": {
+              "type": "number"
+            }
+          }
+        },
+        "relative_humidity_percent": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "minimum",
+            "maximum"
+          ],
+          "properties": {
+            "minimum": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "maximum": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            }
+          }
+        },
+        "non_condensing": {
+          "type": "boolean"
+        },
+        "shock_g": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "radiation_environment": {
+          "enum": [
+            "not_specified",
+            "ambient",
+            "elevated",
+            "space",
+            "custom"
+          ]
+        }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exact_payload_recovery",
+        "hash_algorithm",
+        "undetected_corruption_accepted",
+        "independent_reader_implementations",
+        "cryptographic_authentication_required"
+      ],
+      "properties": {
+        "exact_payload_recovery": {
+          "const": true
+        },
+        "hash_algorithm": {
+          "const": "SHA-256"
+        },
+        "undetected_corruption_accepted": {
+          "const": false
+        },
+        "independent_reader_implementations": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "cryptographic_authentication_required": {
+          "type": "boolean"
+        }
+      }
+    },
+    "failure_tolerance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "independent_copies",
+        "independent_failure_domains",
+        "tolerate_complete_region_loss",
+        "maximum_unrecoverable_payload_fraction"
+      ],
+      "properties": {
+        "independent_copies": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "independent_failure_domains": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "tolerate_complete_region_loss": {
+          "type": "boolean"
+        },
+        "maximum_unrecoverable_payload_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowed_medium_families",
+        "max_media_volume_liters",
+        "max_mass_kg",
+        "max_capex_usd",
+        "max_annual_energy_kwh"
+      ],
+      "properties": {
+        "allowed_medium_families": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "glass_optical",
+              "magnetic_tape",
+              "hdd",
+              "ssd_nand",
+              "mram",
+              "ferroelectric",
+              "pcm",
+              "reram",
+              "hybrid"
+            ]
+          }
+        },
+        "max_media_volume_liters": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "max_mass_kg": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "max_capex_usd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "max_annual_energy_kwh": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "evidence_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unknown_metric_handling",
+        "roadmap_products_eligible_for_production",
+        "research_results_eligible_for_exploration",
+        "production_requires_customer_qualification_or_commercial_status"
+      ],
+      "properties": {
+        "unknown_metric_handling": {
+          "const": "do_not_rank"
+        },
+        "roadmap_products_eligible_for_production": {
+          "const": false
+        },
+        "research_results_eligible_for_exploration": {
+          "type": "boolean"
+        },
+        "production_requires_customer_qualification_or_commercial_status": {
+          "const": true
+        }
+      }
+    }
+  }
+}
