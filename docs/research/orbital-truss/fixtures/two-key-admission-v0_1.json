@@ -32,7 +32,9 @@
           "action_id": "ACTION-001",
           "horizon_id": "HORIZON-T0-T4",
           "event_set_revision": "EVENT-SET-REV-3",
-          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8"
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
         },
         "measurement": {
           "acquisition_state": "PASS",
@@ -43,7 +45,10 @@
           "asset_id": "RSO-TRUSS-ALPHA",
           "feature_id": "FEATURE-JOINT-17",
           "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
-          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d"
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
         },
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
@@ -80,7 +85,9 @@
           "action_id": "ACTION-001",
           "horizon_id": "HORIZON-T0-T4",
           "event_set_revision": "EVENT-SET-REV-3",
-          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8"
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
         },
         "measurement": {
           "acquisition_state": "PASS",
@@ -91,7 +98,10 @@
           "asset_id": "RSO-TRUSS-ALPHA",
           "feature_id": "FEATURE-JOINT-17",
           "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
-          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d"
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
         },
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
@@ -128,7 +138,9 @@
           "action_id": "ACTION-001",
           "horizon_id": "HORIZON-T0-T4",
           "event_set_revision": "EVENT-SET-REV-3",
-          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8"
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
         },
         "measurement": {
           "acquisition_state": "PASS",
@@ -139,7 +151,10 @@
           "asset_id": "RSO-TRUSS-ALPHA",
           "feature_id": "FEATURE-JOINT-17",
           "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
-          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d"
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
         },
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
@@ -176,7 +191,9 @@
           "action_id": "ACTION-001",
           "horizon_id": "HORIZON-T0-T4",
           "event_set_revision": "EVENT-SET-REV-3",
-          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8"
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
         },
         "measurement": {
           "acquisition_state": "FAIL",
@@ -187,7 +204,10 @@
           "asset_id": "RSO-TRUSS-ALPHA",
           "feature_id": "FEATURE-JOINT-17",
           "measurement_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000068",
-          "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000069"
+          "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000069",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
         },
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
@@ -224,7 +244,9 @@
           "action_id": "ACTION-001",
           "horizon_id": "HORIZON-T0-T4",
           "event_set_revision": "EVENT-SET-REV-3",
-          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8"
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
         },
         "measurement": {
           "acquisition_state": "UNKNOWN",
@@ -235,7 +257,10 @@
           "asset_id": "RSO-TRUSS-ALPHA",
           "feature_id": "FEATURE-JOINT-17",
           "measurement_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000069",
-          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000006a"
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000006a",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
         },
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
@@ -272,7 +297,9 @@
           "action_id": "ACTION-001",
           "horizon_id": "HORIZON-T0-T4",
           "event_set_revision": "EVENT-SET-REV-3",
-          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8"
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
         },
         "measurement": {
           "acquisition_state": "PASS",
@@ -283,7 +310,10 @@
           "asset_id": "RSO-TRUSS-ALPHA",
           "feature_id": "FEATURE-JOINT-17",
           "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000006a",
-          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000006b"
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000006b",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
         },
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
@@ -320,7 +350,9 @@
           "action_id": "ACTION-001",
           "horizon_id": "HORIZON-T0-T4",
           "event_set_revision": "EVENT-SET-REV-3",
-          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000006b"
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000006b",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
         },
         "measurement": {
           "acquisition_state": "PASS",
@@ -331,7 +363,10 @@
           "asset_id": "RSO-TRUSS-ALPHA",
           "feature_id": "FEATURE-JOINT-17",
           "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
-          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d"
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
         },
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
@@ -368,7 +403,9 @@
           "action_id": "ACTION-001",
           "horizon_id": "HORIZON-T0-T4",
           "event_set_revision": "EVENT-SET-REV-3",
-          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8"
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
         },
         "measurement": {
           "acquisition_state": "STALE",
@@ -379,7 +416,10 @@
           "asset_id": "RSO-TRUSS-ALPHA",
           "feature_id": "FEATURE-JOINT-17",
           "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000006c",
-          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000006d"
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000006d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
         },
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
@@ -416,7 +456,9 @@
           "action_id": "ACTION-001",
           "horizon_id": "HORIZON-T0-T4",
           "event_set_revision": "EVENT-SET-REV-3",
-          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8"
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
         },
         "measurement": {
           "acquisition_state": "PASS",
@@ -427,7 +469,10 @@
           "asset_id": "RSO-TRUSS-ALPHA",
           "feature_id": "FEATURE-JOINT-17",
           "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
-          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d"
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
         },
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
@@ -464,7 +509,9 @@
           "action_id": "ACTION-001",
           "horizon_id": "HORIZON-T0-T4",
           "event_set_revision": "EVENT-SET-REV-3",
-          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8"
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
         },
         "measurement": {
           "acquisition_state": "PASS",
@@ -475,7 +522,10 @@
           "asset_id": "RSO-TRUSS-ALPHA",
           "feature_id": "FEATURE-JOINT-17",
           "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000006e",
-          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000006f"
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000006f",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
         },
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
@@ -574,7 +624,9 @@
           "action_id": "ACTION-001",
           "horizon_id": "HORIZON-T0-T4",
           "event_set_revision": "EVENT-SET-REV-3",
-          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8"
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
         },
         "measurement": {
           "acquisition_state": "PASS",
@@ -585,7 +637,10 @@
           "asset_id": "RSO-TRUSS-ALPHA",
           "feature_id": "FEATURE-JOINT-17",
           "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
-          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d"
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
         },
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
@@ -622,7 +677,9 @@
           "action_id": "ACTION-001",
           "horizon_id": "HORIZON-T0-T4",
           "event_set_revision": "EVENT-SET-REV-3",
-          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8"
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
         },
         "measurement": {
           "acquisition_state": "PASS",
@@ -633,7 +690,10 @@
           "asset_id": "RSO-TRUSS-ALPHA",
           "feature_id": "FEATURE-JOINT-17",
           "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
-          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d"
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
         },
         "delta_v_milli_m_s": 900000000000,
         "duration_ms": 900000000000,
@@ -663,7 +723,9 @@
           "action_id": "ACTION-001",
           "horizon_id": "HORIZON-T0-T4",
           "event_set_revision": "EVENT-SET-REV-3",
-          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8"
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
         },
         "measurement": {
           "acquisition_state": "PASS",
@@ -674,7 +736,10 @@
           "asset_id": "RSO-TRUSS-ALPHA",
           "feature_id": "FEATURE-JOINT-17",
           "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
-          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d"
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
         },
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
@@ -715,7 +780,10 @@
           "asset_id": "RSO-TRUSS-ALPHA",
           "feature_id": "FEATURE-JOINT-17",
           "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
-          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d"
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
         },
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
@@ -752,7 +820,9 @@
           "action_id": "ACTION-001",
           "horizon_id": "HORIZON-T0-T4",
           "event_set_revision": "EVENT-SET-REV-3",
-          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8"
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
         },
         "measurement": null,
         "delta_v_milli_m_s": 300,
@@ -790,7 +860,9 @@
           "action_id": "ACTION-001",
           "horizon_id": "HORIZON-T0-T4",
           "event_set_revision": "EVENT-SET-REV-3",
-          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8"
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
         },
         "measurement": {
           "acquisition_state": "PASS",
@@ -801,7 +873,10 @@
           "asset_id": "RSO-TRUSS-ALPHA",
           "feature_id": "FEATURE-JOINT-17",
           "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
-          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d"
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
         },
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
@@ -838,7 +913,9 @@
           "action_id": "ACTION-001",
           "horizon_id": "HORIZON-T0-T4",
           "event_set_revision": "EVENT-SET-REV-3",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000077"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000077",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
         },
         "measurement": {
           "acquisition_state": "PASS",
@@ -849,7 +926,10 @@
           "asset_id": "RSO-TRUSS-ALPHA",
           "feature_id": "FEATURE-JOINT-17",
           "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
-          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d"
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
         },
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
@@ -886,7 +966,9 @@
           "action_id": "ACTION-001",
           "horizon_id": "HORIZON-T0-T4",
           "event_set_revision": "EVENT-SET-REV-3",
-          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8"
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
         },
         "measurement": {
           "acquisition_state": "PASS",
@@ -897,7 +979,10 @@
           "asset_id": "RSO-TRUSS-ALPHA",
           "feature_id": "FEATURE-JOINT-17",
           "measurement_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000078",
-          "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000079"
+          "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000079",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
         },
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
@@ -905,6 +990,165 @@
         "decision_value_milli": 5000
       },
       "expected_disposition": "REJECTED_EVIDENCE"
+    },
+    {
+      "case_id": "TK-021-PORTFOLIO-TRAJECTORY-MISMATCH",
+      "candidate": {
+        "class": "INSPECTION",
+        "scope": {
+          "action_id": "ACTION-001",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17"
+        },
+        "physical_safety": {
+          "state": "PASS",
+          "action_id": "ACTION-001",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+        },
+        "post_action_portfolio": {
+          "state": "PASS",
+          "event_set_complete": true,
+          "action_id": "ACTION-001",
+          "horizon_id": "HORIZON-T0-T4",
+          "event_set_revision": "EVENT-SET-REV-3",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-OLD"
+        },
+        "measurement": {
+          "acquisition_state": "PASS",
+          "scope_coherence_state": "PASS",
+          "action_id": "ACTION-001",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17",
+          "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
+        },
+        "delta_v_milli_m_s": 300,
+        "duration_ms": 120000,
+        "compute_us": 2000,
+        "decision_value_milli": 5000
+      },
+      "expected_disposition": "OUT_OF_SCOPE"
+    },
+    {
+      "case_id": "TK-022-MEASUREMENT-VEHICLE-MISMATCH",
+      "candidate": {
+        "class": "INSPECTION",
+        "scope": {
+          "action_id": "ACTION-001",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17"
+        },
+        "physical_safety": {
+          "state": "PASS",
+          "action_id": "ACTION-001",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+        },
+        "post_action_portfolio": {
+          "state": "PASS",
+          "event_set_complete": true,
+          "action_id": "ACTION-001",
+          "horizon_id": "HORIZON-T0-T4",
+          "event_set_revision": "EVENT-SET-REV-3",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
+        },
+        "measurement": {
+          "acquisition_state": "PASS",
+          "scope_coherence_state": "PASS",
+          "action_id": "ACTION-001",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17",
+          "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-OTHER",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
+        },
+        "delta_v_milli_m_s": 300,
+        "duration_ms": 120000,
+        "compute_us": 2000,
+        "decision_value_milli": 5000
+      },
+      "expected_disposition": "OUT_OF_SCOPE"
+    },
+    {
+      "case_id": "TK-023-MEASUREMENT-HORIZON-MISMATCH",
+      "candidate": {
+        "class": "INSPECTION",
+        "scope": {
+          "action_id": "ACTION-001",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17"
+        },
+        "physical_safety": {
+          "state": "PASS",
+          "action_id": "ACTION-001",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+        },
+        "post_action_portfolio": {
+          "state": "PASS",
+          "event_set_complete": true,
+          "action_id": "ACTION-001",
+          "horizon_id": "HORIZON-T0-T4",
+          "event_set_revision": "EVENT-SET-REV-3",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
+        },
+        "measurement": {
+          "acquisition_state": "PASS",
+          "scope_coherence_state": "PASS",
+          "action_id": "ACTION-001",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17",
+          "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-OTHER"
+        },
+        "delta_v_milli_m_s": 300,
+        "duration_ms": 120000,
+        "compute_us": 2000,
+        "decision_value_milli": 5000
+      },
+      "expected_disposition": "OUT_OF_SCOPE"
     }
   ]
 }
