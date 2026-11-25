@@ -97,3 +97,10 @@ The capture must identify a latency correction already applied to the synchroniz
 The synthetic capture test is contract plumbing only. Q3 still requires an actual TMAG5110/TMAG5111 EVM or equivalent sensor capture with independent calibrated rotor-angle reference.
 
 The current source contains 41 authored unit tests across the latch, quadrature, harmonic, finite-scenario and capture-reconciliation layers. These are not reported as passing until exact-head CI completes.
+
+
+## Synthetic reconstruction challenge for the 4.9 degree case
+
+A dedicated test now exercises the TI 20-pole discrete-latch threshold-mismatch benchmark with 10 pole pairs, 9-degree nominal mechanical spacing, two spatial radial sinusoids offset by 90 electrical degrees, BOP values of 1 mT and 7 mT, symmetric negative BRP values and an explicitly assumed 8.5 mT field amplitude. The interval-bounded spacing error is targeted around 4.9 degrees mechanical.
+
+The 8.5 mT sinusoid is a synthetic reconstruction parameter, not the raw field map or a measured TI dataset. This verifies the threshold/phase arithmetic under a simplified sinusoidal field; it does not reproduce the ring's 3D field distribution, magnetization, ASIC transfer function or physical bench. The published TI analysis and physical position sweep remain distinct references.
