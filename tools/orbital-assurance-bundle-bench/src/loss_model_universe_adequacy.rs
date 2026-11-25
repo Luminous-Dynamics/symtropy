@@ -744,3 +744,8 @@ mod tests {
         );
     }
 }
+
+/// Evaluate one model-universe case using the same independent grammar as the frozen corpus.
+pub fn evaluate_single_case(case: &Case) -> CaseResult {
+    evaluate_case(case)
+}
