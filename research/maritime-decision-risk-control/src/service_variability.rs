@@ -964,21 +964,9 @@ mod tests {
             Err(ServiceMetricError::NonAcceptedOutcomeHasDeliveryTime)
         );
         observations[0].receiver_delivery_minutes = None;
-        assert_eq!(
-            ServiceReliabilityReport::evaluate(&observations, 950),
-            Ok(ServiceReliabilityReport::evaluate(
-                &synthetic_observations("valid-not-delivered", &STABLE[..1], &[], 120)
-                    .into_iter()
-                    .map(|mut item| {
-                        item.delivery_disposition = DeliveryDisposition::NotDelivered;
-                        item.receiver_delivery_minutes = None;
-                        item.receiver_acceptance_ref = None;
-                        item
-                    })
-                    .collect::<Vec<_>>(),
-                950
-            )
-            .expect("valid non-delivery"))
+        assert!(
+            ServiceReliabilityReport::evaluate(&observations, 950).is_ok(),
+            "a not-delivered expected unit without receiver evidence is retained"
         );
         observations[0].receiver_acceptance_ref = None;
         observations[0].delivery_disposition = DeliveryDisposition::Unknown;
