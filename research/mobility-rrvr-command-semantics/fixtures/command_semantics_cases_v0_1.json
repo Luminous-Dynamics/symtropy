@@ -24,7 +24,9 @@
         "idempotent_under_declared_state_contract": true,
         "same_payload_replay_safe": true,
         "hidden_impulse_envelope": "none_declared",
-        "logical_effect_id_required": true
+        "logical_effect_id_required": true,
+        "device_model": "reference-actuator",
+        "endpoint_revision": "endpoint-1"
       }
     },
     {
@@ -48,7 +50,9 @@
         "endpoint_token_required": true,
         "same_token_reactuates": false,
         "independent_outcome_observation_required": true,
-        "logical_effect_id_required": true
+        "logical_effect_id_required": true,
+        "device_model": "reference-actuator",
+        "endpoint_revision": "endpoint-1"
       }
     },
     {
@@ -74,7 +78,9 @@
         "watchdog_supported": true,
         "watchdog_reaction": "controlled_stop",
         "clock_profile_id": "monotonic-device-clock-v1",
-        "logical_effect_id_required": true
+        "logical_effect_id_required": true,
+        "device_model": "reference-actuator",
+        "endpoint_revision": "endpoint-1"
       }
     },
     {
@@ -100,7 +106,9 @@
         "resume_from_measured_progress": true,
         "restart_from_segment_zero_allowed": false,
         "downstream_queue_reconciliation_required": true,
-        "logical_effect_id_required": true
+        "logical_effect_id_required": true,
+        "device_model": "reference-actuator",
+        "endpoint_revision": "endpoint-1"
       }
     },
     {
@@ -124,7 +132,9 @@
         "idempotent_under_declared_state_contract": true,
         "same_payload_replay_safe": true,
         "hidden_impulse_envelope": "not_bounded",
-        "logical_effect_id_required": true
+        "logical_effect_id_required": true,
+        "device_model": "reference-actuator",
+        "endpoint_revision": "endpoint-1"
       }
     },
     {
@@ -148,7 +158,9 @@
         "endpoint_token_required": false,
         "same_token_reactuates": true,
         "independent_outcome_observation_required": true,
-        "logical_effect_id_required": true
+        "logical_effect_id_required": true,
+        "device_model": "reference-actuator",
+        "endpoint_revision": "endpoint-1"
       }
     },
     {
@@ -174,7 +186,9 @@
         "watchdog_supported": false,
         "watchdog_reaction": "none",
         "clock_profile_id": "unknown",
-        "logical_effect_id_required": true
+        "logical_effect_id_required": true,
+        "device_model": "reference-actuator",
+        "endpoint_revision": "endpoint-1"
       }
     },
     {
@@ -200,7 +214,9 @@
         "resume_from_measured_progress": false,
         "restart_from_segment_zero_allowed": true,
         "downstream_queue_reconciliation_required": false,
-        "logical_effect_id_required": true
+        "logical_effect_id_required": true,
+        "device_model": "reference-actuator",
+        "endpoint_revision": "endpoint-1"
       }
     },
     {
@@ -224,7 +240,9 @@
         "idempotent_under_declared_state_contract": true,
         "same_payload_replay_safe": true,
         "hidden_impulse_envelope": "none_declared",
-        "logical_effect_id_required": true
+        "logical_effect_id_required": true,
+        "device_model": "reference-actuator",
+        "endpoint_revision": "endpoint-1"
       }
     }
   ]
