@@ -1062,7 +1062,7 @@ mod tests {
             }
             oracle.sort_unstable();
             assert_eq!(result.pairs, oracle, "family {family:?}");
-            assert_eq!(first.proxies.iter().filter(|proxy| proxy.moving).count() > 0, true);
+            assert!(first.proxies.iter().any(|proxy| proxy.moving));
         }
     }
 
