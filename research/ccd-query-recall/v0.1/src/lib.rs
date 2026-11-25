@@ -607,7 +607,7 @@ fn summarize_query_durations(
         p99_ns: Some(nearest_rank(99)),
         sub_resolution_samples: durations_ns
             .iter()
-            .filter(|duration| **duration == 0)
+            .filter(|duration| **duration < timer_resolution_ns)
             .count() as u64,
     }
 }
