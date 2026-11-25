@@ -413,8 +413,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
             specimen_source_identity_issue = true;
         }
 
-        let sampling_event_id =
-            field_str(assertion, "sampling_event_id").unwrap_or("UNRESOLVED");
+        let sampling_event_id = field_str(assertion, "sampling_event_id").unwrap_or("UNRESOLVED");
         match field_str(assertion, "specimen_item_id") {
             Some(item_id) if nonempty(Some(item_id)) => {
                 let item_key = (sampling_event_id.to_owned(), item_id.to_owned());
