@@ -63,6 +63,8 @@ pub struct EdgeRatePolicy {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct QuadratureConfig {
+    /// Immutable identity for the declared sensor/latch parameter set.
+    pub configuration_id: String,
     pub pole_pairs: u32,
     pub architecture: SensorArchitecture,
     pub channel_a: HallLatchConfig,
@@ -149,7 +151,11 @@ pub struct QuadratureMetrics {
 #[derive(Clone, Debug, PartialEq)]
 pub struct SensorEvaluation {
     pub trace_id: String,
+    pub sensor_configuration_id: String,
+    pub pole_pairs: u32,
     pub architecture: SensorArchitecture,
+    pub start_angle_rad: f64,
+    pub end_angle_rad: f64,
     pub sample_count: usize,
     pub states: Vec<QuadratureState>,
     pub transitions: Vec<QuadratureTransition>,
@@ -231,7 +237,7 @@ fn validate_latch(config: HallLatchConfig) -> Result<(), EvaluationError> {
 }
 
 fn validate_config(config: QuadratureConfig) -> Result<(), EvaluationError> {
-    if config.pole_pairs == 0 {
+    if config.configuration_id.trim().is_empty() || config.pole_pairs == 0 {
         return Err(EvaluationError::InvalidConfiguration);
     }
     validate_latch(config.channel_a)?;
@@ -348,7 +354,7 @@ pub fn evaluate_scenario_set(
             return Err(EvaluationError::ScenarioGridCoordinatesMismatch);
         }
 
-        let evaluation = evaluate_trace(trace, config)?;
+        let evaluation = evaluate_trace(trace, config.clone())?;
         let accepted = evaluation.metrics.quadrature_sequence_valid
             && evaluation.metrics.within_edge_rate_policy != Some(false);
         if accepted {
@@ -709,7 +715,11 @@ pub fn evaluate_trace(
 
     Ok(SensorEvaluation {
         trace_id: trace.trace_id.clone(),
+        sensor_configuration_id: config.configuration_id.clone(),
+        pole_pairs: config.pole_pairs,
         architecture: config.architecture,
+        start_angle_rad: start_angle,
+        end_angle_rad: final_angle,
         sample_count,
         states,
         transitions,
@@ -962,6 +972,7 @@ mod tests {
 
     fn config(pole_pairs: u32) -> QuadratureConfig {
         QuadratureConfig {
+            configuration_id: "tmag511x-latch-config-v0".to_owned(),
             pole_pairs,
             architecture: SensorArchitecture::IntegratedTwoAxisLatch,
             channel_a: latch(0.0, true, 0.0001, -0.0001),
