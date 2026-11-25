@@ -396,6 +396,24 @@ Every service row carries a canonical expected cargo-unit ID, distinct from its 
 
 The distribution of receiver elapsed times (mean, p50/p90/p95, maximum, standard deviation and CV) is computed over accepted units only and reports that denominator. The verified on-time rate uses **all expected units** as its denominator; NOT_DELIVERED, DIVERTED, CANCELLED and UNKNOWN remain explicit counts and cannot improve the rate by disappearing. A cohort with no accepted units has no receiver-time distribution and a zero verified on-time rate.
 
+### Real-world aggregate pharma cohort: preserve source state without inventing units
+
+Transnet's 23 November 2026 public statement, reported by SAnews and Business Day, partitions a Department of Health priority list of **41 pharmaceutical containers** into:
+- **18** reported by Transnet as cleared and delivered to intended destinations;
+- **7** expected to arrive in South Africa between 23 November and 2 December;
+- **16** destined for DGT but not yet nominated by shipping lines for berthing.
+
+The benchmark now has a separate aggregate-only typed receipt for this statement. It reconciles 41 = 18 + 7 + 16 and reports **zero independently verified receiver acceptances** because the public aggregate contains no individual container IDs, per-unit custody chain or receiver receipts. It does not create 41 synthetic cargo IDs or pretend that the 16 not-yet-nominated containers were physically waiting at DGT. The 18 are source-reported delivered, not admitted into the receiver-accepted metric until individual receipts become available.
+
+The service metric's per-unit disposition enum also distinguishes SOURCE_REPORTED_DELIVERED_UNVERIFIED, IN_TRANSIT_EXPECTED and AWAITING_BERTH_NOMINATION. None can have a receiver delivery time/receipt reference or count as accepted/on-time.
+
+A separate **20 November 2026 list of 16 vessels** (six completed, three expected to berth, seven still approaching/not berth-nominated) is a different vessel-level cohort. It must never be added to or joined to the 41-container count without a source-qualified cargo/voyage linkage. The benchmark catalogues both separately.
+
+Sources:
+- [SAnews, 23 November 2026](https://www.sanews.gov.za/node/85835) (government-news summary of Transnet statement)
+- [Business Day, 23 November 2026](https://www.businessday.co.za/economy/2026-11-23-transnet-clears-18-of-41-medicine-shipments-through-congested-durban-terminal/)
+- [Transnet Media Centre, 23 November listing](https://www.transnet.net/MediaCentre) (direct statement id 34845 listed; raw PDF not retrieved in this intake)
+
 The receipt additionally replays a transparent two-server FCFS queue with a fixed 30-minute service time. The regular 20-call comparator has zero waiting, zero queue-wait area and completes by minute 1,170. The 20-call burst has a maximum wait of 260 minutes, 2,680 call-minutes of queue-wait area and completes by minute 300 after the burst epoch. This demonstrates how the same total call count can create very different backlog and recovery burden when arrivals are clustered. It is a small queueing reference only, not a realistic full-terminal capacity model; production comparisons must use the frozen berth/crane/yard/AGV/rail resource model and matched solver baselines.
 
 The code also keeps vessel wait, berth work, terminal dwell, combined port elapsed and inland transfer as separate distributions. Receiver elapsed-time distribution is separately scoped to accepted cargo. It rejects duplicate observation identities, invalid deadlines, missing receiver receipts for accepted outcomes, and receiver evidence attached to non-accepted outcomes.
