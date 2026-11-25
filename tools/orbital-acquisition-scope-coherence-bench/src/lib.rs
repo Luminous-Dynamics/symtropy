@@ -242,6 +242,7 @@ fn evaluate_binding(
     let mut reason_codes = BTreeSet::new();
     let mut missing_fields = BTreeSet::new();
     let mut mismatched_fields = BTreeSet::new();
+    let mut validity_boundary_indeterminate = false;
 
     if !valid_text(&binding.evidence_id) || !valid_sha256(&binding.receipt_sha256) {
         reason_codes.insert("BINDING_ID_OR_RECEIPT_INVALID".to_owned());
@@ -335,11 +336,16 @@ fn evaluate_binding(
     // All validity intervals are half-open [start, end). Require the complete
     // acquisition interval to be strictly contained; equality at the right
     // boundary is not silently promoted to valid.
-    if binding.validity_interval.start_tai_ns > acquisition_interval.start_tai_ns
-        || acquisition_interval.end_tai_ns >= binding.validity_interval.end_tai_ns
+    if acquisition_interval.end_tai_ns < binding.validity_interval.start_tai_ns
+        || acquisition_interval.start_tai_ns >= binding.validity_interval.end_tai_ns
     {
         mismatched_fields.insert("validity_interval".to_owned());
-        reason_codes.insert("EVIDENCE_VALIDITY_DOES_NOT_COVER_ACQUISITION".to_owned());
+        reason_codes.insert("EVIDENCE_VALIDITY_DISJOINT".to_owned());
+    } else if acquisition_interval.start_tai_ns < binding.validity_interval.start_tai_ns
+        || acquisition_interval.end_tai_ns >= binding.validity_interval.end_tai_ns
+    {
+        validity_boundary_indeterminate = true;
+        reason_codes.insert("EVIDENCE_VALIDITY_BOUNDARY_OVERLAP".to_owned());
     }
 
     if binding.source_state != SourceState::Current {
@@ -352,7 +358,10 @@ fn evaluate_binding(
         Disposition::Indeterminate
     } else if !mismatched_fields.is_empty() {
         Disposition::OutOfScope
-    } else if !missing_fields.is_empty() || binding.source_state != SourceState::Current {
+    } else if !missing_fields.is_empty()
+        || validity_boundary_indeterminate
+        || binding.source_state != SourceState::Current
+    {
         Disposition::Indeterminate
     } else {
         Disposition::ScopeCoherent
