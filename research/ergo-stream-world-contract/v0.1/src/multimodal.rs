@@ -338,7 +338,7 @@ impl MultimodalWorldV0 {
 
         let count = config.event_count;
         let mut alpha_rng = DeterministicRngV0::new(config.seed ^ 0xA11C_E001);
-        let mut beta_rng = DeterministicRngV0::new(config.seed ^ 0xBETA_0002);
+        let mut beta_rng = DeterministicRngV0::new(config.seed ^ 0xBE7A_0002);
         let mut shuffle_rng = DeterministicRngV0::new(config.seed ^ 0x5A11_F1E3);
         let mut symbol_rng = DeterministicRngV0::new(config.seed ^ 0x51B0_1A55);
 
@@ -379,7 +379,7 @@ impl MultimodalWorldV0 {
         let mut beta_observation_by_event = vec![None; count];
 
         let mut alpha_timing_rng = DeterministicRngV0::new(config.seed ^ 0xA11C_71AE);
-        let mut beta_timing_rng = DeterministicRngV0::new(config.seed ^ 0xBETA_71AE);
+        let mut beta_timing_rng = DeterministicRngV0::new(config.seed ^ 0xBE7A_71AE);
 
         for event_index in 0..count {
             let event_number = u64::try_from(event_index + 1)
@@ -397,7 +397,8 @@ impl MultimodalWorldV0 {
                             .unwrap_or(u16::MAX)
                     }
                     AssociationRegimeV0::Aligned
-                    | AssociationRegimeV0::MarginalMatchedShuffled => observation_id as u16,
+                    | AssociationRegimeV0::MarginalMatchedShuffled => u16::try_from(event_index)
+                        .map_err(|_| MultimodalWorldErrorV0::ObservationIdOverflow)?,
                 };
                 observations.push(make_observation(
                     observation_id,
@@ -550,21 +551,14 @@ impl MultimodalWorldV0 {
         &self,
         claim: &AlignmentClaimV0,
     ) -> (AlignmentEvaluationV0, Option<PairMetricsV0>) {
-        let truth = self
-            .valid_associations
-            .iter()
-            .map(|pairs| normalize_pairs(pairs))
-            .collect::<Vec<_>>();
+        let truth = normalize_alternatives(&self.valid_associations);
 
         let (proposed, is_unique, is_unresolved) = match claim {
             AlignmentClaimV0::Unique(pairs) => {
                 (vec![normalize_pairs(pairs)], true, false)
             }
             AlignmentClaimV0::Alternatives(alternatives) => (
-                alternatives
-                    .iter()
-                    .map(|pairs| normalize_pairs(pairs))
-                    .collect::<Vec<_>>(),
+                normalize_alternatives(alternatives),
                 false,
                 false,
             ),
@@ -706,6 +700,16 @@ fn normalize_pairs(pairs: &[EventPairV0]) -> Vec<EventPairV0> {
     normalized
 }
 
+fn normalize_alternatives(alternatives: &[Vec<EventPairV0>]) -> Vec<Vec<EventPairV0>> {
+    let mut normalized = alternatives
+        .iter()
+        .map(|pairs| normalize_pairs(pairs))
+        .collect::<Vec<_>>();
+    normalized.sort_unstable();
+    normalized.dedup();
+    normalized
+}
+
 fn best_pair_metrics(
     proposal: &[EventPairV0],
     truths: &[Vec<EventPairV0>],
@@ -821,11 +825,13 @@ mod tests {
 
     #[test]
     fn shuffled_negative_preserves_each_modality_marginals() {
-        let aligned =
-            MultimodalWorldV0::generate(config(AssociationRegimeV0::Aligned)).unwrap();
-        let shuffled =
-            MultimodalWorldV0::generate(config(AssociationRegimeV0::MarginalMatchedShuffled))
-                .unwrap();
+        let mut aligned_config = config(AssociationRegimeV0::Aligned);
+        aligned_config.alpha_drop_per_mille = 100;
+        aligned_config.beta_drop_per_mille = 125;
+        let mut shuffled_config = aligned_config;
+        shuffled_config.regime = AssociationRegimeV0::MarginalMatchedShuffled;
+        let aligned = MultimodalWorldV0::generate(aligned_config).unwrap();
+        let shuffled = MultimodalWorldV0::generate(shuffled_config).unwrap();
         let aligned_view = all_observations(&aligned);
         let shuffled_view = all_observations(&shuffled);
 
