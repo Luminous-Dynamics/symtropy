@@ -33,7 +33,7 @@ This is a conservative admission table for the benchmark, not a claim that a sol
 
 Numerical methods require a convergence record. Refinement identifiers must increase, characteristic resolution must decrease, each refined level must carry a maximum map change, and the final map digest must match the run output digest.
 
-A run can only be declared converged when it has at least the policy's required number of levels and its final solver-reported map change and absolute error estimate meet the policy thresholds. This checks declared evidence and arithmetic; it does not independently validate the error estimator.
+The convergence record must name the exact policy ID. A run can only be declared converged when it has at least the policy's required number of levels and its final solver-reported map change and absolute error estimate meet the policy thresholds. This checks declared evidence and arithmetic; it does not independently validate the error estimator.
 
 Closed-form analytical references and physical measurements do not require numerical convergence records. Physical measurement uncertainty remains separate from solver error.
 
@@ -47,7 +47,7 @@ Two runs are directly comparable only when all of these match exactly:
 - coordinate-frame identity;
 - exact ordered observer-grid digest.
 
-Different solver settings, precision, hardware and environments are recorded separately. The pair's lineage label is derived only from declared software and formulation identities. It is not proof of statistical independence or absence of shared code.
+Different solver settings, precision, hardware and environments are recorded separately. The pair reports the intersection of explicitly declared direct dependencies (normalized and sorted). The lineage label is derived only from declared software and formulation identities. It is not proof of statistical independence or absence of transitive shared code.
 
 ## Run
 
