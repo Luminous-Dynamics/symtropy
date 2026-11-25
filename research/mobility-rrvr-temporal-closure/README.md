@@ -29,3 +29,22 @@ The v0.1 fixture corpus contains:
 - negative cases for unbounded late arrival, forwarder age refresh, invalid clock profile, and incomplete command-path inventory.
 
 The JSON Schema defines fixture structure. The GitHub Actions workflow parses the schema/fixture JSON and checks the frozen fixture invariants, then runs rustfmt, unit tests and strict Clippy. This is not a physical campaign or proof of inventory completeness.
+
+## Bounded formal model
+
+The TLA+ abstraction is in `model/RRVRTemporalClosure.tla`. It includes two command branches, in-flight delivery, monotonic elapsed age, endpoint expiry, a drained-certificate path, a bounded-expiry path, and hidden post-fence ingress as an unsafe mutation.
+
+The safe configuration is `model/RRVRTemporalClosure_Safe.cfg`. The negative configurations target:
+- quiet-interval-only closure;
+- late physical effect after bounded expiry;
+- forwarding that refreshes message age;
+- a hidden command path omitted from the declared inventory;
+- an unbounded transit/retention path;
+- an invalid clock profile.
+
+The focused workflow pins the TLC JAR and Git blob identities for the model/configurations. It requires the safe model to exhaust and each unsafe configuration to produce its expected invariant counterexample. A queued workflow is not a formal PASS; report the exact head and completed run before making that claim.
+
+## Scope of the model
+
+The TLA+ model uses a small finite abstraction with a precomputed aggregate age horizon. It does not yet refine per-edge/per-node timing values, clock-domain conversions, a real ROS/DDS graph, or the Rust data types. The Rust checker and TLA+ model are separate reference implementations at this stage; a Rust/TLA refinement map is a future acceptance item. No transport, firmware, HIL or physical behavior is established.
+
