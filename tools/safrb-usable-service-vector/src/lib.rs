@@ -136,6 +136,7 @@ pub struct PredicateEvidence {
     pub provider_id: Option<String>,
     pub qualification_ref: Option<String>,
     pub verifier_receipt_ref: Option<String>,
+    pub verifier_receipt_sha256: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -293,10 +294,10 @@ fn validate_context(
     if context.window_start_unix_s >= context.window_end_unix_s {
         errors.push("qualification context window must have positive duration".to_string());
     }
-    Ok_or_errors(errors)
+    ok_or_errors(errors)
 }
 
-fn Ok_or_errors(errors: Vec<String>) -> Result<(), Vec<String>> {
+fn ok_or_errors(errors: Vec<String>) -> Result<(), Vec<String>> {
     if errors.is_empty() { Ok(()) } else { Err(errors) }
 }
 
@@ -339,7 +340,8 @@ fn validate_accepted_provenance(evidence: &PredicateEvidence) -> Result<(), Stri
             .is_some_and(|digest| lower_hex(digest, 64))
         && evidence.provider_id.as_deref().is_some_and(nonempty)
         && evidence.qualification_ref.as_deref().is_some_and(nonempty)
-        && evidence.verifier_receipt_ref.as_deref().is_some_and(nonempty);
+        && evidence.verifier_receipt_ref.as_deref().is_some_and(nonempty)
+        && evidence.verifier_receipt_sha256.as_deref().is_some_and(|digest| lower_hex(digest, 64));
     if fields_valid {
         Ok(())
     } else {
@@ -626,6 +628,7 @@ mod tests {
             provider_id: Some("independent-meter-provider".to_string()),
             qualification_ref: Some("calibration-or-model-receipt://1".to_string()),
             verifier_receipt_ref: Some("verified-artifact://1".to_string()),
+            verifier_receipt_sha256: Some("c".repeat(64)),
         }
     }
 
@@ -762,6 +765,7 @@ mod tests {
         )]);
         let mut evidence = admitted_evidence("energy", "Wh", 9_000, 9_500);
         evidence.verifier_receipt_ref = None;
+        evidence.verifier_receipt_sha256 = None;
         assert!(qualify_service(&profile, &context(), &[evidence]).is_err());
     }
 
