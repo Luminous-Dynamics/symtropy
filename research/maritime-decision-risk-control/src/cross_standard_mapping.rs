@@ -21,6 +21,8 @@ use std::fmt::Write as FmtWrite;
 const DCSA_TT_VERSION: &str = "DCSA-TT-2.2";
 const EPCIS_VERSION: &str = "GS1-EPCIS-2.0.0";
 const FIXTURE_DIGEST: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const MAPPING_BUNDLE_DIGEST: &str =
+    "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MappingKind {
@@ -71,6 +73,9 @@ pub enum CrosswalkError {
     SourcePayloadReferenceMismatch,
     InvalidSourcePayloadDigest,
     MappingRuleNotApproved,
+    InvalidMappingBundleDigest,
+    MappingBundleReferenceMissing,
+    MappingBundleReferenceMismatch,
     ExactMappingValueChanged,
     InvalidTargetVocabularyValue,
     SourceFieldMissing,
@@ -97,6 +102,9 @@ impl CrosswalkError {
             Self::SourcePayloadReferenceMismatch => "SOURCE_PAYLOAD_REFERENCE_MISMATCH",
             Self::InvalidSourcePayloadDigest => "INVALID_SOURCE_PAYLOAD_DIGEST",
             Self::MappingRuleNotApproved => "MAPPING_RULE_NOT_APPROVED",
+            Self::InvalidMappingBundleDigest => "INVALID_MAPPING_BUNDLE_DIGEST",
+            Self::MappingBundleReferenceMissing => "MAPPING_BUNDLE_REFERENCE_MISSING",
+            Self::MappingBundleReferenceMismatch => "MAPPING_BUNDLE_REFERENCE_MISMATCH",
             Self::ExactMappingValueChanged => "EXACT_MAPPING_VALUE_CHANGED",
             Self::InvalidTargetVocabularyValue => "INVALID_TARGET_VOCABULARY_VALUE",
             Self::SourceFieldMissing => "SOURCE_FIELD_MISSING",
@@ -144,6 +152,8 @@ pub struct MappingRule {
     /// Immutable mapping bundle identity and revision, not an implicit latest rule.
     pub mapping_bundle_id: String,
     pub mapping_bundle_revision: String,
+    pub mapping_bundle_sha256: String,
+    pub mapping_bundle_ref: String,
     pub source_standard_version: String,
     pub source_field: String,
     pub source_value: String,
@@ -176,6 +186,17 @@ impl MappingRule {
             || self.reviewer_ref.trim().is_empty()
         {
             return Err(CrosswalkError::EmptyRuleIdentity);
+        }
+        if !valid_sha256(&self.mapping_bundle_sha256) {
+            return Err(CrosswalkError::InvalidMappingBundleDigest);
+        }
+        if self.mapping_bundle_ref.trim().is_empty() {
+            return Err(CrosswalkError::MappingBundleReferenceMissing);
+        }
+        let expected_bundle_ref =
+            format!("urn:mapping-bundle:sha256:{}", self.mapping_bundle_sha256);
+        if self.mapping_bundle_ref != expected_bundle_ref {
+            return Err(CrosswalkError::MappingBundleReferenceMismatch);
         }
         if self.review_status != MappingReviewStatus::Approved {
             return Err(CrosswalkError::MappingRuleNotApproved);
@@ -282,6 +303,8 @@ pub struct CrosswalkReceipt {
     pub rule_id: String,
     pub mapping_bundle_id: String,
     pub mapping_bundle_revision: String,
+    pub mapping_bundle_sha256: String,
+    pub mapping_bundle_ref: String,
     pub review_status: MappingReviewStatus,
     pub reviewer_ref: String,
     pub source_standard_version: String,
@@ -346,6 +369,8 @@ pub fn map_field(
         rule_id: rule.rule_id.clone(),
         mapping_bundle_id: rule.mapping_bundle_id.clone(),
         mapping_bundle_revision: rule.mapping_bundle_revision.clone(),
+        mapping_bundle_sha256: rule.mapping_bundle_sha256.clone(),
+        mapping_bundle_ref: rule.mapping_bundle_ref.clone(),
         review_status: rule.review_status,
         reviewer_ref: rule.reviewer_ref.clone(),
         source_standard_version: source.standard_version.clone(),
@@ -400,6 +425,8 @@ fn rule(
         rule_id: format!("crosswalk-{source_field}-to-{target_field}-v1"),
         mapping_bundle_id: "maritime-dcsa-epcis-crosswalk".to_owned(),
         mapping_bundle_revision: "v1.0.0".to_owned(),
+        mapping_bundle_sha256: MAPPING_BUNDLE_DIGEST.to_owned(),
+        mapping_bundle_ref: format!("urn:mapping-bundle:sha256:{MAPPING_BUNDLE_DIGEST}"),
         source_standard_version: DCSA_TT_VERSION.to_owned(),
         source_field: source_field.to_owned(),
         source_value: source_value.to_owned(),
