@@ -283,7 +283,15 @@ pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
         0
     };
 
-    let opening_grams = 10_000_000 + (noise % 200_000);
+    // Cargo-delay archetypes deliberately start with a small residual stock.
+    // The replacement cargo arrives after the 72-hour horizon, so it cannot
+    // be silently treated as on-hand fuel.
+    let opening_grams = match archetype {
+        Archetype::CrudeCargoDelay | Archetype::RefinedDieselCargoDelay => {
+            700_000 + (noise % 50_000)
+        }
+        _ => 10_000_000 + (noise % 200_000),
+    };
     let declared_losses_grams = 10_000 + (noise % 2_000);
 
     let measurement_uncertainty_basis_points = if archetype == Archetype::TankGaugeUncertainty {
@@ -1379,10 +1387,15 @@ mod tests {
 
     #[test]
     fn delayed_cargo_outside_horizon_is_not_counted() {
-        let case = generate_case(Archetype::CrudeCargoDelay, 0);
-        assert_eq!(case.transport.cargo_arrival_hour, 96);
-        assert_eq!(case.inventory.accepted_inflow_grams, 0);
-        assert!(validate_case(&case).is_ok());
+        for archetype in [Archetype::CrudeCargoDelay, Archetype::RefinedDieselCargoDelay] {
+            let case = generate_case(archetype, 0);
+            assert!(case.transport.cargo_arrival_hour >= HORIZON_HOURS);
+            assert_eq!(case.inventory.accepted_inflow_grams, 0);
+            assert!(case.inventory.opening_grams < 1_000_000);
+            assert_eq!(case.inventory.withdrawals_grams, case.transport.deliverable_grams);
+            assert_eq!(case.service.disposition, ServiceDisposition::ConfirmedShortfall);
+            assert!(validate_case(&case).is_ok());
+        }
     }
 
     #[test]
