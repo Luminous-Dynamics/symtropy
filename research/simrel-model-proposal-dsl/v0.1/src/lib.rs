@@ -121,10 +121,7 @@ pub struct ValueRange {
 
 impl ValueRange {
     pub fn validate(self) -> Result<(), ModelError> {
-        if !self.minimum.is_finite()
-            || !self.maximum.is_finite()
-            || self.minimum > self.maximum
-        {
+        if !self.minimum.is_finite() || !self.maximum.is_finite() || self.minimum > self.maximum {
             return Err(ModelError::InvalidValueRange);
         }
         Ok(())
@@ -224,19 +221,15 @@ impl Expr {
                 Ok(*dimension)
             }
             Self::Variable(id) => {
-                let declaration = symbols
-                    .get(id)
-                    .ok_or(ModelError::UnknownVariable(*id))?;
+                let declaration = symbols.get(id).ok_or(ModelError::UnknownVariable(*id))?;
                 if declaration.role == VariableRole::Observable {
                     return Err(ModelError::ObservableCannotBeRead(*id));
                 }
                 Ok(declaration.dimension)
             }
             Self::Add(left, right) | Self::Subtract(left, right) => {
-                let left_dimension =
-                    left.validate(symbols, stochastic, depth + 1, node_count)?;
-                let right_dimension =
-                    right.validate(symbols, stochastic, depth + 1, node_count)?;
+                let left_dimension = left.validate(symbols, stochastic, depth + 1, node_count)?;
+                let right_dimension = right.validate(symbols, stochastic, depth + 1, node_count)?;
                 if left_dimension != right_dimension {
                     return Err(ModelError::DimensionMismatch {
                         left: left_dimension,
@@ -246,22 +239,16 @@ impl Expr {
                 Ok(left_dimension)
             }
             Self::Multiply(left, right) => {
-                let left_dimension =
-                    left.validate(symbols, stochastic, depth + 1, node_count)?;
-                let right_dimension =
-                    right.validate(symbols, stochastic, depth + 1, node_count)?;
+                let left_dimension = left.validate(symbols, stochastic, depth + 1, node_count)?;
+                let right_dimension = right.validate(symbols, stochastic, depth + 1, node_count)?;
                 left_dimension.multiply(right_dimension)
             }
             Self::Divide(left, right) => {
-                let left_dimension =
-                    left.validate(symbols, stochastic, depth + 1, node_count)?;
-                let right_dimension =
-                    right.validate(symbols, stochastic, depth + 1, node_count)?;
+                let left_dimension = left.validate(symbols, stochastic, depth + 1, node_count)?;
+                let right_dimension = right.validate(symbols, stochastic, depth + 1, node_count)?;
                 left_dimension.divide(right_dimension)
             }
-            Self::Negate(value) => {
-                value.validate(symbols, stochastic, depth + 1, node_count)
-            }
+            Self::Negate(value) => value.validate(symbols, stochastic, depth + 1, node_count),
             Self::Exponential(value) => {
                 let dimension = value.validate(symbols, stochastic, depth + 1, node_count)?;
                 if !dimension.is_dimensionless() {
@@ -284,9 +271,7 @@ impl Expr {
             Self::Add(left, right)
             | Self::Subtract(left, right)
             | Self::Multiply(left, right)
-            | Self::Divide(left, right) => {
-                left.count_noise_nodes() + right.count_noise_nodes()
-            }
+            | Self::Divide(left, right) => left.count_noise_nodes() + right.count_noise_nodes(),
             Self::Negate(value) | Self::Exponential(value) => value.count_noise_nodes(),
             Self::Constant { .. } | Self::Variable(_) => 0,
         }
@@ -468,13 +453,20 @@ impl fmt::Display for ModelError {
                 write!(f, "initial state {} is outside its admitted range", id.0)
             }
             Self::MissingStateTransitions => {
-                write!(f, "every state/latent variable needs exactly one transition")
+                write!(
+                    f,
+                    "every state/latent variable needs exactly one transition"
+                )
             }
             Self::AlgebraicModelHasTransitions => {
                 write!(f, "algebraic proposal cannot declare state transitions")
             }
             Self::TransitionForNonState(id) => {
-                write!(f, "transition target {} is not a state/latent variable", id.0)
+                write!(
+                    f,
+                    "transition target {} is not a state/latent variable",
+                    id.0
+                )
             }
             Self::DuplicateAssignment(id) => {
                 write!(f, "duplicate assignment for variable {}", id.0)
@@ -487,10 +479,16 @@ impl fmt::Display for ModelError {
             }
             Self::NoObservables => write!(f, "proposal must declare at least one observable"),
             Self::NoStateVariables => {
-                write!(f, "stateful proposal must declare at least one state variable")
+                write!(
+                    f,
+                    "stateful proposal must declare at least one state variable"
+                )
             }
             Self::AlgebraicModelHasState => {
-                write!(f, "algebraic proposal cannot declare state/latent variables")
+                write!(
+                    f,
+                    "algebraic proposal cannot declare state/latent variables"
+                )
             }
             Self::StatefulModelHasNoState => {
                 write!(f, "discrete proposal must declare state/latent variables")
@@ -504,19 +502,31 @@ impl fmt::Display for ModelError {
                 id.0
             ),
             Self::DimensionMismatch { .. } => {
-                write!(f, "addition/subtraction operands have incompatible dimensions")
+                write!(
+                    f,
+                    "addition/subtraction operands have incompatible dimensions"
+                )
             }
             Self::DimensionExponentOverflow => {
-                write!(f, "unit dimension exponent overflows the admitted representation")
+                write!(
+                    f,
+                    "unit dimension exponent overflows the admitted representation"
+                )
             }
             Self::DimensionlessArgumentRequired => {
                 write!(f, "exponential expects a dimensionless argument")
             }
             Self::NoiseOutsideStochasticModel => {
-                write!(f, "random innovations are admitted only in stochastic-state proposals")
+                write!(
+                    f,
+                    "random innovations are admitted only in stochastic-state proposals"
+                )
             }
             Self::StochasticModelWithoutNoise => {
-                write!(f, "stochastic-state proposal must contain at least one noise node")
+                write!(
+                    f,
+                    "stochastic-state proposal must contain at least one noise node"
+                )
             }
             Self::NonFiniteConstant => write!(f, "expression constant must be finite"),
             Self::NonFiniteInitialState(id) => {
@@ -542,7 +552,10 @@ impl fmt::Display for ModelError {
                 id.0
             ),
             Self::InvalidHorizon => {
-                write!(f, "requested horizon is outside the program's declared limit")
+                write!(
+                    f,
+                    "requested horizon is outside the program's declared limit"
+                )
             }
             Self::FuelExhausted => {
                 write!(f, "model interpreter exhausted its expression fuel")
@@ -557,13 +570,20 @@ impl fmt::Display for ModelError {
                 write!(f, "updated state {} is outside its admitted range", id.0)
             }
             Self::ObservableOutsideRange(id) => {
-                write!(f, "computed observable {} is outside its admitted range", id.0)
+                write!(
+                    f,
+                    "computed observable {} is outside its admitted range",
+                    id.0
+                )
             }
             Self::InternalMissingValue(id) => {
                 write!(f, "interpreter environment lacks variable {}", id.0)
             }
             Self::InvalidBudget => {
-                write!(f, "interpreter budget must have positive step and expression limits")
+                write!(
+                    f,
+                    "interpreter budget must have positive step and expression limits"
+                )
             }
         }
     }
@@ -797,13 +817,7 @@ impl ValidatedModelProgramV0 {
         }
         final_state.sort_by_key(|value| value.variable);
 
-        let run_fingerprint64 = run_fingerprint(
-            self.fingerprint64,
-            bindings,
-            steps,
-            seed,
-            budget,
-        );
+        let run_fingerprint64 = run_fingerprint(self.fingerprint64, bindings, steps, seed, budget);
         Ok(ModelRunV0 {
             model_id: self.program.model_id.clone(),
             model_fingerprint64: self.fingerprint64,
@@ -832,14 +846,10 @@ fn validate_program(program: &ModelProgramV0) -> Result<(), ModelError> {
     if program.variables.is_empty() || program.variables.len() > MAX_VARIABLES {
         return Err(ModelError::TooManyVariables);
     }
-    if program.outputs.len() > MAX_ASSIGNMENTS
-        || program.transitions.len() > MAX_ASSIGNMENTS
-    {
+    if program.outputs.len() > MAX_ASSIGNMENTS || program.transitions.len() > MAX_ASSIGNMENTS {
         return Err(ModelError::TooManyAssignments);
     }
-    if program.maximum_horizon_steps == 0
-        || program.maximum_horizon_steps > MAX_HORIZON_STEPS
-    {
+    if program.maximum_horizon_steps == 0 || program.maximum_horizon_steps > MAX_HORIZON_STEPS {
         return Err(ModelError::InvalidHorizon);
     }
 
@@ -852,7 +862,10 @@ fn validate_program(program: &ModelProgramV0) -> Result<(), ModelError> {
         if !names.insert(declaration.name.clone()) {
             return Err(ModelError::DuplicateVariableName);
         }
-        if symbols.insert(declaration.id, declaration.clone()).is_some() {
+        if symbols
+            .insert(declaration.id, declaration.clone())
+            .is_some()
+        {
             return Err(ModelError::DuplicateVariableId(declaration.id));
         }
         if let Some(range) = declaration.admissible_range {
@@ -938,9 +951,7 @@ fn validate_program(program: &ModelProgramV0) -> Result<(), ModelError> {
         }
     }
 
-    if program.class == ProposalClass::StochasticState
-        && validation_context.noise_node_count == 0
-    {
+    if program.class == ProposalClass::StochasticState && validation_context.noise_node_count == 0 {
         return Err(ModelError::StochasticModelWithoutNoise);
     }
     Ok(())
@@ -967,7 +978,8 @@ fn validate_assignment_set(
     }
     let mut targets = BTreeSet::new();
     for assignment in assignments {
-        let declaration = context.symbols
+        let declaration = context
+            .symbols
             .get(&assignment.target)
             .ok_or(ModelError::UnknownVariable(assignment.target))?;
         if !required_targets.contains(&assignment.target) {
@@ -1053,9 +1065,7 @@ fn evaluate_expression(
         Expr::Exponential(inner) => {
             evaluate_expression(inner, environment, seed, step, depth + 1, fuel, evaluated)?.exp()
         }
-        Expr::StandardNormal { channel_id } => {
-            deterministic_normal(seed, step, *channel_id)
-        }
+        Expr::StandardNormal { channel_id } => deterministic_normal(seed, step, *channel_id),
     };
     if value.is_finite() {
         Ok(value)
@@ -1151,8 +1161,7 @@ fn run_fingerprint(
     ordered.sort_by_key(|binding| binding.variable);
     let mut canonical = format!(
         "model:{model_fingerprint:016x}|steps:{steps}|seed:{seed:016x}|max_steps:{}|fuel:{}|",
-        budget.maximum_steps,
-        budget.expression_fuel
+        budget.maximum_steps, budget.expression_fuel
     );
     for binding in ordered {
         let _ = write!(
@@ -1239,7 +1248,10 @@ mod tests {
                     "x",
                     VariableRole::Input,
                     Dimension::LENGTH,
-                    Some(ValueRange { minimum: 0.0, maximum: 10.0 }),
+                    Some(ValueRange {
+                        minimum: 0.0,
+                        maximum: 10.0,
+                    }),
                     None,
                 ),
                 declaration(
@@ -1247,7 +1259,10 @@ mod tests {
                     "gain",
                     VariableRole::Parameter,
                     Dimension::DIMENSIONLESS,
-                    Some(ValueRange { minimum: 0.0, maximum: 3.0 }),
+                    Some(ValueRange {
+                        minimum: 0.0,
+                        maximum: 3.0,
+                    }),
                     None,
                 ),
                 declaration(
@@ -1255,7 +1270,10 @@ mod tests {
                     "offset",
                     VariableRole::Parameter,
                     Dimension::LENGTH,
-                    Some(ValueRange { minimum: -2.0, maximum: 2.0 }),
+                    Some(ValueRange {
+                        minimum: -2.0,
+                        maximum: 2.0,
+                    }),
                     None,
                 ),
                 declaration(
@@ -1272,10 +1290,7 @@ mod tests {
             outputs: vec![Assignment {
                 target: VariableId(4),
                 expression: Expr::add(
-                    Expr::multiply(
-                        Expr::variable(VariableId(1)),
-                        Expr::variable(VariableId(2)),
-                    ),
+                    Expr::multiply(Expr::variable(VariableId(1)), Expr::variable(VariableId(2))),
                     Expr::variable(VariableId(3)),
                 ),
             }],
@@ -1293,7 +1308,10 @@ mod tests {
                     "x",
                     VariableRole::State,
                     Dimension::LENGTH,
-                    Some(ValueRange { minimum: -100.0, maximum: 100.0 }),
+                    Some(ValueRange {
+                        minimum: -100.0,
+                        maximum: 100.0,
+                    }),
                     Some(1.0),
                 ),
                 declaration(
@@ -1301,7 +1319,10 @@ mod tests {
                     "u",
                     VariableRole::Input,
                     Dimension::LENGTH,
-                    Some(ValueRange { minimum: -10.0, maximum: 10.0 }),
+                    Some(ValueRange {
+                        minimum: -10.0,
+                        maximum: 10.0,
+                    }),
                     None,
                 ),
                 declaration(
@@ -1309,7 +1330,10 @@ mod tests {
                     "decay",
                     VariableRole::Parameter,
                     Dimension::DIMENSIONLESS,
-                    Some(ValueRange { minimum: 0.0, maximum: 1.0 }),
+                    Some(ValueRange {
+                        minimum: 0.0,
+                        maximum: 1.0,
+                    }),
                     None,
                 ),
                 declaration(
@@ -1325,10 +1349,7 @@ mod tests {
             transitions: vec![Assignment {
                 target: VariableId(1),
                 expression: Expr::add(
-                    Expr::multiply(
-                        Expr::variable(VariableId(1)),
-                        Expr::variable(VariableId(3)),
-                    ),
+                    Expr::multiply(Expr::variable(VariableId(1)), Expr::variable(VariableId(3))),
                     Expr::variable(VariableId(2)),
                 ),
             }],
@@ -1350,7 +1371,10 @@ mod tests {
                     "state",
                     VariableRole::Latent,
                     Dimension::DIMENSIONLESS,
-                    Some(ValueRange { minimum: -100.0, maximum: 100.0 }),
+                    Some(ValueRange {
+                        minimum: -100.0,
+                        maximum: 100.0,
+                    }),
                     Some(0.0),
                 ),
                 declaration(
@@ -1358,7 +1382,10 @@ mod tests {
                     "sigma",
                     VariableRole::Parameter,
                     Dimension::DIMENSIONLESS,
-                    Some(ValueRange { minimum: 0.0, maximum: 1.0 }),
+                    Some(ValueRange {
+                        minimum: 0.0,
+                        maximum: 1.0,
+                    }),
                     None,
                 ),
                 declaration(
@@ -1403,12 +1430,22 @@ mod tests {
     fn algebraic_proposal_executes_with_typed_bindings() {
         let validated = ValidatedModelProgramV0::new(algebraic_program()).unwrap();
         let run = validated
-            .simulate(&[bound(1, 3.0), bound(2, 2.0), bound(3, 1.0)], 1, 1, budget())
+            .simulate(
+                &[bound(1, 3.0), bound(2, 2.0), bound(3, 1.0)],
+                1,
+                1,
+                budget(),
+            )
             .unwrap();
         assert_eq!(run.samples.len(), 1);
         assert_eq!(run.samples[0].values[0].value, 7.0);
         let reordered = validated
-            .simulate(&[bound(3, 1.0), bound(1, 3.0), bound(2, 2.0)], 1, 1, budget())
+            .simulate(
+                &[bound(3, 1.0), bound(1, 3.0), bound(2, 2.0)],
+                1,
+                1,
+                budget(),
+            )
             .unwrap();
         assert_eq!(run.run_fingerprint64, reordered.run_fingerprint64);
     }
@@ -1439,7 +1476,10 @@ mod tests {
                     "left_state",
                     VariableRole::State,
                     Dimension::DIMENSIONLESS,
-                    Some(ValueRange { minimum: -10.0, maximum: 10.0 }),
+                    Some(ValueRange {
+                        minimum: -10.0,
+                        maximum: 10.0,
+                    }),
                     Some(1.0),
                 ),
                 declaration(
@@ -1447,7 +1487,10 @@ mod tests {
                     "right_state",
                     VariableRole::State,
                     Dimension::DIMENSIONLESS,
-                    Some(ValueRange { minimum: -10.0, maximum: 10.0 }),
+                    Some(ValueRange {
+                        minimum: -10.0,
+                        maximum: 10.0,
+                    }),
                     Some(2.0),
                 ),
                 declaration(
@@ -1493,15 +1536,26 @@ mod tests {
         let validated = ValidatedModelProgramV0::new(program).unwrap();
         let run = validated.simulate(&[], 2, 0, budget()).unwrap();
         assert_eq!(
-            run.samples[0].values.iter().map(|value| value.value).collect::<Vec<_>>(),
+            run.samples[0]
+                .values
+                .iter()
+                .map(|value| value.value)
+                .collect::<Vec<_>>(),
             vec![1.0, 2.0]
         );
         assert_eq!(
-            run.samples[1].values.iter().map(|value| value.value).collect::<Vec<_>>(),
+            run.samples[1]
+                .values
+                .iter()
+                .map(|value| value.value)
+                .collect::<Vec<_>>(),
             vec![2.0, 1.0]
         );
         assert_eq!(
-            run.final_state.iter().map(|value| value.value).collect::<Vec<_>>(),
+            run.final_state
+                .iter()
+                .map(|value| value.value)
+                .collect::<Vec<_>>(),
             vec![1.0, 2.0]
         );
     }
@@ -1535,10 +1589,8 @@ mod tests {
     #[test]
     fn unit_mismatch_is_rejected_before_execution() {
         let mut program = algebraic_program();
-        program.outputs[0].expression = Expr::add(
-            Expr::variable(VariableId(1)),
-            Expr::variable(VariableId(3)),
-        );
+        program.outputs[0].expression =
+            Expr::add(Expr::variable(VariableId(1)), Expr::variable(VariableId(3)));
         assert!(matches!(
             ValidatedModelProgramV0::new(program),
             Err(ModelError::DimensionMismatch { .. })
@@ -1568,7 +1620,12 @@ mod tests {
         });
         let validated = ValidatedModelProgramV0::new(program).unwrap();
         assert_eq!(
-            validated.simulate(&[bound(1, 3.0), bound(2, 2.0), bound(3, 1.0)], 1, 1, budget()),
+            validated.simulate(
+                &[bound(1, 3.0), bound(2, 2.0), bound(3, 1.0)],
+                1,
+                1,
+                budget()
+            ),
             Err(ModelError::ObservableOutsideRange(VariableId(4)))
         );
     }
@@ -1618,7 +1675,10 @@ mod tests {
             "hidden_state",
             VariableRole::Latent,
             Dimension::DIMENSIONLESS,
-            Some(ValueRange { minimum: -1.0, maximum: 1.0 }),
+            Some(ValueRange {
+                minimum: -1.0,
+                maximum: 1.0,
+            }),
             Some(0.0),
         ));
         assert_eq!(
