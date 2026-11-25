@@ -180,6 +180,74 @@ mod tests {
     }
 
     #[test]
+    fn json_schema_covers_every_fixture_field_and_expected_reason() {
+        let fixture: serde_json::Value =
+            serde_json::from_str(CORPUS).expect("known-answer corpus JSON");
+        let schema: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/command_semantics_cases_v0_2.schema.json"
+        ))
+        .expect("command semantics JSON Schema");
+
+        let schema_cases = schema["$defs"]["case"]["properties"]
+            .as_object()
+            .expect("case schema properties");
+        let schema_device = schema["$defs"]["device"]["properties"]
+            .as_object()
+            .expect("device schema properties");
+        let schema_command = schema["$defs"]["command"]["properties"]
+            .as_object()
+            .expect("command schema properties");
+        let case_required = schema["$defs"]["case"]["required"]
+            .as_array()
+            .expect("case required fields");
+        let device_required = schema["$defs"]["device"]["required"]
+            .as_array()
+            .expect("device required fields");
+        let command_required = schema["$defs"]["command"]["required"]
+            .as_array()
+            .expect("command required fields");
+
+        for case in fixture["cases"].as_array().expect("fixture cases") {
+            let case_object = case.as_object().expect("case object");
+            for required in case_required {
+                let name = required.as_str().expect("required case field");
+                assert!(case_object.contains_key(name), "missing case field {name}");
+            }
+            for name in case_object.keys() {
+                assert!(schema_cases.contains_key(name), "schema lacks case field {name}");
+            }
+
+            let device_object = case["device"].as_object().expect("device object");
+            for required in device_required {
+                let name = required.as_str().expect("required device field");
+                assert!(device_object.contains_key(name), "missing device field {name}");
+            }
+            for name in device_object.keys() {
+                assert!(schema_device.contains_key(name), "schema lacks device field {name}");
+            }
+
+            let command_object = case["command"].as_object().expect("command object");
+            for required in command_required {
+                let name = required.as_str().expect("required command field");
+                assert!(command_object.contains_key(name), "missing command field {name}");
+            }
+            for name in command_object.keys() {
+                assert!(schema_command.contains_key(name), "schema lacks command field {name}");
+            }
+
+            let expected_reason = &case["expected_reason"];
+            let allowed_reasons = schema_cases["expected_reason"]["enum"]
+                .as_array()
+                .expect("expected reason enum");
+            assert!(
+                allowed_reasons.contains(expected_reason),
+                "schema does not enumerate expected reason for {}",
+                case["case_id"]
+            );
+        }
+    }
+
+    #[test]
     fn duplicate_case_ids_are_rejected_before_evaluation() {
         let mut value: serde_json::Value =
             serde_json::from_str(CORPUS).expect("known-answer corpus JSON");
