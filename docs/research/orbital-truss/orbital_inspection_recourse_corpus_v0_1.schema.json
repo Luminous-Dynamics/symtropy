@@ -165,7 +165,41 @@
                         "type": "string",
                         "pattern": "^[0-9a-fA-F]{64}$"
                       }
-                    }
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "mapping_state": {
+                              "const": "KNOWN"
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "possible_outcomes": {
+                              "minItems": 1
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "mapping_state": {
+                              "const": "UNKNOWN"
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "possible_outcomes": {
+                              "maxItems": 0
+                            }
+                          }
+                        }
+                      }
+                    ]
                   }
                 }
               }
