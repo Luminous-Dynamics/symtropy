@@ -12,6 +12,7 @@ VARIABLES deviceUp,
           requestEpoch,
           requestPayload,
           acceptedPayload,
+          acceptedEpoch,
           tokenState,
           historyLost,
           reply,
@@ -21,7 +22,7 @@ VARIABLES deviceUp,
 
 vars ==
     <<deviceUp, deviceBoot, authorityEpoch, endpointFenceEpoch, requestEpoch,
-      requestPayload, acceptedPayload, tokenState, historyLost, reply,
+      requestPayload, acceptedPayload, acceptedEpoch, tokenState, historyLost, reply,
       effectInvocations, physicalEffects, staleEffectCount>>
 
 TokenStates == {"none", "reserved", "applied", "unknown"}
@@ -37,6 +38,7 @@ Init ==
     /\ requestEpoch = 0
     /\ requestPayload = "payload-a"
     /\ acceptedPayload = "none"
+    /\ acceptedEpoch = -1
     /\ tokenState = "none"
     /\ historyLost = FALSE
     /\ reply = "none"
@@ -49,14 +51,14 @@ AdvanceAuthorityEpoch ==
     /\ authorityEpoch' = 1
     /\ UNCHANGED <<deviceUp, deviceBoot, endpointFenceEpoch, requestEpoch,
                    requestPayload, acceptedPayload, tokenState, historyLost,
-                   reply, effectInvocations, physicalEffects, staleEffectCount>>
+                   reply, effectInvocations, physicalEffects, staleEffectCount, acceptedEpoch>>
 
 SetRequestToAuthorityEpoch ==
     /\ requestEpoch # authorityEpoch
     /\ requestEpoch' = authorityEpoch
     /\ UNCHANGED <<deviceUp, deviceBoot, authorityEpoch, endpointFenceEpoch,
                    requestPayload, acceptedPayload, tokenState, historyLost,
-                   reply, effectInvocations, physicalEffects, staleEffectCount>>
+                   reply, effectInvocations, physicalEffects, staleEffectCount, acceptedEpoch>>
 
 SetRequestToOldEpoch ==
     /\ authorityEpoch = 1
@@ -64,14 +66,14 @@ SetRequestToOldEpoch ==
     /\ requestEpoch' = 0
     /\ UNCHANGED <<deviceUp, deviceBoot, authorityEpoch, endpointFenceEpoch,
                    requestPayload, acceptedPayload, tokenState, historyLost,
-                   reply, effectInvocations, physicalEffects, staleEffectCount>>
+                   reply, effectInvocations, physicalEffects, staleEffectCount, acceptedEpoch>>
 
 SetAlternatePayload ==
     /\ requestPayload = "payload-a"
     /\ requestPayload' = "payload-b"
     /\ UNCHANGED <<deviceUp, deviceBoot, authorityEpoch, endpointFenceEpoch,
                    requestEpoch, acceptedPayload, tokenState, historyLost,
-                   reply, effectInvocations, physicalEffects, staleEffectCount>>
+                   reply, effectInvocations, physicalEffects, staleEffectCount, acceptedEpoch>>
 
 FenceEndpointEpoch ==
     /\ deviceUp
@@ -79,7 +81,7 @@ FenceEndpointEpoch ==
     /\ endpointFenceEpoch' = authorityEpoch
     /\ UNCHANGED <<deviceUp, deviceBoot, authorityEpoch, requestEpoch,
                    requestPayload, acceptedPayload, tokenState, historyLost,
-                   reply, effectInvocations, physicalEffects, staleEffectCount>>
+                   reply, effectInvocations, physicalEffects, staleEffectCount, acceptedEpoch>>
 
 SubmitNewToken ==
     /\ deviceUp
@@ -88,6 +90,7 @@ SubmitNewToken ==
     /\ requestEpoch = authorityEpoch
     /\ requestEpoch = endpointFenceEpoch
     /\ acceptedPayload' = requestPayload
+    /\ acceptedEpoch' = requestEpoch
     /\ tokenState' = "reserved"
     /\ reply' = "reserved"
     /\ UNCHANGED <<deviceUp, deviceBoot, authorityEpoch, endpointFenceEpoch,
@@ -98,6 +101,7 @@ ReplaySameToken ==
     /\ deviceUp
     /\ tokenState # "none"
     /\ requestEpoch = endpointFenceEpoch
+    /\ acceptedEpoch = endpointFenceEpoch
     /\ requestPayload = acceptedPayload
     /\ reply' =
          IF tokenState = "applied" THEN "prior_applied"
@@ -106,7 +110,7 @@ ReplaySameToken ==
     /\ UNCHANGED <<deviceUp, deviceBoot, authorityEpoch, endpointFenceEpoch,
                    requestEpoch, requestPayload, acceptedPayload, tokenState,
                    historyLost, effectInvocations, physicalEffects,
-                   staleEffectCount>>
+                   staleEffectCount, acceptedEpoch>>
 
 RejectChangedPayload ==
     /\ deviceUp
@@ -117,7 +121,14 @@ RejectChangedPayload ==
     /\ UNCHANGED <<deviceUp, deviceBoot, authorityEpoch, endpointFenceEpoch,
                    requestEpoch, requestPayload, acceptedPayload, tokenState,
                    historyLost, effectInvocations, physicalEffects,
-                   staleEffectCount>>
+                   staleEffectCount, acceptedEpoch>>
+
+RejectFencedToken ==
+    /\ deviceUp
+    /\ tokenState # "none"
+    /\ acceptedEpoch < endpointFenceEpoch
+    /\ reply' = "stale_epoch"
+    /\ UNCHANGED <<vars>>
 
 RejectStaleEpoch ==
     /\ deviceUp
@@ -126,17 +137,18 @@ RejectStaleEpoch ==
     /\ UNCHANGED <<deviceUp, deviceBoot, authorityEpoch, endpointFenceEpoch,
                    requestEpoch, requestPayload, acceptedPayload, tokenState,
                    historyLost, effectInvocations, physicalEffects,
-                   staleEffectCount>>
+                   staleEffectCount, acceptedEpoch>>
 
 ExecuteReservedToken ==
     /\ deviceUp
     /\ tokenState = "reserved"
+    /\ acceptedEpoch = endpointFenceEpoch
     /\ effectInvocations = 0
     /\ effectInvocations' = effectInvocations + 1
     /\ physicalEffects' = physicalEffects + 1
     /\ UNCHANGED <<deviceUp, deviceBoot, authorityEpoch, endpointFenceEpoch,
                    requestEpoch, requestPayload, acceptedPayload, tokenState,
-                   historyLost, reply, staleEffectCount>>
+                   historyLost, reply, staleEffectCount, acceptedEpoch>>
 
 PersistAppliedOutcome ==
     /\ deviceUp
@@ -146,7 +158,7 @@ PersistAppliedOutcome ==
     /\ reply' = "prior_applied"
     /\ UNCHANGED <<deviceUp, deviceBoot, authorityEpoch, endpointFenceEpoch,
                    requestEpoch, requestPayload, acceptedPayload, historyLost,
-                   effectInvocations, physicalEffects, staleEffectCount>>
+                   effectInvocations, physicalEffects, staleEffectCount, acceptedEpoch>>
 
 DeviceCrash ==
     /\ deviceUp
@@ -159,6 +171,7 @@ DeviceCrash ==
           ELSE
             /\ endpointFenceEpoch' = -1
             /\ acceptedPayload' = "none"
+            /\ acceptedEpoch' = -1
             /\ tokenState' = "none"
             /\ historyLost' = TRUE
     /\ UNCHANGED <<deviceBoot, authorityEpoch, requestEpoch, requestPayload,
@@ -174,7 +187,7 @@ DeviceRestart ==
           ELSE UNCHANGED tokenState
     /\ UNCHANGED <<authorityEpoch, endpointFenceEpoch, requestEpoch,
                    requestPayload, acceptedPayload, historyLost, reply,
-                   effectInvocations, physicalEffects, staleEffectCount>>
+                   effectInvocations, physicalEffects, staleEffectCount, acceptedEpoch>>
 
 UnsafeReplayAfterNvmLoss ==
     /\ AllowUnsafeReplay
@@ -187,6 +200,7 @@ UnsafeReplayAfterNvmLoss ==
     /\ physicalEffects' = physicalEffects + 1
     /\ tokenState' = "reserved"
     /\ acceptedPayload' = requestPayload
+    /\ acceptedEpoch' = requestEpoch
     /\ reply' = "reserved"
     /\ UNCHANGED <<deviceUp, deviceBoot, authorityEpoch, endpointFenceEpoch,
                    requestEpoch, requestPayload, historyLost, staleEffectCount>>
@@ -199,7 +213,7 @@ UnsafeStaleEpochEffect ==
     /\ staleEffectCount' = staleEffectCount + 1
     /\ UNCHANGED <<deviceUp, deviceBoot, authorityEpoch, endpointFenceEpoch,
                    requestEpoch, requestPayload, acceptedPayload, tokenState,
-                   historyLost, reply, effectInvocations, physicalEffects>>
+                   historyLost, reply, effectInvocations, physicalEffects, acceptedEpoch>>
 
 TerminalIdle ==
     UNCHANGED vars
@@ -214,6 +228,7 @@ Next ==
     \/ ReplaySameToken
     \/ RejectChangedPayload
     \/ RejectStaleEpoch
+    \/ RejectFencedToken
     \/ ExecuteReservedToken
     \/ PersistAppliedOutcome
     \/ DeviceCrash
@@ -232,6 +247,7 @@ TypeOK ==
     /\ requestEpoch \in 0..1
     /\ requestPayload \in {"payload-a", "payload-b"}
     /\ acceptedPayload \in Payloads
+    /\ acceptedEpoch \in {-1, 0, 1}
     /\ tokenState \in TokenStates
     /\ historyLost \in BOOLEAN
     /\ reply \in Replies
