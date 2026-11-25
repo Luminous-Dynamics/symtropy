@@ -20,8 +20,8 @@ use nalgebra::SVector;
 /// Result of a continuous collision detection query.
 #[derive(Clone, Debug)]
 pub struct CcdHit<const D: usize> {
-    /// Time of impact [0, 1] within the current timestep.
-    /// 0 = start of step, 1 = end of step.
+    /// Elapsed simulation time in seconds from the start of the timestep.
+    /// The value is in [0, dt], not normalized to [0, 1].
     pub toi: f64,
     /// Hit point in world space at time of impact.
     pub point: SVector<f64, D>,
@@ -72,10 +72,22 @@ pub fn sphere_sphere<const D: usize>(
     }
 
     // Already overlapping at t=0.
-    let c = dp.dot(&dp) - combined_radius * combined_radius;
-    if c <= 0.0 {
-        let normal = if dp.norm() > 1e-15 {
-            dp.normalize()
+    // Normalize before the initial-overlap test as well; the raw squared
+    // distances can overflow even when every input component is finite.
+    let mut initial_scale = combined_radius;
+    for axis in 0..D {
+        initial_scale = initial_scale.max(dp[axis].abs());
+    }
+    if initial_scale == 0.0 || !initial_scale.is_finite() {
+        return None;
+    }
+    let dp_initial_scaled = dp / initial_scale;
+    let radius_initial_scaled = combined_radius / initial_scale;
+    let c_initial = dp_initial_scaled.dot(&dp_initial_scaled)
+        - radius_initial_scaled * radius_initial_scaled;
+    if c_initial <= 0.0 {
+        let normal = if dp_initial_scaled.norm() > 1e-15 {
+            dp_initial_scaled.normalize()
         } else {
             let mut n = SVector::zeros();
             n[0] = 1.0;
@@ -93,12 +105,25 @@ pub fn sphere_sphere<const D: usize>(
     //
     // This avoids an absolute velocity-squared cutoff, which incorrectly
     // rejects small relative velocities over long timesteps.
-    let a = relative_displacement.dot(&relative_displacement);
-    if a == 0.0 || !a.is_finite() || !c.is_finite() {
+    // Normalize all length-valued terms before forming quadratic
+    // coefficients. This keeps a, b, c and the discriminant bounded even when
+    // finite world coordinates or velocities are very large.
+    let mut length_scale = combined_radius;
+    for axis in 0..D {
+        length_scale = length_scale
+            .max(dp[axis].abs())
+            .max(relative_displacement[axis].abs());
+    }
+    if length_scale == 0.0 || !length_scale.is_finite() {
         return None;
     }
-    let b = 2.0 * dp.dot(&relative_displacement);
-    if !b.is_finite() {
+    let dp_scaled = dp / length_scale;
+    let displacement_scaled = relative_displacement / length_scale;
+    let radius_scaled = combined_radius / length_scale;
+    let a = displacement_scaled.dot(&displacement_scaled);
+    let b = 2.0 * dp_scaled.dot(&displacement_scaled);
+    let c = dp_scaled.dot(&dp_scaled) - radius_scaled * radius_scaled;
+    if a == 0.0 || !a.is_finite() || !b.is_finite() || !c.is_finite() {
         return None;
     }
 
@@ -245,6 +270,27 @@ mod tests {
 
         let hit = sphere_sphere(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 1.0).unwrap();
         assert!((hit.toi - gap).abs() <= 2.0e-16);
+    }
+
+    #[test]
+    fn sphere_sphere_large_finite_scale_does_not_overflow_discriminant() {
+        let scale = 1.0e150;
+        let pos_a = SVector::from([0.0, 0.0, 0.0]);
+        let vel_a = SVector::from([10.0 * scale, 0.0, 0.0]);
+        let pos_b = SVector::from([5.0 * scale, 0.0, 0.0]);
+        let vel_b = SVector::from([-10.0 * scale, 0.0, 0.0]);
+
+        let hit = sphere_sphere(
+            &pos_a,
+            &vel_a,
+            0.5 * scale,
+            &pos_b,
+            &vel_b,
+            0.5 * scale,
+            1.0,
+        )
+        .unwrap();
+        assert!((hit.toi - 0.2).abs() < 1e-12);
     }
 
     #[test]
