@@ -21,6 +21,16 @@ The benchmark therefore asks:
 4. Can inspection evidence be connected to the exact physical unit, configuration, NDE method, equipment, calibration, acquisition time and uncertainty?
 5. Can evidence-directed design/testing reduce total verification burden without lowering a hard detection or engineering requirement?
 
+### 1.1 Damage-tolerance and inspection-substitution boundary
+
+For any civil transport-aircraft claim, distinguish the SHM research benchmark from the applicable structural damage-tolerance basis. FAA AC 25.571-1D is active guidance for compliance with 14 CFR 25.571, including fatigue/damage-tolerance evaluation, widespread fatigue damage and the limit of validity of structural-maintenance engineering data. The regulation requires applicable structural evaluations supported by analysis and test evidence and requires inspections or other procedures to be established where necessary and carried into the Airworthiness Limitations section of the Instructions for Continued Airworthiness.
+
+Accordingly, this benchmark treats the existing approved inspection/maintenance programme and damage-tolerance basis as hard constraints and comparison baselines. A low-risk SHM output, reconstructed healthy signal, or reduced false-alarm rate must never silently remove, defer or relax a required inspection. Any proposed SHM credit, alternative inspection interval or maintenance-program change is a separate authority-agreed means-of-compliance activity; no AERO benchmark result grants that credit.
+
+References:
+- 14 CFR §25.571: https://www.ecfr.gov/current/title-14/section-25.571
+- FAA AC 25.571-1D (active): https://www.faa.gov/airports/resources/advisory_circulars/index.cfm/go/document.information/documentNumber/25.571-1D
+
 ## 2. Boundaries and ownership
 
 - Symtropy #4165 owns aerospace inspection, NDE/SHM observability semantics, DFI/inspection design interfaces and its benchmark.
@@ -230,6 +240,7 @@ Physical claims require blind, rights-cleared, independently reviewed evidence f
 - NASA Langley / ASNT Inspectability Metric: NTRS 20240007593 describes integration of inspectability into multi-objective design optimization alongside mass/manufacturability.
 - ASTM E2862-23: hit/miss POD analysis for a specific examination parameter set; not a universal NDE modality standard.
 - **SAE ARP6461A (revised 24 August 2021):** current SAE Recommended Practice identified for fixed-wing civil-aircraft SHM implementation and certification guidance. Use it as the aerospace SHM lifecycle/assurance comparator; it is guidance, not proof that a particular algorithm, sensor installation or aircraft modification is approved. Pin the purchased/licensed edition and map its applicable requirements with a qualified standards reviewer: https://saemobilus.sae.org/standards/arp6461a-guidelines-implementation-structural-health-monitoring-fixed-wing-aircraft.
+- **SAE ARP5987B scope/status caution:** SAE records ARP5987B as canceled on 1 April 2026 and its subject is aerospace propulsion health-management systems for airworthiness credit. It is not the current fixed-wing airframe structural SHM baseline and must not be substituted for ARP6461A. If propulsion-health management becomes an AERO scope, pin the specific governing successor/authority direction first: https://saemobilus.sae.org/standards/arp5987b-a-process-utilizing-aerospace-propulsion-health-management-systems-airworthiness-credit.
 - **NIST IR 8536 (final, September 2026):** manufacturing traceability meta-framework comparator for interoperable, temporally ordered, cryptographically verifiable provenance and selective disclosure. Align to its principles; do not duplicate its generic traceability layer: https://csrc.nist.gov/pubs/ir/8536/final.
 - MIL-HDBK-1823A: active DoD handbook for NDE system reliability assessment; DLA identifies it as guidance only, not a standalone requirement.
 - Di Fiore et al. (8 June 2026), “Real-time sensing digital twin for aerospace structural health monitoring,” Structural and Multidisciplinary Optimization 69, article 159. It separates structural and sensing degradation and reconstructs sensor-fault-affected signals; its demonstration is a simulated composite wing panel and must not be represented as a physical flight/aircraft qualification.
