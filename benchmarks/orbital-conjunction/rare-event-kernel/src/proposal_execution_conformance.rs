@@ -344,6 +344,7 @@ fn validate_config(
         return Err(FiniteProposalExecutionError::InvalidDefensiveMixtureWeight);
     }
     if config.atoms.is_empty()
+        || config.atoms.len() > TICKET_SPACE as usize
         || config.target_mass_ticks.len() != config.atoms.len()
         || config.residual_before_event_ticks.len() != config.atoms.len()
         || config.residual_after_event_ticks.len() != config.atoms.len()
