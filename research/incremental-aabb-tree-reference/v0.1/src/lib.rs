@@ -625,9 +625,9 @@ impl<const D: usize> IncrementalAabbTree<D> {
         self.node_mut(new_root).parent = parent;
     }
 
-    /// Rotate an imbalanced branch toward its taller child. The taller of the
-    /// promoted child's grandchildren remains closer to the old root; ties are
-    /// resolved by stable minimum proxy identity.
+    /// Rotate an imbalanced branch toward its taller child. This uses the
+    /// standard single-vs-double rotation choice: when the heavy child leans
+    /// inward, promote the inner grandchild rather than leaving a skewed root.
     fn balance_branch(&mut self, index: usize) -> usize {
         self.recompute_branch(index);
         let (left, right) = {
@@ -637,33 +637,55 @@ impl<const D: usize> IncrementalAabbTree<D> {
                 node.right.expect("branch right child"),
             )
         };
-        let balance = self.node(right).height as isize - self.node(left).height as isize;
+        let left_height = self.node(left).height;
+        let right_height = self.node(right).height;
 
-        if balance > 1 {
-            let promoted = right;
+        if right_height > left_height.saturating_add(1) {
             let (inner, outer) = {
-                let node = self.node(promoted);
+                let node = self.node(right);
                 (
                     node.left.expect("right branch left child"),
                     node.right.expect("right branch right child"),
                 )
             };
+
+            if self.node(inner).height > self.node(outer).height {
+                // Right-left double rotation: promote the inner grandchild.
+                let promoted = inner;
+                let (promoted_left, promoted_right) = {
+                    let node = self.node(promoted);
+                    (
+                        node.left.expect("inner branch left child"),
+                        node.right.expect("inner branch right child"),
+                    )
+                };
+                self.replace_subtree_root(index, promoted);
+                self.node_mut(promoted).left = Some(index);
+                self.node_mut(promoted).right = Some(right);
+                self.node_mut(index).parent = Some(promoted);
+                self.node_mut(right).parent = Some(promoted);
+
+                self.node_mut(index).right = Some(promoted_left);
+                self.node_mut(promoted_left).parent = Some(index);
+                self.node_mut(right).left = Some(promoted_right);
+                self.node_mut(promoted_right).parent = Some(right);
+
+                self.recompute_branch(index);
+                self.recompute_branch(right);
+                self.recompute_branch(promoted);
+                self.maintenance.tree_rotations =
+                    self.maintenance.tree_rotations.saturating_add(2);
+                return promoted;
+            }
+
+            // Right-right or balanced-heavy-child case: one left rotation.
+            let promoted = right;
+            let inner = self.node(promoted).left.expect("right branch left child");
             self.replace_subtree_root(index, promoted);
             self.node_mut(promoted).left = Some(index);
             self.node_mut(index).parent = Some(promoted);
-
-            let keep_inner = self.node(inner).height > self.node(outer).height
-                || (self.node(inner).height == self.node(outer).height
-                    && self.node(inner).min_proxy <= self.node(outer).min_proxy);
-            let (near, far) = if keep_inner {
-                (inner, outer)
-            } else {
-                (outer, inner)
-            };
-            self.node_mut(index).right = Some(near);
-            self.node_mut(near).parent = Some(index);
-            self.node_mut(promoted).right = Some(far);
-            self.node_mut(far).parent = Some(promoted);
+            self.node_mut(index).right = Some(inner);
+            self.node_mut(inner).parent = Some(index);
 
             self.recompute_branch(index);
             self.recompute_branch(promoted);
@@ -672,31 +694,52 @@ impl<const D: usize> IncrementalAabbTree<D> {
             return promoted;
         }
 
-        if balance < -1 {
-            let promoted = left;
-            let (inner, outer) = {
-                let node = self.node(promoted);
+        if left_height > right_height.saturating_add(1) {
+            let (outer, inner) = {
+                let node = self.node(left);
                 (
                     node.left.expect("left branch left child"),
                     node.right.expect("left branch right child"),
                 )
             };
+
+            if self.node(inner).height > self.node(outer).height {
+                // Left-right double rotation: promote the inner grandchild.
+                let promoted = inner;
+                let (promoted_left, promoted_right) = {
+                    let node = self.node(promoted);
+                    (
+                        node.left.expect("inner branch left child"),
+                        node.right.expect("inner branch right child"),
+                    )
+                };
+                self.replace_subtree_root(index, promoted);
+                self.node_mut(promoted).left = Some(left);
+                self.node_mut(promoted).right = Some(index);
+                self.node_mut(left).parent = Some(promoted);
+                self.node_mut(index).parent = Some(promoted);
+
+                self.node_mut(left).right = Some(promoted_left);
+                self.node_mut(promoted_left).parent = Some(left);
+                self.node_mut(index).left = Some(promoted_right);
+                self.node_mut(promoted_right).parent = Some(index);
+
+                self.recompute_branch(left);
+                self.recompute_branch(index);
+                self.recompute_branch(promoted);
+                self.maintenance.tree_rotations =
+                    self.maintenance.tree_rotations.saturating_add(2);
+                return promoted;
+            }
+
+            // Left-left or balanced-heavy-child case: one right rotation.
+            let promoted = left;
+            let inner = self.node(promoted).right.expect("left branch right child");
             self.replace_subtree_root(index, promoted);
             self.node_mut(promoted).right = Some(index);
             self.node_mut(index).parent = Some(promoted);
-
-            let keep_inner = self.node(inner).height > self.node(outer).height
-                || (self.node(inner).height == self.node(outer).height
-                    && self.node(inner).min_proxy <= self.node(outer).min_proxy);
-            let (near, far) = if keep_inner {
-                (inner, outer)
-            } else {
-                (outer, inner)
-            };
-            self.node_mut(index).left = Some(near);
-            self.node_mut(near).parent = Some(index);
-            self.node_mut(promoted).left = Some(far);
-            self.node_mut(far).parent = Some(promoted);
+            self.node_mut(index).left = Some(inner);
+            self.node_mut(inner).parent = Some(index);
 
             self.recompute_branch(index);
             self.recompute_branch(promoted);
