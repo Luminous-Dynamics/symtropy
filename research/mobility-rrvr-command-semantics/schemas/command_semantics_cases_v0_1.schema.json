@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/command-semantics-cases-v0.1.schema.json",
+  "title": "RRVR Command Semantics Known-Answer Cases v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "benchmark": {
+      "const": "RRVR-COMMAND-SEMANTICS"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 30
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "\\\\S"
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "device_id",
+        "firmware_revision",
+        "configuration_sha256",
+        "command_id",
+        "payload_schema_sha256",
+        "units",
+        "coordinate_frame",
+        "reference_frame",
+        "motion_semantics",
+        "target_predicate",
+        "logical_effect_id_required"
+      ],
+      "properties": {
+        "device_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "firmware_revision": {
+          "$ref": "#/$defs/identifier"
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "command_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "payload_schema_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "units": {
+          "$ref": "#/$defs/identifier"
+        },
+        "coordinate_frame": {
+          "$ref": "#/$defs/identifier"
+        },
+        "reference_frame": {
+          "$ref": "#/$defs/identifier"
+        },
+        "motion_semantics": {
+          "$ref": "#/$defs/identifier"
+        },
+        "target_predicate": {
+          "$ref": "#/$defs/identifier"
+        },
+        "logical_effect_id_required": {
+          "type": "boolean"
+        },
+        "tolerance": {
+          "type": "string"
+        },
+        "idempotent_under_declared_state_contract": {
+          "type": "boolean"
+        },
+        "same_payload_replay_safe": {
+          "type": "boolean"
+        },
+        "hidden_impulse_envelope": {
+          "type": "string"
+        },
+        "maximum_physical_effects_per_attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endpoint_token_required": {
+          "type": "boolean"
+        },
+        "same_token_reactuates": {
+          "type": "boolean"
+        },
+        "independent_outcome_observation_required": {
+          "type": "boolean"
+        },
+        "lease_expiry_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "endpoint_enforces_authority_epoch": {
+          "type": "boolean"
+        },
+        "endpoint_enforces_expiry": {
+          "type": "boolean"
+        },
+        "watchdog_supported": {
+          "type": "boolean"
+        },
+        "watchdog_reaction": {
+          "type": "string"
+        },
+        "clock_profile_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "segment_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "segment_ids_are_stable": {
+          "type": "boolean"
+        },
+        "progress_checkpoints_required": {
+          "type": "boolean"
+        },
+        "resume_from_measured_progress": {
+          "type": "boolean"
+        },
+        "restart_from_segment_zero_allowed": {
+          "type": "boolean"
+        },
+        "downstream_queue_reconciliation_required": {
+          "type": "boolean"
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "class",
+        "effect_class",
+        "mutation",
+        "expected",
+        "contract"
+      ],
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "class": {
+          "enum": [
+            "positive",
+            "negative"
+          ]
+        },
+        "effect_class": {
+          "enum": [
+            "desired_state",
+            "one_shot",
+            "continuous_lease",
+            "trajectory"
+          ]
+        },
+        "mutation": {
+          "$ref": "#/$defs/identifier"
+        },
+        "expected": {
+          "enum": [
+            "accept_profile",
+            "hold"
+          ]
+        },
+        "contract": {
+          "$ref": "#/$defs/contract"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "effect_class": {
+                "const": "desired_state"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "contract": {
+                "required": [
+                  "tolerance",
+                  "idempotent_under_declared_state_contract",
+                  "same_payload_replay_safe",
+                  "hidden_impulse_envelope"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "effect_class": {
+                "const": "one_shot"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "contract": {
+                "required": [
+                  "maximum_physical_effects_per_attempt",
+                  "endpoint_token_required",
+                  "same_token_reactuates",
+                  "independent_outcome_observation_required"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "effect_class": {
+                "const": "continuous_lease"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "contract": {
+                "required": [
+                  "lease_expiry_ms",
+                  "endpoint_enforces_authority_epoch",
+                  "endpoint_enforces_expiry",
+                  "watchdog_supported",
+                  "watchdog_reaction",
+                  "clock_profile_id"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "effect_class": {
+                "const": "trajectory"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "contract": {
+                "required": [
+                  "segment_count",
+                  "segment_ids_are_stable",
+                  "progress_checkpoints_required",
+                  "resume_from_measured_progress",
+                  "restart_from_segment_zero_allowed",
+                  "downstream_queue_reconciliation_required"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
