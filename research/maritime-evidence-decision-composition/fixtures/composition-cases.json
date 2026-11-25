@@ -2,37 +2,197 @@
   "schema_version": "maritime-evidence-decision-composition-cases-v0.1",
   "fixture_revision": "2026-11-25.1",
   "claim_ceiling": "synthetic_contract_only",
-  "dispositions": ["eligible_for_decision_review", "abstain", "reject"],
+  "dispositions": [
+    "eligible_for_decision_review",
+    "abstain",
+    "reject"
+  ],
   "cases": [
-    {"id":"C00_VALID_CHAIN","mutation":"none","expected":"eligible_for_decision_review","reason":"ALL_REQUIRED_BINDINGS_MATCH"},
-    {"id":"C01_ACK_WITHOUT_DURABLE_CAPTURE","mutation":"capture.persistence=false","expected":"abstain","reason":"CAPTURE_NOT_DURABLE"},
-    {"id":"C02_CONFLICTING_EVENT_DIGEST","mutation":"same_event_id_new_payload_digest","expected":"reject","reason":"EVENT_ID_PAYLOAD_CONFLICT"},
-    {"id":"C03_WRONG_CANONICAL_SUBJECT","mutation":"claim.subject_id!=capture.subject_id","expected":"reject","reason":"SUBJECT_BINDING_MISMATCH"},
-    {"id":"C04_LATE_SOURCE_CORRECTION","mutation":"artifact.published_at>decision.as_of_cutoff","expected":"abstain","reason":"ARTIFACT_NOT_VISIBLE_AS_OF"},
-    {"id":"C05_EVENT_PUBLISHED_AFTER_CUTOFF","mutation":"event.event_time<=cutoff && event.published_at>cutoff","expected":"abstain","reason":"EVENT_NOT_KNOWN_AT_DECISION_TIME"},
-    {"id":"C06_CLOCK_OR_VALID_TIME_AMBIGUITY","mutation":"event.timezone_or_valid_interval=ambiguous","expected":"abstain","reason":"TIME_BINDING_NOT_EVALUABLE"},
-    {"id":"C07_PLAN_PROMOTED_TO_PHYSICAL","mutation":"firm_berth_plan.claimed_as=observed_berth_occupancy","expected":"reject","reason":"UNSUPPORTED_CLAIM_PROMOTION"},
-    {"id":"C08_TOS_RESTORATION_PROMOTED_TO_CLEARANCE","mutation":"TOS_restored.claimed_as=backlog_cleared","expected":"reject","reason":"UNSUPPORTED_OUTCOME_PROMOTION"},
-    {"id":"C09_TERMINAL_DEPARTURE_PROMOTED_TO_DELIVERY","mutation":"terminal_departure.claimed_as=receiver_delivery","expected":"reject","reason":"RECEIVER_PROOF_REQUIRED"},
-    {"id":"C10_RECEIVER_RECEIPT_MISSING_CUSTODY_DIGEST","mutation":"receiver_acceptance.custody_digest=null","expected":"abstain","reason":"CUSTODY_CLOSURE_INCOMPLETE"},
-    {"id":"C11_DISTINCT_ORACLES_COMMON_CAUSE","mutation":"physical_oracle_id!=authority_oracle_id but shared_failure_domain=true","expected":"abstain","reason":"ORACLE_INDEPENDENCE_NOT_ESTABLISHED"},
-    {"id":"C12_ORACLE_BUILD_DRIFT","mutation":"oracle.build_digest_after_calibration!=frozen_build_digest","expected":"reject","reason":"ORACLE_IMPLEMENTATION_DRIFT"},
-    {"id":"C13_PHYSICAL_AUTHORITY_EPISODE_MISMATCH","mutation":"physical.episode_revision!=authority.episode_revision","expected":"reject","reason":"RECEIPT_EPISODE_BINDING_MISMATCH"},
-    {"id":"C14_PERMISSION_REVOKED_BEFORE_ACTION","mutation":"authorization.revoked_at<=action.at","expected":"reject","reason":"AUTHORIZATION_REVOKED"},
-    {"id":"C15_STALE_OR_WRONG_SCOPE_PERMISSION","mutation":"authorization.scope_or_validity_mismatch","expected":"reject","reason":"AUTHORIZATION_SCOPE_INVALID"},
-    {"id":"C16_UNKNOWN_PHYSICS_LOW_STATISTICAL_RISK","mutation":"physical=UNKNOWN && statistical_risk_below_target","expected":"abstain","reason":"UNKNOWN_PHYSICAL_STATE_BLOCKS"},
-    {"id":"C17_PARTICIPANT_FLOOR_HIDDEN_BY_AGGREGATE","mutation":"participant_a<floor && aggregate_service_improves","expected":"reject","reason":"NON_COMPENSABLE_PARTICIPANT_FLOOR"},
-    {"id":"C18_PSEUDOREPLICATED_SCHEDULES","mutation":"same_cluster_schedules_counted_as_independent_rows","expected":"reject","reason":"DEPENDENCE_UNIT_MISDECLARED"},
-    {"id":"C19_CLUSTER_CROSSES_SPLIT","mutation":"cluster_id_in_calibration_and_evaluation","expected":"reject","reason":"CALIBRATION_EVALUATION_LEAKAGE"},
-    {"id":"C20_CANDIDATE_GRID_DRIFT","mutation":"candidate_order_or_revision_changed_after_calibration","expected":"reject","reason":"FROZEN_POLICY_GRID_MISMATCH"},
-    {"id":"C21_MISSING_OUTCOME_AS_SUCCESS","mutation":"censored_or_missing_receiver_outcome->success","expected":"reject","reason":"MISSING_OUTCOME_PROMOTED"},
-    {"id":"C22_DUPLICATED_CARGO_ALIAS","mutation":"same_physical_unit_counted_twice_across_aliases","expected":"reject","reason":"CARGO_CONSERVATION_VIOLATION"},
-    {"id":"C23_WRONG_BOX_OR_HANDOFF_RECEIPT","mutation":"receiver_receipt.subject_or_handoff_id_mismatch","expected":"reject","reason":"RECEIVER_HANDOFF_BINDING_MISMATCH"},
-    {"id":"C24_GUARANTEE_TYPE_RELABELLED","mutation":"marginal_expected_claimed_as_high_probability_or_time_uniform","expected":"reject","reason":"STATISTICAL_GUARANTEE_TYPE_MISMATCH"},
-    {"id":"C25_STALE_OBSERVATION","mutation":"observation.available_after_decision_use_deadline","expected":"abstain","reason":"OBSERVATION_STALE_FOR_DECISION"},
-    {"id":"C26_QUERY_COST_OR_LATENCY_OMITTED","mutation":"query_cost_or_latency_missing_from_regret_receipt","expected":"abstain","reason":"OBSERVATION_VALUE_NOT_EVALUABLE"},
-    {"id":"C27_HISTORICAL_REPLAY_REWRITTEN","mutation":"post_cutoff_revision_changes_prior_as_of_result","expected":"reject","reason":"AS_OF_HISTORY_MUTATED"},
-    {"id":"C28_RIGHTS_DO_NOT_PERMIT_INTENDED_USE","mutation":"source_rights!=permission_granted_for_intended_use","expected":"reject","reason":"SOURCE_RIGHTS_VIOLATION"},
-    {"id":"C29_NO_FEASIBLE_AUTHORIZED_ACTION","mutation":"all_actions_infeasible_or_unauthorized","expected":"abstain","reason":"NO_FEASIBLE_AUTHORIZED_ACTION"}
+    {
+      "id": "C00_VALID_CHAIN",
+      "mutation": "none",
+      "expected": "eligible_for_decision_review",
+      "reason": "ALL_REQUIRED_BINDINGS_MATCH"
+    },
+    {
+      "id": "C01_ACK_WITHOUT_DURABLE_CAPTURE",
+      "mutation": "capture.persistence=false",
+      "expected": "abstain",
+      "reason": "CAPTURE_NOT_DURABLE"
+    },
+    {
+      "id": "C02_CONFLICTING_EVENT_DIGEST",
+      "mutation": "same_event_id_new_payload_digest",
+      "expected": "reject",
+      "reason": "EVENT_ID_PAYLOAD_CONFLICT"
+    },
+    {
+      "id": "C03_WRONG_CANONICAL_SUBJECT",
+      "mutation": "claim.subject_id!=capture.subject_id",
+      "expected": "reject",
+      "reason": "SUBJECT_BINDING_MISMATCH"
+    },
+    {
+      "id": "C04_LATE_SOURCE_CORRECTION",
+      "mutation": "artifact.published_at>decision.as_of_cutoff",
+      "expected": "abstain",
+      "reason": "ARTIFACT_NOT_VISIBLE_AS_OF"
+    },
+    {
+      "id": "C05_EVENT_PUBLISHED_AFTER_CUTOFF",
+      "mutation": "event.event_time<=cutoff && event.published_at>cutoff",
+      "expected": "abstain",
+      "reason": "EVENT_NOT_KNOWN_AT_DECISION_TIME"
+    },
+    {
+      "id": "C06_CLOCK_OR_VALID_TIME_AMBIGUITY",
+      "mutation": "event.timezone_or_valid_interval=ambiguous",
+      "expected": "abstain",
+      "reason": "TIME_BINDING_NOT_EVALUABLE"
+    },
+    {
+      "id": "C07_PLAN_PROMOTED_TO_PHYSICAL",
+      "mutation": "firm_berth_plan.claimed_as=observed_berth_occupancy",
+      "expected": "reject",
+      "reason": "UNSUPPORTED_CLAIM_PROMOTION"
+    },
+    {
+      "id": "C08_TOS_RESTORATION_PROMOTED_TO_CLEARANCE",
+      "mutation": "TOS_restored.claimed_as=backlog_cleared",
+      "expected": "reject",
+      "reason": "UNSUPPORTED_OUTCOME_PROMOTION"
+    },
+    {
+      "id": "C09_TERMINAL_DEPARTURE_PROMOTED_TO_DELIVERY",
+      "mutation": "terminal_departure.claimed_as=receiver_delivery",
+      "expected": "reject",
+      "reason": "RECEIVER_PROOF_REQUIRED"
+    },
+    {
+      "id": "C10_RECEIVER_RECEIPT_MISSING_CUSTODY_DIGEST",
+      "mutation": "receiver_acceptance.custody_digest=null",
+      "expected": "abstain",
+      "reason": "CUSTODY_CLOSURE_INCOMPLETE"
+    },
+    {
+      "id": "C11_DISTINCT_ORACLES_COMMON_CAUSE",
+      "mutation": "physical_oracle_id!=authority_oracle_id but shared_failure_domain=true",
+      "expected": "abstain",
+      "reason": "ORACLE_INDEPENDENCE_NOT_ESTABLISHED"
+    },
+    {
+      "id": "C12_ORACLE_BUILD_DRIFT",
+      "mutation": "oracle.build_digest_after_calibration!=frozen_build_digest",
+      "expected": "reject",
+      "reason": "ORACLE_IMPLEMENTATION_DRIFT"
+    },
+    {
+      "id": "C13_PHYSICAL_AUTHORITY_EPISODE_MISMATCH",
+      "mutation": "physical.episode_revision!=authority.episode_revision",
+      "expected": "reject",
+      "reason": "RECEIPT_EPISODE_BINDING_MISMATCH"
+    },
+    {
+      "id": "C14_PERMISSION_REVOKED_BEFORE_ACTION",
+      "mutation": "authorization.revoked_at<=action.at",
+      "expected": "reject",
+      "reason": "AUTHORIZATION_REVOKED"
+    },
+    {
+      "id": "C15_STALE_OR_WRONG_SCOPE_PERMISSION",
+      "mutation": "authorization.scope_or_validity_mismatch",
+      "expected": "reject",
+      "reason": "AUTHORIZATION_SCOPE_INVALID"
+    },
+    {
+      "id": "C16_UNKNOWN_PHYSICS_LOW_STATISTICAL_RISK",
+      "mutation": "physical=UNKNOWN && statistical_risk_below_target",
+      "expected": "abstain",
+      "reason": "UNKNOWN_PHYSICAL_STATE_BLOCKS"
+    },
+    {
+      "id": "C17_PARTICIPANT_FLOOR_HIDDEN_BY_AGGREGATE",
+      "mutation": "participant_a<floor && aggregate_service_improves",
+      "expected": "reject",
+      "reason": "NON_COMPENSABLE_PARTICIPANT_FLOOR"
+    },
+    {
+      "id": "C18_PSEUDOREPLICATED_SCHEDULES",
+      "mutation": "same_cluster_schedules_counted_as_independent_rows",
+      "expected": "reject",
+      "reason": "DEPENDENCE_UNIT_MISDECLARED"
+    },
+    {
+      "id": "C19_CLUSTER_CROSSES_SPLIT",
+      "mutation": "cluster_id_in_calibration_and_evaluation",
+      "expected": "reject",
+      "reason": "CALIBRATION_EVALUATION_LEAKAGE"
+    },
+    {
+      "id": "C20_CANDIDATE_GRID_DRIFT",
+      "mutation": "candidate_order_or_revision_changed_after_calibration",
+      "expected": "reject",
+      "reason": "FROZEN_POLICY_GRID_MISMATCH"
+    },
+    {
+      "id": "C21_MISSING_OUTCOME_AS_SUCCESS",
+      "mutation": "censored_or_missing_receiver_outcome->success",
+      "expected": "reject",
+      "reason": "MISSING_OUTCOME_PROMOTED"
+    },
+    {
+      "id": "C22_DUPLICATED_CARGO_ALIAS",
+      "mutation": "same_physical_unit_counted_twice_across_aliases",
+      "expected": "reject",
+      "reason": "CARGO_CONSERVATION_VIOLATION"
+    },
+    {
+      "id": "C23_WRONG_BOX_OR_HANDOFF_RECEIPT",
+      "mutation": "receiver_receipt.subject_or_handoff_id_mismatch",
+      "expected": "reject",
+      "reason": "RECEIVER_HANDOFF_BINDING_MISMATCH"
+    },
+    {
+      "id": "C24_GUARANTEE_TYPE_RELABELLED",
+      "mutation": "marginal_expected_claimed_as_high_probability_or_time_uniform",
+      "expected": "reject",
+      "reason": "STATISTICAL_GUARANTEE_TYPE_MISMATCH"
+    },
+    {
+      "id": "C25_STALE_OBSERVATION",
+      "mutation": "observation.available_after_decision_use_deadline",
+      "expected": "abstain",
+      "reason": "OBSERVATION_STALE_FOR_DECISION"
+    },
+    {
+      "id": "C26_QUERY_COST_OR_LATENCY_OMITTED",
+      "mutation": "query_cost_or_latency_missing_from_regret_receipt",
+      "expected": "abstain",
+      "reason": "OBSERVATION_VALUE_NOT_EVALUABLE"
+    },
+    {
+      "id": "C27_HISTORICAL_REPLAY_REWRITTEN",
+      "mutation": "post_cutoff_revision_changes_prior_as_of_result",
+      "expected": "reject",
+      "reason": "AS_OF_HISTORY_MUTATED"
+    },
+    {
+      "id": "C28_RIGHTS_DO_NOT_PERMIT_INTENDED_USE",
+      "mutation": "source_rights!=permission_granted_for_intended_use",
+      "expected": "reject",
+      "reason": "SOURCE_RIGHTS_VIOLATION"
+    },
+    {
+      "id": "C29_NO_FEASIBLE_AUTHORIZED_ACTION",
+      "mutation": "all_actions_infeasible_or_unauthorized",
+      "expected": "abstain",
+      "reason": "NO_FEASIBLE_AUTHORIZED_ACTION"
+    },
+    {
+      "id": "C30_AGGREGATE_CLAIM_NOT_UNIT_RECEIPT",
+      "mutation": "aggregate source reports 18 of 41 containers cleared and delivered, but supplies no per-container identity, custody chain or receiver receipt",
+      "expected": "abstain",
+      "reason": "AGGREGATE_CLAIM_NOT_UNIT_RECEIPT"
+    }
   ]
 }
