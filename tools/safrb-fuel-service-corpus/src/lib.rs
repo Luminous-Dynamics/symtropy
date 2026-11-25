@@ -284,13 +284,7 @@ pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
     };
 
     let opening_grams = 10_000_000 + (noise % 200_000);
-    let withdrawals_grams = 1_000_000 + (noise % 100_000);
     let declared_losses_grams = 10_000 + (noise % 2_000);
-    let closing_grams = opening_grams
-        .checked_add(accepted_inflow_grams)
-        .and_then(|value| value.checked_sub(withdrawals_grams))
-        .and_then(|value| value.checked_sub(declared_losses_grams))
-        .expect("bounded synthetic inventory arithmetic");
 
     let measurement_uncertainty_basis_points = if archetype == Archetype::TankGaugeUncertainty {
         2_000
@@ -334,6 +328,14 @@ pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
     let effective_hours = HORIZON_HOURS.saturating_sub(transit_delay);
     let transport_limit = effective_capacity.saturating_mul(u64::from(effective_hours));
     let deliverable_grams = accessible_grams.min(transport_limit);
+    // Every gram admitted through the route is accounted as a withdrawal from
+    // the inventory ledger; storage losses remain a separate declared term.
+    let withdrawals_grams = deliverable_grams;
+    let closing_grams = opening_grams
+        .checked_add(accepted_inflow_grams)
+        .and_then(|value| value.checked_sub(withdrawals_grams))
+        .and_then(|value| value.checked_sub(declared_losses_grams))
+        .expect("bounded synthetic inventory arithmetic");
 
     let process_capacity_grams = if archetype == Archetype::RefineryProcessTrip { 0 } else { 3_000_000 };
     let conversion_input_grams = deliverable_grams.min(process_capacity_grams);
@@ -341,7 +343,14 @@ pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
         Product::CrudeOil => 4_500,
         Product::Diesel => 10_000,
     };
-    let conversion_output_grams = conversion_input_grams.saturating_mul(yield_basis_points) / 10_000;
+    let route_by_hour = spread_after_hour(deliverable_grams, transit_delay, HORIZON_HOURS);
+    let conversion_input_by_hour =
+        spread_after_hour(conversion_input_grams, transit_delay, HORIZON_HOURS);
+    let conversion_output_by_hour = conversion_input_by_hour
+        .iter()
+        .map(|input| input.saturating_mul(yield_basis_points) / 10_000)
+        .collect::<Vec<_>>();
+    let conversion_output_grams = conversion_output_by_hour.iter().copied().sum::<u64>();
     let declared_process_loss_grams = conversion_input_grams.saturating_sub(conversion_output_grams);
 
     let fuel_grade_compatible = archetype != Archetype::GeneratorFuelGradeMismatch;
@@ -390,11 +399,6 @@ pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
 
     // Expand horizon totals into 72 explicit one-hour intervals. Resource and
     // generation deliveries begin only after the declared route transit delay.
-    let route_by_hour = spread_after_hour(deliverable_grams, transit_delay, HORIZON_HOURS);
-    let conversion_input_by_hour =
-        spread_after_hour(conversion_input_grams, transit_delay, HORIZON_HOURS);
-    let conversion_output_by_hour =
-        spread_after_hour(conversion_output_grams, transit_delay, HORIZON_HOURS);
     let demand_by_hour = spread_even(demand_wh, HORIZON_HOURS as usize);
 
     let mut hourly_trajectory = Vec::with_capacity(HORIZON_HOURS as usize);
@@ -570,6 +574,9 @@ pub fn validate_case(case: &FuelServiceCase) -> Result<(), Vec<String>> {
     if ledger.encumbered_grams > ledger.usable_grams {
         errors.push("encumbered inventory exceeds usable inventory".to_string());
     }
+    if ledger.withdrawals_grams != case.transport.deliverable_grams {
+        errors.push("inventory withdrawals do not exactly reconcile with route-delivered mass".to_string());
+    }
     let accessible_expected = if ledger.authority_available {
         ledger.usable_grams.saturating_sub(ledger.encumbered_grams)
     } else {
@@ -709,11 +716,14 @@ pub fn validate_case(case: &FuelServiceCase) -> Result<(), Vec<String>> {
         {
             errors.push(format!("hourly row {index} converts more feedstock than was deliverable or allowed"));
         }
-        if row.conversion_output_grams > row.conversion_input_grams
+        let expected_hourly_conversion_output =
+            row.conversion_input_grams.saturating_mul(conversion.yield_basis_points) / 10_000;
+        if row.conversion_output_grams != expected_hourly_conversion_output
+            || row.conversion_output_grams > row.conversion_input_grams
             || row.process_loss_grams.checked_add(row.conversion_output_grams)
                 != Some(row.conversion_input_grams)
         {
-            errors.push(format!("hourly row {index} conversion mass balance is invalid"));
+            errors.push(format!("hourly row {index} conversion mass balance/yield is invalid"));
         }
         if row.fuel_consumed_grams > row.conversion_output_grams
             || (!generator.fuel_grade_compatible && row.fuel_consumed_grams != 0)
