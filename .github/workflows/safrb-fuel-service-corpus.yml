@@ -83,6 +83,8 @@ jobs:
           assert [row["caseId"] for row in observations] == [row["caseId"] for row in oracle]
           print("JSON shape, 120-case pairing, hourly ordering, blind split and temporal ablation report validated")
           PY
+      - name: Verify conservation and ablation with independent oracle
+        run: python3 tools/safrb-fuel-service-corpus/tests/independent_oracle.py target/safrb-fuel-corpus-v0.1
       - name: Retain planner-visible observations
         uses: actions/upload-artifact@v4
         with:
