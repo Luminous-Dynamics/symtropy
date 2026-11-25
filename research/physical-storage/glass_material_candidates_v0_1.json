@@ -1,0 +1,207 @@
+{
+  "schema_version": "glass-material-screen-v0.1",
+  "snapshot_date": "2026-11-25",
+  "scope_note": "Source-bound material and glass-storage observations for research triage. Values from supplier datasheets and separate research experiments remain distinct; no property is inferred from a different grade or operating temperature. Storage results do not establish manufacturing yield, lifetime or production qualification.",
+  "sources": [
+    {
+      "source_id": "microsoft_optica_2026",
+      "title": "Property-driven analysis of glasses for data storage via femtosecond laser writing",
+      "publisher": "Optica / Microsoft Research",
+      "date": "2026-04-02",
+      "url": "https://www.microsoft.com/en-us/research/publication/property-driven-analysis-of-glasses-for-data-storage-via-femtosecond-laser-writing/",
+      "evidence_class": "peer_reviewed_research"
+    },
+    {
+      "source_id": "schott_borofloat_technical_details",
+      "title": "Technical details of BOROFLOAT 33",
+      "publisher": "SCHOTT",
+      "date": "2026-11-25",
+      "url": "https://www.schott.com/en-us/products/borofloat/technical-details",
+      "evidence_class": "manufacturer_datasheet"
+    },
+    {
+      "source_id": "microsoft_silica_nature_2026",
+      "title": "Laser writing in glass for dense, fast and efficient archival data storage",
+      "publisher": "Nature / Microsoft Research Project Silica Team",
+      "date": "2026-02-18",
+      "url": "https://www.nature.com/articles/s41586-025-10042-w",
+      "evidence_class": "peer_reviewed_research"
+    }
+  ],
+  "materials": [
+    {
+      "material_id": "schott_borofloat_33",
+      "name": "BOROFLOAT 33",
+      "supplier": "SCHOTT",
+      "evidence_status": "commercial_material",
+      "material_class": "borosilicate glass",
+      "property_records": [
+        {
+          "property": "density",
+          "value": 2.23,
+          "unit": "g/cm^3",
+          "temperature_c": 25,
+          "condition_note": "Supplier technical details.",
+          "source_id": "schott_borofloat_technical_details"
+        },
+        {
+          "property": "specific_heat_capacity",
+          "value": 0.83,
+          "unit": "kJ/(kg*K)",
+          "temperature_c": null,
+          "condition_note": "Supplier reports cp over 20–100 °C; exact point temperature not specified.",
+          "source_id": "schott_borofloat_technical_details"
+        },
+        {
+          "property": "thermal_conductivity",
+          "value": 1.2,
+          "unit": "W/(m*K)",
+          "temperature_c": 90,
+          "condition_note": "Supplier value reported at 90 °C.",
+          "source_id": "schott_borofloat_technical_details"
+        },
+        {
+          "property": "glass_transition_temperature",
+          "value": 525,
+          "unit": "degC",
+          "temperature_c": null,
+          "condition_note": "Tg according to ISO 7884.",
+          "source_id": "schott_borofloat_technical_details"
+        },
+        {
+          "property": "refractive_index",
+          "value": 1.47311,
+          "unit": "dimensionless",
+          "temperature_c": null,
+          "condition_note": "Supplier reference value at 546.1 nm; reference value, not guaranteed.",
+          "source_id": "schott_borofloat_technical_details"
+        },
+        {
+          "property": "refractive_index_wavelength_nm",
+          "value": 546.1,
+          "unit": "nm",
+          "temperature_c": null,
+          "condition_note": "Wavelength corresponding to the adjacent refractive-index record.",
+          "source_id": "schott_borofloat_technical_details"
+        }
+      ],
+      "storage_results": [
+        {
+          "metric": "phase_voxel_quality_bits_per_voxel",
+          "value": 1.76,
+          "unit": "bit/voxel",
+          "conditions": "Commercial glass screening experiment; quality leader in the tested set.",
+          "source_id": "microsoft_optica_2026",
+          "comparability_note": "Not the same definition as the 0.92 quality factor in the 2026 Silica end-to-end system paper; retain each metric's original definition."
+        },
+        {
+          "metric": "volumetric_storage_density",
+          "value": 0.678,
+          "unit": "Gbit/mm^3",
+          "conditions": "BOROFLOAT 33 phase voxels; 258 layers; 0.5 × 0.7 µm pitch; 7 µm layer spacing.",
+          "source_id": "microsoft_silica_nature_2026",
+          "comparability_note": "Research demonstrator result; not a supplier-guaranteed property or a production device specification."
+        },
+        {
+          "metric": "write_throughput_single_beam",
+          "value": 18.4,
+          "unit": "Mbit/s",
+          "conditions": "Single-beam phase-voxel regime.",
+          "source_id": "microsoft_silica_nature_2026",
+          "comparability_note": "Per the source's single-beam configuration; do not compare directly to multibeam/system throughput."
+        },
+        {
+          "metric": "write_throughput_four_beams",
+          "value": 65.9,
+          "unit": "Mbit/s",
+          "conditions": "Four independently modulated beams sharing the same scanner and objective.",
+          "source_id": "microsoft_silica_nature_2026",
+          "comparability_note": "Demonstrated four-beam writing; 16+ beams are a thermal-model projection, not a demonstrated result."
+        },
+        {
+          "metric": "write_energy",
+          "value": 8.85,
+          "unit": "nJ/bit",
+          "conditions": "Phase-voxel writing under source-defined conditions.",
+          "source_id": "microsoft_silica_nature_2026",
+          "comparability_note": "Preserve source system boundary; not directly comparable to other papers unless write/read and electronics boundaries match."
+        }
+      ],
+      "missing_or_unresolved": [
+        "thermal diffusivity measured on the exact storage specimen and batch",
+        "thermal diffusivity under the pulse/temperature timescale of writing",
+        "nonlinear absorption and refractive-index response at the write wavelength and pulse duration",
+        "spatial and lot-to-lot distributions of inclusions, impurities and residual stress",
+        "voxel defect maps, raw symbol confusion and held-out post-ECC payload recovery",
+        "manufacturing yield and accepted cost per net recoverable TB",
+        "long-duration and multi-reader calibration transfer evidence"
+      ]
+    },
+    {
+      "material_id": "schott_k10",
+      "name": "SCHOTT K10",
+      "supplier": "SCHOTT",
+      "evidence_status": "commercial_material",
+      "material_class": "commercial optical glass (exact stock/grade and process details must be pinned for reproduction)",
+      "property_records": [],
+      "storage_results": [
+        {
+          "metric": "write_efficiency",
+          "value": 0.115,
+          "unit": "bit/(nJ*voxel)",
+          "conditions": "Commercial-glass screening experiment; highest write-efficiency result in the tested set.",
+          "source_id": "microsoft_optica_2026",
+          "comparability_note": "This is a write-efficiency result from a specific research process; it does not establish that K10 is the best quality, density, retention or whole-system medium."
+        }
+      ],
+      "missing_or_unresolved": [
+        "exact commercial grade, batch and procurement specification used in the published experiment",
+        "supplier property dataset matched to the tested specimen",
+        "phase-voxel quality / symbol confusion under matched settings with BOROFLOAT 33",
+        "depth, batch and environmental dependence",
+        "net exact-recoverable payload, ECC overhead and retention evidence"
+      ]
+    },
+    {
+      "material_id": "fused_silica_reference",
+      "name": "Fused silica reference material",
+      "supplier": null,
+      "evidence_status": "material_family_unspecified",
+      "material_class": "high-purity fused silica (the exact grade/specimen must be pinned before reproduction)",
+      "property_records": [],
+      "storage_results": [
+        {
+          "metric": "volumetric_storage_density",
+          "value": 1.59,
+          "unit": "Gbit/mm^3",
+          "conditions": "Birefringent voxel system; 301 layers; 0.5 × 0.485 µm voxel pitch; 6 µm layer spacing.",
+          "source_id": "microsoft_silica_nature_2026",
+          "comparability_note": "System-level research demonstrator result; material family is named but supplier grade/batch are not a generic property."
+        },
+        {
+          "metric": "write_throughput",
+          "value": 25.6,
+          "unit": "Mbit/s",
+          "conditions": "Per beam in the demonstrated fused-silica regime.",
+          "source_id": "microsoft_silica_nature_2026",
+          "comparability_note": "Per-beam write throughput, not full-system restore/read speed."
+        },
+        {
+          "metric": "write_energy",
+          "value": 10.1,
+          "unit": "nJ/bit",
+          "conditions": "Demonstrated fused-silica birefringent regime.",
+          "source_id": "microsoft_silica_nature_2026",
+          "comparability_note": "Preserve the paper's system boundary."
+        }
+      ],
+      "missing_or_unresolved": [
+        "exact commercial glass grade, manufacturer and lot",
+        "supplier and measured property records aligned to the experimental sample",
+        "matched write-quality and energy tests against K10 and BOROFLOAT 33",
+        "net capacity after ECC, calibration, metadata and spare-region overhead",
+        "manufacturing cost, yield and complete reader/writer lifetime evidence"
+      ]
+    }
+  ]
+}
