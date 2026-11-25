@@ -649,10 +649,7 @@ mod tests {
         for case in &mut renamed.cases {
             let mut replacements = BTreeMap::new();
             for (index, world) in case.worlds.iter().enumerate() {
-                replacements.insert(
-                    world.world_id.clone(),
-                    format!("OPAQUE-{index:03}"),
-                );
+                replacements.insert(world.world_id.clone(), format!("OPAQUE-{index:03}"));
             }
             for world in &mut case.worlds {
                 world.world_id = replacements[&world.world_id].clone();
