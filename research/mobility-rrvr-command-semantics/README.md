@@ -1,30 +1,36 @@
-# RRVR Physical Command Semantics Reference v0.1
+# RRVR Physical Command Semantics Reference v0.2
 
-This isolated Rust crate structurally checks a declared physical-command semantic profile against an exact device capability profile.
+This isolated Rust crate checks a physical-command profile against a separately supplied device capability profile and executes the public JSON known-answer corpus through that same typed evaluator.
 
 ## Run
 
 ```sh
 cargo fmt --manifest-path research/mobility-rrvr-command-semantics/Cargo.toml -- --check
+cargo run --locked --manifest-path research/mobility-rrvr-command-semantics/Cargo.toml --bin rrvr_command_semantics_check -- research/mobility-rrvr-command-semantics/fixtures/command_semantics_cases_v0_2.json
 cargo test --locked --manifest-path research/mobility-rrvr-command-semantics/Cargo.toml
 cargo clippy --locked --manifest-path research/mobility-rrvr-command-semantics/Cargo.toml --all-targets -- -D warnings
 ```
 
-## What it checks
+## What the evaluator checks
 
-- Device ID/model, firmware revision, endpoint revision and configuration commitment.
+- Exact device ID/model, firmware, endpoint revision and configuration digest.
 - Payload schema, units, coordinate frame and reference frame.
 - Logical-effect and attempt lineage.
-- Desired-state absolute semantics, explicit idempotency/replay declaration, tolerance and no-additional-effect declaration.
-- One-shot cardinality, endpoint token and independent outcome observation.
-- Continuous-lease expiry, endpoint-enforced authority epoch, exact watchdog-reaction match, clock profile and bounded watchdog response time (device maximum must fit within the command budget).
-- Trajectory segment identity, progress checkpoint, measured continuation and downstream queue reconciliation.
-- Independent device capability declarations for absolute-target replay safety, durable one-shot tokens, maximum physical-effect cardinality, authority epochs, lease expiry/watchdog and trajectory continuation.
+- Desired-state absolute semantics, device-declared replay safety, tolerance and no-additional-effect declaration.
+- One-shot cardinality, durable endpoint token, duplicate-token rejection and independent outcome-observation requirement.
+- Continuous-lease expiry, endpoint-enforced authority epoch, device expiry enforcement, clock profile, matching watchdog reaction and bounded watchdog response time.
+- Trajectory segment identity, progress checkpoints, measured continuation and downstream queue reconciliation.
 
-A result of `AcceptProfile` means only that the supplied declaration satisfies this reference contract. It is not proof that firmware actually behaves as declared, a physical-effect observation, a recovery permit, safe-stop evidence, PL/SIL, certification or physical safety.
+A command's own assertion cannot make a missing device capability true. The evaluator compares both declarations and returns only `AcceptProfile` or a typed `HoldReason`.
 
-## Known-answer fixtures
+## Executable known-answer corpus
 
-`fixtures/command_semantics_cases_v0_1.json` contains four positive class examples and five negative controls. The GitHub workflow checks fixture structure and runs rustfmt, Cargo tests and strict Clippy.
+`fixtures/command_semantics_cases_v0_2.json` contains 16 cases: four positive class examples and twelve negative/mutation controls. The CLI parses those exact JSON records into the same Rust types used by `evaluate()`, applies every case, and compares the actual result to its exact expected decision and typed HoldReason.
 
-At v0.1 the JSON fixtures and Rust evaluator use separately authored inputs. A canonical JSON-to-Rust adapter and differential fixture execution remain future work.
+The unit suite also checks the corpus's exact case count, duplicate-ID rejection, unsupported schema-version rejection and exact HoldReason comparison. This closes the earlier fixture/evaluator drift gap.
+
+The JSON Schema is `schemas/command_semantics_cases_v0_2.schema.json`. The focused GitHub Actions workflow parses the schema and fixture, checks frozen structural invariants, runs the CLI, runs unit tests, verifies formatting and applies strict Clippy.
+
+## Claim ceiling
+
+`AcceptProfile` means only that the supplied command/device declarations satisfy this reference contract over the tested corpus. It does not inspect firmware or measure actuator behavior, prove physical idempotency, classify physical outcome, issue a recovery permit, establish safe stopping, HIL/physical safety, PL/SIL, standards compliance or certification.
