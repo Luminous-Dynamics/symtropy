@@ -1,0 +1,721 @@
+{
+  "corpus_id": "aero-evidence-binding-adversarial-v0.2",
+  "synthetic_only": true,
+  "claim_ceiling": "synthetic_binding_contract_only",
+  "cases": [
+    {
+      "case_id": "wrong-declared-material-lot",
+      "operation": "set",
+      "pointer": "/specimen_source_assertions/0/declared_material_lot_id",
+      "value": "LOT-WRONG",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "SPECIMEN_SOURCE_DECLARED_IDENTITY_MISMATCH"
+      ],
+      "expected_blocker_codes": [
+        "SPECIMEN_SOURCE_IDENTITY_CONFLICT"
+      ]
+    },
+    {
+      "case_id": "hierarchy-changed-to-another-valid-lot",
+      "operation": "composite",
+      "mutations": [
+        {
+          "operation": "append",
+          "pointer": "/hierarchy/material_lots",
+          "value": {
+            "id": "LOT-B"
+          }
+        },
+        {
+          "operation": "set",
+          "pointer": "/hierarchy/process_batches/0/material_lot_id",
+          "value": "LOT-B"
+        }
+      ],
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "SPECIMEN_SOURCE_DECLARED_IDENTITY_MISMATCH",
+        "SPECIMEN_SOURCE_VERIFIED_IDENTITY_MISMATCH"
+      ],
+      "expected_blocker_codes": [
+        "SPECIMEN_SOURCE_IDENTITY_CONFLICT"
+      ]
+    },
+    {
+      "case_id": "wrong-intended-configuration",
+      "operation": "set",
+      "pointer": "/intended_configuration_assertions/0/declared_intended_configuration_id",
+      "value": "CONFIG-WRONG",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "INTENDED_CONFIGURATION_DECLARED_IDENTITY_MISMATCH"
+      ],
+      "expected_blocker_codes": [
+        "INTENDED_CONFIGURATION_IDENTITY_CONFLICT"
+      ]
+    },
+    {
+      "case_id": "missing-specimen-source-assertion",
+      "operation": "set",
+      "pointer": "/specimen_source_assertions",
+      "value": [],
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "EMPTY_REQUIRED_COLLECTION"
+      ],
+      "expected_blocker_codes": [
+        "SPECIMEN_SOURCE_ASSERTION_MISSING"
+      ]
+    },
+    {
+      "case_id": "acquisition-before-calibration-window",
+      "operation": "set",
+      "pointer": "/observations/0/acquired_at_unix_ms",
+      "value": 1795510799999,
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "CALIBRATION_OUTSIDE_VALIDITY_INTERVAL"
+      ]
+    },
+    {
+      "case_id": "acquisition-at-exclusive-calibration-end",
+      "operation": "set",
+      "pointer": "/observations/0/acquired_at_unix_ms",
+      "value": 1795518000000,
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "CALIBRATION_OUTSIDE_VALIDITY_INTERVAL",
+        "ACQUISITION_AFTER_EVALUATION_TIME"
+      ]
+    },
+    {
+      "case_id": "instrument-identity-mismatch",
+      "operation": "set",
+      "pointer": "/calibration_certificates/0/instrument_id",
+      "value": "INSTRUMENT-OTHER",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "CALIBRATION_INSTRUMENT_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "method-revision-mismatch",
+      "operation": "set",
+      "pointer": "/calibration_certificates/0/method_revision_id",
+      "value": "METHOD-OTHER",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "CALIBRATION_METHOD_REVISION_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "timezone-not-normalized",
+      "operation": "set",
+      "pointer": "/observations/0/time_basis",
+      "value": "LOCAL_UNKNOWN",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "TIME_BASIS_NOT_NORMALIZED_TO_UNIX_MS"
+      ]
+    },
+    {
+      "case_id": "calibration-certificate-missing",
+      "operation": "set",
+      "pointer": "/hierarchy/test_campaigns/0/calibration_id",
+      "value": "CAL-MISSING",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "CALIBRATION_CERTIFICATE_MISSING"
+      ]
+    },
+    {
+      "case_id": "certificate-authenticity-unknown",
+      "operation": "set",
+      "pointer": "/calibration_certificates/0/authenticity_status",
+      "value": "unknown",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "CALIBRATION_CERTIFICATE_AUTHENTICITY_UNKNOWN"
+      ]
+    },
+    {
+      "case_id": "revocation-recorded-before-evaluation-after-acquisition",
+      "operation": "composite",
+      "mutations": [
+        {
+          "operation": "set",
+          "pointer": "/evaluated_at_unix_ms",
+          "value": 1795516800000
+        },
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-REVOKE-A",
+            "certificate_id": "CAL-A",
+            "event_type": "revoked",
+            "retroactive": false,
+            "effective_at_unix_ms": 1795516200000,
+            "recorded_at_unix_ms": 1795516500000
+          }
+        }
+      ],
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "CALIBRATION_REVOKED_AFTER_ACQUISITION_PENDING_DISPOSITION"
+      ]
+    },
+    {
+      "case_id": "negative-or-invalid-unix-time",
+      "operation": "set",
+      "pointer": "/observations/0/acquired_at_unix_ms",
+      "value": "2026-02-30T10:00:00Z",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "ACQUISITION_TIMESTAMP_MISSING_OR_INVALID"
+      ]
+    },
+    {
+      "case_id": "calibration-correction-with-unknown-target",
+      "operation": "append",
+      "pointer": "/calibration_events",
+      "value": {
+        "id": "EVENT-CORRECT-A",
+        "certificate_id": "CAL-A",
+        "event_type": "corrected",
+        "corrects_event_id": "EVENT-NOT-FOUND",
+        "retroactive": true,
+        "effective_at_unix_ms": 1795515600000,
+        "recorded_at_unix_ms": 1795515660000
+      },
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "CALIBRATION_CORRECTION_TARGET_INVALID"
+      ],
+      "expected_blocker_codes": [
+        "CALIBRATION_EVENT_HISTORY_UNRESOLVED",
+        "CALIBRATION_CHANGE_PENDING_DISPOSITION"
+      ]
+    },
+    {
+      "case_id": "competing-corrections-for-one-event",
+      "operation": "composite",
+      "mutations": [
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-ORIGINAL",
+            "certificate_id": "CAL-A",
+            "event_type": "suspended",
+            "retroactive": false,
+            "effective_at_unix_ms": 1795515000000,
+            "recorded_at_unix_ms": 1795515060000
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-CORRECT-A",
+            "certificate_id": "CAL-A",
+            "event_type": "corrected",
+            "corrects_event_id": "EVENT-ORIGINAL",
+            "retroactive": true,
+            "effective_at_unix_ms": 1795515600000,
+            "recorded_at_unix_ms": 1795515660000
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-CORRECT-B",
+            "certificate_id": "CAL-A",
+            "event_type": "superseded",
+            "corrects_event_id": "EVENT-ORIGINAL",
+            "retroactive": true,
+            "effective_at_unix_ms": 1795515720000,
+            "recorded_at_unix_ms": 1795515780000
+          }
+        }
+      ],
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "CONTRADICTORY_CALIBRATION_CORRECTIONS"
+      ],
+      "expected_blocker_codes": [
+        "CALIBRATION_CHANGE_PENDING_DISPOSITION",
+        "CALIBRATION_EVENT_HISTORY_UNRESOLVED",
+        "CALIBRATION_SUSPENDED_PENDING_DISPOSITION"
+      ]
+    },
+    {
+      "case_id": "empty-source-provenance-field",
+      "operation": "set",
+      "pointer": "/specimen_source_assertions/0/source_record_id",
+      "value": "",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "SPECIMEN_SOURCE_PROVENANCE_INCOMPLETE"
+      ],
+      "expected_blocker_codes": [
+        "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED"
+      ]
+    },
+    {
+      "case_id": "duplicate-specimen-item-id-across-specimens",
+      "operation": "composite",
+      "mutations": [
+        {
+          "operation": "append",
+          "pointer": "/hierarchy/specimens",
+          "value": {
+            "id": "SPEC-B",
+            "panel_id": "PANEL-A",
+            "configuration_id": "CONFIG-A"
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/specimen_source_assertions",
+          "value": {
+            "id": "SOURCE-ASSERTION-B",
+            "specimen_id": "SPEC-B",
+            "sampling_event_id": "SAMPLE-EVENT-0001",
+            "declared_material_lot_id": "LOT-A",
+            "declared_process_batch_id": "BATCH-A",
+            "declared_panel_id": "PANEL-A",
+            "verified_material_lot_id": "LOT-A",
+            "verified_process_batch_id": "BATCH-A",
+            "verified_panel_id": "PANEL-A",
+            "identity_status": "verified",
+            "source_system": "SYNTHETIC-TRAVELER-SYSTEM",
+            "source_record_id": "TRAVELER-0001",
+            "assertion_method": "independent-record-reconciliation",
+            "issuer_id": "SYNTHETIC-ISSUER-A",
+            "provenance_ref": "synthetic://traveler/0001#specimen-b",
+            "specimen_item_id": "SPECIMEN-ITEM-A"
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/intended_configuration_assertions",
+          "value": {
+            "id": "CONFIG-ASSERTION-B",
+            "specimen_id": "SPEC-B",
+            "declared_intended_configuration_id": "CONFIG-A",
+            "verified_intended_configuration_id": "CONFIG-A",
+            "identity_status": "verified",
+            "source_system": "SYNTHETIC-PLM",
+            "source_record_id": "PLM-RELEASE-0001",
+            "assertion_method": "independent-release-record-reconciliation",
+            "issuer_id": "SYNTHETIC-ISSUER-B",
+            "provenance_ref": "synthetic://plm/release/0001#specimen-b"
+          }
+        }
+      ],
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "SPECIMEN_ITEM_ID_REPLAY"
+      ],
+      "expected_blocker_codes": [
+        "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED"
+      ]
+    },
+    {
+      "case_id": "missing-sampling-event-id",
+      "operation": "set",
+      "pointer": "/specimen_source_assertions/0/sampling_event_id",
+      "value": "",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "SPECIMEN_SAMPLING_EVENT_MISSING"
+      ],
+      "expected_blocker_codes": [
+        "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED"
+      ]
+    },
+    {
+      "case_id": "missing-calibration-evidence-record-identity",
+      "operation": "set",
+      "pointer": "/calibration_certificates/0/calibration_evidence_id",
+      "value": "",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "CALIBRATION_EVIDENCE_ID_MISSING"
+      ],
+      "expected_blocker_codes": [
+        "CALIBRATION_CERTIFICATE_EVIDENCE_UNBOUND"
+      ]
+    },
+    {
+      "case_id": "duplicate-calibration-evidence-identity",
+      "operation": "append",
+      "pointer": "/calibration_certificates",
+      "value": {
+        "id": "CAL-B",
+        "calibration_evidence_id": "CAL-EVIDENCE-A",
+        "instrument_id": "INSTRUMENT-B",
+        "method_revision_id": "METHOD-B",
+        "calibration_lab": "SYNTHETIC-LAB-B",
+        "certificate_artifact_ref": "mycelix-packet://synthetic/CAL-B",
+        "authenticity_status": "authenticated",
+        "valid_from_unix_ms": 1795510800000,
+        "valid_until_unix_ms": 1795518000000
+      },
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "CALIBRATION_EVIDENCE_ID_REPLAY"
+      ],
+      "expected_blocker_codes": [
+        "CALIBRATION_CERTIFICATE_EVIDENCE_UNBOUND"
+      ]
+    },
+    {
+      "case_id": "missing-specimen-item-id",
+      "operation": "set",
+      "pointer": "/specimen_source_assertions/0/specimen_item_id",
+      "value": "",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "SPECIMEN_ITEM_ID_MISSING"
+      ],
+      "expected_blocker_codes": [
+        "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED"
+      ]
+    },
+    {
+      "case_id": "shared-sampling-event-distinct-specimen-items-accepted",
+      "operation": "composite",
+      "mutations": [
+        {
+          "operation": "append",
+          "pointer": "/hierarchy/specimens",
+          "value": {
+            "id": "SPEC-B",
+            "panel_id": "PANEL-A",
+            "configuration_id": "CONFIG-A"
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/specimen_source_assertions",
+          "value": {
+            "id": "SOURCE-ASSERTION-B",
+            "specimen_id": "SPEC-B",
+            "declared_material_lot_id": "LOT-A",
+            "declared_process_batch_id": "BATCH-A",
+            "declared_panel_id": "PANEL-A",
+            "verified_material_lot_id": "LOT-A",
+            "verified_process_batch_id": "BATCH-A",
+            "verified_panel_id": "PANEL-A",
+            "identity_status": "verified",
+            "source_system": "SYNTHETIC-TRAVELER-SYSTEM",
+            "source_record_id": "TRAVELER-0001",
+            "assertion_method": "independent-record-reconciliation",
+            "issuer_id": "SYNTHETIC-ISSUER-A",
+            "provenance_ref": "synthetic://traveler/0001#item-b",
+            "sampling_event_id": "SAMPLE-EVENT-0001",
+            "specimen_item_id": "SPECIMEN-ITEM-B"
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/intended_configuration_assertions",
+          "value": {
+            "id": "CONFIG-ASSERTION-B",
+            "specimen_id": "SPEC-B",
+            "declared_intended_configuration_id": "CONFIG-A",
+            "verified_intended_configuration_id": "CONFIG-A",
+            "identity_status": "verified",
+            "source_system": "SYNTHETIC-PLM",
+            "source_record_id": "PLM-RELEASE-0001",
+            "assertion_method": "independent-release-record-reconciliation",
+            "issuer_id": "SYNTHETIC-ISSUER-B",
+            "provenance_ref": "synthetic://plm/release/0001#item-b"
+          }
+        }
+      ],
+      "expected_structurally_complete": true,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": []
+    },
+    {
+      "case_id": "specimen-item-id-reuse-across-distinct-sampling-events-accepted",
+      "operation": "composite",
+      "mutations": [
+        {
+          "operation": "append",
+          "pointer": "/hierarchy/specimens",
+          "value": {
+            "id": "SPEC-B",
+            "panel_id": "PANEL-A",
+            "configuration_id": "CONFIG-A"
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/specimen_source_assertions",
+          "value": {
+            "id": "SOURCE-ASSERTION-B",
+            "specimen_id": "SPEC-B",
+            "declared_material_lot_id": "LOT-A",
+            "declared_process_batch_id": "BATCH-A",
+            "declared_panel_id": "PANEL-A",
+            "verified_material_lot_id": "LOT-A",
+            "verified_process_batch_id": "BATCH-A",
+            "verified_panel_id": "PANEL-A",
+            "identity_status": "verified",
+            "source_system": "SYNTHETIC-TRAVELER-SYSTEM",
+            "source_record_id": "TRAVELER-0001",
+            "assertion_method": "independent-record-reconciliation",
+            "issuer_id": "SYNTHETIC-ISSUER-A",
+            "provenance_ref": "synthetic://traveler/0001#event-two",
+            "sampling_event_id": "SAMPLE-EVENT-0002",
+            "specimen_item_id": "SPECIMEN-ITEM-A"
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/intended_configuration_assertions",
+          "value": {
+            "id": "CONFIG-ASSERTION-B",
+            "specimen_id": "SPEC-B",
+            "declared_intended_configuration_id": "CONFIG-A",
+            "verified_intended_configuration_id": "CONFIG-A",
+            "identity_status": "verified",
+            "source_system": "SYNTHETIC-PLM",
+            "source_record_id": "PLM-RELEASE-0001",
+            "assertion_method": "independent-release-record-reconciliation",
+            "issuer_id": "SYNTHETIC-ISSUER-B",
+            "provenance_ref": "synthetic://plm/release/0001#event-two"
+          }
+        }
+      ],
+      "expected_structurally_complete": true,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": []
+    },
+    {
+      "case_id": "invalid-empty-calibration-interval",
+      "operation": "set",
+      "pointer": "/calibration_certificates/0/valid_until_unix_ms",
+      "value": 1795510800000,
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "CALIBRATION_INTERVAL_INVALID"
+      ]
+    },
+    {
+      "case_id": "future-recorded-revocation-does-not-rewrite-earlier-snapshot",
+      "operation": "append",
+      "pointer": "/calibration_events",
+      "value": {
+        "id": "EVENT-REVOKE-FUTURE",
+        "certificate_id": "CAL-A",
+        "event_type": "revoked",
+        "retroactive": false,
+        "effective_at_unix_ms": 1795515000000,
+        "recorded_at_unix_ms": 1795516500000
+      },
+      "expected_structurally_complete": true,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": []
+    },
+    {
+      "case_id": "retroactive-revocation-affects-prior-acquisition",
+      "operation": "append",
+      "pointer": "/calibration_events",
+      "value": {
+        "id": "EVENT-REVOKE-RETRO",
+        "certificate_id": "CAL-A",
+        "event_type": "revoked",
+        "retroactive": true,
+        "effective_at_unix_ms": 1795514200000,
+        "recorded_at_unix_ms": 1795515000000
+      },
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "CALIBRATION_REVOKED_PENDING_DISPOSITION"
+      ]
+    },
+    {
+      "case_id": "correction-cannot-target-another-certificates-event",
+      "operation": "composite",
+      "mutations": [
+        {
+          "operation": "append",
+          "pointer": "/calibration_certificates",
+          "value": {
+            "id": "CAL-B",
+            "calibration_evidence_id": "CAL-EVIDENCE-B",
+            "instrument_id": "INSTRUMENT-B",
+            "method_revision_id": "METHOD-B",
+            "calibration_lab": "SYNTHETIC-LAB-B",
+            "certificate_artifact_ref": "mycelix-packet://synthetic/CAL-B",
+            "authenticity_status": "authenticated",
+            "valid_from_unix_ms": 1795510800000,
+            "valid_until_unix_ms": 1795518000000
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-ORIGINAL-CAL-B",
+            "certificate_id": "CAL-B",
+            "event_type": "revoked",
+            "retroactive": false,
+            "effective_at_unix_ms": 1795515000000,
+            "recorded_at_unix_ms": 1795515060000
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-CORRECT-CROSS-CERT",
+            "certificate_id": "CAL-A",
+            "event_type": "corrected",
+            "corrects_event_id": "EVENT-ORIGINAL-CAL-B",
+            "retroactive": true,
+            "effective_at_unix_ms": 1795515600000,
+            "recorded_at_unix_ms": 1795515660000
+          }
+        }
+      ],
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "CALIBRATION_CORRECTION_TARGET_INVALID"
+      ],
+      "expected_blocker_codes": [
+        "CALIBRATION_CHANGE_PENDING_DISPOSITION",
+        "CALIBRATION_EVENT_HISTORY_UNRESOLVED"
+      ]
+    },
+    {
+      "case_id": "duplicate-calibration-event-identity",
+      "operation": "composite",
+      "mutations": [
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-REPLAY",
+            "certificate_id": "CAL-A",
+            "event_type": "revoked",
+            "retroactive": false,
+            "effective_at_unix_ms": 1795515000000,
+            "recorded_at_unix_ms": 1795515060000
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-REPLAY",
+            "certificate_id": "CAL-A",
+            "event_type": "revoked",
+            "retroactive": false,
+            "effective_at_unix_ms": 1795515000000,
+            "recorded_at_unix_ms": 1795515060000
+          }
+        }
+      ],
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "CALIBRATION_EVENT_REPLAY"
+      ],
+      "expected_blocker_codes": [
+        "CALIBRATION_EVENT_HISTORY_UNRESOLVED",
+        "CALIBRATION_REVOKED_AFTER_ACQUISITION_PENDING_DISPOSITION"
+      ]
+    },
+    {
+      "case_id": "observation-cannot-reference-unknown-specimen",
+      "operation": "set",
+      "pointer": "/observations/0/specimen_id",
+      "value": "SPECIMEN-DOES-NOT-EXIST",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "OBSERVATION_SPECIMEN_UNKNOWN"
+      ]
+    },
+    {
+      "case_id": "unknown-calibration-event-type-abstains",
+      "operation": "append",
+      "pointer": "/calibration_events",
+      "value": {
+        "id": "EVENT-UNKNOWN-TYPE",
+        "certificate_id": "CAL-A",
+        "event_type": "calibration_adjusted",
+        "retroactive": false,
+        "effective_at_unix_ms": 1795515000000,
+        "recorded_at_unix_ms": 1795515060000
+      },
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "UNKNOWN_CALIBRATION_EVENT_TYPE"
+      ],
+      "expected_blocker_codes": [
+        "CALIBRATION_EVENT_HISTORY_UNRESOLVED"
+      ]
+    },
+    {
+      "case_id": "correction-target-must-have-strictly-earlier-record-time",
+      "operation": "composite",
+      "mutations": [
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-SAME-TIME-ORIGINAL",
+            "certificate_id": "CAL-A",
+            "event_type": "suspended",
+            "retroactive": false,
+            "effective_at_unix_ms": 1795515000000,
+            "recorded_at_unix_ms": 1795515060000
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-SAME-TIME-CORRECTION",
+            "certificate_id": "CAL-A",
+            "event_type": "corrected",
+            "corrects_event_id": "EVENT-SAME-TIME-ORIGINAL",
+            "retroactive": true,
+            "effective_at_unix_ms": 1795515600000,
+            "recorded_at_unix_ms": 1795515060000
+          }
+        }
+      ],
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "CALIBRATION_CORRECTION_TARGET_INVALID"
+      ],
+      "expected_blocker_codes": [
+        "CALIBRATION_CHANGE_PENDING_DISPOSITION",
+        "CALIBRATION_EVENT_HISTORY_UNRESOLVED",
+        "CALIBRATION_SUSPENDED_PENDING_DISPOSITION"
+      ]
+    }
+  ],
+  "oracle_review_status": "NOT_INDEPENDENTLY_REVIEWED",
+  "expected_dispositions_frozen_separately_from_evaluator": true
+}

@@ -1,8 +1,20 @@
 name: AERO Material Qualification Contract
 
 on:
+  push:
+    branches: ["research/aero-evidence-binding-v0.2", "research/aero-duplicate-event-id-fix-v0.1"]
+    paths:
+      - "crates/domains/symtropy-aero-material-qual/**"
+      - "docs/research/aviation/AERO_EVIDENCE_BINDING_001_V0_2.md"
+      - "docs/research/aviation/AERO_BASALT_MYCELIX_CHANGE_IMPACT_ADAPTER_V0_1.md"
+      - "docs/research/aviation/AERO_AP242_QIF_SEMANTIC_INTEROP_BENCHMARK_V0_1.md"
+      - "docs/research/aviation/AERO_DFI_SHM_CO_DESIGN_BENCHMARK_V0_1.md"
+      - "docs/research/aviation/schemas/aero_evidence_binding_case_v0_2.schema.json"
+      - "docs/research/aviation/examples/synthetic_aero_evidence_binding_case_v0_2.json"
+      - "docs/research/aviation/examples/adversarial_evidence_binding_mutations_v0_2.json"
+      - ".github/workflows/aero-material-qual.yml"
   pull_request:
-    branches: ["main"]
+    branches: ["main", "research/aero-material-process-qual-v0.1"]
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
@@ -11,6 +23,10 @@ on:
       - "docs/research/aviation/schemas/aero_material_process_case_v0_1.schema.json"
       - "docs/research/aviation/examples/synthetic_material_process_case_v0_1.json"
       - "docs/research/aviation/examples/adversarial_material_process_mutations_v0_1.json"
+      - "docs/research/aviation/AERO_EVIDENCE_BINDING_001_V0_2.md"
+      - "docs/research/aviation/schemas/aero_evidence_binding_case_v0_2.schema.json"
+      - "docs/research/aviation/examples/synthetic_aero_evidence_binding_case_v0_2.json"
+      - "docs/research/aviation/examples/adversarial_evidence_binding_mutations_v0_2.json"
       - ".github/workflows/aero-material-qual.yml"
   workflow_dispatch:
 
@@ -88,7 +104,35 @@ jobs:
               for error in errors:
                   print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
               raise SystemExit(f"fixture failed Draft 2020-12 validation ({len(errors)} errors)")
-          print("Draft 2020-12 meta-schema and fixture validation passed.")
+          print("Draft 2020-12 v0.1 meta-schema and fixture validation passed.")
+          PY
+
+      - name: Validate v0.2 evidence-binding schema and synthetic fixture
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema_path = root / "docs/research/aviation/schemas/aero_evidence_binding_case_v0_2.schema.json"
+          instance_path = root / "docs/research/aviation/examples/synthetic_aero_evidence_binding_case_v0_2.json"
+          schema = json.loads(schema_path.read_text())
+          instance = json.loads(instance_path.read_text())
+
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("v0.2 schema must declare Draft 2020-12")
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema).iter_errors(instance),
+              key=lambda error: list(error.absolute_path),
+          )
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}")
+              raise SystemExit(f"v0.2 fixture failed schema validation ({len(errors)} errors)")
+          print("v0.2 evidence-binding schema and fixture validation passed.")
           PY
 
       - name: Run evaluator tests
@@ -106,3 +150,10 @@ jobs:
           grep -q '"evidence_sufficiency_status": "NOT_EVALUATED_V0_1"' "$RUNNER_TEMP/aero-material-qual-report.json"
           grep -q '"decision_status": "NOT_ELIGIBLE_SYNTHETIC_ONLY"' "$RUNNER_TEMP/aero-material-qual-report.json"
           grep -q '"physical_qualification_status": "OUT_OF_SCOPE_NOT_CLAIMED"' "$RUNNER_TEMP/aero-material-qual-report.json"
+
+          cargo run --locked --package symtropy-aero-material-qual -- docs/research/aviation/examples/synthetic_aero_evidence_binding_case_v0_2.json > "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"specimen_identity_status": "INDEPENDENT_IDENTITY_CONSISTENT"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"intended_configuration_status": "INTENDED_CONFIGURATION_CONSISTENT"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"metrology_binding_status": "METROLOGY_BINDING_CONSISTENT_ONLY"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"decision_status": "NOT_ELIGIBLE_SYNTHETIC_ONLY"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"physical_qualification_status": "OUT_OF_SCOPE_NOT_CLAIMED"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
