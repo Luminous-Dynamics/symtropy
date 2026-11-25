@@ -2544,6 +2544,7 @@ pub mod journaled {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::gazebo_adapter::journaled::JournaledGazeboError;
     use crate::campaign_plan::CompiledCampaignPlan;
     use crate::fault_campaign::FaultCampaignManifest;
 
