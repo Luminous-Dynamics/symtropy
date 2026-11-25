@@ -148,6 +148,13 @@ pub struct FifoQueueMetrics {
     pub wait_distribution: DistributionMetrics,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ReceiverAcceptanceBinding {
+    pub expected_unit_id: String,
+    pub evidence_ref: String,
+    pub receiver_delivery_minutes: u64,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct ServiceReliabilityReport {
     pub observation_count: usize,
@@ -159,8 +166,8 @@ pub struct ServiceReliabilityReport {
     pub port_elapsed: DistributionMetrics,
     pub inland_transfer: DistributionMetrics,
     pub end_to_end: ServiceMetrics,
-    /// Receipt references for every accepted receiver delivery in this report.
-    pub receiver_acceptance_refs: Vec<String>,
+    /// Each accepted expected cargo unit remains paired with its receiver receipt.
+    pub receiver_acceptances: Vec<ReceiverAcceptanceBinding>,
     pub cohorts: Vec<CohortMetrics>,
     pub cohort_floor_per_mille: u16,
     pub cohort_floor_violations: usize,
@@ -373,10 +380,17 @@ impl ServiceReliabilityReport {
             .filter(|cohort| !cohort.meets_service_floor)
             .count();
 
-        let receiver_acceptance_refs = observations
+        let mut receiver_acceptances = observations
             .iter()
-            .filter_map(|observation| observation.receiver_acceptance_ref.clone())
+            .filter_map(|observation| {
+                Some(ReceiverAcceptanceBinding {
+                    expected_unit_id: observation.expected_unit_id.clone(),
+                    evidence_ref: observation.receiver_acceptance_ref.clone()?,
+                    receiver_delivery_minutes: observation.receiver_delivery_minutes?,
+                })
+            })
             .collect::<Vec<_>>();
+        receiver_acceptances.sort_by(|left, right| left.expected_unit_id.cmp(&right.expected_unit_id));
 
         Ok(Self {
             observation_count: observations.len(),
@@ -387,7 +401,7 @@ impl ServiceReliabilityReport {
             port_elapsed: distribution(&port_elapsed),
             inland_transfer: distribution(&inland_transfer),
             end_to_end: service_metrics(&observations.iter().collect::<Vec<_>>()),
-            receiver_acceptance_refs,
+            receiver_acceptances,
             cohorts,
             cohort_floor_per_mille,
             cohort_floor_violations,
@@ -693,7 +707,7 @@ pub fn render_csv() -> String {
             output,
             "{},{},{:.3},{:.3},{:.3},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},SYNTHETIC_ONLY",
             scenario.id,
-            report.observation_count,
+            report.expected_unit_ids.len(),
             report.port_elapsed.mean_minutes,
             report.inland_transfer.mean_minutes,
             delivered.mean_minutes,
@@ -929,7 +943,9 @@ mod tests {
         assert_eq!(report.end_to_end.on_time_count, 1);
         assert_eq!(report.end_to_end.on_time_rate_milli, 200);
         assert_eq!(report.end_to_end.distribution.as_ref().unwrap().count, 1);
-        assert_eq!(report.receiver_acceptance_refs.len(), 1);
+        assert_eq!(report.receiver_acceptances.len(), 1);
+        assert_eq!(report.receiver_acceptances[0].expected_unit_id, observations[0].expected_unit_id);
+        assert_eq!(report.receiver_acceptances[0].evidence_ref, observations[0].receiver_acceptance_ref.as_ref().unwrap());
     }
 
     #[test]
@@ -946,7 +962,7 @@ mod tests {
         assert_eq!(report.end_to_end.receiver_accepted_count, 0);
         assert_eq!(report.end_to_end.on_time_rate_milli, 0);
         assert!(report.end_to_end.distribution.is_none());
-        assert!(report.receiver_acceptance_refs.is_empty());
+        assert!(report.receiver_acceptances.is_empty());
     }
 
     #[test]
@@ -1004,6 +1020,28 @@ mod tests {
             ServiceReliabilityReport::evaluate(&observations, 950),
             Err(ServiceMetricError::DuplicateExpectedUnitIdentity)
         );
+    }
+
+    #[test]
+    fn receiver_acceptance_evidence_remains_bound_to_its_expected_unit() {
+        let observations = synthetic_observations("paired-receipt", &STABLE[..2], &[], 120);
+        let report = ServiceReliabilityReport::evaluate(&observations, 950)
+            .expect("two independently referenced receiver acceptances");
+        assert_eq!(report.receiver_acceptances.len(), 2);
+        for binding in &report.receiver_acceptances {
+            let source = observations
+                .iter()
+                .find(|observation| observation.expected_unit_id == binding.expected_unit_id)
+                .expect("binding points to one expected unit");
+            assert_eq!(
+                source.receiver_acceptance_ref.as_deref(),
+                Some(binding.evidence_ref.as_str())
+            );
+            assert_eq!(
+                source.receiver_delivery_minutes,
+                Some(binding.receiver_delivery_minutes)
+            );
+        }
     }
 
     #[test]
