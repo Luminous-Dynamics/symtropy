@@ -18,7 +18,8 @@
 //! - a structural check for a strict covariance floor
 //!   Sigma_component > alpha * Sigma_nominal;
 //! - a budgeted affine-cell traversal that accounts for possible event mass
-//!   outside caller-declared geometric chart boxes.
+//!   outside caller-declared geometric chart boxes;
+//! - exact finite-support mission event aggregation that retains encounter dependence.
 //!
 //! These primitives do not establish event-mode completeness, finite-budget
 //! confidence-interval coverage, physical-model adequacy, or the assumptions
@@ -42,6 +43,8 @@ pub mod normal_positive_part;
 pub mod pop_col_adjustment;
 pub mod pop_col_energy;
 pub mod pathwise_event;
+/// Exact dependence-aware aggregation across a finite mission encounter set.
+pub mod mission_risk_aggregation;
 pub mod pathwise_proposal;
 pub mod pop_convergence;
 pub mod predictable_empirical_bernstein;
