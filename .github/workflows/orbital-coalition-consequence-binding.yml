@@ -1,0 +1,22 @@
+name: Orbital Coalition Independent Invariants
+
+on:
+  push:
+    branches:
+      - research/orbital-coalition-consequence-binding-v0-1-2026-11-25
+    paths:
+      - tools/orbital-assurance-bundle-bench/**
+      - .github/workflows/orbital-coalition-consequence-binding.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-invariants:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node tools/orbital-assurance-bundle-bench/tests/coalition_consequence_independent_invariants.mjs tools/orbital-assurance-bundle-bench/fixtures/v0.1/coalition-consequence-cases.json
