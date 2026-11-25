@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Physical Memory Compiler candidate decision report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "snapshot_date",
+    "rankability",
+    "ranking_reason",
+    "candidates"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "physical-storage-candidate-decision-v0.1"
+    },
+    "contract_id": {
+      "type": "string"
+    },
+    "snapshot_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "rankability": {
+      "enum": [
+        "rankable",
+        "not_rankable"
+      ]
+    },
+    "ranking_reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "candidate_id",
+          "medium_family",
+          "evidence_status",
+          "production_eligible",
+          "assessment",
+          "metrics"
+        ],
+        "properties": {
+          "candidate_id": {
+            "type": "string"
+          },
+          "medium_family": {
+            "enum": [
+              "glass_optical",
+              "magnetic_tape",
+              "hdd",
+              "ssd_nand",
+              "mram",
+              "ferroelectric",
+              "pcm",
+              "reram",
+              "hybrid"
+            ]
+          },
+          "evidence_status": {
+            "enum": [
+              "commercial_product",
+              "customer_qualified_product",
+              "published_research_demonstrator",
+              "roadmap",
+              "unknown"
+            ]
+          },
+          "production_eligible": {
+            "type": "boolean"
+          },
+          "assessment": {
+            "enum": [
+              "pass",
+              "fail",
+              "unknown",
+              "exploration_only"
+            ]
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "metric",
+                "required",
+                "observed",
+                "status",
+                "source",
+                "note"
+              ],
+              "properties": {
+                "metric": {
+                  "type": "string"
+                },
+                "required": {},
+                "observed": {
+                  "type": [
+                    "number",
+                    "string",
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "status": {
+                  "enum": [
+                    "pass",
+                    "fail",
+                    "unknown"
+                  ]
+                },
+                "source": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "note": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
