@@ -5,6 +5,7 @@ pub mod dcsa_maturity;
 pub mod high_probability;
 pub mod lipschitz;
 pub mod oracle_adapter;
+pub mod quantity_weighted_service;
 pub mod repeated_sampling;
 pub mod service_variability;
 pub mod source_semantics;
