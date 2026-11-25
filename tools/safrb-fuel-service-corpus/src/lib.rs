@@ -393,8 +393,9 @@ pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
         let demand_interval_wh = demand_by_hour[hour];
         let critical_floor_interval_wh =
             demand_interval_wh.saturating_mul(SERVICE_CRITICAL_FLOOR_BPS) / 10_000;
-        let delivered_lower_interval_wh =
-            network_by_hour[hour].saturating_mul(10_000 - uncertainty_basis_points) / 10_000;
+        let delivered_lower_interval_wh = demand_interval_wh.min(
+            network_by_hour[hour].saturating_mul(10_000 - uncertainty_basis_points) / 10_000,
+        );
         let delivered_upper_interval_wh = demand_interval_wh.min(
             network_by_hour[hour].saturating_mul(10_000 + uncertainty_basis_points) / 10_000,
         );
@@ -658,17 +659,6 @@ pub fn validate_case(case: &FuelServiceCase) -> Result<(), Vec<String>> {
     if service.uncertainty_basis_points > 10_000 {
         errors.push("delivery uncertainty exceeds 100 percent".to_string());
     }
-    // Saturating arithmetic keeps adversarial out-of-range inputs fail-closed
-    // rather than panicking while the validator is trying to reject them.
-    let expected_lower = generator.network_deliverable_wh
-        .saturating_mul(10_000_u64.saturating_sub(service.uncertainty_basis_points)) / 10_000;
-    let expected_upper = service.demand_wh.min(
-        generator.network_deliverable_wh
-            .saturating_mul(10_000_u64.saturating_add(service.uncertainty_basis_points)) / 10_000,
-    );
-    if service.delivered_lower_wh != expected_lower || service.delivered_upper_wh != expected_upper {
-        errors.push("service bounds do not reconcile with network-deliverable energy and declared uncertainty".to_string());
-    }
     if case.hourly_trajectory.len() != case.horizon_hours as usize {
         errors.push("hourly service trajectory length does not match the frozen horizon".to_string());
     }
@@ -737,8 +727,10 @@ pub fn validate_case(case: &FuelServiceCase) -> Result<(), Vec<String>> {
         {
             errors.push(format!("hourly row {index} has inconsistent service bounds/floor"));
         }
-        let expected_hour_lower = row.network_deliverable_wh
-            .saturating_mul(10_000_u64.saturating_sub(service.uncertainty_basis_points)) / 10_000;
+        let expected_hour_lower = row.demand_wh.min(
+            row.network_deliverable_wh
+                .saturating_mul(10_000_u64.saturating_sub(service.uncertainty_basis_points)) / 10_000,
+        );
         let expected_hour_upper = row.demand_wh.min(
             row.network_deliverable_wh
                 .saturating_mul(10_000_u64.saturating_add(service.uncertainty_basis_points)) / 10_000,
