@@ -352,17 +352,14 @@ fn validate_bundle(bundle: &ResultsBundle) -> Result<(), String> {
         }
 
         let reference_key = &rows[0].matching;
-        let reference_oracle = rows[0].outcome.oracle_disposition;
         let mut arms = BTreeSet::new();
 
         for row in &rows {
-            if row.matching != *reference_key {
+            if &row.matching != reference_key {
                 let field = first_match_difference(reference_key, &row.matching);
                 return Err(format!("PAIR_MATCH_KEY_MISMATCH: pair={pair_id} field={field}"));
             }
-            if row.outcome.oracle_disposition != reference_oracle {
-                return Err(format!("PAIR_ORACLE_DISPOSITION_MISMATCH: pair={pair_id}"));
-            }
+            // Realized physical outcomes are per-arm results, not pair-match inputs.
             if !arms.insert(row.arm_id) {
                 return Err(format!(
                     "DUPLICATE_ARM_IN_PAIR: pair={pair_id} arm={}",
@@ -877,5 +874,18 @@ mod tests {
         assert_eq!(native.false_no_effect.eligible_n, 0);
         assert_eq!(native.false_no_effect.rate, None);
     }
+
+
+    #[test]
+    fn matched_arms_may_have_different_adjudicated_outcomes() {
+        let mut bundle: ResultsBundle =
+            serde_json::from_str(FIXTURE).expect("fixture should parse");
+        bundle.episodes[1].outcome.oracle_disposition = Disposition::NoEffect;
+        let changed = serde_json::to_string(&bundle).expect("bundle should serialize");
+        let report =
+            evaluate_json(&changed).expect("different per-arm outcomes remain comparable");
+        assert_eq!(report.pair_n, 2);
+    }
+
 
 }
