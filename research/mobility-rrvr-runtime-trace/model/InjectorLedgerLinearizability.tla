@@ -319,7 +319,7 @@ PayloadConflictNeverGranted ==
 AppliedRequiresObservedEffect ==
     ledgerStatus = "applied" => effectCount >= 1
 
-UnknownOutcomeDoesNotAuthorizeReplay ==
-    ledgerStatus = "unknown" => ~UnsafeReplayAfterCrash
+UnknownOutcomePreservesEffectUncertainty ==
+    ledgerStatus = "unknown" => effectMayHaveOccurred
 
 =============================================================================
