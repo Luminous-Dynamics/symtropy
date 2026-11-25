@@ -287,14 +287,7 @@ pub fn fit_affine_ols_v0(
     build_fit(pairs, origins, &points, line, 0)
 }
 
-/// Theil-Sen affine baseline: median of all pairwise slopes and then median
-/// intercept. It is robust to a minority of gross anchor outliers, but has
-/// quadratic pair count and is intended only for the bounded v0 anchor set.
-pub fn fit_affine_theil_sen_v0(
-    pairs: &[ClockAnchorPairV0],
-) -> Result<ClockFitV0, ClockFitErrorV0> {
-    let origins = validate_pairs(pairs)?;
-    let points = centered_pairs(pairs);
+fn theil_sen_line(points: &[CenteredPairV0]) -> Result<LocalLineV0, ClockFitErrorV0> {
     let mut slopes = Vec::new();
 
     for left in 0..points.len() {
@@ -313,9 +306,21 @@ pub fn fit_affine_theil_sen_v0(
         .collect::<Vec<_>>();
     let intercept = median(&intercepts).ok_or(ClockFitErrorV0::NonFiniteEstimate)?;
     let line = LocalLineV0 { intercept, scale };
-    build_fit(pairs, origins, &points, line, 0)
+    validate_line(line)?;
+    Ok(line)
 }
 
+/// Theil-Sen affine baseline: median of all pairwise slopes and then median
+/// intercept. It is robust to a minority of gross anchor outliers, but has
+/// quadratic pair count and is intended only for the bounded v0 anchor set.
+pub fn fit_affine_theil_sen_v0(
+    pairs: &[ClockAnchorPairV0],
+) -> Result<ClockFitV0, ClockFitErrorV0> {
+    let origins = validate_pairs(pairs)?;
+    let points = centered_pairs(pairs);
+    let line = theil_sen_line(&points)?;
+    build_fit(pairs, origins, &points, line, 0)
+}
 /// Huber IRLS affine fit. Theil-Sen supplies a robust initial line; MAD scales
 /// residuals; Huber weights reduce the influence of gross anchor outliers.
 /// This is a generic robust baseline, not a claim to reproduce MATH-SYNC's
@@ -334,11 +339,7 @@ pub fn fit_affine_huber_irls_v0(
 
     let origins = validate_pairs(pairs)?;
     let points = centered_pairs(pairs);
-    let initial = fit_affine_theil_sen_v0(pairs)?;
-    let mut line = LocalLineV0 {
-        intercept: initial.offset - origins.alpha + initial.scale * origins.beta,
-        scale: initial.scale,
-    };
+    let mut line = theil_sen_line(&points)?;
 
     for iteration in 1..=max_iterations {
         let errors = residuals(&points, line);
