@@ -41,6 +41,8 @@ pub struct ServiceObservation {
     pub receiver_deadline_minutes: u64,
     /// Only populated when an independent receiver record confirms acceptance.
     pub receiver_delivery_minutes: Option<u64>,
+    /// Reference to the independently qualified receiver-acceptance receipt.
+    pub receiver_acceptance_ref: Option<String>,
     /// Expected units with any other disposition remain in the denominator.
     pub delivery_disposition: DeliveryDisposition,
 }
@@ -79,7 +81,9 @@ pub enum ServiceMetricError {
     DuplicateObservationIdentity,
     ZeroReceiverDeadline,
     ReceiverAcceptanceTimeMissing,
+    ReceiverAcceptanceEvidenceMissing,
     NonAcceptedOutcomeHasDeliveryTime,
+    NonAcceptedOutcomeHasReceiverEvidence,
     ReceiverDeliveryTimeMismatch,
     EmptyArrivalIdentity,
     DuplicateArrivalIdentity,
@@ -153,6 +157,8 @@ pub struct ServiceReliabilityReport {
     pub port_elapsed: DistributionMetrics,
     pub inland_transfer: DistributionMetrics,
     pub end_to_end: ServiceMetrics,
+    /// Receipt references for every accepted receiver delivery in this report.
+    pub receiver_acceptance_refs: Vec<String>,
     pub cohorts: Vec<CohortMetrics>,
     pub cohort_floor_per_mille: u16,
     pub cohort_floor_violations: usize,
@@ -283,11 +289,16 @@ impl ServiceReliabilityReport {
             match (
                 observation.delivery_disposition,
                 observation.receiver_delivery_minutes,
+                observation.receiver_acceptance_ref.as_deref(),
             ) {
-                (DeliveryDisposition::ReceiverAccepted, None) => {
+                (DeliveryDisposition::ReceiverAccepted, None, _) => {
                     return Err(ServiceMetricError::ReceiverAcceptanceTimeMissing);
                 }
-                (DeliveryDisposition::ReceiverAccepted, Some(minutes))
+                (DeliveryDisposition::ReceiverAccepted, Some(_), None)
+                | (DeliveryDisposition::ReceiverAccepted, Some(_), Some("")) => {
+                    return Err(ServiceMetricError::ReceiverAcceptanceEvidenceMissing);
+                }
+                (DeliveryDisposition::ReceiverAccepted, Some(minutes), Some(_))
                     if minutes != observation.staged_elapsed_minutes() =>
                 {
                     return Err(ServiceMetricError::ReceiverDeliveryTimeMismatch);
@@ -295,9 +306,16 @@ impl ServiceReliabilityReport {
                 (DeliveryDisposition::NotDelivered
                     | DeliveryDisposition::Diverted
                     | DeliveryDisposition::Cancelled
-                    | DeliveryDisposition::Unknown, Some(_)) =>
+                    | DeliveryDisposition::Unknown, Some(_), _) =>
                 {
                     return Err(ServiceMetricError::NonAcceptedOutcomeHasDeliveryTime);
+                }
+                (DeliveryDisposition::NotDelivered
+                    | DeliveryDisposition::Diverted
+                    | DeliveryDisposition::Cancelled
+                    | DeliveryDisposition::Unknown, None, Some(_)) =>
+                {
+                    return Err(ServiceMetricError::NonAcceptedOutcomeHasReceiverEvidence);
                 }
                 _ => {}
             }
@@ -347,6 +365,11 @@ impl ServiceReliabilityReport {
             .filter(|cohort| !cohort.meets_service_floor)
             .count();
 
+        let receiver_acceptance_refs = observations
+            .iter()
+            .filter_map(|observation| observation.receiver_acceptance_ref.clone())
+            .collect::<Vec<_>>();
+
         Ok(Self {
             observation_count: observations.len(),
             vessel_wait: distribution(&vessel_wait),
@@ -354,9 +377,8 @@ impl ServiceReliabilityReport {
             terminal_dwell: distribution(&terminal_dwell),
             port_elapsed: distribution(&port_elapsed),
             inland_transfer: distribution(&inland_transfer),
-            end_to_end: service_metrics(
-                &observations.iter().collect::<Vec<_>>(),
-            ),
+            end_to_end: service_metrics(&observations.iter().collect::<Vec<_>>()),
+            receiver_acceptance_refs,
             cohorts,
             cohort_floor_per_mille,
             cohort_floor_violations,
@@ -485,6 +507,7 @@ fn synthetic_observations(
                     + u64::from(*terminal)
                     + u64::from(*inland),
             ),
+            receiver_acceptance_ref: Some(format!("synthetic-receiver-receipt-{scenario}-{index:02}")),
             delivery_disposition: DeliveryDisposition::ReceiverAccepted,
         })
         .collect()
