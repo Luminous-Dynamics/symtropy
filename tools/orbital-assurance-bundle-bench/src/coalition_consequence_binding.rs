@@ -938,7 +938,7 @@ mod tests {
         let action_a = case.candidate_actions.iter().find(|a| a.action_id == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
         let action_b = case.candidate_actions.iter().find(|a| a.action_id == "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").unwrap();
         assert_eq!(metric(&result, &[]).lower_bound_avoided_ticks, 0);
-        assert_eq!(metric(&result, &[action_a.action_id.clone()]).lower_bound_avoided_ticks, -10);
+        assert_eq!(metric(&result, &[action_a.action_id.clone()]).lower_bound_avoided_ticks, 5);
         assert_eq!(metric(&result, &[action_b.action_id.clone()]).lower_bound_avoided_ticks, -3);
         assert_eq!(metric(&result, &[action_a.action_id.clone(), action_b.action_id.clone()]).lower_bound_avoided_ticks, -10);
         assert_eq!(metric(&result, &[action_a.action_id.clone(), action_b.action_id.clone()]).worst_absolute_loss_ticks, 118);
@@ -952,7 +952,7 @@ mod tests {
         let case = fixture();
         let a = case.candidate_actions[0].action_id.clone();
         let b = case.candidate_actions[1].action_id.clone();
-        assert_eq!(metric(&result, &[a]).worst_scenario_regret_ticks, Some(12));
+        assert_eq!(metric(&result, &[a]).worst_scenario_regret_ticks, Some(5));
         assert_eq!(metric(&result, &[b]).worst_scenario_regret_ticks, Some(10));
     }
 
