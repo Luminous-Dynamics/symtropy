@@ -4,7 +4,9 @@ use std::{env, fs, process};
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() != 3 {
-        eprintln!("usage: orbital-projective-acquisition-bench <corpus.json> <40-hex-source-commit>");
+        eprintln!(
+            "usage: orbital-projective-acquisition-bench <corpus.json> <40-hex-source-commit>"
+        );
         process::exit(2);
     }
     let bytes = match fs::read(&args[1]) {
