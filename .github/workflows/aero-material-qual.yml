@@ -206,6 +206,23 @@ jobs:
           pair = idempotent["events"]
           if pair[0]["source_namespace"] != pair[1]["source_namespace"] or pair[0]["event_id"] != pair[1]["event_id"] or pair[0]["payload_sha256"] != pair[1]["payload_sha256"]:
               raise SystemExit("idempotent delivery control must repeat the same source-scoped identity and payload digest")
+          cross_expected = cross_namespace["expected"]["as_known_at"]
+          cross_ids = cross_expected["applied_event_ids"]
+          if cross_expected["disposition"] != "BLOCK" or len(cross_ids) != 2 or len(set(cross_ids)) != 2:
+              raise SystemExit("cross-namespace ID control must preserve two distinct event identities")
+          if sorted(cross_ids) != sorted(f"{event['source_namespace']}:{event['event_id']}" for event in cross_namespace["events"]):
+              raise SystemExit("cross-namespace expected IDs must be source-scoped composite identities")
+          idempotent_expected = idempotent["expected"]["as_known_at"]
+          if idempotent_expected["disposition"] != "BLOCK" or len(idempotent_expected["applied_event_ids"]) != 1 or "REPEATED_DELIVERY_DEDUPLICATED_ONCE" not in idempotent_expected["reason_codes"]:
+              raise SystemExit("idempotent repeated-delivery oracle must apply exactly once")
+          conflict = next((case for case in cases if case["case_id"] == "same-namespace-duplicate-id-conflicting-payload"), None)
+          if conflict is None or len(conflict["events"]) != 2:
+              raise SystemExit("temporal corpus requires a conflicting same-namespace identity control")
+          conflicting = conflict["events"]
+          if conflicting[0]["source_namespace"] != conflicting[1]["source_namespace"] or conflicting[0]["event_id"] != conflicting[1]["event_id"] or conflicting[0]["payload_sha256"] == conflicting[1]["payload_sha256"]:
+              raise SystemExit("conflicting identity control must reuse one source-scoped ID with different payload digests")
+          if conflict["expected"]["as_known_at"]["disposition"] != "ABSTAIN":
+              raise SystemExit("conflicting payloads under one source-scoped ID must abstain")
           print(f"Temporal replay corpus structure passed: {len(cases)} cases; semantic oracle review still required.")
           PY
 
