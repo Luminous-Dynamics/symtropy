@@ -417,7 +417,9 @@ mod tests {
     use super::*;
 
     fn corpus_bytes() -> &'static [u8] {
-        include_bytes!("../../../docs/research/orbital-truss/fixtures/projective-acquisition-v0_1.json")
+        include_bytes!(
+            "../../../docs/research/orbital-truss/fixtures/projective-acquisition-v0_1.json"
+        )
     }
 
     fn corpus() -> Corpus {
@@ -426,11 +428,8 @@ mod tests {
 
     #[test]
     fn frozen_corpus_matches_all_expected_statuses() {
-        let receipt = audit_corpus(
-            corpus_bytes(),
-            "0123456789abcdef0123456789abcdef01234567",
-        )
-        .expect("corpus audits");
+        let receipt = audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567")
+            .expect("corpus audits");
         assert_eq!(receipt.case_count, 10);
         assert_eq!(receipt.expected_outcome_matches, 10);
         assert_eq!(receipt.expected_outcome_mismatches, 0);
@@ -439,7 +438,11 @@ mod tests {
     #[test]
     fn pure_rotation_produces_a_nonzero_bound() {
         let input = corpus();
-        let case = input.cases.iter().find(|case| case.case_id == "PM-004-PURE-ROTATION").unwrap();
+        let case = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "PM-004-PURE-ROTATION")
+            .unwrap();
         let result = evaluate_case(case);
         let bounds = result.bounds.unwrap();
         assert!(bounds.rotational_speed_um_s_upper > 0);
@@ -449,7 +452,11 @@ mod tests {
     #[test]
     fn nearer_depth_is_never_less_conservative() {
         let mut input = corpus();
-        let case = input.cases.iter_mut().find(|case| case.case_id == "PM-005-NEAR-DEPTH").unwrap();
+        let case = input
+            .cases
+            .iter_mut()
+            .find(|case| case.case_id == "PM-005-NEAR-DEPTH")
+            .unwrap();
         let near = evaluate_case(case).bounds.unwrap();
         case.model.min_depth_um *= 2;
         let far = evaluate_case(case).bounds.unwrap();
@@ -460,7 +467,11 @@ mod tests {
     #[test]
     fn rotational_bound_increases_with_support_radius() {
         let mut input = corpus();
-        let case = input.cases.iter_mut().find(|case| case.case_id == "PM-004-PURE-ROTATION").unwrap();
+        let case = input
+            .cases
+            .iter_mut()
+            .find(|case| case.case_id == "PM-004-PURE-ROTATION")
+            .unwrap();
         let original = evaluate_case(case).bounds.unwrap();
         case.model.max_point_radius_um *= 2;
         let expanded = evaluate_case(case).bounds.unwrap();
@@ -471,31 +482,53 @@ mod tests {
     #[test]
     fn row_time_and_exposure_are_separately_bounded_and_combined() {
         let input = corpus();
-        let case = input.cases.iter().find(|case| case.case_id == "PM-007-COMBINED-EXCEEDS").unwrap();
+        let case = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "PM-007-COMBINED-EXCEEDS")
+            .unwrap();
         let result = evaluate_case(case);
         let bounds = result.bounds.unwrap();
         assert!(bounds.exposure_x_micro_px_upper <= case.model.exposure_budget_x_micro_px);
         assert!(bounds.row_time_x_micro_px_upper <= case.model.row_time_budget_x_micro_px);
-        assert!(bounds.combined_frame_x_micro_px_upper > case.model.combined_frame_budget_x_micro_px);
+        assert!(
+            bounds.combined_frame_x_micro_px_upper > case.model.combined_frame_budget_x_micro_px
+        );
         assert_eq!(result.status, Status::BudgetExceeded);
     }
 
     #[test]
     fn unknown_gate_is_indeterminate_and_failed_gate_is_blocked() {
         let input = corpus();
-        let unknown = input.cases.iter().find(|case| case.case_id == "PM-008-UNKNOWN-MOTION").unwrap();
+        let unknown = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "PM-008-UNKNOWN-MOTION")
+            .unwrap();
         assert_eq!(evaluate_case(unknown).status, Status::Indeterminate);
-        let failed = input.cases.iter().find(|case| case.case_id == "PM-009-FAILED-SUPPORT").unwrap();
+        let failed = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "PM-009-FAILED-SUPPORT")
+            .unwrap();
         assert_eq!(evaluate_case(failed).status, Status::Blocked);
     }
 
     #[test]
     fn invalid_depth_is_rejected_before_projection() {
         let input = corpus();
-        let invalid = input.cases.iter().find(|case| case.case_id == "PM-010-ZERO-DEPTH").unwrap();
+        let invalid = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "PM-010-ZERO-DEPTH")
+            .unwrap();
         let result = evaluate_case(invalid);
         assert_eq!(result.status, Status::InvalidInput);
-        assert!(result.reason_codes.contains(&"NON_POSITIVE_MINIMUM_DEPTH".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"NON_POSITIVE_MINIMUM_DEPTH".to_owned())
+        );
         assert!(result.bounds.is_none());
     }
 }
