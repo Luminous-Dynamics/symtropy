@@ -115,19 +115,10 @@
           "maxLength": 256,
           "pattern": "\\\\S"
         },
-        "supports_absolute_target": {
-          "type": "boolean"
-        },
         "absolute_target_replay_safe": {
           "type": "boolean"
         },
         "absolute_target_side_effect_free": {
-          "type": "boolean"
-        },
-        "supports_durable_one_shot_token": {
-          "type": "boolean"
-        },
-        "rejects_duplicate_one_shot_token": {
           "type": "boolean"
         },
         "maximum_effects_per_token": {
@@ -138,9 +129,6 @@
           "minimum": 0
         },
         "endpoint_enforces_authority_epoch": {
-          "type": "boolean"
-        },
-        "enforces_lease_expiry": {
           "type": "boolean"
         },
         "watchdog_reaction": {
@@ -157,18 +145,6 @@
             "null"
           ],
           "minimum": 1
-        },
-        "supports_stable_trajectory_segments": {
-          "type": "boolean"
-        },
-        "supports_progress_checkpoints": {
-          "type": "boolean"
-        },
-        "supports_measured_progress_resume": {
-          "type": "boolean"
-        },
-        "supports_downstream_queue_reconciliation": {
-          "type": "boolean"
         }
       }
     },
