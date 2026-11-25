@@ -59,7 +59,7 @@ jobs:
             )
             and all(.cases[]; .device.device_id == .command.device_id)
             and any(.cases[]; .case_id == "SEM-001" and .expected_decision == "accept_profile" and .command.effect_class == "desired_state" and .command.motion_semantics == "absolute" and .device.absolute_target_replay_safe == true)
-            and any(.cases[]; .case_id == "SEM-002" and .expected_decision == "accept_profile" and .command.effect_class == "one_shot" and .command.maximum_physical_effects_per_attempt == 1 and .device.maximum_effects_per_token == 1 and .device.durable_one_shot_token_supported == true)
+            and any(.cases[]; .case_id == "SEM-002" and .expected_decision == "accept_profile" and .command.effect_class == "one_shot" and .command.maximum_physical_effects_per_attempt == 1 and .device.maximum_effects_per_token == 1 and .device.supports_durable_one_shot_token == true)
             and any(.cases[]; .case_id == "SEM-003" and .expected_decision == "accept_profile" and .command.effect_class == "continuous_lease" and .command.lease_expiry_ms > 0 and .command.watchdog_response_bound_ms > 0 and .device.watchdog_response_bound_ms <= .command.watchdog_response_bound_ms and .device.watchdog_reaction == .command.watchdog_reaction)
             and any(.cases[]; .case_id == "SEM-004" and .expected_decision == "accept_profile" and .command.effect_class == "trajectory" and .command.progress_checkpoints_required == true and .command.resume_from_measured_progress == true and .command.restart_from_segment_zero_allowed == false)
             and any(.cases[]; .case_id == "SEM-005" and .expected_reason == "DesiredStateRequiresAbsoluteMotion" and .command.motion_semantics == "relative")
