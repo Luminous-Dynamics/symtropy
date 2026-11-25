@@ -28,6 +28,8 @@ const MAX_CLUSTERS: usize = 10_000;
 const MIN_BOOTSTRAP_RESAMPLES: u32 = 1_000;
 const MAX_BOOTSTRAP_RESAMPLES: u32 = 50_000;
 const MAX_BOOTSTRAP_CLUSTERS: u32 = 10_000;
+const MAX_BOOTSTRAP_WORK_ITEMS: u64 = 100_000_000;
+const BOOTSTRAP_METRIC_COUNT: u64 = 6;
 const CLAIM_CEILING: &str = "Matched outcome evaluation over the supplied finite scenario/replay corpus only. This report does not implement or endorse an optimizer, prove physical performance, authenticate source artifacts, establish causal effects, grant market eligibility, authorize dispatch, or establish AC feasibility/ELCC. Confidence intervals describe deterministic cluster-bootstrap resampling of the supplied independent-cluster labels; they are not distribution-free field guarantees.";
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -594,6 +596,18 @@ fn validate_input(input: &MobilityPolicyTournamentInput) -> Result<(), Tournamen
         return Err(TournamentError::InvalidInput(
             "independent cluster count exceeds the bounded contract".to_owned(),
         ));
+    }
+    let bootstrap_work = (clusters.len() as u64)
+        .checked_mul(input.bootstrap.resamples as u64)
+        .and_then(|value| value.checked_mul((input.policies.len() - 1) as u64))
+        .and_then(|value| value.checked_mul(BOOTSTRAP_METRIC_COUNT))
+        .ok_or_else(|| {
+            TournamentError::Arithmetic("bootstrap work estimate overflow".to_owned())
+        })?;
+    if bootstrap_work > MAX_BOOTSTRAP_WORK_ITEMS {
+        return Err(TournamentError::InvalidInput(format!(
+            "bootstrap work estimate {bootstrap_work} exceeds budget {MAX_BOOTSTRAP_WORK_ITEMS}; reduce resamples, policies or independent clusters"
+        )));
     }
     Ok(())
 }
@@ -1450,6 +1464,47 @@ mod tests {
         let mpc = report.comparisons.iter().find(|c| c.policy_id == "mpc").unwrap();
         assert!(!mpc.on_time_service_rate_basis_points.interval_available);
         assert_eq!(mpc.on_time_service_rate_basis_points.mean_delta, Some(1_000.0));
+    }
+
+    #[test]
+    fn bootstrap_work_budget_rejects_excessive_resample_cluster_policy_product() {
+        let mut input = fixture();
+        input.bootstrap.resamples = 50_000;
+        input.policies = (0..32)
+            .map(|index| {
+                let marker = char::from_digit((index % 16) as u32, 16).unwrap();
+                policy(
+                    &format!("policy-{index}"),
+                    PolicyFamily::Other,
+                    marker,
+                )
+            })
+            .collect();
+        input.reference_policy_id = "policy-0".to_owned();
+        input.runs.clear();
+        for policy_identity in &input.policies {
+            for index in 0..100 {
+                let scenario_id = format!("scenario-{index}");
+                let cluster_id = format!("cluster-{index}");
+                let seed = index as u64 + 1;
+                let mut run = run(
+                    &policy_identity.policy_id,
+                    &policy_identity.configuration_digest,
+                    &scenario_id,
+                    &cluster_id,
+                    seed,
+                    8,
+                    100,
+                    100_000,
+                );
+                run.scenario_family = format!("family-{index}");
+                input.runs.push(run);
+            }
+        }
+        assert!(matches!(
+            evaluate_mobility_policy_tournament(&input),
+            Err(TournamentError::InvalidInput(message)) if message.contains("bootstrap work estimate")
+        ));
     }
 
     #[test]
