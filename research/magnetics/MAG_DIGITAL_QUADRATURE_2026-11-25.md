@@ -37,7 +37,7 @@ It models:
 - angle/time sample brackets for each transition;
 - a caller-declared edge-rate budget derived from pole pairs and RPM.
 
-The model never invents a transition timestamp between samples. It computes bounded maximum quadrature edge-spacing error from each transition's sample bracket, including the end-to-start wrap gap. A separate spatial-spectrum function resolves harmonics at integer multiples of the pole-pair fundamental and reports THD, unresolved residual and endpoint discontinuity for each projected latch input. The spectral metrics are diagnostic, not a substitute for quadrature accuracy. The edge-rate ceiling is an explicit benchmark policy, not a vendor bandwidth equivalence.
+For an integrated two-axis sensor, both channels receive one shared local field vector. Any measured deviation from exact axis orthogonality is reported rather than rejected, allowing package alignment error to be part of the design study. The model never invents a transition timestamp between samples. It computes bounded maximum quadrature edge-spacing error from each transition's sample bracket, including the end-to-start wrap gap. A separate spatial-spectrum function resolves harmonics at integer multiples of the pole-pair fundamental and reports THD, unresolved residual and endpoint discontinuity for each projected latch input. The spectral metrics are diagnostic, not a substitute for quadrature accuracy. The edge-rate ceiling is an explicit benchmark policy, not a vendor bandwidth equivalence.
 
 ## Next scientific step
 
