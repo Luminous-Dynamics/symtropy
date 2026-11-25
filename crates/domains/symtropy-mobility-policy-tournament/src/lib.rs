@@ -745,11 +745,11 @@ fn empirical_upper_cvar95(values: &[u64]) -> f64 {
 
 fn summarize_strata(
     runs: &[&PolicyRun],
-    key: impl Fn(&PolicyRun) -> &str,
+    key: impl Fn(&PolicyRun) -> String,
 ) -> Result<Vec<StratumOutcomeSummary>, TournamentError> {
     let mut grouped: BTreeMap<String, Vec<&PolicyRun>> = BTreeMap::new();
     for run in runs {
-        grouped.entry(key(run).to_owned()).or_default().push(run);
+        grouped.entry(key(run)).or_default().push(run);
     }
     let mut summaries = Vec::with_capacity(grouped.len());
     for (stratum_id, group) in grouped {
@@ -768,6 +768,9 @@ fn summarize_strata(
             checked_add_signed(&mut metered, run.metered_grid_response_wh, "stratum metered response")?;
             for count in sum_violations(run).values() {
                 checked_add(&mut hard_violation_count, *count, "stratum hard violations")?;
+            }
+            if run.mission_reserve_shortfall_wh > 0 || run.recovery_shortfall_wh > 0 {
+                checked_add(&mut hard_violation_count, 1, "stratum reserve/recovery shortfall events")?;
             }
             if run.requested_grid_service_wh > 0 && run.shield_admitted && !run.oracle_action_feasible {
                 false_safe += 1;
@@ -926,8 +929,8 @@ fn summarize_policy(
         empirical_upper_cvar95(&mission_reserve_shortfall);
     totals.empirical_cvar95_recovery_shortfall_wh =
         empirical_upper_cvar95(&recovery_shortfall);
-    totals.scenario_family_outcomes = summarize_strata(runs, |run| run.scenario_family.as_str())?;
-    totals.independent_cluster_outcomes = summarize_strata(runs, |run| run.cluster_id.as_str())?;
+    totals.scenario_family_outcomes = summarize_strata(runs, |run| run.scenario_family.clone())?;
+    totals.independent_cluster_outcomes = summarize_strata(runs, |run| run.cluster_id.clone())?;
     totals.mean_decision_latency_ms =
         decision_latency.iter().map(|value| *value as f64).sum::<f64>() / decision_latency.len() as f64;
     totals.p95_decision_latency_ms = percentile_u64(&decision_latency, 9_500).unwrap_or(0);
