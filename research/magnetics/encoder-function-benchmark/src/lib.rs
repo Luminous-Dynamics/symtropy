@@ -176,6 +176,7 @@ pub enum EvaluationError {
 #[derive(Clone, Debug, PartialEq)]
 pub struct TraceMetrics {
     pub trace_id: String,
+    pub operating_condition_id: String,
     pub sample_count: usize,
     pub minimum_in_plane_field_t: f64,
     pub mean_in_plane_field_t: f64,
@@ -401,6 +402,7 @@ pub fn evaluate_trace(
 
     Ok(TraceMetrics {
         trace_id: trace.trace_id.clone(),
+        operating_condition_id: trace.operating_condition_id.clone(),
         sample_count,
         minimum_in_plane_field_t,
         mean_in_plane_field_t,
