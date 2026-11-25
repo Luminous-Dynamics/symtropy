@@ -546,6 +546,7 @@ data_class = "ratified_event_vocabulary"
 ingest_state = "reference_catalogued"
 intended_benchmark_role = "standardized business-step, disposition, event identity and corrective-event vocabulary for EPCIS"
 claim_ceiling = "vocabulary semantics; does not prove that a source-reported event occurred or that data capture was complete"
+notes = "CBV 2.0 allows canonical URI forms such as urn:epcglobal:cbv:bizstep:loading and https://ref.gs1.org/cbv/BizStep-loading; EPCIS 2.0 JSON/JSON-LD can represent those values as scoped-context terms such as loading. A mapper must pin the target serialization profile as well as the vocabulary version."
 
 [[sources]]
 id = "dcsa-track-and-trace-2-2"
@@ -555,12 +556,11 @@ publisher = "Digital Container Shipping Association"
 canonical_uri = "https://reference.dcsa.org/content/standards/guidelines/implementation-guides/implementing-track-and-trace"
 date_observed = "2026-11-24"
 version = "2.2"
-classifier_codes = ["EST", "REQ", "PLN", "ACT"]
 data_class = "container_shipment_visibility_api"
 ingest_state = "reference_catalogued"
 intended_benchmark_role = "standard event definitions and API mapping for shipment/container visibility, implementation and conformance"
 claim_ceiling = "standardized visibility data exchange; not source capture completeness, terminal physical truth or receiver-side delivery proof"
-notes = "DCSA public page redirects adopters to its public reference documentation and points to the conformance reference implementation. Pin exact minor version, schema and conformance artifacts for any implementation."
+notes = "DCSA public page redirects adopters to its public reference documentation and points to the conformance reference implementation. Event classifier enums are schema/event-family specific; do not infer that the shared Information Model vocabulary makes every code valid in every T&T payload. Pin the exact event-family OpenAPI schema and conformance artifact."
 
 [[sources]]
 id = "imo-fal-maritime-single-window"
@@ -618,12 +618,14 @@ notes = "Use only as a time-bounded reported status observation. Re-check SARS/D
 [[sources]]
 id = "dcsa-event-maturity-classifier-vocabulary"
 kind = "industry-event-classification-vocabulary"
-title = "DCSA Event Classifier Code maturity semantics"
+title = "DCSA Information Model Event Classifier reference data"
 publisher = "Digital Container Shipping Association"
-canonical_uri = "https://reference.dcsa.org/"
-version = "DCSA Information Model 3.2 / Track & Trace 2.2"
-data_class = "estimated_requested_planned_actual_event_maturity"
+canonical_uri = "https://reference.dcsa.org/files/content/standards/guidelines/information-model-3-2/dcsa-information-model-3-2.pdf"
+date_published = "2021-07-12"
+version = "DCSA Information Model 3.2"
+classifier_codes = ["EST", "ACT", "PLN", "REQ"]
+data_class = "shared_event_maturity_reference_data"
 ingest_state = "reference_catalogued"
-intended_benchmark_role = "preserve ESTimated, REQuested, PLanNed and ACTual maturity labels in source event claims"
-claim_ceiling = "classifier maturity declared by a DCSA source; ACT is source-reported actual, not independent physical verification or capture-completeness evidence"
-notes = "The adapter keeps the four maturity codes distinct and never promotes ACT to an independent physical witness. Pin the DCSA standard release and exact schema used for each production payload."
+intended_benchmark_role = "preserve event maturity as a distinct field and validate it against the exact event-family schema"
+claim_ceiling = "shared DCSA event classifier vocabulary only; it does not prove that every event family or Track & Trace payload accepts every code, and ACT is not independent physical verification"
+notes = "Table 78 lists EST/ACT/PLN/REQ in the shared entity. The field-level Shipment Event table lists PLN/ACT/EST, while the Operations Event table lists PLN/REQ/ACT/EST. The adapter must validate exact schema and family; no generic global allow-list is sufficient."
