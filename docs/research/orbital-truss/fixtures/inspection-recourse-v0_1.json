@@ -74,7 +74,7 @@
         },
         {
           "world_id": "W_ACCEPT_B",
-          "decision_class": "ACCEPT"
+          "decision_class": "HOLD"
         }
       ],
       "actions": [
@@ -144,7 +144,7 @@
               "world_id": "W_ACCEPT_A",
               "mapping_state": "KNOWN",
               "possible_outcomes": [
-                "CLEAR"
+                "AMBIGUOUS"
               ],
               "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
             },
@@ -160,7 +160,7 @@
               "world_id": "W_ACCEPT_B",
               "mapping_state": "KNOWN",
               "possible_outcomes": [
-                "CLEAR"
+                "AMBIGUOUS"
               ],
               "receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
             }
