@@ -187,6 +187,7 @@ pub struct SequenceInput {
 pub struct SequenceScore {
     pub sequence_id: String,
     pub workload_family: String,
+    pub policy_sha256: String,
     pub frame_count: u64,
     pub online_total_cost_ns: u128,
     pub offline_oracle_cost_ns: u128,
@@ -770,6 +771,7 @@ pub fn evaluate_sequence(input: &SequenceInput) -> Result<SequenceScore, Selecto
     Ok(SequenceScore {
         sequence_id: input.sequence_id.clone(),
         workload_family: input.workload_family.clone(),
+        policy_sha256: input.policy_sha256.clone(),
         frame_count: frames.len() as u64,
         online_total_cost_ns,
         offline_oracle_cost_ns,
