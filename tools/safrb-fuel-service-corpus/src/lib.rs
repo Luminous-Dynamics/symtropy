@@ -180,6 +180,25 @@ pub struct ServiceOutcome {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HourlyServiceInterval {
+    pub hour_index: u32,
+    pub interval_start_unix_s: u64,
+    pub route_delivery_grams: u64,
+    pub conversion_input_grams: u64,
+    pub conversion_output_grams: u64,
+    pub process_loss_grams: u64,
+    pub fuel_consumed_grams: u64,
+    pub gross_generation_wh: u64,
+    pub network_deliverable_wh: u64,
+    pub demand_wh: u64,
+    pub critical_floor_wh: u64,
+    pub delivered_lower_wh: u64,
+    pub delivered_upper_wh: u64,
+    pub telemetry_state: TelemetryState,
+    pub disposition: ServiceDisposition,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FuelServiceCase {
     pub schema_version: &'static str,
     pub case_id: String,
@@ -192,6 +211,7 @@ pub struct FuelServiceCase {
     pub conversion: ConversionReceipt,
     pub generator: GeneratorReceipt,
     pub service: ServiceOutcome,
+    pub hourly_trajectory: Vec<HourlyServiceInterval>,
 }
 
 fn mix_seed(seed: u64) -> u64 {
@@ -216,6 +236,29 @@ fn service_disposition(
     } else {
         ServiceDisposition::Indeterminate
     }
+}
+
+fn spread_even(total: u64, periods: usize) -> Vec<u64> {
+    if periods == 0 {
+        return Vec::new();
+    }
+    let quotient = total / periods as u64;
+    let remainder = (total % periods as u64) as usize;
+    (0..periods)
+        .map(|index| quotient + if index < remainder { 1 } else { 0 })
+        .collect()
+}
+
+fn spread_after_hour(total: u64, first_hour: u32, horizon: u32) -> Vec<u64> {
+    let mut result = vec![0_u64; horizon as usize];
+    if first_hour >= horizon {
+        return result;
+    }
+    let distribution = spread_even(total, (horizon - first_hour) as usize);
+    for (offset, value) in distribution.into_iter().enumerate() {
+        result[first_hour as usize + offset] = value;
+    }
+    result
 }
 
 pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
@@ -306,9 +349,10 @@ pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
     } else {
         10_000
     };
+    let active_hours = HORIZON_HOURS.saturating_sub(transit_delay);
     let rated_capacity_wh = SYNTHETIC_POWER_CAPACITY_KW
         .saturating_mul(1_000)
-        .saturating_mul(u64::from(HORIZON_HOURS))
+        .saturating_mul(u64::from(active_hours))
         .saturating_mul(derate_basis_points) / 10_000;
     let gross_electricity_wh = generated_from_fuel_wh.min(rated_capacity_wh);
     let network_delivery_basis_points = match archetype {
@@ -320,18 +364,66 @@ pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
         gross_electricity_wh.saturating_mul(network_delivery_basis_points) / 10_000;
 
     let demand_wh = SERVICE_DEMAND_WH + (noise % 100_000);
-    let critical_floor_wh = demand_wh.saturating_mul(SERVICE_CRITICAL_FLOOR_BPS) / 10_000;
     let uncertainty_basis_points = 500;
-    let delivered_lower_wh =
-        network_deliverable_wh.saturating_mul(10_000 - uncertainty_basis_points) / 10_000;
-    let delivered_upper_wh = demand_wh.min(
-        network_deliverable_wh.saturating_mul(10_000 + uncertainty_basis_points) / 10_000,
-    );
     let telemetry_state = if seed % SEEDS_PER_ARCHETYPE == 9 {
         TelemetryState::StaleOrConflicting
     } else {
         TelemetryState::FreshSynthetic
     };
+
+    // Expand horizon totals into 72 explicit one-hour intervals. Resource and
+    // generation deliveries begin only after the declared route transit delay.
+    let route_by_hour = spread_after_hour(deliverable_grams, transit_delay, HORIZON_HOURS);
+    let conversion_input_by_hour =
+        spread_after_hour(conversion_input_grams, transit_delay, HORIZON_HOURS);
+    let conversion_output_by_hour =
+        spread_after_hour(conversion_output_grams, transit_delay, HORIZON_HOURS);
+    let fuel_by_hour = spread_after_hour(planned_fuel_grams, transit_delay, HORIZON_HOURS);
+    let generation_by_hour =
+        spread_after_hour(gross_electricity_wh, transit_delay, HORIZON_HOURS);
+    let network_by_hour =
+        spread_after_hour(network_deliverable_wh, transit_delay, HORIZON_HOURS);
+    let demand_by_hour = spread_even(demand_wh, HORIZON_HOURS as usize);
+
+    let mut hourly_trajectory = Vec::with_capacity(HORIZON_HOURS as usize);
+    for hour in 0..HORIZON_HOURS as usize {
+        let demand_interval_wh = demand_by_hour[hour];
+        let critical_floor_interval_wh =
+            demand_interval_wh.saturating_mul(SERVICE_CRITICAL_FLOOR_BPS) / 10_000;
+        let delivered_lower_interval_wh =
+            network_by_hour[hour].saturating_mul(10_000 - uncertainty_basis_points) / 10_000;
+        let delivered_upper_interval_wh = demand_interval_wh.min(
+            network_by_hour[hour].saturating_mul(10_000 + uncertainty_basis_points) / 10_000,
+        );
+        let process_loss_interval_grams =
+            conversion_input_by_hour[hour].saturating_sub(conversion_output_by_hour[hour]);
+        hourly_trajectory.push(HourlyServiceInterval {
+            hour_index: hour as u32,
+            interval_start_unix_s: 1_800_000_000 + (hour as u64 * 3_600),
+            route_delivery_grams: route_by_hour[hour],
+            conversion_input_grams: conversion_input_by_hour[hour],
+            conversion_output_grams: conversion_output_by_hour[hour],
+            process_loss_grams: process_loss_interval_grams,
+            fuel_consumed_grams: fuel_by_hour[hour],
+            gross_generation_wh: generation_by_hour[hour],
+            network_deliverable_wh: network_by_hour[hour],
+            demand_wh: demand_interval_wh,
+            critical_floor_wh: critical_floor_interval_wh,
+            delivered_lower_wh: delivered_lower_interval_wh,
+            delivered_upper_wh: delivered_upper_interval_wh,
+            telemetry_state,
+            disposition: service_disposition(
+                telemetry_state,
+                delivered_lower_interval_wh,
+                delivered_upper_interval_wh,
+                critical_floor_interval_wh,
+            ),
+        });
+    }
+
+    let critical_floor_wh = hourly_trajectory.iter().map(|row| row.critical_floor_wh).sum();
+    let delivered_lower_wh = hourly_trajectory.iter().map(|row| row.delivered_lower_wh).sum();
+    let delivered_upper_wh = hourly_trajectory.iter().map(|row| row.delivered_upper_wh).sum();
     let disposition = service_disposition(
         telemetry_state,
         delivered_lower_wh,
@@ -407,6 +499,7 @@ pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
             disposition,
             evidence_maturity: "synthetic_fixture",
         },
+        hourly_trajectory,
     }
 }
 
