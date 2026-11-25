@@ -730,6 +730,20 @@ pub fn dispatch_request_fingerprint(
     Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect())
 }
 
+/// Owner-ledger lookup evidence. Production injectors should bind the returned
+/// payload digest to the request and provide the exact owner-produced receipt bytes.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GazeboDispatchLedgerReceipt {
+    /// Digest of the payload used in this lookup request, echoed by the owner.
+    pub payload_sha256: Option<String>,
+    /// The digest already bound to this key at the owner. For PayloadConflict,
+    /// this must be present and different from the requested payload digest.
+    pub bound_payload_sha256: Option<String>,
+    pub status: DispatchLedgerResult,
+    pub dispatch_id: Option<String>,
+    pub raw_artifact_bytes: Option<Vec<u8>>,
+}
+
 /// Injector contract: atomically and durably bind idempotency_key to
 /// payload_sha256 before any fault effect can occur. Repeating the same key and
 /// digest must return the prior operation result without repeating the effect;
@@ -749,6 +763,23 @@ pub trait GazeboFaultInjectorTransport {
         &mut self,
         idempotency_key: &str,
     ) -> Result<DispatchLedgerResult, Self::Error>;
+
+    /// Payload-bound owner lookup. The default preserves source compatibility
+    /// but intentionally omits payload binding and owner artifact bytes. A
+    /// journaled caller must treat that compatibility result as Unresolved.
+    fn lookup_dispatch_bound(
+        &mut self,
+        request: &GazeboDispatchRequest,
+    ) -> Result<GazeboDispatchLedgerReceipt, Self::Error> {
+        let status = self.lookup_dispatch(&request.idempotency_key)?;
+        Ok(GazeboDispatchLedgerReceipt {
+            payload_sha256: None,
+            bound_payload_sha256: None,
+            status,
+            dispatch_id: None,
+            raw_artifact_bytes: None,
+        })
+    }
 }
 
 /// Issue one dispatch attempt. An error is not retried and maps to Unknown.
@@ -1273,9 +1304,1247 @@ where
     })
 }
 
+/// Journal-aware simulator and injector execution. This module is nested in
+/// gazebo_adapter so it can restore the private reset lifecycle from journaled
+/// evidence without exposing that lifecycle to arbitrary callers.
+pub mod journaled {
+    use super::*;
+    use crate::durable_journal::{
+        DispatchIntentRecord, DispatchOutcomeRecord, DispatchOutcomeSource, DispatchOutcomeStatus,
+        DispatchRecoveryDisposition, Journal, JournalError, ResetIntentRecord, ResetOutcomeRecord,
+        ResetOutcomeSource, ResetOutcomeStatus, ResetRecoveryDisposition,
+    };
+    use serde::Serialize;
+    use std::fmt::Display;
+
+    /// Artifact storage must complete durably before returning the SHA-256.
+    pub trait GazeboEvidenceArtifactStore {
+        type Error: Display;
+
+        fn persist(&mut self, artifact_name: &str, bytes: &[u8]) -> Result<String, Self::Error>;
+    }
+
+    #[derive(Debug)]
+    pub enum JournaledGazeboError {
+        Adapter(GazeboAdapterError),
+        Journal(JournalError),
+        ArtifactStore(String),
+        ArtifactDigestMismatch,
+        InvalidJournalIdentity,
+        ExistingAttemptConflict,
+        FreshAttemptAdmissionRequired,
+    }
+
+    impl From<GazeboAdapterError> for JournaledGazeboError {
+        fn from(value: GazeboAdapterError) -> Self {
+            Self::Adapter(value)
+        }
+    }
+
+    impl From<JournalError> for JournaledGazeboError {
+        fn from(value: JournalError) -> Self {
+            Self::Journal(value)
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub struct GazeboResetRunIdentity<'a> {
+        pub run_id: &'a str,
+        pub run_epoch: &'a str,
+    }
+
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub struct GazeboJournaledDispatchIdentity<'a> {
+        pub reset_id: &'a str,
+        pub scenario_id: &'a str,
+        pub fault_id: &'a str,
+        pub run_id: &'a str,
+        pub run_epoch: &'a str,
+        pub attempt_id: &'a str,
+    }
+
+    #[derive(Clone, Debug, Eq, PartialEq)]
+    pub struct GazeboJournaledResetResult {
+        pub reset_id: String,
+        pub snapshot: GazeboWorldSnapshot,
+        pub reconciled_after_ambiguity: bool,
+    }
+
+    #[derive(Clone, Debug, Eq, PartialEq)]
+    pub struct GazeboJournaledDispatchResult {
+        pub request: GazeboDispatchRequest,
+        pub outcome: GazeboDispatchOutcome,
+        pub cut_snapshot: Option<GazeboWorldSnapshot>,
+        pub target_binding: Option<GazeboTargetBinding>,
+        pub recovered_from_journal: bool,
+    }
+
+    fn digest_hex(bytes: &[u8]) -> String {
+        Sha256::digest(bytes)
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect()
+    }
+
+    fn persist_bytes<S: GazeboEvidenceArtifactStore>(
+        store: &mut S,
+        name: &str,
+        bytes: &[u8],
+    ) -> Result<String, JournaledGazeboError> {
+        let expected = digest_hex(bytes);
+        let returned = store
+            .persist(name, bytes)
+            .map_err(|error| JournaledGazeboError::ArtifactStore(error.to_string()))?;
+        if returned != expected {
+            return Err(JournaledGazeboError::ArtifactDigestMismatch);
+        }
+        Ok(expected)
+    }
+
+    fn persist_json<S: GazeboEvidenceArtifactStore, T: Serialize>(
+        store: &mut S,
+        name: &str,
+        value: &T,
+    ) -> Result<String, JournaledGazeboError> {
+        let bytes =
+            serde_json::to_vec(value).map_err(|_| JournaledGazeboError::InvalidJournalIdentity)?;
+        persist_bytes(store, name, &bytes)
+    }
+
+    #[derive(Serialize)]
+    struct ResetIdentity<'a> {
+        canonicalization: &'static str,
+        plan_sha256: &'a str,
+        simulator_profile_sha256: &'a str,
+        world_id: &'a str,
+        run_id: &'a str,
+        run_epoch: &'a str,
+    }
+
+    /// Derive a collision-resistant reset identity from canonical structured
+    /// fields. A new identity is required for every new reset attempt.
+    pub fn reset_idempotency_key(
+        plan: &CompiledCampaignPlan,
+        session: &GazeboAdapterSession,
+        identity: GazeboResetRunIdentity<'_>,
+    ) -> Result<String, JournaledGazeboError> {
+        plan.verify_integrity()
+            .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
+        if identity.run_id.trim().is_empty()
+            || identity.run_epoch.trim().is_empty()
+            || session.world_epoch.trim().is_empty()
+            || session.clock_id.trim().is_empty()
+            || !valid_sha256(&plan.platform.profile_sha256)
+        {
+            return Err(JournaledGazeboError::InvalidJournalIdentity);
+        }
+        let payload = ResetIdentity {
+            canonicalization: GAZEBO_DISPATCH_CANONICALIZATION_ID,
+            plan_sha256: &plan.plan_sha256,
+            simulator_profile_sha256: &plan.platform.profile_sha256,
+            world_id: &session.profile.world_name,
+            run_id: identity.run_id,
+            run_epoch: identity.run_epoch,
+        };
+        let value = serde_json::to_value(payload)
+            .map_err(|_| JournaledGazeboError::InvalidJournalIdentity)?;
+        let bytes =
+            serde_json::to_vec(&value).map_err(|_| JournaledGazeboError::InvalidJournalIdentity)?;
+        Ok(format!("rrvr/reset/v0.1/{}", digest_hex(&bytes)))
+    }
+
+    /// Preflight without pausing or otherwise mutating the simulator. This is
+    /// the correct entry point after restart, before journal reconciliation.
+    pub fn preflight_transport_read_only<T: GazeboSimulationTransport>(
+        transport: &mut T,
+        plan: &CompiledCampaignPlan,
+    ) -> Result<GazeboAdapterSession, GazeboAdapterError> {
+        plan.verify_integrity()
+            .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
+        let profile = transport
+            .get_simulator_features()
+            .map_err(|_| GazeboAdapterError::TransportFailure)?;
+        let stepping_method = profile.validate_for_plan(plan)?;
+        let snapshot = transport
+            .get_world_state(&profile.world_name)
+            .map_err(|_| GazeboAdapterError::TransportFailure)?;
+        snapshot.validate_against_profile(&profile)?;
+        if snapshot.state != SimulationState::Paused {
+            return Err(GazeboAdapterError::SimulatorNotPaused);
+        }
+        Ok(GazeboAdapterSession {
+            profile,
+            stepping_method,
+            world_epoch: snapshot.world_epoch,
+            clock_id: snapshot.clock_id,
+            reset_lifecycle: GazeboResetLifecycle::NotAttempted,
+        })
+    }
+
+    fn reset_intent_from_session(
+        plan: &CompiledCampaignPlan,
+        session: &GazeboAdapterSession,
+        reset_id: &str,
+        identity: GazeboResetRunIdentity<'_>,
+    ) -> ResetIntentRecord {
+        ResetIntentRecord {
+            reset_id: reset_id.to_owned(),
+            plan_sha256: plan.plan_sha256.clone(),
+            simulator_profile_sha256: plan.platform.profile_sha256.clone(),
+            world_id: session.profile.world_name.clone(),
+            prior_world_epoch: session.world_epoch.clone(),
+            clock_id: session.clock_id.clone(),
+            expected_initial_state_sha256: plan.reset.expected_initial_state_sha256.clone(),
+            run_id: identity.run_id.to_owned(),
+            run_epoch: identity.run_epoch.to_owned(),
+        }
+    }
+
+    fn reset_attempt_from_intent(
+        intent: &ResetIntentRecord,
+        profile: &GazeboCapabilityProfile,
+        stepping_method: SteppingMethod,
+    ) -> GazeboResetAttempt {
+        GazeboResetAttempt {
+            plan_sha256: intent.plan_sha256.clone(),
+            profile: profile.clone(),
+            stepping_method,
+            prior_world_epoch: intent.prior_world_epoch.clone(),
+            clock_id: intent.clock_id.clone(),
+        }
+    }
+
+    /// Execute one reset with a synced journal intent before ResetSimulation.
+    /// An existing reset identity is always reconciled read-only; it is never
+    /// sent to ResetSimulation again.
+    pub fn reset_and_verify_journaled<T, S>(
+        transport: &mut T,
+        store: &mut S,
+        journal: &mut Journal,
+        plan: &CompiledCampaignPlan,
+        session: &mut GazeboAdapterSession,
+        identity: GazeboResetRunIdentity<'_>,
+    ) -> Result<GazeboJournaledResetResult, JournaledGazeboError>
+    where
+        T: GazeboSimulationTransport,
+        S: GazeboEvidenceArtifactStore,
+    {
+        plan.verify_integrity()
+            .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
+        let reset_id = reset_idempotency_key(plan, session, identity)?;
+        if journal
+            .recovery_projection()
+            .resets
+            .iter()
+            .any(|state| state.intent.reset_id == reset_id)
+        {
+            let snapshot = recover_reset_from_journal(
+                transport, store, journal, plan, session, &reset_id, identity,
+            )?;
+            return Ok(GazeboJournaledResetResult {
+                reset_id,
+                snapshot,
+                reconciled_after_ambiguity: true,
+            });
+        }
+
+        if !matches!(session.reset_lifecycle, GazeboResetLifecycle::NotAttempted) {
+            return Err(JournaledGazeboError::Adapter(
+                GazeboAdapterError::ResetOutcomeUnresolved,
+            ));
+        }
+        let live_profile = transport
+            .get_simulator_features()
+            .map_err(|_| GazeboAdapterError::TransportFailure)?;
+        if live_profile != session.profile {
+            return Err(JournaledGazeboError::Adapter(
+                GazeboAdapterError::InvalidCapabilityProfile,
+            ));
+        }
+        let method = session.profile.validate_for_plan(plan)?;
+        if method != session.stepping_method {
+            return Err(JournaledGazeboError::Adapter(
+                GazeboAdapterError::InvalidCapabilityProfile,
+            ));
+        }
+        let before = transport
+            .get_world_state(&session.profile.world_name)
+            .map_err(|_| GazeboAdapterError::TransportFailure)?;
+        before.validate_against_profile(&session.profile)?;
+        if before.world_epoch != session.world_epoch {
+            return Err(JournaledGazeboError::Adapter(
+                GazeboAdapterError::WrongWorldEpoch,
+            ));
+        }
+        if before.clock_id != session.clock_id {
+            return Err(JournaledGazeboError::Adapter(
+                GazeboAdapterError::InvalidClock,
+            ));
+        }
+        if before.state != SimulationState::Paused {
+            return Err(JournaledGazeboError::Adapter(
+                GazeboAdapterError::SimulatorNotPaused,
+            ));
+        }
+
+        let intent = reset_intent_from_session(plan, session, &reset_id, identity);
+        journal.append_reset_intent(intent.clone())?;
+        let attempt = reset_attempt_from_intent(&intent, &session.profile, session.stepping_method);
+
+        match super::reset_and_verify(transport, plan, session) {
+            Ok(snapshot) => {
+                let response = serde_json::json!({
+                    "schema_version": "0.1",
+                    "producer": "mobility-rrvr-gazebo-adapter",
+                    "evidence_kind": "adapter_reset_return_envelope",
+                    "operation": "ResetSimulation",
+                    "result": "accepted",
+                    "reset_id": reset_id,
+                    "plan_sha256": plan.plan_sha256,
+                    "world_id": session.profile.world_name,
+                    "source_limit": "normalized adapter return; not a raw middleware packet",
+                });
+                let response_digest =
+                    persist_json(store, "gazebo-reset-transport-response", &response);
+                let response_status = if response_digest.is_ok() {
+                    ResetOutcomeStatus::ResponseAccepted
+                } else {
+                    ResetOutcomeStatus::ResponseUnknown
+                };
+                journal.append_reset_outcome(ResetOutcomeRecord {
+                    reset_id: reset_id.clone(),
+                    source: ResetOutcomeSource::TransportResponse,
+                    status: response_status,
+                    observed_world_epoch: None,
+                    observed_clock_id: None,
+                    observed_initial_state_sha256: None,
+                    observation_artifact_sha256: None,
+                    transport_response_artifact_sha256: response_digest.ok(),
+                })?;
+                let observation_digest =
+                    persist_json(store, "gazebo-reset-world-observation", &snapshot);
+                match observation_digest {
+                    Ok(observation_artifact_sha256) => {
+                        journal.append_reset_outcome(ResetOutcomeRecord {
+                            reset_id: reset_id.clone(),
+                            source: ResetOutcomeSource::ReadOnlyObservation,
+                            status: ResetOutcomeStatus::Verified,
+                            observed_world_epoch: Some(snapshot.world_epoch.clone()),
+                            observed_clock_id: Some(snapshot.clock_id.clone()),
+                            observed_initial_state_sha256: Some(snapshot.state_sha256.clone()),
+                            observation_artifact_sha256: Some(observation_artifact_sha256),
+                            transport_response_artifact_sha256: None,
+                        })?;
+                        Ok(GazeboJournaledResetResult {
+                            reset_id,
+                            snapshot,
+                            reconciled_after_ambiguity: false,
+                        })
+                    }
+                    Err(error) => {
+                        journal.append_reset_outcome(ResetOutcomeRecord {
+                            reset_id: reset_id.clone(),
+                            source: ResetOutcomeSource::ReadOnlyObservation,
+                            status: ResetOutcomeStatus::Unresolved,
+                            observed_world_epoch: Some(snapshot.world_epoch),
+                            observed_clock_id: Some(snapshot.clock_id),
+                            observed_initial_state_sha256: Some(snapshot.state_sha256),
+                            observation_artifact_sha256: None,
+                            transport_response_artifact_sha256: None,
+                        })?;
+                        Err(error)
+                    }
+                }
+            }
+            Err(error) => {
+                // A transport error or post-call observation failure does not
+                // establish NoEffect. Preserve Unknown and reconcile read-only.
+                session.reset_lifecycle = GazeboResetLifecycle::OutcomeUnresolved(attempt);
+                let response = serde_json::json!({
+                    "schema_version": "0.1",
+                    "producer": "mobility-rrvr-gazebo-adapter",
+                    "evidence_kind": "adapter_reset_return_envelope",
+                    "operation": "ResetSimulation",
+                    "result": "unknown",
+                    "reset_id": reset_id,
+                    "adapter_error": format!("{error:?}"),
+                    "source_limit": "normalized adapter error; not raw middleware bytes",
+                });
+                let response_digest =
+                    persist_json(store, "gazebo-reset-transport-response-unknown", &response).ok();
+                journal.append_reset_outcome(ResetOutcomeRecord {
+                    reset_id: reset_id.clone(),
+                    source: ResetOutcomeSource::TransportResponse,
+                    status: ResetOutcomeStatus::ResponseUnknown,
+                    observed_world_epoch: None,
+                    observed_clock_id: None,
+                    observed_initial_state_sha256: None,
+                    observation_artifact_sha256: None,
+                    transport_response_artifact_sha256: response_digest,
+                })?;
+                match super::reconcile_reset(transport, plan, session) {
+                    Ok(snapshot) => {
+                        let digest = persist_json(
+                            store,
+                            "gazebo-reset-reconciliation-observation",
+                            &snapshot,
+                        )?;
+                        journal.append_reset_outcome(ResetOutcomeRecord {
+                            reset_id: reset_id.clone(),
+                            source: ResetOutcomeSource::Reconciliation,
+                            status: ResetOutcomeStatus::Verified,
+                            observed_world_epoch: Some(snapshot.world_epoch.clone()),
+                            observed_clock_id: Some(snapshot.clock_id.clone()),
+                            observed_initial_state_sha256: Some(snapshot.state_sha256.clone()),
+                            observation_artifact_sha256: Some(digest),
+                            transport_response_artifact_sha256: None,
+                        })?;
+                        Ok(GazeboJournaledResetResult {
+                            reset_id,
+                            snapshot,
+                            reconciled_after_ambiguity: true,
+                        })
+                    }
+                    Err(reconcile_error) => {
+                        let evidence = serde_json::json!({
+                            "schema_version": "0.1",
+                            "producer": "mobility-rrvr-gazebo-adapter",
+                            "evidence_kind": "reset_reconciliation_unresolved",
+                            "reset_id": reset_id,
+                            "initial_error": format!("{error:?}"),
+                            "reconciliation_error": format!("{reconcile_error:?}"),
+                        });
+                        let observation_artifact_sha256 = persist_json(
+                            store,
+                            "gazebo-reset-reconciliation-unresolved",
+                            &evidence,
+                        )
+                        .ok();
+                        journal.append_reset_outcome(ResetOutcomeRecord {
+                            reset_id,
+                            source: ResetOutcomeSource::Reconciliation,
+                            status: ResetOutcomeStatus::Unresolved,
+                            observed_world_epoch: None,
+                            observed_clock_id: None,
+                            observed_initial_state_sha256: None,
+                            observation_artifact_sha256,
+                            transport_response_artifact_sha256: None,
+                        })?;
+                        Err(JournaledGazeboError::Adapter(reconcile_error))
+                    }
+                }
+            }
+        }
+    }
+
+    /// Rehydrate reset qualification from verified journal history or reconcile
+    /// an outstanding reset with read-only world observation. Never calls reset.
+    pub fn recover_reset_from_journal<T, S>(
+        transport: &mut T,
+        store: &mut S,
+        journal: &mut Journal,
+        plan: &CompiledCampaignPlan,
+        session: &mut GazeboAdapterSession,
+        reset_id: &str,
+        identity: GazeboResetRunIdentity<'_>,
+    ) -> Result<GazeboWorldSnapshot, JournaledGazeboError>
+    where
+        T: GazeboSimulationTransport,
+        S: GazeboEvidenceArtifactStore,
+    {
+        plan.verify_integrity()
+            .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
+        let state = journal
+            .recovery_projection()
+            .resets
+            .into_iter()
+            .find(|state| state.intent.reset_id == reset_id)
+            .ok_or(JournaledGazeboError::InvalidJournalIdentity)?;
+        let intent = state.intent;
+        if intent.plan_sha256 != plan.plan_sha256
+            || intent.simulator_profile_sha256 != plan.platform.profile_sha256
+            || intent.world_id != session.profile.world_name
+            || intent.expected_initial_state_sha256 != plan.reset.expected_initial_state_sha256
+            || intent.run_id != identity.run_id
+            || intent.run_epoch != identity.run_epoch
+        {
+            return Err(JournaledGazeboError::InvalidJournalIdentity);
+        }
+        let live_profile = transport
+            .get_simulator_features()
+            .map_err(|_| GazeboAdapterError::TransportFailure)?;
+        if live_profile != session.profile {
+            return Err(JournaledGazeboError::Adapter(
+                GazeboAdapterError::InvalidCapabilityProfile,
+            ));
+        }
+        let stepping_method = session.profile.validate_for_plan(plan)?;
+        if let Some(outcome) = state
+            .latest_outcome
+            .as_ref()
+            .filter(|outcome| outcome.status == ResetOutcomeStatus::Verified)
+        {
+            let snapshot = transport
+                .get_world_state(&session.profile.world_name)
+                .map_err(|_| GazeboAdapterError::TransportFailure)?;
+            snapshot.validate_reset(&session.profile, plan, &intent.prior_world_epoch)?;
+            if snapshot.world_epoch != outcome.observed_world_epoch.as_deref().unwrap_or_default()
+                || snapshot.clock_id != outcome.observed_clock_id.as_deref().unwrap_or_default()
+                || snapshot.state_sha256
+                    != outcome
+                        .observed_initial_state_sha256
+                        .as_deref()
+                        .unwrap_or_default()
+            {
+                return Err(JournaledGazeboError::Adapter(
+                    GazeboAdapterError::ResetVerificationMismatch,
+                ));
+            }
+            session.world_epoch = snapshot.world_epoch.clone();
+            session.clock_id = snapshot.clock_id.clone();
+            session.reset_lifecycle = GazeboResetLifecycle::Verified(GazeboResetVerification {
+                plan_sha256: intent.plan_sha256,
+                profile: session.profile.clone(),
+                stepping_method: stepping_method,
+                world_epoch: session.world_epoch.clone(),
+                clock_id: session.clock_id.clone(),
+            });
+            return Ok(snapshot);
+        }
+
+        session.world_epoch = intent.prior_world_epoch.clone();
+        session.clock_id = intent.clock_id.clone();
+        session.reset_lifecycle = GazeboResetLifecycle::OutcomeUnresolved(
+            reset_attempt_from_intent(&intent, &session.profile, stepping_method),
+        );
+        match super::reconcile_reset(transport, plan, session) {
+            Ok(snapshot) => {
+                let digest = persist_json(store, "gazebo-reset-restart-reconciliation", &snapshot)?;
+                journal.append_reset_outcome(ResetOutcomeRecord {
+                    reset_id: reset_id.to_owned(),
+                    source: ResetOutcomeSource::Reconciliation,
+                    status: ResetOutcomeStatus::Verified,
+                    observed_world_epoch: Some(snapshot.world_epoch.clone()),
+                    observed_clock_id: Some(snapshot.clock_id.clone()),
+                    observed_initial_state_sha256: Some(snapshot.state_sha256.clone()),
+                    observation_artifact_sha256: Some(digest),
+                    transport_response_artifact_sha256: None,
+                })?;
+                Ok(snapshot)
+            }
+            Err(error) => {
+                let evidence = serde_json::json!({
+                    "schema_version": "0.1",
+                    "producer": "mobility-rrvr-gazebo-adapter",
+                    "evidence_kind": "reset_restart_reconciliation_unresolved",
+                    "reset_id": reset_id,
+                    "error": format!("{error:?}"),
+                });
+                let digest = persist_json(store, "gazebo-reset-restart-unresolved", &evidence).ok();
+                journal.append_reset_outcome(ResetOutcomeRecord {
+                    reset_id: reset_id.to_owned(),
+                    source: ResetOutcomeSource::Reconciliation,
+                    status: ResetOutcomeStatus::Unresolved,
+                    observed_world_epoch: None,
+                    observed_clock_id: None,
+                    observed_initial_state_sha256: None,
+                    observation_artifact_sha256: digest,
+                    transport_response_artifact_sha256: None,
+                })?;
+                Err(JournaledGazeboError::Adapter(error))
+            }
+        }
+    }
+
+    #[derive(Serialize)]
+    struct AttemptBoundDispatchIdentity<'a> {
+        canonicalization: &'static str,
+        base_idempotency_key: &'a str,
+        logical_effect_id: &'a str,
+        attempt_id: &'a str,
+    }
+
+    fn attempt_bound_dispatch_key(
+        base_key: &str,
+        logical_effect_id: &str,
+        attempt_id: &str,
+    ) -> Result<String, JournaledGazeboError> {
+        if base_key.trim().is_empty()
+            || logical_effect_id.trim().is_empty()
+            || attempt_id.trim().is_empty()
+        {
+            return Err(JournaledGazeboError::InvalidJournalIdentity);
+        }
+        let identity = AttemptBoundDispatchIdentity {
+            canonicalization: "rrvr-attempt-bound-key-v0.1",
+            base_idempotency_key: base_key,
+            logical_effect_id,
+            attempt_id,
+        };
+        let value = serde_json::to_value(identity)
+            .map_err(|_| JournaledGazeboError::InvalidJournalIdentity)?;
+        let bytes =
+            serde_json::to_vec(&value).map_err(|_| JournaledGazeboError::InvalidJournalIdentity)?;
+        Ok(format!("rrvr/v0.2/{}", digest_hex(&bytes)))
+    }
+
+    fn dispatch_after_intent_recheck<T, I>(
+        simulator: &mut T,
+        injector: &mut I,
+        plan: &CompiledCampaignPlan,
+        session: &GazeboAdapterSession,
+        identity: GazeboJournaledDispatchIdentity<'_>,
+        request: GazeboDispatchRequest,
+        cut_snapshot: GazeboWorldSnapshot,
+        target_binding: GazeboTargetBinding,
+    ) -> Result<GazeboPlannedDispatchResult, GazeboAdapterError>
+    where
+        T: GazeboSimulationTransport,
+        I: GazeboFaultInjectorTransport,
+    {
+        plan.verify_integrity()
+            .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
+        let scenario = plan
+            .scenarios
+            .iter()
+            .find(|scenario| scenario.scenario_id == identity.scenario_id)
+            .ok_or(GazeboAdapterError::ScenarioNotFound)?;
+        let fault = scenario
+            .fault_events
+            .iter()
+            .find(|fault| fault.fault_id == identity.fault_id)
+            .ok_or(GazeboAdapterError::FaultNotFound)?;
+        let live_profile = simulator
+            .get_simulator_features()
+            .map_err(|_| GazeboAdapterError::TransportFailure)?;
+        if live_profile != session.profile {
+            return Err(GazeboAdapterError::InvalidCapabilityProfile);
+        }
+        let before_dispatch = simulator
+            .get_world_state(&session.profile.world_name)
+            .map_err(|_| GazeboAdapterError::TransportFailure)?;
+        before_dispatch.validate_against_profile(&session.profile)?;
+        if before_dispatch.world_epoch != session.world_epoch {
+            return Err(GazeboAdapterError::WrongWorldEpoch);
+        }
+        if before_dispatch.clock_id != session.clock_id {
+            return Err(GazeboAdapterError::InvalidClock);
+        }
+        if before_dispatch.state != SimulationState::Paused {
+            return Err(GazeboAdapterError::SimulatorNotPaused);
+        }
+        if before_dispatch.simulation_step != fault.scheduled_simulation_step {
+            return Err(GazeboAdapterError::SimulationStepNotReached);
+        }
+        if before_dispatch.simulation_time_ns != cut_snapshot.simulation_time_ns
+            || before_dispatch.state_sha256 != cut_snapshot.state_sha256
+        {
+            return Err(GazeboAdapterError::WorldChangedAtCutPoint);
+        }
+        let refreshed_target = simulator
+            .resolve_target(&session.profile.world_name, &fault.target_component_id)
+            .map_err(|_| GazeboAdapterError::TransportFailure)?;
+        super::validate_target_binding(
+            &refreshed_target,
+            fault,
+            &session.profile.world_name,
+            &session.world_epoch,
+        )?;
+        if refreshed_target != target_binding {
+            return Err(GazeboAdapterError::TargetBindingChanged);
+        }
+        let expected_key = attempt_bound_dispatch_key(
+            &super::dispatch_idempotency_key(
+                plan,
+                scenario,
+                fault,
+                identity.run_id,
+                identity.run_epoch,
+                &session.world_epoch,
+                &session.clock_id,
+            )?,
+            &scenario.logical_effect_id,
+            identity.attempt_id,
+        )
+        .map_err(|_| GazeboAdapterError::InvalidDispatchRequest)?;
+        if request.idempotency_key != expected_key
+            || super::dispatch_request_fingerprint(&request)? != request.payload_sha256
+        {
+            return Err(GazeboAdapterError::InvalidDispatchRequest);
+        }
+        let outcome =
+            super::dispatch_fault_once(&mut DispatchAttemptRegistry::default(), injector, &request);
+        Ok(GazeboPlannedDispatchResult {
+            request,
+            cut_snapshot,
+            target_binding,
+            outcome,
+        })
+    }
+
+    fn request_from_intent(intent: &DispatchIntentRecord) -> GazeboDispatchRequest {
+        GazeboDispatchRequest {
+            plan_sha256: intent.plan_sha256.clone(),
+            campaign_id: intent.campaign_id.clone(),
+            pair_id: intent.pair_id.clone(),
+            scenario_id: intent.scenario_id.clone(),
+            fault_id: intent.fault_id.clone(),
+            fault_sequence: intent.fault_sequence,
+            world_epoch: intent.world_epoch.clone(),
+            clock_id: intent.clock_id.clone(),
+            target_id: intent.target_id.clone(),
+            fault_domain_id: intent.fault_domain_id.clone(),
+            scheduled_simulation_step: intent.scheduled_simulation_step,
+            parameters_sha256: intent.parameters_sha256.clone(),
+            payload_sha256: intent.payload_sha256.clone(),
+            idempotency_key: intent.idempotency_key.clone(),
+        }
+    }
+
+    fn prepare_dispatch_request<T: GazeboSimulationTransport>(
+        simulator: &mut T,
+        plan: &CompiledCampaignPlan,
+        session: &GazeboAdapterSession,
+        identity: GazeboJournaledDispatchIdentity<'_>,
+    ) -> Result<
+        (
+            GazeboDispatchRequest,
+            GazeboWorldSnapshot,
+            GazeboTargetBinding,
+        ),
+        GazeboAdapterError,
+    > {
+        plan.verify_integrity()
+            .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
+        let reset_verification = match &session.reset_lifecycle {
+            GazeboResetLifecycle::Verified(verification) => verification,
+            GazeboResetLifecycle::NotAttempted => {
+                return Err(GazeboAdapterError::ResetNotVerified);
+            }
+            GazeboResetLifecycle::DispatchStarted(_)
+            | GazeboResetLifecycle::OutcomeUnresolved(_) => {
+                return Err(GazeboAdapterError::ResetOutcomeUnresolved);
+            }
+        };
+        if reset_verification.plan_sha256 != plan.plan_sha256
+            || reset_verification.profile != session.profile
+            || reset_verification.stepping_method != session.stepping_method
+            || reset_verification.world_epoch != session.world_epoch
+            || reset_verification.clock_id != session.clock_id
+        {
+            return Err(GazeboAdapterError::ResetVerificationMismatch);
+        }
+        let scenario = plan
+            .scenarios
+            .iter()
+            .find(|scenario| scenario.scenario_id == identity.scenario_id)
+            .ok_or(GazeboAdapterError::ScenarioNotFound)?;
+        if scenario.logical_effect_id.trim().is_empty() || identity.attempt_id.trim().is_empty() {
+            return Err(GazeboAdapterError::InvalidIdempotencyContext);
+        }
+        let fault = scenario
+            .fault_events
+            .iter()
+            .find(|fault| fault.fault_id == identity.fault_id)
+            .ok_or(GazeboAdapterError::FaultNotFound)?;
+        let live_profile = simulator
+            .get_simulator_features()
+            .map_err(|_| GazeboAdapterError::TransportFailure)?;
+        if live_profile != session.profile {
+            return Err(GazeboAdapterError::InvalidCapabilityProfile);
+        }
+        let stepping_method = live_profile.validate_for_plan(plan)?;
+        if stepping_method != session.stepping_method {
+            return Err(GazeboAdapterError::InvalidCapabilityProfile);
+        }
+        let cut_snapshot = super::advance_to_fault_cut(simulator, session, fault)?;
+        let target_binding = super::resolve_fault_target(simulator, session, fault)?;
+        let before_dispatch = simulator
+            .get_world_state(&session.profile.world_name)
+            .map_err(|_| GazeboAdapterError::TransportFailure)?;
+        before_dispatch.validate_against_profile(&session.profile)?;
+        if before_dispatch.world_epoch != session.world_epoch {
+            return Err(GazeboAdapterError::WrongWorldEpoch);
+        }
+        if before_dispatch.clock_id != session.clock_id {
+            return Err(GazeboAdapterError::InvalidClock);
+        }
+        if before_dispatch.state != SimulationState::Paused {
+            return Err(GazeboAdapterError::SimulatorNotPaused);
+        }
+        if before_dispatch.simulation_step != fault.scheduled_simulation_step {
+            return Err(GazeboAdapterError::SimulationStepNotReached);
+        }
+        if before_dispatch.simulation_time_ns != cut_snapshot.simulation_time_ns
+            || before_dispatch.state_sha256 != cut_snapshot.state_sha256
+        {
+            return Err(GazeboAdapterError::WorldChangedAtCutPoint);
+        }
+        let refreshed_target = simulator
+            .resolve_target(&session.profile.world_name, &fault.target_component_id)
+            .map_err(|_| GazeboAdapterError::TransportFailure)?;
+        super::validate_target_binding(
+            &refreshed_target,
+            fault,
+            &session.profile.world_name,
+            &session.world_epoch,
+        )?;
+        if refreshed_target != target_binding {
+            return Err(GazeboAdapterError::TargetBindingChanged);
+        }
+        let idempotency_key = super::dispatch_idempotency_key(
+            plan,
+            scenario,
+            fault,
+            identity.run_id,
+            identity.run_epoch,
+            &session.world_epoch,
+            &session.clock_id,
+        )?;
+        let mut request = GazeboDispatchRequest {
+            plan_sha256: plan.plan_sha256.clone(),
+            campaign_id: plan.campaign_id.clone(),
+            pair_id: scenario.pair_id.clone(),
+            scenario_id: scenario.scenario_id.clone(),
+            fault_id: fault.fault_id.clone(),
+            fault_sequence: fault.sequence,
+            world_epoch: session.world_epoch.clone(),
+            clock_id: session.clock_id.clone(),
+            target_id: target_binding.target_id.clone(),
+            fault_domain_id: fault.fault_domain_id.clone(),
+            scheduled_simulation_step: fault.scheduled_simulation_step,
+            parameters_sha256: fault.parameters_sha256.clone(),
+            payload_sha256: String::new(),
+            idempotency_key,
+        };
+        request.payload_sha256 = super::dispatch_request_fingerprint(&request)?;
+        Ok((request, cut_snapshot, target_binding))
+    }
+
+    fn intent_from_request(
+        request: &GazeboDispatchRequest,
+        reset_id: &str,
+        logical_effect_id: &str,
+        attempt_id: &str,
+        simulator_profile_sha256: &str,
+        world_id: &str,
+        run_id: &str,
+        run_epoch: &str,
+    ) -> DispatchIntentRecord {
+        DispatchIntentRecord {
+            idempotency_key: request.idempotency_key.clone(),
+            payload_sha256: request.payload_sha256.clone(),
+            reset_id: reset_id.to_owned(),
+            plan_sha256: request.plan_sha256.clone(),
+            simulator_profile_sha256: simulator_profile_sha256.to_owned(),
+            world_id: world_id.to_owned(),
+            logical_effect_id: logical_effect_id.to_owned(),
+            attempt_id: attempt_id.to_owned(),
+            campaign_id: request.campaign_id.clone(),
+            pair_id: request.pair_id.clone(),
+            scenario_id: request.scenario_id.clone(),
+            fault_id: request.fault_id.clone(),
+            fault_sequence: request.fault_sequence,
+            run_id: run_id.to_owned(),
+            run_epoch: run_epoch.to_owned(),
+            world_epoch: request.world_epoch.clone(),
+            clock_id: request.clock_id.clone(),
+            target_id: request.target_id.clone(),
+            fault_domain_id: request.fault_domain_id.clone(),
+            scheduled_simulation_step: request.scheduled_simulation_step,
+            parameters_sha256: request.parameters_sha256.clone(),
+        }
+    }
+
+    fn transport_outcome_record<S: GazeboEvidenceArtifactStore>(
+        store: &mut S,
+        journal: &mut Journal,
+        request: &GazeboDispatchRequest,
+        outcome: &GazeboDispatchOutcome,
+    ) -> Result<DispatchOutcomeStatus, JournaledGazeboError> {
+        let (status, dispatch_id, label) = match outcome {
+            GazeboDispatchOutcome::Accepted { dispatch_id } => (
+                DispatchOutcomeStatus::ResponseAccepted,
+                Some(dispatch_id.clone()),
+                "accepted",
+            ),
+            GazeboDispatchOutcome::Rejected { dispatch_id, .. } => (
+                DispatchOutcomeStatus::ResponseRejected,
+                Some(dispatch_id.clone()),
+                "rejected",
+            ),
+            GazeboDispatchOutcome::PayloadConflict { .. } => (
+                DispatchOutcomeStatus::ResponseRejected,
+                None,
+                "payload_conflict",
+            ),
+            GazeboDispatchOutcome::Unknown { dispatch_id } => (
+                DispatchOutcomeStatus::ResponseUnknown,
+                dispatch_id.clone(),
+                "unknown",
+            ),
+            GazeboDispatchOutcome::DuplicateSuppressed
+            | GazeboDispatchOutcome::Reconciled { .. }
+            | GazeboDispatchOutcome::InvalidDispatchRequest => (
+                DispatchOutcomeStatus::ResponseUnknown,
+                None,
+                "ambiguous_adapter_outcome",
+            ),
+        };
+        let artifact = serde_json::json!({
+            "schema_version": "0.1",
+            "producer": "mobility-rrvr-gazebo-adapter",
+            "evidence_kind": "injector_transport_return_envelope",
+            "source_limit": "normalized trait return; not raw network bytes or authenticated owner receipt",
+            "idempotency_key": request.idempotency_key,
+            "payload_sha256": request.payload_sha256,
+            "result": label,
+            "dispatch_id": dispatch_id,
+        });
+        let digest = persist_json(store, "gazebo-dispatch-transport-response", &artifact)?;
+        journal.append_dispatch_outcome(DispatchOutcomeRecord {
+            idempotency_key: request.idempotency_key.clone(),
+            payload_sha256: request.payload_sha256.clone(),
+            source: DispatchOutcomeSource::TransportResponse,
+            status,
+            dispatch_id,
+            transport_response_artifact_sha256: Some(digest),
+            ledger_artifact_sha256: None,
+        })?;
+        Ok(status)
+    }
+
+    fn lookup_and_record<I, S>(
+        injector: &mut I,
+        store: &mut S,
+        journal: &mut Journal,
+        request: &GazeboDispatchRequest,
+    ) -> Result<GazeboDispatchOutcome, JournaledGazeboError>
+    where
+        I: GazeboFaultInjectorTransport,
+        S: GazeboEvidenceArtifactStore,
+    {
+        let receipt = injector.lookup_dispatch_bound(request).unwrap_or_else(|_| {
+            GazeboDispatchLedgerReceipt {
+                payload_sha256: None,
+                bound_payload_sha256: None,
+                status: DispatchLedgerResult::Unknown,
+                dispatch_id: None,
+                raw_artifact_bytes: None,
+            }
+        });
+        let payload_bound =
+            receipt.payload_sha256.as_deref() == Some(request.payload_sha256.as_str());
+        let raw_owner_artifact = receipt.raw_artifact_bytes.is_some();
+        let bytes = receipt.raw_artifact_bytes.clone().unwrap_or_else(|| {
+            serde_json::to_vec(&serde_json::json!({
+                "schema_version": "0.1",
+                "producer": "mobility-rrvr-gazebo-adapter",
+                "evidence_kind": "unqualified_owner_lookup_envelope",
+                "source_limit": "legacy key-only lookup; not payload-bound owner evidence",
+                "idempotency_key": request.idempotency_key,
+                "expected_payload_sha256": request.payload_sha256,
+                "returned_payload_sha256": receipt.payload_sha256,
+                "owner_status": format!("{:?}", receipt.status),
+                "raw_owner_artifact_present": false,
+            }))
+            .unwrap_or_default()
+        });
+        let ledger_artifact_sha256 = persist_bytes(store, "gazebo-dispatch-ledger-lookup", &bytes)?;
+
+        // The compatibility lookup method is intentionally insufficient to
+        // prove payload binding. Only an owner receipt carrying the exact
+        // payload digest and its own artifact can produce a terminal verdict.
+        let status = if !payload_bound || !raw_owner_artifact {
+            DispatchOutcomeStatus::Unresolved
+        } else {
+            match receipt.status {
+                DispatchLedgerResult::Accepted
+                    if receipt.dispatch_id.as_deref().is_some_and(nonempty) =>
+                {
+                    DispatchOutcomeStatus::ReconciledAccepted
+                }
+                DispatchLedgerResult::Accepted => DispatchOutcomeStatus::Unresolved,
+                DispatchLedgerResult::Rejected => DispatchOutcomeStatus::ReconciledRejected,
+                DispatchLedgerResult::NoDispatchProven => DispatchOutcomeStatus::NoDispatchProven,
+                DispatchLedgerResult::Unknown => DispatchOutcomeStatus::Unresolved,
+                DispatchLedgerResult::PayloadConflict
+                    if receipt
+                        .bound_payload_sha256
+                        .as_deref()
+                        .is_some_and(|bound| {
+                            valid_sha256(bound) && bound != request.payload_sha256
+                        }) =>
+                {
+                    DispatchOutcomeStatus::PayloadConflict
+                }
+                DispatchLedgerResult::PayloadConflict => DispatchOutcomeStatus::Unresolved,
+            }
+        };
+        journal.append_dispatch_outcome(DispatchOutcomeRecord {
+            idempotency_key: request.idempotency_key.clone(),
+            payload_sha256: request.payload_sha256.clone(),
+            source: DispatchOutcomeSource::InjectorLedgerLookup,
+            status,
+            dispatch_id: if status == DispatchOutcomeStatus::ReconciledAccepted {
+                receipt.dispatch_id.clone()
+            } else {
+                None
+            },
+            transport_response_artifact_sha256: None,
+            ledger_artifact_sha256: Some(ledger_artifact_sha256),
+        })?;
+        Ok(match status {
+            DispatchOutcomeStatus::ReconciledAccepted => GazeboDispatchOutcome::Reconciled {
+                decision: ReconciliationDecision::ExistingDispatchAccepted,
+            },
+            DispatchOutcomeStatus::ReconciledRejected => GazeboDispatchOutcome::Reconciled {
+                decision: ReconciliationDecision::ExistingDispatchRejected,
+            },
+            DispatchOutcomeStatus::NoDispatchProven => GazeboDispatchOutcome::Reconciled {
+                decision: ReconciliationDecision::NoDispatchProven,
+            },
+            DispatchOutcomeStatus::PayloadConflict => GazeboDispatchOutcome::PayloadConflict {
+                idempotency_key: request.idempotency_key.clone(),
+            },
+            _ => GazeboDispatchOutcome::Reconciled {
+                decision: ReconciliationDecision::Unresolved,
+            },
+        })
+    }
+
+    fn outcome_from_existing(
+        state: &crate::durable_journal::DispatchRecoveryState,
+    ) -> Option<GazeboDispatchOutcome> {
+        match state.disposition {
+            DispatchRecoveryDisposition::AcceptedAwaitingExecutionEvidence => state
+                .latest_outcome
+                .as_ref()?
+                .dispatch_id
+                .as_ref()
+                .map(|dispatch_id| GazeboDispatchOutcome::Accepted {
+                    dispatch_id: dispatch_id.clone(),
+                }),
+            DispatchRecoveryDisposition::ReconciledAcceptedAwaitingExecutionEvidence => {
+                Some(GazeboDispatchOutcome::Reconciled {
+                    decision: ReconciliationDecision::ExistingDispatchAccepted,
+                })
+            }
+            DispatchRecoveryDisposition::Rejected
+            | DispatchRecoveryDisposition::ReconciledRejected => {
+                Some(GazeboDispatchOutcome::Reconciled {
+                    decision: ReconciliationDecision::ExistingDispatchRejected,
+                })
+            }
+            DispatchRecoveryDisposition::NoDispatchProvenTerminal => {
+                Some(GazeboDispatchOutcome::Reconciled {
+                    decision: ReconciliationDecision::NoDispatchProven,
+                })
+            }
+            DispatchRecoveryDisposition::PayloadConflictHold => {
+                Some(GazeboDispatchOutcome::PayloadConflict {
+                    idempotency_key: state.intent.idempotency_key.clone(),
+                })
+            }
+            _ => None,
+        }
+    }
+
+    /// Journal-first dispatch. For a new key, the simulator is advanced to the
+    /// exact cut before the durable dispatch intent is appended; the injector
+    /// call occurs only after append and sync. For an existing logical attempt,
+    /// this function performs owner lookup only and never dispatches again.
+    pub fn dispatch_planned_fault_once_journaled<T, I, S>(
+        simulator: &mut T,
+        injector: &mut I,
+        store: &mut S,
+        journal: &mut Journal,
+        plan: &CompiledCampaignPlan,
+        session: &GazeboAdapterSession,
+        identity: GazeboJournaledDispatchIdentity<'_>,
+    ) -> Result<GazeboJournaledDispatchResult, JournaledGazeboError>
+    where
+        T: GazeboSimulationTransport,
+        I: GazeboFaultInjectorTransport,
+        S: GazeboEvidenceArtifactStore,
+    {
+        plan.verify_integrity()
+            .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
+        let scenario = plan
+            .scenarios
+            .iter()
+            .find(|scenario| scenario.scenario_id == identity.scenario_id)
+            .ok_or(GazeboAdapterError::ScenarioNotFound)?;
+        let fault = scenario
+            .fault_events
+            .iter()
+            .find(|fault| fault.fault_id == identity.fault_id)
+            .ok_or(GazeboAdapterError::FaultNotFound)?;
+        let base_candidate_key = super::dispatch_idempotency_key(
+            plan,
+            scenario,
+            fault,
+            identity.run_id,
+            identity.run_epoch,
+            &session.world_epoch,
+            &session.clock_id,
+        )?;
+        let candidate_key = attempt_bound_dispatch_key(
+            &base_candidate_key,
+            &scenario.logical_effect_id,
+            identity.attempt_id,
+        )?;
+
+        let projection = journal.recovery_projection();
+        let same_attempt: Vec<_> = projection
+            .dispatches
+            .iter()
+            .filter(|state| {
+                state.intent.logical_effect_id == scenario.logical_effect_id
+                    && state.intent.attempt_id == identity.attempt_id
+                    && state.intent.plan_sha256 == plan.plan_sha256
+                    && state.intent.run_id == identity.run_id
+                    && state.intent.run_epoch == identity.run_epoch
+                    && state.intent.scenario_id == identity.scenario_id
+                    && state.intent.fault_id == identity.fault_id
+            })
+            .collect();
+        if same_attempt.len() > 1 {
+            return Err(JournaledGazeboError::ExistingAttemptConflict);
+        }
+        if let Some(existing) = same_attempt.first() {
+            if existing.intent.idempotency_key != candidate_key
+                || existing.intent.reset_id != identity.reset_id
+                || existing.intent.world_epoch != session.world_epoch
+                || existing.intent.clock_id != session.clock_id
+                || existing.intent.payload_sha256.trim().is_empty()
+            {
+                return Err(JournaledGazeboError::ExistingAttemptConflict);
+            }
+            if let Some(outcome) = outcome_from_existing(existing) {
+                return Ok(GazeboJournaledDispatchResult {
+                    request: request_from_intent(&existing.intent),
+                    outcome,
+                    cut_snapshot: None,
+                    target_binding: None,
+                    recovered_from_journal: true,
+                });
+            }
+            let request = request_from_intent(&existing.intent);
+            let outcome = lookup_and_record(injector, store, journal, &request)?;
+            return Ok(GazeboJournaledDispatchResult {
+                request,
+                outcome,
+                cut_snapshot: None,
+                target_binding: None,
+                recovered_from_journal: true,
+            });
+        }
+
+        // Reusing the same logical attempt in another world/reset generation is
+        // not a fresh attempt. Only a new attempt identity may cross that boundary.
+        if projection.dispatches.iter().any(|state| {
+            state.intent.logical_effect_id == scenario.logical_effect_id
+                && state.intent.run_id == identity.run_id
+                && state.intent.run_epoch == identity.run_epoch
+                && state.intent.plan_sha256 == plan.plan_sha256
+        }) {
+            // This adapter does not authorize a new physical attempt. Changing
+            // attempt_id cannot bypass existing effect history. The existing
+            // native authority owner must admit fresh attempts after NoEffect,
+            // fencing and independent evidence qualification.
+            return Err(JournaledGazeboError::FreshAttemptAdmissionRequired);
+        }
+
+        let reset = projection
+            .resets
+            .iter()
+            .find(|state| state.intent.reset_id == identity.reset_id)
+            .ok_or(JournaledGazeboError::InvalidJournalIdentity)?;
+        if reset.disposition != ResetRecoveryDisposition::Verified
+            || reset.intent.plan_sha256 != plan.plan_sha256
+            || reset.intent.simulator_profile_sha256 != plan.platform.profile_sha256
+            || reset.intent.world_id != session.profile.world_name
+            || reset.intent.run_id != identity.run_id
+            || reset.intent.run_epoch != identity.run_epoch
+            || reset.intent.clock_id != session.clock_id
+            || reset
+                .latest_outcome
+                .as_ref()
+                .and_then(|outcome| outcome.observed_world_epoch.as_deref())
+                != Some(session.world_epoch.as_str())
+        {
+            return Err(JournaledGazeboError::InvalidJournalIdentity);
+        }
+
+        let (mut request, cut_snapshot, target_binding) =
+            prepare_dispatch_request(simulator, plan, session, identity)?;
+        request.idempotency_key = candidate_key.clone();
+        request.payload_sha256 = super::dispatch_request_fingerprint(&request)?;
+        let intent = intent_from_request(
+            &request,
+            identity.reset_id,
+            &scenario.logical_effect_id,
+            identity.attempt_id,
+            &plan.platform.profile_sha256,
+            &session.profile.world_name,
+            identity.run_id,
+            identity.run_epoch,
+        );
+        // Critical ordering boundary: a failed append or sync means the
+        // injector method below is never invoked.
+        journal.append_dispatch_intent(intent)?;
+
+        match dispatch_after_intent_recheck(
+            simulator,
+            injector,
+            plan,
+            session,
+            identity,
+            request.clone(),
+            cut_snapshot.clone(),
+            target_binding.clone(),
+        ) {
+            Ok(result) => {
+                let response_status =
+                    transport_outcome_record(store, journal, &result.request, &result.outcome)?;
+                let final_outcome = if matches!(
+                    response_status,
+                    DispatchOutcomeStatus::ResponseUnknown
+                        | DispatchOutcomeStatus::ResponseRejected
+                ) {
+                    lookup_and_record(injector, store, journal, &result.request)?
+                } else {
+                    result.outcome.clone()
+                };
+                Ok(GazeboJournaledDispatchResult {
+                    request: result.request,
+                    outcome: final_outcome,
+                    cut_snapshot: Some(result.cut_snapshot),
+                    target_binding: Some(result.target_binding),
+                    recovered_from_journal: false,
+                })
+            }
+            Err(_adapter_error) => {
+                // The planned adapter returns Err only before its injector
+                // call. Query the owner read-only; never infer NoEffect.
+                let outcome = lookup_and_record(injector, store, journal, &request)?;
+                Ok(GazeboJournaledDispatchResult {
+                    request,
+                    outcome,
+                    cut_snapshot: Some(cut_snapshot),
+                    target_binding: Some(target_binding),
+                    recovered_from_journal: false,
+                })
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::gazebo_adapter::journaled::JournaledGazeboError;
     use crate::campaign_plan::CompiledCampaignPlan;
     use crate::fault_campaign::FaultCampaignManifest;
 
@@ -2768,5 +4037,284 @@ mod tests {
             expected_conflict
         );
         assert_eq!(durable.effects, 1);
+    }
+
+    #[derive(Default)]
+    struct MemoryGazeboArtifactStore {
+        artifacts: BTreeMap<String, Vec<u8>>,
+    }
+
+    impl journaled::GazeboEvidenceArtifactStore for MemoryGazeboArtifactStore {
+        type Error = &'static str;
+
+        fn persist(&mut self, name: &str, bytes: &[u8]) -> Result<String, Self::Error> {
+            use sha2::{Digest, Sha256};
+            self.artifacts.insert(name.to_owned(), bytes.to_vec());
+            let digest = Sha256::digest(bytes);
+            Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect())
+        }
+    }
+
+    fn journaled_test_path(label: &str) -> std::path::PathBuf {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock")
+            .as_nanos();
+        std::env::temp_dir().join(format!(
+            "rrvr-journaled-{label}-{}-{nonce}.jsonl",
+            std::process::id()
+        ))
+    }
+
+    fn cleanup_journaled_test_path(path: &std::path::Path) {
+        let _ = std::fs::remove_file(path);
+        let mut lock = path.as_os_str().to_os_string();
+        lock.push(".writer.lock");
+        let _ = std::fs::remove_file(std::path::PathBuf::from(lock));
+    }
+
+    struct JournalObservingGazebo {
+        inner: MockGazebo,
+        journal_path: std::path::PathBuf,
+    }
+
+    impl GazeboSimulationTransport for JournalObservingGazebo {
+        type Error = &'static str;
+
+        fn get_simulator_features(&mut self) -> Result<GazeboCapabilityProfile, Self::Error> {
+            self.inner.get_simulator_features()
+        }
+
+        fn get_world_state(
+            &mut self,
+            world_name: &str,
+        ) -> Result<GazeboWorldSnapshot, Self::Error> {
+            self.inner.get_world_state(world_name)
+        }
+
+        fn pause_simulation(&mut self, world_name: &str) -> Result<(), Self::Error> {
+            self.inner.pause_simulation(world_name)
+        }
+
+        fn reset_simulation(&mut self, world_name: &str) -> Result<(), Self::Error> {
+            let summary = crate::durable_journal::verify_file(&self.journal_path)
+                .expect("reset intent must be readable and synced before ResetSimulation");
+            assert_eq!(summary.reset_intent_count, 1);
+            self.inner.reset_simulation(world_name)
+        }
+
+        fn step_simulation(
+            &mut self,
+            world_name: &str,
+            steps: u64,
+            method: SteppingMethod,
+        ) -> Result<(), Self::Error> {
+            self.inner.step_simulation(world_name, steps, method)
+        }
+
+        fn resolve_target(
+            &mut self,
+            world_name: &str,
+            logical_component_id: &str,
+        ) -> Result<GazeboTargetBinding, Self::Error> {
+            self.inner.resolve_target(world_name, logical_component_id)
+        }
+    }
+
+    #[test]
+    fn journaled_reset_is_synced_before_the_simulator_mutator() {
+        let plan = plan();
+        let path = journaled_test_path("reset-order");
+        let mut journal = crate::durable_journal::Journal::open(&path).unwrap();
+        let mut store = MemoryGazeboArtifactStore::default();
+        let mut simulator = JournalObservingGazebo {
+            inner: mock_transport(&plan),
+            journal_path: path.clone(),
+        };
+        let mut session = preflight_transport(&mut simulator, &plan).unwrap();
+        let result = journaled::reset_and_verify_journaled(
+            &mut simulator,
+            &mut store,
+            &mut journal,
+            &plan,
+            &mut session,
+            journaled::GazeboResetRunIdentity {
+                run_id: "run-journaled-reset",
+                run_epoch: "epoch-1",
+            },
+        )
+        .unwrap();
+        assert_eq!(simulator.inner.reset_calls, 1);
+        assert_eq!(journal.summary().reset_verified_count, 1);
+        assert_eq!(result.snapshot.world_epoch, session.world_epoch);
+        drop(journal);
+        cleanup_journaled_test_path(&path);
+    }
+
+    #[test]
+    fn reset_identity_is_stable_when_rehydrated_after_world_epoch_advances() {
+        let plan = plan();
+        let path = journaled_test_path("reset-rehydrate");
+        let mut journal = crate::durable_journal::Journal::open(&path).unwrap();
+        let mut store = MemoryGazeboArtifactStore::default();
+        let mut simulator = mock_transport(&plan);
+        let mut first_session = preflight_transport(&mut simulator, &plan).unwrap();
+        let identity = journaled::GazeboResetRunIdentity {
+            run_id: "run-reset-rehydrate",
+            run_epoch: "epoch-1",
+        };
+        let first_key = journaled::reset_idempotency_key(&plan, &first_session, identity).unwrap();
+        let reset = journaled::reset_and_verify_journaled(
+            &mut simulator,
+            &mut store,
+            &mut journal,
+            &plan,
+            &mut first_session,
+            identity,
+        )
+        .unwrap();
+        let mut restarted_session =
+            journaled::preflight_transport_read_only(&mut simulator, &plan).unwrap();
+        let restarted_key =
+            journaled::reset_idempotency_key(&plan, &restarted_session, identity).unwrap();
+        assert_eq!(first_key, restarted_key);
+        let snapshot = journaled::recover_reset_from_journal(
+            &mut simulator,
+            &mut store,
+            &mut journal,
+            &plan,
+            &mut restarted_session,
+            &reset.reset_id,
+            identity,
+        )
+        .unwrap();
+        assert_eq!(snapshot.world_epoch, reset.snapshot.world_epoch);
+        assert_eq!(simulator.reset_calls, 1);
+        drop(journal);
+        cleanup_journaled_test_path(&path);
+    }
+
+    struct JournalObservingInjector {
+        inner: MockInjector,
+        journal_path: std::path::PathBuf,
+    }
+
+    impl GazeboFaultInjectorTransport for JournalObservingInjector {
+        type Error = &'static str;
+
+        fn dispatch_once(
+            &mut self,
+            request: &GazeboDispatchRequest,
+        ) -> Result<GazeboDispatchOutcome, Self::Error> {
+            let summary = crate::durable_journal::verify_file(&self.journal_path)
+                .expect("dispatch intent must be readable and synced before injector call");
+            assert_eq!(summary.dispatch_intent_count, 1);
+            self.inner.dispatch_once(request)
+        }
+
+        fn lookup_dispatch(
+            &mut self,
+            idempotency_key: &str,
+        ) -> Result<DispatchLedgerResult, Self::Error> {
+            self.inner.lookup_dispatch(idempotency_key)
+        }
+    }
+
+    #[test]
+    fn journaled_dispatch_is_not_redispatched_after_coordinator_restart() {
+        let plan = plan();
+        let path = journaled_test_path("dispatch-restart");
+        let mut store = MemoryGazeboArtifactStore::default();
+        let mut simulator = mock_transport(&plan);
+        let mut session = preflight_transport(&mut simulator, &plan).unwrap();
+        let mut journal = crate::durable_journal::Journal::open(&path).unwrap();
+        let reset = journaled::reset_and_verify_journaled(
+            &mut simulator,
+            &mut store,
+            &mut journal,
+            &plan,
+            &mut session,
+            journaled::GazeboResetRunIdentity {
+                run_id: "run-dispatch-restart",
+                run_epoch: "epoch-1",
+            },
+        )
+        .unwrap();
+        let scenario = plan
+            .scenarios
+            .iter()
+            .find(|scenario| !scenario.fault_events.is_empty())
+            .unwrap();
+        let fault = &scenario.fault_events[0];
+        let identity = journaled::GazeboJournaledDispatchIdentity {
+            reset_id: &reset.reset_id,
+            scenario_id: &scenario.scenario_id,
+            fault_id: &fault.fault_id,
+            run_id: "run-dispatch-restart",
+            run_epoch: "epoch-1",
+            attempt_id: "attempt-1",
+        };
+        let mut injector = JournalObservingInjector {
+            inner: MockInjector {
+                dispatch_calls: 0,
+                lookup: DispatchLedgerResult::Unknown,
+            },
+            journal_path: path.clone(),
+        };
+        let first = journaled::dispatch_planned_fault_once_journaled(
+            &mut simulator,
+            &mut injector,
+            &mut store,
+            &mut journal,
+            &plan,
+            &session,
+            identity,
+        )
+        .unwrap();
+        assert!(matches!(
+            first.outcome,
+            GazeboDispatchOutcome::Reconciled {
+                decision: ReconciliationDecision::Unresolved
+            }
+        ));
+        assert_eq!(injector.inner.dispatch_calls, 1);
+        drop(journal);
+
+        let mut reopened = crate::durable_journal::Journal::open(&path).unwrap();
+        let second = journaled::dispatch_planned_fault_once_journaled(
+            &mut simulator,
+            &mut injector,
+            &mut store,
+            &mut reopened,
+            &plan,
+            &session,
+            identity,
+        )
+        .unwrap();
+        assert!(second.recovered_from_journal);
+        assert_eq!(injector.inner.dispatch_calls, 1);
+        assert_eq!(reopened.summary().dispatch_intent_count, 1);
+
+        let fresh_attempt_id = journaled::GazeboJournaledDispatchIdentity {
+            attempt_id: "attempt-2",
+            ..identity
+        };
+        assert!(matches!(
+            journaled::dispatch_planned_fault_once_journaled(
+                &mut simulator,
+                &mut injector,
+                &mut store,
+                &mut reopened,
+                &plan,
+                &session,
+                fresh_attempt_id,
+            ),
+            Err(JournaledGazeboError::FreshAttemptAdmissionRequired)
+        ));
+        assert_eq!(injector.inner.dispatch_calls, 1);
+        assert_eq!(reopened.summary().dispatch_intent_count, 1);
+        drop(reopened);
+        cleanup_journaled_test_path(&path);
     }
 }

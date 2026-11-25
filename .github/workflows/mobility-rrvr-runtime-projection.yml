@@ -9,6 +9,7 @@ on:
       - research/mobility-rrvr-plan-compiler-v0-1
       - research/mobility-rrvr-execution-evidence-v0-1
       - research/mobility-rrvr-gazebo-adapter-v0-1
+      - research/mobility-rrvr-journaled-mutator-integration-v0-1
     paths:
       - "research/mobility-rrvr-runtime-trace/**"
       - "research/mobility-restart-reconciliation/model/RestartSafeEffectContinuity.tla"

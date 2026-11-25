@@ -272,3 +272,25 @@ It makes the core research distinction explicit: RRVR is not a new generic fault
 
 
 A transport-level rejected response is not considered proof of no physical effect. The recovery projection keeps rejected reset outcomes pending for read-only world observation and rejected dispatch outcomes pending for read-only injector-ledger lookup.
+
+
+## Journaled Gazebo mutator integration v0.1
+
+The new gazebo_adapter::journaled API is described in [JOURNALED_GAZEBO_INTEGRATION_V0.1.md](JOURNALED_GAZEBO_INTEGRATION_V0.1.md). It connects the durable journal to ResetSimulation and injector dispatch:
+
+- Stable reset identity across coordinator restart and changed observed world epoch.
+- Synced reset intent before ResetSimulation and read-only restart reconciliation.
+- Journal-derived dispatch suppression by exact logical-effect/attempt identity.
+- Attempt-bound rrvr/v0.2 injector idempotency keys.
+- Synced dispatch intent before the injector call and post-sync world/target recheck.
+- Payload-bound owner lookup; compatibility key-only lookup remains Unresolved.
+- Adapter return envelopes are explicitly distinguished from raw wire bytes and authenticated owner receipts.
+
+The software tests include a reset transport that verifies the journal is already readable at the exact ResetSimulation call boundary and a dispatch response-loss/reopen test that verifies the injector call count remains one.
+
+This does not qualify a live ROS 2/Gazebo transport, actual remote owner ledger, process power loss, HIL or physical robot safety.
+
+
+### Fresh-attempt authority boundary
+
+The journaled Gazebo adapter is deliberately not an attempt authority. A caller-supplied different attempt ID cannot bypass an existing intent for the same logical effect and run: the adapter returns FreshAttemptAdmissionRequired and does not call the injector. A fresh attempt after NoEffect must be admitted by the existing native application/authority-linearized mutation owner after independent NoEffect, persistence resolution, end-to-end quiescence, current M1/M2/live binding and consume-once permit checks. See [JOURNALED_GAZEBO_INTEGRATION_V0.1.md](JOURNALED_GAZEBO_INTEGRATION_V0.1.md).
