@@ -40,7 +40,7 @@ For every archetype, seeds 0–9 are generated. Seed 7 exercises withheld access
 
 ## Units and assumptions
 
-- Inventory and transport: integer grams and grams/hour.
+- Inventory and transport: integer grams and grams/hour. Inventory retains synthetic closing truth separately from observed lower/upper quantity bounds; the conservative observed lower bound controls usable/access-qualified throughput.
 - Process input/output: integer grams; input equals output plus explicitly declared process loss.
 - Energy: integer Wh; no mass or energy quantities are implicitly added across units.
 - Generator LHV and conversion efficiency are explicitly synthetic scenario parameters. They are not field-calibrated values or validated equipment curves.
@@ -48,6 +48,7 @@ For every archetype, seeds 0–9 are generated. Seed 7 exercises withheld access
 - Inventory balance is exact: opening + accepted inflow = withdrawals + declared losses + closing.
 - Accessible inventory is zero when authority is withheld; physically present stock is not thereby authorized.
 - Deliverable stock cannot exceed accessible inventory or time-bounded path capacity.
+- Tank-gauge uncertainty widens the inventory observation interval, not the downstream electricity-meter interval. Usable stock is derived from the observed lower bound.
 - A stale/conflicting telemetry state forces an indeterminate service disposition, regardless of an attractive point value.
 
 ## Run
