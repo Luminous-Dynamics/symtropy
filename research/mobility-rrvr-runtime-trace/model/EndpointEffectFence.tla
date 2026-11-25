@@ -150,6 +150,7 @@ PersistAppliedOutcome ==
 
 DeviceCrash ==
     /\ deviceUp
+    /\ deviceBoot = 0
     /\ deviceUp' = FALSE
     /\ IF DurableEndpointNvm
           THEN
@@ -165,6 +166,7 @@ DeviceCrash ==
 
 DeviceRestart ==
     /\ ~deviceUp
+    /\ deviceBoot = 0
     /\ deviceUp' = TRUE
     /\ deviceBoot' = deviceBoot + 1
     /\ IF DurableEndpointNvm /\ tokenState = "reserved"
@@ -224,7 +226,7 @@ Spec == Init /\ [][Next]_vars
 
 TypeOK ==
     /\ deviceUp \in BOOLEAN
-    /\ deviceBoot \in Nat
+    /\ deviceBoot \in 0..1
     /\ authorityEpoch \in 0..1
     /\ endpointFenceEpoch \in {-1, 0, 1}
     /\ requestEpoch \in 0..1
