@@ -294,7 +294,7 @@ pub fn fit_affine_theil_sen_v0(
     pairs: &[ClockAnchorPairV0],
 ) -> Result<ClockFitV0, ClockFitErrorV0> {
     let origins = validate_pairs(pairs)?;
-    let points = centered_pairs(pairs, origins);
+    let points = centered_pairs(pairs);
     let mut slopes = Vec::new();
 
     for left in 0..points.len() {
@@ -333,7 +333,7 @@ pub fn fit_affine_huber_irls_v0(
     }
 
     let origins = validate_pairs(pairs)?;
-    let points = centered_pairs(pairs, origins);
+    let points = centered_pairs(pairs);
     let initial = fit_affine_theil_sen_v0(pairs)?;
     let mut line = LocalLineV0 {
         intercept: initial.offset - origins.alpha + initial.scale * origins.beta,
