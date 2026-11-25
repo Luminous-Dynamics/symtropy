@@ -72,6 +72,7 @@ impl PairEvidence {
     pub fn validate(&self) -> Result<(), SelectorError> {
         validate_sha256(&self.oracle_result_sha256)?;
         if self.oracle_overlap_pairs > self.eligible_pair_count
+            || self.emitted_candidate_pairs > self.eligible_pair_count
             || self.true_positive_pairs > self.oracle_overlap_pairs
             || self.true_positive_pairs > self.emitted_candidate_pairs
         {
@@ -942,7 +943,7 @@ mod tests {
     ) -> BackendFrameObservation {
         let mut pair_evidence = evidence(2, false_negatives);
         pair_evidence.oracle_result_sha256 =
-            digest(char::from_u32(65 + frame_index as u32).unwrap());
+            digest(char::from_u32(97 + frame_index as u32).unwrap());
         BackendFrameObservation {
             frame_index,
             backend: backend(backend_id),
