@@ -319,7 +319,8 @@
         "snapshot",
         "events",
         "expected",
-        "current_reassessment"
+        "current_reassessment",
+        "verifier_profile_id"
       ],
       "properties": {
         "case_id": {
@@ -369,7 +370,8 @@
             "evaluated_at_unix_ms",
             "receiver_receipt_watermark_unix_ms",
             "trust_policy_id",
-            "trust_status_as_of_unix_ms"
+            "trust_status_as_of_unix_ms",
+            "trust_policy_digest_sha256"
           ],
           "properties": {
             "evaluated_at_unix_ms": {
@@ -384,6 +386,10 @@
             },
             "trust_status_as_of_unix_ms": {
               "$ref": "#/$defs/time"
+            },
+            "trust_policy_digest_sha256": {
+              "$ref": "#/$defs/nullableSha",
+              "pattern": "^[a-f0-9]{64}$"
             }
           }
         },
@@ -419,7 +425,8 @@
           "required": [
             "receiver_receipt_watermark_unix_ms",
             "trust_policy_id",
-            "trust_status_as_of_unix_ms"
+            "trust_status_as_of_unix_ms",
+            "trust_policy_digest_sha256"
           ],
           "properties": {
             "receiver_receipt_watermark_unix_ms": {
@@ -431,8 +438,15 @@
             },
             "trust_status_as_of_unix_ms": {
               "$ref": "#/$defs/time"
+            },
+            "trust_policy_digest_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
             }
           }
+        },
+        "verifier_profile_id": {
+          "const": "aero-temporal-replay-reference-v0.1"
         }
       }
     }
