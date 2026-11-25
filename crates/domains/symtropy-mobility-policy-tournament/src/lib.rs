@@ -119,6 +119,10 @@ pub struct PolicyRun {
     pub compute_environment_digest: String,
     pub compute_budget_ms: u64,
     pub evidence_class: EvidenceClass,
+    pub information_trace_digest: String,
+    pub information_audit_digest: String,
+    pub future_information_access_count: u32,
+    pub nonanticipativity_violation_count: u32,
     pub status: RunStatus,
     /// Feasibility label from the independently declared oracle for this proposed action.
     pub oracle_action_feasible: bool,
@@ -191,6 +195,9 @@ pub struct StratumOutcomeSummary {
     pub max_recovery_shortfall_wh: u64,
     pub empirical_cvar95_mission_reserve_shortfall_wh: f64,
     pub empirical_cvar95_recovery_shortfall_wh: f64,
+    pub future_information_access_count: u64,
+    pub nonanticipativity_violation_count: u64,
+    pub information_boundary_clean: bool,
     pub hard_gate_violation_count: u64,
     pub false_safe_admissions: u64,
     pub false_abstentions: u64,
@@ -217,6 +224,9 @@ pub struct PolicySummary {
     pub completion_rate_basis_points: u64,
     pub mean_queue_wait_p95_ms: f64,
     pub p95_queue_wait_p95_ms: u64,
+    pub future_information_access_count: u64,
+    pub nonanticipativity_violation_count: u64,
+    pub information_boundary_clean: bool,
     pub p95_mission_reserve_shortfall_wh: u64,
     pub p95_recovery_shortfall_wh: u64,
     pub empirical_cvar95_mission_reserve_shortfall_wh: f64,
@@ -484,6 +494,8 @@ fn validate_input(input: &MobilityPolicyTournamentInput) -> Result<(), Tournamen
         }
         check_digest("scenario digest", &run.scenario_digest)?;
         check_digest("scenario input digest", &run.scenario_input_digest)?;
+        check_digest("information trace digest", &run.information_trace_digest)?;
+        check_digest("information audit digest", &run.information_audit_digest)?;
         check_digest("policy configuration digest", &run.policy_configuration_digest)?;
         check_digest("run compute environment digest", &run.compute_environment_digest)?;
         if run.policy_configuration_digest
@@ -733,7 +745,10 @@ fn cluster_means(
         .collect()
 }
 
-fn sum_violations(run: &PolicyRun) -> BTreeMap<HardGateCategory, u64> {
+fn sum_violations(
+    run: &PolicyRun,
+    information_model: InformationModel,
+) -> BTreeMap<HardGateCategory, u64> {
     let mut result = BTreeMap::new();
     for violation in &run.hard_gate_violations {
         result.insert(violation.category, violation.count as u64);
@@ -755,6 +770,15 @@ fn sum_violations(run: &PolicyRun) -> BTreeMap<HardGateCategory, u64> {
             .and_modify(|count| *count = (*count).max(1))
             .or_insert(1);
     }
+    if run.nonanticipativity_violation_count > 0
+        || (information_model == InformationModel::NonanticipativeOnline
+            && run.future_information_access_count > 0)
+    {
+        result
+            .entry(HardGateCategory::EvidenceIntegrity)
+            .and_modify(|count| *count = (*count).max(1))
+            .or_insert(1);
+    }
     result
 }
 
@@ -772,6 +796,7 @@ fn empirical_upper_cvar95(values: &[u64]) -> f64 {
 fn summarize_strata(
     runs: &[&PolicyRun],
     key: impl Fn(&PolicyRun) -> String,
+    information_model: InformationModel,
 ) -> Result<Vec<StratumOutcomeSummary>, TournamentError> {
     let mut grouped: BTreeMap<String, Vec<&PolicyRun>> = BTreeMap::new();
     for run in runs {
@@ -785,6 +810,8 @@ fn summarize_strata(
         let mut hard_violation_count = 0_u64;
         let mut false_safe = 0_u64;
         let mut false_abstentions = 0_u64;
+        let mut future_information_access_count = 0_u64;
+        let mut nonanticipativity_violation_count = 0_u64;
         let mut waits = Vec::with_capacity(group.len());
         let mut reserve_shortfalls = Vec::with_capacity(group.len());
         let mut recovery_shortfalls = Vec::with_capacity(group.len());
@@ -792,7 +819,7 @@ fn summarize_strata(
             checked_add(&mut committed, run.committed_missions as u64, "stratum committed missions")?;
             checked_add(&mut on_time, run.on_time_missions as u64, "stratum on-time missions")?;
             checked_add_signed(&mut metered, run.metered_grid_response_wh, "stratum metered response")?;
-            for count in sum_violations(run).values() {
+            for count in sum_violations(run, information_model).values() {
                 checked_add(&mut hard_violation_count, *count, "stratum hard violations")?;
             }
             if run.requested_grid_service_wh > 0 && run.shield_admitted && !run.oracle_action_feasible {
@@ -801,6 +828,16 @@ fn summarize_strata(
             if run.requested_grid_service_wh > 0 && !run.shield_admitted && run.oracle_action_feasible {
                 false_abstentions += 1;
             }
+            checked_add(
+                &mut future_information_access_count,
+                run.future_information_access_count as u64,
+                "stratum future information access count",
+            )?;
+            checked_add(
+                &mut nonanticipativity_violation_count,
+                run.nonanticipativity_violation_count as u64,
+                "stratum nonanticipativity violation count",
+            )?;
             waits.push(run.queue_wait_p95_ms);
             reserve_shortfalls.push(run.mission_reserve_shortfall_wh);
             recovery_shortfalls.push(run.recovery_shortfall_wh);
@@ -816,6 +853,11 @@ fn summarize_strata(
             max_recovery_shortfall_wh: recovery_shortfalls.iter().copied().max().unwrap_or(0),
             empirical_cvar95_mission_reserve_shortfall_wh: empirical_upper_cvar95(&reserve_shortfalls),
             empirical_cvar95_recovery_shortfall_wh: empirical_upper_cvar95(&recovery_shortfalls),
+            future_information_access_count,
+            nonanticipativity_violation_count,
+            information_boundary_clean: nonanticipativity_violation_count == 0
+                && (information_model != InformationModel::NonanticipativeOnline
+                    || future_information_access_count == 0),
             hard_gate_violation_count,
             false_safe_admissions: false_safe,
             false_abstentions,
@@ -848,6 +890,9 @@ fn summarize_policy(
         completion_rate_basis_points: 0,
         mean_queue_wait_p95_ms: 0.0,
         p95_queue_wait_p95_ms: 0,
+        future_information_access_count: 0,
+        nonanticipativity_violation_count: 0,
+        information_boundary_clean: true,
         p95_mission_reserve_shortfall_wh: 0,
         p95_recovery_shortfall_wh: 0,
         empirical_cvar95_mission_reserve_shortfall_wh: 0.0,
@@ -909,6 +954,16 @@ fn summarize_policy(
         checked_add(&mut totals.emissions_grams_co2e, run.emissions_grams_co2e, "emissions")?;
         checked_add(&mut totals.total_mission_reserve_shortfall_wh, run.mission_reserve_shortfall_wh, "mission reserve shortfall")?;
         checked_add(&mut totals.total_recovery_shortfall_wh, run.recovery_shortfall_wh, "recovery shortfall")?;
+        checked_add(
+            &mut totals.future_information_access_count,
+            run.future_information_access_count as u64,
+            "future information access count",
+        )?;
+        checked_add(
+            &mut totals.nonanticipativity_violation_count,
+            run.nonanticipativity_violation_count as u64,
+            "nonanticipativity violation count",
+        )?;
         if run.requested_grid_service_wh > 0 && run.shield_admitted && !run.oracle_action_feasible {
             totals.false_safe_admissions += 1;
         }
@@ -923,7 +978,7 @@ fn summarize_policy(
         {
             totals.network_cap_conflicts += 1;
         }
-        for (category, count) in sum_violations(run)? {
+        for (category, count) in sum_violations(run, identity.information_model) {
             checked_add(
                 violations.entry(category).or_default(),
                 count,
@@ -944,6 +999,10 @@ fn summarize_policy(
     totals.mean_queue_wait_p95_ms =
         queue_wait.iter().map(|value| *value as f64).sum::<f64>() / queue_wait.len() as f64;
     totals.p95_queue_wait_p95_ms = percentile_u64(&queue_wait, 9_500).unwrap_or(0);
+    totals.information_boundary_clean =
+        totals.nonanticipativity_violation_count == 0
+            && (identity.information_model != InformationModel::NonanticipativeOnline
+                || totals.future_information_access_count == 0);
     totals.p95_mission_reserve_shortfall_wh =
         percentile_u64(&mission_reserve_shortfall, 9_500).unwrap_or(0);
     totals.p95_recovery_shortfall_wh =
@@ -952,8 +1011,16 @@ fn summarize_policy(
         empirical_upper_cvar95(&mission_reserve_shortfall);
     totals.empirical_cvar95_recovery_shortfall_wh =
         empirical_upper_cvar95(&recovery_shortfall);
-    totals.scenario_family_outcomes = summarize_strata(runs, |run| run.scenario_family.clone())?;
-    totals.independent_cluster_outcomes = summarize_strata(runs, |run| run.cluster_id.clone())?;
+    totals.scenario_family_outcomes = summarize_strata(
+        runs,
+        |run| run.scenario_family.clone(),
+        identity.information_model,
+    )?;
+    totals.independent_cluster_outcomes = summarize_strata(
+        runs,
+        |run| run.cluster_id.clone(),
+        identity.information_model,
+    )?;
     totals.mean_decision_latency_ms =
         decision_latency.iter().map(|value| *value as f64).sum::<f64>() / decision_latency.len() as f64;
     totals.p95_decision_latency_ms = percentile_u64(&decision_latency, 9_500).unwrap_or(0);
