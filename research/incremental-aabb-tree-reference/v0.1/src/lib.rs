@@ -625,6 +625,14 @@ pub struct WorkloadProxy<const D: usize> {
     pub moving: bool,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct WorkloadUpdate<const D: usize> {
+    pub id: ProxyId,
+    pub previous: Aabb<D>,
+    pub current: Aabb<D>,
+    pub teleported: bool,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct GeneratedWorkload<const D: usize> {
     pub spec: WorkloadSpec,
@@ -632,6 +640,53 @@ pub struct GeneratedWorkload<const D: usize> {
 }
 
 impl<const D: usize> GeneratedWorkload<D> {
+    /// Advance moving proxies by a deterministic per-proxy displacement.
+    /// Teleports are selected by a seeded threshold and use a 32x displacement
+    /// scale. Returned updates include previous and new tight bounds so a
+    /// caller can feed them into its selected broadphase implementation.
+    pub fn advance_frame(
+        &mut self,
+        frame_index: u64,
+        max_displacement: f64,
+        teleport_basis_points: u16,
+    ) -> Result<Vec<WorkloadUpdate<D>>, WorkloadError> {
+        if !max_displacement.is_finite()
+            || max_displacement < 0.0
+            || teleport_basis_points > 10_000
+        {
+            return Err(WorkloadError::InvalidMotionParameter);
+        }
+        let mut updates = Vec::new();
+        for proxy in &mut self.proxies {
+            if !proxy.moving {
+                continue;
+            }
+            let frame_seed = self.spec.seed
+                ^ proxy.id.0.rotate_left(17)
+                ^ frame_index.wrapping_mul(0xd1b5_4a32_d192_ed03);
+            let mut random = SplitMix64::new(frame_seed);
+            let teleported = random.next_u64() % 10_000 < u64::from(teleport_basis_points);
+            let scale = if teleported { 32.0 } else { 1.0 };
+            let displacement = std::array::from_fn(|_| {
+                random.range(-max_displacement * scale, max_displacement * scale)
+            });
+            let previous = proxy.tight_aabb;
+            let next = Aabb::new(
+                std::array::from_fn(|axis| previous.min[axis] + displacement[axis]),
+                std::array::from_fn(|axis| previous.max[axis] + displacement[axis]),
+            )
+            .map_err(|_| WorkloadError::InvalidGeneratedBounds)?;
+            proxy.tight_aabb = next;
+            updates.push(WorkloadUpdate {
+                id: proxy.id,
+                previous,
+                current: next,
+                teleported,
+            });
+        }
+        Ok(updates)
+    }
+
     /// Non-cryptographic FNV-1a diagnostic hash over the generated proxy
     /// sequence. Use a cryptographic manifest digest for published receipts.
     #[must_use]
@@ -664,6 +719,7 @@ impl<const D: usize> GeneratedWorkload<D> {
 pub enum WorkloadError {
     InvalidDimension,
     InvalidMovingFraction,
+    InvalidMotionParameter,
     InvalidGeneratedBounds,
 }
 
@@ -1105,6 +1161,64 @@ mod tests {
             }),
             Err(WorkloadError::InvalidDimension)
         );
+    }
+
+    #[test]
+    fn seeded_motion_frames_measure_fat_reuse_and_teleport_reinsertions() {
+        let spec = WorkloadSpec {
+            proxy_count: 128,
+            seed: 0xabc0_ffee,
+            family: WorkloadFamily::Clustered,
+            moving_basis_points: 10_000,
+        };
+        let mut workload = generate_workload::<3>(spec).unwrap();
+        let mut tree = IncrementalAabbTree::<3>::new(1.0).unwrap();
+        for proxy in &workload.proxies {
+            tree.insert(proxy.id, proxy.tight_aabb).unwrap();
+        }
+
+        let small_frame = workload.advance_frame(1, 0.1, 0).unwrap();
+        assert_eq!(small_frame.len(), 128);
+        for update in &small_frame {
+            assert!(!update.teleported);
+            assert!(!tree.update(update.id, update.current).unwrap());
+        }
+        let after_coherent = tree.stats().maintenance;
+        assert_eq!(after_coherent.fat_contained_updates, 128);
+        assert_eq!(after_coherent.proxy_reinsertions, 0);
+
+        let teleport_frame = workload.advance_frame(2, 100.0, 10_000).unwrap();
+        assert_eq!(teleport_frame.len(), 128);
+        assert!(teleport_frame.iter().all(|update| update.teleported));
+        for update in &teleport_frame {
+            assert!(tree.update(update.id, update.current).unwrap());
+        }
+        let after_teleports = tree.stats().maintenance;
+        assert_eq!(after_teleports.proxy_reinsertions, 128);
+        assert_eq!(after_teleports.update_operations, 256);
+
+        let result = tree.query_pairs();
+        let mut oracle = Vec::new();
+        for left in 0..workload.proxies.len() {
+            for right in (left + 1)..workload.proxies.len() {
+                let a = workload.proxies[left]
+                    .tight_aabb
+                    .fatten(1.0)
+                    .unwrap();
+                let b = workload.proxies[right]
+                    .tight_aabb
+                    .fatten(1.0)
+                    .unwrap();
+                if a.overlaps(&b) {
+                    oracle.push(ProxyPair(
+                        workload.proxies[left].id,
+                        workload.proxies[right].id,
+                    ));
+                }
+            }
+        }
+        oracle.sort_unstable();
+        assert_eq!(result.pairs, oracle);
     }
 
     #[test]
