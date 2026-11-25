@@ -140,6 +140,9 @@ A production adapter must replace these synthetic labels with an actual owner-na
 
 A trusted timestamp imprint is separately recorded as `trusted_timestamp_imprint_sha256`. A timestamp token whose imprint does not equal the canonical event digest is invalid timestamp evidence. A valid receiver receipt and a trusted timestamp token are different evidence mechanisms and must not be collapsed into one Boolean.
 
+For a timestamp status declared `valid`, the synthetic contract additionally requires a non-null `trusted_timestamp_at_unix_ms` and an imprint exactly equal to the canonical payload digest. A status label without the matching imprint is rejected. This fixture rule tests internal consistency; it does not cryptographically verify an RFC 3161 token, TSA certificate chain, policy OID, nonce, accuracy or revocation status. Those require a real verifier adapter and independently governed trust policy.
+
+
 ### 3.2 Source-scoped event identity and idempotent delivery
 
 An immutable event identity is the composite key `(source_namespace, event_id)`, not a globally unique display string. Two independent sources may legitimately use the same local event-ID text. They must remain distinct events and must not collide merely because the string matches.
@@ -336,16 +339,16 @@ The machine-readable first slice is:
 - `docs/research/aviation/examples/aero_temporal_replay_corpus_v0_1.json`
 - `docs/research/aviation/schemas/aero_temporal_replay_corpus_v0_1.schema.json`
 
-It contains 18 synthetic controls, including a positive binding-only baseline, a known-but-future-effective revocation, an event received after the historical watermark despite a backdated issuer timestamp, a known effective revocation, acquisition-time uncertainty crossing a calibration boundary, a timestamp imprint mismatch, unknown issuer authority, source-sequence gaps, conflicting duplicate event IDs, current-trust key-compromise reassessment, correction cycles and source-clock rollback, and a backdated receiver-time claim without independently verifiable receipt evidence; an unauthorized namespace alias from the same issuer.
+It contains 20 synthetic controls, including a positive binding-only baseline, a known-but-future-effective revocation, an event received after the historical watermark despite a backdated issuer timestamp, a known effective revocation, acquisition-time uncertainty crossing a calibration boundary, a timestamp imprint mismatch, unknown issuer authority, source-sequence gaps, conflicting duplicate event IDs, current-trust key-compromise reassessment, correction cycles and source-clock rollback, and a backdated receiver-time claim without independently verifiable receipt evidence; an unauthorized namespace alias from the same issuer.
 
-Every case freezes `AS_KNOWN_AT`, `RECOMPUTED_WITH_CURRENT_TRUST` and `RECOMPUTED_WITH_CURRENT_EVIDENCE_AND_TRUST` dispositions over distinct evidence and trust cutoffs. Event effective-time comparison is against acquisition time, not report time. The fixture deliberately permits duplicate event IDs so that the duplicate-conflict challenge is representable; uniqueness is a semantic rule to be evaluated, not a JSON Schema uniqueness rule over complete objects.
+Every case freezes `AS_KNOWN_AT`, `RECOMPUTED_WITH_CURRENT_TRUST` and `RECOMPUTED_WITH_CURRENT_EVIDENCE_AND_TRUST` dispositions over distinct evidence and trust cutoffs. Event effective-time comparison is against acquisition time, not report time. Timestamp status `valid` also requires a non-null token time and exact event-digest imprint equality. The fixture deliberately permits duplicate event IDs so that the duplicate-conflict challenge is representable; uniqueness is a semantic rule to be evaluated, not a JSON Schema uniqueness rule over complete objects.
 
 **Oracle status: `NOT_INDEPENDENTLY_REVIEWED`.** The corpus is a contract fixture and is schema-validated in CI. It is not yet wired to the v0.2 Rust evaluator and must not be described as a passing semantic oracle. Independent review should precede evaluator integration.
 
 ## 11. Execution sequence
 
 1. Independently review the existing 31 v0.2 dispositions and the Rust event replay test.
-2. Independently review the 18 temporal replay vectors and extend them with generated correction histories, sequence/fork properties and boundary cases.
+2. Independently review the 20 temporal replay vectors and extend them with generated correction histories, sequence/fork properties and boundary cases.
 3. Define an owner-native event receipt mapping with Mycelix and BASALT maintainers; do not add duplicate state.
 4. Resolve duplicate event identity before correction-reference resolution in the evaluator; add conflicting-payload permutation regression tests.
 5. Add a verifier adapter for supplied signature/timestamp evidence only after its source format and trust policy are pinned.
