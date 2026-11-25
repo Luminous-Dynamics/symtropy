@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/injector-ledger-race-matrix-v0.1.schema.json",
+  "title": "RRVR Injector Ledger Race Matrix v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark",
+    "model",
+    "claim_ceiling",
+    "linearization_contract",
+    "scenarios"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "benchmark": {
+      "const": "RRVR-INJECTOR-LEDGER-LINEARIZABILITY"
+    },
+    "model": {
+      "const": "InjectorLedgerLinearizability"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 20
+    },
+    "linearization_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reservation",
+        "same_payload",
+        "changed_payload",
+        "post_effect_crash"
+      ],
+      "properties": {
+        "reservation": {
+          "type": "string",
+          "minLength": 20
+        },
+        "same_payload": {
+          "type": "string",
+          "minLength": 20
+        },
+        "changed_payload": {
+          "type": "string",
+          "minLength": 20
+        },
+        "post_effect_crash": {
+          "type": "string",
+          "minLength": 20
+        }
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "description",
+          "expected"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10
+          },
+          "expected": {
+            "type": "string",
+            "minLength": 10
+          },
+          "mutator_call_limit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    }
+  }
+}

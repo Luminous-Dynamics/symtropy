@@ -1,0 +1,204 @@
+name: Mobility RRVR Injector Ledger Linearizability
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-injector-ledger-linearizability-v0-1
+    paths:
+      - "research/mobility-rrvr-runtime-trace/INJECTOR_LEDGER_LINEARIZABILITY_V0.1.md"
+      - "research/mobility-rrvr-runtime-trace/model/InjectorLedgerLinearizability*"
+      - "research/mobility-rrvr-runtime-trace/fixtures/injector_ledger_race_matrix_v0_1.json"
+      - "research/mobility-rrvr-runtime-trace/schemas/injector_ledger_race_matrix_v0_1.schema.json"
+      - ".github/workflows/mobility-rrvr-injector-ledger-linearizability.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-runtime-trace/INJECTOR_LEDGER_LINEARIZABILITY_V0.1.md"
+      - "research/mobility-rrvr-runtime-trace/model/InjectorLedgerLinearizability*"
+      - "research/mobility-rrvr-runtime-trace/fixtures/injector_ledger_race_matrix_v0_1.json"
+      - "research/mobility-rrvr-runtime-trace/schemas/injector_ledger_race_matrix_v0_1.schema.json"
+      - ".github/workflows/mobility-rrvr-injector-ledger-linearizability.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  injector-ledger-linearizability:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download and verify pinned TLC and model inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/tla"
+          JAR="$RUNNER_TEMP/tla/tla2tools.jar"
+          curl --fail --location --retry 3 \
+            "https://github.com/microsoft/tlalink/releases/download/tla2tools-2ef2af8/tla2tools.jar" \
+            --output "$JAR"
+          printf '%s  %s\n' "d15655eeaff4b3f7b3d65c46b838bc0f35d131b2ef4b1e473689b62c98d4726f" "$JAR" | sha256sum --check
+
+          ROOT="research/mobility-rrvr-runtime-trace/model"
+          MODEL="$ROOT/InjectorLedgerLinearizability.tla"
+          SAFE_SAME="$ROOT/InjectorLedgerLinearizability_SafeSame.cfg"
+          SAFE_CONFLICT="$ROOT/InjectorLedgerLinearizability_SafeConflict.cfg"
+          UNSAFE_RACE="$ROOT/InjectorLedgerLinearizability_UnsafeNonAtomic.cfg"
+          UNSAFE_REPLAY="$ROOT/InjectorLedgerLinearizability_UnsafeReplay.cfg"
+          printf '%s  %s\n' "6b8528978a7b2b2fc7e3086f9884ac2c5f77ebfac2c957b6f6ea5b7cbf15db21" "$MODEL" | sha256sum --check
+          printf '%s  %s\n' "cfde6d61c321d61659deff783c136f1a4d42149ca699d465a3affffd79c7db27" "$SAFE_SAME" | sha256sum --check
+          printf '%s  %s\n' "525dc2155c90cafd3a339df2f96eb1727d2758e1750a0cd50e4457965c78f3bd" "$SAFE_CONFLICT" | sha256sum --check
+          printf '%s  %s\n' "d119b14f2fa31edbd7da336039fefd55f11efd11cb57c8e5d79f28665a99b3e9" "$UNSAFE_RACE" | sha256sum --check
+          printf '%s  %s\n' "061ef7afbf4fae4dcfbea048fb298becf06965788529eb6a4143b4dab918ef37" "$UNSAFE_REPLAY" | sha256sum --check
+
+      - name: Validate injector-ledger race catalogue
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCHEMA="research/mobility-rrvr-runtime-trace/schemas/injector_ledger_race_matrix_v0_1.schema.json"
+          FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/injector_ledger_race_matrix_v0_1.json"
+          jq empty "$SCHEMA"
+          jq empty "$FIXTURE"
+          jq -e '
+            .schema_version == "0.1"
+            and .benchmark == "RRVR-INJECTOR-LEDGER-LINEARIZABILITY"
+            and .model == "InjectorLedgerLinearizability"
+            and (.scenarios | length == 7)
+            and ([.scenarios[].id] | unique | length == 7)
+            and (.linearization_contract.reservation | contains("before"))
+            and (.linearization_contract.changed_payload | contains("PayloadConflict"))
+            and (.linearization_contract.post_effect_crash | contains("never replay"))
+          ' "$FIXTURE"
+
+      - name: Model-check same-payload concurrent reservation
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace/model"
+          OUT="$RUNNER_TEMP/rrvr-injector-ledger"
+          DIR="$OUT/safe-same"
+          mkdir -p "$DIR"
+          cp "$ROOT/InjectorLedgerLinearizability.tla" "$DIR/"
+          cp "$ROOT/InjectorLedgerLinearizability_SafeSame.cfg" "$DIR/"
+          (
+            cd "$DIR"
+            java -XX:+UseParallelGC -cp "$RUNNER_TEMP/tla/tla2tools.jar" tlc2.TLC \
+              -workers 1 -metadir "$RUNNER_TEMP/tlc-ledger-safe-same" \
+              -config InjectorLedgerLinearizability_SafeSame.cfg \
+              InjectorLedgerLinearizability.tla
+          ) | tee "$OUT/tlc-safe-same.log"
+          grep -Fq "Model checking completed. No error has been found." "$OUT/tlc-safe-same.log"
+          grep -Fq "0 states left on queue" "$OUT/tlc-safe-same.log"
+
+      - name: Model-check changed-payload conflict
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace/model"
+          OUT="$RUNNER_TEMP/rrvr-injector-ledger"
+          DIR="$OUT/safe-conflict"
+          mkdir -p "$DIR"
+          cp "$ROOT/InjectorLedgerLinearizability.tla" "$DIR/"
+          cp "$ROOT/InjectorLedgerLinearizability_SafeConflict.cfg" "$DIR/"
+          (
+            cd "$DIR"
+            java -XX:+UseParallelGC -cp "$RUNNER_TEMP/tla/tla2tools.jar" tlc2.TLC \
+              -workers 1 -metadir "$RUNNER_TEMP/tlc-ledger-safe-conflict" \
+              -config InjectorLedgerLinearizability_SafeConflict.cfg \
+              InjectorLedgerLinearizability.tla
+          ) | tee "$OUT/tlc-safe-conflict.log"
+          grep -Fq "Model checking completed. No error has been found." "$OUT/tlc-safe-conflict.log"
+          grep -Fq "0 states left on queue" "$OUT/tlc-safe-conflict.log"
+
+      - name: Require non-atomic reservation race counterexample
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace/model"
+          OUT="$RUNNER_TEMP/rrvr-injector-ledger"
+          DIR="$OUT/unsafe-nonatomic"
+          mkdir -p "$DIR"
+          cp "$ROOT/InjectorLedgerLinearizability.tla" "$DIR/"
+          cp "$ROOT/InjectorLedgerLinearizability_UnsafeNonAtomic.cfg" "$DIR/"
+          set +e
+          (
+            cd "$DIR"
+            java -XX:+UseParallelGC -cp "$RUNNER_TEMP/tla/tla2tools.jar" tlc2.TLC \
+              -workers 1 -metadir "$RUNNER_TEMP/tlc-ledger-unsafe-nonatomic" \
+              -config InjectorLedgerLinearizability_UnsafeNonAtomic.cfg \
+              InjectorLedgerLinearizability.tla
+          ) > "$OUT/tlc-unsafe-nonatomic.log" 2>&1
+          status=$?
+          set -e
+          test "$status" -ne 0
+          grep -Fq "Invariant AtMostOneReservationGrant is violated" "$OUT/tlc-unsafe-nonatomic.log"
+
+      - name: Require duplicate-effect replay counterexample
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace/model"
+          OUT="$RUNNER_TEMP/rrvr-injector-ledger"
+          DIR="$OUT/unsafe-replay"
+          mkdir -p "$DIR"
+          cp "$ROOT/InjectorLedgerLinearizability.tla" "$DIR/"
+          cp "$ROOT/InjectorLedgerLinearizability_UnsafeReplay.cfg" "$DIR/"
+          set +e
+          (
+            cd "$DIR"
+            java -XX:+UseParallelGC -cp "$RUNNER_TEMP/tla/tla2tools.jar" tlc2.TLC \
+              -workers 1 -metadir "$RUNNER_TEMP/tlc-ledger-unsafe-replay" \
+              -config InjectorLedgerLinearizability_UnsafeReplay.cfg \
+              InjectorLedgerLinearizability.tla
+          ) > "$OUT/tlc-unsafe-replay.log" 2>&1
+          status=$?
+          set -e
+          test "$status" -ne 0
+          grep -Fq "Invariant AtMostOnePhysicalEffectPerKey is violated" "$OUT/tlc-unsafe-replay.log"
+
+      - name: Emit injector-ledger formal manifest and checksums
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace/model"
+          OUT="$RUNNER_TEMP/rrvr-injector-ledger"
+          MODEL="$ROOT/InjectorLedgerLinearizability.tla"
+          SAFE_SAME="$ROOT/InjectorLedgerLinearizability_SafeSame.cfg"
+          SAFE_CONFLICT="$ROOT/InjectorLedgerLinearizability_SafeConflict.cfg"
+          UNSAFE_RACE="$ROOT/InjectorLedgerLinearizability_UnsafeNonAtomic.cfg"
+          UNSAFE_REPLAY="$ROOT/InjectorLedgerLinearizability_UnsafeReplay.cfg"
+          FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/injector_ledger_race_matrix_v0_1.json"
+          SCHEMA="research/mobility-rrvr-runtime-trace/schemas/injector_ledger_race_matrix_v0_1.schema.json"
+          sha256sum "$MODEL" "$SAFE_SAME" "$SAFE_CONFLICT" "$UNSAFE_RACE" "$UNSAFE_REPLAY" \
+            "$FIXTURE" "$SCHEMA" "$OUT/tlc-safe-same.log" "$OUT/tlc-safe-conflict.log" \
+            "$OUT/tlc-unsafe-nonatomic.log" "$OUT/tlc-unsafe-replay.log" > "$OUT/SHA256SUMS"
+          jq -n \
+            --arg model_sha256 "$(sha256sum "$MODEL" | cut -d ' ' -f 1)" \
+            --arg same_log_sha256 "$(sha256sum "$OUT/tlc-safe-same.log" | cut -d ' ' -f 1)" \
+            --arg conflict_log_sha256 "$(sha256sum "$OUT/tlc-safe-conflict.log" | cut -d ' ' -f 1)" \
+            --arg race_log_sha256 "$(sha256sum "$OUT/tlc-unsafe-nonatomic.log" | cut -d ' ' -f 1)" \
+            --arg replay_log_sha256 "$(sha256sum "$OUT/tlc-unsafe-replay.log" | cut -d ' ' -f 1)" \
+            '{
+              schema_version:"0.1",
+              model:"InjectorLedgerLinearizability",
+              safe_checks:[
+                {scenario:"same_payload_concurrent_reservation",result:"passed",log_sha256:$same_log_sha256},
+                {scenario:"changed_payload_conflict",result:"passed",log_sha256:$conflict_log_sha256}
+              ],
+              negative_controls:[
+                {mutation:"non_atomic_read_then_write reservation",expected:"AtMostOneReservationGrant counterexample",result:"rejected",log_sha256:$race_log_sha256},
+                {mutation:"replay same key after effect and owner restart",expected:"AtMostOnePhysicalEffectPerKey counterexample",result:"rejected",log_sha256:$replay_log_sha256}
+              ],
+              pins:{model_sha256:$model_sha256},
+              claim_ceiling:"Bounded owner-ledger abstraction only; no concurrent process test, remote injector, Rust refinement, target storage, power-cut, HIL or physical robot qualification."
+            }' > "$OUT/formal-manifest.json"
+
+      - name: Upload injector-ledger formal evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rrvr-injector-ledger-formal-${{ github.sha }}
+          path: ${{ runner.temp }}/rrvr-injector-ledger
+          if-no-files-found: ignore
+          retention-days: 90

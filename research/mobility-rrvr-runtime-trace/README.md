@@ -284,3 +284,18 @@ The next formal increment is documented in [CRASH_CUT_ASSURANCE_V0.1.md](CRASH_C
 - A separately pinned formal workflow at `.github/workflows/mobility-rrvr-crash-cut-formal.yml`.
 
 This is a formal abstraction and obligation catalogue only. It does not demonstrate Rust/TLA refinement, live ROS/Gazebo integration, injector linearizability, process-crash execution, power-loss durability, HIL, or physical-robot safety. The implementation integration remains tracked by [issue #7361](https://github.com/Luminous-Dynamics/symtropy/issues/7361).
+
+
+## Injector-owned ledger linearizability v0.1
+
+The next owner-side assurance slice is documented in [INJECTOR_LEDGER_LINEARIZABILITY_V0.1.md](INJECTOR_LEDGER_LINEARIZABILITY_V0.1.md). It adds:
+
+- A bounded two-coordinator TLA model for same-key/same-payload and same-key/changed-payload races.
+- Safe atomic-reservation configurations for both payload cases.
+- Unsafe non-atomic reservation and post-effect owner-history-loss replay mutants.
+- A seven-scenario obligation catalogue and JSON Schema.
+- A separate pinned formal workflow with expected safe exhaustion and mutant counterexamples.
+
+The key contract is an atomic durable create-if-absent reservation binding the idempotency key to the payload digest and exact attempt before a non-idempotent effect call. A crash after the effect may have happened but before outcome commit remains Unknown and must not replay the same key.
+
+The model is not a concurrent process history test, real remote injector qualification, Rust/TLA refinement, target-storage durability, HIL or physical-robot result. Those remain part of #7361.
