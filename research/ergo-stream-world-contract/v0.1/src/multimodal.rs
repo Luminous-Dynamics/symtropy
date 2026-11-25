@@ -190,12 +190,20 @@ pub struct ClockEvaluationV0 {
     pub max_abs_residual: Option<f64>,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct HiddenEventLabelV0 {
+    modality: ModalityV0,
+    observation_id: u32,
+    event_identity: usize,
+    event_slot: usize,
+}
+
 #[derive(Debug, Clone)]
 pub struct MultimodalWorldV0 {
     observations: Vec<ObservationV0>,
-    /// One entry per evaluator-admissible full correspondence. More than one
-    /// entry means that the visible stream cannot justify a unique answer.
-    valid_associations: Vec<Vec<EventPairV0>>,
+    hidden_event_labels: Vec<HiddenEventLabelV0>,
+    regime: AssociationRegimeV0,
+    event_count: usize,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -378,8 +386,7 @@ impl MultimodalWorldV0 {
             shuffled_symbol_map(symbol_count, &mut symbol_rng);
 
         let mut observations = Vec::with_capacity(count.saturating_mul(2).saturating_add(4));
-        let mut alpha_observation_by_event = vec![None; count];
-        let mut beta_observation_by_event = vec![None; count];
+        let mut hidden_event_labels = Vec::with_capacity(count.saturating_mul(2));
 
         let mut alpha_timing_rng = DeterministicRngV0::new(config.seed ^ 0xA11C_71AE);
         let mut beta_timing_rng = DeterministicRngV0::new(config.seed ^ 0xBE7A_71AE);
@@ -412,7 +419,12 @@ impl MultimodalWorldV0 {
                     config.alpha_clock,
                     &mut alpha_timing_rng,
                 )?);
-                alpha_observation_by_event[event_index] = Some(observation_id);
+                hidden_event_labels.push(HiddenEventLabelV0 {
+                    modality: ModalityV0::Alpha,
+                    observation_id,
+                    event_identity: event_index,
+                    event_slot: event_index,
+                });
             }
 
             if let Some(source_event) = beta_source_event_by_slot[event_index] {
@@ -433,9 +445,12 @@ impl MultimodalWorldV0 {
                     config.beta_clock,
                     &mut beta_timing_rng,
                 )?);
-                if config.regime != AssociationRegimeV0::PeriodicAmbiguous {
-                    beta_observation_by_event[source_event] = Some(observation_id);
-                }
+                hidden_event_labels.push(HiddenEventLabelV0 {
+                    modality: ModalityV0::Beta,
+                    observation_id,
+                    event_identity: source_event,
+                    event_slot: event_index,
+                });
             }
         }
 
@@ -476,49 +491,11 @@ impl MultimodalWorldV0 {
             }
         }
 
-        let valid_associations = match config.regime {
-            AssociationRegimeV0::Aligned
-            | AssociationRegimeV0::MarginalMatchedShuffled => {
-                let mut pairs = Vec::new();
-                for event_id in 0..count {
-                    if let (Some(alpha_id), Some(beta_id)) = (
-                        alpha_observation_by_event[event_id],
-                        beta_observation_by_event[event_id],
-                    ) {
-                        pairs.push(EventPairV0 {
-                            alpha_observation_id: alpha_id,
-                            beta_observation_id: beta_id,
-                        });
-                    }
-                }
-                vec![pairs]
-            }
-            AssociationRegimeV0::PeriodicAmbiguous => {
-                let mut alternatives = Vec::with_capacity(AMBIGUOUS_FAMILIES_V0);
-                for shift in 0..AMBIGUOUS_FAMILIES_V0 {
-                    let mut pairs = Vec::new();
-                    for alpha_slot in 0..count {
-                        let beta_slot = (alpha_slot + shift) % count;
-                        if alpha_observation_by_event[alpha_slot].is_some()
-                            && beta_visible[beta_slot]
-                        {
-                            pairs.push(EventPairV0 {
-                                alpha_observation_id: u32::try_from(alpha_slot)
-                                    .unwrap_or(u32::MAX),
-                                beta_observation_id: u32::try_from(beta_slot)
-                                    .unwrap_or(u32::MAX),
-                            });
-                        }
-                    }
-                    alternatives.push(pairs);
-                }
-                alternatives
-            }
-        };
-
         Ok(Self {
             observations,
-            valid_associations,
+            hidden_event_labels,
+            regime: config.regime,
+            event_count: count,
         })
     }
 
@@ -548,13 +525,74 @@ impl MultimodalWorldV0 {
         }
     }
 
+    /// Reconstruct evaluator truth through a separate correspondence pass over
+    /// hidden identity labels. Generation never serializes these labels into
+    /// PolicyViewV0; the learner process receives only its public observations.
+    fn exact_alignment_oracle(&self) -> Vec<Vec<EventPairV0>> {
+        match self.regime {
+            AssociationRegimeV0::Aligned | AssociationRegimeV0::MarginalMatchedShuffled => {
+                let mut alpha_by_event = BTreeMap::new();
+                let mut beta_by_event = BTreeMap::new();
+                for label in &self.hidden_event_labels {
+                    match label.modality {
+                        ModalityV0::Alpha => {
+                            alpha_by_event.insert(label.event_identity, label.observation_id);
+                        }
+                        ModalityV0::Beta => {
+                            beta_by_event.insert(label.event_identity, label.observation_id);
+                        }
+                    }
+                }
+                let pairs = alpha_by_event
+                    .iter()
+                    .filter_map(|(event_id, alpha_id)| {
+                        beta_by_event.get(event_id).map(|beta_id| EventPairV0 {
+                            alpha_observation_id: *alpha_id,
+                            beta_observation_id: *beta_id,
+                        })
+                    })
+                    .collect::<Vec<_>>();
+                vec![pairs]
+            }
+            AssociationRegimeV0::PeriodicAmbiguous => {
+                let mut alpha_by_slot = BTreeMap::new();
+                let mut beta_by_slot = BTreeMap::new();
+                for label in &self.hidden_event_labels {
+                    match label.modality {
+                        ModalityV0::Alpha => {
+                            alpha_by_slot.insert(label.event_slot, label.observation_id);
+                        }
+                        ModalityV0::Beta => {
+                            beta_by_slot.insert(label.event_slot, label.observation_id);
+                        }
+                    }
+                }
+                let mut alternatives = Vec::with_capacity(AMBIGUOUS_FAMILIES_V0);
+                for phase in 0..AMBIGUOUS_FAMILIES_V0 {
+                    let mut pairs = Vec::new();
+                    for (alpha_slot, alpha_id) in &alpha_by_slot {
+                        let beta_slot = (alpha_slot + phase) % self.event_count;
+                        if let Some(beta_id) = beta_by_slot.get(&beta_slot) {
+                            pairs.push(EventPairV0 {
+                                alpha_observation_id: *alpha_id,
+                                beta_observation_id: *beta_id,
+                            });
+                        }
+                    }
+                    alternatives.push(pairs);
+                }
+                alternatives
+            }
+        }
+    }
+
     /// Score a frozen correspondence proposal against evaluator-owned
     /// equivalence classes. The learner receives only PolicyViewV0.
     pub fn evaluate_alignment(
         &self,
         claim: &AlignmentClaimV0,
     ) -> (AlignmentEvaluationV0, Option<PairMetricsV0>) {
-        let truth = normalize_alternatives(&self.valid_associations);
+        let truth = normalize_alternatives(&self.exact_alignment_oracle());
 
         let (proposed, is_unique, is_unresolved) = match claim {
             AlignmentClaimV0::Unique(pairs) => {
@@ -804,7 +842,7 @@ mod tests {
     fn aligned_world_has_one_truth_and_identifiable_clock() {
         let world = MultimodalWorldV0::generate(config(AssociationRegimeV0::Aligned)).unwrap();
         let view = all_observations(&world);
-        let claim = AlignmentClaimV0::Unique(world.valid_associations[0].clone());
+        let claim = AlignmentClaimV0::Unique(world.exact_alignment_oracle()[0].clone());
         let (score, pairs) = world.evaluate_alignment(&claim);
 
         assert!(score.accepted_valid);
@@ -886,8 +924,8 @@ mod tests {
         }
 
         assert_ne!(
-            aligned.valid_associations[0],
-            shuffled.valid_associations[0]
+            aligned.exact_alignment_oracle()[0],
+            shuffled.exact_alignment_oracle()[0]
         );
 
         let same_slot_claim = AlignmentClaimV0::Unique(
@@ -906,20 +944,20 @@ mod tests {
     fn periodic_world_requires_set_valued_claim_or_abstention() {
         let world =
             MultimodalWorldV0::generate(config(AssociationRegimeV0::PeriodicAmbiguous)).unwrap();
-        assert_eq!(world.valid_associations.len(), AMBIGUOUS_FAMILIES_V0);
+        assert_eq!(world.exact_alignment_oracle().len(), AMBIGUOUS_FAMILIES_V0);
 
         let (abstain_score, _) =
             world.evaluate_alignment(&AlignmentClaimV0::Unresolved);
         assert!(abstain_score.correct_abstention);
         assert!(!abstain_score.false_unique);
 
-        let false_unique = AlignmentClaimV0::Unique(world.valid_associations[0].clone());
+        let false_unique = AlignmentClaimV0::Unique(world.exact_alignment_oracle()[0].clone());
         let (unique_score, _) = world.evaluate_alignment(&false_unique);
         assert!(unique_score.accepted_valid);
         assert!(unique_score.false_unique);
 
         let alternatives =
-            AlignmentClaimV0::Alternatives(world.valid_associations.clone());
+            AlignmentClaimV0::Alternatives(world.exact_alignment_oracle());
         let (set_score, _) = world.evaluate_alignment(&alternatives);
         assert!(set_score.correctly_set_valued);
         assert!(set_score.accepted_valid);
