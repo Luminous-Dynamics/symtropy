@@ -714,14 +714,88 @@ pub fn evaluate_case(case: &Value, mode: ReplayMode) -> TemporalDisposition {
     }
     deduplicated.sort_by_key(|event| event_key(event));
 
-    // The same local event ID under distinct, trusted issuer namespaces is
-    // not a collision. An unverified alias was rejected above.
+    // Corrections resolve only within the source-scoped event identity and
+    // exact certificate scope. Never guess a target by local ID alone.
+    for event in &deduplicated {
+        let Some(target_id) = text(event, "corrects_event_id") else {
+            continue;
+        };
+        let namespace = text(event, "source_namespace").unwrap_or_default();
+        let target = deduplicated.iter().copied().find(|candidate| {
+            text(candidate, "source_namespace") == Some(namespace)
+                && text(candidate, "event_id") == Some(target_id)
+        });
+        let Some(target) = target else {
+            return one_reason(
+                "ABSTAIN",
+                "CORRECTION_TARGET_UNRESOLVED",
+                &[],
+                &[*event],
+                &all_events,
+            );
+        };
+        if text(target, "certificate_id") != text(event, "certificate_id") {
+            return one_reason(
+                "ABSTAIN",
+                "CORRECTION_TARGET_SCOPE_MISMATCH",
+                &[],
+                &[*event, target],
+                &all_events,
+            );
+        }
+    }
+
+    // Cycles are diagnosed before monotonic-order checks so that the causal
+    // defect is not hidden by one of the cycle's impossible edge orderings.
     if has_correction_cycle(&deduplicated) {
         return one_reason(
             "ABSTAIN",
             "CORRECTION_CYCLE",
             &[],
             &deduplicated,
+            &all_events,
+        );
+    }
+
+    for event in &deduplicated {
+        if text(event, "event_type") != Some("corrected")
+            && text(event, "event_type") != Some("superseded")
+            && text(event, "event_type") != Some("reinstated")
+        {
+            continue;
+        }
+        let target_id = text(event, "corrects_event_id").unwrap_or_default();
+        let namespace = text(event, "source_namespace").unwrap_or_default();
+        let target = deduplicated.iter().copied().find(|candidate| {
+            text(candidate, "source_namespace") == Some(namespace)
+                && text(candidate, "event_id") == Some(target_id)
+        });
+        let recorded_at = number(event, "issuer_recorded_at_unix_ms");
+        let target_recorded_at = target.and_then(|value| number(value, "issuer_recorded_at_unix_ms"));
+        if recorded_at.zip(target_recorded_at).is_none_or(|(new_time, old_time)| new_time <= old_time) {
+            return one_reason(
+                "ABSTAIN",
+                "CORRECTION_TARGET_NOT_STRICTLY_EARLIER",
+                &[],
+                &[*event],
+                &all_events,
+            );
+        }
+    }
+
+    // Reinstatement changes qualification state. Until the owner-native
+    // lifecycle and authority semantics are qualified, never auto-restore.
+    let reinstatements = deduplicated
+        .iter()
+        .copied()
+        .filter(|event| text(event, "event_type") == Some("reinstated"))
+        .collect::<Vec<_>>();
+    if !reinstatements.is_empty() {
+        return one_reason(
+            "ABSTAIN",
+            "CALIBRATION_REINSTATEMENT_SEMANTICS_UNQUALIFIED",
+            &[],
+            &reinstatements,
             &all_events,
         );
     }
@@ -838,7 +912,7 @@ mod tests {
             .get("cases")
             .and_then(Value::as_array)
             .expect("temporal replay cases");
-        assert_eq!(cases.len(), 20);
+        assert_eq!(cases.len(), 23);
 
         let modes = [
             ReplayMode::AsKnownAt,
@@ -1026,6 +1100,45 @@ mod tests {
         assert_eq!(
             mismatch_report.reason_codes,
             vec!["TIMESTAMP_IMPRINT_MISMATCH".to_owned()]
+        );
+    }
+
+    #[test]
+    fn correction_and_reinstatement_transitions_fail_closed_without_owner_semantics() {
+        let corpus: Value = serde_json::from_str(CORPUS).expect("temporal corpus parses");
+        let cases = corpus["cases"].as_array().expect("cases");
+
+        let missing = cases
+            .iter()
+            .find(|case| case["case_id"] == "correction-target-missing-or-not-received")
+            .expect("missing correction target control");
+        let missing_report = evaluate_case(missing, ReplayMode::AsKnownAt);
+        assert_eq!(missing_report.disposition, "ABSTAIN");
+        assert_eq!(
+            missing_report.reason_codes,
+            vec!["CORRECTION_TARGET_UNRESOLVED".to_owned()]
+        );
+
+        let cross_scope = cases
+            .iter()
+            .find(|case| case["case_id"] == "correction-target-cross-certificate-scope")
+            .expect("cross-certificate correction control");
+        let cross_report = evaluate_case(cross_scope, ReplayMode::AsKnownAt);
+        assert_eq!(cross_report.disposition, "ABSTAIN");
+        assert_eq!(
+            cross_report.reason_codes,
+            vec!["CORRECTION_TARGET_SCOPE_MISMATCH".to_owned()]
+        );
+
+        let reinstatement = cases
+            .iter()
+            .find(|case| case["case_id"] == "reinstatement-event-does-not-silently-restore-calibration")
+            .expect("reinstatement control");
+        let reinstatement_report = evaluate_case(reinstatement, ReplayMode::AsKnownAt);
+        assert_eq!(reinstatement_report.disposition, "ABSTAIN");
+        assert_eq!(
+            reinstatement_report.reason_codes,
+            vec!["CALIBRATION_REINSTATEMENT_SEMANTICS_UNQUALIFIED".to_owned()]
         );
     }
 
