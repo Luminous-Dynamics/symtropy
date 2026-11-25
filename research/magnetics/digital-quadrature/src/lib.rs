@@ -1791,6 +1791,45 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn ti_twenty_pole_discrete_threshold_mismatch_challenge_is_near_4p9_degrees() {
+        // Synthetic reconstruction of the TI SBAA449B discrete-latch mismatch
+        // geometry: 10 pole pairs, 9 degree nominal mechanical edge spacing,
+        // two spatial radial samples in quadrature, and 1 mT vs 7 mT BOP.
+        // 8.5 mT is an explicit synthetic field amplitude chosen for this
+        // reproduction challenge; it is not claimed as TI's raw field dataset.
+        let trace = discrete_spatial_trace(
+            "ti-sbaa449b-synthetic-reconstruction",
+            10,
+            36_001,
+            0.0085,
+            1.0,
+        );
+        let mut cfg = config(10);
+        cfg.architecture = SensorArchitecture::DiscreteSpatialLatches;
+        cfg.channel_a = latch(0.0, true, 0.001, -0.001);
+        cfg.channel_b = latch(0.0, false, 0.007, -0.007);
+
+        let result = evaluate_trace(&trace, cfg).unwrap();
+        let lower_deg = result
+            .metrics
+            .maximum_spacing_error_lower_bound_rad
+            .unwrap()
+            .to_degrees();
+        let upper_deg = result
+            .metrics
+            .maximum_spacing_error_upper_bound_rad
+            .unwrap()
+            .to_degrees();
+
+        assert!(result.metrics.quadrature_sequence_valid);
+        assert_eq!(result.metrics.expected_transitions_per_revolution, 40);
+        assert_eq!(result.metrics.observed_valid_transitions, 40);
+        assert!(lower_deg < 4.9 && upper_deg > 4.8);
+        assert!(upper_deg < 5.0);
+    }
+
     #[test]
     fn threshold_mismatch_increases_bounded_quadrature_spacing_error() {
         let trace = sinusoidal_trace("spacing-baseline", 10, 36001, 0.008, 1.0);
