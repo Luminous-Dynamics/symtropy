@@ -181,13 +181,13 @@ impl core::fmt::Display for FiniteProposalExecutionError {
             Self::InvalidIdentity => "a required proposal execution identity is invalid",
             Self::RandomStreamsNotDomainSeparated => {
                 "branch and atom random streams are not domain-separated"
-            },
+            }
             Self::InvalidDefensiveMixtureWeight => "defensive mixture weight is outside (0, 1]",
             Self::InvalidAtomIdentity => "atom identity is zero or duplicated",
             Self::InvalidProbabilityVector => "finite proposal probability vector is invalid",
             Self::ReceiptScopeMismatch => {
                 "proposal execution receipt does not match the pinned scope"
-            },
+            }
             Self::SequenceMismatch => "proposal execution receipt is not the next draw",
             Self::DuplicateOrInvalidSampleIdentity => "sample identity is zero or duplicated",
             Self::TicketOutsideRange => "random ticket is outside the declared ticket space",
@@ -541,8 +541,7 @@ mod tests {
                         + complement * u64::from(c.residual_before_event_ticks[index])
                 );
                 assert!(
-                    verified.normalized_weight_numerator
-                        <= verified.normalized_weight_denominator
+                    verified.normalized_weight_numerator <= verified.normalized_weight_denominator
                 );
                 assert_eq!(
                     verified.normalized_weight_numerator,
