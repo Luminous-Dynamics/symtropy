@@ -45,6 +45,41 @@ impl AuthorityDisposition {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CustodyStatus {
+    Verified,
+    Conflicting,
+}
+impl CustodyStatus {
+    pub const fn as_str(self) -> &'static str {
+        match self { Self::Verified => "verified", Self::Conflicting => "conflicting" }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TitleDisposition {
+    Established,
+    NotEstablished,
+    Conflicting,
+}
+impl TitleDisposition {
+    pub const fn as_str(self) -> &'static str {
+        match self { Self::Established => "established", Self::NotEstablished => "not_established", Self::Conflicting => "conflicting" }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ContractDisposition {
+    Active,
+    Inactive,
+    Conflicting,
+}
+impl ContractDisposition {
+    pub const fn as_str(self) -> &'static str {
+        match self { Self::Active => "active", Self::Inactive => "inactive", Self::Conflicting => "conflicting" }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CargoManifest {
     pub cargo_id: String,
@@ -101,6 +136,21 @@ pub struct AccessAuthorization {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CustodyRecord {
+    pub custody_event_id: String,
+    pub batch_id: String,
+    pub effective_from_hour: u32,
+    /// Exclusive end of the custody/title/contract evidence window.
+    pub effective_until_hour: u32,
+    pub status: CustodyStatus,
+    pub title: TitleDisposition,
+    pub contract: ContractDisposition,
+    pub custodied_lower_grams: u64,
+    pub evidence_ref: String,
+    pub evidence_digest: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TransferRoute {
     pub route_id: String,
     pub capacity_grams_per_hour: u64,
@@ -136,6 +186,7 @@ pub struct CargoCase {
     pub receipts: Vec<PhysicalReceipt>,
     pub quality_assessments: Vec<QualityAssessment>,
     pub authorizations: Vec<AccessAuthorization>,
+    pub custody_records: Vec<CustodyRecord>,
     pub routes: Vec<TransferRoute>,
     pub transfers: Vec<TransferReceipt>,
     pub fuel_issues: Vec<GeneratorFuelIssue>,
@@ -277,6 +328,31 @@ pub fn validate_and_project(case: &CargoCase) -> Result<Projection, String> {
         }
     }
 
+    let mut custody_records = BTreeMap::new();
+    for custody in &case.custody_records {
+        event_id(&mut ids, &custody.custody_event_id)?;
+        let receipt = receipts.get(custody.batch_id.as_str()).ok_or_else(|| format!("custody references unknown batch {}", custody.batch_id))?;
+        let assay = assays.get(custody.batch_id.as_str()).ok_or_else(|| format!("custody precedes/omits assay for {}", custody.batch_id))?;
+        if custody.effective_from_hour < receipt.received_at_hour ||
+            custody.effective_from_hour < assay.assessed_at_hour ||
+            custody.effective_until_hour <= custody.effective_from_hour {
+            return Err(format!("invalid custody/title/contract time window for {}", custody.batch_id));
+        }
+        if custody.status == CustodyStatus::Verified {
+            if receipt.evidence != ReceiptEvidence::Verified || assay.disposition != AssayDisposition::Passed ||
+                custody.custodied_lower_grams > assay.released_lower_grams {
+                return Err(format!("custody cannot attest more than verified, quality-released stock for {}", custody.batch_id));
+            }
+            nonempty(&custody.evidence_ref, "custody evidence reference")?;
+            nonempty(&custody.evidence_digest, "custody evidence digest")?;
+        } else if custody.custodied_lower_grams != 0 {
+            return Err(format!("conflicting custody cannot attest usable stock for {}", custody.batch_id));
+        }
+        if custody_records.insert(custody.batch_id.as_str(), custody).is_some() {
+            return Err(format!("duplicate custody record for batch {}", custody.batch_id));
+        }
+    }
+
     let mut routes = BTreeMap::new();
     for route in &case.routes {
         nonempty(&route.route_id, "route ID")?;
@@ -293,15 +369,18 @@ pub fn validate_and_project(case: &CargoCase) -> Result<Projection, String> {
         let receipt = receipts.get(transfer.batch_id.as_str()).ok_or_else(|| format!("transfer references unknown batch {}", transfer.batch_id))?;
         let assay = assays.get(transfer.batch_id.as_str()).ok_or_else(|| format!("transfer lacks assay for {}", transfer.batch_id))?;
         let authority = authorizations.get(transfer.batch_id.as_str()).ok_or_else(|| format!("transfer lacks authority for {}", transfer.batch_id))?;
+        let custody = custody_records.get(transfer.batch_id.as_str()).ok_or_else(|| format!("transfer lacks custody/title/contract record for {}", transfer.batch_id))?;
         let route = routes.get(transfer.route_id.as_str()).ok_or_else(|| format!("transfer references unknown route {}", transfer.route_id))?;
         if receipt.evidence != ReceiptEvidence::Verified || assay.disposition != AssayDisposition::Passed ||
-            authority.disposition != AuthorityDisposition::Authorized {
+            authority.disposition != AuthorityDisposition::Authorized || custody.status != CustodyStatus::Verified ||
+            custody.title != TitleDisposition::Established || custody.contract != ContractDisposition::Active {
             return Err(format!("transfer attempts to promote unverified, unadmitted or unauthorized batch {}", transfer.batch_id));
         }
         if transfer.load_start_hour < receipt.received_at_hour || transfer.load_start_hour < assay.assessed_at_hour ||
-            transfer.load_start_hour < authority.valid_from_hour || transfer.dispatch_hour <= transfer.load_start_hour ||
-            transfer.dispatch_hour >= authority.valid_until_hour {
-            return Err(format!("transfer occurs outside receipt/assay/authority chronology for {}", transfer.batch_id));
+            transfer.load_start_hour < authority.valid_from_hour || transfer.load_start_hour < custody.effective_from_hour ||
+            transfer.dispatch_hour <= transfer.load_start_hour || transfer.dispatch_hour >= authority.valid_until_hour ||
+            transfer.dispatch_hour >= custody.effective_until_hour {
+            return Err(format!("transfer occurs outside receipt/assay/authority/custody chronology for {}", transfer.batch_id));
         }
         if transfer.arrival_hour < transfer.dispatch_hour.saturating_add(route.transit_delay_hours) {
             return Err(format!("transfer arrives before declared transit delay for {}", transfer.transfer_event_id));
@@ -333,9 +412,12 @@ pub fn validate_and_project(case: &CargoCase) -> Result<Projection, String> {
         let receipt = receipts.get(batch_id).ok_or_else(|| format!("missing receipt for {batch_id}"))?;
         let assay = assays.get(batch_id).ok_or_else(|| format!("missing assay for {batch_id}"))?;
         let authority = authorizations.get(batch_id).ok_or_else(|| format!("missing authority for {batch_id}"))?;
+        let custody = custody_records.get(batch_id).ok_or_else(|| format!("missing custody/title/contract record for {batch_id}"))?;
         let admitted = receipt_admitted(receipt, Some(assay));
         let accessible = admitted.saturating_sub(authority.encumbered_grams);
-        if *total_source > accessible || *total_source > authority.max_transfer_grams {
+        if custody.status != CustodyStatus::Verified || custody.title != TitleDisposition::Established ||
+            custody.contract != ContractDisposition::Active || *total_source > custody.custodied_lower_grams ||
+            *total_source > accessible || *total_source > authority.max_transfer_grams {
             return Err(format!("transfers exceed accessible/authorized batch quantity for {batch_id}"));
         }
     }
@@ -380,10 +462,15 @@ pub fn validate_and_project(case: &CargoCase) -> Result<Projection, String> {
             let terminal = admitted.checked_sub(dispatched).ok_or_else(|| format!("terminal stock underflow for {batch_id} at hour {hour}"))?;
             add(&mut row.admitted_lower_grams, admitted, "hourly admitted stock")?;
             add(&mut row.terminal_inventory_grams, terminal, "hourly terminal stock")?;
-            if let Some(auth) = authorizations.get(batch_id) {
-                if auth.disposition == AuthorityDisposition::Authorized && auth.valid_from_hour <= hour && hour < auth.valid_until_hour {
+            if let (Some(auth), Some(custody)) = (authorizations.get(batch_id), custody_records.get(batch_id)) {
+                if auth.disposition == AuthorityDisposition::Authorized &&
+                    custody.status == CustodyStatus::Verified && custody.title == TitleDisposition::Established &&
+                    custody.contract == ContractDisposition::Active &&
+                    auth.valid_from_hour <= hour && hour < auth.valid_until_hour &&
+                    custody.effective_from_hour <= hour && hour < custody.effective_until_hour {
                     let accessible = admitted.saturating_sub(auth.encumbered_grams).saturating_sub(dispatched)
-                        .min(auth.max_transfer_grams.saturating_sub(dispatched));
+                        .min(auth.max_transfer_grams.saturating_sub(dispatched))
+                        .min(custody.custodied_lower_grams.saturating_sub(dispatched));
                     add(&mut row.terminal_accessible_grams, accessible, "hourly accessible stock")?;
                 }
             }
@@ -484,6 +571,12 @@ impl CargoCase {
             q(&a.authority_event_id), q(&a.batch_id), a.valid_from_hour, a.valid_until_hour,
             q(a.disposition.as_str()), a.encumbered_grams, a.max_transfer_grams, q(&a.authority_ref)
         )).collect::<Vec<_>>().join(",");
+        let custody = self.custody_records.iter().map(|c| format!(
+            "{{\"custodyEventId\":{},\"batchId\":{},\"effectiveFromHour\":{},\"effectiveUntilHour\":{},\"status\":{},\"title\":{},\"contract\":{},\"custodiedLowerGrams\":{},\"evidenceRef\":{},\"evidenceDigest\":{}}}",
+            q(&c.custody_event_id), q(&c.batch_id), c.effective_from_hour, c.effective_until_hour,
+            q(c.status.as_str()), q(c.title.as_str()), q(c.contract.as_str()), c.custodied_lower_grams,
+            q(&c.evidence_ref), q(&c.evidence_digest)
+        )).collect::<Vec<_>>().join(",");
         let routes = self.routes.iter().map(|r| format!(
             "{{\"routeId\":{},\"capacityGramsPerHour\":{},\"transitDelayHours\":{}}}",
             q(&r.route_id), r.capacity_grams_per_hour, r.transit_delay_hours
@@ -509,8 +602,8 @@ impl CargoCase {
             b.route_loss_grams, b.generator_closing_grams, b.fuel_issued_grams
         )).collect::<Vec<_>>().join(",");
         format!(
-            "{{\"schemaVersion\":\"0.1.0\",\"recordKind\":\"oracle_truth\",\"caseId\":{},\"horizonHours\":72,\"evidenceMaturity\":\"synthetic_fixture\",\"receipts\":[{}],\"qualityAssessments\":[{}],\"authorizations\":[{}],\"routes\":[{}],\"transfers\":[{}],\"fuelIssues\":[{}],\"batchBalances\":[{}],\"hourlyTrajectory\":[{}]}}",
-            q(&self.case_id), receipts, assays, auth, routes, transfers, issues, balances, hourly
+            "{{\"schemaVersion\":\"0.1.0\",\"recordKind\":\"oracle_truth\",\"caseId\":{},\"horizonHours\":72,\"evidenceMaturity\":\"synthetic_fixture\",\"receipts\":[{}],\"qualityAssessments\":[{}],\"authorizations\":[{}],\"custodyRecords\":[{}],\"routes\":[{}],\"transfers\":[{}],\"fuelIssues\":[{}],\"batchBalances\":[{}],\"hourlyTrajectory\":[{}]}}",
+            q(&self.case_id), receipts, assays, auth, custody, routes, transfers, issues, balances, hourly
         )
     }
 }
@@ -571,6 +664,16 @@ fn authorization(batch: &str, from: u32, until: u32, disposition: AuthorityDispo
         max_transfer_grams: max_transfer, authority_ref: if authorized { format!("synthetic-authority-{batch}") } else { String::new() },
     }
 }
+fn custody(batch: &str, from: u32, until: u32, status: CustodyStatus, title: TitleDisposition, contract: ContractDisposition, quantity: u64) -> CustodyRecord {
+    let verified = status == CustodyStatus::Verified;
+    CustodyRecord {
+        custody_event_id: format!("custody-{batch}"), batch_id: batch.into(),
+        effective_from_hour: from, effective_until_hour: until, status, title, contract,
+        custodied_lower_grams: quantity,
+        evidence_ref: if verified { format!("synthetic-custody-{batch}") } else { String::new() },
+        evidence_digest: if verified { format!("sha256:custody-{batch}") } else { String::new() },
+    }
+}
 fn transfer(id: &str, batch: &str, route: &str, load_start: u32, dispatch: u32, arrival: u32, source: u64, delivered: u64) -> TransferReceipt {
     TransferReceipt {
         transfer_event_id: id.into(), batch_id: batch.into(), route_id: route.into(),
@@ -583,7 +686,7 @@ fn base_case(case_id: &str, eta: u32) -> CargoCase {
     CargoCase {
         case_id: case_id.into(), manifests: vec![make_manifest(&format!("{case_id}-cargo"), eta)],
         receipts: Vec::new(), quality_assessments: Vec::new(), authorizations: Vec::new(),
-        routes: Vec::new(), transfers: Vec::new(), fuel_issues: Vec::new(),
+        custody_records: Vec::new(), routes: Vec::new(), transfers: Vec::new(), fuel_issues: Vec::new(),
     }
 }
 
@@ -594,6 +697,7 @@ pub fn synthetic_cases() -> Vec<CargoCase> {
     on_time.receipts.push(receipt("verified-on-time-cargo", "batch-on-time", 4, 880_000, 900_000, 920_000, ReceiptEvidence::Verified));
     on_time.quality_assessments.push(assay("batch-on-time", 5, AssayDisposition::Passed, 850_000));
     on_time.authorizations.push(authorization("batch-on-time", 6, 60, AuthorityDisposition::Authorized, 50_000, 800_000));
+    on_time.custody_records.push(custody("batch-on-time", 5, 60, CustodyStatus::Verified, TitleDisposition::Established, ContractDisposition::Active, 800_000));
     on_time.routes.push(TransferRoute { route_id: "line-a".into(), capacity_grams_per_hour: 250_000, transit_delay_hours: 2 });
     on_time.transfers.push(transfer("transfer-on-time", "batch-on-time", "line-a", 6, 8, 10, 400_000, 390_000));
     on_time.fuel_issues.push(GeneratorFuelIssue { issue_event_id: "issue-on-time".into(), transfer_event_id: "transfer-on-time".into(), issued_at_hour: 12, issued_quantity_grams: 100_000 });
@@ -603,6 +707,7 @@ pub fn synthetic_cases() -> Vec<CargoCase> {
     partial.receipts.push(receipt("partial-late-receipt-cargo", "batch-partial", 12, 380_000, 400_000, 420_000, ReceiptEvidence::Verified));
     partial.quality_assessments.push(assay("batch-partial", 13, AssayDisposition::Passed, 350_000));
     partial.authorizations.push(authorization("batch-partial", 14, 60, AuthorityDisposition::Authorized, 50_000, 250_000));
+    partial.custody_records.push(custody("batch-partial", 13, 60, CustodyStatus::Verified, TitleDisposition::Established, ContractDisposition::Active, 300_000));
     partial.routes.push(TransferRoute { route_id: "line-b".into(), capacity_grams_per_hour: 100_000, transit_delay_hours: 4 });
     partial.transfers.push(transfer("transfer-partial", "batch-partial", "line-b", 16, 18, 22, 200_000, 195_000));
     partial.fuel_issues.push(GeneratorFuelIssue { issue_event_id: "issue-partial".into(), transfer_event_id: "transfer-partial".into(), issued_at_hour: 24, issued_quantity_grams: 100_000 });
@@ -622,12 +727,14 @@ pub fn synthetic_cases() -> Vec<CargoCase> {
     withheld.receipts.push(receipt("authority-withheld-cargo", "batch-withheld", 2, 590_000, 600_000, 610_000, ReceiptEvidence::Verified));
     withheld.quality_assessments.push(assay("batch-withheld", 3, AssayDisposition::Passed, 550_000));
     withheld.authorizations.push(authorization("batch-withheld", 4, 60, AuthorityDisposition::Withheld, 0, 0));
+    withheld.custody_records.push(custody("batch-withheld", 3, 60, CustodyStatus::Verified, TitleDisposition::Established, ContractDisposition::Active, 500_000));
     cases.push(withheld);
 
     let mut after = base_case("after-horizon", 96);
     after.receipts.push(receipt("after-horizon-cargo", "batch-after", 80, 690_000, 700_000, 710_000, ReceiptEvidence::Verified));
     after.quality_assessments.push(assay("batch-after", 81, AssayDisposition::Passed, 650_000));
     after.authorizations.push(authorization("batch-after", 82, 110, AuthorityDisposition::Authorized, 0, 600_000));
+    after.custody_records.push(custody("batch-after", 81, 110, CustodyStatus::Verified, TitleDisposition::Established, ContractDisposition::Active, 600_000));
     after.routes.push(TransferRoute { route_id: "line-late".into(), capacity_grams_per_hour: 100_000, transit_delay_hours: 3 });
     after.transfers.push(transfer("transfer-after", "batch-after", "line-late", 82, 84, 90, 100_000, 98_000));
     after.fuel_issues.push(GeneratorFuelIssue { issue_event_id: "issue-after".into(), transfer_event_id: "transfer-after".into(), issued_at_hour: 92, issued_quantity_grams: 50_000 });
@@ -637,11 +744,32 @@ pub fn synthetic_cases() -> Vec<CargoCase> {
     constrained.receipts.push(receipt("route-capacity-constrained-cargo", "batch-route", 1, 590_000, 600_000, 610_000, ReceiptEvidence::Verified));
     constrained.quality_assessments.push(assay("batch-route", 2, AssayDisposition::Passed, 550_000));
     constrained.authorizations.push(authorization("batch-route", 3, 60, AuthorityDisposition::Authorized, 50_000, 400_000));
+    constrained.custody_records.push(custody("batch-route", 3, 60, CustodyStatus::Verified, TitleDisposition::Established, ContractDisposition::Active, 500_000));
     constrained.routes.push(TransferRoute { route_id: "line-c".into(), capacity_grams_per_hour: 50_000, transit_delay_hours: 1 });
     constrained.transfers.push(transfer("transfer-route-1", "batch-route", "line-c", 4, 6, 7, 100_000, 99_000));
     constrained.transfers.push(transfer("transfer-route-2", "batch-route", "line-c", 6, 8, 9, 100_000, 99_000));
     constrained.fuel_issues.push(GeneratorFuelIssue { issue_event_id: "issue-route".into(), transfer_event_id: "transfer-route-1".into(), issued_at_hour: 8, issued_quantity_grams: 40_000 });
     cases.push(constrained);
+
+    let mut custody_missing = base_case("custody-missing", 1);
+    custody_missing.receipts.push(receipt("custody-missing-cargo", "batch-no-custody", 2, 590_000, 600_000, 610_000, ReceiptEvidence::Verified));
+    custody_missing.quality_assessments.push(assay("batch-no-custody", 3, AssayDisposition::Passed, 550_000));
+    custody_missing.authorizations.push(authorization("batch-no-custody", 4, 60, AuthorityDisposition::Authorized, 0, 500_000));
+    cases.push(custody_missing);
+
+    let mut title_missing = base_case("title-not-established", 1);
+    title_missing.receipts.push(receipt("title-not-established-cargo", "batch-no-title", 2, 590_000, 600_000, 610_000, ReceiptEvidence::Verified));
+    title_missing.quality_assessments.push(assay("batch-no-title", 3, AssayDisposition::Passed, 550_000));
+    title_missing.authorizations.push(authorization("batch-no-title", 4, 60, AuthorityDisposition::Authorized, 0, 500_000));
+    title_missing.custody_records.push(custody("batch-no-title", 3, 60, CustodyStatus::Verified, TitleDisposition::NotEstablished, ContractDisposition::Active, 500_000));
+    cases.push(title_missing);
+
+    let mut contract_inactive = base_case("contract-inactive", 1);
+    contract_inactive.receipts.push(receipt("contract-inactive-cargo", "batch-no-contract", 2, 590_000, 600_000, 610_000, ReceiptEvidence::Verified));
+    contract_inactive.quality_assessments.push(assay("batch-no-contract", 3, AssayDisposition::Passed, 550_000));
+    contract_inactive.authorizations.push(authorization("batch-no-contract", 4, 60, AuthorityDisposition::Authorized, 0, 500_000));
+    contract_inactive.custody_records.push(custody("batch-no-contract", 3, 60, CustodyStatus::Verified, TitleDisposition::Established, ContractDisposition::Inactive, 500_000));
+    cases.push(contract_inactive);
 
     let mut pending = base_case("assay-pending", 1);
     pending.receipts.push(receipt("assay-pending-cargo", "batch-pending", 1, 490_000, 500_000, 510_000, ReceiptEvidence::Verified));
@@ -666,7 +794,7 @@ mod tests {
     #[test]
     fn all_synthetic_cases_validate_and_reconcile() {
         let cases = synthetic_cases();
-        assert_eq!(cases.len(), 9);
+        assert_eq!(cases.len(), 12);
         for case in &cases {
             let projection = validate_and_project(case).expect("valid synthetic case");
             assert_eq!(projection.hourly.len(), HORIZON_HOURS as usize);
@@ -688,6 +816,27 @@ mod tests {
             let projection = validate_and_project(&case).expect("case remains evaluable");
             assert!(projection.hourly.iter().all(|row| row.admitted_lower_grams == 0));
         }
+    }
+
+    #[test]
+    fn terminal_access_requires_independent_custody_title_and_contract() {
+        let mut case = find("verified-on-time");
+        case.custody_records.clear();
+        assert!(validate_and_project(&case).is_err());
+
+        let mut case = find("verified-on-time");
+        case.custody_records[0].title = TitleDisposition::NotEstablished;
+        assert!(validate_and_project(&case).is_err());
+
+        let mut case = find("verified-on-time");
+        case.custody_records[0].contract = ContractDisposition::Inactive;
+        assert!(validate_and_project(&case).is_err());
+    }
+
+    #[test]
+    fn authority_without_custody_has_zero_accessible_stock() {
+        let projection = validate_and_project(&find("custody-missing")).expect("evaluatable without transfer");
+        assert!(projection.hourly.iter().all(|row| row.terminal_accessible_grams == 0));
     }
 
     #[test]
