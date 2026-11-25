@@ -44,9 +44,9 @@ jobs:
           Draft202012Validator.check_schema(schema)
           errors = list(Draft202012Validator(schema).iter_errors(fixture))
           assert not errors, errors
-          assert len(fixture["cases"]) == 24
-          assert len({case["case_id"] for case in fixture["cases"]}) == 24
-          print("24 scope-coherence cases and Draft 2020-12 schema validated")
+          assert len(fixture["cases"]) == 26
+          assert len({case["case_id"] for case in fixture["cases"]}) == 26
+          print("26 scope-coherence cases and Draft 2020-12 schema validated")
           PY
       - name: Format
         run: cargo fmt --manifest-path tools/orbital-acquisition-scope-coherence-bench/Cargo.toml -- --check
@@ -70,20 +70,23 @@ jobs:
           rust = json.loads(Path("/tmp/scope-rust-a.json").read_text())
           oracle = json.loads(Path("/tmp/scope-python.json").read_text())
           assert rust == oracle
-          assert rust["expected_disposition_matches"] == 24
+          assert rust["expected_disposition_matches"] == 26
           assert rust["expected_disposition_mismatches"] == 0
           assert rust["source_bytes_authenticated"] is False
           assert rust["authority_granted"] is False
           cases = {case["case_id"]: case for case in rust["cases"]}
           assert cases["SC-001-ALL-MATCH"]["disposition"] == "SCOPE_COHERENT"
           assert cases["SC-011-CLOCK-MAP-MISMATCH"]["disposition"] == "OUT_OF_SCOPE"
-          assert cases["SC-016-TOUCHES-VALID-UNTIL"]["disposition"] == "OUT_OF_SCOPE"
+          assert cases["SC-015-VALIDITY-START-TOO-LATE"]["disposition"] == "INDETERMINATE"
+          assert cases["SC-016-TOUCHES-VALID-UNTIL"]["disposition"] == "INDETERMINATE"
+          assert cases["SC-025-VALIDITY-WHOLLY-BEFORE"]["disposition"] == "OUT_OF_SCOPE"
+          assert cases["SC-026-ACQUISITION-WHOLLY-AFTER"]["disposition"] == "OUT_OF_SCOPE"
           assert cases["SC-017-MISSING-SCOPE"]["disposition"] == "INDETERMINATE"
           assert cases["SC-023-MISSING-TIMING-EVIDENCE"]["disposition"] == "INDETERMINATE"
           assert cases["SC-024-EXTRA-SCOPE-CLAIM-MISMATCH"]["disposition"] == "OUT_OF_SCOPE"
           assert cases["SC-019-DUPLICATE-SCOPE-FIELD"]["disposition"] == "INVALID_INPUT"
           assert cases["SC-022-DIGEST-NOT-AUTH"]["disposition"] == "SCOPE_COHERENT"
-          print("Rust and independent scope oracle agree on all 24 scope-coherence cases")
+          print("Rust and independent scope oracle agree on all 26 scope-coherence cases")
           PY
       - name: Retain exact-head evidence
         if: success()
