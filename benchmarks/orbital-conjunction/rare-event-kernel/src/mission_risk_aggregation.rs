@@ -745,15 +745,24 @@ mod tests {
         let trajectories = [
             FinitePathwiseMissionTrajectory {
                 atom_id: [1; 32], realization_id: "traj-1".to_owned(), mass_ticks: 40,
-                event_outcomes: vec![pathwise_event("a", "traj-1", true), pathwise_event("b", "traj-1", false)],
+                event_outcomes: vec![
+                    pathwise_event("a", "traj-1", true),
+                    pathwise_event("b", "traj-1", false),
+                ],
             },
             FinitePathwiseMissionTrajectory {
                 atom_id: [2; 32], realization_id: "traj-2".to_owned(), mass_ticks: 40,
-                event_outcomes: vec![pathwise_event("a", "traj-2", false), pathwise_event("b", "traj-2", true)],
+                event_outcomes: vec![
+                    pathwise_event("a", "traj-2", false),
+                    pathwise_event("b", "traj-2", true),
+                ],
             },
             FinitePathwiseMissionTrajectory {
                 atom_id: [3; 32], realization_id: "traj-3".to_owned(), mass_ticks: 20,
-                event_outcomes: vec![pathwise_event("a", "traj-3", false), pathwise_event("b", "traj-3", false)],
+                event_outcomes: vec![
+                    pathwise_event("a", "traj-3", false),
+                    pathwise_event("b", "traj-3", false),
+                ],
             },
         ];
         let report = aggregate_pathwise_mission_risk(&manifest, &definitions, &trajectories)
