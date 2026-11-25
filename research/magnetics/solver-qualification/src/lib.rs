@@ -39,6 +39,8 @@ pub struct SolverIdentity {
     pub source_archive_sha256: String,
     /// Declared algorithm lineage, e.g. "magpylib-analytical-cuboid".
     pub implementation_family: String,
+    /// Declared direct dependencies relevant to numerical lineage.
+    pub direct_dependency_ids: Vec<String>,
     /// Declared mathematical formulation, e.g. "closed-form-surface-charge".
     pub formulation_id: String,
     pub method: SolverMethod,
@@ -126,6 +128,8 @@ pub struct ComparablePair {
     /// physically correct, solver implementations are truly independent, or
     /// outputs agree.
     pub physical_inputs_and_observer_grid_match: bool,
+    /// Sorted intersection of the declared dependency identifiers.
+    pub shared_dependency_ids: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -305,7 +309,9 @@ pub fn validate_run(
         run.solver.formulation_id.as_str(),
         run.problem.coordinate_frame_id.as_str(),
     ];
-    if identity_strings.into_iter().any(|value| !nonempty(value)) {
+    if identity_strings.into_iter().any(|value| !nonempty(value))
+        || run.solver.direct_dependency_ids.iter().any(|value| !nonempty(value))
+    {
         return Err(QualificationError::EmptyIdentity);
     }
 
@@ -396,11 +402,28 @@ pub fn compare_runs(
         return Err(QualificationError::ObserverGridMismatch);
     }
 
+    let mut shared_dependency_ids = left
+        .solver
+        .direct_dependency_ids
+        .iter()
+        .filter(|dependency| {
+            right
+                .solver
+                .direct_dependency_ids
+                .iter()
+                .any(|candidate| candidate.eq_ignore_ascii_case(dependency))
+        })
+        .map(|dependency| dependency.to_ascii_lowercase())
+        .collect::<Vec<_>>();
+    shared_dependency_ids.sort();
+    shared_dependency_ids.dedup();
+
     Ok(ComparablePair {
         left_run_id: left.run_id.clone(),
         right_run_id: right.run_id.clone(),
         lineage_relation: lineage_relation(&left.solver, &right.solver),
         physical_inputs_and_observer_grid_match: true,
+        shared_dependency_ids,
     })
 }
 
@@ -463,6 +486,7 @@ mod tests {
                 source_revision: "v0.14.0".to_owned(),
                 source_archive_sha256: DIGEST_A.to_owned(),
                 implementation_family: "magpylib-material-response".to_owned(),
+                direct_dependency_ids: vec!["magpylib".to_owned(), "numpy".to_owned()],
                 formulation_id: "surface-face-charge".to_owned(),
                 method: SolverMethod::SurfaceFaceCharge,
             },
@@ -508,6 +532,24 @@ mod tests {
             LineageRelation::DifferentFormulationSameSoftware
         );
         assert!(pair.physical_inputs_and_observer_grid_match);
+        assert_eq!(pair.shared_dependency_ids, vec!["magpylib", "numpy"]);
+    }
+
+
+    #[test]
+    fn shared_dependencies_are_reported_across_distinct_software_ids() {
+        let left = face_charge_run();
+        let mut right = face_charge_run();
+        right.run_id = "other-adapter-run".to_owned();
+        right.solver.software_id = "independent-adapter".to_owned();
+        right.solver.direct_dependency_ids = vec!["NumPy".to_owned(), "magpylib".to_owned()];
+        let pair = compare_runs(&left, &right, policy()).unwrap();
+
+        assert_eq!(
+            pair.lineage_relation,
+            LineageRelation::DifferentSoftwareSameDeclaredFormulation
+        );
+        assert_eq!(pair.shared_dependency_ids, vec!["magpylib", "numpy"]);
     }
 
     #[test]
