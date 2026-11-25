@@ -1017,7 +1017,9 @@ mod tests {
 
         let mismatch = cases
             .iter()
-            .find(|case| case["case_id"] == "valid-timestamp-label-with-mismatching-imprint-rejected")
+            .find(|case| {
+                case["case_id"] == "valid-timestamp-label-with-mismatching-imprint-rejected"
+            })
             .expect("valid label/wrong digest negative control");
         let mismatch_report = evaluate_case(mismatch, ReplayMode::AsKnownAt);
         assert_eq!(mismatch_report.disposition, "REJECT");
