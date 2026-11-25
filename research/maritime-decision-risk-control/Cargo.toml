@@ -58,3 +58,7 @@ path = "src/bin/dcsa_maturity_audit.rs"
 [[bin]]
 name = "cross-standard-mapping-audit"
 path = "src/bin/cross_standard_mapping_audit.rs"
+
+[[bin]]
+name = "service-variability-audit"
+path = "src/bin/service_variability_audit.rs"
