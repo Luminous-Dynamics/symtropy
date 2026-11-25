@@ -255,7 +255,7 @@ fn validate_config(config: MultimodalConfigV0) -> Result<(), MultimodalWorldErro
         return Err(MultimodalWorldErrorV0::EventCountOutOfRange);
     }
     if config.regime == AssociationRegimeV0::PeriodicAmbiguous
-        && config.event_count % AMBIGUOUS_FAMILIES_V0 != 0
+        && !config.event_count.is_multiple_of(AMBIGUOUS_FAMILIES_V0)
     {
         return Err(MultimodalWorldErrorV0::AmbiguousEventCountNotMultipleOfFour);
     }
@@ -571,7 +571,7 @@ impl MultimodalWorldV0 {
                 for phase in 0..AMBIGUOUS_FAMILIES_V0 {
                     let mut pairs = Vec::new();
                     for (alpha_slot, alpha_id) in &alpha_by_slot {
-                        let beta_slot = (alpha_slot + phase) % self.event_count;
+                        let beta_slot = (*alpha_slot + phase) % self.event_count;
                         if let Some(beta_id) = beta_by_slot.get(&beta_slot) {
                             pairs.push(EventPairV0 {
                                 alpha_observation_id: *alpha_id,
