@@ -160,7 +160,7 @@ The initial two-modality categorical microcosm is implemented in `src/multimodal
 
 The first version uses explicit shared calibration pulses as an optional independent clock-identifiability factor. It is not a general blind clock-estimation algorithm. Periodic event ambiguity can be tested both with anchors (identifiable clock, ambiguous correspondence) and without anchors (both unresolved). No semantic or causal labels are serialized to the policy view.
 
-Seven focused tests cover aligned positives, exact matched marginals, shuffled negative correspondence, periodic ambiguity, clock/semantic score separation, causal arrival prefixes, and invalid configuration. The existing `ErgoStream microcosm` workflow is the execution authority; no test, doctest, Clippy or benchmark result is claimed until it passes on the exact branch head.
+Eight focused tests cover aligned positives, exact matched marginals under dropout, shuffled negative correspondence, periodic ambiguity with and without shared clock anchors, clock/semantic score separation, causal arrival prefixes, explicit out-of-order sensor-time delivery, and invalid configuration. The existing `ErgoStream microcosm` workflow is the execution authority; no test, doctest, Clippy or benchmark result is claimed until it passes on the exact branch head.
 
 ## 11. First executable milestone
 
