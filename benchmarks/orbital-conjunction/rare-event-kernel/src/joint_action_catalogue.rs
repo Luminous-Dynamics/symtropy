@@ -970,12 +970,15 @@ mod tests {
                 -5,
             ),
         ];
-        let report = evaluate_joint_action_catalogue(config(
+        let mut cfg = config(
             vec![candidate(10, 1, OPERATOR_A), candidate(11, 1, OPERATOR_A)],
             outcomes,
             1,
-        ))
-        .unwrap();
+        );
+        // The baseline event interval starts at 1e-6, while the safe
+        // maneuver outcomes are exactly 0.5e-6. Set the threshold between them.
+        cfg.probability_threshold = rational(3, 4_000_000);
+        let report = evaluate_joint_action_catalogue(cfg).unwrap();
 
         assert_eq!(
             report.disposition,
