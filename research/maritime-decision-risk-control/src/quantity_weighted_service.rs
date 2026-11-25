@@ -455,6 +455,19 @@ mod tests {
     }
 
     #[test]
+    fn service_row_identity_and_receiver_contract_is_revalidated() {
+        let mut observations = synthetic_observations();
+        observations[1].observation_id = observations[0].observation_id.clone();
+        assert_eq!(
+            evaluate_quantity_weighted_service(
+                &observations,
+                &synthetic_quantities(ServiceQuantityUnit::Container),
+            ),
+            Err(QuantityWeightedError::InvalidServiceObservations)
+        );
+    }
+
+    #[test]
     fn deterministic_receipt_has_three_unit_systems_and_fixed_schema() {
         let first = render_csv();
         assert_eq!(first, render_csv());
