@@ -3,8 +3,7 @@
   "profile_id": "aero-evidence-binding-v0.2",
   "synthetic_only": true,
   "claim_ceiling": "synthetic_binding_contract_only",
-  "validity_interval_semantics": "[valid_from_utc, valid_until_utc)",
-  "evaluated_at_utc": "2026-11-24T10:30:00Z",
+  "validity_interval_semantics": "[valid_from_unix_ms, valid_until_unix_ms)",
   "hierarchy": {
     "material_lots": [
       {
@@ -82,8 +81,8 @@
       "id": "OBS-A",
       "specimen_id": "SPEC-A",
       "campaign_id": "CAMPAIGN-A",
-      "acquired_at_utc": "2026-11-24T10:00:00Z",
-      "time_basis": "UTC"
+      "time_basis": "UTC_UNIX_EPOCH_MS",
+      "acquired_at_unix_ms": 1795514400000
     }
   ],
   "calibration_certificates": [
@@ -94,9 +93,10 @@
       "calibration_lab": "SYNTHETIC-LAB-A",
       "certificate_artifact_ref": "mycelix-packet://synthetic/CAL-A",
       "authenticity_status": "authenticated",
-      "valid_from_utc": "2026-11-24T09:00:00Z",
-      "valid_until_utc": "2026-11-24T11:00:00Z"
+      "valid_from_unix_ms": 1795510800000,
+      "valid_until_unix_ms": 1795518000000
     }
   ],
-  "calibration_events": []
+  "calibration_events": [],
+  "evaluated_at_unix_ms": 1795516200000
 }
