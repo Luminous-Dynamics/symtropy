@@ -2,7 +2,7 @@ name: AERO Material Qualification Contract
 
 on:
   push:
-    branches: ["research/aero-evidence-binding-v0.2"]
+    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1"]
     paths:
       - "crates/domains/symtropy-aero-material-qual/**"
       - "docs/research/aviation/AERO_EVIDENCE_BINDING_001_V0_2.md"
@@ -12,9 +12,12 @@ on:
       - "docs/research/aviation/schemas/aero_evidence_binding_case_v0_2.schema.json"
       - "docs/research/aviation/examples/synthetic_aero_evidence_binding_case_v0_2.json"
       - "docs/research/aviation/examples/adversarial_evidence_binding_mutations_v0_2.json"
+      - "docs/research/aviation/AERO_TEMPORAL_EVIDENCE_ASSURANCE_V0_1.md"
+      - "docs/research/aviation/schemas/aero_temporal_replay_corpus_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_temporal_replay_corpus_v0_1.json"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
-    branches: ["main", "research/aero-material-process-qual-v0.1"]
+    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2"]
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
@@ -27,6 +30,9 @@ on:
       - "docs/research/aviation/schemas/aero_evidence_binding_case_v0_2.schema.json"
       - "docs/research/aviation/examples/synthetic_aero_evidence_binding_case_v0_2.json"
       - "docs/research/aviation/examples/adversarial_evidence_binding_mutations_v0_2.json"
+      - "docs/research/aviation/AERO_TEMPORAL_EVIDENCE_ASSURANCE_V0_1.md"
+      - "docs/research/aviation/schemas/aero_temporal_replay_corpus_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_temporal_replay_corpus_v0_1.json"
       - ".github/workflows/aero-material-qual.yml"
   workflow_dispatch:
 
@@ -133,6 +139,39 @@ jobs:
                   print(f"{list(error.absolute_path)}: {error.message}")
               raise SystemExit(f"v0.2 fixture failed schema validation ({len(errors)} errors)")
           print("v0.2 evidence-binding schema and fixture validation passed.")
+          PY
+
+      - name: Validate temporal replay corpus schema and frozen vectors
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema = json.loads((root / "docs/research/aviation/schemas/aero_temporal_replay_corpus_v0_1.schema.json").read_text())
+          corpus = json.loads((root / "docs/research/aviation/examples/aero_temporal_replay_corpus_v0_1.json").read_text())
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("temporal replay schema must declare Draft 2020-12")
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(corpus), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
+              raise SystemExit(f"temporal replay corpus failed schema validation ({len(errors)} errors)")
+          cases = corpus["cases"]
+          ids = [case["case_id"] for case in cases]
+          if len(ids) != len(set(ids)):
+              raise SystemExit("temporal replay case IDs must be unique")
+          if not any(case["expected"]["as_known_at"]["disposition"] == "ACCEPTED_FOR_BINDING_ONLY" for case in cases):
+              raise SystemExit("temporal replay corpus requires a positive control")
+          if not any(case["expected"]["as_known_at"]["disposition"] == "NOT_KNOWN_AT_SNAPSHOT" for case in cases):
+              raise SystemExit("temporal replay corpus requires a late-receipt control")
+          if corpus.get("oracle_review_status") != "NOT_INDEPENDENTLY_REVIEWED":
+              raise SystemExit("oracle review status must remain explicit until independent review")
+          print(f"Temporal replay corpus structure passed: {len(cases)} cases; semantic oracle review still required.")
           PY
 
       - name: Run evaluator tests
