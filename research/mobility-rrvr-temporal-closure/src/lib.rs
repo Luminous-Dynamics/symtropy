@@ -195,18 +195,6 @@ fn graph_indexes(
         outdegree[from] += 1;
     }
 
-    for (index, node) in envelope.nodes.iter().enumerate() {
-        if node.is_ingress && indegree[index] != 0 {
-            return Err(HoldReason::TerminalMismatch);
-        }
-        if node.is_terminal && outdegree[index] != 0 {
-            return Err(HoldReason::TerminalMismatch);
-        }
-        if !node.is_terminal && outdegree[index] == 0 {
-            return Err(HoldReason::TerminalMismatch);
-        }
-    }
-
     // Kahn's algorithm rejects forwarding cycles. A cyclic profile needs a
     // separate termination/fencing proof and is not silently treated as a DAG.
     let mut queue = VecDeque::new();
@@ -228,6 +216,18 @@ fn graph_indexes(
     }
     if processed != envelope.nodes.len() {
         return Err(HoldReason::Cycle);
+    }
+
+    for (index, node) in envelope.nodes.iter().enumerate() {
+        if node.is_ingress && indegree[index] != 0 {
+            return Err(HoldReason::TerminalMismatch);
+        }
+        if node.is_terminal && outdegree[index] != 0 {
+            return Err(HoldReason::TerminalMismatch);
+        }
+        if !node.is_terminal && outdegree[index] == 0 {
+            return Err(HoldReason::TerminalMismatch);
+        }
     }
 
     // Every declared node must be reachable from the single ingress.
@@ -280,7 +280,7 @@ fn bounded_expiry_horizon(
     ingress_index: usize,
     adjacency: &[Vec<usize>],
 ) -> Result<u64, HoldReason> {
-    if !envelope.nodes[ingress_index].rejects_old_epoch {
+    if envelope.nodes.iter().any(|node| !node.rejects_old_epoch) {
         return Err(HoldReason::MissingOldEpochFence);
     }
     if !envelope.clock_profile_valid {
@@ -598,7 +598,19 @@ mod tests {
         });
         assert_eq!(
             evaluate(&envelope),
-            ClosureDecision::Hold(HoldReason::TerminalMismatch)
+            ClosureDecision::Hold(HoldReason::Cycle)
+        );
+    }
+
+    #[test]
+    fn bounded_expiry_requires_old_epoch_rejection_at_every_holder() {
+        let mut envelope = base_envelope();
+        envelope.edges[0].in_flight_messages = 1;
+        envelope.edges[0].no_future_old_epoch_enqueue = false;
+        envelope.nodes[1].rejects_old_epoch = false;
+        assert_eq!(
+            evaluate(&envelope),
+            ClosureDecision::Hold(HoldReason::MissingOldEpochFence)
         );
     }
 
