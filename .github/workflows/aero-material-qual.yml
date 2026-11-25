@@ -176,8 +176,8 @@ jobs:
               raise SystemExit("temporal replay corpus requires a late-receipt control")
           if corpus.get("oracle_review_status") != "NOT_INDEPENDENTLY_REVIEWED":
               raise SystemExit("oracle review status must remain explicit until independent review")
-          if len(cases) != 26:
-              raise SystemExit(f"temporal replay corpus must contain exactly 26 frozen cases; found {len(cases)}")
+          if len(cases) != 29:
+              raise SystemExit(f"temporal replay corpus must contain exactly 29 frozen cases; found {len(cases)}")
           all_events = [event for case in cases for event in case["events"]]
           for event in all_events:
               receipt_status = event["receiver_receipt_status"]
@@ -232,6 +232,23 @@ jobs:
           for case in cases:
               if case["verifier_profile_id"] != "aero-temporal-replay-reference-v0.1":
                   raise SystemExit(f"{case['case_id']}: verifier profile must be pinned")
+              for view_name, view in (("snapshot", case["snapshot"]), ("current_reassessment", case["current_reassessment"])):
+                  if view["evidence_checkpoint_watermark_unix_ms"] != view["receiver_receipt_watermark_unix_ms"]:
+                      raise SystemExit(f"{case['case_id']}/{view_name}: checkpoint watermark must equal evidence watermark")
+                  if view["evidence_checkpoint_status"] == "SYNTHETIC_VALID":
+                      if not view["evidence_checkpoint_reference"] or view["evidence_checkpoint_digest_sha256"] != view["evidence_view_digest_sha256"]:
+                          if case["case_id"] != "evidence-checkpoint-digest-mismatch-rejects-historical-view" or view_name != "snapshot":
+                              raise SystemExit(f"{case['case_id']}/{view_name}: valid checkpoint must bind the exact evidence-view digest")
+                  elif view["evidence_checkpoint_reference"] is not None:
+                      raise SystemExit(f"{case['case_id']}/{view_name}: non-valid checkpoint must not carry a verified reference")
+                  if view["observer_coverage_status"] == "SYNTHETIC_QUALIFIED_COMPLETE":
+                      if not view["observer_coverage_profile_id"] or not view["observer_coverage_receipt_reference"] or view["observer_coverage_receipt_digest_sha256"] is None:
+                          raise SystemExit(f"{case['case_id']}/{view_name}: qualified observer coverage requires profile and receipt")
+                      if view["observer_coverage_watermark_unix_ms"] != view["receiver_receipt_watermark_unix_ms"]:
+                          raise SystemExit(f"{case['case_id']}/{view_name}: observer coverage watermark must equal evidence watermark")
+                  elif view["observer_coverage_status"] == "UNVERIFIED":
+                      if view["observer_coverage_receipt_reference"] is not None or view["observer_coverage_receipt_digest_sha256"] is not None:
+                          raise SystemExit(f"{case['case_id']}/{view_name}: unverified coverage must not carry a qualified receipt")
               if case["snapshot"]["trust_policy_digest_sha256"] != historical_policy_digest:
                   raise SystemExit(f"{case['case_id']}: historical policy digest mismatch")
               if case["current_reassessment"]["trust_policy_digest_sha256"] != current_policy_digest:
@@ -296,6 +313,23 @@ jobs:
               raise SystemExit("timestamp mismatch control must claim valid status while binding the wrong digest")
           if any("TIMESTAMP_IMPRINT_MISMATCH" not in bad_tsa["expected"][mode]["reason_codes"] for mode in required_modes):
               raise SystemExit("wrong-imprint control must expect TIMESTAMP_IMPRINT_MISMATCH")
+          unqualified_coverage = next((case for case in cases if case["case_id"] == "observer-coverage-unqualified-cannot-support-negative-claim"), None)
+          if unqualified_coverage is None or unqualified_coverage["snapshot"]["observer_coverage_status"] != "UNVERIFIED":
+              raise SystemExit("temporal corpus requires an unverified observer-coverage control")
+          if any(unqualified_coverage["expected"][mode]["disposition"] != "TRUST_UNRESOLVED" for mode in ("as_known_at", "recomputed_with_current_trust")):
+              raise SystemExit("unverified historical observer coverage must not support negative evidence claims")
+          if unqualified_coverage["expected"]["recomputed_with_current_evidence_and_trust"]["disposition"] != "ACCEPTED_FOR_BINDING_ONLY":
+              raise SystemExit("new qualified full view must be independently assessable")
+          incomplete_coverage = next((case for case in cases if case["case_id"] == "incomplete-observer-coverage-abstains-even-with-valid-checkpoint"), None)
+          if incomplete_coverage is None or any(incomplete_coverage["expected"][mode]["disposition"] != "ABSTAIN" for mode in required_modes):
+              raise SystemExit("incomplete observer coverage must abstain")
+          checkpoint_mismatch = next((case for case in cases if case["case_id"] == "evidence-checkpoint-digest-mismatch-rejects-historical-view"), None)
+          if checkpoint_mismatch is None or checkpoint_mismatch["snapshot"]["evidence_checkpoint_digest_sha256"] == checkpoint_mismatch["snapshot"]["evidence_view_digest_sha256"]:
+              raise SystemExit("checkpoint mismatch control must contain a different checkpoint and view digest")
+          if any(checkpoint_mismatch["expected"][mode]["disposition"] != "REJECT" for mode in ("as_known_at", "recomputed_with_current_trust")):
+              raise SystemExit("historical checkpoint mismatch must reject")
+          if checkpoint_mismatch["expected"]["recomputed_with_current_evidence_and_trust"]["disposition"] != "ACCEPTED_FOR_BINDING_ONLY":
+              raise SystemExit("a new independently valid current checkpoint can support a new full replay")
           alias = next((case for case in cases if case["case_id"] == "same-issuer-cannot-bypass-identity-with-unverified-namespace-alias"), None)
           if alias is None or len(alias["events"]) != 2:
               raise SystemExit("temporal corpus requires a source namespace alias attack control")
