@@ -436,6 +436,32 @@ mod tests {
     }
 
     #[test]
+    fn pure_translation_matches_perspective_bound_and_inclusive_boundary() {
+        let input = corpus();
+        let case = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "PM-002-TRANSLATION-WITHIN")
+            .unwrap();
+        let result = evaluate_case(case);
+        let bounds = result.bounds.unwrap();
+
+        assert_eq!(bounds.rotational_speed_um_s_upper, 0);
+        assert_eq!(bounds.total_relative_point_speed_um_s_upper, 10_000);
+        assert_eq!(bounds.exposure_point_displacement_um_upper, 10);
+        assert_eq!(bounds.exposure_x_micro_px_upper, 120_000);
+        assert_eq!(bounds.exposure_y_micro_px_upper, 110_000);
+        assert_eq!(result.status, Status::WithinDeclaredBudget);
+
+        let mut one_micro_pixel_over = case.clone();
+        one_micro_pixel_over.model.exposure_budget_x_micro_px -= 1;
+        assert_eq!(
+            evaluate_case(&one_micro_pixel_over).status,
+            Status::BudgetExceeded
+        );
+    }
+
+    #[test]
     fn pure_rotation_produces_a_nonzero_bound() {
         let input = corpus();
         let case = input
