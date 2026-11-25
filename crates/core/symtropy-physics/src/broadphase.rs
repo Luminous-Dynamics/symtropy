@@ -385,6 +385,55 @@ impl<const D: usize> StaticBroadphase<D> {
         self.entries.len()
     }
 
+    /// Enumerate pairs between cached static and kinematic entries.
+    ///
+    /// Static-static is intentionally excluded. Pairs involving at least one
+    /// kinematic body are retained to match the canonical find_pairs contract.
+    /// The loops are O(K*S + K^2), not O((S+K)^2), so large static-only
+    /// populations do not pay a quadratic scan.
+    fn query_cached_pairs(&self) -> Vec<BroadphasePair> {
+        let static_entries: Vec<&BpEntry<D>> = self
+            .entries
+            .iter()
+            .filter(|entry| entry.body_type == BodyType::Static)
+            .collect();
+        let kinematic_entries: Vec<&BpEntry<D>> = self
+            .entries
+            .iter()
+            .filter(|entry| entry.body_type == BodyType::Kinematic)
+            .collect();
+
+        let mut pairs = Vec::new();
+        for (index, kinematic) in kinematic_entries.iter().enumerate() {
+            for static_entry in &static_entries {
+                let group_ok = (kinematic.collision_group & static_entry.collision_mask != 0)
+                    && (static_entry.collision_group & kinematic.collision_mask != 0);
+                if group_ok && kinematic.aabb.overlaps(&static_entry.aabb) {
+                    let (left, right) = (kinematic.handle, static_entry.handle);
+                    pairs.push(if left < right {
+                        BroadphasePair(left, right)
+                    } else {
+                        BroadphasePair(right, left)
+                    });
+                }
+            }
+
+            for other in kinematic_entries.iter().skip(index + 1) {
+                let group_ok = (kinematic.collision_group & other.collision_mask != 0)
+                    && (other.collision_group & kinematic.collision_mask != 0);
+                if group_ok && kinematic.aabb.overlaps(&other.aabb) {
+                    let (left, right) = (kinematic.handle, other.handle);
+                    pairs.push(if left < right {
+                        BroadphasePair(left, right)
+                    } else {
+                        BroadphasePair(right, left)
+                    });
+                }
+            }
+        }
+        pairs
+    }
+
     /// Enumerate pairs between a dynamic entry and all cached static entries.
     ///
     /// Uses orientation-aware AABB overlap.
@@ -453,7 +502,7 @@ pub fn find_pairs_incremental<const D: usize>(
         return find_pairs(bodies);
     }
 
-    let mut pairs = Vec::new();
+    let mut pairs = static_bp.query_cached_pairs();
 
     // Dynamic–dynamic pairs (brute force, orientation-aware AABB overlap)
     for i in 0..dynamic.len() {
@@ -662,6 +711,102 @@ mod tests {
 
         let pairs = super::find_pairs_incremental(&bodies, &static_bp);
         assert!(pairs.is_empty(), "static–static must never collide");
+    }
+
+    #[test]
+    fn incremental_static_kinematic_matches_reference_pairs() {
+        let mut kinematic = RigidBody::<3>::static_body(
+            BodyHandle(1),
+            Point::new([0.5, 0.0, 0.0]),
+            Box::new(Sphere::unit()),
+        );
+        kinematic.body_type = BodyType::Kinematic;
+        let bodies = vec![
+            RigidBody::<3>::static_body(
+                BodyHandle(0),
+                Point::origin(),
+                Box::new(Sphere::unit()),
+            ),
+            kinematic,
+        ];
+        let mut cache = StaticBroadphase::new();
+        cache.rebuild(&bodies);
+
+        let incremental = find_pairs_incremental(&bodies, &cache);
+        let reference = find_pairs(&bodies);
+        assert_eq!(incremental, reference);
+        assert_eq!(incremental.len(), 1);
+    }
+
+    #[test]
+    fn incremental_kinematic_kinematic_matches_reference_pairs() {
+        let mut first = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(Sphere::unit()),
+        );
+        first.body_type = BodyType::Kinematic;
+        let mut second = RigidBody::<3>::static_body(
+            BodyHandle(1),
+            Point::new([0.5, 0.0, 0.0]),
+            Box::new(Sphere::unit()),
+        );
+        second.body_type = BodyType::Kinematic;
+        let bodies = vec![first, second];
+        let mut cache = StaticBroadphase::new();
+        cache.rebuild(&bodies);
+
+        let incremental = find_pairs_incremental(&bodies, &cache);
+        let reference = find_pairs(&bodies);
+        assert_eq!(incremental, reference);
+        assert_eq!(incremental.len(), 1);
+    }
+
+    #[test]
+    fn incremental_cached_pairs_preserve_static_static_exclusion() {
+        let bodies = vec![
+            RigidBody::<3>::static_body(
+                BodyHandle(0),
+                Point::origin(),
+                Box::new(Sphere::unit()),
+            ),
+            RigidBody::<3>::static_body(
+                BodyHandle(1),
+                Point::new([0.5, 0.0, 0.0]),
+                Box::new(Sphere::unit()),
+            ),
+        ];
+        let mut cache = StaticBroadphase::new();
+        cache.rebuild(&bodies);
+
+        assert!(find_pairs_incremental(&bodies, &cache).is_empty());
+        assert!(find_pairs(&bodies).is_empty());
+    }
+
+    #[test]
+    fn incremental_cached_pairs_apply_mutual_collision_filters() {
+        let mut first = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(Sphere::unit()),
+        );
+        first.body_type = BodyType::Kinematic;
+        first.collision_group = 0b01;
+        first.collision_mask = 0b01;
+        let mut second = RigidBody::<3>::static_body(
+            BodyHandle(1),
+            Point::new([0.5, 0.0, 0.0]),
+            Box::new(Sphere::unit()),
+        );
+        second.body_type = BodyType::Kinematic;
+        second.collision_group = 0b10;
+        second.collision_mask = 0b10;
+        let bodies = vec![first, second];
+        let mut cache = StaticBroadphase::new();
+        cache.rebuild(&bodies);
+
+        assert!(find_pairs_incremental(&bodies, &cache).is_empty());
+        assert_eq!(find_pairs_incremental(&bodies, &cache), find_pairs(&bodies));
     }
 
     #[test]
