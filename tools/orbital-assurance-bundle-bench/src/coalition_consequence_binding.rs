@@ -717,7 +717,7 @@ fn compute_portfolio_metrics(
         for losses in scenario_losses.values() {
             let baseline = *losses
                 .get(&baseline_id)
-                .ok_or_else(|| "no-action loss is missing in a joint scenario".to_owned())?;
+                .ok_or_else(|| "no-action portfolio loss is missing in a joint scenario".to_owned())?;
             let portfolio = *losses
                 .get(portfolio_id)
                 .ok_or_else(|| {
@@ -776,7 +776,7 @@ fn compute_portfolio_metrics(
             portfolio_id: portfolio_id.clone(),
             action_ids: row.action_ids.clone(),
             risk_screening_state: row.risk_snapshot.screening_state.clone(),
-            risk_snapshot_below_threshold: is_safe,
+            risk_snapshot_below_threshold: is_below_threshold,
             lower_bound_avoided_ticks: lower_bound,
             worst_absolute_loss_ticks: worst_loss,
             worst_scenario_regret_ticks: regret,
