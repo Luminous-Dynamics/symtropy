@@ -52,6 +52,69 @@ jobs:
               and (.retired_sequence_generation_id == .sequence_generation_id)))
           ' "$FIXTURE"
 
+      - name: Validate and model-check temporal closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-temporal-closure/model"
+          MODEL="$ROOT/RRVRTemporalClosure.tla"
+          JAR="$RUNNER_TEMP/tla/tla2tools.jar"
+          mkdir -p "$RUNNER_TEMP/tla"
+          curl --fail --location --retry 3 \
+            "https://github.com/microsoft/tlalink/releases/download/tla2tools-2ef2af8/tla2tools.jar" \
+            --output "$JAR"
+          printf '%s  %s\n' "d15655eeaff4b3f7b3d65c46b838bc0f35d131b2ef4b1e473689b62c98d4726f" "$JAR" | sha256sum --check
+
+          check_blob() {
+            local expected="$1"
+            local file="$2"
+            actual="$(git hash-object "$file")"
+            if [[ "$actual" != "$expected" ]]; then
+              echo "Git blob mismatch for $file: expected $expected, got $actual" >&2
+              exit 1
+            fi
+          }
+
+          check_blob "65136d20793b0ddde549ca507e99f02861ac0d78" "$MODEL"
+          check_blob "9606a91bffb02fc65b1af4e0ccadfe8eb3d14025" "$ROOT/RRVRTemporalClosure_Safe.cfg"
+          check_blob "c888ac3080001ee82a41037139eee4fee5077e5d" "$ROOT/RRVRTemporalClosure_UnsafeQuiet.cfg"
+          check_blob "eb186fc07135e7db1146c8be131c1eca4e706ec1" "$ROOT/RRVRTemporalClosure_UnsafeLateEffect.cfg"
+          check_blob "453e148e4e275acff60384ca463a9a499bf80398" "$ROOT/RRVRTemporalClosure_UnsafeAgeRefresh.cfg"
+          check_blob "072c78135b205414ca3c4f687e49a533701a4e16" "$ROOT/RRVRTemporalClosure_UnsafeHiddenEdge.cfg"
+          check_blob "13ffd23ba66ac9c2589f22db012f55f84939e78f" "$ROOT/RRVRTemporalClosure_UnsafeUnbounded.cfg"
+          check_blob "31792cf2ac8af5c79904d89e76204858317596fb" "$ROOT/RRVRTemporalClosure_UnsafeInvalidClock.cfg"
+
+          java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+            -workers 1 -config "$ROOT/RRVRTemporalClosure_Safe.cfg" "$MODEL" \
+            | tee "$RUNNER_TEMP/tla/temporal-closure-safe.log"
+
+          run_expected_counterexample() {
+            local config="$1"
+            local expected="$2"
+            local label="$3"
+            local log="$RUNNER_TEMP/tla/$label.log"
+            local status=0
+            java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC \
+              -workers 1 -config "$ROOT/$config" "$MODEL" > "$log" 2>&1 || status=$?
+            if [[ "$status" -eq 0 ]]; then
+              echo "Unsafe mutant unexpectedly passed: $label" >&2
+              exit 1
+            fi
+            if ! grep -Fq "$expected is violated" "$log"; then
+              echo "Mutant failed for an unexpected reason: $label" >&2
+              tail -n 80 "$log" >&2
+              exit 1
+            fi
+            echo "Expected counterexample observed: $label -> $expected"
+          }
+
+          run_expected_counterexample "RRVRTemporalClosure_UnsafeQuiet.cfg" "CertificateSound" "unsafe-quiet"
+          run_expected_counterexample "RRVRTemporalClosure_UnsafeLateEffect.cfg" "NoPhysicalEffectAfterClosure" "unsafe-late-effect"
+          run_expected_counterexample "RRVRTemporalClosure_UnsafeAgeRefresh.cfg" "CertificateSound" "unsafe-age-refresh"
+          run_expected_counterexample "RRVRTemporalClosure_UnsafeHiddenEdge.cfg" "NoPhysicalEffectAfterClosure" "unsafe-hidden-edge"
+          run_expected_counterexample "RRVRTemporalClosure_UnsafeUnbounded.cfg" "CertificateSound" "unsafe-unbounded"
+          run_expected_counterexample "RRVRTemporalClosure_UnsafeInvalidClock.cfg" "CertificateSound" "unsafe-invalid-clock"
+
       - name: Check Rust formatting
         run: cargo fmt --manifest-path research/mobility-rrvr-temporal-closure/Cargo.toml -- --check
 
