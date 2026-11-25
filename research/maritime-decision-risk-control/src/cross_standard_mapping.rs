@@ -511,7 +511,7 @@ struct Case {
     reversibility: MappingReversibility,
 }
 
-fn cases() -> [Case; 19] {
+fn cases() -> [Case; 25] {
     [
         Case {
             id: "classifier_to_extension_field_exact",
@@ -646,12 +646,54 @@ fn cases() -> [Case; 19] {
             kind: MappingKind::Exact,
             reversibility: MappingReversibility::Reversible,
         },
+        Case {
+            id: "synthetic_rule_cannot_map_non_synthetic_source",
+            expected: "SYNTHETIC_RULE_USED_FOR_NON_SYNTHETIC_SOURCE",
+            target_field: "sourceMaturity",
+            kind: MappingKind::Exact,
+            reversibility: MappingReversibility::Reversible,
+        },
+        Case {
+            id: "source_event_family_mismatch_rejected",
+            expected: "SOURCE_EVENT_FAMILY_MISMATCH",
+            target_field: "sourceMaturity",
+            kind: MappingKind::Exact,
+            reversibility: MappingReversibility::Reversible,
+        },
+        Case {
+            id: "cbv_version_mismatch_rejected",
+            expected: "TARGET_VOCABULARY_VERSION_MISMATCH",
+            target_field: "bizStep",
+            kind: MappingKind::Contextual,
+            reversibility: MappingReversibility::Irreversible,
+        },
+        Case {
+            id: "cbv_version_missing_rejected",
+            expected: "TARGET_VOCABULARY_VERSION_MISMATCH",
+            target_field: "bizStep",
+            kind: MappingKind::Contextual,
+            reversibility: MappingReversibility::Irreversible,
+        },
+        Case {
+            id: "rejected_mapping_rule_rejected",
+            expected: "MAPPING_RULE_NOT_APPROVED",
+            target_field: "sourceMaturity",
+            kind: MappingKind::Exact,
+            reversibility: MappingReversibility::Reversible,
+        },
+        Case {
+            id: "external_approval_record_missing_rejected",
+            expected: "EXTERNAL_APPROVAL_RECORD_MISSING",
+            target_field: "sourceMaturity",
+            kind: MappingKind::Exact,
+            reversibility: MappingReversibility::Reversible,
+        },
     ]
 }
 
 pub fn render_csv() -> String {
     let mut output = String::from(
-        "case_id,expected_mapping_kind,observed_status,target_field,mapping_bundle_revision,review_status,source_payload_digest_carried,reversibility,claim_ceiling\n",
+        "case_id,expected_mapping_kind,observed_status,source_event_family,target_field,target_standard_version,target_vocabulary_version,mapping_bundle_revision,mapping_bundle_sha256,review_status,source_payload_digest_carried,reversibility,claim_ceiling\n",
     );
     for case in cases() {
         let mut source = source_fixture();
@@ -750,6 +792,25 @@ pub fn render_csv() -> String {
                 mapping_rule.mapping_bundle_ref =
                     "urn:mapping-bundle:sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd".to_owned();
             }
+            "synthetic_rule_cannot_map_non_synthetic_source" => {
+                source.is_synthetic = false;
+            }
+            "source_event_family_mismatch_rejected" => {
+                source.event_family = "ShipmentEvent".to_owned();
+            }
+            "cbv_version_mismatch_rejected" => {
+                mapping_rule.target_vocabulary_version = Some("GS1-CBV-1.0.0".to_owned());
+            }
+            "cbv_version_missing_rejected" => {
+                mapping_rule.target_vocabulary_version = None;
+            }
+            "rejected_mapping_rule_rejected" => {
+                mapping_rule.review_status = MappingReviewStatus::Rejected;
+            }
+            "external_approval_record_missing_rejected" => {
+                mapping_rule.review_status = MappingReviewStatus::ExternallyApproved;
+                mapping_rule.approval_record_ref = None;
+            }
             "source_subject_identity_missing" => source.subject_id.clear(),
             "source_payload_reference_missing" => source.raw_payload_ref.clear(),
             "source_payload_reference_mismatch" => {
@@ -771,12 +832,16 @@ pub fn render_csv() -> String {
         assert_eq!(observed, case.expected, "crosswalk case {}", case.id);
         let _ = writeln!(
             output,
-            "{},{},{},{},{},{},{},{},SYNTHETIC_ONLY",
+            "{},{},{},{},{},{},{},{},{},{},{},{},SYNTHETIC_ONLY",
             case.id,
             case.expected,
             observed,
+            source.event_family,
             case.target_field,
+            mapping_rule.target_standard_version,
+            mapping_rule.target_vocabulary_version.as_deref().unwrap_or("NONE"),
             mapping_rule.mapping_bundle_revision,
+            mapping_rule.mapping_bundle_sha256,
             mapping_rule.review_status.label(),
             digest_carried,
             reversibility
@@ -1036,6 +1101,98 @@ mod tests {
     }
 
     #[test]
+    fn source_event_family_is_part_of_the_mapping_key() {
+        let mut source = source_fixture();
+        source.event_family = "ShipmentEvent".to_owned();
+        let exact = rule(
+            "eventClassifierCode",
+            "ACT",
+            "sourceMaturity",
+            "ACT",
+            MappingKind::Exact,
+            MappingReversibility::Reversible,
+            None,
+        );
+        assert_eq!(
+            map_field(&source, EPCIS_VERSION, &exact),
+            Err(CrosswalkError::SourceEventFamilyMismatch)
+        );
+    }
+
+    #[test]
+    fn fixture_only_mapping_cannot_be_reused_for_live_source_messages() {
+        let mut source = source_fixture();
+        source.is_synthetic = false;
+        let exact = rule(
+            "eventClassifierCode",
+            "ACT",
+            "sourceMaturity",
+            "ACT",
+            MappingKind::Exact,
+            MappingReversibility::Reversible,
+            None,
+        );
+        assert_eq!(
+            map_field(&source, EPCIS_VERSION, &exact),
+            Err(CrosswalkError::SyntheticRuleUsedForNonSyntheticSource)
+        );
+    }
+
+    #[test]
+    fn external_mapping_requires_an_external_approval_record_reference() {
+        let source = {
+            let mut source = source_fixture();
+            source.is_synthetic = false;
+            source
+        };
+        let mut external_rule = rule(
+            "eventClassifierCode",
+            "ACT",
+            "sourceMaturity",
+            "ACT",
+            MappingKind::Exact,
+            MappingReversibility::Reversible,
+            None,
+        );
+        external_rule.review_status = MappingReviewStatus::ExternallyApproved;
+        external_rule.approval_record_ref = None;
+        assert_eq!(
+            map_field(&source, EPCIS_VERSION, &external_rule),
+            Err(CrosswalkError::ExternalApprovalRecordMissing)
+        );
+
+        external_rule.approval_record_ref =
+            Some("urn:review-record:synthetic-example".to_owned());
+        assert!(
+            map_field(&source, EPCIS_VERSION, &external_rule).is_ok(),
+            "the adapter checks that an approval reference is declared; governance must resolve and verify it"
+        );
+    }
+
+    #[test]
+    fn cbv_target_version_is_pinned_separately_from_epcis_version() {
+        let mut candidate = rule(
+            "equipmentEventTypeCode",
+            "LOAD",
+            "bizStep",
+            "urn:epcglobal:cbv:bizstep:loading",
+            MappingKind::Contextual,
+            MappingReversibility::Irreversible,
+            Some("contextual equipment-event translation"),
+        );
+        candidate.target_vocabulary_version = Some("GS1-CBV-1.0.0".to_owned());
+        assert_eq!(
+            candidate.validate(),
+            Err(CrosswalkError::TargetVocabularyVersionMismatch)
+        );
+        candidate.target_vocabulary_version = None;
+        assert_eq!(
+            candidate.validate(),
+            Err(CrosswalkError::TargetVocabularyVersionMismatch)
+        );
+    }
+
+    #[test]
     fn source_and_target_versions_are_pinned() {
         let source = source_fixture();
         let exact = rule(
@@ -1094,9 +1251,9 @@ mod tests {
     fn receipt_is_deterministic_and_contains_every_mapping_boundary() {
         let first = render_csv();
         assert_eq!(first, render_csv());
-        assert_eq!(first.lines().count(), 20);
+        assert_eq!(first.lines().count(), 26);
         let width = first.lines().next().expect("header").split(',').count();
-        assert_eq!(width, 9);
+        assert_eq!(width, 13);
         for row in first.lines().skip(1) {
             assert_eq!(row.split(',').count(), width);
         }
@@ -1109,6 +1266,12 @@ mod tests {
         assert!(first.contains("SOURCE_PAYLOAD_REFERENCE_MISMATCH"));
         assert!(first.contains("MAPPING_BUNDLE_REFERENCE_MISSING"));
         assert!(first.contains("MAPPING_BUNDLE_REFERENCE_MISMATCH"));
+        assert!(first.contains("SYNTHETIC_RULE_USED_FOR_NON_SYNTHETIC_SOURCE"));
+        assert!(first.contains("SOURCE_EVENT_FAMILY_MISMATCH"));
+        assert!(first.contains("TARGET_VOCABULARY_VERSION_MISMATCH"));
+        assert!(first.contains("EXTERNAL_APPROVAL_RECORD_MISSING"));
+        assert!(first.contains("GS1-EPCIS-2.0.1"));
+        assert!(first.contains("GS1-CBV-2.0.0"));
         assert!(first.contains("source_payload_digest_carried"));
     }
 }
