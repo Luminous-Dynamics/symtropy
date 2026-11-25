@@ -131,7 +131,7 @@ The first implementation now exists in this research crate:
 - `scripts/independent_reference.py`: test-only, standard-library Python reference. It independently reads the JSON and TSV, uses a literal 30-case known-answer map, executes the Rust receipt binary and compares every output row. Python is not part of the production path.
 - `.github/workflows/maritime-evidence-decision-composition.yml`: pinned Rust 1.96.0 format, test, strict Clippy, receipt and independent-reference workflow.
 
-The frozen corpus has 30 unique cases: 1 eligible-for-review baseline, 10 abstention cases and 19 rejection cases. The valid fixture is synthetic and exists only to check composition logic.
+The frozen corpus has 31 unique cases: 1 eligible-for-review baseline, 11 abstention cases and 19 rejection cases. The valid fixture is synthetic and exists only to check composition logic.
 
 ### Validation status
 
@@ -146,3 +146,12 @@ The frozen corpus has 30 unique cases: 1 eligible-for-review baseline, 10 absten
 - Missing, unknown, stale, incomplete, not-identifiable or not-evaluable evidence abstains.
 - A known rejection dominates a separate abstention; all blockers remain in the receipt.
 - Only a fully passing bundle is eligible for human/authorized decision review. No operational mutation is performed.
+
+
+## South African aggregate-to-unit negative control (25 November 2026)
+
+The corpus now includes `C30_AGGREGATE_CLAIM_NOT_UNIT_RECEIPT`, grounded in the 23 November 2026 SAnews report repeating Transnet's aggregate statement: 41 priority pharmaceutical containers were identified; 18 were reported cleared and delivered, 7 were expected to arrive between 23 November and 2 December, and 16 were awaiting berth nomination. Source: [SAnews, 23 November 2026](https://www.sanews.gov.za/node/85835).
+
+The test does **not** dispute the aggregate statement. It checks a narrower semantic boundary: aggregate reported counts cannot be silently converted into 18 individually verified receiver-acceptance receipts when the public summary supplies no per-container IDs, custody handoff chain or receiver signatures. The unit-level receiver result therefore remains `NOT_EVALUABLE` / abstention until unit-level evidence exists. Vessel counts, container counts, TEU and tonnes remain separate denominators.
+
+The public summary is source-reported aggregate evidence, not a source of individual cargo identities or independently authenticated delivery records. This fixture does not contain personal, medical or shipment-identifying data.
