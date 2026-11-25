@@ -18,7 +18,7 @@ use std::time::Instant;
 
 use crate::adaptive_importance_sampling::{
     AdaptiveImportanceDraw, AdaptiveImportanceSamplingConfidenceSequence,
-    AdaptiveImportanceSamplingError, AdaptiveImportanceSamplingSummary,
+    AdaptiveImportanceSamplingSummary,
 };
 use crate::hedged_capital_sequence::{
     AdaptiveImportanceSamplingHedgedSequence, HedgedCapitalConfidenceSequence,
