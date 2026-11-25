@@ -43,6 +43,7 @@ pub mod pop_col_adjustment;
 pub mod pop_col_energy;
 pub mod pop_convergence;
 pub mod predictable_empirical_bernstein;
+pub mod proposal_execution_conformance;
 pub mod refinement_scheduler;
 pub mod residual;
 pub mod sequential;
@@ -115,6 +116,11 @@ pub use pop_convergence::{
 pub use predictable_empirical_bernstein::{
     AdaptiveImportanceSamplingPrPlEbSequence, DEFAULT_BET_FRACTION_CAP, PrPlEbConfidenceSequence,
     PrPlEbError,
+};
+pub use proposal_execution_conformance::{
+    FiniteAdaptiveProposalConfig, FiniteProposalAtom, FiniteProposalExecutionError,
+    FiniteProposalExecutionReceipt, FiniteProposalExecutionVerifier, TICKET_SPACE,
+    VerifiedFiniteProposalDraw,
 };
 pub use refinement_scheduler::{
     RankedRefinementCandidate, RefinementCandidate, RefinementCandidateId, RefinementScheduleError,
