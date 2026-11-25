@@ -179,6 +179,12 @@ struct GeneralizedVelocity {
     angular: [f64; 3],
 }
 
+#[derive(Clone, Copy, Debug, Default)]
+struct JacobianBlock {
+    linear: [f64; 3],
+    angular: [f64; 3],
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DelassusError {
     DuplicateBodyId,
@@ -309,19 +315,49 @@ impl DelassusOperator {
         Ok(result)
     }
 
-    /// O(m^2) dense reference path, intended only for tiny validation fixtures.
+    /// Materialize a dense reference by explicitly assembling sparse Jacobian
+    /// rows and contracting each shared body's inverse-mass/inertia block.
+    /// This path is O(m^2 B) in the worst case and intended only for tiny tests.
     pub fn materialize_dense(&self) -> Result<Vec<Vec<f64>>, DelassusError> {
-        let mut matrix = vec![vec![0.0; self.dimension]; self.dimension];
-        let mut basis = vec![0.0; self.dimension];
-        let mut column = 0;
-        while column < self.dimension {
-            basis[column] = 1.0;
-            let image = self.apply(&basis)?;
-            for (row, value) in image.iter().enumerate() {
-                matrix[row][column] = *value;
+        let mut jacobian_rows = Vec::with_capacity(self.dimension);
+        for contact in &self.contacts {
+            for axis in contact.frame.axes() {
+                let mut row = BTreeMap::new();
+                row.insert(
+                    contact.body_a,
+                    JacobianBlock {
+                        linear: scaled(axis, -1.0),
+                        angular: scaled(cross(contact.lever_arm_a, axis), -1.0),
+                    },
+                );
+                row.insert(
+                    contact.body_b,
+                    JacobianBlock {
+                        linear: axis,
+                        angular: cross(contact.lever_arm_b, axis),
+                    },
+                );
+                jacobian_rows.push(row);
             }
-            basis[column] = 0.0;
-            column += 1;
+        }
+
+        let mut matrix = vec![vec![0.0; self.dimension]; self.dimension];
+        for (row_index, left_row) in jacobian_rows.iter().enumerate() {
+            for (column_index, right_row) in jacobian_rows.iter().enumerate() {
+                let mut value = 0.0;
+                for (body_id, left_block) in left_row {
+                    if let Some(right_block) = right_row.get(body_id) {
+                        let body = self.bodies.get(body_id).expect("validated body");
+                        value += body.inverse_mass
+                            * dot(left_block.linear, right_block.linear);
+                        value += dot(
+                            left_block.angular,
+                            body.inverse_inertia_world.mul_vec(right_block.angular),
+                        );
+                    }
+                }
+                matrix[row_index][column_index] = value;
+            }
         }
         Ok(matrix)
     }
