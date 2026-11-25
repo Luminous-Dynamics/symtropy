@@ -1,0 +1,22 @@
+[package]
+name = "safrb-cargo-service-coupling"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "Apache-2.0"
+publish = false
+description = "Synthetic coupling of cargo availability, generator service and service assurance"
+
+[dependencies]
+safrb-cargo-receipt-ledger = { path = "../safrb-cargo-receipt-ledger" }
+safrb-fuel-service-corpus = { path = "../safrb-fuel-service-corpus" }
+safrb-usable-service-vector = { path = "../safrb-usable-service-vector" }
+
+[[bin]]
+name = "safrb-cargo-service-coupling"
+path = "src/main.rs"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
