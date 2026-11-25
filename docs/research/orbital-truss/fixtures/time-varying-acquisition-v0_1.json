@@ -473,7 +473,7 @@
       "case_id": "TV-016-FRAME-WINDOW-TRAP",
       "model": {
         "reference_point_speed_um_s": 0,
-        "reference_point_acceleration_um_s2": 32,
+        "reference_point_acceleration_um_s2": 32000000,
         "point_jerk_upper_um_s3": 0,
         "max_point_radius_um": 250000,
         "min_depth_um": 100000,
