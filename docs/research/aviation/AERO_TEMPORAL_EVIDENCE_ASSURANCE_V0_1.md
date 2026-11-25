@@ -251,12 +251,25 @@ The architecture must distinguish five independent claims: artifact integrity, i
 
 AERO v0.1/v0.2 remains a synthetic software contract. The temporal assurance benchmark must not claim to authenticate actual lab records, establish physical custody, validate material allowables, demonstrate NDE probability of detection, qualify an aircraft component, authorize maintenance release or establish airworthiness.
 
-## 10. Execution sequence
+## 10. Frozen temporal replay corpus
 
-1. Independently review the existing 31 dispositions and the Rust event replay test.
-2. Add future-effective, clock-uncertainty and conflicting-payload controls to the frozen temporal corpus.
+The machine-readable first slice is:
+
+- `docs/research/aviation/examples/aero_temporal_replay_corpus_v0_1.json`
+- `docs/research/aviation/schemas/aero_temporal_replay_corpus_v0_1.schema.json`
+
+It contains 12 synthetic controls, including a positive binding-only baseline, a known-but-future-effective revocation, an event received after the historical watermark despite a backdated issuer timestamp, a known effective revocation, acquisition-time uncertainty crossing a calibration boundary, a timestamp imprint mismatch, unknown issuer authority, source-sequence gaps, conflicting duplicate event IDs, current-trust key-compromise reassessment, correction cycles and source-clock rollback.
+
+Every case freezes both `AS_KNOWN_AT` and `RECOMPUTED_WITH_CURRENT_TRUST` expected dispositions. The fixture deliberately permits duplicate event IDs so that the duplicate-conflict challenge is representable; uniqueness is a semantic rule to be evaluated, not a JSON Schema uniqueness rule over complete objects.
+
+**Oracle status: `NOT_INDEPENDENTLY_REVIEWED`.** The corpus is a contract fixture and is schema-validated in CI. It is not yet wired to the v0.2 Rust evaluator and must not be described as a passing semantic oracle. Independent review should precede evaluator integration.
+
+## 11. Execution sequence
+
+1. Independently review the existing 31 v0.2 dispositions and the Rust event replay test.
+2. Independently review the 12 temporal replay vectors and extend them with generated correction histories, sequence/fork properties and boundary cases.
 3. Define an owner-native event receipt mapping with Mycelix and BASALT maintainers; do not add duplicate state.
-4. Build generated correction histories and sequence/fork property tests around the existing evaluator.
+4. Resolve duplicate event identity before correction-reference resolution in the evaluator; add conflicting-payload permutation regression tests.
 5. Add a verifier adapter for supplied signature/timestamp evidence only after its source format and trust policy are pinned.
 6. Validate against independently retained source receipts and a rights-cleared, non-flight-critical physical pilot under #7396.
 7. Promote claims only after independent laboratory, metrology and engineering review.
