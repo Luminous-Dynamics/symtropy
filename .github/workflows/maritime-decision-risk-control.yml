@@ -212,8 +212,8 @@ jobs:
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin service-variability-audit > /tmp/service-variability-replay.csv
           cmp /tmp/service-variability.csv /tmp/service-variability-replay.csv
           test "$(wc -l < /tmp/service-variability.csv)" -eq 8
-          head -n 1 /tmp/service-variability.csv | awk -F, '{ if (NF != 24) exit 1 }'
-          awk -F, 'NF != 24 { exit 1 }' /tmp/service-variability.csv
+          head -n 1 /tmp/service-variability.csv | awk -F, '{ if (NF != 27) exit 1 }'
+          awk -F, 'NF != 27 { exit 1 }' /tmp/service-variability.csv
           awk -F, '$1=="MEAN_MATCHED_STABLE" { if ($5 != 100 || $8 != 100 || $13 != 1000) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/service-variability.csv
           awk -F, '$1=="MEAN_MATCHED_HIGH_VARIABILITY" { if ($5 != 100 || $8 != 280 || $13 != 900 || $15 != 20) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/service-variability.csv
           awk -F, '$1=="MEAN_MATCHED_STABLE" { if ($16 != 0 || $17 != 0 || $18 != 1170) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/service-variability.csv
@@ -221,7 +221,15 @@ jobs:
           awk -F, '$1=="LOCAL_PORT_GAIN_NO_RECEIVER_GAIN" { if ($3 >= 130 || $5 != 150) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/service-variability.csv
           awk -F, '$1=="RECEIVER_REGRESSION" { if ($3 >= 130 || $5 != 190 || $13 != 0) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/service-variability.csv
           awk -F, '$1=="FAIRNESS_COHORT_FLOOR_HIDDEN_BY_AGGREGATE" { if ($5 != 100 || $13 != 900 || $14 != 1) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/service-variability.csv
-          awk -F, '$1=="EXPECTED_UNITS_WITH_UNRESOLVED_DELIVERY" { if ($2 != 20 || $13 != 900 || $19 != 18 || $20 != 1 || $21 != 0 || $22 != 0 || $23 != 1) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/service-variability.csv
+          awk -F, '$1=="EXPECTED_UNITS_WITH_UNRESOLVED_DELIVERY" { if ($2 != 20 || $13 != 900 || $19 != 18 || $20 != 0 || $21 != 0 || $22 != 0 || $23 != 1 || $24 != 0 || $25 != 0 || $26 != 1) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/service-variability.csv
+          awk -F, '$1=="MEAN_MATCHED_STABLE" { if ($20 != 0 || $21 != 0 || $22 != 0) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/service-variability.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin aggregate-cargo-status-audit > /tmp/aggregate-cargo-status.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin aggregate-cargo-status-audit > /tmp/aggregate-cargo-status-replay.csv
+          cmp /tmp/aggregate-cargo-status.csv /tmp/aggregate-cargo-status-replay.csv
+          test "$(wc -l < /tmp/aggregate-cargo-status.csv)" -eq 2
+          head -n 1 /tmp/aggregate-cargo-status.csv | awk -F, '{ if (NF != 7) exit 1 }'
+          awk -F, 'NF != 7 { exit 1 }' /tmp/aggregate-cargo-status.csv
+          grep -q ",41,18,7,16,0,AGGREGATE_SOURCE_REPORTED_ONLY_NO_UNIT_RECEIPTS" /tmp/aggregate-cargo-status.csv
           echo "Maritime repeated-sampling risk tournament smoke receipt passed."
           echo "Maritime decision-risk and finite-grid non-monotone receipts passed."
 
@@ -246,6 +254,7 @@ jobs:
             /tmp/dcsa-maturity.csv \
             /tmp/cross-standard-mapping.csv \
             /tmp/service-variability.csv \
+            /tmp/aggregate-cargo-status.csv \
             research/maritime-service-chain-benchmark/dcsa-epcis-crosswalk-v1.0.0.toml \
             > /tmp/maritime-receipt-sha256.txt
 
@@ -270,6 +279,7 @@ jobs:
             /tmp/dcsa-maturity.csv
             /tmp/cross-standard-mapping.csv
             /tmp/service-variability.csv
+            /tmp/aggregate-cargo-status.csv
             research/maritime-service-chain-benchmark/dcsa-epcis-crosswalk-v1.0.0.toml
           if-no-files-found: error
           retention-days: 30
