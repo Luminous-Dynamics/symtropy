@@ -1,0 +1,5 @@
+version = 4
+
+[[package]]
+name = "safrb-usable-service-vector"
+version = "0.1.0"
