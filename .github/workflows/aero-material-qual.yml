@@ -149,3 +149,10 @@ jobs:
           grep -q '"evidence_sufficiency_status": "NOT_EVALUATED_V0_1"' "$RUNNER_TEMP/aero-material-qual-report.json"
           grep -q '"decision_status": "NOT_ELIGIBLE_SYNTHETIC_ONLY"' "$RUNNER_TEMP/aero-material-qual-report.json"
           grep -q '"physical_qualification_status": "OUT_OF_SCOPE_NOT_CLAIMED"' "$RUNNER_TEMP/aero-material-qual-report.json"
+
+          cargo run --locked --package symtropy-aero-material-qual -- docs/research/aviation/examples/synthetic_aero_evidence_binding_case_v0_2.json > "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"specimen_identity_status": "INDEPENDENT_IDENTITY_CONSISTENT"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"intended_configuration_status": "INTENDED_CONFIGURATION_CONSISTENT"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"metrology_binding_status": "METROLOGY_BINDING_CONSISTENT_ONLY"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"decision_status": "NOT_ELIGIBLE_SYNTHETIC_ONLY"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"physical_qualification_status": "OUT_OF_SCOPE_NOT_CLAIMED"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
