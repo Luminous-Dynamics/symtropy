@@ -1277,7 +1277,47 @@ mod tests {
         let mut case = generate_case(Archetype::BerthDischargeRestriction, 2);
         let before = validate_case(&case);
         case.scenario_start_unix_s += 86_400;
+        for row in &mut case.hourly_trajectory {
+            row.interval_start_unix_s += 86_400;
+        }
         let after = validate_case(&case);
         assert_eq!(before, after);
+    }
+
+    #[test]
+    fn every_case_has_72_contiguous_hourly_service_intervals() {
+        let cases = generate_corpus();
+        for case in cases {
+            assert_eq!(case.hourly_trajectory.len(), 72);
+            assert!(case.hourly_trajectory.windows(2).all(|pair| {
+                pair[1].hour_index == pair[0].hour_index + 1
+                    && pair[1].interval_start_unix_s == pair[0].interval_start_unix_s + 3_600
+            }));
+            assert!(validate_case(&case).is_ok());
+        }
+    }
+
+    #[test]
+    fn no_route_or_service_delivery_precedes_transit_delay() {
+        let case = generate_case(Archetype::PumpPipelineFailure, 0);
+        assert!(case.hourly_trajectory.iter().take(case.transport.transit_delay_hours as usize).all(|row| {
+            row.route_delivery_grams == 0
+                && row.conversion_input_grams == 0
+                && row.gross_generation_wh == 0
+                && row.network_deliverable_wh == 0
+        }));
+        assert!(case.hourly_trajectory.iter().skip(case.transport.transit_delay_hours as usize).any(|row| {
+            row.route_delivery_grams > 0
+        }));
+        assert!(validate_case(&case).is_ok());
+    }
+
+    #[test]
+    fn one_hour_critical_floor_breach_cannot_be_hidden_by_horizon_energy() {
+        let mut case = generate_case(Archetype::BaselineAllPaths, 0);
+        case.hourly_trajectory[0].delivered_lower_wh = 0;
+        case.hourly_trajectory[0].delivered_upper_wh = 1;
+        case.hourly_trajectory[0].disposition = ServiceDisposition::ConfirmedShortfall;
+        assert!(validate_case(&case).is_err());
     }
 }
