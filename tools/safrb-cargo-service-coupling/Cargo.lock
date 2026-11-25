@@ -1,0 +1,22 @@
+version = 4
+
+[[package]]
+name = "safrb-cargo-receipt-ledger"
+version = "0.1.0"
+
+[[package]]
+name = "safrb-cargo-service-coupling"
+version = "0.1.0"
+dependencies = [
+ "safrb-cargo-receipt-ledger",
+ "safrb-fuel-service-corpus",
+ "safrb-usable-service-vector",
+]
+
+[[package]]
+name = "safrb-fuel-service-corpus"
+version = "0.1.0"
+
+[[package]]
+name = "safrb-usable-service-vector"
+version = "0.1.0"
