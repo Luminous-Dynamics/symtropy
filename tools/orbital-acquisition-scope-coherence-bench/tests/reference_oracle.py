@@ -116,10 +116,14 @@ def claims_to_map(claims):
     return values
 
 
-def validate_interval(interval):
+def validate_interval(interval, allow_point):
     if (
         not valid_text(interval["time_basis_id"])
-        or interval["start_tai_ns"] >= interval["end_tai_ns"]
+        or interval["start_tai_ns"] > interval["end_tai_ns"]
+        or (
+            not allow_point
+            and interval["start_tai_ns"] == interval["end_tai_ns"]
+        )
     ):
         raise ValueError("TIME_INTERVAL_INVALID")
 
@@ -143,7 +147,7 @@ def evaluate_binding(binding, acquisition_interval, acquisition_scope):
         }
 
     try:
-        validate_interval(binding["validity_interval"])
+        validate_interval(binding["validity_interval"], allow_point=False)
     except ValueError as error:
         return {
             "evidence_id": binding["evidence_id"],
@@ -257,7 +261,7 @@ def evaluate_case(case):
     if not valid_text(case["case_id"]):
         return invalid("CASE_ID_EMPTY")
     try:
-        validate_interval(case["acquisition_interval"])
+        validate_interval(case["acquisition_interval"], allow_point=True)
     except ValueError as error:
         return invalid(str(error))
     try:
