@@ -41,6 +41,12 @@ The fixture contains three declared policies and four paired site-day clusters (
 
 The fixture is only a contract known-answer test. It is not a simulation of a real depot, not a native reproduction of any paper, and not physical field data.
 
+## Relationship to exact risk and nonanticipative oracles
+
+The information-set semantics should reuse [#7133 / PR #7181](https://github.com/Luminous-Dynamics/symtropy/issues/7133) rather than treating a declared online label as proof. That oracle is mobility-service scoped; it is not yet a grid-energy scenario-tree oracle. The per-run information audit digests/counters in this scorecard are source-reported evidence, not independently authenticated proof.
+
+The evaluator's empirical CVaR95 is an unweighted sample-tail summary. Probability-weighted finite-leaf CVaR and total-variation ambiguity belong to [#7196 / PR #7201](https://github.com/Luminous-Dynamics/symtropy/issues/7196) and the probability-evidence owner (#6460). Keep those metrics distinct when integrating reports.
+
 ## Source ownership and report hand-off
 
 Run summaries should be produced by the same frozen replay runner and composed from the owning evidence contracts: reserve/recovery (#6803/#6809), lease/journal (#6829/#6837), network deliverability (#7313), online risk monitoring (#7290), dispatch tracking (#3649), PCC metrology (#3772), and baseline/rebound reconciliation (#3807/#7321). This evaluator does not recalculate those results or promote a model-level pass to market/dispatch authority.
