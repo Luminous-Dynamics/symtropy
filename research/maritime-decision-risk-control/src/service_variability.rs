@@ -643,7 +643,7 @@ fn optional_float(value: Option<f64>) -> String {
 /// Renders deterministic synthetic service-reliability and burst receipts.
 pub fn render_csv() -> String {
     let mut output = String::from(
-        "scenario_id,n,port_mean_minutes,inland_mean_minutes,end_to_end_mean_minutes,p50_minutes,p90_minutes,p95_minutes,max_minutes,sample_sd_minutes,coefficient_of_variation,p95_to_p50_ratio,on_time_rate_per_mille,cohort_floor_violations,max_arrivals_in_60m,max_fcfs_wait_minutes,queue_wait_area_call_minutes,queue_completion_minutes,claim_ceiling\n",
+        "scenario_id,n,port_mean_minutes,inland_mean_minutes,end_to_end_mean_minutes,p50_minutes,p90_minutes,p95_minutes,max_minutes,sample_sd_minutes,coefficient_of_variation,p95_to_p50_ratio,on_time_rate_per_mille,cohort_floor_violations,max_arrivals_in_60m,max_fcfs_wait_minutes,queue_wait_area_call_minutes,queue_completion_minutes,receiver_accepted_count,not_delivered_count,diverted_count,cancelled_count,unknown_count,claim_ceiling\n",
     );
     for scenario in scenarios() {
         let mut observations = synthetic_observations(
@@ -715,6 +715,14 @@ pub fn render_csv() -> String {
 mod tests {
     use super::*;
 
+    fn delivered_distribution(report: &ServiceReliabilityReport) -> &DistributionMetrics {
+        report
+            .end_to_end
+            .distribution
+            .as_ref()
+            .expect("test case has receiver-accepted deliveries")
+    }
+
     fn equal_mean_pair() -> (ServiceReliabilityReport, ServiceReliabilityReport) {
         let stable = synthetic_observations(
             "stable",
@@ -734,16 +742,16 @@ mod tests {
     fn mean_matched_scenarios_expose_hidden_variability_and_tail_loss() {
         let (stable, bursty) = equal_mean_pair();
         assert_eq!(
-            stable.end_to_end.distribution.mean_minutes,
-            bursty.end_to_end.distribution.mean_minutes
+            delivered_distribution(&stable).mean_minutes,
+            delivered_distribution(&bursty).mean_minutes
         );
-        assert_eq!(stable.end_to_end.distribution.p95_minutes, 100);
-        assert_eq!(bursty.end_to_end.distribution.p95_minutes, 280);
+        assert_eq!(delivered_distribution(&stable).p95_minutes, 100);
+        assert_eq!(delivered_distribution(&bursty).p95_minutes, 280);
         assert_eq!(stable.end_to_end.on_time_rate_milli, 1_000);
         assert_eq!(bursty.end_to_end.on_time_rate_milli, 900);
         assert!(
-            bursty.end_to_end.distribution.coefficient_of_variation
-                > stable.end_to_end.distribution.coefficient_of_variation
+            delivered_distribution(&bursty).coefficient_of_variation
+                > delivered_distribution(&stable).coefficient_of_variation
         );
     }
 
@@ -760,8 +768,8 @@ mod tests {
             baseline.port_elapsed.mean_minutes
         );
         assert_eq!(
-            optimized.end_to_end.distribution.mean_minutes,
-            baseline.end_to_end.distribution.mean_minutes
+            delivered_distribution(&optimized).mean_minutes,
+            delivered_distribution(&baseline).mean_minutes
         );
     }
 
@@ -777,8 +785,8 @@ mod tests {
             regressed.port_elapsed.mean_minutes < baseline.port_elapsed.mean_minutes
         );
         assert!(
-            regressed.end_to_end.distribution.mean_minutes
-                > baseline.end_to_end.distribution.mean_minutes
+            delivered_distribution(&regressed).mean_minutes
+                > delivered_distribution(&baseline).mean_minutes
         );
         assert_eq!(regressed.end_to_end.on_time_rate_milli, 0);
     }
@@ -895,20 +903,24 @@ mod tests {
             terminal_dwell_minutes: 0,
             inland_transfer_minutes: 0,
             receiver_deadline_minutes: 1,
+            receiver_delivery_minutes: Some(0),
+            receiver_acceptance_ref: Some("synthetic-zero-delivery".to_owned()),
+            delivery_disposition: DeliveryDisposition::ReceiverAccepted,
         }];
         let report = ServiceReliabilityReport::evaluate(&observations, 950).expect("report");
-        assert_eq!(report.end_to_end.distribution.mean_minutes, 0.0);
-        assert_eq!(report.end_to_end.distribution.coefficient_of_variation, None);
-        assert_eq!(report.end_to_end.distribution.sample_std_dev_minutes, None);
+        let delivered = report.end_to_end.distribution.as_ref().expect("one accepted row");
+        assert_eq!(delivered.mean_minutes, 0.0);
+        assert_eq!(delivered.coefficient_of_variation, None);
+        assert_eq!(delivered.sample_std_dev_minutes, None);
     }
 
     #[test]
     fn deterministic_receipt_is_byte_identical_and_has_fixed_schema() {
         let first = render_csv();
         assert_eq!(first, render_csv());
-        assert_eq!(first.lines().count(), 7);
+        assert_eq!(first.lines().count(), 8);
         let width = first.lines().next().expect("CSV header").split(',').count();
-        assert_eq!(width, 19);
+        assert_eq!(width, 24);
         for row in first.lines().skip(1) {
             assert_eq!(row.split(',').count(), width);
         }
@@ -916,5 +928,7 @@ mod tests {
         assert!(first.contains("LOCAL_PORT_GAIN_NO_RECEIVER_GAIN"));
         assert!(first.contains("RECEIVER_REGRESSION"));
         assert!(first.contains("FAIRNESS_COHORT_FLOOR_HIDDEN_BY_AGGREGATE"));
+        assert!(first.contains("EXPECTED_UNITS_WITH_UNRESOLVED_DELIVERY"));
+        assert!(first.contains("not_delivered_count"));
     }
 }
