@@ -26,7 +26,7 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Validate temporal-closure schema and fixtures
+      - name: Parse temporal-closure schema and check known-answer fixture invariants
         shell: bash
         run: |
           set -euo pipefail
@@ -46,6 +46,10 @@ jobs:
             and any(.cases[]; .case_id == "TCL-005" and .expected_reason == "InvalidClockProfile")
             and any(.cases[]; .case_id == "TCL-006" and .expected_reason == "IncompleteInventory")
             and all(.cases[]; (.envelope.current_authority_epoch > .envelope.old_authority_epoch))
+            and all(.cases[]; all(.envelope.nodes[];
+              (.sequence_generation_id | length > 0)
+              and (.accepted_sequence_generation_id == .sequence_generation_id)
+              and (.retired_sequence_generation_id == .sequence_generation_id)))
           ' "$FIXTURE"
 
       - name: Check Rust formatting
