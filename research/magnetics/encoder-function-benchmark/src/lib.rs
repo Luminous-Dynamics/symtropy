@@ -406,6 +406,7 @@ mod tests {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn make_trace<F>(
         trace_id: &str,
         evidence_kind: EvidenceKind,
@@ -464,7 +465,7 @@ mod tests {
         assert_eq!(metrics.below_threshold_sample_count, 0);
         assert!(metrics.maximum_absolute_phase_error_rad < 1.0e-12);
         assert!(metrics.rms_phase_error_rad < 1.0e-12);
-        assert_eq!(metrics.amplitude_ripple_fraction, Some(0.0));
+        assert!(metrics.amplitude_ripple_fraction.unwrap() < 1.0e-12);
     }
 
     #[test]
