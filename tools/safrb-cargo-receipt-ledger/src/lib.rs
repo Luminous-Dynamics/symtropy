@@ -278,6 +278,9 @@ pub fn validate_and_project(case: &CargoCase) -> Result<Projection, String> {
         if receipt.received_lower_grams > receipt.actual_received_grams || receipt.actual_received_grams > receipt.received_upper_grams {
             return Err(format!("receipt quantity interval does not contain actual quantity for {}", receipt.batch_id));
         }
+        if receipt.received_upper_grams > manifest.planned_quantity_grams {
+            return Err(format!("receipt upper quantity exceeds planned manifest without an amendment for {}", receipt.batch_id));
+        }
         if receipt.evidence == ReceiptEvidence::Verified {
             nonempty(&receipt.evidence_ref, "verified receipt evidence reference")?;
             nonempty(&receipt.evidence_digest, "verified receipt evidence digest")?;
@@ -881,6 +884,15 @@ mod tests {
     fn product_or_grade_substitution_is_rejected() {
         let mut case = find("verified-on-time");
         case.receipts[0].grade = "wrong-grade".into();
+        assert!(validate_and_project(&case).is_err());
+    }
+
+    #[test]
+    fn receipt_overdelivery_requires_a_manifest_amendment() {
+        let mut case = find("verified-on-time");
+        case.receipts[0].received_lower_grams = 1_000_001;
+        case.receipts[0].actual_received_grams = 1_000_001;
+        case.receipts[0].received_upper_grams = 1_000_001;
         assert!(validate_and_project(&case).is_err());
     }
 
