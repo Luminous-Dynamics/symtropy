@@ -258,7 +258,7 @@ Source: Marzani et al., “An open database for benchmarking guided waves struct
 
 ### C. University of Utah / SmartDATA-Lab long-term guided waves — environmental and sensor drift
 
-Yang et al. (2025) publish a long-term outdoor guided-wave dataset from an aluminum plate monitored over more than 4.5 years, with approximately 6.4 million wave measurements and 13 introduced damage types. The records include environmental variables and document sensor drift and installation shifts. The released dataset is a downsampled/trimmed subset of the original acquisition, so that limitation must be preserved.
+Yang et al. (2025) publish a long-term outdoor guided-wave dataset from an aluminum plate monitored over more than 4.5 years, with approximately 6.4 million wave measurements and 13 introduced damage types. The records include environmental variables and document sensor drift and installation shifts. The released benchmark is approximately 100 GB, compared with roughly 9 TB for the original acquisition. The source paper describes sampling approximately one measurement from every 20 original measurements (about every 176 seconds in the released data rather than every 8.6 seconds) and retaining 2,000 of the original 10,000 samples per wave. These are material sampling/preprocessing changes, not incidental file-format details. Any benchmark card and reported result must pin the released data version and preserve the original-versus-published distinction.
 
 This dataset is not an aerospace composite benchmark and must not be presented as one. It is valuable as an environmental and long-duration monitoring stress test:
 - hold out entire time periods, not random adjacent windows;
@@ -273,7 +273,7 @@ Source: Yang et al., “Dataset on guided waves from long-term structural health
 ### Dataset eligibility and reproducibility gate
 
 Before using any source in a public leaderboard or external claim, record:
-- exact artifact URL, dataset version, license/rights and redistribution conditions;
+- exact artifact URL, dataset version, retrieval date, license/rights and redistribution conditions (the public listing is not itself a blanket redistribution license);
 - immutable downloaded file hashes, file sizes and retrieval date;
 - data dictionary, channel map, units, calibration/timebase information and known missingness;
 - article/structure identity, material, layup, geometry and test campaign;
