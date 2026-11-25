@@ -176,8 +176,8 @@ jobs:
               raise SystemExit("temporal replay corpus requires a late-receipt control")
           if corpus.get("oracle_review_status") != "NOT_INDEPENDENTLY_REVIEWED":
               raise SystemExit("oracle review status must remain explicit until independent review")
-          if len(cases) != 23:
-              raise SystemExit(f"temporal replay corpus must contain exactly 23 frozen cases; found {len(cases)}")
+          if len(cases) != 26:
+              raise SystemExit(f"temporal replay corpus must contain exactly 26 frozen cases; found {len(cases)}")
           all_events = [event for case in cases for event in case["events"]]
           for event in all_events:
               receipt_status = event["receiver_receipt_status"]
@@ -208,6 +208,21 @@ jobs:
           reinstatement = next((case for case in cases if case["case_id"] == "reinstatement-event-does-not-silently-restore-calibration"), None)
           if reinstatement is None or any(reinstatement["expected"][mode]["disposition"] != "ABSTAIN" for mode in required_modes):
               raise SystemExit("temporal corpus requires fail-closed reinstatement behavior")
+          valid_correction = next((case for case in cases if case["case_id"] == "well-formed-correction-target-still-abstains-without-qualified-semantics"), None)
+          if valid_correction is None or valid_correction["events"][1]["corrects_event_id"] != valid_correction["events"][0]["event_id"] or valid_correction["events"][1]["issuer_recorded_at_unix_ms"] <= valid_correction["events"][0]["issuer_recorded_at_unix_ms"]:
+              raise SystemExit("well-formed correction control must resolve to an earlier same-source event")
+          if any(valid_correction["expected"][mode]["reason_codes"] != ["CALIBRATION_CORRECTION_SEMANTICS_UNQUALIFIED"] for mode in required_modes):
+              raise SystemExit("valid-shape correction must remain unqualified")
+          equal_time = next((case for case in cases if case["case_id"] == "correction-record-time-not-strictly-after-target-abstains"), None)
+          if equal_time is None or equal_time["events"][0]["issuer_recorded_at_unix_ms"] != equal_time["events"][1]["issuer_recorded_at_unix_ms"]:
+              raise SystemExit("equal-time correction control must have tied recorded times")
+          if any(equal_time["expected"][mode]["reason_codes"] != ["CORRECTION_TARGET_NOT_STRICTLY_EARLIER"] for mode in required_modes):
+              raise SystemExit("equal-time correction must abstain")
+          nested_correction = next((case for case in cases if case["case_id"] == "correction-of-correction-remains-unqualified"), None)
+          if nested_correction is None or nested_correction["events"][2]["corrects_event_id"] != nested_correction["events"][1]["event_id"]:
+              raise SystemExit("correction-of-correction target must point to prior correction")
+          if any(nested_correction["expected"][mode]["reason_codes"] != ["CALIBRATION_CORRECTION_SEMANTICS_UNQUALIFIED"] for mode in required_modes):
+              raise SystemExit("correction-of-correction semantics must remain unqualified")
           required_modes = {"as_known_at", "recomputed_with_current_trust", "recomputed_with_current_evidence_and_trust"}
           for case in cases:
               if set(case["expected"]) != required_modes:
