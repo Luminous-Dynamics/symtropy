@@ -1,0 +1,67 @@
+name: Mobility Energy Policy Tournament
+
+on:
+  pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/domains/symtropy-mobility-policy-tournament/**"
+      - "docs/research/MOBILITY_ENERGY_POLICY_TOURNAMENT_BENCHMARK_V0_1.md"
+      - ".github/workflows/mobility-energy-policy-tournament.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paired-policy-tournament:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Parse schema and fixture
+        run: |
+          jq empty crates/domains/symtropy-mobility-policy-tournament/schemas/mobility_policy_tournament_v0_1.schema.json
+          jq empty crates/domains/symtropy-mobility-policy-tournament/fixtures/mobility_policy_tournament_v0_1.json
+      - name: Format check
+        run: cargo fmt --package symtropy-mobility-policy-tournament -- --check
+      - name: Rust tests
+        run: cargo test -p symtropy-mobility-policy-tournament --locked
+      - name: Clippy
+        run: cargo clippy -p symtropy-mobility-policy-tournament --all-targets --locked -- -D warnings
+      - name: Emit deterministic matched scorecard
+        run: |
+          cargo run --quiet -p symtropy-mobility-policy-tournament --locked --bin mobility_policy_tournament -- \
+            crates/domains/symtropy-mobility-policy-tournament/fixtures/mobility_policy_tournament_v0_1.json \
+            > mobility-policy-tournament-report.json
+          jq -e '
+            .benchmark_id == "MOBILITY-ENERGY-POLICY-TOURNAMENT-001"
+            and .evidence_class == "synthetic"
+            and .matched_pair_count == 4
+            and .independent_cluster_count == 4
+            and (.policies | length) == 3
+            and (.comparisons | length) == 2
+            and .all_policies_hard_gate_clean == true
+            and .all_policies_false_safe_free == true
+            and .no_performance_score_offsets_hard_gate_failures == true
+            and ([.comparisons[] | select(.policy_id == "mpc") | .on_time_service_rate_basis_points.mean_delta] == [1000])
+            and ([.comparisons[] | select(.policy_id == "mpc") | .signed_metered_grid_response_wh_per_run.mean_delta] == [40])
+            and ([.comparisons[] | select(.policy_id == "mpc") | .on_time_service_rate_basis_points.interval_available] == [true])
+            and ([.policies[] | select(.policy_id == "mpc") | .on_time_service_rate_basis_points] == [9000])
+            and ([.policies[] | select(.policy_id == "mpc") | .scenario_family_outcomes | length] == [4])
+            and (.input_digest | test("^sha256:[0-9a-f]{64}$"))
+          ' mobility-policy-tournament-report.json
+          cat mobility-policy-tournament-report.json
+      - name: Upload paired policy evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobility-policy-tournament-evidence
+          path: |
+            mobility-policy-tournament-report.json
+            crates/domains/symtropy-mobility-policy-tournament/fixtures/mobility_policy_tournament_v0_1.json
+            crates/domains/symtropy-mobility-policy-tournament/schemas/mobility_policy_tournament_v0_1.schema.json
+            crates/domains/symtropy-mobility-policy-tournament/README.md
+            docs/research/MOBILITY_ENERGY_POLICY_TOURNAMENT_BENCHMARK_V0_1.md
+          if-no-files-found: error
