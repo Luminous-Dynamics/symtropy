@@ -1,0 +1,185 @@
+{
+  "version": "0.1",
+  "cases": [
+    {
+      "case_id": "TCL-001",
+      "class": "positive",
+      "mutation": "none",
+      "expected_decision": "closed",
+      "expected_path": "fenced_and_drained",
+      "expected_reason": null,
+      "expected_horizon_ms": null,
+      "envelope": {
+        "profile_id": "test-profile",
+        "graph_revision": "graph-v1",
+        "old_authority_epoch": 4,
+        "current_authority_epoch": 5,
+        "inventory_complete": true,
+        "clock_profile_valid": true,
+        "clock_uncertainty_bound_ms": 4,
+        "scheduling_jitter_bound_ms": 2,
+        "elapsed_since_ingress_fence_ms": 0,
+        "invalidated": false,
+        "nodes": [
+          {"node_id":"controller","is_ingress":true,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":2,"receiver_enforces_expiry":true},
+          {"node_id":"driver","is_ingress":false,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":3,"receiver_enforces_expiry":true},
+          {"node_id":"actuator","is_ingress":false,"is_terminal":true,"rejects_old_epoch":true,"endpoint_fence_enforced":true,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":0,"receiver_enforces_expiry":true}
+        ],
+        "edges": [
+          {"edge_id":"controller-driver","from_node_id":"controller","to_node_id":"driver","in_flight_messages":0,"no_future_old_epoch_enqueue":true,"transit_bound_ms":5,"preserves_original_age":true},
+          {"edge_id":"driver-actuator","from_node_id":"driver","to_node_id":"actuator","in_flight_messages":0,"no_future_old_epoch_enqueue":true,"transit_bound_ms":7,"preserves_original_age":true}
+        ]
+      }
+    },
+    {
+      "case_id": "TCL-002",
+      "class": "positive",
+      "mutation": "in_flight_message_with_finite_end_to_end_expiry",
+      "expected_decision": "closed",
+      "expected_path": "bounded_expiry",
+      "expected_reason": null,
+      "expected_horizon_ms": 23,
+      "envelope": {
+        "profile_id": "test-profile",
+        "graph_revision": "graph-v1",
+        "old_authority_epoch": 4,
+        "current_authority_epoch": 5,
+        "inventory_complete": true,
+        "clock_profile_valid": true,
+        "clock_uncertainty_bound_ms": 4,
+        "scheduling_jitter_bound_ms": 2,
+        "elapsed_since_ingress_fence_ms": 23,
+        "invalidated": false,
+        "nodes": [
+          {"node_id":"controller","is_ingress":true,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":2,"receiver_enforces_expiry":true},
+          {"node_id":"driver","is_ingress":false,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":1,"retention_bound_ms":3,"receiver_enforces_expiry":true},
+          {"node_id":"actuator","is_ingress":false,"is_terminal":true,"rejects_old_epoch":true,"endpoint_fence_enforced":true,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":0,"receiver_enforces_expiry":true}
+        ],
+        "edges": [
+          {"edge_id":"controller-driver","from_node_id":"controller","to_node_id":"driver","in_flight_messages":1,"no_future_old_epoch_enqueue":false,"transit_bound_ms":5,"preserves_original_age":true},
+          {"edge_id":"driver-actuator","from_node_id":"driver","to_node_id":"actuator","in_flight_messages":0,"no_future_old_epoch_enqueue":true,"transit_bound_ms":7,"preserves_original_age":true}
+        ]
+      }
+    },
+    {
+      "case_id": "TCL-003",
+      "class": "negative",
+      "mutation": "unbounded_late_arrival_even_after_long_wait",
+      "expected_decision": "hold",
+      "expected_path": "none",
+      "expected_reason": "UnboundedTransit",
+      "expected_horizon_ms": null,
+      "envelope": {
+        "profile_id": "test-profile",
+        "graph_revision": "graph-v1",
+        "old_authority_epoch": 4,
+        "current_authority_epoch": 5,
+        "inventory_complete": true,
+        "clock_profile_valid": true,
+        "clock_uncertainty_bound_ms": 4,
+        "scheduling_jitter_bound_ms": 2,
+        "elapsed_since_ingress_fence_ms": 999999999,
+        "invalidated": false,
+        "nodes": [
+          {"node_id":"controller","is_ingress":true,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":2,"receiver_enforces_expiry":true},
+          {"node_id":"driver","is_ingress":false,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":1,"retention_bound_ms":3,"receiver_enforces_expiry":true},
+          {"node_id":"actuator","is_ingress":false,"is_terminal":true,"rejects_old_epoch":true,"endpoint_fence_enforced":true,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":0,"receiver_enforces_expiry":true}
+        ],
+        "edges": [
+          {"edge_id":"controller-driver","from_node_id":"controller","to_node_id":"driver","in_flight_messages":1,"no_future_old_epoch_enqueue":false,"transit_bound_ms":null,"preserves_original_age":true},
+          {"edge_id":"driver-actuator","from_node_id":"driver","to_node_id":"actuator","in_flight_messages":0,"no_future_old_epoch_enqueue":true,"transit_bound_ms":7,"preserves_original_age":true}
+        ]
+      }
+    },
+    {
+      "case_id": "TCL-004",
+      "class": "negative",
+      "mutation": "forwarder_refreshes_message_age",
+      "expected_decision": "hold",
+      "expected_path": "none",
+      "expected_reason": "OriginalAgeNotPreserved",
+      "expected_horizon_ms": null,
+      "envelope": {
+        "profile_id": "test-profile",
+        "graph_revision": "graph-v1",
+        "old_authority_epoch": 4,
+        "current_authority_epoch": 5,
+        "inventory_complete": true,
+        "clock_profile_valid": true,
+        "clock_uncertainty_bound_ms": 4,
+        "scheduling_jitter_bound_ms": 2,
+        "elapsed_since_ingress_fence_ms": 999999999,
+        "invalidated": false,
+        "nodes": [
+          {"node_id":"controller","is_ingress":true,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":2,"receiver_enforces_expiry":true},
+          {"node_id":"driver","is_ingress":false,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":1,"retention_bound_ms":3,"receiver_enforces_expiry":true},
+          {"node_id":"actuator","is_ingress":false,"is_terminal":true,"rejects_old_epoch":true,"endpoint_fence_enforced":true,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":0,"receiver_enforces_expiry":true}
+        ],
+        "edges": [
+          {"edge_id":"controller-driver","from_node_id":"controller","to_node_id":"driver","in_flight_messages":1,"no_future_old_epoch_enqueue":false,"transit_bound_ms":5,"preserves_original_age":false},
+          {"edge_id":"driver-actuator","from_node_id":"driver","to_node_id":"actuator","in_flight_messages":0,"no_future_old_epoch_enqueue":true,"transit_bound_ms":7,"preserves_original_age":true}
+        ]
+      }
+    },
+    {
+      "case_id": "TCL-005",
+      "class": "negative",
+      "mutation": "invalid_clock_profile",
+      "expected_decision": "hold",
+      "expected_path": "none",
+      "expected_reason": "InvalidClockProfile",
+      "expected_horizon_ms": null,
+      "envelope": {
+        "profile_id": "test-profile",
+        "graph_revision": "graph-v1",
+        "old_authority_epoch": 4,
+        "current_authority_epoch": 5,
+        "inventory_complete": true,
+        "clock_profile_valid": false,
+        "clock_uncertainty_bound_ms": 4,
+        "scheduling_jitter_bound_ms": 2,
+        "elapsed_since_ingress_fence_ms": 999999999,
+        "invalidated": false,
+        "nodes": [
+          {"node_id":"controller","is_ingress":true,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":2,"receiver_enforces_expiry":true},
+          {"node_id":"driver","is_ingress":false,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":1,"retention_bound_ms":3,"receiver_enforces_expiry":true},
+          {"node_id":"actuator","is_ingress":false,"is_terminal":true,"rejects_old_epoch":true,"endpoint_fence_enforced":true,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":0,"receiver_enforces_expiry":true}
+        ],
+        "edges": [
+          {"edge_id":"controller-driver","from_node_id":"controller","to_node_id":"driver","in_flight_messages":1,"no_future_old_epoch_enqueue":false,"transit_bound_ms":5,"preserves_original_age":true},
+          {"edge_id":"driver-actuator","from_node_id":"driver","to_node_id":"actuator","in_flight_messages":0,"no_future_old_epoch_enqueue":true,"transit_bound_ms":7,"preserves_original_age":true}
+        ]
+      }
+    },
+    {
+      "case_id": "TCL-006",
+      "class": "negative",
+      "mutation": "incomplete_command_holding_inventory",
+      "expected_decision": "hold",
+      "expected_path": "none",
+      "expected_reason": "IncompleteInventory",
+      "expected_horizon_ms": null,
+      "envelope": {
+        "profile_id": "test-profile",
+        "graph_revision": "graph-v1",
+        "old_authority_epoch": 4,
+        "current_authority_epoch": 5,
+        "inventory_complete": false,
+        "clock_profile_valid": true,
+        "clock_uncertainty_bound_ms": 4,
+        "scheduling_jitter_bound_ms": 2,
+        "elapsed_since_ingress_fence_ms": 0,
+        "invalidated": false,
+        "nodes": [
+          {"node_id":"controller","is_ingress":true,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":2,"receiver_enforces_expiry":true},
+          {"node_id":"driver","is_ingress":false,"is_terminal":false,"rejects_old_epoch":true,"endpoint_fence_enforced":false,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":3,"receiver_enforces_expiry":true},
+          {"node_id":"actuator","is_ingress":false,"is_terminal":true,"rejects_old_epoch":true,"endpoint_fence_enforced":true,"last_accepted_sequence":12,"last_retired_sequence":12,"outstanding_commands":0,"retention_bound_ms":0,"receiver_enforces_expiry":true}
+        ],
+        "edges": [
+          {"edge_id":"controller-driver","from_node_id":"controller","to_node_id":"driver","in_flight_messages":0,"no_future_old_epoch_enqueue":true,"transit_bound_ms":5,"preserves_original_age":true},
+          {"edge_id":"driver-actuator","from_node_id":"driver","to_node_id":"actuator","in_flight_messages":0,"no_future_old_epoch_enqueue":true,"transit_bound_ms":7,"preserves_original_age":true}
+        ]
+      }
+    }
+  ]
+}
