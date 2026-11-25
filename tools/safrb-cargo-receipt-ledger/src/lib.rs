@@ -855,6 +855,7 @@ mod tests {
         case.receipts[0].received_at_hour = HORIZON_HOURS;
         case.quality_assessments[0].assessed_at_hour = HORIZON_HOURS + 1;
         case.authorizations[0].valid_from_hour = HORIZON_HOURS + 2;
+        case.custody_records[0].effective_from_hour = HORIZON_HOURS + 1;
         case.transfers[0].load_start_hour = HORIZON_HOURS + 2;
         case.transfers[0].dispatch_hour = HORIZON_HOURS + 4;
         case.transfers[0].arrival_hour = HORIZON_HOURS + 7;
@@ -914,6 +915,7 @@ mod tests {
         let before = validate_and_project(&case).expect("baseline").batches[0].admitted_grams;
         case.receipts[0].received_lower_grams -= 100_000;
         case.quality_assessments[0].released_lower_grams -= 100_000;
+        case.custody_records[0].custodied_lower_grams -= 100_000;
         case.authorizations[0].max_transfer_grams = 700_000;
         let after = validate_and_project(&case).expect("widened interval").batches[0].admitted_grams;
         assert!(after <= before);
