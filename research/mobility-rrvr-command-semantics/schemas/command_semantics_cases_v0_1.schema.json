@@ -51,7 +51,8 @@
         "motion_semantics",
         "target_predicate",
         "logical_effect_id_required",
-        "device_capabilities"
+        "device_capabilities",
+        "watchdog_response_bound_ms"
       ],
       "properties": {
         "device_id": {
@@ -202,9 +203,6 @@
               ],
               "minimum": 0
             },
-            "authority_epoch_supported": {
-              "type": "boolean"
-            },
             "lease_expiry_enforced": {
               "type": "boolean"
             },
@@ -227,8 +225,25 @@
             },
             "downstream_queue_reconciliation_supported": {
               "type": "boolean"
+            },
+            "endpoint_enforces_authority_epoch": {
+              "type": "boolean"
+            },
+            "watchdog_response_bound_ms": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
             }
           }
+        },
+        "watchdog_response_bound_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
         }
       }
     },
