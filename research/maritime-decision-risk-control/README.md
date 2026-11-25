@@ -623,6 +623,6 @@ Run the deterministic crosswalk receipt:
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin cross-standard-mapping-audit
 ~~~
 
-The receipt covers exact extension-field transfer, contextual event-type to business-step translation, the forbidden classifier-to-bizStep and classifier-to-disposition shortcuts, non-exact claims of reversibility, missing lossiness reason, standard-version drift, invalid source digest and source-value mismatch. The raw source payload remains preserved in every accepted mapping receipt.
+The receipt covers exact classifier-maturity preservation, contextual DCSA equipment-event-type to GS1 CBV business-step translation, forbidden classifier-to-bizStep/disposition shortcuts, invalid target vocabulary, false reversibility, non-approved rules, mapping-bundle digest/reference drift, source subject identity and source payload-reference failures. Accepted receipts carry the immutable mapping bundle revision, review state, source subject/record/event identity, raw payload digest and object-store reference. This crate does not hold the source bytes; the source evidence store remains their owner.
 
 This is not a full DCSA/EPCIS parser, JSON-LD serializer, CBV vocabulary validator, or official conformance tool. It is the contract that any future parser/crosswalk must satisfy before its normalized output can enter the downstream assurance and risk layers.
