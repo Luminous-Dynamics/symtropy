@@ -66,3 +66,7 @@ path = "src/bin/service_variability_audit.rs"
 [[bin]]
 name = "aggregate-cargo-status-audit"
 path = "src/bin/aggregate_cargo_status_audit.rs"
+
+[[bin]]
+name = "quantity-weighted-service-audit"
+path = "src/bin/quantity_weighted_service_audit.rs"
