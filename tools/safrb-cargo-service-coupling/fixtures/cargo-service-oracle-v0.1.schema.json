@@ -1,0 +1,18 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://luminousdynamics.io/schemas/safrb-cargo-service-coupling-truth-v0.1.schema.json",
+  "title":"SAFRB cargo/service coupling oracle truth v0.1",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["schemaVersion","recordKind","caseId","evidenceMaturity","generatorCapability","cargoLedger","caseServiceVerdict","hourlyServiceTrajectory"],
+  "properties":{
+    "schemaVersion":{"const":"0.1.0"},
+    "recordKind":{"const":"oracle_truth"},
+    "caseId":{"type":"string","minLength":1},
+    "evidenceMaturity":{"const":"synthetic_fixture"},
+    "generatorCapability":{"type":"object"},
+    "cargoLedger":{"type":"object","required":["recordKind","caseId","receipts","custodyRecords","authorizations","transfers","fuelIssues"],"properties":{"recordKind":{"const":"oracle_truth"},"caseId":{"type":"string"},"receipts":{"type":"array"},"custodyRecords":{"type":"array"},"authorizations":{"type":"array"},"transfers":{"type":"array"},"fuelIssues":{"type":"array"}}},
+    "caseServiceVerdict":{"enum":["guaranteed","failed","indeterminate"]},
+    "hourlyServiceTrajectory":{"type":"array","minItems":72,"maxItems":72}
+  }
+}
