@@ -33,6 +33,21 @@ This is materially broader than a plain coverage planner. The Symtropy programme
 
 Source: https://repositum.tuwien.at/bitstream/20.500.12708/226537/1/Staderini%20Vanessa%20-%202026%20-%20Integrated%20Planning%20and%20Optimization%20Framework%20for...pdf
 
+### Close-proximity spacecraft inspection: shielded RL versus PRM–MIQCQP
+
+Stephenson and Schaub (28 September 2026), *Two Approaches to Autonomous Spacecraft Inspection: Shielded Reinforcement Learning versus Probabilistic Roadmaps*, is the closest direct orbital-inspection comparator identified in this update. It studies an eccentric-LEO servicer inspecting an ellipsoidal resident space object under illumination and collision constraints, with a 5 m shield keep-out radius in its shield experiment.
+
+The paper reports:
+- the shielded RL policy was evaluated over 1,000 environment seeds; the shield removed collisions observed in the unshielded trials;
+- the shield added an average 0.12 orbits and 0.21 m/s fuel in those runs, intervening on 33.8% of actions with mean adjustment magnitude 0.04 m/s;
+- the PRM–MIQCQP fuel/time Pareto front generally dominated the RL front on the studied scenario;
+- PRM–MIQCQP took about 10 minutes on an Apple M2 Pro with 12 cores and Gurobi, making it an offline planning approach in the authors' framing;
+- the small 2×256 MLP RL policy took about 100 microseconds per decision and supports onboard closed-loop response.
+
+This is not a general ranking of PRM and RL. It is specific to the paper's modeled eccentric-LEO problem, impulsive servicer, assumed target attitude and constraints. It is a strong, direct benchmark that the Luminous programme should reproduce before claiming an orbital-planning advantage.
+
+Source: https://doi.org/10.1007/s40295-026-00631-w
+
 ### Traceable robot metrology
 
 Chekh et al. (2026), *Traceable Metrological Digital Twin for Robot-Based 3D Inspection*, integrates robot kinematic calibration, optical-sensor characterization, sensor-to-robot referencing and machine-readable metrological state. It propagates calibrated-parameter uncertainty using a GUM-aligned Monte Carlo method and compares a complex part against references at 67 characteristics. Its current validation is limited to the experimental campaign's environmental conditions and short-term stability; thermal drift and long-term stability are explicitly outside its current model.
@@ -87,13 +102,24 @@ Every arm must receive the same geometry, target characteristics, candidate-view
 | B5 | Greedy immediate information gain per cost | Entropy reduction versus actual decision value |
 | B6 | Greedy worst-case decision-class separation | Decision-oriented heuristic |
 | B7 | Fixed recapture sequence | Non-adaptive inspection control |
-| B8 | Evidence-gated sequential recourse using #6835/#6887/#7292 | Proposed operational policy, only after interfaces are qualified |
-| B9 | Exhaustive finite policy oracle | Exact optimum on tiny declared support models only |
+| B8 | Shielded closed-loop RL / policy controller | Published responsive onboard-control comparator |
+| B9 | Offline PRM–MIQCQP | Published fuel/time Pareto and offline global-planning comparator |
+| B10 | Hybrid offline planner + onboard receding-horizon controller | Test whether global efficiency and responsiveness can be combined |
+| B11 | Evidence-gated sequential recourse using #6835/#6887/#7292, inside the physical safety shield | Proposed policy; only after interfaces and safety gate are qualified |
+| B12 | Exhaustive finite policy oracle | Exact optimum on tiny declared support models only |
 | H | Hindsight/clairvoyant action selection | Evaluator-only privileged upper bound; never a deployable competitor |
 
 Separately ablate the acquisition-envelope models without changing the sensing policy: translation-only #7384; constant-speed perspective #7399; time-varying acceleration/jerk #7422. Compare false holds and false-valid admissions against a time-synchronized reference trajectory, not only nominal blur scores.
 
 For the surface-inspection paper, first reproduce its own baseline and reported metrics under its geometry and sensor protocol. Then add the recourse objective on a separate, matched extension. If its raw data, CAD or implementation are unavailable, mark the comparison as not reproducible; do not infer a numerical comparison from the abstract.
+
+## Non-compensatory action admission: two independent keys
+
+Every inspection action must first pass an independently owned physical-safety admissibility interface (for example, a qualified keep-out/reachable-tube shield) **and** the measurement-evidence admissibility interface (scope, calibration, timing, support and acquisition envelope). One PASS cannot compensate for another FAIL or UNKNOWN. Decision value, fuel/time efficiency and sensing utility rank only action candidates that survive both hard gates.
+
+This is a composition and benchmark requirement, not a new collision shield. Upstream spaceflight risk/trajectory owners continue to supply physical constraints and receipts; the inspection work consumes those exact outputs. The adapter must not derive collision probabilities, trajectory reachability, control barrier functions or safe-set invariance on its own.
+
+A controlled ablation may report which gate rejected each candidate, but an evidence-only or safety-only policy must not execute outside a protected simulation/test harness. Hard-gate violation counts are primary metrics; no reward-weighted average can make a collision or an inadmissible acquisition acceptable.
 
 ## Metrics to report independently
 
@@ -144,7 +170,7 @@ Introduce representative truss geometry, long-baseline structure flexure, lighti
 
 The stretch objective is a **non-dominated decision-assurance frontier**: at equal resource cost, obtain more correctly resolved required characteristics with no increase in false decision commitments; or reach the same decision quality with lower path length, energy, observation count or elapsed time. At equal inspection quality, improve cycle time and energy against the matched industrial baseline. At equal path and image quality, reduce unnecessary reacquisition and false confidence by tracking calibration, timing, evidence completeness and common causes.
 
-A meaningful win must hold across repeated runs and hard scenarios—not only average cases. Report worst-case behavior and tail failures. Keep the 2026 surface-inspection paper's 47% path and 37.5% solution-time improvements as serious reproduction targets, not figures that can be compared without matching its experiment.
+A meaningful win must hold across repeated runs and hard scenarios—not only average cases. Report worst-case behavior and tail failures. Keep the 2026 surface-inspection paper's 47% path and 37.5% solution-time improvements as serious reproduction targets, not figures that can be compared without matching its experiment. For orbital close-proximity inspection, reproduce the 2026 shielded-RL versus PRM–MIQCQP comparison on its declared scenario: fuel/time Pareto front, keep-out violations, shield intervention rate and magnitude, task coverage, offline solve time and onboard per-decision latency. Then test whether evidence-gated recourse inside the same physical shield can improve admissible characteristic yield, reduce reacquisition and avoid false commitments without degrading the safety envelope.
 
 ## Current implementation mapping
 
@@ -153,6 +179,7 @@ A meaningful win must hold across repeated runs and hard scenarios—not only av
 - #7388: exact finite motion/exposure/illumination co-design (synthetic evaluator).
 - #7394: exact finite contingent inspection recourse (synthetic reference oracle; dedicated and cross-platform CI passed).
 - #6887: statistical sequential world-survival / anytime-valid decision sets.
-- #7399: perspective-aware translation/rotation projection envelope (11-case synthetic benchmark and Ubuntu/macOS/Windows CI passed).\n- #7422: time-varying acceleration/jerk envelope (17-case synthetic benchmark and independent Fraction oracle; exact-head CI pending).\n- #6845: parent inspectability and independent evidence programme.
+- #7399: perspective-aware translation/rotation projection envelope (11-case synthetic benchmark and Ubuntu/macOS/Windows CI passed).
+- #7422: time-varying acceleration/jerk envelope (17-case synthetic benchmark and independent Fraction oracle; exact-head CI pending).\n- #6845: parent inspectability and independent evidence programme.
 
 The implementation sequence should connect these contracts only through versioned, exact input and output receipts. Missing owners remain missing; synthetic or modeled evidence must never be presented as measured physical truth.
