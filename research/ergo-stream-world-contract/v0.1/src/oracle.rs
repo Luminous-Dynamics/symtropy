@@ -560,9 +560,8 @@ fn build_correspondence(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transfer::{
-        RelationV0, validate_structural_correspondence,
-    };
+    use crate::atlas::{TransferAtlasFamilyV0, TransferAtlasWorldV0};
+    use crate::transfer::{RelationV0, validate_structural_correspondence};
 
     fn edge(
         id: u32,
@@ -697,6 +696,35 @@ mod tests {
             exhaustive_isomorphism_oracle(&structure, &structure),
             Err(IsomorphismOracleErrorV0::TooManyNodes)
         );
+    }
+
+
+    #[test]
+    fn independently_checks_transfer_atlas_structural_families() {
+        let cases = [
+            (TransferAtlasFamilyV0::RelabelledReverse, true),
+            (TransferAtlasFamilyV0::DegreeMatchedNonIsomorphic, false),
+            (
+                TransferAtlasFamilyV0::IsomorphicObservationDifferentMechanism,
+                true,
+            ),
+            (
+                TransferAtlasFamilyV0::StructurallySimilarInterventionDivergent,
+                true,
+            ),
+        ];
+
+        for (family, expected_structural_isomorphism) in cases {
+            let world = TransferAtlasWorldV0::generate(family);
+            let view = world.policy_view();
+            let report =
+                exhaustive_isomorphism_oracle(&view.source, &view.target).unwrap();
+            assert_eq!(
+                report.isomorphic,
+                expected_structural_isomorphism,
+                "independent structural oracle disagreed for {family:?}"
+            );
+        }
     }
 
     #[test]
