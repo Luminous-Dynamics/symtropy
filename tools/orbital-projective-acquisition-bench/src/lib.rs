@@ -430,8 +430,8 @@ mod tests {
     fn frozen_corpus_matches_all_expected_statuses() {
         let receipt = audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567")
             .expect("corpus audits");
-        assert_eq!(receipt.case_count, 10);
-        assert_eq!(receipt.expected_outcome_matches, 10);
+        assert_eq!(receipt.case_count, 11);
+        assert_eq!(receipt.expected_outcome_matches, 11);
         assert_eq!(receipt.expected_outcome_mismatches, 0);
     }
 
