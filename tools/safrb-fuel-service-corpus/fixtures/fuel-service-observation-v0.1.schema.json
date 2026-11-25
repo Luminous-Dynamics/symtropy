@@ -4,7 +4,7 @@
   "title": "SAFRB planner-visible fuel-to-service observation v0.1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "recordKind", "caseId", "archetype", "seed", "scenarioStartUnixS", "horizonHours", "evidenceMaturity", "inventoryObservation", "transportCapability", "conversionCapability", "generatorCapability", "serviceRequirement"],
+  "required": ["schemaVersion", "recordKind", "caseId", "archetype", "seed", "scenarioStartUnixS", "horizonHours", "evidenceMaturity", "inventoryObservation", "transportCapability", "conversionCapability", "generatorCapability", "serviceRequirement", "hourlyObservations"],
   "properties": {
     "schemaVersion": { "const": "0.1.0" },
     "recordKind": { "const": "planner_observation" },
@@ -65,6 +65,23 @@
         "ratedPowerCapacityKw": { "type": "integer", "minimum": 0 },
         "derateBasisPoints": { "type": "integer", "minimum": 0, "maximum": 10000 },
         "networkDeliveryBasisPoints": { "type": "integer", "minimum": 0, "maximum": 10000 }
+      }
+    },
+    "hourlyObservations": {
+      "type": "array",
+      "minItems": 72,
+      "maxItems": 72,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["hourIndex", "intervalStartUnixS", "demandWh", "criticalFloorWh", "telemetryState"],
+        "properties": {
+          "hourIndex": { "type": "integer", "minimum": 0, "maximum": 71 },
+          "intervalStartUnixS": { "type": "integer", "minimum": 0 },
+          "demandWh": { "type": "integer", "minimum": 0 },
+          "criticalFloorWh": { "type": "integer", "minimum": 0 },
+          "telemetryState": { "enum": ["fresh_synthetic", "stale_or_conflicting"] }
+        }
       }
     },
     "serviceRequirement": {
