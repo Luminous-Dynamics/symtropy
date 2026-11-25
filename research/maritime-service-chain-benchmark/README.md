@@ -438,6 +438,41 @@ Secondary reporting of World Bank CPPI Annex 2 lists Durban at **398/400** in 20
 
 Official CPPI index and methodology: [World Bank CPPI 2025](https://www.worldbank.org/en/topic/transport/publication/cppi), [10 June 2026 methodology note](https://thedocs.worldbank.org/en/doc/aac122f6df85534428d66a7b9af4b7f6-0400012026/original/CPPI-Methodology-Note.pdf). Secondary Annex 2 report: [Focus on Transport](https://focusontransport.co.za/ports-sa-leads-the-world-in-improvement-but-trails-in-performance/). The World Bank data link returned HTTP 403 during this intake; the exact official annex still needs retrieval, hash and cross-check.
 
+
+
+## Quantity-weighted service without mixing physical units (25 November 2026)
+
+The service-chain owner already requires accepted/delivered tonnes, TEU and other declared service units to be reported separately. The new Rust quantity-weighted evaluator (draft PR #7424) implements that as a typed companion to the count-weighted receiver service score.
+
+Each canonical expected cargo-unit ID must have exactly one positive quantity record. The quantity record must use one explicit basis for the entire calculation: CONTAINER, TEU or TONNE. The evaluator requires an exact one-to-one match between expected-unit identities and quantity identities; duplicate, missing, extra or mixed-unit entries reject. It does not infer weights from aliases, source rows or vessel calls. It uses the same receiver-acceptance evidence and expected-unit denominator as the service score; NOT_DELIVERED, DIVERTED, CANCELLED, UNKNOWN and SOURCE_REPORTED_DELIVERED_UNVERIFIED remain in the expected quantity denominator, not the accepted numerator.
+
+The quantity unit is retained explicitly and quantities are integer milli-units:
+- 1,000 milli-containers = one physical container;
+- 1,000 milli-TEU = one TEU (for example, a verified 40-foot box can carry 2,000 milli-TEU);
+- 1,000 milli-tonnes = one metric tonne.
+
+### Synthetic known-answer comparison
+
+The fixture has four expected boxes: a 20-foot box accepted on time; a 40-foot box accepted late; one not delivered; and one unknown.
+
+| Quantity basis | Expected quantity | Accepted quantity | On-time quantity | Verified on-time |
+|---|---:|---:|---:|---:|
+| Container count | 4.000 | 2.000 | 1.000 | 25.0% |
+| TEU | 5.000 | 3.000 | 1.000 | 20.0% |
+| Tonnes | 40.000 | 30.000 | 10.000 | 25.0% |
+
+These are synthetic fixture values. They show why a single opaque weighted score is unsuitable: the same service trace has different quantity-weighted results, and each result must state its physical unit.
+
+Run the deterministic receipt:
+
+~~~sh
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin quantity-weighted-service-audit
+~~~
+
+The 41-container Transnet aggregate is deliberately **not** quantity-weighted by this module. Its public summary has a count partition (18 reported delivered, 7 inbound, 16 awaiting berth nomination) but no canonical per-container IDs, TEU sizes or weights. A count partition is not a quantity ledger, so TEU/tonnage-weighted service for that cohort remains NOT_EVALUABLE until the lineage/custody owners provide rights-cleared unit-level evidence.
+
+This complements rather than replaces cargo lineage #6631: that owner resolves canonical physical boxes and source aliases; custody #6662 qualifies paired handoffs; the quantity evaluator consumes their identities, quantities and independently admitted receiver outcomes.
+
 ### Competitive boundary
 
 The benchmark does not claim that incumbents lack variability reporting or receiver visibility. CPPI provides a strong global **port-level vessel time** comparator; Kaleris N4 covers extensive terminal operating workflows; DCSA and GS1 standardize important event exchange/visibility layers. Our opening is to demonstrate—under matched and independently qualified evidence—whether an assurance layer can prevent local metric gaming and verify actual service improvement across terminal, inland and receiver boundaries.
