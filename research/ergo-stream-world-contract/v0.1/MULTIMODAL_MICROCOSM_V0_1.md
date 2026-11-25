@@ -41,7 +41,7 @@ The generator has three association regimes:
 
 1. **Aligned:** both modalities observe the same latent event at the same event slot.
 2. **Marginal-matched shuffled:** Beta event identities are permuted across visible event slots. The symbol and timestamp marginals within each modality are exactly preserved under the same seed, because missingness, timing jitter/delay and symbol mapping use independent PRNG substreams.
-3. **Periodic ambiguous:** four cyclic phase correspondences are all evaluator-admissible; shared clock anchors are omitted. A single correspondence or affine clock map is therefore not justified.
+3. **Periodic ambiguous:** four cyclic event-phase correspondences are evaluator-admissible. Shared clock-anchor presence is independently switchable, allowing an identifiable affine clock with ambiguous event correspondence or a no-anchor case where both remain unresolved.
 
 Alpha and Beta have independent affine clocks with offset, rational rate, bounded timestamp jitter and bounded arrival delay. Event observations can arrive out of timestamp order. Missing events are retained as missingness rather than interpolated.
 
@@ -69,7 +69,7 @@ A candidate returns one of:
 - `Alternatives([pairs...])`;
 - `Unresolved`.
 
-The evaluator scores exact admissible correspondence classes, false and missed alternatives, false uniqueness, correct set-valued reporting and correct/unnecessary abstention. Pairwise precision/recall/F1 are also reported for the best admissible mapping.
+A separate evaluator-side oracle reconstructs admissible correspondences from private event-identity / event-slot labels; the candidate's claim is not used to construct truth. The scorer reports exact admissible correspondence classes, false and missed alternatives, false uniqueness, correct set-valued reporting and correct/unnecessary abstention. Pairwise precision/recall/F1 are also reported for the best admissible mapping.
 
 A valid clock map does not prove semantic event correspondence. A semantically plausible event mapping does not prove clock identifiability. Neither establishes causality.
 
@@ -104,7 +104,7 @@ All candidates receive the same public prefixes and observation/compute budgets.
 
 ## Limits and next gates
 
-This slice does not yet include raw media, learned event segmentation, multi-stream alignment beyond two modalities, clock resets, piecewise drift, duplicate/corrupted events, active clock-anchor requests, or candidate process isolation. It does not estimate clock parameters with OLS/Huber/DTW, issue a security claim, or establish any physical or causal relationship.
+This slice does not yet include raw media, learned event segmentation, multi-stream alignment beyond two modalities, clock resets, piecewise drift, duplicate/corrupted events, active clock-anchor requests, or candidate process isolation. It does not provide OLS/Huber/DTW candidate estimators, issue a security claim, or establish any physical or causal relationship. The evaluator truth routine is independent of candidate claim validation, but it shares the synthetic generator's declared hidden identity model; external clock/oracle differential validation remains a follow-on.
 
 Next gates:
 
