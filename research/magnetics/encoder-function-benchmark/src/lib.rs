@@ -35,11 +35,12 @@ pub struct FieldTrace {
     pub samples: Vec<FieldSample>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EncoderRequirements {
     pub pole_pairs: u32,
-    /// Zero-phase calibration from an independent calibration record.
-    /// It must not be fitted from the trace being evaluated.
+    /// Identity of the independent calibration record supplying the phase zero.
+    pub phase_zero_calibration_id: String,
+    /// Zero-phase calibration from that independent record; never fit on the trace under test.
     pub phase_zero_offset_rad: f64,
     pub minimum_in_plane_field_t: f64,
     pub maximum_peak_phase_error_rad: f64,
@@ -121,6 +122,7 @@ fn validate_requirements(requirements: &EncoderRequirements) -> Result<(), Evalu
     .all(|value| value.is_finite() && value >= 0.0);
 
     if requirements.pole_pairs == 0
+        || requirements.phase_zero_calibration_id.trim().is_empty()
         || !requirements.phase_zero_offset_rad.is_finite()
         || !requirements.minimum_in_plane_field_t.is_finite()
         || requirements.minimum_in_plane_field_t <= 0.0
@@ -269,15 +271,13 @@ pub fn evaluate_trace(
     }
 
     absolute_phase_errors.sort_by(f64::total_cmp);
-    let p95_index = ((sample_count * 95 + 99) / 100).saturating_sub(1);
+    let p95_index = (sample_count * 95).div_ceil(100).saturating_sub(1);
     let p95_absolute_phase_error_rad = absolute_phase_errors[p95_index];
     let maximum_absolute_phase_error_rad =
         absolute_phase_errors.iter().copied().fold(0.0_f64, f64::max);
 
     let mut violations = Vec::new();
-    if below_threshold_sample_count > 0
-        || minimum_in_plane_field_t < requirements.minimum_in_plane_field_t
-    {
+    if below_threshold_sample_count > 0 {
         violations.push(RequirementViolation::BelowMinimumInPlaneField);
     }
     if maximum_absolute_phase_error_rad > requirements.maximum_peak_phase_error_rad {
@@ -345,7 +345,9 @@ pub fn evaluate_trace_set(
                 .samples
                 .iter()
                 .zip(first.samples.iter())
-                .any(|(left, right)| left.mechanical_angle_rad != right.mechanical_angle_rad)
+                .any(|(left, right)| {
+                    left.mechanical_angle_rad.to_bits() != right.mechanical_angle_rad.to_bits()
+                })
         {
             return Err(EvaluationError::CoordinateGridMismatch);
         }
@@ -397,6 +399,7 @@ mod tests {
     fn requirements(pole_pairs: u32, phase_zero_offset_rad: f64) -> EncoderRequirements {
         EncoderRequirements {
             pole_pairs,
+            phase_zero_calibration_id: "calibration-record-v0".to_owned(),
             phase_zero_offset_rad,
             minimum_in_plane_field_t: 0.020,
             maximum_peak_phase_error_rad: 0.010,
@@ -629,8 +632,16 @@ mod tests {
         second.grid_id = "different-grid".to_owned();
 
         assert_eq!(
-            evaluate_trace_set(&[first, second], &requirements(1, 0.0)),
+            evaluate_trace_set(&[first.clone(), second], &requirements(1, 0.0)),
             Err(EvaluationError::GridIdentityMismatch)
+        );
+
+        let mut frame_mismatch = first.clone();
+        frame_mismatch.trace_id = "three".to_owned();
+        frame_mismatch.frame_id = "other-frame".to_owned();
+        assert_eq!(
+            evaluate_trace_set(&[first, frame_mismatch], &requirements(1, 0.0)),
+            Err(EvaluationError::FrameIdentityMismatch)
         );
     }
 
@@ -666,6 +677,28 @@ mod tests {
         assert_eq!(
             evaluate_trace(&nonfinite, &requirements(1, 0.0)),
             Err(EvaluationError::NonFiniteSample { index: 2 })
+        );
+    }
+
+
+    #[test]
+    fn requirements_must_name_an_independent_phase_calibration() {
+        let trace = make_trace(
+            "missing-calibration-id",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            constant_amplitude,
+            0.0,
+        );
+        let mut requirements = requirements(1, 0.0);
+        requirements.phase_zero_calibration_id.clear();
+
+        assert_eq!(
+            evaluate_trace(&trace, &requirements),
+            Err(EvaluationError::InvalidRequirements)
         );
     }
 
