@@ -230,6 +230,15 @@ jobs:
           head -n 1 /tmp/aggregate-cargo-status.csv | awk -F, '{ if (NF != 7) exit 1 }'
           awk -F, 'NF != 7 { exit 1 }' /tmp/aggregate-cargo-status.csv
           grep -q ",41,18,7,16,0,AGGREGATE_SOURCE_REPORTED_ONLY_NO_UNIT_RECEIPTS" /tmp/aggregate-cargo-status.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin quantity-weighted-service-audit > /tmp/quantity-weighted-service.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin quantity-weighted-service-audit > /tmp/quantity-weighted-service-replay.csv
+          cmp /tmp/quantity-weighted-service.csv /tmp/quantity-weighted-service-replay.csv
+          test "$(wc -l < /tmp/quantity-weighted-service.csv)" -eq 4
+          head -n 1 /tmp/quantity-weighted-service.csv | awk -F, '{ if (NF != 8) exit 1 }'
+          awk -F, 'NF != 8 { exit 1 }' /tmp/quantity-weighted-service.csv
+          awk -F, '$1=="CONTAINER" { if ($2 != 4 || $3 != 2 || $4 != 4000 || $5 != 2000 || $6 != 1000 || $7 != 250) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/quantity-weighted-service.csv
+          awk -F, '$1=="TEU" { if ($2 != 4 || $3 != 2 || $4 != 5000 || $5 != 3000 || $6 != 1000 || $7 != 200) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/quantity-weighted-service.csv
+          awk -F, '$1=="TONNE" { if ($2 != 4 || $3 != 2 || $4 != 40000 || $5 != 30000 || $6 != 10000 || $7 != 250) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/quantity-weighted-service.csv
           echo "Maritime repeated-sampling risk tournament smoke receipt passed."
           echo "Maritime decision-risk and finite-grid non-monotone receipts passed."
 
@@ -255,6 +264,7 @@ jobs:
             /tmp/cross-standard-mapping.csv \
             /tmp/service-variability.csv \
             /tmp/aggregate-cargo-status.csv \
+            /tmp/quantity-weighted-service.csv \
             research/maritime-service-chain-benchmark/dcsa-epcis-crosswalk-v1.0.0.toml \
             > /tmp/maritime-receipt-sha256.txt
 
@@ -280,6 +290,7 @@ jobs:
             /tmp/cross-standard-mapping.csv
             /tmp/service-variability.csv
             /tmp/aggregate-cargo-status.csv
+            /tmp/quantity-weighted-service.csv
             research/maritime-service-chain-benchmark/dcsa-epcis-crosswalk-v1.0.0.toml
           if-no-files-found: error
           retention-days: 30
