@@ -26,9 +26,10 @@ The machine-readable register is adjacent at `fixtures/industry_baselines_v0_1.j
 |---|---|---|---|
 | Femtosecond-written glass (Silica, fused silica) | Published end-to-end research demonstrator | 1.59 Gbit/mm³; 301 layers; 4.8 TB per 120 × 120 × 2 mm platter; 25.6 Mbit/s per beam; 10.1 nJ/bit | High-density long-term archive candidate. One-beam write rate is far below tape-drive streaming rates; full reader, writer and cost deployment must be included. |
 | Glass phase voxels (borosilicate) | Published research regime | 0.678 Gbit/mm³; 258 layers; 2.02 TB per platter; 18.4 Mbit/s single-beam regime; 65.9 Mbit/s demonstrated with four beams; 8.85 nJ/bit | Lower-cost glass and simpler read/write path in the paper; accelerated ageing suggests >10,000-year voxel lifetime, which is an extrapolation, not a direct 10,000-year observation. The paper's 16+ beam thermal result is a projection, not a demonstrated write system. |
-| Seagate Mozaic 4+ HAMR | Production ramp with hyperscale customers | Up to 44 TB per HDD; continued ramp described in the 27 October 2026 Q1 FY2027 earnings call | Industrial nearline capacity and mature deployment. Magnetic recording is an operationally proven storage tier; this is not a lab-only candidate. |
+| Seagate Mozaic 4+ HAMR | Production ramp with hyperscale customers | Up to 44 TB per HDD; October 2026 call says ramp continuing with two leading cloud providers and further qualifications underway | Industrial nearline capacity and production deployment. This is the relevant shipping baseline, not the roadmap below. |
+| Seagate Mozaic 5 | Roadmap / prequalification | More than 50 TB per drive targeted; qualification shipments expected toward end of calendar 2027; an 8 TB-per-disk laboratory demonstration was reported | Vendor development and lab figures, not production-available capacity. Do not benchmark as a shipped drive. |
 | WD 40 TB UltraSMR ePMR | Shipping/ramping, reported August 2026 | Up to 40 TB per HDD | Industrial nearline capacity. UltraSMR trades some rewrite flexibility for density; workload compatibility matters. WD's first-generation 44 TB HAMR was still forecast for H1 2027 in the cited August report. |
-| LTO-10 tape | Current format/product family | 40 TB native per cartridge; up to 400 MB/s native | Removable, offline, high-capacity archive with WORM and hardware encryption options. Cartridge capacity is not comparable to a glass volume density figure. |
+| LTO-10 tape | Current format/product family | 40 TB native per cartridge; up to 400 MB/s native; up to 100 TB at 2.5:1 compression | Removable, offline, high-capacity archive. Compatible drives support hardware encryption; Fujifilm's 2026 product notice lists the WORM option on its 30 TB LTO-10 variant, not the 40 TB cartridge. Cartridge capacity is not comparable to a glass volume density figure. |
 | Micron 6600 ION QLC SSD | Commercial product family | 245.76 TB usable / 256 TB raw in E3.L | Very high-capacity flash and low-latency access; a different cost, endurance, power and access tier from tape or glass archive. |
 
 ### Important arithmetic sanity check
@@ -38,6 +39,10 @@ The fused-silica birefringent regime reports 25.6 Mbit/s per beam. The borosilic
 Likewise, glass volumetric density, HDD areal density, tape cartridge capacity and SSD package capacity must remain separate dimensions. No direct ranking may be made by comparing those raw numbers.
 
 ## 3. Paradigm shifts to test
+
+### 3.0 From storage density to verified information-years
+
+A medium should be compared by the exact payload that can be restored under a declared environment and service lifetime, not by a raw capacity headline. Add service-level metrics such as verified TB-years per rack volume, cost per verified TB-year, energy per successfully restored TB, and restore-time SLA. These metrics require full device/library, reader, decoder, migration and environmental boundaries; until public cost and service-life data exist, record them as missing rather than estimating them.
 
 ### 3.1 From density to exact information survival
 
