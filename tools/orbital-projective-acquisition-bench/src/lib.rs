@@ -515,6 +515,20 @@ mod tests {
     }
 
     #[test]
+    fn arithmetic_overflow_is_rejected_without_wrapping() {
+        let input = corpus();
+        let overflow = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "PM-011-ARITHMETIC-OVERFLOW")
+            .unwrap();
+        let result = evaluate_case(overflow);
+        assert_eq!(result.status, Status::InvalidInput);
+        assert_eq!(result.reason_codes, vec!["ARITHMETIC_OVERFLOW".to_owned()]);
+        assert!(result.bounds.is_none());
+    }
+
+    #[test]
     fn invalid_depth_is_rejected_before_projection() {
         let input = corpus();
         let invalid = input
