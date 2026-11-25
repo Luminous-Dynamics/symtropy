@@ -41,6 +41,7 @@ pub mod ncdot_temporal;
 pub mod normal_positive_part;
 pub mod pop_col_adjustment;
 pub mod pop_col_energy;
+pub mod pathwise_event;
 pub mod pop_convergence;
 pub mod predictable_empirical_bernstein;
 pub mod proposal_execution_conformance;
@@ -107,6 +108,10 @@ pub use pop_col_adjustment::{
 };
 pub use pop_col_energy::{
     PopColEnergyInput, PopColEnergyReport, calculate_pop_col_energy, conditional_velocity_at_col,
+};
+pub use pathwise_event::{
+    EncounterWindow, HorizonContactDisposition, HorizonEventConfig, HorizonEventDefinition,
+    PathWindowDisposition, PathWindowOutcome, PathwiseHorizonOutcome, WindowInventoryCoverage,
 };
 pub use pop_convergence::{
     PeakOverlapConvergenceConfig, PeakOverlapConvergenceDecision,
@@ -258,6 +263,28 @@ pub enum KernelError {
     InvalidPeakOverlapConvergenceConfig,
     /// PeakOverlapPos convergence observation is incomplete or inconsistent.
     InvalidPeakOverlapConvergenceObservation,
+    /// A pathwise horizon event definition has blank identity or invalid horizon metadata.
+    InvalidEventDefinition,
+    /// A pathwise horizon event definition contains no encounter windows.
+    EmptyEncounterWindowSet,
+    /// An encounter window has invalid identity, bounds or horizon containment.
+    InvalidEncounterWindow,
+    /// Encounter-window identifiers are not unique within one horizon definition.
+    DuplicateEncounterWindow,
+    /// A joint trajectory realization lacks an outcome for one or more declared windows.
+    MissingEncounterWindowOutcome,
+    /// A trajectory-realization identifier is blank or invalid.
+    InvalidTrajectoryRealization,
+    /// Per-window outcomes do not belong to one shared trajectory realization.
+    MismatchedTrajectoryRealization,
+    /// A per-window outcome refers to a window absent from the frozen event definition.
+    UnknownEncounterWindow,
+    /// Multiple per-window outcomes refer to the same declared window.
+    DuplicateEncounterWindowOutcome,
+    /// A first-contact time interval is invalid or lies outside its declared window.
+    InvalidEncounterContactTime,
+    /// Overlapping window classifications contradict one another for one trajectory.
+    ContradictoryEncounterWindowOutcome,
 }
 
 impl fmt::Display for KernelError {
@@ -358,6 +385,17 @@ impl fmt::Display for KernelError {
             Self::InvalidPeakOverlapConvergenceObservation => {
                 "PeakOverlapPos convergence observation is incomplete or inconsistent"
             }
+            Self::InvalidEventDefinition => "pathwise horizon event definition is invalid",
+            Self::EmptyEncounterWindowSet => "pathwise horizon event has no encounter windows",
+            Self::InvalidEncounterWindow => "encounter window identity or bounds are invalid",
+            Self::DuplicateEncounterWindow => "encounter window identifiers are duplicated",
+            Self::MissingEncounterWindowOutcome => "trajectory realization is missing a window outcome",
+            Self::InvalidTrajectoryRealization => "trajectory realization identity is invalid",
+            Self::MismatchedTrajectoryRealization => "window outcomes do not share one trajectory realization",
+            Self::UnknownEncounterWindow => "window outcome references an unknown encounter window",
+            Self::DuplicateEncounterWindowOutcome => "trajectory realization repeats a window outcome",
+            Self::InvalidEncounterContactTime => "first-contact time bounds are invalid",
+            Self::ContradictoryEncounterWindowOutcome => "overlapping encounter window outcomes contradict",
         };
         f.write_str(message)
     }
