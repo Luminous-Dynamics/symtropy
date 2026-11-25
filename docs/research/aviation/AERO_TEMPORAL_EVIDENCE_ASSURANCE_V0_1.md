@@ -271,6 +271,24 @@ The architecture must distinguish five independent claims: artifact integrity, i
 - **Symthaea uncertainty provenance:** acquisition-time and measurement uncertainty, dependence and sampling metadata.
 - **Symtropy:** aviation-specific event scope, calibration/configuration semantics, historical query modes, corpus and benchmark disposition.
 
+
+### 9.1 Upstream readiness audit (25 November 2026)
+
+These owners are real integration dependencies, but their current public work is not yet a production qualification basis:
+
+| Owner / tracker | Current public state | What AERO may consume | What AERO must not claim yet |
+|---|---|---|---|
+| Mycelix AeroCommons [PR #6347](https://github.com/Luminous-Dynamics/mycelix/pull/6347) | Open draft; exact-head verification and review remain separate | `CalibrationValidityV1`, instrument/evidence binding, half-open validity interval, physical-unit packet identity and exact artifact byte/hash receipts | Signature/issuer authentication, trusted source/receiver time, custody, QIF/AP242 conformance, measurement truth or engineering acceptance |
+| Symthaea BASALT [PR #9203](https://github.com/Luminous-Dynamics/symthaea/pull/9203) | Open; timeline auditor explicitly keeps `confirmatory_eligible=false` | Resource digest/generation timelines, supplied event-digest checks, declared dependency pins, stale-evidence closure and re-verification plans | Trusted change capture, complete observation of all real inputs, producer authenticity or confirmatory eligibility |
+| Symthaea trusted runner [#9210](https://github.com/Luminous-Dynamics/symthaea/issues/9210) and coverage qualification [#9239](https://github.com/Luminous-Dynamics/symthaea/issues/9239) | Both open | Future runner-issued event/observer receipts when independently qualified | A self-declared `dependency_coverage=complete` flag or signed receipt alone is not proof that every influential input was observed |
+| Symthaea ASSURE [#2618](https://github.com/Luminous-Dynamics/symthaea/issues/2618) | Open lifecycle-semantics work | Append-only predecessor/currentness lineage and explicit invalidation/requalification transitions | `TerminalInSuppliedView` is not global currentness through a verified checkpoint; a successor is not valid merely because it exists |
+| Symthaea uncertainty provenance [#7412](https://github.com/Luminous-Dynamics/symthaea/issues/7412) | Open; its issue states current empirical `MetricValue` snapshots lack observed sample-unit and CI-generation provenance; upstream #7411 fails closed until resolved | Future versioned observation-level sample-unit, CI-method/version, confidence-level and estimator provenance after implementation and exact tests | Do not represent existing empirical metrics or the AERO pilot as uncertainty-qualified merely because a metric contract declares an interval policy |
+| Symthaea evidence-action selector [#13112](https://github.com/Luminous-Dynamics/symthaea/issues/13112) | Open issue with a delivered Rust audit/VOI benchmark slice described | Candidate baseline for admissible next-test selection, EVSI/minimax-regret and multi-resource Pareto comparison | Do not claim a production integrated selector or replace qualified human/authority decisions without exact-head validation and owner-native outcome receipts |
+
+**Integration consequence:** AERO's current status remains a synthetic aviation-semantic contract. The adapters should preserve explicit `UNKNOWN`, `UNQUALIFIED`, `INCOMPLETE` and `NOT_SUPPORTED` states when an upstream owner has not yet established its own claim. A downstream AERO report must never upgrade an upstream evidence record's assurance level.
+
+The temporal benchmark's event receipt, uncertainty and historical replay vectors are intended to exercise these owner boundaries, not to implement their generic ledgers, runners, lifecycle engines or estimators inside Symtropy.
+
 AERO v0.1/v0.2 remains a synthetic software contract. The temporal assurance benchmark must not claim to authenticate actual lab records, establish physical custody, validate material allowables, demonstrate NDE probability of detection, qualify an aircraft component, authorize maintenance release or establish airworthiness.
 
 ## 10. Frozen temporal replay corpus
