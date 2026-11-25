@@ -92,6 +92,10 @@ pub struct ProjectionBounds {
     pub row_time: DisplacementTerms,
     pub latest_row_exposure: DisplacementTerms,
     pub combined_frame: DisplacementTerms,
+    pub constant_max_speed_frame: DisplacementTerms,
+    pub constant_speed_excess_um_upper: u64,
+    pub constant_speed_frame_x_micro_px_upper: u64,
+    pub constant_speed_frame_y_micro_px_upper: u64,
     pub exposure_x_micro_px_upper: u64,
     pub exposure_y_micro_px_upper: u64,
     pub row_time_x_micro_px_upper: u64,
@@ -387,6 +391,42 @@ fn validate_case(case: &Case) -> Result<(), Vec<String>> {
     }
 }
 
+fn constant_max_speed_frame_terms(
+    model: &MotionModel,
+    full_frame_duration_ns: u64,
+) -> Result<DisplacementTerms, String> {
+    // The maximum absolute time in [-E/2, T+E/2] is T+E/2.
+    // Apply that single maximum speed to the entire frame as a deliberately
+    // conservative comparator, not as the decision-bound calculation.
+    let twice_max_time_ns = u128::from(model.first_to_last_row_midpoint_span_ns)
+        .checked_mul(2)
+        .and_then(|value| value.checked_add(u128::from(model.row_exposure_duration_ns)))
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let duration_ns = u128::from(full_frame_duration_ns);
+
+    let speed = speed_term(model.reference_point_speed_um_s, full_frame_duration_ns)?;
+    let acceleration_numerator = mul3(
+        u128::from(model.reference_point_acceleration_um_s2),
+        twice_max_time_ns,
+        duration_ns,
+    )?;
+    let acceleration = to_u64(ceil_div(
+        acceleration_numerator,
+        2 * NS2_PER_SECOND2,
+    )?)?;
+
+    let twice_max_time_squared = twice_max_time_ns
+        .checked_mul(twice_max_time_ns)
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let jerk_numerator = u128::from(model.point_jerk_upper_um_s3)
+        .checked_mul(twice_max_time_squared)
+        .and_then(|value| value.checked_mul(duration_ns))
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let jerk = to_u64(ceil_div(jerk_numerator, 8 * NS3_PER_SECOND3)?)?;
+
+    sum_displacement_terms(speed, acceleration, jerk)
+}
+
 fn calculate_bounds(model: &MotionModel) -> Result<ProjectionBounds, String> {
     let exposure_ns = model.row_exposure_duration_ns;
     let row_span_ns = model.first_to_last_row_midpoint_span_ns;
@@ -432,7 +472,25 @@ fn calculate_bounds(model: &MotionModel) -> Result<ProjectionBounds, String> {
             exposure_ns,
         )?,
     )?;
+    let constant_max_speed_frame =
+        constant_max_speed_frame_terms(model, full_frame_duration_ns)?;
+    let constant_speed_excess_um_upper = constant_max_speed_frame
+        .total_um
+        .checked_sub(combined_frame.total_um)
+        .ok_or_else(|| "CONSTANT_SPEED_COMPARATOR_UNDER_BOUND".to_owned())?;
 
+    let constant_speed_frame_x = projected_axis_upper(
+        model.focal_x_micro_px,
+        constant_max_speed_frame.total_um,
+        model.max_abs_x_um,
+        model.min_depth_um,
+    )?;
+    let constant_speed_frame_y = projected_axis_upper(
+        model.focal_y_micro_px,
+        constant_max_speed_frame.total_um,
+        model.max_abs_y_um,
+        model.min_depth_um,
+    )?;
     let exposure_x = projected_axis_upper(
         model.focal_x_micro_px,
         exposure.total_um,
@@ -474,6 +532,10 @@ fn calculate_bounds(model: &MotionModel) -> Result<ProjectionBounds, String> {
         row_time: row,
         latest_row_exposure: exposure,
         combined_frame,
+        constant_max_speed_frame,
+        constant_speed_excess_um_upper,
+        constant_speed_frame_x_micro_px_upper: constant_speed_frame_x,
+        constant_speed_frame_y_micro_px_upper: constant_speed_frame_y,
         exposure_x_micro_px_upper: exposure_x,
         exposure_y_micro_px_upper: exposure_y,
         row_time_x_micro_px_upper: row_x,
@@ -853,6 +915,41 @@ mod tests {
     }
 
     #[test]
+    fn time_varying_integral_is_never_larger_than_constant_max_speed_comparator() {
+        let input = corpus();
+        for case in &input.cases {
+            if let Ok(bounds) = calculate_bounds(&case.model) {
+                assert!(
+                    bounds.constant_max_speed_frame.total_um >= bounds.combined_frame.total_um
+                );
+                assert!(
+                    bounds.constant_speed_frame_x_micro_px_upper
+                        >= bounds.combined_frame_x_micro_px_upper
+                );
+                assert!(
+                    bounds.constant_speed_frame_y_micro_px_upper
+                        >= bounds.combined_frame_y_micro_px_upper
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn acceleration_and_jerk_show_strict_constant_speed_excess() {
+        let input = corpus();
+        let case = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "TV-016-FRAME-WINDOW-TRAP")
+            .unwrap();
+        let bounds = calculate_bounds(&case.model).unwrap();
+        assert!(bounds.constant_speed_excess_um_upper > 0);
+        assert!(
+            bounds.constant_max_speed_frame.total_um > bounds.combined_frame.total_um
+        );
+    }
+
+    #[test]
     fn combined_frame_matches_constant_speed_over_full_interval() {
         let input = corpus();
         let case = input
@@ -872,6 +969,11 @@ mod tests {
         assert_eq!(bounds.combined_frame.speed_um, expected);
         assert_eq!(bounds.combined_frame.acceleration_um, 0);
         assert_eq!(bounds.combined_frame.jerk_um, 0);
+        assert_eq!(
+            bounds.constant_max_speed_frame.total_um,
+            bounds.combined_frame.total_um
+        );
+        assert_eq!(bounds.constant_speed_excess_um_upper, 0);
     }
 
     #[test]
