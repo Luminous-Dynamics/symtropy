@@ -29,6 +29,16 @@ fn main() {
         serde_json::to_string_pretty(&receipt).expect("receipt serializes")
     );
     if receipt.expected_outcome_mismatches != 0 {
+        let corpus: orbital_cal_validity_bench::Corpus =
+            serde_json::from_slice(&bytes).expect("corpus was already parsed by audit");
+        for (result, source) in receipt.cases.iter().zip(corpus.cases.iter()) {
+            if result.status != source.expected_status {
+                eprintln!(
+                    "expected-outcome mismatch: case={} expected={:?} actual={:?} reasons={:?}",
+                    result.case_id, source.expected_status, result.status, result.reason_codes
+                );
+            }
+        }
         process::exit(1);
     }
 }
