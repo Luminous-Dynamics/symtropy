@@ -4,7 +4,6 @@ use std::env;
 use std::fs;
 use std::process::ExitCode;
 
-use serde::Serialize;
 use symtropy_aero_material_qual::{evaluate_case, evidence_binding_v0_2};
 
 fn main() -> ExitCode {
