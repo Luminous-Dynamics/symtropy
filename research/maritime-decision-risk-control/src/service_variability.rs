@@ -391,7 +391,7 @@ const FAIRNESS_COHORTS: [&str; 20] = [
     "PRIORITY_A", "PRIORITY_A", "PRIORITY_A", "SMALL_RECEIVER", "SMALL_RECEIVER",
 ];
 
-fn scenarios() -> [Scenario; 5] {
+fn scenarios() -> [Scenario; 6] {
     [
         Scenario {
             id: "MEAN_MATCHED_STABLE",
@@ -422,10 +422,17 @@ fn scenarios() -> [Scenario; 5] {
             burst: false,
         },
         Scenario {
-            id: "RECEIVER_REGRESSION_AND_FLOOR_VIOLATION",
+            id: "RECEIVER_REGRESSION",
             observations: &RECEIVER_REGRESSION,
-            cohorts: &FAIRNESS_COHORTS,
+            cohorts: &[],
             deadline: 160,
+            burst: true,
+        },
+        Scenario {
+            id: "FAIRNESS_COHORT_FLOOR_HIDDEN_BY_AGGREGATE",
+            observations: &MEAN_MATCHED_BURSTY,
+            cohorts: &FAIRNESS_COHORTS,
+            deadline: 120,
             burst: true,
         },
     ]
@@ -646,7 +653,7 @@ mod tests {
     fn deterministic_receipt_is_byte_identical_and_has_fixed_schema() {
         let first = render_csv();
         assert_eq!(first, render_csv());
-        assert_eq!(first.lines().count(), 6);
+        assert_eq!(first.lines().count(), 7);
         let width = first.lines().next().expect("CSV header").split(',').count();
         assert_eq!(width, 16);
         for row in first.lines().skip(1) {
@@ -654,6 +661,7 @@ mod tests {
         }
         assert!(first.contains("MEAN_MATCHED_HIGH_VARIABILITY"));
         assert!(first.contains("LOCAL_PORT_GAIN_NO_RECEIVER_GAIN"));
-        assert!(first.contains("RECEIVER_REGRESSION_AND_FLOOR_VIOLATION"));
+        assert!(first.contains("RECEIVER_REGRESSION"));
+        assert!(first.contains("FAIRNESS_COHORT_FLOOR_HIDDEN_BY_AGGREGATE"));
     }
 }
