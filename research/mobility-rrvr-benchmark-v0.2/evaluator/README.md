@@ -11,7 +11,7 @@ This isolated Rust crate turns raw RRVR episode records into deterministic per-a
 
 ## Input and matching contract
 
-The input format is versioned and strict. Unknown fields reject. Every episode declares a pair ID and arm. A pair must contain at least two unique arms and exactly one native and one full_rrvr arm. All arms in a pair must match on task, policy digest, scene digest, initial-state digest, action-prefix digest, seed, simulator profile, fault schedule, observer profile and expected disposition. Independent oracle dispositions must also agree across arms in a pair. Mismatches reject the entire bundle; the evaluator never repairs or silently drops pairs.
+The input format is versioned and strict. Unknown fields reject. Every episode declares a pair ID and arm. A pair must contain at least two unique arms and exactly one native and one full_rrvr arm. All arms in a pair must match on task, policy digest, scene digest, initial-state digest, action-prefix digest, seed, simulator profile, fault schedule, observer profile and expected disposition. Each arm retains its own independently adjudicated realized outcome. Realized outcomes may differ between arms because the treatment can change the physical result; only the precommitted expected disposition and frozen input identity are shared pair keys. Mismatches reject the entire bundle; the evaluator never repairs or silently drops pairs.
 
 The native_benchmark_preserved assertion must be true for every record. It prevents the overlay from replacing or suppressing the host benchmark's native outcome fields.
 
