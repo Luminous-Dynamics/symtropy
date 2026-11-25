@@ -1,0 +1,283 @@
+{
+  "schema_version": "aero-aircraft-candidate-portfolio/v1",
+  "data_origin": "synthetic",
+  "claim_ceiling": "synthetic_architecture_screening",
+  "mission_profile_ref": "synthetic.rural-medical-cargo.001@1",
+  "candidates": [
+    {
+      "schema_version": "aero-aircraft-candidate/v1",
+      "revision": 1,
+      "data_origin": "synthetic",
+      "claim_ceiling": "synthetic_architecture_screening",
+      "configuration_status": "conceptual",
+      "energy": {
+        "primary_storage": "battery",
+        "secondary_sources": [],
+        "energy_system_model_ref": null,
+        "thermal_model_ref": null
+      },
+      "discipline_model_refs": [],
+      "component_refs": [],
+      "closure_receipts": {
+        "mass_properties": null,
+        "cg_inertia": null,
+        "aerodynamics_loads": null,
+        "propulsion": null,
+        "energy_thermal": null,
+        "mission_reserve": null,
+        "maintainability": null
+      },
+      "unknowns": [
+        {
+          "field_path": "mass_properties",
+          "disposition": "unknown",
+          "reason": "No aircraft geometry or mass model is bound to this conceptual archetype."
+        },
+        {
+          "field_path": "cg_inertia",
+          "disposition": "unknown",
+          "reason": "No loading cases or mass-property receipt exists yet."
+        },
+        {
+          "field_path": "aerodynamics_loads",
+          "disposition": "unknown",
+          "reason": "No candidate-specific aerodynamic and structural model receipt exists yet."
+        },
+        {
+          "field_path": "propulsion_performance",
+          "disposition": "unknown",
+          "reason": "No candidate-specific motor, inverter, propulsor or drive-train map is supplied."
+        },
+        {
+          "field_path": "energy_thermal",
+          "disposition": "unknown",
+          "reason": "No cell/pack/system energy or thermal model receipt is bound."
+        },
+        {
+          "field_path": "mission_reserve",
+          "disposition": "unknown",
+          "reason": "Mission feasibility must be evaluated against the frozen mission profile and applicable owner models."
+        },
+        {
+          "field_path": "maintainability",
+          "disposition": "unknown",
+          "reason": "No inspection, access, repair or return-to-service evidence is supplied."
+        }
+      ],
+      "assumptions": [
+        "Conceptual architecture identifier only; not a defined aircraft design.",
+        "No aircraft dimensions, performance, mass, range, energy consumption, noise or certification data are asserted.",
+        "All model and closure fields remain explicitly unknown until supplied by their owning engineering domains."
+      ],
+      "candidate_id": "synthetic.fixed-wing.battery.001",
+      "family": "battery_fixed_wing",
+      "propulsion": {
+        "architecture": "tractor_electric",
+        "propulsor_count": null,
+        "drive_train_config_ref": null
+      },
+      "owner_work_refs": [
+        {
+          "system": "symthaea",
+          "issue_url": "https://github.com/Luminous-Dynamics/symthaea/issues/6249",
+          "responsibility": "Fixed-wing physical model and engineering evidence owner."
+        },
+        {
+          "system": "symtropy",
+          "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/5163",
+          "responsibility": "Independent reachability/enclosure owner; consumes qualified aircraft model outputs."
+        },
+        {
+          "system": "mycelix",
+          "issue_url": "https://github.com/Luminous-Dynamics/mycelix/issues/3638",
+          "responsibility": "Configuration, provenance and manufacturing evidence custody."
+        }
+      ]
+    },
+    {
+      "schema_version": "aero-aircraft-candidate/v1",
+      "revision": 1,
+      "data_origin": "synthetic",
+      "claim_ceiling": "synthetic_architecture_screening",
+      "configuration_status": "conceptual",
+      "energy": {
+        "primary_storage": "battery",
+        "secondary_sources": [],
+        "energy_system_model_ref": null,
+        "thermal_model_ref": null
+      },
+      "discipline_model_refs": [],
+      "component_refs": [],
+      "closure_receipts": {
+        "mass_properties": null,
+        "cg_inertia": null,
+        "aerodynamics_loads": null,
+        "propulsion": null,
+        "energy_thermal": null,
+        "mission_reserve": null,
+        "maintainability": null
+      },
+      "unknowns": [
+        {
+          "field_path": "mass_properties",
+          "disposition": "unknown",
+          "reason": "No aircraft geometry or mass model is bound to this conceptual archetype."
+        },
+        {
+          "field_path": "cg_inertia",
+          "disposition": "unknown",
+          "reason": "No loading cases or mass-property receipt exists yet."
+        },
+        {
+          "field_path": "aerodynamics_loads",
+          "disposition": "unknown",
+          "reason": "No candidate-specific aerodynamic and structural model receipt exists yet."
+        },
+        {
+          "field_path": "propulsion_performance",
+          "disposition": "unknown",
+          "reason": "No candidate-specific motor, inverter, propulsor or drive-train map is supplied."
+        },
+        {
+          "field_path": "energy_thermal",
+          "disposition": "unknown",
+          "reason": "No cell/pack/system energy or thermal model receipt is bound."
+        },
+        {
+          "field_path": "mission_reserve",
+          "disposition": "unknown",
+          "reason": "Mission feasibility must be evaluated against the frozen mission profile and applicable owner models."
+        },
+        {
+          "field_path": "maintainability",
+          "disposition": "unknown",
+          "reason": "No inspection, access, repair or return-to-service evidence is supplied."
+        }
+      ],
+      "assumptions": [
+        "Conceptual architecture identifier only; not a defined aircraft design.",
+        "No aircraft dimensions, performance, mass, range, energy consumption, noise or certification data are asserted.",
+        "All model and closure fields remain explicitly unknown until supplied by their owning engineering domains."
+      ],
+      "candidate_id": "synthetic.electric-stol.001",
+      "family": "electric_stol",
+      "propulsion": {
+        "architecture": "distributed_electric",
+        "propulsor_count": null,
+        "drive_train_config_ref": null
+      },
+      "owner_work_refs": [
+        {
+          "system": "symtropy",
+          "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/3921",
+          "responsibility": "eSTOL airframe concept, maintainability and hot/high comparison owner."
+        },
+        {
+          "system": "symtropy",
+          "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/3945",
+          "responsibility": "Whole-aircraft configuration and mission closure owner."
+        },
+        {
+          "system": "mycelix",
+          "issue_url": "https://github.com/Luminous-Dynamics/mycelix/issues/3638",
+          "responsibility": "Configuration, provenance and manufacturing evidence custody."
+        }
+      ]
+    },
+    {
+      "schema_version": "aero-aircraft-candidate/v1",
+      "revision": 1,
+      "data_origin": "synthetic",
+      "claim_ceiling": "synthetic_architecture_screening",
+      "configuration_status": "conceptual",
+      "energy": {
+        "primary_storage": "battery",
+        "secondary_sources": [],
+        "energy_system_model_ref": null,
+        "thermal_model_ref": null
+      },
+      "discipline_model_refs": [],
+      "component_refs": [],
+      "closure_receipts": {
+        "mass_properties": null,
+        "cg_inertia": null,
+        "aerodynamics_loads": null,
+        "propulsion": null,
+        "energy_thermal": null,
+        "mission_reserve": null,
+        "maintainability": null
+      },
+      "unknowns": [
+        {
+          "field_path": "mass_properties",
+          "disposition": "unknown",
+          "reason": "No aircraft geometry or mass model is bound to this conceptual archetype."
+        },
+        {
+          "field_path": "cg_inertia",
+          "disposition": "unknown",
+          "reason": "No loading cases or mass-property receipt exists yet."
+        },
+        {
+          "field_path": "aerodynamics_loads",
+          "disposition": "unknown",
+          "reason": "No candidate-specific aerodynamic and structural model receipt exists yet."
+        },
+        {
+          "field_path": "propulsion_performance",
+          "disposition": "unknown",
+          "reason": "No candidate-specific motor, inverter, propulsor or drive-train map is supplied."
+        },
+        {
+          "field_path": "energy_thermal",
+          "disposition": "unknown",
+          "reason": "No cell/pack/system energy or thermal model receipt is bound."
+        },
+        {
+          "field_path": "mission_reserve",
+          "disposition": "unknown",
+          "reason": "Mission feasibility must be evaluated against the frozen mission profile and applicable owner models."
+        },
+        {
+          "field_path": "maintainability",
+          "disposition": "unknown",
+          "reason": "No inspection, access, repair or return-to-service evidence is supplied."
+        }
+      ],
+      "assumptions": [
+        "Conceptual architecture identifier only; not a defined aircraft design.",
+        "No aircraft dimensions, performance, mass, range, energy consumption, noise or certification data are asserted.",
+        "All model and closure fields remain explicitly unknown until supplied by their owning engineering domains."
+      ],
+      "candidate_id": "synthetic.lift-plus-cruise.001",
+      "family": "lift_plus_cruise",
+      "propulsion": {
+        "architecture": "lift_plus_cruise",
+        "propulsor_count": null,
+        "drive_train_config_ref": null
+      },
+      "owner_work_refs": [
+        {
+          "system": "symtropy",
+          "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/3885",
+          "responsibility": "VTOL energy and power architecture co-design owner."
+        },
+        {
+          "system": "symtropy",
+          "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/3945",
+          "responsibility": "Whole-aircraft configuration and mission closure owner."
+        },
+        {
+          "system": "symthaea",
+          "issue_url": "https://github.com/Luminous-Dynamics/symthaea/issues/11490",
+          "responsibility": "Electric rotorcraft mission-energy co-design owner for applicable occupant/cargo profiles."
+        },
+        {
+          "system": "mycelix",
+          "issue_url": "https://github.com/Luminous-Dynamics/mycelix/issues/3638",
+          "responsibility": "Configuration, provenance and manufacturing evidence custody."
+        }
+      ]
+    }
+  ]
+}
