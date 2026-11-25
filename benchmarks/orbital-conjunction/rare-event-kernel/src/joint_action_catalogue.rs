@@ -232,12 +232,6 @@ pub fn evaluate_joint_action_catalogue(
     {
         return Err(JointActionCatalogueError::InvalidIdentity);
     }
-    if config.baseline_snapshot.events.is_empty()
-        && !config.baseline_snapshot.inventory_complete
-    {
-        return Err(JointActionCatalogueError::InvalidIdentity);
-    }
-
     let mut candidates = BTreeMap::new();
     for candidate in &config.candidates {
         if is_zero_digest(&candidate.action_id) || candidates.contains_key(&candidate.action_id) {
@@ -280,9 +274,10 @@ pub fn evaluate_joint_action_catalogue(
     let mut outcome_by_set = BTreeMap::new();
     let mut action_set_digests = BTreeSet::new();
     for outcome in &config.outcomes {
-        if is_zero_digest(&outcome.action_set_digest)
-            || !action_set_digests.insert(outcome.action_set_digest)
-        {
+        if is_zero_digest(&outcome.action_set_digest) {
+            return Err(JointActionCatalogueError::InvalidIdentity);
+        }
+        if !action_set_digests.insert(outcome.action_set_digest) {
             return Err(JointActionCatalogueError::DuplicateActionSetDigest);
         }
         if outcome.action_ids.windows(2).any(|pair| pair[0] >= pair[1]) {
@@ -359,10 +354,6 @@ pub fn evaluate_joint_action_catalogue(
                     coordination_required |= candidate.coordination_required;
                 }
                 coordination_required |= operators.len() > 1;
-                if coordination_required && coordination_digest.is_none() {
-                    return Err(JointActionCatalogueError::CoordinationEvidenceMissing);
-                }
-
                 if action_ids.is_empty()
                     && (post_action_snapshot != &config.baseline_snapshot
                         || *robust_consequence_avoided_ticks != 0)
@@ -626,7 +617,7 @@ mod tests {
     }
 
     #[test]
-    fn a_single_unresolved_selectable_coalition_forces_global_abstention() {
+    fn duplicate_rows_for_the_same_coalition_are_rejected() {
         let a = [10; 32];
         let outcomes = vec![
             qualified(vec![], 1, vec![], 0),
@@ -729,7 +720,13 @@ mod tests {
             outcomes.clone(),
             2,
         ));
-        assert_eq!(result, Err(JointActionCatalogueError::CoordinationEvidenceMissing));
+        let incomplete = result.unwrap();
+        assert_eq!(
+            incomplete.disposition,
+            JointActionSelectionDisposition::AbstainIncompleteEvidence
+        );
+        assert_eq!(incomplete.selected_action_ids, None);
+        assert_eq!(incomplete.incomplete_evidence_count, 1);
 
         if let JointActionOutcomeState::Qualified { coordination_digest, .. } = &mut joint.state {
             *coordination_digest = Some([92; 32]);
