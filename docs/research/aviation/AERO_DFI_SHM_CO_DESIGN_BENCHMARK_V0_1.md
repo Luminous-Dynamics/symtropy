@@ -302,3 +302,38 @@ AERO should publish a benchmark card for every dataset with scope, rights, artic
 ## 9. Non-claims
 
 This benchmark does not establish physical POD, structural health monitoring acceptance, fatigue/damage tolerance, maintenance interval, repair approval, structural substantiation, part acceptance, airworthiness, aircraft certification or authority to operate. It is an experiment and software-benchmark contract only.
+
+
+## 8.3 Rights-aware dataset manifest and secure ingestion
+
+A machine-readable discovery manifest is maintained at:
+
+- `docs/research/aviation/examples/aero_shm_dataset_manifest_v0_1.json`
+- `docs/research/aviation/schemas/aero_shm_dataset_manifest_v0_1.schema.json`
+
+The manifest records the three candidate datasets, source and download URLs, verified published metadata, domain limits, security concerns, rights status and acquisition status. At this revision **all three datasets remain `UNVERIFIED` for reuse rights and `NOT_DOWNLOADED`**. Public access, a free download, a repository listing or the presence of a DOI is not a blanket redistribution license.
+
+NASA's general science-data policy distinguishes NASA-led mission data from other provider data and advises users to verify source rights for the latter. The NASA PCoE CFRP listing identifies Stanford Structures and Composites Laboratory as the experimental partner; do not infer CC0 solely because the record is hosted in a NASA repository. See https://science.data.nasa.gov/about/license.
+
+The outer-wing paper describes its database as freely available at the University of Bologna SHM site, but the dataset-specific reuse and redistribution conditions still need to be recorded from the current host or rights holder. The Utah record must likewise be checked against the item-specific Figshare license and version metadata; do not assume Figshare's platform-level defaults determine the license of this particular item.
+
+### Unsafe serialization boundary
+
+The long-term Utah dataset is distributed as Python `.pickle` files. Python's official documentation warns that unpickling malicious data can execute arbitrary code and says not to unpickle data from untrusted or tampered sources: https://docs.python.org/3/library/pickle.html.
+
+Therefore:
+- do not run the provided loader or unpickle the archive on a developer workstation, shared runner or production system;
+- first record the exact source version, download URL, file size and SHA-256 after acquisition;
+- inspect archive paths, file types, compressed/uncompressed sizes and metadata without deserializing;
+- only after source integrity and rights review, use a disposable, network-isolated conversion environment with no credentials, no writable host mounts, least privilege, resource/time limits and an explicit allowlist of required object types;
+- preserve the original bytes read-only and hash all converted outputs;
+- prefer a documented, safe, chunkable interchange representation for analysis, with conversion code, environment, input digest and output digests recorded;
+- never treat successful deserialization or conversion as evidence that labels, measurements or damage truth are physically valid.
+
+A restricted unpickler may reduce the allowed object surface, but the benchmark should not assume it eliminates all parser, dependency or resource-exhaustion risk. Any exception to the sandbox boundary requires explicit security review.
+
+### Manifest promotion states
+
+`DISCOVERY_ONLY` means the source is identified but not cleared or ingested. A dataset may advance to `RIGHTS_REVIEWED` only with item-specific permission/license evidence; to `INGESTED_AND_HASHED` only after immutable source hashes, file inventory and data dictionary are recorded; and to `BENCHMARK_READY` only after independent group partitions, preprocessing, labels, truth limitations and evaluation manifests are reviewed.
+
+No benchmark leaderboard or external performance claim may consume a dataset whose rights state is unresolved or whose provenance/hash inventory is incomplete.
