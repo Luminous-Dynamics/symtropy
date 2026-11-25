@@ -42,8 +42,8 @@ jobs:
       - name: Emit planner and oracle outputs
         run: |
           cargo run --manifest-path tools/safrb-cargo-receipt-ledger/Cargo.toml --release --locked -- --emit target/safrb-cargo-ledger-v0.1
-          test "$(wc -l < target/safrb-cargo-ledger-v0.1/planner-manifests.jsonl)" -eq 9
-          test "$(wc -l < target/safrb-cargo-ledger-v0.1/oracle-ledger-truth.jsonl)" -eq 9
+          test "$(wc -l < target/safrb-cargo-ledger-v0.1/planner-manifests.jsonl)" -eq 12
+          test "$(wc -l < target/safrb-cargo-ledger-v0.1/oracle-ledger-truth.jsonl)" -eq 12
           cd target/safrb-cargo-ledger-v0.1
           sha256sum planner-manifests.jsonl > PLANNER.SHA256SUMS
           sha256sum oracle-ledger-truth.jsonl cargo-ledger-report.json > EVALUATOR.SHA256SUMS
