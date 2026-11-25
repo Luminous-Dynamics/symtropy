@@ -22,43 +22,65 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
       - name: Check JSON syntax and semantic known-answer invariants
         shell: bash
         run: |
           set -euo pipefail
-          SCHEMA="research/mobility-rrvr-command-semantics/schemas/command_semantics_cases_v0_1.schema.json"
-          FIXTURE="research/mobility-rrvr-command-semantics/fixtures/command_semantics_cases_v0_1.json"
+          SCHEMA="research/mobility-rrvr-command-semantics/schemas/command_semantics_cases_v0_2.schema.json"
+          FIXTURE="research/mobility-rrvr-command-semantics/fixtures/command_semantics_cases_v0_2.json"
           jq empty "$SCHEMA"
           jq empty "$FIXTURE"
           jq -e '
-            .schema_version == "0.1"
+            .schema_version == "0.2"
             and .benchmark == "RRVR-COMMAND-SEMANTICS"
-            and (.cases | length == 12)
-            and ([.cases[].case_id] | unique | length == 12)
+            and (.claim_ceiling | length >= 30)
+            and (.cases | length == 16)
+            and ([.cases[].case_id] | unique | length == 16)
             and ([.cases[] | select(.class == "positive")] | length == 4)
-            and ([.cases[] | select(.class == "negative")] | length == 8)
-            and ([.cases[].effect_class] | unique | length == 4)
-            and all(.cases[]; (.contract.configuration_sha256 | test("^[a-fA-F0-9]{64}$")))
-            and all(.cases[]; (.contract.device_model | length > 0) and (.contract.endpoint_revision | length > 0))
-            and all(.cases[]; (.contract.device_id | length > 0) and (.contract.firmware_revision | length > 0))
-            and all(.cases[]; (.contract.payload_schema_sha256 | test("^[a-fA-F0-9]{64}$")))
-            and any(.cases[]; .case_id == "SEM-001" and .expected == "accept_profile" and .contract.motion_semantics == "absolute" and .contract.idempotent_under_declared_state_contract == true)
-            and any(.cases[]; .case_id == "SEM-002" and .expected == "accept_profile" and .contract.maximum_physical_effects_per_attempt == 1 and .contract.endpoint_token_required == true and .contract.same_token_reactuates == false)
-            and any(.cases[]; .case_id == "SEM-003" and .expected == "accept_profile" and .contract.lease_expiry_ms > 0 and .contract.endpoint_enforces_expiry == true and .contract.watchdog_supported == true and .contract.watchdog_response_bound_ms > 0 and .contract.device_capabilities.watchdog_response_bound_ms <= .contract.watchdog_response_bound_ms)
-            and any(.cases[]; .case_id == "SEM-004" and .expected == "accept_profile" and .contract.progress_checkpoints_required == true and .contract.resume_from_measured_progress == true and .contract.restart_from_segment_zero_allowed == false)
-            and any(.cases[]; .case_id == "SEM-005" and .expected == "hold" and .contract.motion_semantics == "relative" and .contract.idempotent_under_declared_state_contract == true)
-            and any(.cases[]; .case_id == "SEM-006" and .expected == "hold" and .contract.endpoint_token_required == false)
-            and any(.cases[]; .case_id == "SEM-007" and .expected == "hold" and .contract.lease_expiry_ms == null and .contract.watchdog_supported == false and .contract.watchdog_response_bound_ms == null)
-            and any(.cases[]; .case_id == "SEM-008" and .expected == "hold" and .contract.restart_from_segment_zero_allowed == true)
-            and any(.cases[]; .case_id == "SEM-009" and .expected == "hold" and .contract.coordinate_frame == "world-frame-substituted")
-            and any(.cases[]; .case_id == "SEM-010" and .expected == "hold" and .contract.device_capabilities.durable_one_shot_token_supported == false)
-            and any(.cases[]; .case_id == "SEM-011" and .expected == "hold" and .contract.device_capabilities.endpoint_enforces_authority_epoch == false)
-            and any(.cases[]; .case_id == "SEM-012" and .expected == "hold" and .contract.device_capabilities.measured_progress_resume_supported == false)
-            and all(.cases[]; (.contract.device_capabilities | has("maximum_effects_per_token") and has("watchdog_reaction") and has("watchdog_response_bound_ms") and has("endpoint_enforces_authority_epoch") and has("downstream_queue_reconciliation_supported")))
+            and ([.cases[] | select(.class == "negative")] | length == 12)
+            and ([.cases[].command.effect_class] | unique | length == 4)
+            and all(.cases[];
+              (.device.device_id | length > 0)
+              and (.device.device_model | length > 0)
+              and (.device.firmware_revision | length > 0)
+              and (.device.endpoint_revision | length > 0)
+              and (.device.configuration_sha256 | test("^[a-fA-F0-9]{64}$"))
+              and (.device.payload_schema_sha256 | test("^[a-fA-F0-9]{64}$"))
+              and (.command.device_id | length > 0)
+              and (.command.command_id | length > 0)
+              and (.command.configuration_sha256 | test("^[a-fA-F0-9]{64}$"))
+              and (.command.payload_schema_sha256 | test("^[a-fA-F0-9]{64}$"))
+              and (.command.logical_effect_id_required == true)
+              and (.command.attempt_id_required == true)
+            )
+            and all(.cases[]; .device.device_id == .command.device_id)
+            and any(.cases[]; .case_id == "SEM-001" and .expected_decision == "accept_profile" and .command.effect_class == "desired_state" and .command.motion_semantics == "absolute" and .device.absolute_target_replay_safe == true)
+            and any(.cases[]; .case_id == "SEM-002" and .expected_decision == "accept_profile" and .command.effect_class == "one_shot" and .command.maximum_physical_effects_per_attempt == 1 and .device.maximum_effects_per_token == 1 and .device.durable_one_shot_token_supported == true)
+            and any(.cases[]; .case_id == "SEM-003" and .expected_decision == "accept_profile" and .command.effect_class == "continuous_lease" and .command.lease_expiry_ms > 0 and .command.watchdog_response_bound_ms > 0 and .device.watchdog_response_bound_ms <= .command.watchdog_response_bound_ms and .device.watchdog_reaction == .command.watchdog_reaction)
+            and any(.cases[]; .case_id == "SEM-004" and .expected_decision == "accept_profile" and .command.effect_class == "trajectory" and .command.progress_checkpoints_required == true and .command.resume_from_measured_progress == true and .command.restart_from_segment_zero_allowed == false)
+            and any(.cases[]; .case_id == "SEM-005" and .expected_reason == "DesiredStateRequiresAbsoluteMotion" and .command.motion_semantics == "relative")
+            and any(.cases[]; .case_id == "SEM-006" and .expected_reason == "OneShotTokenMissing" and .command.endpoint_token_required == false)
+            and any(.cases[]; .case_id == "SEM-007" and .expected_reason == "ContinuousLeaseMissingExpiry" and .command.lease_expiry_ms == null)
+            and any(.cases[]; .case_id == "SEM-008" and .expected_reason == "TrajectoryRestartFromSegmentZeroAllowed" and .command.restart_from_segment_zero_allowed == true and .command.progress_checkpoints_required == true)
+            and any(.cases[]; .case_id == "SEM-009" and .expected_reason == "CoordinateFrameMismatch" and .command.coordinate_frame != .device.coordinate_frame)
+            and any(.cases[]; .case_id == "SEM-010" and .expected_reason == "DeviceOneShotTokenUnsupported" and .device.supports_durable_one_shot_token == false)
+            and any(.cases[]; .case_id == "SEM-011" and .expected_reason == "DeviceLeaseEpochUnsupported" and .device.endpoint_enforces_authority_epoch == false)
+            and any(.cases[]; .case_id == "SEM-012" and .expected_reason == "DeviceTrajectoryResumeUnsupported" and .device.supports_measured_progress_resume == false)
+            and any(.cases[]; .case_id == "SEM-013" and .expected_reason == "FirmwareProfileMismatch" and .command.firmware_revision != .device.firmware_revision)
+            and any(.cases[]; .case_id == "SEM-014" and .expected_reason == "DeviceProfileMismatch" and .command.configuration_sha256 != .device.configuration_sha256)
+            and any(.cases[]; .case_id == "SEM-015" and .expected_reason == "PayloadSchemaMismatch" and .command.payload_schema_sha256 != .device.payload_schema_sha256)
+            and any(.cases[]; .case_id == "SEM-016" and .expected_reason == "UnitMismatch" and .command.units != .device.units)
           ' "$FIXTURE"
 
       - name: Check Rust formatting
         run: cargo fmt --manifest-path research/mobility-rrvr-command-semantics/Cargo.toml -- --check
+
+      - name: Execute JSON known-answer corpus against typed Rust evaluator
+        run: cargo run --locked --manifest-path research/mobility-rrvr-command-semantics/Cargo.toml --bin rrvr_command_semantics_check -- research/mobility-rrvr-command-semantics/fixtures/command_semantics_cases_v0_2.json
 
       - name: Run command semantics reference tests
         run: cargo test --locked --manifest-path research/mobility-rrvr-command-semantics/Cargo.toml
