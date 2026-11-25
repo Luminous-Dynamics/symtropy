@@ -762,6 +762,15 @@ pub fn render_csv() -> String {
                 case.reversibility,
                 Some("synthetic unsupported vocabulary value"),
             ),
+            "cbv_version_mismatch_rejected" | "cbv_version_missing_rejected" => rule(
+                "equipmentEventTypeCode",
+                "LOAD",
+                case.target_field,
+                "urn:epcglobal:cbv:bizstep:loading",
+                case.kind,
+                case.reversibility,
+                Some("synthetic contextual equipment event to CBV mapping"),
+            ),
             _ => rule(
                 "eventClassifierCode",
                 "ACT",
@@ -773,7 +782,7 @@ pub fn render_csv() -> String {
             ),
         };
         match case.id {
-            "source_version_drift_rejected" => source.standard_version = "DCSA-TT-2.1".to_owned(),
+            "source_version_drift_rejected" => source.standard_version = "DCSA-TT-2.1.0".to_owned(),
             "source_payload_digest_invalid" => {
                 source.raw_payload_sha256 = "not-a-digest".to_owned()
             }
@@ -1208,11 +1217,11 @@ mod tests {
             None,
         );
         assert_eq!(
-            map_field(&source, "GS1-EPCIS-2.0.1", &exact),
+            map_field(&source, "GS1-EPCIS-2.0.0", &exact),
             Err(CrosswalkError::TargetStandardVersionMismatch)
         );
         let mut drifted = source;
-        drifted.standard_version = "DCSA-TT-2.1".to_owned();
+        drifted.standard_version = "DCSA-TT-2.1.0".to_owned();
         assert_eq!(
             map_field(&drifted, EPCIS_VERSION, &exact),
             Err(CrosswalkError::SourceStandardVersionMismatch)
