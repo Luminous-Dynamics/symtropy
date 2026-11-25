@@ -78,7 +78,7 @@ def validate(root: Path) -> None:
                 batch["transferredSourceGrams"] == batch["deliveredGrams"] + batch["routeLossGrams"],
                 f'{truth["caseId"]}: route balance',
             )
-            require(batch["fuelIssuedGrams"] <= batch["deliveredGrams"], f'{truth["caseId"]}: generator issue')
+            require(batch["deliveredGrams"] == batch["generatorClosingGrams"] + batch["fuelIssuedGrams"], f'{truth["caseId"]}: generator closing balance')
         if truth["caseId"] in {"unverified-receipt", "conflicting-receipt", "after-horizon"}:
             require(all(row["deliveredToGeneratorGrams"] == 0 for row in rows), "non-usable case promoted to service")
         if truth["caseId"] == "partial-late-receipt":
