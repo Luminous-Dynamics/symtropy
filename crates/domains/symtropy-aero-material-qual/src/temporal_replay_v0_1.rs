@@ -787,6 +787,24 @@ pub fn evaluate_case(case: &Value, mode: ReplayMode) -> TemporalDisposition {
         }
     }
 
+    // A well-formed correction link is not enough to infer lifecycle
+    // semantics. Until the owner defines correction/supersession state
+    // transitions and their authority rules, preserve the event and abstain.
+    let corrections = deduplicated
+        .iter()
+        .copied()
+        .filter(|event| matches!(text(event, "event_type"), Some("corrected" | "superseded")))
+        .collect::<Vec<_>>();
+    if !corrections.is_empty() {
+        return one_reason(
+            "ABSTAIN",
+            "CALIBRATION_CORRECTION_SEMANTICS_UNQUALIFIED",
+            &[],
+            &corrections,
+            &all_events,
+        );
+    }
+
     // Reinstatement changes qualification state. Until the owner-native
     // lifecycle and authority semantics are qualified, never auto-restore.
     let reinstatements = deduplicated
@@ -916,7 +934,7 @@ mod tests {
             .get("cases")
             .and_then(Value::as_array)
             .expect("temporal replay cases");
-        assert_eq!(cases.len(), 23);
+        assert_eq!(cases.len(), 26);
 
         let modes = [
             ReplayMode::AsKnownAt,
@@ -1145,6 +1163,55 @@ mod tests {
         assert_eq!(
             reinstatement_report.reason_codes,
             vec!["CALIBRATION_REINSTATEMENT_SEMANTICS_UNQUALIFIED".to_owned()]
+        );
+    }
+
+    #[test]
+    fn well_formed_correction_links_do_not_infer_unqualified_lifecycle_state() {
+        let corpus: Value = serde_json::from_str(CORPUS).expect("temporal corpus parses");
+        let cases = corpus["cases"].as_array().expect("cases");
+        let valid = cases
+            .iter()
+            .find(|case| {
+                case["case_id"]
+                    == "well-formed-correction-target-still-abstains-without-qualified-semantics"
+            })
+            .expect("well-formed correction control");
+        let report = evaluate_case(valid, ReplayMode::AsKnownAt);
+        assert_eq!(report.disposition, "ABSTAIN");
+        assert_eq!(
+            report.reason_codes,
+            vec!["CALIBRATION_CORRECTION_SEMANTICS_UNQUALIFIED".to_owned()]
+        );
+
+        let nested = cases
+            .iter()
+            .find(|case| case["case_id"] == "correction-of-correction-remains-unqualified")
+            .expect("nested correction control");
+        let nested_report = evaluate_case(nested, ReplayMode::AsKnownAt);
+        assert_eq!(nested_report.disposition, "ABSTAIN");
+        assert_eq!(
+            nested_report.reason_codes,
+            vec!["CALIBRATION_CORRECTION_SEMANTICS_UNQUALIFIED".to_owned()]
+        );
+    }
+
+    #[test]
+    fn equal_record_time_correction_is_not_strictly_ordered() {
+        let corpus: Value = serde_json::from_str(CORPUS).expect("temporal corpus parses");
+        let case = corpus["cases"]
+            .as_array()
+            .expect("cases")
+            .iter()
+            .find(|case| {
+                case["case_id"] == "correction-record-time-not-strictly-after-target-abstains"
+            })
+            .expect("equal-time correction control");
+        let report = evaluate_case(case, ReplayMode::AsKnownAt);
+        assert_eq!(report.disposition, "ABSTAIN");
+        assert_eq!(
+            report.reason_codes,
+            vec!["CORRECTION_TARGET_NOT_STRICTLY_EARLIER".to_owned()]
         );
     }
 
