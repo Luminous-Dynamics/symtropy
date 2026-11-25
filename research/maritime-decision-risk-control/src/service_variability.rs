@@ -32,7 +32,10 @@ pub enum DeliveryDisposition {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ServiceObservation {
+    /// Source observation/record identity; not the cargo identity.
     pub observation_id: String,
+    /// Canonical expected cargo/service-unit identity from the lineage owner.
+    pub expected_unit_id: String,
     pub cohort_id: String,
     pub vessel_wait_minutes: u32,
     pub berth_work_minutes: u32,
@@ -73,8 +76,10 @@ pub struct VesselArrival {
 pub enum ServiceMetricError {
     EmptyObservations,
     EmptyObservationIdentity,
+    EmptyExpectedUnitIdentity,
     EmptyCohortIdentity,
     DuplicateObservationIdentity,
+    DuplicateExpectedUnitIdentity,
     ZeroReceiverDeadline,
     ReceiverAcceptanceTimeMissing,
     ReceiverAcceptanceEvidenceMissing,
@@ -146,6 +151,8 @@ pub struct FifoQueueMetrics {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ServiceReliabilityReport {
     pub observation_count: usize,
+    /// Canonical expected cargo/service-unit IDs, sorted deterministically.
+    pub expected_unit_ids: Vec<String>,
     pub vessel_wait: DistributionMetrics,
     pub berth_work: DistributionMetrics,
     pub terminal_dwell: DistributionMetrics,
@@ -268,9 +275,16 @@ impl ServiceReliabilityReport {
         }
 
         let mut observation_ids = BTreeSet::new();
+        let mut expected_unit_ids = BTreeSet::new();
         for observation in observations {
             if observation.observation_id.trim().is_empty() {
                 return Err(ServiceMetricError::EmptyObservationIdentity);
+            }
+            if observation.expected_unit_id.trim().is_empty() {
+                return Err(ServiceMetricError::EmptyExpectedUnitIdentity);
+            }
+            if !expected_unit_ids.insert(observation.expected_unit_id.as_str()) {
+                return Err(ServiceMetricError::DuplicateExpectedUnitIdentity);
             }
             if observation.cohort_id.trim().is_empty() {
                 return Err(ServiceMetricError::EmptyCohortIdentity);
@@ -366,6 +380,7 @@ impl ServiceReliabilityReport {
 
         Ok(Self {
             observation_count: observations.len(),
+            expected_unit_ids: expected_unit_ids.into_iter().map(str::to_owned).collect(),
             vessel_wait: distribution(&vessel_wait),
             berth_work: distribution(&berth_work),
             terminal_dwell: distribution(&terminal_dwell),
@@ -488,7 +503,8 @@ fn synthetic_observations(
         .iter()
         .enumerate()
         .map(|(index, (vessel, berth, terminal, inland))| ServiceObservation {
-            observation_id: format!("{scenario}-cargo-{index:02}"),
+            observation_id: format!("{scenario}-source-record-{index:02}"),
+            expected_unit_id: format!("urn:example:expected-cargo-unit:{scenario}:{index:02}"),
             cohort_id: cohorts.get(index).copied().unwrap_or("ALL").to_owned(),
             vessel_wait_minutes: *vessel,
             berth_work_minutes: *berth,
@@ -980,9 +996,30 @@ mod tests {
     }
 
     #[test]
+    fn distinct_source_records_cannot_double_count_the_same_expected_cargo_unit() {
+        let mut observations = synthetic_observations("duplicate-unit", &STABLE[..2], &[], 120);
+        observations[1].observation_id = "different-source-record".to_owned();
+        observations[1].expected_unit_id = observations[0].expected_unit_id.clone();
+        assert_eq!(
+            ServiceReliabilityReport::evaluate(&observations, 950),
+            Err(ServiceMetricError::DuplicateExpectedUnitIdentity)
+        );
+    }
+
+    #[test]
+    fn report_preserves_canonical_expected_unit_ids_in_sorted_order() {
+        let observations = synthetic_observations("lineage", &STABLE[..3], &[], 120);
+        let report = ServiceReliabilityReport::evaluate(&observations, 950)
+            .expect("unique canonical expected units");
+        assert_eq!(report.expected_unit_ids.len(), 3);
+        assert!(report.expected_unit_ids.windows(2).all(|pair| pair[0] < pair[1]));
+    }
+
+    #[test]
     fn zero_mean_and_single_observation_leave_cv_undefined() {
         let observations = vec![ServiceObservation {
-            observation_id: "zero".to_owned(),
+            observation_id: "zero-record".to_owned(),
+            expected_unit_id: "urn:example:expected-cargo-unit:zero".to_owned(),
             cohort_id: "cohort".to_owned(),
             vessel_wait_minutes: 0,
             berth_work_minutes: 0,
