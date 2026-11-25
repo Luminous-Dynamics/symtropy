@@ -72,3 +72,7 @@ The evaluator returns only `AcceptProfile` or a typed `HoldReason`. It cannot au
 
 The JSON fixture and Rust types are separately authored at v0.1; a canonical JSON-to-Rust adapter and differential fixture execution remain future work.
 
+## Superseded by v0.2
+
+The executable evaluator and JSON known-answer corpus are defined in [COMMAND_SEMANTICS_V0.2.md](COMMAND_SEMANTICS_V0.2.md). The v0.2 fixture separates the independent device capability profile from the command declaration and is executed by the Rust `rrvr_command_semantics_check` CLI against the same `evaluate()` function used by unit tests. The old v0.1 JSON/schema fixture artifacts have been retired to prevent an outdated, separately authored corpus from being mistaken for the executable contract.
+
