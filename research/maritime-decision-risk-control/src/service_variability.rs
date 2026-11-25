@@ -54,10 +54,6 @@ impl ServiceObservation {
             + u64::from(self.terminal_dwell_minutes)
     }
 
-    fn staged_elapsed_minutes(&self) -> u64 {
-        self.port_elapsed_minutes() + u64::from(self.inland_transfer_minutes)
-    }
-
     pub fn on_time(&self) -> bool {
         self.delivery_disposition == DeliveryDisposition::ReceiverAccepted
             && self
@@ -84,7 +80,6 @@ pub enum ServiceMetricError {
     ReceiverAcceptanceEvidenceMissing,
     NonAcceptedOutcomeHasDeliveryTime,
     NonAcceptedOutcomeHasReceiverEvidence,
-    ReceiverDeliveryTimeMismatch,
     EmptyArrivalIdentity,
     DuplicateArrivalIdentity,
     ZeroArrivalWindow,
@@ -294,15 +289,13 @@ impl ServiceReliabilityReport {
                 (DeliveryDisposition::ReceiverAccepted, None, _) => {
                     return Err(ServiceMetricError::ReceiverAcceptanceTimeMissing);
                 }
-                (DeliveryDisposition::ReceiverAccepted, Some(_), None)
-                | (DeliveryDisposition::ReceiverAccepted, Some(_), Some(reference))
-                    if reference.trim().is_empty() => {
+                (DeliveryDisposition::ReceiverAccepted, Some(_), None) => {
                     return Err(ServiceMetricError::ReceiverAcceptanceEvidenceMissing);
                 }
-                (DeliveryDisposition::ReceiverAccepted, Some(minutes), Some(_))
-                    if minutes != observation.staged_elapsed_minutes() =>
+                (DeliveryDisposition::ReceiverAccepted, Some(_), Some(reference))
+                    if reference.trim().is_empty() =>
                 {
-                    return Err(ServiceMetricError::ReceiverDeliveryTimeMismatch);
+                    return Err(ServiceMetricError::ReceiverAcceptanceEvidenceMissing);
                 }
                 (DeliveryDisposition::NotDelivered
                     | DeliveryDisposition::Diverted
@@ -643,7 +636,7 @@ fn optional_float(value: Option<f64>) -> String {
 /// Renders deterministic synthetic service-reliability and burst receipts.
 pub fn render_csv() -> String {
     let mut output = String::from(
-        "scenario_id,n,port_mean_minutes,inland_mean_minutes,end_to_end_mean_minutes,p50_minutes,p90_minutes,p95_minutes,max_minutes,sample_sd_minutes,coefficient_of_variation,p95_to_p50_ratio,on_time_rate_per_mille,cohort_floor_violations,max_arrivals_in_60m,max_fcfs_wait_minutes,queue_wait_area_call_minutes,queue_completion_minutes,receiver_accepted_count,not_delivered_count,diverted_count,cancelled_count,unknown_count,claim_ceiling\n",
+        "scenario_id,expected_units,port_mean_minutes,inland_mean_minutes,accepted_receiver_time_mean_minutes,accepted_p50_minutes,accepted_p90_minutes,accepted_p95_minutes,accepted_max_minutes,accepted_sample_sd_minutes,accepted_coefficient_of_variation,accepted_p95_to_p50_ratio,verified_on_time_rate_per_mille,cohort_floor_violations,max_arrivals_in_60m,max_fcfs_wait_minutes,queue_wait_area_call_minutes,queue_completion_minutes,receiver_accepted_count,not_delivered_count,diverted_count,cancelled_count,unknown_count,claim_ceiling\n",
     );
     for scenario in scenarios() {
         let mut observations = synthetic_observations(
