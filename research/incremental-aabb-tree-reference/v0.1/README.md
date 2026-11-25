@@ -33,3 +33,4 @@ cargo clippy --manifest-path research/incremental-aabb-tree-reference/v0.1/Cargo
 - Uniform, clustered, anisotropic, high-aspect-ratio, high-overlap and burst-teleport workloads.
 - Build, update/reinsert, remove, query, rebuild and amortized pair-query cost.
 - 100% brute-force pair recall as a hard gate; candidate inflation and p50/p95/p99 latency as separate metrics.
+- Metamorphic pair-set invariance under translation, positive uniform scaling, axis permutation and reflection.
