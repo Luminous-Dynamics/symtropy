@@ -706,10 +706,12 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
 
             let valid_from = field_u64(certificate, "valid_from_unix_ms");
             let valid_until = field_u64(certificate, "valid_until_unix_ms");
-            match (valid_from, valid_until, acquired_at) {
-                (Some(start), Some(end), Some(acquired)) if start < end => {
-                    if acquired < start || acquired >= end {
-                        reasons.insert("CALIBRATION_OUTSIDE_VALIDITY_INTERVAL".to_owned());
+            match (valid_from, valid_until) {
+                (Some(start), Some(end)) if start < end => {
+                    if let Some(acquired) = acquired_at {
+                        if acquired < start || acquired >= end {
+                            reasons.insert("CALIBRATION_OUTSIDE_VALIDITY_INTERVAL".to_owned());
+                        }
                     }
                 }
                 _ => {
