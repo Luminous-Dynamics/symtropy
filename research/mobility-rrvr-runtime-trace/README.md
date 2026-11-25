@@ -289,3 +289,8 @@ The new gazebo_adapter::journaled API is described in [JOURNALED_GAZEBO_INTEGRAT
 The software tests include a reset transport that verifies the journal is already readable at the exact ResetSimulation call boundary and a dispatch response-loss/reopen test that verifies the injector call count remains one.
 
 This does not qualify a live ROS 2/Gazebo transport, actual remote owner ledger, process power loss, HIL or physical robot safety.
+
+
+### Fresh-attempt authority boundary
+
+The journaled Gazebo adapter is deliberately not an attempt authority. A caller-supplied different attempt ID cannot bypass an existing intent for the same logical effect and run: the adapter returns FreshAttemptAdmissionRequired and does not call the injector. A fresh attempt after NoEffect must be admitted by the existing native application/authority-linearized mutation owner after independent NoEffect, persistence resolution, end-to-end quiescence, current M1/M2/live binding and consume-once permit checks. See [JOURNALED_GAZEBO_INTEGRATION_V0.1.md](JOURNALED_GAZEBO_INTEGRATION_V0.1.md).
