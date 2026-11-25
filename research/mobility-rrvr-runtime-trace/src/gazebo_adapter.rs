@@ -734,7 +734,11 @@ pub fn dispatch_request_fingerprint(
 /// payload digest to the request and provide the exact owner-produced receipt bytes.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GazeboDispatchLedgerReceipt {
+    /// Digest of the payload used in this lookup request, echoed by the owner.
     pub payload_sha256: Option<String>,
+    /// The digest already bound to this key at the owner. For PayloadConflict,
+    /// this must be present and different from the requested payload digest.
+    pub bound_payload_sha256: Option<String>,
     pub status: DispatchLedgerResult,
     pub dispatch_id: Option<String>,
     pub raw_artifact_bytes: Option<Vec<u8>>,
@@ -770,6 +774,7 @@ pub trait GazeboFaultInjectorTransport {
         let status = self.lookup_dispatch(&request.idempotency_key)?;
         Ok(GazeboDispatchLedgerReceipt {
             payload_sha256: None,
+            bound_payload_sha256: None,
             status,
             dispatch_id: None,
             raw_artifact_bytes: None,
@@ -2095,6 +2100,7 @@ pub mod journaled {
             .lookup_dispatch_bound(request)
             .unwrap_or_else(|_| GazeboDispatchLedgerReceipt {
                 payload_sha256: None,
+                bound_payload_sha256: None,
                 status: DispatchLedgerResult::Unknown,
                 dispatch_id: None,
                 raw_artifact_bytes: None,
@@ -2135,7 +2141,15 @@ pub mod journaled {
                 DispatchLedgerResult::Rejected => DispatchOutcomeStatus::ReconciledRejected,
                 DispatchLedgerResult::NoDispatchProven => DispatchOutcomeStatus::NoDispatchProven,
                 DispatchLedgerResult::Unknown => DispatchOutcomeStatus::Unresolved,
-                DispatchLedgerResult::PayloadConflict => DispatchOutcomeStatus::PayloadConflict,
+                DispatchLedgerResult::PayloadConflict
+                    if receipt
+                        .bound_payload_sha256
+                        .as_deref()
+                        .is_some_and(|bound| valid_sha256(bound) && bound != request.payload_sha256) =>
+                {
+                    DispatchOutcomeStatus::PayloadConflict
+                }
+                DispatchLedgerResult::PayloadConflict => DispatchOutcomeStatus::Unresolved,
             }
         };
         journal.append_dispatch_outcome(DispatchOutcomeRecord {
