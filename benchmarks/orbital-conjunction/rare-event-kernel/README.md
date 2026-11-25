@@ -125,7 +125,7 @@ The pathwise proposal adapter turns a bounded finite set of such trajectory real
 
 The event Boolean is derived only from the reducer's three-way disposition: definite contact becomes an event, definite no-contact becomes a non-event, and ambiguous results are rejected. In particular, a caller-declared incomplete window inventory with no observed contact cannot become a false/non-event atom. A definite contact can still establish any-contact under incomplete inventory, but the reducer does not claim a complete first-contact time.
 
-Before a sampler config can be used, the adapter requires the exact event digest and exact atom ID/event-membership vector to match the pathwise-derived support. It also requires the observed trajectory atom IDs to match a frozen, canonically sorted support manifest exactly; missing and unexpected atom IDs are rejected, and atom order is normalized to the manifest. This stops a proposal from silently using one set of event flags while the trajectory evidence describes another.
+Before a sampler config can be used, the adapter requires the exact event digest, support-manifest digest, and atom ID/event-membership vector to match the pathwise-derived support. The support-manifest digest is then carried in the finite proposal config, every execution receipt, and every verified finite draw. It also requires the observed trajectory atom IDs to match a frozen, canonically sorted support manifest exactly; missing and unexpected atom IDs are rejected, and atom order is normalized to the manifest. This stops a proposal from silently using one set of event flags while the trajectory evidence describes another.
 
 ### Claim boundary
 
