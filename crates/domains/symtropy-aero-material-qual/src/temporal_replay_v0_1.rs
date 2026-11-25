@@ -141,7 +141,7 @@ fn has_correction_cycle(events: &[&Value]) -> bool {
                 let source = event_key(event);
                 edges.insert(
                     source.clone(),
-                    (source.0, target.to_owned()),
+                    (source.0.clone(), target.to_owned()),
                 );
             }
         }
@@ -163,9 +163,8 @@ fn has_correction_cycle(events: &[&Value]) -> bool {
             return false;
         };
         visiting.insert(node.clone());
-        let found = edges.keys().any(|candidate| {
-            candidate.0 == target.0 && candidate.1 == target.1
-        }) && visit(target, edges, visiting, visited);
+        let found = edges.contains_key(target)
+            && visit(target, edges, visiting, visited);
         visiting.remove(node);
         visited.insert(node.clone());
         found
