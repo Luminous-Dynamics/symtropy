@@ -297,6 +297,12 @@ fn action_is_admissible(action: &ObservationAction) -> bool {
             .all(|mapping| mapping.mapping_state == MappingState::Known)
 }
 
+#[derive(Default)]
+struct SearchCounter {
+    states_expanded: u64,
+    cap_hit: bool,
+}
+
 fn solve_state(
     case: &Case,
     survivors: &BTreeSet<String>,
@@ -304,15 +310,14 @@ fn solve_state(
     remaining_time_ms: u64,
     remaining_energy_mj: u64,
     remaining_actions: u32,
-    states_expanded: &mut u64,
-    cap_hit: &mut bool,
+    search: &mut SearchCounter,
 ) -> Option<SolvedPolicy> {
-    if *cap_hit {
+    if search.cap_hit {
         return None;
     }
-    *states_expanded = states_expanded.saturating_add(1);
-    if *states_expanded > case.max_search_states {
-        *cap_hit = true;
+    search.states_expanded = search.states_expanded.saturating_add(1);
+    if search.states_expanded > case.max_search_states {
+        search.cap_hit = true;
         return None;
     }
 
@@ -382,8 +387,7 @@ fn solve_state(
                 remaining_time_ms - action.duration_ms,
                 remaining_energy_mj - action.energy_mj,
                 remaining_actions - 1,
-                states_expanded,
-                cap_hit,
+                search,
             );
             let Some(child) = child else {
                 complete = false;
@@ -398,7 +402,7 @@ fn solve_state(
             });
         }
 
-        if *cap_hit {
+        if search.cap_hit {
             return None;
         }
         if !complete || branches.len() < 2 {
@@ -450,8 +454,7 @@ fn evaluate_case(case: &Case) -> Result<(CaseResult, Option<String>), String> {
         .collect();
     let initial_decisions = decision_classes(case, &survivors);
     let rejected_actions = action_rejections(case);
-    let mut states_expanded = 0_u64;
-    let mut cap_hit = false;
+    let mut search = SearchCounter::default();
     let policy = solve_state(
         case,
         &survivors,
@@ -459,11 +462,10 @@ fn evaluate_case(case: &Case) -> Result<(CaseResult, Option<String>), String> {
         case.budget_time_ms,
         case.budget_energy_mj,
         case.max_actions,
-        &mut states_expanded,
-        &mut cap_hit,
+        &mut search,
     );
 
-    let (status, exactness_proven, plan) = if cap_hit {
+    let (status, exactness_proven, plan) = if search.cap_hit {
         (PolicyStatus::SearchLimitNotProven, false, None)
     } else if let Some(policy) = policy {
         (
@@ -484,7 +486,7 @@ fn evaluate_case(case: &Case) -> Result<(CaseResult, Option<String>), String> {
             status,
             initial_world_count: survivors.len(),
             initial_decision_class_count: initial_decisions.len(),
-            search_states_expanded: states_expanded,
+            search_states_expanded: search.states_expanded,
             exactness_proven,
             rejected_actions,
             policy: plan,
