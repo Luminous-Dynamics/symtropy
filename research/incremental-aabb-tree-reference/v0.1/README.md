@@ -11,7 +11,7 @@ A dependency-free, deterministic dynamic AABB tree baseline for broadphase tourn
 - Insert, remove, update, query, query-pairs and deterministic rebuild operations.
 - Query output is sorted by proxy ID; pair output is canonical and sorted.
 - Structural counters expose internal node visits, leaf tests, AABB tests and emitted candidate pairs.
-- Tree statistics expose proxy count, node count, height and free-node count.
+- Tree statistics expose proxy count, node count, height, free-node count, insert/remove/update counts, fat-contained updates, proxy reinsertions and full rebuilds. These are operation counts, not timing results.
 
 ## Deliberate scope boundary
 
