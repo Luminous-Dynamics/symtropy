@@ -97,6 +97,10 @@ def validate_case(planner: dict[str, Any], truth: dict[str, Any]) -> tuple[int, 
             receipt["receivedLowerGrams"] <= receipt["actualReceivedGrams"] <= receipt["receivedUpperGrams"],
             f"{case_id}: receipt interval excludes actual quantity",
         )
+        require(
+            receipt["receivedUpperGrams"] <= manifest["plannedQuantityGrams"],
+            f"{case_id}: unexplained receipt overdelivery without manifest amendment",
+        )
         if receipt["evidence"] == "verified":
             require(bool(receipt["evidenceRef"]) and bool(receipt["evidenceDigest"]), f"{case_id}: verified receipt lacks evidence")
         else:
