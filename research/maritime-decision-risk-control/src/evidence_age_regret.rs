@@ -181,13 +181,10 @@ impl DecisionInput {
     }
 
     fn is_fresh(&self, observation: &OperationalObservation) -> bool {
-        observation
-            .published_at
-            .is_some_and(|published| {
-                published <= self.as_of
-                    && self.as_of.saturating_sub(published) <= self.maximum_evidence_age
-            })
-            && observation.retrieved_at <= self.as_of
+        observation.published_at.is_some_and(|published| {
+            published <= self.as_of
+                && self.as_of.saturating_sub(published) <= self.maximum_evidence_age
+        }) && observation.retrieved_at <= self.as_of
             && observation.status == ObservationStatus::Active
     }
 
@@ -316,9 +313,7 @@ impl PlannedAction {
     pub fn primary_window(&self) -> Option<ServiceWindow> {
         match self {
             Self::Choose { window, .. } => Some(*window),
-            Self::Contingent {
-                primary_window, ..
-            } => Some(*primary_window),
+            Self::Contingent { primary_window, .. } => Some(*primary_window),
             Self::Abstain { .. } => None,
         }
     }
@@ -418,13 +413,17 @@ pub fn decide(
         DecisionStrategy::LatestIngested => {
             let available = input.available_by_cutoff();
             match input.most_recent_ingested(&available) {
-                Some(observation) if input.feasible_windows.contains(&observation.claimed_window) => (
-                    PlannedAction::Choose {
-                        window: observation.claimed_window,
-                        source_observation_id: observation.observation_id.clone(),
-                    },
-                    vec![observation],
-                ),
+                Some(observation)
+                    if input.feasible_windows.contains(&observation.claimed_window) =>
+                {
+                    (
+                        PlannedAction::Choose {
+                            window: observation.claimed_window,
+                            source_observation_id: observation.observation_id.clone(),
+                        },
+                        vec![observation],
+                    )
+                },
                 Some(_) => (
                     PlannedAction::Abstain {
                         reason: AbstentionReason::NoFeasibleClaimedWindow,
@@ -481,10 +480,7 @@ pub fn decide(
                 } else {
                     AbstentionReason::AllEvidenceStale
                 };
-                (
-                    PlannedAction::Abstain { reason },
-                    Vec::new(),
-                )
+                (PlannedAction::Abstain { reason }, Vec::new())
             } else if windows.is_empty() {
                 (
                     PlannedAction::Abstain {
@@ -711,8 +707,26 @@ pub fn benchmark_cases() -> Vec<BenchmarkCase> {
         BenchmarkCase {
             case_id: "fresh_unanimous_consensus",
             input: input(vec![
-                observation("fresh-a", "terminal-a", "terminal-owner-a", ServiceWindow::WindowA, Some(995), 996, ObservationStatus::Active, 1),
-                observation("fresh-b", "carrier-b", "carrier-owner-b", ServiceWindow::WindowA, Some(994), 997, ObservationStatus::Active, 1),
+                observation(
+                    "fresh-a",
+                    "terminal-a",
+                    "terminal-owner-a",
+                    ServiceWindow::WindowA,
+                    Some(995),
+                    996,
+                    ObservationStatus::Active,
+                    1,
+                ),
+                observation(
+                    "fresh-b",
+                    "carrier-b",
+                    "carrier-owner-b",
+                    ServiceWindow::WindowA,
+                    Some(994),
+                    997,
+                    ObservationStatus::Active,
+                    1,
+                ),
             ]),
             truth: EvaluationTruth {
                 realized_window: ServiceWindow::WindowA,
@@ -721,8 +735,26 @@ pub fn benchmark_cases() -> Vec<BenchmarkCase> {
         BenchmarkCase {
             case_id: "stale_latest_ingested_conflicts_with_fresh",
             input: input(vec![
-                observation("current-a", "terminal-a", "terminal-owner-a", ServiceWindow::WindowA, Some(995), 996, ObservationStatus::Active, 1),
-                observation("stale-b", "aggregator-b", "aggregator-owner-b", ServiceWindow::WindowB, Some(950), 999, ObservationStatus::Active, 1),
+                observation(
+                    "current-a",
+                    "terminal-a",
+                    "terminal-owner-a",
+                    ServiceWindow::WindowA,
+                    Some(995),
+                    996,
+                    ObservationStatus::Active,
+                    1,
+                ),
+                observation(
+                    "stale-b",
+                    "aggregator-b",
+                    "aggregator-owner-b",
+                    ServiceWindow::WindowB,
+                    Some(950),
+                    999,
+                    ObservationStatus::Active,
+                    1,
+                ),
             ]),
             truth: EvaluationTruth {
                 realized_window: ServiceWindow::WindowA,
@@ -731,8 +763,26 @@ pub fn benchmark_cases() -> Vec<BenchmarkCase> {
         BenchmarkCase {
             case_id: "fresh_conflict_bounded_contingency_recovers",
             input: input(vec![
-                observation("conflict-a", "terminal-a", "terminal-owner-a", ServiceWindow::WindowA, Some(995), 996, ObservationStatus::Active, 1),
-                observation("conflict-b", "carrier-b", "carrier-owner-b", ServiceWindow::WindowB, Some(998), 999, ObservationStatus::Active, 1),
+                observation(
+                    "conflict-a",
+                    "terminal-a",
+                    "terminal-owner-a",
+                    ServiceWindow::WindowA,
+                    Some(995),
+                    996,
+                    ObservationStatus::Active,
+                    1,
+                ),
+                observation(
+                    "conflict-b",
+                    "carrier-b",
+                    "carrier-owner-b",
+                    ServiceWindow::WindowB,
+                    Some(998),
+                    999,
+                    ObservationStatus::Active,
+                    1,
+                ),
             ]),
             truth: EvaluationTruth {
                 realized_window: ServiceWindow::WindowA,
@@ -741,8 +791,26 @@ pub fn benchmark_cases() -> Vec<BenchmarkCase> {
         BenchmarkCase {
             case_id: "withdrawn_latest_observation",
             input: input(vec![
-                observation("active-a", "terminal-a", "terminal-owner-a", ServiceWindow::WindowA, Some(995), 996, ObservationStatus::Active, 1),
-                observation("withdrawn-b", "carrier-b", "carrier-owner-b", ServiceWindow::WindowB, Some(999), 1_000, ObservationStatus::Withdrawn, 2),
+                observation(
+                    "active-a",
+                    "terminal-a",
+                    "terminal-owner-a",
+                    ServiceWindow::WindowA,
+                    Some(995),
+                    996,
+                    ObservationStatus::Active,
+                    1,
+                ),
+                observation(
+                    "withdrawn-b",
+                    "carrier-b",
+                    "carrier-owner-b",
+                    ServiceWindow::WindowB,
+                    Some(999),
+                    1_000,
+                    ObservationStatus::Withdrawn,
+                    2,
+                ),
             ]),
             truth: EvaluationTruth {
                 realized_window: ServiceWindow::WindowA,
@@ -767,8 +835,26 @@ pub fn benchmark_cases() -> Vec<BenchmarkCase> {
         BenchmarkCase {
             case_id: "correction_not_retrieved_at_historical_cutoff",
             input: input(vec![
-                observation("old-window", "terminal-a", "terminal-owner-a", ServiceWindow::WindowB, Some(990), 991, ObservationStatus::Active, 1),
-                observation("late-correction", "terminal-a", "terminal-owner-a", ServiceWindow::WindowA, Some(999), 1_001, ObservationStatus::Active, 2),
+                observation(
+                    "old-window",
+                    "terminal-a",
+                    "terminal-owner-a",
+                    ServiceWindow::WindowB,
+                    Some(990),
+                    991,
+                    ObservationStatus::Active,
+                    1,
+                ),
+                observation(
+                    "late-correction",
+                    "terminal-a",
+                    "terminal-owner-a",
+                    ServiceWindow::WindowA,
+                    Some(999),
+                    1_001,
+                    ObservationStatus::Active,
+                    2,
+                ),
             ]),
             truth: EvaluationTruth {
                 realized_window: ServiceWindow::WindowA,
@@ -778,8 +864,26 @@ pub fn benchmark_cases() -> Vec<BenchmarkCase> {
             case_id: "correction_available_after_cutoff",
             input: {
                 let mut case_input = input(vec![
-                    observation("old-window", "terminal-a", "terminal-owner-a", ServiceWindow::WindowB, Some(990), 991, ObservationStatus::Active, 1),
-                    observation("late-correction", "terminal-a", "terminal-owner-a", ServiceWindow::WindowA, Some(999), 1_001, ObservationStatus::Active, 2),
+                    observation(
+                        "old-window",
+                        "terminal-a",
+                        "terminal-owner-a",
+                        ServiceWindow::WindowB,
+                        Some(990),
+                        991,
+                        ObservationStatus::Active,
+                        1,
+                    ),
+                    observation(
+                        "late-correction",
+                        "terminal-a",
+                        "terminal-owner-a",
+                        ServiceWindow::WindowA,
+                        Some(999),
+                        1_001,
+                        ObservationStatus::Active,
+                        2,
+                    ),
                 ]);
                 case_input.as_of = 1_010;
                 case_input.maximum_evidence_age = 15;
@@ -792,8 +896,26 @@ pub fn benchmark_cases() -> Vec<BenchmarkCase> {
         BenchmarkCase {
             case_id: "conflict_within_one_shared_dependency_cluster",
             input: input(vec![
-                observation("same-cluster-a", "terminal-a", "shared-terminal-stack", ServiceWindow::WindowA, Some(997), 998, ObservationStatus::Active, 1),
-                observation("same-cluster-b", "terminal-b", "shared-terminal-stack", ServiceWindow::WindowB, Some(999), 1_000, ObservationStatus::Active, 1),
+                observation(
+                    "same-cluster-a",
+                    "terminal-a",
+                    "shared-terminal-stack",
+                    ServiceWindow::WindowA,
+                    Some(997),
+                    998,
+                    ObservationStatus::Active,
+                    1,
+                ),
+                observation(
+                    "same-cluster-b",
+                    "terminal-b",
+                    "shared-terminal-stack",
+                    ServiceWindow::WindowB,
+                    Some(999),
+                    1_000,
+                    ObservationStatus::Active,
+                    1,
+                ),
             ]),
             truth: EvaluationTruth {
                 realized_window: ServiceWindow::WindowA,
@@ -802,9 +924,36 @@ pub fn benchmark_cases() -> Vec<BenchmarkCase> {
         BenchmarkCase {
             case_id: "too_many_conflicting_alternatives",
             input: input(vec![
-                observation("many-a", "terminal-a", "terminal-owner-a", ServiceWindow::WindowA, Some(997), 998, ObservationStatus::Active, 1),
-                observation("many-b", "carrier-b", "carrier-owner-b", ServiceWindow::WindowB, Some(998), 999, ObservationStatus::Active, 1),
-                observation("many-c", "aggregator-c", "aggregator-owner-c", ServiceWindow::WindowC, Some(999), 1_000, ObservationStatus::Active, 1),
+                observation(
+                    "many-a",
+                    "terminal-a",
+                    "terminal-owner-a",
+                    ServiceWindow::WindowA,
+                    Some(997),
+                    998,
+                    ObservationStatus::Active,
+                    1,
+                ),
+                observation(
+                    "many-b",
+                    "carrier-b",
+                    "carrier-owner-b",
+                    ServiceWindow::WindowB,
+                    Some(998),
+                    999,
+                    ObservationStatus::Active,
+                    1,
+                ),
+                observation(
+                    "many-c",
+                    "aggregator-c",
+                    "aggregator-owner-c",
+                    ServiceWindow::WindowC,
+                    Some(999),
+                    1_000,
+                    ObservationStatus::Active,
+                    1,
+                ),
             ]),
             truth: EvaluationTruth {
                 realized_window: ServiceWindow::WindowB,
@@ -812,9 +961,16 @@ pub fn benchmark_cases() -> Vec<BenchmarkCase> {
         },
         BenchmarkCase {
             case_id: "all_known_evidence_exceeds_freshness_sla",
-            input: input(vec![
-                observation("stale-only-a", "terminal-a", "terminal-owner-a", ServiceWindow::WindowB, Some(950), 999, ObservationStatus::Active, 1),
-            ]),
+            input: input(vec![observation(
+                "stale-only-a",
+                "terminal-a",
+                "terminal-owner-a",
+                ServiceWindow::WindowB,
+                Some(950),
+                999,
+                ObservationStatus::Active,
+                1,
+            )]),
             truth: EvaluationTruth {
                 realized_window: ServiceWindow::WindowA,
             },
@@ -838,15 +994,19 @@ pub fn render_csv() -> String {
                 strategy.label(),
                 case.input.as_of,
                 decision.action.label(),
-                decision.action.primary_window().map_or("NONE", ServiceWindow::label),
-                decision.action.fallback_window().map_or("NONE", ServiceWindow::label),
+                decision
+                    .action
+                    .primary_window()
+                    .map_or("NONE", ServiceWindow::label),
+                decision
+                    .action
+                    .fallback_window()
+                    .map_or("NONE", ServiceWindow::label),
                 decision.available_observation_count,
                 decision.active_published_observation_count,
                 decision.fresh_observation_count,
                 decision.source_cluster_count,
-                decision
-                    .selected_maturity_summary
-                    .as_str(),
+                decision.selected_maturity_summary.as_str(),
                 decision.stale_evidence_used,
                 decision.withdrawn_evidence_used,
                 score.service_regret_units,
@@ -930,8 +1090,7 @@ mod tests {
     #[test]
     fn bounded_contingency_can_recover_a_conflicting_but_feasible_alternative() {
         let scenario = case("fresh_conflict_bounded_contingency_recovers");
-        let decision =
-            decide(&scenario.input, DecisionStrategy::BoundedContingent).expect("valid");
+        let decision = decide(&scenario.input, DecisionStrategy::BoundedContingent).expect("valid");
         assert!(matches!(
             &decision.action,
             PlannedAction::Contingent {
@@ -943,10 +1102,7 @@ mod tests {
         let score = evaluate(&scenario.input, &decision, scenario.truth);
         assert!(score.contingent_fallback_recovered);
         assert!(!score.false_confidence);
-        assert_eq!(
-            score.service_regret_units,
-            CONTINGENT_FALLBACK_LOSS
-        );
+        assert_eq!(score.service_regret_units, CONTINGENT_FALLBACK_LOSS);
     }
 
     #[test]
@@ -954,14 +1110,8 @@ mod tests {
         let scenario = case("withdrawn_latest_observation");
         let naive = decide(&scenario.input, DecisionStrategy::LatestIngested).expect("valid");
         let strict = decide(&scenario.input, DecisionStrategy::FailClosed).expect("valid");
-        assert_eq!(
-            naive.action.primary_window(),
-            Some(ServiceWindow::WindowB)
-        );
-        assert_eq!(
-            strict.action.primary_window(),
-            Some(ServiceWindow::WindowA)
-        );
+        assert_eq!(naive.action.primary_window(), Some(ServiceWindow::WindowB));
+        assert_eq!(strict.action.primary_window(), Some(ServiceWindow::WindowA));
         assert!(naive.withdrawn_evidence_used);
         assert!(!strict.withdrawn_evidence_used);
     }
@@ -974,10 +1124,7 @@ mod tests {
         assert!(matches!(freshest.action, PlannedAction::Abstain { .. }));
         assert!(matches!(&strict.action, PlannedAction::Abstain { .. }));
         let naive = decide(&scenario.input, DecisionStrategy::LatestIngested).expect("valid");
-        assert_eq!(
-            naive.action.primary_window(),
-            Some(ServiceWindow::WindowC)
-        );
+        assert_eq!(naive.action.primary_window(), Some(ServiceWindow::WindowC));
         assert!(naive.stale_evidence_used);
     }
 
@@ -991,9 +1138,12 @@ mod tests {
             Some(ServiceWindow::WindowB)
         );
         assert!(freshest.stale_evidence_used);
-        assert!(matches!(&strict.action, PlannedAction::Abstain {
-            reason: AbstentionReason::AllEvidenceStale
-        }));
+        assert!(matches!(
+            &strict.action,
+            PlannedAction::Abstain {
+                reason: AbstentionReason::AllEvidenceStale
+            }
+        ));
     }
 
     #[test]
