@@ -213,6 +213,10 @@ pub struct BenchmarkReceipt {
     pub precision_profile: String,
     /// SHA-256 of canonical method parameters, feature flags and relevant runtime settings.
     pub configuration_sha256: String,
+    /// SHA-256 of the canonicalized execution environment object.
+    pub environment_sha256: String,
+    /// Effective timer resolution measured for this run, in nanoseconds.
+    pub timer_resolution_ns: u64,
     pub seed: u64,
     pub run_id: String,
     pub status: RunStatus,
@@ -228,6 +232,8 @@ pub enum ReceiptError {
     InvalidDatasetIdentity,
     InvalidAlgorithmIdentity,
     InvalidConfigurationDigest,
+    InvalidEnvironmentDigest,
+    InvalidTimerResolution,
     EmptyRunIdentity,
     InvalidEnvironment,
     IncompleteExecution,
@@ -274,6 +280,12 @@ impl BenchmarkReceipt {
         }
         if !is_lower_hex(&self.configuration_sha256, 64) {
             errors.push(ReceiptError::InvalidConfigurationDigest);
+        }
+        if !is_lower_hex(&self.environment_sha256, 64) {
+            errors.push(ReceiptError::InvalidEnvironmentDigest);
+        }
+        if self.timer_resolution_ns == 0 {
+            errors.push(ReceiptError::InvalidTimerResolution);
         }
         if !self.environment.valid() {
             errors.push(ReceiptError::InvalidEnvironment);
@@ -380,6 +392,8 @@ mod tests {
             motion_profile: MotionProfile::LinearizedTrajectoryOracle,
             precision_profile: "f64".to_owned(),
             configuration_sha256: "c".repeat(64),
+            environment_sha256: "d".repeat(64),
+            timer_resolution_ns: 1_000,
             seed: 42,
             run_id: "run-0001".to_owned(),
             status: RunStatus::Completed,
@@ -536,6 +550,30 @@ mod tests {
         let errors = receipt.validate().unwrap_err();
         assert!(errors.contains(&ReceiptError::InvalidDatasetIdentity));
         assert!(errors.contains(&ReceiptError::InvalidAlgorithmIdentity));
+    }
+
+    #[test]
+    fn rejects_missing_or_malformed_environment_digest() {
+        let mut receipt = valid_receipt();
+        receipt.environment_sha256 = "invalid".to_owned();
+        assert!(
+            receipt
+                .validate()
+                .unwrap_err()
+                .contains(&ReceiptError::InvalidEnvironmentDigest)
+        );
+    }
+
+    #[test]
+    fn rejects_zero_timer_resolution() {
+        let mut receipt = valid_receipt();
+        receipt.timer_resolution_ns = 0;
+        assert!(
+            receipt
+                .validate()
+                .unwrap_err()
+                .contains(&ReceiptError::InvalidTimerResolution)
+        );
     }
 
     #[test]
