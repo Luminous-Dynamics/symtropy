@@ -483,25 +483,69 @@ pub fn find_pairs_incremental<const D: usize>(
     pairs
 }
 
-fn find_pairs_brute<const D: usize>(bodies: &[RigidBody<D>]) -> Vec<BroadphasePair> {
+/// Work counters for the brute-force broadphase reference path.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct BruteForceBroadphaseStats {
+    pub possible_unfiltered_pairs: u128,
+    pub pairs_after_body_type_filter: u128,
+    pub pairs_after_collision_filter: u128,
+    pub unique_aabbs_computed: u64,
+    pub aabb_overlap_pairs: u128,
+}
+
+pub fn find_pairs_brute_with_stats<const D: usize>(
+    bodies: &[RigidBody<D>],
+) -> (Vec<BroadphasePair>, BruteForceBroadphaseStats) {
+    let count = bodies.len() as u128;
+    let mut stats = BruteForceBroadphaseStats {
+        possible_unfiltered_pairs: count * count.saturating_sub(1) / 2,
+        ..BruteForceBroadphaseStats::default()
+    };
     let mut pairs = Vec::new();
+    let mut cached_aabbs: Vec<Option<Aabb<D>>> = vec![None; bodies.len()];
+
     for i in 0..bodies.len() {
-        let ti = bodies[i].body_type;
+        let body_type = bodies[i].body_type;
         for j in (i + 1)..bodies.len() {
-            if ti == BodyType::Static && bodies[j].body_type == BodyType::Static {
+            if body_type == BodyType::Static && bodies[j].body_type == BodyType::Static {
                 continue;
             }
+            stats.pairs_after_body_type_filter += 1;
+
             if !should_collide(&bodies[i], &bodies[j]) {
                 continue;
             }
-            let aabb_i = Aabb::from_body(&bodies[i]);
-            let aabb_j = Aabb::from_body(&bodies[j]);
-            if aabb_i.overlaps(&aabb_j) {
+            stats.pairs_after_collision_filter += 1;
+
+            if cached_aabbs[i].is_none() {
+                cached_aabbs[i] = Some(Aabb::from_body(&bodies[i]));
+                stats.unique_aabbs_computed += 1;
+            }
+            if cached_aabbs[j].is_none() {
+                cached_aabbs[j] = Some(Aabb::from_body(&bodies[j]));
+                stats.unique_aabbs_computed += 1;
+            }
+
+            let overlaps = cached_aabbs[i]
+                .as_ref()
+                .expect("AABB is populated above")
+                .overlaps(
+                    cached_aabbs[j]
+                        .as_ref()
+                        .expect("AABB is populated above"),
+                );
+            if overlaps {
+                stats.aabb_overlap_pairs += 1;
                 pairs.push(BroadphasePair(bodies[i].handle, bodies[j].handle));
             }
         }
     }
-    pairs
+
+    (pairs, stats)
+}
+
+fn find_pairs_brute<const D: usize>(bodies: &[RigidBody<D>]) -> Vec<BroadphasePair> {
+    find_pairs_brute_with_stats(bodies).0
 }
 
 #[cfg(test)]
