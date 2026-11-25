@@ -561,14 +561,10 @@ pub fn reconcile_captured_output(
         return Err(EvaluationError::InvalidCaptureUncertainty);
     }
 
-    let initial_state_match = capture.initial_state
-        == predicted
-            .transitions
-            .first()
-            .map_or_else(
-                || predicted.states.first().copied().unwrap_or(capture.initial_state),
-                |transition| transition.from,
-            );
+    let initial_state_match = predicted
+        .states
+        .first()
+        .is_some_and(|predicted_initial_state| capture.initial_state == *predicted_initial_state);
 
     let mut captured_illegal_two_bit_transition_count = 0_usize;
     let mut previous_state = capture.initial_state;
@@ -1275,7 +1271,7 @@ mod tests {
 
     fn config(pole_pairs: u32) -> QuadratureConfig {
         QuadratureConfig {
-            configuration_id: "tmag511x-latch-config-v0".to_owned(),
+            configuration_id: format!("tmag511x-latch-config-{pole_pairs}-pair-v0"),
             pole_pairs,
             architecture: SensorArchitecture::IntegratedTwoAxisLatch,
             channel_a: latch(0.0, true, 0.0001, -0.0001),
@@ -1520,6 +1516,62 @@ mod tests {
         }
     }
 
+
+    #[test]
+    fn capture_reconciliation_reports_edge_outside_prediction_bracket() {
+        let trace = sinusoidal_trace("predicted-field-trace-bracket", 1, 3601, 0.008, 1.0);
+        let prediction = evaluate_trace(&trace, config(1)).unwrap();
+        let mut capture = captured_trace_from_prediction(&prediction);
+        capture.transitions[0].mechanical_angle_rad =
+            prediction.transitions[0].upper_angle_rad + 0.01;
+
+        let metrics = reconcile_captured_output(&prediction, &capture).unwrap();
+        assert_eq!(metrics.captured_edges_outside_predicted_bracket_count, 1);
+        assert!(metrics.maximum_angle_distance_to_predicted_bracket_rad.unwrap() > 0.009);
+        assert!(!metrics.state_sequence_and_bracket_match);
+    }
+
+    #[test]
+    fn capture_reconciliation_reports_illegal_two_bit_capture_transition() {
+        let trace = sinusoidal_trace("predicted-field-trace-illegal-capture", 1, 3601, 0.008, 1.0);
+        let prediction = evaluate_trace(&trace, config(1)).unwrap();
+        let mut capture = captured_trace_from_prediction(&prediction);
+        capture.transitions[0].state_after = QuadratureState {
+            channel_a_high: !capture.initial_state.channel_a_high,
+            channel_b_high: !capture.initial_state.channel_b_high,
+        };
+
+        let metrics = reconcile_captured_output(&prediction, &capture).unwrap();
+        assert_eq!(metrics.captured_illegal_two_bit_transition_count, 1);
+        assert!(!metrics.state_sequence_and_bracket_match);
+    }
+
+    #[test]
+    fn capture_reconciliation_rejects_missing_latency_or_clock_provenance() {
+        let trace = sinusoidal_trace("predicted-field-trace-missing-provenance", 1, 3601, 0.008, 1.0);
+        let prediction = evaluate_trace(&trace, config(1)).unwrap();
+        let mut capture = captured_trace_from_prediction(&prediction);
+        capture.latency_calibration_record_id.clear();
+
+        assert_eq!(
+            reconcile_captured_output(&prediction, &capture),
+            Err(EvaluationError::InvalidCaptureMetadata)
+        );
+    }
+
+    #[test]
+    fn capture_reconciliation_rejects_invalid_reference_uncertainty() {
+        let trace = sinusoidal_trace("predicted-field-trace-invalid-uq", 1, 3601, 0.008, 1.0);
+        let prediction = evaluate_trace(&trace, config(1)).unwrap();
+        let mut capture = captured_trace_from_prediction(&prediction);
+        capture.clock_standard_uncertainty_ns = f64::NAN;
+
+        assert_eq!(
+            reconcile_captured_output(&prediction, &capture),
+            Err(EvaluationError::InvalidCaptureUncertainty)
+        );
+    }
+
     #[test]
     fn capture_reconciliation_accepts_exact_synthetic_edge_replay() {
         let trace = sinusoidal_trace("predicted-field-trace-001", 10, 3601, 0.008, 1.0);
@@ -1540,22 +1592,29 @@ mod tests {
     fn capture_reconciliation_counts_missing_and_extra_edges() {
         let trace = sinusoidal_trace("predicted-field-trace-counts", 2, 3601, 0.008, 1.0);
         let prediction = evaluate_trace(&trace, config(2)).unwrap();
-        let mut capture = captured_trace_from_prediction(&prediction);
-        capture.transitions.pop();
-        capture.transitions.push(CapturedQuadratureEdge {
-            timestamp_ns: 9_000_000,
+
+        let mut missing_capture = captured_trace_from_prediction(&prediction);
+        missing_capture.transitions.pop();
+        let missing = reconcile_captured_output(&prediction, &missing_capture).unwrap();
+        assert_eq!(missing.missing_captured_transition_count, 1);
+        assert_eq!(missing.extra_captured_transition_count, 0);
+        assert!(!missing.state_sequence_and_bracket_match);
+
+        let mut extra_capture = captured_trace_from_prediction(&prediction);
+        let previous_state = extra_capture.transitions.last().unwrap().state_after;
+        let previous_timestamp = extra_capture.transitions.last().unwrap().timestamp_ns;
+        extra_capture.transitions.push(CapturedQuadratureEdge {
+            timestamp_ns: previous_timestamp + 100_000,
             mechanical_angle_rad: prediction.end_angle_rad - 1.0e-5,
             state_after: QuadratureState {
-                channel_a_high: !capture.transitions.last().unwrap().state_after.channel_a_high,
-                channel_b_high: capture.transitions.last().unwrap().state_after.channel_b_high,
+                channel_a_high: !previous_state.channel_a_high,
+                channel_b_high: previous_state.channel_b_high,
             },
         });
-
-        let metrics = reconcile_captured_output(&prediction, &capture).unwrap();
-        assert_eq!(metrics.missing_captured_transition_count, 0);
-        assert_eq!(metrics.extra_captured_transition_count, 0);
-        assert!(!metrics.state_sequence_and_bracket_match);
-        assert!(metrics.state_after_mismatch_count > 0 || metrics.captured_edges_outside_predicted_bracket_count > 0);
+        let extra = reconcile_captured_output(&prediction, &extra_capture).unwrap();
+        assert_eq!(extra.missing_captured_transition_count, 0);
+        assert_eq!(extra.extra_captured_transition_count, 1);
+        assert!(!extra.state_sequence_and_bracket_match);
     }
 
     #[test]
