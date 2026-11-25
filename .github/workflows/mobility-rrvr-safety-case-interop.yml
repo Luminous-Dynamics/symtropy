@@ -1,0 +1,47 @@
+name: RRVR Safety-Case Interoperability Register
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-safety-case-interop-v0-1
+    paths:
+      - "research/mobility-rrvr-safety-case-interop/**"
+      - ".github/workflows/mobility-rrvr-safety-case-interop.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-safety-case-interop/**"
+      - ".github/workflows/mobility-rrvr-safety-case-interop.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  register-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check JSON syntax and register invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCHEMA="research/mobility-rrvr-safety-case-interop/schemas/safety_case_interoperability_v0_1.schema.json"
+          REGISTER="research/mobility-rrvr-safety-case-interop/fixtures/safety_case_interoperability_v0_1.json"
+          jq empty "$SCHEMA"
+          jq empty "$REGISTER"
+          jq -e '
+            .schema_version == "0.1"
+            and .checked_on == "2026-11-25"
+            and (.claim_ceiling | length >= 40)
+            and (.standards | length >= 9)
+            and (.evidence_owners | length >= 8)
+            and ([.standards[].id] | unique | length == (.standards | length))
+            and all(.standards[]; (.url | startswith("https://")))
+            and all(.standards[]; (.claim_limit | length > 0))
+            and all(.evidence_owners[]; (.references | length > 0))
+            and all(.evidence_owners[]; (.supports | length > 0) and (.does_not_support | length > 0))
+            and any(.standards[]; .id == "ISO 3691-4:2023" and (.status | contains("successor_draft_under_development")))
+            and any(.standards[]; .id == "IEC 61508-1:2026 PRV" and (.status | contains("final_publication_to_recheck")))
+            and any(.standards[]; .id == "IEC TR 63074:2019" and (.status | contains("replaced")))
+          ' "$REGISTER"
