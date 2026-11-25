@@ -1,0 +1,230 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital_acquisition_scope_coherence_corpus_v0_1.schema.json",
+  "title": "Orbital Acquisition Scope Coherence Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-acquisition-scope-coherence.corpus.v0.1"
+    },
+    "benchmark_id": {
+      "const": "ORBITAL-ACQUISITION-SCOPE-COHERENCE-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_exact_identity_and_admitted_interval_composition_only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "acquisition_interval",
+          "acquisition_scope",
+          "evidence",
+          "expected_disposition"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "acquisition_interval": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "time_basis_id",
+              "start_tai_ns",
+              "end_tai_ns"
+            ],
+            "properties": {
+              "time_basis_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "start_tai_ns": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "end_tai_ns": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "acquisition_scope": {
+            "type": "array",
+            "minItems": 0,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "field",
+                "value"
+              ],
+              "properties": {
+                "field": {
+                  "enum": [
+                    "acquisition_id",
+                    "camera_id",
+                    "sensor_mode_id",
+                    "intrinsics_revision",
+                    "robot_id",
+                    "mount_revision",
+                    "asset_id",
+                    "asset_revision",
+                    "camera_frame_id",
+                    "asset_frame_id",
+                    "transform_convention",
+                    "feature_id",
+                    "support_id",
+                    "motion_model_revision",
+                    "calibration_scope_id",
+                    "clock_map_id",
+                    "time_basis_id",
+                    "exposure_profile_id",
+                    "projector_profile_id",
+                    "pattern_sequence_id"
+                  ]
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "evidence_id",
+                "kind",
+                "source_state",
+                "receipt_sha256",
+                "validity_interval",
+                "scope_claims"
+              ],
+              "properties": {
+                "evidence_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "kind": {
+                  "enum": [
+                    "MOTION",
+                    "SUPPORT",
+                    "CALIBRATION",
+                    "TIMING"
+                  ]
+                },
+                "source_state": {
+                  "enum": [
+                    "CURRENT",
+                    "STALE",
+                    "REVOKED",
+                    "CONTRADICTED",
+                    "UNKNOWN"
+                  ]
+                },
+                "receipt_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{64}$"
+                },
+                "validity_interval": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "time_basis_id",
+                    "start_tai_ns",
+                    "end_tai_ns"
+                  ],
+                  "properties": {
+                    "time_basis_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "start_tai_ns": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "end_tai_ns": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                },
+                "scope_claims": {
+                  "type": "array",
+                  "minItems": 0,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "field",
+                      "value"
+                    ],
+                    "properties": {
+                      "field": {
+                        "enum": [
+                          "acquisition_id",
+                          "camera_id",
+                          "sensor_mode_id",
+                          "intrinsics_revision",
+                          "robot_id",
+                          "mount_revision",
+                          "asset_id",
+                          "asset_revision",
+                          "camera_frame_id",
+                          "asset_frame_id",
+                          "transform_convention",
+                          "feature_id",
+                          "support_id",
+                          "motion_model_revision",
+                          "calibration_scope_id",
+                          "clock_map_id",
+                          "time_basis_id",
+                          "exposure_profile_id",
+                          "projector_profile_id",
+                          "pattern_sequence_id"
+                        ]
+                      },
+                      "value": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "expected_disposition": {
+            "enum": [
+              "SCOPE_COHERENT",
+              "OUT_OF_SCOPE",
+              "INDETERMINATE",
+              "INVALID_INPUT"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
