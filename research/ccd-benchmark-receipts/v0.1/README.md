@@ -4,8 +4,8 @@ A dependency-free Rust contract for validating collision-detection benchmark res
 
 ## Validated dimensions
 
-- Dataset identity, version, source URL and SHA-256 checksum string; algorithm identity and configuration SHA-256 bind the exact tested build and method settings.
-- Algorithm name/version/source commit, a canonical configuration SHA-256 (covering method parameters, feature flags and runtime settings), and execution environment (OS, architecture, CPU, physical cores, worker threads, compiler, build profile and optional GPU/driver pair).
+- Dataset identity, version, source URL and SHA-256 checksum string; algorithm identity and configuration SHA-256 bind the exact tested build and method settings. The environment SHA-256 binds canonicalized runtime metadata; `timer_resolution_ns` must be nonzero and is used to interpret censored latency observations.
+- Algorithm name/version/source commit, a canonical configuration SHA-256 (covering method parameters, feature flags and runtime settings), canonical environment SHA-256, measured timer resolution in nanoseconds, and the detailed execution environment (OS, architecture, CPU, physical cores, worker threads, compiler, build profile and optional GPU/driver pair).
 - Explicit motion and precision profiles.
 - Execution outcome. Timeouts, OOM and aborts remain reportable but cannot qualify as completed benchmark results.
 - Eligible-pair oracle denominator, forwarded true/false positives, certified-pruned pairs and exact disposition conservation.
