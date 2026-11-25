@@ -587,7 +587,10 @@ impl QueryTimingSummary {
     }
 }
 
-fn summarize_query_durations(mut durations_ns: Vec<u64>) -> QueryTimingSummary {
+fn summarize_query_durations(
+    mut durations_ns: Vec<u64>,
+    timer_resolution_ns: u64,
+) -> QueryTimingSummary {
     if durations_ns.is_empty() {
         return QueryTimingSummary::default();
     }
@@ -829,7 +832,6 @@ pub enum EvaluationError {
     CertifiedPruneReachedNarrowphase,
     ForwardedQueryNotRunInNarrowphase,
     MissingOracleGroundTruth,
-    ZeroNarrowphaseDuration,
     DurationForNotRunNarrowphase,
 }
 
@@ -927,12 +929,16 @@ pub fn evaluate_queries_with_profile(
     }
 
     if errors.is_empty() {
-        let timing = summarize_query_durations(all_durations_ns);
+        let timer_resolution_ns = profile
+            .provenance()
+            .map_or(1, RunProvenance::timer_resolution_ns);
+        let timing = summarize_query_durations(all_durations_ns, timer_resolution_ns);
         let strata = strata
             .into_iter()
             .map(|(identity, counts)| {
                 let timing = summarize_query_durations(
                     stratum_durations_ns.remove(&identity).unwrap_or_default(),
+                    timer_resolution_ns,
                 );
                 QueryStratumScore {
                     identity,
@@ -1154,7 +1160,7 @@ mod tests {
                 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
                 "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
                 "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-                1_000,
+                1,
             ),
             motion,
             arithmetic,
@@ -1252,9 +1258,16 @@ mod tests {
             NarrowphaseOutcome::Collision,
         )
         .with_narrowphase_elapsed_ns(0);
-        let profile = run_profile(
-            "symtropy",
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        let profile = RunProfile::new(
+            RunProvenance::new(
+                "symtropy",
+                "v0.1",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                1_000,
+            ),
             MotionProfile::LinearizedConstantVelocity,
             ArithmeticProfile::Binary64,
         );
@@ -1265,6 +1278,45 @@ mod tests {
         assert_eq!(score.timing.sample_count, 1);
         assert_eq!(score.timing.sub_resolution_samples, 1);
         assert_eq!(score.timing.p50_ns, Some(0));
+    }
+
+    #[test]
+    fn compares_measurements_to_declared_clock_resolution_not_just_zero() {
+        let queries = imported_queries_with_labels(&[true, false]);
+        let results = vec![
+            evaluation(
+                &queries[0],
+                "timer-resolution-scene",
+                CandidateDisposition::Forwarded,
+                NarrowphaseOutcome::Collision,
+            )
+            .with_narrowphase_elapsed_ns(999),
+            evaluation(
+                &queries[1],
+                "timer-resolution-scene",
+                CandidateDisposition::Forwarded,
+                NarrowphaseOutcome::NoCollision,
+            )
+            .with_narrowphase_elapsed_ns(1_000),
+        ];
+        let profile = RunProfile::new(
+            RunProvenance::new(
+                "symtropy",
+                "v0.1",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                1_000,
+            ),
+            MotionProfile::LinearizedConstantVelocity,
+            ArithmeticProfile::Binary64,
+        );
+        let score = evaluate_queries_with_profile(profile, &results).unwrap();
+
+        assert!(score.benchmark_qualified());
+        assert!(!score.latency_comparable());
+        assert_eq!(score.timing.sub_resolution_samples, 1);
     }
 
     #[test]
