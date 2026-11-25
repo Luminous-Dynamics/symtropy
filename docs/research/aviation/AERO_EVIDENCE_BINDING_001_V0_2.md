@@ -147,6 +147,16 @@ Coupon → element/joint → subcomponent → aircraft is not a simple extrapola
 
 Optimize the physical design and its verification path together: defect types, probability of detection, access, sensor placement, inspection interval, repair limits, replaceability and maintenance downtime. Inspection capability and structural integrity are coupled design variables, not late-stage paperwork.
 
+### 4.8 Inspectability and sensing integrity are first-class design variables
+
+NASA Langley's Design-for-Inspection (DFI) work proposes an automation-friendly inspectability metric built from simulation tests for defect findability and sensitivity to variability, designed to cover parameter space with fewer simulations. Use it as a methodology comparator and co-design target, not as a claim that this project reproduces NASA's implementation: [NASA DFI framework, NTRS 20240003953](https://ntrs.nasa.gov/citations/20240003953) and [Inspectability Metric, NTRS 20240007593](https://ntrs.nasa.gov/citations/20240007593).
+
+The inspection design variables should be coupled to structure and manufacturing: access, geometry, joint design, defect families, flaw orientation/size/depth, NDE method, coverage, probability-of-detection evidence, threshold of detection, calibration, repair limits, and inspection/repair time. Report inspectability and NDE coverage as separate vectors alongside structural mass, stiffness, fatigue/damage tolerance, manufacturability and lifecycle cost. Do not replace a required inspection acceptance criterion with an aggregate inspectability score.
+
+A further comparator is the June 2026 sensing digital twin paper for aerospace SHM. It separates structural damage from sensor faults, reconstructs sensor-fault-corrupted signals and estimates channel reliability. Its demonstration uses a simulated carbon/epoxy composite wing panel with injected bias, drift, gain, saturation, dropout and stuck-sensor faults; the authors describe model-fidelity limitations. It is an important sensing-layer research baseline, not a physical aircraft validation or transferable SHM guarantee: [Di Fiore et al., 2026](https://link.springer.com/article/10.1007/s00158-026-04324-8).
+
+Luminous should model four competing explanations for a changed signal: (1) structural change/damage; (2) sensing-chain fault; (3) environmental/operational-state change; (4) unknown/out-of-domain. Preserve the original raw observation, calibration, acquisition time and provenance immutably. Any corrected/reconstructed signal is a new derived artifact linked to its raw parent, algorithm/model version, uncertainty and sensor-reliability assessment. A correction may not overwrite the raw sample, downgrade a damage indication, or qualify a claim by itself. Where structural and sensor hypotheses cannot be separated, abstain and request independent NDE/inspection.
+
 ### 4.8 Evidence debt as an operational metric
 
 Every design claim accumulates evidence debt when an input is unobserved, stale, out of domain, ambiguously identified or unsupported by independent validation. Track the debt by claim and configuration. Do not summarize it as a scalar that can be traded away; expose its causes and the actions needed to discharge it.
