@@ -125,6 +125,9 @@ References:
 
 ### C. Public screening and interoperability
 
+- NASA CARA's current screening-volume page states that its revised, orbit-regime-specific screening volumes (implemented since March 2026) are designed to capture 99% of conjunctions with Pc > 1e-4 in the current orbital environment. Treat this as a published operational screening-design target for its stated environment, not a universal recall guarantee or a known-truth answer key: https://www.nasa.gov/cara/unique-conjunction-events/
+- NASA's August 2026 handbook recommends a mitigation threshold of 1e-4 and a goal at least 1.5 orders of magnitude below it (approximately 3e-6). Its guidance also calls for full-catalog screening of the maneuver ephemeris, no additional conjunctions above threshold, and coordination when the secondary is maneuverable: https://www.nasa.gov/wp-content/uploads/2026/08/ca-handbook-volume1-nasa-sp-20205011318-rev2-vol1.pdf
+
 Use TraCSS / public CDM datasets for schema, replay, trend and screening-pipeline compatibility, not as complete ground truth for physical collision probability. Pin exact CDM versions, source revisions, frames, time scales and source timestamps.
 
 ## 5. Metrics and acceptance gates
