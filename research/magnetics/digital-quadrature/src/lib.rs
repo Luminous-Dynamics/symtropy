@@ -63,7 +63,8 @@ pub struct EdgeRatePolicy {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct QuadratureConfig {
-    /// Immutable identity for the declared sensor/latch parameter set.
+    /// Opaque caller-supplied identity for the declared sensor/latch parameter set.
+    /// This is not a configuration digest or an authenticated identity proof.
     pub configuration_id: String,
     pub pole_pairs: u32,
     pub architecture: SensorArchitecture,
