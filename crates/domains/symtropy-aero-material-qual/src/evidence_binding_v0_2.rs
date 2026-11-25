@@ -112,66 +112,8 @@ fn has_provenance(assertion: &Value) -> bool {
     .all(|key| nonempty(field_str(assertion, key)))
 }
 
-fn valid_utc_timestamp(value: &str) -> bool {
-    let bytes = value.as_bytes();
-    if bytes.len() != 20
-        || bytes[4] != b'-'
-        || bytes[7] != b'-'
-        || bytes[10] != b'T'
-        || bytes[13] != b':'
-        || bytes[16] != b':'
-        || bytes[19] != b'Z'
-    {
-        return false;
-    }
-
-    let digits = |start: usize, end: usize| -> Option<u32> {
-        let slice = bytes.get(start..end)?;
-        if !slice.iter().all(u8::is_ascii_digit) {
-            return None;
-        }
-        std::str::from_utf8(slice).ok()?.parse().ok()
-    };
-
-    let year = match digits(0, 4) {
-        Some(value) if value >= 1970 => value,
-        _ => return false,
-    };
-    let month = match digits(5, 7) {
-        Some(value @ 1..=12) => value,
-        _ => return false,
-    };
-    let day = match digits(8, 10) {
-        Some(value) => value,
-        None => return false,
-    };
-    let hour = match digits(11, 13) {
-        Some(value @ 0..=23) => value,
-        _ => return false,
-    };
-    let minute = match digits(14, 16) {
-        Some(value @ 0..=59) => value,
-        _ => return false,
-    };
-    let second = match digits(17, 19) {
-        Some(value @ 0..=59) => value,
-        _ => return false,
-    };
-
-    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
-    let days_in_month = match month {
-        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
-        4 | 6 | 9 | 11 => 30,
-        2 if leap => 29,
-        2 => 28,
-        _ => return false,
-    };
-
-    day >= 1
-        && day <= days_in_month
-        && hour <= 23
-        && minute <= 59
-        && second <= 59
+fn field_u64(value: &Value, key: &str) -> Option<u64> {
+    value.get(key).and_then(Value::as_u64)
 }
 
 fn sort_findings(findings: &mut [BindingFinding]) {
@@ -329,8 +271,8 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
         push(&mut violations, "CLAIM_CEILING_OR_PROFILE_VIOLATION", "case");
     }
 
-    let evaluated_at = field_str(case, "evaluated_at_utc");
-    if !evaluated_at.is_some_and(valid_utc_timestamp) {
+    let evaluated_at = field_u64(case, "evaluated_at_unix_ms");
+    if evaluated_at.is_none() {
         push(&mut violations, "INVALID_EVALUATION_TIMESTAMP", "case");
         push(&mut blockers, "EVALUATION_TIME_UNRESOLVED", "case");
     }
@@ -569,8 +511,8 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
                 event_id,
             );
         }
-        for time_field in ["effective_at_utc", "recorded_at_utc"] {
-            if !field_str(event, time_field).is_some_and(valid_utc_timestamp) {
+        for time_field in ["effective_at_unix_ms", "recorded_at_unix_ms"] {
+            if field_u64(event, time_field).is_none() {
                 push(
                     &mut violations,
                     "INVALID_CALIBRATION_EVENT_TIMESTAMP",
@@ -591,7 +533,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
                         if field_str(target_event, "certificate_id") == Some(certificate_id)
                             && target != event_id
                             && field_str(target_event, "recorded_at_utc")
-                                .zip(field_str(event, "recorded_at_utc"))
+                                .zip(field_u64(event, "recorded_at_unix_ms"))
                                 .is_some_and(|(prior, current)| prior < current) =>
                     {
                         if corrected_event_targets
@@ -643,15 +585,14 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
     for observation in &observations {
         let observation_id = field_str(observation, "id").unwrap_or("observation");
         let mut reasons = BTreeSet::new();
-        let acquired_at = field_str(observation, "acquired_at_utc");
+        let acquired_at = field_u64(observation, "acquired_at_unix_ms");
 
-        if field_str(observation, "time_basis") != Some("UTC") {
+        if field_str(observation, "time_basis") != Some("UTC_UNIX_EPOCH_MS") {
             reasons.insert("TIME_BASIS_NOT_NORMALIZED_TO_UTC".to_owned());
         }
-        if !acquired_at.is_some_and(valid_utc_timestamp) {
-            reasons.insert("ACQUISITION_TIMESTAMP_INVALID_OR_AMBIGUOUS".to_owned());
-        } else if evaluated_at.is_some_and(valid_utc_timestamp)
-            && acquired_at.is_some_and(|time| time > evaluated_at.unwrap())
+        if acquired_at.is_none() {
+            reasons.insert("ACQUISITION_TIMESTAMP_MISSING_OR_INVALID".to_owned());
+        } else if evaluated_at.is_some_and(|evaluated| acquired_at.is_some_and(|time| time > evaluated))
         {
             reasons.insert("ACQUISITION_AFTER_EVALUATION_TIME".to_owned());
         }
@@ -699,16 +640,16 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
                 }
             }
 
-            let valid_from = field_str(certificate, "valid_from_utc");
-            let valid_until = field_str(certificate, "valid_until_utc");
-            if !valid_from.is_some_and(valid_utc_timestamp)
-                || !valid_until.is_some_and(valid_utc_timestamp)
-                || valid_from >= valid_until
-            {
-                reasons.insert("CALIBRATION_INTERVAL_INVALID".to_owned());
-            } else if let Some(acquired) = acquired_at.filter(|time| valid_utc_timestamp(time)) {
-                if acquired < valid_from.unwrap() || acquired >= valid_until.unwrap() {
-                    reasons.insert("CALIBRATION_OUTSIDE_VALIDITY_INTERVAL".to_owned());
+            let valid_from = field_u64(certificate, "valid_from_unix_ms");
+            let valid_until = field_u64(certificate, "valid_until_unix_ms");
+            match (valid_from, valid_until, acquired_at) {
+                (Some(start), Some(end), Some(acquired)) if start < end => {
+                    if acquired < start || acquired >= end {
+                        reasons.insert("CALIBRATION_OUTSIDE_VALIDITY_INTERVAL".to_owned());
+                    }
+                }
+                _ => {
+                    reasons.insert("CALIBRATION_INTERVAL_INVALID".to_owned());
                 }
             }
 
@@ -716,26 +657,21 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
                 if field_str(event, "certificate_id") != Some(certificate_id) {
                     continue;
                 }
-                let Some(effective_at) = field_str(event, "effective_at_utc") else {
+                let Some(effective_at) = field_u64(event, "effective_at_unix_ms") else {
                     continue;
                 };
-                let Some(recorded_at) = field_str(event, "recorded_at_utc") else {
+                let Some(recorded_at) = field_u64(event, "recorded_at_unix_ms") else {
                     continue;
                 };
-                if !valid_utc_timestamp(effective_at)
-                    || !valid_utc_timestamp(recorded_at)
-                    || !evaluated_at.is_some_and(valid_utc_timestamp)
-                    || recorded_at > evaluated_at.unwrap()
-                    || effective_at > evaluated_at.unwrap()
+                if evaluated_at.is_none_or(|evaluated| recorded_at > evaluated || effective_at > evaluated)
                 {
                     continue;
                 }
 
                 match field_str(event, "event_type") {
                     Some("revoked") => {
-                        let code = if acquired_at.is_some_and(|acquired| {
-                            valid_utc_timestamp(acquired) && acquired < effective_at
-                        }) && event.get("retroactive").and_then(Value::as_bool) != Some(true)
+                        let code = if acquired_at.is_some_and(|acquired| acquired < effective_at)
+                            && event.get("retroactive").and_then(Value::as_bool) != Some(true)
                         {
                             "CALIBRATION_REVOKED_AFTER_ACQUISITION_PENDING_DISPOSITION"
                         } else {
