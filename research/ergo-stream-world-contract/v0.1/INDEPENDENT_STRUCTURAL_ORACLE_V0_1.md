@@ -45,6 +45,7 @@ The implementation does not invoke `validate_structural_correspondence`. One pos
 - Positive: relabelled nodes and relation kinds, one directed edge reversed, and one undirected edge.
 - Negative: (K_{3,3}) versus the triangular prism. Both are 3-regular graphs with six nodes and nine edges, but they are not isomorphic. The oracle must examine all 720 node bijections because the simple incidence signature cannot distinguish their vertices.
 - Transfer Atlas cross-check: independently classifies all four existing structural fixture families, including the important case where observations are isomorphic but the mechanism is not transferable.
+- Five-node exhaustive differential check: enumerate all 1,023 non-empty labeled simple undirected graphs on five nodes, canonicalize each independently over all 120 vertex permutations, recover the 33 non-empty unlabeled isomorphism classes (the empty graph is excluded because the existing v0 structural-transfer contract requires at least one relation), then compare the oracle on all 1,089 ordered class pairs.
 - Symmetry / non-identifiability: an undirected six-cycle has 12 valid node bijections (six rotations and six reflections) among 720 explored bijections. The report retains one deterministic witness but exposes the full count of valid node bijections, so a downstream evaluator can distinguish a unique map from multiple valid maps. The count is per node mapping, not per possible relation-ID permutation.
 - Malformed input: duplicate node IDs and unknown relation participants.
 - Resource guard: nine nodes are rejected before enumeration.
@@ -54,7 +55,7 @@ The implementation does not invoke `validate_structural_correspondence`. One pos
 
 1. Run Rust 1.96 formatting, unit tests, doctests and strict Clippy on the exact branch head.
 2. Differentially compare oracle outcomes with a separately sourced VF2/Bliss/Nauty implementation on an expanded bounded corpus.
-3. Exhaustively enumerate all simple undirected graphs through at least six vertices and compare isomorphism classes; preserve the generated corpus and mismatch cases.
+3. Extend the current all-pairs differential check from the 33 non-empty five-node classes to six-node graph classes; preserve the generated corpus and mismatch cases, and keep the six-node computation behind an explicit test/time budget.
 4. Add adversarial fixtures with repeated relation instances, hyperedges, relation-kind collisions, mixed orientation within one kind, duplicate participants and empty relations.
 5. Use oracle outcomes as fixture-truth checks for the paired-world Atlas; keep the held-out causal/mechanism evaluator separate because structural isomorphism does not imply mechanism transfer.
 6. Add scoped induced/subgraph oracles only as separately named validators with separate contracts. Do not silently treat this whole-structure oracle as validating those claims.
