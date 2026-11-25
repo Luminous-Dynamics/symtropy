@@ -14,6 +14,7 @@ A per-frame minimum is not a physically attainable selector oracle: it can chang
 - A selected online backend must be qualified on that exact frame. Unqualified fast results cannot enter the score.
 - Every held-out frame is retained in order. Frame indices are contiguous and start at zero.
 - Selector decisions must occur before the simulation frame and disclose the latest completed frame used; future/current outcome leakage is rejected.
+- Every sequence binds a policy SHA-256; a campaign rejects mixed policy digests and repeats the policy digest in each sequence score.
 - Offline oracle cost includes full-step and directed transition costs. Online policy cost additionally includes selector overhead.
 - Fixed-backend comparison requires that the backend be qualified for every frame in the entire sequence.
 - Zero-positive oracle sequences are unavailable rather than receiving a fictitious perfect recall score.
