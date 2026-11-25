@@ -197,6 +197,21 @@ jobs:
           grep -q "GS1-EPCIS-2.0.1" /tmp/cross-standard-mapping.csv
           grep -q "GS1-CBV-2.0.0" /tmp/cross-standard-mapping.csv
           grep -q "SYNTHETIC_FIXTURE_ONLY" /tmp/cross-standard-mapping.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin evidence-age-regret-audit > /tmp/evidence-age-regret.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin evidence-age-regret-audit > /tmp/evidence-age-regret-replay.csv
+          cmp /tmp/evidence-age-regret.csv /tmp/evidence-age-regret-replay.csv
+          test "$(wc -l < /tmp/evidence-age-regret.csv)" -eq 41
+          head -n 1 /tmp/evidence-age-regret.csv | awk -F, '{ if (NF != 23) exit 1 }'
+          awk -F, 'NF != 23 { exit 1 }' /tmp/evidence-age-regret.csv
+          grep -q "LATEST_INGESTED" /tmp/evidence-age-regret.csv
+          grep -q "FRESHEST_PUBLISHED" /tmp/evidence-age-regret.csv
+          grep -q "FAIL_CLOSED" /tmp/evidence-age-regret.csv
+          grep -q "BOUNDED_CONTINGENT" /tmp/evidence-age-regret.csv
+          grep -q "ALL_EVIDENCE_STALE" /tmp/evidence-age-regret.csv
+          grep -q "CONFLICTING_EVIDENCE" /tmp/evidence-age-regret.csv
+          grep -q "MORE_THAN_TWO_ALTERNATIVES" /tmp/evidence-age-regret.csv
+          grep -q "ACT_SOURCE_REPORTED" /tmp/evidence-age-regret.csv
+          grep -q "SOURCE_REPORTED_ONLY_NOT_PHYSICAL_TRUTH" /tmp/evidence-age-regret.csv
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin epcis-correction-audit > /tmp/epcis-corrections.csv
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin epcis-correction-audit > /tmp/epcis-corrections-replay.csv
           cmp /tmp/epcis-corrections.csv /tmp/epcis-corrections-replay.csv
@@ -231,6 +246,7 @@ jobs:
             /tmp/epcis-corrections.csv \
             /tmp/dcsa-maturity.csv \
             /tmp/cross-standard-mapping.csv \
+            /tmp/evidence-age-regret.csv \
             research/maritime-service-chain-benchmark/dcsa-epcis-crosswalk-v1.0.0.toml \
             > /tmp/maritime-receipt-sha256.txt
 
@@ -254,6 +270,7 @@ jobs:
             /tmp/epcis-corrections.csv
             /tmp/dcsa-maturity.csv
             /tmp/cross-standard-mapping.csv
+            /tmp/evidence-age-regret.csv
             research/maritime-service-chain-benchmark/dcsa-epcis-crosswalk-v1.0.0.toml
           if-no-files-found: error
           retention-days: 30
