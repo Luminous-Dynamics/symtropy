@@ -13,7 +13,6 @@ pub enum EvidenceKind {
     SyntheticScenario,
     SolverPrediction,
     CalibratedFieldMeasurement,
-    CapturedDigitalOutput,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
