@@ -131,7 +131,7 @@ pub struct ExpectedPortfolioMetric {
 pub struct Expected {
     pub coalition_count: usize,
     pub scenario_count: usize,
-    pub safe_portfolio_count: usize,
+    pub below_threshold_portfolio_count: usize,
     pub bridge_disposition: String,
     pub bridge_trigger_reason: String,
     pub bridge_worst_case_improvement: i64,
@@ -176,7 +176,9 @@ pub struct PortfolioMetric {
     pub portfolio_id: String,
     pub action_ids: Vec<String>,
     pub risk_screening_state: String,
-    pub safe_for_risk_gate: bool,
+/// True only when the supplied post-action snapshot states BELOW_THRESHOLD.
+/// This field does not independently validate the snapshot issuer or Pc calculation.
+    pub risk_snapshot_below_threshold: bool,
     /// min_s (L(no_action,s) - L(portfolio,s)); signed and never clamped.
     pub lower_bound_avoided_ticks: i64,
     pub worst_absolute_loss_ticks: i64,
@@ -195,7 +197,7 @@ pub struct CaseResult {
     pub reason: String,
     pub scenario_count: usize,
     pub coalition_count: usize,
-    pub safe_portfolio_count: usize,
+    pub below_threshold_portfolio_count: usize,
     pub model_universe_disposition: String,
     pub model_universe_case_sha256: String,
     pub model_universe_checker_commit: String,
@@ -478,11 +480,11 @@ fn validate_model_universe(case: &Case) -> Result<(String, String, String), Stri
     ))
 }
 
-fn validate_coalitions(
-    case: &Case,
+fn validate_coalitions<'a>(
+    case: &'a Case,
     expected: &BTreeMap<String, Vec<String>>,
     world_digest: &str,
-) -> Result<(BTreeMap<String, &CoalitionOutcome>, String, String), String> {
+) -> Result<(BTreeMap<String, &'a CoalitionOutcome>, String, String), String> {
     if case.coalitions.len() != expected.len() {
         return Err(
             "coalition outcome count differs from selectable subset count".to_owned(),
@@ -698,13 +700,13 @@ fn compute_portfolio_metrics(
             "incumbent bridge does not identify the canonical no-action portfolio".to_owned(),
         );
     }
-    let safe_ids = records
+    let below_threshold_ids = records
         .iter()
         .filter(|(_, row)| row.risk_snapshot.screening_state == "BELOW_THRESHOLD")
         .map(|(id, _)| id.clone())
         .collect::<Vec<_>>();
-    if safe_ids.is_empty() {
-        return Err("no portfolio passed the physical risk screening gate".to_owned());
+    if below_threshold_ids.is_empty() {
+        return Err("no portfolio has a declared below-threshold screening state".to_owned());
     }
 
     let scenario_ids = scenario_losses.keys().cloned().collect::<Vec<_>>();
@@ -736,16 +738,16 @@ fn compute_portfolio_metrics(
                 let portfolio_loss = *losses
                     .get(portfolio_id)
                     .ok_or_else(|| "safe portfolio loss is missing".to_owned())?;
-                let best_safe_loss = safe_ids
+                let best_below_threshold_loss = below_threshold_ids
                     .iter()
                     .map(|safe_id| losses.get(safe_id).copied())
                     .collect::<Option<Vec<_>>>()
-                    .ok_or_else(|| "safe portfolio comparison loss is missing".to_owned())?
+                    .ok_or_else(|| "below-threshold portfolio comparison loss is missing".to_owned())?
                     .into_iter()
                     .min()
-                    .ok_or_else(|| "safe portfolio set is empty".to_owned())?;
+                    .ok_or_else(|| "below-threshold portfolio set is empty".to_owned())?;
                 let regret_here = portfolio_loss
-                    .checked_sub(best_safe_loss)
+                    .checked_sub(best_below_threshold_loss)
                     .ok_or_else(|| "scenario regret subtraction overflowed".to_owned())?;
                 worst_regret = worst_regret.max(regret_here);
             }
@@ -772,7 +774,7 @@ fn compute_portfolio_metrics(
             portfolio_id: portfolio_id.clone(),
             action_ids: row.action_ids.clone(),
             risk_screening_state: row.risk_snapshot.screening_state.clone(),
-            safe_for_risk_gate: is_safe,
+            risk_snapshot_below_threshold: is_safe,
             lower_bound_avoided_ticks: lower_bound,
             worst_absolute_loss_ticks: worst_loss,
             worst_scenario_regret_ticks: regret,
@@ -862,7 +864,7 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
     }
 
     let metrics = compute_portfolio_metrics(case, &scenario_losses, &records)?;
-    let safe_portfolio_count = metrics.iter().filter(|metric| metric.safe_for_risk_gate).count();
+    let below_threshold_portfolio_count = metrics.iter().filter(|metric| metric.risk_snapshot_below_threshold).count();
     let expected_metrics = case
         .expected
         .portfolios
@@ -880,7 +882,7 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
     let scenario_digest = digest_ids(&scenario_ids)?;
     let expected_result_matched = case.expected.coalition_count == metrics.len()
         && case.expected.scenario_count == scenario_ids.len()
-        && case.expected.safe_portfolio_count == safe_portfolio_count
+        && case.expected.below_threshold_portfolio_count == below_threshold_portfolio_count
         && case.expected.bridge_disposition == bridge_evaluation.disposition
         && case.expected.bridge_trigger_reason == bridge_evaluation.trigger_reason
         && Some(case.expected.bridge_worst_case_improvement)
@@ -901,7 +903,7 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
         },
         scenario_count: scenario_ids.len(),
         coalition_count: metrics.len(),
-        safe_portfolio_count,
+        below_threshold_portfolio_count,
         model_universe_disposition: model_disposition,
         model_universe_case_sha256: model_case_digest,
         model_universe_checker_commit: case.loss_model_universe_checker_commit.clone(),
