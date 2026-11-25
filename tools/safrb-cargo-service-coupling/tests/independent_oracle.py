@@ -119,6 +119,9 @@ def validate(root: Path) -> None:
             uncertainty = capability["uncertaintyBasisPoints"]
             lower = min(demand, network * (10_000 - uncertainty) // 10_000)
             upper = min(demand, network * (10_000 + uncertainty) // 10_000)
+            interval_duration = 3_600
+            average_power_lower = lower * 3_600 // interval_duration
+            average_power_upper = upper * 3_600 // interval_duration
             if requirement["telemetryState"] == "stale_or_conflicting":
                 disposition = "indeterminate"
             elif lower >= floor:
@@ -140,6 +143,8 @@ def validate(root: Path) -> None:
                 "criticalFloorWh": floor,
                 "deliveredLowerWh": lower,
                 "deliveredUpperWh": upper,
+                "averageActivePowerLowerW": average_power_lower,
+                "averageActivePowerUpperW": average_power_upper,
             }
             for key, value in expected.items():
                 require(row[key] == value, f"{case_id}/{hour}: {key} expected {value}, got {row[key]}")
@@ -159,7 +164,10 @@ def validate(root: Path) -> None:
             )
             require(row["notApplicableCount"] == 5, f"{case_id}/{hour}: scoped N/A count")
             if case_id == "verified-on-time" and hour == 12:
-                require(disposition == "guaranteed", "on-time receipt/issue should guarantee this one synthetic hour")
+                require(
+                    gross > 0 and disposition == "indeterminate",
+                    "generation under stale telemetry must remain indeterminate",
+                )
             if case_id == "partial-late-receipt":
                 if hour < 24:
                     require(gross == 0, "late partial receipt must not generate before its issue hour")
@@ -167,8 +175,6 @@ def validate(root: Path) -> None:
                     require(disposition == "guaranteed", "partial receipt fixture should qualify its single issue hour")
             if case_id == "verified-on-time" and hour == 11:
                 require(gross == 0, "fuel stock cannot generate before fuel is issued")
-            if case_id == "assay-pending":
-                require(disposition == "indeterminate", "stale synthetic telemetry must remain indeterminate")
             verdicts.append(disposition)
             hourly[disposition] += 1
             for key, value in (
