@@ -5,7 +5,7 @@
   "standards": [
     {
       "id": "ISO 12100:2010",
-      "status": "published_current_reviewed_2022",
+      "status": "published_current_reviewed_2022_successor_iso_dis_12100_3_edition_2_stage_40_60_voting_closed_2026_09_15",
       "kind": "type_a_risk_assessment",
       "scope": "Machinery hazard identification, risk estimation/evaluation and risk reduction.",
       "rrvr_relevance": "Failure-mode scoping, system boundary and operating assumptions.",
@@ -28,7 +28,7 @@
       "kind": "industrial_robot_application_cell",
       "scope": "Industrial robot application/cell integration, commissioning, operation, maintenance and decommissioning.",
       "rrvr_relevance": "Integrator-level lifecycle, configuration and recovery evidence.",
-      "claim_limit": "Check explicit scope limitations, including mobile-platform and public-access cases.",
+      "claim_limit": "Part 2 does not cover hazards related to mobility when robots/manipulators are integrated with driverless industrial trucks or mobile platforms and excludes specified applications including public-access service robots. This is not a blanket exclusion of every industrial manipulator mounted on a mobile platform; check the exact application and other applicable standards.",
       "url": "https://www.iso.org/standard/73934.html"
     },
     {
@@ -51,11 +51,11 @@
     },
     {
       "id": "IEC 61508-1:2026 PRV",
-      "status": "pre_release_fdis_voting_2026_10_02_to_2026_11_13_final_publication_to_recheck",
+      "status": "pre_release_fdis_under_development_after_2026_11_13_voting_close_forecast_publication_2027_01_22",
       "kind": "generic_eepe_functional_safety",
       "scope": "Functional safety of electrical/electronic/programmable electronic safety-related systems.",
       "rrvr_relevance": "Monitor edition changes affecting lifecycle, AI, security and independence expectations.",
-      "claim_limit": "Do not treat PRV as final published edition without checking IEC lifecycle record.",
+      "claim_limit": "Do not treat the PRV as final published edition; IEC lifecycle currently forecasts 2027-01-22 publication, so verify status before formal use.",
       "url": "https://webstore.iec.ch/en/publication/117296"
     },
     {
