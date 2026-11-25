@@ -23,7 +23,7 @@ The planner JSONL contains only manifest facts known at hour zero. Physical rece
 ## Accounting and temporal rules
 
 - All quantities are integer grams; no implicit units or floating-point rounding.
-- Receipt lower <= actual receipt <= receipt upper.
+- Receipt lower <= actual receipt <= receipt upper, and the conservative upper receipt quantity cannot exceed the planned manifest quantity without a separately represented amendment (not yet modeled in v0.1).
 - Product, grade, terminal and cargo identity must match the manifest exactly.
 - A verified receipt requires a source reference and digest. Missing or conflicting receipt evidence cannot be admitted.
 - Only a passing assay with a sample-chain and evidence reference can release stock. Released quantity cannot exceed the conservative receipt lower bound.
@@ -39,7 +39,7 @@ The planner JSONL contains only manifest facts known at hour zero. Physical rece
 
 ## Executable negative controls
 
-Tests cover 12 deterministic cases spanning on-time and partial/late receipts, missing/conflicting receipt evidence, failed/pending assays, withheld authority, missing custody, unestablished title, inactive contract, after-horizon events, duplicate/replayed IDs, grade substitution, route throughput, transfer chronology, premature generator issue and interval-widening monotonicity.
+Tests cover 12 deterministic cases spanning on-time and partial/late receipts, missing/conflicting receipt evidence, failed/pending assays, withheld authority, missing custody, unestablished title, inactive contract, after-horizon events, duplicate/replayed IDs, grade substitution, unamended overdelivery, route throughput, transfer chronology, premature generator issue and interval-widening monotonicity.
 
 ## Run
 
