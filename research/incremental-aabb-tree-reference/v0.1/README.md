@@ -12,6 +12,7 @@ A dependency-free, deterministic dynamic AABB tree baseline for broadphase tourn
 - Query output is sorted by proxy ID; pair output is canonical and sorted.
 - Maintenance counters separate inserts, removes, updates, fat-contained updates, proxy reinsertions and full rebuilds.
 - A seeded workload generator emits shared 2D/3D/4D inputs for uniform, clustered, corridor, high-aspect-ratio and high-overlap families, with an explicit moving fraction and a non-cryptographic diagnostic hash.
+- Deterministic motion frames support bounded coherent updates and explicit teleports. Each update records old/new bounds and the teleport flag so update-reuse and reinsertion costs can be measured.
 - Structural counters expose internal node visits, leaf tests, AABB tests and emitted candidate pairs.
 - Tree statistics expose proxy count, node count, height, free-node count, insert/remove/update counts, fat-contained updates, proxy reinsertions and full rebuilds. These are operation counts, not timing results.
 
