@@ -1,0 +1,35 @@
+name: Static Broadphase BVH Prototype
+
+on:
+  pull_request:
+    branches: [main, "fix/incremental-broadphase-kinematic-pairs"]
+    paths:
+      - "crates/core/symtropy-physics/src/broadphase.rs"
+      - "research/static-broadphase-bvh/**"
+      - ".github/workflows/static-broadphase-bvh.yml"
+  push:
+    branches: [main, "research/static-broadphase-bvh-prototype-on-kinematic-fix"]
+    paths:
+      - "crates/core/symtropy-physics/src/broadphase.rs"
+      - "research/static-broadphase-bvh/**"
+      - ".github/workflows/static-broadphase-bvh.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Rust 1.96 static BVH parity checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/core/symtropy-physics/Cargo.toml -- --check
+      - name: Test physics broadphase
+        run: cargo test -p symtropy-physics --locked broadphase::tests
+      - name: Strict Clippy for physics
+        run: cargo clippy -p symtropy-physics --locked --lib -- -D warnings
