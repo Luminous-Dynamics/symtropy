@@ -105,6 +105,20 @@ Examples:
 
 The compiler should not declare one medium the winner from those incomplete data.
 
+### Restore-rate arithmetic for the illustrative 1 PB archive
+
+A 1 PB decimal payload restored in 10 days requires at least:
+
+`1,000,000,000,000,000 bytes / 864,000 s = 1.157 GB/s`
+
+That is an aggregate **user-payload** rate before drive mounts, seeks, metadata, ECC, retries, checksums, network transfer or application overhead.
+
+LTO-10's published native headline is up to 400 MB/s per drive. Three drives yield 1.2 GB/s on a simple arithmetic upper bound, corresponding to about 9.65 days for 1 PB if all three sustain that rate continuously. That leaves little margin and is not a library restore demonstration. The compiler must require a measured end-to-end restore test for the actual library, cartridge population, workload, error-recovery and verification settings.
+
+The Silica borosilicate phase-voxel demonstration reports 65.9 Mbit/s for four-beam **writing** (8.24 MB/s). At that single four-beam writer rate, 1 PB would take roughly 1,405 days (~3.85 years) to write serially. This is a channel-rate arithmetic comparison only; it says nothing about scaled multi-writer installations or glass **read/restore** throughput, which must be measured separately.
+
+These calculations expose why media capacity, write throughput, read/restore throughput and full-system recovery are separate compiler inputs. Do not promote a per-drive headline or research writer rate into a full-archive service guarantee.
+
 ## 7. Paradigm shifts
 
 ### 7.1 Compile the whole service, not the cell
