@@ -1150,8 +1150,8 @@
             "CALIBRATION_EVENTS_KNOWN_AND_EFFECTIVE"
           ],
           "applied_event_ids": [
-            "lab-a:EV-LOCAL-1",
-            "issuer-b:EV-LOCAL-1"
+            "issuer-b:EV-LOCAL-1",
+            "lab-a:EV-LOCAL-1"
           ],
           "excluded_event_ids": []
         },
@@ -1161,8 +1161,8 @@
             "CALIBRATION_EVENTS_KNOWN_AND_EFFECTIVE"
           ],
           "applied_event_ids": [
-            "lab-a:EV-LOCAL-1",
-            "issuer-b:EV-LOCAL-1"
+            "issuer-b:EV-LOCAL-1",
+            "lab-a:EV-LOCAL-1"
           ],
           "excluded_event_ids": []
         },
@@ -1172,8 +1172,8 @@
             "CALIBRATION_EVENTS_KNOWN_AND_EFFECTIVE"
           ],
           "applied_event_ids": [
-            "lab-a:EV-LOCAL-1",
-            "issuer-b:EV-LOCAL-1"
+            "issuer-b:EV-LOCAL-1",
+            "lab-a:EV-LOCAL-1"
           ],
           "excluded_event_ids": []
         }
@@ -1259,8 +1259,8 @@
         "as_known_at": {
           "disposition": "BLOCK",
           "reason_codes": [
-            "REVOCATION_EFFECTIVE_AND_KNOWN",
-            "REPEATED_DELIVERY_DEDUPLICATED_ONCE"
+            "REPEATED_DELIVERY_DEDUPLICATED_ONCE",
+            "REVOCATION_EFFECTIVE_AND_KNOWN"
           ],
           "applied_event_ids": [
             "lab-a:EV-REPEAT-1"
@@ -1270,8 +1270,8 @@
         "recomputed_with_current_trust": {
           "disposition": "BLOCK",
           "reason_codes": [
-            "REVOCATION_EFFECTIVE_AND_KNOWN",
-            "REPEATED_DELIVERY_DEDUPLICATED_ONCE"
+            "REPEATED_DELIVERY_DEDUPLICATED_ONCE",
+            "REVOCATION_EFFECTIVE_AND_KNOWN"
           ],
           "applied_event_ids": [
             "lab-a:EV-REPEAT-1"
@@ -1281,8 +1281,8 @@
         "recomputed_with_current_evidence_and_trust": {
           "disposition": "BLOCK",
           "reason_codes": [
-            "REVOCATION_EFFECTIVE_AND_KNOWN",
-            "REPEATED_DELIVERY_DEDUPLICATED_ONCE"
+            "REPEATED_DELIVERY_DEDUPLICATED_ONCE",
+            "REVOCATION_EFFECTIVE_AND_KNOWN"
           ],
           "applied_event_ids": [
             "lab-a:EV-REPEAT-1"
@@ -1375,8 +1375,8 @@
           ],
           "applied_event_ids": [],
           "excluded_event_ids": [
-            "lab-a:EV-LOCAL-1",
-            "lab-a-alias:EV-LOCAL-1"
+            "lab-a-alias:EV-LOCAL-1",
+            "lab-a:EV-LOCAL-1"
           ]
         },
         "recomputed_with_current_trust": {
@@ -1386,8 +1386,8 @@
           ],
           "applied_event_ids": [],
           "excluded_event_ids": [
-            "lab-a:EV-LOCAL-1",
-            "lab-a-alias:EV-LOCAL-1"
+            "lab-a-alias:EV-LOCAL-1",
+            "lab-a:EV-LOCAL-1"
           ]
         },
         "recomputed_with_current_evidence_and_trust": {
@@ -1397,8 +1397,174 @@
           ],
           "applied_event_ids": [],
           "excluded_event_ids": [
-            "lab-a:EV-LOCAL-1",
-            "lab-a-alias:EV-LOCAL-1"
+            "lab-a-alias:EV-LOCAL-1",
+            "lab-a:EV-LOCAL-1"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220
+      }
+    },
+    {
+      "case_id": "revocation-effective-after-acquisition-before-evaluation",
+      "purpose": "A revocation becomes effective after the physical measurement but before the later report/evaluation time. It must not invalidate the earlier acquisition merely because the report is generated later.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 200,
+        "receiver_receipt_watermark_unix_ms": 180,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 200
+      },
+      "events": [
+        {
+          "event_id": "EV-REVOCATION-AFTER-MEASUREMENT",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 150,
+          "issuer_recorded_at_unix_ms": 155,
+          "receiver_first_seen_at_unix_ms": 160,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-REVOCATION-AFTER-MEASUREMENT:160",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "NOT_YET_EFFECTIVE",
+          "reason_codes": [
+            "EVENT_NOT_YET_EFFECTIVE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-REVOCATION-AFTER-MEASUREMENT"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "NOT_YET_EFFECTIVE",
+          "reason_codes": [
+            "EVENT_NOT_YET_EFFECTIVE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-REVOCATION-AFTER-MEASUREMENT"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "NOT_YET_EFFECTIVE",
+          "reason_codes": [
+            "EVENT_NOT_YET_EFFECTIVE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-REVOCATION-AFTER-MEASUREMENT"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220
+      }
+    },
+    {
+      "case_id": "event-effectivity-crosses-acquisition-uncertainty-window",
+      "purpose": "The revocation effective time falls inside the acquisition-time uncertainty interval. The evaluator must abstain rather than choose a favorable side of the interval.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 160
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 200,
+        "receiver_receipt_watermark_unix_ms": 180,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 200
+      },
+      "events": [
+        {
+          "event_id": "EV-REVOCATION-BOUNDARY-OVERLAP",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 150,
+          "issuer_recorded_at_unix_ms": 165,
+          "receiver_first_seen_at_unix_ms": 170,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-REVOCATION-BOUNDARY-OVERLAP:170",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "TIME_BOUNDARY_AMBIGUOUS",
+          "reason_codes": [
+            "EVENT_EFFECTIVITY_CROSSES_ACQUISITION_INTERVAL"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-REVOCATION-BOUNDARY-OVERLAP"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "TIME_BOUNDARY_AMBIGUOUS",
+          "reason_codes": [
+            "EVENT_EFFECTIVITY_CROSSES_ACQUISITION_INTERVAL"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-REVOCATION-BOUNDARY-OVERLAP"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "TIME_BOUNDARY_AMBIGUOUS",
+          "reason_codes": [
+            "EVENT_EFFECTIVITY_CROSSES_ACQUISITION_INTERVAL"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-REVOCATION-BOUNDARY-OVERLAP"
           ]
         }
       },
