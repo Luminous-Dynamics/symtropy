@@ -356,27 +356,43 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
         }
     }
 
-    let mut source_record_ids = BTreeSet::new();
-    let mut source_record_replay = false;
+    let mut sampling_event_ids = BTreeSet::new();
+    let mut sampling_event_issue = false;
     for assertion in &specimen_assertions {
-        if let Some(source_id) = field_str(assertion, "source_record_id") {
-            if !source_record_ids.insert(source_id.to_owned()) {
+        let specimen_id = field_str(assertion, "specimen_id").unwrap_or("specimen");
+        match field_str(assertion, "sampling_event_id") {
+            Some(event_id) if nonempty(Some(event_id)) => {
+                if !sampling_event_ids.insert(event_id.to_owned()) {
+                    push(
+                        &mut violations,
+                        "SPECIMEN_SAMPLING_EVENT_REPLAY",
+                        event_id,
+                    );
+                    push(
+                        &mut blockers,
+                        "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED",
+                        specimen_id,
+                    );
+                    sampling_event_issue = true;
+                }
+            }
+            _ => {
                 push(
                     &mut violations,
-                    "SPECIMEN_SOURCE_RECORD_REPLAY",
-                    source_id,
+                    "SPECIMEN_SAMPLING_EVENT_MISSING",
+                    specimen_id,
                 );
                 push(
                     &mut blockers,
                     "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED",
-                    source_id,
+                    specimen_id,
                 );
-                source_record_replay = true;
+                sampling_event_issue = true;
             }
         }
     }
 
-    let mut specimen_identity_ok = !source_record_replay;
+    let mut specimen_identity_ok = !sampling_event_issue;
     for specimen in &specimens {
         let specimen_id = field_str(specimen, "id")
             .unwrap_or("specimen")
