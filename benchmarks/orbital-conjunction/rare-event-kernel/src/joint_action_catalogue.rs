@@ -161,8 +161,6 @@ pub enum JointActionCatalogueError {
     InvalidReasonDigest,
     /// A qualified row uses a different consequence model.
     ConsequenceModelMismatch,
-    /// A qualified row does not provide required coordination evidence.
-    CoordinationEvidenceMissing,
     /// A selected empty action set does not exactly reproduce the baseline with zero avoided consequence.
     InvalidNoActionControl,
     /// Aggregate action cost arithmetic overflowed.
@@ -186,7 +184,6 @@ impl core::fmt::Display for JointActionCatalogueError {
             Self::DuplicateActionSetDigest => "different coalition rows reuse an action-set digest",
             Self::InvalidReasonDigest => "infeasible or unresolved outcome lacks a reason digest",
             Self::ConsequenceModelMismatch => "qualified coalition uses a different consequence model",
-            Self::CoordinationEvidenceMissing => "qualified coalition lacks required coordination evidence",
             Self::InvalidNoActionControl => "no-action control does not reproduce the baseline",
             Self::ResourceArithmeticOverflow => "joint action resource cost overflowed",
             Self::InvalidPortfolioEvidence => "joint action before/after portfolio evidence is invalid",
