@@ -397,7 +397,11 @@ pub fn fit_affine_huber_irls_v0(
 mod tests {
     use super::*;
 
-    fn anchors(offset: i64, scale_numerator: i64, scale_denominator: i64) -> Vec<ClockAnchorPairV0> {
+    fn anchors(
+        offset: i64,
+        scale_numerator: i64,
+        scale_denominator: i64,
+    ) -> Vec<ClockAnchorPairV0> {
         (0..9)
             .map(|index| {
                 let beta = 100_i64 + index * 100;
