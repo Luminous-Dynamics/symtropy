@@ -2030,30 +2030,16 @@ mod tests {
 
     #[test]
     fn exact_rational_known_answers_qualify_a_positive_edge_edge_and_vertex_face_score() {
-        const EE: &str = include_str!(
-            "../fixtures/analytic-linear-v0.1/analytic-linear-ee.csv"
-        );
-        const EE_LABELS: &str = include_str!(
-            "../fixtures/analytic-linear-v0.1/analytic-linear-ee-labels.json"
-        );
-        const VF: &str = include_str!(
-            "../fixtures/analytic-linear-v0.1/analytic-linear-vf.csv"
-        );
-        const VF_LABELS: &str = include_str!(
-            "../fixtures/analytic-linear-v0.1/analytic-linear-vf-labels.json"
-        );
+        const EE: &str = include_str!("../fixtures/analytic-linear-v0.1/analytic-linear-ee.csv");
+        const EE_LABELS: &str =
+            include_str!("../fixtures/analytic-linear-v0.1/analytic-linear-ee-labels.json");
+        const VF: &str = include_str!("../fixtures/analytic-linear-v0.1/analytic-linear-vf.csv");
+        const VF_LABELS: &str =
+            include_str!("../fixtures/analytic-linear-v0.1/analytic-linear-vf-labels.json");
         let mut queries = parse_queries_csv(EE, QueryKind::EdgeEdge).unwrap();
-        attach_ground_truth(
-            &mut queries,
-            &parse_boolean_json(EE_LABELS).unwrap(),
-        )
-        .unwrap();
+        attach_ground_truth(&mut queries, &parse_boolean_json(EE_LABELS).unwrap()).unwrap();
         let mut vertex_queries = parse_queries_csv(VF, QueryKind::VertexFace).unwrap();
-        attach_ground_truth(
-            &mut vertex_queries,
-            &parse_boolean_json(VF_LABELS).unwrap(),
-        )
-        .unwrap();
+        attach_ground_truth(&mut vertex_queries, &parse_boolean_json(VF_LABELS).unwrap()).unwrap();
         queries.extend(vertex_queries);
 
         // Algorithm output is deliberately independent of the imported labels.
