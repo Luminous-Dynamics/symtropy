@@ -84,3 +84,33 @@ The package also includes:
 - The decision-sufficiency gate and planning controller only classify caller-supplied bounds and propose work orders. They do not execute refinements, shrink intervals, validate returned child partitions or qualify physical estimates.
 - The decision-sufficiency gate only classifies caller-supplied bounds. It does not prove their provenance, coverage, physical-model adequacy or calibration, and it does not select the policy threshold or authorize a maneuver.
 - The refinement scheduler ranks by contribution-width-per-estimated-cost only. It does not estimate cost from runtime observations, model the distribution of refinement outcomes, calculate full decision-theoretic value of information, prove greedy optimality, or establish that a selected refinement will reduce uncertainty. Estimated cost is an input assumption, and every selected candidate remains unresolved until a separate validated refinement receipt is accepted. The test-only exhaustive oracle is restricted to at most 20 candidates and is a benchmark reference, not a production scheduler.
+
+
+## Exact joint-action outcome catalogue
+
+`joint_action_catalogue.rs` extends the single-action before/after reconciler with a closed finite coalition universe. Up to 16 candidate actions are enumerated into their statically selectable subsets (actionable and within the resource cap). Every such subset, including the empty no-action control, must have exactly one explicit outcome row.
+
+A coalition row is one of three states:
+- Qualified: exact action-set identity, full post-action event inventory, fixed risk semantics and catalog revision, full-catalog screening, a pinned consequence-model identity, a robust consequence-avoided lower-bound score and any required coordination receipt.
+- Infeasible: a reason-bound statement that this exact coalition cannot be executed.
+- Unresolved: missing or ambiguous evidence, which forces global abstention.
+
+The oracle consumes a qualified outcome for the exact combination. It does not infer the result of A+B from the independently assessed results for A and B. Each qualified post-action event probability interval is checked against the inclusive threshold; any confirmed exceedance excludes that coalition, while threshold overlap, incomplete screening, catalog drift, or missing coordination prevents a global optimum claim. It selects by robust consequence avoided, then lower resource cost, then lexicographic action-set identity.
+
+The tests include a non-additivity counterexample where each singleton is below threshold but the joint action creates a new above-threshold event, a higher-benefit safe synergy case, missing and unresolved rows, over-capacity/non-actionable exclusions, cross-operator coordination, consequence-model mismatch and deterministic tie-breaking.
+
+### Claim boundary
+
+- This is a bounded policy/reference oracle over caller-supplied coalition outcomes. It does not generate maneuver trajectories, propagate dynamics, screen the catalog, calculate collision probabilities or independently qualify consequence values.
+- The robust consequence score is caller-supplied and bound to a model digest; the oracle does not validate that model or score producer.
+- A missing or unresolved statically selectable coalition forces abstention. A complete exact optimum is claimed only over the declared finite action universe, resource constraints and supplied evidence.
+- The 16-action bound is a tractability limit for exhaustive reference enumeration, not a production optimizer scale claim. No autonomous maneuver authority is created.
+
+
+### Signed consequence deltas
+
+The joint-action oracle now uses a signed integer lower bound for consequence avoided. This matters because a coalition may pass the hard collision-risk threshold while still increasing some separately modelled consequence (for example, manoeuvre cost, debris exposure or another lifecycle loss). Such a coalition must not be clamped to zero or confused with the no-action baseline.
+
+The selector compares the signed lower bound only after the non-compensatory physical-safety and evidence gates have passed. If no-action is safe, its exact zero score dominates a negative-scored action, all else equal. If no-action is unsafe, it is excluded by the physical-safety gate and safe negative-scored actions remain comparable by their signed values. The selector chooses the greatest signed lower bound, then lower resource cost, then canonical action IDs.
+
+This is a caller-supplied score in v0.1, not an independently recomputed consequence. Binding that delta to the full joint physical-world/loss-model scenario receipt and independent model-universe qualification is tracked separately in issue #7466.

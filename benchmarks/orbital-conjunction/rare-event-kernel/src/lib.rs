@@ -33,6 +33,7 @@ pub mod conditional_velocity;
 pub mod coverage;
 pub mod decision_gate;
 pub mod decision_refinement;
+pub mod joint_action_catalogue;
 pub mod lebedev;
 pub mod ncdot_refinement;
 pub mod ncdot_sphere;
@@ -70,6 +71,11 @@ pub use decision_gate::{
 pub use decision_refinement::{
     DecisionRefinementDisposition, DecisionRefinementError, DecisionRefinementReport,
     plan_decision_refinement,
+};
+pub use joint_action_catalogue::{
+    JointActionCandidate, JointActionCatalogueConfig, JointActionCatalogueError,
+    JointActionCatalogueReport, JointActionOutcomeRecord, JointActionOutcomeState,
+    JointActionSelectionDisposition, MAX_JOINT_ACTIONS, evaluate_joint_action_catalogue,
 };
 pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
