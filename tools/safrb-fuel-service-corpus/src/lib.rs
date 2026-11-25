@@ -347,9 +347,6 @@ pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
     let fuel_grade_compatible = archetype != Archetype::GeneratorFuelGradeMismatch;
     let planned_fuel_grams = if fuel_grade_compatible { conversion_output_grams.min(900_000) } else { 0 };
     let efficiency_basis_points = SYNTHETIC_EFFICIENCY_MIN_BPS + (noise % SYNTHETIC_EFFICIENCY_SPAN_BPS);
-    let fuel_energy_milli_wh = planned_fuel_grams.saturating_mul(SYNTHETIC_LHV_MILLI_WH_PER_GRAM);
-    let generated_from_fuel_wh =
-        fuel_energy_milli_wh.saturating_mul(efficiency_basis_points) / 10_000 / 1_000;
     let derate_basis_points = if archetype == Archetype::GeneratorDerating {
         4_000
     } else if archetype == Archetype::CommonCauseSupplierPortGridComms {
@@ -357,20 +354,32 @@ pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
     } else {
         10_000
     };
-    let active_hours = HORIZON_HOURS.saturating_sub(transit_delay);
-    let rated_capacity_wh = SYNTHETIC_POWER_CAPACITY_KW
-        .saturating_mul(1_000)
-        .saturating_mul(u64::from(active_hours))
-        .saturating_mul(derate_basis_points) / 10_000;
-    let gross_electricity_wh = generated_from_fuel_wh.min(rated_capacity_wh);
     let network_delivery_basis_points = match archetype {
         Archetype::GridIslandedBackupConstraint => 4_500,
         Archetype::CommonCauseSupplierPortGridComms => 3_000,
         _ => 10_000,
     };
-    let network_deliverable_wh =
-        gross_electricity_wh.saturating_mul(network_delivery_basis_points) / 10_000;
-
+    let hourly_power_cap_wh = SYNTHETIC_POWER_CAPACITY_KW
+        .saturating_mul(1_000)
+        .saturating_mul(derate_basis_points) / 10_000;
+    let fuel_by_hour = spread_after_hour(planned_fuel_grams, transit_delay, HORIZON_HOURS);
+    let generation_by_hour = fuel_by_hour
+        .iter()
+        .map(|fuel_grams| {
+            fuel_grams
+                .saturating_mul(SYNTHETIC_LHV_MILLI_WH_PER_GRAM)
+                .saturating_mul(efficiency_basis_points)
+                / 10_000
+                / 1_000
+        })
+        .map(|fuel_energy_wh| fuel_energy_wh.min(hourly_power_cap_wh))
+        .collect::<Vec<_>>();
+    let gross_electricity_wh = generation_by_hour.iter().copied().sum::<u64>();
+    let network_by_hour = generation_by_hour
+        .iter()
+        .map(|gross_wh| gross_wh.saturating_mul(network_delivery_basis_points) / 10_000)
+        .collect::<Vec<_>>();
+    let network_deliverable_wh = network_by_hour.iter().copied().sum::<u64>();
     let demand_wh = SERVICE_DEMAND_WH + (noise % 100_000);
     let uncertainty_basis_points = 500;
     let telemetry_state = if seed % SEEDS_PER_ARCHETYPE == 9 {
@@ -386,11 +395,6 @@ pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
         spread_after_hour(conversion_input_grams, transit_delay, HORIZON_HOURS);
     let conversion_output_by_hour =
         spread_after_hour(conversion_output_grams, transit_delay, HORIZON_HOURS);
-    let fuel_by_hour = spread_after_hour(planned_fuel_grams, transit_delay, HORIZON_HOURS);
-    let generation_by_hour =
-        spread_after_hour(gross_electricity_wh, transit_delay, HORIZON_HOURS);
-    let network_by_hour =
-        spread_after_hour(network_deliverable_wh, transit_delay, HORIZON_HOURS);
     let demand_by_hour = spread_even(demand_wh, HORIZON_HOURS as usize);
 
     let mut hourly_trajectory = Vec::with_capacity(HORIZON_HOURS as usize);
@@ -632,7 +636,7 @@ pub fn validate_case(case: &FuelServiceCase) -> Result<(), Vec<String>> {
     {
         errors.push("generator efficiency, derate and network factor must not exceed 100 percent".to_string());
     }
-    let expected_fuel_energy = generator.fuel_consumed_grams
+    let expected_fuel_energy_upper_bound = generator.fuel_consumed_grams
         .saturating_mul(generator.synthetic_lhv_milli_wh_per_gram)
         .saturating_mul(generator.efficiency_basis_points) / 10_000 / 1_000;
     let active_hours = case.horizon_hours.saturating_sub(transport.transit_delay_hours);
@@ -640,13 +644,8 @@ pub fn validate_case(case: &FuelServiceCase) -> Result<(), Vec<String>> {
         .saturating_mul(1_000)
         .saturating_mul(u64::from(active_hours))
         .saturating_mul(generator.derate_basis_points) / 10_000;
-    if generator.gross_electricity_wh != expected_fuel_energy.min(rated_cap) {
-        errors.push("generator output does not reconcile with declared synthetic fuel, efficiency and power cap".to_string());
-    }
-    let expected_network = generator.gross_electricity_wh
-        .saturating_mul(generator.network_delivery_basis_points) / 10_000;
-    if generator.network_deliverable_wh != expected_network {
-        errors.push("network-deliverable energy does not reconcile with its explicit limit".to_string());
+    if generator.gross_electricity_wh > expected_fuel_energy_upper_bound.min(rated_cap) {
+        errors.push("generator output exceeds declared synthetic fuel, efficiency or power capacity".to_string());
     }
 
     let service = &case.service;
@@ -721,10 +720,15 @@ pub fn validate_case(case: &FuelServiceCase) -> Result<(), Vec<String>> {
         {
             errors.push(format!("hourly row {index} generator fuel consumption is invalid"));
         }
-        if row.gross_generation_wh > hourly_power_cap
-            || row.network_deliverable_wh > row.gross_generation_wh
+        let expected_hourly_generation = row.fuel_consumed_grams
+            .saturating_mul(generator.synthetic_lhv_milli_wh_per_gram)
+            .saturating_mul(generator.efficiency_basis_points) / 10_000 / 1_000;
+        let expected_hourly_network = row.gross_generation_wh
+            .saturating_mul(generator.network_delivery_basis_points) / 10_000;
+        if row.gross_generation_wh != expected_hourly_generation.min(hourly_power_cap)
+            || row.network_deliverable_wh != expected_hourly_network
         {
-            errors.push(format!("hourly row {index} exceeds generator or network delivery capability"));
+            errors.push(format!("hourly row {index} generation or network delivery does not reconcile with fuel, efficiency and capability"));
         }
         if row.critical_floor_wh > row.demand_wh
             || row.delivered_lower_wh > row.delivered_upper_wh
