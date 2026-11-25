@@ -9,6 +9,7 @@
 //! This module does not propagate trajectories, establish event completeness,
 //! estimate a continuous-domain collision probability, or authorize maneuvers.
 
+use crate::pathwise_event::{HorizonContactDisposition, HorizonEventDefinition, PathWindowOutcome};
 use std::collections::BTreeMap;
 
 const MAX_EVENTS: usize = 32;
@@ -43,6 +44,29 @@ pub struct FiniteMissionTrajectory {
     pub mass_ticks: u64,
     /// Exactly one definite outcome for every event in the frozen inventory.
     pub event_outcomes: Vec<EncounterEventOutcome>,
+}
+
+
+/// Window-level outcomes for one event on one shared mission trajectory.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FiniteMissionEventWindowOutcomes {
+    /// Event ID that must match one frozen horizon definition.
+    pub event_id: String,
+    /// All window classifications for this event on one trajectory.
+    pub window_outcomes: Vec<PathWindowOutcome>,
+}
+
+/// Shared trajectory realization with window-level results for every mission event.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FinitePathwiseMissionTrajectory {
+    /// Stable nonzero trajectory-atom identity.
+    pub atom_id: [u8; 32],
+    /// Stable realization ID shared by every event's window outcomes.
+    pub realization_id: String,
+    /// Integer target-measure mass assigned to this shared trajectory.
+    pub mass_ticks: u64,
+    /// One complete window-outcome group for every declared mission event.
+    pub event_outcomes: Vec<FiniteMissionEventWindowOutcomes>,
 }
 
 /// Frozen identities and completeness declarations for finite mission risk.
@@ -217,6 +241,14 @@ pub enum MissionRiskAggregationError {
     AmbiguousEventOutcome,
     /// Integer accumulation exceeded the supported exact range.
     MassOverflow,
+    /// The horizon definitions do not exactly match the mission event inventory.
+    PathwiseEventInventoryMismatch,
+    /// One or more horizon definitions repeat an event ID.
+    DuplicatePathwiseEventDefinition,
+    /// A horizon event reducer rejected its window classifications.
+    InvalidPathwiseWindowClassification,
+    /// A pathwise classification names a different shared realization.
+    PathwiseRealizationMismatch,
     /// The observed union lies outside its mathematically required Fréchet bounds.
     InconsistentJointMass,
 }
@@ -245,6 +277,10 @@ impl core::fmt::Display for MissionRiskAggregationError {
             Self::MissingEventOutcome => "trajectory omits a declared event outcome",
             Self::AmbiguousEventOutcome => "ambiguous event outcome cannot enter exact union mass",
             Self::MassOverflow => "mission risk mass accumulation overflowed",
+            Self::PathwiseEventInventoryMismatch => "pathwise event inventory mismatch",
+            Self::DuplicatePathwiseEventDefinition => "duplicate pathwise event definition",
+            Self::InvalidPathwiseWindowClassification => "invalid pathwise window classification",
+            Self::PathwiseRealizationMismatch => "pathwise trajectory realization mismatch",
             Self::InconsistentJointMass => "joint event mass violates Frechet bounds",
         };
         formatter.write_str(message)
@@ -252,6 +288,81 @@ impl core::fmt::Display for MissionRiskAggregationError {
 }
 
 impl std::error::Error for MissionRiskAggregationError {}
+
+
+/// Reduce every mission event with the shared pathwise event reducer, then aggregate
+/// dependence across events. All event definitions and trajectory window groups must
+/// exactly match the frozen inventory and share one realization ID per trajectory.
+pub fn aggregate_pathwise_mission_risk(
+    manifest: &FiniteMissionRiskManifest,
+    definitions: &[HorizonEventDefinition],
+    trajectories: &[FinitePathwiseMissionTrajectory],
+) -> Result<MissionRiskEnvelope, MissionRiskAggregationError> {
+    if definitions.len() != manifest.event_ids.len() {
+        return Err(MissionRiskAggregationError::PathwiseEventInventoryMismatch);
+    }
+    let mut definitions_by_id = BTreeMap::new();
+    for definition in definitions {
+        if definitions_by_id.insert(definition.event_id(), definition).is_some() {
+            return Err(MissionRiskAggregationError::DuplicatePathwiseEventDefinition);
+        }
+    }
+    if manifest.event_ids.iter().any(|id| !definitions_by_id.contains_key(id.as_str()))
+        || definitions_by_id.len() != manifest.event_ids.len()
+    {
+        return Err(MissionRiskAggregationError::PathwiseEventInventoryMismatch);
+    }
+
+    let mut classified = Vec::with_capacity(trajectories.len());
+    for trajectory in trajectories {
+        if trajectory.realization_id.trim().is_empty()
+            || trajectory.event_outcomes.len() != manifest.event_ids.len()
+        {
+            return Err(MissionRiskAggregationError::PathwiseEventInventoryMismatch);
+        }
+        let mut rows_by_event = BTreeMap::new();
+        for rows in &trajectory.event_outcomes {
+            if rows_by_event.insert(rows.event_id.as_str(), rows).is_some() {
+                return Err(MissionRiskAggregationError::PathwiseEventInventoryMismatch);
+            }
+        }
+        if manifest.event_ids.iter().any(|id| !rows_by_event.contains_key(id.as_str()))
+            || rows_by_event.len() != manifest.event_ids.len()
+        {
+            return Err(MissionRiskAggregationError::PathwiseEventInventoryMismatch);
+        }
+
+        let mut event_outcomes = Vec::with_capacity(manifest.event_ids.len());
+        for event_id in &manifest.event_ids {
+            let definition = definitions_by_id[event_id.as_str()];
+            let horizon = definition
+                .classify_realization(&rows_by_event[event_id.as_str()].window_outcomes)
+                .map_err(|_| MissionRiskAggregationError::InvalidPathwiseWindowClassification)?;
+            if horizon.realization_id != trajectory.realization_id {
+                return Err(MissionRiskAggregationError::PathwiseRealizationMismatch);
+            }
+            let disposition = match horizon.disposition {
+                HorizonContactDisposition::DefinitelyContact => {
+                    EncounterEventDisposition::DefinitelyContact
+                }
+                HorizonContactDisposition::DefinitelyNoContact => {
+                    EncounterEventDisposition::DefinitelyNoContact
+                }
+                HorizonContactDisposition::Ambiguous => EncounterEventDisposition::Ambiguous,
+            };
+            event_outcomes.push(EncounterEventOutcome {
+                event_id: event_id.clone(),
+                disposition,
+            });
+        }
+        classified.push(FiniteMissionTrajectory {
+            atom_id: trajectory.atom_id,
+            mass_ticks: trajectory.mass_ticks,
+            event_outcomes,
+        });
+    }
+    aggregate_finite_mission_risk(manifest, &classified)
+}
 
 /// Aggregate a complete finite mission trajectory support without an
 /// independence assumption.
@@ -575,6 +686,88 @@ mod tests {
         atoms: &[FiniteMissionTrajectory],
     ) -> MissionRiskEnvelope {
         aggregate_finite_mission_risk(manifest, atoms).expect("finite mission support evaluates")
+    }
+
+
+    fn pathwise_definition(event_id: &str) -> HorizonEventDefinition {
+        use crate::pathwise_event::{
+            EncounterWindow, HorizonEventConfig, WindowInventoryCoverage,
+        };
+        HorizonEventDefinition::new(HorizonEventConfig {
+            event_id: event_id.to_owned(),
+            revision: "r1".to_owned(),
+            epoch: "2026-11-25T00:00:00".to_owned(),
+            time_scale: "TAI".to_owned(),
+            reference_frame: "GCRF".to_owned(),
+            horizon_start_seconds: 0.0,
+            horizon_end_seconds: 100.0,
+            hard_body_radius_m: 5.0,
+            window_inventory_coverage: WindowInventoryCoverage::DeclaredComplete,
+            windows: vec![EncounterWindow {
+                window_id: format!("{event_id}-window"),
+                start_seconds: 10.0,
+                end_seconds: 20.0,
+            }],
+        })
+        .expect("valid pathwise definition")
+    }
+
+    fn pathwise_event(
+        event_id: &str,
+        realization_id: &str,
+        contact: bool,
+    ) -> FiniteMissionEventWindowOutcomes {
+        use crate::pathwise_event::PathWindowDisposition;
+        let window_id = format!("{event_id}-window");
+        let disposition = if contact {
+            PathWindowDisposition::DefinitelyContact {
+                first_contact_time_lower_seconds: 12.0,
+                first_contact_time_upper_seconds: 12.0,
+            }
+        } else {
+            PathWindowDisposition::DefinitelyNoContact
+        };
+        FiniteMissionEventWindowOutcomes {
+            event_id: event_id.to_owned(),
+            window_outcomes: vec![PathWindowOutcome {
+                realization_id: realization_id.to_owned(),
+                window_id,
+                disposition,
+            }],
+        }
+    }
+
+    #[test]
+    fn pathwise_reducers_preserve_cross_encounter_dependence() {
+        let ids = [[1; 32], [2; 32], [3; 32]];
+        let manifest = manifest(&["a", "b"], &ids, 100, 3, 4);
+        let definitions = [pathwise_definition("a"), pathwise_definition("b")];
+        let trajectories = [
+            FinitePathwiseMissionTrajectory {
+                atom_id: [1; 32], realization_id: "traj-1".to_owned(), mass_ticks: 40,
+                event_outcomes: vec![pathwise_event("a", "traj-1", true), pathwise_event("b", "traj-1", false)],
+            },
+            FinitePathwiseMissionTrajectory {
+                atom_id: [2; 32], realization_id: "traj-2".to_owned(), mass_ticks: 40,
+                event_outcomes: vec![pathwise_event("a", "traj-2", false), pathwise_event("b", "traj-2", true)],
+            },
+            FinitePathwiseMissionTrajectory {
+                atom_id: [3; 32], realization_id: "traj-3".to_owned(), mass_ticks: 20,
+                event_outcomes: vec![pathwise_event("a", "traj-3", false), pathwise_event("b", "traj-3", false)],
+            },
+        ];
+        let report = aggregate_pathwise_mission_risk(&manifest, &definitions, &trajectories)
+            .expect("pathwise aggregation");
+        assert_eq!(report.pathwise_union_mass, ExactMass::new(4, 5));
+        assert_eq!(report.pairwise_intersections[0].mass, ExactMass::new(0, 1));
+        assert!((report.independence_union_approximation - 0.64).abs() < 1e-12);
+        let mut mismatched = trajectories.clone();
+        mismatched[1].event_outcomes[0].window_outcomes[0].realization_id =
+            "not-the-same-trajectory".to_owned();
+        assert_eq!(
+            aggregate_pathwise_mission_risk(&manifest, &definitions, &mismatched),
+            Err(MissionRiskAggregationError::PathwiseRealizationMismatch)
+        );
     }
 
     #[test]
