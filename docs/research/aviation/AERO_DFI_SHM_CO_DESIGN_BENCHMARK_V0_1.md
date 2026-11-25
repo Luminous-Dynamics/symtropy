@@ -176,6 +176,39 @@ For test/inspection selection, compare:
 
 All arms use the same safety obligations, defect truth, data budget, inspection resources, hardware configuration and scoring code.
 
+
+### 6.1 Concrete algorithm baselines
+
+Where the dataset and task expose the required inputs, benchmark at least one baseline from each family:
+
+| Baseline family | Candidate method | What it tests | Guardrail |
+|---|---|---|---|
+| Signal/reference | Baseline subtraction with temperature/environment compensation; RMSD or correlation damage indices | Conventional guided-wave change detection | Pin reference-selection policy; do not use future healthy data |
+| Imaging/localization | Delay-and-sum guided-wave imaging on compatible outer-wing tasks | Established spatial damage-localization comparator | Only score where geometry, wave paths and damage truth support localization |
+| Statistical novelty | PCA / robust PCA and Mahalanobis-distance residuals | Low-complexity multichannel anomaly detection | Fit scaling and covariance on development groups only |
+| Time-series learning | 1D CNN or temporal convolutional network | Supervised learned detection/classification | Fixed grouped splits, class prevalence and tuning budget |
+| Reconstruction | Autoencoder / sequence reconstruction model | Reconstruction-based novelty and virtual sensing | Reconstruction error is not a damage-clearance rule |
+| Physics-informed | Reduced-order model / finite-element prior with virtual sensing | Model-informed reconstruction and model update | Freeze model fidelity and boundary-condition knowledge per arm |
+| Sensor-health | Impedance / channel-consistency diagnostics where data exist | Sensor attachment and acquisition-chain reliability | Sensor-health evidence remains distinct from structural-health evidence |
+| Coupled hypothesis | Damage + sensor fault + environment + unknown competing hypotheses | Joint diagnosis and conservative abstention | Must retain raw signals and expose unresolved cases |
+
+Use published-study-native baselines when replicating that paper. Do not force an unavailable baseline onto a dataset that does not contain the necessary channels, geometry or ground truth. A missing comparator is recorded as NOT_APPLICABLE, not approximated with a weaker unrelated method.
+
+### 6.2 Matched evaluation and leaderboard protocol
+
+1. **Freeze the task before model tuning.** Define the unit of prediction (measurement, inspection, damage episode or operating interval), target defect families/severities, alert horizon, allowed sensors, observable metadata and operational false-alarm budget.
+2. **Split by dependence group.** Hold out whole physical panels/articles, fatigue campaigns, sensor installations and relevant material/geometry groups. For long-duration drift, use forward-chaining temporal partitions. Adjacent wave windows from one article or weather episode must never be randomized across train and test.
+3. **Keep development, calibration and confirmatory sets separate.** Select thresholds on development/calibration groups only. The confirmatory set remains blind until protocol, code, model family and analysis are frozen.
+4. **Match budgets.** Publish training data volume, label availability, hyperparameter trials, human tuning hours, compute hardware, inference latency and memory. Compare all methods at equivalent information and compute budgets; show scaling curves where budgets differ.
+5. **Choose operating points before confirmatory scoring.** Report event sensitivity at a fixed false-alarm rate per operating hour/mission or inspection exposure. Also publish precision-recall curves with class prevalence; do not let aggregate accuracy or AUROC conceal rare-damage failures.
+6. **Score the events, not just windows.** Report missed-damage episodes, duplicate alarms, false alarms per exposure, detection delay, localization/sizing error where truth permits, and time under unresolved/abstained state. Include confidence intervals and denominators.
+7. **Calibrate uncertainty.** Report reliability diagrams or calibration error for declared probabilities, interval coverage/width where a valid probabilistic target exists, subgroup calibration and OOD detection/abstention. Calibration on the same article/campaign as test is leakage.
+8. **Separate reconstruction from safety performance.** Publish signal error and phase/frequency-response error separately from missed-damage and false-clear outcomes. A reconstruction improvement cannot compensate for a missed damage episode.
+9. **Publish dataset-specific and transfer results separately.** Cross-dataset training/testing is a transfer challenge with a held-out target domain; never pool NASA CFRP, outer-wing and aluminum outdoor plate rows into one headline score.
+10. **Make the result replayable.** Publish manifest hashes, source versions, exact partitions, preprocessing code, model checkpoints, thresholds, dependency lockfiles, evaluation scripts and machine-readable per-event predictions, subject to dataset rights.
+
+The principal SOTA comparison is a **risk–resource curve**: damage-event sensitivity and uncertainty at fixed false-alarm exposure, versus inspection effort, compute and maintenance burden. The preferred method is the one that improves that frontier without increasing missed-damage risk or relaxing mandatory physical inspection.
+
 ## 7. Prospective gates
 
 These are research targets, not achieved results, industry standards or certification criteria:
@@ -222,6 +255,118 @@ The SHM tournament should include two distinct benchmark tiers instead of collap
 
 The cross-study stretch goal is not to beat either published headline number on a different testbed. It is to demonstrate a better risk–resource Pareto frontier on a preregistered, matched testbed: no increase in missed-damage risk or unsupported healthy clearances, lower reconstruction/model-update error, calibrated uncertainty, and lower compute/inspection burden.
 
+## 8.2 Public physical-data comparators: add a separate replication tier
+
+The two 2026 comparators above should remain separate: Di Fiore et al. is a simulated composite-panel benchmark, while Yan et al. is an experimental scaled-spacecraft virtual-sensing/model-updating study. Do not pool their metrics or describe either as an aircraft qualification result.
+
+A stronger physical-data programme can use three additional public sources. They are different structures and materials, so each must retain its own domain and test protocol.
+
+### A. NASA PCoE CFRP composites dataset — fatigue and internal damage
+
+NASA's Prognostics Center of Excellence repository provides run-to-failure experiments on CFRP panels under tension–tension fatigue. The published description identifies three layups, a 16-channel PZT sensor network, triaxial strain gauges and periodic X-ray images used to characterize internal damage.
+
+Use this as a composite damage-progression baseline:
+- preserve whole-panel / layup / fatigue-run grouping;
+- use X-ray characterization only according to its documented timing and ground-truth scope;
+- distinguish damage progression from sensor-path or acquisition degradation;
+- report temporal prediction and detection tasks separately;
+- keep any sensor-fault injection clearly labeled as synthetic unless independently present in the released records.
+
+Source: NASA Prognostics Center of Excellence Data Set Repository, “Carbon Fiber-Reinforced Polymer (CFRP) Composites.” The dataset is linked from the NASA repository.
+
+### B. Full-scale composite outer-wing demonstrator — physical aerospace geometry
+
+Marzani et al. describe an open guided-wave database from a composite panel closing the bottom part of a full-scale outer-wing demonstrator approximately 4.5 m long and 1.2–2.3 m wide. The SHM system used 160 secondarily bonded PZT transducers. Measurements included electromechanical impedance checks at each transducer to assess reliability/bond strength, alongside active guided-wave screening. Measurements were made before loading, before fatigue, before impacts and after impacts.
+
+This is the highest aerospace-structural relevance of the three public sources, but it is still a demonstrator/test article rather than a certified in-service aircraft fleet. Its paired impedance and guided-wave measurements make it especially useful for the benchmark's sensor-health versus damage distinction.
+
+Use it to test:
+- physical sensor-network identity and channel mapping;
+- sensor bonding/reliability indicators versus structural damage indications;
+- pre/post loading, fatigue and impact comparisons;
+- localization and sizing only where the published truth and test configuration support them;
+- whether model transfer survives the demonstrator's geometry and sensor layout.
+
+Source: Marzani et al., “An open database for benchmarking guided waves structural health monitoring algorithms on a composite full-scale outer wing demonstrator,” *Structural Health Monitoring* (first published 28 November 2019), DOI: 10.1177/1475921719889029. The article links the database at shm.ing.unibo.it.
+
+### C. University of Utah / SmartDATA-Lab long-term guided waves — environmental and sensor drift
+
+Yang et al. (2025) publish a long-term outdoor guided-wave dataset from an aluminum plate monitored over more than 4.5 years, with approximately 6.4 million wave measurements and 13 introduced damage types. The records include environmental variables and document sensor drift and installation shifts. The released benchmark is approximately 100 GB, compared with roughly 9 TB for the original acquisition. The source paper describes sampling approximately one measurement from every 20 original measurements (about every 176 seconds in the released data rather than every 8.6 seconds) and retaining 2,000 of the original 10,000 samples per wave. These are material sampling/preprocessing changes, not incidental file-format details. Any benchmark card and reported result must pin the released data version and preserve the original-versus-published distinction.
+
+This dataset is not an aerospace composite benchmark and must not be presented as one. It is valuable as an environmental and long-duration monitoring stress test:
+- hold out entire time periods, not random adjacent windows;
+- test temperature, humidity, weather, sensor drift and installation-shift robustness;
+- assess false alarms per operating exposure and detection delay;
+- distinguish baseline adaptation from damage absorption;
+- test whether a model can abstain when the environmental domain changes;
+- never let an adaptation routine normalize away a new damage signature.
+
+Source: Yang et al., “Dataset on guided waves from long-term structural health monitoring under uncontrolled and dynamic conditions,” *Scientific Data* 12, 991 (12 June 2025), DOI: 10.1038/s41597-025-05300-5. Data repository DOI: 10.6084/m9.figshare.28112504; loading code: github.com/SmartDATA-Lab/Long_Term_Guided_Waves.
+
+### Dataset eligibility and reproducibility gate
+
+Before using any source in a public leaderboard or external claim, record:
+- exact artifact URL, dataset version, retrieval date, license/rights and redistribution conditions (the public listing is not itself a blanket redistribution license);
+- immutable downloaded file hashes, file sizes and retrieval date;
+- data dictionary, channel map, units, calibration/timebase information and known missingness;
+- article/structure identity, material, layup, geometry and test campaign;
+- damage truth source, introduction time, location, type, severity and uncertainty;
+- sensor placement, attachment/bond evidence and any known sensor faults;
+- original versus downsampled/trimmed signals and all preprocessing;
+- fixed train/development/calibration/confirmatory partitions grouped by panel, campaign and time as appropriate;
+- benchmark code, dependency versions, random seeds, model checkpoints and exact evaluation manifest.
+
+Do not use a random row/window split where adjacent measurements share the same structure, damage state, weather episode or acquisition campaign. A temporal split is necessary for drift claims; whole-panel/test-campaign holdouts are necessary for structural generalization claims.
+
+### Recommended benchmark sequence
+
+| Tier | Dataset | Primary claim tested | Explicit limitation |
+|---|---|---|---|
+| S0 | Di Fiore simulated composite panel | Reproducible synthetic damage/sensor-fault logic | Simulated structure and virtual sensors |
+| S1 | Yan scaled reconfigurable spacecraft | Physics-informed virtual sensing under masked channels | Spacecraft test article; native metric/protocol only |
+| P1 | NASA PCoE CFRP composites | Physical composite fatigue/damage progression | Panel/layup/run-specific; X-ray truth scope |
+| P2 | Full-scale outer-wing demonstrator | Aerospace-scale composite guided-wave and sensor-health behavior | Demonstrator, not fleet/service qualification |
+| P3 | Utah long-term guided waves | Environmental drift, installation drift and long-duration false-alarm behavior | Aluminum plate, non-aerospace domain |
+
+The sequence is a research prioritization, not a universal ranking of dataset quality. Dataset-specific results must remain separate. A model that performs well on the Utah outdoor plate has not thereby demonstrated composite-wing generalization; a model that reconstructs masked spacecraft channels has not thereby demonstrated reliable NDE probability of detection.
+
+AERO should publish a benchmark card for every dataset with scope, rights, article identity, channels, time coverage, damage truth, independent grouping, preprocessing and claim ceiling. Cross-dataset transfer is a separate experiment with a held-out target domain and explicit abstention, not a pooled score.
+
 ## 9. Non-claims
 
 This benchmark does not establish physical POD, structural health monitoring acceptance, fatigue/damage tolerance, maintenance interval, repair approval, structural substantiation, part acceptance, airworthiness, aircraft certification or authority to operate. It is an experiment and software-benchmark contract only.
+
+
+## 8.3 Rights-aware dataset manifest and secure ingestion
+
+A machine-readable discovery manifest is maintained at:
+
+- `docs/research/aviation/examples/aero_shm_dataset_manifest_v0_1.json`
+- `docs/research/aviation/schemas/aero_shm_dataset_manifest_v0_1.schema.json`
+
+The manifest records the three candidate datasets, source and download URLs, verified published metadata, domain limits, security concerns, rights status and acquisition status. At this revision **all three datasets remain `UNVERIFIED` for reuse rights and `NOT_DOWNLOADED`**. Public access, a free download, a repository listing or the presence of a DOI is not a blanket redistribution license.
+
+NASA's general science-data policy distinguishes NASA-led mission data from other provider data and advises users to verify source rights for the latter. The NASA PCoE CFRP listing identifies Stanford Structures and Composites Laboratory as the experimental partner; do not infer CC0 solely because the record is hosted in a NASA repository. See https://science.data.nasa.gov/about/license.
+
+The outer-wing paper describes its database as freely available at the University of Bologna SHM site, but the dataset-specific reuse and redistribution conditions still need to be recorded from the current host or rights holder. The Utah record must likewise be checked against the item-specific Figshare license and version metadata; do not assume Figshare's platform-level defaults determine the license of this particular item.
+
+### Unsafe serialization boundary
+
+The long-term Utah dataset is distributed as Python `.pickle` files. Python's official documentation warns that unpickling malicious data can execute arbitrary code and says not to unpickle data from untrusted or tampered sources: https://docs.python.org/3/library/pickle.html.
+
+Therefore:
+- do not run the provided loader or unpickle the archive on a developer workstation, shared runner or production system;
+- first record the exact source version, download URL, file size and SHA-256 after acquisition;
+- inspect archive paths, file types, compressed/uncompressed sizes and metadata without deserializing;
+- only after source integrity and rights review, use a disposable, network-isolated conversion environment with no credentials, no writable host mounts, least privilege, resource/time limits and an explicit allowlist of required object types;
+- preserve the original bytes read-only and hash all converted outputs;
+- prefer a documented, safe, chunkable interchange representation for analysis, with conversion code, environment, input digest and output digests recorded;
+- never treat successful deserialization or conversion as evidence that labels, measurements or damage truth are physically valid.
+
+A restricted unpickler may reduce the allowed object surface, but the benchmark should not assume it eliminates all parser, dependency or resource-exhaustion risk. Any exception to the sandbox boundary requires explicit security review.
+
+### Manifest promotion states
+
+`DISCOVERY_ONLY` means the source is identified but not cleared or ingested. A dataset may advance to `RIGHTS_REVIEWED` only with item-specific permission/license evidence; to `INGESTED_AND_HASHED` only after immutable source hashes, file inventory and data dictionary are recorded; and to `BENCHMARK_READY` only after independent group partitions, preprocessing, labels, truth limitations and evaluation manifests are reviewed.
+
+No benchmark leaderboard or external performance claim may consume a dataset whose rights state is unresolved or whose provenance/hash inventory is incomplete.
