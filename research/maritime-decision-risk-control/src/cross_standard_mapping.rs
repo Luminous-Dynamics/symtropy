@@ -451,7 +451,7 @@ struct Case {
     reversibility: MappingReversibility,
 }
 
-fn cases() -> [Case; 17] {
+fn cases() -> [Case; 19] {
     [
         Case {
             id: "classifier_to_extension_field_exact",
@@ -572,6 +572,20 @@ fn cases() -> [Case; 17] {
             kind: MappingKind::Exact,
             reversibility: MappingReversibility::Reversible,
         },
+        Case {
+            id: "mapping_bundle_reference_missing",
+            expected: "MAPPING_BUNDLE_REFERENCE_MISSING",
+            target_field: "sourceMaturity",
+            kind: MappingKind::Exact,
+            reversibility: MappingReversibility::Reversible,
+        },
+        Case {
+            id: "mapping_bundle_reference_mismatch",
+            expected: "MAPPING_BUNDLE_REFERENCE_MISMATCH",
+            target_field: "sourceMaturity",
+            kind: MappingKind::Exact,
+            reversibility: MappingReversibility::Reversible,
+        },
     ]
 }
 
@@ -670,6 +684,11 @@ pub fn render_csv() -> String {
             }
             "mapping_bundle_digest_invalid" => {
                 mapping_rule.mapping_bundle_sha256 = "not-a-digest".to_owned();
+            }
+            "mapping_bundle_reference_missing" => mapping_rule.mapping_bundle_ref.clear(),
+            "mapping_bundle_reference_mismatch" => {
+                mapping_rule.mapping_bundle_ref =
+                    "urn:mapping-bundle:sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd".to_owned();
             }
             "source_subject_identity_missing" => source.subject_id.clear(),
             "source_payload_reference_missing" => source.raw_payload_ref.clear(),
@@ -863,6 +882,100 @@ mod tests {
     }
 
     #[test]
+    fn mapping_bundle_reference_must_match_its_digest() {
+        let mut candidate = rule(
+            "eventClassifierCode",
+            "ACT",
+            "sourceMaturity",
+            "ACT",
+            MappingKind::Exact,
+            MappingReversibility::Reversible,
+            None,
+        );
+        candidate.mapping_bundle_ref.clear();
+        assert_eq!(
+            candidate.validate(),
+            Err(CrosswalkError::MappingBundleReferenceMissing)
+        );
+        candidate.mapping_bundle_ref =
+            "urn:mapping-bundle:sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                .to_owned();
+        assert_eq!(
+            candidate.validate(),
+            Err(CrosswalkError::MappingBundleReferenceMismatch)
+        );
+    }
+
+    #[test]
+    fn source_payload_reference_must_match_raw_digest() {
+        let mut source = source_fixture();
+        source.raw_payload_ref.clear();
+        let exact = rule(
+            "eventClassifierCode",
+            "ACT",
+            "sourceMaturity",
+            "ACT",
+            MappingKind::Exact,
+            MappingReversibility::Reversible,
+            None,
+        );
+        assert_eq!(
+            map_field(&source, EPCIS_VERSION, &exact),
+            Err(CrosswalkError::SourcePayloadReferenceMissing)
+        );
+        source.raw_payload_ref =
+            "urn:source-artifact:sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                .to_owned();
+        assert_eq!(
+            map_field(&source, EPCIS_VERSION, &exact),
+            Err(CrosswalkError::SourcePayloadReferenceMismatch)
+        );
+    }
+
+    #[test]
+    fn source_subject_identity_is_mandatory_for_every_mapped_field() {
+        let mut source = source_fixture();
+        source.subject_id.clear();
+        let exact = rule(
+            "eventClassifierCode",
+            "ACT",
+            "sourceMaturity",
+            "ACT",
+            MappingKind::Exact,
+            MappingReversibility::Reversible,
+            None,
+        );
+        assert_eq!(
+            map_field(&source, EPCIS_VERSION, &exact),
+            Err(CrosswalkError::SourceSubjectIdentityMissing)
+        );
+    }
+
+    #[test]
+    fn mapping_bundle_digest_and_exact_value_are_verified() {
+        let mut candidate = rule(
+            "eventClassifierCode",
+            "ACT",
+            "sourceMaturity",
+            "ACT",
+            MappingKind::Exact,
+            MappingReversibility::Reversible,
+            None,
+        );
+        candidate.mapping_bundle_sha256 = "not-a-digest".to_owned();
+        assert_eq!(
+            candidate.validate(),
+            Err(CrosswalkError::InvalidMappingBundleDigest)
+        );
+        candidate.mapping_bundle_sha256 = MAPPING_BUNDLE_DIGEST.to_owned();
+        candidate.target_value = "actual".to_owned();
+        assert_eq!(
+            candidate.validate(),
+            Err(CrosswalkError::ExactMappingValueChanged)
+        );
+    }
+
+    #[test]
     fn source_and_target_versions_are_pinned() {
         let source = source_fixture();
         let exact = rule(
@@ -921,7 +1034,7 @@ mod tests {
     fn receipt_is_deterministic_and_contains_every_mapping_boundary() {
         let first = render_csv();
         assert_eq!(first, render_csv());
-        assert_eq!(first.lines().count(), 18);
+        assert_eq!(first.lines().count(), 20);
         let width = first.lines().next().expect("header").split(',').count();
         assert_eq!(width, 9);
         for row in first.lines().skip(1) {
@@ -934,6 +1047,8 @@ mod tests {
         assert!(first.contains("MAPPING_RULE_NOT_APPROVED"));
         assert!(first.contains("INVALID_TARGET_VOCABULARY_VALUE"));
         assert!(first.contains("SOURCE_PAYLOAD_REFERENCE_MISMATCH"));
+        assert!(first.contains("MAPPING_BUNDLE_REFERENCE_MISSING"));
+        assert!(first.contains("MAPPING_BUNDLE_REFERENCE_MISMATCH"));
         assert!(first.contains("source_payload_digest_carried"));
     }
 }
