@@ -17,29 +17,43 @@ fn run() -> Result<(), String> {
             );
             Ok(())
         }
-        [flag, output] if flag == "--emit" => {
-            let path = Path::new(output);
-            if let Some(parent) = path.parent() {
-                fs::create_dir_all(parent)
-                    .map_err(|error| format!("cannot create output directory: {error}"))?;
-            }
-            let mut content = String::new();
+        [flag, output_dir] if flag == "--emit" => {
+            let directory = Path::new(output_dir);
+            fs::create_dir_all(directory)
+                .map_err(|error| format!("cannot create output directory: {error}"))?;
+
+            let mut observations = String::new();
+            let mut oracle = String::new();
             for case in &cases {
-                content.push_str(&case.to_json_line());
-                content.push('\n');
+                observations.push_str(&case.to_planner_observation_json_line());
+                observations.push('\n');
+                oracle.push_str(&case.to_oracle_truth_json_line());
+                oracle.push('\n');
             }
-            fs::write(path, content)
-                .map_err(|error| format!("cannot write corpus JSONL: {error}"))?;
-            println!("wrote {} deterministic synthetic cases to {}", cases.len(), path.display());
+
+            let observation_path = directory.join("planner-observations.jsonl");
+            let oracle_path = directory.join("oracle-truth.jsonl");
+            fs::write(&observation_path, observations)
+                .map_err(|error| format!("cannot write planner observations: {error}"))?;
+            fs::write(&oracle_path, oracle)
+                .map_err(|error| format!("cannot write oracle truth: {error}"))?;
+
+            println!(
+                "wrote {} planner observations and {} oracle rows to {}",
+                cases.len(),
+                cases.len(),
+                directory.display()
+            );
             Ok(())
         }
         [] => {
+            // Standard output is planner-safe by default. Oracle truth requires --emit.
             for case in &cases {
-                println!("{}", case.to_json_line());
+                println!("{}", case.to_planner_observation_json_line());
             }
             Ok(())
         }
-        _ => Err("usage: safrb-fuel-service-corpus [--check | --emit PATH]".to_string()),
+        _ => Err("usage: safrb-fuel-service-corpus [--check | --emit OUTPUT_DIRECTORY]".to_string()),
     }
 }
 
