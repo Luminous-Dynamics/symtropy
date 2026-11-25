@@ -1136,7 +1136,9 @@ mod tests {
 
         let reinstatement = cases
             .iter()
-            .find(|case| case["case_id"] == "reinstatement-event-does-not-silently-restore-calibration")
+            .find(|case| {
+                case["case_id"] == "reinstatement-event-does-not-silently-restore-calibration"
+            })
             .expect("reinstatement control");
         let reinstatement_report = evaluate_case(reinstatement, ReplayMode::AsKnownAt);
         assert_eq!(reinstatement_report.disposition, "ABSTAIN");
