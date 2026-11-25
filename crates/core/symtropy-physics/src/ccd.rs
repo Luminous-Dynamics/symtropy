@@ -142,9 +142,23 @@ pub fn sphere_sphere<const D: usize>(
 
     // One fused multiply-add reduces one rounding in the discriminant.
     let discriminant = b.mul_add(b, -4.0 * a * c);
-    if !discriminant.is_finite() || discriminant < 0.0 {
+    if !discriminant.is_finite() {
         return None;
     }
+    // Tangency is the numerically delicate boundary. If a tiny negative
+    // discriminant is within a conservative floating-point error envelope,
+    // retain the tangent as a candidate instead of turning rounding noise
+    // into a false negative. This is a numerical robustness filter, not a
+    // formal exact-arithmetic certificate.
+    let discriminant_scale = b.abs() * b.abs() + (4.0 * a * c).abs();
+    let discriminant_error = 8.0 * f64::EPSILON * discriminant_scale;
+    let discriminant = if discriminant < 0.0 && -discriminant <= discriminant_error {
+        0.0
+    } else if discriminant < 0.0 {
+        return None;
+    } else {
+        discriminant
+    };
 
     let sqrt_discriminant = discriminant.sqrt();
     // Cancellation-resistant quadratic formula. q/a and c/q are the two
@@ -290,6 +304,17 @@ mod tests {
 
         let hit = sphere_sphere(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 2.0e11).unwrap();
         assert!((hit.toi - 1.0e11).abs() <= 1.0e-3);
+    }
+
+    #[test]
+    fn sphere_sphere_exact_tangent_is_retained_as_contact() {
+        let pos_a = SVector::from([0.0, 0.0, 0.0]);
+        let vel_a = SVector::zeros();
+        let pos_b = SVector::from([-1.0, 2.0, 0.0]);
+        let vel_b = SVector::from([2.0, 0.0, 0.0]);
+
+        let hit = sphere_sphere(&pos_a, &vel_a, 1.0, &pos_b, &vel_b, 1.0, 1.0).unwrap();
+        assert!((hit.toi - 0.5).abs() < 1e-12);
     }
 
     #[test]
