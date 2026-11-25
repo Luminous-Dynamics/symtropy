@@ -42,6 +42,6 @@ jobs:
             and all(.evidence_owners[]; (.references | length > 0))
             and all(.evidence_owners[]; (.supports | length > 0) and (.does_not_support | length > 0))
             and any(.standards[]; .id == "ISO 3691-4:2023" and (.status | contains("successor_draft_under_development")))
-            and any(.standards[]; .id == "IEC 61508-1:2026 PRV" and (.status | contains("final_publication_to_recheck")))
+            and any(.standards[]; .id == "IEC 61508-1:2026 PRV" and (.status | contains("forecast_publication_2027_01_22")))
             and any(.standards[]; .id == "IEC TR 63074:2019" and (.status | contains("replaced")))
           ' "$REGISTER"
