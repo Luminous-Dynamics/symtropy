@@ -17,7 +17,7 @@ cargo clippy --locked --manifest-path research/mobility-rrvr-command-semantics/C
 - Logical-effect and attempt lineage.
 - Desired-state absolute semantics, explicit idempotency/replay declaration, tolerance and no-additional-effect declaration.
 - One-shot cardinality, endpoint token and independent outcome observation.
-- Continuous-lease expiry, authority epoch, watchdog behavior and clock profile.
+- Continuous-lease expiry, endpoint-enforced authority epoch, exact watchdog-reaction match, clock profile and bounded watchdog response time (device maximum must fit within the command budget).
 - Trajectory segment identity, progress checkpoint, measured continuation and downstream queue reconciliation.
 - Independent device capability declarations for absolute-target replay safety, durable one-shot tokens, maximum physical-effect cardinality, authority epochs, lease expiry/watchdog and trajectory continuation.
 
