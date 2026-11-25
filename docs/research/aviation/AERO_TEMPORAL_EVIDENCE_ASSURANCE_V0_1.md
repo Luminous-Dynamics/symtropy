@@ -104,7 +104,19 @@ A production adapter must replace these synthetic labels with an actual owner-na
 
 A trusted timestamp imprint is separately recorded as `trusted_timestamp_imprint_sha256`. A timestamp token whose imprint does not equal the canonical event digest is invalid timestamp evidence. A valid receiver receipt and a trusted timestamp token are different evidence mechanisms and must not be collapsed into one Boolean.
 
-### 3.2 Canonicalization and immutable source bytes
+### 3.2 Source-scoped event identity and idempotent delivery
+
+An immutable event identity is the composite key `(source_namespace, event_id)`, not a globally unique display string. Two independent sources may legitimately use the same local event-ID text. They must remain distinct events and must not collide merely because the string matches.
+
+For one composite key:
+- repeated delivery of the same canonical payload digest is idempotent: apply the semantic event once, preserve every receipt/delivery reference, and report that duplicate delivery was deduplicated;
+- a repeated key with a different canonical payload digest is equivocation/conflicting history: do not select the first or last payload; keep the identity ambiguous and abstain;
+- a correction target must resolve using the same composite identity and exact certificate/instrument/method scope;
+- a source namespace must itself be bound to a stable issuer/source identity and trust-policy scope; an untrusted caller cannot evade duplicate detection by inventing a new namespace.
+
+This is not a permission to ignore replay. It distinguishes at-least-once transport delivery of the same immutable source event from two conflicting source assertions under the same event identity.
+
+### 3.3 Canonicalization and immutable source bytes
 
 The event digest must be computed over a versioned canonical representation. The canonicalization algorithm, schema/profile version and digest algorithm are part of the verification record.
 
@@ -118,7 +130,7 @@ Retain:
 
 Do not replace the source with a normalized form. Normalization and derived representations are new artifacts with parent references.
 
-### 3.3 Trusted time evidence
+### 3.4 Trusted time evidence
 
 RFC 3161 Time-Stamp Protocol is the first comparator for a timestamp authority. A valid token over the event digest can support the claim that the committed data existed no later than the token's asserted time, subject to its cryptographic and policy validation. It does **not** validate `effective_at`, event truth, physical acquisition, issuer authority or custody before the token.
 
@@ -126,7 +138,7 @@ RFC 4998 Evidence Record Syntax is a comparator for long-term integrity evidence
 
 Do not operate a new timestamp authority as part of this work. Consume independently verifiable evidence from an appropriate external provider or existing organizational service.
 
-### 3.4 Trust-policy snapshot
+### 3.5 Trust-policy snapshot
 
 An evaluation report must pin at least:
 - accepted trust roots and certificate/status evidence;
@@ -268,7 +280,7 @@ The machine-readable first slice is:
 - `docs/research/aviation/examples/aero_temporal_replay_corpus_v0_1.json`
 - `docs/research/aviation/schemas/aero_temporal_replay_corpus_v0_1.schema.json`
 
-It contains 13 synthetic controls, including a positive binding-only baseline, a known-but-future-effective revocation, an event received after the historical watermark despite a backdated issuer timestamp, a known effective revocation, acquisition-time uncertainty crossing a calibration boundary, a timestamp imprint mismatch, unknown issuer authority, source-sequence gaps, conflicting duplicate event IDs, current-trust key-compromise reassessment, correction cycles and source-clock rollback, and a backdated receiver-time claim without independently verifiable receipt evidence.
+It contains 15 synthetic controls, including a positive binding-only baseline, a known-but-future-effective revocation, an event received after the historical watermark despite a backdated issuer timestamp, a known effective revocation, acquisition-time uncertainty crossing a calibration boundary, a timestamp imprint mismatch, unknown issuer authority, source-sequence gaps, conflicting duplicate event IDs, current-trust key-compromise reassessment, correction cycles and source-clock rollback, and a backdated receiver-time claim without independently verifiable receipt evidence.
 
 Every case freezes both `AS_KNOWN_AT` and `RECOMPUTED_WITH_CURRENT_TRUST` expected dispositions. The fixture deliberately permits duplicate event IDs so that the duplicate-conflict challenge is representable; uniqueness is a semantic rule to be evaluated, not a JSON Schema uniqueness rule over complete objects.
 
