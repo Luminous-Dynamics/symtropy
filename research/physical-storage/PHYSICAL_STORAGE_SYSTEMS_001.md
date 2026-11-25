@@ -112,7 +112,7 @@ These are gated research targets, not current results or forecasts.
 
 1. Reproduce the Silica paper's reported metrics and definitions to within 5% before claiming a new optical result.
 2. At equal net payload density and error target, pursue either 2× higher write throughput per beam or 2× lower energy per successfully recovered payload bit. Measure both as separate Pareto objectives.
-3. Keep at least 90% of gross physical payload after ECC, metadata, calibration and spare-region overhead in the first proposed layout; publish the exact overhead.
+3. Measure the full recoverable-payload-efficiency / fault-tolerance Pareto frontier; do not impose 90% on every architecture. The first 4 × 4 × 3 algorithmic demonstrator uses a linear MDS(6,4) stripe, four control tiles and two spares: 224 payload bytes in 384 physical tile bytes (58.33% end-to-end payload efficiency), intentionally trading density for recovery after a whole one-third-volume layer loss. For a 301-layer-class medium, evaluate higher-rate interleaving: a hypothetical 10-data + 1-parity stripe has 90.91% code rate before control, metadata and spare overhead and can tolerate one known erasure per stripe if every layer contributes at most one shard. This is a design calculation, not a measured result; report net efficiency after every overhead.
 4. Recover unaffected regions exactly after bounded spatially correlated damage and identify every lost region.
 5. Make the full archive package independently decodable: payload, format version, code parameters, calibration references, known-answer vectors, digest and provenance manifest.
 6. Treat >10,000-year retention as an extrapolation target to be reproduced and stress-tested, not as an achieved service-life guarantee.
@@ -143,11 +143,24 @@ A run receipt must bind:
 
 A hash-shaped string is an identity field, not proof of authenticity. A solver's own error estimate, a comparison between solvers and measurement uncertainty must stay separate.
 
-## 9. Evidence status
+
+## 9. Executable linear-MDS layout reference
+
+The companion Symthaea draft [PR #13631](https://github.com/Luminous-Dynamics/symthaea/pull/13631) now includes a standalone zero-dependency Rust reference at `research/physical-storage/mds-reference/` and a machine-readable layout/fault fixture.
+
+The synthetic 4 × 4 × 3 layout uses 28 data tiles, 14 parity tiles, four redundant control tiles and two spares. Its seven systematic [6,4,3] linear MDS stripes use GF(256); each stripe has two shards in each of the three physical layers. Any two known shard erasures are recoverable. This code is explicitly described as a **linear MDS array code**, not as a standards-conformant Reed–Solomon/GRS implementation. The standard RS tournament remains future work.
+
+The reference is designed to recover the exact 224-byte payload after any one of the three whole-layer dropouts and a localized 2 × 2 tile cluster. It must reject unflagged byte substitutions by final SHA-256 comparison, and fail closed when a stripe exceeds two erasures or the redundant format/calibration controls are unavailable.
+
+Independent Python algebra/layout checks covered all 15 two-erasure patterns, three whole-layer dropouts, the localized cluster, an over-budget negative control and the payload digest. These are independent mathematical checks, **not Rust compilation or Cargo test results**. The current execution environment has no Rust toolchain; exact-head rustfmt, Clippy and Cargo tests remain pending.
+
+The toy has 58.33% end-to-end tile payload efficiency because it deliberately tolerates loss of one-third of the physical tile volume. It is a proof-of-recovery fixture, not a density result. For a 301-layer-class medium, a hypothetical 10+1 stripe has 90.91% code rate before physical overhead and can tolerate one known erasure per stripe if the interleaver ensures at most one symbol from each stripe is placed in any one layer. This design calculation is not a measured result; it must be tested against actual optical defect maps and metadata/calibration overhead.
+
+## 10. Evidence status
 
 This document and the baseline register are research specifications. They do not constitute optical-solver qualification, physical fabrication, measured retention, SOTA improvement or product approval. No laser, write head or magnetization actuator control is authorized by this programme.
 
-## 10. Sources
+## 11. Sources
 
 - Microsoft Research Project Silica Team, “Laser writing in glass for dense, fast and efficient archival data storage,” *Nature* 650, 606–612 (18 February 2026): https://www.nature.com/articles/s41586-025-10042-w
 - Microsoft Research paper landing page: https://www.microsoft.com/en-us/research/publication/laser-writing-in-glass-for-dense-fast-and-efficient-archival-data-storage/
