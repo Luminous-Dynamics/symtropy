@@ -9,9 +9,14 @@
 //! functional safety. Acceptance means only that the supplied declaration
 //! satisfies this reference contract.
 
+use serde::Deserialize;
+
+pub mod fixture;
+
 pub const CONTRACT_VERSION: &str = "0.1";
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "snake_case")]
 pub enum EffectClass {
     DesiredState,
     OneShot,
@@ -19,7 +24,8 @@ pub enum EffectClass {
     Trajectory,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "snake_case")]
 pub enum MotionSemantics {
     Absolute,
     Relative,
@@ -28,14 +34,16 @@ pub enum MotionSemantics {
     SegmentedTrajectory,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "snake_case")]
 pub enum SideEffectEnvelope {
     NoAdditionalEffectDeclared,
     BoundedAdditionalEffectDeclared,
     Unknown,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "snake_case")]
 pub enum WatchdogReaction {
     ControlledStop,
     DisableOutput,
@@ -43,7 +51,8 @@ pub enum WatchdogReaction {
     None,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct DeviceCapabilityProfile {
     pub device_id: String,
     pub device_model: String,
@@ -72,7 +81,8 @@ pub struct DeviceCapabilityProfile {
     pub supports_downstream_queue_reconciliation: bool,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct CommandSemanticProfile {
     pub command_id: String,
     /// Exact device capability profile to which this command contract applies.
