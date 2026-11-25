@@ -174,11 +174,22 @@ pub struct PairQueryResult {
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct MaintenanceStats {
+    pub insert_operations: u64,
+    pub remove_operations: u64,
+    pub update_operations: u64,
+    pub fat_contained_updates: u64,
+    pub proxy_reinsertions: u64,
+    pub full_rebuilds: u64,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct TreeStats {
     pub proxy_count: usize,
     pub node_count: usize,
     pub height: usize,
     pub free_node_count: usize,
+    pub maintenance: MaintenanceStats,
 }
 
 #[derive(Clone, Debug)]
@@ -236,6 +247,7 @@ pub struct IncrementalAabbTree<const D: usize> {
     free_nodes: Vec<usize>,
     leaves: BTreeMap<ProxyId, usize>,
     fat_margin: f64,
+    maintenance: MaintenanceStats,
 }
 
 impl<const D: usize> IncrementalAabbTree<D> {
@@ -249,6 +261,7 @@ impl<const D: usize> IncrementalAabbTree<D> {
             free_nodes: Vec::new(),
             leaves: BTreeMap::new(),
             fat_margin,
+            maintenance: MaintenanceStats::default(),
         })
     }
 
@@ -274,6 +287,7 @@ impl<const D: usize> IncrementalAabbTree<D> {
             node_count: self.nodes.iter().filter(|node| node.is_some()).count(),
             height: self.root.map_or(0, |root| self.node(root).height),
             free_node_count: self.free_nodes.len(),
+            maintenance: self.maintenance,
         }
     }
 
@@ -285,6 +299,8 @@ impl<const D: usize> IncrementalAabbTree<D> {
         let leaf = self.allocate_node(Node::leaf(fat_aabb, proxy));
         self.leaves.insert(proxy, leaf);
         self.insert_leaf(leaf);
+        self.maintenance.insert_operations =
+            self.maintenance.insert_operations.saturating_add(1);
         Ok(())
     }
 
@@ -297,6 +313,8 @@ impl<const D: usize> IncrementalAabbTree<D> {
         let old_aabb = self.node(leaf).aabb;
         self.detach_leaf(leaf);
         self.free_node(leaf);
+        self.maintenance.remove_operations =
+            self.maintenance.remove_operations.saturating_add(1);
         Ok(old_aabb)
     }
 
@@ -310,13 +328,19 @@ impl<const D: usize> IncrementalAabbTree<D> {
     ) -> Result<bool, TreeError> {
         let leaf = *self.leaves.get(&proxy).ok_or(TreeError::MissingProxy)?;
         let new_fat_aabb = tight_aabb.fatten(self.fat_margin)?;
+        self.maintenance.update_operations =
+            self.maintenance.update_operations.saturating_add(1);
         if self.node(leaf).aabb.contains(&tight_aabb) {
+            self.maintenance.fat_contained_updates =
+                self.maintenance.fat_contained_updates.saturating_add(1);
             return Ok(false);
         }
 
         self.detach_leaf(leaf);
         self.node_mut(leaf).aabb = new_fat_aabb;
         self.insert_leaf(leaf);
+        self.maintenance.proxy_reinsertions =
+            self.maintenance.proxy_reinsertions.saturating_add(1);
         Ok(true)
     }
 
@@ -393,6 +417,8 @@ impl<const D: usize> IncrementalAabbTree<D> {
     /// Rebuild the hierarchy in stable proxy-ID order while preserving fat
     /// bounds. This is a benchmark control for measuring rebuild/recovery cost.
     pub fn rebuild(&mut self) {
+        self.maintenance.full_rebuilds =
+            self.maintenance.full_rebuilds.saturating_add(1);
         let mut entries = self
             .leaves
             .iter()
