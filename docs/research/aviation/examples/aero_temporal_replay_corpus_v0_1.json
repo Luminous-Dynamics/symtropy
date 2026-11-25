@@ -1150,8 +1150,8 @@
             "CALIBRATION_EVENTS_KNOWN_AND_EFFECTIVE"
           ],
           "applied_event_ids": [
-            "lab-a:EV-LOCAL-1",
-            "issuer-b:EV-LOCAL-1"
+            "issuer-b:EV-LOCAL-1",
+            "lab-a:EV-LOCAL-1"
           ],
           "excluded_event_ids": []
         },
@@ -1161,8 +1161,8 @@
             "CALIBRATION_EVENTS_KNOWN_AND_EFFECTIVE"
           ],
           "applied_event_ids": [
-            "lab-a:EV-LOCAL-1",
-            "issuer-b:EV-LOCAL-1"
+            "issuer-b:EV-LOCAL-1",
+            "lab-a:EV-LOCAL-1"
           ],
           "excluded_event_ids": []
         },
@@ -1172,8 +1172,8 @@
             "CALIBRATION_EVENTS_KNOWN_AND_EFFECTIVE"
           ],
           "applied_event_ids": [
-            "lab-a:EV-LOCAL-1",
-            "issuer-b:EV-LOCAL-1"
+            "issuer-b:EV-LOCAL-1",
+            "lab-a:EV-LOCAL-1"
           ],
           "excluded_event_ids": []
         }
@@ -1259,8 +1259,8 @@
         "as_known_at": {
           "disposition": "BLOCK",
           "reason_codes": [
-            "REVOCATION_EFFECTIVE_AND_KNOWN",
-            "REPEATED_DELIVERY_DEDUPLICATED_ONCE"
+            "REPEATED_DELIVERY_DEDUPLICATED_ONCE",
+            "REVOCATION_EFFECTIVE_AND_KNOWN"
           ],
           "applied_event_ids": [
             "lab-a:EV-REPEAT-1"
@@ -1270,8 +1270,8 @@
         "recomputed_with_current_trust": {
           "disposition": "BLOCK",
           "reason_codes": [
-            "REVOCATION_EFFECTIVE_AND_KNOWN",
-            "REPEATED_DELIVERY_DEDUPLICATED_ONCE"
+            "REPEATED_DELIVERY_DEDUPLICATED_ONCE",
+            "REVOCATION_EFFECTIVE_AND_KNOWN"
           ],
           "applied_event_ids": [
             "lab-a:EV-REPEAT-1"
@@ -1281,8 +1281,8 @@
         "recomputed_with_current_evidence_and_trust": {
           "disposition": "BLOCK",
           "reason_codes": [
-            "REVOCATION_EFFECTIVE_AND_KNOWN",
-            "REPEATED_DELIVERY_DEDUPLICATED_ONCE"
+            "REPEATED_DELIVERY_DEDUPLICATED_ONCE",
+            "REVOCATION_EFFECTIVE_AND_KNOWN"
           ],
           "applied_event_ids": [
             "lab-a:EV-REPEAT-1"
@@ -1375,8 +1375,8 @@
           ],
           "applied_event_ids": [],
           "excluded_event_ids": [
-            "lab-a:EV-LOCAL-1",
-            "lab-a-alias:EV-LOCAL-1"
+            "lab-a-alias:EV-LOCAL-1",
+            "lab-a:EV-LOCAL-1"
           ]
         },
         "recomputed_with_current_trust": {
@@ -1386,8 +1386,8 @@
           ],
           "applied_event_ids": [],
           "excluded_event_ids": [
-            "lab-a:EV-LOCAL-1",
-            "lab-a-alias:EV-LOCAL-1"
+            "lab-a-alias:EV-LOCAL-1",
+            "lab-a:EV-LOCAL-1"
           ]
         },
         "recomputed_with_current_evidence_and_trust": {
@@ -1397,8 +1397,8 @@
           ],
           "applied_event_ids": [],
           "excluded_event_ids": [
-            "lab-a:EV-LOCAL-1",
-            "lab-a-alias:EV-LOCAL-1"
+            "lab-a-alias:EV-LOCAL-1",
+            "lab-a:EV-LOCAL-1"
           ]
         }
       },
