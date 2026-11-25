@@ -178,6 +178,23 @@ pub struct GateViolationCount {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct StratumOutcomeSummary {
+    pub stratum_id: String,
+    pub run_count: u64,
+    pub committed_missions: u64,
+    pub on_time_service_rate_basis_points: u64,
+    pub mean_queue_wait_p95_ms: f64,
+    pub total_metered_grid_response_wh_signed: i64,
+    pub max_mission_reserve_shortfall_wh: u64,
+    pub max_recovery_shortfall_wh: u64,
+    pub empirical_cvar95_mission_reserve_shortfall_wh: f64,
+    pub empirical_cvar95_recovery_shortfall_wh: f64,
+    pub hard_gate_violation_count: u64,
+    pub false_safe_admissions: u64,
+    pub false_abstentions: u64,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct PolicySummary {
     pub policy_id: String,
     pub policy_version: String,
@@ -198,6 +215,12 @@ pub struct PolicySummary {
     pub completion_rate_basis_points: u64,
     pub mean_queue_wait_p95_ms: f64,
     pub p95_queue_wait_p95_ms: u64,
+    pub p95_mission_reserve_shortfall_wh: u64,
+    pub p95_recovery_shortfall_wh: u64,
+    pub empirical_cvar95_mission_reserve_shortfall_wh: f64,
+    pub empirical_cvar95_recovery_shortfall_wh: f64,
+    pub scenario_family_outcomes: Vec<StratumOutcomeSummary>,
+    pub independent_cluster_outcomes: Vec<StratumOutcomeSummary>,
     pub total_requested_grid_service_wh: u64,
     pub total_instructed_grid_response_wh_signed: i64,
     pub total_metered_grid_response_wh_signed: i64,
@@ -709,6 +732,72 @@ fn sum_violations(run: &PolicyRun) -> BTreeMap<HardGateCategory, u64> {
     result
 }
 
+fn empirical_upper_cvar95(values: &[u64]) -> f64 {
+    if values.is_empty() {
+        return 0.0;
+    }
+    let mut sorted = values.to_vec();
+    sorted.sort_unstable_by(|a, b| b.cmp(a));
+    let tail_count = values.len().div_ceil(20).max(1);
+    sorted.iter().take(tail_count).map(|value| *value as f64).sum::<f64>()
+        / tail_count as f64
+}
+
+fn summarize_strata(
+    runs: &[&PolicyRun],
+    key: impl Fn(&PolicyRun) -> &str,
+) -> Result<Vec<StratumOutcomeSummary>, TournamentError> {
+    let mut grouped: BTreeMap<String, Vec<&PolicyRun>> = BTreeMap::new();
+    for run in runs {
+        grouped.entry(key(run).to_owned()).or_default().push(run);
+    }
+    let mut summaries = Vec::with_capacity(grouped.len());
+    for (stratum_id, group) in grouped {
+        let mut committed = 0_u64;
+        let mut on_time = 0_u64;
+        let mut metered = 0_i64;
+        let mut hard_violation_count = 0_u64;
+        let mut false_safe = 0_u64;
+        let mut false_abstentions = 0_u64;
+        let mut waits = Vec::with_capacity(group.len());
+        let mut reserve_shortfalls = Vec::with_capacity(group.len());
+        let mut recovery_shortfalls = Vec::with_capacity(group.len());
+        for run in &group {
+            checked_add(&mut committed, run.committed_missions as u64, "stratum committed missions")?;
+            checked_add(&mut on_time, run.on_time_missions as u64, "stratum on-time missions")?;
+            checked_add_signed(&mut metered, run.metered_grid_response_wh, "stratum metered response")?;
+            for count in sum_violations(run).values() {
+                checked_add(&mut hard_violation_count, *count, "stratum hard violations")?;
+            }
+            if run.requested_grid_service_wh > 0 && run.shield_admitted && !run.oracle_action_feasible {
+                false_safe += 1;
+            }
+            if run.requested_grid_service_wh > 0 && !run.shield_admitted && run.oracle_action_feasible {
+                false_abstentions += 1;
+            }
+            waits.push(run.queue_wait_p95_ms);
+            reserve_shortfalls.push(run.mission_reserve_shortfall_wh);
+            recovery_shortfalls.push(run.recovery_shortfall_wh);
+        }
+        summaries.push(StratumOutcomeSummary {
+            stratum_id,
+            run_count: group.len() as u64,
+            committed_missions: committed,
+            on_time_service_rate_basis_points: on_time * 10_000 / committed,
+            mean_queue_wait_p95_ms: waits.iter().map(|value| *value as f64).sum::<f64>() / waits.len() as f64,
+            total_metered_grid_response_wh_signed: metered,
+            max_mission_reserve_shortfall_wh: reserve_shortfalls.iter().copied().max().unwrap_or(0),
+            max_recovery_shortfall_wh: recovery_shortfalls.iter().copied().max().unwrap_or(0),
+            empirical_cvar95_mission_reserve_shortfall_wh: empirical_upper_cvar95(&reserve_shortfalls),
+            empirical_cvar95_recovery_shortfall_wh: empirical_upper_cvar95(&recovery_shortfalls),
+            hard_gate_violation_count,
+            false_safe_admissions: false_safe,
+            false_abstentions,
+        });
+    }
+    Ok(summaries)
+}
+
 fn summarize_policy(
     identity: &PolicyIdentity,
     runs: &[&PolicyRun],
@@ -733,6 +822,12 @@ fn summarize_policy(
         completion_rate_basis_points: 0,
         mean_queue_wait_p95_ms: 0.0,
         p95_queue_wait_p95_ms: 0,
+        p95_mission_reserve_shortfall_wh: 0,
+        p95_recovery_shortfall_wh: 0,
+        empirical_cvar95_mission_reserve_shortfall_wh: 0.0,
+        empirical_cvar95_recovery_shortfall_wh: 0.0,
+        scenario_family_outcomes: Vec::new(),
+        independent_cluster_outcomes: Vec::new(),
         total_requested_grid_service_wh: 0,
         total_instructed_grid_response_wh_signed: 0,
         total_metered_grid_response_wh_signed: 0,
@@ -759,6 +854,8 @@ fn summarize_policy(
     };
     let mut queue_wait = Vec::with_capacity(runs.len());
     let mut decision_latency = Vec::with_capacity(runs.len());
+    let mut mission_reserve_shortfall = Vec::with_capacity(runs.len());
+    let mut recovery_shortfall = Vec::with_capacity(runs.len());
     let mut clusters = BTreeSet::new();
     let mut violations: BTreeMap<HardGateCategory, u64> = BTreeMap::new();
     for run in runs {
@@ -809,6 +906,8 @@ fn summarize_policy(
         }
         queue_wait.push(run.queue_wait_p95_ms);
         decision_latency.push(run.decision_latency_ms);
+        mission_reserve_shortfall.push(run.mission_reserve_shortfall_wh);
+        recovery_shortfall.push(run.recovery_shortfall_wh);
     }
 
     totals.independent_cluster_count = clusters.len() as u64;
@@ -819,6 +918,16 @@ fn summarize_policy(
     totals.mean_queue_wait_p95_ms =
         queue_wait.iter().map(|value| *value as f64).sum::<f64>() / queue_wait.len() as f64;
     totals.p95_queue_wait_p95_ms = percentile_u64(&queue_wait, 9_500).unwrap_or(0);
+    totals.p95_mission_reserve_shortfall_wh =
+        percentile_u64(&mission_reserve_shortfall, 9_500).unwrap_or(0);
+    totals.p95_recovery_shortfall_wh =
+        percentile_u64(&recovery_shortfall, 9_500).unwrap_or(0);
+    totals.empirical_cvar95_mission_reserve_shortfall_wh =
+        empirical_upper_cvar95(&mission_reserve_shortfall);
+    totals.empirical_cvar95_recovery_shortfall_wh =
+        empirical_upper_cvar95(&recovery_shortfall);
+    totals.scenario_family_outcomes = summarize_strata(runs, |run| run.scenario_family.as_str())?;
+    totals.independent_cluster_outcomes = summarize_strata(runs, |run| run.cluster_id.as_str())?;
     totals.mean_decision_latency_ms =
         decision_latency.iter().map(|value| *value as f64).sum::<f64>() / decision_latency.len() as f64;
     totals.p95_decision_latency_ms = percentile_u64(&decision_latency, 9_500).unwrap_or(0);
@@ -1241,6 +1350,25 @@ mod tests {
         assert_eq!(first.input_digest, second.input_digest);
         assert_eq!(first.policies, second.policies);
         assert_eq!(first.comparisons, second.comparisons);
+    }
+
+    #[test]
+    fn tail_risk_and_worst_strata_remain_visible_beside_means() {
+        let mut input = fixture();
+        let run = input.runs.iter_mut().find(|r| r.policy_id == "mpc" && r.scenario_id == "scenario-4").unwrap();
+        run.mission_reserve_shortfall_wh = 900;
+        run.recovery_shortfall_wh = 1_200;
+        let report = evaluate_mobility_policy_tournament(&input).unwrap();
+        let mpc = report.policies.iter().find(|p| p.policy_id == "mpc").unwrap();
+        assert_eq!(mpc.p95_mission_reserve_shortfall_wh, 900);
+        assert_eq!(mpc.empirical_cvar95_mission_reserve_shortfall_wh, 900.0);
+        assert_eq!(mpc.empirical_cvar95_recovery_shortfall_wh, 1_200.0);
+        assert_eq!(mpc.scenario_family_outcomes.len(), 4);
+        assert_eq!(mpc.independent_cluster_outcomes.len(), 4);
+        assert_eq!(
+            mpc.scenario_family_outcomes.iter().find(|s| s.stratum_id == "family-d").unwrap().max_recovery_shortfall_wh,
+            1_200
+        );
     }
 
     #[test]
