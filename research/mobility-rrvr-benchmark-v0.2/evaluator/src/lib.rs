@@ -333,13 +333,13 @@ fn validate_bundle(bundle: &ResultsBundle) -> Result<(), String> {
             ("independent_observation", episode.latencies_ms.independent_observation),
             ("native_authority_admission", episode.latencies_ms.native_authority_admission),
         ] {
-            if let Some(milliseconds) = value {
-                if !milliseconds.is_finite() || milliseconds < 0.0 {
-                    return Err(format!(
-                        "INVALID_LATENCY: episode={} field={name}",
-                        episode.episode_id
-                    ));
-                }
+            if let Some(milliseconds) = value
+                && (!milliseconds.is_finite() || milliseconds < 0.0)
+            {
+                return Err(format!(
+                    "INVALID_LATENCY: episode={} field={name}",
+                    episode.episode_id
+                ));
             }
         }
 
@@ -463,14 +463,16 @@ fn score_arm(arm_id: ArmId, rows: &[&EpisodeRecord]) -> ArmScorecard {
 
     let task_success_n = rows.iter().filter(|row| row.outcome.task_success).count();
     let episode_safe_n = rows.iter().filter(|row| row.outcome.episode_safe).count();
-    let recovery_values = rows
-        .iter()
-        .filter_map(|row| row.outcome.recovery_success)
-        .map(Some);
+    let recovery_values = rows.iter().map(|row| row.outcome.recovery_success);
 
     let false_no_effect_eligible = rows
         .iter()
-        .filter(|row| row.outcome.oracle_disposition != Disposition::NoEffect)
+        .filter(|row| {
+            matches!(
+                row.outcome.oracle_disposition,
+                Disposition::Applied | Disposition::Partial
+            )
+        })
         .collect::<Vec<_>>();
     let false_no_effect_n = false_no_effect_eligible
         .iter()
@@ -479,7 +481,12 @@ fn score_arm(arm_id: ArmId, rows: &[&EpisodeRecord]) -> ArmScorecard {
 
     let false_applied_eligible = rows
         .iter()
-        .filter(|row| row.outcome.oracle_disposition != Disposition::Applied)
+        .filter(|row| {
+            matches!(
+                row.outcome.oracle_disposition,
+                Disposition::NoEffect | Disposition::Partial
+            )
+        })
         .collect::<Vec<_>>();
     let false_applied_n = false_applied_eligible
         .iter()
@@ -632,11 +639,31 @@ fn cluster_counts(rows: &[&EpisodeRecord]) -> ClusterCounts {
         scene_n: unique(rows.iter().map(|row| row.matching.scene_sha256.clone()).collect()),
         seed_n: rows.iter().map(|row| row.matching.seed).collect::<BTreeSet<_>>().len(),
         world_n: unique(rows.iter().map(|row| row.clusters.world_id.clone()).collect()),
-        robot_asset_n: unique(rows.iter().map(|row| row.clusters.robot_asset_sha256.clone()).collect()),
-        hardware_profile_n: unique(rows.iter().map(|row| row.clusters.hardware_profile_sha256.clone()).collect()),
-        firmware_profile_n: unique(rows.iter().map(|row| row.clusters.firmware_profile_sha256.clone()).collect()),
-        fault_schedule_n: unique(rows.iter().map(|row| row.matching.fault_schedule_sha256.clone()).collect()),
-        observer_profile_n: unique(rows.iter().map(|row| row.matching.observer_profile_sha256.clone()).collect()),
+        robot_asset_n: unique(
+            rows.iter()
+                .map(|row| row.clusters.robot_asset_sha256.clone())
+                .collect(),
+        ),
+        hardware_profile_n: unique(
+            rows.iter()
+                .map(|row| row.clusters.hardware_profile_sha256.clone())
+                .collect(),
+        ),
+        firmware_profile_n: unique(
+            rows.iter()
+                .map(|row| row.clusters.firmware_profile_sha256.clone())
+                .collect(),
+        ),
+        fault_schedule_n: unique(
+            rows.iter()
+                .map(|row| row.matching.fault_schedule_sha256.clone())
+                .collect(),
+        ),
+        observer_profile_n: unique(
+            rows.iter()
+                .map(|row| row.matching.observer_profile_sha256.clone())
+                .collect(),
+        ),
     }
 }
 
@@ -710,14 +737,22 @@ mod tests {
 
     #[test]
     fn duplicate_episode_id_is_rejected() {
-        let changed = FIXTURE.replacen("\"episode_id\": \"EP-002\"", "\"episode_id\": \"EP-001\"", 1);
+        let changed = FIXTURE.replacen(
+            "\"episode_id\": \"EP-002\"",
+            "\"episode_id\": \"EP-001\"",
+            1,
+        );
         let error = evaluate_json(&changed).expect_err("duplicate ID must reject");
         assert!(error.starts_with("DUPLICATE_EPISODE_ID"));
     }
 
     #[test]
     fn unsupported_version_is_rejected() {
-        let changed = FIXTURE.replacen("\"schema_version\": \"0.1\"", "\"schema_version\": \"0.2\"", 1);
+        let changed = FIXTURE.replacen(
+            "\"schema_version\": \"0.1\"",
+            "\"schema_version\": \"0.2\"",
+            1,
+        );
         let error = evaluate_json(&changed).expect_err("wrong version must reject");
         assert!(error.starts_with("SCHEMA_VERSION_UNSUPPORTED"));
     }
@@ -736,7 +771,11 @@ mod tests {
     #[test]
     fn no_effect_false_verdicts_have_exact_denominator() {
         let report = evaluate_json(FIXTURE).expect("fixture should evaluate");
-        let native = report.scorecards.iter().find(|scorecard| scorecard.arm_id == "native").expect("native arm");
+        let native = report
+            .scorecards
+            .iter()
+            .find(|scorecard| scorecard.arm_id == "native")
+            .expect("native arm");
         assert_eq!(native.false_no_effect.eligible_n, 1);
         assert_eq!(native.false_no_effect.event_n, 1);
         assert_eq!(native.false_no_effect.rate, Some(1.0));
@@ -745,7 +784,11 @@ mod tests {
     #[test]
     fn unknown_and_disputed_are_not_relabelled_as_no_effect() {
         let report = evaluate_json(FIXTURE).expect("fixture should evaluate");
-        let rrvr = report.scorecards.iter().find(|scorecard| scorecard.arm_id == "full_rrvr").expect("full RRVR arm");
+        let rrvr = report
+            .scorecards
+            .iter()
+            .find(|scorecard| scorecard.arm_id == "full_rrvr")
+            .expect("full RRVR arm");
         assert_eq!(rrvr.unknown_disputed.eligible_n, 2);
         assert_eq!(rrvr.unknown_disputed.event_n, 1);
         assert_eq!(rrvr.false_no_effect.event_n, 0);
@@ -754,7 +797,11 @@ mod tests {
     #[test]
     fn missing_measurement_stays_unresolved() {
         let report = evaluate_json(FIXTURE).expect("fixture should evaluate");
-        let rrvr = report.scorecards.iter().find(|scorecard| scorecard.arm_id == "full_rrvr").expect("full RRVR arm");
+        let rrvr = report
+            .scorecards
+            .iter()
+            .find(|scorecard| scorecard.arm_id == "full_rrvr")
+            .expect("full RRVR arm");
         assert_eq!(rrvr.duplicate_one_shot_effect.eligible_n, 2);
         assert_eq!(rrvr.duplicate_one_shot_effect.adjudicated_n, 1);
         assert_eq!(rrvr.duplicate_one_shot_effect.unresolved_n, 1);
@@ -763,7 +810,11 @@ mod tests {
     #[test]
     fn injector_stage_contradictions_are_reported_not_silently_dropped() {
         let report = evaluate_json(FIXTURE).expect("fixture should evaluate");
-        let rrvr = report.scorecards.iter().find(|scorecard| scorecard.arm_id == "full_rrvr").expect("full RRVR arm");
+        let rrvr = report
+            .scorecards
+            .iter()
+            .find(|scorecard| scorecard.arm_id == "full_rrvr")
+            .expect("full RRVR arm");
         assert_eq!(rrvr.fault_delivery.executed_without_acceptance_n, 1);
         assert_eq!(rrvr.fault_delivery.observed_without_execution_receipt_n, 1);
     }
@@ -771,7 +822,11 @@ mod tests {
     #[test]
     fn zero_denominator_is_null_not_zero() {
         let report = evaluate_json(FIXTURE).expect("fixture should evaluate");
-        let native = report.scorecards.iter().find(|scorecard| scorecard.arm_id == "native").expect("native arm");
+        let native = report
+            .scorecards
+            .iter()
+            .find(|scorecard| scorecard.arm_id == "native")
+            .expect("native arm");
         assert_eq!(native.false_closed.eligible_n, 0);
         assert_eq!(native.false_closed.rate, None);
     }
@@ -798,8 +853,29 @@ mod tests {
 
     #[test]
     fn a_pair_requires_both_native_and_full_rrvr_arms() {
-        let changed = FIXTURE.replacen("\"arm_id\": \"full_rrvr\"", "\"arm_id\": \"journal_only\"", 1);
+        let changed = FIXTURE.replacen(
+            "\"arm_id\": \"full_rrvr\"",
+            "\"arm_id\": \"journal_only\"",
+            1,
+        );
         let error = evaluate_json(&changed).expect_err("missing full RRVR arm must reject");
         assert!(error.starts_with("PAIR_FULL_RRVR_ARM_MISSING"));
     }
+
+    #[test]
+    fn uncertain_oracle_rows_do_not_inflate_false_verdict_denominators() {
+        let changed = FIXTURE.replace(
+            "\"oracle_disposition\": \"applied\"",
+            "\"oracle_disposition\": \"disputed\"",
+        );
+        let report = evaluate_json(&changed).expect("paired disputed oracle should evaluate");
+        let native = report
+            .scorecards
+            .iter()
+            .find(|scorecard| scorecard.arm_id == "native")
+            .expect("native arm");
+        assert_eq!(native.false_no_effect.eligible_n, 0);
+        assert_eq!(native.false_no_effect.rate, None);
+    }
+
 }
