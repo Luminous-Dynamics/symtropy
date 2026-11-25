@@ -5,7 +5,8 @@ use std::collections::{BTreeMap, BTreeSet};
 pub const CORPUS_SCHEMA: &str = "luminous.orbital-acquisition-codesign.corpus.v0.1";
 pub const RECEIPT_SCHEMA: &str = "luminous.orbital-acquisition-codesign.receipt.v0.1";
 pub const BENCHMARK_ID: &str = "ORBITAL-ACQUISITION-CODESIGN-001";
-pub const CLAIM_CEILING: &str = "synthetic_exact_finite_schedule_feasibility_and_pareto_frontier_only";
+pub const CLAIM_CEILING: &str =
+    "synthetic_exact_finite_schedule_feasibility_and_pareto_frontier_only";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -195,7 +196,11 @@ fn checked_mul(left: u64, right: u64, code: &str) -> Result<u64, String> {
 fn theoretical_count(case: &Case) -> Result<u64, String> {
     let mut count = 1_u64;
     for segment in &case.segments {
-        count = checked_mul(count, segment.speed_choices.len() as u64, "SCHEDULE_COUNT_OVERFLOW")?;
+        count = checked_mul(
+            count,
+            segment.speed_choices.len() as u64,
+            "SCHEDULE_COUNT_OVERFLOW",
+        )?;
     }
     for event in &case.events {
         if event.required {
@@ -248,7 +253,9 @@ fn validate_case(case: &Case) -> Result<(), String> {
         let mut option_ids = BTreeSet::new();
         for option in &event.options {
             let mut gate_ids = BTreeSet::new();
-            let segment = case.segments.iter()
+            let segment = case
+                .segments
+                .iter()
                 .find(|segment| segment.segment_id == option.segment_id)
                 .ok_or_else(|| "ACQUISITION_OPTION_SEGMENT_UNKNOWN".to_owned())?;
             if !valid_text(&option.option_id)
@@ -257,7 +264,10 @@ fn validate_case(case: &Case) -> Result<(), String> {
                 || !valid_text(&option.illumination_mode_id)
                 || !option_ids.insert(option.option_id.clone())
                 || option.gates.is_empty()
-                || !segment.speed_choices.iter().any(|speed| speed.speed_id == option.speed_id)
+                || !segment
+                    .speed_choices
+                    .iter()
+                    .any(|speed| speed.speed_id == option.speed_id)
                 || !option.gates.iter().all(|gate| {
                     valid_text(&gate.gate_id)
                         && valid_sha256(&gate.receipt_sha256)
@@ -281,12 +291,24 @@ fn validate_case(case: &Case) -> Result<(), String> {
         {
             return Err("TRANSITION_INVALID".to_owned());
         }
-        let from_segment = case.segments.iter().find(|segment| segment.segment_id == transition.from_segment_id)
+        let from_segment = case
+            .segments
+            .iter()
+            .find(|segment| segment.segment_id == transition.from_segment_id)
             .ok_or_else(|| "TRANSITION_FROM_SEGMENT_UNKNOWN".to_owned())?;
-        let to_segment = case.segments.iter().find(|segment| segment.segment_id == transition.to_segment_id)
+        let to_segment = case
+            .segments
+            .iter()
+            .find(|segment| segment.segment_id == transition.to_segment_id)
             .ok_or_else(|| "TRANSITION_TO_SEGMENT_UNKNOWN".to_owned())?;
-        if !from_segment.speed_choices.iter().any(|speed| speed.speed_id == transition.from_speed_id)
-            || !to_segment.speed_choices.iter().any(|speed| speed.speed_id == transition.to_speed_id)
+        if !from_segment
+            .speed_choices
+            .iter()
+            .any(|speed| speed.speed_id == transition.from_speed_id)
+            || !to_segment
+                .speed_choices
+                .iter()
+                .any(|speed| speed.speed_id == transition.to_speed_id)
         {
             return Err("TRANSITION_SPEED_REFERENCE_INVALID".to_owned());
         }
@@ -322,18 +344,14 @@ fn dominates(left: &ObjectiveVector, right: &ObjectiveVector) -> bool {
         right.projector_energy_mj,
         right.retakes,
     ];
-    l.iter().zip(r.iter()).all(|(a, b)| a <= b)
-        && l.iter().zip(r.iter()).any(|(a, b)| a < b)
+    l.iter().zip(r.iter()).all(|(a, b)| a <= b) && l.iter().zip(r.iter()).any(|(a, b)| a < b)
 }
 
 fn objective_equal(left: &ObjectiveVector, right: &ObjectiveVector) -> bool {
     left == right
 }
 
-fn schedule_id(
-    speeds: &BTreeMap<String, String>,
-    options: &BTreeMap<String, String>,
-) -> String {
+fn schedule_id(speeds: &BTreeMap<String, String>, options: &BTreeMap<String, String>) -> String {
     let speeds_part = speeds
         .iter()
         .map(|(segment, speed)| format!("{segment}={speed}"))
@@ -363,12 +381,24 @@ impl<'a> Enumeration<'a> {
     fn new(case: &'a Case) -> Self {
         let mut dimensions = Vec::new();
         for segment in &case.segments {
-            dimensions.push(segment.speed_choices.iter().map(|speed| speed.speed_id.clone()).collect());
+            dimensions.push(
+                segment
+                    .speed_choices
+                    .iter()
+                    .map(|speed| speed.speed_id.clone())
+                    .collect(),
+            );
         }
         let segment_dimension_count = dimensions.len();
         for event in &case.events {
             if event.required {
-                dimensions.push(event.options.iter().map(|option| option.option_id.clone()).collect());
+                dimensions.push(
+                    event
+                        .options
+                        .iter()
+                        .map(|option| option.option_id.clone())
+                        .collect(),
+                );
             }
         }
         Self {
@@ -414,13 +444,16 @@ impl<'a> Enumeration<'a> {
 
         for (index, segment) in self.case.segments.iter().enumerate() {
             let speed_id = &self.current[index];
-            let speed = segment.speed_choices.iter()
+            let speed = segment
+                .speed_choices
+                .iter()
                 .find(|choice| &choice.speed_id == speed_id)
                 .ok_or_else(|| "SELECTED_SPEED_NOT_FOUND".to_owned())?;
             selected_speeds.insert(segment.segment_id.clone(), speed.speed_id.clone());
             evidence_receipts.insert(segment.path_feasibility_receipt_sha256.clone());
             evidence_receipts.insert(speed.motion_profile_receipt_sha256.clone());
-            objective.elapsed_ms = checked_add(objective.elapsed_ms, speed.duration_ms, "ELAPSED_OVERFLOW")?;
+            objective.elapsed_ms =
+                checked_add(objective.elapsed_ms, speed.duration_ms, "ELAPSED_OVERFLOW")?;
             objective.robot_motion_energy_mj = checked_add(
                 objective.robot_motion_energy_mj,
                 speed.motion_energy_mj,
@@ -428,10 +461,19 @@ impl<'a> Enumeration<'a> {
             )?;
         }
 
-        for (event_index, event) in self.case.events.iter().filter(|event| event.required).enumerate() {
+        for (event_index, event) in self
+            .case
+            .events
+            .iter()
+            .filter(|event| event.required)
+            .enumerate()
+        {
             let option_index = self.segment_dimension_count + event_index;
             let option_id = &self.current[option_index];
-            let option = event.options.iter().find(|option| &option.option_id == option_id)
+            let option = event
+                .options
+                .iter()
+                .find(|option| &option.option_id == option_id)
                 .ok_or_else(|| "SELECTED_OPTION_NOT_FOUND".to_owned())?;
             selected_options.insert(event.event_id.clone(), option.option_id.clone());
             for gate in &option.gates {
@@ -458,7 +500,8 @@ impl<'a> Enumeration<'a> {
                 }
             }
 
-            objective.elapsed_ms = checked_add(objective.elapsed_ms, option.dwell_ms, "ELAPSED_OVERFLOW")?;
+            objective.elapsed_ms =
+                checked_add(objective.elapsed_ms, option.dwell_ms, "ELAPSED_OVERFLOW")?;
             objective.illumination_energy_mj = checked_add(
                 objective.illumination_energy_mj,
                 option.illumination_energy_mj,
@@ -477,9 +520,11 @@ impl<'a> Enumeration<'a> {
         }
 
         for pair in self.case.segments.windows(2) {
-            let from_speed = selected_speeds.get(&pair[0].segment_id)
+            let from_speed = selected_speeds
+                .get(&pair[0].segment_id)
                 .ok_or_else(|| "PREVIOUS_SPEED_MISSING".to_owned())?;
-            let to_speed = selected_speeds.get(&pair[1].segment_id)
+            let to_speed = selected_speeds
+                .get(&pair[1].segment_id)
                 .ok_or_else(|| "NEXT_SPEED_MISSING".to_owned())?;
             let allowed = self.case.allowed_transitions.iter().find(|transition| {
                 transition.from_segment_id == pair[0].segment_id
@@ -496,7 +541,10 @@ impl<'a> Enumeration<'a> {
             }
         }
 
-        let available_robot_energy = self.case.budget.robot_energy_capacity_mj
+        let available_robot_energy = self
+            .case
+            .budget
+            .robot_energy_capacity_mj
             .saturating_sub(self.case.budget.required_return_reserve_mj);
         if objective.robot_motion_energy_mj > available_robot_energy {
             hard_failure = true;
@@ -536,7 +584,12 @@ impl<'a> Enumeration<'a> {
                 objective,
             });
             self.dispositions.push(ScheduleDisposition {
-                schedule_id: self.feasible.last().expect("just pushed").schedule_id.clone(),
+                schedule_id: self
+                    .feasible
+                    .last()
+                    .expect("just pushed")
+                    .schedule_id
+                    .clone(),
                 disposition: "FEASIBLE".to_owned(),
                 reason_codes: Vec::new(),
             });
@@ -549,16 +602,23 @@ fn pareto_frontier(mut schedules: Vec<Schedule>) -> Vec<Schedule> {
     schedules.sort_by(|a, b| a.schedule_id.cmp(&b.schedule_id));
     let mut unique: Vec<Schedule> = Vec::new();
     for schedule in schedules {
-        if let Some(existing) = unique.iter().find(|item| objective_equal(&item.objective, &schedule.objective)) {
+        if let Some(existing) = unique
+            .iter()
+            .find(|item| objective_equal(&item.objective, &schedule.objective))
+        {
             if schedule.schedule_id < existing.schedule_id {
-                let index = unique.iter().position(|item| item.schedule_id == existing.schedule_id).expect("exists");
+                let index = unique
+                    .iter()
+                    .position(|item| item.schedule_id == existing.schedule_id)
+                    .expect("exists");
                 unique[index] = schedule;
             }
         } else {
             unique.push(schedule);
         }
     }
-    let result = unique.iter()
+    let result = unique
+        .iter()
         .filter(|candidate| {
             !unique.iter().any(|other| {
                 other.schedule_id != candidate.schedule_id
@@ -639,10 +699,16 @@ pub fn audit_corpus(bytes: &[u8], source_commit: &str) -> Result<Receipt, String
         }
         cases.push(evaluate_case(case)?);
     }
-    let matches = cases.iter().zip(corpus.cases.iter())
+    let matches = cases
+        .iter()
+        .zip(corpus.cases.iter())
         .filter(|(result, source)| {
             result.status == source.expected_status
-                && result.pareto_frontier.iter().map(|schedule| schedule.schedule_id.clone()).collect::<Vec<_>>()
+                && result
+                    .pareto_frontier
+                    .iter()
+                    .map(|schedule| schedule.schedule_id.clone())
+                    .collect::<Vec<_>>()
                     == source.expected_frontier_schedule_ids
         })
         .count();
@@ -669,9 +735,27 @@ mod tests {
 
     #[test]
     fn pareto_dominance_requires_strict_improvement_and_no_worse_dimension() {
-        let a = ObjectiveVector { elapsed_ms: 5, robot_motion_energy_mj: 10, illumination_energy_mj: 2, projector_energy_mj: 0, retakes: 0 };
-        let b = ObjectiveVector { elapsed_ms: 6, robot_motion_energy_mj: 10, illumination_energy_mj: 3, projector_energy_mj: 0, retakes: 0 };
-        let c = ObjectiveVector { elapsed_ms: 4, robot_motion_energy_mj: 12, illumination_energy_mj: 2, projector_energy_mj: 0, retakes: 0 };
+        let a = ObjectiveVector {
+            elapsed_ms: 5,
+            robot_motion_energy_mj: 10,
+            illumination_energy_mj: 2,
+            projector_energy_mj: 0,
+            retakes: 0,
+        };
+        let b = ObjectiveVector {
+            elapsed_ms: 6,
+            robot_motion_energy_mj: 10,
+            illumination_energy_mj: 3,
+            projector_energy_mj: 0,
+            retakes: 0,
+        };
+        let c = ObjectiveVector {
+            elapsed_ms: 4,
+            robot_motion_energy_mj: 12,
+            illumination_energy_mj: 2,
+            projector_energy_mj: 0,
+            retakes: 0,
+        };
         assert!(dominates(&a, &b));
         assert!(!dominates(&a, &c));
         assert!(!dominates(&a, &a));
@@ -679,12 +763,45 @@ mod tests {
 
     #[test]
     fn exact_frontier_keeps_incomparable_time_energy_tradeoffs() {
-        let a = Schedule { schedule_id: "A".to_owned(), selected_speed_ids: BTreeMap::new(), selected_option_ids: BTreeMap::new(), evidence_receipt_sha256: Vec::new(),
-            objective: ObjectiveVector { elapsed_ms: 5, robot_motion_energy_mj: 20, illumination_energy_mj: 2, projector_energy_mj: 0, retakes: 0 } };
-        let b = Schedule { schedule_id: "B".to_owned(), selected_speed_ids: BTreeMap::new(), selected_option_ids: BTreeMap::new(), evidence_receipt_sha256: Vec::new(),
-            objective: ObjectiveVector { elapsed_ms: 10, robot_motion_energy_mj: 10, illumination_energy_mj: 2, projector_energy_mj: 0, retakes: 0 } };
-        let c = Schedule { schedule_id: "C".to_owned(), selected_speed_ids: BTreeMap::new(), selected_option_ids: BTreeMap::new(), evidence_receipt_sha256: Vec::new(),
-            objective: ObjectiveVector { elapsed_ms: 12, robot_motion_energy_mj: 12, illumination_energy_mj: 3, projector_energy_mj: 0, retakes: 1 } };
+        let a = Schedule {
+            schedule_id: "A".to_owned(),
+            selected_speed_ids: BTreeMap::new(),
+            selected_option_ids: BTreeMap::new(),
+            evidence_receipt_sha256: Vec::new(),
+            objective: ObjectiveVector {
+                elapsed_ms: 5,
+                robot_motion_energy_mj: 20,
+                illumination_energy_mj: 2,
+                projector_energy_mj: 0,
+                retakes: 0,
+            },
+        };
+        let b = Schedule {
+            schedule_id: "B".to_owned(),
+            selected_speed_ids: BTreeMap::new(),
+            selected_option_ids: BTreeMap::new(),
+            evidence_receipt_sha256: Vec::new(),
+            objective: ObjectiveVector {
+                elapsed_ms: 10,
+                robot_motion_energy_mj: 10,
+                illumination_energy_mj: 2,
+                projector_energy_mj: 0,
+                retakes: 0,
+            },
+        };
+        let c = Schedule {
+            schedule_id: "C".to_owned(),
+            selected_speed_ids: BTreeMap::new(),
+            selected_option_ids: BTreeMap::new(),
+            evidence_receipt_sha256: Vec::new(),
+            objective: ObjectiveVector {
+                elapsed_ms: 12,
+                robot_motion_energy_mj: 12,
+                illumination_energy_mj: 3,
+                projector_energy_mj: 0,
+                retakes: 1,
+            },
+        };
         let frontier = pareto_frontier(vec![a, b, c]);
         assert_eq!(frontier.len(), 2);
         assert!(!frontier.iter().any(|item| item.schedule_id == "C"));
@@ -692,7 +809,11 @@ mod tests {
 
     #[test]
     fn hard_fail_gate_prevents_schedule_from_becoming_feasible() {
-        let mut gate = GateEvidence { gate_id: "timing".to_owned(), state: GateState::Fail, receipt_sha256: "a".repeat(64) };
+        let mut gate = GateEvidence {
+            gate_id: "timing".to_owned(),
+            state: GateState::Fail,
+            receipt_sha256: "a".repeat(64),
+        };
         assert_eq!(gate.state, GateState::Fail);
         gate.state = GateState::Pass;
         assert_eq!(gate.state, GateState::Pass);
@@ -700,18 +821,37 @@ mod tests {
 
     #[test]
     fn unknown_gate_is_not_a_pass() {
-        let gate = GateEvidence { gate_id: "calibration".to_owned(), state: GateState::Unknown, receipt_sha256: "b".repeat(64) };
+        let gate = GateEvidence {
+            gate_id: "calibration".to_owned(),
+            state: GateState::Unknown,
+            receipt_sha256: "b".repeat(64),
+        };
         assert_eq!(gate.state, GateState::Unknown);
     }
 
     #[test]
     fn frozen_corpus_matches_exact_frontiers() {
-        let bytes = include_bytes!("../../../docs/research/orbital-truss/fixtures/acquisition-codesign-v0_1.json");
-        let receipt = audit_corpus(bytes, "0123456789abcdef0123456789abcdef01234567").expect("frozen corpus validates");
+        let bytes = include_bytes!(
+            "../../../docs/research/orbital-truss/fixtures/acquisition-codesign-v0_1.json"
+        );
+        let receipt = audit_corpus(bytes, "0123456789abcdef0123456789abcdef01234567")
+            .expect("frozen corpus validates");
         assert_eq!(receipt.case_count, 8);
         assert_eq!(receipt.expected_outcome_matches, 8);
         assert_eq!(receipt.expected_outcome_mismatches, 0);
-        assert!(receipt.cases.iter().filter(|case| case.status == SearchStatus::SearchLimitNotProven).all(|case| !case.exactness_proven));
-        assert!(receipt.cases.iter().filter(|case| case.indeterminate_schedule_count > 0).all(|case| !case.exactness_proven));
+        assert!(
+            receipt
+                .cases
+                .iter()
+                .filter(|case| case.status == SearchStatus::SearchLimitNotProven)
+                .all(|case| !case.exactness_proven)
+        );
+        assert!(
+            receipt
+                .cases
+                .iter()
+                .filter(|case| case.indeterminate_schedule_count > 0)
+                .all(|case| !case.exactness_proven)
+        );
     }
 }
