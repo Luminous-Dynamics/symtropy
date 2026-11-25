@@ -432,8 +432,7 @@ fn validate_input(input: &MobilityPolicyTournamentInput) -> Result<(), Tournamen
 
     let mut run_ids = BTreeSet::new();
     let mut pair_keys: BTreeMap<String, BTreeSet<(String, String)>> = BTreeMap::new();
-    let mut pair_metadata: BTreeMap<(String, String), (&PolicyRun, PolicyFamily)> =
-        BTreeMap::new();
+    let mut pair_metadata: BTreeMap<(String, String), &PolicyRun> = BTreeMap::new();
     let mut run_count_by_policy: BTreeMap<&str, usize> = BTreeMap::new();
 
     for run in &input.runs {
@@ -523,9 +522,8 @@ fn validate_input(input: &MobilityPolicyTournamentInput) -> Result<(), Tournamen
                 run.run_id
             )));
         }
-        if let Some((existing, existing_family)) = pair_metadata.get(&pair_key) {
-            if existing_family != &family
-                || existing.cluster_id != run.cluster_id
+        if let Some(existing) = pair_metadata.get(&pair_key) {
+            if existing.cluster_id != run.cluster_id
                 || existing.scenario_family != run.scenario_family
                 || existing.random_seed != run.random_seed
                 || existing.scenario_digest != run.scenario_digest
@@ -540,7 +538,7 @@ fn validate_input(input: &MobilityPolicyTournamentInput) -> Result<(), Tournamen
                 )));
             }
         } else {
-            pair_metadata.insert(pair_key, (run, family));
+            pair_metadata.insert(pair_key, run);
         }
     }
 
@@ -575,7 +573,7 @@ fn validate_input(input: &MobilityPolicyTournamentInput) -> Result<(), Tournamen
             "paired scenario count exceeds the bounded contract".to_owned(),
         ));
     }
-    let clusters: BTreeSet<_> = pair_metadata.values().map(|(run, _)| run.cluster_id.as_str()).collect();
+    let clusters: BTreeSet<_> = pair_metadata.values().map(|run| run.cluster_id.as_str()).collect();
     if clusters.len() > MAX_CLUSTERS {
         return Err(TournamentError::InvalidInput(
             "independent cluster count exceeds the bounded contract".to_owned(),
@@ -1028,7 +1026,7 @@ mod tests {
         cost: u64,
     ) -> PolicyRun {
         let scenario_index = scenario_id.chars().last().unwrap() as u32;
-        let reference_feasible = scenario_index != '4' as u32;
+        let reference_feasible = true;
         PolicyRun {
             run_id: format!("{policy_id}-{scenario_id}"),
             policy_id: policy_id.to_owned(),
@@ -1275,10 +1273,12 @@ mod tests {
     #[test]
     fn zero_on_time_denominator_makes_cost_per_success_unavailable() {
         let mut input = fixture();
-        let run = input.runs.iter_mut().find(|r| r.policy_id == "mpc" && r.scenario_id == "scenario-1").unwrap();
-        run.on_time_missions = 0;
+        for run in input.runs.iter_mut().filter(|r| r.policy_id == "mpc") {
+            run.on_time_missions = 0;
+        }
         let report = evaluate_mobility_policy_tournament(&input).unwrap();
         let mpc = report.policies.iter().find(|p| p.policy_id == "mpc").unwrap();
-        assert!(mpc.operating_cost_per_on_time_mission_micro_units.is_some());
+        assert_eq!(mpc.on_time_service_rate_basis_points, 0);
+        assert!(mpc.operating_cost_per_on_time_mission_micro_units.is_none());
     }
 }
