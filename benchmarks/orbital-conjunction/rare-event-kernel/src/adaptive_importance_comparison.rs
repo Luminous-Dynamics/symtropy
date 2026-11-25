@@ -866,4 +866,69 @@ mod tests {
             Err(AdaptiveImportanceComparisonError::InvalidTimingRepetitions)
         );
     }
+
+    #[test]
+    fn exhaustive_adaptive_paths_preserve_coverage_at_decision_triggered_stopping_times() {
+        const HORIZON: u32 = 6;
+        const POLICY_COUNT: usize = 6;
+        const THRESHOLD: f64 = 0.5;
+        const WIDTH_TARGET: f64 = 0.9;
+        let checkpoints = (1..=HORIZON as usize).collect::<Vec<_>>();
+        let mut miss_probability = [[0.0_f64; POLICY_COUNT]; 3];
+
+        for encoded_path in 0_u32..(1_u32 << HORIZON) {
+            let (receipts, path_probability) = adaptive_receipts(HORIZON as usize, encoded_path);
+            let report =
+                compare_adaptive_importance_sequences(&receipts, config(&checkpoints, Some(THRESHOLD), 1))
+                    .unwrap();
+
+            for (method_index, method) in report.methods.iter().enumerate() {
+                let last_index = method.snapshots.len() - 1;
+                let below_threshold_stop = method
+                    .snapshots
+                    .iter()
+                    .position(|snapshot| snapshot.upper < THRESHOLD)
+                    .unwrap_or(last_index);
+                let above_threshold_stop = method
+                    .snapshots
+                    .iter()
+                    .position(|snapshot| snapshot.lower >= THRESHOLD)
+                    .unwrap_or(last_index);
+                let width_stop = method
+                    .snapshots
+                    .iter()
+                    .position(|snapshot| snapshot.width <= WIDTH_TARGET)
+                    .unwrap_or(last_index);
+                let two_draw_budget_stop = method
+                    .snapshots
+                    .iter()
+                    .position(|snapshot| snapshot.sample_count >= 2)
+                    .unwrap_or(last_index);
+                let stop_indices = [
+                    last_index,
+                    0,
+                    below_threshold_stop,
+                    above_threshold_stop,
+                    width_stop,
+                    two_draw_budget_stop,
+                ];
+
+                for (policy_index, snapshot_index) in stop_indices.into_iter().enumerate() {
+                    if !method.snapshots[snapshot_index].contains_fixture_truth {
+                        miss_probability[method_index][policy_index] += path_probability;
+                    }
+                }
+            }
+        }
+
+        for (method_index, policy_misses) in miss_probability.iter().enumerate() {
+            for (policy_index, probability) in policy_misses.iter().copied().enumerate() {
+                assert!(
+                    probability <= 0.05 + 1.0e-10,
+                    "method index {method_index}, stop-policy index {policy_index} had miss probability {probability}"
+                );
+            }
+        }
+    }
+
 }
