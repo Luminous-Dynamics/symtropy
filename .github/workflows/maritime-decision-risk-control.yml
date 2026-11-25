@@ -172,7 +172,7 @@ jobs:
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin cross-standard-mapping-audit > /tmp/cross-standard-mapping.csv
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin cross-standard-mapping-audit > /tmp/cross-standard-mapping-replay.csv
           cmp /tmp/cross-standard-mapping.csv /tmp/cross-standard-mapping-replay.csv
-          test "$(wc -l < /tmp/cross-standard-mapping.csv)" -eq 18
+          test "$(wc -l < /tmp/cross-standard-mapping.csv)" -eq 20
           head -n 1 /tmp/cross-standard-mapping.csv | awk -F, '{ if (NF != 9) exit 1 }'
           awk -F, 'NF != 9 { exit 1 }' /tmp/cross-standard-mapping.csv
           grep -q "DCSA_CLASSIFIER_CANNOT_MAP_TO_BIZSTEP" /tmp/cross-standard-mapping.csv
