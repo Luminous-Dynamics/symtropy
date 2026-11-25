@@ -344,13 +344,31 @@ mod tests {
         }
     }
 
+
+    fn derive_from_observed(
+        event_digest: [u8; 32],
+        definition: &HorizonEventDefinition,
+        trajectories: &[FinitePathwiseTrajectoryAtom],
+    ) -> Result<FinitePathwiseProposalSupport, PathwiseProposalError> {
+        let mut expected_atom_ids = trajectories
+            .iter()
+            .map(|trajectory| trajectory.atom_id)
+            .collect::<Vec<_>>();
+        expected_atom_ids.sort_unstable();
+        let manifest = FinitePathwiseSupportManifest {
+            manifest_digest: [200; 32],
+            expected_atom_ids,
+        };
+        derive_finite_pathwise_proposal_support(event_digest, definition, &manifest, trajectories)
+    }
+
     #[test]
     fn overlapping_encounter_windows_produce_one_pathwise_event_atom() {
         let definition = definition(
             WindowInventoryCoverage::DeclaredComplete,
             vec![window("early", 10.0, 30.0), window("overlap", 20.0, 40.0)],
         );
-        let support = derive_finite_pathwise_proposal_support(
+        let support = derive_from_observed(
             EVENT_DIGEST,
             &definition,
             &[FinitePathwiseTrajectoryAtom {
@@ -383,7 +401,7 @@ mod tests {
                 window("third", 50.0, 60.0),
             ],
         );
-        let support = derive_finite_pathwise_proposal_support(
+        let support = derive_from_observed(
             EVENT_DIGEST,
             &definition,
             &[
@@ -428,7 +446,7 @@ mod tests {
             WindowInventoryCoverage::KnownIncomplete,
             vec![window("observed", 10.0, 20.0)],
         );
-        let result = derive_finite_pathwise_proposal_support(
+        let result = derive_from_observed(
             EVENT_DIGEST,
             &definition,
             &[FinitePathwiseTrajectoryAtom {
@@ -445,7 +463,7 @@ mod tests {
             WindowInventoryCoverage::KnownIncomplete,
             vec![window("observed", 10.0, 20.0)],
         );
-        let support = derive_finite_pathwise_proposal_support(
+        let support = derive_from_observed(
             EVENT_DIGEST,
             &definition,
             &[FinitePathwiseTrajectoryAtom {
@@ -465,7 +483,7 @@ mod tests {
             vec![window("a", 10.0, 20.0), window("b", 30.0, 40.0)],
         );
         assert_eq!(
-            derive_finite_pathwise_proposal_support(
+            derive_from_observed(
                 EVENT_DIGEST,
                 &definition,
                 &[FinitePathwiseTrajectoryAtom {
@@ -476,7 +494,7 @@ mod tests {
             Err(PathwiseProposalError::InvalidPathwiseClassification)
         );
         assert_eq!(
-            derive_finite_pathwise_proposal_support(
+            derive_from_observed(
                 EVENT_DIGEST,
                 &definition,
                 &[FinitePathwiseTrajectoryAtom {
@@ -508,7 +526,7 @@ mod tests {
             },
         ];
         assert_eq!(
-            derive_finite_pathwise_proposal_support(EVENT_DIGEST, &definition, &duplicate_id),
+            derive_from_observed(EVENT_DIGEST, &definition, &duplicate_id),
             Err(PathwiseProposalError::DuplicateAtomIdentity)
         );
 
@@ -523,7 +541,7 @@ mod tests {
             },
         ];
         assert_eq!(
-            derive_finite_pathwise_proposal_support(
+            derive_from_observed(
                 EVENT_DIGEST,
                 &definition,
                 &duplicate_realization
@@ -538,7 +556,7 @@ mod tests {
             WindowInventoryCoverage::DeclaredComplete,
             vec![window("a", 10.0, 20.0)],
         );
-        let support = derive_finite_pathwise_proposal_support(
+        let support = derive_from_observed(
             EVENT_DIGEST,
             &definition,
             &[FinitePathwiseTrajectoryAtom {
@@ -570,11 +588,11 @@ mod tests {
             vec![window("a", 10.0, 20.0)],
         );
         assert_eq!(
-            derive_finite_pathwise_proposal_support(EVENT_DIGEST, &definition, &[]),
+            derive_from_observed(EVENT_DIGEST, &definition, &[]),
             Err(PathwiseProposalError::EmptyTrajectorySupport)
         );
         assert_eq!(
-            derive_finite_pathwise_proposal_support(
+            derive_from_observed(
                 [0; 32],
                 &definition,
                 &[FinitePathwiseTrajectoryAtom {
@@ -593,7 +611,7 @@ mod tests {
             vec![window("a", 10.0, 20.0)],
         );
         assert_eq!(
-            derive_finite_pathwise_proposal_support(
+            derive_from_observed(
                 EVENT_DIGEST,
                 &definition,
                 &[FinitePathwiseTrajectoryAtom {
@@ -602,6 +620,99 @@ mod tests {
                 }],
             ),
             Err(PathwiseProposalError::InvalidAtomIdentity)
+        );
+    }
+
+
+    #[test]
+    fn frozen_support_manifest_detects_omitted_atoms_and_canonicalizes_input_order() {
+        let definition = definition(
+            WindowInventoryCoverage::DeclaredComplete,
+            vec![window("a", 10.0, 20.0)],
+        );
+        let manifest = FinitePathwiseSupportManifest {
+            manifest_digest: [201; 32],
+            expected_atom_ids: vec![[40; 32], [41; 32]],
+        };
+        let only_one = [FinitePathwiseTrajectoryAtom {
+            atom_id: [40; 32],
+            window_outcomes: vec![no_contact("trajectory-40", "a")],
+        }];
+        assert_eq!(
+            derive_finite_pathwise_proposal_support(
+                EVENT_DIGEST,
+                &definition,
+                &manifest,
+                &only_one
+            ),
+            Err(PathwiseProposalError::SupportManifestMismatch)
+        );
+
+        let reversed = [
+            FinitePathwiseTrajectoryAtom {
+                atom_id: [41; 32],
+                window_outcomes: vec![contact("trajectory-41", "a", 15.0)],
+            },
+            FinitePathwiseTrajectoryAtom {
+                atom_id: [40; 32],
+                window_outcomes: vec![no_contact("trajectory-40", "a")],
+            },
+        ];
+        let support = derive_finite_pathwise_proposal_support(
+            EVENT_DIGEST,
+            &definition,
+            &manifest,
+            &reversed,
+        )
+        .unwrap();
+        assert_eq!(
+            support.atoms,
+            vec![
+                FiniteProposalAtom { atom_id: [40; 32], is_event: false },
+                FiniteProposalAtom { atom_id: [41; 32], is_event: true },
+            ]
+        );
+        assert_eq!(support.support_manifest_digest, [201; 32]);
+    }
+
+    #[test]
+    fn malformed_or_noncanonical_support_manifest_is_rejected() {
+        let definition = definition(
+            WindowInventoryCoverage::DeclaredComplete,
+            vec![window("a", 10.0, 20.0)],
+        );
+        let trajectory = [FinitePathwiseTrajectoryAtom {
+            atom_id: [42; 32],
+            window_outcomes: vec![no_contact("trajectory-42", "a")],
+        }];
+        let zero_digest = FinitePathwiseSupportManifest {
+            manifest_digest: [0; 32],
+            expected_atom_ids: vec![[42; 32]],
+        };
+        assert_eq!(
+            derive_finite_pathwise_proposal_support(
+                EVENT_DIGEST,
+                &definition,
+                &zero_digest,
+                &trajectory
+            ),
+            Err(PathwiseProposalError::InvalidSupportManifest)
+        );
+        let unsorted = FinitePathwiseSupportManifest {
+            manifest_digest: [202; 32],
+            expected_atom_ids: vec![[43; 32], [42; 32]],
+        };
+        assert_eq!(
+            derive_finite_pathwise_proposal_support(
+                EVENT_DIGEST,
+                &definition,
+                &unsorted,
+                &[trajectory[0].clone(), FinitePathwiseTrajectoryAtom {
+                    atom_id: [43; 32],
+                    window_outcomes: vec![no_contact("trajectory-43", "a")],
+                }]
+            ),
+            Err(PathwiseProposalError::InvalidSupportManifest)
         );
     }
 
