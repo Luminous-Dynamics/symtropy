@@ -3889,4 +3889,237 @@ mod tests {
         );
         assert_eq!(durable.effects, 1);
     }
+
+    #[derive(Default)]
+    struct MemoryGazeboArtifactStore {
+        artifacts: BTreeMap<String, Vec<u8>>,
+    }
+
+    impl journaled::GazeboEvidenceArtifactStore for MemoryGazeboArtifactStore {
+        type Error = &'static str;
+
+        fn persist(&mut self, name: &str, bytes: &[u8]) -> Result<String, Self::Error> {
+            use sha2::{Digest, Sha256};
+            self.artifacts.insert(name.to_owned(), bytes.to_vec());
+            let digest = Sha256::digest(bytes);
+            Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect())
+        }
+    }
+
+    fn journaled_test_path(label: &str) -> std::path::PathBuf {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock")
+            .as_nanos();
+        std::env::temp_dir().join(format!(
+            "rrvr-journaled-{label}-{}-{nonce}.jsonl",
+            std::process::id()
+        ))
+    }
+
+    fn cleanup_journaled_test_path(path: &std::path::Path) {
+        let _ = std::fs::remove_file(path);
+        let mut lock = path.as_os_str().to_os_string();
+        lock.push(".writer.lock");
+        let _ = std::fs::remove_file(std::path::PathBuf::from(lock));
+    }
+
+    struct JournalObservingGazebo {
+        inner: MockGazebo,
+        journal_path: std::path::PathBuf,
+    }
+
+    impl GazeboSimulationTransport for JournalObservingGazebo {
+        type Error = &'static str;
+
+        fn get_simulator_features(&mut self) -> Result<GazeboCapabilityProfile, Self::Error> {
+            self.inner.get_simulator_features()
+        }
+
+        fn get_world_state(
+            &mut self,
+            world_name: &str,
+        ) -> Result<GazeboWorldSnapshot, Self::Error> {
+            self.inner.get_world_state(world_name)
+        }
+
+        fn pause_simulation(&mut self, world_name: &str) -> Result<(), Self::Error> {
+            self.inner.pause_simulation(world_name)
+        }
+
+        fn reset_simulation(&mut self, world_name: &str) -> Result<(), Self::Error> {
+            let summary = crate::durable_journal::verify_file(&self.journal_path)
+                .expect("reset intent must be readable and synced before ResetSimulation");
+            assert_eq!(summary.reset_intent_count, 1);
+            self.inner.reset_simulation(world_name)
+        }
+
+        fn step_simulation(
+            &mut self,
+            world_name: &str,
+            steps: u64,
+            method: SteppingMethod,
+        ) -> Result<(), Self::Error> {
+            self.inner.step_simulation(world_name, steps, method)
+        }
+
+        fn resolve_target(
+            &mut self,
+            world_name: &str,
+            logical_component_id: &str,
+        ) -> Result<GazeboTargetBinding, Self::Error> {
+            self.inner.resolve_target(world_name, logical_component_id)
+        }
+    }
+
+    #[test]
+    fn journaled_reset_is_synced_before_the_simulator_mutator() {
+        let plan = plan();
+        let path = journaled_test_path("reset-order");
+        let mut journal = crate::durable_journal::Journal::open(&path).unwrap();
+        let mut store = MemoryGazeboArtifactStore::default();
+        let mut simulator = JournalObservingGazebo {
+            inner: mock_transport(&plan),
+            journal_path: path.clone(),
+        };
+        let mut session = preflight_transport(&mut simulator, &plan).unwrap();
+        let result = journaled::reset_and_verify_journaled(
+            &mut simulator,
+            &mut store,
+            &mut journal,
+            &plan,
+            &mut session,
+            journaled::GazeboResetRunIdentity {
+                run_id: "run-journaled-reset",
+                run_epoch: "epoch-1",
+            },
+        )
+        .unwrap();
+        assert_eq!(simulator.inner.reset_calls, 1);
+        assert_eq!(journal.summary().reset_verified_count, 1);
+        assert_eq!(result.snapshot.world_epoch, session.world_epoch);
+        drop(journal);
+        cleanup_journaled_test_path(&path);
+    }
+
+    #[test]
+    fn reset_identity_is_stable_when_rehydrated_after_world_epoch_advances() {
+        let plan = plan();
+        let path = journaled_test_path("reset-rehydrate");
+        let mut journal = crate::durable_journal::Journal::open(&path).unwrap();
+        let mut store = MemoryGazeboArtifactStore::default();
+        let mut simulator = mock_transport(&plan);
+        let mut first_session = preflight_transport(&mut simulator, &plan).unwrap();
+        let identity = journaled::GazeboResetRunIdentity {
+            run_id: "run-reset-rehydrate",
+            run_epoch: "epoch-1",
+        };
+        let first_key =
+            journaled::reset_idempotency_key(&plan, &first_session, identity).unwrap();
+        let reset = journaled::reset_and_verify_journaled(
+            &mut simulator,
+            &mut store,
+            &mut journal,
+            &plan,
+            &mut first_session,
+            identity,
+        )
+        .unwrap();
+        let mut restarted_session =
+            journaled::preflight_transport_read_only(&mut simulator, &plan).unwrap();
+        let restarted_key =
+            journaled::reset_idempotency_key(&plan, &restarted_session, identity).unwrap();
+        assert_eq!(first_key, restarted_key);
+        let snapshot = journaled::recover_reset_from_journal(
+            &mut simulator,
+            &mut store,
+            &mut journal,
+            &plan,
+            &mut restarted_session,
+            &reset.reset_id,
+            identity,
+        )
+        .unwrap();
+        assert_eq!(snapshot.world_epoch, reset.snapshot.world_epoch);
+        assert_eq!(simulator.reset_calls, 1);
+        drop(journal);
+        cleanup_journaled_test_path(&path);
+    }
+
+    #[test]
+    fn journaled_dispatch_is_not_redispatched_after_coordinator_restart() {
+        let plan = plan();
+        let path = journaled_test_path("dispatch-restart");
+        let mut store = MemoryGazeboArtifactStore::default();
+        let mut simulator = mock_transport(&plan);
+        let mut session = preflight_transport(&mut simulator, &plan).unwrap();
+        let mut journal = crate::durable_journal::Journal::open(&path).unwrap();
+        let reset = journaled::reset_and_verify_journaled(
+            &mut simulator,
+            &mut store,
+            &mut journal,
+            &plan,
+            &mut session,
+            journaled::GazeboResetRunIdentity {
+                run_id: "run-dispatch-restart",
+                run_epoch: "epoch-1",
+            },
+        )
+        .unwrap();
+        let scenario = plan
+            .scenarios
+            .iter()
+            .find(|scenario| !scenario.fault_events.is_empty())
+            .unwrap();
+        let fault = &scenario.fault_events[0];
+        let identity = journaled::GazeboJournaledDispatchIdentity {
+            reset_id: &reset.reset_id,
+            scenario_id: &scenario.scenario_id,
+            fault_id: &fault.fault_id,
+            run_id: "run-dispatch-restart",
+            run_epoch: "epoch-1",
+            attempt_id: "attempt-1",
+        };
+        let mut injector = MockInjector {
+            dispatch_calls: 0,
+            lookup: DispatchLedgerResult::Unknown,
+        };
+        let first = journaled::dispatch_planned_fault_once_journaled(
+            &mut simulator,
+            &mut injector,
+            &mut store,
+            &mut journal,
+            &plan,
+            &session,
+            identity,
+        )
+        .unwrap();
+        assert!(matches!(
+            first.outcome,
+            GazeboDispatchOutcome::Reconciled {
+                decision: ReconciliationDecision::Unresolved
+            }
+        ));
+        assert_eq!(injector.dispatch_calls, 1);
+        drop(journal);
+
+        let mut reopened = crate::durable_journal::Journal::open(&path).unwrap();
+        let second = journaled::dispatch_planned_fault_once_journaled(
+            &mut simulator,
+            &mut injector,
+            &mut store,
+            &mut reopened,
+            &plan,
+            &session,
+            identity,
+        )
+        .unwrap();
+        assert!(second.recovered_from_journal);
+        assert_eq!(injector.dispatch_calls, 1);
+        assert_eq!(reopened.summary().dispatch_intent_count, 1);
+        drop(reopened);
+        cleanup_journaled_test_path(&path);
+    }
+
 }
