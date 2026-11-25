@@ -42,7 +42,7 @@ If no applicable trajectory/keep-out shield or safety admissibility receipt exis
 
 ## Frozen corpus
 
-Twenty synthetic cases cover:
+Twenty-three synthetic cases cover:
 1. all gates PASS;
 2. physical-safety FAIL and UNKNOWN;
 3. measurement acquisition FAIL and UNKNOWN;
@@ -55,7 +55,9 @@ Twenty synthetic cases cover:
 10. high-resource/low-value but otherwise admissible inspection;
 11. malformed receipt digest;
 12. post-action portfolio FAIL;
-13. scope-coherence FAIL.
+13. scope-coherence FAIL;
+14. post-action portfolio trajectory mismatch;
+15. measurement vehicle/horizon mismatch.
 
 The independent Python oracle and Rust evaluator must agree on the full receipt. Case ordering and source input ordering do not alter canonical output.
 
