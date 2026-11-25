@@ -39,21 +39,43 @@ Preserve source-native timestamp text, time zone/offset, precision, clock identi
 
 `issuer_recorded_at` is not interchangeable with `receiver_first_seen_at`. A source may claim it recorded an event on Monday while the receiving evidence system first received it on Thursday. That difference is itself important evidence.
 
-### 2.2 Two historical query modes
+### 2.2 Three-axis replay coordinates
+
+Every replay is keyed by three independent cutoffs, not one overloaded timestamp:
+
+`T_subject`: the physical/effective-time question being reconstructed (for example, whether calibration was valid when an observation was acquired).
+
+`T_evidence`: the receiver-observed evidence-inclusion cutoff, backed by an owner-native receipt/checkpoint. This determines which exact event bytes had entered the evidence view.
+
+`T_trust`: the trust-knowledge cutoff and immutable trust-policy/status snapshot used to assess issuer authority, signatures, timestamp authorities and key compromise.
+
+The replay coordinate is:
+
+`ReplayQuery = (T_subject, T_evidence, T_trust, policy_digest, verifier_version)`
+
+The same `T_subject` may be replayed with different `T_evidence` and `T_trust`. A trust-policy identifier without an immutable policy/status snapshot is insufficient.
+
+### 2.3 Three historical query modes
 
 Every replay must label which question it answers.
 
 **AS_KNOWN_AT(T)**
 
-Reconstruct the decision from evidence durably received by snapshot T, using the trust-policy version and evidence-inclusion watermark pinned to that snapshot. Evidence first received after T must not influence the result.
+Use the original subject-time cutoff, original receiver evidence watermark and original trust snapshot. This is the historical decision view. Events received after the evidence watermark cannot influence it, even if their asserted effective time is retroactive.
 
 **RECOMPUTED_WITH_CURRENT_TRUST(T)**
 
-Re-evaluate the same historical acquisition/effective-time question using the current trust and revocation information, while retaining and linking the original AS_KNOWN_AT(T) report. The later evaluation is a new report, never an overwrite.
+Keep the original subject-time cutoff and original evidence watermark, but reassess the admitted event bytes using current trust/revocation information. This answers: "Would we still trust the evidence we actually had then?" It does not add late-arriving events.
 
-These modes answer different questions. For example, a signature that was trusted under the historical policy may later be discovered to have been issued by a compromised key. The system should preserve both the original decision context and the current reassessment.
+**RECOMPUTED_WITH_CURRENT_EVIDENCE_AND_TRUST(T)**
 
-### 2.3 Effective time versus knowledge time
+Keep the original subject-time question but advance both the evidence receipt cutoff and trust snapshot. This answers: "Given everything received and trusted now, what do we currently conclude about that historical subject time?" A later-received, retroactively effective revocation can change this new report without rewriting either earlier report.
+
+Every report must retain its exact three-axis query coordinate and link to its predecessor/reassessment. New reports are append-only. No later query overwrites a historical decision.
+
+The three views are intentionally non-equivalent. A signature trusted under the historical policy may later be found compromised; a revocation may also arrive late but claim an earlier effective time. Preserve the original decision, the trust-only reassessment and the full retrospective reassessment separately.
+
+### 2.4 Effective time versus knowledge time
 
 For event E and evaluation snapshot T, the event may influence an as-of result only if:
 
@@ -65,7 +87,7 @@ For event E and evaluation snapshot T, the event may influence an as-of result o
 
 A known-but-not-yet-effective event is `NOT_YET_EFFECTIVE`. An event that exists only in a later receipt is `NOT_KNOWN_AT_SNAPSHOT`. Missing evidence or uncertain source chronology is `TRUST_UNRESOLVED` or `ABSTAIN`, never an implicit pass.
 
-### 2.4 Measurement-time uncertainty
+### 2.5 Measurement-time uncertainty
 
 A timestamp is not infinitely precise. Preserve an acquisition-time interval or estimate plus uncertainty. For calibration validity `[valid_from, valid_until)`, a conservative positive binding requires the entire credible acquisition interval to be contained in the validity interval.
 
@@ -79,7 +101,7 @@ The benchmark evaluates an envelope that references owner-native event/artifact 
 
 | Field | Purpose | Required disposition |
 |---|---|---|
-| Source namespace + immutable event ID | Prevent ambiguous cross-source identity | Missing/duplicate/conflicting identity blocks |
+| Source namespace + issuer identity + immutable event ID | Resolve an event under a trust-policy-bound source namespace; prevent aliases from evading duplicate detection | Missing/unverified/conflicting namespace-to-issuer binding blocks |
 | Subject/resource and scope IDs | Bind event to exact certificate, instrument, method and physical evidence | Cross-scope event blocks |
 | Event type + schema/profile version | Define semantics under a pinned contract | Unknown required type/profile abstains |
 | Canonical payload digest | Bind exact event content | Digest mismatch rejects |
@@ -298,16 +320,16 @@ The machine-readable first slice is:
 - `docs/research/aviation/examples/aero_temporal_replay_corpus_v0_1.json`
 - `docs/research/aviation/schemas/aero_temporal_replay_corpus_v0_1.schema.json`
 
-It contains 15 synthetic controls, including a positive binding-only baseline, a known-but-future-effective revocation, an event received after the historical watermark despite a backdated issuer timestamp, a known effective revocation, acquisition-time uncertainty crossing a calibration boundary, a timestamp imprint mismatch, unknown issuer authority, source-sequence gaps, conflicting duplicate event IDs, current-trust key-compromise reassessment, correction cycles and source-clock rollback, and a backdated receiver-time claim without independently verifiable receipt evidence.
+It contains 16 synthetic controls, including a positive binding-only baseline, a known-but-future-effective revocation, an event received after the historical watermark despite a backdated issuer timestamp, a known effective revocation, acquisition-time uncertainty crossing a calibration boundary, a timestamp imprint mismatch, unknown issuer authority, source-sequence gaps, conflicting duplicate event IDs, current-trust key-compromise reassessment, correction cycles and source-clock rollback, and a backdated receiver-time claim without independently verifiable receipt evidence; an unauthorized namespace alias from the same issuer.
 
-Every case freezes both `AS_KNOWN_AT` and `RECOMPUTED_WITH_CURRENT_TRUST` expected dispositions. The fixture deliberately permits duplicate event IDs so that the duplicate-conflict challenge is representable; uniqueness is a semantic rule to be evaluated, not a JSON Schema uniqueness rule over complete objects.
+Every case freezes `AS_KNOWN_AT`, `RECOMPUTED_WITH_CURRENT_TRUST` and `RECOMPUTED_WITH_CURRENT_EVIDENCE_AND_TRUST` dispositions over distinct evidence and trust cutoffs. The fixture deliberately permits duplicate event IDs so that the duplicate-conflict challenge is representable; uniqueness is a semantic rule to be evaluated, not a JSON Schema uniqueness rule over complete objects.
 
 **Oracle status: `NOT_INDEPENDENTLY_REVIEWED`.** The corpus is a contract fixture and is schema-validated in CI. It is not yet wired to the v0.2 Rust evaluator and must not be described as a passing semantic oracle. Independent review should precede evaluator integration.
 
 ## 11. Execution sequence
 
 1. Independently review the existing 31 v0.2 dispositions and the Rust event replay test.
-2. Independently review the 12 temporal replay vectors and extend them with generated correction histories, sequence/fork properties and boundary cases.
+2. Independently review the 16 temporal replay vectors and extend them with generated correction histories, sequence/fork properties and boundary cases.
 3. Define an owner-native event receipt mapping with Mycelix and BASALT maintainers; do not add duplicate state.
 4. Resolve duplicate event identity before correction-reference resolution in the evaluator; add conflicting-payload permutation regression tests.
 5. Add a verifier adapter for supplied signature/timestamp evidence only after its source format and trust policy are pinned.
