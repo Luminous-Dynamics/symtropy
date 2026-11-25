@@ -624,8 +624,8 @@ mod tests {
             "0123456789abcdef0123456789abcdef01234567",
         )
         .expect("corpus audits");
-        assert_eq!(receipt.case_count, 15);
-        assert_eq!(receipt.expected_outcome_matches, 15);
+        assert_eq!(receipt.case_count, 17);
+        assert_eq!(receipt.expected_outcome_matches, 17);
         assert_eq!(receipt.expected_outcome_mismatches, 0);
     }
 
@@ -725,6 +725,74 @@ mod tests {
     }
 
     #[test]
+    fn complete_frame_is_integrated_directly_not_summed_from_rounded_channels() {
+        let input = corpus();
+        let case = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "TV-016-FRAME-WINDOW-TRAP")
+            .unwrap();
+        let result = evaluate_case(case);
+        let bounds = result.bounds.unwrap();
+
+        assert_eq!(bounds.row_time.total_um, 1);
+        assert_eq!(bounds.latest_row_exposure.total_um, 10);
+        assert_eq!(bounds.combined_frame.total_um, 13);
+        assert_eq!(bounds.exposure_x_micro_px_upper, 120_000);
+        assert_eq!(bounds.row_time_x_micro_px_upper, 12_000);
+        assert_eq!(bounds.combined_frame_x_micro_px_upper, 156_000);
+        assert_eq!(result.status, Status::BudgetExceeded);
+    }
+
+    #[test]
+    fn symmetric_first_row_exposure_includes_negative_time_half() {
+        let input = corpus();
+        let case = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "TV-015-NEGATIVE-TIME-HALF-EXPOSURE")
+            .unwrap();
+        let bounds = calculate_bounds(&case.model).unwrap();
+
+        assert_eq!(bounds.row_time.total_um, 0);
+        assert_eq!(bounds.latest_row_exposure.acceleration_um, 1);
+        assert_eq!(bounds.combined_frame.acceleration_um, 1);
+    }
+
+    #[test]
+    fn piecewise_exposure_integral_is_exact_on_both_sides_of_half_exposure() {
+        let below = exposure_acceleration_term(1_000_000_000, 250_000, 1_000_000).unwrap();
+        let at_boundary = exposure_acceleration_term(1_000_000_000, 500_000, 1_000_000).unwrap();
+        let above = exposure_acceleration_term(1_000_000_000, 750_000, 1_000_000).unwrap();
+
+        assert_eq!(below, 313);
+        assert_eq!(at_boundary, 500);
+        assert_eq!(above, 750);
+    }
+
+    #[test]
+    fn combined_frame_matches_constant_speed_over_full_interval() {
+        let input = corpus();
+        let case = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "TV-001-CONSTANT-SPEED")
+            .unwrap();
+        let bounds = calculate_bounds(&case.model).unwrap();
+        let expected = speed_term(
+            case.model.reference_point_speed_um_s,
+            case.model
+                .row_exposure_duration_ns
+                .checked_add(case.model.first_to_last_row_midpoint_span_ns)
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(bounds.combined_frame.speed_um, expected);
+        assert_eq!(bounds.combined_frame.acceleration_um, 0);
+        assert_eq!(bounds.combined_frame.jerk_um, 0);
+    }
+
+    #[test]
     fn global_shutter_has_zero_row_time_channel() {
         let input = corpus();
         let case = input
@@ -753,6 +821,12 @@ mod tests {
             .unwrap();
         assert_eq!(evaluate_case(unknown).status, Status::Indeterminate);
         assert_eq!(evaluate_case(failed).status, Status::Blocked);
+        let revoked = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "TV-017-FAILED-CALIBRATION")
+            .unwrap();
+        assert_eq!(evaluate_case(revoked).status, Status::Blocked);
     }
 
     #[test]
