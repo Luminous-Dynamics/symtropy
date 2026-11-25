@@ -1223,7 +1223,23 @@ mod tests {
         assert_eq!(mpc.paired_run_count, 4);
         assert_eq!(mpc.on_time_service_rate_basis_points.mean_delta, Some(1_000.0));
         assert!(mpc.on_time_service_rate_basis_points.interval_available);
+        assert_eq!(
+            mpc.on_time_service_rate_basis_points.lower_percentile,
+            Some(1_000.0)
+        );
+        assert_eq!(
+            mpc.on_time_service_rate_basis_points.upper_percentile,
+            Some(1_000.0)
+        );
         assert_eq!(mpc.signed_metered_grid_response_wh_per_run.mean_delta, Some(40.0));
+        assert_eq!(
+            mpc.signed_metered_grid_response_wh_per_run.lower_percentile,
+            Some(40.0)
+        );
+        assert_eq!(
+            mpc.signed_metered_grid_response_wh_per_run.upper_percentile,
+            Some(40.0)
+        );
         let summary = report.policies.iter().find(|p| p.policy_id == "mpc").unwrap();
         assert_eq!(summary.on_time_service_rate_basis_points, 9_000);
         assert_eq!(summary.timed_out_run_count, 0);
@@ -1281,6 +1297,48 @@ mod tests {
         assert!(matches!(
             evaluate_mobility_policy_tournament(&duplicate),
             Err(TournamentError::DuplicateRun(_))
+        ));
+    }
+
+    #[test]
+    fn scenario_family_and_exogenous_input_digest_must_match_across_policies() {
+        let mut family = fixture();
+        family
+            .runs
+            .iter_mut()
+            .find(|run| run.policy_id == "mpc" && run.scenario_id == "scenario-2")
+            .unwrap()
+            .scenario_family = "other-family".to_owned();
+        assert!(matches!(
+            evaluate_mobility_policy_tournament(&family),
+            Err(TournamentError::PairMismatch(_))
+        ));
+
+        let mut input_digest = fixture();
+        input_digest
+            .runs
+            .iter_mut()
+            .find(|run| run.policy_id == "shielded-drl" && run.scenario_id == "scenario-3")
+            .unwrap()
+            .scenario_input_digest = digest('9');
+        assert!(matches!(
+            evaluate_mobility_policy_tournament(&input_digest),
+            Err(TournamentError::PairMismatch(_))
+        ));
+    }
+
+    #[test]
+    fn evidence_class_must_match_declared_tournament_track() {
+        let mut input = fixture();
+        input
+            .runs
+            .iter_mut()
+            .find(|run| run.policy_id == "mpc")
+            .unwrap()
+            .evidence_class = EvidenceClass::MeasuredReplay;
+        assert!(matches!(
+            evaluate_mobility_policy_tournament(&input),
+            Err(TournamentError::EvidenceMismatch(_))
         ));
     }
 
