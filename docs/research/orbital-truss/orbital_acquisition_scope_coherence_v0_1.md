@@ -68,12 +68,12 @@ The 28 synthetic cases cover:
 9. individually valid calibration scoped to a different instrument configuration;
 10. evidence interval is definitely disjoint (before or after) from the acquisition;
 11. acquisition uncertainty envelope overlaps or touches the half-open calibration validity boundary (INDETERMINATE);\n12. exact zero-width acquisition-time interval at a single instant is allowed; zero-width evidence-validity interval is INVALID_INPUT;
-12. missing feature/sensor-pattern scope;
-13. duplicate scope claims and malformed digest shape;
-14. revoked source;
-15. digest-shaped but unauthenticated evidence;
-16. missing required timing evidence owner;
-17. extra, non-required source claim that contradicts the canonical acquisition identity.
+13. missing feature/sensor-pattern scope;
+14. duplicate scope claims and malformed digest shape;
+15. revoked source;
+16. digest-shaped but unauthenticated evidence;
+17. missing required timing evidence owner;
+18. extra, non-required source claim that contradicts the canonical acquisition identity.
 
 Rust tests also reverse case order, claim order and binding order; the canonical per-case result must remain unchanged.
 
