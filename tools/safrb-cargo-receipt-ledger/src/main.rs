@@ -11,7 +11,7 @@ fn run() -> Result<(), String> {
 
     match args.as_slice() {
         [flag] if flag == "--check" => {
-            if cases.len() != 9 || projections.iter().any(|projection| projection.hourly.len() != HORIZON_HOURS as usize) {
+            if cases.len() != 12 || projections.iter().any(|projection| projection.hourly.len() != HORIZON_HOURS as usize) {
                 return Err("cargo receipt ledger corpus shape mismatch".into());
             }
             println!("SAFRB cargo receipt ledger PASS: {} synthetic cases, {} hourly boundary observations per case", cases.len(), HORIZON_HOURS);
