@@ -11,7 +11,7 @@ A trace contains a full mechanical revolution, including both endpoints at theta
 - an optional monotonic timestamp (present for all samples or none);
 - radial/tangential field components at each latch's sensing position;
 - trace, coordinate-frame, operating-condition and angular-grid identities;
-- an evidence class (synthetic, solver prediction, calibrated field measurement or captured digital output).
+- a field-evidence class (synthetic scenario, solver prediction or calibrated field measurement). Captured digital A/B output is a different record type and is not accepted as a magnetic field trace by this crate.
 
 For a discrete two-latch arrangement, channel A and B can have different field values because they occupy different physical positions. For an integrated two-axis latch, both channels must receive the exact same local field vector and have separate sensing axes. The actual axis-angle difference is reported as non-orthogonality rather than silently forced to 90 degrees or rejected, so measured alignment error can enter the benchmark.
 
