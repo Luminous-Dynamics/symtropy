@@ -63,6 +63,10 @@ pub struct IsomorphismOracleReportV0 {
     pub correspondence: Option<StructuralCorrespondenceV0>,
     /// Number of complete node bijections examined after signature pruning.
     pub explored_node_bijections: usize,
+    /// Number of node bijections for which at least one valid relation-kind/
+    /// relation-instance mapping exists. This is not a count of alternate
+    /// relation-ID bijections for a fixed node map.
+    pub valid_node_mapping_count: usize,
 }
 
 /// Decide whole-structure isomorphism by exhaustive search.
@@ -137,6 +141,7 @@ pub fn exhaustive_isomorphism_oracle(
         isomorphic: false,
         correspondence: None,
         explored_node_bijections: 0,
+        valid_node_mapping_count: 0,
     };
     let mut current_nodes = Vec::with_capacity(source.nodes.len());
     let mut used_targets = BTreeSet::new();
@@ -153,7 +158,7 @@ pub fn exhaustive_isomorphism_oracle(
         &mut report,
     );
 
-    report.isomorphic = report.correspondence.is_some();
+    report.isomorphic = report.valid_node_mapping_count > 0;
     Ok(report)
 }
 
@@ -162,6 +167,7 @@ fn no_isomorphism(explored_node_bijections: usize) -> IsomorphismOracleReportV0 
         isomorphic: false,
         correspondence: None,
         explored_node_bijections,
+        valid_node_mapping_count: 0,
     }
 }
 
@@ -243,22 +249,23 @@ fn enumerate_node_bijections(
     target: &StructureV0,
     report: &mut IsomorphismOracleReportV0,
 ) {
-    if report.correspondence.is_some() {
-        return;
-    }
-
     if index == source_node_ids.len() {
         report.explored_node_bijections += 1;
         let node_map = current_nodes
             .iter()
             .map(|mapping| (mapping.source_node_id, mapping.target_node_id))
             .collect::<BTreeMap<_, _>>();
-        report.correspondence = find_kind_and_relation_mapping(
+        if let Some(correspondence) = find_kind_and_relation_mapping(
             source,
             target,
             &node_map,
             current_nodes,
-        );
+        ) {
+            report.valid_node_mapping_count += 1;
+            if report.correspondence.is_none() {
+                report.correspondence = Some(correspondence);
+            }
+        }
         return;
     }
 
@@ -289,9 +296,6 @@ fn enumerate_node_bijections(
         );
         current_nodes.pop();
         used_targets.remove(target_id);
-        if report.correspondence.is_some() {
-            return;
-        }
     }
 }
 
@@ -598,6 +602,7 @@ mod tests {
         let report = exhaustive_isomorphism_oracle(&source, &target).unwrap();
         assert!(report.isomorphic);
         assert_eq!(report.explored_node_bijections, 1);
+        assert_eq!(report.valid_node_mapping_count, 1);
         let correspondence = report.correspondence.unwrap();
         let witness =
             validate_structural_correspondence(&source, &target, &correspondence).unwrap();
@@ -663,6 +668,35 @@ mod tests {
         assert!(!report.isomorphic);
         assert!(report.correspondence.is_none());
         assert_eq!(report.explored_node_bijections, 720);
+        assert_eq!(report.valid_node_mapping_count, 0);
+    }
+
+    fn cycle_six() -> StructureV0 {
+        let nodes = (0..6).map(|id| NodeV0 { id }).collect::<Vec<_>>();
+        let relations = (0..6)
+            .map(|left| {
+                edge(
+                    left,
+                    1,
+                    left,
+                    (left + 1) % 6,
+                    RelationOrientationV0::Undirected,
+                )
+            })
+            .collect();
+        StructureV0 { nodes, relations }
+    }
+
+    #[test]
+    fn counts_symmetric_node_mappings_instead_of_forcing_uniqueness() {
+        let cycle = cycle_six();
+        let report = exhaustive_isomorphism_oracle(&cycle, &cycle).unwrap();
+        assert!(report.isomorphic);
+        assert_eq!(report.explored_node_bijections, 720);
+        // The automorphism group of an undirected six-cycle is the dihedral
+        // group D6: six rotations and six reflections.
+        assert_eq!(report.valid_node_mapping_count, 12);
+        assert!(report.correspondence.is_some());
     }
 
     #[test]
@@ -737,5 +771,6 @@ mod tests {
         let report = exhaustive_isomorphism_oracle(&source, &target).unwrap();
         assert!(!report.isomorphic);
         assert_eq!(report.explored_node_bijections, 0);
+        assert_eq!(report.valid_node_mapping_count, 0);
     }
 }
