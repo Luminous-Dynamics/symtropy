@@ -258,7 +258,7 @@ The machine-readable first slice is:
 - `docs/research/aviation/examples/aero_temporal_replay_corpus_v0_1.json`
 - `docs/research/aviation/schemas/aero_temporal_replay_corpus_v0_1.schema.json`
 
-It contains 12 synthetic controls, including a positive binding-only baseline, a known-but-future-effective revocation, an event received after the historical watermark despite a backdated issuer timestamp, a known effective revocation, acquisition-time uncertainty crossing a calibration boundary, a timestamp imprint mismatch, unknown issuer authority, source-sequence gaps, conflicting duplicate event IDs, current-trust key-compromise reassessment, correction cycles and source-clock rollback.
+It contains 13 synthetic controls, including a positive binding-only baseline, a known-but-future-effective revocation, an event received after the historical watermark despite a backdated issuer timestamp, a known effective revocation, acquisition-time uncertainty crossing a calibration boundary, a timestamp imprint mismatch, unknown issuer authority, source-sequence gaps, conflicting duplicate event IDs, current-trust key-compromise reassessment, correction cycles and source-clock rollback, and a backdated receiver-time claim without independently verifiable receipt evidence.
 
 Every case freezes both `AS_KNOWN_AT` and `RECOMPUTED_WITH_CURRENT_TRUST` expected dispositions. The fixture deliberately permits duplicate event IDs so that the duplicate-conflict challenge is representable; uniqueness is a semantic rule to be evaluated, not a JSON Schema uniqueness rule over complete objects.
 
