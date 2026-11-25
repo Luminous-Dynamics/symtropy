@@ -598,18 +598,19 @@ impl<const D: usize> StaticBroadphase<D> {
             let candidates = self.query_indices(&kinematic.aabb, backend)?;
             stats = stats.checked_add(candidates.stats)?;
             for other_index in candidates.entry_indices {
-                if other_index <= index {
-                    continue;
-                }
                 let other = &self.entries[other_index];
-                if other.body_type != BodyType::Static
-                    && other.body_type != BodyType::Kinematic
-                {
+                if other.handle == kinematic.handle {
                     continue;
                 }
-                let group_ok = (kinematic.collision_group & other.collision_mask != 0)
-                    && (other.collision_group & kinematic.collision_mask != 0);
-                if group_ok {
+                let static_pair = other.body_type == BodyType::Static;
+                let forward_kinematic_pair = other.body_type == BodyType::Kinematic
+                    && kinematic.handle < other.handle;
+                if static_pair || forward_kinematic_pair {
+                    let group_ok = (kinematic.collision_group & other.collision_mask != 0)
+                        && (other.collision_group & kinematic.collision_mask != 0);
+                    if !group_ok {
+                        continue;
+                    }
                     let (left, right) = (kinematic.handle, other.handle);
                     pairs.push(if left < right {
                         BroadphasePair(left, right)
@@ -622,6 +623,7 @@ impl<const D: usize> StaticBroadphase<D> {
         Ok((pairs, stats))
     }
 
+    /// Reference backend: scan every cached entry.
     /// Reference backend: scan every cached entry.
     fn query_indices(
         &self,
