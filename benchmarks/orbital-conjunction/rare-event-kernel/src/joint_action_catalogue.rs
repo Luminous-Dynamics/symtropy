@@ -179,14 +179,22 @@ impl core::fmt::Display for JointActionCatalogueError {
             Self::NonCanonicalActionSet => "coalition action identities are not strictly sorted",
             Self::UnknownAction => "coalition references an action outside the frozen universe",
             Self::DuplicateCoalitionOutcome => "coalition has more than one outcome row",
-            Self::UnexpectedCoalitionOutcome => "outcome row exists for a statically unselectable coalition",
-            Self::MissingCoalitionOutcome => "a statically selectable coalition lacks an outcome row",
+            Self::UnexpectedCoalitionOutcome => {
+                "outcome row exists for a statically unselectable coalition"
+            }
+            Self::MissingCoalitionOutcome => {
+                "a statically selectable coalition lacks an outcome row"
+            }
             Self::DuplicateActionSetDigest => "different coalition rows reuse an action-set digest",
             Self::InvalidReasonDigest => "infeasible or unresolved outcome lacks a reason digest",
-            Self::ConsequenceModelMismatch => "qualified coalition uses a different consequence model",
+            Self::ConsequenceModelMismatch => {
+                "qualified coalition uses a different consequence model"
+            }
             Self::InvalidNoActionControl => "no-action control does not reproduce the baseline",
             Self::ResourceArithmeticOverflow => "joint action resource cost overflowed",
-            Self::InvalidPortfolioEvidence => "joint action before/after portfolio evidence is invalid",
+            Self::InvalidPortfolioEvidence => {
+                "joint action before/after portfolio evidence is invalid"
+            }
         };
         formatter.write_str(message)
     }
@@ -280,18 +288,27 @@ pub fn evaluate_joint_action_catalogue(
         if outcome.action_ids.windows(2).any(|pair| pair[0] >= pair[1]) {
             return Err(JointActionCatalogueError::NonCanonicalActionSet);
         }
-        if outcome.action_ids.iter().any(|id| !candidates.contains_key(id)) {
+        if outcome
+            .action_ids
+            .iter()
+            .any(|id| !candidates.contains_key(id))
+        {
             return Err(JointActionCatalogueError::UnknownAction);
         }
         if !expected.contains_key(&outcome.action_ids) {
             return Err(JointActionCatalogueError::UnexpectedCoalitionOutcome);
         }
-        if outcome_by_set.insert(outcome.action_ids.clone(), outcome).is_some() {
+        if outcome_by_set
+            .insert(outcome.action_ids.clone(), outcome)
+            .is_some()
+        {
             return Err(JointActionCatalogueError::DuplicateCoalitionOutcome);
         }
     }
     if outcome_by_set.len() != expected.len()
-        || expected.keys().any(|action_ids| !outcome_by_set.contains_key(action_ids))
+        || expected
+            .keys()
+            .any(|action_ids| !outcome_by_set.contains_key(action_ids))
     {
         return Err(JointActionCatalogueError::MissingCoalitionOutcome);
     }
@@ -433,8 +450,7 @@ fn is_better(
     };
     candidate.3 > current.3
         || (candidate.3 == current.3
-            && (candidate.2 < current.2
-                || (candidate.2 == current.2 && candidate.0 < current.0)))
+            && (candidate.2 < current.2 || (candidate.2 == current.2 && candidate.0 < current.0)))
 }
 
 fn is_zero_digest(digest: &[u8; 32]) -> bool {
@@ -460,10 +476,7 @@ mod tests {
         Rational::new(numerator, denominator).unwrap()
     }
 
-    fn probability(
-        lower: (u128, u128),
-        upper: (u128, u128),
-    ) -> NonnegativeRationalInterval {
+    fn probability(lower: (u128, u128), upper: (u128, u128)) -> NonnegativeRationalInterval {
         NonnegativeRationalInterval {
             lower: rational(lower.0, lower.1),
             upper: rational(upper.0, upper.1),
@@ -561,8 +574,18 @@ mod tests {
         let b = [11; 32];
         let outcomes = vec![
             qualified(vec![], 1, vec![], 0),
-            qualified(vec![a], 2, vec![event(10, (1, 2_000_000), (2, 2_000_000))], 4),
-            qualified(vec![b], 3, vec![event(10, (1, 2_000_000), (2, 2_000_000))], 7),
+            qualified(
+                vec![a],
+                2,
+                vec![event(10, (1, 2_000_000), (2, 2_000_000))],
+                4,
+            ),
+            qualified(
+                vec![b],
+                3,
+                vec![event(10, (1, 2_000_000), (2, 2_000_000))],
+                7,
+            ),
             qualified(
                 vec![a, b],
                 4,
@@ -576,7 +599,10 @@ mod tests {
             2,
         ))
         .unwrap();
-        assert_eq!(report.disposition, JointActionSelectionDisposition::QualifiedOptimum);
+        assert_eq!(
+            report.disposition,
+            JointActionSelectionDisposition::QualifiedOptimum
+        );
         assert_eq!(report.selected_action_ids, Some(vec![a, b]));
         assert_eq!(report.selected_robust_consequence_avoided_ticks, Some(12));
         assert_eq!(report.expected_coalition_count, 4);
@@ -589,8 +615,18 @@ mod tests {
         let b = [11; 32];
         let outcomes = vec![
             qualified(vec![], 1, vec![], 0),
-            qualified(vec![a], 2, vec![event(10, (1, 2_000_000), (2, 2_000_000))], 8),
-            qualified(vec![b], 3, vec![event(10, (1, 2_000_000), (2, 2_000_000))], 7),
+            qualified(
+                vec![a],
+                2,
+                vec![event(10, (1, 2_000_000), (2, 2_000_000))],
+                8,
+            ),
+            qualified(
+                vec![b],
+                3,
+                vec![event(10, (1, 2_000_000), (2, 2_000_000))],
+                7,
+            ),
             qualified(
                 vec![a, b],
                 4,
@@ -622,7 +658,9 @@ mod tests {
             JointActionOutcomeRecord {
                 action_ids: vec![a],
                 action_set_digest: [90; 32],
-                state: JointActionOutcomeState::Unresolved { reason_digest: [91; 32] },
+                state: JointActionOutcomeState::Unresolved {
+                    reason_digest: [91; 32],
+                },
             },
         ];
         let result = evaluate_joint_action_catalogue(config(
@@ -686,7 +724,11 @@ mod tests {
             ),
         ];
         let report = evaluate_joint_action_catalogue(config(
-            vec![candidate(10, 1, OPERATOR_A), unavailable, candidate(12, 3, OPERATOR_A)],
+            vec![
+                candidate(10, 1, OPERATOR_A),
+                unavailable,
+                candidate(12, 3, OPERATOR_A),
+            ],
             outcomes,
             1,
         ))
@@ -725,7 +767,11 @@ mod tests {
         assert_eq!(incomplete.selected_action_ids, None);
         assert_eq!(incomplete.incomplete_evidence_count, 1);
 
-        if let JointActionOutcomeState::Qualified { coordination_digest, .. } = &mut joint.state {
+        if let JointActionOutcomeState::Qualified {
+            coordination_digest,
+            ..
+        } = &mut joint.state
+        {
             *coordination_digest = Some([92; 32]);
         }
         let mut coordinated = outcomes;
@@ -748,7 +794,11 @@ mod tests {
             vec![event(10, (1, 2_000_000), (2, 2_000_000))],
             5,
         );
-        if let JointActionOutcomeState::Qualified { consequence_model_digest, .. } = &mut row.state {
+        if let JointActionOutcomeState::Qualified {
+            consequence_model_digest,
+            ..
+        } = &mut row.state
+        {
             *consequence_model_digest = [99; 32];
         }
         assert_eq!(
@@ -790,12 +840,7 @@ mod tests {
         let a = [10; 32];
         let outcomes = vec![
             qualified(vec![], 1, vec![], 0),
-            qualified(
-                vec![a],
-                2,
-                vec![event(10, (0, 1), (1, 10_000))],
-                50,
-            ),
+            qualified(vec![a], 2, vec![event(10, (0, 1), (1, 10_000))], 50),
         ];
         let report = evaluate_joint_action_catalogue(config(
             vec![candidate(10, 1, OPERATOR_A)],
@@ -820,7 +865,11 @@ mod tests {
             vec![event(10, (1, 2_000_000), (2, 2_000_000))],
             50,
         );
-        if let JointActionOutcomeState::Qualified { post_action_snapshot, .. } = &mut row.state {
+        if let JointActionOutcomeState::Qualified {
+            post_action_snapshot,
+            ..
+        } = &mut row.state
+        {
             post_action_snapshot.catalog_revision_digest = [99; 32];
         }
         let report = evaluate_joint_action_catalogue(config(
@@ -845,7 +894,9 @@ mod tests {
             JointActionOutcomeRecord {
                 action_ids: vec![a],
                 action_set_digest: [90; 32],
-                state: JointActionOutcomeState::Infeasible { reason_digest: [91; 32] },
+                state: JointActionOutcomeState::Infeasible {
+                    reason_digest: [91; 32],
+                },
             },
         ];
         let report = evaluate_joint_action_catalogue(config(
