@@ -476,6 +476,7 @@ fn is_zero_digest(digest: &[u8; 32]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::adaptive_importance_sampling::AdaptiveImportanceSamplingConfidenceSequence;
 
     const EVENT: [u8; 32] = [1; 32];
     const TARGET: [u8; 32] = [2; 32];
@@ -788,4 +789,93 @@ mod tests {
         assert!(verifier.verify_next(receipt).is_ok());
         assert_eq!(verifier.sample_count(), 1);
     }
+
+    #[test]
+    fn verified_finite_draw_converts_into_the_existing_confidence_sequence_adapter() {
+        let mut verifier = FiniteProposalExecutionVerifier::new(config()).unwrap();
+        let receipt = receipt(
+            0,
+            [120; 32],
+            RESIDUAL_BEFORE,
+            100,
+            0,
+            0,
+        );
+        let verified = verifier.verify_next(receipt).unwrap();
+        let draw = verified.into_adaptive_importance_draw();
+
+        assert_eq!(draw.event_digest, EVENT);
+        assert_eq!(draw.target_measure_digest, TARGET);
+        assert_eq!(draw.defensive_component_digest, DEFENSIVE);
+        assert_eq!(draw.proposal_digest, COMPLETE_BEFORE);
+        assert!((draw.defensive_mixture_weight - 0.25).abs() < f64::EPSILON);
+        assert!((draw.log_target_density.exp() - 0.25).abs() < 1.0e-15);
+        assert!((draw.log_proposal_density.exp() - 0.4375).abs() < 1.0e-15);
+
+        let mut sequence = AdaptiveImportanceSamplingConfidenceSequence::new(
+            EVENT,
+            TARGET,
+            DEFENSIVE,
+            0.25,
+            0.05,
+        )
+        .unwrap();
+        sequence.observe(draw).unwrap();
+        let summary = sequence.summary().unwrap();
+        assert_eq!(summary.sample_count, 1);
+        assert!((summary.normalized_mean_estimate - (1.0 / 7.0)).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn zero_target_density_non_event_converts_to_negative_infinity_and_is_accepted() {
+        let mut c = config();
+        c.target_mass_ticks = vec![256, 0, 0, 0];
+        let mut verifier = FiniteProposalExecutionVerifier::new(c).unwrap();
+        let execution = receipt(
+            0,
+            [121; 32],
+            RESIDUAL_BEFORE,
+            100,
+            130,
+            1,
+        );
+        let verified = verifier.verify_next(execution).unwrap();
+        assert_eq!(verified.target_mass_ticks, 0);
+        assert!(!verified.event_occurred);
+
+        let draw = verified.into_adaptive_importance_draw();
+        assert_eq!(draw.log_target_density, f64::NEG_INFINITY);
+        assert!(draw.log_proposal_density.is_finite());
+
+        let mut sequence = AdaptiveImportanceSamplingConfidenceSequence::new(
+            EVENT,
+            TARGET,
+            DEFENSIVE,
+            0.25,
+            0.05,
+        )
+        .unwrap();
+        sequence.observe(draw).unwrap();
+        assert_eq!(sequence.summary().unwrap().normalized_mean_estimate, 0.0);
+    }
+
+    #[test]
+    fn complete_proposal_identity_is_checked_separately_from_residual_identity() {
+        let mut verifier = FiniteProposalExecutionVerifier::new(config()).unwrap();
+        let mut forged = receipt(
+            0,
+            [122; 32],
+            RESIDUAL_BEFORE,
+            100,
+            0,
+            0,
+        );
+        forged.complete_proposal_digest = COMPLETE_AFTER;
+        assert_eq!(
+            verifier.verify_next(forged),
+            Err(FiniteProposalExecutionError::UnpredictableProposalSelection)
+        );
+        assert_eq!(verifier.sample_count(), 0);
+    }
+
 }
