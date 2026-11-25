@@ -1,0 +1,52 @@
+name: RRVR Command Semantics Fixtures
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-command-semantics-v0-1
+    paths:
+      - "research/mobility-rrvr-command-semantics/**"
+      - ".github/workflows/mobility-rrvr-command-semantics.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-command-semantics/**"
+      - ".github/workflows/mobility-rrvr-command-semantics.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  command-semantics-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check JSON syntax and semantic known-answer invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCHEMA="research/mobility-rrvr-command-semantics/schemas/command_semantics_cases_v0_1.schema.json"
+          FIXTURE="research/mobility-rrvr-command-semantics/fixtures/command_semantics_cases_v0_1.json"
+          jq empty "$SCHEMA"
+          jq empty "$FIXTURE"
+          jq -e '
+            .schema_version == "0.1"
+            and .benchmark == "RRVR-COMMAND-SEMANTICS"
+            and (.cases | length == 9)
+            and ([.cases[].case_id] | unique | length == 9)
+            and ([.cases[] | select(.class == "positive")] | length == 4)
+            and ([.cases[] | select(.class == "negative")] | length == 5)
+            and ([.cases[].effect_class] | unique | length == 4)
+            and all(.cases[]; (.contract.configuration_sha256 | test("^[a-fA-F0-9]{64}$")))
+            and all(.cases[]; (.contract.payload_schema_sha256 | test("^[a-fA-F0-9]{64}$")))
+            and any(.cases[]; .case_id == "SEM-001" and .expected == "accept_profile" and .contract.motion_semantics == "absolute" and .contract.idempotent_under_declared_state_contract == true)
+            and any(.cases[]; .case_id == "SEM-002" and .expected == "accept_profile" and .contract.maximum_physical_effects_per_attempt == 1 and .contract.endpoint_token_required == true and .contract.same_token_reactuates == false)
+            and any(.cases[]; .case_id == "SEM-003" and .expected == "accept_profile" and .contract.lease_expiry_ms > 0 and .contract.endpoint_enforces_expiry == true and .contract.watchdog_supported == true)
+            and any(.cases[]; .case_id == "SEM-004" and .expected == "accept_profile" and .contract.progress_checkpoints_required == true and .contract.resume_from_measured_progress == true and .contract.restart_from_segment_zero_allowed == false)
+            and any(.cases[]; .case_id == "SEM-005" and .expected == "hold" and .contract.motion_semantics == "relative" and .contract.idempotent_under_declared_state_contract == true)
+            and any(.cases[]; .case_id == "SEM-006" and .expected == "hold" and .contract.endpoint_token_required == false)
+            and any(.cases[]; .case_id == "SEM-007" and .expected == "hold" and .contract.lease_expiry_ms == null and .contract.watchdog_supported == false)
+            and any(.cases[]; .case_id == "SEM-008" and .expected == "hold" and .contract.restart_from_segment_zero_allowed == true)
+            and any(.cases[]; .case_id == "SEM-009" and .expected == "hold" and .contract.coordinate_frame == "world-frame-substituted")
+          ' "$FIXTURE"
