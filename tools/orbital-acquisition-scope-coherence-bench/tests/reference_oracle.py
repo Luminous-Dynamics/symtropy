@@ -204,12 +204,19 @@ def evaluate_binding(binding, acquisition_interval, acquisition_scope):
         reasons.add("TIME_BASIS_MISMATCH")
 
     validity = binding["validity_interval"]
+    validity_boundary_indeterminate = False
     if (
-        validity["start_tai_ns"] > acquisition_interval["start_tai_ns"]
-        or acquisition_interval["end_tai_ns"] >= validity["end_tai_ns"]
+        acquisition_interval["end_tai_ns"] < validity["start_tai_ns"]
+        or acquisition_interval["start_tai_ns"] >= validity["end_tai_ns"]
     ):
         mismatched.add("validity_interval")
-        reasons.add("EVIDENCE_VALIDITY_DOES_NOT_COVER_ACQUISITION")
+        reasons.add("EVIDENCE_VALIDITY_DISJOINT")
+    elif (
+        acquisition_interval["start_tai_ns"] < validity["start_tai_ns"]
+        or acquisition_interval["end_tai_ns"] >= validity["end_tai_ns"]
+    ):
+        validity_boundary_indeterminate = True
+        reasons.add("EVIDENCE_VALIDITY_BOUNDARY_OVERLAP")
 
     source_state = binding["source_state"]
     if source_state != "CURRENT":
@@ -219,7 +226,7 @@ def evaluate_binding(binding, acquisition_interval, acquisition_scope):
         disposition = "INDETERMINATE"
     elif mismatched:
         disposition = "OUT_OF_SCOPE"
-    elif missing or source_state != "CURRENT":
+    elif missing or validity_boundary_indeterminate or source_state != "CURRENT":
         disposition = "INDETERMINATE"
     else:
         disposition = "SCOPE_COHERENT"
