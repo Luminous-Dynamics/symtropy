@@ -26,7 +26,22 @@
         "hidden_impulse_envelope": "none_declared",
         "logical_effect_id_required": true,
         "device_model": "reference-actuator",
-        "endpoint_revision": "endpoint-1"
+        "endpoint_revision": "endpoint-1",
+        "device_capabilities": {
+          "absolute_target_supported": true,
+          "absolute_target_replay_safe": true,
+          "absolute_target_side_effect_free": true,
+          "durable_one_shot_token_supported": true,
+          "duplicate_one_shot_token_rejected": true,
+          "maximum_effects_per_token": 1,
+          "authority_epoch_supported": true,
+          "lease_expiry_enforced": true,
+          "watchdog_reaction": "controlled_stop",
+          "stable_trajectory_segments_supported": true,
+          "progress_checkpoints_supported": true,
+          "measured_progress_resume_supported": true,
+          "downstream_queue_reconciliation_supported": true
+        }
       }
     },
     {
@@ -52,7 +67,22 @@
         "independent_outcome_observation_required": true,
         "logical_effect_id_required": true,
         "device_model": "reference-actuator",
-        "endpoint_revision": "endpoint-1"
+        "endpoint_revision": "endpoint-1",
+        "device_capabilities": {
+          "absolute_target_supported": true,
+          "absolute_target_replay_safe": true,
+          "absolute_target_side_effect_free": true,
+          "durable_one_shot_token_supported": true,
+          "duplicate_one_shot_token_rejected": true,
+          "maximum_effects_per_token": 1,
+          "authority_epoch_supported": true,
+          "lease_expiry_enforced": true,
+          "watchdog_reaction": "controlled_stop",
+          "stable_trajectory_segments_supported": true,
+          "progress_checkpoints_supported": true,
+          "measured_progress_resume_supported": true,
+          "downstream_queue_reconciliation_supported": true
+        }
       }
     },
     {
@@ -80,7 +110,22 @@
         "clock_profile_id": "monotonic-device-clock-v1",
         "logical_effect_id_required": true,
         "device_model": "reference-actuator",
-        "endpoint_revision": "endpoint-1"
+        "endpoint_revision": "endpoint-1",
+        "device_capabilities": {
+          "absolute_target_supported": true,
+          "absolute_target_replay_safe": true,
+          "absolute_target_side_effect_free": true,
+          "durable_one_shot_token_supported": true,
+          "duplicate_one_shot_token_rejected": true,
+          "maximum_effects_per_token": 1,
+          "authority_epoch_supported": true,
+          "lease_expiry_enforced": true,
+          "watchdog_reaction": "controlled_stop",
+          "stable_trajectory_segments_supported": true,
+          "progress_checkpoints_supported": true,
+          "measured_progress_resume_supported": true,
+          "downstream_queue_reconciliation_supported": true
+        }
       }
     },
     {
@@ -108,7 +153,22 @@
         "downstream_queue_reconciliation_required": true,
         "logical_effect_id_required": true,
         "device_model": "reference-actuator",
-        "endpoint_revision": "endpoint-1"
+        "endpoint_revision": "endpoint-1",
+        "device_capabilities": {
+          "absolute_target_supported": true,
+          "absolute_target_replay_safe": true,
+          "absolute_target_side_effect_free": true,
+          "durable_one_shot_token_supported": true,
+          "duplicate_one_shot_token_rejected": true,
+          "maximum_effects_per_token": 1,
+          "authority_epoch_supported": true,
+          "lease_expiry_enforced": true,
+          "watchdog_reaction": "controlled_stop",
+          "stable_trajectory_segments_supported": true,
+          "progress_checkpoints_supported": true,
+          "measured_progress_resume_supported": true,
+          "downstream_queue_reconciliation_supported": true
+        }
       }
     },
     {
@@ -134,7 +194,22 @@
         "hidden_impulse_envelope": "not_bounded",
         "logical_effect_id_required": true,
         "device_model": "reference-actuator",
-        "endpoint_revision": "endpoint-1"
+        "endpoint_revision": "endpoint-1",
+        "device_capabilities": {
+          "absolute_target_supported": true,
+          "absolute_target_replay_safe": true,
+          "absolute_target_side_effect_free": true,
+          "durable_one_shot_token_supported": true,
+          "duplicate_one_shot_token_rejected": true,
+          "maximum_effects_per_token": 1,
+          "authority_epoch_supported": true,
+          "lease_expiry_enforced": true,
+          "watchdog_reaction": "controlled_stop",
+          "stable_trajectory_segments_supported": true,
+          "progress_checkpoints_supported": true,
+          "measured_progress_resume_supported": true,
+          "downstream_queue_reconciliation_supported": true
+        }
       }
     },
     {
@@ -160,7 +235,22 @@
         "independent_outcome_observation_required": true,
         "logical_effect_id_required": true,
         "device_model": "reference-actuator",
-        "endpoint_revision": "endpoint-1"
+        "endpoint_revision": "endpoint-1",
+        "device_capabilities": {
+          "absolute_target_supported": true,
+          "absolute_target_replay_safe": true,
+          "absolute_target_side_effect_free": true,
+          "durable_one_shot_token_supported": true,
+          "duplicate_one_shot_token_rejected": true,
+          "maximum_effects_per_token": 1,
+          "authority_epoch_supported": true,
+          "lease_expiry_enforced": true,
+          "watchdog_reaction": "controlled_stop",
+          "stable_trajectory_segments_supported": true,
+          "progress_checkpoints_supported": true,
+          "measured_progress_resume_supported": true,
+          "downstream_queue_reconciliation_supported": true
+        }
       }
     },
     {
@@ -188,7 +278,22 @@
         "clock_profile_id": "unknown",
         "logical_effect_id_required": true,
         "device_model": "reference-actuator",
-        "endpoint_revision": "endpoint-1"
+        "endpoint_revision": "endpoint-1",
+        "device_capabilities": {
+          "absolute_target_supported": true,
+          "absolute_target_replay_safe": true,
+          "absolute_target_side_effect_free": true,
+          "durable_one_shot_token_supported": true,
+          "duplicate_one_shot_token_rejected": true,
+          "maximum_effects_per_token": 1,
+          "authority_epoch_supported": true,
+          "lease_expiry_enforced": true,
+          "watchdog_reaction": "controlled_stop",
+          "stable_trajectory_segments_supported": true,
+          "progress_checkpoints_supported": true,
+          "measured_progress_resume_supported": true,
+          "downstream_queue_reconciliation_supported": true
+        }
       }
     },
     {
@@ -216,7 +321,22 @@
         "downstream_queue_reconciliation_required": false,
         "logical_effect_id_required": true,
         "device_model": "reference-actuator",
-        "endpoint_revision": "endpoint-1"
+        "endpoint_revision": "endpoint-1",
+        "device_capabilities": {
+          "absolute_target_supported": true,
+          "absolute_target_replay_safe": true,
+          "absolute_target_side_effect_free": true,
+          "durable_one_shot_token_supported": true,
+          "duplicate_one_shot_token_rejected": true,
+          "maximum_effects_per_token": 1,
+          "authority_epoch_supported": true,
+          "lease_expiry_enforced": true,
+          "watchdog_reaction": "controlled_stop",
+          "stable_trajectory_segments_supported": true,
+          "progress_checkpoints_supported": true,
+          "measured_progress_resume_supported": true,
+          "downstream_queue_reconciliation_supported": true
+        }
       }
     },
     {
@@ -242,7 +362,149 @@
         "hidden_impulse_envelope": "none_declared",
         "logical_effect_id_required": true,
         "device_model": "reference-actuator",
-        "endpoint_revision": "endpoint-1"
+        "endpoint_revision": "endpoint-1",
+        "device_capabilities": {
+          "absolute_target_supported": true,
+          "absolute_target_replay_safe": true,
+          "absolute_target_side_effect_free": true,
+          "durable_one_shot_token_supported": true,
+          "duplicate_one_shot_token_rejected": true,
+          "maximum_effects_per_token": 1,
+          "authority_epoch_supported": true,
+          "lease_expiry_enforced": true,
+          "watchdog_reaction": "controlled_stop",
+          "stable_trajectory_segments_supported": true,
+          "progress_checkpoints_supported": true,
+          "measured_progress_resume_supported": true,
+          "downstream_queue_reconciliation_supported": true
+        }
+      }
+    },
+    {
+      "case_id": "SEM-010",
+      "class": "negative",
+      "effect_class": "one_shot",
+      "mutation": "device_lacks_durable_one_shot_token",
+      "expected": "hold",
+      "contract": {
+        "device_id": "dispenser-01",
+        "device_model": "reference-actuator",
+        "firmware_revision": "fw-2.0.1",
+        "endpoint_revision": "endpoint-1",
+        "configuration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "command_id": "dispense-one",
+        "payload_schema_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "units": "items",
+        "coordinate_frame": "device-local-v1",
+        "reference_frame": "device-v1",
+        "motion_semantics": "one_shot",
+        "target_predicate": "exactly_one_item_dispensed",
+        "maximum_physical_effects_per_attempt": 1,
+        "endpoint_token_required": true,
+        "same_token_reactuates": false,
+        "independent_outcome_observation_required": true,
+        "logical_effect_id_required": true,
+        "device_capabilities": {
+          "absolute_target_supported": true,
+          "absolute_target_replay_safe": true,
+          "absolute_target_side_effect_free": true,
+          "durable_one_shot_token_supported": false,
+          "duplicate_one_shot_token_rejected": true,
+          "maximum_effects_per_token": 1,
+          "authority_epoch_supported": true,
+          "lease_expiry_enforced": true,
+          "watchdog_reaction": "controlled_stop",
+          "stable_trajectory_segments_supported": true,
+          "progress_checkpoints_supported": true,
+          "measured_progress_resume_supported": true,
+          "downstream_queue_reconciliation_supported": true
+        }
+      }
+    },
+    {
+      "case_id": "SEM-011",
+      "class": "negative",
+      "effect_class": "continuous_lease",
+      "mutation": "device_lacks_authority_epoch_support",
+      "expected": "hold",
+      "contract": {
+        "device_id": "drive-01",
+        "device_model": "reference-actuator",
+        "firmware_revision": "fw-3.1.0",
+        "endpoint_revision": "endpoint-1",
+        "configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "command_id": "velocity-lease",
+        "payload_schema_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "units": "m_per_s",
+        "coordinate_frame": "base-frame-v2",
+        "reference_frame": "map-v1",
+        "motion_semantics": "continuous",
+        "target_predicate": "velocity_within_requested_envelope",
+        "lease_expiry_ms": 250,
+        "endpoint_enforces_authority_epoch": true,
+        "endpoint_enforces_expiry": true,
+        "watchdog_supported": true,
+        "watchdog_reaction": "controlled_stop",
+        "clock_profile_id": "monotonic-device-clock-v1",
+        "logical_effect_id_required": true,
+        "device_capabilities": {
+          "absolute_target_supported": true,
+          "absolute_target_replay_safe": true,
+          "absolute_target_side_effect_free": true,
+          "durable_one_shot_token_supported": true,
+          "duplicate_one_shot_token_rejected": true,
+          "maximum_effects_per_token": 1,
+          "authority_epoch_supported": false,
+          "lease_expiry_enforced": true,
+          "watchdog_reaction": "controlled_stop",
+          "stable_trajectory_segments_supported": true,
+          "progress_checkpoints_supported": true,
+          "measured_progress_resume_supported": true,
+          "downstream_queue_reconciliation_supported": true
+        }
+      }
+    },
+    {
+      "case_id": "SEM-012",
+      "class": "negative",
+      "effect_class": "trajectory",
+      "mutation": "device_cannot_resume_measured_progress",
+      "expected": "hold",
+      "contract": {
+        "device_id": "robot-arm-02",
+        "device_model": "reference-actuator",
+        "firmware_revision": "fw-5.0.0",
+        "endpoint_revision": "endpoint-1",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "command_id": "joint-trajectory",
+        "payload_schema_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "units": "radians",
+        "coordinate_frame": "joint-space-v2",
+        "reference_frame": "robot-base-v1",
+        "motion_semantics": "segmented_trajectory",
+        "target_predicate": "declared_segments_reconciled_with_physical_progress",
+        "segment_count": 6,
+        "segment_ids_are_stable": true,
+        "progress_checkpoints_required": true,
+        "resume_from_measured_progress": true,
+        "restart_from_segment_zero_allowed": false,
+        "downstream_queue_reconciliation_required": true,
+        "logical_effect_id_required": true,
+        "device_capabilities": {
+          "absolute_target_supported": true,
+          "absolute_target_replay_safe": true,
+          "absolute_target_side_effect_free": true,
+          "durable_one_shot_token_supported": true,
+          "duplicate_one_shot_token_rejected": true,
+          "maximum_effects_per_token": 1,
+          "authority_epoch_supported": true,
+          "lease_expiry_enforced": true,
+          "watchdog_reaction": "controlled_stop",
+          "stable_trajectory_segments_supported": true,
+          "progress_checkpoints_supported": true,
+          "measured_progress_resume_supported": false,
+          "downstream_queue_reconciliation_supported": true
+        }
       }
     }
   ]
