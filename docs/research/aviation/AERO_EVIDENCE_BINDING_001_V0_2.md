@@ -29,11 +29,11 @@ The specimen_source_assertions collection carries:
 - declared_material_lot_id, declared_process_batch_id, declared_panel_id;
 - verified_material_lot_id, verified_process_batch_id, verified_panel_id;
 - identity_status: verified, unresolved or conflict;
-- source system, source record ID, assertion method, issuer ID and provenance reference.
+- unique specimen-level sampling_event_id; source system, source record ID, assertion method, issuer ID and provenance reference. One parent traveler/source_record_id may cover several specimens; each specimen must retain its own sampling_event_id.
 
 The evaluator reconstructs ancestry from the material-lot → process-batch → panel → specimen hierarchy and compares it with both the declared and verified fields. It does not derive a source identity from a label, a hierarchy edge, row order or the same record it is supposed to independently check.
 
-One assertion per specimen is required. Missing, duplicate, replayed, unresolved or contradictory assertions are not positive evidence.
+One assertion per specimen is required. Sampling-event IDs must be unique to the specimen; reusing a parent traveler record ID is permitted when that traveler legitimately covers multiple specimen cuts. Missing, duplicate, replayed, unresolved or contradictory assertions are not positive evidence.
 
 ### 2.2 Independent intended-configuration assertion
 
@@ -50,7 +50,7 @@ Every observation contains:
 
 Every test campaign references an instrument, method/protocol revision and calibration certificate. A calibration certificate contains:
 
-- unique certificate ID;
+- unique certificate ID and distinct calibration_evidence_id (the exact Mycelix AeroEvidence record identity);
 - instrument ID and method revision ID;
 - calibration laboratory;
 - Mycelix packet/artifact reference;
@@ -109,7 +109,7 @@ This is a narrow binding result. It is not measurement truth, uncertainty suffic
 - missing correction target and competing corrections to one event;
 - deterministic output under record-order permutations.
 
-The tests are synthetic software checks. Their expected dispositions are not yet an independently reviewed physical or metrology oracle. Independent review and a rights-cleared external corpus remain required before any external performance claim.
+The 20-case frozen mutation corpus is executed by the Rust tests with exact violation and blocker sets. It is synthetic software testing only; its expected dispositions are not yet an independently reviewed physical or metrology oracle. Independent review and a rights-cleared external corpus remain required before any external performance claim.
 
 ## 4. Paradigm shifts beyond a better optimizer
 
