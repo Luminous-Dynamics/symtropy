@@ -137,7 +137,16 @@ def validate(root: Path) -> None:
             }
             for key, value in expected.items():
                 require(row[key] == value, f"{case_id}/{hour}: {key} expected {value}, got {row[key]}")
-            require(row["serviceDisposition"] == row["serviceVectorVerdict"] == disposition, f"{case_id}/{hour}: three-way verdict disagreement")
+            expected_service_disposition = {
+                "guaranteed": "guaranteed",
+                "failed": "confirmed_shortfall",
+                "indeterminate": "indeterminate",
+            }[disposition]
+            require(
+                row["serviceDisposition"] == expected_service_disposition
+                and row["serviceVectorVerdict"] == disposition,
+                f"{case_id}/{hour}: three-way verdict disagreement",
+            )
             require(
                 row["requiredGuaranteed"] + row["requiredFailed"] + row["requiredIndeterminate"] == 2,
                 f"{case_id}/{hour}: two required predicates",
