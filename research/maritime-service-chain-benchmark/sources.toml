@@ -664,3 +664,58 @@ intended_benchmark_role = "exercise exact source-maturity preservation and conte
 claim_ceiling = "synthetic crosswalk fixture only; review status and reviewer references are declarations, not independent external approval or production implementation evidence"
 notes = "The manifest bytes are verified by sha256sum in exact-head CI. A synthetic-fixture-only mapping rule cannot be used for a non-synthetic source message. Production mapping requires an externally approved, content-addressed rule bundle and a resolved approval record."
 
+
+
+[[sources]]
+id = "port-time-variability-etr-review-2026"
+kind = "peer-reviewed-operational-performance-method"
+title = "Modelling the factors affecting port time variability"
+publisher = "European Transport Research Review"
+doi = "10.1186/s12544-026-00862-w"
+canonical_uri = "https://doi.org/10.1186/s12544-026-00862-w"
+date_published = "2026-11-13"
+data_class = "AIS-derived-port-call-time-variability-analysis"
+ingest_state = "reference_catalogued"
+intended_benchmark_role = "relative dispersion and coefficient-of-variation diagnostics for port-call duration, in addition to mean turnaround"
+claim_ceiling = "published cross-port variability model; not a DGT terminal-specific causal or operational-performance estimate"
+notes = "The article argues that mean-only turnaround benchmarks suppress schedule-reliability dispersion and proposes coefficient of variation of port-call duration as a scale-relative reliability measure. CV is descriptive, not a tail-risk guarantee; report quantiles, cohort strata and denominators alongside it."
+
+[[sources]]
+id = "sp-global-cppi-burst-congestion-2026"
+kind = "industry-benchmark-analysis"
+title = "The Container Port Performance Index 2025"
+publisher = "S&P Global Market Intelligence"
+canonical_uri = "https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/06/container-port-performance-index-2025"
+date_published = "2026-06-27"
+data_class = "global-port-call-performance-benchmark-analysis"
+ingest_state = "reference_catalogued"
+intended_benchmark_role = "matched port-call workload benchmarking and burst-arrival congestion hypothesis"
+claim_ceiling = "global port-level CPPI analysis; not a terminal-level or receiver-delivery measure"
+notes = "S&P Global reports that the 2025 edition draws on approximately 180,000 calls across more than 400 ports. Its commentary identifies burst congestion from clustered vessel arrivals as a planning challenge. Use only for benchmark design context; do not use the global aggregate as DGT ground truth."
+
+[[sources]]
+id = "smart-port-digital-twin-architecture-benchmark-2026"
+kind = "peer-reviewed-digital-twin-architecture-benchmark"
+title = "Digital twin architectures for smart port operations: Lessons from European benchmarking"
+publisher = "Results in Engineering"
+doi = "10.1016/j.rineng.2026.110485"
+canonical_uri = "https://doi.org/10.1016/j.rineng.2026.110485"
+date_published = "2026"
+data_class = "documentary_benchmark_of_port_digital_twin_projects"
+ingest_state = "reference_catalogued"
+intended_benchmark_role = "interoperability, modularity, data-synchronization and evidence-transparency comparison for port digital-twin architecture"
+claim_ceiling = "benchmark of seven European initiatives using public documentation; no observed operational outcome dataset or performance uplift evidence"
+notes = "The study reports recurring principles around modular/interoperable architectures and gaps in data availability, model transparency and synchronization detail. Treat architecture comparisons separately from operational effectiveness."
+
+[[sources]]
+id = "smart-port-shipping-resilience-review-2026"
+kind = "peer-reviewed-systematic-review"
+title = "Smart Port and Shipping Optimization for Maritime Resilience Under Geopolitical Volatility and Conflict: A Review"
+publisher = "Journal of Marine Science and Engineering"
+canonical_uri = "https://www.mdpi.com/2077-1312/14/9/818"
+date_published = "2026"
+data_class = "literature_review_on_port_resilience_and_digital_twins"
+ingest_state = "reference_catalogued"
+intended_benchmark_role = "identify empirical validation gaps in digital-twin-based disruption anticipation, surge handling and recovery planning"
+claim_ceiling = "review synthesis; does not establish operational effectiveness of any specific terminal digital twin"
+notes = "The review cautions that much digital-twin resilience research remains conceptual/scenario-based and that directly observed operational evidence is limited. The benchmark should prioritize decision-process pilots and matched observed/synthetic comparisons."
