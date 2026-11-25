@@ -66,7 +66,8 @@ The 26 synthetic cases cover:
 7. clock-map and canonical-time-basis mismatch;
 8. acquisition/event identity mismatch;
 9. individually valid calibration scoped to a different instrument configuration;
-10. evidence interval is definitely disjoint (before or after) from the acquisition;\n11. acquisition uncertainty envelope overlaps or touches the half-open calibration validity boundary (INDETERMINATE);
+10. evidence interval is definitely disjoint (before or after) from the acquisition;
+11. acquisition uncertainty envelope overlaps or touches the half-open calibration validity boundary (INDETERMINATE);
 12. missing feature/sensor-pattern scope;
 13. duplicate scope claims and malformed digest shape;
 14. revoked source;
