@@ -1,0 +1,53 @@
+name: SAFRB fuel-to-service synthetic corpus qualification
+
+on:
+  push:
+    branches:
+      - research/safrb-fuel-corpus-executable-v0.1
+    paths:
+      - "tools/safrb-fuel-service-corpus/**"
+      - ".github/workflows/safrb-fuel-service-corpus.yml"
+  pull_request:
+    paths:
+      - "tools/safrb-fuel-service-corpus/**"
+      - ".github/workflows/safrb-fuel-service-corpus.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: safrb-fuel-corpus-\${{ github.workflow }}-\${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  corpus:
+    name: SAFRB synthetic corpus Rust checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Verify formatting
+        run: cargo fmt --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml -- --check
+      - name: Run tests
+        run: cargo test --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --all-targets --locked -- -D warnings
+      - name: Validate corpus
+        run: cargo run --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --release --locked -- --check
+      - name: Emit deterministic JSONL
+        run: |
+          cargo run --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --release --locked -- --emit target/safrb-fuel-corpus-v0.1.jsonl
+          test "$(wc -l < target/safrb-fuel-corpus-v0.1.jsonl)" -eq 120
+          sha256sum target/safrb-fuel-corpus-v0.1.jsonl
+      - name: Retain generated corpus
+        uses: actions/upload-artifact@v4
+        with:
+          name: safrb-fuel-service-corpus-v0.1
+          path: target/safrb-fuel-corpus-v0.1.jsonl
+          if-no-files-found: error
+          retention-days: 90
