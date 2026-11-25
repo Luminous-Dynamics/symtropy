@@ -19,7 +19,7 @@ Each case is an abstract synthetic chain:
 6. Network delivery limit.
 7. Beneficiary demand, critical floor, interval and telemetry disposition.
 
-Every case is explicitly tagged \`synthetic_fixture\`. No fixture represents an actual tank, terminal, cargo, refinery, generator or service boundary.
+Every case is explicitly tagged `synthetic_fixture`. No fixture represents an actual tank, terminal, cargo, refinery, generator or service boundary.
 
 ## Archetypes
 
@@ -53,15 +53,17 @@ For every archetype, seeds 0–9 are generated. Seed 7 exercises withheld access
 
 ## Run
 
-\`\`\`sh
+```sh
 cargo fmt --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml -- --check
 cargo test --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --locked
 cargo clippy --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --all-targets --locked -- -D warnings
 cargo run --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --release --locked -- --check
-cargo run --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --release --locked -- --emit target/corpus-v0.1.jsonl
-\`\`\`
+cargo run --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --release --locked -- --emit target/corpus-v0.1/
+```
 
-The GitHub Actions workflow emits the JSONL corpus, checks that it contains exactly 120 rows, calculates its SHA-256 digest and retains it as a workflow artifact.
+The GitHub Actions workflow emits two separate JSONL files, checks that each contains exactly 120 rows, calculates independent SHA-256 digests and retains both as a workflow artifact.
+
+**No leakage rule:** planner implementations receive only planner-observations.jsonl. The oracle-truth.jsonl file contains closing stock, actual conversion/output quantities, generated/delivered energy and final service verdicts. Keep it in the evaluator/scorer boundary; never attach it to a planner prompt or planner execution input. CI publishes both in one artifact for reproducibility, so downstream benchmark harnesses must preserve this separation.
 
 ## Tests
 
