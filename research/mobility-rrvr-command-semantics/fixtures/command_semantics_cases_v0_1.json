@@ -34,13 +34,14 @@
           "durable_one_shot_token_supported": true,
           "duplicate_one_shot_token_rejected": true,
           "maximum_effects_per_token": 1,
-          "authority_epoch_supported": true,
           "lease_expiry_enforced": true,
           "watchdog_reaction": "controlled_stop",
           "stable_trajectory_segments_supported": true,
           "progress_checkpoints_supported": true,
           "measured_progress_resume_supported": true,
-          "downstream_queue_reconciliation_supported": true
+          "downstream_queue_reconciliation_supported": true,
+          "endpoint_enforces_authority_epoch": true,
+          "watchdog_response_bound_ms": 80
         }
       }
     },
@@ -75,13 +76,14 @@
           "durable_one_shot_token_supported": true,
           "duplicate_one_shot_token_rejected": true,
           "maximum_effects_per_token": 1,
-          "authority_epoch_supported": true,
           "lease_expiry_enforced": true,
           "watchdog_reaction": "controlled_stop",
           "stable_trajectory_segments_supported": true,
           "progress_checkpoints_supported": true,
           "measured_progress_resume_supported": true,
-          "downstream_queue_reconciliation_supported": true
+          "downstream_queue_reconciliation_supported": true,
+          "endpoint_enforces_authority_epoch": true,
+          "watchdog_response_bound_ms": 80
         }
       }
     },
@@ -118,14 +120,16 @@
           "durable_one_shot_token_supported": true,
           "duplicate_one_shot_token_rejected": true,
           "maximum_effects_per_token": 1,
-          "authority_epoch_supported": true,
           "lease_expiry_enforced": true,
           "watchdog_reaction": "controlled_stop",
           "stable_trajectory_segments_supported": true,
           "progress_checkpoints_supported": true,
           "measured_progress_resume_supported": true,
-          "downstream_queue_reconciliation_supported": true
-        }
+          "downstream_queue_reconciliation_supported": true,
+          "endpoint_enforces_authority_epoch": true,
+          "watchdog_response_bound_ms": 80
+        },
+        "watchdog_response_bound_ms": 100
       }
     },
     {
@@ -161,13 +165,14 @@
           "durable_one_shot_token_supported": true,
           "duplicate_one_shot_token_rejected": true,
           "maximum_effects_per_token": 1,
-          "authority_epoch_supported": true,
           "lease_expiry_enforced": true,
           "watchdog_reaction": "controlled_stop",
           "stable_trajectory_segments_supported": true,
           "progress_checkpoints_supported": true,
           "measured_progress_resume_supported": true,
-          "downstream_queue_reconciliation_supported": true
+          "downstream_queue_reconciliation_supported": true,
+          "endpoint_enforces_authority_epoch": true,
+          "watchdog_response_bound_ms": 80
         }
       }
     },
@@ -202,13 +207,14 @@
           "durable_one_shot_token_supported": true,
           "duplicate_one_shot_token_rejected": true,
           "maximum_effects_per_token": 1,
-          "authority_epoch_supported": true,
           "lease_expiry_enforced": true,
           "watchdog_reaction": "controlled_stop",
           "stable_trajectory_segments_supported": true,
           "progress_checkpoints_supported": true,
           "measured_progress_resume_supported": true,
-          "downstream_queue_reconciliation_supported": true
+          "downstream_queue_reconciliation_supported": true,
+          "endpoint_enforces_authority_epoch": true,
+          "watchdog_response_bound_ms": 80
         }
       }
     },
@@ -243,13 +249,14 @@
           "durable_one_shot_token_supported": true,
           "duplicate_one_shot_token_rejected": true,
           "maximum_effects_per_token": 1,
-          "authority_epoch_supported": true,
           "lease_expiry_enforced": true,
           "watchdog_reaction": "controlled_stop",
           "stable_trajectory_segments_supported": true,
           "progress_checkpoints_supported": true,
           "measured_progress_resume_supported": true,
-          "downstream_queue_reconciliation_supported": true
+          "downstream_queue_reconciliation_supported": true,
+          "endpoint_enforces_authority_epoch": true,
+          "watchdog_response_bound_ms": 80
         }
       }
     },
@@ -286,14 +293,16 @@
           "durable_one_shot_token_supported": true,
           "duplicate_one_shot_token_rejected": true,
           "maximum_effects_per_token": 1,
-          "authority_epoch_supported": true,
           "lease_expiry_enforced": true,
           "watchdog_reaction": "controlled_stop",
           "stable_trajectory_segments_supported": true,
           "progress_checkpoints_supported": true,
           "measured_progress_resume_supported": true,
-          "downstream_queue_reconciliation_supported": true
-        }
+          "downstream_queue_reconciliation_supported": true,
+          "endpoint_enforces_authority_epoch": true,
+          "watchdog_response_bound_ms": 80
+        },
+        "watchdog_response_bound_ms": null
       }
     },
     {
@@ -329,13 +338,14 @@
           "durable_one_shot_token_supported": true,
           "duplicate_one_shot_token_rejected": true,
           "maximum_effects_per_token": 1,
-          "authority_epoch_supported": true,
           "lease_expiry_enforced": true,
           "watchdog_reaction": "controlled_stop",
           "stable_trajectory_segments_supported": true,
           "progress_checkpoints_supported": true,
           "measured_progress_resume_supported": true,
-          "downstream_queue_reconciliation_supported": true
+          "downstream_queue_reconciliation_supported": true,
+          "endpoint_enforces_authority_epoch": true,
+          "watchdog_response_bound_ms": 80
         }
       }
     },
@@ -370,13 +380,14 @@
           "durable_one_shot_token_supported": true,
           "duplicate_one_shot_token_rejected": true,
           "maximum_effects_per_token": 1,
-          "authority_epoch_supported": true,
           "lease_expiry_enforced": true,
           "watchdog_reaction": "controlled_stop",
           "stable_trajectory_segments_supported": true,
           "progress_checkpoints_supported": true,
           "measured_progress_resume_supported": true,
-          "downstream_queue_reconciliation_supported": true
+          "downstream_queue_reconciliation_supported": true,
+          "endpoint_enforces_authority_epoch": true,
+          "watchdog_response_bound_ms": 80
         }
       }
     },
@@ -411,13 +422,14 @@
           "durable_one_shot_token_supported": false,
           "duplicate_one_shot_token_rejected": true,
           "maximum_effects_per_token": 1,
-          "authority_epoch_supported": true,
           "lease_expiry_enforced": true,
           "watchdog_reaction": "controlled_stop",
           "stable_trajectory_segments_supported": true,
           "progress_checkpoints_supported": true,
           "measured_progress_resume_supported": true,
-          "downstream_queue_reconciliation_supported": true
+          "downstream_queue_reconciliation_supported": true,
+          "endpoint_enforces_authority_epoch": true,
+          "watchdog_response_bound_ms": 80
         }
       }
     },
@@ -454,14 +466,16 @@
           "durable_one_shot_token_supported": true,
           "duplicate_one_shot_token_rejected": true,
           "maximum_effects_per_token": 1,
-          "authority_epoch_supported": false,
           "lease_expiry_enforced": true,
           "watchdog_reaction": "controlled_stop",
           "stable_trajectory_segments_supported": true,
           "progress_checkpoints_supported": true,
           "measured_progress_resume_supported": true,
-          "downstream_queue_reconciliation_supported": true
-        }
+          "downstream_queue_reconciliation_supported": true,
+          "endpoint_enforces_authority_epoch": false,
+          "watchdog_response_bound_ms": 80
+        },
+        "watchdog_response_bound_ms": 100
       }
     },
     {
@@ -497,13 +511,14 @@
           "durable_one_shot_token_supported": true,
           "duplicate_one_shot_token_rejected": true,
           "maximum_effects_per_token": 1,
-          "authority_epoch_supported": true,
           "lease_expiry_enforced": true,
           "watchdog_reaction": "controlled_stop",
           "stable_trajectory_segments_supported": true,
           "progress_checkpoints_supported": true,
           "measured_progress_resume_supported": false,
-          "downstream_queue_reconciliation_supported": true
+          "downstream_queue_reconciliation_supported": true,
+          "endpoint_enforces_authority_epoch": true,
+          "watchdog_response_bound_ms": 80
         }
       }
     }
