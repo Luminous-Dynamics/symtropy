@@ -960,7 +960,7 @@ mod tests {
 
     fn input(
         choices: &[&str],
-        costs: &[(&str, u64, &str, u64)],
+        costs: &[(&str, &str, u64)],
     ) -> SequenceInput {
         let mut observations = Vec::new();
         for (frame, (a_cost, b_cost)) in
@@ -991,7 +991,7 @@ mod tests {
             observations,
             transition_costs: costs
                 .iter()
-                .map(|(from, _unused, to, cost_ns)| TransitionCost {
+                .map(|(from, to, cost_ns)| TransitionCost {
                     from: backend(from),
                     to: backend(to),
                     cost_ns: *cost_ns,
@@ -1005,7 +1005,7 @@ mod tests {
     fn sequence_oracle_prices_switching_and_beats_framewise_minimum() {
         let mut value = input(
             &["A", "A", "A"],
-            &[("A", 0, "B", 40), ("B", 0, "A", 40)],
+            &[("A", "B", 40), ("B", "A", 40)],
         );
         // B is the cheaper backend on the first two frames; A wins the final
         // frame. The oracle must price the transition rather than switch for free.
@@ -1127,7 +1127,7 @@ mod tests {
 
     #[test]
     fn policy_switch_cost_is_included_in_online_total() {
-        let mut value = input(&["A", "B", "B"], &[("A", 0, "B", 40)]);
+        let value = input(&["A", "B", "B"], &[("A", "B", 40)]);
         let score = evaluate_sequence(&value).unwrap();
         assert_eq!(score.transition_overhead_ns, 40);
         assert_eq!(score.selected_switches, 1);
@@ -1136,7 +1136,7 @@ mod tests {
 
     #[test]
     fn held_out_campaign_summarizes_families_deterministically() {
-        let first = input(&["A", "A", "A"], &[("A", 0, "B", 40), ("B", 0, "A", 40)]);
+        let first = input(&["A", "A", "A"], &[("A", "B", 40), ("B", "A", 40)]);
         let mut second = first.clone();
         second.sequence_id = "heldout-02".to_owned();
         let report = evaluate_campaign(&[second, first]).unwrap();
@@ -1163,7 +1163,7 @@ mod tests {
 
     #[test]
     fn transition_costs_are_directional() {
-        let mut value = input(&["A", "A", "A"], &[("B", 0, "A", 60)]);
+        let mut value = input(&["A", "A", "A"], &[("B", "A", 60)]);
         value.initial_backend = Some(backend("B"));
         // The B -> A transition exists and is charged to the selected policy.
         // The reverse A -> B transition is absent and is not inferred.
