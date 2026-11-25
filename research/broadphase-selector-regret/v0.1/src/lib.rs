@@ -874,6 +874,9 @@ mod tests {
         full_step_ns: u64,
         false_negatives: u64,
     ) -> BackendFrameObservation {
+        let mut pair_evidence = evidence(2, false_negatives);
+        pair_evidence.oracle_result_sha256 =
+            digest(char::from_u32(65 + frame_index as u32).unwrap());
         BackendFrameObservation {
             frame_index,
             backend: backend(backend_id),
@@ -882,7 +885,7 @@ mod tests {
             environment_sha256: digest('c'),
             implementation_sha256: digest(if backend_id == "A" { 'd' } else { 'e' }),
             config_sha256: digest(if backend_id == "A" { 'f' } else { '1' }),
-            pair_evidence: evidence(2, false_negatives),
+            pair_evidence,
             broadphase_ns,
             full_step_ns,
             peak_memory_bytes: 4096,
