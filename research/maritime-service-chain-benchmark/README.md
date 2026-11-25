@@ -380,19 +380,25 @@ Run:
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin service-variability-audit
 ~~~
 
-The synthetic receipt includes six cases:
+The synthetic receipt includes seven cases:
 
-1. **Mean-matched stable vs high-variability:** both have mean end-to-end time 100 minutes. The stable case has p95 100 minutes and 100% on-time delivery. The high-variability case has p95 280 minutes and 90% on-time delivery, with a 20-call maximum arrival burst in a 60-minute window.
+1. **Mean-matched stable vs high-variability:** both have a mean receiver-accepted end-to-end time of 100 minutes. The stable case has p95 100 minutes and 100% on-time delivery. The high-variability case has p95 280 minutes and 90% on-time delivery, with a 20-call maximum arrival burst in a 60-minute window.
 2. **Baseline end-to-end service:** port elapsed 130 minutes plus 20 inland minutes = 150 minutes.
 3. **Local port optimization:** port elapsed improves by 20 minutes, but inland time increases by 20; end-to-end service remains 150 minutes. A port-only metric would show a win where the receiver receives no improvement.
 4. **Receiver regression:** port elapsed is still 20 minutes lower than baseline, but inland time increases by 60; end-to-end service worsens to 190 minutes and on-time delivery falls to zero under the 160-minute deadline.
-5. **Protected cohort:** a mean-100-minute scenario assigns 18 observations to a priority cohort and two to a small-receiver cohort. The small cohort has zero on-time delivery and violates its 95% service floor, while the aggregate on-time rate is 90%.
+5. **Protected cohort:** a mean-100-minute scenario assigns 18 observations to a priority cohort and two to a small-receiver cohort. The small cohort has zero on-time delivery and violates its 95% service floor, while aggregate on-time delivery is 90%.
 6. **Burst load:** the high-variability, receiver-regression and protected-cohort scenarios separately exercise a clustered 20-call arrival window; the regular-arrival comparator peaks at two calls per 60 minutes.
+7. **Conserved expected units:** of 20 expected units, 18 have independent receiver-acceptance references, one is explicitly NOT_DELIVERED and one is UNKNOWN. The reported verified on-time rate is 18/20 = 90%; neither unresolved unit is silently removed from the denominator.
+
+### Receiver outcome accounting
+
+Receiver acceptance is treated as its own observed stage, not inferred by summing vessel, berth, terminal and inland durations. Every ACCEPTED outcome must carry an independently qualified receiver-acceptance reference and a receiver elapsed-time measurement. The metric crate checks that the reference is present; it does not independently verify the referenced evidence—that remains the upstream source/custody oracle's responsibility.
+
+The distribution of receiver elapsed times (mean, p50/p90/p95, maximum, standard deviation and CV) is computed over accepted units only and reports that denominator. The verified on-time rate uses **all expected units** as its denominator; NOT_DELIVERED, DIVERTED, CANCELLED and UNKNOWN remain explicit counts and cannot improve the rate by disappearing. A cohort with no accepted units has no receiver-time distribution and a zero verified on-time rate.
 
 The receipt additionally replays a transparent two-server FCFS queue with a fixed 30-minute service time. The regular 20-call comparator has zero waiting, zero queue-wait area and completes by minute 1,170. The 20-call burst has a maximum wait of 260 minutes, 2,680 call-minutes of queue-wait area and completes by minute 300 after the burst epoch. This demonstrates how the same total call count can create very different backlog and recovery burden when arrivals are clustered. It is a small queueing reference only, not a realistic full-terminal capacity model; production comparisons must use the frozen berth/crane/yard/AGV/rail resource model and matched solver baselines.
 
-The code also keeps vessel wait, berth work, terminal dwell, combined port elapsed, inland transfer and end-to-end time as separate distributions. It rejects duplicate observation identities, invalid deadlines and duplicate arrival IDs.
-
+The code also keeps vessel wait, berth work, terminal dwell, combined port elapsed and inland transfer as separate distributions. Receiver elapsed-time distribution is separately scoped to accepted cargo. It rejects duplicate observation identities, invalid deadlines, missing receiver receipts for accepted outcomes, and receiver evidence attached to non-accepted outcomes.
 ### Proposed benchmark acceptance targets
 
 These are targets, not present operational results:
