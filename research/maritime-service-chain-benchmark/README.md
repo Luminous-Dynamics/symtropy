@@ -415,3 +415,18 @@ Sources:
 - [World Bank CPPI 2025 methodology, 10 June 2026](https://thedocs.worldbank.org/en/doc/aac122f6df85534428d66a7b9af4b7f6-0400012026/original/CPPI-Methodology-Note.pdf)
 - [Digital twin architectures for smart port operations, 2026](https://doi.org/10.1016/j.rineng.2026.110485)
 - [Smart Port and Shipping Optimization for Maritime Resilience, 2026 review](https://www.mdpi.com/2077-1312/14/9/818)
+
+
+### DCSA Track & Trace migration boundary (25 November 2026)
+
+The new classifier adapter is intentionally pinned to the public DCSA T&T 2.2 consumer profile. DCSA announced T&T 3.0.0 on 30 September 2026, adding IoT and reefer visibility and clearer handling of shipment/document corrections and withdrawals. The announcement says v3 initially goes to DCSA members and DCSA+ partners, with public release planned for H2 2027.
+
+Therefore:
+- keep the public v2.2 adapter and its conformance scope frozen;
+- track v3.0 as a separate, access-gated migration profile;
+- do not infer v3 wire fields, code lists, correction semantics or API shapes from the announcement or unversioned examples;
+- require authorized normative artifacts, exact schema/code-list digests, role/module scope and DCSA conformance artifacts before implementing v3 parsing or claiming v3 conformance;
+- extend the capture-completeness benchmark separately for IoT/reefer sensor dropouts, device identity, calibration validity, telemetry time windows, correlated gateway failures and missing temperature/alarm intervals.
+
+DCSA's public announcement: https://dcsa.org/newsroom/track-and-trace-3-0-0-iot-reefer-visibility
+DCSA 2026 roadmap: https://dcsa.org/newsroom/dcsa-standards-roadmap-2026
