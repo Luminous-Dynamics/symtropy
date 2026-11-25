@@ -1,0 +1,49 @@
+name: CCD Query Recall
+
+on:
+  pull_request:
+    branches: [main, "research/nyu-ccd-query-import-v0.1"]
+    paths:
+      - "research/ccd-query-recall/v0.1/**"
+      - "research/nyu-ccd-query-import/v0.1/**"
+      - ".github/workflows/ccd-query-recall.yml"
+  push:
+    branches: [main, "research/ccd-query-recall-v0.1-stack"]
+    paths:
+      - "research/ccd-query-recall/v0.1/**"
+      - "research/nyu-ccd-query-import/v0.1/**"
+      - ".github/workflows/ccd-query-recall.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Rust 1.96 CCD query recall checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Verify upstream NYU sample checksums
+        run: |
+          jq -r '[
+            .files["queries/3ee.csv"].sha256 + "  research/nyu-ccd-query-import/v0.1/fixtures/armadillo-rollers-3ee.csv",
+            .files["mma_bool/3ee_mma_bool.json"].sha256 + "  research/nyu-ccd-query-import/v0.1/fixtures/armadillo-rollers-3ee-mma-bool.json",
+            .files["boxes/3ee.json"].sha256 + "  research/nyu-ccd-query-import/v0.1/fixtures/armadillo-rollers-3ee-boxes.json"
+          ] | .[]' research/nyu-ccd-query-import/v0.1/fixtures/manifest.json | sha256sum --check --strict
+      - name: Verify analytic exact-rational CCD fixture checksums
+        run: |
+          jq -r '.query_sets[] | [
+            .queries_sha256 + "  research/ccd-query-recall/v0.1/fixtures/analytic-linear-v0.1/" + .queries_file,
+            .labels_sha256 + "  research/ccd-query-recall/v0.1/fixtures/analytic-linear-v0.1/" + .labels_file
+          ] | .[]' research/ccd-query-recall/v0.1/fixtures/analytic-linear-v0.1/manifest.json | sha256sum --check --strict
+          echo "40fa3bd19136344d749d939203c30e414f99e40cae75ef584f5e08876c876c32  research/ccd-query-recall/v0.1/fixtures/analytic-linear-v0.1/manifest.json" | sha256sum --check --strict
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/ccd-query-recall/v0.1/Cargo.toml -- --check
+      - name: Run tests
+        run: cargo test --manifest-path research/ccd-query-recall/v0.1/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/ccd-query-recall/v0.1/Cargo.toml --locked --all-targets -- -D warnings

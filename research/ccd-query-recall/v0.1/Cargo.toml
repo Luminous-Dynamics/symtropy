@@ -1,0 +1,15 @@
+[package]
+name = "ccd-query-recall"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Query-level collision recall evaluator with independent ground truth"
+publish = false
+
+[dependencies]
+nyu-ccd-query-import = { path = "../../nyu-ccd-query-import/v0.1" }
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
