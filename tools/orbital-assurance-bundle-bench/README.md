@@ -182,6 +182,24 @@ node tools/orbital-assurance-bundle-bench/tests/incumbent_adequacy_oracle.mjs \
   tools/orbital-assurance-bundle-bench/fixtures/v0.1/incumbent-adequacy-cases.json
 ~~~
 
+## Independent loss-model universe adequacy v0.1
+
+The loss-model universe evaluator independently derives the required model families from a bounded mission-class grammar and derives world/model applicability from physical-world profile tags. It checks producer inventory, consumer-declared model IDs, a total applicability/exclusion manifest and the joint scenario pairs actually emitted.
+
+A non-applicable model/world pair is not silently absent: the applicability manifest must include a `profile_not_applicable` exclusion and evidence receipt. Unknown mission classes fail as model-family inadequacy. Producer/consumer agreement does not prove completeness because the independent grammar can detect a common-mode omission.
+
+The 17 frozen cases cover a complete model universe, valid/witnessed exclusions, common-mode model omission, one-sided omission, missing world/model pair, unwitnessed and missing exclusion rows, unsupported mission class, stale/out-of-profile model, unexpected model/pair, missing source receipt, scope mismatch, receipt aliasing and duplicate pair controls. The Rust evaluator is cross-checked against an independent JavaScript grammar implementation and exact receipt parity.
+
+~~~bash
+cargo run --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --bin loss-model-universe-adequacy -- \
+  tools/orbital-assurance-bundle-bench/fixtures/v0.1/loss-model-universe-cases.json \
+  --source-commit <40-lowercase-hex-commit>
+node tools/orbital-assurance-bundle-bench/tests/loss_model_universe_oracle.mjs \
+  tools/orbital-assurance-bundle-bench/fixtures/v0.1/loss-model-universe-cases.json
+~~~
+
+**Claim ceiling:** synthetic loss-model universe adequacy relative to the bounded grammar only. It does not validate causal physics, prove all real consequence models are included, calibrate model outputs, authenticate issuers or grant authority. #7214 owns the independent model-family adequacy claim.
+
 ## Commands
 
 

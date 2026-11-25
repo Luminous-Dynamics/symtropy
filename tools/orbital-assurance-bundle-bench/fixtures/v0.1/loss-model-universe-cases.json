@@ -1,0 +1,2845 @@
+{
+  "schema": "luminous.orbital-loss-model-universe-adequacy.corpus.v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic-loss-model-universe-adequacy-only",
+  "cases": [
+    {
+      "case_id": "baseline_closed",
+      "mission_class": "orbital_vehicle",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "worlds": [
+        {
+          "world_id": "world-cold",
+          "profile_tags": [
+            "vacuum"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "world_id": "world-hot",
+          "profile_tags": [
+            "thermal",
+            "propulsion"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "producer_models": [
+        {
+          "model_id": "propellant-v1",
+          "family": "propellant_consumption",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propellant-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "thermal-v1",
+          "family": "thermal_stress",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-thermal-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "propulsion-v1",
+          "family": "propulsion_degradation",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propulsion-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "avionics-v1",
+          "family": "avionics_reliability",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-avionics-v1",
+          "state": "CURRENT"
+        }
+      ],
+      "declared_model_ids": [
+        "propellant-v1",
+        "thermal-v1",
+        "propulsion-v1",
+        "avionics-v1"
+      ],
+      "applicability": [
+        {
+          "world_id": "world-cold",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "thermal-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-thermal-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "propulsion-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-propulsion-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "thermal-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        }
+      ],
+      "joint_pairs": [
+        {
+          "scenario_id": "scenario-world-cold-propellant-v1",
+          "world_id": "world-cold",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-avionics-v1",
+          "world_id": "world-cold",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propellant-v1",
+          "world_id": "world-hot",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-thermal-v1",
+          "world_id": "world-hot",
+          "model_id": "thermal-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propulsion-v1",
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-avionics-v1",
+          "world_id": "world-hot",
+          "model_id": "avionics-v1"
+        }
+      ],
+      "expected": {
+        "disposition": "LOSS_MODEL_UNIVERSE_CLOSED_WITHIN_DECLARED_GRAMMAR",
+        "missing_model_ids": [],
+        "missing_pair_ids": [],
+        "unexpected_model_ids": [],
+        "unexpected_pair_ids": []
+      }
+    },
+    {
+      "case_id": "valid_exclusion",
+      "mission_class": "orbital_vehicle",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "worlds": [
+        {
+          "world_id": "world-cold",
+          "profile_tags": [
+            "vacuum"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "world_id": "world-hot",
+          "profile_tags": [
+            "thermal",
+            "propulsion"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "producer_models": [
+        {
+          "model_id": "propellant-v1",
+          "family": "propellant_consumption",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propellant-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "thermal-v1",
+          "family": "thermal_stress",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-thermal-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "propulsion-v1",
+          "family": "propulsion_degradation",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propulsion-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "avionics-v1",
+          "family": "avionics_reliability",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-avionics-v1",
+          "state": "CURRENT"
+        }
+      ],
+      "declared_model_ids": [
+        "propellant-v1",
+        "thermal-v1",
+        "propulsion-v1",
+        "avionics-v1"
+      ],
+      "applicability": [
+        {
+          "world_id": "world-cold",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "thermal-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-thermal-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "propulsion-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-propulsion-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "thermal-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        }
+      ],
+      "joint_pairs": [
+        {
+          "scenario_id": "scenario-world-cold-propellant-v1",
+          "world_id": "world-cold",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-avionics-v1",
+          "world_id": "world-cold",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propellant-v1",
+          "world_id": "world-hot",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-thermal-v1",
+          "world_id": "world-hot",
+          "model_id": "thermal-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propulsion-v1",
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-avionics-v1",
+          "world_id": "world-hot",
+          "model_id": "avionics-v1"
+        }
+      ],
+      "expected": {
+        "disposition": "LOSS_MODEL_UNIVERSE_CLOSED_WITHIN_DECLARED_GRAMMAR",
+        "missing_model_ids": [],
+        "missing_pair_ids": [],
+        "unexpected_model_ids": [],
+        "unexpected_pair_ids": []
+      }
+    },
+    {
+      "case_id": "common_mode_omission",
+      "mission_class": "orbital_vehicle",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "worlds": [
+        {
+          "world_id": "world-cold",
+          "profile_tags": [
+            "vacuum"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "world_id": "world-hot",
+          "profile_tags": [
+            "thermal",
+            "propulsion"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "producer_models": [
+        {
+          "model_id": "propellant-v1",
+          "family": "propellant_consumption",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propellant-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "propulsion-v1",
+          "family": "propulsion_degradation",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propulsion-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "avionics-v1",
+          "family": "avionics_reliability",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-avionics-v1",
+          "state": "CURRENT"
+        }
+      ],
+      "declared_model_ids": [
+        "propellant-v1",
+        "propulsion-v1",
+        "avionics-v1"
+      ],
+      "applicability": [
+        {
+          "world_id": "world-cold",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "propulsion-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-propulsion-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        }
+      ],
+      "joint_pairs": [
+        {
+          "scenario_id": "scenario-world-cold-propellant-v1",
+          "world_id": "world-cold",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-avionics-v1",
+          "world_id": "world-cold",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propellant-v1",
+          "world_id": "world-hot",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propulsion-v1",
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-avionics-v1",
+          "world_id": "world-hot",
+          "model_id": "avionics-v1"
+        }
+      ],
+      "expected": {
+        "disposition": "COMMON_MODE_MODEL_OMISSION",
+        "missing_model_ids": [
+          "thermal-v1"
+        ],
+        "missing_pair_ids": [],
+        "unexpected_model_ids": [],
+        "unexpected_pair_ids": []
+      }
+    },
+    {
+      "case_id": "producer_manifest_omission",
+      "mission_class": "orbital_vehicle",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "worlds": [
+        {
+          "world_id": "world-cold",
+          "profile_tags": [
+            "vacuum"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "world_id": "world-hot",
+          "profile_tags": [
+            "thermal",
+            "propulsion"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "producer_models": [
+        {
+          "model_id": "propellant-v1",
+          "family": "propellant_consumption",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propellant-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "propulsion-v1",
+          "family": "propulsion_degradation",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propulsion-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "avionics-v1",
+          "family": "avionics_reliability",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-avionics-v1",
+          "state": "CURRENT"
+        }
+      ],
+      "declared_model_ids": [
+        "propellant-v1",
+        "thermal-v1",
+        "propulsion-v1",
+        "avionics-v1"
+      ],
+      "applicability": [
+        {
+          "world_id": "world-cold",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "thermal-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-thermal-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "propulsion-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-propulsion-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "thermal-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        }
+      ],
+      "joint_pairs": [
+        {
+          "scenario_id": "scenario-world-cold-propellant-v1",
+          "world_id": "world-cold",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-avionics-v1",
+          "world_id": "world-cold",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propellant-v1",
+          "world_id": "world-hot",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-thermal-v1",
+          "world_id": "world-hot",
+          "model_id": "thermal-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propulsion-v1",
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-avionics-v1",
+          "world_id": "world-hot",
+          "model_id": "avionics-v1"
+        }
+      ],
+      "expected": {
+        "disposition": "MISSING_LOSS_MODEL",
+        "missing_model_ids": [
+          "thermal-v1"
+        ],
+        "missing_pair_ids": [],
+        "unexpected_model_ids": [],
+        "unexpected_pair_ids": []
+      }
+    },
+    {
+      "case_id": "missing_world_model_pair",
+      "mission_class": "orbital_vehicle",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "worlds": [
+        {
+          "world_id": "world-cold",
+          "profile_tags": [
+            "vacuum"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "world_id": "world-hot",
+          "profile_tags": [
+            "thermal",
+            "propulsion"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "producer_models": [
+        {
+          "model_id": "propellant-v1",
+          "family": "propellant_consumption",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propellant-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "thermal-v1",
+          "family": "thermal_stress",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-thermal-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "propulsion-v1",
+          "family": "propulsion_degradation",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propulsion-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "avionics-v1",
+          "family": "avionics_reliability",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-avionics-v1",
+          "state": "CURRENT"
+        }
+      ],
+      "declared_model_ids": [
+        "propellant-v1",
+        "thermal-v1",
+        "propulsion-v1",
+        "avionics-v1"
+      ],
+      "applicability": [
+        {
+          "world_id": "world-cold",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "thermal-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-thermal-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "propulsion-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-propulsion-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "thermal-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        }
+      ],
+      "joint_pairs": [
+        {
+          "scenario_id": "scenario-world-cold-propellant-v1",
+          "world_id": "world-cold",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-avionics-v1",
+          "world_id": "world-cold",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propellant-v1",
+          "world_id": "world-hot",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propulsion-v1",
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-avionics-v1",
+          "world_id": "world-hot",
+          "model_id": "avionics-v1"
+        }
+      ],
+      "expected": {
+        "disposition": "MISSING_WORLD_MODEL_PAIR",
+        "missing_model_ids": [],
+        "missing_pair_ids": [
+          "world-hot::thermal-v1"
+        ],
+        "unexpected_model_ids": [],
+        "unexpected_pair_ids": []
+      }
+    },
+    {
+      "case_id": "unwitnessed_exclusion",
+      "mission_class": "orbital_vehicle",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "worlds": [
+        {
+          "world_id": "world-cold",
+          "profile_tags": [
+            "vacuum"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "world_id": "world-hot",
+          "profile_tags": [
+            "thermal",
+            "propulsion"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "producer_models": [
+        {
+          "model_id": "propellant-v1",
+          "family": "propellant_consumption",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propellant-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "thermal-v1",
+          "family": "thermal_stress",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-thermal-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "propulsion-v1",
+          "family": "propulsion_degradation",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propulsion-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "avionics-v1",
+          "family": "avionics_reliability",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-avionics-v1",
+          "state": "CURRENT"
+        }
+      ],
+      "declared_model_ids": [
+        "propellant-v1",
+        "thermal-v1",
+        "propulsion-v1",
+        "avionics-v1"
+      ],
+      "applicability": [
+        {
+          "world_id": "world-cold",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "thermal-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "propulsion-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-propulsion-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "thermal-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        }
+      ],
+      "joint_pairs": [
+        {
+          "scenario_id": "scenario-world-cold-propellant-v1",
+          "world_id": "world-cold",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-avionics-v1",
+          "world_id": "world-cold",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propellant-v1",
+          "world_id": "world-hot",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-thermal-v1",
+          "world_id": "world-hot",
+          "model_id": "thermal-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propulsion-v1",
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-avionics-v1",
+          "world_id": "world-hot",
+          "model_id": "avionics-v1"
+        }
+      ],
+      "expected": {
+        "disposition": "UNWITNESSED_MODEL_EXCLUSION",
+        "missing_model_ids": [],
+        "missing_pair_ids": [],
+        "unexpected_model_ids": [],
+        "unexpected_pair_ids": []
+      }
+    },
+    {
+      "case_id": "unsupported_mission_class",
+      "mission_class": "unregistered_lunar_surface",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "worlds": [
+        {
+          "world_id": "world-cold",
+          "profile_tags": [
+            "vacuum"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "world_id": "world-hot",
+          "profile_tags": [
+            "thermal",
+            "propulsion"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "producer_models": [
+        {
+          "model_id": "propellant-v1",
+          "family": "propellant_consumption",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propellant-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "thermal-v1",
+          "family": "thermal_stress",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-thermal-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "propulsion-v1",
+          "family": "propulsion_degradation",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propulsion-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "avionics-v1",
+          "family": "avionics_reliability",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-avionics-v1",
+          "state": "CURRENT"
+        }
+      ],
+      "declared_model_ids": [
+        "propellant-v1",
+        "thermal-v1",
+        "propulsion-v1",
+        "avionics-v1"
+      ],
+      "applicability": [
+        {
+          "world_id": "world-cold",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "thermal-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-thermal-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "propulsion-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-propulsion-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "thermal-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        }
+      ],
+      "joint_pairs": [
+        {
+          "scenario_id": "scenario-world-cold-propellant-v1",
+          "world_id": "world-cold",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-avionics-v1",
+          "world_id": "world-cold",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propellant-v1",
+          "world_id": "world-hot",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-thermal-v1",
+          "world_id": "world-hot",
+          "model_id": "thermal-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propulsion-v1",
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-avionics-v1",
+          "world_id": "world-hot",
+          "model_id": "avionics-v1"
+        }
+      ],
+      "expected": {
+        "disposition": "MODEL_FAMILY_INADEQUATE",
+        "missing_model_ids": [],
+        "missing_pair_ids": [],
+        "unexpected_model_ids": [],
+        "unexpected_pair_ids": []
+      }
+    },
+    {
+      "case_id": "stale_model",
+      "mission_class": "orbital_vehicle",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "worlds": [
+        {
+          "world_id": "world-cold",
+          "profile_tags": [
+            "vacuum"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "world_id": "world-hot",
+          "profile_tags": [
+            "thermal",
+            "propulsion"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "producer_models": [
+        {
+          "model_id": "propellant-v1",
+          "family": "propellant_consumption",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propellant-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "thermal-v1",
+          "family": "thermal_stress",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-thermal-v1",
+          "state": "STALE"
+        },
+        {
+          "model_id": "propulsion-v1",
+          "family": "propulsion_degradation",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propulsion-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "avionics-v1",
+          "family": "avionics_reliability",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-avionics-v1",
+          "state": "CURRENT"
+        }
+      ],
+      "declared_model_ids": [
+        "propellant-v1",
+        "thermal-v1",
+        "propulsion-v1",
+        "avionics-v1"
+      ],
+      "applicability": [
+        {
+          "world_id": "world-cold",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "thermal-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-thermal-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "propulsion-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-propulsion-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "thermal-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        }
+      ],
+      "joint_pairs": [
+        {
+          "scenario_id": "scenario-world-cold-propellant-v1",
+          "world_id": "world-cold",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-avionics-v1",
+          "world_id": "world-cold",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propellant-v1",
+          "world_id": "world-hot",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-thermal-v1",
+          "world_id": "world-hot",
+          "model_id": "thermal-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propulsion-v1",
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-avionics-v1",
+          "world_id": "world-hot",
+          "model_id": "avionics-v1"
+        }
+      ],
+      "expected": {
+        "disposition": "MODEL_STALE",
+        "missing_model_ids": [],
+        "missing_pair_ids": [],
+        "unexpected_model_ids": [],
+        "unexpected_pair_ids": []
+      }
+    },
+    {
+      "case_id": "out_of_profile_model",
+      "mission_class": "orbital_vehicle",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "worlds": [
+        {
+          "world_id": "world-cold",
+          "profile_tags": [
+            "vacuum"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "world_id": "world-hot",
+          "profile_tags": [
+            "thermal",
+            "propulsion"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "producer_models": [
+        {
+          "model_id": "propellant-v1",
+          "family": "propellant_consumption",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propellant-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "thermal-v1",
+          "family": "thermal_stress",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-thermal-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "propulsion-v1",
+          "family": "propulsion_degradation",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propulsion-v1",
+          "state": "OUT_OF_PROFILE"
+        },
+        {
+          "model_id": "avionics-v1",
+          "family": "avionics_reliability",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-avionics-v1",
+          "state": "CURRENT"
+        }
+      ],
+      "declared_model_ids": [
+        "propellant-v1",
+        "thermal-v1",
+        "propulsion-v1",
+        "avionics-v1"
+      ],
+      "applicability": [
+        {
+          "world_id": "world-cold",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "thermal-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-thermal-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "propulsion-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-propulsion-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "thermal-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        }
+      ],
+      "joint_pairs": [
+        {
+          "scenario_id": "scenario-world-cold-propellant-v1",
+          "world_id": "world-cold",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-avionics-v1",
+          "world_id": "world-cold",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propellant-v1",
+          "world_id": "world-hot",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-thermal-v1",
+          "world_id": "world-hot",
+          "model_id": "thermal-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propulsion-v1",
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-avionics-v1",
+          "world_id": "world-hot",
+          "model_id": "avionics-v1"
+        }
+      ],
+      "expected": {
+        "disposition": "MODEL_OUT_OF_PROFILE",
+        "missing_model_ids": [],
+        "missing_pair_ids": [],
+        "unexpected_model_ids": [],
+        "unexpected_pair_ids": []
+      }
+    },
+    {
+      "case_id": "unexpected_model",
+      "mission_class": "orbital_vehicle",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "worlds": [
+        {
+          "world_id": "world-cold",
+          "profile_tags": [
+            "vacuum"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "world_id": "world-hot",
+          "profile_tags": [
+            "thermal",
+            "propulsion"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "producer_models": [
+        {
+          "model_id": "propellant-v1",
+          "family": "propellant_consumption",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propellant-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "thermal-v1",
+          "family": "thermal_stress",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-thermal-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "propulsion-v1",
+          "family": "propulsion_degradation",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propulsion-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "avionics-v1",
+          "family": "avionics_reliability",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-avionics-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "solar-weather-v9",
+          "family": "solar_weather",
+          "version": "9.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-solar",
+          "state": "CURRENT"
+        }
+      ],
+      "declared_model_ids": [
+        "propellant-v1",
+        "thermal-v1",
+        "propulsion-v1",
+        "avionics-v1",
+        "solar-weather-v9"
+      ],
+      "applicability": [
+        {
+          "world_id": "world-cold",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "thermal-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-thermal-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "propulsion-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-propulsion-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "thermal-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        }
+      ],
+      "joint_pairs": [
+        {
+          "scenario_id": "scenario-world-cold-propellant-v1",
+          "world_id": "world-cold",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-avionics-v1",
+          "world_id": "world-cold",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propellant-v1",
+          "world_id": "world-hot",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-thermal-v1",
+          "world_id": "world-hot",
+          "model_id": "thermal-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propulsion-v1",
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-avionics-v1",
+          "world_id": "world-hot",
+          "model_id": "avionics-v1"
+        }
+      ],
+      "expected": {
+        "disposition": "UNEXPECTED_MODEL",
+        "missing_model_ids": [],
+        "missing_pair_ids": [],
+        "unexpected_model_ids": [
+          "solar-weather-v9"
+        ],
+        "unexpected_pair_ids": []
+      }
+    },
+    {
+      "case_id": "unexpected_pair",
+      "mission_class": "orbital_vehicle",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "worlds": [
+        {
+          "world_id": "world-cold",
+          "profile_tags": [
+            "vacuum"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "world_id": "world-hot",
+          "profile_tags": [
+            "thermal",
+            "propulsion"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "producer_models": [
+        {
+          "model_id": "propellant-v1",
+          "family": "propellant_consumption",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propellant-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "thermal-v1",
+          "family": "thermal_stress",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-thermal-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "propulsion-v1",
+          "family": "propulsion_degradation",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propulsion-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "avionics-v1",
+          "family": "avionics_reliability",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-avionics-v1",
+          "state": "CURRENT"
+        }
+      ],
+      "declared_model_ids": [
+        "propellant-v1",
+        "thermal-v1",
+        "propulsion-v1",
+        "avionics-v1"
+      ],
+      "applicability": [
+        {
+          "world_id": "world-cold",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "thermal-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "propulsion-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-propulsion-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "thermal-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        }
+      ],
+      "joint_pairs": [
+        {
+          "scenario_id": "scenario-world-cold-propellant-v1",
+          "world_id": "world-cold",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-avionics-v1",
+          "world_id": "world-cold",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propellant-v1",
+          "world_id": "world-hot",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-thermal-v1",
+          "world_id": "world-hot",
+          "model_id": "thermal-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propulsion-v1",
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-avionics-v1",
+          "world_id": "world-hot",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-thermal-v1",
+          "world_id": "world-cold",
+          "model_id": "thermal-v1"
+        }
+      ],
+      "expected": {
+        "disposition": "UNEXPECTED_WORLD_MODEL_PAIR",
+        "missing_model_ids": [],
+        "missing_pair_ids": [],
+        "unexpected_model_ids": [],
+        "unexpected_pair_ids": [
+          "world-cold::thermal-v1"
+        ]
+      }
+    },
+    {
+      "case_id": "missing_model_receipt",
+      "mission_class": "orbital_vehicle",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "worlds": [
+        {
+          "world_id": "world-cold",
+          "profile_tags": [
+            "vacuum"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "world_id": "world-hot",
+          "profile_tags": [
+            "thermal",
+            "propulsion"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "producer_models": [
+        {
+          "model_id": "propellant-v1",
+          "family": "propellant_consumption",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propellant-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "thermal-v1",
+          "family": "thermal_stress",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": null,
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "propulsion-v1",
+          "family": "propulsion_degradation",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propulsion-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "avionics-v1",
+          "family": "avionics_reliability",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-avionics-v1",
+          "state": "CURRENT"
+        }
+      ],
+      "declared_model_ids": [
+        "propellant-v1",
+        "thermal-v1",
+        "propulsion-v1",
+        "avionics-v1"
+      ],
+      "applicability": [
+        {
+          "world_id": "world-cold",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "thermal-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-thermal-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "propulsion-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-propulsion-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "thermal-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        }
+      ],
+      "joint_pairs": [
+        {
+          "scenario_id": "scenario-world-cold-propellant-v1",
+          "world_id": "world-cold",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-avionics-v1",
+          "world_id": "world-cold",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propellant-v1",
+          "world_id": "world-hot",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-thermal-v1",
+          "world_id": "world-hot",
+          "model_id": "thermal-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propulsion-v1",
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-avionics-v1",
+          "world_id": "world-hot",
+          "model_id": "avionics-v1"
+        }
+      ],
+      "expected": {
+        "disposition": "MODEL_SOURCE_UNAVAILABLE",
+        "missing_model_ids": [],
+        "missing_pair_ids": [],
+        "unexpected_model_ids": [],
+        "unexpected_pair_ids": []
+      }
+    },
+    {
+      "case_id": "model_scope_mismatch",
+      "mission_class": "orbital_vehicle",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "worlds": [
+        {
+          "world_id": "world-cold",
+          "profile_tags": [
+            "vacuum"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "world_id": "world-hot",
+          "profile_tags": [
+            "thermal",
+            "propulsion"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "producer_models": [
+        {
+          "model_id": "propellant-v1",
+          "family": "propellant_consumption",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propellant-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "thermal-v1",
+          "family": "thermal_stress",
+          "version": "1.0.0",
+          "scope_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_receipt_id": "receipt-thermal-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "propulsion-v1",
+          "family": "propulsion_degradation",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propulsion-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "avionics-v1",
+          "family": "avionics_reliability",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-avionics-v1",
+          "state": "CURRENT"
+        }
+      ],
+      "declared_model_ids": [
+        "propellant-v1",
+        "thermal-v1",
+        "propulsion-v1",
+        "avionics-v1"
+      ],
+      "applicability": [
+        {
+          "world_id": "world-cold",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "thermal-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-thermal-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "propulsion-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-propulsion-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "thermal-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        }
+      ],
+      "joint_pairs": [
+        {
+          "scenario_id": "scenario-world-cold-propellant-v1",
+          "world_id": "world-cold",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-avionics-v1",
+          "world_id": "world-cold",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propellant-v1",
+          "world_id": "world-hot",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-thermal-v1",
+          "world_id": "world-hot",
+          "model_id": "thermal-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propulsion-v1",
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-avionics-v1",
+          "world_id": "world-hot",
+          "model_id": "avionics-v1"
+        }
+      ],
+      "expected": {
+        "disposition": "MODEL_SCOPE_MISMATCH",
+        "missing_model_ids": [],
+        "missing_pair_ids": [],
+        "unexpected_model_ids": [],
+        "unexpected_pair_ids": []
+      }
+    },
+    {
+      "case_id": "duplicate_world_model_pair",
+      "mission_class": "orbital_vehicle",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "worlds": [
+        {
+          "world_id": "world-cold",
+          "profile_tags": [
+            "vacuum"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "world_id": "world-hot",
+          "profile_tags": [
+            "thermal",
+            "propulsion"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "producer_models": [
+        {
+          "model_id": "propellant-v1",
+          "family": "propellant_consumption",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propellant-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "thermal-v1",
+          "family": "thermal_stress",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-thermal-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "propulsion-v1",
+          "family": "propulsion_degradation",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propulsion-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "avionics-v1",
+          "family": "avionics_reliability",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-avionics-v1",
+          "state": "CURRENT"
+        }
+      ],
+      "declared_model_ids": [
+        "propellant-v1",
+        "thermal-v1",
+        "propulsion-v1",
+        "avionics-v1"
+      ],
+      "applicability": [
+        {
+          "world_id": "world-cold",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "thermal-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-thermal-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "propulsion-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-propulsion-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "thermal-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        }
+      ],
+      "joint_pairs": [
+        {
+          "scenario_id": "scenario-world-cold-propellant-v1",
+          "world_id": "world-cold",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-avionics-v1",
+          "world_id": "world-cold",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propellant-v1",
+          "world_id": "world-hot",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-thermal-v1",
+          "world_id": "world-hot",
+          "model_id": "thermal-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propulsion-v1",
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-avionics-v1",
+          "world_id": "world-hot",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-propellant-v1",
+          "world_id": "world-cold",
+          "model_id": "propellant-v1"
+        }
+      ],
+      "expected": {
+        "disposition": "INVALID_CASE",
+        "missing_model_ids": [],
+        "missing_pair_ids": [],
+        "unexpected_model_ids": [],
+        "unexpected_pair_ids": []
+      }
+    },
+    {
+      "case_id": "model_receipt_alias",
+      "mission_class": "orbital_vehicle",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "worlds": [
+        {
+          "world_id": "world-cold",
+          "profile_tags": [
+            "vacuum"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "world_id": "world-hot",
+          "profile_tags": [
+            "thermal",
+            "propulsion"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "producer_models": [
+        {
+          "model_id": "propellant-v1",
+          "family": "propellant_consumption",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propellant-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "thermal-v1",
+          "family": "thermal_stress",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propellant-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "propulsion-v1",
+          "family": "propulsion_degradation",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propulsion-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "avionics-v1",
+          "family": "avionics_reliability",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-avionics-v1",
+          "state": "CURRENT"
+        }
+      ],
+      "declared_model_ids": [
+        "propellant-v1",
+        "thermal-v1",
+        "propulsion-v1",
+        "avionics-v1"
+      ],
+      "applicability": [
+        {
+          "world_id": "world-cold",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "thermal-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-thermal-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "propulsion-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-propulsion-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "thermal-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        }
+      ],
+      "joint_pairs": [
+        {
+          "scenario_id": "scenario-world-cold-propellant-v1",
+          "world_id": "world-cold",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-avionics-v1",
+          "world_id": "world-cold",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propellant-v1",
+          "world_id": "world-hot",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-thermal-v1",
+          "world_id": "world-hot",
+          "model_id": "thermal-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propulsion-v1",
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-avionics-v1",
+          "world_id": "world-hot",
+          "model_id": "avionics-v1"
+        }
+      ],
+      "expected": {
+        "disposition": "MODEL_RECEIPT_ALIAS",
+        "missing_model_ids": [],
+        "missing_pair_ids": [],
+        "unexpected_model_ids": [],
+        "unexpected_pair_ids": []
+      }
+    },
+    {
+      "case_id": "missing_required_applicability_row",
+      "mission_class": "orbital_vehicle",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "worlds": [
+        {
+          "world_id": "world-cold",
+          "profile_tags": [
+            "vacuum"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "world_id": "world-hot",
+          "profile_tags": [
+            "thermal",
+            "propulsion"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "producer_models": [
+        {
+          "model_id": "propellant-v1",
+          "family": "propellant_consumption",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propellant-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "thermal-v1",
+          "family": "thermal_stress",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-thermal-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "propulsion-v1",
+          "family": "propulsion_degradation",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propulsion-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "avionics-v1",
+          "family": "avionics_reliability",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-avionics-v1",
+          "state": "CURRENT"
+        }
+      ],
+      "declared_model_ids": [
+        "propellant-v1",
+        "thermal-v1",
+        "propulsion-v1",
+        "avionics-v1"
+      ],
+      "applicability": [
+        {
+          "world_id": "world-cold",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "thermal-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-thermal-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "propulsion-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-propulsion-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        }
+      ],
+      "joint_pairs": [
+        {
+          "scenario_id": "scenario-world-cold-propellant-v1",
+          "world_id": "world-cold",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-avionics-v1",
+          "world_id": "world-cold",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propellant-v1",
+          "world_id": "world-hot",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-thermal-v1",
+          "world_id": "world-hot",
+          "model_id": "thermal-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propulsion-v1",
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-avionics-v1",
+          "world_id": "world-hot",
+          "model_id": "avionics-v1"
+        }
+      ],
+      "expected": {
+        "disposition": "MISSING_WORLD_MODEL_PAIR",
+        "missing_model_ids": [],
+        "missing_pair_ids": [
+          "world-hot::thermal-v1"
+        ],
+        "unexpected_model_ids": [],
+        "unexpected_pair_ids": []
+      }
+    },
+    {
+      "case_id": "missing_exclusion_row",
+      "mission_class": "orbital_vehicle",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "worlds": [
+        {
+          "world_id": "world-cold",
+          "profile_tags": [
+            "vacuum"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "world_id": "world-hot",
+          "profile_tags": [
+            "thermal",
+            "propulsion"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "producer_models": [
+        {
+          "model_id": "propellant-v1",
+          "family": "propellant_consumption",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propellant-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "thermal-v1",
+          "family": "thermal_stress",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-thermal-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "propulsion-v1",
+          "family": "propulsion_degradation",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propulsion-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "avionics-v1",
+          "family": "avionics_reliability",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-avionics-v1",
+          "state": "CURRENT"
+        }
+      ],
+      "declared_model_ids": [
+        "propellant-v1",
+        "thermal-v1",
+        "propulsion-v1",
+        "avionics-v1"
+      ],
+      "applicability": [
+        {
+          "world_id": "world-cold",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "propulsion-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-propulsion-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "thermal-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        }
+      ],
+      "joint_pairs": [
+        {
+          "scenario_id": "scenario-world-cold-propellant-v1",
+          "world_id": "world-cold",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-avionics-v1",
+          "world_id": "world-cold",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propellant-v1",
+          "world_id": "world-hot",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-thermal-v1",
+          "world_id": "world-hot",
+          "model_id": "thermal-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propulsion-v1",
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-avionics-v1",
+          "world_id": "world-hot",
+          "model_id": "avionics-v1"
+        }
+      ],
+      "expected": {
+        "disposition": "UNWITNESSED_MODEL_EXCLUSION",
+        "missing_model_ids": [],
+        "missing_pair_ids": [],
+        "unexpected_model_ids": [],
+        "unexpected_pair_ids": []
+      }
+    },
+    {
+      "case_id": "model_family_mismatch",
+      "mission_class": "orbital_vehicle",
+      "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "worlds": [
+        {
+          "world_id": "world-cold",
+          "profile_tags": [
+            "vacuum"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "world_id": "world-hot",
+          "profile_tags": [
+            "thermal",
+            "propulsion"
+          ],
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "producer_models": [
+        {
+          "model_id": "propellant-v1",
+          "family": "propellant_consumption",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propellant-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "thermal-v1",
+          "family": "propellant_consumption",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-thermal-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "propulsion-v1",
+          "family": "propulsion_degradation",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-propulsion-v1",
+          "state": "CURRENT"
+        },
+        {
+          "model_id": "avionics-v1",
+          "family": "avionics_reliability",
+          "version": "1.0.0",
+          "scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_receipt_id": "receipt-avionics-v1",
+          "state": "CURRENT"
+        }
+      ],
+      "declared_model_ids": [
+        "propellant-v1",
+        "thermal-v1",
+        "propulsion-v1",
+        "avionics-v1"
+      ],
+      "applicability": [
+        {
+          "world_id": "world-cold",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "thermal-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-thermal-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "propulsion-v1",
+          "declared_applicable": false,
+          "exclusion_reason": "profile_not_applicable",
+          "evidence_receipt_id": "exclusion-world-cold-propulsion-v1"
+        },
+        {
+          "world_id": "world-cold",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propellant-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "thermal-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        },
+        {
+          "world_id": "world-hot",
+          "model_id": "avionics-v1",
+          "declared_applicable": true,
+          "exclusion_reason": null,
+          "evidence_receipt_id": null
+        }
+      ],
+      "joint_pairs": [
+        {
+          "scenario_id": "scenario-world-cold-propellant-v1",
+          "world_id": "world-cold",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-cold-avionics-v1",
+          "world_id": "world-cold",
+          "model_id": "avionics-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propellant-v1",
+          "world_id": "world-hot",
+          "model_id": "propellant-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-thermal-v1",
+          "world_id": "world-hot",
+          "model_id": "thermal-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-propulsion-v1",
+          "world_id": "world-hot",
+          "model_id": "propulsion-v1"
+        },
+        {
+          "scenario_id": "scenario-world-hot-avionics-v1",
+          "world_id": "world-hot",
+          "model_id": "avionics-v1"
+        }
+      ],
+      "expected": {
+        "disposition": "MODEL_FAMILY_MISMATCH",
+        "missing_model_ids": [],
+        "missing_pair_ids": [],
+        "unexpected_model_ids": [],
+        "unexpected_pair_ids": []
+      }
+    }
+  ]
+}
