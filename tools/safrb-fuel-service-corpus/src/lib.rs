@@ -120,6 +120,9 @@ pub struct InventoryLedger {
     pub withdrawals_grams: u64,
     pub declared_losses_grams: u64,
     pub closing_grams: u64,
+    pub measurement_uncertainty_basis_points: u64,
+    pub observed_lower_grams: u64,
+    pub observed_upper_grams: u64,
     pub quarantined_grams: u64,
     pub operating_heel_grams: u64,
     pub usable_grams: u64,
@@ -246,9 +249,22 @@ pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
         .and_then(|value| value.checked_sub(declared_losses_grams))
         .expect("bounded synthetic inventory arithmetic");
 
+    let measurement_uncertainty_basis_points = if archetype == Archetype::TankGaugeUncertainty {
+        2_000
+    } else {
+        500
+    };
+    let observed_lower_grams = closing_grams
+        .saturating_mul(10_000 - measurement_uncertainty_basis_points)
+        / 10_000;
+    let observed_upper_grams = closing_grams
+        .saturating_mul(10_000 + measurement_uncertainty_basis_points)
+        / 10_000;
     let quarantined_grams = if archetype == Archetype::TankQualityQuarantine { 7_000_000 } else { 0 };
     let operating_heel_grams = 100_000;
-    let usable_grams = closing_grams
+    // The conservative observed lower quantity, not hidden synthetic truth,
+    // controls the amount admitted as usable and accessible.
+    let usable_grams = observed_lower_grams
         .checked_sub(quarantined_grams)
         .and_then(|value| value.checked_sub(operating_heel_grams))
         .expect("synthetic usable stock does not underflow");
@@ -305,7 +321,7 @@ pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
 
     let demand_wh = SERVICE_DEMAND_WH + (noise % 100_000);
     let critical_floor_wh = demand_wh.saturating_mul(SERVICE_CRITICAL_FLOOR_BPS) / 10_000;
-    let uncertainty_basis_points = if archetype == Archetype::TankGaugeUncertainty { 2_000 } else { 500 };
+    let uncertainty_basis_points = 500;
     let delivered_lower_wh =
         network_deliverable_wh.saturating_mul(10_000 - uncertainty_basis_points) / 10_000;
     let delivered_upper_wh = demand_wh.min(
@@ -337,6 +353,9 @@ pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
             withdrawals_grams,
             declared_losses_grams,
             closing_grams,
+            measurement_uncertainty_basis_points,
+            observed_lower_grams,
+            observed_upper_grams,
             quarantined_grams,
             operating_heel_grams,
             usable_grams,
@@ -414,7 +433,22 @@ pub fn validate_case(case: &FuelServiceCase) -> Result<(), Vec<String>> {
     if accounted.is_none_or(|(available, accounted_total)| available != accounted_total) {
         errors.push("inventory mass balance does not reconcile exactly".to_string());
     }
-    let usable_expected = ledger.closing_grams
+    if ledger.measurement_uncertainty_basis_points > 10_000 {
+        errors.push("inventory measurement uncertainty exceeds 100 percent".to_string());
+    }
+    let expected_observed_lower = ledger.closing_grams
+        .saturating_mul(10_000_u64.saturating_sub(ledger.measurement_uncertainty_basis_points))
+        / 10_000;
+    let expected_observed_upper = ledger.closing_grams
+        .saturating_mul(10_000_u64.saturating_add(ledger.measurement_uncertainty_basis_points))
+        / 10_000;
+    if ledger.observed_lower_grams != expected_observed_lower
+        || ledger.observed_upper_grams != expected_observed_upper
+        || ledger.observed_lower_grams > ledger.observed_upper_grams
+    {
+        errors.push("inventory observed quantity bounds do not reconcile with declared measurement uncertainty".to_string());
+    }
+    let usable_expected = ledger.observed_lower_grams
         .checked_sub(ledger.quarantined_grams)
         .and_then(|value| value.checked_sub(ledger.operating_heel_grams));
     if usable_expected != Some(ledger.usable_grams) {
@@ -575,6 +609,9 @@ impl FuelServiceCase {
                     "\"withdrawalsGrams\":{},",
                     "\"declaredLossesGrams\":{},",
                     "\"closingGrams\":{},",
+                    "\"measurementUncertaintyBasisPoints\":{},",
+                    "\"observedLowerGrams\":{},",
+                    "\"observedUpperGrams\":{},",
                     "\"quarantinedGrams\":{},",
                     "\"operatingHeelGrams\":{},",
                     "\"usableGrams\":{},",
@@ -635,6 +672,9 @@ impl FuelServiceCase {
             self.inventory.withdrawals_grams,
             self.inventory.declared_losses_grams,
             self.inventory.closing_grams,
+            self.inventory.measurement_uncertainty_basis_points,
+            self.inventory.observed_lower_grams,
+            self.inventory.observed_upper_grams,
             self.inventory.quarantined_grams,
             self.inventory.operating_heel_grams,
             self.inventory.usable_grams,
@@ -729,7 +769,9 @@ mod tests {
     fn quarantined_stock_is_never_accessible() {
         let case = generate_case(Archetype::TankQualityQuarantine, 1);
         assert!(case.inventory.quarantined_grams > 0);
-        assert!(case.inventory.usable_grams < case.inventory.closing_grams);
+        assert!(case.inventory.usable_grams < case.inventory.observed_lower_grams);
+        assert!(case.inventory.observed_lower_grams <= case.inventory.closing_grams);
+        assert!(case.inventory.closing_grams <= case.inventory.observed_upper_grams);
         assert!(case.inventory.accessible_grams <= case.inventory.usable_grams);
         assert!(validate_case(&case).is_ok());
     }
@@ -822,6 +864,24 @@ mod tests {
         let widened_lower = case.generator.network_deliverable_wh
             .saturating_mul(10_000 - 2_000) / 10_000;
         assert!(widened_lower <= case.service.delivered_lower_wh);
+    }
+
+
+
+    #[test]
+    fn tank_gauge_uncertainty_is_applied_to_inventory_observation_not_service_meter() {
+        let case = generate_case(Archetype::TankGaugeUncertainty, 0);
+        assert_eq!(case.inventory.measurement_uncertainty_basis_points, 2_000);
+        assert!(case.inventory.observed_lower_grams < case.inventory.closing_grams);
+        assert!(case.inventory.observed_upper_grams > case.inventory.closing_grams);
+        assert_eq!(case.service.uncertainty_basis_points, 500);
+        assert_eq!(
+            case.inventory.usable_grams,
+            case.inventory.observed_lower_grams
+                - case.inventory.quarantined_grams
+                - case.inventory.operating_heel_grams
+        );
+        assert!(validate_case(&case).is_ok());
     }
 
     #[test]
