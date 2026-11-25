@@ -77,7 +77,23 @@
       "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
       "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
       "future_information_access_count": 0,
-      "nonanticipativity_violation_count": 0
+      "nonanticipativity_violation_count": 0,
+      "decision_receipts": [
+        {
+          "decision_point_id": "reserve-admission",
+          "decision_time_ns": 0,
+          "information_set_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+          "observation_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "action_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "decision_point_id": "recovery-after-reveal",
+          "decision_time_ns": 10000,
+          "information_set_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "observation_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+          "action_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ]
     },
     {
       "scenario_id": "scenario-1",
@@ -119,7 +135,23 @@
       "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
       "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
       "future_information_access_count": 0,
-      "nonanticipativity_violation_count": 0
+      "nonanticipativity_violation_count": 0,
+      "decision_receipts": [
+        {
+          "decision_point_id": "reserve-admission",
+          "decision_time_ns": 0,
+          "information_set_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+          "observation_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "action_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "decision_point_id": "recovery-after-reveal",
+          "decision_time_ns": 10000,
+          "information_set_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "observation_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+          "action_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ]
     },
     {
       "scenario_id": "scenario-1",
@@ -161,7 +193,23 @@
       "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
       "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
       "future_information_access_count": 0,
-      "nonanticipativity_violation_count": 0
+      "nonanticipativity_violation_count": 0,
+      "decision_receipts": [
+        {
+          "decision_point_id": "reserve-admission",
+          "decision_time_ns": 0,
+          "information_set_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+          "observation_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "action_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "decision_point_id": "recovery-after-reveal",
+          "decision_time_ns": 10000,
+          "information_set_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "observation_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+          "action_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ]
     },
     {
       "scenario_id": "scenario-2",
@@ -203,7 +251,23 @@
       "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
       "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
       "future_information_access_count": 0,
-      "nonanticipativity_violation_count": 0
+      "nonanticipativity_violation_count": 0,
+      "decision_receipts": [
+        {
+          "decision_point_id": "reserve-admission",
+          "decision_time_ns": 0,
+          "information_set_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+          "observation_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "action_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "decision_point_id": "recovery-after-reveal",
+          "decision_time_ns": 10000,
+          "information_set_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+          "observation_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+          "action_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ]
     },
     {
       "scenario_id": "scenario-2",
@@ -245,7 +309,23 @@
       "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
       "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
       "future_information_access_count": 0,
-      "nonanticipativity_violation_count": 0
+      "nonanticipativity_violation_count": 0,
+      "decision_receipts": [
+        {
+          "decision_point_id": "reserve-admission",
+          "decision_time_ns": 0,
+          "information_set_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+          "observation_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "action_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "decision_point_id": "recovery-after-reveal",
+          "decision_time_ns": 10000,
+          "information_set_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+          "observation_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+          "action_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ]
     },
     {
       "scenario_id": "scenario-2",
@@ -287,7 +367,23 @@
       "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
       "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
       "future_information_access_count": 0,
-      "nonanticipativity_violation_count": 0
+      "nonanticipativity_violation_count": 0,
+      "decision_receipts": [
+        {
+          "decision_point_id": "reserve-admission",
+          "decision_time_ns": 0,
+          "information_set_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+          "observation_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "action_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "decision_point_id": "recovery-after-reveal",
+          "decision_time_ns": 10000,
+          "information_set_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+          "observation_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+          "action_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ]
     },
     {
       "scenario_id": "scenario-3",
@@ -329,7 +425,23 @@
       "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
       "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
       "future_information_access_count": 0,
-      "nonanticipativity_violation_count": 0
+      "nonanticipativity_violation_count": 0,
+      "decision_receipts": [
+        {
+          "decision_point_id": "reserve-admission",
+          "decision_time_ns": 0,
+          "information_set_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+          "observation_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "action_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "decision_point_id": "recovery-after-reveal",
+          "decision_time_ns": 10000,
+          "information_set_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+          "observation_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+          "action_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ]
     },
     {
       "scenario_id": "scenario-3",
@@ -371,7 +483,23 @@
       "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
       "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
       "future_information_access_count": 0,
-      "nonanticipativity_violation_count": 0
+      "nonanticipativity_violation_count": 0,
+      "decision_receipts": [
+        {
+          "decision_point_id": "reserve-admission",
+          "decision_time_ns": 0,
+          "information_set_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+          "observation_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "action_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "decision_point_id": "recovery-after-reveal",
+          "decision_time_ns": 10000,
+          "information_set_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+          "observation_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+          "action_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ]
     },
     {
       "scenario_id": "scenario-3",
@@ -413,7 +541,23 @@
       "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
       "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
       "future_information_access_count": 0,
-      "nonanticipativity_violation_count": 0
+      "nonanticipativity_violation_count": 0,
+      "decision_receipts": [
+        {
+          "decision_point_id": "reserve-admission",
+          "decision_time_ns": 0,
+          "information_set_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+          "observation_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "action_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "decision_point_id": "recovery-after-reveal",
+          "decision_time_ns": 10000,
+          "information_set_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+          "observation_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+          "action_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ]
     },
     {
       "scenario_id": "scenario-4",
@@ -455,7 +599,23 @@
       "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
       "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
       "future_information_access_count": 0,
-      "nonanticipativity_violation_count": 0
+      "nonanticipativity_violation_count": 0,
+      "decision_receipts": [
+        {
+          "decision_point_id": "reserve-admission",
+          "decision_time_ns": 0,
+          "information_set_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+          "observation_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "action_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "decision_point_id": "recovery-after-reveal",
+          "decision_time_ns": 10000,
+          "information_set_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+          "observation_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "action_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      ]
     },
     {
       "scenario_id": "scenario-4",
@@ -497,7 +657,23 @@
       "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
       "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
       "future_information_access_count": 0,
-      "nonanticipativity_violation_count": 0
+      "nonanticipativity_violation_count": 0,
+      "decision_receipts": [
+        {
+          "decision_point_id": "reserve-admission",
+          "decision_time_ns": 0,
+          "information_set_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+          "observation_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "action_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "decision_point_id": "recovery-after-reveal",
+          "decision_time_ns": 10000,
+          "information_set_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+          "observation_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "action_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      ]
     },
     {
       "scenario_id": "scenario-4",
@@ -539,7 +715,23 @@
       "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
       "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
       "future_information_access_count": 0,
-      "nonanticipativity_violation_count": 0
+      "nonanticipativity_violation_count": 0,
+      "decision_receipts": [
+        {
+          "decision_point_id": "reserve-admission",
+          "decision_time_ns": 0,
+          "information_set_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+          "observation_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "action_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "decision_point_id": "recovery-after-reveal",
+          "decision_time_ns": 10000,
+          "information_set_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+          "observation_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "action_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      ]
     }
   ]
 }
