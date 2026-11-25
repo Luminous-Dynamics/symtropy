@@ -15,6 +15,8 @@ on:
       - "docs/research/aviation/AERO_TEMPORAL_EVIDENCE_ASSURANCE_V0_1.md"
       - "docs/research/aviation/schemas/aero_temporal_replay_corpus_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_temporal_replay_corpus_v0_1.json"
+      - "docs/research/aviation/examples/aero_shm_dataset_manifest_v0_1.json"
+      - "docs/research/aviation/schemas/aero_shm_dataset_manifest_v0_1.schema.json"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
     branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2"]
@@ -172,6 +174,42 @@ jobs:
           if corpus.get("oracle_review_status") != "NOT_INDEPENDENTLY_REVIEWED":
               raise SystemExit("oracle review status must remain explicit until independent review")
           print(f"Temporal replay corpus structure passed: {len(cases)} cases; semantic oracle review still required.")
+          PY
+
+      - name: Validate SHM dataset manifest schema and rights gates
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema = json.loads((root / "docs/research/aviation/schemas/aero_shm_dataset_manifest_v0_1.schema.json").read_text())
+          manifest = json.loads((root / "docs/research/aviation/examples/aero_shm_dataset_manifest_v0_1.json").read_text())
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("SHM dataset manifest schema must declare Draft 2020-12")
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(manifest), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
+              raise SystemExit(f"SHM dataset manifest failed schema validation ({len(errors)} errors)")
+          ids = [item["dataset_id"] for item in manifest["datasets"]]
+          if len(ids) != len(set(ids)):
+              raise SystemExit("SHM dataset IDs must be unique")
+          for item in manifest["datasets"]:
+              acquisition = item["acquisition"]
+              if item["rights"]["status"] != "CLEARED" and acquisition["download_status"] not in ("NOT_DOWNLOADED", "QUARANTINED"):
+                  raise SystemExit(f"{item['dataset_id']}: acquisition advanced before rights clearance")
+              if item["rights"]["status"] != "CLEARED" and acquisition["rights_reviewed"]:
+                  raise SystemExit(f"{item['dataset_id']}: rights_reviewed conflicts with rights status")
+              if item["security"]["format_risk"] == "UNTRUSTED_PICKLE_EXECUTION_RISK" and "network-isolated" not in item["security"]["required_handling"]:
+                  raise SystemExit(f"{item['dataset_id']}: unsafe pickle handling is not explicit")
+          if manifest["status"] != "DISCOVERY_ONLY":
+              raise SystemExit("manifest status must remain DISCOVERY_ONLY until all promotion gates are evidenced")
+          print(f"SHM manifest structure passed: {len(ids)} datasets; rights clearance and ingestion remain pending.")
           PY
 
       - name: Run evaluator tests
