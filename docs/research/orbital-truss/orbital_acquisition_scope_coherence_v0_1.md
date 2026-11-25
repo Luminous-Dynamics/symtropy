@@ -56,7 +56,7 @@ Every receipt states source_bytes_authenticated=false and authority_granted=fals
 
 ## Frozen corpus
 
-The 22 synthetic cases cover:
+The 23 synthetic cases cover:
 1. all identities and intervals match;
 2. camera, lens/intrinsics and robot/mount mismatch;
 3. target asset revision and coordinate-frame mismatch;
@@ -70,7 +70,8 @@ The 22 synthetic cases cover:
 11. missing feature/sensor-pattern scope;
 12. duplicate scope claims and malformed digest shape;
 13. revoked source;
-14. digest-shaped but unauthenticated evidence.
+14. digest-shaped but unauthenticated evidence;
+15. missing required timing evidence owner.
 
 Rust tests also reverse case order, claim order and binding order; the canonical per-case result must remain unchanged.
 
