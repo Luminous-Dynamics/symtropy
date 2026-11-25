@@ -1442,6 +1442,25 @@ mod tests {
     }
 
     #[test]
+    fn aggregate_energy_ablation_exposes_temporal_false_guarantees() {
+        let report = evaluate_temporal_ablation(&generate_corpus(), 4).unwrap();
+        assert_eq!(report.cases_total, 120);
+        assert_eq!(
+            report.temporal_guarantee_count
+                + report.temporal_confirmed_shortfall_count
+                + report.temporal_indeterminate_count,
+            120
+        );
+        assert!(report.aggregate_energy_guarantee_count > report.temporal_guarantee_count);
+        assert!(report.aggregate_false_guarantee_count > 0);
+        assert!(report.false_guarantee_with_hourly_shortfall_count > 0);
+        assert!(report.false_guarantee_with_indeterminate_evidence_count > 0);
+        assert!(report.sustained_recovery_confirmed_count > 0);
+        assert!(report.right_censored_recovery_count > 0);
+        assert!(report.to_json().contains("\"evidenceMaturity\":\"synthetic_fixture\""));
+    }
+
+    #[test]
     fn every_case_has_72_contiguous_hourly_service_intervals() {
         let cases = generate_corpus();
         for case in cases {
