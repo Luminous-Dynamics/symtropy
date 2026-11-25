@@ -131,6 +131,11 @@ pub struct QuadratureMetrics {
     pub direction_reversal_count: usize,
     pub periodic_state_match: bool,
     pub channel_edge_counts: ChannelEdgeCounts,
+    pub expected_quadrature_spacing_rad: f64,
+    pub quadrature_spacing_interval_count: usize,
+    /// Lower and upper bounds on the maximum absolute edge-spacing error.
+    pub maximum_spacing_error_lower_bound_rad: Option<f64>,
+    pub maximum_spacing_error_upper_bound_rad: Option<f64>,
     pub minimum_transition_bracket_rad: Option<f64>,
     pub maximum_transition_bracket_rad: Option<f64>,
     pub expected_transition_rate_hz: Option<f64>,
@@ -242,6 +247,25 @@ fn classify_transition(
     } else {
         (None, true)
     }
+}
+
+
+fn spacing_error_bounds(
+    interval_lower_rad: f64,
+    interval_upper_rad: f64,
+    expected_spacing_rad: f64,
+) -> (f64, f64) {
+    let lower_bound = if expected_spacing_rad < interval_lower_rad {
+        interval_lower_rad - expected_spacing_rad
+    } else if expected_spacing_rad > interval_upper_rad {
+        expected_spacing_rad - interval_upper_rad
+    } else {
+        0.0
+    };
+    let upper_bound = (interval_lower_rad - expected_spacing_rad)
+        .abs()
+        .max((interval_upper_rad - expected_spacing_rad).abs());
+    (lower_bound, upper_bound)
 }
 
 /// Evaluate two independent hysteretic Hall latch channels over one complete
@@ -476,6 +500,48 @@ pub fn evaluate_trace(
             (None, None, None)
         };
 
+
+    let expected_quadrature_spacing_rad =
+        TAU / expected_transitions_per_revolution as f64;
+    let valid_transition_indices = transitions
+        .iter()
+        .enumerate()
+        .filter_map(|(index, transition)| transition.direction.map(|_| index))
+        .collect::<Vec<_>>();
+    let mut maximum_spacing_error_lower_bound_rad = 0.0_f64;
+    let mut maximum_spacing_error_upper_bound_rad = 0.0_f64;
+    let mut quadrature_spacing_interval_count = 0_usize;
+
+    let mut compare_spacing_interval = |lower: f64, upper: f64| {
+        let (error_lower, error_upper) = spacing_error_bounds(
+            lower,
+            upper,
+            expected_quadrature_spacing_rad,
+        );
+        maximum_spacing_error_lower_bound_rad =
+            maximum_spacing_error_lower_bound_rad.max(error_lower);
+        maximum_spacing_error_upper_bound_rad =
+            maximum_spacing_error_upper_bound_rad.max(error_upper);
+        quadrature_spacing_interval_count += 1;
+    };
+
+    for adjacent in valid_transition_indices.windows(2) {
+        let first_edge = &transitions[adjacent[0]];
+        let second_edge = &transitions[adjacent[1]];
+        compare_spacing_interval(
+            second_edge.lower_angle_rad - first_edge.upper_angle_rad,
+            second_edge.upper_angle_rad - first_edge.lower_angle_rad,
+        );
+    }
+    if periodic_state_match && valid_transition_indices.len() >= 2 {
+        let first_edge = &transitions[valid_transition_indices[0]];
+        let last_edge = &transitions[*valid_transition_indices.last().unwrap()];
+        compare_spacing_interval(
+            first_edge.lower_angle_rad + TAU - last_edge.upper_angle_rad,
+            first_edge.upper_angle_rad + TAU - last_edge.lower_angle_rad,
+        );
+    }
+
     let quadrature_sequence_valid = periodic_state_match
         && illegal_two_bit_transitions == 0
         && direction_reversal_count == 0
@@ -496,6 +562,12 @@ pub fn evaluate_trace(
             direction_reversal_count,
             periodic_state_match,
             channel_edge_counts,
+            expected_quadrature_spacing_rad,
+            quadrature_spacing_interval_count,
+            maximum_spacing_error_lower_bound_rad: (quadrature_spacing_interval_count > 0)
+                .then_some(maximum_spacing_error_lower_bound_rad),
+            maximum_spacing_error_upper_bound_rad: (quadrature_spacing_interval_count > 0)
+                .then_some(maximum_spacing_error_upper_bound_rad),
             minimum_transition_bracket_rad: minimum_transition_bracket_rad
                 .is_finite()
                 .then_some(minimum_transition_bracket_rad),
@@ -625,6 +697,25 @@ mod tests {
             + result.metrics.channel_edge_counts.channel_b_falling;
         assert_eq!(a_edges, 20);
         assert_eq!(b_edges, 20);
+    }
+
+
+    #[test]
+    fn threshold_mismatch_increases_bounded_quadrature_spacing_error() {
+        let trace = sinusoidal_trace("spacing-baseline", 10, 36001, 0.008, 1.0);
+        let baseline = evaluate_trace(&trace, config(10)).unwrap();
+
+        let mut mismatch_config = config(10);
+        mismatch_config.channel_a = latch(0.0, true, 0.001, -0.001);
+        mismatch_config.channel_b = latch(PI / 2.0, false, 0.007, -0.007);
+        let mismatch = evaluate_trace(&trace, mismatch_config).unwrap();
+
+        assert_eq!(baseline.metrics.expected_quadrature_spacing_rad, TAU / 40.0);
+        assert!(baseline.metrics.maximum_spacing_error_upper_bound_rad.is_some());
+        assert!(
+            mismatch.metrics.maximum_spacing_error_upper_bound_rad.unwrap()
+                > baseline.metrics.maximum_spacing_error_upper_bound_rad.unwrap()
+        );
     }
 
     #[test]
