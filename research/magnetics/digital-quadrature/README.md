@@ -42,6 +42,8 @@ The sample interval is retained because a field crossing is known only to lie be
 
 The edge-rate policy is not automatically equivalent to a sensor datasheet's bandwidth. Vendor response delay, BOP dwell, digital filtering, output timing and worst-case limits require a separate part-specific model.
 
+A machine-readable literature anchor is stored at `fixtures/ti_sbaa449b_reference_v0_1.json`. It separates the document's two design-analysis error cases from the physical radial-position sweep and explicitly records which values are approximate and which raw curve/field points remain unavailable.
+
 ## TI reproduction target
 
 TI SBAA449B describes a 20-pole bonded NeoBond12M ring (25.5 mm OD, 21.5 mm ID), with 10 pole pairs. At the stated geometry it reports radial field just above 8 mT and analyzes quadrature errors caused by Hall-latch threshold mismatch. The note gives up to 4.9 degrees mechanical error for one discrete-latch mismatch case and about 1.35 degrees in its integrated 2D Hall analysis.
