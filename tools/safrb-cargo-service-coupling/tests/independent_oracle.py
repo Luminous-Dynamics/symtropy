@@ -52,10 +52,16 @@ def validate(root: Path) -> None:
             if isinstance(value, dict):
                 for key, child in value.items():
                     require(key not in {
-                        "receiptEventId", "receivedAtHour", "custodyRecords", "authorityEventId",
-                        "transferEventId", "fuelIssues", "fuelIssueGrams", "grossGenerationWh",
-                        "networkDeliverableWh", "serviceDisposition", "serviceVectorVerdict",
-                        "caseServiceVerdict", "oracle_truth", "deliveredLowerWh",
+                        "receiptEventId", "receivedAtHour", "receivedLowerGrams", "actualReceivedGrams",
+                        "receivedUpperGrams", "evidence", "evidenceRef", "evidenceDigest",
+                        "assayEventId", "assessedAtHour", "releasedLowerGrams", "sampleChainRef",
+                        "authorityEventId", "validFromHour", "validUntilHour", "encumberedGrams",
+                        "maxTransferGrams", "authorityRef", "custodyEventId", "custodyRecords",
+                        "effectiveFromHour", "effectiveUntilHour", "custodiedLowerGrams",
+                        "title", "contract", "transfers", "transferEventId", "routeLossGrams",
+                        "fuelIssues", "fuelIssueGrams", "grossGenerationWh", "networkDeliverableWh",
+                        "serviceDisposition", "serviceVectorVerdict", "caseServiceVerdict",
+                        "oracle_truth", "deliveredLowerWh", "deliveredUpperWh",
                         "generatorStockAvailableGrams", "generatorStockReceivedGrams",
                     }, f"{case_id}: oracle leak at {where}.{key}")
                     walk(child, f"{where}.{key}")
@@ -152,6 +158,17 @@ def validate(root: Path) -> None:
                 f"{case_id}/{hour}: two required predicates",
             )
             require(row["notApplicableCount"] == 5, f"{case_id}/{hour}: scoped N/A count")
+            if case_id == "verified-on-time" and hour == 12:
+                require(disposition == "guaranteed", "on-time receipt/issue should guarantee this one synthetic hour")
+            if case_id == "partial-late-receipt":
+                if hour < 24:
+                    require(gross == 0, "late partial receipt must not generate before its issue hour")
+                if hour == 24:
+                    require(disposition == "guaranteed", "partial receipt fixture should qualify its single issue hour")
+            if case_id == "verified-on-time" and hour == 11:
+                require(gross == 0, "fuel stock cannot generate before fuel is issued")
+            if case_id == "assay-pending":
+                require(disposition == "indeterminate", "stale synthetic telemetry must remain indeterminate")
             verdicts.append(disposition)
             hourly[disposition] += 1
             for key, value in (
