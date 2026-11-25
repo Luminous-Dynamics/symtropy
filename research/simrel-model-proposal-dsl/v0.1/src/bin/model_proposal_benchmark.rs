@@ -1,7 +1,6 @@
 use simrel_model_proposal_dsl::{
-    Assignment, Dimension, EvaluationBudget, Expr, ExternalBinding, ModelProgramV0,
-    ProposalClass, ValidatedModelProgramV0, ValueRange, VariableDecl, VariableId,
-    VariableRole, SCHEMA_VERSION_V0,
+    Assignment, Dimension, EvaluationBudget, Expr, ExternalBinding, ModelProgramV0, ProposalClass,
+    SCHEMA_VERSION_V0, ValidatedModelProgramV0, ValueRange, VariableDecl, VariableId, VariableRole,
 };
 use std::time::Instant;
 
@@ -57,10 +56,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         outputs: vec![Assignment {
             target: VariableId(4),
             expression: Expr::add(
-                Expr::multiply(
-                    Expr::variable(VariableId(1)),
-                    Expr::variable(VariableId(2)),
-                ),
+                Expr::multiply(Expr::variable(VariableId(1)), Expr::variable(VariableId(2))),
                 Expr::variable(VariableId(3)),
             ),
         }],
