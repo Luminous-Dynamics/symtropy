@@ -27,7 +27,7 @@ A command's own assertion cannot make a missing device capability true. The eval
 
 `fixtures/command_semantics_cases_v0_2.json` contains 16 cases: four positive class examples and twelve negative/mutation controls. The CLI parses those exact JSON records into the same Rust types used by `evaluate()`, applies every case, and compares the actual result to its exact expected decision and typed HoldReason.
 
-The unit suite also checks the corpus's exact case count, duplicate-ID rejection, unsupported schema-version rejection and exact HoldReason comparison. This closes the earlier fixture/evaluator drift gap.
+The unit suite also checks the corpus's exact case count, duplicate-ID rejection, unsupported schema-version rejection, exact HoldReason comparison, and field parity between the fixture JSON and the published schema. This closes the earlier fixture/evaluator drift gap.
 
 The JSON Schema is `schemas/command_semantics_cases_v0_2.schema.json`. The focused GitHub Actions workflow parses the schema and fixture, checks frozen structural invariants, runs the CLI, runs unit tests, verifies formatting and applies strict Clippy.
 
