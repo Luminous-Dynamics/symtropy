@@ -157,6 +157,35 @@ pub struct SensorEvaluation {
     pub metrics: QuadratureMetrics,
 }
 
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ScenarioResult {
+    pub trace_id: String,
+    pub operating_condition_id: String,
+    pub accepted: bool,
+    pub metrics: QuadratureMetrics,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ScenarioSetMetrics {
+    pub set_id: String,
+    pub evidence_kind: EvidenceKind,
+    pub coordinate_frame_id: String,
+    pub angular_grid_id: String,
+    pub scenario_count: usize,
+    pub accepted_scenario_count: usize,
+    pub rejected_scenario_count: usize,
+    pub all_scenarios_accepted: bool,
+    pub worst_missing_transition_count: usize,
+    pub worst_excess_transition_count: usize,
+    pub worst_illegal_two_bit_transition_count: usize,
+    pub worst_direction_reversal_count: usize,
+    pub worst_spacing_error_lower_bound_rad: Option<f64>,
+    pub worst_spacing_error_upper_bound_rad: Option<f64>,
+    pub worst_transition_bracket_rad: Option<f64>,
+    pub scenarios: Vec<ScenarioResult>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EvaluationError {
     InvalidMetadata,
@@ -176,6 +205,13 @@ pub enum EvaluationError {
     InvalidHarmonicRequest,
     HarmonicOrderAboveNyquist,
     SpectralNumericOverflow,
+    EmptyScenarioSet,
+    InvalidScenarioSetId,
+    DuplicateScenarioTraceId,
+    MixedScenarioEvidenceKinds,
+    ScenarioFrameMismatch,
+    ScenarioGridMismatch,
+    ScenarioGridCoordinatesMismatch,
 }
 
 fn nonempty(value: &str) -> bool {
@@ -255,6 +291,125 @@ fn classify_transition(
     }
 }
 
+
+
+/// Evaluate a finite, explicitly declared set of operating-condition traces
+/// against one fixed sensor and latch configuration.
+///
+/// Different operating-condition IDs are allowed and preserved separately
+/// (for example, distinct air gaps, eccentricity, tilt or temperature). All
+/// scenarios must share evidence class, coordinate frame, angular-grid ID,
+/// sample count and bit-identical angle coordinates. The same config is applied
+/// to every trace. A finite set is not treated as an IID manufacturing sample
+/// and no probability, yield or CVaR estimate is emitted.
+pub fn evaluate_scenario_set(
+    set_id: &str,
+    traces: &[EncoderTrace],
+    config: QuadratureConfig,
+) -> Result<ScenarioSetMetrics, EvaluationError> {
+    if set_id.trim().is_empty() {
+        return Err(EvaluationError::InvalidScenarioSetId);
+    }
+    let first = traces.first().ok_or(EvaluationError::EmptyScenarioSet)?;
+    let mut trace_ids = std::collections::HashSet::with_capacity(traces.len());
+    let mut scenarios = Vec::with_capacity(traces.len());
+
+    let mut accepted_scenario_count = 0_usize;
+    let mut worst_missing_transition_count = 0_usize;
+    let mut worst_excess_transition_count = 0_usize;
+    let mut worst_illegal_two_bit_transition_count = 0_usize;
+    let mut worst_direction_reversal_count = 0_usize;
+    let mut worst_spacing_error_lower_bound_rad = None::<f64>;
+    let mut worst_spacing_error_upper_bound_rad = None::<f64>;
+    let mut worst_transition_bracket_rad = None::<f64>;
+
+    for trace in traces {
+        if !trace_ids.insert(trace.trace_id.as_str()) {
+            return Err(EvaluationError::DuplicateScenarioTraceId);
+        }
+        if trace.evidence_kind != first.evidence_kind {
+            return Err(EvaluationError::MixedScenarioEvidenceKinds);
+        }
+        if trace.coordinate_frame_id != first.coordinate_frame_id {
+            return Err(EvaluationError::ScenarioFrameMismatch);
+        }
+        if trace.angular_grid_id != first.angular_grid_id {
+            return Err(EvaluationError::ScenarioGridMismatch);
+        }
+        if trace.samples.len() != first.samples.len()
+            || trace
+                .samples
+                .iter()
+                .zip(first.samples.iter())
+                .any(|(left, right)| {
+                    left.mechanical_angle_rad.to_bits()
+                        != right.mechanical_angle_rad.to_bits()
+                })
+        {
+            return Err(EvaluationError::ScenarioGridCoordinatesMismatch);
+        }
+
+        let evaluation = evaluate_trace(trace, config)?;
+        let accepted = evaluation.metrics.quadrature_sequence_valid
+            && evaluation.metrics.within_edge_rate_policy != Some(false);
+        if accepted {
+            accepted_scenario_count += 1;
+        }
+
+        let metrics = evaluation.metrics;
+        worst_missing_transition_count =
+            worst_missing_transition_count.max(metrics.missing_transition_count);
+        worst_excess_transition_count =
+            worst_excess_transition_count.max(metrics.excess_transition_count);
+        worst_illegal_two_bit_transition_count = worst_illegal_two_bit_transition_count
+            .max(metrics.illegal_two_bit_transitions);
+        worst_direction_reversal_count =
+            worst_direction_reversal_count.max(metrics.direction_reversal_count);
+        if let Some(value) = metrics.maximum_spacing_error_lower_bound_rad {
+            worst_spacing_error_lower_bound_rad = Some(
+                worst_spacing_error_lower_bound_rad
+                    .map_or(value, |current| current.max(value)),
+            );
+        }
+        if let Some(value) = metrics.maximum_spacing_error_upper_bound_rad {
+            worst_spacing_error_upper_bound_rad = Some(
+                worst_spacing_error_upper_bound_rad
+                    .map_or(value, |current| current.max(value)),
+            );
+        }
+        if let Some(value) = metrics.maximum_transition_bracket_rad {
+            worst_transition_bracket_rad =
+                Some(worst_transition_bracket_rad.map_or(value, |current| current.max(value)));
+        }
+
+        scenarios.push(ScenarioResult {
+            trace_id: trace.trace_id.clone(),
+            operating_condition_id: trace.operating_condition_id.clone(),
+            accepted,
+            metrics,
+        });
+    }
+
+    let rejected_scenario_count = traces.len() - accepted_scenario_count;
+    Ok(ScenarioSetMetrics {
+        set_id: set_id.to_owned(),
+        evidence_kind: first.evidence_kind,
+        coordinate_frame_id: first.coordinate_frame_id.clone(),
+        angular_grid_id: first.angular_grid_id.clone(),
+        scenario_count: traces.len(),
+        accepted_scenario_count,
+        rejected_scenario_count,
+        all_scenarios_accepted: rejected_scenario_count == 0,
+        worst_missing_transition_count,
+        worst_excess_transition_count,
+        worst_illegal_two_bit_transition_count,
+        worst_direction_reversal_count,
+        worst_spacing_error_lower_bound_rad,
+        worst_spacing_error_upper_bound_rad,
+        worst_transition_bracket_rad,
+        scenarios,
+    })
+}
 
 fn spacing_error_bounds(
     interval_lower_rad: f64,
@@ -927,6 +1082,89 @@ mod tests {
         assert_eq!(
             analyze_channel_harmonics(&trace, HallChannel::A, 10, 0.0, 5),
             Err(EvaluationError::HarmonicOrderAboveNyquist)
+        );
+    }
+
+
+    #[test]
+    fn finite_scenario_set_accepts_different_operating_conditions() {
+        let nominal = sinusoidal_trace("nominal-gap", 10, 3601, 0.008, 1.0);
+        let mut wider_gap = sinusoidal_trace("wider-gap", 10, 3601, 0.007, 1.0);
+        wider_gap.operating_condition_id = "gap-4p0mm-temp-25C-v0".to_owned();
+
+        let result = evaluate_scenario_set("air-gap-sweep-v0", &[nominal, wider_gap], config(10))
+            .unwrap();
+
+        assert_eq!(result.scenario_count, 2);
+        assert_eq!(result.accepted_scenario_count, 2);
+        assert!(result.all_scenarios_accepted);
+        assert_ne!(
+            result.scenarios[0].operating_condition_id,
+            result.scenarios[1].operating_condition_id
+        );
+    }
+
+    #[test]
+    fn finite_scenario_set_reports_worst_case_failure_without_yield() {
+        let nominal = sinusoidal_trace("nominal", 10, 3601, 0.008, 1.0);
+        let missing_signal = sinusoidal_trace("low-field", 10, 3601, 0.00001, 1.0);
+        let result =
+            evaluate_scenario_set("field-margin-sweep-v0", &[nominal, missing_signal], config(10))
+                .unwrap();
+
+        assert_eq!(result.scenario_count, 2);
+        assert_eq!(result.accepted_scenario_count, 1);
+        assert_eq!(result.rejected_scenario_count, 1);
+        assert!(!result.all_scenarios_accepted);
+        assert!(result
+            .scenarios
+            .iter()
+            .any(|scenario| !scenario.accepted && scenario.metrics.missing_transition_count > 0));
+    }
+
+    #[test]
+    fn finite_scenario_set_rejects_mixed_evidence_classes() {
+        let physical = sinusoidal_trace("physical-map", 1, 361, 0.008, 1.0);
+        let mut synthetic = sinusoidal_trace("synthetic-map", 1, 361, 0.008, 1.0);
+        synthetic.evidence_kind = EvidenceKind::SyntheticScenario;
+        let mut physical = physical;
+        physical.evidence_kind = EvidenceKind::CalibratedFieldMeasurement;
+
+        assert_eq!(
+            evaluate_scenario_set("mixed-evidence", &[physical, synthetic], config(1)),
+            Err(EvaluationError::MixedScenarioEvidenceKinds)
+        );
+    }
+
+    #[test]
+    fn finite_scenario_set_requires_identical_grid_and_frame() {
+        let first = sinusoidal_trace("first", 1, 361, 0.008, 1.0);
+        let mut grid_mismatch = sinusoidal_trace("grid-mismatch", 1, 361, 0.008, 1.0);
+        grid_mismatch.angular_grid_id = "other-grid".to_owned();
+        assert_eq!(
+            evaluate_scenario_set("grid-test", &[first.clone(), grid_mismatch], config(1)),
+            Err(EvaluationError::ScenarioGridMismatch)
+        );
+
+        let mut frame_mismatch = first.clone();
+        frame_mismatch.trace_id = "frame-mismatch".to_owned();
+        frame_mismatch.coordinate_frame_id = "other-frame".to_owned();
+        assert_eq!(
+            evaluate_scenario_set("frame-test", &[first, frame_mismatch], config(1)),
+            Err(EvaluationError::ScenarioFrameMismatch)
+        );
+    }
+
+    #[test]
+    fn finite_scenario_set_rejects_duplicate_trace_ids_and_empty_set() {
+        let trace = sinusoidal_trace("duplicate", 1, 361, 0.008, 1.0);
+        assert_eq!(
+            evaluate_scenario_set("duplicate-set", &[trace.clone(), trace], config(1)),
+            Err(EvaluationError::DuplicateScenarioTraceId)
+        );
+        assert_eq!(
+            evaluate_scenario_set("empty-set", &[], config(1)),
+            Err(EvaluationError::EmptyScenarioSet)
         );
     }
 
