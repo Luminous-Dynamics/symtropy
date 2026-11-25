@@ -188,12 +188,11 @@ impl EvidenceBundle {
         let blockers: Vec<Blocker> = self
             .checks()
             .into_iter()
-            .filter_map(|(field, check)| {
-                (check.state != GateState::Pass).then_some(Blocker {
-                    field,
-                    state: check.state,
-                    reason: check.reason,
-                })
+            .filter(|(_, check)| check.state != GateState::Pass)
+            .map(|(field, check)| Blocker {
+                field,
+                state: check.state,
+                reason: check.reason,
             })
             .collect();
 
