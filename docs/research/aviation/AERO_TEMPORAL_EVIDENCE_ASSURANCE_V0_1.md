@@ -267,6 +267,41 @@ Freeze the same event corpus, policy inputs, hardware, data budget and expected 
 
 No arm is presumed to win. The benchmark compares assurance and operational cost separately.
 
+### 7.1 Historical replay scale and temporal-database comparison
+
+The tournament must compare semantics and resource cost against existing temporal-data approaches rather than treating three query modes as a new database invention.
+
+**Frozen baseline arms**
+1. **Current-state/latest-row baseline:** intentionally unsafe negative control showing how backdating, corrections and revocation overwrite can lose historical decisions.
+2. **Append-only event log with valid/event/transaction time:** conventional event-sourced temporal model, preserving source event time and system/receiver transaction time.
+3. **Bitemporal relational baseline:** valid-time and transaction-time views with append-only corrections and a separate trust-status history.
+4. **NIST IR 8536-aligned traceability links:** owner-native, cryptographically linked event references and selective disclosure; this is an interoperability comparator, not an implementation to clone.
+5. **AERO three-cutoff replay:** acquisition interval, receiver evidence watermark and trust-policy/status snapshot with immutable report lineage.
+
+Do not label a baseline “bitemporal” or “tritemporal” without documenting its actual supported semantics. The test must distinguish event time, valid time, transaction/receipt time, and trust-knowledge time. A trust-status history is not automatically covered by a database's bitemporal feature.
+
+**Synthetic scale ladder (prospective):**
+- 10^4 events: functional and indexing smoke.
+- 10^5 events: correction DAG, duplicate, gap/fork and trust-history workloads.
+- 10^6 events: historical query and retrospective-reassessment workload.
+- 10^7 events: stress/retention workload if the available hardware and memory budget permit; do not make this a release blocker without a declared resource profile.
+
+Generate fixed-seed histories with controlled event-time skew, late-arrival distributions, correction depth/fan-out, issuer count, trust-policy changes, duplicate deliveries, gaps, forks and checkpoint intervals. Freeze input manifests and expected answers independently of the implementations.
+
+**Workloads and measures:**
+- `AS_KNOWN_AT` query latency and exact historical result;
+- `RECOMPUTED_WITH_CURRENT_TRUST` incremental cost while preserving the original receiver watermark;
+- `RECOMPUTED_WITH_CURRENT_EVIDENCE_AND_TRUST` cost of incorporating late retroactive evidence;
+- correction-chain and fork/gap detection latency;
+- append/receipt ingest throughput and checkpoint creation;
+- p50/p95/p99 query latency, CPU time, peak memory, index bytes/event, retained snapshot bytes/event and cold-start/recovery time;
+- number of events scanned vs events causally relevant, incremental recomputation ratio, and cost of a full rebuild;
+- concurrency tests in which evidence receipt and trust/revocation changes occur while historical queries are executing.
+
+Report absolute numbers and environment details, not only speedup. Compare exact correctness first; a faster implementation that has future-knowledge bleed or loses a historical report is disqualified. For operational advantage, target at least 2x lower p95 latency or 30% lower retained-index/compute cost than the strongest semantically equivalent baseline at the same correctness and resource envelope; these are prospective stretch targets, not achieved results or universal performance claims.
+
+This benchmark deliberately does not create a temporal database or ledger in Symtropy. It measures how the aviation evaluator composes existing owner-native event, receipt, trust and artifact systems.
+
 ### Metrics
 
 | Dimension | Metric |
@@ -292,6 +327,20 @@ No arm is presumed to win. The benchmark compares assurance and operational cost
 - All positive controls remain accepted at the declared binding-only claim ceiling.
 
 These are research targets, not regulatory limits, physical qualification or certification criteria.
+
+### 8.1 Temporal-database prior art and claim boundary
+
+The underlying idea of representing more than one time dimension is established prior art. A 1994 temporal-database paper, “Resolution of time concepts in temporal databases,” distinguishes event time, valid time and transaction time and explains why event time is needed alongside valid and transaction time to preserve retroactive/proactive updates, error corrections and delayed updates (DOI: https://doi.org/10.1016/0020-0255(94)90059-0). A May 2026 systematic review of bitemporal databases analyses 54 studies and identifies continuing gaps including limited industrial-scale empirical validation and underdeveloped integration with AI-driven predictive analytics: https://doi.org/10.1007/s42488-026-00162-x.
+
+Therefore AERO does **not** claim to invent tritemporal databases, event sourcing, bitemporal queries or temporal provenance. Its narrower engineering contribution is a safety-oriented replay contract that composes:
+- subject-time acquisition interval and uncertainty;
+- issuer event/effective/recorded-time assertions;
+- receiver-observed evidence inclusion and digest-bound receipt/checkpoint;
+- independently versioned issuer-authority, revocation and trust-policy snapshot;
+- explicit historical, trust-only and full-retrospective queries;
+- non-overwritable reports bound to exact policy digest and verifier profile.
+
+This is a domain-specific assurance composition over established temporal concepts, with physical measurement and engineering-claim boundaries. Novelty must be demonstrated through matched correctness, completeness, independent replay and verification economics—not by renaming the time model.
 
 ## 8. Standards and research comparators
 
@@ -342,7 +391,7 @@ The machine-readable first slice is:
 - `docs/research/aviation/examples/aero_temporal_replay_corpus_v0_1.json`
 - `docs/research/aviation/schemas/aero_temporal_replay_corpus_v0_1.schema.json`
 
-It contains 20 synthetic controls, including a positive binding-only baseline, a known-but-future-effective revocation, an event received after the historical watermark despite a backdated issuer timestamp, a known effective revocation, acquisition-time uncertainty crossing a calibration boundary, a timestamp imprint mismatch, unknown issuer authority, source-sequence gaps, conflicting duplicate event IDs, current-trust key-compromise reassessment, correction cycles and source-clock rollback, and a backdated receiver-time claim without independently verifiable receipt evidence; an unauthorized namespace alias from the same issuer.
+It contains 20 synthetic controls: a positive no-event binding case; known-but-future-effective and known-effective revocations; a late backdated revocation excluded from the original evidence snapshot but included in a full retrospective replay; revocation effective after acquisition but before report generation; revocation effectivity overlapping acquisition-time uncertainty; calibration-window boundary ambiguity; valid timestamp/imprint positive and mismatching-imprint negative controls; unknown issuer authority; a sequence gap; conflicting same-namespace duplicate payloads; idempotent repeated delivery; identical local IDs under distinct source namespaces; an unverified namespace alias from the same issuer; an issuer-claimed but unverified receipt; unknown compromise effective time; correction cycle; and source clock rollback.
 
 Every case freezes `AS_KNOWN_AT`, `RECOMPUTED_WITH_CURRENT_TRUST` and `RECOMPUTED_WITH_CURRENT_EVIDENCE_AND_TRUST` dispositions over distinct evidence and trust cutoffs. Event effective-time comparison is against acquisition time, not report time. Timestamp status `valid` also requires a non-null token time and exact event-digest imprint equality. The fixture deliberately permits duplicate event IDs so that the duplicate-conflict challenge is representable; uniqueness is a semantic rule to be evaluated, not a JSON Schema uniqueness rule over complete objects.
 
