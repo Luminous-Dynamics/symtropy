@@ -116,6 +116,15 @@ Paper: https://proceedings.mlr.press/v337/shi26a.html
 
 **Matched comparator:** use chronological site-held-out records, preserve local alarms and abstentions, and reproduce the published method in its own environment before claiming an improvement.
 
+### 3.8 Nonanticipative policy oracles and probability-aware risk
+
+There are already adjacent owners for two important parts of the evaluation:
+
+- [#7133 — exact nonanticipative service scenario-tree oracle](https://github.com/Luminous-Dynamics/symtropy/issues/7133), draft [PR #7181](https://github.com/Luminous-Dynamics/symtropy/pull/7181), builds explicit information sets, nonanticipativity constraints, a clairvoyant value-of-perfect-information upper bound and regret against the nonanticipative optimum. It is a mobility-service oracle, not yet a verified grid-energy scenario-tree oracle. Use its information-set semantics as the reference and do not infer that our per-run audit counters independently prove nonanticipativity.
+- [#7196 — service tail-risk and probability ambiguity](https://github.com/Luminous-Dynamics/symtropy/issues/7196), draft [PR #7201](https://github.com/Luminous-Dynamics/symtropy/pull/7201), consumes the exact scenario-tree outcomes and probability evidence, then computes probability-weighted fractional-mass CVaR and total-variation robust expectations. Its exact-head workflow [#45288698054](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45288698054) passed.
+
+Our tournament's empirical CVaR95 for reserve/recovery shortfall is an unweighted upper-tail statistic over run outcomes. It remains descriptive; it is not the probability-weighted CVaR or TV-robust risk envelope from #7201. A future integrated report should preserve both as different metrics and only attach calibrated probability claims when the probability-evidence owner (#6460) qualifies the scenario weights. Similarly, a grid-specific nonanticipative oracle should be a bounded adapter/composition of the existing scenario-tree owner and the reserve/network owners, not another generic scenario-tree solver.
+
 ## 4. South African market and qualification comparison
 
 The NTCSA Ancillary Services Technical Requirements for 2026/27–2030/31 specify reserves, system-restoration services, reactive power/voltage control and constrained generation. Reserve categories are exclusive: capacity assigned to one reserve category cannot simultaneously be used for another. The document distinguishes **Instantaneous Reserve**, which must be fully available within 10 seconds and sustained for at least 10 minutes, from **Regulating Reserve**, which is available to respond within 10 seconds and fully activated within 10 minutes. Ten-minute reserve is a further category used to restore other reserves. These are different service envelopes, not one generic response target.
