@@ -31,7 +31,7 @@ Traces in a set must share the exact evidence class, frame ID, grid ID, sample c
 - number of samples below the required in-plane field threshold;
 - pass/fail for each independently declared hard limit.
 
-The set evaluator reports worst-case metrics and requires every supplied trace to pass. This is a finite-set robustness result only. It does not infer probabilities, CVaR, production yield or lifetime reliability.
+The same-condition trace-set evaluator requires exact operating-condition identity. The additional operating-condition tournament allows distinct condition IDs (e.g. air gap, eccentricity, tilt or temperature) while fixing evidence class, frame, grid and exact sample angles. It preserves each scenario's condition ID, reports worst-case phase/field metrics and requires every supplied scenario to pass. It is a finite-set robustness result only; it does not infer probabilities, CVaR, production yield or lifetime reliability.
 
 ## Scope boundaries
 
