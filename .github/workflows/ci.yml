@@ -84,5 +84,17 @@ jobs:
       if: ${{ hashFiles('tools/airborne-energy-observability-validator/Cargo.toml') != '' }}
       run: cargo test --locked -p airborne-energy-observability-validator
 
+    - name: Check Magnetic Solver Qualification Formatting
+      if: ${{ hashFiles('research/magnetics/solver-qualification/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path research/magnetics/solver-qualification/Cargo.toml -- --check
+
+    - name: Run Clippy (Magnetic Solver Qualification)
+      if: ${{ hashFiles('research/magnetics/solver-qualification/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path research/magnetics/solver-qualification/Cargo.toml --all-targets -- -D warnings
+
+    - name: Run Tests (Magnetic Solver Qualification)
+      if: ${{ hashFiles('research/magnetics/solver-qualification/Cargo.toml') != '' }}
+      run: cargo test --manifest-path research/magnetics/solver-qualification/Cargo.toml
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
