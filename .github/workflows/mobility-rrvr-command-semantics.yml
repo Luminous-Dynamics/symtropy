@@ -33,10 +33,10 @@ jobs:
           jq -e '
             .schema_version == "0.1"
             and .benchmark == "RRVR-COMMAND-SEMANTICS"
-            and (.cases | length == 9)
-            and ([.cases[].case_id] | unique | length == 9)
+            and (.cases | length == 12)
+            and ([.cases[].case_id] | unique | length == 12)
             and ([.cases[] | select(.class == "positive")] | length == 4)
-            and ([.cases[] | select(.class == "negative")] | length == 5)
+            and ([.cases[] | select(.class == "negative")] | length == 8)
             and ([.cases[].effect_class] | unique | length == 4)
             and all(.cases[]; (.contract.configuration_sha256 | test("^[a-fA-F0-9]{64}$")))
             and all(.cases[]; (.contract.device_model | length > 0) and (.contract.endpoint_revision | length > 0))
@@ -51,6 +51,10 @@ jobs:
             and any(.cases[]; .case_id == "SEM-007" and .expected == "hold" and .contract.lease_expiry_ms == null and .contract.watchdog_supported == false)
             and any(.cases[]; .case_id == "SEM-008" and .expected == "hold" and .contract.restart_from_segment_zero_allowed == true)
             and any(.cases[]; .case_id == "SEM-009" and .expected == "hold" and .contract.coordinate_frame == "world-frame-substituted")
+            and any(.cases[]; .case_id == "SEM-010" and .expected == "hold" and .contract.device_capabilities.durable_one_shot_token_supported == false)
+            and any(.cases[]; .case_id == "SEM-011" and .expected == "hold" and .contract.device_capabilities.authority_epoch_supported == false)
+            and any(.cases[]; .case_id == "SEM-012" and .expected == "hold" and .contract.device_capabilities.measured_progress_resume_supported == false)
+            and all(.cases[]; (.contract.device_capabilities | has("maximum_effects_per_token") and has("watchdog_reaction") and has("downstream_queue_reconciliation_supported")))
           ' "$FIXTURE"
 
       - name: Check Rust formatting
