@@ -45,6 +45,7 @@ The implementation does not invoke `validate_structural_correspondence`. One pos
 - Positive: relabelled nodes and relation kinds, one directed edge reversed, and one undirected edge.
 - Negative: (K_{3,3}) versus the triangular prism. Both are 3-regular graphs with six nodes and nine edges, but they are not isomorphic. The oracle must examine all 720 node bijections because the simple incidence signature cannot distinguish their vertices.
 - Transfer Atlas cross-check: independently classifies all four existing structural fixture families, including the important case where observations are isomorphic but the mechanism is not transferable.
+- Symmetry / non-identifiability: an undirected six-cycle has 12 valid node bijections (six rotations and six reflections) among 720 explored bijections. The report retains one deterministic witness but exposes the full count of valid node bijections, so a downstream evaluator can distinguish a unique map from multiple valid maps. The count is per node mapping, not per possible relation-ID permutation.
 - Malformed input: duplicate node IDs and unknown relation participants.
 - Resource guard: nine nodes are rejected before enumeration.
 - Cardinality mismatch: rejected without searching.
