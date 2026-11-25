@@ -3092,7 +3092,7 @@ mod tests {
             result.outcome,
             GazeboDispatchOutcome::Unknown { dispatch_id: None }
         );
-        assert_eq!(injector.inner.dispatch_calls, 1);
+        assert_eq!(injector.dispatch_calls, 1);
         assert_eq!(simulator.step_calls.len(), 1);
     }
 
@@ -3796,19 +3796,19 @@ mod tests {
             dispatch_fault_once(&mut registry, &mut injector, &request),
             GazeboDispatchOutcome::Unknown { dispatch_id: None }
         );
-        assert_eq!(injector.inner.dispatch_calls, 1);
+        assert_eq!(injector.dispatch_calls, 1);
         assert_eq!(
             reconcile_fault_dispatch(&mut registry, &mut injector, &request),
             ReconciliationDecision::ExistingDispatchAccepted
         );
-        assert_eq!(injector.inner.dispatch_calls, 1);
+        assert_eq!(injector.dispatch_calls, 1);
         assert_eq!(
             dispatch_fault_once(&mut registry, &mut injector, &request),
             GazeboDispatchOutcome::Reconciled {
                 decision: ReconciliationDecision::ExistingDispatchAccepted
             }
         );
-        assert_eq!(injector.inner.dispatch_calls, 1);
+        assert_eq!(injector.dispatch_calls, 1);
 
         let mut changed_payload = request.clone();
         changed_payload.target_id = "different-target".into();
@@ -3819,7 +3819,7 @@ mod tests {
                 idempotency_key: request.idempotency_key.clone()
             }
         );
-        assert_eq!(injector.inner.dispatch_calls, 1);
+        assert_eq!(injector.dispatch_calls, 1);
     }
 
     #[test]
@@ -3872,7 +3872,7 @@ mod tests {
                 decision: ReconciliationDecision::Unresolved
             }
         );
-        assert_eq!(injector.inner.dispatch_calls, 1);
+        assert_eq!(injector.dispatch_calls, 1);
 
         injector.lookup = DispatchLedgerResult::NoDispatchProven;
         assert_eq!(
@@ -3885,7 +3885,7 @@ mod tests {
                 decision: ReconciliationDecision::NoDispatchProven
             }
         );
-        assert_eq!(injector.inner.dispatch_calls, 1);
+        assert_eq!(injector.dispatch_calls, 1);
 
         let mut altered = request.clone();
         altered.target_id = "other-target".into();
@@ -3894,7 +3894,7 @@ mod tests {
             reconcile_fault_dispatch(&mut registry, &mut injector, &altered),
             ReconciliationDecision::PayloadConflict
         );
-        assert_eq!(injector.inner.dispatch_calls, 1);
+        assert_eq!(injector.dispatch_calls, 1);
     }
 
     #[test]
