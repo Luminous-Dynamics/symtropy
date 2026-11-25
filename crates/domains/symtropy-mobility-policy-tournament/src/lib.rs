@@ -1136,7 +1136,7 @@ mod tests {
         metered_wh: i64,
         cost: u64,
     ) -> PolicyRun {
-        let scenario_index = scenario_id.chars().last().unwrap() as u32;
+        let scenario_index = scenario_id.chars().last().unwrap().to_digit(10).unwrap();
         let reference_feasible = true;
         PolicyRun {
             run_id: format!("{policy_id}-{scenario_id}"),
@@ -1375,7 +1375,11 @@ mod tests {
         assert_eq!(mpc.scenario_family_outcomes.len(), 4);
         assert_eq!(mpc.independent_cluster_outcomes.len(), 4);
         assert_eq!(
-            mpc.scenario_family_outcomes.iter().find(|s| s.stratum_id == "family-d").unwrap().max_recovery_shortfall_wh,
+            mpc.scenario_family_outcomes
+                .iter()
+                .find(|s| s.stratum_id == "family-4")
+                .unwrap()
+                .max_recovery_shortfall_wh,
             1_200
         );
     }
