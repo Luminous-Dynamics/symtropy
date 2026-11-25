@@ -43,7 +43,7 @@ jobs:
           SAFE="$ROOT/EndpointEffectFence_Safe.cfg"
           REPLAY="$ROOT/EndpointEffectFence_UnsafeReplay.cfg"
           STALE="$ROOT/EndpointEffectFence_UnsafeStaleEpoch.cfg"
-          printf '%s  %s\n' "1ee6241ac66605ec775b5001f60b727e7fb40d67d3ccf2a3f184b8fe6f968d0e" "$MODEL" | sha256sum --check
+          printf '%s  %s\n' "92f592070c806a04e4f2dbcc8952cb6d63b0aabb2430f247bc6314fe5132f51b" "$MODEL" | sha256sum --check
           printf '%s  %s\n' "9b220bc42e3d7c83c95792a744213bd108687d4d19e20089772547747ef37827" "$SAFE" | sha256sum --check
           printf '%s  %s\n' "a43183dabdff429212253f026cbb6536c651215a6ffd9b515824e36b64dcb719" "$REPLAY" | sha256sum --check
           printf '%s  %s\n' "0cab31acda1ef8a36efa76a3c035ddecbeb18dbad34cb91d1a011d3f703e0693" "$STALE" | sha256sum --check
