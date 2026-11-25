@@ -360,3 +360,57 @@ References:
 - [Integrated continuous-time berth allocation, time-variant quay crane and yard assignment (Transportation Research Part B, 2025)](https://doi.org/10.1016/j.trb.2025.103317)
 - [Robust integrated berth, quay-crane and yard assignment (Computers & Industrial Engineering, 2026)](https://doi.org/10.1016/j.cie.2026.112092)
 - [Integrated berth allocation, quay-crane and onshore power/energy dispatch (Journal of Cleaner Production, 2026)](https://doi.org/10.1016/j.jclepro.2026.149105)
+
+
+## Distribution-, burst- and receiver-aware service benchmark (25 November 2026)
+
+The new `service_variability` module and `service-variability-audit` executable add a falsification layer for mean-only port optimization.
+
+### Why this matters
+
+The 13 November 2026 *European Transport Research Review* paper `Modelling the factors affecting port time variability` argues that mean turnaround benchmarks suppress dispersion relevant to schedule reliability and proposes coefficient of variation (CV) of port-call duration as a scale-relative reliability diagnostic. S&P Global's 27 June 2026 CPPI analysis highlights burst congestion from clustered vessel arrivals and reports an underlying 2025 benchmark covering approximately 180,000 calls across more than 400 ports.
+
+Neither CV nor CPPI replaces end-to-end receiver service. CV is descriptive and can behave poorly when means approach zero or distributions are multimodal; the module reports it alongside percentiles, maxima, on-time rate and a p95-to-p50 ratio. Arrival-burst concentration is reported separately from the statistical independence clusters used for calibration.
+
+### Executable falsification cases
+
+Run:
+
+~~~sh
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin service-variability-audit
+~~~
+
+The synthetic receipt includes five cases:
+
+1. **Mean-matched stable vs high-variability:** both have mean end-to-end time 100 minutes. The stable case has p95 100 minutes and 100% on-time delivery. The high-variability case has p95 280 minutes and 90% on-time delivery, with a 20-call maximum arrival burst in 60 minutes.
+2. **Baseline end-to-end service:** port elapsed 130 minutes plus 20 inland minutes = 150 minutes.
+3. **Local port optimization:** port elapsed improves by 20 minutes, but inland time increases by 20; end-to-end service remains 150 minutes. A port-only metric would show a win where the receiver receives no improvement.
+4. **Receiver regression:** port elapsed is still 20 minutes lower than baseline, but inland time increases by 60; end-to-end service worsens to 190 minutes and on-time delivery falls to zero under the 160-minute deadline.
+5. **Protected cohort:** the receiver-regression case assigns 18 observations to a priority cohort and two to a small-receiver cohort. The small cohort has zero on-time delivery and violates its 95% service floor; the aggregate cannot erase that outcome.
+
+The code also keeps vessel wait, berth work, terminal dwell, combined port elapsed, inland transfer and end-to-end time as separate distributions. It rejects duplicate observation identities, invalid deadlines and duplicate arrival IDs.
+
+### Proposed benchmark acceptance targets
+
+These are targets, not present operational results:
+
+- Exact agreement with an independent exhaustive oracle on all tractable service-chain fixtures.
+- Zero accepted cases where mean improvement hides a p95, maximum, missed-deadline or protected-cohort regression.
+- Report median, p90, p95, maximum, sample standard deviation, CV, p95/p50, on-time percentage and maximum rolling-window arrival burst for each declared cohort and service stage.
+- Evaluate matched vessel/cargo workloads, operating regimes, compute budgets and as-of information cutoffs.
+- Report port-level CPPI-adjacent values, individual-terminal values and receiver-delivery outcomes as separate estimands.
+- Use cluster-aware paired resampling or justified block methods for uncertainty intervals; do not treat repeated calls in a convoy/weather/labour/grid outage as IID.
+- A candidate service-chain improvement target is 5–10% lower end-to-end p95 or missed-deadline rate, but only with no protected-floor violation and no material deterioration in cost, energy, emissions, cargo loss, plan churn or worst-served cohort.
+
+### Competitive boundary
+
+The benchmark does not claim that incumbents lack variability reporting or receiver visibility. CPPI provides a strong global **port-level vessel time** comparator; Kaleris N4 covers extensive terminal operating workflows; DCSA and GS1 standardize important event exchange/visibility layers. Our opening is to demonstrate—under matched and independently qualified evidence—whether an assurance layer can prevent local metric gaming and verify actual service improvement across terminal, inland and receiver boundaries.
+
+The 2026 digital-twin literature reinforces the evidence gap: a European port digital-twin architecture benchmark found recurring interoperability/modularity themes but continuing gaps in data availability, model transparency and synchronization detail; a 2026 maritime resilience review cautions that much digital-twin resilience evidence remains conceptual or scenario-based. A credible competitive claim therefore needs a measured decision-process improvement on a rights-cleared shadow/pilot trace, not another architecture diagram.
+
+Sources:
+- [Chhetri et al., Modelling the factors affecting port time variability, 13 November 2026](https://doi.org/10.1186/s12544-026-00862-w)
+- [S&P Global, CPPI 2025 analysis, 27 June 2026](https://www.spglobal.com/market-intelligence/en/news-insights/research/2026/06/container-port-performance-index-2025)
+- [World Bank CPPI 2025 methodology, 10 June 2026](https://thedocs.worldbank.org/en/doc/aac122f6df85534428d66a7b9af4b7f6-0400012026/original/CPPI-Methodology-Note.pdf)
+- [Digital twin architectures for smart port operations, 2026](https://doi.org/10.1016/j.rineng.2026.110485)
+- [Smart Port and Shipping Optimization for Maritime Resilience, 2026 review](https://www.mdpi.com/2077-1312/14/9/818)
