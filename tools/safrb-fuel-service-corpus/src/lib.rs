@@ -326,7 +326,9 @@ pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
             Archetype::PumpPipelineFailure => (0, 50_000, 8, "pump-pipeline"),
             Archetype::BerthDischargeRestriction => (10_000, 0, 48, "port-berth"),
             Archetype::CommonCauseSupplierPortGridComms => (5_000, 0, 48, "supplier-port-grid-telecom"),
-            _ => (60_000, 0, 4, "none"),
+            // Normal delivery is available from the start of the horizon.
+            // Specific disruption archetypes below model explicit transit outages.
+            _ => (60_000, 0, 0, "none"),
         };
     let effective_capacity = primary_capacity + alternate_capacity;
     let effective_hours = HORIZON_HOURS.saturating_sub(transit_delay);
