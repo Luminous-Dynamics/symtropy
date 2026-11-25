@@ -169,6 +169,34 @@ jobs:
           grep -q "EVENT_TIME_UNKNOWN" /tmp/dcsa-maturity.csv
           grep -q "PUBLICATION_TIME_UNKNOWN" /tmp/dcsa-maturity.csv
           grep -q "PUBLICATION_AFTER_RETRIEVAL" /tmp/dcsa-maturity.csv
+          echo "c9d2b17e1ef041bb6787849eda725021502d9822ab4b6980f357152dd9016e96  research/maritime-service-chain-benchmark/dcsa-epcis-crosswalk-v1.0.0.toml" | sha256sum --check
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin cross-standard-mapping-audit > /tmp/cross-standard-mapping.csv
+          cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin cross-standard-mapping-audit > /tmp/cross-standard-mapping-replay.csv
+          cmp /tmp/cross-standard-mapping.csv /tmp/cross-standard-mapping-replay.csv
+          test "$(wc -l < /tmp/cross-standard-mapping.csv)" -eq 26
+          head -n 1 /tmp/cross-standard-mapping.csv | awk -F, '{ if (NF != 13) exit 1 }'
+          awk -F, 'NF != 13 { exit 1 }' /tmp/cross-standard-mapping.csv
+          grep -q "DCSA_CLASSIFIER_CANNOT_MAP_TO_BIZSTEP" /tmp/cross-standard-mapping.csv
+          grep -q "DCSA_CLASSIFIER_CANNOT_MAP_TO_DISPOSITION" /tmp/cross-standard-mapping.csv
+          grep -q "CONTEXTUAL" /tmp/cross-standard-mapping.csv
+          grep -q "LOSSY" /tmp/cross-standard-mapping.csv
+          grep -q "NONEXACT_MAPPING_CLAIMS_REVERSIBILITY" /tmp/cross-standard-mapping.csv
+          grep -q "INVALID_SOURCE_PAYLOAD_DIGEST" /tmp/cross-standard-mapping.csv
+          grep -q "MAPPING_RULE_NOT_APPROVED" /tmp/cross-standard-mapping.csv
+          grep -q "INVALID_TARGET_VOCABULARY_VALUE" /tmp/cross-standard-mapping.csv
+          grep -q "EXACT_MAPPING_VALUE_CHANGED" /tmp/cross-standard-mapping.csv
+          grep -q "SOURCE_SUBJECT_IDENTITY_MISSING" /tmp/cross-standard-mapping.csv
+          grep -q "SOURCE_PAYLOAD_REFERENCE_MISSING" /tmp/cross-standard-mapping.csv
+          grep -q "SOURCE_PAYLOAD_REFERENCE_MISMATCH" /tmp/cross-standard-mapping.csv
+          grep -q "MAPPING_BUNDLE_REFERENCE_MISSING" /tmp/cross-standard-mapping.csv
+          grep -q "MAPPING_BUNDLE_REFERENCE_MISMATCH" /tmp/cross-standard-mapping.csv
+          grep -q "SYNTHETIC_RULE_USED_FOR_NON_SYNTHETIC_SOURCE" /tmp/cross-standard-mapping.csv
+          grep -q "SOURCE_EVENT_FAMILY_MISMATCH" /tmp/cross-standard-mapping.csv
+          grep -q "TARGET_VOCABULARY_VERSION_MISMATCH" /tmp/cross-standard-mapping.csv
+          grep -q "EXTERNAL_APPROVAL_RECORD_MISSING" /tmp/cross-standard-mapping.csv
+          grep -q "GS1-EPCIS-2.0.1" /tmp/cross-standard-mapping.csv
+          grep -q "GS1-CBV-2.0.0" /tmp/cross-standard-mapping.csv
+          grep -q "SYNTHETIC_FIXTURE_ONLY" /tmp/cross-standard-mapping.csv
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin epcis-correction-audit > /tmp/epcis-corrections.csv
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin epcis-correction-audit > /tmp/epcis-corrections-replay.csv
           cmp /tmp/epcis-corrections.csv /tmp/epcis-corrections-replay.csv
@@ -202,6 +230,8 @@ jobs:
             /tmp/source-claim-admission.csv \
             /tmp/epcis-corrections.csv \
             /tmp/dcsa-maturity.csv \
+            /tmp/cross-standard-mapping.csv \
+            research/maritime-service-chain-benchmark/dcsa-epcis-crosswalk-v1.0.0.toml \
             > /tmp/maritime-receipt-sha256.txt
 
       - name: Upload reproducible maritime risk receipts
@@ -223,5 +253,7 @@ jobs:
             /tmp/source-claim-admission.csv
             /tmp/epcis-corrections.csv
             /tmp/dcsa-maturity.csv
+            /tmp/cross-standard-mapping.csv
+            research/maritime-service-chain-benchmark/dcsa-epcis-crosswalk-v1.0.0.toml
           if-no-files-found: error
           retention-days: 30

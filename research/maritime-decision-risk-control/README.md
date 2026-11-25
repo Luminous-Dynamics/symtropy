@@ -581,14 +581,16 @@ This is a targeted EPCIS compatibility fixture, **not** the complete EPCIS parse
 
 ## DCSA event classifier maturity adapter (24 November 2026)
 
-The `dcsa_maturity` module preserves the four DCSA event maturity codes as distinct typed values:
+The `dcsa_maturity` module preserves the shared DCSA event-classifier vocabulary as distinct typed values:
 
 - `EST` → ESTIMATED_ONLY
 - `REQ` → REQUESTED_ONLY
 - `PLN` → PLANNED_ONLY
 - `ACT` → SOURCE_REPORTED_ACTUAL_ONLY
 
-This adapter is pinned to the DCSA Track & Trace 2.2 release label and retains standard version, eventID, canonical subject ID, source-native record ID, event time, timezone offset, repository record time, publication time and retrieval time. It rejects unknown classifier codes, release-version drift, missing publication time, publication after retrieval, records unavailable by the historical as-of cutoff, and an ACT event without event time.
+The DCSA Information Model 3.2 reference table lists all four values at the shared classifier-entity level. Its event-family tables are narrower in places: for example, the Shipment Event field lists PLN/ACT/EST, while the Operations Event field lists PLN/REQ/ACT/EST. Consequently, the current maturity adapter is a classifier-preservation fixture, **not** an event-family-specific T&T 2.2 schema validator. Any live DCSA adapter must validate the exact event family, API release and OpenAPI enum before accepting a code. Do not infer that REQ is valid in every shipment/equipment/transport payload.
+
+The adapter retains standard version, eventID, canonical subject ID, source-native record ID, event time, timezone offset, repository record time, publication time and retrieval time. It rejects unknown classifier codes, release-version drift, missing publication time, publication after retrieval, records unavailable by the historical as-of cutoff, and an ACT event without event time.
 
 **Critical claim ceiling:** ACT means that the DCSA source classified its milestone as actual. It is still source-reported evidence; the adapter always sets `independent_physical_observation=false`. An ACT event cannot be used as an independently verified berth occupancy, cargo movement, custody handoff or receiver acceptance without a separate qualified witness and evidence chain.
 
@@ -601,3 +603,42 @@ cargo run --quiet --locked --manifest-path research/maritime-decision-risk-contr
 ~~~
 
 The synthetic tournament covers all four maturity values, unknown classifier, wrong version, unknown publication, late retrieval, ACT without event time, planned event with future eventTime and publication-after-retrieval. These tests qualify our mapping, not the external DCSA API conformance. For live implementation, pin and run the official DCSA T&T 2.2 / Port Call 2.0.0 reference conformance suites.
+
+
+## Cross-standard mapping contract: preserve meaning, declare loss (24 November 2026)
+
+The `cross_standard_mapping` module treats cross-standard translation as an explicit, versioned evidence operation rather than an informal field rename. The current fixture pins **DCSA Track & Trace 2.2.0 / EquipmentEvent**, **GS1 EPCIS 2.0.1**, and **GS1 CBV 2.0.0** separately. Every rule carries source event family, source/target field and value, mapping class, reversibility, content-addressed mapping-bundle ID/revision/SHA-256/reference, declared review status, reviewer/evidence references and (for CBV fields) the target vocabulary version.
+
+The exact manifest is `research/maritime-service-chain-benchmark/dcsa-epcis-crosswalk-v1.0.0.toml`, SHA-256 `c9d2b17e1ef041bb6787849eda725021502d9822ab4b6980f357152dd9016e96`. Exact-head CI verifies the manifest bytes against that digest before running the mapper. The receipt also binds the source event family and target EPCIS/CBV versions, so a rule for `EquipmentEvent` cannot be reused on a `ShipmentEvent` with a similarly named field.
+
+**Review status is deliberately two-tiered.** `SYNTHETIC_FIXTURE_ONLY` rules can be exercised only against source messages explicitly marked synthetic; they are blocked for non-synthetic records. `EXTERNALLY_APPROVED` requires an approval-record reference and evidence/reviewer references. This code checks that those references are declared; an independent governance workflow must resolve and verify them before production use. It does not self-certify human review. Draft and rejected rules are blocked.
+
+`EXACT` mappings must preserve the literal source value and be reversible. `CONTEXTUAL` and `LOSSY` mappings must be irreversible and explain the semantic gap. A key firewall prohibits DCSA `eventClassifierCode` from mapping directly to EPCIS `bizStep` or `disposition`: EST/REQ/PLN/ACT describes source milestone maturity, while CBV business-step/disposition describes business process or condition. A DCSA `equipmentEventTypeCode=LOAD` may map contextually to CBV `loading` only under an explicit event-family/version-specific rule. The target validator checks a pinned logistics subset of CBV 2.0.0 values and canonical URI forms, not the complete vocabulary. The module emits a canonical model value; it is not an EPCIS JSON/JSON-LD serializer. EPCIS 2.0.1's official artifact set includes the JSON-LD context, OpenAPI, JSON Schema and SHACL validators.
+
+The source payload bytes are **not** copied into this mapping module. Each receipt carries the original source SHA-256 and a source-store reference; the source evidence store remains the bytes' owner. The mapper checks the reference's digest binding but not access-control or continued storage of the referenced object.
+
+Run the deterministic crosswalk receipt:
+
+~~~sh
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin cross-standard-mapping-audit
+~~~
+
+The 25-case receipt covers exact classifier-maturity preservation, contextual DCSA equipment-event type to GS1 CBV business-step translation, forbidden classifier-to-bizStep/disposition shortcuts, invalid target vocabulary, false reversibility, draft/rejected rules, synthetic-rule misuse on non-synthetic sources, event-family mismatch, EPCIS/CBV version mismatch, missing external approval reference, exact-value mismatch, content-addressed bundle digest/reference drift, source subject identity and source payload-reference failures. The CSV has 26 lines including its header and 13 columns. This is a deterministic synthetic qualification, not an external standards conformance score.
+
+This is not a full DCSA/EPCIS parser, event-family schema validator, JSON-LD serializer, complete CBV validator, external approval resolver or official conformance tool. It is the admissibility contract that a future parser/crosswalk must satisfy before normalized output can enter downstream assurance and risk layers.
+
+
+## Current exact-head qualification — cross-standard mapping (25 November 2026)
+
+Final documentation-complete head `146d87719433c21be1b606f72515117d8ba72cd9`, workflow #273 (`45570820389`), pinned Rust 1.96.0:
+- formatting, strict Clippy, compilation: passed;
+- **165 tests passed, 0 failed**;
+- the 25-case DCSA↔EPCIS/CBV receipt replay, 13-column schema and adversarial semantic checks: passed;
+- exact TOML mapping-bundle SHA-256 verification: passed;
+- global receipt digest manifest and 30-day reproducible artifact upload: passed.
+
+Artifact: https://github.com/Luminous-Dynamics/symtropy/actions/runs/45570820389/artifacts/15002041953
+
+Artifact ZIP SHA-256: `353ed3ddfd25e00d44fa43b42d8dd8bc64b6138d75d503376821c33b94138d64`.
+
+This is a synthetic software qualification. The mapping bundle is fixture-only, external approval references are not independently resolved by this crate, and no DCSA API conformance, live source truth, physical cargo movement or receiver delivery is certified.

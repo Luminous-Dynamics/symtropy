@@ -14,7 +14,7 @@
 
 use std::fmt::Write as FmtWrite;
 
-const EXPECTED_STANDARD_VERSION: &str = "DCSA-TT-2.2";
+const EXPECTED_STANDARD_VERSION: &str = "DCSA-TT-2.2.0";
 const FIXTURE_AS_OF: i64 = 2_000_000_000;
 const FIXTURE_PUBLISHED: i64 = 1_900_000_000;
 const FIXTURE_RETRIEVED: i64 = 1_900_000_010;
@@ -327,7 +327,7 @@ fn benchmark_cases() -> [BenchmarkCase; 11] {
             retrieved: FIXTURE_RETRIEVED,
             record_time: FIXTURE_RETRIEVED,
             event_time: Some(FIXTURE_EVENT_TIME),
-            version: "DCSA-TT-2.1",
+            version: "DCSA-TT-2.1.0",
         },
         BenchmarkCase {
             id: "unknown_publication_time_rejected",
@@ -494,7 +494,7 @@ mod tests {
             Err(DcsaClassifierError::UnknownClassifier("XYZ".to_owned()))
         );
         event = fixture_event("ACT");
-        event.standard_version = "DCSA-TT-2.1".to_owned();
+        event.standard_version = "DCSA-TT-2.1.0".to_owned();
         assert_eq!(
             event.admit_as_of(FIXTURE_AS_OF),
             Err(DcsaClassifierError::WrongStandardVersion)

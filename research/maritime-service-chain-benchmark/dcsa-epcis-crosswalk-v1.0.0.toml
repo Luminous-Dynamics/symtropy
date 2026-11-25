@@ -1,0 +1,34 @@
+# Maritime DCSA 2.2.0 -> GS1 EPCIS 2.0.1 / CBV 2.0.0 mapping fixture
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Synthetic contract manifest only. It is not an externally approved production crosswalk.
+
+bundle_id = "maritime-dcsa-epcis-crosswalk"
+revision = "1.0.0"
+review_status = "synthetic_fixture_only"
+reviewer_ref = "synthetic-reviewer:cross-standard-mapping-v1"
+source_standard = "DCSA Track & Trace 2.2.0"
+source_event_family = "EquipmentEvent"
+target_standard = "GS1 EPCIS 2.0.1"
+target_vocabulary = "GS1 CBV 2.0.0"
+target_representation = "canonical-cbv-uri"
+scope = "Preserve DCSA equipment event fields in a source-payload-linked crosswalk fixture; no physical-truth or capture-completeness claim."
+
+[[rules]]
+id = "equipment-event-classifier-to-source-maturity"
+source_field = "eventClassifierCode"
+source_value = "ACT"
+target_field = "sourceMaturity"
+target_value = "ACT"
+mapping_kind = "exact"
+reversibility = "reversible"
+lossiness_reason = ""
+
+[[rules]]
+id = "equipment-event-type-load-to-cbv-loading"
+source_field = "equipmentEventTypeCode"
+source_value = "LOAD"
+target_field = "bizStep"
+target_value = "urn:epcglobal:cbv:bizstep:loading"
+mapping_kind = "contextual"
+reversibility = "irreversible"
+lossiness_reason = "The source event code and target business-step vocabulary occupy different semantic models; the contextual mapping requires explicit operator and event-family interpretation."
