@@ -1050,6 +1050,7 @@ mod tests {
         let report = ServiceReliabilityReport::evaluate(&observations, 950)
             .expect("unique canonical expected units");
         assert_eq!(report.expected_unit_ids.len(), 3);
+        assert_eq!(report.expected_unit_ids.len(), report.observation_count);
         assert!(report.expected_unit_ids.windows(2).all(|pair| pair[0] < pair[1]));
     }
 
