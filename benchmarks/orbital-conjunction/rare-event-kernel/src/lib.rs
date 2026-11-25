@@ -42,6 +42,7 @@ pub mod normal_positive_part;
 pub mod pop_col_adjustment;
 pub mod pop_col_energy;
 pub mod pathwise_event;
+pub mod pathwise_proposal;
 pub mod pop_convergence;
 pub mod predictable_empirical_bernstein;
 pub mod proposal_execution_conformance;
@@ -112,6 +113,10 @@ pub use pop_col_energy::{
 pub use pathwise_event::{
     EncounterWindow, HorizonContactDisposition, HorizonEventConfig, HorizonEventDefinition,
     PathWindowDisposition, PathWindowOutcome, PathwiseHorizonOutcome, WindowInventoryCoverage,
+};
+pub use pathwise_proposal::{
+    FinitePathwiseProposalSupport, FinitePathwiseTrajectoryAtom, PathwiseProposalError,
+    derive_finite_pathwise_proposal_support,
 };
 pub use pop_convergence::{
     PeakOverlapConvergenceConfig, PeakOverlapConvergenceDecision,
