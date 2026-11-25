@@ -108,3 +108,8 @@ Hard targets are zero false safe claims and zero duplicate/stale-token effects i
 ## Claim ceiling
 
 TLC validates only a finite abstraction. It does not establish durable NVM behavior, atomic actuator execution, firmware identity, anti-rollback protection, physical effect truth, end-to-end quiescence, HIL or physical safety. The TLA model is a design review aid and a source of negative controls, not a device qualification.
+
+
+### Accepted-epoch binding
+
+The token stores the authority epoch under which it was durably reserved. The endpoint checks that **stored accepted epoch** against its current monotonic fence at the actual actuation transition. A newer authority epoch therefore blocks execution of an already-reserved old-epoch token; checking only the epoch on the latest request would miss this stale-queue case. A stale token returns a fenced/stale disposition and remains non-executable. This is still a bounded model of endpoint enforcement, not a claim about any particular firmware.
