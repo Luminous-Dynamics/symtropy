@@ -598,6 +598,23 @@ mod tests {
     }
 
     #[test]
+    fn interval_width_overflow_fails_closed_instead_of_rounding() {
+        let lower = rational(1, u128::MAX);
+        let upper = rational(1, u128::MAX - 1);
+        let interval = ToiInterval::new(lower, upper).unwrap();
+        assert_eq!(interval.width(), Err(RationalError::ArithmeticOverflow));
+
+        assert_eq!(
+            evaluate_toi(&[ToiEvaluation::new(
+                key(QueryKind::EdgeEdge, 9),
+                Some(rational(1, 2)),
+                ToiClaim::ReportedInterval(interval),
+            )]),
+            Err(vec![ToiError::IntervalWidthArithmeticOverflow])
+        );
+    }
+
+    #[test]
     fn zero_positive_population_has_no_toi_recall() {
         let score = evaluate_toi(&[ToiEvaluation::new(
             key(QueryKind::EdgeEdge, 0),
