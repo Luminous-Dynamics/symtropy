@@ -61,10 +61,12 @@ pub struct ReplayCoordinate {
     pub evidence_checkpoint_reference: String,
     pub evidence_checkpoint_digest_sha256: String,
     pub evidence_view_digest_sha256: String,
+    pub evidence_checkpoint_watermark_unix_ms: u64,
     pub observer_coverage_status: String,
     pub observer_coverage_profile_id: String,
     pub observer_coverage_receipt_reference: String,
     pub observer_coverage_receipt_digest_sha256: String,
+    pub observer_coverage_watermark_unix_ms: u64,
     pub trust_status_as_of_unix_ms: u64,
     pub trust_policy_id: String,
     pub trust_policy_digest_sha256: String,
@@ -245,7 +247,17 @@ pub fn replay_coordinate(case: &Value, mode: ReplayMode) -> Option<ReplayCoordin
         ReplayMode::AsKnownAt | ReplayMode::RecomputedWithCurrentTrust => "/snapshot",
         ReplayMode::RecomputedWithCurrentEvidenceAndTrust => "/current_reassessment",
     };
+    let view_path = match mode {
+        ReplayMode::AsKnownAt | ReplayMode::RecomputedWithCurrentTrust => "/snapshot",
+        ReplayMode::RecomputedWithCurrentEvidenceAndTrust => "/current_reassessment",
+    };
     let receiver_receipt_watermark_unix_ms = case.pointer(receipt_path)?.as_u64()?;
+    let evidence_checkpoint_watermark_unix_ms = case
+        .pointer(&format!("{view_path}/evidence_checkpoint_watermark_unix_ms"))?
+        .as_u64()?;
+    let observer_coverage_watermark_unix_ms = case
+        .pointer(&format!("{view_path}/observer_coverage_watermark_unix_ms"))?
+        .as_u64()?;
     let evidence_checkpoint_reference = case
         .pointer(&format!("{view_path}/evidence_checkpoint_reference"))?
         .as_str()?
@@ -298,10 +310,12 @@ pub fn replay_coordinate(case: &Value, mode: ReplayMode) -> Option<ReplayCoordin
         evidence_checkpoint_reference,
         evidence_checkpoint_digest_sha256,
         evidence_view_digest_sha256,
+        evidence_checkpoint_watermark_unix_ms,
         observer_coverage_status,
         observer_coverage_profile_id,
         observer_coverage_receipt_reference,
         observer_coverage_receipt_digest_sha256,
+        observer_coverage_watermark_unix_ms,
         trust_status_as_of_unix_ms,
         trust_policy_id,
         trust_policy_digest_sha256,
@@ -1105,7 +1119,7 @@ mod tests {
             .get("cases")
             .and_then(Value::as_array)
             .expect("temporal replay cases");
-        assert_eq!(cases.len(), 26);
+        assert_eq!(cases.len(), 29);
 
         let modes = [
             ReplayMode::AsKnownAt,
@@ -1175,6 +1189,14 @@ mod tests {
                 earliest_unix_ms: 140,
                 latest_unix_ms: 140
             }
+        );
+        assert_eq!(
+            historical.coordinate.evidence_checkpoint_reference,
+            trust_only.coordinate.evidence_checkpoint_reference
+        );
+        assert_eq!(
+            historical.coordinate.observer_coverage_receipt_reference,
+            trust_only.coordinate.observer_coverage_receipt_reference
         );
         assert_eq!(
             historical.coordinate.receiver_receipt_watermark_unix_ms,
