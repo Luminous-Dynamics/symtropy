@@ -3,7 +3,7 @@
 **Status:** executable deterministic synthetic fixture generator; not field data  
 **Language:** Rust 2024, no external dependencies  
 **Horizon:** 72 hours  
-**Corpus:** 12 archetypes × 10 seeds = 120 cases; 72 hourly service intervals per case (8,640 intervals total)
+**Corpus:** 12 archetypes × 10 seeds = 120 cases; 72 hourly service intervals per case (8,640 intervals total); an aggregate-versus-temporal ablation report
 
 ## Purpose
 
@@ -19,6 +19,7 @@ Each case is an abstract synthetic chain:
 6. Network delivery limit.
 7. Beneficiary demand, critical floor, interval and telemetry disposition.
 8. A 72-row hourly trajectory with exact timestamps, pre-transit zero delivery, time-indexed route throughput, conversion, generator output and service-floor disposition.
+9. An evaluator-only temporal-ablation report comparing the horizon energy-only pass with the hourly non-compensatory verdict, plus sustained-recovery confirmation and right-censoring counts.
 
 Every case is explicitly tagged `synthetic_fixture`. No fixture represents an actual tank, terminal, cargo, refinery, generator or service boundary.
 
@@ -61,12 +62,13 @@ cargo fmt --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml -- --check
 cargo test --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --locked
 cargo clippy --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --all-targets --locked -- -D warnings
 cargo run --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --release --locked -- --check
+cargo run --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --release --locked -- --benchmark
 cargo run --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --release --locked -- --emit target/corpus-v0.1/
 ```
 
 The GitHub Actions workflow emits two separate JSONL files, checks that each contains exactly 120 rows and 72 hourly rows per case, calculates a shared SHA-256 manifest and retains them as separate planner-observation and evaluator-oracle artifacts.
 
-**No leakage rule:** planner implementations receive only planner-observations.jsonl. The oracle-truth.jsonl file contains closing stock, actual conversion/output quantities, generated/delivered energy and final service verdicts. Keep it in the evaluator/scorer boundary; never attach it to a planner prompt or planner execution input. CI publishes two distinct artifacts: a planner-observations artifact and an evaluator-only oracle-truth artifact. A SHA256SUMS file binds both files. The two 72-row-per-case interval views must retain exact timestamps and common case IDs so that independent paired scoring is possible without giving the oracle to the planner.
+**No leakage rule:** planner implementations receive only planner-observations.jsonl. The oracle-truth.jsonl file contains closing stock, actual conversion/output quantities, generated/delivered energy and final service verdicts. Keep it in the evaluator/scorer boundary; never attach it to a planner prompt or planner execution input. CI publishes two distinct artifacts: a planner-observations artifact and an evaluator-only oracle artifact. A planner-only checksum file binds only planner observations; a separate evaluator checksum file binds oracle truth and the temporal-ablation report. The two 72-row-per-case interval views retain exact timestamps and common case IDs so that independent paired scoring is possible without giving the oracle to the planner.
 
 ## Tests
 
@@ -86,7 +88,9 @@ The crate includes deterministic generation and JSONL shape checks plus negative
 - uncertainty widening;
 - absolute time-origin translation, including all 72 hourly timestamps;
 - 72-step timestamp continuity, pre-transit zero delivery and exact hourly-to-horizon reconciliation;
-- hourly hard-floor breaches remaining visible in the horizon-level service verdict.
+- hourly hard-floor breaches remaining visible in the horizon-level service verdict;
+- aggregate-energy-only apparent guarantees that conceal hourly shortfalls or indeterminate evidence;
+- sustained recovery after disruption, with explicit right-censoring when the required continuous duration is not observed.
 
 
 These are software-contract tests over synthetic assumptions. They do not validate physical process yields, fuel calorific values, actual inventory, legal rights, electrical feasibility, power quality, protection, HIL or field reliability.
