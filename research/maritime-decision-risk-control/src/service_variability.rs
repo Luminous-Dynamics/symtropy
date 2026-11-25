@@ -739,6 +739,47 @@ pub fn render_csv() -> String {
 mod tests {
     use super::*;
 
+    fn naive_fcfs_queue(
+        arrivals: &[VesselArrival],
+        service_duration_minutes: u64,
+        parallel_servers: usize,
+    ) -> FifoQueueMetrics {
+        let mut ordered = arrivals.to_vec();
+        ordered.sort_by(|left, right| {
+            left.arrival_minute
+                .cmp(&right.arrival_minute)
+                .then_with(|| left.call_id.cmp(&right.call_id))
+        });
+        let mut available_at = vec![0_u64; parallel_servers];
+        let mut waits = Vec::with_capacity(ordered.len());
+        let mut max_wait = 0_u64;
+        let mut queue_wait_area = 0_u64;
+        let mut completion_time = 0_u64;
+        for arrival in &ordered {
+            let mut server = 0;
+            for candidate in 1..parallel_servers {
+                if available_at[candidate] < available_at[server] {
+                    server = candidate;
+                }
+            }
+            let start = available_at[server].max(arrival.arrival_minute);
+            let wait = start - arrival.arrival_minute;
+            let finish = start + service_duration_minutes;
+            available_at[server] = finish;
+            waits.push(wait);
+            max_wait = max_wait.max(wait);
+            queue_wait_area += wait;
+            completion_time = completion_time.max(finish);
+        }
+        FifoQueueMetrics {
+            call_count: ordered.len(),
+            max_wait_minutes: max_wait,
+            queue_wait_area_call_minutes: queue_wait_area,
+            completion_time_minutes: completion_time,
+            wait_distribution: distribution(&waits),
+        }
+    }
+
     fn delivered_distribution(report: &ServiceReliabilityReport) -> &DistributionMetrics {
         report
             .end_to_end
@@ -856,6 +897,52 @@ mod tests {
         assert_eq!(burst.max_wait_minutes, 260);
         assert_eq!(burst.queue_wait_area_call_minutes, 2_680);
         assert_eq!(burst.completion_time_minutes, 300);
+    }
+
+    #[test]
+    fn heap_queue_matches_independent_tiny_naive_server_oracle() {
+        let arrivals = vec![
+            VesselArrival { call_id: "call-a".to_owned(), arrival_minute: 0 },
+            VesselArrival { call_id: "call-b".to_owned(), arrival_minute: 10 },
+            VesselArrival { call_id: "call-c".to_owned(), arrival_minute: 10 },
+            VesselArrival { call_id: "call-d".to_owned(), arrival_minute: 25 },
+            VesselArrival { call_id: "call-e".to_owned(), arrival_minute: 100 },
+        ];
+        for service_duration in [5, 30] {
+            for servers in 1..=3 {
+                let actual = simulate_fcfs_queue(&arrivals, service_duration, servers)
+                    .expect("heap queue result");
+                let expected = naive_fcfs_queue(&arrivals, service_duration, servers);
+                assert_eq!(actual, expected);
+            }
+        }
+    }
+
+    #[test]
+    fn queue_results_are_permutation_invariant_and_capacity_monotone() {
+        let arrivals = burst_arrivals("metamorphic", 20);
+        let expected = simulate_fcfs_queue(&arrivals, 30, 2).expect("baseline");
+        let mut reversed = arrivals.clone();
+        reversed.reverse();
+        assert_eq!(
+            simulate_fcfs_queue(&reversed, 30, 2).expect("permuted input"),
+            expected
+        );
+
+        let one_server = simulate_fcfs_queue(&arrivals, 30, 1).expect("one server");
+        let three_servers = simulate_fcfs_queue(&arrivals, 30, 3).expect("three servers");
+        assert!(three_servers.max_wait_minutes <= expected.max_wait_minutes);
+        assert!(
+            three_servers.queue_wait_area_call_minutes
+                <= expected.queue_wait_area_call_minutes
+        );
+        assert!(three_servers.completion_time_minutes <= expected.completion_time_minutes);
+        assert!(expected.max_wait_minutes <= one_server.max_wait_minutes);
+        assert!(
+            expected.queue_wait_area_call_minutes
+                <= one_server.queue_wait_area_call_minutes
+        );
+        assert!(expected.completion_time_minutes <= one_server.completion_time_minutes);
     }
 
     #[test]
