@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: orbital-mission-risk-\${{ github.event.pull_request.number || github.ref }}
+  group: orbital-mission-risk-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -31,7 +31,7 @@ jobs:
       - name: Checkout exact branch or pull request head
         uses: actions/checkout@v4
         with:
-          ref: \${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - name: Install pinned Rust toolchain
         uses: dtolnay/rust-toolchain@stable
