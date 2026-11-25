@@ -1092,11 +1092,16 @@ mod tests {
         let mut cache = StaticBroadphase::new();
         cache.rebuild_with_bvh(&bodies);
 
-        let mut linear = cache.query_against_linear(&query);
-        let mut indexed = cache.query_against_bvh(&query).unwrap();
-        linear.sort_unstable_by_key(|pair| (pair.0, pair.1));
-        indexed.sort_unstable_by_key(|pair| (pair.0, pair.1));
+        let (linear, linear_stats) = cache
+            .query_against(&query, StaticQueryBackend::LinearScan)
+            .unwrap();
+        let (indexed, indexed_stats) = cache
+            .query_against(&query, StaticQueryBackend::CachedBvh)
+            .unwrap();
         assert_eq!(indexed, linear);
+        assert_eq!(linear_stats.entries_tested, 128);
+        assert!(indexed_stats.entries_tested < linear_stats.entries_tested);
+        assert!(indexed_stats.nodes_visited > 0);
     }
 
     #[test]
@@ -1120,6 +1125,35 @@ mod tests {
 
         let mut cache = StaticBroadphase::new();
         cache.rebuild_with_bvh(&bodies);
+        let (indexed, query_stats) = find_pairs_incremental_with_backend_and_stats(
+            &bodies,
+            &cache,
+            StaticQueryBackend::CachedBvh,
+        )
+        .unwrap();
+        assert_eq!(indexed, find_pairs(&bodies));
+        assert!(query_stats.query_count > 0);
+        assert!(query_stats.nodes_visited > 0);
+    }
+
+    #[test]
+    fn cached_bvh_preserves_static_kinematic_pairs_when_static_is_first() {
+        let mut kinematic = RigidBody::<3>::static_body(
+            BodyHandle(9),
+            Point::new([0.5, 0.0, 0.0]),
+            Box::new(Sphere::unit()),
+        );
+        kinematic.body_type = BodyType::Kinematic;
+        let bodies = vec![
+            RigidBody::<3>::static_body(
+                BodyHandle(2),
+                Point::origin(),
+                Box::new(Sphere::unit()),
+            ),
+            kinematic,
+        ];
+        let mut cache = StaticBroadphase::new();
+        cache.rebuild_with_bvh(&bodies);
         let indexed = find_pairs_incremental_with_backend(
             &bodies,
             &cache,
@@ -1127,6 +1161,34 @@ mod tests {
         )
         .unwrap();
         assert_eq!(indexed, find_pairs(&bodies));
+        assert_eq!(indexed.len(), 1);
+    }
+
+    #[test]
+    fn cached_bvh_preserves_kinematic_kinematic_pairs_once() {
+        let mut first = RigidBody::<3>::static_body(
+            BodyHandle(5),
+            Point::origin(),
+            Box::new(Sphere::unit()),
+        );
+        first.body_type = BodyType::Kinematic;
+        let mut second = RigidBody::<3>::static_body(
+            BodyHandle(3),
+            Point::new([0.5, 0.0, 0.0]),
+            Box::new(Sphere::unit()),
+        );
+        second.body_type = BodyType::Kinematic;
+        let bodies = vec![first, second];
+        let mut cache = StaticBroadphase::new();
+        cache.rebuild_with_bvh(&bodies);
+        let indexed = find_pairs_incremental_with_backend(
+            &bodies,
+            &cache,
+            StaticQueryBackend::CachedBvh,
+        )
+        .unwrap();
+        assert_eq!(indexed, find_pairs(&bodies));
+        assert_eq!(indexed.len(), 1);
     }
 
     #[test]
