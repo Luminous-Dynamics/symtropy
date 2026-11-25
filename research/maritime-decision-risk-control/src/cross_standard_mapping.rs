@@ -66,7 +66,13 @@ pub enum CrosswalkError {
     SourceStandardVersionMismatch,
     TargetStandardVersionMismatch,
     SourceMessageIdentityMissing,
+    SourceSubjectIdentityMissing,
+    SourcePayloadReferenceMissing,
+    SourcePayloadReferenceMismatch,
     InvalidSourcePayloadDigest,
+    MappingRuleNotApproved,
+    ExactMappingValueChanged,
+    InvalidTargetVocabularyValue,
     SourceFieldMissing,
     SourceValueMismatch,
 }
@@ -86,7 +92,13 @@ impl CrosswalkError {
             Self::SourceStandardVersionMismatch => "SOURCE_STANDARD_VERSION_MISMATCH",
             Self::TargetStandardVersionMismatch => "TARGET_STANDARD_VERSION_MISMATCH",
             Self::SourceMessageIdentityMissing => "SOURCE_MESSAGE_IDENTITY_MISSING",
+            Self::SourceSubjectIdentityMissing => "SOURCE_SUBJECT_IDENTITY_MISSING",
+            Self::SourcePayloadReferenceMissing => "SOURCE_PAYLOAD_REFERENCE_MISSING",
+            Self::SourcePayloadReferenceMismatch => "SOURCE_PAYLOAD_REFERENCE_MISMATCH",
             Self::InvalidSourcePayloadDigest => "INVALID_SOURCE_PAYLOAD_DIGEST",
+            Self::MappingRuleNotApproved => "MAPPING_RULE_NOT_APPROVED",
+            Self::ExactMappingValueChanged => "EXACT_MAPPING_VALUE_CHANGED",
+            Self::InvalidTargetVocabularyValue => "INVALID_TARGET_VOCABULARY_VALUE",
             Self::SourceFieldMissing => "SOURCE_FIELD_MISSING",
             Self::SourceValueMismatch => "SOURCE_VALUE_MISMATCH",
         }
@@ -98,16 +110,40 @@ pub struct SourceMessage {
     pub standard_version: String,
     pub source_record_id: String,
     pub source_event_id: String,
+    /// Canonical container, vessel-call or shipment identity.
+    pub subject_id: String,
     /// SHA-256 of the original, unmodified source message bytes.
     pub raw_payload_sha256: String,
-    /// Already parsed source fields. Raw bytes remain authoritative and are
-    /// identified by raw_payload_sha256; this map is not a replacement payload.
+    /// Immutable object-store or evidence-ledger reference. This module carries
+    /// the reference and digest; it does not itself retain the source bytes.
+    pub raw_payload_ref: String,
+    /// Parsed source fields, never a replacement for the original message.
     pub fields: BTreeMap<String, String>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum MappingReviewStatus {
+    Approved,
+    Draft,
+    Rejected,
+}
+
+impl MappingReviewStatus {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Approved => "APPROVED",
+            Self::Draft => "DRAFT",
+            Self::Rejected => "REJECTED",
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MappingRule {
     pub rule_id: String,
+    /// Immutable mapping bundle identity and revision, not an implicit latest rule.
+    pub mapping_bundle_id: String,
+    pub mapping_bundle_revision: String,
     pub source_standard_version: String,
     pub source_field: String,
     pub source_value: String,
@@ -116,6 +152,8 @@ pub struct MappingRule {
     pub target_value: String,
     pub kind: MappingKind,
     pub reversibility: MappingReversibility,
+    pub review_status: MappingReviewStatus,
+    pub reviewer_ref: String,
     pub mapping_evidence_ref: String,
     /// Required for contextual and lossy mappings; describes the semantic gap.
     pub lossiness_reason: Option<String>,
@@ -133,6 +171,15 @@ impl MappingRule {
         {
             return Err(CrosswalkError::EmptyRuleIdentity);
         }
+        if self.mapping_bundle_id.trim().is_empty()
+            || self.mapping_bundle_revision.trim().is_empty()
+            || self.reviewer_ref.trim().is_empty()
+        {
+            return Err(CrosswalkError::EmptyRuleIdentity);
+        }
+        if self.review_status != MappingReviewStatus::Approved {
+            return Err(CrosswalkError::MappingRuleNotApproved);
+        }
         if self.mapping_evidence_ref.trim().is_empty() {
             return Err(CrosswalkError::MissingMappingEvidence);
         }
@@ -149,7 +196,11 @@ impl MappingRule {
         }
 
         match (self.kind, self.reversibility) {
-            (MappingKind::Exact, MappingReversibility::Reversible) => {}
+            (MappingKind::Exact, MappingReversibility::Reversible) => {
+                if self.source_value != self.target_value {
+                    return Err(CrosswalkError::ExactMappingValueChanged);
+                }
+            }
             (MappingKind::Exact, MappingReversibility::Irreversible) => {
                 return Err(CrosswalkError::ExactMappingMustBeReversible);
             }
@@ -162,17 +213,83 @@ impl MappingRule {
                 }
             }
         }
+        if self.target_field == "bizStep" && !is_supported_cbv_biz_step(&self.target_value) {
+            return Err(CrosswalkError::InvalidTargetVocabularyValue);
+        }
+        if self.target_field == "disposition"
+            && !is_supported_cbv_disposition(&self.target_value)
+        {
+            return Err(CrosswalkError::InvalidTargetVocabularyValue);
+        }
         Ok(())
     }
+}
+
+fn is_supported_cbv_biz_step(value: &str) -> bool {
+    let code = value
+        .strip_prefix("urn:epcglobal:cbv:bizstep:")
+        .or_else(|| value.strip_prefix("https://ref.gs1.org/cbv/BizStep-"));
+    matches!(
+        code,
+        Some(
+            "accepting"
+                | "arriving"
+                | "departing"
+                | "loading"
+                | "receiving"
+                | "shipping"
+                | "storing"
+                | "transporting"
+                | "unloading"
+        )
+    )
+}
+
+fn is_supported_cbv_disposition(value: &str) -> bool {
+    let code = value
+        .strip_prefix("urn:epcglobal:cbv:disp:")
+        .or_else(|| value.strip_prefix("https://ref.gs1.org/cbv/Disp-"));
+    matches!(
+        code,
+        Some(
+            "available"
+                | "damaged"
+                | "destroyed"
+                | "in_progress"
+                | "in_transit"
+                | "returned"
+                | "stolen"
+                | "unavailable"
+        )
+    )
+}
+
+fn is_uri(value: &str) -> bool {
+    let Some((scheme, rest)) = value.split_once(':') else {
+        return false;
+    };
+    !scheme.is_empty()
+        && scheme.as_bytes()[0].is_ascii_alphabetic()
+        && scheme
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'+' | b'-' | b'.'))
+        && !rest.is_empty()
+        && !value.chars().any(char::is_whitespace)
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CrosswalkReceipt {
     pub rule_id: String,
+    pub mapping_bundle_id: String,
+    pub mapping_bundle_revision: String,
+    pub review_status: MappingReviewStatus,
+    pub reviewer_ref: String,
     pub source_standard_version: String,
     pub source_record_id: String,
     pub source_event_id: String,
+    pub source_subject_id: String,
     pub source_payload_sha256: String,
+    pub source_payload_ref: String,
     pub source_field: String,
     pub source_value: String,
     pub target_standard_version: String,
@@ -182,8 +299,9 @@ pub struct CrosswalkReceipt {
     pub reversibility: MappingReversibility,
     pub mapping_evidence_ref: String,
     pub lossiness_reason: Option<String>,
-    /// The original source payload is always retained by reference, not rewritten.
-    pub source_payload_preserved: bool,
+    /// Digest and object-store reference are carried; bytes remain in source storage.
+    pub source_payload_digest_carried: bool,
+    pub source_payload_ref_carried: bool,
 }
 
 pub fn map_field(
@@ -202,8 +320,18 @@ pub fn map_field(
     if source.source_record_id.trim().is_empty() || source.source_event_id.trim().is_empty() {
         return Err(CrosswalkError::SourceMessageIdentityMissing);
     }
+    if source.subject_id.trim().is_empty() || !is_uri(&source.subject_id) {
+        return Err(CrosswalkError::SourceSubjectIdentityMissing);
+    }
+    if source.raw_payload_ref.trim().is_empty() {
+        return Err(CrosswalkError::SourcePayloadReferenceMissing);
+    }
     if !valid_sha256(&source.raw_payload_sha256) {
         return Err(CrosswalkError::InvalidSourcePayloadDigest);
+    }
+    let expected_payload_ref = format!("urn:source-artifact:sha256:{}", source.raw_payload_sha256);
+    if source.raw_payload_ref != expected_payload_ref {
+        return Err(CrosswalkError::SourcePayloadReferenceMismatch);
     }
 
     let source_value = source
@@ -216,10 +344,16 @@ pub fn map_field(
 
     Ok(CrosswalkReceipt {
         rule_id: rule.rule_id.clone(),
+        mapping_bundle_id: rule.mapping_bundle_id.clone(),
+        mapping_bundle_revision: rule.mapping_bundle_revision.clone(),
+        review_status: rule.review_status,
+        reviewer_ref: rule.reviewer_ref.clone(),
         source_standard_version: source.standard_version.clone(),
         source_record_id: source.source_record_id.clone(),
         source_event_id: source.source_event_id.clone(),
+        source_subject_id: source.subject_id.clone(),
         source_payload_sha256: source.raw_payload_sha256.clone(),
+        source_payload_ref: source.raw_payload_ref.clone(),
         source_field: rule.source_field.clone(),
         source_value: source_value.clone(),
         target_standard_version: rule.target_standard_version.clone(),
@@ -229,7 +363,8 @@ pub fn map_field(
         reversibility: rule.reversibility,
         mapping_evidence_ref: rule.mapping_evidence_ref.clone(),
         lossiness_reason: rule.lossiness_reason.clone(),
-        source_payload_preserved: true,
+        source_payload_digest_carried: true,
+        source_payload_ref_carried: true,
     })
 }
 
@@ -240,12 +375,14 @@ fn valid_sha256(value: &str) -> bool {
 fn source_fixture() -> SourceMessage {
     let mut fields = BTreeMap::new();
     fields.insert("eventClassifierCode".to_owned(), "ACT".to_owned());
-    fields.insert("eventTypeCode".to_owned(), "LOAD".to_owned());
+    fields.insert("equipmentEventTypeCode".to_owned(), "LOAD".to_owned());
     SourceMessage {
         standard_version: DCSA_TT_VERSION.to_owned(),
         source_record_id: "DCSA-SOURCE-RECORD-001".to_owned(),
         source_event_id: "urn:uuid:11111111-1111-4111-8111-111111111111".to_owned(),
+        subject_id: "urn:epc:id:sscc:0614141.1234567890".to_owned(),
         raw_payload_sha256: FIXTURE_DIGEST.to_owned(),
+        raw_payload_ref: format!("urn:source-artifact:sha256:{FIXTURE_DIGEST}"),
         fields,
     }
 }
@@ -261,6 +398,8 @@ fn rule(
 ) -> MappingRule {
     MappingRule {
         rule_id: format!("crosswalk-{source_field}-to-{target_field}-v1"),
+        mapping_bundle_id: "maritime-dcsa-epcis-crosswalk".to_owned(),
+        mapping_bundle_revision: "v1.0.0".to_owned(),
         source_standard_version: DCSA_TT_VERSION.to_owned(),
         source_field: source_field.to_owned(),
         source_value: source_value.to_owned(),
@@ -269,6 +408,8 @@ fn rule(
         target_value: target_value.to_owned(),
         kind,
         reversibility,
+        review_status: MappingReviewStatus::Approved,
+        reviewer_ref: "synthetic-reviewer:cross-standard-mapping-v1".to_owned(),
         mapping_evidence_ref: "synthetic-cross-standard-review-v1".to_owned(),
         lossiness_reason: lossiness_reason.map(str::to_owned),
     }
@@ -360,13 +501,13 @@ fn cases() -> [Case; 10] {
 
 pub fn render_csv() -> String {
     let mut output = String::from(
-        "case_id,expected_mapping_kind,observed_status,target_field,source_payload_preserved,reversibility,claim_ceiling\n",
+        "case_id,expected_mapping_kind,observed_status,target_field,source_payload_digest_carried,reversibility,claim_ceiling\n",
     );
     for case in cases() {
         let mut source = source_fixture();
         let mapping_rule = match case.id {
             "event_type_to_bizstep_contextual" => rule(
-                "eventTypeCode",
+                "equipmentEventTypeCode",
                 "LOAD",
                 case.target_field,
                 "urn:epcglobal:cbv:bizstep:loading",
@@ -384,7 +525,7 @@ pub fn render_csv() -> String {
                 None,
             ),
             "nonexact_mapping_cannot_claim_reversible" => rule(
-                "eventTypeCode",
+                "equipmentEventTypeCode",
                 "LOAD",
                 case.target_field,
                 "urn:epcglobal:cbv:bizstep:loading",
@@ -393,7 +534,7 @@ pub fn render_csv() -> String {
                 Some("contextual mapping"),
             ),
             "lossy_mapping_with_explicit_reason" => rule(
-                "eventTypeCode",
+                "equipmentEventTypeCode",
                 "LOAD",
                 case.target_field,
                 "urn:epcglobal:cbv:bizstep:loading",
@@ -402,7 +543,7 @@ pub fn render_csv() -> String {
                 Some("source-specific subreason omitted by target vocabulary"),
             ),
             "lossy_mapping_without_reason_rejected" => rule(
-                "eventTypeCode",
+                "equipmentEventTypeCode",
                 "LOAD",
                 case.target_field,
                 "urn:epcglobal:cbv:bizstep:loading",
@@ -437,7 +578,7 @@ pub fn render_csv() -> String {
         let (observed, preserved, reversibility) = match result {
             Ok(receipt) => (
                 receipt.kind.label(),
-                receipt.source_payload_preserved,
+                receipt.source_payload_digest_carried,
                 receipt.reversibility.label(),
             ),
             Err(error) => (error.label(), true, "NONE"),
@@ -478,7 +619,7 @@ mod tests {
         assert_eq!(mapped.source_payload_sha256, source.raw_payload_sha256);
         assert_eq!(mapped.source_value, "ACT");
         assert_eq!(mapped.target_value, "ACT");
-        assert!(mapped.source_payload_preserved);
+        assert!(mapped.source_payload_digest_carried);
         assert_eq!(mapped.reversibility, MappingReversibility::Reversible);
     }
 
@@ -527,7 +668,7 @@ mod tests {
             &source_fixture(),
             EPCIS_VERSION,
             &rule(
-                "eventTypeCode",
+                "equipmentEventTypeCode",
                 "LOAD",
                 "bizStep",
                 "urn:epcglobal:cbv:bizstep:loading",
@@ -562,7 +703,7 @@ mod tests {
     #[test]
     fn a_lossy_mapping_requires_a_reason_and_cannot_claim_reversibility() {
         let missing_reason = rule(
-            "eventTypeCode",
+            "equipmentEventTypeCode",
             "LOAD",
             "bizStep",
             "urn:epcglobal:cbv:bizstep:loading",
@@ -576,7 +717,7 @@ mod tests {
         );
 
         let false_reversibility = rule(
-            "eventTypeCode",
+            "equipmentEventTypeCode",
             "LOAD",
             "bizStep",
             "urn:epcglobal:cbv:bizstep:loading",
@@ -677,6 +818,6 @@ mod tests {
         assert!(first.contains("CONTEXTUAL"));
         assert!(first.contains("DCSA_CLASSIFIER_CANNOT_MAP_TO_BIZSTEP"));
         assert!(first.contains("DCSA_CLASSIFIER_CANNOT_MAP_TO_DISPOSITION"));
-        assert!(first.contains("source_payload_preserved"));
+        assert!(first.contains("source_payload_digest_carried"));
     }
 }
