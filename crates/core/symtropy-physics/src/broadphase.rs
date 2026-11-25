@@ -591,7 +591,7 @@ impl<const D: usize> StaticBroadphase<D> {
         let mut pairs = Vec::new();
         let mut stats = StaticQueryStats::default();
 
-        for (index, kinematic) in self.entries.iter().enumerate() {
+        for kinematic in &self.entries {
             if kinematic.body_type != BodyType::Kinematic {
                 continue;
             }
@@ -623,7 +623,6 @@ impl<const D: usize> StaticBroadphase<D> {
         Ok((pairs, stats))
     }
 
-    /// Reference backend: scan every cached entry.
     /// Reference backend: scan every cached entry.
     fn query_indices(
         &self,
