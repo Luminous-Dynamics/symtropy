@@ -511,6 +511,21 @@
           "type": [
             "string",
             "null"
+          ],
+          "enum": [
+            null,
+            "DesiredStateRequiresAbsoluteMotion",
+            "OneShotTokenMissing",
+            "ContinuousLeaseMissingExpiry",
+            "TrajectoryRestartFromSegmentZeroAllowed",
+            "CoordinateFrameMismatch",
+            "DeviceOneShotTokenUnsupported",
+            "DeviceLeaseEpochUnsupported",
+            "DeviceTrajectoryResumeUnsupported",
+            "FirmwareProfileMismatch",
+            "DeviceProfileMismatch",
+            "PayloadSchemaMismatch",
+            "UnitMismatch"
           ]
         },
         "device": {
@@ -519,7 +534,49 @@
         "command": {
           "$ref": "#/$defs/command"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "class": {
+                "const": "positive"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "expected_decision": {
+                "const": "accept_profile"
+              },
+              "expected_reason": {
+                "const": null
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class": {
+                "const": "negative"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "expected_decision": {
+                "const": "hold"
+              },
+              "expected_reason": {
+                "not": {
+                  "const": null
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }
