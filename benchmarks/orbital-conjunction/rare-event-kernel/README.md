@@ -86,3 +86,12 @@ The package also includes:
 - The decision-sufficiency gate and planning controller only classify caller-supplied bounds and propose work orders. They do not execute refinements, shrink intervals, validate returned child partitions or qualify physical estimates.
 - The decision-sufficiency gate only classifies caller-supplied bounds. It does not prove their provenance, coverage, physical-model adequacy or calibration, and it does not select the policy threshold or authorize a maneuver.
 - The refinement scheduler ranks by contribution-width-per-estimated-cost only. It does not estimate cost from runtime observations, model the distribution of refinement outcomes, calculate full decision-theoretic value of information, prove greedy optimality, or establish that a selected refinement will reduce uncertainty. Estimated cost is an input assumption, and every selected candidate remains unresolved until a separate validated refinement receipt is accepted. The test-only exhaustive oracle is restricted to at most 20 candidates and is a benchmark reference, not a production scheduler.
+
+
+## Optional-stopping diagnostics for adaptive confidence sequences
+
+The matched adaptive-IS comparison already exhaustively enumerates all 64 six-draw paths for the declared finite adaptive proposal fixture and counts a miss whenever any method's interval excludes the known truth at any checkpoint. This *all-times* path event is the stronger finite-horizon acceptance test: any stopping time adapted to the observed draws selects one of the already checked intervals.
+
+An additional test records coverage at six concrete stopping policies for all three methods: fixed horizon, first draw, first upper bound below a decision threshold, first lower bound at/above the threshold, first interval width below a target, and a two-draw budget stop. Each policy is evaluated on the same path law and the same per-method receipt sequence. Acceptance still requires the all-times path-miss probability and every listed stopping-policy miss probability to be at most alpha on the exact enumerated fixture.
+
+These finite-path results validate only the declared categorical law, six-draw horizon, three adapter implementations and stopping rules. The mathematical confidence-sequence guarantee remains conditional on the bounded conditional-mean assumptions and a qualified draw-generation process; simulation or finite enumeration does not prove those assumptions for continuous orbital proposals.
