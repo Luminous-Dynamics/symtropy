@@ -7,6 +7,7 @@ on:
       - "docs/research/orbital-truss/fixtures/inspection-recourse-v0_1.json"
       - "docs/research/orbital-truss/orbital_inspection_recourse_corpus_v0_1.schema.json"
       - "docs/research/orbital-truss/orbital_inspection_recourse_v0_1.md"
+      - "docs/research/orbital-truss/orbital_inspection_competitive_benchmark_plan_v0_1.md"
       - ".github/workflows/orbital-inspection-recourse.yml"
   push:
     branches:
@@ -15,6 +16,7 @@ on:
       - "tools/orbital-inspection-recourse-bench/**"
       - "docs/research/orbital-truss/fixtures/inspection-recourse-v0_1.json"
       - "docs/research/orbital-truss/orbital_inspection_recourse_corpus_v0_1.schema.json"
+      - "docs/research/orbital-truss/orbital_inspection_competitive_benchmark_plan_v0_1.md"
       - ".github/workflows/orbital-inspection-recourse.yml"
 
 permissions:
