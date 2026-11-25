@@ -50,7 +50,8 @@
         "reference_frame",
         "motion_semantics",
         "target_predicate",
-        "logical_effect_id_required"
+        "logical_effect_id_required",
+        "device_capabilities"
       ],
       "properties": {
         "device_id": {
@@ -159,6 +160,75 @@
         },
         "endpoint_revision": {
           "$ref": "#/$defs/identifier"
+        },
+        "device_capabilities": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "absolute_target_supported",
+            "absolute_target_replay_safe",
+            "absolute_target_side_effect_free",
+            "durable_one_shot_token_supported",
+            "duplicate_one_shot_token_rejected",
+            "maximum_effects_per_token",
+            "authority_epoch_supported",
+            "lease_expiry_enforced",
+            "watchdog_reaction",
+            "stable_trajectory_segments_supported",
+            "progress_checkpoints_supported",
+            "measured_progress_resume_supported",
+            "downstream_queue_reconciliation_supported"
+          ],
+          "properties": {
+            "absolute_target_supported": {
+              "type": "boolean"
+            },
+            "absolute_target_replay_safe": {
+              "type": "boolean"
+            },
+            "absolute_target_side_effect_free": {
+              "type": "boolean"
+            },
+            "durable_one_shot_token_supported": {
+              "type": "boolean"
+            },
+            "duplicate_one_shot_token_rejected": {
+              "type": "boolean"
+            },
+            "maximum_effects_per_token": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "authority_epoch_supported": {
+              "type": "boolean"
+            },
+            "lease_expiry_enforced": {
+              "type": "boolean"
+            },
+            "watchdog_reaction": {
+              "enum": [
+                "controlled_stop",
+                "disable_output",
+                "hold_last_value",
+                "none"
+              ]
+            },
+            "stable_trajectory_segments_supported": {
+              "type": "boolean"
+            },
+            "progress_checkpoints_supported": {
+              "type": "boolean"
+            },
+            "measured_progress_resume_supported": {
+              "type": "boolean"
+            },
+            "downstream_queue_reconciliation_supported": {
+              "type": "boolean"
+            }
+          }
         }
       }
     },
