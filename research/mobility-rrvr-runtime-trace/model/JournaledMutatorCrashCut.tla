@@ -1,5 +1,5 @@
 -------------------------- MODULE JournaledMutatorCrashCut --------------------------
-EXTENDS Naturals, TLC
+EXTENDS Naturals, Integers, TLC
 
 CONSTANTS AllowUnsafeRedispatch,
           AllowFalseNoEffect,
