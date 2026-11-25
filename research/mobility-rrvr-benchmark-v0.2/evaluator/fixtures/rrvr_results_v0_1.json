@@ -65,8 +65,8 @@
         "reset_replay": null,
         "endpoint_fence": null,
         "temporal_closure": null,
-        "independent_observation": 12.0,
-        "native_authority_admission": 8.0
+        "independent_observation": 12,
+        "native_authority_admission": 8
       }
     },
     {
@@ -79,7 +79,7 @@
         "task_id": "pick-place-001",
         "policy_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "scene_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-        "initial_state_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "initial_state_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "action_prefix_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
         "seed": 42,
         "simulator_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
@@ -124,13 +124,13 @@
         "evidence_independently_checkable": true
       },
       "latencies_ms": {
-        "append_sync": 2.0,
-        "owner_reservation": 3.0,
-        "reset_replay": 20.0,
-        "endpoint_fence": 1.0,
-        "temporal_closure": 9.0,
-        "independent_observation": 10.0,
-        "native_authority_admission": 5.0
+        "append_sync": 2,
+        "owner_reservation": 3,
+        "reset_replay": 20,
+        "endpoint_fence": 1,
+        "temporal_closure": 9,
+        "independent_observation": 10,
+        "native_authority_admission": 5
       }
     },
     {
@@ -154,14 +154,14 @@
       "clusters": {
         "world_id": "gazebo-world-b",
         "robot_asset_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "hardware_profile_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "hardware_profile_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
         "firmware_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "fault": {
         "requested": false,
-        "accepted_by_injector": false,
-        "execution_receipt": false,
-        "independent_delivery_observation": false
+        "accepted_by_injector": null,
+        "execution_receipt": null,
+        "independent_delivery_observation": null
       },
       "outcome": {
         "oracle_disposition": "no_effect",
@@ -193,8 +193,8 @@
         "reset_replay": null,
         "endpoint_fence": null,
         "temporal_closure": null,
-        "independent_observation": 14.0,
-        "native_authority_admission": 9.0
+        "independent_observation": 14,
+        "native_authority_admission": 9
       }
     },
     {
@@ -218,13 +218,13 @@
       "clusters": {
         "world_id": "gazebo-world-b",
         "robot_asset_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "hardware_profile_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "hardware_profile_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
         "firmware_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "fault": {
         "requested": false,
-        "accepted_by_injector": false,
-        "execution_receipt": false,
+        "accepted_by_injector": null,
+        "execution_receipt": null,
         "independent_delivery_observation": true
       },
       "outcome": {
@@ -252,13 +252,13 @@
         "evidence_independently_checkable": true
       },
       "latencies_ms": {
-        "append_sync": 1.0,
-        "owner_reservation": 2.0,
-        "reset_replay": 18.0,
-        "endpoint_fence": 2.0,
-        "temporal_closure": 8.0,
-        "independent_observation": 11.0,
-        "native_authority_admission": 6.0
+        "append_sync": 1,
+        "owner_reservation": 2,
+        "reset_replay": 18,
+        "endpoint_fence": 2,
+        "temporal_closure": 8,
+        "independent_observation": 11,
+        "native_authority_admission": 6
       }
     }
   ]
