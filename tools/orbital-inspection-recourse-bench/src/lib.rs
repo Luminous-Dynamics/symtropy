@@ -592,7 +592,10 @@ mod tests {
         assert_eq!(case.status, PolicyStatus::Abstain);
         assert!(case.policy.is_none());
         assert!(case.rejected_actions.contains_key("UNQUALIFIED_VIEW"));
-        assert!(case.rejected_actions.contains_key("REVOKED_CALIBRATION_VIEW"));
+        assert!(
+            case.rejected_actions
+                .contains_key("REVOKED_CALIBRATION_VIEW")
+        );
     }
 
     #[test]
