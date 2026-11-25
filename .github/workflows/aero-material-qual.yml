@@ -176,8 +176,8 @@ jobs:
               raise SystemExit("temporal replay corpus requires a late-receipt control")
           if corpus.get("oracle_review_status") != "NOT_INDEPENDENTLY_REVIEWED":
               raise SystemExit("oracle review status must remain explicit until independent review")
-          if len(cases) != 13:
-              raise SystemExit(f"temporal replay corpus must contain exactly 13 frozen cases; found {len(cases)}")
+          if len(cases) != 15:
+              raise SystemExit(f"temporal replay corpus must contain exactly 15 frozen cases; found {len(cases)}")
           all_events = [event for case in cases for event in case["events"]]
           for event in all_events:
               receipt_status = event["receiver_receipt_status"]
