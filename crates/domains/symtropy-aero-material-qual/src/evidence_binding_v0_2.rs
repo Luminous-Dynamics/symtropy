@@ -413,10 +413,17 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
             specimen_source_identity_issue = true;
         }
 
+        let sampling_event_id =
+            field_str(assertion, "sampling_event_id").unwrap_or("UNRESOLVED");
         match field_str(assertion, "specimen_item_id") {
             Some(item_id) if nonempty(Some(item_id)) => {
-                if !specimen_item_ids.insert(item_id.to_owned()) {
-                    push(&mut violations, "SPECIMEN_ITEM_ID_REPLAY", item_id);
+                let item_key = (sampling_event_id.to_owned(), item_id.to_owned());
+                if !specimen_item_ids.insert(item_key) {
+                    push(
+                        &mut violations,
+                        "SPECIMEN_ITEM_ID_REPLAY",
+                        &format!("{sampling_event_id}:{item_id}"),
+                    );
                     push(
                         &mut blockers,
                         "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED",
