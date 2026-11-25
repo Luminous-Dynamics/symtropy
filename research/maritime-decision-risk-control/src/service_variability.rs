@@ -58,10 +58,11 @@ pub struct ServiceObservation {
 }
 
 impl ServiceObservation {
-    pub fn port_elapsed_minutes(&self) -> u64 {
-        u64::from(self.vessel_wait_minutes)
-            + u64::from(self.berth_work_minutes)
-            + u64::from(self.terminal_dwell_minutes)
+    /// Vessel-side waiting plus berth-work duration. This is not CPPI port time:
+    /// CPPI's vessel-time window also requires the independently sourced
+    /// departure-from-berth timestamp; terminal cargo dwell is a separate stage.
+    pub fn vessel_wait_plus_berth_work_minutes(&self) -> u64 {
+        u64::from(self.vessel_wait_minutes) + u64::from(self.berth_work_minutes)
     }
 
     pub fn on_time(&self) -> bool {
@@ -283,7 +284,7 @@ pub struct ServiceReliabilityReport {
     pub vessel_wait: DistributionMetrics,
     pub berth_work: DistributionMetrics,
     pub terminal_dwell: DistributionMetrics,
-    pub port_elapsed: DistributionMetrics,
+    pub vessel_wait_plus_berth_work: DistributionMetrics,
     pub inland_transfer: DistributionMetrics,
     pub end_to_end: ServiceMetrics,
     /// Each accepted expected cargo unit remains paired with its receiver receipt.
@@ -496,9 +497,9 @@ impl ServiceReliabilityReport {
             .iter()
             .map(|item| u64::from(item.terminal_dwell_minutes))
             .collect::<Vec<_>>();
-        let port_elapsed = observations
+        let vessel_wait_plus_berth_work = observations
             .iter()
-            .map(ServiceObservation::port_elapsed_minutes)
+            .map(ServiceObservation::vessel_wait_plus_berth_work_minutes)
             .collect::<Vec<_>>();
         let inland_transfer = observations
             .iter()
@@ -546,7 +547,7 @@ impl ServiceReliabilityReport {
             vessel_wait: distribution(&vessel_wait),
             berth_work: distribution(&berth_work),
             terminal_dwell: distribution(&terminal_dwell),
-            port_elapsed: distribution(&port_elapsed),
+            vessel_wait_plus_berth_work: distribution(&vessel_wait_plus_berth_work),
             inland_transfer: distribution(&inland_transfer),
             end_to_end: service_metrics(&observations.iter().collect::<Vec<_>>()),
             receiver_acceptances,
@@ -814,7 +815,7 @@ fn optional_float(value: Option<f64>) -> String {
 /// Renders deterministic synthetic service-reliability and burst receipts.
 pub fn render_csv() -> String {
     let mut output = String::from(
-        "scenario_id,expected_units,port_mean_minutes,inland_mean_minutes,accepted_receiver_time_mean_minutes,accepted_p50_minutes,accepted_p90_minutes,accepted_p95_minutes,accepted_max_minutes,accepted_sample_sd_minutes,accepted_coefficient_of_variation,accepted_p95_to_p50_ratio,verified_on_time_rate_per_mille,cohort_floor_violations,max_arrivals_in_60m,max_fcfs_wait_minutes,queue_wait_area_call_minutes,queue_completion_minutes,receiver_accepted_count,source_reported_delivered_unverified_count,in_transit_expected_count,awaiting_berth_nomination_count,not_delivered_count,diverted_count,cancelled_count,unknown_count,claim_ceiling\n",
+        "scenario_id,expected_units,vessel_wait_plus_berth_work_mean_minutes,inland_mean_minutes,accepted_receiver_time_mean_minutes,accepted_p50_minutes,accepted_p90_minutes,accepted_p95_minutes,accepted_max_minutes,accepted_sample_sd_minutes,accepted_coefficient_of_variation,accepted_p95_to_p50_ratio,verified_on_time_rate_per_mille,cohort_floor_violations,max_arrivals_in_60m,max_fcfs_wait_minutes,queue_wait_area_call_minutes,queue_completion_minutes,receiver_accepted_count,source_reported_delivered_unverified_count,in_transit_expected_count,awaiting_berth_nomination_count,not_delivered_count,diverted_count,cancelled_count,unknown_count,claim_ceiling\n",
     );
     for scenario in scenarios() {
         let mut observations = synthetic_observations(
@@ -856,7 +857,7 @@ pub fn render_csv() -> String {
             "{},{},{:.3},{:.3},{:.3},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},SYNTHETIC_ONLY",
             scenario.id,
             report.expected_unit_ids.len(),
-            report.port_elapsed.mean_minutes,
+            report.vessel_wait_plus_berth_work.mean_minutes,
             report.inland_transfer.mean_minutes,
             delivered.mean_minutes,
             delivered.p50_minutes,
@@ -1018,8 +1019,8 @@ mod tests {
         let baseline = ServiceReliabilityReport::evaluate(&baseline, 950).expect("baseline");
         let optimized = ServiceReliabilityReport::evaluate(&optimized, 950).expect("optimized");
         assert_eq!(
-            optimized.port_elapsed.mean_minutes + 20.0,
-            baseline.port_elapsed.mean_minutes
+            optimized.vessel_wait_plus_berth_work.mean_minutes + 20.0,
+            baseline.vessel_wait_plus_berth_work.mean_minutes
         );
         assert_eq!(
             delivered_distribution(&optimized).mean_minutes,
@@ -1036,7 +1037,8 @@ mod tests {
         let baseline = ServiceReliabilityReport::evaluate(&baseline, 950).expect("baseline");
         let regressed = ServiceReliabilityReport::evaluate(&regressed, 950).expect("regressed");
         assert!(
-            regressed.port_elapsed.mean_minutes < baseline.port_elapsed.mean_minutes
+            regressed.vessel_wait_plus_berth_work.mean_minutes
+                < baseline.vessel_wait_plus_berth_work.mean_minutes
         );
         assert!(
             delivered_distribution(&regressed).mean_minutes
