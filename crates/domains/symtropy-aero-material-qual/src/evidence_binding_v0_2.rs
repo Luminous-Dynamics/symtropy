@@ -588,7 +588,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
         let acquired_at = field_u64(observation, "acquired_at_unix_ms");
 
         if field_str(observation, "time_basis") != Some("UTC_UNIX_EPOCH_MS") {
-            reasons.insert("TIME_BASIS_NOT_NORMALIZED_TO_UTC".to_owned());
+            reasons.insert("TIME_BASIS_NOT_NORMALIZED_TO_UNIX_MS".to_owned());
         }
         if acquired_at.is_none() {
             reasons.insert("ACQUISITION_TIMESTAMP_MISSING_OR_INVALID".to_owned());
@@ -849,6 +849,28 @@ mod tests {
         assert!(has_blocker(
             &report,
             "CALIBRATION_OUTSIDE_VALIDITY_INTERVAL"
+        ));
+    }
+
+    #[test]
+    fn final_millisecond_before_exclusive_end_is_still_valid() {
+        let mut case = fixture();
+        case["observations"][0]["acquired_at_unix_ms"] =
+            Value::from(1_795_517_999_999u64);
+        assert!(!has_blocker(
+            &evaluate_binding_case(&case),
+            "CALIBRATION_OUTSIDE_VALIDITY_INTERVAL"
+        ));
+    }
+
+    #[test]
+    fn acquisition_after_evaluation_time_is_blocked() {
+        let mut case = fixture();
+        case["observations"][0]["acquired_at_unix_ms"] =
+            Value::from(1_795_516_200_001u64);
+        assert!(has_blocker(
+            &evaluate_binding_case(&case),
+            "ACQUISITION_AFTER_EVALUATION_TIME"
         ));
     }
 
@@ -1153,6 +1175,7 @@ mod tests {
         permuted["intended_configuration_assertions"].as_array_mut().unwrap().reverse();
         permuted["calibration_certificates"].as_array_mut().unwrap().reverse();
         permuted["observations"].as_array_mut().unwrap().reverse();
+        permuted["calibration_events"].as_array_mut().unwrap().reverse();
 
         assert_eq!(baseline, evaluate_binding_case(&permuted));
     }
