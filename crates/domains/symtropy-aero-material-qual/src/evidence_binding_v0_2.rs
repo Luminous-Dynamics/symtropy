@@ -871,6 +871,7 @@ mod tests {
     #[test]
     fn final_millisecond_before_exclusive_end_is_still_valid() {
         let mut case = fixture();
+        case["evaluated_at_unix_ms"] = Value::from(1_795_518_000_000u64);
         case["observations"][0]["acquired_at_unix_ms"] =
             Value::from(1_795_517_999_999u64);
         assert!(!has_blocker(
@@ -953,7 +954,7 @@ mod tests {
         timezone["observations"][0]["time_basis"] = Value::String("LOCAL_UNKNOWN".to_owned());
         assert!(has_blocker(
             &evaluate_binding_case(&timezone),
-            "TIME_BASIS_NOT_NORMALIZED_TO_UTC"
+            "TIME_BASIS_NOT_NORMALIZED_TO_UNIX_MS"
         ));
 
         let mut ambiguous = fixture();
@@ -1100,7 +1101,7 @@ mod tests {
             .get("cases")
             .and_then(Value::as_array)
             .expect("v0.2 mutation cases");
-        assert_eq!(cases.len(), 16);
+        assert_eq!(cases.len(), 18);
 
         for mutation in cases {
             let case_id = mutation
