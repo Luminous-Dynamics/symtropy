@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/domains/symtropy-mobility-policy-tournament/schemas/mobility_policy_tournament_v0_1.schema.json",
+  "title": "Mobility Energy Policy Tournament v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "benchmark_id", "evidence_class", "scenario_manifest_digest",
+    "feasibility_oracle_digest", "compute_environment_digest", "compute_budget_ms",
+    "reference_policy_id", "bootstrap", "policies", "runs"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "benchmark_id": {"const": "MOBILITY-ENERGY-POLICY-TOURNAMENT-001"},
+    "evidence_class": {"enum": ["synthetic", "paper_reproduction", "measured_replay", "physical_trial"]},
+    "scenario_manifest_digest": {"$ref": "#/$defs/digest"},
+    "feasibility_oracle_digest": {"$ref": "#/$defs/digest"},
+    "compute_environment_digest": {"$ref": "#/$defs/digest"},
+    "compute_budget_ms": {"type": "integer", "minimum": 1},
+    "reference_policy_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "bootstrap": {"$ref": "#/$defs/bootstrap"},
+    "policies": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 32,
+      "items": {"$ref": "#/$defs/policy"}
+    },
+    "runs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100000,
+      "items": {"$ref": "#/$defs/run"}
+    }
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-fA-F]{64}$"},
+    "bootstrap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seed", "resamples", "confidence_basis_points", "minimum_independent_clusters"],
+      "properties": {
+        "seed": {"type": "integer", "minimum": 1},
+        "resamples": {"type": "integer", "minimum": 1000, "maximum": 50000},
+        "confidence_basis_points": {"type": "integer", "minimum": 5000, "maximum": 9900},
+        "minimum_independent_clusters": {"type": "integer", "minimum": 2, "maximum": 10000}
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy_id", "policy_version", "family", "information_model", "configuration_digest"],
+      "properties": {
+        "policy_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "policy_version": {"type": "string", "minLength": 1, "maxLength": 128},
+        "family": {"enum": [
+          "mobility_only_fixed_cap", "pv_stationary_ess", "tou_milp",
+          "rolling_horizon_mpc", "robust_optimization", "cluster_bid_tracking",
+          "distributionally_robust_rl", "shielded_learned_policy", "other"
+        ]},
+        "information_model": {"enum": ["nonanticipative_online", "clairvoyant_offline_upper_bound"]},
+        "configuration_digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "hard_gate_violation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["category", "count"],
+      "properties": {
+        "category": {"enum": [
+          "mission_reserve", "reserve_recovery", "pcc_limit", "network_deliverability",
+          "authorization", "double_commitment", "evidence_integrity", "cyber_integrity"
+        ]},
+        "count": {"type": "integer", "minimum": 1}
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id", "policy_id", "scenario_id", "scenario_family", "cluster_id",
+        "replication_id", "random_seed", "scenario_digest", "scenario_input_digest",
+        "policy_configuration_digest", "compute_environment_digest", "compute_budget_ms",
+        "evidence_class", "status", "oracle_action_feasible", "shield_admitted",
+        "requested_grid_service_wh", "hard_gate_violations", "committed_missions",
+        "completed_missions", "on_time_missions", "unserved_missions",
+        "in_progress_at_horizon", "queue_wait_p95_ms", "mission_reserve_shortfall_wh",
+        "recovery_shortfall_wh", "instructed_grid_response_wh", "metered_grid_response_wh",
+        "maximum_dc_network_deliverable_wh", "site_import_energy_wh",
+        "renewable_curtailed_energy_wh", "battery_throughput_wh",
+        "operating_cost_micro_units", "degradation_cost_micro_units",
+        "emissions_grams_co2e", "decision_latency_ms"
+      ],
+      "properties": {
+        "run_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "policy_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "scenario_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "scenario_family": {"type": "string", "minLength": 1, "maxLength": 128},
+        "cluster_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "replication_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "random_seed": {"type": "integer", "minimum": 0},
+        "scenario_digest": {"$ref": "#/$defs/digest"},
+        "scenario_input_digest": {"$ref": "#/$defs/digest"},
+        "policy_configuration_digest": {"$ref": "#/$defs/digest"},
+        "compute_environment_digest": {"$ref": "#/$defs/digest"},
+        "compute_budget_ms": {"type": "integer", "minimum": 1},
+        "evidence_class": {"enum": ["synthetic", "paper_reproduction", "measured_replay", "physical_trial"]},
+        "status": {"enum": ["completed", "timed_out", "abstained", "failed"]},
+        "oracle_action_feasible": {"type": "boolean"},
+        "shield_admitted": {"type": "boolean"},
+        "requested_grid_service_wh": {"type": "integer", "minimum": 0},
+        "hard_gate_violations": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {"$ref": "#/$defs/hard_gate_violation"}
+        },
+        "committed_missions": {"type": "integer", "minimum": 1},
+        "completed_missions": {"type": "integer", "minimum": 0},
+        "on_time_missions": {"type": "integer", "minimum": 0},
+        "unserved_missions": {"type": "integer", "minimum": 0},
+        "in_progress_at_horizon": {"type": "integer", "minimum": 0},
+        "queue_wait_p95_ms": {"type": "integer", "minimum": 0},
+        "mission_reserve_shortfall_wh": {"type": "integer", "minimum": 0},
+        "recovery_shortfall_wh": {"type": "integer", "minimum": 0},
+        "instructed_grid_response_wh": {"type": "integer"},
+        "metered_grid_response_wh": {"type": "integer"},
+        "maximum_dc_network_deliverable_wh": {"type": "integer", "minimum": 0},
+        "site_import_energy_wh": {"type": "integer", "minimum": 0},
+        "renewable_curtailed_energy_wh": {"type": "integer", "minimum": 0},
+        "battery_throughput_wh": {"type": "integer", "minimum": 0},
+        "operating_cost_micro_units": {"type": "integer", "minimum": 0},
+        "degradation_cost_micro_units": {"type": "integer", "minimum": 0},
+        "emissions_grams_co2e": {"type": "integer", "minimum": 0},
+        "decision_latency_ms": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}
