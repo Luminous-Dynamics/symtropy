@@ -1050,7 +1050,7 @@ mod tests {
     #[test]
     fn receiver_delay_can_worsen_even_when_port_time_improves() {
         let baseline =
-            synthetic_observations("baseline", &BASELINE_CHAIN, &[], 160);
+            synthetic_observations("baseline", &BASELINE_CHAIN, &RECEIVER_BASELINE, &[], 160);
         let regressed =
             synthetic_observations("regressed", &RECEIVER_REGRESSION, &RECEIVER_REGRESSION_TIMES, &[], 160);
         let baseline = ServiceReliabilityReport::evaluate(&baseline, 950).expect("baseline");
@@ -1217,7 +1217,7 @@ mod tests {
 
     #[test]
     fn unverified_and_preberth_statuses_do_not_become_receiver_acceptances() {
-        let mut observations = synthetic_observations("reported-statuses", &STABLE[..3], &[], 120);
+        let mut observations = synthetic_observations("reported-statuses", &STABLE[..3], &RECEIVER_STABLE[..3], &[], 120);
         observations[0].delivery_disposition =
             DeliveryDisposition::SourceReportedDeliveredUnverified;
         observations[0].receiver_delivery_minutes = None;
