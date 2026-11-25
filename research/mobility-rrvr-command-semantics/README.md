@@ -19,6 +19,7 @@ cargo clippy --locked --manifest-path research/mobility-rrvr-command-semantics/C
 - One-shot cardinality, endpoint token and independent outcome observation.
 - Continuous-lease expiry, authority epoch, watchdog behavior and clock profile.
 - Trajectory segment identity, progress checkpoint, measured continuation and downstream queue reconciliation.
+- Independent device capability declarations for absolute-target replay safety, durable one-shot tokens, maximum physical-effect cardinality, authority epochs, lease expiry/watchdog and trajectory continuation.
 
 A result of `AcceptProfile` means only that the supplied declaration satisfies this reference contract. It is not proof that firmware actually behaves as declared, a physical-effect observation, a recovery permit, safe-stop evidence, PL/SIL, certification or physical safety.
 
