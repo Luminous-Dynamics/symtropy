@@ -4,7 +4,7 @@ Backend-neutral scorecard for broadphase pair-set completeness and workload perf
 
 ## Contract
 
-The broadphase candidate set is evaluated against an independent brute-force oracle over the same frozen collider identities, conservative AABB snapshot, and collision filter. This crate scores pair sets; it does not compute AABB overlap or prove that the supplied oracle is complete.
+The broadphase candidate set is evaluated against an independent brute-force oracle over the same frozen collider identities, conservative AABB snapshot, and collision filter. The receipt must explicitly declare complete oracle coverage; partial or unknown oracle coverage fails closed. The workload collider count must exactly equal the frozen collider identity list. This crate scores pair sets; it does not compute AABB overlap or prove that the supplied oracle is complete.
 
 Pair identity includes body slot, body generation, collider ID and compound subshape path. Endpoint order is canonicalized. Slot reuse with a new generation is a distinct collider identity. Duplicate colliders, duplicate pair rows, self-pairs and unknown endpoints fail closed.
 
