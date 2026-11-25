@@ -485,6 +485,39 @@ mod tests {
     }
 
     #[test]
+    fn negative_clock_scale_is_rejected() {
+        let pairs = (0..9)
+            .map(|index| ClockAnchorPairV0 {
+                anchor_id: u16::try_from(index).unwrap_or(u16::MAX),
+                beta_local_time: 100_i64 + index * 100,
+                alpha_local_time: 1_000_i64 - (100_i64 + index * 100),
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(fit_affine_ols_v0(&pairs), Err(ClockFitErrorV0::NonPositiveScale));
+    }
+
+    #[test]
+    fn anchor_count_limit_is_enforced() {
+        let pairs = (0..=MAX_CLOCK_ANCHORS_V0)
+            .map(|index| {
+                let timestamp = i64::try_from(index).unwrap_or(i64::MAX);
+                ClockAnchorPairV0 {
+                    anchor_id: u16::try_from(index).unwrap_or(u16::MAX),
+                    alpha_local_time: timestamp + 10,
+                    beta_local_time: timestamp,
+                }
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            fit_affine_ols_v0(&pairs),
+            Err(ClockFitErrorV0::TooManyAnchors {
+                found: MAX_CLOCK_ANCHORS_V0 + 1,
+                maximum: MAX_CLOCK_ANCHORS_V0,
+            })
+        );
+    }
+
+    #[test]
     fn duplicate_anchor_identity_is_rejected() {
         let mut pairs = anchors(0, 1, 1);
         pairs[1].anchor_id = pairs[0].anchor_id;
