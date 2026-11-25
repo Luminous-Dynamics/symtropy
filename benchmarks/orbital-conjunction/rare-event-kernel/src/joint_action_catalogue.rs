@@ -643,7 +643,10 @@ mod tests {
             2,
         ))
         .unwrap();
-        assert_eq!(report.disposition, JointActionSelectionDisposition::QualifiedOptimum);
+        assert_eq!(
+            report.disposition,
+            JointActionSelectionDisposition::QualifiedOptimum
+        );
         assert_eq!(report.selected_action_ids, Some(vec![a]));
         assert_eq!(report.selected_robust_consequence_avoided_ticks, Some(8));
         assert_eq!(report.threshold_exceeded_count, 1);
@@ -654,7 +657,12 @@ mod tests {
         let a = [10; 32];
         let outcomes = vec![
             qualified(vec![], 1, vec![], 0),
-            qualified(vec![a], 2, vec![event(10, (1, 2_000_000), (2, 2_000_000))], 50),
+            qualified(
+                vec![a],
+                2,
+                vec![event(10, (1, 2_000_000), (2, 2_000_000))],
+                50,
+            ),
             JointActionOutcomeRecord {
                 action_ids: vec![a],
                 action_set_digest: [90; 32],
@@ -693,7 +701,9 @@ mod tests {
             JointActionOutcomeRecord {
                 action_ids: vec![a],
                 action_set_digest: [90; 32],
-                state: JointActionOutcomeState::Unresolved { reason_digest: [91; 32] },
+                state: JointActionOutcomeState::Unresolved {
+                    reason_digest: [91; 32],
+                },
             },
         ];
         let report = evaluate_joint_action_catalogue(config(
@@ -750,8 +760,18 @@ mod tests {
         );
         let outcomes = vec![
             qualified(vec![], 1, vec![], 0),
-            qualified(vec![a], 2, vec![event(10, (1, 2_000_000), (2, 2_000_000))], 4),
-            qualified(vec![b], 3, vec![event(10, (1, 2_000_000), (2, 2_000_000))], 7),
+            qualified(
+                vec![a],
+                2,
+                vec![event(10, (1, 2_000_000), (2, 2_000_000))],
+                4,
+            ),
+            qualified(
+                vec![b],
+                3,
+                vec![event(10, (1, 2_000_000), (2, 2_000_000))],
+                7,
+            ),
             joint.clone(),
         ];
         let result = evaluate_joint_action_catalogue(config(
@@ -905,7 +925,10 @@ mod tests {
             1,
         ))
         .unwrap();
-        assert_eq!(report.disposition, JointActionSelectionDisposition::QualifiedOptimum);
+        assert_eq!(
+            report.disposition,
+            JointActionSelectionDisposition::QualifiedOptimum
+        );
         assert_eq!(report.selected_action_ids, Some(vec![]));
         assert_eq!(report.infeasible_count, 1);
     }
