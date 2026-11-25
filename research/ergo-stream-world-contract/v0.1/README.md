@@ -162,6 +162,19 @@ The first version uses explicit shared calibration pulses as an optional indepen
 
 Eight focused tests cover aligned positives, exact matched marginals under dropout, shuffled negative correspondence, periodic ambiguity with and without shared clock anchors, clock/semantic score separation, causal arrival prefixes, explicit out-of-order sensor-time delivery, and invalid configuration. The exact evaluator routine is separate from the candidate claim validator; hidden identity labels never enter the public view. The existing `ErgoStream microcosm` workflow is the execution authority; no test, doctest, Clippy or benchmark result is claimed until it passes on the exact branch head.
 
+### Affine clock-registration estimator follow-on — staged, execution pending
+
+Symtropy [#7495 — ERGO-STREAM-CLOCK-BASELINE-001](https://github.com/Luminous-Dynamics/symtropy/issues/7495) has a first candidate-side estimator module in `src/clock_estimators.rs`, stacked after the multimodal evaluator PR #7493:
+
+- OLS affine fit for the clean/no-contamination reference;
+- Theil–Sen median pairwise slope/intercept for a bounded robust reference;
+- Huber IRLS with Theil–Sen initialization and signed-residual MAD scale;
+- one-anchor, repeated-time, duplicate-ID, non-positive-scale and invalid-configuration rejection;
+- integer-centered timestamp differences plus exact reference epochs to reduce precision loss for large absolute timestamps;
+- nine focused tests including a gross endpoint outlier and large timestamp epoch.
+
+These estimators consume only public paired sensor-time anchors. They do not consume evaluator time, event identities, arrival delay or hidden clock parameters. They are generic baselines, not a reproduction of MATH-SYNC. Exact-head Rust 1.96 format/tests/strict Clippy remain pending.
+
 ## 11. First executable milestone
 
 The current slice supplies the evaluator-side categorical world and exact correspondence scorer only. The minimal child policy / process adapter remains a follow-on under the existing blind episode contract. Before adding large modalities, prove hidden-state non-exposure, exact replay, denominator conservation and held-out composition scoring.
