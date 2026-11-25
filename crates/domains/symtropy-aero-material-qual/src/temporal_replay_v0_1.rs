@@ -771,8 +771,12 @@ pub fn evaluate_case(case: &Value, mode: ReplayMode) -> TemporalDisposition {
                 && text(candidate, "event_id") == Some(target_id)
         });
         let recorded_at = number(event, "issuer_recorded_at_unix_ms");
-        let target_recorded_at = target.and_then(|value| number(value, "issuer_recorded_at_unix_ms"));
-        if recorded_at.zip(target_recorded_at).is_none_or(|(new_time, old_time)| new_time <= old_time) {
+        let target_recorded_at =
+            target.and_then(|value| number(value, "issuer_recorded_at_unix_ms"));
+        if recorded_at
+            .zip(target_recorded_at)
+            .is_none_or(|(new_time, old_time)| new_time <= old_time)
+        {
             return one_reason(
                 "ABSTAIN",
                 "CORRECTION_TARGET_NOT_STRICTLY_EARLIER",
@@ -795,7 +799,7 @@ pub fn evaluate_case(case: &Value, mode: ReplayMode) -> TemporalDisposition {
             "ABSTAIN",
             "CALIBRATION_REINSTATEMENT_SEMANTICS_UNQUALIFIED",
             &[],
-            &reinstatements,
+            &deduplicated,
             &all_events,
         );
     }
