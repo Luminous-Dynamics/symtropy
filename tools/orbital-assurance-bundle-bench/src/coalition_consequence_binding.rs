@@ -415,7 +415,9 @@ fn validate_model_universe(case: &Case) -> Result<(String, String, String), Stri
         .map(|world| world.world_id.clone())
         .collect::<BTreeSet<_>>();
     if bridge_worlds != model_worlds || model_worlds.len() != model_case.worlds.len() {
-        return Err("independent model grammar and joint-loss bridge world inventories differ".to_owned());
+        return Err(
+            "independent model grammar and joint-loss bridge world inventories differ".to_owned(),
+        );
     }
     for world in &model_case.worlds {
         if world.scope_sha256 != case.scope_sha256 {
@@ -444,7 +446,10 @@ fn validate_model_universe(case: &Case) -> Result<(String, String, String), Stri
         }
     }
     if bridge_pairs != expected_pairs {
-        return Err("joint-loss bridge scenario tuples differ from independently checked model grammar".to_owned());
+        return Err(
+            "joint-loss bridge scenario tuples differ from independently checked model grammar"
+                .to_owned(),
+        );
     }
     let mut canonical_model_case = model_case.clone();
     for world in &mut canonical_model_case.worlds {
@@ -473,9 +478,15 @@ fn validate_model_universe(case: &Case) -> Result<(String, String, String), Stri
     ))
 }
 
-fn validate_coalitions(case: &Case, expected: &BTreeMap<String, Vec<String>>, world_digest: &str) -> Result<(BTreeMap<String, &CoalitionOutcome>, String, String), String> {
+fn validate_coalitions(
+    case: &Case,
+    expected: &BTreeMap<String, Vec<String>>,
+    world_digest: &str,
+) -> Result<(BTreeMap<String, &CoalitionOutcome>, String, String), String> {
     if case.coalitions.len() != expected.len() {
-        return Err("coalition outcome count differs from exact statically selectable subset count".to_owned());
+        return Err(
+            "coalition outcome count differs from exact statically selectable subset count".to_owned(),
+        );
     }
     let mut records = BTreeMap::new();
     let mut catalog_revision: Option<String> = None;
@@ -495,7 +506,10 @@ fn validate_coalitions(case: &Case, expected: &BTreeMap<String, Vec<String>>, wo
             || !expected.contains_key(&row.portfolio_id)
             || expected.get(&row.portfolio_id) != Some(&row.action_ids)
         {
-            return Err("coalition identity, action-set digest or membership does not match canonical enumeration".to_owned());
+            return Err(
+                "coalition identity, action-set digest or membership does not match canonical enumeration"
+                    .to_owned(),
+            );
         }
         if records.insert(row.portfolio_id.clone(), row).is_some() {
             return Err("duplicate coalition outcome row".to_owned());
@@ -520,7 +534,10 @@ fn validate_coalitions(case: &Case, expected: &BTreeMap<String, Vec<String>>, wo
             || risk.action_set_sha256 != expected_digest
             || risk.physical_world_inventory_sha256 != world_digest
         {
-            return Err("post-action risk snapshot has malformed pins or mismatched action/world identity".to_owned());
+            return Err(
+                "post-action risk snapshot has malformed pins or mismatched action/world identity"
+                    .to_owned(),
+            );
         }
         if risk.digest()? != risk.snapshot_sha256 {
             return Err("post-action risk snapshot digest mismatch".to_owned());
@@ -533,7 +550,10 @@ fn validate_coalitions(case: &Case, expected: &BTreeMap<String, Vec<String>>, wo
         match risk.screening_state.as_str() {
             "BELOW_THRESHOLD" | "THRESHOLD_EXCEEDED" => {}
             "AMBIGUOUS" | "INCOMPLETE" | "UNRESOLVED" => {
-                return Err(format!("risk evidence requires global abstention: {}", risk.screening_state));
+                return Err(format!(
+                    "risk evidence requires global abstention: {}",
+                    risk.screening_state
+                ));
             }
             _ => return Err("unknown risk screening state".to_owned()),
         }
@@ -543,9 +563,14 @@ fn validate_coalitions(case: &Case, expected: &BTreeMap<String, Vec<String>>, wo
             || event_definition
                 .as_ref()
                 .is_some_and(|value| value != &risk.event_definition_sha256)
-            || threshold.is_some_and(|value| value != (risk.threshold_numerator, risk.threshold_denominator))
+            || threshold.is_some_and(|value| {
+                value != (risk.threshold_numerator, risk.threshold_denominator)
+            })
         {
-            return Err("post-action snapshots disagree on catalog, event definition or risk threshold".to_owned());
+            return Err(
+                "post-action snapshots disagree on catalog, event definition or risk threshold"
+                    .to_owned(),
+            );
         }
         catalog_revision.get_or_insert_with(|| risk.catalog_revision_sha256.clone());
         event_definition.get_or_insert_with(|| risk.event_definition_sha256.clone());
@@ -554,7 +579,9 @@ fn validate_coalitions(case: &Case, expected: &BTreeMap<String, Vec<String>>, wo
         let requires_coordination = row.action_ids.iter().any(|action_id| {
             case.candidate_actions
                 .iter()
-                .any(|candidate| &candidate.action_id == action_id && candidate.coordination_required)
+                .any(|candidate| {
+                    &candidate.action_id == action_id && candidate.coordination_required
+                })
         });
         match (&row.coordination_receipt_sha256, requires_coordination) {
             (Some(digest), _) if !valid_sha(digest) => {
@@ -591,7 +618,9 @@ fn nominal_metrics(
         || distribution.denominator % 20 != 0
         || distribution.scenario_set_sha256 != digest_ids(scenario_ids)?
     {
-        return Err("nominal probability receipt pins or exact CVaR denominator are invalid".to_owned());
+        return Err(
+            "nominal probability receipt pins or exact CVaR denominator are invalid".to_owned(),
+        );
     }
     let mut weights = BTreeMap::new();
     let mut sum = 0_u64;
@@ -622,7 +651,11 @@ fn nominal_metrics(
         let loss = u128::try_from(losses[scenario_id])
             .map_err(|_| "negative loss cannot enter nominal consequence metrics".to_owned())?;
         mean_numerator = mean_numerator
-            .checked_add(weight.checked_mul(loss).ok_or_else(|| "nominal mean product overflowed".to_owned())?)
+            .checked_add(
+                weight
+                    .checked_mul(loss)
+                    .ok_or_else(|| "nominal mean product overflowed".to_owned())?,
+            )
             .ok_or_else(|| "nominal mean accumulation overflowed".to_owned())?;
         ordered.push((loss, weight));
     }
@@ -637,7 +670,10 @@ fn nominal_metrics(
         }
         let take = weight.min(remaining);
         tail_numerator = tail_numerator
-            .checked_add(take.checked_mul(loss).ok_or_else(|| "CVaR product overflowed".to_owned())?)
+            .checked_add(
+                take.checked_mul(loss)
+                    .ok_or_else(|| "CVaR product overflowed".to_owned())?,
+            )
             .ok_or_else(|| "CVaR accumulation overflowed".to_owned())?;
         remaining -= take;
     }
@@ -658,7 +694,9 @@ fn compute_portfolio_metrics(
         .find_map(|(id, row)| row.action_ids.is_empty().then_some(id.clone()))
         .ok_or_else(|| "no-action portfolio control is absent".to_owned())?;
     if case.incumbent_bridge_case.incumbent_action_id != baseline_id {
-        return Err("incumbent bridge does not identify the canonical no-action portfolio".to_owned());
+        return Err(
+            "incumbent bridge does not identify the canonical no-action portfolio".to_owned(),
+        );
     }
     let safe_ids = records
         .iter()
@@ -680,7 +718,9 @@ fn compute_portfolio_metrics(
                 .ok_or_else(|| "no-action loss is missing in a joint scenario".to_owned())?;
             let portfolio = *losses
                 .get(portfolio_id)
-                .ok_or_else(|| format!("portfolio {portfolio_id} loss is missing in a joint scenario"))?;
+                .ok_or_else(|| {
+                    format!("portfolio {portfolio_id} loss is missing in a joint scenario")
+                })?;
             lower_bound = lower_bound.min(
                 baseline
                     .checked_sub(portfolio)
@@ -779,7 +819,10 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
         || bridge_scenario_ids.len() != scenario_ids.len()
         || scenario_ids.len() > MAX_SCENARIOS
     {
-        return Err("scenario inventory differs across coalition, joint-loss and independent model evidence".to_owned());
+        return Err(
+            "scenario inventory differs across coalition, joint-loss and independent model evidence"
+                .to_owned(),
+        );
     }
     let action_ids = enumerated.keys().cloned().collect::<BTreeSet<_>>();
     let bridge_action_ids = case
@@ -788,12 +831,18 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
         .iter()
         .cloned()
         .collect::<BTreeSet<_>>();
-    if action_ids != bridge_action_ids || action_ids.len() != case.incumbent_bridge_case.action_ids.len() {
-        return Err("incumbent bridge action universe differs from canonical coalition universe".to_owned());
+    if action_ids != bridge_action_ids
+        || action_ids.len() != case.incumbent_bridge_case.action_ids.len()
+    {
+        return Err(
+            "incumbent bridge action universe differs from canonical coalition universe".to_owned(),
+        );
     }
     for (scenario_id, losses) in &scenario_losses {
         if losses.keys().cloned().collect::<BTreeSet<_>>() != action_ids {
-            return Err(format!("scenario {scenario_id} does not carry exactly one direct loss for every coalition"));
+            return Err(format!(
+                "scenario {scenario_id} does not carry exactly one direct loss for every coalition"
+            ));
         }
     }
 
@@ -801,9 +850,15 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
         incumbent_adequacy::evaluate_single_case(&case.incumbent_bridge_case);
     if !bridge_evaluation.expected_result_matched
         || bridge_evaluation.authority_granted
-        || bridge_evaluation.world_assessments.iter().any(|assessment| assessment.evidence_receipt_id.is_empty())
+        || bridge_evaluation
+            .world_assessments
+            .iter()
+            .any(|assessment| assessment.evidence_receipt_id.is_empty())
     {
-        return Err("source-pinned incumbent bridge failed expected-result or authority invariants".to_owned());
+        return Err(
+            "source-pinned incumbent bridge failed expected-result or authority invariants"
+                .to_owned(),
+        );
     }
 
     let metrics = compute_portfolio_metrics(case, &scenario_losses, &records)?;
@@ -828,7 +883,8 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
         && case.expected.safe_portfolio_count == safe_portfolio_count
         && case.expected.bridge_disposition == bridge_evaluation.disposition
         && case.expected.bridge_trigger_reason == bridge_evaluation.trigger_reason
-        && Some(case.expected.bridge_worst_case_improvement) == bridge_evaluation.worst_case_improvement
+        && Some(case.expected.bridge_worst_case_improvement)
+            == bridge_evaluation.worst_case_improvement
         && actual_metrics_match;
 
     Ok(CaseResult {
@@ -850,8 +906,16 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
         model_universe_case_sha256: model_case_digest,
         model_universe_checker_commit: case.loss_model_universe_checker_commit.clone(),
         world_set_receipt_sha256: case.incumbent_bridge_case.world_set_receipt_sha256.clone(),
-        source_joint_loss_receipt_sha256: case.incumbent_bridge_case.loss_model_set.source_receipt_sha256.clone(),
-        projected_scenarios_sha256: case.incumbent_bridge_case.loss_model_set.projected_scenarios_sha256.clone(),
+        source_joint_loss_receipt_sha256: case
+            .incumbent_bridge_case
+            .loss_model_set
+            .source_receipt_sha256
+            .clone(),
+        projected_scenarios_sha256: case
+            .incumbent_bridge_case
+            .loss_model_set
+            .projected_scenarios_sha256
+            .clone(),
         scenario_inventory_sha256: scenario_digest,
         catalog_revision_sha256: Some(catalog_revision),
         event_definition_sha256: Some(event_definition),
@@ -860,7 +924,8 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
         bridge_worst_case_improvement: bridge_evaluation.worst_case_improvement,
         portfolios: metrics,
         nominal_distribution_consumed: case.nominal_distribution.is_some(),
-        distributionally_robust_cvar95_status: "NOT_CONSUMED_NO_VERIFIED_WASSERSTEIN_DRO_RECEIPT".to_owned(),
+        distributionally_robust_cvar95_status: "NOT_CONSUMED_NO_VERIFIED_WASSERSTEIN_DRO_RECEIPT"
+            .to_owned(),
         authority_granted: false,
         expected_result_matched,
     })
@@ -886,12 +951,21 @@ pub fn evaluate(corpus: &Corpus) -> Result<Evaluation, String> {
     cases.sort_by(|left, right| left.case_id.cmp(&right.case_id));
     let summary = Summary {
         case_count: cases.len(),
-        qualified_cases: cases.iter().filter(|case| case.disposition == "QUALIFIED_SYNTHETIC_SCENARIO_BINDING").count(),
-        risk_abstain_cases: cases.iter().filter(|case| case.disposition == "ABSTAIN_RISK_EVIDENCE").count(),
+        qualified_cases: cases
+            .iter()
+            .filter(|case| case.disposition == "QUALIFIED_SYNTHETIC_SCENARIO_BINDING")
+            .count(),
+        risk_abstain_cases: cases
+            .iter()
+            .filter(|case| case.disposition == "ABSTAIN_RISK_EVIDENCE")
+            .count(),
         invalid_cases: cases.iter().filter(|case| case.disposition == "INVALID_INPUT").count(),
         coalition_rows: cases.iter().map(|case| case.coalition_count).sum(),
         scenario_rows: cases.iter().map(|case| case.scenario_count).sum(),
-        expected_result_mismatches: cases.iter().filter(|case| !case.expected_result_matched).count(),
+        expected_result_mismatches: cases
+            .iter()
+            .filter(|case| !case.expected_result_matched)
+            .count(),
         authority_grants: cases.iter().filter(|case| case.authority_granted).count(),
     };
     let pass = summary.qualified_cases == summary.case_count
@@ -935,13 +1009,35 @@ mod tests {
     fn joint_scenario_signed_deltas_preserve_adverse_interactions() {
         let result = result();
         let case = fixture();
-        let action_a = case.candidate_actions.iter().find(|a| a.action_id == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
-        let action_b = case.candidate_actions.iter().find(|a| a.action_id == "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").unwrap();
+        let action_a = case
+            .candidate_actions
+            .iter()
+            .find(|a| a.action_id == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+            .unwrap();
+        let action_b = case
+            .candidate_actions
+            .iter()
+            .find(|a| a.action_id == "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+            .unwrap();
         assert_eq!(metric(&result, &[]).lower_bound_avoided_ticks, 0);
         assert_eq!(metric(&result, &[action_a.action_id.clone()]).lower_bound_avoided_ticks, 5);
         assert_eq!(metric(&result, &[action_b.action_id.clone()]).lower_bound_avoided_ticks, -3);
-        assert_eq!(metric(&result, &[action_a.action_id.clone(), action_b.action_id.clone()]).lower_bound_avoided_ticks, -10);
-        assert_eq!(metric(&result, &[action_a.action_id.clone(), action_b.action_id.clone()]).worst_absolute_loss_ticks, 118);
+        assert_eq!(
+            metric(
+                &result,
+                &[action_a.action_id.clone(), action_b.action_id.clone()]
+            )
+            .lower_bound_avoided_ticks,
+            -10
+        );
+        assert_eq!(
+            metric(
+                &result,
+                &[action_a.action_id.clone(), action_b.action_id.clone()]
+            )
+            .worst_absolute_loss_ticks,
+            118
+        );
     }
 
     #[test]
@@ -1000,8 +1096,14 @@ mod tests {
         let result = result();
         assert!(result.portfolios.iter().all(|metric| metric.nominal_mean_loss.is_none()));
         assert!(result.portfolios.iter().all(|metric| metric.nominal_cvar95_loss.is_none()));
-        assert!(result.portfolios.iter().all(|metric| metric.wasserstein_dro_cvar95_loss.is_none()));
-        assert_eq!(result.distributionally_robust_cvar95_status, "NOT_CONSUMED_NO_VERIFIED_WASSERSTEIN_DRO_RECEIPT");
+        assert!(result
+            .portfolios
+            .iter()
+            .all(|metric| metric.wasserstein_dro_cvar95_loss.is_none()));
+        assert_eq!(
+            result.distributionally_robust_cvar95_status,
+            "NOT_CONSUMED_NO_VERIFIED_WASSERSTEIN_DRO_RECEIPT"
+        );
     }
 
     #[test]
