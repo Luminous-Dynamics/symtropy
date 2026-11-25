@@ -321,7 +321,20 @@ fn evaluate_case(case: &Case) -> CaseResult {
     match candidate.class {
         ActionClass::Recovery => {
             if candidate.post_action_portfolio.is_some() || candidate.measurement.is_some() {
-                return result(Disposition::InvalidInput, vec!["RECOVERY_ACTION_MUST_NOT_CLAIM_INSPECTION".to_owned()]);
+                return result(
+                    Disposition::InvalidInput,
+                    vec!["RECOVERY_ACTION_MUST_NOT_CLAIM_INSPECTION".to_owned()],
+                );
+            }
+            if scope.acquisition_id.is_some()
+                || scope.camera_id.is_some()
+                || scope.asset_id.is_some()
+                || scope.feature_id.is_some()
+            {
+                return result(
+                    Disposition::InvalidInput,
+                    vec!["RECOVERY_SCOPE_MUST_NOT_CLAIM_MEASUREMENT".to_owned()],
+                );
             }
             result(Disposition::EligibleRecovery, Vec::new())
         }
@@ -528,12 +541,37 @@ mod tests {
     #[test]
     fn malformed_digest_and_recovery_measurement_claim_are_invalid() {
         let input = corpus();
-        for id in [
-            "TK-018-MALFORMED-DIGEST",
-        ] {
-            let case = input.cases.iter().find(|case| case.case_id == id).unwrap();
-            assert_eq!(evaluate_case(case).disposition, Disposition::InvalidInput);
-        }
+        let malformed = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "TK-018-MALFORMED-DIGEST")
+            .unwrap();
+        assert_eq!(
+            evaluate_case(malformed).disposition,
+            Disposition::InvalidInput
+        );
+
+        let mut recovery = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "TK-011-RECOVERY-SAFE")
+            .unwrap()
+            .clone();
+        recovery.candidate.measurement = Some(
+            input
+                .cases
+                .iter()
+                .find(|case| case.case_id == "TK-001-BOTH-PASS")
+                .unwrap()
+                .candidate
+                .measurement
+                .clone()
+                .unwrap(),
+        );
+        assert_eq!(
+            evaluate_case(&recovery).disposition,
+            Disposition::InvalidInput
+        );
     }
 
     #[test]
@@ -551,7 +589,7 @@ mod tests {
             .into_iter()
             .find(|case| case.case_id == "TK-001-BOTH-PASS")
             .unwrap();
-        candidate.candidate.decision_value_milli = u64::MAX;
+        candidate.candidate.decision_value_milli = MAX_COST;
         assert_eq!(evaluate_case(&candidate).disposition, Disposition::EligibleInspection);
     }
 }
