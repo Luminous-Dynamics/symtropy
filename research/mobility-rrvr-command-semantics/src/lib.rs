@@ -59,6 +59,12 @@ pub struct DeviceCapabilityProfile {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CommandSemanticProfile {
     pub command_id: String,
+    /// Exact device capability profile to which this command contract applies.
+    pub device_id: String,
+    pub device_model: String,
+    pub firmware_revision: String,
+    pub endpoint_revision: String,
+    pub configuration_sha256: String,
     pub logical_effect_id_required: bool,
     pub attempt_id_required: bool,
     pub effect_class: EffectClass,
@@ -116,6 +122,7 @@ pub enum HoldReason {
     DeviceProfileMismatch,
     FirmwareProfileMismatch,
     EndpointProfileMissing,
+    EndpointProfileMismatch,
     PayloadSchemaMismatch,
     UnitMismatch,
     CoordinateFrameMismatch,
@@ -178,7 +185,9 @@ fn common_profile_checks(input: &SemanticProfileInput) -> Result<(), HoldReason>
     if !command.attempt_id_required {
         return Err(HoldReason::MissingAttemptLineage);
     }
-    if !valid_sha256(&device.configuration_sha256) {
+    if !valid_sha256(&device.configuration_sha256)
+        || !valid_sha256(&command.configuration_sha256)
+    {
         return Err(HoldReason::InvalidConfigurationDigest);
     }
     if !valid_sha256(&device.payload_schema_sha256) {
@@ -187,11 +196,20 @@ fn common_profile_checks(input: &SemanticProfileInput) -> Result<(), HoldReason>
     if !valid_sha256(&command.payload_schema_sha256) {
         return Err(HoldReason::InvalidCommandSchemaDigest);
     }
-    if device.device_id != command_device_id(input) {
+    if !nonempty(&device.endpoint_revision) || !nonempty(&command.endpoint_revision) {
+        return Err(HoldReason::EndpointProfileMissing);
+    }
+    if device.device_id != command.device_id
+        || device.device_model != command.device_model
+        || device.configuration_sha256 != command.configuration_sha256
+    {
         return Err(HoldReason::DeviceProfileMismatch);
     }
-    if !nonempty(&device.endpoint_revision) {
-        return Err(HoldReason::EndpointProfileMissing);
+    if device.firmware_revision != command.firmware_revision {
+        return Err(HoldReason::FirmwareProfileMismatch);
+    }
+    if device.endpoint_revision != command.endpoint_revision {
+        return Err(HoldReason::EndpointProfileMismatch);
     }
     if device.payload_schema_sha256 != command.payload_schema_sha256 {
         return Err(HoldReason::PayloadSchemaMismatch);
@@ -209,12 +227,6 @@ fn common_profile_checks(input: &SemanticProfileInput) -> Result<(), HoldReason>
         return Err(HoldReason::MissingOutcomePredicate);
     }
     Ok(())
-}
-
-// Kept explicit so a future multi-device command envelope cannot silently
-// replace the capability profile selected for this command.
-fn command_device_id(input: &SemanticProfileInput) -> &str {
-    &input.device.device_id
 }
 
 fn evaluate_class(command: &CommandSemanticProfile) -> Result<(), HoldReason> {
@@ -339,6 +351,11 @@ mod tests {
     fn base_command(effect_class: EffectClass, motion_semantics: MotionSemantics) -> CommandSemanticProfile {
         CommandSemanticProfile {
             command_id: "command-01".into(),
+            device_id: "device-01".into(),
+            device_model: "reference-actuator".into(),
+            firmware_revision: "fw-1.0".into(),
+            endpoint_revision: "endpoint-1".into(),
+            configuration_sha256: "a".repeat(64),
             logical_effect_id_required: true,
             attempt_id_required: true,
             effect_class,
@@ -485,7 +502,37 @@ mod tests {
         input.device.firmware_revision = "fw-new".into();
         assert_eq!(
             evaluate(&input),
-            SemanticDecision::AcceptProfile { effect_class: EffectClass::DesiredState }
+            SemanticDecision::Hold(HoldReason::FirmwareProfileMismatch)
+        );
+    }
+
+    #[test]
+    fn rejects_configuration_profile_substitution() {
+        let mut input = valid_desired_state();
+        input.command.configuration_sha256 = "c".repeat(64);
+        assert_eq!(
+            evaluate(&input),
+            SemanticDecision::Hold(HoldReason::DeviceProfileMismatch)
+        );
+    }
+
+    #[test]
+    fn rejects_endpoint_revision_substitution() {
+        let mut input = valid_desired_state();
+        input.device.endpoint_revision = "endpoint-new".into();
+        assert_eq!(
+            evaluate(&input),
+            SemanticDecision::Hold(HoldReason::EndpointProfileMismatch)
+        );
+    }
+
+    #[test]
+    fn rejects_device_identity_substitution() {
+        let mut input = valid_desired_state();
+        input.command.device_id = "other-device".into();
+        assert_eq!(
+            evaluate(&input),
+            SemanticDecision::Hold(HoldReason::DeviceProfileMismatch)
         );
     }
 
