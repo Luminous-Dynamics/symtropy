@@ -964,6 +964,7 @@ mod tests {
             Err(ServiceMetricError::NonAcceptedOutcomeHasDeliveryTime)
         );
         observations[0].receiver_delivery_minutes = None;
+        observations[0].receiver_acceptance_ref = None;
         assert!(
             ServiceReliabilityReport::evaluate(&observations, 950).is_ok(),
             "a not-delivered expected unit without receiver evidence is retained"
