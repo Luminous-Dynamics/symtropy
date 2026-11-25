@@ -625,6 +625,37 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn rejects_comparison_when_material_identity_differs() {
+        let mut other = fem_run();
+        other.problem.material_sha256 = DIGEST_D.to_owned();
+        assert_eq!(
+            compare_runs(&face_charge_run(), &other, policy()),
+            Err(QualificationError::MaterialMismatch)
+        );
+    }
+
+    #[test]
+    fn rejects_comparison_when_physics_inputs_differ() {
+        let mut other = fem_run();
+        other.problem.physics_input_sha256 = DIGEST_D.to_owned();
+        assert_eq!(
+            compare_runs(&face_charge_run(), &other, policy()),
+            Err(QualificationError::PhysicsInputMismatch)
+        );
+    }
+
+    #[test]
+    fn rejects_comparison_when_coordinate_frame_differs() {
+        let mut other = fem_run();
+        other.problem.coordinate_frame_id = "other-frame".to_owned();
+        assert_eq!(
+            compare_runs(&face_charge_run(), &other, policy()),
+            Err(QualificationError::CoordinateFrameMismatch)
+        );
+    }
+
     #[test]
     fn distinguishes_physical_measurement_from_prediction() {
         let mut measurement = face_charge_run();
