@@ -1180,7 +1180,7 @@ mod tests {
             .get("cases")
             .and_then(Value::as_array)
             .expect("v0.2 mutation cases");
-        assert_eq!(cases.len(), 23);
+        assert_eq!(cases.len(), 31);
 
         for mutation in cases {
             let case_id = mutation
