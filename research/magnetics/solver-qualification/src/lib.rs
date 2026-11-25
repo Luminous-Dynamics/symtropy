@@ -9,7 +9,6 @@ pub enum MagneticModelClass {
     MagnetWithLinearIsotropicSoftMaterial,
     MagnetWithAnisotropicSoftMaterial,
     MagnetWithNonlinearBhMaterial,
-    PhysicalMeasurement,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -87,6 +86,7 @@ pub struct ConvergenceRecord {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ConvergencePolicy {
+    pub policy_id: String,
     pub minimum_refinement_levels: usize,
     pub maximum_final_map_change_t: f64,
     pub maximum_final_error_estimate_t: f64,
@@ -136,6 +136,7 @@ pub enum QualificationError {
     MissingConvergenceRecord,
     UnexpectedConvergenceRecord,
     InvalidConvergencePolicy,
+    UnknownNumericalPrecision,
     InvalidRefinementCount,
     InvalidRefinementOrder { index: usize },
     InvalidRefinementValue { index: usize },
@@ -189,7 +190,7 @@ fn method_supports_model(method: SolverMethod, model: MagneticModelClass) -> boo
             | MagneticModelClass::MagnetWithAnisotropicSoftMaterial
             | MagneticModelClass::MagnetWithNonlinearBhMaterial,
         ) => true,
-        (SolverMethod::PhysicalMetrology, MagneticModelClass::PhysicalMeasurement) => true,
+        (SolverMethod::PhysicalMetrology, _) => true,
         _ => false,
     }
 }
@@ -210,6 +211,8 @@ fn validate_convergence(
     policy: ConvergencePolicy,
 ) -> Result<(), QualificationError> {
     if !nonempty(&convergence.policy_id)
+        || !nonempty(&policy.policy_id)
+        || convergence.policy_id != policy.policy_id
         || policy.minimum_refinement_levels < 2
         || !policy.maximum_final_map_change_t.is_finite()
         || policy.maximum_final_map_change_t < 0.0
@@ -321,6 +324,12 @@ pub fn validate_run(
         return Err(QualificationError::IncompatibleMethodAndModel);
     }
 
+    if run.solver.method != SolverMethod::PhysicalMetrology
+        && run.precision == FloatingPointPrecision::Unknown
+    {
+        return Err(QualificationError::UnknownNumericalPrecision);
+    }
+
     if method_requires_convergence(run.solver.method) {
         let convergence = run
             .convergence
@@ -405,6 +414,7 @@ mod tests {
 
     fn policy() -> ConvergencePolicy {
         ConvergencePolicy {
+            policy_id: "encoder-field-map-v0".to_owned(),
             minimum_refinement_levels: 3,
             maximum_final_map_change_t: 1.0e-5,
             maximum_final_error_estimate_t: 2.0e-5,
@@ -578,17 +588,37 @@ mod tests {
         measurement.run_id = "physical-map-01".to_owned();
         measurement.solver.method = SolverMethod::PhysicalMetrology;
         measurement.solver.formulation_id = "calibrated-3d-hall-map".to_owned();
-        measurement.problem.model_class = MagneticModelClass::PhysicalMeasurement;
+        measurement.problem.model_class = MagneticModelClass::MagnetWithLinearIsotropicSoftMaterial;
         measurement.convergence = None;
         let prediction = face_charge_run();
 
-        assert_eq!(
-            compare_runs(&measurement, &prediction, policy()),
-            Err(QualificationError::ProblemModelMismatch)
-        );
+        let pair = compare_runs(&measurement, &prediction, policy()).unwrap();
+        assert_eq!(pair.lineage_relation, LineageRelation::PhysicalMeasurementVersusPrediction);
+        assert!(pair.physical_inputs_and_observer_grid_match);
         assert_eq!(
             validate_run(&measurement, policy()),
             Ok(())
+        );
+    }
+
+
+    #[test]
+    fn refuses_unknown_numeric_precision_for_a_numerical_solver() {
+        let mut run = face_charge_run();
+        run.precision = FloatingPointPrecision::Unknown;
+        assert_eq!(
+            validate_run(&run, policy()),
+            Err(QualificationError::UnknownNumericalPrecision)
+        );
+    }
+
+    #[test]
+    fn convergence_policy_identity_must_match() {
+        let mut policy = policy();
+        policy.policy_id = "different-policy".to_owned();
+        assert_eq!(
+            validate_run(&face_charge_run(), policy),
+            Err(QualificationError::InvalidConvergencePolicy)
         );
     }
 
