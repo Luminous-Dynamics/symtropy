@@ -445,12 +445,12 @@ fn validate_input(input: &MobilityPolicyTournamentInput) -> Result<(), Tournamen
         if !run_ids.insert(run.run_id.as_str()) {
             return Err(TournamentError::DuplicateRun(run.run_id.clone()));
         }
-        let family = *policy_families.get(run.policy_id.as_str()).ok_or_else(|| {
-            TournamentError::MissingPolicy(format!(
+        if !policy_families.contains_key(run.policy_id.as_str()) {
+            return Err(TournamentError::MissingPolicy(format!(
                 "run {} references undeclared policy {}",
                 run.run_id, run.policy_id
-            ))
-        })?;
+            )));
+        }
         if run.evidence_class != input.evidence_class {
             return Err(TournamentError::EvidenceMismatch(format!(
                 "run {} evidence class differs from the tournament manifest",
