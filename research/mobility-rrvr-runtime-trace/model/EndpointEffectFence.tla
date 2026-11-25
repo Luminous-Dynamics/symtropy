@@ -213,9 +213,11 @@ UnsafeStaleEpochEffect ==
     /\ acceptedEpoch < endpointFenceEpoch
     /\ staleEffectCount = 0
     /\ staleEffectCount' = staleEffectCount + 1
+    /\ effectInvocations' = effectInvocations + 1
+    /\ physicalEffects' = physicalEffects + 1
     /\ UNCHANGED <<deviceUp, deviceBoot, authorityEpoch, endpointFenceEpoch,
                    requestEpoch, requestPayload, acceptedPayload, tokenState,
-                   historyLost, reply, effectInvocations, physicalEffects, acceptedEpoch>>
+                   historyLost, reply, acceptedEpoch>>
 
 TerminalIdle ==
     UNCHANGED vars
