@@ -61,7 +61,7 @@ pub struct EdgeRatePolicy {
     pub maximum_transition_rate_hz: f64,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct QuadratureConfig {
     /// Immutable identity for the declared sensor/latch parameter set.
     pub configuration_id: String,
@@ -236,7 +236,7 @@ fn validate_latch(config: HallLatchConfig) -> Result<(), EvaluationError> {
     Ok(())
 }
 
-fn validate_config(config: QuadratureConfig) -> Result<(), EvaluationError> {
+fn validate_config(config: &QuadratureConfig) -> Result<(), EvaluationError> {
     if config.configuration_id.trim().is_empty() || config.pole_pairs == 0 {
         return Err(EvaluationError::InvalidConfiguration);
     }
@@ -445,7 +445,7 @@ pub fn evaluate_trace(
     trace: &EncoderTrace,
     config: QuadratureConfig,
 ) -> Result<SensorEvaluation, EvaluationError> {
-    validate_config(config)?;
+    validate_config(&config)?;
     if !nonempty(&trace.trace_id)
         || !nonempty(&trace.coordinate_frame_id)
         || !nonempty(&trace.operating_condition_id)
