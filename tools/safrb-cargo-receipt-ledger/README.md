@@ -39,7 +39,7 @@ The planner JSONL contains only manifest facts known at hour zero. Physical rece
 
 ## Executable negative controls
 
-Tests cover late arrival without backdating, exact horizon boundary, missing/conflicting receipt evidence, failed/pending assays, withheld authority, missing custody, unestablished title, inactive contract, duplicate/replayed event IDs, grade substitution, route throughput, transfer chronology, premature generator issue and interval-widening monotonicity.
+Tests cover 12 deterministic cases spanning on-time and partial/late receipts, missing/conflicting receipt evidence, failed/pending assays, withheld authority, missing custody, unestablished title, inactive contract, after-horizon events, duplicate/replayed IDs, grade substitution, route throughput, transfer chronology, premature generator issue and interval-widening monotonicity.
 
 ## Run
 
