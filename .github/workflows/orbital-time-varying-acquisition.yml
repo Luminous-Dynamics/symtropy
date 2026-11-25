@@ -74,6 +74,11 @@ jobs:
           assert rust["expected_outcome_mismatches"] == 0
           cases = {case["case_id"]: case for case in rust["cases"]}
           assert cases["TV-016-FRAME-WINDOW-TRAP"]["bounds"]["combined_frame"]["total_um"] == 13
+          assert cases["TV-016-FRAME-WINDOW-TRAP"]["bounds"]["constant_max_speed_frame"]["total_um"] == 30
+          assert cases["TV-016-FRAME-WINDOW-TRAP"]["bounds"]["constant_speed_excess_um_upper"] == 17
+          for case in cases.values():
+              if case["bounds"] is not None:
+                  assert case["bounds"]["constant_max_speed_frame"]["total_um"] >= case["bounds"]["combined_frame"]["total_um"]
           assert cases["TV-014-EXACT-BOUNDARY"]["status"] == "WITHIN_DECLARED_BUDGET"
           assert cases["TV-017-FAILED-CALIBRATION"]["status"] == "BLOCKED"
           assert cases["TV-012-PROJECTION-OVERFLOW"]["status"] == "INVALID_INPUT"
