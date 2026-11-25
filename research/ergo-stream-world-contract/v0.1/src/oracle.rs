@@ -23,6 +23,9 @@ use super::transfer::{
 pub const MAX_ORACLE_NODES_V0: usize = 8;
 pub const MAX_ORACLE_RELATIONS_V0: usize = 64;
 pub const MAX_ORACLE_RELATION_KINDS_V0: usize = 8;
+/// Maximum number of semantic full-witness classes counted by the v0 oracle.
+/// Exceeding this bound yields `BoundedUnknown`, never false uniqueness.
+pub const MAX_ORACLE_WITNESS_CLASSES_V0: usize = 65_536;
 
 type NodeSignatureV0 = Vec<(u8, usize, usize)>;
 type RelationSignatureV0 = (u8, usize, Vec<u32>);
@@ -57,16 +60,30 @@ impl fmt::Display for IsomorphismOracleErrorV0 {
 
 impl std::error::Error for IsomorphismOracleErrorV0 {}
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StructuralWitnessAmbiguityV0 {
+    NoCorrespondence,
+    UniqueUnderDeclaredEquivalence,
+    Ambiguous,
+    BoundedUnknown,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IsomorphismOracleReportV0 {
     pub isomorphic: bool,
     pub correspondence: Option<StructuralCorrespondenceV0>,
     /// Number of complete node bijections examined after signature pruning.
     pub explored_node_bijections: usize,
-    /// Number of node bijections for which at least one valid relation-kind/
-    /// relation-instance mapping exists. This does not count alternate
-    /// relation-kind mappings or relation-ID bijections for a fixed node map.
+    /// Number of distinct total node bijections admitting at least one full witness.
+    /// This is a lower bound when `witness_count_complete` is false.
     pub valid_node_mapping_count: usize,
+    /// Full witness classes: a node map plus an injective relation-kind map and
+    /// one valid participant transform per kind. Relation-instance ID permutations
+    /// among duplicate incidence records are quotiented out.
+    pub valid_witness_class_count: usize,
+    /// False means enumeration stopped at the explicit witness-class budget.
+    pub witness_count_complete: bool,
+    pub ambiguity_status: StructuralWitnessAmbiguityV0,
 }
 
 /// Decide whole-structure isomorphism by exhaustive search.
@@ -142,11 +159,14 @@ pub fn exhaustive_isomorphism_oracle(
         correspondence: None,
         explored_node_bijections: 0,
         valid_node_mapping_count: 0,
+        valid_witness_class_count: 0,
+        witness_count_complete: true,
+        ambiguity_status: StructuralWitnessAmbiguityV0::NoCorrespondence,
     };
     let mut current_nodes = Vec::with_capacity(source.nodes.len());
     let mut used_targets = BTreeSet::new();
 
-    enumerate_node_bijections(
+    let enumeration_complete = enumerate_node_bijections(
         0,
         &source_node_ids,
         &source_signatures,
@@ -158,7 +178,17 @@ pub fn exhaustive_isomorphism_oracle(
         &mut report,
     );
 
-    report.isomorphic = report.valid_node_mapping_count > 0;
+    report.witness_count_complete = enumeration_complete;
+    report.isomorphic = report.valid_witness_class_count > 0;
+    report.ambiguity_status = if !report.witness_count_complete {
+        StructuralWitnessAmbiguityV0::BoundedUnknown
+    } else if report.valid_witness_class_count == 0 {
+        StructuralWitnessAmbiguityV0::NoCorrespondence
+    } else if report.valid_witness_class_count == 1 {
+        StructuralWitnessAmbiguityV0::UniqueUnderDeclaredEquivalence
+    } else {
+        StructuralWitnessAmbiguityV0::Ambiguous
+    };
     Ok(report)
 }
 
@@ -168,6 +198,9 @@ fn no_isomorphism(explored_node_bijections: usize) -> IsomorphismOracleReportV0 
         correspondence: None,
         explored_node_bijections,
         valid_node_mapping_count: 0,
+        valid_witness_class_count: 0,
+        witness_count_complete: true,
+        ambiguity_status: StructuralWitnessAmbiguityV0::NoCorrespondence,
     }
 }
 
@@ -248,31 +281,31 @@ fn enumerate_node_bijections(
     source: &StructureV0,
     target: &StructureV0,
     report: &mut IsomorphismOracleReportV0,
-) {
+) -> bool {
     if index == source_node_ids.len() {
         report.explored_node_bijections += 1;
         let node_map = current_nodes
             .iter()
             .map(|mapping| (mapping.source_node_id, mapping.target_node_id))
             .collect::<BTreeMap<_, _>>();
-        if let Some(correspondence) = find_kind_and_relation_mapping(
+        let witnesses_before = report.valid_witness_class_count;
+        let complete = enumerate_kind_mapping_classes(
             source,
             target,
             &node_map,
             current_nodes,
-        ) {
+            report,
+        );
+        if report.valid_witness_class_count > witnesses_before {
             report.valid_node_mapping_count += 1;
-            if report.correspondence.is_none() {
-                report.correspondence = Some(correspondence);
-            }
         }
-        return;
+        return complete;
     }
 
     let source_id = source_node_ids[index];
     let signature = &source_signatures[&source_id];
     let Some(candidates) = target_groups.get(signature) else {
-        return;
+        return true;
     };
 
     for target_id in candidates {
@@ -283,7 +316,7 @@ fn enumerate_node_bijections(
             source_node_id: source_id,
             target_node_id: *target_id,
         });
-        enumerate_node_bijections(
+        let complete = enumerate_node_bijections(
             index + 1,
             source_node_ids,
             source_signatures,
@@ -296,9 +329,53 @@ fn enumerate_node_bijections(
         );
         current_nodes.pop();
         used_targets.remove(target_id);
+        if !complete {
+            return false;
+        }
     }
+    true
 }
 
+fn enumerate_kind_mapping_classes(
+    source: &StructureV0,
+    target: &StructureV0,
+    node_map: &BTreeMap<u32, u32>,
+    node_correspondence: &[NodeCorrespondenceV0],
+    report: &mut IsomorphismOracleReportV0,
+) -> bool {
+    let source_kinds = relation_kinds(source);
+    let target_kinds = relation_kinds(target);
+    let mut compatibility = Vec::with_capacity(source_kinds.len());
+
+    for source_kind in &source_kinds {
+        let mut candidates = Vec::new();
+        for target_kind in &target_kinds {
+            for transform in compatible_kind_transforms(
+                source,
+                target,
+                *source_kind,
+                *target_kind,
+                node_map,
+            ) {
+                candidates.push((*target_kind, transform));
+            }
+        }
+        compatibility.push(candidates);
+    }
+
+    choose_kind_mapping_classes(
+        0,
+        &source_kinds,
+        &compatibility,
+        &mut Vec::new(),
+        &mut BTreeSet::new(),
+        source,
+        target,
+        node_map,
+        node_correspondence,
+        report,
+    )
+}
 fn find_kind_and_relation_mapping(
     source: &StructureV0,
     target: &StructureV0,
