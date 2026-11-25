@@ -297,10 +297,13 @@ pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
     } else {
         500
     };
-    let observed_lower_grams = closing_grams
+    // Planner-visible tank observations describe opening stock only. Future
+    // cargo inflows remain schedule inputs until their actual arrival hour and
+    // are never leaked as if already present at the scenario start.
+    let observed_lower_grams = opening_grams
         .saturating_mul(10_000 - measurement_uncertainty_basis_points)
         / 10_000;
-    let observed_upper_grams = closing_grams
+    let observed_upper_grams = opening_grams
         .saturating_mul(10_000 + measurement_uncertainty_basis_points)
         / 10_000;
     let quarantined_grams = if archetype == Archetype::TankQualityQuarantine { 7_000_000 } else { 0 };
@@ -536,10 +539,10 @@ pub fn validate_case(case: &FuelServiceCase) -> Result<(), Vec<String>> {
     if ledger.measurement_uncertainty_basis_points > 10_000 {
         errors.push("inventory measurement uncertainty exceeds 100 percent".to_string());
     }
-    let expected_observed_lower = ledger.closing_grams
+    let expected_observed_lower = ledger.opening_grams
         .saturating_mul(10_000_u64.saturating_sub(ledger.measurement_uncertainty_basis_points))
         / 10_000;
-    let expected_observed_upper = ledger.closing_grams
+    let expected_observed_upper = ledger.opening_grams
         .saturating_mul(10_000_u64.saturating_add(ledger.measurement_uncertainty_basis_points))
         / 10_000;
     if ledger.observed_lower_grams != expected_observed_lower
@@ -1158,8 +1161,8 @@ mod tests {
         let case = generate_case(Archetype::TankQualityQuarantine, 1);
         assert!(case.inventory.quarantined_grams > 0);
         assert!(case.inventory.usable_grams < case.inventory.observed_lower_grams);
-        assert!(case.inventory.observed_lower_grams <= case.inventory.closing_grams);
-        assert!(case.inventory.closing_grams <= case.inventory.observed_upper_grams);
+        assert!(case.inventory.observed_lower_grams <= case.inventory.opening_grams);
+        assert!(case.inventory.opening_grams <= case.inventory.observed_upper_grams);
         assert!(case.inventory.accessible_grams <= case.inventory.usable_grams);
         assert!(validate_case(&case).is_ok());
     }
