@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/crash-cut-matrix-v0.1.schema.json",
+  "title": "RRVR Journaled Mutator Crash-Cut Matrix v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark",
+    "model",
+    "claim_ceiling",
+    "qualification_levels",
+    "invariants",
+    "cut_points"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "benchmark": {
+      "const": "RRVR-JOURNALED-MUTATOR-CRASH-CUT"
+    },
+    "model": {
+      "const": "JournaledMutatorCrashCut"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 20
+    },
+    "qualification_levels": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "process_crash",
+          "injected_io_failure",
+          "os_crash",
+          "physical_power_cut"
+        ]
+      }
+    },
+    "invariants": {
+      "type": "array",
+      "minItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "cut_points": {
+      "type": "array",
+      "minItems": 15,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "boundary",
+          "fault",
+          "expected_mutator_calls",
+          "owner_lookup_required",
+          "expected_disposition",
+          "new_attempt_admitted_by_adapter"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          },
+          "boundary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fault": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_mutator_calls": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "owner_lookup_required": {
+            "type": "boolean"
+          },
+          "expected_disposition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "new_attempt_admitted_by_adapter": {
+            "const": false
+          }
+        }
+      }
+    }
+  }
+}
