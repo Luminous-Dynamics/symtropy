@@ -124,6 +124,27 @@ pub struct PhaseUncertaintyMetrics {
     pub zero_uncertainty_nonzero_residual_sample_count: usize,
 }
 
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct OperatingConditionScenarioSetMetrics {
+    pub set_id: String,
+    pub evidence_kind: EvidenceKind,
+    pub frame_id: String,
+    pub grid_id: String,
+    pub scenario_count: usize,
+    pub accepted_scenario_count: usize,
+    pub rejected_scenario_count: usize,
+    pub all_scenarios_accepted: bool,
+    pub worst_peak_phase_error_rad: f64,
+    pub worst_rms_phase_error_rad: f64,
+    pub worst_p95_phase_error_rad: f64,
+    pub minimum_in_plane_field_t: f64,
+    pub worst_amplitude_ripple_fraction: Option<f64>,
+    pub worst_rms_cross_axis_ratio: Option<f64>,
+    pub worst_below_threshold_sample_count: usize,
+    pub scenarios: Vec<TraceMetrics>,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum EvaluationError {
     InvalidMetadata,
@@ -475,6 +496,95 @@ pub fn evaluate_trace_set(
     })
 }
 
+
+
+/// Evaluate multiple operating-condition traces under one fixed encoder
+/// requirement set. Operating-condition IDs may differ, but evidence class,
+/// coordinate frame, grid identity, sample count and bit-identical angle
+/// coordinates must match. This finite scenario set is not an IID build sample
+/// and does not imply probability, manufacturing yield or CVaR.
+pub fn evaluate_operating_condition_scenarios(
+    set_id: &str,
+    traces: &[FieldTrace],
+    requirements: &EncoderRequirements,
+) -> Result<OperatingConditionScenarioSetMetrics, EvaluationError> {
+    if set_id.trim().is_empty() {
+        return Err(EvaluationError::InvalidScenarioSetId);
+    }
+    let first = traces.first().ok_or(EvaluationError::EmptyTraceSet)?;
+    let mut trace_ids = HashSet::with_capacity(traces.len());
+    let mut metrics = Vec::with_capacity(traces.len());
+
+    for trace in traces {
+        if !trace_ids.insert(trace.trace_id.as_str()) {
+            return Err(EvaluationError::DuplicateTraceId);
+        }
+        if trace.evidence_kind != first.evidence_kind {
+            return Err(EvaluationError::MixedEvidenceKinds);
+        }
+        if trace.frame_id != first.frame_id {
+            return Err(EvaluationError::ScenarioFrameMismatch);
+        }
+        if trace.grid_id != first.grid_id {
+            return Err(EvaluationError::ScenarioGridMismatch);
+        }
+        if trace.samples.len() != first.samples.len()
+            || trace
+                .samples
+                .iter()
+                .zip(first.samples.iter())
+                .any(|(left, right)| {
+                    left.mechanical_angle_rad.to_bits()
+                        != right.mechanical_angle_rad.to_bits()
+                })
+        {
+            return Err(EvaluationError::ScenarioGridCoordinatesMismatch);
+        }
+        metrics.push(evaluate_trace(trace, requirements)?);
+    }
+
+    let accepted_scenario_count = metrics.iter().filter(|metric| metric.accepted).count();
+    let rejected_scenario_count = metrics.len() - accepted_scenario_count;
+
+    Ok(OperatingConditionScenarioSetMetrics {
+        set_id: set_id.to_owned(),
+        evidence_kind: first.evidence_kind,
+        frame_id: first.frame_id.clone(),
+        grid_id: first.grid_id.clone(),
+        scenario_count: metrics.len(),
+        accepted_scenario_count,
+        rejected_scenario_count,
+        all_scenarios_accepted: rejected_scenario_count == 0,
+        worst_peak_phase_error_rad: metrics
+            .iter()
+            .map(|metric| metric.maximum_absolute_phase_error_rad)
+            .fold(0.0_f64, f64::max),
+        worst_rms_phase_error_rad: metrics
+            .iter()
+            .map(|metric| metric.rms_phase_error_rad)
+            .fold(0.0_f64, f64::max),
+        worst_p95_phase_error_rad: metrics
+            .iter()
+            .map(|metric| metric.p95_absolute_phase_error_rad)
+            .fold(0.0_f64, f64::max),
+        minimum_in_plane_field_t: metrics
+            .iter()
+            .map(|metric| metric.minimum_in_plane_field_t)
+            .fold(f64::INFINITY, f64::min),
+        worst_amplitude_ripple_fraction: maximum_optional(
+            metrics.iter().map(|metric| metric.amplitude_ripple_fraction),
+        ),
+        worst_rms_cross_axis_ratio: maximum_optional(
+            metrics.iter().map(|metric| metric.rms_cross_axis_ratio),
+        ),
+        worst_below_threshold_sample_count: metrics
+            .iter()
+            .map(|metric| metric.below_threshold_sample_count)
+            .max()
+            .unwrap_or(0),
+        scenarios: metrics,
+    })
+}
 
 fn validate_field_covariance(
     covariance: FieldCovariance2d,
@@ -1280,6 +1390,149 @@ mod tests {
         .unwrap();
 
         assert!(metrics.measurement_phase_std_max_rad.is_finite());
+    }
+
+
+    #[test]
+    fn vector_phase_tournament_allows_distinct_operating_conditions() {
+        let nominal = make_trace(
+            "nominal-gap",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            constant_amplitude,
+            0.0,
+        );
+        let mut wider_gap = nominal.clone();
+        wider_gap.trace_id = "wider-gap".to_owned();
+        wider_gap.operating_condition_id = "gap-4mm-temp-25C".to_owned();
+        for sample in &mut wider_gap.samples {
+            sample.bx_t *= 0.75;
+            sample.by_t *= 0.75;
+        }
+
+        let result = evaluate_operating_condition_scenarios(
+            "encoder-air-gap-sweep-v0",
+            &[nominal, wider_gap],
+            &requirements(1, 0.0),
+        )
+        .unwrap();
+
+        assert_eq!(result.scenario_count, 2);
+        assert_eq!(result.accepted_scenario_count, 2);
+        assert!(result.all_scenarios_accepted);
+    }
+
+    #[test]
+    fn vector_phase_tournament_preserves_a_worst_case_failure() {
+        let nominal = make_trace(
+            "nominal",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            constant_amplitude,
+            0.0,
+        );
+        let weak = make_trace(
+            "weak-field",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            |angle| 0.25,
+            0.0,
+        );
+        let result = evaluate_operating_condition_scenarios(
+            "encoder-field-margin-sweep-v0",
+            &[nominal, weak],
+            &requirements(1, 0.0),
+        )
+        .unwrap();
+
+        assert_eq!(result.accepted_scenario_count, 1);
+        assert_eq!(result.rejected_scenario_count, 1);
+        assert!(!result.all_scenarios_accepted);
+        assert_eq!(result.scenarios[1].trace_id, "weak-field");
+    }
+
+    #[test]
+    fn vector_phase_tournament_rejects_mixed_evidence() {
+        let first = make_trace(
+            "synthetic",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            constant_amplitude,
+            0.0,
+        );
+        let mut second = first.clone();
+        second.trace_id = "physical".to_owned();
+        second.evidence_kind = EvidenceKind::PhysicalBuild;
+
+        assert_eq!(
+            evaluate_operating_condition_scenarios(
+                "mixed-evidence",
+                &[first, second],
+                &requirements(1, 0.0),
+            ),
+            Err(EvaluationError::MixedEvidenceKinds)
+        );
+    }
+
+    #[test]
+    fn vector_phase_tournament_rejects_frame_and_grid_mismatch() {
+        let first = make_trace(
+            "first",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            constant_amplitude,
+            0.0,
+        );
+        let mut frame_mismatch = first.clone();
+        frame_mismatch.trace_id = "frame-mismatch".to_owned();
+        frame_mismatch.frame_id = "other-frame".to_owned();
+        assert_eq!(
+            evaluate_operating_condition_scenarios(
+                "frame-mismatch-set",
+                &[first.clone(), frame_mismatch],
+                &requirements(1, 0.0),
+            ),
+            Err(EvaluationError::ScenarioFrameMismatch)
+        );
+
+        let mut grid_mismatch = first.clone();
+        grid_mismatch.trace_id = "grid-mismatch".to_owned();
+        grid_mismatch.grid_id = "other-grid".to_owned();
+        assert_eq!(
+            evaluate_operating_condition_scenarios(
+                "grid-mismatch-set",
+                &[first.clone(), grid_mismatch],
+                &requirements(1, 0.0),
+            ),
+            Err(EvaluationError::ScenarioGridMismatch)
+        );
+
+        let mut coordinate_mismatch = first.clone();
+        coordinate_mismatch.trace_id = "coordinate-mismatch".to_owned();
+        coordinate_mismatch.samples[4].mechanical_angle_rad += 1.0e-12;
+        assert_eq!(
+            evaluate_operating_condition_scenarios(
+                "coordinate-mismatch-set",
+                &[first, coordinate_mismatch],
+                &requirements(1, 0.0),
+            ),
+            Err(EvaluationError::ScenarioGridCoordinatesMismatch)
+        );
     }
 
     #[test]
