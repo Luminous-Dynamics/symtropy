@@ -176,8 +176,8 @@ jobs:
               raise SystemExit("temporal replay corpus requires a late-receipt control")
           if corpus.get("oracle_review_status") != "NOT_INDEPENDENTLY_REVIEWED":
               raise SystemExit("oracle review status must remain explicit until independent review")
-          if len(cases) != 15:
-              raise SystemExit(f"temporal replay corpus must contain exactly 15 frozen cases; found {len(cases)}")
+          if len(cases) != 16:
+              raise SystemExit(f"temporal replay corpus must contain exactly 16 frozen cases; found {len(cases)}")
           all_events = [event for case in cases for event in case["events"]]
           for event in all_events:
               receipt_status = event["receiver_receipt_status"]
@@ -197,6 +197,38 @@ jobs:
                   raise SystemExit(f"{event['event_id']}: absent timestamp must not carry an imprint")
           if not any(event["receiver_receipt_status"] == "UNVERIFIED" for event in all_events):
               raise SystemExit("temporal replay corpus requires an unverified-receipt control")
+          required_modes = {"as_known_at", "recomputed_with_current_trust", "recomputed_with_current_evidence_and_trust"}
+          for case in cases:
+              if set(case["expected"]) != required_modes:
+                  raise SystemExit(f"{case['case_id']}: all three replay modes must be frozen")
+              if case["snapshot"]["trust_status_as_of_unix_ms"] > case["snapshot"]["evaluated_at_unix_ms"]:
+                  raise SystemExit(f"{case['case_id']}: historical trust snapshot cannot be later than its historical subject cutoff")
+              if case["current_reassessment"]["receiver_receipt_watermark_unix_ms"] < case["snapshot"]["receiver_receipt_watermark_unix_ms"]:
+                  raise SystemExit(f"{case['case_id']}: retrospective evidence watermark cannot move backwards")
+              if case["current_reassessment"]["trust_status_as_of_unix_ms"] < case["snapshot"]["trust_status_as_of_unix_ms"]:
+                  raise SystemExit(f"{case['case_id']}: retrospective trust snapshot cannot move backwards")
+          for event in all_events:
+              if not event["issuer_identity_id"].strip():
+                  raise SystemExit(f"{event['event_id']}: stable issuer identity is required")
+              if event["source_namespace_binding_status"] not in ("SYNTHETIC_VALID", "UNVERIFIED", "CONFLICT"):
+                  raise SystemExit(f"{event['event_id']}: unknown namespace-binding state")
+          late = next((case for case in cases if case["case_id"] == "backdated-event-received-after-snapshot"), None)
+          if late is None:
+              raise SystemExit("temporal corpus requires a late retroactive event control")
+          if late["expected"]["as_known_at"]["disposition"] != "NOT_KNOWN_AT_SNAPSHOT" or late["expected"]["recomputed_with_current_trust"]["disposition"] != "NOT_KNOWN_AT_SNAPSHOT":
+              raise SystemExit("late event must not bleed into historical or trust-only replay")
+          if late["expected"]["recomputed_with_current_evidence_and_trust"]["disposition"] != "BLOCK":
+              raise SystemExit("late retroactive event must affect a new full retrospective replay")
+          if late["current_reassessment"]["receiver_receipt_watermark_unix_ms"] < late["events"][0]["receiver_first_seen_at_unix_ms"]:
+              raise SystemExit("late event must be included by the retrospective evidence watermark")
+          alias = next((case for case in cases if case["case_id"] == "same-issuer-cannot-bypass-identity-with-unverified-namespace-alias"), None)
+          if alias is None or len(alias["events"]) != 2:
+              raise SystemExit("temporal corpus requires a source namespace alias attack control")
+          alias_events = alias["events"]
+          if alias_events[0]["issuer_identity_id"] != alias_events[1]["issuer_identity_id"] or alias_events[0]["source_namespace"] == alias_events[1]["source_namespace"] or alias_events[1]["source_namespace_binding_status"] != "UNVERIFIED":
+              raise SystemExit("namespace alias control must use one issuer identity and an unverified second namespace")
+          if alias["expected"]["as_known_at"]["disposition"] != "TRUST_UNRESOLVED":
+              raise SystemExit("unverified namespace alias must not bypass source identity binding")
           cross_namespace = next((case for case in cases if case["case_id"] == "same-local-id-in-distinct-source-namespaces-is-not-a-collision"), None)
           if cross_namespace is None or len({event["source_namespace"] for event in cross_namespace["events"]}) < 2:
               raise SystemExit("temporal corpus requires a cross-namespace local-ID control")
@@ -215,6 +247,10 @@ jobs:
           idempotent_expected = idempotent["expected"]["as_known_at"]
           if idempotent_expected["disposition"] != "BLOCK" or len(idempotent_expected["applied_event_ids"]) != 1 or "REPEATED_DELIVERY_DEDUPLICATED_ONCE" not in idempotent_expected["reason_codes"]:
               raise SystemExit("idempotent repeated-delivery oracle must apply exactly once")
+          if "REVOCATION_EFFECTIVE_AND_KNOWN" not in idempotent_expected["reason_codes"]:
+              raise SystemExit("idempotent delivery's underlying revocation must still block calibration use")
+          if pair[0]["receiver_receipt_reference"] == pair[1]["receiver_receipt_reference"]:
+              raise SystemExit("repeated deliveries must preserve distinct receiver receipt references")
           conflict = next((case for case in cases if case["case_id"] == "same-namespace-duplicate-id-conflicting-payload"), None)
           if conflict is None or len(conflict["events"]) != 2:
               raise SystemExit("temporal corpus requires a conflicting same-namespace identity control")
