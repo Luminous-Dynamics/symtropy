@@ -193,6 +193,13 @@ pub struct SequenceScore {
     pub selector_overhead_ns: u128,
     pub transition_overhead_ns: u128,
     pub selected_broadphase_ns: u128,
+    pub selected_full_step_p50_ns: Option<u64>,
+    pub selected_full_step_p95_ns: Option<u64>,
+    pub selected_full_step_p99_ns: Option<u64>,
+    pub selected_broadphase_p50_ns: Option<u64>,
+    pub selected_broadphase_p95_ns: Option<u64>,
+    pub selected_broadphase_p99_ns: Option<u64>,
+    pub selected_peak_memory_bytes: u64,
     pub selector_and_switch_overhead_basis_points: Option<u128>,
 }
 
@@ -205,6 +212,9 @@ pub struct FamilySummary {
     pub p95_regression_vs_best_fixed_basis_points: Option<i128>,
     pub median_selector_and_switch_overhead_basis_points: Option<u128>,
     pub p95_selector_and_switch_overhead_basis_points: Option<u128>,
+    /// Ratio of summed selector and transition costs to summed selected
+    /// broadphase time for this workload family.
+    pub aggregate_selector_and_switch_overhead_basis_points: Option<u128>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -216,6 +226,9 @@ pub struct CampaignSummary {
     pub p95_regression_vs_best_fixed_basis_points: Option<i128>,
     pub median_selector_and_switch_overhead_basis_points: Option<u128>,
     pub p95_selector_and_switch_overhead_basis_points: Option<u128>,
+    /// Ratio of summed selector and transition costs to summed selected
+    /// broadphase time across the campaign (the primary overhead gate).
+    pub aggregate_selector_and_switch_overhead_basis_points: Option<u128>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -322,6 +335,15 @@ fn signed_ratio_basis_points(
     };
     let signed = i128::try_from(value).map_err(|_| SelectorError::RatioOverflow)?;
     Ok(Some(if negative { -signed } else { signed }))
+}
+
+fn nearest_rank_u64(values: &mut [u64], percentile: u8) -> Option<u64> {
+    if values.is_empty() || !(1..=100).contains(&percentile) {
+        return None;
+    }
+    values.sort_unstable();
+    let rank = (values.len() * usize::from(percentile)).div_ceil(100).max(1);
+    values.get(rank - 1).copied()
 }
 
 fn nearest_rank_u128(values: &mut [u128], percentile: u8) -> Option<u128> {
@@ -663,6 +685,9 @@ pub fn evaluate_sequence(input: &SequenceInput) -> Result<SequenceScore, Selecto
     let mut transition_overhead_ns = 0_u128;
     let mut selected_broadphase_ns = 0_u128;
     let mut selected_switches = 0_u64;
+    let mut selected_full_step_samples = Vec::with_capacity(frames.len());
+    let mut selected_broadphase_samples = Vec::with_capacity(frames.len());
+    let mut selected_peak_memory_bytes = 0_u64;
     let mut previous_backend = input.initial_backend.clone();
 
     for (frame_index, frame) in frames.iter().enumerate() {
@@ -681,6 +706,10 @@ pub fn evaluate_sequence(input: &SequenceInput) -> Result<SequenceScore, Selecto
         selector_overhead_ns = add_cost(selector_overhead_ns, decision.selection_overhead_ns)?;
         online_total_cost_ns = add_cost(online_total_cost_ns, decision.selection_overhead_ns)?;
         selected_broadphase_ns = add_cost(selected_broadphase_ns, observation.broadphase_ns)?;
+        selected_full_step_samples.push(observation.full_step_ns);
+        selected_broadphase_samples.push(observation.broadphase_ns);
+        selected_peak_memory_bytes =
+            selected_peak_memory_bytes.max(observation.peak_memory_bytes);
 
         if let Some(previous) = &previous_backend {
             if previous != &decision.selected_backend {
@@ -746,6 +775,13 @@ pub fn evaluate_sequence(input: &SequenceInput) -> Result<SequenceScore, Selecto
         selector_overhead_ns,
         transition_overhead_ns,
         selected_broadphase_ns,
+        selected_full_step_p50_ns: nearest_rank_u64(&mut selected_full_step_samples, 50),
+        selected_full_step_p95_ns: nearest_rank_u64(&mut selected_full_step_samples, 95),
+        selected_full_step_p99_ns: nearest_rank_u64(&mut selected_full_step_samples, 99),
+        selected_broadphase_p50_ns: nearest_rank_u64(&mut selected_broadphase_samples, 50),
+        selected_broadphase_p95_ns: nearest_rank_u64(&mut selected_broadphase_samples, 95),
+        selected_broadphase_p99_ns: nearest_rank_u64(&mut selected_broadphase_samples, 99),
+        selected_peak_memory_bytes,
         selector_and_switch_overhead_basis_points,
     })
 }
@@ -801,6 +837,15 @@ pub fn evaluate_campaign(inputs: &[SequenceInput]) -> Result<CampaignSummary, Se
             .iter()
             .filter_map(|score| score.selector_and_switch_overhead_basis_points)
             .collect::<Vec<_>>();
+        let family_overhead_total = group.iter().try_fold(0_u128, |sum, score| {
+            sum.checked_add(score.selector_overhead_ns)
+                .and_then(|value| value.checked_add(score.transition_overhead_ns))
+                .ok_or(SelectorError::CostOverflow)
+        })?;
+        let family_broadphase_total = group.iter().try_fold(0_u128, |sum, score| {
+            sum.checked_add(score.selected_broadphase_ns)
+                .ok_or(SelectorError::CostOverflow)
+        })?;
         families.push(FamilySummary {
             workload_family,
             sequence_count: group.len() as u64,
@@ -818,8 +863,22 @@ pub fn evaluate_campaign(inputs: &[SequenceInput]) -> Result<CampaignSummary, Se
                 &mut family_overheads,
                 95,
             ),
+            aggregate_selector_and_switch_overhead_basis_points: ratio_basis_points(
+                family_overhead_total,
+                family_broadphase_total,
+            )?,
         });
     }
+
+    let campaign_overhead_total = sequences.iter().try_fold(0_u128, |sum, score| {
+        sum.checked_add(score.selector_overhead_ns)
+            .and_then(|value| value.checked_add(score.transition_overhead_ns))
+            .ok_or(SelectorError::CostOverflow)
+    })?;
+    let campaign_broadphase_total = sequences.iter().try_fold(0_u128, |sum, score| {
+        sum.checked_add(score.selected_broadphase_ns)
+            .ok_or(SelectorError::CostOverflow)
+    })?;
 
     Ok(CampaignSummary {
         sequences,
@@ -838,6 +897,10 @@ pub fn evaluate_campaign(inputs: &[SequenceInput]) -> Result<CampaignSummary, Se
             &mut overheads,
             95,
         ),
+        aggregate_selector_and_switch_overhead_basis_points: ratio_basis_points(
+            campaign_overhead_total,
+            campaign_broadphase_total,
+        )?,
     })
 }
 
@@ -959,6 +1022,11 @@ mod tests {
         assert_eq!(score.regret_basis_points, Some(2_500));
         assert_eq!(score.best_fixed_backend, Some(backend("B")));
         assert_eq!(score.best_fixed_cost_ns, Some(250));
+        assert_eq!(score.selected_full_step_p50_ns, Some(100));
+        assert_eq!(score.selected_full_step_p95_ns, Some(100));
+        assert_eq!(score.selected_full_step_p99_ns, Some(100));
+        assert_eq!(score.selected_broadphase_p50_ns, Some(50));
+        assert_eq!(score.selected_peak_memory_bytes, 4096);
     }
 
     #[test]
@@ -1071,6 +1139,8 @@ mod tests {
         assert_eq!(report.sequences.len(), 2);
         assert_eq!(report.families.len(), 1);
         assert_eq!(report.families[0].workload_family, "clustered");
+        assert!(report.aggregate_selector_and_switch_overhead_basis_points.is_some());
+        assert!(report.families[0].aggregate_selector_and_switch_overhead_basis_points.is_some());
         assert_eq!(
             report.sequences[0].sequence_id,
             "heldout-01"
