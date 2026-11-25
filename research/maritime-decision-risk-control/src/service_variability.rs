@@ -887,6 +887,110 @@ mod tests {
     }
 
     #[test]
+    fn expected_unit_denominator_retains_not_delivered_diverted_cancelled_and_unknown() {
+        let mut observations = synthetic_observations("dispositions", &STABLE[..5], &[], 120);
+        observations[1].delivery_disposition = DeliveryDisposition::NotDelivered;
+        observations[1].receiver_delivery_minutes = None;
+        observations[1].receiver_acceptance_ref = None;
+        observations[2].delivery_disposition = DeliveryDisposition::Diverted;
+        observations[2].receiver_delivery_minutes = None;
+        observations[2].receiver_acceptance_ref = None;
+        observations[3].delivery_disposition = DeliveryDisposition::Cancelled;
+        observations[3].receiver_delivery_minutes = None;
+        observations[3].receiver_acceptance_ref = None;
+        observations[4].delivery_disposition = DeliveryDisposition::Unknown;
+        observations[4].receiver_delivery_minutes = None;
+        observations[4].receiver_acceptance_ref = None;
+
+        let report = ServiceReliabilityReport::evaluate(&observations, 950)
+            .expect("all five expected outcomes are represented");
+        assert_eq!(report.end_to_end.expected_count, 5);
+        assert_eq!(report.end_to_end.receiver_accepted_count, 1);
+        assert_eq!(report.end_to_end.not_delivered_count, 1);
+        assert_eq!(report.end_to_end.diverted_count, 1);
+        assert_eq!(report.end_to_end.cancelled_count, 1);
+        assert_eq!(report.end_to_end.unknown_count, 1);
+        assert_eq!(report.end_to_end.on_time_count, 1);
+        assert_eq!(report.end_to_end.on_time_rate_milli, 200);
+        assert_eq!(report.end_to_end.distribution.as_ref().unwrap().count, 1);
+        assert_eq!(report.receiver_acceptance_refs.len(), 1);
+    }
+
+    #[test]
+    fn expected_units_without_any_receiver_acceptance_have_no_delivery_distribution() {
+        let mut observations = synthetic_observations("none-delivered", &STABLE[..3], &[], 120);
+        for observation in &mut observations {
+            observation.delivery_disposition = DeliveryDisposition::NotDelivered;
+            observation.receiver_delivery_minutes = None;
+            observation.receiver_acceptance_ref = None;
+        }
+        let report = ServiceReliabilityReport::evaluate(&observations, 950)
+            .expect("undelivered expected units remain visible");
+        assert_eq!(report.end_to_end.expected_count, 3);
+        assert_eq!(report.end_to_end.receiver_accepted_count, 0);
+        assert_eq!(report.end_to_end.on_time_rate_milli, 0);
+        assert!(report.end_to_end.distribution.is_none());
+        assert!(report.receiver_acceptance_refs.is_empty());
+    }
+
+    #[test]
+    fn receiver_acceptance_requires_time_and_nonempty_receipt_reference() {
+        let mut observations = synthetic_observations("bad-receipt", &STABLE[..1], &[], 120);
+        observations[0].receiver_acceptance_ref = None;
+        assert_eq!(
+            ServiceReliabilityReport::evaluate(&observations, 950),
+            Err(ServiceMetricError::ReceiverAcceptanceEvidenceMissing)
+        );
+        observations[0].receiver_acceptance_ref = Some("   ".to_owned());
+        assert_eq!(
+            ServiceReliabilityReport::evaluate(&observations, 950),
+            Err(ServiceMetricError::ReceiverAcceptanceEvidenceMissing)
+        );
+        observations[0].receiver_acceptance_ref =
+            Some("independent-receiver-receipt-001".to_owned());
+        observations[0].receiver_delivery_minutes = None;
+        assert_eq!(
+            ServiceReliabilityReport::evaluate(&observations, 950),
+            Err(ServiceMetricError::ReceiverAcceptanceTimeMissing)
+        );
+    }
+
+    #[test]
+    fn nonaccepted_disposition_cannot_claim_receiver_time_or_acceptance_receipt() {
+        let mut observations = synthetic_observations("bad-not-delivered", &STABLE[..1], &[], 120);
+        observations[0].delivery_disposition = DeliveryDisposition::NotDelivered;
+        assert_eq!(
+            ServiceReliabilityReport::evaluate(&observations, 950),
+            Err(ServiceMetricError::NonAcceptedOutcomeHasDeliveryTime)
+        );
+        observations[0].receiver_delivery_minutes = None;
+        assert_eq!(
+            ServiceReliabilityReport::evaluate(&observations, 950),
+            Ok(ServiceReliabilityReport::evaluate(
+                &synthetic_observations("valid-not-delivered", &STABLE[..1], &[], 120)
+                    .into_iter()
+                    .map(|mut item| {
+                        item.delivery_disposition = DeliveryDisposition::NotDelivered;
+                        item.receiver_delivery_minutes = None;
+                        item.receiver_acceptance_ref = None;
+                        item
+                    })
+                    .collect::<Vec<_>>(),
+                950
+            )
+            .expect("valid non-delivery"))
+        );
+        observations[0].receiver_acceptance_ref = None;
+        observations[0].delivery_disposition = DeliveryDisposition::Unknown;
+        observations[0].receiver_acceptance_ref =
+            Some("must-not-be-present".to_owned());
+        assert_eq!(
+            ServiceReliabilityReport::evaluate(&observations, 950),
+            Err(ServiceMetricError::NonAcceptedOutcomeHasReceiverEvidence)
+        );
+    }
+
+    #[test]
     fn zero_mean_and_single_observation_leave_cv_undefined() {
         let observations = vec![ServiceObservation {
             observation_id: "zero".to_owned(),
