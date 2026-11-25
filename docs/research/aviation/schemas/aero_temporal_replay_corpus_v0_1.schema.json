@@ -141,7 +141,11 @@
         "issuer_key_status_at_snapshot",
         "issuer_key_status_current",
         "compromise_effective_at_unix_ms",
-        "corrects_event_id"
+        "corrects_event_id",
+        "receiver_receipt_status",
+        "receiver_receipt_reference",
+        "receiver_receipt_digest_sha256",
+        "trusted_timestamp_imprint_sha256"
       ],
       "properties": {
         "event_id": {
@@ -263,6 +267,31 @@
               "type": "null"
             }
           ]
+        },
+        "receiver_receipt_status": {
+          "enum": [
+            "SYNTHETIC_VALID",
+            "INVALID",
+            "UNVERIFIED",
+            "ABSENT"
+          ]
+        },
+        "receiver_receipt_reference": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "receiver_receipt_digest_sha256": {
+          "$ref": "#/$defs/nullableSha"
+        },
+        "trusted_timestamp_imprint_sha256": {
+          "$ref": "#/$defs/nullableSha"
         }
       }
     },
