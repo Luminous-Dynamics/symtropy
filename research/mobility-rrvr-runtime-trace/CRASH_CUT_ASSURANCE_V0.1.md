@@ -116,3 +116,8 @@ The rule-of-three approximation (3/n) applies only to independent representative
 A TLC pass establishes invariants only for the finite abstraction and constants checked. The fixture validates the declared obligation catalogue only. A process-kill test does not establish power-loss durability. A file journal does not establish remote injector linearizability. A simulator result does not establish HIL or physical safety. A confirmed evidence verdict is not execution authority.
 
 The next code increment remains issue #7361: wire the existing Journal immediately before the actual reset/dispatch mutators, rehydrate suppression from verified journal history, and qualify the injector-owner ledger separately.
+
+
+## Model boundary note
+
+The bounded TLA model explores one logical-effect attempt and enables coordinator crash only after the durable intent exists. It checks that an applied effect followed by loss of a non-durable owner ledger cannot be safely redispatched. Pre-intent write/sync failures, concurrent coordinator histories, reset-state transitions, owner-ledger linearizability, and physical storage fault injection remain obligation-catalogue or implementation work tracked by #7361; they are not silently represented as explored TLA states.
