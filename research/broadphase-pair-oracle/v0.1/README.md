@@ -22,9 +22,9 @@ This population is separate from NYU edge-edge/vertex-face analytic queries and 
 
 Each scorecard binds world revision/step, SHA-256 of the frozen AABB snapshot, SHA-256 of collision-filter policy, brute-force oracle ID/version, collider population, and disjoint static/awake/sleeping object classes.
 
-WorkloadFrame records moved, added and removed colliders; update, rebuild and pair-generation time; full-step time; node/leaf visits; reinserts; pair-cache changes; and peak memory. These allow comparison of DBVT, SAP, LBVH, layered trees and brute force on the same workload trace.
+WorkloadFrame records moved, added and removed colliders; update, rebuild and pair-generation time; full-step time; node/leaf visits; reinserts; pair-cache changes; and peak memory. The trace summarizer emits nearest-rank p50/p95/p99 for broadphase-only and full-step time, cumulative traversal/reinsert/cache counters, and peak memory. These allow comparison of DBVT, SAP, LBVH, layered trees and brute force on the same workload trace.
 
-Receipt metadata is declarative: the harness must actually freeze/hash the AABBs and filter and execute the oracle independently. This crate does not authenticate caller honesty or prove the oracle implementation.
+Receipt metadata is declarative: the harness must actually freeze/hash the AABBs and filter and execute the oracle independently. Complete oracle coverage is mandatory; partial/unknown coverage cannot be scored. This crate does not authenticate caller honesty or prove the oracle implementation.
 
 ## Industry comparison targets
 
