@@ -238,6 +238,9 @@ Physical claims require blind, rights-cleared, independently reviewed evidence f
 
 - NASA Langley Design for Inspection: NTRS 20240003953 proposes a simulation-based, automation-friendly inspectability metric evaluating defect findability and sensitivity to variability.
 - NASA Langley / ASNT Inspectability Metric: NTRS 20240007593 describes integration of inspectability into multi-objective design optimization alongside mass/manufacturability.
+- **ASTM E2533-21:** active guide for nondestructive examination of polymer-matrix composites used in aerospace applications; use it to select and describe suitable methods where its scope fits, not as a universal procedure or POD result: https://store.astm.org/e2533-21.html.
+- **ASTM E2580-24:** ultrasonic examination practice for flat-panel composites and sandwich-core materials in aerospace applications. Apply only where article geometry, material, procedure and inspection parameters fit: https://shop.standards.ie/en-ie/standards/astm-e-2580-2024-156244_saig_astm_astm_3376386/.
+- **MIL-HDBK-1823A:** DLA lists the NDE system reliability assessment handbook as active, but it is guidance only and not a standalone contractual requirement. Verify the live ASSIST record when the protocol is frozen: https://quicksearch.dla.mil/qsDocDetails.aspx?ident_number=206122.
 - ASTM E2862-23: hit/miss POD analysis for a specific examination parameter set; not a universal NDE modality standard.
 - **SAE ARP6461A (revised 24 August 2021):** current SAE Recommended Practice identified for fixed-wing civil-aircraft SHM implementation and certification guidance. Use it as the aerospace SHM lifecycle/assurance comparator; it is guidance, not proof that a particular algorithm, sensor installation or aircraft modification is approved. Pin the purchased/licensed edition and map its applicable requirements with a qualified standards reviewer: https://saemobilus.sae.org/standards/arp6461a-guidelines-implementation-structural-health-monitoring-fixed-wing-aircraft.
 - **SAE ARP5987B scope/status caution:** SAE records ARP5987B as canceled on 1 April 2026 and its subject is aerospace propulsion health-management systems for airworthiness credit. It is not the current fixed-wing airframe structural SHM baseline and must not be substituted for ARP6461A. If propulsion-health management becomes an AERO scope, pin the specific governing successor/authority direction first: https://saemobilus.sae.org/standards/arp5987b-a-process-utilizing-aerospace-propulsion-health-management-systems-airworthiness-credit.
@@ -346,11 +349,6 @@ The sequence is a research prioritization, not a universal ranking of dataset qu
 
 AERO should publish a benchmark card for every dataset with scope, rights, article identity, channels, time coverage, damage truth, independent grouping, preprocessing and claim ceiling. Cross-dataset transfer is a separate experiment with a held-out target domain and explicit abstention, not a pooled score.
 
-## 9. Non-claims
-
-This benchmark does not establish physical POD, structural health monitoring acceptance, fatigue/damage tolerance, maintenance interval, repair approval, structural substantiation, part acceptance, airworthiness, aircraft certification or authority to operate. It is an experiment and software-benchmark contract only.
-
-
 ## 8.3 Rights-aware dataset manifest and secure ingestion
 
 A machine-readable discovery manifest is maintained at:
@@ -384,3 +382,7 @@ A restricted unpickler may reduce the allowed object surface, but the benchmark 
 `DISCOVERY_ONLY` means the source is identified but not cleared or ingested. A dataset may advance to `RIGHTS_REVIEWED` only with item-specific permission/license evidence; to `INGESTED_AND_HASHED` only after immutable source hashes, file inventory and data dictionary are recorded; and to `BENCHMARK_READY` only after independent group partitions, preprocessing, labels, truth limitations and evaluation manifests are reviewed.
 
 No benchmark leaderboard or external performance claim may consume a dataset whose rights state is unresolved or whose provenance/hash inventory is incomplete.
+
+## 9. Non-claims
+
+This benchmark does not establish physical POD, structural health monitoring acceptance, fatigue/damage tolerance, maintenance interval, repair approval, structural substantiation, part acceptance, airworthiness, aircraft certification or authority to operate. It is an experiment and software-benchmark contract only.
