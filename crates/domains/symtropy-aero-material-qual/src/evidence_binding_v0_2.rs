@@ -1249,6 +1249,51 @@ mod tests {
     }
 
     #[test]
+    fn calibration_event_permutations_preserve_the_same_report() {
+        let mut case = fixture();
+        let original = serde_json::json!({
+            "id": "EVENT-ORIGINAL",
+            "certificate_id": "CAL-A",
+            "event_type": "suspended",
+            "effective_at_unix_ms": 1_795_515_300_000u64,
+            "recorded_at_unix_ms": 1_795_515_360_000u64,
+            "retroactive": false
+        });
+        let correction_a = serde_json::json!({
+            "id": "EVENT-CORRECT-A",
+            "certificate_id": "CAL-A",
+            "event_type": "corrected",
+            "corrects_event_id": "EVENT-ORIGINAL",
+            "effective_at_unix_ms": 1_795_515_600_000u64,
+            "recorded_at_unix_ms": 1_795_515_660_000u64,
+            "retroactive": true
+        });
+        let correction_b = serde_json::json!({
+            "id": "EVENT-CORRECT-B",
+            "certificate_id": "CAL-A",
+            "event_type": "superseded",
+            "corrects_event_id": "EVENT-ORIGINAL",
+            "effective_at_unix_ms": 1_795_515_720_000u64,
+            "recorded_at_unix_ms": 1_795_515_780_000u64,
+            "retroactive": true
+        });
+        case["calibration_events"] = serde_json::json!([original, correction_a, correction_b]);
+
+        let baseline = evaluate_binding_case(&case);
+        assert!(has_violation(
+            &baseline,
+            "CONTRADICTORY_CALIBRATION_CORRECTIONS"
+        ));
+
+        let mut permuted = case;
+        permuted["calibration_events"]
+            .as_array_mut()
+            .expect("calibration events")
+            .reverse();
+        assert_eq!(baseline, evaluate_binding_case(&permuted));
+    }
+
+    #[test]
     fn record_order_permutations_produce_the_same_report() {
         let case = fixture();
         let baseline = evaluate_binding_case(&case);
