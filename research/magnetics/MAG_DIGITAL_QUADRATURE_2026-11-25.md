@@ -76,3 +76,9 @@ Do not compare a vector-sensor atan2 angle error with digital latch quadrature e
 - TI TMAG511x datasheet, https://www.ti.com/lit/ds/symlink/tmag5111.pdf
 - TI SBOA200B, https://www.ti.com/document-viewer/lit/html/SBOA200B
 - Parent issue #7446, https://github.com/Luminous-Dynamics/symtropy/issues/7446
+
+## Finite operating-condition tournament
+
+The executable reference now evaluates multiple traces under one fixed sensor/latch configuration while allowing distinct operating-condition IDs. This is how air-gap, eccentricity, tilt, temperature and field-margin scenarios can be compared without pooling them as one identical condition. Frame, angular-grid ID, sample count and mechanical angle coordinates must match bit-for-bit; trace IDs must be unique; synthetic, solver-prediction, calibrated-measurement and captured-output evidence classes cannot be mixed.
+
+The evaluator preserves every scenario and reports worst-case missing/excess/illegal transitions, direction reversals, bounded quadrature spacing error and transition-bracket width. It emits no probability or manufacturing-yield inference. Use this finite-set layer before any statistically designed repeated-build analysis.
