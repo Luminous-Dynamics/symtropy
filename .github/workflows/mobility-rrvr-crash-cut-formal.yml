@@ -176,5 +176,5 @@ jobs:
         with:
           name: rrvr-crash-cut-formal-${{ github.sha }}
           path: ${{ runner.temp }}/rrvr-crash-cut
-          if-no-files-found: error
+          if-no-files-found: ignore
           retention-days: 90
