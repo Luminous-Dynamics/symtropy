@@ -43,6 +43,14 @@
           "status": "unknown",
           "source": null,
           "note": "No complete, identity-bound Mycelix dependency profile/cut-set receipt is included in this public product specification; three labels or copies cannot be assumed independent."
+        },
+        {
+          "metric": "medium_units_for_1pb_per_copy",
+          "required": "capacity floor only",
+          "observed": 209,
+          "status": "unknown",
+          "source": "https://www.nature.com/articles/s41586-025-10042-w",
+          "note": "Calculated as ceil(1,000 TB / 4.8 TB per platter). Does not include spare media, system footprint, cost or production yield."
         }
       ]
     },
@@ -92,6 +100,14 @@
           "status": "unknown",
           "source": "https://www.lto.org/lto-10/",
           "note": "Published native drive transfer headline. Three drives give 1.2 GB/s only as an arithmetic upper bound; no 1 PB library restore, mount/seek, verification or recovery benchmark is established here."
+        },
+        {
+          "metric": "medium_units_for_1pb_per_copy",
+          "required": "capacity floor only",
+          "observed": 25,
+          "status": "unknown",
+          "source": "https://newsroom-us.fujifilm.com/press-releases/press-release-details/2026/FUJIFILM-North-America-Corporation-Announces-U-S--Availability-of-FUJIFILM-LTO-Ultrium-Generation-10-40TB-Data-Cartridges-04-02-2026/default.aspx",
+          "note": "Calculated as ceil(1,000 TB / 40 TB native per cartridge). Does not include spares, library, drives, mount/seek overhead or cost."
         }
       ]
     },
@@ -125,6 +141,14 @@
           "status": "unknown",
           "source": null,
           "note": "No complete, identity-bound Mycelix dependency profile/cut-set receipt is included in this public product specification; three labels or copies cannot be assumed independent."
+        },
+        {
+          "metric": "drive_units_for_1pb_per_copy",
+          "required": "capacity floor only",
+          "observed": 23,
+          "status": "unknown",
+          "source": "https://s24.q4cdn.com/101481333/files/content_files/STX-US-CORRECTED-TRANSCRIPT-Seagate-Technology-Holdings-PlcSTXUS-Q1-2027-Earnings-Call-27-ET-PM-26-10-2026-2026-10-26-0.pdf",
+          "note": "Calculated as ceil(1,000 TB / 44 TB nominal maximum per drive). No RAID/spare/system-overhead adjustment."
         }
       ]
     },
@@ -158,6 +182,22 @@
           "status": "unknown",
           "source": null,
           "note": "No complete, identity-bound Mycelix dependency profile/cut-set receipt is included in this public product specification; three labels or copies cannot be assumed independent."
+        },
+        {
+          "metric": "drive_units_for_1pb_per_copy",
+          "required": "capacity floor only",
+          "observed": 5,
+          "status": "unknown",
+          "source": "https://www.micron.com/products/storage/ssd/data-center-ssd/6600-ion",
+          "note": "Calculated as ceil(1,000 TB / 245.76 TB usable per drive). No spare, parity, controller or system overhead adjustment."
+        },
+        {
+          "metric": "sequential_read_rate_per_drive",
+          "required": "system-level restore throughput is >= 1.157 GB/s",
+          "observed": "up to 13,700 MB/s for 245.76 TB SKU",
+          "status": "unknown",
+          "source": "https://tw.micron.com/content/dam/micron/global/public/products/storage/ssds/data-center/6600/6600-ion-ssd-technical-product-specification.pdf",
+          "note": "Published drive-level unconstrained sequential read metric; it does not demonstrate a 1 PB system restore, endurance over 100 years or dependency-independent recovery."
         }
       ]
     },
