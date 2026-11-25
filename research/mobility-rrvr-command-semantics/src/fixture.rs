@@ -100,6 +100,16 @@ pub fn evaluate_fixture_corpus(json: &str) -> Result<FixtureReport, String> {
         if !matches!(case.class.as_str(), "positive" | "negative") {
             return Err(format!("invalid fixture class for {}", case.case_id));
         }
+        match (case.class.as_str(), case.expected_decision) {
+            ("positive", ExpectedDecision::AcceptProfile)
+            | ("negative", ExpectedDecision::Hold) => {}
+            _ => {
+                return Err(format!(
+                    "fixture class and expected decision disagree for {}",
+                    case.case_id
+                ));
+            }
+        }
 
         let input = SemanticProfileInput {
             device: case.device,
