@@ -360,3 +360,20 @@ References:
 - [Integrated continuous-time berth allocation, time-variant quay crane and yard assignment (Transportation Research Part B, 2025)](https://doi.org/10.1016/j.trb.2025.103317)
 - [Robust integrated berth, quay-crane and yard assignment (Computers & Industrial Engineering, 2026)](https://doi.org/10.1016/j.cie.2026.112092)
 - [Integrated berth allocation, quay-crane and onshore power/energy dispatch (Journal of Cleaner Production, 2026)](https://doi.org/10.1016/j.jclepro.2026.149105)
+
+
+## Evidence-aware decision regret and safe abstention (25 November 2026)
+
+Draft [PR #7400](https://github.com/Luminous-Dynamics/symtropy/pull/7400) adds an executable policy tournament for stale, conflicting, withdrawn and corrected source evidence, extending [#1949](https://github.com/Luminous-Dynamics/symtropy/issues/1949).
+
+The policy interface receives only the observations and decision cutoff. Realized outcome truth is held by a separate evaluator and cannot be passed into the decision function. Four policies are compared on identical scenarios:
+- **Latest ingested:** last retrieved record, intentionally naive about source publication time, freshness and withdrawals.
+- **Freshest published:** most recent known publication available by the cutoff; it may still be stale because freshness is a separate SLA.
+- **Fail closed:** only active, known-published, retrieved-by-cutoff, within-SLA evidence; conflicting feasible windows force abstention.
+- **Bounded contingent:** preserves at most two feasible source-supported alternatives as primary/fallback; more than two conflicting choices force abstention.
+
+The synthetic receipt records decision regret, false confidence, unsupported commitment, fallback recovery, abstention and unnecessary abstention, together with publisher/retrieval timing, maturity, source coverage and shared dependency-cluster count. The cluster count is not an independence claim. DCSA ACT remains source-reported actual, not physical truth.
+
+The current synthetic cost protocol is wrong commitment = 100 units, abstention = 40, contingent primary match = 5 and fallback match = 30. These are test costs, not currency or a field-calibrated utility. Before applying to a real port, register an operator/receiver-approved cost vector and report components separately: delay and p95/p99, missed cutoffs, fuel, energy, demurrage, cargo damage/rehandling, emissions, participant service floors and contingency activation.
+
+Proposed acceptance targets: zero future-retrieval leakage in historical replay; zero unknown-publication records treated as fresh; zero withdrawn records used by freshness-aware policies; zero physical-truth promotion from source maturity; zero dependency-cluster inflation; full coverage/regret/false-confidence/abstention curves on independently adjudicated held-out episodes. The 10-case synthetic tournament is only a software contract and does not establish a real DGT benefit.
