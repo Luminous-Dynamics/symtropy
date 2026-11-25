@@ -470,12 +470,14 @@ impl<const D: usize> IncrementalAabbTree<D> {
 
         let old_parent = self.node(sibling).parent;
         let new_parent_aabb = self.node(sibling).aabb.union(&leaf_aabb);
+        let new_parent_height = 1 + self.node(sibling).height.max(self.node(leaf).height);
+        let new_parent_min_proxy = self.node(sibling).min_proxy.min(self.node(leaf).min_proxy);
         let new_parent = self.allocate_node(Node::branch(new_parent_aabb, sibling, leaf));
         {
             let parent = self.node_mut(new_parent);
             parent.parent = old_parent;
-            parent.height = 1 + self.node(sibling).height.max(self.node(leaf).height);
-            parent.min_proxy = self.node(sibling).min_proxy.min(self.node(leaf).min_proxy);
+            parent.height = new_parent_height;
+            parent.min_proxy = new_parent_min_proxy;
         }
         self.node_mut(sibling).parent = Some(new_parent);
         self.node_mut(leaf).parent = Some(new_parent);
