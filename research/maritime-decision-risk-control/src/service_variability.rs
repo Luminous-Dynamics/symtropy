@@ -21,6 +21,15 @@ const ON_TIME_WINDOW_MINUTES: u64 = 120;
 const MINIMUM_COHORT_ON_TIME_RATE_MILLI: u16 = 950;
 const ARRIVAL_BURST_WINDOW_MINUTES: u64 = 60;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DeliveryDisposition {
+    ReceiverAccepted,
+    NotDelivered,
+    Diverted,
+    Cancelled,
+    Unknown,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ServiceObservation {
     pub observation_id: String,
@@ -30,6 +39,10 @@ pub struct ServiceObservation {
     pub terminal_dwell_minutes: u32,
     pub inland_transfer_minutes: u32,
     pub receiver_deadline_minutes: u64,
+    /// Only populated when an independent receiver record confirms acceptance.
+    pub receiver_delivery_minutes: Option<u64>,
+    /// Expected units with any other disposition remain in the denominator.
+    pub delivery_disposition: DeliveryDisposition,
 }
 
 impl ServiceObservation {
@@ -39,12 +52,15 @@ impl ServiceObservation {
             + u64::from(self.terminal_dwell_minutes)
     }
 
-    pub fn end_to_end_minutes(&self) -> u64 {
+    fn staged_elapsed_minutes(&self) -> u64 {
         self.port_elapsed_minutes() + u64::from(self.inland_transfer_minutes)
     }
 
     pub fn on_time(&self) -> bool {
-        self.end_to_end_minutes() <= self.receiver_deadline_minutes
+        self.delivery_disposition == DeliveryDisposition::ReceiverAccepted
+            && self
+                .receiver_delivery_minutes
+                .is_some_and(|minutes| minutes <= self.receiver_deadline_minutes)
     }
 }
 
@@ -62,6 +78,9 @@ pub enum ServiceMetricError {
     EmptyCohortIdentity,
     DuplicateObservationIdentity,
     ZeroReceiverDeadline,
+    ReceiverAcceptanceTimeMissing,
+    NonAcceptedOutcomeHasDeliveryTime,
+    ReceiverDeliveryTimeMismatch,
     EmptyArrivalIdentity,
     DuplicateArrivalIdentity,
     ZeroArrivalWindow,
@@ -89,9 +108,16 @@ pub struct DistributionMetrics {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ServiceMetrics {
-    pub distribution: DistributionMetrics,
+    /// Distribution over independently confirmed receiver acceptances only.
+    pub distribution: Option<DistributionMetrics>,
+    pub expected_count: usize,
+    pub receiver_accepted_count: usize,
+    pub not_delivered_count: usize,
+    pub diverted_count: usize,
+    pub cancelled_count: usize,
+    pub unknown_count: usize,
     pub on_time_count: usize,
-    /// Per-mille on-time delivery rate, rounded down conservatively.
+    /// Verified on-time receiver acceptance / all expected units, rounded down.
     pub on_time_rate_milli: u16,
 }
 
@@ -178,11 +204,48 @@ fn distribution(values: &[u64]) -> DistributionMetrics {
     }
 }
 
-fn service_metrics(values: &[u64], on_time: &[bool]) -> ServiceMetrics {
-    let on_time_count = on_time.iter().filter(|is_on_time| **is_on_time).count();
-    let rate = (on_time_count * 1_000 / on_time.len()) as u16;
+fn service_metrics(observations: &[&ServiceObservation]) -> ServiceMetrics {
+    let delivered = observations
+        .iter()
+        .filter_map(|observation| observation.receiver_delivery_minutes)
+        .collect::<Vec<_>>();
+    let on_time_count = observations
+        .iter()
+        .filter(|observation| observation.on_time())
+        .count();
+    let receiver_accepted_count = observations
+        .iter()
+        .filter(|observation| {
+            observation.delivery_disposition == DeliveryDisposition::ReceiverAccepted
+        })
+        .count();
+    let not_delivered_count = observations
+        .iter()
+        .filter(|observation| {
+            observation.delivery_disposition == DeliveryDisposition::NotDelivered
+        })
+        .count();
+    let diverted_count = observations
+        .iter()
+        .filter(|observation| observation.delivery_disposition == DeliveryDisposition::Diverted)
+        .count();
+    let cancelled_count = observations
+        .iter()
+        .filter(|observation| observation.delivery_disposition == DeliveryDisposition::Cancelled)
+        .count();
+    let unknown_count = observations
+        .iter()
+        .filter(|observation| observation.delivery_disposition == DeliveryDisposition::Unknown)
+        .count();
+    let rate = (on_time_count * 1_000 / observations.len()) as u16;
     ServiceMetrics {
-        distribution: distribution(values),
+        distribution: (!delivered.is_empty()).then(|| distribution(&delivered)),
+        expected_count: observations.len(),
+        receiver_accepted_count,
+        not_delivered_count,
+        diverted_count,
+        cancelled_count,
+        unknown_count,
         on_time_count,
         on_time_rate_milli: rate,
     }
@@ -217,6 +280,27 @@ impl ServiceReliabilityReport {
             if observation.receiver_deadline_minutes == 0 {
                 return Err(ServiceMetricError::ZeroReceiverDeadline);
             }
+            match (
+                observation.delivery_disposition,
+                observation.receiver_delivery_minutes,
+            ) {
+                (DeliveryDisposition::ReceiverAccepted, None) => {
+                    return Err(ServiceMetricError::ReceiverAcceptanceTimeMissing);
+                }
+                (DeliveryDisposition::ReceiverAccepted, Some(minutes))
+                    if minutes != observation.staged_elapsed_minutes() =>
+                {
+                    return Err(ServiceMetricError::ReceiverDeliveryTimeMismatch);
+                }
+                (DeliveryDisposition::NotDelivered
+                    | DeliveryDisposition::Diverted
+                    | DeliveryDisposition::Cancelled
+                    | DeliveryDisposition::Unknown, Some(_)) =>
+                {
+                    return Err(ServiceMetricError::NonAcceptedOutcomeHasDeliveryTime);
+                }
+                _ => {}
+            }
         }
 
         let vessel_wait = observations
@@ -239,29 +323,17 @@ impl ServiceReliabilityReport {
             .iter()
             .map(|item| u64::from(item.inland_transfer_minutes))
             .collect::<Vec<_>>();
-        let end_to_end = observations
-            .iter()
-            .map(ServiceObservation::end_to_end_minutes)
-            .collect::<Vec<_>>();
-        let on_time = observations
-            .iter()
-            .map(ServiceObservation::on_time)
-            .collect::<Vec<_>>();
-
-        let mut cohort_rows = BTreeMap::<&str, (Vec<u64>, Vec<bool>)>::new();
-        for ((observation, total), on_time_result) in
-            observations.iter().zip(&end_to_end).zip(&on_time)
-        {
-            let entry = cohort_rows
+        let mut cohort_rows = BTreeMap::<&str, Vec<&ServiceObservation>>::new();
+        for observation in observations {
+            cohort_rows
                 .entry(observation.cohort_id.as_str())
-                .or_insert_with(|| (Vec::new(), Vec::new()));
-            entry.0.push(*total);
-            entry.1.push(*on_time_result);
+                .or_default()
+                .push(observation);
         }
         let cohorts = cohort_rows
             .into_iter()
-            .map(|(cohort_id, (values, on_time_flags))| {
-                let service = service_metrics(&values, &on_time_flags);
+            .map(|(cohort_id, cohort_observations)| {
+                let service = service_metrics(&cohort_observations);
                 CohortMetrics {
                     cohort_id: cohort_id.to_owned(),
                     meets_service_floor: service.meets_on_time_floor(cohort_floor_per_mille),
@@ -269,6 +341,7 @@ impl ServiceReliabilityReport {
                 }
             })
             .collect::<Vec<_>>();
+
         let cohort_floor_violations = cohorts
             .iter()
             .filter(|cohort| !cohort.meets_service_floor)
@@ -281,7 +354,9 @@ impl ServiceReliabilityReport {
             terminal_dwell: distribution(&terminal_dwell),
             port_elapsed: distribution(&port_elapsed),
             inland_transfer: distribution(&inland_transfer),
-            end_to_end: service_metrics(&end_to_end, &on_time),
+            end_to_end: service_metrics(
+                &observations.iter().collect::<Vec<_>>(),
+            ),
             cohorts,
             cohort_floor_per_mille,
             cohort_floor_violations,
@@ -404,6 +479,13 @@ fn synthetic_observations(
             terminal_dwell_minutes: *terminal,
             inland_transfer_minutes: *inland,
             receiver_deadline_minutes: deadline,
+            receiver_delivery_minutes: Some(
+                u64::from(*vessel)
+                    + u64::from(*berth)
+                    + u64::from(*terminal)
+                    + u64::from(*inland),
+            ),
+            delivery_disposition: DeliveryDisposition::ReceiverAccepted,
         })
         .collect()
 }
