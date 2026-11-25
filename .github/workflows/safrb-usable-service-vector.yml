@@ -1,0 +1,39 @@
+name: SAFRB usable-service vector qualification
+
+on:
+  push:
+    branches:
+      - research/safrb-usable-service-vector-v0.1-stacked4
+    paths:
+      - "tools/safrb-usable-service-vector/**"
+      - ".github/workflows/safrb-usable-service-vector.yml"
+  pull_request:
+    paths:
+      - "tools/safrb-usable-service-vector/**"
+      - ".github/workflows/safrb-usable-service-vector.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: safrb-service-vector-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualifier:
+    name: SAFRB usable-service vector Rust checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Verify formatting
+        run: cargo fmt --manifest-path tools/safrb-usable-service-vector/Cargo.toml -- --check
+      - name: Run tests
+        run: cargo test --manifest-path tools/safrb-usable-service-vector/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path tools/safrb-usable-service-vector/Cargo.toml --all-targets --locked -- -D warnings
