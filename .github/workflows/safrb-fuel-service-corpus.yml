@@ -44,16 +44,19 @@ jobs:
           cargo run --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --release --locked -- --emit target/safrb-fuel-corpus-v0.1
           test "$(wc -l < target/safrb-fuel-corpus-v0.1/planner-observations.jsonl)" -eq 120
           test "$(wc -l < target/safrb-fuel-corpus-v0.1/oracle-truth.jsonl)" -eq 120
+          test -s target/safrb-fuel-corpus-v0.1/temporal-ablation-report.json
           cd target/safrb-fuel-corpus-v0.1
-          sha256sum planner-observations.jsonl oracle-truth.jsonl > SHA256SUMS
-          test -s SHA256SUMS
+          sha256sum planner-observations.jsonl > PLANNER.SHA256SUMS
+          sha256sum oracle-truth.jsonl temporal-ablation-report.json > EVALUATOR.SHA256SUMS
+          test -s PLANNER.SHA256SUMS
+          test -s EVALUATOR.SHA256SUMS
       - name: Retain planner-visible observations
         uses: actions/upload-artifact@v4
         with:
           name: safrb-fuel-service-observations-v0.1
           path: |
             target/safrb-fuel-corpus-v0.1/planner-observations.jsonl
-            target/safrb-fuel-corpus-v0.1/SHA256SUMS
+            target/safrb-fuel-corpus-v0.1/PLANNER.SHA256SUMS
           if-no-files-found: error
           retention-days: 90
       - name: Retain evaluator-only oracle truth
@@ -62,6 +65,7 @@ jobs:
           name: safrb-fuel-service-oracle-truth-v0.1
           path: |
             target/safrb-fuel-corpus-v0.1/oracle-truth.jsonl
-            target/safrb-fuel-corpus-v0.1/SHA256SUMS
+            target/safrb-fuel-corpus-v0.1/temporal-ablation-report.json
+            target/safrb-fuel-corpus-v0.1/EVALUATOR.SHA256SUMS
           if-no-files-found: error
           retention-days: 90
