@@ -65,6 +65,9 @@ impl FinitePathwiseProposalSupport {
         if config.event_digest != self.event_digest {
             return Err(PathwiseProposalError::EventDigestMismatch);
         }
+        if config.support_manifest_digest != self.support_manifest_digest {
+            return Err(PathwiseProposalError::SupportManifestMismatch);
+        }
         if config.atoms != self.atoms {
             return Err(PathwiseProposalError::ProposalAtomSemanticsMismatch);
         }
@@ -315,7 +318,11 @@ mod tests {
         )
     }
 
-    fn proposal_config(atoms: Vec<FiniteProposalAtom>, event_digest: [u8; 32]) -> FiniteAdaptiveProposalConfig {
+    fn proposal_config(
+        atoms: Vec<FiniteProposalAtom>,
+        event_digest: [u8; 32],
+        support_manifest_digest: [u8; 32],
+    ) -> FiniteAdaptiveProposalConfig {
         let count = u16::try_from(atoms.len()).unwrap();
         assert!(count > 0 && count <= TICKET_SPACE);
         let target_mass = TICKET_SPACE / count;
@@ -323,6 +330,7 @@ mod tests {
         let remainder = TICKET_SPACE - target_mass * count;
         masses[0] += remainder;
         FiniteAdaptiveProposalConfig {
+            support_manifest_digest,
             event_digest,
             target_measure_digest: [2; 32],
             defensive_component_digest: [3; 32],
@@ -566,7 +574,11 @@ mod tests {
             }],
         )
         .unwrap();
-        let mut config = proposal_config(support.atoms.clone(), EVENT_DIGEST);
+        let mut config = proposal_config(
+            support.atoms.clone(),
+            EVENT_DIGEST,
+            support.support_manifest_digest,
+        );
         support.verify_proposal_config(&config).unwrap();
 
         config.atoms[0].is_event = false;
