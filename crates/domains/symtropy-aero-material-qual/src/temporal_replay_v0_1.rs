@@ -58,14 +58,15 @@ pub struct ReplayCoordinate {
     pub mode: String,
     pub subject_time_interval: AcquisitionTimeInterval,
     pub receiver_receipt_watermark_unix_ms: u64,
-    pub evidence_checkpoint_reference: String,
+    pub evidence_checkpoint_status: String,
+    pub evidence_checkpoint_reference: Option<String>,
     pub evidence_checkpoint_digest_sha256: String,
     pub evidence_view_digest_sha256: String,
     pub evidence_checkpoint_watermark_unix_ms: u64,
     pub observer_coverage_status: String,
     pub observer_coverage_profile_id: String,
-    pub observer_coverage_receipt_reference: String,
-    pub observer_coverage_receipt_digest_sha256: String,
+    pub observer_coverage_receipt_reference: Option<String>,
+    pub observer_coverage_receipt_digest_sha256: Option<String>,
     pub observer_coverage_watermark_unix_ms: u64,
     pub trust_status_as_of_unix_ms: u64,
     pub trust_policy_id: String,
@@ -247,10 +248,6 @@ pub fn replay_coordinate(case: &Value, mode: ReplayMode) -> Option<ReplayCoordin
         ReplayMode::AsKnownAt | ReplayMode::RecomputedWithCurrentTrust => "/snapshot",
         ReplayMode::RecomputedWithCurrentEvidenceAndTrust => "/current_reassessment",
     };
-    let view_path = match mode {
-        ReplayMode::AsKnownAt | ReplayMode::RecomputedWithCurrentTrust => "/snapshot",
-        ReplayMode::RecomputedWithCurrentEvidenceAndTrust => "/current_reassessment",
-    };
     let receiver_receipt_watermark_unix_ms = case.pointer(receipt_path)?.as_u64()?;
     let evidence_checkpoint_watermark_unix_ms = case
         .pointer(&format!("{view_path}/evidence_checkpoint_watermark_unix_ms"))?
@@ -258,10 +255,14 @@ pub fn replay_coordinate(case: &Value, mode: ReplayMode) -> Option<ReplayCoordin
     let observer_coverage_watermark_unix_ms = case
         .pointer(&format!("{view_path}/observer_coverage_watermark_unix_ms"))?
         .as_u64()?;
-    let evidence_checkpoint_reference = case
-        .pointer(&format!("{view_path}/evidence_checkpoint_reference"))?
+    let evidence_checkpoint_status = case
+        .pointer(&format!("{view_path}/evidence_checkpoint_status"))?
         .as_str()?
         .to_owned();
+    let evidence_checkpoint_reference = case
+        .pointer(&format!("{view_path}/evidence_checkpoint_reference"))
+        .and_then(Value::as_str)
+        .map(str::to_owned);
     let evidence_checkpoint_digest_sha256 = case
         .pointer(&format!("{view_path}/evidence_checkpoint_digest_sha256"))?
         .as_str()?
@@ -279,13 +280,13 @@ pub fn replay_coordinate(case: &Value, mode: ReplayMode) -> Option<ReplayCoordin
         .as_str()?
         .to_owned();
     let observer_coverage_receipt_reference = case
-        .pointer(&format!("{view_path}/observer_coverage_receipt_reference"))?
-        .as_str()?
-        .to_owned();
+        .pointer(&format!("{view_path}/observer_coverage_receipt_reference"))
+        .and_then(Value::as_str)
+        .map(str::to_owned);
     let observer_coverage_receipt_digest_sha256 = case
-        .pointer(&format!("{view_path}/observer_coverage_receipt_digest_sha256"))?
-        .as_str()?
-        .to_owned();
+        .pointer(&format!("{view_path}/observer_coverage_receipt_digest_sha256"))
+        .and_then(Value::as_str)
+        .map(str::to_owned);
     let trust_status_as_of_unix_ms = case.pointer(trust_path)?.as_u64()?;
     let trust_policy_id = case.pointer(policy_id_path)?.as_str()?.to_owned();
     let trust_policy_digest_sha256 = case.pointer(policy_digest_path)?.as_str()?.to_owned();
@@ -307,6 +308,7 @@ pub fn replay_coordinate(case: &Value, mode: ReplayMode) -> Option<ReplayCoordin
         .to_owned(),
         subject_time_interval,
         receiver_receipt_watermark_unix_ms,
+        evidence_checkpoint_status,
         evidence_checkpoint_reference,
         evidence_checkpoint_digest_sha256,
         evidence_view_digest_sha256,
@@ -1481,10 +1483,30 @@ mod tests {
             report.coordinate.observer_coverage_status,
             "SYNTHETIC_QUALIFIED_COMPLETE"
         );
-        assert!(!report.coordinate.observer_coverage_receipt_reference.is_empty());
+        assert!(report.coordinate.observer_coverage_receipt_reference.is_some());
         assert!(super::valid_sha256(
-            &report.coordinate.observer_coverage_receipt_digest_sha256
+            report.coordinate.observer_coverage_receipt_digest_sha256.as_deref().unwrap()
         ));
+    }
+
+    #[test]
+    fn unverified_coverage_report_retains_missing_receipt_as_unknown() {
+        let corpus: Value = serde_json::from_str(CORPUS).expect("temporal corpus parses");
+        let case = corpus["cases"]
+            .as_array()
+            .expect("cases")
+            .iter()
+            .find(|case| {
+                case["case_id"]
+                    == "observer-coverage-unqualified-cannot-support-negative-claim"
+            })
+            .expect("unverified coverage control");
+        let report = super::evaluate_report(case, ReplayMode::AsKnownAt)
+            .expect("historical replay coordinate still exists");
+        assert_eq!(report.coordinate.observer_coverage_status, "UNVERIFIED");
+        assert!(report.coordinate.observer_coverage_receipt_reference.is_none());
+        assert!(report.coordinate.observer_coverage_receipt_digest_sha256.is_none());
+        assert_eq!(report.disposition.disposition, "TRUST_UNRESOLVED");
     }
 
     #[test]
