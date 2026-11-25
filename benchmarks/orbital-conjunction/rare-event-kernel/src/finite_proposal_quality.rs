@@ -272,6 +272,7 @@ mod tests {
 
     fn config() -> FiniteAdaptiveProposalConfig {
         FiniteAdaptiveProposalConfig {
+            support_manifest_digest: [14; 32],
             event_digest: [1; 32],
             target_measure_digest: [2; 32],
             defensive_component_digest: [3; 32],
