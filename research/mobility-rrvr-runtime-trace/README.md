@@ -272,3 +272,15 @@ It makes the core research distinction explicit: RRVR is not a new generic fault
 
 
 A transport-level rejected response is not considered proof of no physical effect. The recovery projection keeps rejected reset outcomes pending for read-only world observation and rejected dispatch outcomes pending for read-only injector-ledger lookup.
+
+
+## Journaled mutator crash-cut assurance v0.1
+
+The next formal increment is documented in [CRASH_CUT_ASSURANCE_V0.1.md](CRASH_CUT_ASSURANCE_V0.1.md). It adds:
+
+- A bounded coordinator/owner-ledger crash/restart model in `model/JournaledMutatorCrashCut.tla`.
+- A safe model-check configuration and two required unsafe mutants: redispatch after restart and transport rejection incorrectly promoted to physical NoEffect.
+- A 15-obligation crash-cut catalogue at `fixtures/crash_cut_matrix_v0_1.json` with its JSON Schema.
+- A separately pinned formal workflow at `.github/workflows/mobility-rrvr-crash-cut-formal.yml`.
+
+This is a formal abstraction and obligation catalogue only. It does not demonstrate Rust/TLA refinement, live ROS/Gazebo integration, injector linearizability, process-crash execution, power-loss durability, HIL, or physical-robot safety. The implementation integration remains tracked by [issue #7361](https://github.com/Luminous-Dynamics/symtropy/issues/7361).
