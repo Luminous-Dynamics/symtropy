@@ -642,3 +642,59 @@ Artifact: https://github.com/Luminous-Dynamics/symtropy/actions/runs/45570820389
 Artifact ZIP SHA-256: `353ed3ddfd25e00d44fa43b42d8dd8bc64b6138d75d503376821c33b94138d64`.
 
 This is a synthetic software qualification. The mapping bundle is fixture-only, external approval references are not independently resolved by this crate, and no DCSA API conformance, live source truth, physical cargo movement or receiver delivery is certified.
+
+
+## Evidence-age and decision-regret tournament (25 November 2026)
+
+The `evidence_age_regret` module extends the stale/conflicting source experiment in #1949 with four executable policies:
+
+1. **LATEST_INGESTED** — naive baseline that selects the record most recently retrieved by the decision cutoff. It intentionally ignores publication-time unknowns, freshness SLA and withdrawals.
+2. **FRESHEST_PUBLISHED** — selects the latest known publisher-time record that was also retrieved by the cutoff and is not withdrawn. It respects source publication time but deliberately does not enforce the maximum-age SLA; the receipt marks when it used stale evidence.
+3. **FAIL_CLOSED** — considers only active records with known publication time, publisher time and retrieval no later than the cutoff, and age within the configured SLA. It chooses only when the remaining fresh records unanimously support one feasible window; otherwise it abstains.
+4. **BOUNDED_CONTINGENT** — uses the same fresh evidence as fail-closed but can preserve at most two feasible alternatives (primary/fallback). More than two alternatives, no eligible evidence or an invalid candidate set forces abstention.
+
+The policy interface accepts only `DecisionInput`. The hidden realized window is held in the separate `EvaluationTruth` type and is supplied only to `evaluate` after a decision has been produced. This makes the benchmark a decision-quality experiment rather than a predictor with access to its answer.
+
+### Bitemporal and dependency rules
+
+Every observation carries source publication time and system retrieval time separately. Unknown publication time is not inferred from retrieval time. An observation retrieved after the decision cutoff cannot influence the earlier replay, even if its publisher timestamp predates that cutoff. A later correction changes a later view; it cannot rewrite the earlier information set.
+
+The benchmark also carries a source-cluster/dependency identifier. Two source records with different names but the same shared dependency cluster count as **one** cluster in the receipt. The module does not infer independence or use nominal source-row count as an exchangeability claim. The reported count is diagnostic provenance only.
+
+DCSA maturity is retained as a source claim. In particular ACT appears as `ACT_SOURCE_REPORTED`; it is not interpreted as independently observed physical arrival, berth occupancy, cargo movement or receiver delivery. All decisions retain the claim ceiling `SOURCE_REPORTED_ONLY_NOT_PHYSICAL_TRUTH`.
+
+### Cost protocol
+
+The current benchmark uses explicit synthetic service-regret units (not currency or a calibrated port utility):
+- a correct single-window choice: 0;
+- a wrong single-window commitment: 100 and false-confidence flag;
+- abstention: 40;
+- contingent primary match: 5;
+- contingent fallback match: 30;
+- neither contingent alternative matches: 100 and unsupported-commitment flag.
+
+These costs are fixed by the fixture and exposed in code. They are not probabilities, fitted weights or claims about real service costs. A real experiment must pre-register port/receiver-specific service costs and report the component vector (delay, missed deadline, vessel fuel, energy, demurrage, cargo rehandling, emissions and participant service floors) rather than hide trade-offs in a single score.
+
+### Run the deterministic regret receipt
+
+~~~sh
+cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin evidence-age-regret-audit
+~~~
+
+The 10 synthetic cases are expanded across the four policies, yielding 40 case-policy rows plus the CSV header (41 lines, 23 columns). They cover fresh unanimity, stale-but-newly-ingested conflict, fresh source conflict, withdrawn latest records, unknown publication time, later correction unavailable at an earlier cutoff, correction visible in a later cutoff, duplicate records within one shared dependency cluster, more than two feasible alternatives and an all-stale evidence set.
+
+The receipt reports service regret, false confidence, fallback recovery, unsupported commitment, abstention and unnecessary abstention, alongside evidence counts, maturity, freshness and source-cluster count. It is deterministic and synthetic-only.
+
+### Qualification target for #1949
+
+Proposed targets (not achieved field results):
+- 100% correct historical as-of filtering against publication/retrieval cutoffs;
+- zero withdrawn or future-retrieved records used by freshness-aware policies;
+- zero unknown-publication records treated as fresh;
+- zero false physical-truth promotion from DCSA ACT/source-reported actual;
+- zero nominal-source multiplicity presented as independent replication when records share one dependency cluster;
+- measure regret and false confidence against hidden truth on held-out, independently adjudicated episodes;
+- publish the full coverage/regret curve and unnecessary-abstention cost for each policy;
+- compare with a clairvoyant oracle, FCFS/last-value operational baseline and a bounded-contingency baseline under a pre-registered service-cost vector.
+
+This first module is a synthetic evaluator. It does not connect to the DGT source index, perform an operational arrival/berth schedule, estimate empirical event freshness, establish a field cost function or prove that fail-closed behavior improves real port outcomes.
