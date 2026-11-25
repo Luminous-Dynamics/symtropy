@@ -69,7 +69,7 @@ pub enum BoundedViolation {
     MinimumFieldNotGuaranteed,
     PeakPhaseErrorNotGuaranteed,
     RmsPhaseErrorNotGuaranteed,
-    PhaseUndefinedInsideFieldErrorDisk,
+    PhaseUndefinedAtOrWithinFieldErrorDisk,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -398,7 +398,7 @@ pub fn evaluate_bounded_trace(
         violations.push(BoundedViolation::RmsPhaseErrorNotGuaranteed);
     }
     if phase_undefined_sample_count > 0 {
-        violations.push(BoundedViolation::PhaseUndefinedInsideFieldErrorDisk);
+        violations.push(BoundedViolation::PhaseUndefinedAtOrWithinFieldErrorDisk);
     }
 
     Ok(BoundedTraceMetrics {
@@ -580,7 +580,7 @@ mod tests {
         assert_eq!(result.peak_absolute_phase_error_upper_bound_rad, PI);
         assert!(!result.accepted);
         assert!(result.violations.contains(&BoundedViolation::MinimumFieldNotGuaranteed));
-        assert!(result.violations.contains(&BoundedViolation::PhaseUndefinedInsideFieldErrorDisk));
+        assert!(result.violations.contains(&BoundedViolation::PhaseUndefinedAtOrWithinFieldErrorDisk));
     }
 
     #[test]
