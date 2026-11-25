@@ -117,6 +117,7 @@ pub enum LineageRelation {
     DifferentSoftwareSameDeclaredFormulation,
     DifferentSoftwareAndFormulation,
     PhysicalMeasurementVersusPrediction,
+    PhysicalMeasurementVersusPhysicalMeasurement,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -350,6 +351,11 @@ pub fn validate_run(
 }
 
 fn lineage_relation(left: &SolverIdentity, right: &SolverIdentity) -> LineageRelation {
+    if left.method == SolverMethod::PhysicalMetrology
+        && right.method == SolverMethod::PhysicalMetrology
+    {
+        return LineageRelation::PhysicalMeasurementVersusPhysicalMeasurement;
+    }
     if left.method == SolverMethod::PhysicalMetrology
         || right.method == SolverMethod::PhysicalMetrology
     {
@@ -693,6 +699,26 @@ mod tests {
         assert_eq!(
             validate_run(&face_charge_run(), policy),
             Err(QualificationError::InvalidConvergencePolicy)
+        );
+    }
+
+
+    #[test]
+    fn distinguishes_two_physical_measurements_from_measurement_prediction() {
+        let mut first = face_charge_run();
+        first.solver.method = SolverMethod::PhysicalMetrology;
+        first.run_id = "physical-hall-map-a".to_owned();
+        first.convergence = None;
+
+        let mut second = first.clone();
+        second.run_id = "physical-hall-map-b".to_owned();
+        second.solver.software_id = "independent-hall-probe-system".to_owned();
+        second.solver.formulation_id = "calibrated-3d-hall-map".to_owned();
+
+        let pair = compare_runs(&first, &second, policy()).unwrap();
+        assert_eq!(
+            pair.lineage_relation,
+            LineageRelation::PhysicalMeasurementVersusPhysicalMeasurement
         );
     }
 
