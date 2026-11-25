@@ -650,7 +650,7 @@ impl<const D: usize> GeneratedWorkload<D> {
         mix(D as u64);
         for proxy in &self.proxies {
             mix(proxy.id.0);
-            mix(u64::from(proxy.moving));
+            mix(if proxy.moving { 1 } else { 0 });
             for axis in 0..D {
                 mix(proxy.tight_aabb.min[axis].to_bits());
                 mix(proxy.tight_aabb.max[axis].to_bits());
@@ -662,6 +662,7 @@ impl<const D: usize> GeneratedWorkload<D> {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorkloadError {
+    InvalidDimension,
     InvalidMovingFraction,
     InvalidGeneratedBounds,
 }
@@ -680,6 +681,9 @@ impl Error for WorkloadError {}
 pub fn generate_workload<const D: usize>(
     spec: WorkloadSpec,
 ) -> Result<GeneratedWorkload<D>, WorkloadError> {
+    if D < 2 {
+        return Err(WorkloadError::InvalidDimension);
+    }
     let spec = spec.validate()?;
     let mut random = SplitMix64::new(spec.seed);
     let mut proxies = Vec::with_capacity(spec.proxy_count);
@@ -1014,6 +1018,93 @@ mod tests {
         let after = tree.query_pairs().pairs;
         assert_eq!(before, after);
         assert!(after.windows(2).all(|pair| pair[0] < pair[1]));
+    }
+
+    #[test]
+    fn workload_generation_is_deterministic_and_matches_brute_force() {
+        let families = [
+            WorkloadFamily::Uniform,
+            WorkloadFamily::Clustered,
+            WorkloadFamily::Corridor,
+            WorkloadFamily::HighAspectRatio,
+            WorkloadFamily::HighOverlap,
+        ];
+        for family in families {
+            let spec = WorkloadSpec {
+                proxy_count: 96,
+                seed: 0x5eed_1234,
+                family,
+                moving_basis_points: 3_500,
+            };
+            let first = generate_workload::<3>(spec).unwrap();
+            let second = generate_workload::<3>(spec).unwrap();
+            assert_eq!(first, second);
+            assert_eq!(first.diagnostic_hash(), second.diagnostic_hash());
+
+            let mut tree = IncrementalAabbTree::<3>::new(0.25).unwrap();
+            for proxy in &first.proxies {
+                tree.insert(proxy.id, proxy.tight_aabb).unwrap();
+            }
+            let result = tree.query_pairs();
+
+            let mut oracle = Vec::new();
+            for left in 0..first.proxies.len() {
+                for right in (left + 1)..first.proxies.len() {
+                    let a = first.proxies[left].tight_aabb.fatten(0.25).unwrap();
+                    let b = first.proxies[right].tight_aabb.fatten(0.25).unwrap();
+                    if a.overlaps(&b) {
+                        oracle.push(ProxyPair(
+                            first.proxies[left].id,
+                            first.proxies[right].id,
+                        ));
+                    }
+                }
+            }
+            oracle.sort_unstable();
+            assert_eq!(result.pairs, oracle, "family {family:?}");
+            assert_eq!(first.proxies.iter().filter(|proxy| proxy.moving).count() > 0, true);
+        }
+    }
+
+    #[test]
+    fn workload_generator_covers_moving_fraction_and_rejects_invalid_profiles() {
+        let static_only = generate_workload::<2>(WorkloadSpec {
+            proxy_count: 32,
+            seed: 42,
+            family: WorkloadFamily::Uniform,
+            moving_basis_points: 0,
+        })
+        .unwrap();
+        assert!(static_only.proxies.iter().all(|proxy| !proxy.moving));
+
+        let all_moving = generate_workload::<4>(WorkloadSpec {
+            proxy_count: 32,
+            seed: 42,
+            family: WorkloadFamily::Corridor,
+            moving_basis_points: 10_000,
+        })
+        .unwrap();
+        assert!(all_moving.proxies.iter().all(|proxy| proxy.moving));
+
+        assert_eq!(
+            WorkloadSpec {
+                proxy_count: 1,
+                seed: 1,
+                family: WorkloadFamily::Uniform,
+                moving_basis_points: 10_001,
+            }
+            .validate(),
+            Err(WorkloadError::InvalidMovingFraction)
+        );
+        assert_eq!(
+            generate_workload::<1>(WorkloadSpec {
+                proxy_count: 1,
+                seed: 1,
+                family: WorkloadFamily::Uniform,
+                moving_basis_points: 0,
+            }),
+            Err(WorkloadError::InvalidDimension)
+        );
     }
 
     #[test]
