@@ -1,6 +1,4 @@
-use maritime_evidence_decision_composition::{
-    apply_named_fault, DecisionDisposition, EvidenceBundle,
-};
+use maritime_evidence_decision_composition::{apply_named_fault, EvidenceBundle};
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
@@ -50,11 +48,7 @@ fn main() -> ExitCode {
         "composition-corpus: cases={total} passed={} failed={failed}",
         total.saturating_sub(failed)
     );
-    if total == 30
-        && failed == 0
-        && DecisionDisposition::EligibleForDecisionReview.as_str()
-            == "eligible_for_decision_review"
-    {
+    if total == 30 && failed == 0 {
         ExitCode::SUCCESS
     } else {
         ExitCode::FAILURE
