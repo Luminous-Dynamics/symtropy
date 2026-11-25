@@ -62,3 +62,7 @@ path = "src/bin/cross_standard_mapping_audit.rs"
 [[bin]]
 name = "service-variability-audit"
 path = "src/bin/service_variability_audit.rs"
+
+[[bin]]
+name = "aggregate-cargo-status-audit"
+path = "src/bin/aggregate_cargo_status_audit.rs"
