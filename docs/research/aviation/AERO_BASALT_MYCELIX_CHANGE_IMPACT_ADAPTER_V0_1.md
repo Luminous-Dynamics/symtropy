@@ -145,7 +145,7 @@ Challenge at least:
 - second source, wrong lot, storage/out-time and material-grade change;
 - recipe/process-window, machine, tooling and site drift;
 - geometry, layup, bond/joint and product-configuration change;
-- specimen traveler correction, sampling-event replay, instrument mismatch, calibration expiry/revocation/correction;
+- specimen traveler correction, duplicated specimen-item identity, instrument mismatch, calibration expiry/revocation/correction;
 - NDE method, instrument, coverage and probability-of-detection domain change;
 - model/solver/mesh/boundary-condition and validation-domain shift;
 - delayed, missing, contradictory and out-of-order source observations;
