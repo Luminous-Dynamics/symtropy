@@ -133,7 +133,27 @@ The benchmark evaluates an envelope that references owner-native event/artifact 
 
 A timestamp token is evidence about the committed digest, not proof that the asserted event occurred at its stated effective time. A signature establishes attribution/integrity under a key policy; it does not alone establish the signer's authority over a calibration certificate or the truth of the underlying measurement.
 
-### 3.1 Receipt evidence is not a timestamp field
+### 3.1 Evidence checkpoint integrity and observer coverage are separate
+
+A receiver receipt timestamp and a valid checkpoint digest do not prove that the observer saw every source that could have influenced the historical decision. The replay contract therefore separates two owner-native attestations:
+
+**Evidence-view checkpoint integrity**
+- Exact checkpoint reference and digest.
+- Receiver-inclusion watermark covered by the checkpoint.
+- The checkpoint commits to the exact event/receipt view used by the replay.
+- Digest mismatch or watermark mismatch rejects the view.
+- This proves the committed view was not changed after checkpoint creation; it does not prove that the view contains every event that should exist.
+
+**Observer-coverage qualification**
+- Exact observer profile ID and qualification/receipt reference.
+- Explicit covered source roots/channels, exclusions and unresolved channels in the owner-native BASALT receipt.
+- Coverage status: qualified complete, incomplete, or unverified.
+- Incomplete coverage causes abstention; unverified coverage cannot support a negative assertion such as "no revocation existed."
+- A signed coverage receipt proves who made the coverage assertion, not that the underlying observation method is complete. The profile must be independently qualified.
+
+The synthetic corpus uses `SYNTHETIC_VALID` and `SYNTHETIC_QUALIFIED_COMPLETE` as fixture labels only. It does not cryptographically verify a checkpoint or qualify an observer. Production replay must consume Mycelix/AeroCommons checkpoint evidence and BASALT's qualified coverage receipt, not create another ledger or observer inside Symtropy.
+
+### 3.2 Receipt evidence is not a timestamp field
 
 The `receiver_first_seen_at` value is not sufficient by itself. The event envelope must also carry a receiver-receipt disposition, an immutable receipt reference and a digest of the exact event bytes covered by that receipt.
 
@@ -146,7 +166,7 @@ A trusted timestamp imprint is separately recorded as `trusted_timestamp_imprint
 For a timestamp status declared `valid`, the synthetic contract additionally requires a non-null `trusted_timestamp_at_unix_ms` and an imprint exactly equal to the canonical payload digest. A status label without the matching imprint is rejected. This fixture rule tests internal consistency; it does not cryptographically verify an RFC 3161 token, TSA certificate chain, policy OID, nonce, accuracy or revocation status. Those require a real verifier adapter and independently governed trust policy.
 
 
-### 3.2 Source-scoped event identity and idempotent delivery
+### 3.3 Source-scoped event identity and idempotent delivery
 
 An immutable event identity is the composite key `(source_namespace, event_id)`, not a globally unique display string. Two independent sources may legitimately use the same local event-ID text. They must remain distinct events and must not collide merely because the string matches.
 
@@ -158,7 +178,7 @@ For one composite key:
 
 This is not a permission to ignore replay. It distinguishes at-least-once transport delivery of the same immutable source event from two conflicting source assertions under the same event identity.
 
-### 3.3 Canonicalization and immutable source bytes
+### 3.4 Canonicalization and immutable source bytes
 
 The event digest must be computed over a versioned canonical representation. The canonicalization algorithm, schema/profile version and digest algorithm are part of the verification record.
 
@@ -172,7 +192,7 @@ Retain:
 
 Do not replace the source with a normalized form. Normalization and derived representations are new artifacts with parent references.
 
-### 3.4 Trusted time evidence
+### 3.5 Trusted time evidence
 
 RFC 3161 Time-Stamp Protocol is the first comparator for a timestamp authority. A valid token over the event digest can support the claim that the committed data existed no later than the token's asserted time, subject to its cryptographic and policy validation. It does **not** validate `effective_at`, event truth, physical acquisition, issuer authority or custody before the token.
 
@@ -180,7 +200,7 @@ RFC 4998 Evidence Record Syntax is a comparator for long-term integrity evidence
 
 Do not operate a new timestamp authority as part of this work. Consume independently verifiable evidence from an appropriate external provider or existing organizational service.
 
-### 3.5 Trust-policy snapshot
+### 3.6 Trust-policy snapshot
 
 An evaluation report must pin at least:
 - accepted trust roots and certificate/status evidence;
@@ -393,7 +413,7 @@ The machine-readable first slice is:
 - `docs/research/aviation/examples/aero_temporal_replay_corpus_v0_1.json`
 - `docs/research/aviation/schemas/aero_temporal_replay_corpus_v0_1.schema.json`
 
-It contains 26 synthetic controls: a positive no-event binding case; known-but-future-effective and known-effective revocations; a late backdated revocation excluded from the original evidence snapshot but included in a full retrospective replay; revocation effective after acquisition but before report generation; revocation effectivity overlapping acquisition-time uncertainty; calibration-window boundary ambiguity; valid timestamp/imprint positive and mismatching-imprint negative controls; unknown issuer authority; a sequence gap; conflicting same-namespace duplicate payloads; idempotent repeated delivery; identical local IDs under distinct source namespaces; an unverified namespace alias from the same issuer; an issuer-claimed but unverified receipt; unknown compromise effective time; correction cycle, unresolved correction target, cross-certificate correction target, unqualified reinstatement; structurally valid but unqualified corrections, equal-time correction targets and correction-of-correction chains; and source clock rollback.
+It contains 29 synthetic controls: a positive no-event binding case; known-but-future-effective and known-effective revocations; a late backdated revocation excluded from the original evidence snapshot but included in a full retrospective replay; revocation effective after acquisition but before report generation; revocation effectivity overlapping acquisition-time uncertainty; calibration-window boundary ambiguity; valid timestamp/imprint positive and mismatching-imprint negative controls; unknown issuer authority; a sequence gap; conflicting same-namespace duplicate payloads; idempotent repeated delivery; identical local IDs under distinct source namespaces; an unverified namespace alias from the same issuer; an issuer-claimed but unverified receipt; unknown compromise effective time; correction cycle, unresolved correction target, cross-certificate correction target, unqualified reinstatement; structurally valid but unqualified corrections, equal-time correction targets and correction-of-correction chains; unqualified/incomplete observer coverage; evidence-checkpoint digest mismatch; and source clock rollback.
 
 Every case freezes `AS_KNOWN_AT`, `RECOMPUTED_WITH_CURRENT_TRUST` and `RECOMPUTED_WITH_CURRENT_EVIDENCE_AND_TRUST` dispositions over distinct evidence and trust cutoffs. Event effective-time comparison is against acquisition time, not report time. Timestamp status `valid` also requires a non-null token time and exact event-digest imprint equality. The fixture deliberately permits duplicate event IDs so that the duplicate-conflict challenge is representable; uniqueness is a semantic rule to be evaluated, not a JSON Schema uniqueness rule over complete objects.
 
