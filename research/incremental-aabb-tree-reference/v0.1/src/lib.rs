@@ -1490,7 +1490,7 @@ mod tests {
             tree
                 .nodes
                 .iter()
-                .filter(|node| node.as_ref().is_some_and(|entry| entry.is_leaf()))
+                .filter(|node| node.as_ref().is_some_and(Node::<D>::is_leaf))
                 .count()
         );
         let mut free = std::collections::BTreeSet::new();
