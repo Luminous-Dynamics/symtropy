@@ -423,7 +423,7 @@ pub fn decide(
                         },
                         vec![observation],
                     )
-                },
+                }
                 Some(_) => (
                     PlannedAction::Abstain {
                         reason: AbstentionReason::NoFeasibleClaimedWindow,
@@ -441,13 +441,17 @@ pub fn decide(
         DecisionStrategy::FreshestPublished => {
             let active = input.active_with_known_publication();
             match input.most_recent_published(&active) {
-                Some(observation) if input.feasible_windows.contains(&observation.claimed_window) => (
-                    PlannedAction::Choose {
-                        window: observation.claimed_window,
-                        source_observation_id: observation.observation_id.clone(),
-                    },
-                    vec![observation],
-                ),
+                Some(observation)
+                    if input.feasible_windows.contains(&observation.claimed_window) =>
+                {
+                    (
+                        PlannedAction::Choose {
+                            window: observation.claimed_window,
+                            source_observation_id: observation.observation_id.clone(),
+                        },
+                        vec![observation],
+                    )
+                }
                 Some(_) => (
                     PlannedAction::Abstain {
                         reason: AbstentionReason::NoFeasibleClaimedWindow,
@@ -521,10 +525,7 @@ pub fn decide(
                 } else {
                     AbstentionReason::AllEvidenceStale
                 };
-                (
-                    PlannedAction::Abstain { reason },
-                    Vec::new(),
-                )
+                (PlannedAction::Abstain { reason }, Vec::new())
             } else if windows.is_empty() {
                 (
                     PlannedAction::Abstain {
