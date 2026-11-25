@@ -8,42 +8,32 @@ A camera pose is not a single point observation. A feature traces a bounded imag
 
 ## Contract
 
-Given a qualified upper bound on relative camera-to-target translational speed (V_t), angular speed (Omega), and maximum point radius (R_{max}), use the conservative point speed:
+Given qualified upper bounds on relative camera-to-target translational speed V_t, angular speed Omega, and maximum point radius R_max, use the conservative point-speed bound:
 
-[
-V = V_t + Omega R_{max}.
-]
+`V = V_t + Omega * R_max`.
 
-For a declared integration interval (Delta t):
+For a declared integration interval dt, the outward-rounded point displacement is:
 
-[
-Delta P = lceil VDelta t ceil.
-]
+`DeltaP_um = ceil(V_um_per_s * dt_ns / 1_000_000_000)`.
 
-For the pinhole projection (u=f_x X/Z+c_x), (v=f_yY/Z+c_y), with support bounds (Zge Z_{min}>0), (|X|le X_{max}), (|Y|le Y_{max}), the derivative bound yields:
+For pinhole projection u = fx * X/Z + cx and v = fy * Y/Z + cy, with support bounds Z >= Zmin > 0, |X| <= Xmax and |Y| <= Ymax, the derivative bound gives:
 
-[
-|Delta u|le f_xDelta Pleft({1over Z_{min}}+{X_{max}over Z_{min}^2}ight)
-={f_xDelta P(Z_{min}+X_{max})over Z_{min}^2},
-]
-
-[
-|Delta v|le {f_yDelta P(Z_{min}+Y_{max})over Z_{min}^2}.
-]
+```text
+horizontal_micro_px = ceil(fx_micro_px * DeltaP_um * (Zmin_um + Xmax_um) / Zmin_um^2)
+vertical_micro_px   = ceil(fy_micro_px * DeltaP_um * (Zmin_um + Ymax_um) / Zmin_um^2)
+```
 
 Every division rounds outward. The complete coordinate, depth and radius envelopes must hold across the entire exposure/readout interval. The code computes exposure smear and first-to-last row midpoint variation independently and also reports their conservative sum.
 
 ## Bound derivation
 
-For each supported point, its relative camera-frame velocity is bounded by translational speed plus angular speed times its radius. Each coordinate displacement is therefore no greater than (Delta P). Applying the quotient derivative to (X/Z):
+For each supported point, its relative camera-frame velocity is bounded by translational speed plus angular speed times its radius. Each coordinate displacement is therefore no greater than DeltaP. Applying the quotient derivative to X/Z:
 
-[
-left|{d(X/Z)over dt}ight|
-le {|dot X|over Z_{min}}+
-{X_{max}|dot Z|over Z_{min}^2}.
-]
+```text
+|d(X/Z)/dt| <= |dX/dt| / Zmin + Xmax * |dZ/dt| / Zmin^2
+```
 
-The implementation assumes (|dot X|,|dot Z|le V) and integrates that conservative bound over the full time separation. The Y projection is analogous. This is intentionally looser than a full interval SE(3) trajectory solution; its advantage is a small, auditable, fixed-point proof obligation.
+The implementation assumes |dX/dt| and |dZ/dt| are each bounded by V and integrates that conservative bound over the full time separation. The Y projection is analogous. This is intentionally looser than a full interval SE(3) trajectory solution; its advantage is a small, auditable, fixed-point proof obligation.
 
 ## Scope and owners
 
@@ -62,7 +52,7 @@ No pose estimator, trajectory generator, hand-eye calibration, clock synchronize
 
 ## Frozen benchmark strata
 
-The initial ten cases exercise:
+The initial eleven cases exercise:
 - static positive control;
 - translational motion within and beyond budget;
 - pure relative rotation;
@@ -71,27 +61,21 @@ The initial ten cases exercise:
 - exposure and row-time individually within budget but combined frame bound beyond budget;
 - unknown relative-motion state;
 - failed support-envelope state;
-- zero minimum-depth invalid input.
+- zero minimum-depth invalid input;
+- arithmetic-overflow invalid input.
 
-Rust tests also check increasing bound with increasing support radius, lower bounds at nearer depth, and correct separation/combination of exposure and row-time displacement. The independent standard-library Python oracle uses exact rational arithmetic and must match complete Rust receipts.
+Rust tests also check increasing bound with increasing support radius, lower bounds at nearer depth, correct separation/combination of exposure and row-time displacement, and rejection rather than wraparound on arithmetic overflow. The independent standard-library Python oracle uses exact rational arithmetic and must match complete Rust receipts.
 
 ## Metrics and prospective gates
 
-Report:
-- upper-bound conservatism against high-resolution temporal projection sampling;
-- horizontal/vertical exposure smear and row-time reprojection in micro-pixels;
-- near/far depth sensitivity;
-- per-source uncertainty and model validity status;
-- false-valid and false-hold rates;
-- combined-frame bound and channel-specific margins;
-- fixed-point runtime, overflow rejection and exact replay.
+Report upper-bound conservatism against high-resolution temporal projection sampling; horizontal/vertical exposure smear and row-time reprojection; near/far depth sensitivity; per-source uncertainty and model validity; false-valid and false-hold rates; combined-frame bound and channel-specific margins; fixed-point runtime, overflow rejection and exact replay.
 
 Prospective software targets:
-- 100% agreement with independent rational oracle on frozen cases;
+- 100% agreement with the independent rational oracle on frozen cases;
 - zero unknown, failed or unsupported upstream states accepted;
 - zero over-budget exposure, row-time or combined-frame cases accepted;
 - monotonic bounds with increased relative speed, angular speed, radius or duration, and with decreased minimum depth;
-- exact equality with the translation-only formula when angular speed is zero and row-time span is zero.
+- exact agreement with the translation-only formula when angular speed is zero and row-time span is zero.
 
 These are synthetic contract targets, not camera performance or physical inspection results.
 
