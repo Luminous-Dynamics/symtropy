@@ -473,6 +473,20 @@ The 41-container Transnet aggregate is deliberately **not** quantity-weighted by
 
 This complements rather than replaces cargo lineage #6631: that owner resolves canonical physical boxes and source aliases; custody #6662 qualifies paired handoffs; the quantity evaluator consumes their identities, quantities and independently admitted receiver outcomes.
 
+
+## Unit-safe quantity-weighted service (25 November 2026)
+
+Draft [PR #7431](https://github.com/Luminous-Dynamics/symtropy/pull/7431) adds a typed evaluator for count-, TEU- and tonne-weighted service. It consumes canonical expected-unit IDs from the lineage owner plus a one-to-one quantity record for each unit. It rejects mixed units, missing/extra quantity rows, duplicate IDs, zero quantities and any service rows that fail the existing receiver/source identity validator.
+
+The evaluator reports expected quantity, receiver-accepted quantity, verified on-time quantity and on-time rate in one explicitly declared unit basis. It never adds containers, TEU and tonnes together. Integer quantities use milli-units; 1,000 milli-TEU = one TEU, and 1,000 milli-tonnes = one metric tonne.
+
+A four-box synthetic trace produces:
+- Container count: 4 expected, 2 accepted, 1 on time → 25.0%.
+- TEU: 5 expected, 3 accepted, 1 on time → 20.0%.
+- Tonnes: 40 expected, 30 accepted, 10 on time → 25.0%.
+
+These are synthetic known answers, not DGT outcomes. The public 41-container pharmaceutical summary has no unit-level IDs/weights, so its TEU/tonnage-weighted performance is NOT_EVALUABLE; its count-only aggregate is reported by the separate source-status audit.
+
 ### Competitive boundary
 
 The benchmark does not claim that incumbents lack variability reporting or receiver visibility. CPPI provides a strong global **port-level vessel time** comparator; Kaleris N4 covers extensive terminal operating workflows; DCSA and GS1 standardize important event exchange/visibility layers. Our opening is to demonstrate—under matched and independently qualified evidence—whether an assurance layer can prevent local metric gaming and verify actual service improvement across terminal, inland and receiver boundaries.
