@@ -165,6 +165,25 @@ def calculate_bounds(model):
     )
     combined_frame = displacement_terms(frame_speed, frame_acceleration, frame_jerk)
 
+    # Comparator only: apply the largest permitted instantaneous speed
+    # across the entire frame. The time-varying integral remains authoritative.
+    twice_max_time = 2 * row_span + exposure
+    constant_speed = ceil_fraction(Fraction(speed * frame_duration, NS))
+    constant_acceleration = ceil_fraction(
+        Fraction(acceleration * twice_max_time * frame_duration, 2 * (NS**2))
+    )
+    constant_jerk = ceil_fraction(
+        Fraction(jerk * twice_max_time**2 * frame_duration, 8 * (NS**3))
+    )
+    constant_max_speed_frame = displacement_terms(
+        constant_speed, constant_acceleration, constant_jerk
+    )
+    constant_speed_excess = (
+        constant_max_speed_frame["total_um"] - combined_frame["total_um"]
+    )
+    if constant_speed_excess < 0:
+        raise OverflowError("CONSTANT_SPEED_COMPARATOR_UNDER_BOUND")
+
     exposure_x = projected_axis(
         model["focal_x_micro_px"],
         latest_exposure["total_um"],
@@ -202,10 +221,27 @@ def calculate_bounds(model):
         model["min_depth_um"],
     )
 
+    constant_speed_frame_x = projected_axis(
+        model["focal_x_micro_px"],
+        constant_max_speed_frame["total_um"],
+        model["max_abs_x_um"],
+        model["min_depth_um"],
+    )
+    constant_speed_frame_y = projected_axis(
+        model["focal_y_micro_px"],
+        constant_max_speed_frame["total_um"],
+        model["max_abs_y_um"],
+        model["min_depth_um"],
+    )
+
     return {
         "row_time": row,
         "latest_row_exposure": latest_exposure,
         "combined_frame": combined_frame,
+        "constant_max_speed_frame": constant_max_speed_frame,
+        "constant_speed_excess_um_upper": constant_speed_excess,
+        "constant_speed_frame_x_micro_px_upper": constant_speed_frame_x,
+        "constant_speed_frame_y_micro_px_upper": constant_speed_frame_y,
         "exposure_x_micro_px_upper": exposure_x,
         "exposure_y_micro_px_upper": exposure_y,
         "row_time_x_micro_px_upper": row_x,
