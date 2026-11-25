@@ -1,0 +1,504 @@
+{
+  "schema_version": "ergo-agent-transfer-bundle-v0",
+  "agent_submission_binding": {
+    "agent_protocol_version": "symthaea-open-world-research-episode-v0",
+    "agent_view_frame_sha256": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+    "agent_action_frame_sha256": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "source_episode_id": "source-episode-001",
+    "target_episode_id": "target-episode-014",
+    "source_evidence_prefix_sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "target_evidence_prefix_sha256": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "source_episode_receipt_sha256": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+    "target_episode_receipt_sha256": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+    "submission_episode_id": "target-episode-014",
+    "submission_evidence_prefix_sha256": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "structural_transfer": {
+    "schema_version": "ergo-transfer-proposal-v0",
+    "map_kind": "induced_embedding",
+    "source": {
+      "episode_id": "source-episode-001",
+      "evidence_prefix_sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "structure": {
+        "nodes": [
+          {
+            "id": 1,
+            "evidence_ids": [
+              "E0001"
+            ]
+          },
+          {
+            "id": 2,
+            "evidence_ids": [
+              "E0002"
+            ]
+          },
+          {
+            "id": 3,
+            "evidence_ids": [
+              "E0003"
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "id": 10,
+            "kind": 1,
+            "orientation": "directed",
+            "participants": [
+              1,
+              2
+            ],
+            "evidence_ids": [
+              "E0004"
+            ]
+          },
+          {
+            "id": 11,
+            "kind": 1,
+            "orientation": "directed",
+            "participants": [
+              2,
+              3
+            ],
+            "evidence_ids": [
+              "E0005"
+            ]
+          }
+        ]
+      },
+      "scope": {
+        "node_ids": [
+          1,
+          2
+        ],
+        "relation_ids": [
+          10
+        ],
+        "excluded_node_ids": [
+          3
+        ],
+        "excluded_relation_ids": [
+          11
+        ]
+      }
+    },
+    "target": {
+      "episode_id": "target-episode-014",
+      "evidence_prefix_sha256": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "structure": {
+        "nodes": [
+          {
+            "id": 11,
+            "evidence_ids": [
+              "E0011"
+            ]
+          },
+          {
+            "id": 12,
+            "evidence_ids": [
+              "E0012"
+            ]
+          },
+          {
+            "id": 13,
+            "evidence_ids": [
+              "E0013"
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "id": 110,
+            "kind": 100,
+            "orientation": "directed",
+            "participants": [
+              11,
+              12
+            ],
+            "evidence_ids": [
+              "E0014"
+            ]
+          },
+          {
+            "id": 111,
+            "kind": 100,
+            "orientation": "directed",
+            "participants": [
+              12,
+              13
+            ],
+            "evidence_ids": [
+              "E0015"
+            ]
+          }
+        ]
+      },
+      "scope": {
+        "node_ids": [
+          11,
+          12
+        ],
+        "relation_ids": [
+          110
+        ],
+        "excluded_node_ids": [
+          13
+        ],
+        "excluded_relation_ids": [
+          111
+        ]
+      }
+    },
+    "correspondence": {
+      "nodes": [
+        {
+          "source_node_id": 1,
+          "target_node_id": 11
+        },
+        {
+          "source_node_id": 2,
+          "target_node_id": 12
+        }
+      ],
+      "relation_kinds": [
+        {
+          "source_kind": 1,
+          "target_kind": 100,
+          "participant_transform": "preserve_order"
+        }
+      ],
+      "relations": [
+        {
+          "source_relation_id": 10,
+          "target_relation_id": 110
+        }
+      ]
+    },
+    "assumptions": [
+      "Relation IDs and kinds are domain-local.",
+      "Only the declared source and target induced substructures are claimed to correspond."
+    ],
+    "alternative_correspondences": [],
+    "unresolved": false,
+    "counterexample_evidence_ids": []
+  },
+  "dynamics_transfer": {
+    "map_kind": "deterministic_transition_commutation",
+    "source_scope": {
+      "state_ids": [
+        1,
+        2,
+        3
+      ],
+      "action_ids": [
+        10
+      ],
+      "excluded_state_ids": [],
+      "excluded_action_ids": []
+    },
+    "target_scope": {
+      "state_ids": [
+        11,
+        12,
+        13
+      ],
+      "action_ids": [
+        110
+      ],
+      "excluded_state_ids": [],
+      "excluded_action_ids": []
+    },
+    "state_mappings": [
+      {
+        "source_state_id": 1,
+        "target_state_id": 11
+      },
+      {
+        "source_state_id": 2,
+        "target_state_id": 12
+      },
+      {
+        "source_state_id": 3,
+        "target_state_id": 13
+      }
+    ],
+    "action_mappings": [
+      {
+        "source_action_id": 10,
+        "target_action_id": 110,
+        "source_action_kind": 1,
+        "target_action_kind": 100
+      }
+    ],
+    "predicted_transitions": [
+      {
+        "source_from_state_id": 1,
+        "source_action_id": 10,
+        "source_to_state_id": 2,
+        "predicted_target_from_state_id": 11,
+        "predicted_target_action_id": 110,
+        "predicted_target_to_state_id": 12,
+        "source_evidence_ids": [
+          "E0010"
+        ]
+      },
+      {
+        "source_from_state_id": 2,
+        "source_action_id": 10,
+        "source_to_state_id": 3,
+        "predicted_target_from_state_id": 12,
+        "predicted_target_action_id": 110,
+        "predicted_target_to_state_id": 13,
+        "source_evidence_ids": [
+          "E0020"
+        ]
+      }
+    ],
+    "assumptions": [
+      "The declared source transition sample is deterministic over this scope.",
+      "The target transition predictions are frozen before evaluator-owned target transitions are released."
+    ],
+    "unresolved": false,
+    "source_state_snapshot": [
+      {
+        "id": 1,
+        "evidence_ids": [
+          "E0006"
+        ]
+      },
+      {
+        "id": 2,
+        "evidence_ids": [
+          "E0007"
+        ]
+      },
+      {
+        "id": 3,
+        "evidence_ids": [
+          "E0008"
+        ]
+      }
+    ],
+    "target_state_snapshot": [
+      {
+        "id": 11,
+        "evidence_ids": [
+          "E0016"
+        ]
+      },
+      {
+        "id": 12,
+        "evidence_ids": [
+          "E0017"
+        ]
+      },
+      {
+        "id": 13,
+        "evidence_ids": [
+          "E0018"
+        ]
+      }
+    ],
+    "source_action_snapshot": [
+      {
+        "id": 10,
+        "kind": 1,
+        "evidence_ids": [
+          "E0009"
+        ]
+      }
+    ],
+    "target_action_snapshot": [
+      {
+        "id": 110,
+        "kind": 100,
+        "evidence_ids": [
+          "E0019"
+        ]
+      }
+    ]
+  },
+  "unresolved": false,
+  "alternatives": [],
+  "known_non_transfer_boundaries": [
+    "No claim is made about states or actions outside the declared dynamics scope.",
+    "Qualitative effect-sign agreement is not causal qualification."
+  ],
+  "behavioural_transfer": {
+    "map_kind": "simulation",
+    "source_state_snapshot": [
+      {
+        "id": 1,
+        "evidence_ids": [
+          "E0006"
+        ]
+      },
+      {
+        "id": 2,
+        "evidence_ids": [
+          "E0007"
+        ]
+      },
+      {
+        "id": 3,
+        "evidence_ids": [
+          "E0008"
+        ]
+      }
+    ],
+    "target_state_snapshot": [
+      {
+        "id": 11,
+        "evidence_ids": [
+          "E0016"
+        ]
+      },
+      {
+        "id": 12,
+        "evidence_ids": [
+          "E0017"
+        ]
+      },
+      {
+        "id": 13,
+        "evidence_ids": [
+          "E0018"
+        ]
+      }
+    ],
+    "source_action_snapshot": [
+      {
+        "id": 10,
+        "kind": 1,
+        "evidence_ids": [
+          "E0009"
+        ]
+      }
+    ],
+    "target_action_snapshot": [
+      {
+        "id": 110,
+        "kind": 100,
+        "evidence_ids": [
+          "E0019"
+        ]
+      }
+    ],
+    "state_relation": [
+      {
+        "source_state_id": 1,
+        "target_state_id": 11
+      },
+      {
+        "source_state_id": 2,
+        "target_state_id": 12
+      },
+      {
+        "source_state_id": 2,
+        "target_state_id": 13
+      }
+    ],
+    "action_mappings": [
+      {
+        "source_action_id": 10,
+        "target_action_id": 110,
+        "source_action_kind": 1,
+        "target_action_kind": 100
+      }
+    ],
+    "response_predictions": [
+      {
+        "direction": "source_to_target",
+        "observed_side": "source",
+        "observed_from_state_id": 1,
+        "observed_action_id": 10,
+        "observed_to_state_id": 2,
+        "observed_evidence_ids": [
+          "E0010"
+        ],
+        "predicted_from_state_id": 11,
+        "predicted_action_id": 110,
+        "predicted_to_state_id": 12
+      }
+    ],
+    "assumptions": [
+      "The source transition is an observed public-prefix transition.",
+      "The target response is a frozen candidate prediction, not evaluator-owned target truth.",
+      "Simulation permits additional target transitions; no bisimulation claim is made."
+    ],
+    "unresolved": false,
+    "scope": {
+      "source_state_ids": [
+        1,
+        2
+      ],
+      "target_state_ids": [
+        11,
+        12,
+        13
+      ],
+      "source_action_ids": [
+        10
+      ],
+      "target_action_ids": [
+        110
+      ]
+    }
+  },
+  "transfer_forecasts": [
+    {
+      "claim_id": "structural-main",
+      "claim_type": "structural_correspondence",
+      "claim_scope_sha256": "sha256:671a33417589dd928c819d5f3b2ba1b9c125f96a9961797df1d71747a0c4e711",
+      "probability_transfer_ppm": 920000,
+      "decision": "assert_transfer"
+    },
+    {
+      "claim_id": "behaviour-main",
+      "claim_type": "simulation",
+      "claim_scope_sha256": "sha256:6c4238994f641ce7986ddbc24a4bbba780589812cab8619eed81cf64efb27c18",
+      "probability_transfer_ppm": 550000,
+      "decision": "abstain"
+    },
+    {
+      "claim_id": "mechanism-main",
+      "claim_type": "mechanism_transfer",
+      "claim_scope_sha256": "sha256:9af2908a0b8ba846b15afbc4fafb88cfc4a9a4656566083b99839921e378e327",
+      "probability_transfer_ppm": 180000,
+      "decision": "reject_transfer"
+    }
+  ],
+  "mechanism_transfer": {
+    "source_episode_id": "source-episode-001",
+    "target_episode_id": "target-episode-014",
+    "source_evidence_prefix_sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "target_evidence_prefix_sha256": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "action_mappings": [
+      {
+        "source_action_id": 20,
+        "target_action_id": 120,
+        "source_action_kind": 2,
+        "target_action_kind": 200,
+        "effect_transform": "preserve"
+      }
+    ],
+    "source_interventions": [
+      {
+        "source_action_id": 20,
+        "target_action_id": 120,
+        "source_effect": "positive",
+        "evidence_ids": [
+          "E0006"
+        ]
+      }
+    ],
+    "target_effect_predictions": [
+      {
+        "source_action_id": 20,
+        "target_action_id": 120,
+        "predicted_target_effect": "positive"
+      }
+    ]
+  }
+}

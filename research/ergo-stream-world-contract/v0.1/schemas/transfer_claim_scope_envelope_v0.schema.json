@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/transfer_claim_scope_envelope_v0.schema.json",
+  "title": "ErgoStream transfer claim scope envelope v0",
+  "description": "Versioned canonical envelope whose RFC 8785 JCS UTF-8 bytes are SHA-256 hashed. The claim_artifact is exactly one claim-bearing subobject from AgentTransferBundle v0.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "claim_id",
+    "claim_type",
+    "source_episode_id",
+    "target_episode_id",
+    "source_evidence_prefix_sha256",
+    "target_evidence_prefix_sha256",
+    "claim_artifact"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ergo-transfer-claim-scope-v0"
+    },
+    "claim_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claim_type": {
+      "enum": [
+        "structural_correspondence",
+        "deterministic_dynamics",
+        "simulation",
+        "bisimulation",
+        "mechanism_transfer"
+      ]
+    },
+    "source_episode_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_episode_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_evidence_prefix_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "target_evidence_prefix_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "claim_artifact": {
+      "oneOf": [
+        {
+          "$ref": "scoped_transfer_proposal_v0.schema.json"
+        },
+        {
+          "$ref": "agent_transfer_bundle_v0.schema.json#/$defs/dynamics_transfer"
+        },
+        {
+          "$ref": "agent_transfer_bundle_v0.schema.json#/$defs/behavioural_transfer"
+        },
+        {
+          "$ref": "agent_transfer_bundle_v0.schema.json#/$defs/mechanism_transfer"
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "claim_type": {
+            "const": "structural_correspondence"
+          }
+        },
+        "required": [
+          "claim_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "claim_artifact": {
+            "$ref": "scoped_transfer_proposal_v0.schema.json"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "claim_type": {
+            "const": "deterministic_dynamics"
+          }
+        },
+        "required": [
+          "claim_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "claim_artifact": {
+            "$ref": "agent_transfer_bundle_v0.schema.json#/$defs/dynamics_transfer"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "claim_type": {
+            "const": "simulation"
+          }
+        },
+        "required": [
+          "claim_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "claim_artifact": {
+            "$ref": "agent_transfer_bundle_v0.schema.json#/$defs/behavioural_transfer"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "claim_type": {
+            "const": "bisimulation"
+          }
+        },
+        "required": [
+          "claim_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "claim_artifact": {
+            "$ref": "agent_transfer_bundle_v0.schema.json#/$defs/behavioural_transfer"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "claim_type": {
+            "const": "mechanism_transfer"
+          }
+        },
+        "required": [
+          "claim_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "claim_artifact": {
+            "$ref": "agent_transfer_bundle_v0.schema.json#/$defs/mechanism_transfer"
+          }
+        }
+      }
+    }
+  ]
+}

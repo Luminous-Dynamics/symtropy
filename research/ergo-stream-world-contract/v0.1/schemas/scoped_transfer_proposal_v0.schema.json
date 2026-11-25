@@ -1,0 +1,322 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/scoped_transfer_proposal_v0.schema.json",
+  "title": "ErgoStream scoped structural transfer proposal v0",
+  "description": "Learner-authored structural transfer sidecar. It contains candidate mappings and public evidence-prefix bindings, never evaluator truth or hidden world fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "map_kind",
+    "source",
+    "target",
+    "correspondence",
+    "assumptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ergo-transfer-proposal-v0"
+    },
+    "map_kind": {
+      "enum": [
+        "isomorphism",
+        "induced_embedding",
+        "subgraph_embedding"
+      ]
+    },
+    "source": {
+      "$ref": "#/$defs/side"
+    },
+    "target": {
+      "$ref": "#/$defs/side"
+    },
+    "correspondence": {
+      "$ref": "#/$defs/correspondence"
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "alternative_correspondences": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/correspondence"
+      }
+    },
+    "unresolved": {
+      "type": "boolean"
+    },
+    "counterexample_evidence_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "u32_ids": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 4294967295
+      },
+      "uniqueItems": true
+    },
+    "u16_ids": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 65535
+      },
+      "uniqueItems": true
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_ids",
+        "relation_ids",
+        "excluded_node_ids",
+        "excluded_relation_ids"
+      ],
+      "properties": {
+        "node_ids": {
+          "$ref": "#/$defs/u32_ids"
+        },
+        "relation_ids": {
+          "$ref": "#/$defs/u32_ids"
+        },
+        "excluded_node_ids": {
+          "$ref": "#/$defs/u32_ids"
+        },
+        "excluded_relation_ids": {
+          "$ref": "#/$defs/u32_ids"
+        }
+      }
+    },
+    "side": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "evidence_prefix_sha256",
+        "structure",
+        "scope"
+      ],
+      "properties": {
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_prefix_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "structure": {
+          "$ref": "#/$defs/structure_snapshot"
+        }
+      }
+    },
+    "node_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_node_id",
+        "target_node_id"
+      ],
+      "properties": {
+        "source_node_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "target_node_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "relation_kind_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_kind",
+        "target_kind",
+        "participant_transform"
+      ],
+      "properties": {
+        "source_kind": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "target_kind": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "participant_transform": {
+          "enum": [
+            "preserve_order",
+            "reverse_order",
+            "unordered"
+          ]
+        }
+      }
+    },
+    "relation_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_relation_id",
+        "target_relation_id"
+      ],
+      "properties": {
+        "source_relation_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "target_relation_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "correspondence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodes",
+        "relation_kinds",
+        "relations"
+      ],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node_mapping"
+          }
+        },
+        "relation_kinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relation_kind_mapping"
+          }
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relation_mapping"
+          }
+        }
+      }
+    },
+    "node_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "evidence_ids"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^E[0-9]{4,}$"
+          }
+        }
+      }
+    },
+    "relation_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "orientation",
+        "participants",
+        "evidence_ids"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "kind": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "orientation": {
+          "enum": [
+            "directed",
+            "undirected"
+          ]
+        },
+        "participants": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          }
+        },
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^E[0-9]{4,}$"
+          }
+        }
+      }
+    },
+    "structure_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodes",
+        "relations"
+      ],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node_snapshot"
+          }
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relation_snapshot"
+          }
+        }
+      }
+    }
+  }
+}

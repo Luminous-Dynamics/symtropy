@@ -1,0 +1,33 @@
+{
+  "schema_version": "ergo-split-conformal-transfer-receipt-v0",
+  "receipt_id": "receipt-transfer-2026-00017",
+  "status": "active",
+  "issued_at": "2026-11-24T11:05:00+02:00",
+  "model_frozen_at": "2026-11-24T09:20:00+02:00",
+  "calibration_started_at": "2026-11-24T09:35:00+02:00",
+  "predictor_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "preprocessing_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "score_function_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "calibration_cohort_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "sample_ids_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "split_manifest_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "evidence_prefix_sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "evaluation_stratum_id": 7,
+  "independent_unit_kind": "world_seed",
+  "independent_unit_count": 40,
+  "exchangeability_scope": "Only future claims drawn under the same frozen synthetic-world generator family and representation/mechanism stratum; no cross-stratum or temporal-shift claim.",
+  "claim_type": "simulation",
+  "alpha_ppm": 100000,
+  "calibration_count": 40,
+  "quantile_rank": 37,
+  "quantile_nonconformity_ppm": 210000,
+  "tie_rule": "include_when_score_lte_quantile",
+  "guarantee": "marginal_prediction_set_coverage_under_exchangeability_within_stratum",
+  "custody_receipt_id": "owner-custody-episode-bundle-00017",
+  "claim_scope_sha256": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+  "notes": [
+    "Illustrative only; digest values are placeholders, not real commitments.",
+    "The predictor and score function were frozen before calibration outcomes were unsealed.",
+    "A finite-sample marginal guarantee depends on the declared within-stratum exchangeability assumption."
+  ]
+}

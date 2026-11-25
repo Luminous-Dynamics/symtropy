@@ -6,6 +6,19 @@
 
 use std::fmt;
 
+pub mod acquisition;
+pub mod atlas;
+pub mod behaviour;
+pub mod bundle;
+pub mod calibration;
+pub mod decision_value;
+pub mod dynamics;
+pub mod matching;
+pub mod quotient;
+pub mod scoped;
+
+pub mod transfer;
+
 pub const SCHEMA_VERSION_V0: u16 = 1;
 const MAX_EVENTS_V0: usize = 65_536;
 const UNIT_PATTERNS: [[u8; 2]; 3] = [[0, 1], [2, 3], [0, 2]];

@@ -1,0 +1,2013 @@
+//! Proper scoring and selective-risk metrics for transfer forecasts.
+//!
+//! A transfer learner should not be graded only on whether its proposed map
+//! passes a hidden evaluator. It should also be graded on whether its
+//! probability forecast is calibrated and whether abstention controls the
+//! risk of the claims it elects to make.
+//!
+//! This module is an evaluator-side metric implementation. It does not
+//! estimate the probabilities, choose a confidence threshold, or authorize
+//! transfers. Probabilities use integer parts-per-million (ppm) so Brier and
+//! binned calibration errors have exact integer numerators.
+
+use std::collections::{BTreeMap, BTreeSet};
+use std::fmt;
+
+/// Probability scale: 1_000_000 ppm represents probability 1.0.
+pub const PROBABILITY_SCALE_PPM_V0: u32 = 1_000_000;
+/// Guardrail against accidental or adversarial allocation of huge bin arrays.
+pub const MAX_CALIBRATION_BINS_V0: usize = 10_000;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TransferDecisionV0 {
+    AssertTransfer,
+    RejectTransfer,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TransferForecastV0 {
+    pub sample_id: u64,
+    /// Forecast probability that the declared transfer claim is valid.
+    pub probability_transfer_ppm: u32,
+    /// None is an explicit abstention, not a negative transfer prediction.
+    pub decision: Option<TransferDecisionV0>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TransferOutcomeV0 {
+    pub sample_id: u64,
+    /// Owner/evaluator grouping label, never learner-authored.
+    pub evaluation_stratum_id: u16,
+    /// Owner/evaluator truth for the exact declared transfer claim.
+    pub transfer_qualified: bool,
+}
+
+/// Exact type of the scoped claim whose qualification probability is forecast.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum TransferClaimTypeV0 {
+    StructuralCorrespondence,
+    DeterministicDynamics,
+    Simulation,
+    Bisimulation,
+    MechanismTransfer,
+}
+
+/// Learner-authored forecast bound to a named claim and its canonical scope digest.
+///
+/// The evaluator must independently recompute the scope digest from the frozen
+/// claim artifact; comparing two learner-supplied strings is not sufficient.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BoundTransferForecastV0 {
+    pub claim_id: String,
+    pub claim_type: TransferClaimTypeV0,
+    pub claim_scope_sha256: String,
+    pub probability_transfer_ppm: u32,
+    pub decision: Option<TransferDecisionV0>,
+}
+
+/// Evaluator-owned outcome joined to the exact same claim identity.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BoundTransferOutcomeV0 {
+    pub claim_id: String,
+    pub claim_type: TransferClaimTypeV0,
+    pub claim_scope_sha256: String,
+    pub evaluation_stratum_id: u16,
+    pub transfer_qualified: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BoundTransferCalibrationReportV0 {
+    pub pooled: TransferCalibrationReportV0,
+    pub by_stratum: Vec<StratifiedTransferCalibrationReportV0>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CalibrationBinV0 {
+    pub bin_index: usize,
+    pub sample_count: usize,
+    pub positive_count: usize,
+    /// Sum of probability ppm values for exact aggregation.
+    pub probability_sum_ppm: u128,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SelectiveRiskPointV0 {
+    /// Minimum confidence in the forecast's selected class, inclusive.
+    pub confidence_threshold_ppm: u32,
+    pub total_samples: usize,
+    pub covered_samples: usize,
+    pub errors: usize,
+}
+
+impl SelectiveRiskPointV0 {
+    pub fn coverage(self) -> Option<f64> {
+        (self.total_samples > 0).then(|| self.covered_samples as f64 / self.total_samples as f64)
+    }
+
+    pub fn selective_risk(self) -> Option<f64> {
+        (self.covered_samples > 0).then(|| self.errors as f64 / self.covered_samples as f64)
+    }
+
+    /// Two-sided 95% Wilson interval for empirical coverage.
+    ///
+    /// This is an IID binomial reference interval. It is not a valid
+    /// uncertainty bound for clustered or temporally dependent claims.
+    pub fn coverage_wilson_95(self) -> Option<(f64, f64)> {
+        wilson_interval_95(self.covered_samples, self.total_samples)
+    }
+
+    /// Two-sided 95% Wilson interval for selective risk.
+    ///
+    /// The denominator is the number of claims selected at this threshold.
+    /// This is an IID binomial reference interval only; use campaign/block
+    /// bootstrap or another cluster-aware method for dependent episodes.
+    pub fn selective_risk_wilson_95(self) -> Option<(f64, f64)> {
+        wilson_interval_95(self.errors, self.covered_samples)
+    }
+}
+
+fn wilson_interval_95(successes: usize, trials: usize) -> Option<(f64, f64)> {
+    if trials == 0 || successes > trials {
+        return None;
+    }
+
+    const Z_95: f64 = 1.959_963_984_540_054;
+    let n = trials as f64;
+    let p = successes as f64 / n;
+    let z_squared = Z_95 * Z_95;
+    let denominator = 1.0 + z_squared / n;
+    let centre = (p + z_squared / (2.0 * n)) / denominator;
+    let half_width = Z_95 * ((p * (1.0 - p) / n) + z_squared / (4.0 * n * n)).sqrt() / denominator;
+
+    Some((
+        (centre - half_width).max(0.0),
+        (centre + half_width).min(1.0),
+    ))
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct StratifiedTransferCalibrationReportV0 {
+    /// Evaluator-owned, preregistered semantic/format/claim stratum.
+    pub evaluation_stratum_id: u16,
+    pub report: TransferCalibrationReportV0,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TransferCalibrationReportV0 {
+    pub sample_count: usize,
+    /// Exact Brier score = numerator / denominator.
+    pub brier_numerator: u128,
+    pub brier_denominator: u128,
+    /// Mean binary log loss in nats, clipped only to avoid log(0).
+    pub mean_log_loss_nats: f64,
+    pub log_loss_clipped_samples: usize,
+    pub calibration_bins: Vec<CalibrationBinV0>,
+    /// Exact fixed-bin ECE = numerator / (sample_count * probability scale).
+    pub expected_calibration_error_numerator: u128,
+    pub expected_calibration_error_denominator: u128,
+    /// Share of all forecasts that received a non-abstaining decision.
+    pub decision_coverage: f64,
+    /// Tie-aware right-step AURC over decided samples only; None if all abstain.
+    /// Always report this beside decision_coverage to prevent abstention gaming.
+    pub risk_coverage_auc: Option<f64>,
+    /// Risk/coverage values at the caller's preregistered thresholds.
+    pub selective_risk_curve: Vec<SelectiveRiskPointV0>,
+}
+
+impl TransferCalibrationReportV0 {
+    pub fn brier_score(&self) -> f64 {
+        self.brier_numerator as f64 / self.brier_denominator as f64
+    }
+
+    pub fn expected_calibration_error(&self) -> f64 {
+        self.expected_calibration_error_numerator as f64
+            / self.expected_calibration_error_denominator as f64
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TransferCalibrationErrorV0 {
+    EmptyForecasts,
+    EmptyThresholds,
+    ZeroCalibrationBins,
+    TooManyCalibrationBins,
+    DuplicateSampleId,
+    DuplicateOutcomeId,
+    DuplicateThreshold,
+    MissingOutcome,
+    UnknownOutcome,
+    ProbabilityOutOfRange,
+    ThresholdOutOfRange,
+    ArithmeticOverflow,
+    EmptyConformalCalibration,
+    AlphaOutOfRange,
+    MixedCalibrationStrata,
+    EmptyClaimId,
+    DuplicateClaimId,
+    DuplicateClaimOutcomeId,
+    DuplicateIndependentUnitId,
+    InvalidClaimScopeDigest,
+    InvalidCalibrationIdentityDigest,
+    ClaimIdentityMismatch,
+}
+
+impl fmt::Display for TransferCalibrationErrorV0 {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let message = match self {
+            Self::EmptyForecasts => "at least one transfer forecast is required",
+            Self::EmptyThresholds => "at least one selective-risk threshold is required",
+            Self::ZeroCalibrationBins => "calibration bin count must be positive",
+            Self::TooManyCalibrationBins => "calibration bin count exceeds the v0 bound",
+            Self::DuplicateSampleId => "forecast sample IDs must be unique",
+            Self::DuplicateOutcomeId => "outcome sample IDs must be unique",
+            Self::DuplicateThreshold => "selective-risk thresholds must be unique",
+            Self::MissingOutcome => "a forecast has no matching evaluator outcome",
+            Self::UnknownOutcome => "an evaluator outcome has no matching forecast",
+            Self::ProbabilityOutOfRange => "transfer probability must be in 0..=1_000_000 ppm",
+            Self::ThresholdOutOfRange => "confidence threshold must be in 0..=1_000_000 ppm",
+            Self::ArithmeticOverflow => "calibration metric arithmetic overflowed",
+            Self::EmptyConformalCalibration => {
+                "split-conformal calibration requires at least one matched sample"
+            }
+            Self::AlphaOutOfRange => "conformal miscoverage alpha must be in 1..999999 ppm",
+            Self::MixedCalibrationStrata => {
+                "split-conformal calibration samples must belong to one evaluator-owned stratum"
+            }
+            Self::EmptyClaimId => "bound transfer forecast/outcome requires a non-empty claim ID",
+            Self::DuplicateClaimId => "bound transfer forecasts contain a duplicate claim ID",
+            Self::DuplicateClaimOutcomeId => "bound transfer outcomes contain a duplicate claim ID",
+            Self::DuplicateIndependentUnitId => {
+                "split-conformal calibration must have one record per independent unit"
+            }
+            Self::InvalidClaimScopeDigest => "claim scope digest must be a lowercase sha256 digest",
+            Self::InvalidCalibrationIdentityDigest => {
+                "predictor, preprocessing, score-function and calibration artifact identities must be lowercase sha256 digests"
+            }
+            Self::InvalidCalibrationReceiptIdentity => {
+                "conformal calibration identity requires a non-empty active owner-issued receipt ID"
+            }
+            Self::CalibrationReceiptMismatch => {
+                "recomputed split-conformal rank or quantile does not match the owner-issued receipt"
+            }
+            Self::ClaimIdentityMismatch => {
+                "forecast and evaluator outcome do not bind to the same claim type and scope digest"
+            }
+        };
+        formatter.write_str(message)
+    }
+}
+
+impl std::error::Error for TransferCalibrationErrorV0 {}
+
+/// Score transfer forecasts against evaluator-owned outcomes.
+///
+/// Brier score and fixed-bin ECE use exact integer numerators. Log loss is a
+/// floating-point diagnostic with a one-ppm clip at 0/1. Selective risk uses
+/// confidence in the *selected class*: p for AssertTransfer and (1-p) for
+/// RejectTransfer. Abstentions never count as covered claims, but their
+/// probability forecasts remain in the proper-scoring-rule metrics.
+pub fn evaluate_transfer_calibration(
+    forecasts: &[TransferForecastV0],
+    outcomes: &[TransferOutcomeV0],
+    calibration_bin_count: usize,
+    confidence_thresholds_ppm: &[u32],
+) -> Result<TransferCalibrationReportV0, TransferCalibrationErrorV0> {
+    if forecasts.is_empty() {
+        return Err(TransferCalibrationErrorV0::EmptyForecasts);
+    }
+    if confidence_thresholds_ppm.is_empty() {
+        return Err(TransferCalibrationErrorV0::EmptyThresholds);
+    }
+    if calibration_bin_count == 0 {
+        return Err(TransferCalibrationErrorV0::ZeroCalibrationBins);
+    }
+    if calibration_bin_count > MAX_CALIBRATION_BINS_V0 {
+        return Err(TransferCalibrationErrorV0::TooManyCalibrationBins);
+    }
+
+    let mut forecast_ids = BTreeSet::new();
+    for forecast in forecasts {
+        if !forecast_ids.insert(forecast.sample_id) {
+            return Err(TransferCalibrationErrorV0::DuplicateSampleId);
+        }
+        if forecast.probability_transfer_ppm > PROBABILITY_SCALE_PPM_V0 {
+            return Err(TransferCalibrationErrorV0::ProbabilityOutOfRange);
+        }
+    }
+
+    let mut outcome_by_id = std::collections::BTreeMap::new();
+    for outcome in outcomes {
+        if outcome_by_id
+            .insert(outcome.sample_id, outcome.transfer_qualified)
+            .is_some()
+        {
+            return Err(TransferCalibrationErrorV0::DuplicateOutcomeId);
+        }
+    }
+    if forecasts
+        .iter()
+        .any(|forecast| !outcome_by_id.contains_key(&forecast.sample_id))
+    {
+        return Err(TransferCalibrationErrorV0::MissingOutcome);
+    }
+    if outcome_by_id
+        .keys()
+        .any(|sample_id| !forecast_ids.contains(sample_id))
+    {
+        return Err(TransferCalibrationErrorV0::UnknownOutcome);
+    }
+
+    let mut thresholds = BTreeSet::new();
+    for threshold in confidence_thresholds_ppm {
+        if *threshold > PROBABILITY_SCALE_PPM_V0 {
+            return Err(TransferCalibrationErrorV0::ThresholdOutOfRange);
+        }
+        if !thresholds.insert(*threshold) {
+            return Err(TransferCalibrationErrorV0::DuplicateThreshold);
+        }
+    }
+
+    let mut bins = (0..calibration_bin_count)
+        .map(|bin_index| CalibrationBinV0 {
+            bin_index,
+            sample_count: 0,
+            positive_count: 0,
+            probability_sum_ppm: 0,
+        })
+        .collect::<Vec<_>>();
+    let mut brier_numerator = 0_u128;
+    let mut log_loss_sum = 0.0_f64;
+    let mut log_loss_clipped_samples = 0_usize;
+    let mut decisions = Vec::with_capacity(forecasts.len());
+
+    for forecast in forecasts {
+        let truth = *outcome_by_id
+            .get(&forecast.sample_id)
+            .ok_or(TransferCalibrationErrorV0::MissingOutcome)?;
+        let probability = u128::from(forecast.probability_transfer_ppm);
+        let target = if truth {
+            u128::from(PROBABILITY_SCALE_PPM_V0)
+        } else {
+            0
+        };
+        let error = probability.abs_diff(target);
+        let squared_error = error
+            .checked_mul(error)
+            .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?;
+        brier_numerator = brier_numerator
+            .checked_add(squared_error)
+            .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?;
+
+        let clipped_probability = forecast
+            .probability_transfer_ppm
+            .clamp(1, PROBABILITY_SCALE_PPM_V0 - 1);
+        if clipped_probability != forecast.probability_transfer_ppm {
+            log_loss_clipped_samples += 1;
+        }
+        let p = f64::from(clipped_probability) / f64::from(PROBABILITY_SCALE_PPM_V0);
+        log_loss_sum += if truth { -p.ln() } else { -(1.0 - p).ln() };
+
+        let scaled_bin = u64::from(forecast.probability_transfer_ppm)
+            .checked_mul(
+                u64::try_from(calibration_bin_count)
+                    .map_err(|_| TransferCalibrationErrorV0::ArithmeticOverflow)?,
+            )
+            .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?;
+        let bin_index = usize::try_from(scaled_bin / u64::from(PROBABILITY_SCALE_PPM_V0))
+            .map_err(|_| TransferCalibrationErrorV0::ArithmeticOverflow)?
+            .min(calibration_bin_count - 1);
+
+        let bin = &mut bins[bin_index];
+        bin.sample_count = bin
+            .sample_count
+            .checked_add(1)
+            .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?;
+        if truth {
+            bin.positive_count = bin
+                .positive_count
+                .checked_add(1)
+                .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?;
+        }
+        bin.probability_sum_ppm = bin
+            .probability_sum_ppm
+            .checked_add(probability)
+            .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?;
+
+        let (confidence_ppm, predicted_transfer) = match forecast.decision {
+            Some(TransferDecisionV0::AssertTransfer) => {
+                (forecast.probability_transfer_ppm, Some(true))
+            }
+            Some(TransferDecisionV0::RejectTransfer) => (
+                PROBABILITY_SCALE_PPM_V0 - forecast.probability_transfer_ppm,
+                Some(false),
+            ),
+            None => (0, None),
+        };
+        decisions.push((confidence_ppm, predicted_transfer, truth));
+    }
+
+    let sample_count = forecasts.len();
+    let brier_denominator = u128::try_from(sample_count)
+        .map_err(|_| TransferCalibrationErrorV0::ArithmeticOverflow)?
+        .checked_mul(u128::from(PROBABILITY_SCALE_PPM_V0).pow(2))
+        .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?;
+
+    let mut ece_numerator = 0_u128;
+    for bin in &bins {
+        if bin.sample_count == 0 {
+            continue;
+        }
+        let positive_mass = u128::try_from(bin.positive_count)
+            .map_err(|_| TransferCalibrationErrorV0::ArithmeticOverflow)?
+            .checked_mul(u128::from(PROBABILITY_SCALE_PPM_V0))
+            .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?;
+        ece_numerator = ece_numerator
+            .checked_add(bin.probability_sum_ppm.abs_diff(positive_mass))
+            .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?;
+    }
+
+    let ece_denominator = u128::try_from(sample_count)
+        .map_err(|_| TransferCalibrationErrorV0::ArithmeticOverflow)?
+        .checked_mul(u128::from(PROBABILITY_SCALE_PPM_V0))
+        .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?;
+
+    let decided_count = decisions
+        .iter()
+        .filter(|(_, predicted, _)| predicted.is_some())
+        .count();
+    let decision_coverage = decided_count as f64 / sample_count as f64;
+    let risk_coverage_auc = tie_aware_right_step_aurc(&decisions, decided_count);
+
+    let selective_risk_curve = confidence_thresholds_ppm
+        .iter()
+        .map(|threshold| {
+            let mut covered_samples = 0_usize;
+            let mut errors = 0_usize;
+            for (confidence, predicted, truth) in &decisions {
+                if let Some(predicted) = predicted
+                    && confidence >= threshold
+                {
+                    covered_samples += 1;
+                    if predicted != truth {
+                        errors += 1;
+                    }
+                }
+            }
+            SelectiveRiskPointV0 {
+                confidence_threshold_ppm: *threshold,
+                total_samples: sample_count,
+                covered_samples,
+                errors,
+            }
+        })
+        .collect();
+
+    Ok(TransferCalibrationReportV0 {
+        sample_count,
+        brier_numerator,
+        brier_denominator,
+        mean_log_loss_nats: log_loss_sum / sample_count as f64,
+        log_loss_clipped_samples,
+        calibration_bins: bins,
+        expected_calibration_error_numerator: ece_numerator,
+        expected_calibration_error_denominator: ece_denominator,
+        decision_coverage,
+        risk_coverage_auc,
+        selective_risk_curve,
+    })
+}
+
+/// Tie-aware right-step area under the selective risk/coverage curve.
+///
+/// Only non-abstained decisions participate in the curve, so its coverage
+/// axis spans 0..=1 over decided samples. Report decision_coverage alongside
+/// this value: otherwise a system could improve AURC by abstaining on almost
+/// every difficult case. All equal-confidence decisions enter as one group,
+/// making the metric invariant to input order within ties.
+fn tie_aware_right_step_aurc(
+    decisions: &[(u32, Option<bool>, bool)],
+    decided_count: usize,
+) -> Option<f64> {
+    if decided_count == 0 {
+        return None;
+    }
+
+    let mut decided = decisions
+        .iter()
+        .filter_map(|(confidence, predicted, truth)| {
+            predicted.map(|predicted| (*confidence, predicted != *truth))
+        })
+        .collect::<Vec<_>>();
+    decided.sort_by_key(|entry| std::cmp::Reverse(entry.0));
+
+    let mut covered = 0_usize;
+    let mut errors = 0_usize;
+    let mut area = 0.0_f64;
+    let mut index = 0_usize;
+
+    while index < decided.len() {
+        let confidence = decided[index].0;
+        let mut group_count = 0_usize;
+        let mut group_errors = 0_usize;
+
+        while index < decided.len() && decided[index].0 == confidence {
+            group_count += 1;
+            if decided[index].1 {
+                group_errors += 1;
+            }
+            index += 1;
+        }
+
+        covered = covered.checked_add(group_count)?;
+        errors = errors.checked_add(group_errors)?;
+        let risk_after_group = errors as f64 / covered as f64;
+        area += (group_count as f64 / decided_count as f64) * risk_after_group;
+    }
+
+    Some(area)
+}
+
+/// Evaluate calibration separately for evaluator-owned strata.
+///
+/// The strata label each outcome using information unavailable to the
+/// candidate at forecast time (for example: representation-only shift,
+/// semantic/mechanism shift, combined shift, or a particular claim family).
+/// Each stratum receives its own Brier/log-loss/ECE and selective-risk report.
+/// The full forecast/outcome set is validated first, so missing, duplicate or
+/// orphan records cannot disappear by being excluded from a group.
+pub fn evaluate_transfer_calibration_by_stratum(
+    forecasts: &[TransferForecastV0],
+    outcomes: &[TransferOutcomeV0],
+    calibration_bin_count: usize,
+    confidence_thresholds_ppm: &[u32],
+) -> Result<Vec<StratifiedTransferCalibrationReportV0>, TransferCalibrationErrorV0> {
+    // Validate the complete cohort before grouping to prevent silent loss of
+    // unmatched samples or invalid strata.
+    let _ = evaluate_transfer_calibration(
+        forecasts,
+        outcomes,
+        calibration_bin_count,
+        confidence_thresholds_ppm,
+    )?;
+
+    let forecasts_by_id = forecasts
+        .iter()
+        .map(|forecast| (forecast.sample_id, *forecast))
+        .collect::<BTreeMap<_, _>>();
+    let mut outcomes_by_stratum = BTreeMap::<u16, Vec<TransferOutcomeV0>>::new();
+    for outcome in outcomes {
+        outcomes_by_stratum
+            .entry(outcome.evaluation_stratum_id)
+            .or_default()
+            .push(*outcome);
+    }
+
+    outcomes_by_stratum
+        .into_iter()
+        .map(|(evaluation_stratum_id, stratum_outcomes)| {
+            let stratum_forecasts = stratum_outcomes
+                .iter()
+                .map(|outcome| {
+                    forecasts_by_id
+                        .get(&outcome.sample_id)
+                        .copied()
+                        .ok_or(TransferCalibrationErrorV0::MissingOutcome)
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            let report = evaluate_transfer_calibration(
+                &stratum_forecasts,
+                &stratum_outcomes,
+                calibration_bin_count,
+                confidence_thresholds_ppm,
+            )?;
+            Ok(StratifiedTransferCalibrationReportV0 {
+                evaluation_stratum_id,
+                report,
+            })
+        })
+        .collect()
+}
+
+/// Score claim-bound forecasts against owner-recomputed claim identities.
+///
+/// The adapter refuses to score a probability unless claim ID, claim type and
+/// canonical scope digest match an evaluator-owned outcome. The owner must
+/// recompute the digest from the exact frozen source/target episodes, map kind,
+/// selected/excluded scopes, transformations and evidence-prefix identities;
+/// a candidate-supplied digest is only a binding value, never proof.
+///
+/// Once identities are checked, this function delegates to the existing
+/// pooled and stratified scoring routines. Numeric sample IDs are internal
+/// deterministic join keys and are not exposed as the claim identity.
+pub fn evaluate_bound_transfer_calibration(
+    forecasts: &[BoundTransferForecastV0],
+    outcomes: &[BoundTransferOutcomeV0],
+    calibration_bin_count: usize,
+    confidence_thresholds_ppm: &[u32],
+) -> Result<BoundTransferCalibrationReportV0, TransferCalibrationErrorV0> {
+    if forecasts.is_empty() {
+        return Err(TransferCalibrationErrorV0::EmptyForecasts);
+    }
+
+    let mut forecast_ids = BTreeSet::new();
+    for forecast in forecasts {
+        if forecast.claim_id.trim().is_empty() {
+            return Err(TransferCalibrationErrorV0::EmptyClaimId);
+        }
+        if !is_lowercase_sha256(&forecast.claim_scope_sha256) {
+            return Err(TransferCalibrationErrorV0::InvalidClaimScopeDigest);
+        }
+        if !forecast_ids.insert(forecast.claim_id.as_str()) {
+            return Err(TransferCalibrationErrorV0::DuplicateClaimId);
+        }
+    }
+
+    let mut outcome_by_claim = BTreeMap::new();
+    for outcome in outcomes {
+        if outcome.claim_id.trim().is_empty() {
+            return Err(TransferCalibrationErrorV0::EmptyClaimId);
+        }
+        if !is_lowercase_sha256(&outcome.claim_scope_sha256) {
+            return Err(TransferCalibrationErrorV0::InvalidClaimScopeDigest);
+        }
+        if outcome_by_claim
+            .insert(outcome.claim_id.as_str(), outcome)
+            .is_some()
+        {
+            return Err(TransferCalibrationErrorV0::DuplicateClaimOutcomeId);
+        }
+    }
+
+    let mut internal_forecasts = Vec::with_capacity(forecasts.len());
+    let mut internal_outcomes = Vec::with_capacity(forecasts.len());
+    for (index, forecast) in forecasts.iter().enumerate() {
+        let outcome = outcome_by_claim
+            .get(forecast.claim_id.as_str())
+            .copied()
+            .ok_or(TransferCalibrationErrorV0::MissingOutcome)?;
+        if forecast.claim_type != outcome.claim_type
+            || forecast.claim_scope_sha256 != outcome.claim_scope_sha256
+        {
+            return Err(TransferCalibrationErrorV0::ClaimIdentityMismatch);
+        }
+        let sample_id =
+            u64::try_from(index).map_err(|_| TransferCalibrationErrorV0::ArithmeticOverflow)?;
+        internal_forecasts.push(TransferForecastV0 {
+            sample_id,
+            probability_transfer_ppm: forecast.probability_transfer_ppm,
+            decision: forecast.decision,
+        });
+        internal_outcomes.push(TransferOutcomeV0 {
+            sample_id,
+            evaluation_stratum_id: outcome.evaluation_stratum_id,
+            transfer_qualified: outcome.transfer_qualified,
+        });
+    }
+
+    if outcome_by_claim
+        .keys()
+        .any(|claim_id| !forecast_ids.contains(claim_id))
+    {
+        return Err(TransferCalibrationErrorV0::UnknownOutcome);
+    }
+
+    let pooled = evaluate_transfer_calibration(
+        &internal_forecasts,
+        &internal_outcomes,
+        calibration_bin_count,
+        confidence_thresholds_ppm,
+    )?;
+    let by_stratum = evaluate_transfer_calibration_by_stratum(
+        &internal_forecasts,
+        &internal_outcomes,
+        calibration_bin_count,
+        confidence_thresholds_ppm,
+    )?;
+
+    Ok(BoundTransferCalibrationReportV0 { pooled, by_stratum })
+}
+
+fn is_lowercase_sha256(value: &str) -> bool {
+    let Some(hex) = value.strip_prefix("sha256:") else {
+        return false;
+    };
+    hex.len() == 64
+        && hex
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+/// One evaluator-scored transfer claim from a declared independent unit.
+/// A v0 calibration sample is one-to-one with an independent unit; multiple
+/// correlated claims from one unit must be aggregated or handled by a block
+/// maximum in a separately specified protocol before fitting this calibrator.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SplitConformalCalibrationOutcomeV0 {
+    pub sample_id: u64,
+    pub independent_unit_id: u64,
+    pub evaluation_stratum_id: u16,
+    pub transfer_qualified: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConformalIndependentUnitKindV0 {
+    WorldSeed,
+    Episode,
+    Campaign,
+    Site,
+    Asset,
+    Other,
+}
+
+/// Immutable identity of the predictor/claim calibration contract.
+///
+/// The owner must derive this from the active calibration receipt and exact
+/// frozen artifacts. String digests identify bytes; signature/custody
+/// verification remains an owner-side responsibility.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConformalCalibrationReceiptStatusV0 {
+    Active,
+    Revoked,
+    Expired,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SplitConformalCalibrationIdentityV0 {
+    pub receipt_id: String,
+    pub receipt_status: ConformalCalibrationReceiptStatusV0,
+    pub evaluation_stratum_id: u16,
+    pub independent_unit_kind: ConformalIndependentUnitKindV0,
+    pub claim_type: TransferClaimTypeV0,
+    pub claim_scope_sha256: String,
+    pub predictor_sha256: String,
+    pub preprocessing_sha256: String,
+    pub score_function_sha256: String,
+    pub calibration_cohort_sha256: String,
+    pub sample_ids_sha256: String,
+    pub split_manifest_sha256: String,
+    pub evidence_prefix_sha256: String,
+    pub alpha_ppm: u32,
+    pub calibration_count: usize,
+    pub quantile_rank: usize,
+    pub quantile_nonconformity_ppm: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SplitConformalBinaryTransferV0 {
+    /// Complete owner-receipt identity, including the recomputed finite-sample
+    /// alpha, count, rank and quantile.
+    pub identity: SplitConformalCalibrationIdentityV0,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TransferPredictionSetV0 {
+    pub sample_id: u64,
+    /// The evaluator-assigned stratum of this prediction, not learner input.
+    pub evaluation_stratum_id: u16,
+    /// False means the calibration receipt does not admit this exact prediction identity.
+    pub calibration_scope_admitted: bool,
+    pub include_transfer: bool,
+    pub include_non_transfer: bool,
+    /// A singleton prediction set can be turned into a decision. Both labels
+    /// or neither label produce no decision and must not be silently forced.
+    pub decision: Option<TransferDecisionV0>,
+}
+
+impl SplitConformalBinaryTransferV0 {
+    /// Predict only when the owner supplies the exact active calibration identity.
+    ///
+    /// A mismatch in claim type/scope, predictor, preprocessing, score function,
+    /// independent-unit kind or stratum returns the full binary set and no
+    /// decision. The caller must resolve identity from the owner-issued receipt,
+    /// never from learner-selected metadata.
+    pub fn predict(
+        &self,
+        sample_id: u64,
+        prediction_identity: &SplitConformalCalibrationIdentityV0,
+        probability_transfer_ppm: u32,
+    ) -> Result<TransferPredictionSetV0, TransferCalibrationErrorV0> {
+        if probability_transfer_ppm > PROBABILITY_SCALE_PPM_V0 {
+            return Err(TransferCalibrationErrorV0::ProbabilityOutOfRange);
+        }
+
+        let calibration_scope_admitted = validate_conformal_identity(prediction_identity).is_ok()
+            && prediction_identity == &self.identity;
+        if !calibration_scope_admitted {
+            return Ok(TransferPredictionSetV0 {
+                sample_id,
+                evaluation_stratum_id: prediction_identity.evaluation_stratum_id,
+                calibration_scope_admitted: false,
+                include_transfer: true,
+                include_non_transfer: true,
+                decision: None,
+            });
+        }
+
+        let transfer_score = PROBABILITY_SCALE_PPM_V0 - probability_transfer_ppm;
+        let non_transfer_score = probability_transfer_ppm;
+        let include_transfer = transfer_score <= self.identity.quantile_nonconformity_ppm;
+        let include_non_transfer = non_transfer_score <= self.identity.quantile_nonconformity_ppm;
+        let decision = match (include_transfer, include_non_transfer) {
+            (true, false) => Some(TransferDecisionV0::AssertTransfer),
+            (false, true) => Some(TransferDecisionV0::RejectTransfer),
+            (true, true) | (false, false) => None,
+        };
+        Ok(TransferPredictionSetV0 {
+            sample_id,
+            evaluation_stratum_id: prediction_identity.evaluation_stratum_id,
+            calibration_scope_admitted: true,
+            include_transfer,
+            include_non_transfer,
+            decision,
+        })
+    }
+}
+
+fn validate_conformal_identity(
+    identity: &SplitConformalCalibrationIdentityV0,
+) -> Result<(), TransferCalibrationErrorV0> {
+    if identity.receipt_id.trim().is_empty()
+        || identity.receipt_status != ConformalCalibrationReceiptStatusV0::Active
+    {
+        return Err(TransferCalibrationErrorV0::InvalidCalibrationReceiptIdentity);
+    }
+    if identity.alpha_ppm == 0 || identity.alpha_ppm >= PROBABILITY_SCALE_PPM_V0 {
+        return Err(TransferCalibrationErrorV0::AlphaOutOfRange);
+    }
+    if identity.calibration_count == 0
+        || identity.quantile_rank == 0
+        || identity.quantile_nonconformity_ppm > PROBABILITY_SCALE_PPM_V0
+    {
+        return Err(TransferCalibrationErrorV0::CalibrationReceiptMismatch);
+    }
+    if !is_lowercase_sha256(&identity.claim_scope_sha256) {
+        return Err(TransferCalibrationErrorV0::InvalidClaimScopeDigest);
+    }
+    if !is_lowercase_sha256(&identity.predictor_sha256)
+        || !is_lowercase_sha256(&identity.preprocessing_sha256)
+        || !is_lowercase_sha256(&identity.score_function_sha256)
+        || !is_lowercase_sha256(&identity.calibration_cohort_sha256)
+        || !is_lowercase_sha256(&identity.sample_ids_sha256)
+        || !is_lowercase_sha256(&identity.split_manifest_sha256)
+        || !is_lowercase_sha256(&identity.evidence_prefix_sha256)
+    {
+        return Err(TransferCalibrationErrorV0::InvalidCalibrationIdentityDigest);
+    }
+    Ok(())
+}
+
+/// Fit split conformal for the binary label "this exact scoped transfer claim
+/// qualifies". Use only an independent calibration cohort from one
+/// evaluator-owned stratum. The finite-sample marginal guarantee requires
+/// exchangeability between this calibration cohort and future claims in the
+/// same admitted stratum. It does not imply conditional coverage or validity
+/// under arbitrary distribution shift.
+pub fn fit_split_conformal_binary_transfer(
+    calibration_forecasts: &[TransferForecastV0],
+    calibration_outcomes: &[SplitConformalCalibrationOutcomeV0],
+    identity: &SplitConformalCalibrationIdentityV0,
+    alpha_ppm: u32,
+) -> Result<SplitConformalBinaryTransferV0, TransferCalibrationErrorV0> {
+    if calibration_forecasts.is_empty() || calibration_outcomes.is_empty() {
+        return Err(TransferCalibrationErrorV0::EmptyConformalCalibration);
+    }
+    validate_conformal_identity(identity)?;
+    if alpha_ppm != identity.alpha_ppm {
+        return Err(TransferCalibrationErrorV0::CalibrationReceiptMismatch);
+    }
+
+    let mut forecast_by_id = BTreeMap::new();
+    for forecast in calibration_forecasts {
+        if forecast.probability_transfer_ppm > PROBABILITY_SCALE_PPM_V0 {
+            return Err(TransferCalibrationErrorV0::ProbabilityOutOfRange);
+        }
+        if forecast_by_id
+            .insert(forecast.sample_id, *forecast)
+            .is_some()
+        {
+            return Err(TransferCalibrationErrorV0::DuplicateSampleId);
+        }
+    }
+
+    let mut outcomes_by_id = BTreeMap::new();
+    let mut independent_unit_ids = BTreeSet::new();
+    for outcome in calibration_outcomes {
+        if outcome.evaluation_stratum_id != identity.evaluation_stratum_id {
+            return Err(TransferCalibrationErrorV0::MixedCalibrationStrata);
+        }
+        if !independent_unit_ids.insert(outcome.independent_unit_id) {
+            return Err(TransferCalibrationErrorV0::DuplicateIndependentUnitId);
+        }
+        if outcomes_by_id.insert(outcome.sample_id, *outcome).is_some() {
+            return Err(TransferCalibrationErrorV0::DuplicateOutcomeId);
+        }
+    }
+
+    if forecast_by_id.len() != outcomes_by_id.len() {
+        return Err(TransferCalibrationErrorV0::MissingOutcome);
+    }
+
+    let mut nonconformity_scores = Vec::with_capacity(calibration_forecasts.len());
+    for (sample_id, outcome) in &outcomes_by_id {
+        let forecast = forecast_by_id
+            .get(sample_id)
+            .ok_or(TransferCalibrationErrorV0::MissingOutcome)?;
+        let score = if outcome.transfer_qualified {
+            PROBABILITY_SCALE_PPM_V0 - forecast.probability_transfer_ppm
+        } else {
+            forecast.probability_transfer_ppm
+        };
+        nonconformity_scores.push(score);
+    }
+    if forecast_by_id
+        .keys()
+        .any(|sample_id| !outcomes_by_id.contains_key(sample_id))
+    {
+        return Err(TransferCalibrationErrorV0::UnknownOutcome);
+    }
+
+    nonconformity_scores.sort_unstable();
+    let calibration_count = nonconformity_scores.len();
+    let n_plus_one = u128::try_from(calibration_count)
+        .map_err(|_| TransferCalibrationErrorV0::ArithmeticOverflow)?
+        .checked_add(1)
+        .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?;
+    let target_numerator = n_plus_one
+        .checked_mul(u128::from(PROBABILITY_SCALE_PPM_V0 - alpha_ppm))
+        .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?;
+    let rank = target_numerator
+        .checked_add(u128::from(PROBABILITY_SCALE_PPM_V0 - 1))
+        .ok_or(TransferCalibrationErrorV0::ArithmeticOverflow)?
+        / u128::from(PROBABILITY_SCALE_PPM_V0);
+    let quantile_rank =
+        usize::try_from(rank).map_err(|_| TransferCalibrationErrorV0::ArithmeticOverflow)?;
+
+    let quantile_nonconformity_ppm = if quantile_rank > calibration_count {
+        PROBABILITY_SCALE_PPM_V0
+    } else {
+        nonconformity_scores[quantile_rank - 1]
+    };
+
+    if identity.calibration_count != calibration_count
+        || identity.quantile_rank != quantile_rank
+        || identity.quantile_nonconformity_ppm != quantile_nonconformity_ppm
+    {
+        return Err(TransferCalibrationErrorV0::CalibrationReceiptMismatch);
+    }
+
+    Ok(SplitConformalBinaryTransferV0 {
+        identity: identity.clone(),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn forecast(
+        sample_id: u64,
+        probability_transfer_ppm: u32,
+        decision: Option<TransferDecisionV0>,
+    ) -> TransferForecastV0 {
+        TransferForecastV0 {
+            sample_id,
+            probability_transfer_ppm,
+            decision,
+        }
+    }
+
+    fn conformal_identity(
+        evaluation_stratum_id: u16,
+        alpha_ppm: u32,
+        calibration_count: usize,
+        quantile_rank: usize,
+        quantile_nonconformity_ppm: u32,
+    ) -> SplitConformalCalibrationIdentityV0 {
+        SplitConformalCalibrationIdentityV0 {
+            receipt_id: "receipt-test-001".to_owned(),
+            receipt_status: ConformalCalibrationReceiptStatusV0::Active,
+            evaluation_stratum_id,
+            independent_unit_kind: ConformalIndependentUnitKindV0::WorldSeed,
+            claim_type: TransferClaimTypeV0::Simulation,
+            claim_scope_sha256: format!("sha256:{}", "1".repeat(64)),
+            predictor_sha256: format!("sha256:{}", "2".repeat(64)),
+            preprocessing_sha256: format!("sha256:{}", "3".repeat(64)),
+            score_function_sha256: format!("sha256:{}", "4".repeat(64)),
+            calibration_cohort_sha256: format!("sha256:{}", "5".repeat(64)),
+            sample_ids_sha256: format!("sha256:{}", "6".repeat(64)),
+            split_manifest_sha256: format!("sha256:{}", "7".repeat(64)),
+            evidence_prefix_sha256: format!("sha256:{}", "8".repeat(64)),
+            alpha_ppm,
+            calibration_count,
+            quantile_rank,
+            quantile_nonconformity_ppm,
+        }
+    }
+
+    fn conformal_calibration_fixture() -> (
+        Vec<TransferForecastV0>,
+        Vec<SplitConformalCalibrationOutcomeV0>,
+    ) {
+        let forecasts = vec![
+            forecast(201, 900_000, None),
+            forecast(202, 200_000, None),
+            forecast(203, 500_000, None),
+        ];
+        let outcomes = vec![
+            SplitConformalCalibrationOutcomeV0 {
+                sample_id: 201,
+                independent_unit_id: 7201,
+                evaluation_stratum_id: 7,
+                transfer_qualified: true,
+            },
+            SplitConformalCalibrationOutcomeV0 {
+                sample_id: 202,
+                independent_unit_id: 7202,
+                evaluation_stratum_id: 7,
+                transfer_qualified: false,
+            },
+            SplitConformalCalibrationOutcomeV0 {
+                sample_id: 203,
+                independent_unit_id: 7203,
+                evaluation_stratum_id: 7,
+                transfer_qualified: false,
+            },
+        ];
+        (forecasts, outcomes)
+    }
+
+    #[test]
+    fn split_conformal_fits_finite_sample_order_statistic_and_predicts_singleton() {
+        let (forecasts, outcomes) = conformal_calibration_fixture();
+        let calibrator = fit_split_conformal_binary_transfer(
+            &forecasts,
+            &outcomes,
+            &conformal_identity(7, 250_000, 3, 3, 500_000),
+            250_000,
+        )
+        .unwrap();
+
+        assert_eq!(calibrator.identity.calibration_count, 3);
+        assert_eq!(calibrator.identity.quantile_rank, 3);
+        assert_eq!(calibrator.identity.quantile_nonconformity_ppm, 500_000);
+
+        let predicted = calibrator
+            .predict(204, &conformal_identity(7, 250_000, 3, 3, 500_000), 900_000)
+            .unwrap();
+        assert!(predicted.include_transfer);
+        assert!(!predicted.include_non_transfer);
+        assert_eq!(predicted.decision, Some(TransferDecisionV0::AssertTransfer));
+    }
+
+    #[test]
+    fn split_conformal_empty_and_tied_prediction_sets_remain_set_valued() {
+        let forecasts = [forecast(401, 900_000, None)];
+        let outcomes = [SplitConformalCalibrationOutcomeV0 {
+            sample_id: 401,
+            independent_unit_id: 9401,
+            evaluation_stratum_id: 9,
+            transfer_qualified: true,
+        }];
+        let calibrator = fit_split_conformal_binary_transfer(
+            &forecasts,
+            &outcomes,
+            &conformal_identity(9, 500_000, 1, 1, 100_000),
+            500_000,
+        )
+        .unwrap();
+
+        assert_eq!(calibrator.identity.quantile_nonconformity_ppm, 100_000);
+        let tied = calibrator
+            .predict(402, &conformal_identity(9, 500_000, 1, 1, 100_000), 900_000)
+            .unwrap();
+        assert!(tied.include_transfer);
+        assert!(!tied.include_non_transfer);
+        assert_eq!(tied.decision, Some(TransferDecisionV0::AssertTransfer));
+
+        let empty = calibrator
+            .predict(403, &conformal_identity(9, 500_000, 1, 1, 100_000), 500_000)
+            .unwrap();
+        assert!(!empty.include_transfer);
+        assert!(!empty.include_non_transfer);
+        assert_eq!(empty.decision, None);
+    }
+
+    #[test]
+    fn split_conformal_returns_both_labels_when_calibration_is_too_small_for_rank() {
+        let forecasts = [forecast(301, 900_000, None)];
+        let outcomes = [SplitConformalCalibrationOutcomeV0 {
+            sample_id: 301,
+            independent_unit_id: 9301,
+            evaluation_stratum_id: 2,
+            transfer_qualified: true,
+        }];
+        let calibrator = fit_split_conformal_binary_transfer(
+            &forecasts,
+            &outcomes,
+            &conformal_identity(2, 100_000, 1, 2, PROBABILITY_SCALE_PPM_V0),
+            100_000,
+        )
+        .unwrap();
+
+        assert_eq!(calibrator.identity.quantile_rank, 2);
+        assert_eq!(
+            calibrator.identity.quantile_nonconformity_ppm,
+            PROBABILITY_SCALE_PPM_V0
+        );
+        let predicted = calibrator
+            .predict(
+                302,
+                &conformal_identity(2, 100_000, 1, 2, PROBABILITY_SCALE_PPM_V0),
+                900_000,
+            )
+            .unwrap();
+        assert!(predicted.include_transfer);
+        assert!(predicted.include_non_transfer);
+        assert_eq!(predicted.decision, None);
+    }
+
+    #[test]
+    fn split_conformal_rejects_mixed_strata_and_invalid_alpha() {
+        let (forecasts, outcomes) = conformal_calibration_fixture();
+        assert_eq!(
+            fit_split_conformal_binary_transfer(
+                &forecasts,
+                &outcomes,
+                &conformal_identity(8, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0),
+                100_000
+            ),
+            Err(TransferCalibrationErrorV0::MixedCalibrationStrata)
+        );
+        assert_eq!(
+            fit_split_conformal_binary_transfer(
+                &forecasts,
+                &outcomes,
+                &conformal_identity(7, 0, 3, 4, PROBABILITY_SCALE_PPM_V0),
+                0
+            ),
+            Err(TransferCalibrationErrorV0::AlphaOutOfRange)
+        );
+        assert_eq!(
+            fit_split_conformal_binary_transfer(
+                &forecasts,
+                &outcomes,
+                &conformal_identity(7, 1_000_000, 3, 1, 100_000),
+                1_000_000
+            ),
+            Err(TransferCalibrationErrorV0::AlphaOutOfRange)
+        );
+    }
+
+    #[test]
+    fn split_conformal_rejects_missing_and_duplicate_calibration_records() {
+        let (forecasts, outcomes) = conformal_calibration_fixture();
+        assert_eq!(
+            fit_split_conformal_binary_transfer(
+                &forecasts[..2],
+                &outcomes,
+                &conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0),
+                100_000
+            ),
+            Err(TransferCalibrationErrorV0::MissingOutcome)
+        );
+        let duplicate = [forecasts[0], forecasts[0]];
+        assert_eq!(
+            fit_split_conformal_binary_transfer(
+                &duplicate,
+                &outcomes[..1],
+                &conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0),
+                100_000
+            ),
+            Err(TransferCalibrationErrorV0::DuplicateSampleId)
+        );
+    }
+
+    #[test]
+    fn split_conformal_fails_closed_outside_the_admitted_evaluation_stratum() {
+        let (forecasts, outcomes) = conformal_calibration_fixture();
+        let calibrator = fit_split_conformal_binary_transfer(
+            &forecasts,
+            &outcomes,
+            &conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0),
+            100_000,
+        )
+        .unwrap();
+
+        let prediction = calibrator
+            .predict(
+                205,
+                &conformal_identity(8, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0),
+                950_000,
+            )
+            .unwrap();
+
+        assert_eq!(prediction.evaluation_stratum_id, 8);
+        assert!(!prediction.calibration_scope_admitted);
+        assert!(prediction.include_transfer);
+        assert!(prediction.include_non_transfer);
+        assert_eq!(prediction.decision, None);
+    }
+
+    #[test]
+    fn split_conformal_rejects_duplicate_independent_unit_ids() {
+        let forecasts = [forecast(501, 900_000, None), forecast(502, 100_000, None)];
+        let outcomes = [
+            SplitConformalCalibrationOutcomeV0 {
+                sample_id: 501,
+                independent_unit_id: 7,
+                evaluation_stratum_id: 3,
+                transfer_qualified: true,
+            },
+            SplitConformalCalibrationOutcomeV0 {
+                sample_id: 502,
+                independent_unit_id: 7,
+                evaluation_stratum_id: 3,
+                transfer_qualified: false,
+            },
+        ];
+
+        assert_eq!(
+            fit_split_conformal_binary_transfer(
+                &forecasts,
+                &outcomes,
+                &conformal_identity(3, 100_000, 2, 3, PROBABILITY_SCALE_PPM_V0),
+                100_000
+            ),
+            Err(TransferCalibrationErrorV0::DuplicateIndependentUnitId)
+        );
+    }
+
+    #[test]
+    fn split_conformal_fails_closed_when_claim_or_model_identity_changes() {
+        let (forecasts, outcomes) = conformal_calibration_fixture();
+        let calibrator = fit_split_conformal_binary_transfer(
+            &forecasts,
+            &outcomes,
+            &conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0),
+            100_000,
+        )
+        .unwrap();
+
+        let baseline = conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0);
+        let mut changed_identities = Vec::new();
+
+        let mut changed = baseline.clone();
+        changed.receipt_id = "receipt-test-002".to_owned();
+        changed_identities.push(changed);
+
+        let mut changed = baseline.clone();
+        changed.calibration_cohort_sha256 = format!("sha256:{}", "9".repeat(64));
+        changed_identities.push(changed);
+
+        let mut changed = baseline.clone();
+        changed.sample_ids_sha256 = format!("sha256:{}", "9".repeat(64));
+        changed_identities.push(changed);
+
+        let mut changed = baseline.clone();
+        changed.split_manifest_sha256 = format!("sha256:{}", "9".repeat(64));
+        changed_identities.push(changed);
+
+        let mut changed = baseline.clone();
+        changed.evidence_prefix_sha256 = format!("sha256:{}", "9".repeat(64));
+        changed_identities.push(changed);
+
+        let mut changed = baseline.clone();
+        changed.claim_type = TransferClaimTypeV0::MechanismTransfer;
+        changed_identities.push(changed);
+
+        let mut changed = baseline.clone();
+        changed.claim_scope_sha256 = format!("sha256:{}", "5".repeat(64));
+        changed_identities.push(changed);
+
+        let mut changed = baseline.clone();
+        changed.predictor_sha256 = format!("sha256:{}", "5".repeat(64));
+        changed_identities.push(changed);
+
+        let mut changed = baseline.clone();
+        changed.preprocessing_sha256 = format!("sha256:{}", "5".repeat(64));
+        changed_identities.push(changed);
+
+        let mut changed = baseline.clone();
+        changed.score_function_sha256 = format!("sha256:{}", "5".repeat(64));
+        changed_identities.push(changed);
+
+        let mut changed = baseline.clone();
+        changed.alpha_ppm = 200_000;
+        changed_identities.push(changed);
+
+        let mut changed = baseline.clone();
+        changed.calibration_count = 2;
+        changed_identities.push(changed);
+
+        let mut changed = baseline.clone();
+        changed.quantile_rank = 3;
+        changed_identities.push(changed);
+
+        let mut changed = baseline.clone();
+        changed.quantile_nonconformity_ppm = 900_000;
+        changed_identities.push(changed);
+
+        let mut changed = baseline;
+        changed.independent_unit_kind = ConformalIndependentUnitKindV0::Campaign;
+        changed_identities.push(changed);
+
+        for identity in changed_identities {
+            let prediction = calibrator.predict(700, &identity, 950_000).unwrap();
+            assert!(!prediction.calibration_scope_admitted);
+            assert!(prediction.include_transfer);
+            assert!(prediction.include_non_transfer);
+            assert_eq!(prediction.decision, None);
+        }
+    }
+
+    #[test]
+    fn split_conformal_fit_rejects_malformed_calibration_identity_digests() {
+        let (forecasts, outcomes) = conformal_calibration_fixture();
+        let mut identity = conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0);
+        identity.predictor_sha256 = "sha256:bad".to_owned();
+
+        assert_eq!(
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &identity, 100_000),
+            Err(TransferCalibrationErrorV0::InvalidCalibrationIdentityDigest)
+        );
+
+        let mut identity = conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0);
+        identity.calibration_cohort_sha256 = "sha256:bad".to_owned();
+
+        assert_eq!(
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &identity, 100_000),
+            Err(TransferCalibrationErrorV0::InvalidCalibrationIdentityDigest)
+        );
+
+        let mut identity = conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0);
+        identity.receipt_id.clear();
+
+        assert_eq!(
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &identity, 100_000),
+            Err(TransferCalibrationErrorV0::InvalidCalibrationReceiptIdentity)
+        );
+
+        let mut identity = conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0);
+        identity.receipt_status = ConformalCalibrationReceiptStatusV0::Revoked;
+        assert_eq!(
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &identity, 100_000),
+            Err(TransferCalibrationErrorV0::InvalidCalibrationReceiptIdentity)
+        );
+
+        let mut identity = conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0);
+        identity.receipt_status = ConformalCalibrationReceiptStatusV0::Expired;
+        assert_eq!(
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &identity, 100_000),
+            Err(TransferCalibrationErrorV0::InvalidCalibrationReceiptIdentity)
+        );
+
+        let mut identity = conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0);
+        identity.quantile_nonconformity_ppm = 900_000;
+        assert_eq!(
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &identity, 100_000),
+            Err(TransferCalibrationErrorV0::CalibrationReceiptMismatch)
+        );
+
+        let mut identity = conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0);
+        identity.claim_scope_sha256 = "sha256:bad".to_owned();
+
+        assert_eq!(
+            fit_split_conformal_binary_transfer(&forecasts, &outcomes, &identity, 100_000),
+            Err(TransferCalibrationErrorV0::InvalidClaimScopeDigest)
+        );
+    }
+
+    #[test]
+    fn split_conformal_predict_rejects_probability_out_of_range() {
+        let (forecasts, outcomes) = conformal_calibration_fixture();
+        let calibrator = fit_split_conformal_binary_transfer(
+            &forecasts,
+            &outcomes,
+            &conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0),
+            100_000,
+        )
+        .unwrap();
+        assert_eq!(
+            calibrator.predict(
+                999,
+                &conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0),
+                1_000_001
+            ),
+            Err(TransferCalibrationErrorV0::ProbabilityOutOfRange)
+        );
+    }
+
+    #[test]
+    fn zero_observed_selective_errors_does_not_mean_zero_risk() {
+        let point = SelectiveRiskPointV0 {
+            confidence_threshold_ppm: 900_000,
+            total_samples: 100,
+            covered_samples: 5,
+            errors: 0,
+        };
+        let (lower, upper) = point.selective_risk_wilson_95().unwrap();
+
+        assert_eq!(lower, 0.0);
+        assert!(upper > 0.0);
+        assert!(upper < 1.0);
+    }
+
+    #[test]
+    fn selective_risk_and_coverage_have_separate_denominators() {
+        let point = SelectiveRiskPointV0 {
+            confidence_threshold_ppm: 800_000,
+            total_samples: 20,
+            covered_samples: 5,
+            errors: 1,
+        };
+        let (coverage_lower, coverage_upper) = point.coverage_wilson_95().unwrap();
+        let (risk_lower, risk_upper) = point.selective_risk_wilson_95().unwrap();
+
+        assert!(coverage_lower < 0.25 && coverage_upper > 0.25);
+        assert!(risk_lower < 0.2 && risk_upper > 0.2);
+        assert_ne!((coverage_lower, coverage_upper), (risk_lower, risk_upper));
+    }
+
+    #[test]
+    fn empty_selective_denominator_has_no_risk_interval() {
+        let point = SelectiveRiskPointV0 {
+            confidence_threshold_ppm: 1_000_000,
+            total_samples: 10,
+            covered_samples: 0,
+            errors: 0,
+        };
+
+        assert_eq!(point.selective_risk_wilson_95(), None);
+        assert!(point.coverage_wilson_95().is_some());
+    }
+
+    #[test]
+    fn stratified_calibration_surfaces_domain_specific_failure_hidden_by_pooled_scores() {
+        let forecasts = [
+            forecast(101, 1_000_000, Some(TransferDecisionV0::AssertTransfer)),
+            forecast(102, 950_000, Some(TransferDecisionV0::AssertTransfer)),
+            forecast(103, 0, Some(TransferDecisionV0::RejectTransfer)),
+        ];
+        let outcomes = [
+            TransferOutcomeV0 {
+                sample_id: 101,
+                evaluation_stratum_id: 0,
+                transfer_qualified: true,
+            },
+            TransferOutcomeV0 {
+                sample_id: 102,
+                evaluation_stratum_id: 3,
+                transfer_qualified: false,
+            },
+            TransferOutcomeV0 {
+                sample_id: 103,
+                evaluation_stratum_id: 0,
+                transfer_qualified: false,
+            },
+        ];
+
+        let reports =
+            evaluate_transfer_calibration_by_stratum(&forecasts, &outcomes, 10, &[0, 900_000])
+                .unwrap();
+
+        assert_eq!(reports.len(), 2);
+        assert_eq!(reports[0].evaluation_stratum_id, 0);
+        assert_eq!(reports[0].report.sample_count, 2);
+        assert_eq!(reports[0].report.brier_numerator, 0);
+        assert_eq!(reports[1].evaluation_stratum_id, 3);
+        assert_eq!(reports[1].report.sample_count, 1);
+        assert_eq!(
+            reports[1].report.selective_risk_curve[1].selective_risk(),
+            Some(1.0)
+        );
+    }
+
+    fn bound_forecast(
+        claim_id: &str,
+        claim_type: TransferClaimTypeV0,
+        digest_byte: char,
+        probability_transfer_ppm: u32,
+        decision: Option<TransferDecisionV0>,
+    ) -> BoundTransferForecastV0 {
+        BoundTransferForecastV0 {
+            claim_id: claim_id.to_owned(),
+            claim_type,
+            claim_scope_sha256: format!("sha256:{}", digest_byte.to_string().repeat(64)),
+            probability_transfer_ppm,
+            decision,
+        }
+    }
+
+    fn bound_outcome(
+        claim_id: &str,
+        claim_type: TransferClaimTypeV0,
+        digest_byte: char,
+        evaluation_stratum_id: u16,
+        transfer_qualified: bool,
+    ) -> BoundTransferOutcomeV0 {
+        BoundTransferOutcomeV0 {
+            claim_id: claim_id.to_owned(),
+            claim_type,
+            claim_scope_sha256: format!("sha256:{}", digest_byte.to_string().repeat(64)),
+            evaluation_stratum_id,
+            transfer_qualified,
+        }
+    }
+
+    #[test]
+    fn bound_forecast_requires_exact_claim_id_type_and_scope_digest() {
+        let forecasts = [
+            bound_forecast(
+                "claim-structural-1",
+                TransferClaimTypeV0::StructuralCorrespondence,
+                'a',
+                900_000,
+                Some(TransferDecisionV0::AssertTransfer),
+            ),
+            bound_forecast(
+                "claim-simulation-2",
+                TransferClaimTypeV0::Simulation,
+                'b',
+                250_000,
+                Some(TransferDecisionV0::RejectTransfer),
+            ),
+        ];
+        let outcomes = [
+            bound_outcome(
+                "claim-structural-1",
+                TransferClaimTypeV0::StructuralCorrespondence,
+                'a',
+                1,
+                true,
+            ),
+            bound_outcome(
+                "claim-simulation-2",
+                TransferClaimTypeV0::Simulation,
+                'b',
+                2,
+                false,
+            ),
+        ];
+
+        let report =
+            evaluate_bound_transfer_calibration(&forecasts, &outcomes, 5, &[0, 900_000]).unwrap();
+        assert_eq!(report.pooled.sample_count, 2);
+        assert_eq!(report.by_stratum.len(), 2);
+        assert_eq!(report.pooled.decision_coverage, 1.0);
+    }
+
+    #[test]
+    fn bound_forecast_rejects_scope_digest_mismatch() {
+        let forecasts = [bound_forecast(
+            "claim-1",
+            TransferClaimTypeV0::StructuralCorrespondence,
+            'a',
+            900_000,
+            Some(TransferDecisionV0::AssertTransfer),
+        )];
+        let outcomes = [bound_outcome(
+            "claim-1",
+            TransferClaimTypeV0::StructuralCorrespondence,
+            'b',
+            0,
+            true,
+        )];
+
+        assert_eq!(
+            evaluate_bound_transfer_calibration(&forecasts, &outcomes, 2, &[0]),
+            Err(TransferCalibrationErrorV0::ClaimIdentityMismatch)
+        );
+    }
+
+    #[test]
+    fn bound_forecast_rejects_claim_type_mismatch() {
+        let forecasts = [bound_forecast(
+            "claim-1",
+            TransferClaimTypeV0::Simulation,
+            'a',
+            900_000,
+            Some(TransferDecisionV0::AssertTransfer),
+        )];
+        let outcomes = [bound_outcome(
+            "claim-1",
+            TransferClaimTypeV0::Bisimulation,
+            'a',
+            0,
+            true,
+        )];
+
+        assert_eq!(
+            evaluate_bound_transfer_calibration(&forecasts, &outcomes, 2, &[0]),
+            Err(TransferCalibrationErrorV0::ClaimIdentityMismatch)
+        );
+    }
+
+    #[test]
+    fn bound_forecast_rejects_duplicate_claims_and_orphan_outcomes() {
+        let forecast = bound_forecast(
+            "claim-1",
+            TransferClaimTypeV0::MechanismTransfer,
+            'a',
+            500_000,
+            None,
+        );
+        let duplicate = [forecast.clone(), forecast.clone()];
+        let outcome = bound_outcome(
+            "claim-1",
+            TransferClaimTypeV0::MechanismTransfer,
+            'a',
+            0,
+            false,
+        );
+        assert_eq!(
+            evaluate_bound_transfer_calibration(
+                &duplicate,
+                std::slice::from_ref(&outcome),
+                2,
+                &[0]
+            ),
+            Err(TransferCalibrationErrorV0::DuplicateClaimId)
+        );
+        let orphan = bound_outcome(
+            "claim-2",
+            TransferClaimTypeV0::MechanismTransfer,
+            'b',
+            0,
+            false,
+        );
+        assert_eq!(
+            evaluate_bound_transfer_calibration(
+                std::slice::from_ref(&forecast),
+                &[outcome.clone(), orphan],
+                2,
+                &[0],
+            ),
+            Err(TransferCalibrationErrorV0::UnknownOutcome)
+        );
+        assert_eq!(
+            evaluate_bound_transfer_calibration(&[forecast], &[], 2, &[0]),
+            Err(TransferCalibrationErrorV0::MissingOutcome)
+        );
+    }
+
+    #[test]
+    fn bound_forecast_rejects_invalid_scope_digest_and_duplicate_outcome() {
+        let mut invalid = bound_forecast(
+            "claim-1",
+            TransferClaimTypeV0::MechanismTransfer,
+            'a',
+            500_000,
+            None,
+        );
+        invalid.claim_scope_sha256 = "sha256:bad".to_owned();
+        assert_eq!(
+            evaluate_bound_transfer_calibration(&[invalid], &[], 2, &[0]),
+            Err(TransferCalibrationErrorV0::InvalidClaimScopeDigest)
+        );
+
+        let forecast = bound_forecast(
+            "claim-1",
+            TransferClaimTypeV0::MechanismTransfer,
+            'a',
+            500_000,
+            None,
+        );
+        let outcome = bound_outcome(
+            "claim-1",
+            TransferClaimTypeV0::MechanismTransfer,
+            'a',
+            0,
+            false,
+        );
+        assert_eq!(
+            evaluate_bound_transfer_calibration(&[forecast], &[outcome.clone(), outcome], 2, &[0],),
+            Err(TransferCalibrationErrorV0::DuplicateClaimOutcomeId)
+        );
+    }
+
+    #[test]
+    fn perfect_extreme_forecasts_have_zero_brier_and_ece() {
+        let forecasts = [
+            forecast(1, 1_000_000, Some(TransferDecisionV0::AssertTransfer)),
+            forecast(2, 0, Some(TransferDecisionV0::RejectTransfer)),
+            forecast(3, 1_000_000, Some(TransferDecisionV0::AssertTransfer)),
+            forecast(4, 0, Some(TransferDecisionV0::RejectTransfer)),
+        ];
+        let outcomes = [
+            TransferOutcomeV0 {
+                sample_id: 1,
+                evaluation_stratum_id: 0,
+                transfer_qualified: true,
+            },
+            TransferOutcomeV0 {
+                sample_id: 2,
+                evaluation_stratum_id: 0,
+                transfer_qualified: false,
+            },
+            TransferOutcomeV0 {
+                sample_id: 3,
+                evaluation_stratum_id: 0,
+                transfer_qualified: true,
+            },
+            TransferOutcomeV0 {
+                sample_id: 4,
+                evaluation_stratum_id: 0,
+                transfer_qualified: false,
+            },
+        ];
+
+        let report = evaluate_transfer_calibration(&forecasts, &outcomes, 10, &[0, 900_000])
+            .expect("well-formed forecast set");
+
+        assert_eq!(report.brier_numerator, 0);
+        assert_eq!(report.expected_calibration_error_numerator, 0);
+        assert_eq!(report.selective_risk_curve[0].covered_samples, 4);
+        assert_eq!(report.selective_risk_curve[1].covered_samples, 4);
+        assert_eq!(report.decision_coverage, 1.0);
+        assert_eq!(report.risk_coverage_auc, Some(0.0));
+    }
+
+    #[test]
+    fn equal_width_bins_include_exact_lower_boundaries() {
+        let forecasts = [forecast(1, 100_000, None), forecast(2, 1_000_000, None)];
+        let outcomes = [
+            TransferOutcomeV0 {
+                sample_id: 1,
+                evaluation_stratum_id: 0,
+                transfer_qualified: false,
+            },
+            TransferOutcomeV0 {
+                sample_id: 2,
+                evaluation_stratum_id: 0,
+                transfer_qualified: true,
+            },
+        ];
+
+        let report = evaluate_transfer_calibration(&forecasts, &outcomes, 10, &[0]).unwrap();
+
+        assert_eq!(report.calibration_bins[0].sample_count, 0);
+        assert_eq!(report.calibration_bins[1].sample_count, 1);
+        assert_eq!(report.calibration_bins[9].sample_count, 1);
+        assert!(
+            report
+                .calibration_bins
+                .iter()
+                .enumerate()
+                .all(|(expected_index, bin)| bin.bin_index == expected_index)
+        );
+    }
+
+    #[test]
+    fn overconfident_false_transfer_is_penalized_by_proper_scores() {
+        let forecasts = [forecast(
+            1,
+            950_000,
+            Some(TransferDecisionV0::AssertTransfer),
+        )];
+        let outcomes = [TransferOutcomeV0 {
+            sample_id: 1,
+            evaluation_stratum_id: 0,
+            transfer_qualified: false,
+        }];
+
+        let report = evaluate_transfer_calibration(&forecasts, &outcomes, 10, &[0]).unwrap();
+
+        assert_eq!(report.brier_numerator, u128::from(950_000_u32).pow(2));
+        assert!(report.mean_log_loss_nats > 2.9);
+        assert_eq!(report.selective_risk_curve[0].errors, 1);
+        assert_eq!(report.selective_risk_curve[0].selective_risk(), Some(1.0));
+    }
+
+    #[test]
+    fn abstention_reduces_coverage_without_being_counted_as_a_negative() {
+        let forecasts = [
+            forecast(1, 950_000, Some(TransferDecisionV0::AssertTransfer)),
+            forecast(2, 550_000, Some(TransferDecisionV0::AssertTransfer)),
+            forecast(3, 50_000, Some(TransferDecisionV0::RejectTransfer)),
+            forecast(4, 500_000, None),
+        ];
+        let outcomes = [
+            TransferOutcomeV0 {
+                sample_id: 1,
+                evaluation_stratum_id: 0,
+                transfer_qualified: true,
+            },
+            TransferOutcomeV0 {
+                sample_id: 2,
+                evaluation_stratum_id: 0,
+                transfer_qualified: false,
+            },
+            TransferOutcomeV0 {
+                sample_id: 3,
+                evaluation_stratum_id: 0,
+                transfer_qualified: false,
+            },
+            TransferOutcomeV0 {
+                sample_id: 4,
+                evaluation_stratum_id: 0,
+                transfer_qualified: true,
+            },
+        ];
+
+        let report =
+            evaluate_transfer_calibration(&forecasts, &outcomes, 10, &[0, 900_000]).unwrap();
+
+        let all_decisions = report.selective_risk_curve[0];
+        let high_confidence = report.selective_risk_curve[1];
+
+        assert_eq!(all_decisions.covered_samples, 3);
+        assert_eq!(all_decisions.errors, 1);
+        assert_eq!(all_decisions.selective_risk(), Some(1.0 / 3.0));
+        assert_eq!(high_confidence.covered_samples, 2);
+        assert_eq!(high_confidence.errors, 0);
+        assert_eq!(high_confidence.selective_risk(), Some(0.0));
+        assert_eq!(high_confidence.coverage(), Some(0.5));
+        assert_eq!(report.decision_coverage, 0.75);
+        assert!(report.risk_coverage_auc.is_some());
+    }
+
+    #[test]
+    fn probability_and_decision_confidence_are_not_conflated() {
+        let forecasts = [
+            forecast(1, 50_000, Some(TransferDecisionV0::RejectTransfer)),
+            forecast(2, 50_000, Some(TransferDecisionV0::AssertTransfer)),
+        ];
+        let outcomes = [
+            TransferOutcomeV0 {
+                sample_id: 1,
+                evaluation_stratum_id: 0,
+                transfer_qualified: true,
+            },
+            TransferOutcomeV0 {
+                sample_id: 2,
+                evaluation_stratum_id: 0,
+                transfer_qualified: false,
+            },
+        ];
+
+        let report = evaluate_transfer_calibration(&forecasts, &outcomes, 2, &[900_000]).unwrap();
+
+        assert_eq!(report.selective_risk_curve[0].covered_samples, 1);
+        assert_eq!(report.selective_risk_curve[0].errors, 1);
+    }
+
+    #[test]
+    fn tie_aware_aurc_is_input_order_invariant_and_reports_decision_coverage() {
+        let forecasts = [
+            forecast(1, 900_000, Some(TransferDecisionV0::AssertTransfer)),
+            forecast(2, 900_000, Some(TransferDecisionV0::AssertTransfer)),
+            forecast(3, 500_000, None),
+            forecast(4, 500_000, None),
+        ];
+        let reordered = [forecasts[1], forecasts[0], forecasts[2], forecasts[3]];
+        let outcomes = [
+            TransferOutcomeV0 {
+                sample_id: 1,
+                evaluation_stratum_id: 0,
+                transfer_qualified: true,
+            },
+            TransferOutcomeV0 {
+                sample_id: 2,
+                evaluation_stratum_id: 0,
+                transfer_qualified: false,
+            },
+            TransferOutcomeV0 {
+                sample_id: 3,
+                evaluation_stratum_id: 0,
+                transfer_qualified: true,
+            },
+            TransferOutcomeV0 {
+                sample_id: 4,
+                evaluation_stratum_id: 0,
+                transfer_qualified: false,
+            },
+        ];
+
+        let first = evaluate_transfer_calibration(&forecasts, &outcomes, 4, &[0]).unwrap();
+        let second = evaluate_transfer_calibration(&reordered, &outcomes, 4, &[0]).unwrap();
+
+        assert_eq!(first.decision_coverage, 0.5);
+        assert_eq!(first.risk_coverage_auc, Some(0.5));
+        assert_eq!(first.risk_coverage_auc, second.risk_coverage_auc);
+    }
+
+    #[test]
+    fn aurc_is_none_when_all_forecasts_abstain() {
+        let forecasts = [forecast(1, 500_000, None)];
+        let outcomes = [TransferOutcomeV0 {
+            sample_id: 1,
+            evaluation_stratum_id: 0,
+            transfer_qualified: true,
+        }];
+
+        let report = evaluate_transfer_calibration(&forecasts, &outcomes, 2, &[0]).unwrap();
+        assert_eq!(report.decision_coverage, 0.0);
+        assert_eq!(report.risk_coverage_auc, None);
+    }
+
+    #[test]
+    fn rejects_unmatched_duplicate_and_out_of_range_data() {
+        let valid = [forecast(1, 500_000, None)];
+        let outcome = [TransferOutcomeV0 {
+            sample_id: 1,
+            evaluation_stratum_id: 0,
+            transfer_qualified: true,
+        }];
+        assert_eq!(
+            evaluate_transfer_calibration(&[], &outcome, 10, &[0]),
+            Err(TransferCalibrationErrorV0::EmptyForecasts)
+        );
+        assert_eq!(
+            evaluate_transfer_calibration(&valid, &outcome, 10, &[]),
+            Err(TransferCalibrationErrorV0::EmptyThresholds)
+        );
+
+        let duplicate = [forecast(1, 500_000, None), forecast(1, 500_000, None)];
+        assert_eq!(
+            evaluate_transfer_calibration(&duplicate, &[outcome[0], outcome[0]], 10, &[0],),
+            Err(TransferCalibrationErrorV0::DuplicateSampleId)
+        );
+
+        let invalid = [forecast(2, 1_000_001, None)];
+        assert_eq!(
+            evaluate_transfer_calibration(
+                &invalid,
+                &[TransferOutcomeV0 {
+                    sample_id: 2,
+                    evaluation_stratum_id: 0,
+                    transfer_qualified: false,
+                }],
+                10,
+                &[0],
+            ),
+            Err(TransferCalibrationErrorV0::ProbabilityOutOfRange)
+        );
+    }
+
+    #[test]
+    fn rejects_duplicate_or_out_of_range_thresholds_and_invalid_bins() {
+        let forecasts = [forecast(1, 500_000, None)];
+        let outcomes = [TransferOutcomeV0 {
+            sample_id: 1,
+            evaluation_stratum_id: 0,
+            transfer_qualified: true,
+        }];
+
+        assert_eq!(
+            evaluate_transfer_calibration(&forecasts, &outcomes, 10, &[1_000_001]),
+            Err(TransferCalibrationErrorV0::ThresholdOutOfRange)
+        );
+        assert_eq!(
+            evaluate_transfer_calibration(&forecasts, &outcomes, 10, &[0, 0]),
+            Err(TransferCalibrationErrorV0::DuplicateThreshold)
+        );
+        assert_eq!(
+            evaluate_transfer_calibration(&forecasts, &outcomes, 0, &[0]),
+            Err(TransferCalibrationErrorV0::ZeroCalibrationBins)
+        );
+    }
+
+    #[test]
+    fn rejects_duplicate_outcome_ids() {
+        let forecasts = [forecast(1, 500_000, None)];
+        let outcomes = [
+            TransferOutcomeV0 {
+                sample_id: 1,
+                evaluation_stratum_id: 0,
+                transfer_qualified: true,
+            },
+            TransferOutcomeV0 {
+                sample_id: 1,
+                evaluation_stratum_id: 0,
+                transfer_qualified: false,
+            },
+        ];
+
+        assert_eq!(
+            evaluate_transfer_calibration(&forecasts, &outcomes, 2, &[0]),
+            Err(TransferCalibrationErrorV0::DuplicateOutcomeId)
+        );
+    }
+
+    #[test]
+    fn rejects_an_outcome_without_a_forecast() {
+        let forecasts = [forecast(1, 500_000, None)];
+        let outcomes = [
+            TransferOutcomeV0 {
+                sample_id: 1,
+                evaluation_stratum_id: 0,
+                transfer_qualified: true,
+            },
+            TransferOutcomeV0 {
+                sample_id: 2,
+                evaluation_stratum_id: 0,
+                transfer_qualified: false,
+            },
+        ];
+
+        assert_eq!(
+            evaluate_transfer_calibration(&forecasts, &outcomes, 2, &[0]),
+            Err(TransferCalibrationErrorV0::UnknownOutcome)
+        );
+    }
+}

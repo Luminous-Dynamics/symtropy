@@ -1,0 +1,58 @@
+{
+  "schema_version": "ergo-split-conformal-transfer-v0",
+  "calibrator": {
+    "identity": {
+      "receipt_id": "receipt-transfer-2026-00017",
+      "evaluation_stratum_id": 7,
+      "independent_unit_kind": "world_seed",
+      "claim_type": "simulation",
+      "claim_scope_sha256": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "predictor_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "preprocessing_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "score_function_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "calibration_cohort_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "sample_ids_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "split_manifest_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "evidence_prefix_sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "receipt_status": "active",
+      "alpha_ppm": 100000,
+      "calibration_count": 19,
+      "quantile_rank": 18,
+      "quantile_nonconformity_ppm": 220000
+    }
+  },
+  "prediction_sets": [
+    {
+      "sample_id": 1001,
+      "include_transfer": true,
+      "include_non_transfer": false,
+      "decision": "assert_transfer",
+      "evaluation_stratum_id": 7,
+      "calibration_scope_admitted": true
+    },
+    {
+      "sample_id": 1002,
+      "include_transfer": true,
+      "include_non_transfer": true,
+      "decision": null,
+      "evaluation_stratum_id": 7,
+      "calibration_scope_admitted": true
+    },
+    {
+      "sample_id": 1003,
+      "include_transfer": false,
+      "include_non_transfer": true,
+      "decision": "reject_transfer",
+      "evaluation_stratum_id": 7,
+      "calibration_scope_admitted": true
+    },
+    {
+      "sample_id": 1004,
+      "evaluation_stratum_id": 2,
+      "include_transfer": true,
+      "include_non_transfer": true,
+      "decision": null,
+      "calibration_scope_admitted": false
+    }
+  ]
+}

@@ -1,0 +1,847 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/ergo-agent-transfer-bundle-v0.schema.json",
+  "title": "ErgoStream agent transfer bundle v0",
+  "description": "Versioned transfer sidecar attached to an existing blind AgentSubmission by digest and evidence-prefix identity. It contains learner proposals/predictions only, never evaluator truth or hidden target transitions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "agent_submission_binding",
+    "structural_transfer"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ergo-agent-transfer-bundle-v0"
+    },
+    "agent_submission_binding": {
+      "$ref": "#/$defs/submission_binding"
+    },
+    "structural_transfer": {
+      "$ref": "scoped_transfer_proposal_v0.schema.json"
+    },
+    "dynamics_transfer": {
+      "$ref": "#/$defs/dynamics_transfer"
+    },
+    "unresolved": {
+      "type": "boolean"
+    },
+    "alternatives": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/dynamics_transfer"
+      }
+    },
+    "known_non_transfer_boundaries": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "behavioural_transfer": {
+      "$ref": "#/$defs/behavioural_transfer"
+    },
+    "transfer_forecasts": {
+      "type": "array",
+      "description": "Candidate-authored forecasts only. Evaluator outcomes and calibration-bin/threshold choices remain owner-side.",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/transfer_forecast"
+      }
+    },
+    "mechanism_transfer": {
+      "$ref": "#/$defs/mechanism_transfer"
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "submission_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent_protocol_version",
+        "agent_action_frame_sha256",
+        "source_episode_id",
+        "target_episode_id",
+        "source_evidence_prefix_sha256",
+        "target_evidence_prefix_sha256",
+        "agent_view_frame_sha256",
+        "source_episode_receipt_sha256",
+        "target_episode_receipt_sha256",
+        "submission_episode_id",
+        "submission_evidence_prefix_sha256"
+      ],
+      "properties": {
+        "source_episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_evidence_prefix_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "target_evidence_prefix_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "agent_protocol_version": {
+          "const": "symthaea-open-world-research-episode-v0"
+        },
+        "agent_view_frame_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "agent_action_frame_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "source_episode_receipt_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "target_episode_receipt_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "submission_episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "submission_evidence_prefix_sha256": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "id_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state_ids",
+        "action_ids",
+        "excluded_state_ids",
+        "excluded_action_ids"
+      ],
+      "properties": {
+        "state_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "uniqueItems": true
+        },
+        "action_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "uniqueItems": true
+        },
+        "excluded_state_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "uniqueItems": true
+        },
+        "excluded_action_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "state_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_state_id",
+        "target_state_id"
+      ],
+      "properties": {
+        "source_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "target_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "action_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_action_id",
+        "target_action_id",
+        "source_action_kind",
+        "target_action_kind"
+      ],
+      "properties": {
+        "source_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "target_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "source_action_kind": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "target_action_kind": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      }
+    },
+    "predicted_transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_from_state_id",
+        "source_action_id",
+        "source_to_state_id",
+        "predicted_target_from_state_id",
+        "predicted_target_action_id",
+        "predicted_target_to_state_id",
+        "source_evidence_ids"
+      ],
+      "properties": {
+        "source_from_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "source_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "source_to_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "predicted_target_from_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "predicted_target_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "predicted_target_to_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "source_evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^E[0-9]{4,}$"
+          }
+        }
+      }
+    },
+    "dynamics_transfer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "map_kind",
+        "source_scope",
+        "target_scope",
+        "source_state_snapshot",
+        "target_state_snapshot",
+        "source_action_snapshot",
+        "target_action_snapshot",
+        "state_mappings",
+        "action_mappings",
+        "predicted_transitions",
+        "assumptions",
+        "unresolved"
+      ],
+      "properties": {
+        "map_kind": {
+          "const": "deterministic_transition_commutation"
+        },
+        "source_scope": {
+          "$ref": "#/$defs/id_scope"
+        },
+        "target_scope": {
+          "$ref": "#/$defs/id_scope"
+        },
+        "state_mappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/state_mapping"
+          }
+        },
+        "action_mappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action_mapping"
+          }
+        },
+        "predicted_transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/predicted_transition"
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "unresolved": {
+          "type": "boolean"
+        },
+        "source_state_snapshot": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/state_snapshot"
+          }
+        },
+        "target_state_snapshot": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/state_snapshot"
+          }
+        },
+        "source_action_snapshot": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action_snapshot"
+          }
+        },
+        "target_action_snapshot": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action_snapshot"
+          }
+        }
+      }
+    },
+    "state_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "evidence_ids"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^E[0-9]{4,}$"
+          }
+        }
+      }
+    },
+    "action_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "evidence_ids"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "kind": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^E[0-9]{4,}$"
+          }
+        }
+      }
+    },
+    "behaviour_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_state_ids",
+        "target_state_ids",
+        "source_action_ids",
+        "target_action_ids"
+      ],
+      "properties": {
+        "source_state_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "uniqueItems": true
+        },
+        "target_state_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "uniqueItems": true
+        },
+        "source_action_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "uniqueItems": true
+        },
+        "target_action_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "behaviour_state_pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_state_id",
+        "target_state_id"
+      ],
+      "properties": {
+        "source_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "target_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "behaviour_action_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_action_id",
+        "target_action_id",
+        "source_action_kind",
+        "target_action_kind"
+      ],
+      "properties": {
+        "source_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "target_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "source_action_kind": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "target_action_kind": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      }
+    },
+    "behaviour_response_prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "direction",
+        "observed_side",
+        "observed_from_state_id",
+        "observed_action_id",
+        "observed_to_state_id",
+        "observed_evidence_ids",
+        "predicted_from_state_id",
+        "predicted_action_id",
+        "predicted_to_state_id"
+      ],
+      "properties": {
+        "direction": {
+          "enum": [
+            "source_to_target",
+            "target_to_source"
+          ]
+        },
+        "observed_side": {
+          "enum": [
+            "source",
+            "target"
+          ]
+        },
+        "observed_from_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "observed_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "observed_to_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "observed_evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^E[0-9]{4,}$"
+          }
+        },
+        "predicted_from_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "predicted_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "predicted_to_state_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "behavioural_transfer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "map_kind",
+        "scope",
+        "source_state_snapshot",
+        "target_state_snapshot",
+        "source_action_snapshot",
+        "target_action_snapshot",
+        "state_relation",
+        "action_mappings",
+        "response_predictions",
+        "assumptions",
+        "unresolved"
+      ],
+      "properties": {
+        "map_kind": {
+          "enum": [
+            "simulation",
+            "bisimulation"
+          ]
+        },
+        "source_state_snapshot": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/state_snapshot"
+          }
+        },
+        "target_state_snapshot": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/state_snapshot"
+          }
+        },
+        "source_action_snapshot": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action_snapshot"
+          }
+        },
+        "target_action_snapshot": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action_snapshot"
+          }
+        },
+        "state_relation": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/behaviour_state_pair"
+          }
+        },
+        "action_mappings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/behaviour_action_mapping"
+          }
+        },
+        "response_predictions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/behaviour_response_prediction"
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "unresolved": {
+          "type": "boolean"
+        },
+        "scope": {
+          "$ref": "#/$defs/behaviour_scope"
+        }
+      }
+    },
+    "transfer_forecast": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "claim_type",
+        "claim_scope_sha256",
+        "probability_transfer_ppm",
+        "decision"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claim_type": {
+          "enum": [
+            "structural_correspondence",
+            "deterministic_dynamics",
+            "simulation",
+            "bisimulation",
+            "mechanism_transfer"
+          ]
+        },
+        "probability_transfer_ppm": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "decision": {
+          "enum": [
+            "assert_transfer",
+            "reject_transfer",
+            "abstain"
+          ]
+        },
+        "claim_scope_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "mechanism_source_intervention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_action_id",
+        "target_action_id",
+        "source_effect",
+        "evidence_ids"
+      ],
+      "properties": {
+        "source_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "target_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "source_effect": {
+          "enum": [
+            "negative",
+            "no_change",
+            "positive"
+          ]
+        },
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^E[0-9]{4,}$"
+          }
+        }
+      }
+    },
+    "mechanism_target_prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_action_id",
+        "target_action_id",
+        "predicted_target_effect"
+      ],
+      "properties": {
+        "source_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "target_action_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "predicted_target_effect": {
+          "enum": [
+            "negative",
+            "no_change",
+            "positive"
+          ]
+        }
+      }
+    },
+    "mechanism_transfer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_episode_id",
+        "target_episode_id",
+        "source_evidence_prefix_sha256",
+        "target_evidence_prefix_sha256",
+        "action_mappings",
+        "source_interventions",
+        "target_effect_predictions"
+      ],
+      "properties": {
+        "source_episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_evidence_prefix_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "target_evidence_prefix_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "action_mappings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/action_mapping"
+          }
+        },
+        "source_interventions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/mechanism_source_intervention"
+          }
+        },
+        "target_effect_predictions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/mechanism_target_prediction"
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "transfer_forecasts": {
+            "contains": {
+              "properties": {
+                "claim_type": {
+                  "const": "mechanism_transfer"
+                }
+              },
+              "required": [
+                "claim_type"
+              ]
+            }
+          }
+        },
+        "required": [
+          "transfer_forecasts"
+        ]
+      },
+      "then": {
+        "required": [
+          "mechanism_transfer"
+        ]
+      }
+    }
+  ]
+}

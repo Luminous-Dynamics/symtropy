@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/split_conformal_transfer_v0.schema.json",
+  "title": "ErgoStream split-conformal binary transfer artifact v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "calibrator",
+    "prediction_sets"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ergo-split-conformal-transfer-v0"
+    },
+    "calibrator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/calibration_identity"
+        }
+      }
+    },
+    "prediction_sets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sample_id",
+          "evaluation_stratum_id",
+          "calibration_scope_admitted",
+          "include_transfer",
+          "include_non_transfer",
+          "decision"
+        ],
+        "properties": {
+          "sample_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 18446744073709552000
+          },
+          "include_transfer": {
+            "type": "boolean"
+          },
+          "include_non_transfer": {
+            "type": "boolean"
+          },
+          "decision": {
+            "enum": [
+              "assert_transfer",
+              "reject_transfer",
+              null
+            ]
+          },
+          "evaluation_stratum_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "calibration_scope_admitted": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "calibration_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_id",
+        "receipt_status",
+        "evaluation_stratum_id",
+        "independent_unit_kind",
+        "claim_type",
+        "claim_scope_sha256",
+        "predictor_sha256",
+        "preprocessing_sha256",
+        "score_function_sha256",
+        "calibration_cohort_sha256",
+        "sample_ids_sha256",
+        "split_manifest_sha256",
+        "evidence_prefix_sha256",
+        "alpha_ppm",
+        "calibration_count",
+        "quantile_rank",
+        "quantile_nonconformity_ppm"
+      ],
+      "properties": {
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evaluation_stratum_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "independent_unit_kind": {
+          "enum": [
+            "world_seed",
+            "episode",
+            "campaign",
+            "site",
+            "asset",
+            "other"
+          ]
+        },
+        "claim_type": {
+          "enum": [
+            "structural_correspondence",
+            "deterministic_dynamics",
+            "simulation",
+            "bisimulation",
+            "mechanism_transfer"
+          ]
+        },
+        "claim_scope_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "predictor_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "preprocessing_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "score_function_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "calibration_cohort_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "sample_ids_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "split_manifest_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence_prefix_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "receipt_status": {
+          "enum": [
+            "active",
+            "revoked",
+            "expired"
+          ]
+        },
+        "alpha_ppm": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 999999
+        },
+        "calibration_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "quantile_rank": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "quantile_nonconformity_ppm": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        }
+      }
+    }
+  }
+}

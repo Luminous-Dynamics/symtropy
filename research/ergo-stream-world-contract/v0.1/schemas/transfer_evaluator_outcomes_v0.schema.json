@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/transfer_evaluator_outcomes_v0.schema.json",
+  "title": "ErgoStream evaluator-owned transfer outcomes v0",
+  "description": "Owner/evaluator-only truth and preregistered shift strata. Never include in learner-visible episode prefixes or candidate transfer bundles.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "cohort_id",
+    "outcomes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ergo-transfer-evaluator-outcomes-v0"
+    },
+    "cohort_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "outcomes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "claim_id",
+          "claim_type",
+          "claim_scope_sha256",
+          "evaluation_stratum_id",
+          "transfer_qualified"
+        ],
+        "properties": {
+          "claim_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "claim_type": {
+            "enum": [
+              "structural_correspondence",
+              "deterministic_dynamics",
+              "simulation",
+              "bisimulation",
+              "mechanism_transfer"
+            ]
+          },
+          "claim_scope_sha256": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "evaluation_stratum_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "transfer_qualified": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}
