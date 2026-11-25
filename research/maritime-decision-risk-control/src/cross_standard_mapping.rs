@@ -237,9 +237,7 @@ impl MappingRule {
         if self.target_field == "bizStep" && !is_supported_cbv_biz_step(&self.target_value) {
             return Err(CrosswalkError::InvalidTargetVocabularyValue);
         }
-        if self.target_field == "disposition"
-            && !is_supported_cbv_disposition(&self.target_value)
-        {
+        if self.target_field == "disposition" && !is_supported_cbv_disposition(&self.target_value) {
             return Err(CrosswalkError::InvalidTargetVocabularyValue);
         }
         Ok(())
