@@ -58,6 +58,13 @@ pub struct ReplayCoordinate {
     pub mode: String,
     pub subject_time_interval: AcquisitionTimeInterval,
     pub receiver_receipt_watermark_unix_ms: u64,
+    pub evidence_checkpoint_reference: String,
+    pub evidence_checkpoint_digest_sha256: String,
+    pub evidence_view_digest_sha256: String,
+    pub observer_coverage_status: String,
+    pub observer_coverage_profile_id: String,
+    pub observer_coverage_receipt_reference: String,
+    pub observer_coverage_receipt_digest_sha256: String,
     pub trust_status_as_of_unix_ms: u64,
     pub trust_policy_id: String,
     pub trust_policy_digest_sha256: String,
@@ -234,7 +241,39 @@ pub fn replay_coordinate(case: &Value, mode: ReplayMode) -> Option<ReplayCoordin
             "/current_reassessment/trust_policy_digest_sha256",
         ),
     };
+    let view_path = match mode {
+        ReplayMode::AsKnownAt | ReplayMode::RecomputedWithCurrentTrust => "/snapshot",
+        ReplayMode::RecomputedWithCurrentEvidenceAndTrust => "/current_reassessment",
+    };
     let receiver_receipt_watermark_unix_ms = case.pointer(receipt_path)?.as_u64()?;
+    let evidence_checkpoint_reference = case
+        .pointer(&format!("{view_path}/evidence_checkpoint_reference"))?
+        .as_str()?
+        .to_owned();
+    let evidence_checkpoint_digest_sha256 = case
+        .pointer(&format!("{view_path}/evidence_checkpoint_digest_sha256"))?
+        .as_str()?
+        .to_owned();
+    let evidence_view_digest_sha256 = case
+        .pointer(&format!("{view_path}/evidence_view_digest_sha256"))?
+        .as_str()?
+        .to_owned();
+    let observer_coverage_status = case
+        .pointer(&format!("{view_path}/observer_coverage_status"))?
+        .as_str()?
+        .to_owned();
+    let observer_coverage_profile_id = case
+        .pointer(&format!("{view_path}/observer_coverage_profile_id"))?
+        .as_str()?
+        .to_owned();
+    let observer_coverage_receipt_reference = case
+        .pointer(&format!("{view_path}/observer_coverage_receipt_reference"))?
+        .as_str()?
+        .to_owned();
+    let observer_coverage_receipt_digest_sha256 = case
+        .pointer(&format!("{view_path}/observer_coverage_receipt_digest_sha256"))?
+        .as_str()?
+        .to_owned();
     let trust_status_as_of_unix_ms = case.pointer(trust_path)?.as_u64()?;
     let trust_policy_id = case.pointer(policy_id_path)?.as_str()?.to_owned();
     let trust_policy_digest_sha256 = case.pointer(policy_digest_path)?.as_str()?.to_owned();
@@ -256,6 +295,13 @@ pub fn replay_coordinate(case: &Value, mode: ReplayMode) -> Option<ReplayCoordin
         .to_owned(),
         subject_time_interval,
         receiver_receipt_watermark_unix_ms,
+        evidence_checkpoint_reference,
+        evidence_checkpoint_digest_sha256,
+        evidence_view_digest_sha256,
+        observer_coverage_status,
+        observer_coverage_profile_id,
+        observer_coverage_receipt_reference,
+        observer_coverage_receipt_digest_sha256,
         trust_status_as_of_unix_ms,
         trust_policy_id,
         trust_policy_digest_sha256,
@@ -400,6 +446,131 @@ pub fn evaluate_case(case: &Value, mode: ReplayMode) -> TemporalDisposition {
             &all_events,
         );
     };
+
+    let view_path = match mode {
+        ReplayMode::AsKnownAt | ReplayMode::RecomputedWithCurrentTrust => "/snapshot",
+        ReplayMode::RecomputedWithCurrentEvidenceAndTrust => "/current_reassessment",
+    };
+    let checkpoint_status = case
+        .pointer(&format!("{view_path}/evidence_checkpoint_status"))
+        .and_then(Value::as_str);
+    match checkpoint_status {
+        Some("SYNTHETIC_VALID") => {
+            let checkpoint_reference = case
+                .pointer(&format!("{view_path}/evidence_checkpoint_reference"))
+                .and_then(Value::as_str);
+            let checkpoint_digest = case
+                .pointer(&format!("{view_path}/evidence_checkpoint_digest_sha256"))
+                .and_then(Value::as_str);
+            let view_digest = case
+                .pointer(&format!("{view_path}/evidence_view_digest_sha256"))
+                .and_then(Value::as_str);
+            let checkpoint_watermark = case
+                .pointer(&format!("{view_path}/evidence_checkpoint_watermark_unix_ms"))
+                .and_then(Value::as_u64);
+            if checkpoint_reference.is_none_or(str::is_empty)
+                || checkpoint_digest.is_none_or(|digest| !valid_sha256(digest))
+                || view_digest.is_none_or(|digest| !valid_sha256(digest))
+                || checkpoint_digest != view_digest
+                || checkpoint_watermark != Some(receipt_cutoff)
+            {
+                return one_reason(
+                    "REJECT",
+                    "EVIDENCE_CHECKPOINT_DIGEST_MISMATCH",
+                    &[],
+                    &[],
+                    &all_events,
+                );
+            }
+        }
+        Some("INVALID") => {
+            return one_reason(
+                "REJECT",
+                "EVIDENCE_CHECKPOINT_INVALID",
+                &[],
+                &[],
+                &all_events,
+            );
+        }
+        Some("UNVERIFIED") => {
+            return one_reason(
+                "TRUST_UNRESOLVED",
+                "EVIDENCE_CHECKPOINT_UNVERIFIED",
+                &[],
+                &[],
+                &all_events,
+            );
+        }
+        _ => {
+            return one_reason(
+                "TRUST_UNRESOLVED",
+                "EVIDENCE_CHECKPOINT_MISSING",
+                &[],
+                &[],
+                &all_events,
+            );
+        }
+    }
+
+    let coverage_status = case
+        .pointer(&format!("{view_path}/observer_coverage_status"))
+        .and_then(Value::as_str);
+    match coverage_status {
+        Some("SYNTHETIC_QUALIFIED_COMPLETE") => {
+            let profile_id = case
+                .pointer(&format!("{view_path}/observer_coverage_profile_id"))
+                .and_then(Value::as_str);
+            let receipt_reference = case
+                .pointer(&format!("{view_path}/observer_coverage_receipt_reference"))
+                .and_then(Value::as_str);
+            let receipt_digest = case
+                .pointer(&format!("{view_path}/observer_coverage_receipt_digest_sha256"))
+                .and_then(Value::as_str);
+            let coverage_watermark = case
+                .pointer(&format!("{view_path}/observer_coverage_watermark_unix_ms"))
+                .and_then(Value::as_u64);
+            if profile_id.is_none_or(str::is_empty)
+                || receipt_reference.is_none_or(str::is_empty)
+                || receipt_digest.is_none_or(|digest| !valid_sha256(digest))
+                || coverage_watermark != Some(receipt_cutoff)
+            {
+                return one_reason(
+                    "ABSTAIN",
+                    "OBSERVER_COVERAGE_RECEIPT_INVALID",
+                    &[],
+                    &[],
+                    &all_events,
+                );
+            }
+        }
+        Some("INCOMPLETE") => {
+            return one_reason(
+                "ABSTAIN",
+                "OBSERVER_COVERAGE_INCOMPLETE",
+                &[],
+                &[],
+                &all_events,
+            );
+        }
+        Some("UNVERIFIED") => {
+            return one_reason(
+                "TRUST_UNRESOLVED",
+                "OBSERVER_COVERAGE_UNQUALIFIED",
+                &[],
+                &[],
+                &all_events,
+            );
+        }
+        _ => {
+            return one_reason(
+                "TRUST_UNRESOLVED",
+                "OBSERVER_COVERAGE_MISSING",
+                &[],
+                &[],
+                &all_events,
+            );
+        }
+    }
 
     // Invalid cryptographic claims are rejected when the corresponding event
     // is in the selected evidence view. This model only checks declared test
@@ -1212,6 +1383,79 @@ mod tests {
         assert_eq!(
             report.reason_codes,
             vec!["CORRECTION_TARGET_NOT_STRICTLY_EARLIER".to_owned()]
+        );
+    }
+
+    #[test]
+    fn unverified_observer_coverage_cannot_support_a_negative_evidence_claim() {
+        let corpus: Value = serde_json::from_str(CORPUS).expect("temporal corpus parses");
+        let case = corpus["cases"]
+            .as_array()
+            .expect("cases")
+            .iter()
+            .find(|case| {
+                case["case_id"]
+                    == "observer-coverage-unqualified-cannot-support-negative-claim"
+            })
+            .expect("unverified observer coverage control");
+        assert_eq!(
+            evaluate_case(case, ReplayMode::AsKnownAt).disposition,
+            "TRUST_UNRESOLVED"
+        );
+        assert_eq!(
+            evaluate_case(case, ReplayMode::RecomputedWithCurrentTrust).disposition,
+            "TRUST_UNRESOLVED"
+        );
+        assert_eq!(
+            evaluate_case(case, ReplayMode::RecomputedWithCurrentEvidenceAndTrust).disposition,
+            "ACCEPTED_FOR_BINDING_ONLY"
+        );
+    }
+
+    #[test]
+    fn incomplete_observer_coverage_abstains_even_when_checkpoint_is_intact() {
+        let corpus: Value = serde_json::from_str(CORPUS).expect("temporal corpus parses");
+        let case = corpus["cases"]
+            .as_array()
+            .expect("cases")
+            .iter()
+            .find(|case| {
+                case["case_id"]
+                    == "incomplete-observer-coverage-abstains-even-with-valid-checkpoint"
+            })
+            .expect("incomplete observer coverage control");
+        for mode in [
+            ReplayMode::AsKnownAt,
+            ReplayMode::RecomputedWithCurrentTrust,
+            ReplayMode::RecomputedWithCurrentEvidenceAndTrust,
+        ] {
+            assert_eq!(evaluate_case(case, mode).disposition, "ABSTAIN");
+        }
+    }
+
+    #[test]
+    fn evidence_checkpoint_digest_must_bind_the_selected_view() {
+        let corpus: Value = serde_json::from_str(CORPUS).expect("temporal corpus parses");
+        let case = corpus["cases"]
+            .as_array()
+            .expect("cases")
+            .iter()
+            .find(|case| {
+                case["case_id"]
+                    == "evidence-checkpoint-digest-mismatch-rejects-historical-view"
+            })
+            .expect("checkpoint digest mismatch control");
+        assert_eq!(
+            evaluate_case(case, ReplayMode::AsKnownAt).disposition,
+            "REJECT"
+        );
+        assert_eq!(
+            evaluate_case(case, ReplayMode::RecomputedWithCurrentTrust).disposition,
+            "REJECT"
+        );
+        assert_eq!(
+            evaluate_case(case, ReplayMode::RecomputedWithCurrentEvidenceAndTrust).disposition,
+            "ACCEPTED_FOR_BINDING_ONLY"
         );
     }
 
