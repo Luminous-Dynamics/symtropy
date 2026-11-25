@@ -1,0 +1,734 @@
+{
+  "corpus_id": "AERO-TEMPORAL-REPLAY-ORACLE-0.1",
+  "profile_id": "aero-temporal-evidence-assurance-v0.1",
+  "synthetic_only": true,
+  "claim_ceiling": "temporal evidence inclusion and replay semantics only",
+  "oracle_review_status": "NOT_INDEPENDENTLY_REVIEWED",
+  "expected_dispositions_frozen_separately_from_evaluator": true,
+  "snapshot_semantics": {
+    "as_known_at": "Only events first received at or before receiver_receipt_watermark_unix_ms may influence the historical result.",
+    "recomputed_with_current_trust": "Reassess the same historical query using current trust/key status while retaining the original as_known_at result.",
+    "issuer_recorded_at": "Self-declared source metadata; not a receipt or trusted timestamp.",
+    "trusted_timestamp": "Must bind the canonical payload digest; does not prove event truth or effective time."
+  },
+  "cases": [
+    {
+      "case_id": "positive-no-event-baseline",
+      "purpose": "A valid observation with no calibration events is accepted only at the binding-only ceiling.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1"
+      },
+      "events": [],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ACCEPTED_FOR_BINDING_ONLY",
+          "reason_codes": [],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "ACCEPTED_FOR_BINDING_ONLY",
+          "reason_codes": [],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        }
+      }
+    },
+    {
+      "case_id": "known-but-future-effective-revocation",
+      "purpose": "A revocation is received before the snapshot but is not effective until after it.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1"
+      },
+      "events": [
+        {
+          "event_id": "EV-FUTURE",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 200,
+          "issuer_recorded_at_unix_ms": 110,
+          "receiver_first_seen_at_unix_ms": 120,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "NOT_YET_EFFECTIVE",
+          "reason_codes": [
+            "EVENT_NOT_YET_EFFECTIVE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-FUTURE"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "NOT_YET_EFFECTIVE",
+          "reason_codes": [
+            "EVENT_NOT_YET_EFFECTIVE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-FUTURE"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "backdated-event-received-after-snapshot",
+      "purpose": "Issuer claims early recording, but receiver first saw the event after the historical receipt watermark.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1"
+      },
+      "events": [
+        {
+          "event_id": "EV-LATE",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 100,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 180,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "NOT_KNOWN_AT_SNAPSHOT",
+          "reason_codes": [
+            "EVENT_RECEIVED_AFTER_SNAPSHOT"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-LATE"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "NOT_KNOWN_AT_SNAPSHOT",
+          "reason_codes": [
+            "EVENT_RECEIVED_AFTER_SNAPSHOT"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-LATE"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "known-effective-revocation",
+      "purpose": "A revocation is received and effective before the requested snapshot.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1"
+      },
+      "events": [
+        {
+          "event_id": "EV-REVOKE",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 120,
+          "issuer_recorded_at_unix_ms": 125,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "BLOCK",
+          "reason_codes": [
+            "REVOCATION_EFFECTIVE_AND_KNOWN"
+          ],
+          "applied_event_ids": [
+            "EV-REVOKE"
+          ],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "BLOCK",
+          "reason_codes": [
+            "REVOCATION_EFFECTIVE_AND_KNOWN"
+          ],
+          "applied_event_ids": [
+            "EV-REVOKE"
+          ],
+          "excluded_event_ids": []
+        }
+      }
+    },
+    {
+      "case_id": "acquisition-uncertainty-crosses-calibration-end",
+      "purpose": "The measurement clock interval overlaps the exclusive calibration end boundary.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 195,
+        "latest_unix_ms": 205
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 210,
+        "receiver_receipt_watermark_unix_ms": 210,
+        "trust_policy_id": "trust-policy-v1"
+      },
+      "events": [],
+      "expected": {
+        "as_known_at": {
+          "disposition": "TIME_BOUNDARY_AMBIGUOUS",
+          "reason_codes": [
+            "ACQUISITION_INTERVAL_CROSSES_CALIBRATION_BOUNDARY"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "TIME_BOUNDARY_AMBIGUOUS",
+          "reason_codes": [
+            "ACQUISITION_INTERVAL_CROSSES_CALIBRATION_BOUNDARY"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        }
+      }
+    },
+    {
+      "case_id": "timestamp-token-wrong-payload-digest",
+      "purpose": "The supplied timestamp token does not bind the event payload digest.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1"
+      },
+      "events": [
+        {
+          "event_id": "EV-TSA-BAD",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 120,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "invalid_digest",
+          "trusted_timestamp_at_unix_ms": 125,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "REJECT",
+          "reason_codes": [
+            "TIMESTAMP_IMPRINT_MISMATCH"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-TSA-BAD"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "REJECT",
+          "reason_codes": [
+            "TIMESTAMP_IMPRINT_MISMATCH"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-TSA-BAD"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "issuer-authority-unknown",
+      "purpose": "The signature is valid but authority to issue this certificate event is unknown.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1"
+      },
+      "events": [
+        {
+          "event_id": "EV-AUTH-UNKNOWN",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 120,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "unknown",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "ISSUER_AUTHORITY_UNKNOWN"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-AUTH-UNKNOWN"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "ISSUER_AUTHORITY_UNKNOWN"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-AUTH-UNKNOWN"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "source-sequence-gap",
+      "purpose": "The event is received but the owner-native sequence/checkpoint evidence shows a gap.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1"
+      },
+      "events": [
+        {
+          "event_id": "EV-GAP",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 120,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "gap",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "OWNER_EVENT_SEQUENCE_GAP"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-GAP"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "OWNER_EVENT_SEQUENCE_GAP"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-GAP"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "same-namespace-duplicate-id-conflicting-payload",
+      "purpose": "Two events reuse one source-scoped immutable ID with different payload digests; neither may win by array order.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1"
+      },
+      "events": [
+        {
+          "event_id": "EV-DUP",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 120,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null
+        },
+        {
+          "event_id": "EV-DUP",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "suspended",
+          "payload_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "effective_at_unix_ms": 121,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 131,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "DUPLICATE_EVENT_ID_CONFLICT"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-DUP"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "DUPLICATE_EVENT_ID_CONFLICT"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-DUP"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "historical-policy-versus-current-key-compromise",
+      "purpose": "The old snapshot accepted an event while its key was not known compromised; current reassessment lacks an independent timestamp proving pre-compromise existence.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1"
+      },
+      "events": [
+        {
+          "event_id": "EV-ISSUED",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "issued",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 80,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 95,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "compromised",
+          "compromise_effective_at_unix_ms": 160,
+          "corrects_event_id": null
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ACCEPTED_FOR_BINDING_ONLY",
+          "reason_codes": [],
+          "applied_event_ids": [
+            "EV-ISSUED"
+          ],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "SIGNER_KEY_COMPROMISE_WITHOUT_PRESERVATION_TIMESTAMP"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-ISSUED"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "correction-cycle",
+      "purpose": "Two corrections point to each other, so no unique historical event state exists.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1"
+      },
+      "events": [
+        {
+          "event_id": "EV-CORR-A",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "corrected",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 80,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 95,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": "EV-CORR-B"
+        },
+        {
+          "event_id": "EV-CORR-B",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "corrected",
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "effective_at_unix_ms": 80,
+          "issuer_recorded_at_unix_ms": 91,
+          "receiver_first_seen_at_unix_ms": 96,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": "EV-CORR-A"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CORRECTION_CYCLE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CORR-A",
+            "EV-CORR-B"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CORRECTION_CYCLE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CORR-A",
+            "EV-CORR-B"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "source-clock-rollback",
+      "purpose": "The source event time regresses relative to a trusted owner sequence/receipt observation.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1"
+      },
+      "events": [
+        {
+          "event_id": "EV-CLOCK",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 120,
+          "issuer_recorded_at_unix_ms": 80,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "rollback_detected",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "SOURCE_CLOCK_ROLLBACK"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CLOCK"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "SOURCE_CLOCK_ROLLBACK"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CLOCK"
+          ]
+        }
+      }
+    }
+  ]
+}
