@@ -35,21 +35,22 @@ The compiler is an evidence-gated engineering system, not a product recommender 
 | `../PHYSICAL_STORAGE_SYSTEMS_001.md` | Technology baselines, qualification gates and physical storage benchmark programme |
 | `../fixtures/industry_baselines_v0_1.json` | Source-pinned current product/research/roadmap ledger |
 
-The schemas enforce types, enumerations, required fields and unknown-value handling. Additional semantic validation is required for cross-field constraints such as ordered environmental ranges, workload fractions summing to one, and the number of independent failure domains not exceeding copies. A schema-valid contract can still be physically infeasible.
+The schemas enforce types, enumerations, required fields and unknown-value handling. Additional semantic validation is required for cross-field constraints such as ordered environmental ranges, workload fractions summing to one, the number of independent failure domains not exceeding copies, and dependency-profile reference/status consistency. A schema-valid contract can still be physically infeasible.
 
 ## 3. Compile pipeline
 
 1. **Parse and normalize.** Validate JSON, units, dimensions, explicit nulls, classifications and cross-field invariants. Never silently infer a missing temperature, cost, retention or throughput.
 2. **Resolve service semantics.** Translate capacity, growth, access and restore constraints into a frozen workload and system boundary.
 3. **Filter by evidence status.** Separate commercial products, customer-qualified products, research demonstrators and roadmaps. Roadmaps and lab demonstrations cannot become production-eligible candidates.
-4. **Apply hard constraints.** Reject candidates that violate known hard requirements. Mark candidates *unknown / not rankable* where required evidence is missing.
-5. **Generate architecture candidates.** Explore media, redundancy, coding, physical layout, calibration, reader count and recovery domains.
-6. **Invoke qualified physics only.** Each external optical, micromagnetic, electrothermal, ferroelectric or device model must be pinned to a version, configuration, input identity and applicability domain.
-7. **Run Symtropy process/observation twin.** Evaluate geometry, materials, process variability, spatial defect maps, read/write registration and manufacturing constraints.
-8. **Run Symthaea search.** Optimize the candidate Pareto frontier under equal evaluation budgets, held-out defects and preregistered ablations.
-9. **Independent oracle.** Recheck hard constraints, MDS/code algebra, layout completeness, exact recovery, payload digests and all evidence identities independently from the optimizer.
-10. **Emit decision dossier.** Report each candidate's pass/fail/unknown state, measured/simulated/source evidence, Pareto metrics, exclusions and reproducibility receipts.
-11. **Lifecycle plan.** Include reader/decoder replacement, key custody, format self-description, migration windows, restore drills and end-of-life media handling.
+4. **Qualify failure-domain independence.** Consume the canonical multi-valued/transitive dependency profile and cut-set semantics from Mycelix [ASSURE-PORTFOLIO-CUT-002 #5762](https://github.com/Luminous-Dynamics/mycelix/issues/5762), through Symtropy's dependency-diversity adapter [#7341](https://github.com/Luminous-Dynamics/symtropy/issues/7341). A declared copy count or distinct domain labels are not proof of independent recovery paths. Incomplete/unknown dependency closure yields `INDETERMINATE`.
+5. **Apply hard constraints.** Reject candidates that violate known hard requirements. Mark candidates *unknown / not rankable* where required evidence is missing.
+6. **Generate architecture candidates.** Explore media, redundancy, coding, physical layout, calibration, reader count and recovery domains.
+7. **Invoke qualified physics only.** Each external optical, micromagnetic, electrothermal, ferroelectric or device model must be pinned to a version, configuration, input identity and applicability domain.
+8. **Run Symtropy process/observation twin.** Evaluate geometry, materials, process variability, spatial defect maps, read/write registration and manufacturing constraints.
+9. **Run Symthaea search.** Optimize the candidate Pareto frontier under equal evaluation budgets, held-out defects and preregistered ablations.
+10. **Independent oracle.** Recheck hard constraints, MDS/code algebra, layout completeness, exact recovery, payload digests and all evidence identities independently from the optimizer.
+11. **Emit decision dossier.** Report each candidate's pass/fail/unknown state, measured/simulated/source evidence, Pareto metrics, exclusions and reproducibility receipts.
+12. **Lifecycle plan.** Include reader/decoder replacement, key custody, format self-description, migration windows, restore drills and end-of-life media handling.
 
 ## 4. The most important rule: unknown is not pass
 
@@ -125,6 +126,18 @@ The physical medium is only half the archive. Preserve format specification, dec
 ### 7.5 Active evidence acquisition
 
 When a candidate is unrankable, the compiler should identify the cheapest next experiment that can resolve the decisive unknown: full-restore benchmark, reader portability, aged sample, spatial defect mapping, costed process route, or repeated-lot yield.
+
+### 7.1 Independence is a dependency property, not a copy count
+
+Three physical copies may still share one site, power source, network, reader, decoder, key service, operator authority or software supply chain. The service contract therefore carries a versioned dependency-profile reference and an explicit status. The compiler consumes Mycelix #5762's multi-valued/transitive dependency closure and cut-set semantics through Symtropy #7341; it must not create a second generic dependency graph.
+
+Keep these claims separate:
+- physical copy count;
+- declared failure-domain labels;
+- dependency-qualified path diversity under a complete identity-bound inventory;
+- empirical/statistical independence under a justified dataset and model.
+
+Distinct IDs, hashes, reader brands or site labels do not establish empirical independence. Unknown dependency closure means no numeric independence guarantee.
 
 ## 8. Compiler benchmarks
 
