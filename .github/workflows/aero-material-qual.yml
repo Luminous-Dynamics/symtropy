@@ -197,6 +197,15 @@ jobs:
                   raise SystemExit(f"{event['event_id']}: absent timestamp must not carry an imprint")
           if not any(event["receiver_receipt_status"] == "UNVERIFIED" for event in all_events):
               raise SystemExit("temporal replay corpus requires an unverified-receipt control")
+          cross_namespace = next((case for case in cases if case["case_id"] == "same-local-id-in-distinct-source-namespaces-is-not-a-collision"), None)
+          if cross_namespace is None or len({event["source_namespace"] for event in cross_namespace["events"]}) < 2:
+              raise SystemExit("temporal corpus requires a cross-namespace local-ID control")
+          idempotent = next((case for case in cases if case["case_id"] == "same-source-id-same-payload-repeated-delivery-deduplicates-once"), None)
+          if idempotent is None or len(idempotent["events"]) != 2:
+              raise SystemExit("temporal corpus requires a repeated-delivery idempotency control")
+          pair = idempotent["events"]
+          if pair[0]["source_namespace"] != pair[1]["source_namespace"] or pair[0]["event_id"] != pair[1]["event_id"] or pair[0]["payload_sha256"] != pair[1]["payload_sha256"]:
+              raise SystemExit("idempotent delivery control must repeat the same source-scoped identity and payload digest")
           print(f"Temporal replay corpus structure passed: {len(cases)} cases; semantic oracle review still required.")
           PY
 
