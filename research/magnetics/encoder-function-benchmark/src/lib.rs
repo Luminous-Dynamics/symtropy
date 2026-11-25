@@ -202,16 +202,13 @@ pub fn evaluate_trace(
             return Err(EvaluationError::NonFiniteSample { index });
         }
 
-        if index > 0
-            && sample.mechanical_angle_rad <= trace.samples[index - 1].mechanical_angle_rad
+        if index > 0 && sample.mechanical_angle_rad <= trace.samples[index - 1].mechanical_angle_rad
         {
             return Err(EvaluationError::NonMonotonicAngleGrid { index });
         }
 
         let expected_angle = start_angle + index as f64 * angle_step;
-        if (sample.mechanical_angle_rad - expected_angle).abs()
-            > ANGLE_GRID_TOLERANCE_RAD
-        {
+        if (sample.mechanical_angle_rad - expected_angle).abs() > ANGLE_GRID_TOLERANCE_RAD {
             return Err(EvaluationError::NonUniformOrIncompleteRevolution { index });
         }
 
@@ -281,8 +278,10 @@ pub fn evaluate_trace(
     absolute_phase_errors.sort_by(f64::total_cmp);
     let p95_index = (sample_count * 95).div_ceil(100).saturating_sub(1);
     let p95_absolute_phase_error_rad = absolute_phase_errors[p95_index];
-    let maximum_absolute_phase_error_rad =
-        absolute_phase_errors.iter().copied().fold(0.0_f64, f64::max);
+    let maximum_absolute_phase_error_rad = absolute_phase_errors
+        .iter()
+        .copied()
+        .fold(0.0_f64, f64::max);
 
     let mut violations = Vec::new();
     if below_threshold_sample_count > 0 {
@@ -394,7 +393,9 @@ pub fn evaluate_trace_set(
             .map(|metric| metric.p95_absolute_phase_error_rad)
             .fold(0.0_f64, f64::max),
         worst_amplitude_ripple_fraction: maximum_optional(
-            metrics.iter().map(|metric| metric.amplitude_ripple_fraction),
+            metrics
+                .iter()
+                .map(|metric| metric.amplitude_ripple_fraction),
         ),
         worst_rms_cross_axis_ratio: maximum_optional(
             metrics.iter().map(|metric| metric.rms_cross_axis_ratio),
@@ -537,8 +538,16 @@ mod tests {
 
         assert!(!metrics.accepted);
         assert!(metrics.maximum_absolute_phase_error_rad > 0.019);
-        assert!(metrics.violations.contains(&RequirementViolation::PeakPhaseErrorExceeded));
-        assert!(metrics.violations.contains(&RequirementViolation::RmsPhaseErrorExceeded));
+        assert!(
+            metrics
+                .violations
+                .contains(&RequirementViolation::PeakPhaseErrorExceeded)
+        );
+        assert!(
+            metrics
+                .violations
+                .contains(&RequirementViolation::RmsPhaseErrorExceeded)
+        );
     }
 
     #[test]
@@ -557,7 +566,11 @@ mod tests {
 
         assert!(!metrics.accepted);
         assert!(metrics.below_threshold_sample_count > 0);
-        assert!(metrics.violations.contains(&RequirementViolation::BelowMinimumInPlaneField));
+        assert!(
+            metrics
+                .violations
+                .contains(&RequirementViolation::BelowMinimumInPlaneField)
+        );
     }
 
     #[test]
@@ -576,7 +589,11 @@ mod tests {
 
         assert!(!metrics.accepted);
         assert!(metrics.amplitude_ripple_fraction.unwrap() > 0.10);
-        assert!(metrics.violations.contains(&RequirementViolation::AmplitudeRippleExceeded));
+        assert!(
+            metrics
+                .violations
+                .contains(&RequirementViolation::AmplitudeRippleExceeded)
+        );
     }
 
     #[test]
@@ -595,7 +612,11 @@ mod tests {
 
         assert!(!metrics.accepted);
         assert!(metrics.rms_cross_axis_ratio.unwrap() > 0.05);
-        assert!(metrics.violations.contains(&RequirementViolation::CrossAxisRatioExceeded));
+        assert!(
+            metrics
+                .violations
+                .contains(&RequirementViolation::CrossAxisRatioExceeded)
+        );
     }
 
     #[test]
@@ -693,7 +714,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn requirements_must_name_an_independent_phase_calibration() {
         let trace = make_trace(
@@ -714,7 +734,6 @@ mod tests {
             Err(EvaluationError::InvalidRequirements)
         );
     }
-
 
     #[test]
     fn reversed_electrical_phase_direction_is_supported() {
