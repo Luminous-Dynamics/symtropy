@@ -446,7 +446,25 @@ fn validate_model_universe(case: &Case) -> Result<(String, String, String), Stri
     if bridge_pairs != expected_pairs {
         return Err("joint-loss bridge scenario tuples differ from independently checked model grammar".to_owned());
     }
-    let model_digest = canonical_digest(model_case)?;
+    let mut canonical_model_case = model_case.clone();
+    for world in &mut canonical_model_case.worlds {
+        world.profile_tags.sort();
+    }
+    canonical_model_case.worlds.sort_by(|left, right| left.world_id.cmp(&right.world_id));
+    canonical_model_case.producer_models.sort_by(|left, right| left.model_id.cmp(&right.model_id));
+    canonical_model_case.declared_model_ids.sort();
+    canonical_model_case.applicability.sort_by(|left, right| {
+        (&left.world_id, &left.model_id).cmp(&(&right.world_id, &right.model_id))
+    });
+    canonical_model_case.joint_pairs.sort_by(|left, right| {
+        (&left.scenario_id, &left.world_id, &left.model_id)
+            .cmp(&(&right.scenario_id, &right.world_id, &right.model_id))
+    });
+    canonical_model_case.expected.missing_model_ids.sort();
+    canonical_model_case.expected.missing_pair_ids.sort();
+    canonical_model_case.expected.unexpected_model_ids.sort();
+    canonical_model_case.expected.unexpected_pair_ids.sort();
+    let model_digest = canonical_digest(&canonical_model_case)?;
     let world_digest = digest_ids(&bridge.expected_world_ids)?;
     Ok((
         evaluation.disposition,
