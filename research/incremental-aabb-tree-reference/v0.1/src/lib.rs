@@ -748,6 +748,26 @@ mod tests {
     }
 
     #[test]
+    fn maintenance_counters_separate_contained_updates_reinserts_and_rebuilds() {
+        let mut tree = IncrementalAabbTree::<2>::new(0.5).unwrap();
+        tree.insert(ProxyId(1), aabb([0.0, 0.0], [1.0, 1.0])).unwrap();
+        tree.update(ProxyId(1), aabb([0.25, 0.25], [0.75, 0.75]))
+            .unwrap();
+        tree.update(ProxyId(1), aabb([3.0, 0.0], [4.0, 1.0]))
+            .unwrap();
+        tree.remove(ProxyId(1)).unwrap();
+        tree.rebuild();
+
+        let maintenance = tree.stats().maintenance;
+        assert_eq!(maintenance.insert_operations, 1);
+        assert_eq!(maintenance.update_operations, 2);
+        assert_eq!(maintenance.fat_contained_updates, 1);
+        assert_eq!(maintenance.proxy_reinsertions, 1);
+        assert_eq!(maintenance.remove_operations, 1);
+        assert_eq!(maintenance.full_rebuilds, 1);
+    }
+
+    #[test]
     fn failed_invalid_update_does_not_change_existing_tree() {
         let mut tree = IncrementalAabbTree::<2>::new(0.0).unwrap();
         tree.insert(ProxyId(1), aabb([0.0, 0.0], [1.0, 1.0])).unwrap();
