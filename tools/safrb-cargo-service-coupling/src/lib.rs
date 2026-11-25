@@ -36,6 +36,8 @@ pub struct CoupledHourlyService {
     pub critical_floor_wh: u64,
     pub delivered_lower_wh: u64,
     pub delivered_upper_wh: u64,
+    pub average_active_power_lower_w: u64,
+    pub average_active_power_upper_w: u64,
     pub telemetry_state: TelemetryState,
     pub service_disposition: ServiceDisposition,
     pub qualification: QualificationReport,
@@ -100,6 +102,15 @@ fn disposition(
 
 fn to_i64(value: u64, field: &str) -> Result<i64, String> {
     i64::try_from(value).map_err(|_| format!("{field} exceeds signed service-vector range"))
+}
+
+fn average_power_w(energy_wh: u64, duration_seconds: u64) -> Result<u64, String> {
+    if duration_seconds == 0 {
+        return Err("service interval duration must be positive".into());
+    }
+    energy_wh.checked_mul(3_600)
+        .map(|watt_seconds| watt_seconds / duration_seconds)
+        .ok_or_else(|| "average active-power conversion overflow".to_string())
 }
 
 fn profile(service_id: &str, floor_wh: u64, demand_wh: u64) -> Result<ServiceProfile, String> {
@@ -198,6 +209,8 @@ fn qualify_hour(
     row_index: usize,
     lower_wh: u64,
     upper_wh: u64,
+    average_power_lower_w: u64,
+    average_power_upper_w: u64,
 ) -> Result<QualificationReport, String> {
     let row = template.hourly_trajectory.get(row_index)
         .ok_or_else(|| format!("missing generator model hour {row_index}"))?;
@@ -213,9 +226,13 @@ fn qualify_hour(
         window_end_unix_s: window_end,
     };
     let service_profile = profile(&service_id, row.critical_floor_wh, row.demand_wh)?;
-    let interval = EvidenceInterval {
+    let energy_interval = EvidenceInterval {
         lower: to_i64(lower_wh, "delivered lower Wh")?,
         upper: to_i64(upper_wh, "delivered upper Wh")?,
+    };
+    let power_interval = EvidenceInterval {
+        lower: to_i64(average_power_lower_w, "average active-power lower W")?,
+        upper: to_i64(average_power_upper_w, "average active-power upper W")?,
     };
     let admission = if template.service.telemetry_state == TelemetryState::StaleOrConflicting {
         EvidenceAdmission::Stale
@@ -226,10 +243,8 @@ fn qualify_hour(
     };
     let ordinal = (case_index as u64 * u64::from(HORIZON_HOURS) + row_index as u64) * 2;
     let evidence = vec![
-        evidence("hourly-energy-floor", "Wh", interval, &context, ordinal + 1, admission),
-        // Over exactly 3600 seconds, Wh / 1 hour yields the average W value.
-        // The unit is still explicit and separately qualified.
-        evidence("hourly-average-active-power-floor", "W", interval, &context, ordinal + 2, admission),
+        evidence("hourly-energy-floor", "Wh", energy_interval, &context, ordinal + 1, admission),
+        evidence("hourly-average-active-power-floor", "W", power_interval, &context, ordinal + 2, admission),
     ];
     qualify_service(&service_profile, &context, &evidence)
         .map_err(|errors| errors.join("; "))
@@ -301,8 +316,20 @@ pub fn couple_case(
             upper_wh,
             service_hour.critical_floor_wh,
         );
+        let interval_start = service_hour.interval_start_unix_s;
+        let interval_end = interval_start.checked_add(3_600).ok_or("service window overflow")?;
+        let interval_duration = interval_end - interval_start;
+        let average_power_lower_w = average_power_w(lower_wh, interval_duration)?;
+        let average_power_upper_w = average_power_w(upper_wh, interval_duration)?;
         let qualification = qualify_hour(
-            &cargo_case.case_id, case_index, &generator_template, hour, lower_wh, upper_wh,
+            &cargo_case.case_id,
+            case_index,
+            &generator_template,
+            hour,
+            lower_wh,
+            upper_wh,
+            average_power_lower_w,
+            average_power_upper_w,
         )?;
         let vector_disposition = qualification.service_verdict;
         if (vector_disposition == ServiceVerdict::Guaranteed && service_disposition != ServiceDisposition::Guaranteed)
@@ -327,6 +354,8 @@ pub fn couple_case(
             critical_floor_wh: service_hour.critical_floor_wh,
             delivered_lower_wh: lower_wh,
             delivered_upper_wh: upper_wh,
+            average_active_power_lower_w: average_power_lower_w,
+            average_active_power_upper_w: average_power_upper_w,
             telemetry_state: generator_template.service.telemetry_state,
             service_disposition,
             qualification,
@@ -352,7 +381,8 @@ pub fn couple_case(
 
 pub fn build_corpus() -> Result<Vec<CoupledCase>, String> {
     synthetic_cases().into_iter().enumerate().map(|(index, cargo)| {
-        let template = generate_case(Archetype::BaselineAllPaths, (index % 10) as u64);
+        let seed = if cargo.case_id == "verified-on-time" { 9 } else { (index % 9) as u64 };
+        let template = generate_case(Archetype::BaselineAllPaths, seed);
         couple_case(cargo, template, index)
     }).collect()
 }
@@ -452,12 +482,14 @@ impl CoupledCase {
     /// Evaluator-only output nests cargo truth and all downstream service verdicts.
     pub fn oracle_json(&self) -> String {
         let rows = self.hourly_trajectory.iter().map(|row| format!(
-            "{{\"hourIndex\":{},\"intervalStartUnixS\":{},\"generatorStockReceivedGrams\":{},\"generatorStockAvailableGrams\":{},\"fuelIssueGrams\":{},\"compatibleFuelFeedGrams\":{},\"unconstrainedFuelEnergyWh\":{},\"generatorPowerCapWh\":{},\"powerCapCurtailedWh\":{},\"grossGenerationWh\":{},\"networkDeliverableWh\":{},\"demandWh\":{},\"criticalFloorWh\":{},\"deliveredLowerWh\":{},\"deliveredUpperWh\":{},\"telemetryState\":{},\"serviceDisposition\":{},\"serviceVectorVerdict\":{},\"requiredGuaranteed\":{},\"requiredFailed\":{},\"requiredIndeterminate\":{},\"notApplicableCount\":{}}}",
+            "{{\"hourIndex\":{},\"intervalStartUnixS\":{},\"generatorStockReceivedGrams\":{},\"generatorStockAvailableGrams\":{},\"fuelIssueGrams\":{},\"compatibleFuelFeedGrams\":{},\"unconstrainedFuelEnergyWh\":{},\"generatorPowerCapWh\":{},\"powerCapCurtailedWh\":{},\"grossGenerationWh\":{},\"networkDeliverableWh\":{},\"demandWh\":{},\"criticalFloorWh\":{},\"deliveredLowerWh\":{},\"deliveredUpperWh\":{},\"averageActivePowerLowerW\":{},\"averageActivePowerUpperW\":{},\"telemetryState\":{},\"serviceDisposition\":{},\"serviceVectorVerdict\":{},\"requiredGuaranteed\":{},\"requiredFailed\":{},\"requiredIndeterminate\":{},\"notApplicableCount\":{}}}",
             row.hour_index, row.interval_start_unix_s, row.generator_stock_received_grams,
             row.generator_stock_available_grams, row.fuel_issue_grams, row.compatible_fuel_feed_grams,
             row.unconstrained_fuel_energy_wh, row.generator_power_cap_wh, row.power_cap_curtailed_wh,
             row.gross_generation_wh, row.network_deliverable_wh, row.demand_wh, row.critical_floor_wh,
-            row.delivered_lower_wh, row.delivered_upper_wh, q(row.telemetry_state.as_str()),
+            row.delivered_lower_wh, row.delivered_upper_wh,
+            row.average_active_power_lower_w, row.average_active_power_upper_w,
+            q(row.telemetry_state.as_str()),
             q(row.service_disposition.as_str()), q(row.qualification.service_verdict.as_str()),
             row.qualification.required_guaranteed_count, row.qualification.required_failed_count,
             row.qualification.required_indeterminate_count, row.qualification.not_applicable_count
@@ -543,8 +575,10 @@ mod tests {
 
     #[test]
     fn stale_telemetry_remains_indeterminate_even_when_generation_occurs() {
-        let coupled = couple_case(case("verified-on-time"), template(9), 9).expect("couple");
+        let coupled = build_corpus().expect("coupling corpus").into_iter()
+            .find(|item| item.case_id == "verified-on-time").expect("on-time case");
         assert!(coupled.hourly_trajectory[12].gross_generation_wh > 0);
+        assert_eq!(coupled.hourly_trajectory[12].telemetry_state, TelemetryState::StaleOrConflicting);
         assert_eq!(coupled.hourly_trajectory[12].qualification.service_verdict, ServiceVerdict::Indeterminate);
     }
 
@@ -576,6 +610,8 @@ mod tests {
             2
         );
         assert_eq!(row.qualification.not_applicable_count, 5);
+        assert_eq!(row.average_active_power_lower_w, row.delivered_lower_wh);
+        assert_eq!(row.average_active_power_upper_w, row.delivered_upper_wh);
     }
 
     #[test]
