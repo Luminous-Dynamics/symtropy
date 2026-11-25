@@ -115,3 +115,21 @@ The exhaustive single-draw fixture enumerates all (256^2=65{,}536) branch/atom t
 - The sampler, policy, RNG, seed commitment and stream identities are pinned as supplied identifiers; this module does not cryptographically attest their binaries or prove those identifiers describe the executed implementation.
 - The finite-support calculation does not establish global defensive-mixture domination for a continuous orbital target measure, proposal support completeness, event-mode completeness, covariance realism, orbit-model adequacy or physical collision risk.
 - The exact ticket enumeration is a finite reference test, not a field coverage result or SOTA claim. The conversion into `AdaptiveImportanceDraw` closes the finite-support adapter boundary only; production Gaussian/GMM sampling, proposal-density evaluation, RNG quality, continuous-domain domination and event-mode completeness still require independent qualification.
+
+
+## Exact finite-support proposal quality
+
+`finite_proposal_quality.rs` evaluates the two adaptive residual proposals in the finite categorical reference model. It separates the support of each residual proposal from the support of the complete defensive mixture, so a proposal that misses an event mode is not mistaken for a fully adequate fitted proposal merely because the defensive component prevents estimator bias.
+
+For each proposal state it reports:
+- target-support atoms and residual-support atoms;
+- residual-proposal target/event modes missed;
+- target-support modes missed by the complete mixture (must be zero);
+- maximum target/residual and target/complete-mixture likelihood ratios;
+- maximum normalized defensive weight `alpha * p/q` (must be <= 1);
+- exact target event probability;
+- exact event-estimator second moment `sum_E p(i)^2/q(i)`, variance and effective-sample-size fraction `P(E)^2 / E_q[(1_E p/q)^2]`.
+
+All reported probabilities and moments use checked exact rational arithmetic. The tests include a proposal that misses both event modes while the defensive component preserves complete-mixture support, demonstrating that support preservation alone can coexist with poor ESS; a proposal matching the target provides the finite-fixture reference optimum.
+
+This is an exact discrete oracle for proposal-family comparison. It does not prove continuous-domain coverage or finite variance for an arbitrary Gaussian/GMM proposal. Those claims require independent continuous-domain analysis, including the covariance and tail constraints relevant to the proposal family.

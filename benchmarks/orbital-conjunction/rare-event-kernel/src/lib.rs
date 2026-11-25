@@ -33,6 +33,7 @@ pub mod conditional_velocity;
 pub mod coverage;
 pub mod decision_gate;
 pub mod decision_refinement;
+pub mod finite_proposal_quality;
 pub mod hedged_capital_sequence;
 pub mod lebedev;
 pub mod ncdot_refinement;
@@ -75,6 +76,10 @@ pub use decision_gate::{
 pub use decision_refinement::{
     DecisionRefinementDisposition, DecisionRefinementError, DecisionRefinementReport,
     plan_decision_refinement,
+};
+pub use finite_proposal_quality::{
+    FiniteProposalQualityError, FiniteProposalQualityReport, FiniteProposalStateQuality,
+    assess_finite_proposal_quality,
 };
 pub use hedged_capital_sequence::{
     AdaptiveImportanceSamplingHedgedSequence, DEFAULT_HEDGED_STAKE_CAP,
