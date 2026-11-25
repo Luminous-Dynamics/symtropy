@@ -5,8 +5,7 @@
 //! hidden-truth oracle, proof of model inadequacy, or physical experiment.
 
 use crate::{
-    Dimension, EvaluationBudget, ExternalBinding, ModelError, ModelRunV0,
-    ValidatedModelProgramV0,
+    Dimension, EvaluationBudget, ExternalBinding, ModelError, ModelRunV0, ValidatedModelProgramV0,
 };
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
@@ -77,19 +76,34 @@ impl fmt::Display for CounterexampleSearchError {
             Self::EmptyGrid => write!(f, "counterexample input grid must not be empty"),
             Self::GridTooLarge => write!(f, "counterexample input grid exceeds the declared limit"),
             Self::InvalidTolerance => {
-                write!(f, "counterexample tolerance must be finite and non-negative")
+                write!(
+                    f,
+                    "counterexample tolerance must be finite and non-negative"
+                )
             }
             Self::ModelExecutionFailed { side, error } => {
-                write!(f, "{side:?} proposal failed during counterexample execution: {error}")
+                write!(
+                    f,
+                    "{side:?} proposal failed during counterexample execution: {error}"
+                )
             }
             Self::ObservableSetMismatch => {
-                write!(f, "candidate proposals do not expose the same observable names")
+                write!(
+                    f,
+                    "candidate proposals do not expose the same observable names"
+                )
             }
             Self::ObservableDimensionMismatch => {
-                write!(f, "candidate proposals assign different dimensions to a shared observable")
+                write!(
+                    f,
+                    "candidate proposals assign different dimensions to a shared observable"
+                )
             }
             Self::NonFiniteDifference => {
-                write!(f, "observable difference overflowed the finite numeric domain")
+                write!(
+                    f,
+                    "observable difference overflowed the finite numeric domain"
+                )
             }
         }
     }
@@ -154,11 +168,7 @@ pub fn find_lexicographically_first_counterexample(
             })?;
         tested_grid_cases += 1;
 
-        let differences = compare_runs(
-            &left_run,
-            &right_run,
-            config.absolute_tolerance,
-        )?;
+        let differences = compare_runs(&left_run, &right_run, config.absolute_tolerance)?;
         if !differences.is_empty() {
             witness = Some(CounterexampleWitnessV1 {
                 canonical_grid_index: grid_index,
@@ -180,9 +190,7 @@ pub fn find_lexicographically_first_counterexample(
     })
 }
 
-fn observable_schema(
-    model: &ValidatedModelProgramV0,
-) -> BTreeMap<String, Dimension> {
+fn observable_schema(model: &ValidatedModelProgramV0) -> BTreeMap<String, Dimension> {
     model
         .program()
         .variables
@@ -202,30 +210,18 @@ fn compare_runs(
     }
     let mut differences = Vec::new();
     for (left_step, right_step) in left.samples.iter().zip(right.samples.iter()) {
-        if left_step.step != right_step.step
-            || left_step.values.len() != right_step.values.len()
-        {
+        if left_step.step != right_step.step || left_step.values.len() != right_step.values.len() {
             return Err(CounterexampleSearchError::ObservableSetMismatch);
         }
         let left_values: BTreeMap<&str, (&Dimension, f64)> = left_step
             .values
             .iter()
-            .map(|value| {
-                (
-                    value.name.as_str(),
-                    (&value.dimension, value.value),
-                )
-            })
+            .map(|value| (value.name.as_str(), (&value.dimension, value.value)))
             .collect();
         let right_values: BTreeMap<&str, (&Dimension, f64)> = right_step
             .values
             .iter()
-            .map(|value| {
-                (
-                    value.name.as_str(),
-                    (&value.dimension, value.value),
-                )
-            })
+            .map(|value| (value.name.as_str(), (&value.dimension, value.value)))
             .collect();
         if left_values.keys().ne(right_values.keys()) {
             return Err(CounterexampleSearchError::ObservableSetMismatch);
@@ -273,8 +269,7 @@ fn compare_cases(left: &[ExternalBinding], right: &[ExternalBinding]) -> Orderin
 fn cases_equal(left: &[ExternalBinding], right: &[ExternalBinding]) -> bool {
     left.len() == right.len()
         && left.iter().zip(right.iter()).all(|(left, right)| {
-            left.variable == right.variable
-                && left.value.to_bits() == right.value.to_bits()
+            left.variable == right.variable && left.value.to_bits() == right.value.to_bits()
         })
 }
 
@@ -282,8 +277,8 @@ fn cases_equal(left: &[ExternalBinding], right: &[ExternalBinding]) -> bool {
 mod tests {
     use super::*;
     use crate::{
-        Assignment, Expr, ModelProgramV0, ProposalClass, ValueRange, VariableDecl, VariableId,
-        VariableRole, SCHEMA_VERSION_V0,
+        Assignment, Expr, ModelProgramV0, ProposalClass, SCHEMA_VERSION_V0, ValueRange,
+        VariableDecl, VariableId, VariableRole,
     };
 
     fn affine_program(include_offset: bool, output_id: u16) -> ModelProgramV0 {
@@ -350,10 +345,7 @@ mod tests {
                         Expr::variable(VariableId(3)),
                     )
                 } else {
-                    Expr::multiply(
-                        Expr::variable(VariableId(1)),
-                        Expr::variable(VariableId(2)),
-                    )
+                    Expr::multiply(Expr::variable(VariableId(1)), Expr::variable(VariableId(2)))
                 },
             }],
             maximum_horizon_steps: 1,
@@ -438,12 +430,7 @@ mod tests {
         different_schema.variables[3].name = "different_y".to_owned();
         let right = ValidatedModelProgramV0::new(different_schema).unwrap();
         assert_eq!(
-            find_lexicographically_first_counterexample(
-                &left,
-                &right,
-                &[binding_x(1.0)],
-                config()
-            ),
+            find_lexicographically_first_counterexample(&left, &right, &[binding_x(1.0)], config()),
             Err(CounterexampleSearchError::ObservableSetMismatch)
         );
 
@@ -453,12 +440,7 @@ mod tests {
         };
         let same = ValidatedModelProgramV0::new(affine_program(false, 9)).unwrap();
         assert_eq!(
-            find_lexicographically_first_counterexample(
-                &left,
-                &same,
-                &[binding_x(1.0)],
-                invalid
-            ),
+            find_lexicographically_first_counterexample(&left, &same, &[binding_x(1.0)], invalid),
             Err(CounterexampleSearchError::InvalidTolerance)
         );
     }
