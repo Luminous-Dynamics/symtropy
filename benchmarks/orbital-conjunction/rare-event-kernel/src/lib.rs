@@ -115,8 +115,8 @@ pub use pathwise_event::{
     PathWindowDisposition, PathWindowOutcome, PathwiseHorizonOutcome, WindowInventoryCoverage,
 };
 pub use pathwise_proposal::{
-    FinitePathwiseProposalSupport, FinitePathwiseTrajectoryAtom, PathwiseProposalError,
-    derive_finite_pathwise_proposal_support,
+    FinitePathwiseProposalSupport, FinitePathwiseSupportManifest, FinitePathwiseTrajectoryAtom,
+    PathwiseProposalError, derive_finite_pathwise_proposal_support,
 };
 pub use pop_convergence::{
     PeakOverlapConvergenceConfig, PeakOverlapConvergenceDecision,
