@@ -50,13 +50,20 @@ impl Mat3 {
         }
 
         let diagonal_ok = [a, e, i].iter().all(|value| *value >= -tolerance);
+        let minors = [a * e - b * d, a * i - c * g, e * i - f * h];
         let minor_tolerance = PSD_TOLERANCE * scale * scale;
-        let minors_ok = [a * e - b * d, a * i - c * g, e * i - f * h]
-            .iter()
-            .all(|value| *value >= -minor_tolerance);
         let determinant = a * (e * i - f * h) - b * (d * i - f * g)
             + c * (d * h - e * g);
-        let determinant_ok = determinant >= -PSD_TOLERANCE * scale * scale * scale;
+        let determinant_tolerance = PSD_TOLERANCE * scale * scale * scale;
+        if minors.iter().any(|value| !value.is_finite())
+            || !minor_tolerance.is_finite()
+            || !determinant.is_finite()
+            || !determinant_tolerance.is_finite()
+        {
+            return Err(DelassusError::InvalidInverseInertia);
+        }
+        let minors_ok = minors.iter().all(|value| *value >= -minor_tolerance);
+        let determinant_ok = determinant >= -determinant_tolerance;
 
         if diagonal_ok && minors_ok && determinant_ok {
             Ok(())
@@ -196,6 +203,7 @@ pub enum DelassusError {
     InvalidLeverArm,
     WrongImpulseDimension { expected: usize, actual: usize },
     NonFiniteImpulse,
+    NonFiniteResult,
     DimensionOverflow,
 }
 
@@ -292,6 +300,12 @@ impl DelassusOperator {
             }
         }
 
+        if body_impulses.values().any(|impulse| {
+            !is_finite_vector(impulse.linear) || !is_finite_vector(impulse.angular)
+        }) {
+            return Err(DelassusError::NonFiniteResult);
+        }
+
         let mut delta_velocity = BTreeMap::new();
         for (id, body) in &self.bodies {
             let impulse = body_impulses.get(id).expect("impulse initialized");
@@ -299,6 +313,12 @@ impl DelassusOperator {
                 linear: scaled(impulse.linear, body.inverse_mass),
                 angular: body.inverse_inertia_world.mul_vec(impulse.angular),
             });
+        }
+
+        if delta_velocity.values().any(|velocity| {
+            !is_finite_vector(velocity.linear) || !is_finite_vector(velocity.angular)
+        }) {
+            return Err(DelassusError::NonFiniteResult);
         }
 
         let mut result = vec![0.0; self.dimension];
@@ -311,6 +331,9 @@ impl DelassusOperator {
             for (axis_index, axis) in contact.frame.axes().iter().enumerate() {
                 result[contact_index * AXES_PER_CONTACT + axis_index] = dot(*axis, relative);
             }
+        }
+        if result.iter().any(|value| !value.is_finite()) {
+            return Err(DelassusError::NonFiniteResult);
         }
         Ok(result)
     }
@@ -361,6 +384,10 @@ impl DelassusOperator {
         }
         Ok(matrix)
     }
+}
+
+fn is_finite_vector(vector: [f64; 3]) -> bool {
+    vector.iter().all(|value| value.is_finite())
 }
 
 fn add(left: [f64; 3], right: [f64; 3]) -> [f64; 3] {
@@ -573,6 +600,21 @@ mod tests {
         assert_eq!(
             op.apply(&[1.0, f64::NAN, 3.0]).err(),
             Some(DelassusError::NonFiniteImpulse)
+        );
+    }
+
+    #[test]
+    fn rejects_nonfinite_delassus_output_after_arithmetic_overflow() {
+        let op = DelassusOperator::new(
+            [
+                body(1, f64::MAX, Mat3::ZERO),
+                body(2, f64::MAX, Mat3::ZERO),
+            ],
+            vec![contact(1, 2, [0.0; 3], [0.0; 3])],
+        ).unwrap();
+        assert_eq!(
+            op.apply(&[f64::MAX, 0.0, 0.0]).err(),
+            Some(DelassusError::NonFiniteResult)
         );
     }
 
