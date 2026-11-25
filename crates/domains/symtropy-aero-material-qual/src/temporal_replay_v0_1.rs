@@ -99,35 +99,42 @@ fn event_key(event: &Value) -> (String, String) {
     )
 }
 
-fn display_id(events: &[&Value], event: &Value) -> String {
-    let id = text(event, "event_id").unwrap_or_default();
-    let same_id = events
-        .iter()
-        .copied()
-        .filter(|candidate| text(candidate, "event_id") == Some(id))
-        .collect::<Vec<_>>();
-    let namespaces = same_id
-        .iter()
-        .filter_map(|candidate| text(candidate, "source_namespace"))
-        .collect::<BTreeSet<_>>();
-    let payloads = same_id
-        .iter()
-        .filter_map(|candidate| text(candidate, "payload_sha256"))
-        .collect::<BTreeSet<_>>();
-    if namespaces.len() > 1 || (same_id.len() > 1 && payloads.len() == 1) {
-        format!("{}:{id}", text(event, "source_namespace").unwrap_or_default())
-    } else {
-        id.to_owned()
-    }
-}
-
 fn sorted_ids(events: &[&Value], all_events: &[&Value]) -> Vec<String> {
-    events
-        .iter()
-        .map(|event| display_id(all_events, event))
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect()
+    // Build source-scoped identity metadata once. The former implementation
+    // rescanned the full history for every output ID (O(N^2) on unique IDs).
+    let mut identity_metadata =
+        BTreeMap::<String, (BTreeSet<String>, BTreeSet<String>, usize)>::new();
+    for candidate in all_events {
+        let id = text(candidate, "event_id").unwrap_or_default().to_owned();
+        let namespace = text(candidate, "source_namespace")
+            .unwrap_or_default()
+            .to_owned();
+        let payload = text(candidate, "payload_sha256")
+            .unwrap_or_default()
+            .to_owned();
+        let entry = identity_metadata
+            .entry(id)
+            .or_insert_with(|| (BTreeSet::new(), BTreeSet::new(), 0));
+        entry.0.insert(namespace);
+        entry.1.insert(payload);
+        entry.2 += 1;
+    }
+
+    let mut rendered = BTreeSet::new();
+    for event in events {
+        let id = text(event, "event_id").unwrap_or_default();
+        let namespace = text(event, "source_namespace").unwrap_or_default();
+        let Some((namespaces, payloads, count)) = identity_metadata.get(id) else {
+            rendered.insert(id.to_owned());
+            continue;
+        };
+        if namespaces.len() > 1 || (*count > 1 && payloads.len() == 1) {
+            rendered.insert(format!("{namespace}:{id}"));
+        } else {
+            rendered.insert(id.to_owned());
+        }
+    }
+    rendered.into_iter().collect()
 }
 
 fn disposition(
