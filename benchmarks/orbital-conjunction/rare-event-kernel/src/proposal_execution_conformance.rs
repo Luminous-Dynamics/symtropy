@@ -15,6 +15,8 @@
 
 use std::collections::BTreeSet;
 
+use crate::adaptive_importance_sampling::AdaptiveImportanceDraw;
+
 /// Number of equiprobable integer tickets in each reference random stream.
 pub const TICKET_SPACE: u16 = 256;
 
@@ -52,6 +54,10 @@ pub struct FiniteAdaptiveProposalConfig {
     pub residual_before_event_digest: [u8; 32],
     /// Residual proposal used after the previous draw was an event.
     pub residual_after_event_digest: [u8; 32],
+    /// Complete defensive-mixture proposal identity before any event has been observed.
+    pub complete_proposal_before_event_digest: [u8; 32],
+    /// Complete defensive-mixture proposal identity after the previous draw was an event.
+    pub complete_proposal_after_event_digest: [u8; 32],
     /// Defensive mixture weight in integer units of 1/TICKET_SPACE.
     pub defensive_mixture_weight_ticks: u16,
     /// Ordered finite target support.
@@ -91,6 +97,8 @@ pub struct FiniteProposalExecutionReceipt {
     pub atom_stream_digest: [u8; 32],
     /// Residual proposal selected from the *prior* event history.
     pub proposal_digest: [u8; 32],
+    /// Complete defensive-mixture proposal identity, including the target component.
+    pub complete_proposal_digest: [u8; 32],
     /// Defensive mixture weight, in integer units of 1/TICKET_SPACE.
     pub defensive_mixture_weight_ticks: u16,
     /// Uniform ticket used to select target versus residual component.
@@ -104,6 +112,16 @@ pub struct FiniteProposalExecutionReceipt {
 /// The exact result independently reconstructed from one execution receipt.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct VerifiedFiniteProposalDraw {
+    /// Collision-event identity.
+    pub event_digest: [u8; 32],
+    /// Target-measure identity.
+    pub target_measure_digest: [u8; 32],
+    /// Defensive-component identity.
+    pub defensive_component_digest: [u8; 32],
+    /// Complete defensive-mixture proposal identity.
+    pub complete_proposal_digest: [u8; 32],
+    /// Defensive mixture weight in integer units of 1/TICKET_SPACE.
+    pub defensive_mixture_weight_ticks: u16,
     /// Zero-based draw index.
     pub sequence_index: u64,
     /// Accepted sample identity.
@@ -138,6 +156,38 @@ impl VerifiedFiniteProposalDraw {
                 self.normalized_weight_numerator,
                 self.normalized_weight_denominator,
             )
+        }
+    }
+
+    /// Convert the verified finite-support draw into the existing confidence-sequence input.
+    ///
+    /// The target and complete-mixture categorical masses are converted to
+    /// their exact probabilities and then represented in log space. A zero
+    /// target mass maps to negative infinity, which the confidence-sequence
+    /// adapter accepts as a zero target-density observation. The proposal
+    /// density remains strictly positive because the defensive mixture weight
+    /// is positive and the complete mixture mass was checked by the verifier.
+    pub fn into_adaptive_importance_draw(self) -> AdaptiveImportanceDraw {
+        let log_target_density = if self.target_mass_ticks == 0 {
+            f64::NEG_INFINITY
+        } else {
+            (f64::from(self.target_mass_ticks) / f64::from(TICKET_SPACE)).ln()
+        };
+        let log_proposal_density =
+            (self.mixture_mass_numerator as f64 / f64::from(TICKET_SPACE).powi(2)).ln();
+
+        AdaptiveImportanceDraw {
+            sequence_index: self.sequence_index,
+            sample_id: self.sample_id,
+            event_digest: self.event_digest,
+            target_measure_digest: self.target_measure_digest,
+            proposal_digest: self.complete_proposal_digest,
+            defensive_component_digest: self.defensive_component_digest,
+            defensive_mixture_weight: f64::from(self.defensive_mixture_weight_ticks)
+                / f64::from(TICKET_SPACE),
+            log_target_density,
+            log_proposal_density,
+            event_occurred: self.event_occurred,
         }
     }
 }
@@ -256,18 +306,23 @@ impl FiniteProposalExecutionVerifier {
         }
 
         let prior_event = self.prior_event_history.last().copied().unwrap_or(false);
-        let (expected_proposal_digest, residual_masses) = if prior_event {
-            (
-                self.config.residual_after_event_digest,
-                &self.config.residual_after_event_ticks,
-            )
-        } else {
-            (
-                self.config.residual_before_event_digest,
-                &self.config.residual_before_event_ticks,
-            )
-        };
-        if receipt.proposal_digest != expected_proposal_digest {
+        let (expected_proposal_digest, expected_complete_proposal_digest, residual_masses) =
+            if prior_event {
+                (
+                    self.config.residual_after_event_digest,
+                    self.config.complete_proposal_after_event_digest,
+                    &self.config.residual_after_event_ticks,
+                )
+            } else {
+                (
+                    self.config.residual_before_event_digest,
+                    self.config.complete_proposal_before_event_digest,
+                    &self.config.residual_before_event_ticks,
+                )
+            };
+        if receipt.proposal_digest != expected_proposal_digest
+            || receipt.complete_proposal_digest != expected_complete_proposal_digest
+        {
             return Err(FiniteProposalExecutionError::UnpredictableProposalSelection);
         }
 
@@ -306,6 +361,11 @@ impl FiniteProposalExecutionVerifier {
         self.prior_event_history.push(selected_atom.is_event);
 
         Ok(VerifiedFiniteProposalDraw {
+            event_digest: self.config.event_digest,
+            target_measure_digest: self.config.target_measure_digest,
+            defensive_component_digest: self.config.defensive_component_digest,
+            complete_proposal_digest: receipt.complete_proposal_digest,
+            defensive_mixture_weight_ticks: self.config.defensive_mixture_weight_ticks,
             sequence_index: receipt.sequence_index,
             sample_id: receipt.sample_id,
             selected_atom_id: selected_atom.atom_id,
@@ -335,6 +395,8 @@ fn validate_config(
         &config.atom_stream_digest,
         &config.residual_before_event_digest,
         &config.residual_after_event_digest,
+        &config.complete_proposal_before_event_digest,
+        &config.complete_proposal_after_event_digest,
     ];
     if identities.iter().any(|digest| is_zero_digest(digest)) {
         return Err(FiniteProposalExecutionError::InvalidIdentity);
@@ -426,6 +488,8 @@ mod tests {
     const ATOM_STREAM: [u8; 32] = [9; 32];
     const RESIDUAL_BEFORE: [u8; 32] = [10; 32];
     const RESIDUAL_AFTER: [u8; 32] = [11; 32];
+    const COMPLETE_BEFORE: [u8; 32] = [12; 32];
+    const COMPLETE_AFTER: [u8; 32] = [13; 32];
 
     fn config() -> FiniteAdaptiveProposalConfig {
         FiniteAdaptiveProposalConfig {
@@ -440,6 +504,8 @@ mod tests {
             atom_stream_digest: ATOM_STREAM,
             residual_before_event_digest: RESIDUAL_BEFORE,
             residual_after_event_digest: RESIDUAL_AFTER,
+            complete_proposal_before_event_digest: COMPLETE_BEFORE,
+            complete_proposal_after_event_digest: COMPLETE_AFTER,
             defensive_mixture_weight_ticks: 64,
             atoms: vec![
                 FiniteProposalAtom {
@@ -487,6 +553,11 @@ mod tests {
             branch_stream_digest: c.branch_stream_digest,
             atom_stream_digest: c.atom_stream_digest,
             proposal_digest,
+            complete_proposal_digest: if proposal_digest == RESIDUAL_AFTER {
+                COMPLETE_AFTER
+            } else {
+                COMPLETE_BEFORE
+            },
             defensive_mixture_weight_ticks: c.defensive_mixture_weight_ticks,
             branch_ticket,
             atom_ticket,
