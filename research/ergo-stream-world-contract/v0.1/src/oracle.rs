@@ -64,8 +64,8 @@ pub struct IsomorphismOracleReportV0 {
     /// Number of complete node bijections examined after signature pruning.
     pub explored_node_bijections: usize,
     /// Number of node bijections for which at least one valid relation-kind/
-    /// relation-instance mapping exists. This is not a count of alternate
-    /// relation-ID bijections for a fixed node map.
+    /// relation-instance mapping exists. This does not count alternate
+    /// relation-kind mappings or relation-ID bijections for a fixed node map.
     pub valid_node_mapping_count: usize,
 }
 
