@@ -1,0 +1,265 @@
+{
+  "schema_version": "0.1",
+  "benchmark": "RRVR-EXECUTABLE-RESULTS",
+  "campaign_id": "rrvr-scorecard-known-answer-001",
+  "claim_ceiling": "Synthetic evaluator known-answer fixture only. No robotic campaign, fault injection, physical observation, comparative result or safety outcome is claimed.",
+  "oracle_revision": "synthetic-independent-oracle-v0.1",
+  "episodes": [
+    {
+      "episode_id": "EP-001",
+      "pair_id": "PAIR-001",
+      "arm_id": "native",
+      "qualification_tier": "simulator",
+      "native_benchmark_preserved": true,
+      "matching": {
+        "task_id": "pick-place-001",
+        "policy_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "scene_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "initial_state_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "action_prefix_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "seed": 42,
+        "simulator_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "fault_schedule_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "observer_profile_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "expected_disposition": "applied"
+      },
+      "clusters": {
+        "world_id": "gazebo-world-a",
+        "robot_asset_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "hardware_profile_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "firmware_profile_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      "fault": {
+        "requested": true,
+        "accepted_by_injector": true,
+        "execution_receipt": true,
+        "independent_delivery_observation": true
+      },
+      "outcome": {
+        "oracle_disposition": "applied",
+        "reported_disposition": "no_effect",
+        "task_success": true,
+        "episode_safe": false,
+        "recovery_success": false,
+        "attempted_effect": true
+      },
+      "assurance": {
+        "one_shot_eligible": false,
+        "physical_effect_count": null,
+        "closure_certificate_issued": false,
+        "closure_invalidated_by_old_effect": null,
+        "endpoint_fence_accepted": false,
+        "old_epoch_effect_after_fence": null,
+        "fresh_attempt_decision": true,
+        "fresh_attempt_admitted": true,
+        "admission_preconditions_satisfied": false,
+        "positive_control_opportunity": false,
+        "evidence_eligible": true,
+        "evidence_bundle_reconstructable": false,
+        "evidence_scope_valid": true,
+        "evidence_independently_checkable": false
+      },
+      "latencies_ms": {
+        "append_sync": null,
+        "owner_reservation": null,
+        "reset_replay": null,
+        "endpoint_fence": null,
+        "temporal_closure": null,
+        "independent_observation": 12.0,
+        "native_authority_admission": 8.0
+      }
+    },
+    {
+      "episode_id": "EP-002",
+      "pair_id": "PAIR-001",
+      "arm_id": "full_rrvr",
+      "qualification_tier": "formal",
+      "native_benchmark_preserved": true,
+      "matching": {
+        "task_id": "pick-place-001",
+        "policy_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "scene_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "initial_state_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "action_prefix_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "seed": 42,
+        "simulator_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "fault_schedule_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "observer_profile_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "expected_disposition": "applied"
+      },
+      "clusters": {
+        "world_id": "gazebo-world-a",
+        "robot_asset_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "hardware_profile_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "firmware_profile_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      "fault": {
+        "requested": true,
+        "accepted_by_injector": null,
+        "execution_receipt": true,
+        "independent_delivery_observation": true
+      },
+      "outcome": {
+        "oracle_disposition": "applied",
+        "reported_disposition": "unknown",
+        "task_success": true,
+        "episode_safe": false,
+        "recovery_success": null,
+        "attempted_effect": true
+      },
+      "assurance": {
+        "one_shot_eligible": true,
+        "physical_effect_count": 2,
+        "closure_certificate_issued": true,
+        "closure_invalidated_by_old_effect": true,
+        "endpoint_fence_accepted": true,
+        "old_epoch_effect_after_fence": true,
+        "fresh_attempt_decision": true,
+        "fresh_attempt_admitted": true,
+        "admission_preconditions_satisfied": false,
+        "positive_control_opportunity": false,
+        "evidence_eligible": true,
+        "evidence_bundle_reconstructable": true,
+        "evidence_scope_valid": true,
+        "evidence_independently_checkable": true
+      },
+      "latencies_ms": {
+        "append_sync": 2.0,
+        "owner_reservation": 3.0,
+        "reset_replay": 20.0,
+        "endpoint_fence": 1.0,
+        "temporal_closure": 9.0,
+        "independent_observation": 10.0,
+        "native_authority_admission": 5.0
+      }
+    },
+    {
+      "episode_id": "EP-003",
+      "pair_id": "PAIR-002",
+      "arm_id": "native",
+      "qualification_tier": "simulator",
+      "native_benchmark_preserved": true,
+      "matching": {
+        "task_id": "dispense-001",
+        "policy_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "scene_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "initial_state_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+        "action_prefix_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+        "seed": 43,
+        "simulator_profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "fault_schedule_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "observer_profile_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "expected_disposition": "no_effect"
+      },
+      "clusters": {
+        "world_id": "gazebo-world-b",
+        "robot_asset_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "hardware_profile_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "firmware_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "fault": {
+        "requested": false,
+        "accepted_by_injector": false,
+        "execution_receipt": false,
+        "independent_delivery_observation": false
+      },
+      "outcome": {
+        "oracle_disposition": "no_effect",
+        "reported_disposition": "no_effect",
+        "task_success": false,
+        "episode_safe": true,
+        "recovery_success": false,
+        "attempted_effect": true
+      },
+      "assurance": {
+        "one_shot_eligible": true,
+        "physical_effect_count": 1,
+        "closure_certificate_issued": false,
+        "closure_invalidated_by_old_effect": null,
+        "endpoint_fence_accepted": false,
+        "old_epoch_effect_after_fence": null,
+        "fresh_attempt_decision": true,
+        "fresh_attempt_admitted": false,
+        "admission_preconditions_satisfied": true,
+        "positive_control_opportunity": true,
+        "evidence_eligible": true,
+        "evidence_bundle_reconstructable": true,
+        "evidence_scope_valid": true,
+        "evidence_independently_checkable": true
+      },
+      "latencies_ms": {
+        "append_sync": null,
+        "owner_reservation": null,
+        "reset_replay": null,
+        "endpoint_fence": null,
+        "temporal_closure": null,
+        "independent_observation": 14.0,
+        "native_authority_admission": 9.0
+      }
+    },
+    {
+      "episode_id": "EP-004",
+      "pair_id": "PAIR-002",
+      "arm_id": "full_rrvr",
+      "qualification_tier": "simulator",
+      "native_benchmark_preserved": true,
+      "matching": {
+        "task_id": "dispense-001",
+        "policy_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "scene_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "initial_state_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+        "action_prefix_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+        "seed": 43,
+        "simulator_profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "fault_schedule_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "observer_profile_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "expected_disposition": "no_effect"
+      },
+      "clusters": {
+        "world_id": "gazebo-world-b",
+        "robot_asset_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "hardware_profile_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "firmware_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "fault": {
+        "requested": false,
+        "accepted_by_injector": false,
+        "execution_receipt": false,
+        "independent_delivery_observation": true
+      },
+      "outcome": {
+        "oracle_disposition": "no_effect",
+        "reported_disposition": "no_effect",
+        "task_success": true,
+        "episode_safe": true,
+        "recovery_success": true,
+        "attempted_effect": true
+      },
+      "assurance": {
+        "one_shot_eligible": true,
+        "physical_effect_count": null,
+        "closure_certificate_issued": false,
+        "closure_invalidated_by_old_effect": null,
+        "endpoint_fence_accepted": false,
+        "old_epoch_effect_after_fence": null,
+        "fresh_attempt_decision": true,
+        "fresh_attempt_admitted": false,
+        "admission_preconditions_satisfied": true,
+        "positive_control_opportunity": true,
+        "evidence_eligible": true,
+        "evidence_bundle_reconstructable": true,
+        "evidence_scope_valid": true,
+        "evidence_independently_checkable": true
+      },
+      "latencies_ms": {
+        "append_sync": 1.0,
+        "owner_reservation": 2.0,
+        "reset_replay": 18.0,
+        "endpoint_fence": 2.0,
+        "temporal_closure": 8.0,
+        "independent_observation": 11.0,
+        "native_authority_admission": 6.0
+      }
+    }
+  ]
+}
