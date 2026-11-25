@@ -176,8 +176,8 @@ jobs:
               raise SystemExit("temporal replay corpus requires a late-receipt control")
           if corpus.get("oracle_review_status") != "NOT_INDEPENDENTLY_REVIEWED":
               raise SystemExit("oracle review status must remain explicit until independent review")
-          if len(cases) != 18:
-              raise SystemExit(f"temporal replay corpus must contain exactly 18 frozen cases; found {len(cases)}")
+          if len(cases) != 20:
+              raise SystemExit(f"temporal replay corpus must contain exactly 20 frozen cases; found {len(cases)}")
           all_events = [event for case in cases for event in case["events"]]
           for event in all_events:
               receipt_status = event["receiver_receipt_status"]
@@ -193,8 +193,11 @@ jobs:
               if timestamp_status == "invalid_digest":
                   if timestamp_imprint is None or timestamp_imprint == event["payload_sha256"]:
                       raise SystemExit(f"{event['event_id']}: invalid-digest timestamp control must contain a mismatching imprint")
-              elif timestamp_status == "absent" and timestamp_imprint is not None:
-                  raise SystemExit(f"{event['event_id']}: absent timestamp must not carry an imprint")
+              elif timestamp_status == "valid":
+                  if timestamp_imprint != event["payload_sha256"] or event["trusted_timestamp_at_unix_ms"] is None:
+                      raise SystemExit(f"{event['event_id']}: valid timestamp requires non-null time and exact payload imprint")
+              elif timestamp_status == "absent" and event["trusted_timestamp_at_unix_ms"] is not None:
+                  raise SystemExit(f"{event['event_id']}: absent timestamp must not carry a timestamp value")
           if not any(event["receiver_receipt_status"] == "UNVERIFIED" for event in all_events):
               raise SystemExit("temporal replay corpus requires an unverified-receipt control")
           required_modes = {"as_known_at", "recomputed_with_current_trust", "recomputed_with_current_evidence_and_trust"}
@@ -247,6 +250,12 @@ jobs:
               raise SystemExit("event effectivity must overlap the acquisition uncertainty interval")
           if any(acquisition_overlap["expected"][mode]["disposition"] != "TIME_BOUNDARY_AMBIGUOUS" for mode in required_modes):
               raise SystemExit("event effectivity within acquisition uncertainty must abstain")
+          valid_tsa = next((case for case in cases if case["case_id"] == "valid-timestamp-imprint-binds-event-payload"), None)
+          if valid_tsa is None or any(valid_tsa["expected"][mode]["disposition"] != "ACCEPTED_FOR_BINDING_ONLY" for mode in required_modes):
+              raise SystemExit("valid timestamp positive control is required")
+          bad_tsa = next((case for case in cases if case["case_id"] == "valid-timestamp-label-with-mismatching-imprint-rejected"), None)
+          if bad_tsa is None or any(bad_tsa["expected"][mode]["disposition"] != "REJECT" for mode in required_modes):
+              raise SystemExit("valid-label/wrong-imprint negative control is required")
           alias = next((case for case in cases if case["case_id"] == "same-issuer-cannot-bypass-identity-with-unverified-namespace-alias"), None)
           if alias is None or len(alias["events"]) != 2:
               raise SystemExit("temporal corpus requires a source namespace alias attack control")
