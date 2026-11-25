@@ -196,7 +196,7 @@ Keep these systems federated. A successful API POST, FAL declaration, customs re
 Proposed acceptance targets (not achieved): 100% applicable standard conformance scenarios; 100% replay of raw message digests; zero lossy cross-standard mappings silently marked reversible; zero event corrections that delete the original; zero planned/status/declaration records promoted to physical events; zero custody closure without an independently qualified receiver record.
 
 Sources:
-- [GS1 EPCIS 2.0.1](https://ref.gs1.org/standards/epcis/2.0.0/)
+- [GS1 EPCIS 2.0.1](https://ref.gs1.org/standards/epcis/artefacts)
 - [GS1 CBV 2.0.0](https://ref.gs1.org/standards/cbv/2.0.0/)
 - [DCSA Track & Trace implementation guide](https://reference.dcsa.org/content/standards/guidelines/implementation-guides/implementing-track-and-trace)
 - [IMO FAL Convention](https://www.imo.org/en/about/conventions/pages/convention-on-facilitation-of-international-maritime-traffic-(fal).aspx)
