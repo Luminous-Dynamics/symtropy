@@ -28,7 +28,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [],
       "expected": {
@@ -55,7 +65,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -75,7 +95,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -141,7 +171,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -161,7 +201,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -227,7 +277,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -247,7 +307,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -313,7 +383,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -333,7 +413,17 @@
         "receiver_receipt_watermark_unix_ms": 210,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 210,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:210",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 210,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:210",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 210,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [],
       "expected": {
@@ -366,7 +456,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -386,7 +486,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -452,7 +562,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -472,7 +592,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -538,7 +668,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -558,7 +698,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -624,7 +774,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -644,7 +804,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -736,7 +906,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -756,7 +936,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -820,7 +1010,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -840,7 +1040,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -935,7 +1145,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -955,7 +1175,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -1021,7 +1251,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -1041,7 +1281,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -1107,7 +1357,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -1127,7 +1387,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -1222,7 +1492,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -1242,7 +1522,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -1337,7 +1627,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -1357,7 +1657,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -1452,7 +1762,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -1472,7 +1792,17 @@
         "receiver_receipt_watermark_unix_ms": 180,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 200,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:180",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 180,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:180",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 180,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -1538,7 +1868,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -1558,7 +1898,17 @@
         "receiver_receipt_watermark_unix_ms": 180,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 200,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:180",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 180,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:180",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 180,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -1624,7 +1974,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -1644,7 +2004,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -1704,7 +2074,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -1724,7 +2104,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -1790,7 +2180,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -1810,7 +2210,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -1876,7 +2286,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -1896,7 +2316,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -1991,7 +2421,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -2011,7 +2451,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -2106,7 +2556,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -2126,7 +2586,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -2218,7 +2688,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -2238,7 +2718,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -2330,7 +2820,17 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -2350,7 +2850,17 @@
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
         "trust_status_as_of_unix_ms": 150,
-        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
       },
       "events": [
         {
@@ -2471,7 +2981,232 @@
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220,
-        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "observer-coverage-unqualified-cannot-support-negative-claim",
+      "purpose": "The historical evidence checkpoint is internally intact, but the observer-coverage qualification is unverified. The receiver cannot claim that no revocation existed merely because none appears in the supplied view. A later full retrospective view has a qualified complete observer receipt.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "UNVERIFIED",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": null,
+        "observer_coverage_receipt_digest_sha256": null,
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [],
+      "expected": {
+        "as_known_at": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "OBSERVER_COVERAGE_UNQUALIFIED"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "OBSERVER_COVERAGE_UNQUALIFIED"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "ACCEPTED_FOR_BINDING_ONLY",
+          "reason_codes": [],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "incomplete-observer-coverage-abstains-even-with-valid-checkpoint",
+      "purpose": "The evidence-view checkpoint is internally consistent, but the capture profile explicitly reports an uncovered source channel. The evaluator must abstain rather than infer no revocation from an incomplete view.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "INCOMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150:incomplete",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "OBSERVER_COVERAGE_INCOMPLETE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "OBSERVER_COVERAGE_INCOMPLETE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "OBSERVER_COVERAGE_INCOMPLETE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "INCOMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220:incomplete",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "evidence-checkpoint-digest-mismatch-rejects-historical-view",
+      "purpose": "The checkpoint claims synthetic-valid status but its digest does not match the expected view commitment. Historical and trust-only replay reject this view; a later current view has its own valid checkpoint and qualified coverage.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [],
+      "expected": {
+        "as_known_at": {
+          "disposition": "REJECT",
+          "reason_codes": [
+            "EVIDENCE_CHECKPOINT_DIGEST_MISMATCH"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "REJECT",
+          "reason_codes": [
+            "EVIDENCE_CHECKPOINT_DIGEST_MISMATCH"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "ACCEPTED_FOR_BINDING_ONLY",
+          "reason_codes": [],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     }
