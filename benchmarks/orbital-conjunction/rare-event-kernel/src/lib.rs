@@ -42,6 +42,7 @@ pub mod normal_positive_part;
 pub mod pop_col_adjustment;
 pub mod pop_col_energy;
 pub mod pop_convergence;
+pub mod proposal_execution_conformance;
 pub mod predictable_empirical_bernstein;
 pub mod refinement_scheduler;
 pub mod residual;
@@ -111,6 +112,11 @@ pub use pop_convergence::{
     PeakOverlapConvergenceConfig, PeakOverlapConvergenceDecision,
     PeakOverlapConvergenceObservation, PeakOverlapConvergenceReason, PeakOverlapConvergenceStatus,
     decide_peak_overlap_convergence,
+};
+pub use proposal_execution_conformance::{
+    FiniteAdaptiveProposalConfig, FiniteProposalAtom, FiniteProposalExecutionError,
+    FiniteProposalExecutionReceipt, FiniteProposalExecutionVerifier,
+    VerifiedFiniteProposalDraw, TICKET_SPACE,
 };
 pub use predictable_empirical_bernstein::{
     AdaptiveImportanceSamplingPrPlEbSequence, DEFAULT_BET_FRACTION_CAP, PrPlEbConfidenceSequence,
