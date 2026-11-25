@@ -14,12 +14,13 @@ The evaluator reports circular phase error, field-amplitude margin/ripple and ou
 Each trace contains a full mechanical revolution sampled uniformly at one fixed sensor plane. It is bound to:
 - an opaque trace ID;
 - a coordinate-frame ID;
+- an operating-condition ID binding the sensor plane, air gap and declared environmental conditions;
 - an angular-grid ID;
 - an independent phase-zero calibration-record ID;
 - an evidence class: synthetic scenario or physical build;
 - samples containing mechanical reference angle and Bx, By, Bz in SI units.
 
-Traces in a set must share the exact evidence class, frame ID, grid ID, sample count and sample-angle coordinates. The evaluator does not interpolate or silently reorder samples. The phase-zero offset must come from a separate calibration record; the trace under evaluation is never used to fit its own zero.
+Traces in a set must share the exact evidence class, frame ID, grid ID, sample count and sample-angle coordinates. The evaluator does not interpolate or silently reorder samples. The phase-zero offset must come from a separate calibration record; the trace under evaluation is never used to fit its own zero. Electrical phase progression is signed (+1 or -1) so both magnetic rotation senses are represented. The condition ID prevents traces at different air gaps, temperatures, eccentricity or sensor registrations from being silently pooled.
 
 ## Reported metrics
 
