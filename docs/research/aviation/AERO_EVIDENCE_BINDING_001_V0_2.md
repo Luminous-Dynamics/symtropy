@@ -87,7 +87,7 @@ Certificate bytes, packet digests and byte lengths remain owned by Mycelix. The 
 
 The v0.2 evaluator aligns calibration-window fields with Mycelix's millisecond-precision half-open interval contract. It does not claim the Mycelix packet PR is merged or production-qualified.
 
-The v0.2 evaluator lives in crates/domains/symtropy-aero-material-qual/src/evidence_binding_v0_2.rs and is exposed as evidence_binding_v0_2::evaluate_binding_case.
+The v0.2 evaluator lives in crates/domains/symtropy-aero-material-qual/src/evidence_binding_v0_2.rs and is exposed as evidence_binding_v0_2::evaluate_binding_case. The existing aero-material-qual CLI dispatches to this evaluator when the input profile_id is aero-evidence-binding-v0.2; the targeted workflow smoke-tests both v0.1 and v0.2 reports.
 
 It reports independent specimen identity, intended-configuration identity, metrology binding, exact violations/blockers and per-observation dispositions. The only non-blocked per-observation status is:
 
