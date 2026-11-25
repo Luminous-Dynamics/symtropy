@@ -355,14 +355,142 @@ impl<const D: usize> BpEntry<D> {
 ///
 /// For scenes with many static bodies (terrain, walls) and few dynamic bodies,
 /// this typically halves or better the broadphase cost.
+#[derive(Clone, Copy, Debug)]
+enum StaticBvhNodeKind {
+    Leaf { start: usize, end: usize },
+    Branch { left: usize, right: usize },
+}
+
+#[derive(Clone, Debug)]
+struct StaticBvhNode<const D: usize> {
+    aabb: Aabb<D>,
+    kind: StaticBvhNodeKind,
+}
+
+/// Opt-in median-split index over the cached Static/Kinematic AABB population.
+/// The default PhysicsWorld path continues to use the linear scan until
+/// matched workload traces justify a default-backend change.
+#[derive(Clone, Debug)]
+struct StaticAabbBvh<const D: usize> {
+    order: Vec<usize>,
+    nodes: Vec<StaticBvhNode<D>>,
+    root: Option<usize>,
+}
+
+impl<const D: usize> StaticAabbBvh<D> {
+    const LEAF_SIZE: usize = 4;
+
+    fn build(entries: &[BpEntry<D>]) -> Self {
+        let mut index = Self {
+            order: (0..entries.len()).collect(),
+            nodes: Vec::with_capacity(entries.len().saturating_mul(2)),
+            root: None,
+        };
+        if !entries.is_empty() {
+            let end = index.order.len();
+            index.root = Some(index.build_node(entries, 0, end));
+        }
+        index
+    }
+
+    fn build_node(&mut self, entries: &[BpEntry<D>], start: usize, end: usize) -> usize {
+        let mut bounds = entries[self.order[start]].aabb.clone();
+        let mut center_min = SVector::<f64, D>::from_element(f64::MAX);
+        let mut center_max = SVector::<f64, D>::from_element(f64::MIN);
+        for position in start..end {
+            let aabb = &entries[self.order[position]].aabb;
+            bounds = bounds.union(aabb);
+            let center = (aabb.min + aabb.max) * 0.5;
+            for axis in 0..D {
+                center_min[axis] = center_min[axis].min(center[axis]);
+                center_max[axis] = center_max[axis].max(center[axis]);
+            }
+        }
+
+        if D == 0 || end - start <= Self::LEAF_SIZE {
+            let node_index = self.nodes.len();
+            self.nodes.push(StaticBvhNode {
+                aabb: bounds,
+                kind: StaticBvhNodeKind::Leaf { start, end },
+            });
+            return node_index;
+        }
+
+        let mut split_axis = 0;
+        let mut max_spread = center_max[0] - center_min[0];
+        for axis in 1..D {
+            let spread = center_max[axis] - center_min[axis];
+            if spread > max_spread {
+                max_spread = spread;
+                split_axis = axis;
+            }
+        }
+
+        let middle = start + (end - start) / 2;
+        self.order[start..end].select_nth_unstable_by(middle - start, |left, right| {
+            let left_aabb = &entries[*left].aabb;
+            let right_aabb = &entries[*right].aabb;
+            let left_center =
+                (left_aabb.min[split_axis] + left_aabb.max[split_axis]) * 0.5;
+            let right_center =
+                (right_aabb.min[split_axis] + right_aabb.max[split_axis]) * 0.5;
+            left_center
+                .total_cmp(&right_center)
+                .then_with(|| entries[*left].handle.cmp(&entries[*right].handle))
+        });
+
+        let left = self.build_node(entries, start, middle);
+        let right = self.build_node(entries, middle, end);
+        let node_aabb = self.nodes[left].aabb.union(&self.nodes[right].aabb);
+        let node_index = self.nodes.len();
+        self.nodes.push(StaticBvhNode {
+            aabb: node_aabb,
+            kind: StaticBvhNodeKind::Branch { left, right },
+        });
+        node_index
+    }
+
+    fn query(&self, entries: &[BpEntry<D>], query_aabb: &Aabb<D>) -> Vec<usize> {
+        let Some(root) = self.root else {
+            return Vec::new();
+        };
+        let mut results = Vec::new();
+        let mut stack = vec![root];
+        while let Some(node_index) = stack.pop() {
+            let node = &self.nodes[node_index];
+            if !query_aabb.overlaps(&node.aabb) {
+                continue;
+            }
+            match node.kind {
+                StaticBvhNodeKind::Leaf { start, end } => {
+                    for position in start..end {
+                        let entry_index = self.order[position];
+                        if query_aabb.overlaps(&entries[entry_index].aabb) {
+                            results.push(entry_index);
+                        }
+                    }
+                }
+                StaticBvhNodeKind::Branch { left, right } => {
+                    stack.push(left);
+                    stack.push(right);
+                }
+            }
+        }
+        results.sort_unstable_by_key(|index| entries[*index].handle);
+        results
+    }
+}
+
 pub struct StaticBroadphase<const D: usize> {
     entries: Vec<BpEntry<D>>,
+    indexed: Option<StaticAabbBvh<D>>,
 }
 
 impl<const D: usize> StaticBroadphase<D> {
     pub fn new() -> Self {
         Self {
             entries: Vec::new(),
+            indexed: None,
         }
     }
 
@@ -375,6 +503,19 @@ impl<const D: usize> StaticBroadphase<D> {
             .filter(|b| b.body_type == BodyType::Static || b.body_type == BodyType::Kinematic)
             .map(BpEntry::from_body)
             .collect();
+        self.indexed = None;
+    }
+
+    /// Rebuild the cached population and the experimental AABB BVH index.
+    /// This is opt-in; the normal PhysicsWorld path continues to call rebuild().
+    pub fn rebuild_with_bvh(&mut self, bodies: &[RigidBody<D>]) {
+        self.rebuild(bodies);
+        self.indexed = Some(StaticAabbBvh::build(&self.entries));
+    }
+
+    #[must_use]
+    pub fn has_bvh(&self) -> bool {
+        self.indexed.is_some()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -434,29 +575,72 @@ impl<const D: usize> StaticBroadphase<D> {
         pairs
     }
 
-    /// Enumerate pairs between a dynamic entry and all cached static entries.
-    ///
-    /// Uses orientation-aware AABB overlap.
-    fn query_against<'a>(
-        &'a self,
-        dyn_entry: &'a BpEntry<D>,
-    ) -> impl Iterator<Item = BroadphasePair> + 'a {
-        self.entries.iter().filter_map(move |s| {
-            let group_ok = (dyn_entry.collision_group & s.collision_mask != 0)
-                && (s.collision_group & dyn_entry.collision_mask != 0);
-            if group_ok && dyn_entry.aabb.overlaps(&s.aabb) {
-                let (ha, hb) = (dyn_entry.handle, s.handle);
-                let pair = if ha < hb {
-                    BroadphasePair(ha, hb)
+    /// Reference backend: scan every cached entry.
+    fn query_against_linear(&self, dyn_entry: &BpEntry<D>) -> Vec<BroadphasePair> {
+        self.entries
+            .iter()
+            .filter_map(|entry| {
+                let group_ok = (dyn_entry.collision_group & entry.collision_mask != 0)
+                    && (entry.collision_group & dyn_entry.collision_mask != 0);
+                if group_ok && dyn_entry.aabb.overlaps(&entry.aabb) {
+                    let (left, right) = (dyn_entry.handle, entry.handle);
+                    Some(if left < right {
+                        BroadphasePair(left, right)
+                    } else {
+                        BroadphasePair(right, left)
+                    })
                 } else {
-                    BroadphasePair(hb, ha)
-                };
-                return Some(pair);
+                    None
+                }
+            })
+            .collect()
+    }
+
+    /// Experimental backend: query the prebuilt static AABB BVH.
+    fn query_against_bvh(
+        &self,
+        dyn_entry: &BpEntry<D>,
+    ) -> Result<Vec<BroadphasePair>, StaticBroadphaseError> {
+        let index = self
+            .indexed
+            .as_ref()
+            .ok_or(StaticBroadphaseError::IndexNotBuilt)?;
+        let mut pairs = Vec::new();
+        for entry_index in index.query(&self.entries, &dyn_entry.aabb) {
+            let entry = &self.entries[entry_index];
+            let group_ok = (dyn_entry.collision_group & entry.collision_mask != 0)
+                && (entry.collision_group & dyn_entry.collision_mask != 0);
+            if group_ok {
+                let (left, right) = (dyn_entry.handle, entry.handle);
+                pairs.push(if left < right {
+                    BroadphasePair(left, right)
+                } else {
+                    BroadphasePair(right, left)
+                });
             }
-            None
-        })
+        }
+        Ok(pairs)
     }
 }
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum StaticQueryBackend {
+    LinearScan,
+    CachedBvh,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum StaticBroadphaseError {
+    IndexNotBuilt,
+}
+
+impl std::fmt::Display for StaticBroadphaseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+impl std::error::Error for StaticBroadphaseError {}
 
 impl<const D: usize> Default for StaticBroadphase<D> {
     fn default() -> Self {
@@ -476,35 +660,45 @@ impl<const D: usize> Default for StaticBroadphase<D> {
 /// For very large dynamic counts (≥ BRUTE_FORCE_THRESHOLD) the existing
 /// `find_pairs` (full LBVH over all bodies) is called instead, since it is
 /// superior at scale.
+/// Find all potentially colliding pairs using the existing vector-scan default.
 pub fn find_pairs_incremental<const D: usize>(
     bodies: &[RigidBody<D>],
     static_bp: &StaticBroadphase<D>,
 ) -> Vec<BroadphasePair> {
-    // Fast paths
+    // LinearScan cannot fail. If a future backend error occurs, prefer a complete
+    // canonical result to returning a partial candidate set.
+    find_pairs_incremental_with_backend(bodies, static_bp, StaticQueryBackend::LinearScan)
+        .unwrap_or_else(|_| find_pairs(bodies))
+}
+
+/// Select a static-cache query backend for matched correctness/performance runs.
+/// CachedBvh requires StaticBroadphase::rebuild_with_bvh; this API is opt-in and
+/// does not alter the production default.
+pub fn find_pairs_incremental_with_backend<const D: usize>(
+    bodies: &[RigidBody<D>],
+    static_bp: &StaticBroadphase<D>,
+    backend: StaticQueryBackend,
+) -> Result<Vec<BroadphasePair>, StaticBroadphaseError> {
     if bodies.is_empty() {
-        return Vec::new();
+        return Ok(Vec::new());
     }
     if static_bp.is_empty() {
-        // No static cache: identical to the standard path.
-        return find_pairs(bodies);
+        return Ok(find_pairs(bodies));
     }
 
-    // Compute AABB entries for dynamic bodies only
     let dynamic: Vec<BpEntry<D>> = bodies
         .iter()
-        .filter(|b| b.body_type == BodyType::Dynamic)
+        .filter(|body| body.body_type == BodyType::Dynamic)
         .map(BpEntry::from_body)
         .collect();
 
-    // For large dynamic counts fall back to the full LBVH path which is more
-    // efficient at scale. The static cache saves rebuilding the full tree.
     if dynamic.len() >= BRUTE_FORCE_THRESHOLD {
-        return find_pairs(bodies);
+        return Ok(find_pairs(bodies));
     }
 
     let mut pairs = static_bp.query_cached_pairs();
 
-    // Dynamic–dynamic pairs (brute force, orientation-aware AABB overlap)
+    // Dynamic-dynamic pairs remain brute-force for the current small-D regime.
     for i in 0..dynamic.len() {
         for j in (i + 1)..dynamic.len() {
             let a = &dynamic[i];
@@ -512,24 +706,31 @@ pub fn find_pairs_incremental<const D: usize>(
             let group_ok = (a.collision_group & b.collision_mask != 0)
                 && (b.collision_group & a.collision_mask != 0);
             if group_ok && a.aabb.overlaps(&b.aabb) {
-                let (ha, hb) = (a.handle, b.handle);
-                if ha < hb {
-                    pairs.push(BroadphasePair(ha, hb));
+                let (left, right) = (a.handle, b.handle);
+                pairs.push(if left < right {
+                    BroadphasePair(left, right)
                 } else {
-                    pairs.push(BroadphasePair(hb, ha));
-                }
+                    BroadphasePair(right, left)
+                });
             }
         }
     }
 
-    // Dynamic–static pairs (linear scan against cached static AABB entries)
+    // Dynamic-cached pairs use either the reference scan or the opt-in BVH.
     for dyn_entry in &dynamic {
-        pairs.extend(static_bp.query_against(dyn_entry));
+        match backend {
+            StaticQueryBackend::LinearScan => {
+                pairs.extend(static_bp.query_against_linear(dyn_entry));
+            }
+            StaticQueryBackend::CachedBvh => {
+                pairs.extend(static_bp.query_against_bvh(dyn_entry)?);
+            }
+        }
     }
 
-    pairs.sort_unstable_by_key(|p| (p.0, p.1));
+    pairs.sort_unstable_by_key(|pair| (pair.0, pair.1));
     pairs.dedup();
-    pairs
+    Ok(pairs)
 }
 
 fn find_pairs_brute<const D: usize>(bodies: &[RigidBody<D>]) -> Vec<BroadphasePair> {
@@ -807,6 +1008,113 @@ mod tests {
 
         assert!(find_pairs_incremental(&bodies, &cache).is_empty());
         assert_eq!(find_pairs_incremental(&bodies, &cache), find_pairs(&bodies));
+    }
+
+    #[test]
+    fn cached_static_bvh_queries_match_vector_scan() {
+        let mut bodies = Vec::new();
+        for index in 0..128 {
+            bodies.push(RigidBody::<3>::static_body(
+                BodyHandle(index),
+                Point::new([index as f64 * 3.0, (index % 7) as f64, 0.0]),
+                Box::new(Sphere::unit()),
+            ));
+        }
+        let dynamic = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1_000),
+            Point::new([30.0, 2.0, 0.0]),
+            1.0,
+            1.0,
+        );
+        let query = BpEntry::from_body(&dynamic);
+        let mut cache = StaticBroadphase::new();
+        cache.rebuild_with_bvh(&bodies);
+
+        let mut linear = cache.query_against_linear(&query);
+        let mut indexed = cache.query_against_bvh(&query).unwrap();
+        linear.sort_unstable_by_key(|pair| (pair.0, pair.1));
+        indexed.sort_unstable_by_key(|pair| (pair.0, pair.1));
+        assert_eq!(indexed, linear);
+    }
+
+    #[test]
+    fn cached_static_bvh_incremental_pairs_match_canonical_reference() {
+        let mut bodies = Vec::new();
+        for index in 0..80 {
+            bodies.push(RigidBody::<3>::static_body(
+                BodyHandle(index),
+                Point::new([index as f64 * 1.5, 0.0, 0.0]),
+                Box::new(Sphere::unit()),
+            ));
+        }
+        for index in 0..4 {
+            bodies.push(RigidBody::<3>::dynamic_sphere(
+                BodyHandle(100 + index),
+                Point::new([index as f64 * 1.5, 0.5, 0.0]),
+                1.0,
+                1.0,
+            ));
+        }
+
+        let mut cache = StaticBroadphase::new();
+        cache.rebuild_with_bvh(&bodies);
+        let indexed = find_pairs_incremental_with_backend(
+            &bodies,
+            &cache,
+            StaticQueryBackend::CachedBvh,
+        )
+        .unwrap();
+        assert_eq!(indexed, find_pairs(&bodies));
+    }
+
+    #[test]
+    fn cached_bvh_backend_requires_explicit_index_build() {
+        let bodies = vec![
+            RigidBody::<3>::static_body(
+                BodyHandle(0),
+                Point::origin(),
+                Box::new(Sphere::unit()),
+            ),
+            RigidBody::<3>::dynamic_sphere(
+                BodyHandle(1),
+                Point::new([0.5, 0.0, 0.0]),
+                1.0,
+                1.0,
+            ),
+        ];
+        let mut cache = StaticBroadphase::new();
+        cache.rebuild(&bodies);
+        assert_eq!(
+            find_pairs_incremental_with_backend(
+                &bodies,
+                &cache,
+                StaticQueryBackend::CachedBvh,
+            ),
+            Err(StaticBroadphaseError::IndexNotBuilt)
+        );
+        assert!(cache.has_bvh() == false);
+    }
+
+    #[test]
+    fn normal_rebuild_invalidates_previous_cached_bvh() {
+        let bodies = vec![
+            RigidBody::<3>::static_body(
+                BodyHandle(0),
+                Point::origin(),
+                Box::new(Sphere::unit()),
+            ),
+            RigidBody::<3>::dynamic_sphere(
+                BodyHandle(1),
+                Point::new([0.5, 0.0, 0.0]),
+                1.0,
+                1.0,
+            ),
+        ];
+        let mut cache = StaticBroadphase::new();
+        cache.rebuild_with_bvh(&bodies);
+        assert!(cache.has_bvh());
+        cache.rebuild(&bodies);
+        assert!(!cache.has_bvh());
     }
 
     #[test]
