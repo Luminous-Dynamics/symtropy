@@ -233,6 +233,20 @@ fn evaluate_case(case: &Case) -> CaseResult {
         return result(Disposition::InvalidInput, vec!["CASE_SCOPE_OR_COST_INVALID".to_owned()]);
     }
 
+    if candidate.class == ActionClass::Recovery
+        && (candidate.post_action_portfolio.is_some()
+            || candidate.measurement.is_some()
+            || scope.acquisition_id.is_some()
+            || scope.camera_id.is_some()
+            || scope.asset_id.is_some()
+            || scope.feature_id.is_some())
+    {
+        return result(
+            Disposition::InvalidInput,
+            vec!["RECOVERY_ACTION_MUST_NOT_CLAIM_INSPECTION".to_owned()],
+        );
+    }
+
     if let Some(binding) = &candidate.physical_safety {
         if !valid_text(&binding.action_id)
             || !valid_text(&binding.vehicle_id)
@@ -454,8 +468,8 @@ mod tests {
     fn frozen_corpus_matches_every_expected_disposition() {
         let receipt = audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567")
             .expect("corpus audits");
-        assert_eq!(receipt.case_count, 18);
-        assert_eq!(receipt.expected_disposition_matches, 18);
+        assert_eq!(receipt.case_count, 20);
+        assert_eq!(receipt.expected_disposition_matches, 20);
         assert_eq!(receipt.expected_disposition_mismatches, 0);
         assert!(!receipt.authority_granted);
         assert!(!receipt.source_bytes_authenticated);
