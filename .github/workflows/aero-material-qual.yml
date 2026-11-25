@@ -204,6 +204,15 @@ jobs:
           for case in cases:
               if set(case["expected"]) != required_modes:
                   raise SystemExit(f"{case['case_id']}: all three replay modes must be frozen")
+          historical_policy_digest = "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+          current_policy_digest = "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+          for case in cases:
+              if case["verifier_profile_id"] != "aero-temporal-replay-reference-v0.1":
+                  raise SystemExit(f"{case['case_id']}: verifier profile must be pinned")
+              if case["snapshot"]["trust_policy_digest_sha256"] != historical_policy_digest:
+                  raise SystemExit(f"{case['case_id']}: historical policy digest mismatch")
+              if case["current_reassessment"]["trust_policy_digest_sha256"] != current_policy_digest:
+                  raise SystemExit(f"{case['case_id']}: current policy digest mismatch")
               if case["snapshot"]["trust_status_as_of_unix_ms"] > case["snapshot"]["evaluated_at_unix_ms"]:
                   raise SystemExit(f"{case['case_id']}: historical trust snapshot cannot be later than its historical subject cutoff")
               if case["current_reassessment"]["receiver_receipt_watermark_unix_ms"] < case["snapshot"]["receiver_receipt_watermark_unix_ms"]:
