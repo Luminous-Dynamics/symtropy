@@ -222,6 +222,22 @@ jobs:
           if late["current_reassessment"]["receiver_receipt_watermark_unix_ms"] < late["events"][0]["receiver_first_seen_at_unix_ms"]:
               raise SystemExit("late event must be included by the retrospective evidence watermark")
           after_measurement = next((case for case in cases if case["case_id"] == "revocation-effective-after-acquisition-before-evaluation"), None)
+          if after_measurement is None:
+              raise SystemExit("temporal corpus requires a revocation-after-acquisition control")
+          after_event = after_measurement["events"][0]
+          if not (after_event["effective_at_unix_ms"] > after_measurement["acquisition_time_interval"]["latest_unix_ms"] and after_event["effective_at_unix_ms"] <= after_measurement["snapshot"]["evaluated_at_unix_ms"]):
+              raise SystemExit("post-acquisition revocation must be effective before report generation but after measurement")
+          if any(after_measurement["expected"][mode]["disposition"] != "NOT_YET_EFFECTIVE" for mode in required_modes):
+              raise SystemExit("post-acquisition revocation must not invalidate the earlier measurement")
+          overlap = next((case for case in cases if case["case_id"] == "event-effectivity-crosses-acquisition-uncertainty-window"), None)
+          if overlap is None:
+              raise SystemExit("temporal corpus requires an acquisition/effectivity overlap control")
+          overlap_event = overlap["events"][0]
+          if not (overlap["acquisition_time_interval"]["earliest_unix_ms"] < overlap_event["effective_at_unix_ms"] <= overlap["acquisition_time_interval"]["latest_unix_ms"]):
+              raise SystemExit("event effective time must overlap the acquisition uncertainty interval")
+          if any(overlap["expected"][mode]["disposition"] != "TIME_BOUNDARY_AMBIGUOUS" for mode in required_modes):
+              raise SystemExit("event effective time inside acquisition uncertainty must abstain")
+          after_measurement = next((case for case in cases if case["case_id"] == "revocation-effective-after-acquisition-before-evaluation"), None)
           if after_measurement is None or after_measurement["events"][0]["effective_at_unix_ms"] <= after_measurement["acquisition_time_interval"]["latest_unix_ms"] or after_measurement["snapshot"]["evaluated_at_unix_ms"] <= after_measurement["events"][0]["effective_at_unix_ms"]:
               raise SystemExit("after-measurement control must become effective after acquisition but before report generation")
           if any(after_measurement["expected"][mode]["disposition"] != "NOT_YET_EFFECTIVE" for mode in required_modes):
