@@ -388,30 +388,44 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
         }
     }
 
-    let mut sampling_event_ids = BTreeSet::new();
-    let mut sampling_event_issue = false;
+    let mut specimen_item_ids = BTreeSet::new();
+    let mut specimen_source_identity_issue = false;
     for assertion in &specimen_assertions {
         let specimen_id = field_str(assertion, "specimen_id").unwrap_or("specimen");
-        match field_str(assertion, "sampling_event_id") {
-            Some(event_id) if nonempty(Some(event_id)) => {
-                if !sampling_event_ids.insert(event_id.to_owned()) {
+        if !nonempty(field_str(assertion, "sampling_event_id")) {
+            push(
+                &mut violations,
+                "SPECIMEN_SAMPLING_EVENT_MISSING",
+                specimen_id,
+            );
+            push(
+                &mut blockers,
+                "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED",
+                specimen_id,
+            );
+            specimen_source_identity_issue = true;
+        }
+
+        match field_str(assertion, "specimen_item_id") {
+            Some(item_id) if nonempty(Some(item_id)) => {
+                if !specimen_item_ids.insert(item_id.to_owned()) {
                     push(
                         &mut violations,
-                        "SPECIMEN_SAMPLING_EVENT_REPLAY",
-                        event_id,
+                        "SPECIMEN_ITEM_ID_REPLAY",
+                        item_id,
                     );
                     push(
                         &mut blockers,
                         "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED",
                         specimen_id,
                     );
-                    sampling_event_issue = true;
+                    specimen_source_identity_issue = true;
                 }
             }
             _ => {
                 push(
                     &mut violations,
-                    "SPECIMEN_SAMPLING_EVENT_MISSING",
+                    "SPECIMEN_ITEM_ID_MISSING",
                     specimen_id,
                 );
                 push(
@@ -419,12 +433,12 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
                     "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED",
                     specimen_id,
                 );
-                sampling_event_issue = true;
+                specimen_source_identity_issue = true;
             }
         }
     }
 
-    let mut specimen_identity_ok = !sampling_event_issue;
+    let mut specimen_identity_ok = !specimen_source_identity_issue;
     for specimen in &specimens {
         let specimen_id = field_str(specimen, "id")
             .unwrap_or("specimen")
