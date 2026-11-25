@@ -1167,7 +1167,8 @@ mod tests {
         for case in cases {
             let events = case["events"].as_array().expect("events").clone();
             let mut permutations = Vec::new();
-            collect_permutations(&mut events.clone(), 0, &mut permutations);
+            let mut working_events = events.clone();
+            collect_permutations(&mut working_events, 0, &mut permutations);
             for mode in modes {
                 let baseline = evaluate_case(case, mode);
                 for permutation in &permutations {
@@ -1481,7 +1482,7 @@ mod tests {
             "SYNTHETIC_QUALIFIED_COMPLETE"
         );
         assert!(!report.coordinate.observer_coverage_receipt_reference.is_empty());
-        assert!(valid_sha256(
+        assert!(super::valid_sha256(
             &report.coordinate.observer_coverage_receipt_digest_sha256
         ));
     }
