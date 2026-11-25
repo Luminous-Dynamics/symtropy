@@ -176,6 +176,39 @@ For test/inspection selection, compare:
 
 All arms use the same safety obligations, defect truth, data budget, inspection resources, hardware configuration and scoring code.
 
+
+### 6.1 Concrete algorithm baselines
+
+Where the dataset and task expose the required inputs, benchmark at least one baseline from each family:
+
+| Baseline family | Candidate method | What it tests | Guardrail |
+|---|---|---|---|
+| Signal/reference | Baseline subtraction with temperature/environment compensation; RMSD or correlation damage indices | Conventional guided-wave change detection | Pin reference-selection policy; do not use future healthy data |
+| Imaging/localization | Delay-and-sum guided-wave imaging on compatible outer-wing tasks | Established spatial damage-localization comparator | Only score where geometry, wave paths and damage truth support localization |
+| Statistical novelty | PCA / robust PCA and Mahalanobis-distance residuals | Low-complexity multichannel anomaly detection | Fit scaling and covariance on development groups only |
+| Time-series learning | 1D CNN or temporal convolutional network | Supervised learned detection/classification | Fixed grouped splits, class prevalence and tuning budget |
+| Reconstruction | Autoencoder / sequence reconstruction model | Reconstruction-based novelty and virtual sensing | Reconstruction error is not a damage-clearance rule |
+| Physics-informed | Reduced-order model / finite-element prior with virtual sensing | Model-informed reconstruction and model update | Freeze model fidelity and boundary-condition knowledge per arm |
+| Sensor-health | Impedance / channel-consistency diagnostics where data exist | Sensor attachment and acquisition-chain reliability | Sensor-health evidence remains distinct from structural-health evidence |
+| Coupled hypothesis | Damage + sensor fault + environment + unknown competing hypotheses | Joint diagnosis and conservative abstention | Must retain raw signals and expose unresolved cases |
+
+Use published-study-native baselines when replicating that paper. Do not force an unavailable baseline onto a dataset that does not contain the necessary channels, geometry or ground truth. A missing comparator is recorded as NOT_APPLICABLE, not approximated with a weaker unrelated method.
+
+### 6.2 Matched evaluation and leaderboard protocol
+
+1. **Freeze the task before model tuning.** Define the unit of prediction (measurement, inspection, damage episode or operating interval), target defect families/severities, alert horizon, allowed sensors, observable metadata and operational false-alarm budget.
+2. **Split by dependence group.** Hold out whole physical panels/articles, fatigue campaigns, sensor installations and relevant material/geometry groups. For long-duration drift, use forward-chaining temporal partitions. Adjacent wave windows from one article or weather episode must never be randomized across train and test.
+3. **Keep development, calibration and confirmatory sets separate.** Select thresholds on development/calibration groups only. The confirmatory set remains blind until protocol, code, model family and analysis are frozen.
+4. **Match budgets.** Publish training data volume, label availability, hyperparameter trials, human tuning hours, compute hardware, inference latency and memory. Compare all methods at equivalent information and compute budgets; show scaling curves where budgets differ.
+5. **Choose operating points before confirmatory scoring.** Report event sensitivity at a fixed false-alarm rate per operating hour/mission or inspection exposure. Also publish precision-recall curves with class prevalence; do not let aggregate accuracy or AUROC conceal rare-damage failures.
+6. **Score the events, not just windows.** Report missed-damage episodes, duplicate alarms, false alarms per exposure, detection delay, localization/sizing error where truth permits, and time under unresolved/abstained state. Include confidence intervals and denominators.
+7. **Calibrate uncertainty.** Report reliability diagrams or calibration error for declared probabilities, interval coverage/width where a valid probabilistic target exists, subgroup calibration and OOD detection/abstention. Calibration on the same article/campaign as test is leakage.
+8. **Separate reconstruction from safety performance.** Publish signal error and phase/frequency-response error separately from missed-damage and false-clear outcomes. A reconstruction improvement cannot compensate for a missed damage episode.
+9. **Publish dataset-specific and transfer results separately.** Cross-dataset training/testing is a transfer challenge with a held-out target domain; never pool NASA CFRP, outer-wing and aluminum outdoor plate rows into one headline score.
+10. **Make the result replayable.** Publish manifest hashes, source versions, exact partitions, preprocessing code, model checkpoints, thresholds, dependency lockfiles, evaluation scripts and machine-readable per-event predictions, subject to dataset rights.
+
+The principal SOTA comparison is a **risk–resource curve**: damage-event sensitivity and uncertainty at fixed false-alarm exposure, versus inspection effort, compute and maintenance burden. The preferred method is the one that improves that frontier without increasing missed-damage risk or relaxing mandatory physical inspection.
+
 ## 7. Prospective gates
 
 These are research targets, not achieved results, industry standards or certification criteria:
