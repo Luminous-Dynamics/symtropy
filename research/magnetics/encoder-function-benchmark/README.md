@@ -15,6 +15,7 @@ Each trace contains a full mechanical revolution sampled uniformly at one fixed 
 - an opaque trace ID;
 - a coordinate-frame ID;
 - an angular-grid ID;
+- an independent phase-zero calibration-record ID;
 - an evidence class: synthetic scenario or physical build;
 - samples containing mechanical reference angle and Bx, By, Bz in SI units.
 
