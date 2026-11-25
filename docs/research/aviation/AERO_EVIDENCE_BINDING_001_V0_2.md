@@ -75,7 +75,7 @@ The calibration_events collection preserves revoked, suspended, corrected and su
 - explicit retroactive boolean;
 - for corrected / superseded, a corrects_event_id reference.
 
-Events are evaluated as known at evaluated_at_unix_ms. A revocation recorded after acquisition but effective before evaluation blocks positive binding and requires an accountable disposition. A retroactive event also blocks affected historical observations. Corrections must point to a prior event for the same certificate; competing corrections to the same event are treated as contradictory history and block.
+Events use a bitemporal query rule: effective_at_unix_ms states when the event claims to apply; recorded_at_unix_ms states when the event claims to have entered the record; evaluated_at_unix_ms is the requested knowledge snapshot. An event is considered only when both its effective and recorded timestamps are at or before that snapshot. A late-arriving event therefore does not silently rewrite an earlier as-of report, but a later evaluation that includes it must reconsider affected observations, including retroactive revocation. Corrections must point to a strictly earlier-recorded event for the same certificate; competing corrections to the same event are treated as contradictory history and block. These timestamps are declared metadata in this evaluator, not trusted clock attestations, proof of custody, or proof of when an external authority actually received the event.
 
 This is intentionally conservative: the evaluator does not decide whether a revoked certificate invalidates every earlier physical result. It preserves the event and abstains until the responsible metrology/engineering authority establishes the applicable disposition.
 
