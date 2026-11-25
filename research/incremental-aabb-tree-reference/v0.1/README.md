@@ -10,6 +10,8 @@ A dependency-free, deterministic dynamic AABB tree baseline for broadphase tourn
 - Configurable fattening margin. A proxy update skips reinsertion only when the new tight AABB remains inside the old fat AABB; otherwise the leaf is detached and reinserted.
 - Insert, remove, update, query, query-pairs and deterministic rebuild operations.
 - Query output is sorted by proxy ID; pair output is canonical and sorted.
+- Maintenance counters separate inserts, removes, updates, fat-contained updates, proxy reinsertions and full rebuilds.
+- A seeded workload generator emits shared 2D/3D/4D inputs for uniform, clustered, corridor, high-aspect-ratio and high-overlap families, with an explicit moving fraction and a non-cryptographic diagnostic hash.
 - Structural counters expose internal node visits, leaf tests, AABB tests and emitted candidate pairs.
 - Tree statistics expose proxy count, node count, height, free-node count, insert/remove/update counts, fat-contained updates, proxy reinsertions and full rebuilds. These are operation counts, not timing results.
 
@@ -30,7 +32,7 @@ cargo clippy --manifest-path research/incremental-aabb-tree-reference/v0.1/Cargo
 - 2D, 3D and 4D.
 - 50 through 50,000 proxies.
 - 0–100% moving fractions and 0–10% insert/remove churn per step.
-- Uniform, clustered, anisotropic, high-aspect-ratio, high-overlap and burst-teleport workloads.
+- Uniform, clustered, corridor/anisotropic, high-aspect-ratio and high-overlap workloads; add burst-teleport and insert/remove-churn schedules in the next harness increment.
 - Build, update/reinsert, remove, query, rebuild and amortized pair-query cost.
 - 100% brute-force pair recall as a hard gate; candidate inflation and p50/p95/p99 latency as separate metrics.
 - Metamorphic pair-set invariance under translation, positive uniform scaling, axis permutation and reflection.
