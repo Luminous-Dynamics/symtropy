@@ -298,7 +298,8 @@
         "assertion_method",
         "issuer_id",
         "provenance_ref",
-        "sampling_event_id"
+        "sampling_event_id",
+        "specimen_item_id"
       ],
       "properties": {
         "id": {
@@ -344,6 +345,9 @@
           "$ref": "#/$defs/id"
         },
         "sampling_event_id": {
+          "$ref": "#/$defs/id"
+        },
+        "specimen_item_id": {
           "$ref": "#/$defs/id"
         }
       }
