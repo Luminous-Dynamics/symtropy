@@ -851,6 +851,7 @@ fn cluster_means(
 fn sum_violations(
     run: &PolicyRun,
     information_model: InformationModel,
+    decision_mapping_conflict_count: u64,
 ) -> BTreeMap<HardGateCategory, u64> {
     let mut result = BTreeMap::new();
     for violation in &run.hard_gate_violations {
@@ -874,7 +875,9 @@ fn sum_violations(
             .or_insert(1);
     }
     if information_model == InformationModel::NonanticipativeOnline
-        && (run.nonanticipativity_violation_count > 0 || run.future_information_access_count > 0)
+        && (run.nonanticipativity_violation_count > 0
+            || run.future_information_access_count > 0
+            || decision_mapping_conflict_count > 0)
     {
         result
             .entry(HardGateCategory::EvidenceIntegrity)
@@ -899,6 +902,7 @@ fn summarize_strata(
     runs: &[&PolicyRun],
     key: impl Fn(&PolicyRun) -> String,
     information_model: InformationModel,
+    decision_mapping_conflicts: &BTreeMap<String, u64>,
 ) -> Result<Vec<StratumOutcomeSummary>, TournamentError> {
     let mut grouped: BTreeMap<String, Vec<&PolicyRun>> = BTreeMap::new();
     for run in runs {
@@ -914,6 +918,7 @@ fn summarize_strata(
         let mut false_abstentions = 0_u64;
         let mut future_information_access_count = 0_u64;
         let mut nonanticipativity_violation_count = 0_u64;
+        let mut decision_mapping_conflict_count = 0_u64;
         let mut waits = Vec::with_capacity(group.len());
         let mut reserve_shortfalls = Vec::with_capacity(group.len());
         let mut recovery_shortfalls = Vec::with_capacity(group.len());
@@ -921,7 +926,11 @@ fn summarize_strata(
             checked_add(&mut committed, run.committed_missions as u64, "stratum committed missions")?;
             checked_add(&mut on_time, run.on_time_missions as u64, "stratum on-time missions")?;
             checked_add_signed(&mut metered, run.metered_grid_response_wh, "stratum metered response")?;
-            for count in sum_violations(run, information_model).values() {
+            let mapping_conflicts = decision_mapping_conflicts
+                .get(&run.run_id)
+                .copied()
+                .unwrap_or(0);
+            for count in sum_violations(run, information_model, mapping_conflicts).values() {
                 checked_add(&mut hard_violation_count, *count, "stratum hard violations")?;
             }
             if run.requested_grid_service_wh > 0 && run.shield_admitted && !run.oracle_action_feasible {
@@ -940,6 +949,16 @@ fn summarize_strata(
                 run.nonanticipativity_violation_count as u64,
                 "stratum nonanticipativity violation count",
             )?;
+            checked_add(
+                &mut nonanticipativity_violation_count,
+                mapping_conflicts,
+                "stratum derived decision mapping conflicts",
+            )?;
+            checked_add(
+                &mut decision_mapping_conflict_count,
+                mapping_conflicts,
+                "stratum decision mapping conflict count",
+            )?;
             waits.push(run.queue_wait_p95_ms);
             reserve_shortfalls.push(run.mission_reserve_shortfall_wh);
             recovery_shortfalls.push(run.recovery_shortfall_wh);
@@ -957,6 +976,7 @@ fn summarize_strata(
             empirical_cvar95_recovery_shortfall_wh: empirical_upper_cvar95(&recovery_shortfalls),
             future_information_access_count,
             nonanticipativity_violation_count,
+            decision_mapping_conflict_count,
             information_boundary_clean: (information_model == InformationModel::NonanticipativeOnline)
                 .then_some(
                     nonanticipativity_violation_count == 0
@@ -973,6 +993,7 @@ fn summarize_strata(
 fn summarize_policy(
     identity: &PolicyIdentity,
     runs: &[&PolicyRun],
+    decision_mapping_conflicts: &BTreeMap<String, u64>,
 ) -> Result<PolicySummary, TournamentError> {
     let mut totals = PolicySummary {
         policy_id: identity.policy_id.clone(),
@@ -996,6 +1017,7 @@ fn summarize_policy(
         p95_queue_wait_p95_ms: 0,
         future_information_access_count: 0,
         nonanticipativity_violation_count: 0,
+        decision_mapping_conflict_count: 0,
         information_boundary_clean: None,
         p95_mission_reserve_shortfall_wh: 0,
         p95_recovery_shortfall_wh: 0,
@@ -1068,6 +1090,20 @@ fn summarize_policy(
             run.nonanticipativity_violation_count as u64,
             "nonanticipativity violation count",
         )?;
+        let mapping_conflicts = decision_mapping_conflicts
+            .get(&run.run_id)
+            .copied()
+            .unwrap_or(0);
+        checked_add(
+            &mut totals.nonanticipativity_violation_count,
+            mapping_conflicts,
+            "derived decision mapping conflicts",
+        )?;
+        checked_add(
+            &mut totals.decision_mapping_conflict_count,
+            mapping_conflicts,
+            "decision mapping conflict count",
+        )?;
         if run.requested_grid_service_wh > 0 && run.shield_admitted && !run.oracle_action_feasible {
             totals.false_safe_admissions += 1;
         }
@@ -1082,7 +1118,11 @@ fn summarize_policy(
         {
             totals.network_cap_conflicts += 1;
         }
-        for (category, count) in sum_violations(run, identity.information_model) {
+        for (category, count) in sum_violations(
+            run,
+            identity.information_model,
+            mapping_conflicts,
+        ) {
             checked_add(
                 violations.entry(category).or_default(),
                 count,
@@ -1121,11 +1161,13 @@ fn summarize_policy(
         runs,
         |run| run.scenario_family.clone(),
         identity.information_model,
+        decision_mapping_conflicts,
     )?;
     totals.independent_cluster_outcomes = summarize_strata(
         runs,
         |run| run.cluster_id.clone(),
         identity.information_model,
+        decision_mapping_conflicts,
     )?;
     totals.mean_decision_latency_ms =
         decision_latency.iter().map(|value| *value as f64).sum::<f64>() / decision_latency.len() as f64;
@@ -1227,7 +1269,7 @@ fn paired_comparison(
 pub fn evaluate_mobility_policy_tournament(
     input: &MobilityPolicyTournamentInput,
 ) -> Result<MobilityPolicyTournamentReport, TournamentError> {
-    validate_input(input)?;
+    let decision_mapping_conflicts = validate_input(input)?;
     let input_digest = canonical_input_digest(input)?;
     let information_model = input.policies[0].information_model;
 
@@ -1248,7 +1290,11 @@ pub fn evaluate_mobility_policy_tournament(
             .values()
             .copied()
             .collect();
-        policies.push(summarize_policy(identity, &runs)?);
+        policies.push(summarize_policy(
+            identity,
+            &runs,
+            &decision_mapping_conflicts,
+        )?);
     }
     policies.sort_by(|a, b| a.policy_id.cmp(&b.policy_id));
 
