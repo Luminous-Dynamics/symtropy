@@ -42,6 +42,8 @@ For every archetype, seeds 0–9 are generated. Seed 7 exercises withheld access
 ## Units and assumptions
 
 - Inventory and transport: integer grams and grams/hour. Inventory retains synthetic closing truth separately from observed lower/upper quantity bounds; the conservative observed lower bound controls usable/access-qualified throughput.
+- Opening inventory observations exclude future cargo inflows. A scheduled arrival is a future event, not stock already available at the scenario start. Cargo inflow is only reconciled in the oracle's closing-inventory ledger.
+- Every case carries 72 explicit hourly service intervals. Scenario resource/generation totals are allocated deterministically over eligible hours after the declared transit delay, with exact sums and per-hour capacity checks. This is a reproducible synthetic temporal projection, not an hourly plant, refinery, pipeline or power-system dynamics solver.
 - Process input/output: integer grams; input equals output plus explicitly declared process loss.
 - Energy: integer Wh; no mass or energy quantities are implicitly added across units.
 - Generator LHV and conversion efficiency are explicitly synthetic scenario parameters. They are not field-calibrated values or validated equipment curves.
@@ -62,7 +64,7 @@ cargo run --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --release -
 cargo run --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --release --locked -- --emit target/corpus-v0.1/
 ```
 
-The GitHub Actions workflow emits two separate JSONL files, checks that each contains exactly 120 rows, calculates independent SHA-256 digests and retains both as a workflow artifact.
+The GitHub Actions workflow emits two separate JSONL files, checks that each contains exactly 120 rows and 72 hourly rows per case, calculates a shared SHA-256 manifest and retains them as separate planner-observation and evaluator-oracle artifacts.
 
 **No leakage rule:** planner implementations receive only planner-observations.jsonl. The oracle-truth.jsonl file contains closing stock, actual conversion/output quantities, generated/delivered energy and final service verdicts. Keep it in the evaluator/scorer boundary; never attach it to a planner prompt or planner execution input. CI publishes two distinct artifacts: a planner-observations artifact and an evaluator-only oracle-truth artifact. A SHA256SUMS file binds both files. The two 72-row-per-case interval views must retain exact timestamps and common case IDs so that independent paired scoring is possible without giving the oracle to the planner.
 
@@ -82,9 +84,10 @@ The crate includes deterministic generation and JSONL shape checks plus negative
 - reversed lower/upper bounds;
 - common-cause grouping;
 - uncertainty widening;
-- absolute time-origin translation;
+- absolute time-origin translation, including all 72 hourly timestamps;
 - 72-step timestamp continuity, pre-transit zero delivery and exact hourly-to-horizon reconciliation;
 - hourly hard-floor breaches remaining visible in the horizon-level service verdict.
+
 
 These are software-contract tests over synthetic assumptions. They do not validate physical process yields, fuel calorific values, actual inventory, legal rights, electrical feasibility, power quality, protection, HIL or field reliability.
 
