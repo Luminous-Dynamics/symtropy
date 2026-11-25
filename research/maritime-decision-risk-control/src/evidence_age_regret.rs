@@ -1000,8 +1000,10 @@ mod tests {
     fn later_correction_cannot_rewrite_what_was_available_at_earlier_cutoff() {
         let historical = case("correction_not_retrieved_at_historical_cutoff");
         let later = case("correction_available_after_cutoff");
-        let old_view = decide(&historical.input, DecisionStrategy::FreshestPublished).expect("valid");
-        let corrected_view = decide(&later.input, DecisionStrategy::FreshestPublished).expect("valid");
+        let old_view =
+            decide(&historical.input, DecisionStrategy::FreshestPublished).expect("valid");
+        let corrected_view =
+            decide(&later.input, DecisionStrategy::FreshestPublished).expect("valid");
         assert_eq!(
             old_view.action.primary_window(),
             Some(ServiceWindow::WindowB)
@@ -1017,8 +1019,7 @@ mod tests {
             corrected_view.action.primary_window(),
             Some(ServiceWindow::WindowA)
         );
-        let corrected_strict =
-            decide(&later.input, DecisionStrategy::FailClosed).expect("valid");
+        let corrected_strict = decide(&later.input, DecisionStrategy::FailClosed).expect("valid");
         assert_eq!(
             corrected_strict.action.primary_window(),
             Some(ServiceWindow::WindowA)
@@ -1051,7 +1052,10 @@ mod tests {
         for scenario in benchmark_cases() {
             for strategy in DecisionStrategy::ALL {
                 let decision = decide(&scenario.input, strategy).expect("valid input");
-                assert_eq!(decision.claim_ceiling, "SOURCE_REPORTED_ONLY_NOT_PHYSICAL_TRUTH");
+                assert_eq!(
+                    decision.claim_ceiling,
+                    "SOURCE_REPORTED_ONLY_NOT_PHYSICAL_TRUTH"
+                );
             }
         }
     }
@@ -1062,10 +1066,7 @@ mod tests {
         scenario.input.observations[0].maturity = ClaimMaturity::SourceReportedActual;
         let decision = decide(&scenario.input, DecisionStrategy::FreshestPublished)
             .expect("valid actual-classified source record");
-        assert_eq!(
-            decision.selected_maturity_summary,
-            "ACT_SOURCE_REPORTED"
-        );
+        assert_eq!(decision.selected_maturity_summary, "ACT_SOURCE_REPORTED");
         assert_eq!(
             decision.claim_ceiling,
             "SOURCE_REPORTED_ONLY_NOT_PHYSICAL_TRUTH"
@@ -1093,7 +1094,10 @@ mod tests {
         let first = render_csv();
         assert_eq!(first, render_csv());
         let lines = first.lines().collect::<Vec<_>>();
-        assert_eq!(lines.len(), 1 + benchmark_cases().len() * DecisionStrategy::ALL.len());
+        assert_eq!(
+            lines.len(),
+            1 + benchmark_cases().len() * DecisionStrategy::ALL.len()
+        );
         let width = lines[0].split(',').count();
         assert_eq!(width, 23);
         for row in lines.iter().skip(1) {
