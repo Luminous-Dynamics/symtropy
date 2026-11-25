@@ -17,6 +17,7 @@ use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
 use std::fmt::Write as FmtWrite;
 
+#[cfg(test)]
 const ON_TIME_WINDOW_MINUTES: u64 = 120;
 const MINIMUM_COHORT_ON_TIME_RATE_MILLI: u16 = 950;
 const ARRIVAL_BURST_WINDOW_MINUTES: u64 = 60;
