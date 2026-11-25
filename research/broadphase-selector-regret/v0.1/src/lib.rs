@@ -221,6 +221,10 @@ pub struct FamilySummary {
     pub p95_regression_vs_best_fixed_basis_points: Option<i128>,
     pub fixed_baseline_qualified_sequence_count: u64,
     pub fixed_baseline_unavailable_sequence_count: u64,
+    pub regret_available_sequence_count: u64,
+    pub regret_unavailable_sequence_count: u64,
+    pub overhead_ratio_available_sequence_count: u64,
+    pub overhead_ratio_unavailable_sequence_count: u64,
     pub median_selector_and_switch_overhead_basis_points: Option<u128>,
     pub p95_selector_and_switch_overhead_basis_points: Option<u128>,
     /// Ratio of summed selector and transition costs to summed selected
@@ -237,6 +241,10 @@ pub struct CampaignSummary {
     pub p95_regression_vs_best_fixed_basis_points: Option<i128>,
     pub fixed_baseline_qualified_sequence_count: u64,
     pub fixed_baseline_unavailable_sequence_count: u64,
+    pub regret_available_sequence_count: u64,
+    pub regret_unavailable_sequence_count: u64,
+    pub overhead_ratio_available_sequence_count: u64,
+    pub overhead_ratio_unavailable_sequence_count: u64,
     pub median_selector_and_switch_overhead_basis_points: Option<u128>,
     pub p95_selector_and_switch_overhead_basis_points: Option<u128>,
     /// Ratio of summed selector and transition costs to summed selected
@@ -858,6 +866,14 @@ pub fn evaluate_campaign(inputs: &[SequenceInput]) -> Result<CampaignSummary, Se
             .count() as u64;
         let fixed_baseline_unavailable_sequence_count =
             group.len() as u64 - fixed_baseline_qualified_sequence_count;
+        let regret_available_sequence_count = group
+            .iter()
+            .filter(|score| score.regret_basis_points.is_some())
+            .count() as u64;
+        let overhead_ratio_available_sequence_count = group
+            .iter()
+            .filter(|score| score.selector_and_switch_overhead_basis_points.is_some())
+            .count() as u64;
         let family_overhead_total = group.iter().try_fold(0_u128, |sum, score| {
             sum.checked_add(score.selector_overhead_ns)
                 .and_then(|value| value.checked_add(score.transition_overhead_ns))
@@ -878,6 +894,11 @@ pub fn evaluate_campaign(inputs: &[SequenceInput]) -> Result<CampaignSummary, Se
             ),
             fixed_baseline_qualified_sequence_count,
             fixed_baseline_unavailable_sequence_count,
+            regret_available_sequence_count,
+            regret_unavailable_sequence_count: group.len() as u64 - regret_available_sequence_count,
+            overhead_ratio_available_sequence_count,
+            overhead_ratio_unavailable_sequence_count: group.len() as u64
+                - overhead_ratio_available_sequence_count,
             median_selector_and_switch_overhead_basis_points: nearest_rank_u128(
                 &mut family_overheads,
                 50,
@@ -899,6 +920,14 @@ pub fn evaluate_campaign(inputs: &[SequenceInput]) -> Result<CampaignSummary, Se
         .count() as u64;
     let fixed_baseline_unavailable_sequence_count =
         sequences.len() as u64 - fixed_baseline_qualified_sequence_count;
+    let regret_available_sequence_count = sequences
+        .iter()
+        .filter(|score| score.regret_basis_points.is_some())
+        .count() as u64;
+    let overhead_ratio_available_sequence_count = sequences
+        .iter()
+        .filter(|score| score.selector_and_switch_overhead_basis_points.is_some())
+        .count() as u64;
 
     let campaign_overhead_total = sequences.iter().try_fold(0_u128, |sum, score| {
         sum.checked_add(score.selector_overhead_ns)
@@ -921,6 +950,12 @@ pub fn evaluate_campaign(inputs: &[SequenceInput]) -> Result<CampaignSummary, Se
         ),
         fixed_baseline_qualified_sequence_count,
         fixed_baseline_unavailable_sequence_count,
+        regret_available_sequence_count,
+        regret_unavailable_sequence_count: sequences.len() as u64
+            - regret_available_sequence_count,
+        overhead_ratio_available_sequence_count,
+        overhead_ratio_unavailable_sequence_count: sequences.len() as u64
+            - overhead_ratio_available_sequence_count,
         median_selector_and_switch_overhead_basis_points: nearest_rank_u128(
             &mut overheads,
             50,
@@ -1240,6 +1275,22 @@ mod tests {
             report.sequences[0].sequence_id,
             "heldout-01"
         );
+    }
+
+    #[test]
+    fn campaign_preserves_zero_denominator_metric_counts() {
+        let mut value = input(&["A", "A", "A"], &[]);
+        for observation in &mut value.observations {
+            observation.full_step_ns = 0;
+            observation.broadphase_ns = 0;
+        }
+        let report = evaluate_campaign(&[value]).unwrap();
+        assert_eq!(report.regret_available_sequence_count, 0);
+        assert_eq!(report.regret_unavailable_sequence_count, 1);
+        assert_eq!(report.overhead_ratio_available_sequence_count, 0);
+        assert_eq!(report.overhead_ratio_unavailable_sequence_count, 1);
+        assert_eq!(report.families[0].regret_available_sequence_count, 0);
+        assert_eq!(report.families[0].regret_unavailable_sequence_count, 1);
     }
 
     #[test]
