@@ -730,6 +730,16 @@ pub fn dispatch_request_fingerprint(
     Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect())
 }
 
+/// Owner-ledger lookup evidence. Production injectors should bind the returned
+/// payload digest to the request and provide the exact owner-produced receipt bytes.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GazeboDispatchLedgerReceipt {
+    pub payload_sha256: Option<String>,
+    pub status: DispatchLedgerResult,
+    pub dispatch_id: Option<String>,
+    pub raw_artifact_bytes: Option<Vec<u8>>,
+}
+
 /// Injector contract: atomically and durably bind idempotency_key to
 /// payload_sha256 before any fault effect can occur. Repeating the same key and
 /// digest must return the prior operation result without repeating the effect;
@@ -749,6 +759,22 @@ pub trait GazeboFaultInjectorTransport {
         &mut self,
         idempotency_key: &str,
     ) -> Result<DispatchLedgerResult, Self::Error>;
+
+    /// Payload-bound owner lookup. The default preserves source compatibility
+    /// but intentionally omits payload binding and owner artifact bytes. A
+    /// journaled caller must treat that compatibility result as Unresolved.
+    fn lookup_dispatch_bound(
+        &mut self,
+        request: &GazeboDispatchRequest,
+    ) -> Result<GazeboDispatchLedgerReceipt, Self::Error> {
+        let status = self.lookup_dispatch(&request.idempotency_key)?;
+        Ok(GazeboDispatchLedgerReceipt {
+            payload_sha256: None,
+            status,
+            dispatch_id: None,
+            raw_artifact_bytes: None,
+        })
+    }
 }
 
 /// Issue one dispatch attempt. An error is not retried and maps to Unknown.
