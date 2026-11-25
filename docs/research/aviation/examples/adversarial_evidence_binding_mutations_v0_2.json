@@ -355,6 +355,29 @@
       "expected_blocker_codes": [
         "CALIBRATION_CERTIFICATE_EVIDENCE_UNBOUND"
       ]
+    },
+    {
+      "case_id": "duplicate-calibration-evidence-identity",
+      "operation": "append",
+      "pointer": "/calibration_certificates",
+      "value": {
+        "id": "CAL-B",
+        "calibration_evidence_id": "CAL-EVIDENCE-A",
+        "instrument_id": "INSTRUMENT-B",
+        "method_revision_id": "METHOD-B",
+        "calibration_lab": "SYNTHETIC-LAB-B",
+        "certificate_artifact_ref": "mycelix-packet://synthetic/CAL-B",
+        "authenticity_status": "authenticated",
+        "valid_from_unix_ms": 1795510800000,
+        "valid_until_unix_ms": 1795518000000
+      },
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "CALIBRATION_EVIDENCE_ID_REPLAY"
+      ],
+      "expected_blocker_codes": [
+        "CALIBRATION_CERTIFICATE_EVIDENCE_UNBOUND"
+      ]
     }
   ],
   "oracle_review_status": "NOT_INDEPENDENTLY_REVIEWED",
