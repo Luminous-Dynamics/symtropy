@@ -179,16 +179,24 @@ impl core::fmt::Display for FiniteProposalExecutionError {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let message = match self {
             Self::InvalidIdentity => "a required proposal execution identity is invalid",
-            Self::RandomStreamsNotDomainSeparated => "branch and atom random streams are not domain-separated",
+            Self::RandomStreamsNotDomainSeparated => {
+                "branch and atom random streams are not domain-separated"
+            },
             Self::InvalidDefensiveMixtureWeight => "defensive mixture weight is outside (0, 1]",
             Self::InvalidAtomIdentity => "atom identity is zero or duplicated",
             Self::InvalidProbabilityVector => "finite proposal probability vector is invalid",
-            Self::ReceiptScopeMismatch => "proposal execution receipt does not match the pinned scope",
+            Self::ReceiptScopeMismatch => {
+                "proposal execution receipt does not match the pinned scope"
+            },
             Self::SequenceMismatch => "proposal execution receipt is not the next draw",
             Self::DuplicateOrInvalidSampleIdentity => "sample identity is zero or duplicated",
             Self::TicketOutsideRange => "random ticket is outside the declared ticket space",
-            Self::UnpredictableProposalSelection => "residual proposal was not selected from prior history",
-            Self::SampleTransformMismatch => "selected atom does not match the declared sampling transform",
+            Self::UnpredictableProposalSelection => {
+                "residual proposal was not selected from prior history"
+            }
+            Self::SampleTransformMismatch => {
+                "selected atom does not match the declared sampling transform"
+            }
             Self::ZeroMixtureProbability => "selected atom has zero complete-mixture probability",
             Self::DefensiveWeightBoundViolated => "normalized defensive contribution exceeds one",
             Self::CounterOverflow => "proposal execution draw counter overflowed",
@@ -209,9 +217,7 @@ pub struct FiniteProposalExecutionVerifier {
 
 impl FiniteProposalExecutionVerifier {
     /// Validate and pin a finite adaptive defensive-proposal contract.
-    pub fn new(
-        config: FiniteAdaptiveProposalConfig,
-    ) -> Result<Self, FiniteProposalExecutionError> {
+    pub fn new(config: FiniteAdaptiveProposalConfig) -> Result<Self, FiniteProposalExecutionError> {
         validate_config(&config)?;
         Ok(Self {
             config,
@@ -242,9 +248,7 @@ impl FiniteProposalExecutionVerifier {
         if !same_receipt_scope(&self.config, receipt) {
             return Err(FiniteProposalExecutionError::ReceiptScopeMismatch);
         }
-        if is_zero_digest(&receipt.sample_id)
-            || self.seen_sample_ids.contains(&receipt.sample_id)
-        {
+        if is_zero_digest(&receipt.sample_id) || self.seen_sample_ids.contains(&receipt.sample_id) {
             return Err(FiniteProposalExecutionError::DuplicateOrInvalidSampleIdentity);
         }
         if receipt.branch_ticket >= TICKET_SPACE || receipt.atom_ticket >= TICKET_SPACE {
@@ -438,10 +442,22 @@ mod tests {
             residual_after_event_digest: RESIDUAL_AFTER,
             defensive_mixture_weight_ticks: 64,
             atoms: vec![
-                FiniteProposalAtom { atom_id: [20; 32], is_event: true },
-                FiniteProposalAtom { atom_id: [21; 32], is_event: false },
-                FiniteProposalAtom { atom_id: [22; 32], is_event: true },
-                FiniteProposalAtom { atom_id: [23; 32], is_event: false },
+                FiniteProposalAtom {
+                    atom_id: [20; 32],
+                    is_event: true,
+                },
+                FiniteProposalAtom {
+                    atom_id: [21; 32],
+                    is_event: false,
+                },
+                FiniteProposalAtom {
+                    atom_id: [22; 32],
+                    is_event: true,
+                },
+                FiniteProposalAtom {
+                    atom_id: [23; 32],
+                    is_event: false,
+                },
             ],
             target_mass_ticks: vec![64, 64, 64, 64],
             residual_before_event_ticks: vec![128, 64, 32, 32],
@@ -528,10 +544,18 @@ mod tests {
                     verified.normalized_weight_numerator
                         <= verified.normalized_weight_denominator
                 );
+                assert_eq!(
+                    verified.normalized_weight_numerator,
+                    if c.atoms[index].is_event {
+                        alpha * u64::from(c.target_mass_ticks[index])
+                    } else {
+                        0
+                    }
+                );
                 selected_counts[index] += 1;
-                if defensive { defensive_branch_count += 1; }
-                let (numerator, denominator) = verified.normalized_contribution();
-                let _ = (numerator, denominator);
+                if defensive {
+                    defensive_branch_count += 1;
+                }
             }
         }
 
@@ -551,7 +575,10 @@ mod tests {
                 selected_counts[index] * weighted_numerator / q_count
             })
             .sum::<u64>();
-        let event_target_mass = c.atoms.iter().enumerate()
+        let event_target_mass = c
+            .atoms
+            .iter()
+            .enumerate()
             .filter(|(_, atom)| atom.is_event)
             .map(|(index, _)| u64::from(c.target_mass_ticks[index]))
             .sum::<u64>();
