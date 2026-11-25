@@ -176,6 +176,27 @@ jobs:
               raise SystemExit("temporal replay corpus requires a late-receipt control")
           if corpus.get("oracle_review_status") != "NOT_INDEPENDENTLY_REVIEWED":
               raise SystemExit("oracle review status must remain explicit until independent review")
+          if len(cases) != 13:
+              raise SystemExit(f"temporal replay corpus must contain exactly 13 frozen cases; found {len(cases)}")
+          all_events = [event for case in cases for event in case["events"]]
+          for event in all_events:
+              receipt_status = event["receiver_receipt_status"]
+              receipt_ref = event["receiver_receipt_reference"]
+              receipt_digest = event["receiver_receipt_digest_sha256"]
+              if receipt_status == "SYNTHETIC_VALID":
+                  if not receipt_ref or receipt_digest != event["payload_sha256"]:
+                      raise SystemExit(f"{event['event_id']}: synthetic receipt must bind exact event payload digest")
+              elif receipt_ref is not None or receipt_digest is not None:
+                  raise SystemExit(f"{event['event_id']}: non-verified receipt must not carry a verified receipt reference/digest")
+              timestamp_status = event["trusted_timestamp_status"]
+              timestamp_imprint = event["trusted_timestamp_imprint_sha256"]
+              if timestamp_status == "invalid_digest":
+                  if timestamp_imprint is None or timestamp_imprint == event["payload_sha256"]:
+                      raise SystemExit(f"{event['event_id']}: invalid-digest timestamp control must contain a mismatching imprint")
+              elif timestamp_status == "absent" and timestamp_imprint is not None:
+                  raise SystemExit(f"{event['event_id']}: absent timestamp must not carry an imprint")
+          if not any(event["receiver_receipt_status"] == "UNVERIFIED" for event in all_events):
+              raise SystemExit("temporal replay corpus requires an unverified-receipt control")
           print(f"Temporal replay corpus structure passed: {len(cases)} cases; semantic oracle review still required.")
           PY
 
