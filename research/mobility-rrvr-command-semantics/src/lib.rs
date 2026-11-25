@@ -62,9 +62,10 @@ pub struct DeviceCapabilityProfile {
     pub supports_durable_one_shot_token: bool,
     pub rejects_duplicate_one_shot_token: bool,
     pub maximum_effects_per_token: Option<u32>,
-    pub supports_authority_epoch: bool,
+    pub endpoint_enforces_authority_epoch: bool,
     pub enforces_lease_expiry: bool,
     pub watchdog_reaction: WatchdogReaction,
+    pub watchdog_response_bound_ms: Option<u64>,
     pub supports_stable_trajectory_segments: bool,
     pub supports_progress_checkpoints: bool,
     pub supports_measured_progress_resume: bool,
@@ -108,6 +109,8 @@ pub struct CommandSemanticProfile {
     pub endpoint_enforces_expiry: bool,
     pub watchdog_supported: bool,
     pub watchdog_reaction: WatchdogReaction,
+    /// Maximum permitted delay from lease loss/expiry to watchdog reaction.
+    pub watchdog_response_bound_ms: Option<u64>,
     pub clock_profile_id: String,
 
     // Trajectory fields.
@@ -165,7 +168,11 @@ pub enum HoldReason {
     DeviceLeaseExpiryUnsupported,
     ContinuousLeaseWatchdogMissing,
     ContinuousLeaseUnsafeWatchdogReaction,
+    WatchdogReactionMismatch,
+    ContinuousLeaseWatchdogBoundMissing,
     DeviceWatchdogUnsafe,
+    DeviceWatchdogBoundMissing,
+    DeviceWatchdogBoundExceeded,
     ContinuousLeaseClockMissing,
     TrajectorySegmentCountMissing,
     TrajectorySegmentIdentityUnstable,
@@ -324,7 +331,7 @@ fn evaluate_class(
             if !command.endpoint_enforces_authority_epoch {
                 return Err(HoldReason::ContinuousLeaseEpochNotEnforced);
             }
-            if !device.supports_authority_epoch {
+            if !device.endpoint_enforces_authority_epoch {
                 return Err(HoldReason::DeviceLeaseEpochUnsupported);
             }
             if !command.endpoint_enforces_expiry {
@@ -347,6 +354,20 @@ fn evaluate_class(
                 WatchdogReaction::ControlledStop | WatchdogReaction::DisableOutput
             ) {
                 return Err(HoldReason::DeviceWatchdogUnsafe);
+            }
+            if command.watchdog_reaction != device.watchdog_reaction {
+                return Err(HoldReason::WatchdogReactionMismatch);
+            }
+            let command_watchdog_bound = command
+                .watchdog_response_bound_ms
+                .filter(|value| *value > 0)
+                .ok_or(HoldReason::ContinuousLeaseWatchdogBoundMissing)?;
+            let device_watchdog_bound = device
+                .watchdog_response_bound_ms
+                .filter(|value| *value > 0)
+                .ok_or(HoldReason::DeviceWatchdogBoundMissing)?;
+            if device_watchdog_bound > command_watchdog_bound {
+                return Err(HoldReason::DeviceWatchdogBoundExceeded);
             }
             if !nonempty(&command.clock_profile_id) || command.clock_profile_id == "unknown" {
                 return Err(HoldReason::ContinuousLeaseClockMissing);
@@ -424,9 +445,10 @@ mod tests {
             supports_durable_one_shot_token: true,
             rejects_duplicate_one_shot_token: true,
             maximum_effects_per_token: Some(1),
-            supports_authority_epoch: true,
+            endpoint_enforces_authority_epoch: true,
             enforces_lease_expiry: true,
             watchdog_reaction: WatchdogReaction::ControlledStop,
+            watchdog_response_bound_ms: Some(80),
             supports_stable_trajectory_segments: true,
             supports_progress_checkpoints: true,
             supports_measured_progress_resume: true,
@@ -464,6 +486,7 @@ mod tests {
             endpoint_enforces_expiry: false,
             watchdog_supported: false,
             watchdog_reaction: WatchdogReaction::None,
+            watchdog_response_bound_ms: None,
             clock_profile_id: "unknown".into(),
             segment_count: None,
             segment_ids_are_stable: false,
@@ -499,6 +522,7 @@ mod tests {
         command.endpoint_enforces_expiry = true;
         command.watchdog_supported = true;
         command.watchdog_reaction = WatchdogReaction::ControlledStop;
+        command.watchdog_response_bound_ms = Some(100);
         command.clock_profile_id = "monotonic-device-clock-v1".into();
         SemanticProfileInput { device: base_device(), command }
     }
@@ -619,6 +643,27 @@ mod tests {
         assert_eq!(
             evaluate(&input),
             SemanticDecision::Hold(HoldReason::ContinuousLeaseUnsafeWatchdogReaction)
+        );
+    }
+
+    #[test]
+    fn rejects_watchdog_reaction_mismatch_between_command_and_device_profile() {
+        let mut input = valid_continuous_lease();
+        input.device.watchdog_reaction = WatchdogReaction::DisableOutput;
+        assert_eq!(
+            evaluate(&input),
+            SemanticDecision::Hold(HoldReason::WatchdogReactionMismatch)
+        );
+    }
+
+    #[test]
+    fn rejects_device_watchdog_bound_that_exceeds_command_limit() {
+        let mut input = valid_continuous_lease();
+        input.device.watchdog_response_bound_ms = Some(120);
+        input.command.watchdog_response_bound_ms = Some(100);
+        assert_eq!(
+            evaluate(&input),
+            SemanticDecision::Hold(HoldReason::DeviceWatchdogBoundExceeded)
         );
     }
 
