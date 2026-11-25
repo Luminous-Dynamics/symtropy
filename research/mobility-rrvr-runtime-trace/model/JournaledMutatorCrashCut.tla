@@ -126,8 +126,7 @@ CoordinatorCrash ==
     /\ ownerLedger' =
          IF OwnerLedgerDurable THEN ownerLedger ELSE "absent"
     /\ ownerHistoryLost' =
-         ownerHistoryLost \/
-         (~OwnerLedgerDurable /\ ownerLedger # "absent")
+         (ownerHistoryLost \/ (~OwnerLedgerDurable /\ ownerLedger # "absent"))
     /\ recoveryGate' =
          IF journalIntent THEN "blocked" ELSE "fresh"
     /\ UNCHANGED <<bootEpoch, journalIntent, journalOutcome, transportResult,
