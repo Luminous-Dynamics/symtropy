@@ -320,7 +320,10 @@ pub fn generate_case(archetype: Archetype, seed: u64) -> FuelServiceCase {
 
     let (primary_capacity, alternate_capacity, transit_delay, common_cause_group) =
         match archetype {
-            Archetype::PumpPipelineFailure => (0, 12_000, 12, "pump-pipeline"),
+            // A restricted alternate path restores enough total energy
+            // by horizon end, but its eight-hour transfer delay creates an
+            // early critical-service interruption hidden by aggregate scoring.
+            Archetype::PumpPipelineFailure => (0, 50_000, 8, "pump-pipeline"),
             Archetype::BerthDischargeRestriction => (10_000, 0, 48, "port-berth"),
             Archetype::CommonCauseSupplierPortGridComms => (5_000, 0, 48, "supplier-port-grid-telecom"),
             _ => (60_000, 0, 4, "none"),
