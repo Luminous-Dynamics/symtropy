@@ -27,7 +27,7 @@ For each interval, the adapter takes the quantity of generator fuel issued in th
 
 Fuel issued in the interval is treated as the generator's engine feed for that interval. Fuel merely received at the generator, but not issued, remains available stock and does not automatically count as generation. Any fuel-energy input above the one-hour generator power cap is reported as power-cap curtailed Wh, not silently counted as delivered service.
 
-The energy predicate uses Wh. Average active power uses W over exactly 3600 seconds, so the value is recomputed as average W for that one-hour interval; the same numeric result is not an implicit unit substitution. Both are required. Voltage, frequency, reactive power, waveform quality and downstream process output are explicitly Not Applicable here with reasons, because this model does not generate those measurements. They must be supplied by their own network/beneficiary evidence tracks before a broader service claim is made.
+The energy predicate uses Wh. Average active power is converted explicitly using average W = delivered Wh × 3600 / interval seconds. For exactly 3600 seconds the numeric values are equal, but the adapter still calculates a distinct W interval and qualifies the W predicate using that value. Both are required. Voltage, frequency, reactive power, waveform quality and downstream process output are explicitly Not Applicable here with reasons, because this model does not generate those measurements. They must be supplied by their own network/beneficiary evidence tracks before a broader service claim is made.
 
 ## Evidence and maturity
 
