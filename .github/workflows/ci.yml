@@ -84,5 +84,17 @@ jobs:
       if: ${{ hashFiles('tools/airborne-energy-observability-validator/Cargo.toml') != '' }}
       run: cargo test --locked -p airborne-energy-observability-validator
 
+    - name: Check Formatting (Magnetic Bounded Phase Assurance)
+      if: ${{ hashFiles('research/magnetics/bounded-phase-assurance/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path research/magnetics/bounded-phase-assurance/Cargo.toml -- --check
+
+    - name: Run Clippy (Magnetic Bounded Phase Assurance)
+      if: ${{ hashFiles('research/magnetics/bounded-phase-assurance/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path research/magnetics/bounded-phase-assurance/Cargo.toml --all-targets -- -D warnings
+
+    - name: Run Tests (Magnetic Bounded Phase Assurance)
+      if: ${{ hashFiles('research/magnetics/bounded-phase-assurance/Cargo.toml') != '' }}
+      run: cargo test --manifest-path research/magnetics/bounded-phase-assurance/Cargo.toml
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
