@@ -443,7 +443,8 @@ mod tests {
 
         assert!(huber_error < ols_error);
         assert!(theil_sen_error < ols_error);
-        assert!(huber.residual_rms < ols.residual_rms);
+        assert!(huber.median_absolute_residual < ols.median_absolute_residual);
+        assert!(theil_sen.median_absolute_residual < ols.median_absolute_residual);
     }
 
     #[test]
@@ -519,7 +520,7 @@ mod tests {
         assert!(fit.residual_rms < 1.0e-9);
         assert_eq!(fit.beta_reference_time, beta_origin);
         assert_eq!(fit.alpha_reference_time, alpha_origin);
-        assert!(fit.predict_alpha_delta_v0(beta_origin + 4_000).abs() - 8_000.0 < 1.0e-9);
+        assert!((fit.predict_alpha_delta_v0(beta_origin + 4_000) - 8_000.0).abs() < 1.0e-9);
     }
 
     #[test]
