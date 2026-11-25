@@ -44,9 +44,9 @@ jobs:
           Draft202012Validator.check_schema(schema)
           errors = list(Draft202012Validator(schema).iter_errors(fixture))
           assert not errors, errors
-          assert len(fixture["cases"]) == 20
+          assert len(fixture["cases"]) == 23
           assert len({case["case_id"] for case in fixture["cases"]}) == 20
-          print("20 two-key admission cases and Draft 2020-12 schema validated")
+          print("23 two-key admission cases and Draft 2020-12 schema validated")
           PY
       - name: Format
         run: cargo fmt --manifest-path tools/orbital-inspection-two-key-admission-bench/Cargo.toml -- --check
@@ -81,7 +81,10 @@ jobs:
           assert cases["TK-007-PORTFOLIO-INCOMPLETE"]["disposition"] == "INDETERMINATE"
           assert cases["TK-011-RECOVERY-SAFE"]["disposition"] == "ELIGIBLE_RECOVERY"
           assert cases["TK-013-HIGH-VALUE-UNSAFE"]["disposition"] == "REJECTED_SAFETY"
-          print("Rust and independent oracle agree on all 20 two-key admission cases")
+          assert cases["TK-021-PORTFOLIO-TRAJECTORY-MISMATCH"]["disposition"] == "OUT_OF_SCOPE"
+          assert cases["TK-022-MEASUREMENT-VEHICLE-MISMATCH"]["disposition"] == "OUT_OF_SCOPE"
+          assert cases["TK-023-MEASUREMENT-HORIZON-MISMATCH"]["disposition"] == "OUT_OF_SCOPE"
+          print("Rust and independent oracle agree on all 23 two-key admission cases")
           PY
       - name: Retain exact-head evidence
         if: success()
