@@ -1,0 +1,586 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/aviation/schemas/aero_temporal_replay_corpus_v0_1.schema.json",
+  "title": "AERO temporal replay corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_id",
+    "profile_id",
+    "synthetic_only",
+    "claim_ceiling",
+    "oracle_review_status",
+    "expected_dispositions_frozen_separately_from_evaluator",
+    "snapshot_semantics",
+    "cases"
+  ],
+  "properties": {
+    "corpus_id": {
+      "const": "AERO-TEMPORAL-REPLAY-ORACLE-0.1"
+    },
+    "profile_id": {
+      "const": "aero-temporal-evidence-assurance-v0.1"
+    },
+    "synthetic_only": {
+      "const": true
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "oracle_review_status": {
+      "enum": [
+        "NOT_INDEPENDENTLY_REVIEWED",
+        "INDEPENDENTLY_REVIEWED"
+      ]
+    },
+    "expected_dispositions_frozen_separately_from_evaluator": {
+      "const": true
+    },
+    "snapshot_semantics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "as_known_at",
+        "recomputed_with_current_trust",
+        "issuer_recorded_at",
+        "trusted_timestamp"
+      ],
+      "properties": {
+        "as_known_at": {
+          "type": "string"
+        },
+        "recomputed_with_current_trust": {
+          "type": "string"
+        },
+        "issuer_recorded_at": {
+          "type": "string"
+        },
+        "trusted_timestamp": {
+          "type": "string"
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 29,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "time": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "disposition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition",
+        "reason_codes",
+        "applied_event_ids",
+        "excluded_event_ids"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "ACCEPTED_FOR_BINDING_ONLY",
+            "NOT_YET_EFFECTIVE",
+            "NOT_KNOWN_AT_SNAPSHOT",
+            "BLOCK",
+            "ABSTAIN",
+            "TRUST_UNRESOLVED",
+            "TIME_BOUNDARY_AMBIGUOUS",
+            "REJECT"
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "applied_event_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "excluded_event_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "source_namespace",
+        "certificate_id",
+        "event_type",
+        "payload_sha256",
+        "effective_at_unix_ms",
+        "issuer_recorded_at_unix_ms",
+        "receiver_first_seen_at_unix_ms",
+        "signature_status",
+        "trusted_timestamp_status",
+        "trusted_timestamp_at_unix_ms",
+        "issuer_authority_status",
+        "sequence_status",
+        "source_clock_status",
+        "issuer_key_status_at_snapshot",
+        "issuer_key_status_current",
+        "compromise_effective_at_unix_ms",
+        "corrects_event_id",
+        "receiver_receipt_status",
+        "receiver_receipt_reference",
+        "receiver_receipt_digest_sha256",
+        "trusted_timestamp_imprint_sha256",
+        "issuer_identity_id",
+        "source_namespace_binding_status"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_namespace": {
+          "type": "string",
+          "minLength": 1
+        },
+        "certificate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_type": {
+          "enum": [
+            "issued",
+            "revoked",
+            "suspended",
+            "corrected",
+            "superseded",
+            "reinstated"
+          ]
+        },
+        "payload_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "effective_at_unix_ms": {
+          "$ref": "#/$defs/time"
+        },
+        "issuer_recorded_at_unix_ms": {
+          "$ref": "#/$defs/time"
+        },
+        "receiver_first_seen_at_unix_ms": {
+          "$ref": "#/$defs/time"
+        },
+        "signature_status": {
+          "enum": [
+            "valid",
+            "invalid",
+            "unknown"
+          ]
+        },
+        "trusted_timestamp_status": {
+          "enum": [
+            "valid",
+            "invalid_digest",
+            "invalid_token",
+            "absent",
+            "unknown"
+          ]
+        },
+        "trusted_timestamp_at_unix_ms": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "issuer_authority_status": {
+          "enum": [
+            "authorized",
+            "unauthorized",
+            "unknown"
+          ]
+        },
+        "sequence_status": {
+          "enum": [
+            "complete",
+            "gap",
+            "fork",
+            "unknown",
+            "not_applicable"
+          ]
+        },
+        "source_clock_status": {
+          "enum": [
+            "consistent",
+            "rollback_detected",
+            "unverified",
+            "not_applicable"
+          ]
+        },
+        "issuer_key_status_at_snapshot": {
+          "enum": [
+            "good",
+            "compromised",
+            "unknown"
+          ]
+        },
+        "issuer_key_status_current": {
+          "enum": [
+            "good",
+            "compromised",
+            "unknown"
+          ]
+        },
+        "compromise_effective_at_unix_ms": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "corrects_event_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "receiver_receipt_status": {
+          "enum": [
+            "SYNTHETIC_VALID",
+            "INVALID",
+            "UNVERIFIED",
+            "ABSENT"
+          ]
+        },
+        "receiver_receipt_reference": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "receiver_receipt_digest_sha256": {
+          "$ref": "#/$defs/nullableSha"
+        },
+        "trusted_timestamp_imprint_sha256": {
+          "$ref": "#/$defs/nullableSha"
+        },
+        "issuer_identity_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_namespace_binding_status": {
+          "enum": [
+            "SYNTHETIC_VALID",
+            "UNVERIFIED",
+            "CONFLICT"
+          ]
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "purpose",
+        "calibration_validity",
+        "acquisition_time_interval",
+        "snapshot",
+        "events",
+        "expected",
+        "current_reassessment",
+        "verifier_profile_id"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]+$"
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_validity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "valid_from_unix_ms",
+            "valid_until_unix_ms"
+          ],
+          "properties": {
+            "valid_from_unix_ms": {
+              "$ref": "#/$defs/time"
+            },
+            "valid_until_unix_ms": {
+              "$ref": "#/$defs/time"
+            }
+          }
+        },
+        "acquisition_time_interval": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "earliest_unix_ms",
+            "latest_unix_ms"
+          ],
+          "properties": {
+            "earliest_unix_ms": {
+              "$ref": "#/$defs/time"
+            },
+            "latest_unix_ms": {
+              "$ref": "#/$defs/time"
+            }
+          }
+        },
+        "snapshot": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "evaluated_at_unix_ms",
+            "receiver_receipt_watermark_unix_ms",
+            "trust_policy_id",
+            "trust_status_as_of_unix_ms",
+            "trust_policy_digest_sha256",
+            "evidence_checkpoint_status",
+            "evidence_checkpoint_reference",
+            "evidence_checkpoint_digest_sha256",
+            "evidence_checkpoint_watermark_unix_ms",
+            "observer_coverage_status",
+            "observer_coverage_profile_id",
+            "observer_coverage_receipt_reference",
+            "observer_coverage_receipt_digest_sha256",
+            "observer_coverage_watermark_unix_ms",
+            "evidence_view_digest_sha256"
+          ],
+          "properties": {
+            "evaluated_at_unix_ms": {
+              "$ref": "#/$defs/time"
+            },
+            "receiver_receipt_watermark_unix_ms": {
+              "$ref": "#/$defs/time"
+            },
+            "trust_policy_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "trust_status_as_of_unix_ms": {
+              "$ref": "#/$defs/time"
+            },
+            "trust_policy_digest_sha256": {
+              "$ref": "#/$defs/nullableSha",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "evidence_checkpoint_status": {
+              "enum": [
+                "SYNTHETIC_VALID",
+                "INVALID",
+                "UNVERIFIED"
+              ]
+            },
+            "evidence_checkpoint_reference": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "evidence_checkpoint_digest_sha256": {
+              "$ref": "#/$defs/nullableSha"
+            },
+            "evidence_checkpoint_watermark_unix_ms": {
+              "$ref": "#/$defs/time"
+            },
+            "observer_coverage_status": {
+              "enum": [
+                "SYNTHETIC_QUALIFIED_COMPLETE",
+                "INCOMPLETE",
+                "UNVERIFIED"
+              ]
+            },
+            "observer_coverage_profile_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "observer_coverage_receipt_reference": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "observer_coverage_receipt_digest_sha256": {
+              "$ref": "#/$defs/nullableSha"
+            },
+            "observer_coverage_watermark_unix_ms": {
+              "$ref": "#/$defs/time"
+            },
+            "evidence_view_digest_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/event"
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "as_known_at",
+            "recomputed_with_current_trust",
+            "recomputed_with_current_evidence_and_trust"
+          ],
+          "properties": {
+            "as_known_at": {
+              "$ref": "#/$defs/disposition"
+            },
+            "recomputed_with_current_trust": {
+              "$ref": "#/$defs/disposition"
+            },
+            "recomputed_with_current_evidence_and_trust": {
+              "$ref": "#/$defs/disposition"
+            }
+          }
+        },
+        "current_reassessment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "receiver_receipt_watermark_unix_ms",
+            "trust_policy_id",
+            "trust_status_as_of_unix_ms",
+            "trust_policy_digest_sha256",
+            "evidence_checkpoint_status",
+            "evidence_checkpoint_reference",
+            "evidence_checkpoint_digest_sha256",
+            "evidence_checkpoint_watermark_unix_ms",
+            "observer_coverage_status",
+            "observer_coverage_profile_id",
+            "observer_coverage_receipt_reference",
+            "observer_coverage_receipt_digest_sha256",
+            "observer_coverage_watermark_unix_ms",
+            "evidence_view_digest_sha256"
+          ],
+          "properties": {
+            "receiver_receipt_watermark_unix_ms": {
+              "$ref": "#/$defs/time"
+            },
+            "trust_policy_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "trust_status_as_of_unix_ms": {
+              "$ref": "#/$defs/time"
+            },
+            "trust_policy_digest_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "evidence_checkpoint_status": {
+              "enum": [
+                "SYNTHETIC_VALID",
+                "INVALID",
+                "UNVERIFIED"
+              ]
+            },
+            "evidence_checkpoint_reference": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "evidence_checkpoint_digest_sha256": {
+              "$ref": "#/$defs/nullableSha"
+            },
+            "evidence_checkpoint_watermark_unix_ms": {
+              "$ref": "#/$defs/time"
+            },
+            "observer_coverage_status": {
+              "enum": [
+                "SYNTHETIC_QUALIFIED_COMPLETE",
+                "INCOMPLETE",
+                "UNVERIFIED"
+              ]
+            },
+            "observer_coverage_profile_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "observer_coverage_receipt_reference": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "observer_coverage_receipt_digest_sha256": {
+              "$ref": "#/$defs/nullableSha"
+            },
+            "observer_coverage_watermark_unix_ms": {
+              "$ref": "#/$defs/time"
+            },
+            "evidence_view_digest_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "verifier_profile_id": {
+          "const": "aero-temporal-replay-reference-v0.1"
+        }
+      }
+    }
+  }
+}

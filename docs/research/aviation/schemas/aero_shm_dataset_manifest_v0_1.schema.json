@@ -1,0 +1,230 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/aviation/schemas/aero_shm_dataset_manifest_v0_1.schema.json",
+  "title": "AERO SHM dataset discovery manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_id",
+    "profile_id",
+    "status",
+    "synthetic_only",
+    "claim_ceiling",
+    "checked_on",
+    "datasets"
+  ],
+  "properties": {
+    "manifest_id": {
+      "const": "AERO-SHM-DATASET-MANIFEST-0.1"
+    },
+    "profile_id": {
+      "const": "aero-shm-dataset-manifest-v0.1"
+    },
+    "status": {
+      "enum": [
+        "DISCOVERY_ONLY",
+        "RIGHTS_REVIEWED",
+        "INGESTED_AND_HASHED",
+        "BENCHMARK_READY"
+      ]
+    },
+    "synthetic_only": {
+      "const": false
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "checked_on": {
+      "type": "string",
+      "format": "date"
+    },
+    "datasets": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "$ref": "#/$defs/dataset"
+      }
+    }
+  },
+  "$defs": {
+    "nullableSha": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id",
+        "title",
+        "tier",
+        "landing_url",
+        "data_url",
+        "publication_or_citation",
+        "provider",
+        "verified_metadata",
+        "limitations",
+        "access_status",
+        "rights",
+        "security",
+        "acquisition"
+      ],
+      "properties": {
+        "dataset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tier": {
+          "enum": [
+            "P1_PHYSICAL_COMPOSITE_FATIGUE",
+            "P2_PHYSICAL_AEROSPACE_DEMONSTRATOR",
+            "P3_LONG_DURATION_ENVIRONMENTAL_DRIFT"
+          ]
+        },
+        "landing_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "data_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "code_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "publication_or_citation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verified_metadata": {
+          "type": "object"
+        },
+        "limitations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "access_status": {
+          "enum": [
+            "PUBLIC_DOWNLOAD_LISTED",
+            "PUBLICLY_DESCRIBED_AS_FREELY_AVAILABLE",
+            "PUBLIC_FIGSHARE_DOI",
+            "ACCESS_NOT_VERIFIED"
+          ]
+        },
+        "rights": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "evidence_url",
+            "notes"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "UNVERIFIED",
+                "REVIEW_PENDING",
+                "CLEARED",
+                "RESTRICTED",
+                "DENIED"
+              ]
+            },
+            "evidence_url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "notes": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "security": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "format_risk",
+            "required_handling"
+          ],
+          "properties": {
+            "format_risk": {
+              "enum": [
+                "ARCHIVE_NOT_INSPECTED",
+                "UNTRUSTED_PICKLE_EXECUTION_RISK",
+                "EXECUTABLE_CONTENT_RISK",
+                "REVIEWED_SAFE_FORMAT"
+              ]
+            },
+            "required_handling": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "acquisition": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "download_status",
+            "artifact_sha256",
+            "artifact_bytes",
+            "manifest_sha256",
+            "rights_reviewed"
+          ],
+          "properties": {
+            "download_status": {
+              "enum": [
+                "NOT_DOWNLOADED",
+                "DOWNLOADING",
+                "QUARANTINED",
+                "HASHED",
+                "INGESTED"
+              ]
+            },
+            "artifact_sha256": {
+              "$ref": "#/$defs/nullableSha"
+            },
+            "artifact_bytes": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "manifest_sha256": {
+              "$ref": "#/$defs/nullableSha"
+            },
+            "rights_reviewed": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}

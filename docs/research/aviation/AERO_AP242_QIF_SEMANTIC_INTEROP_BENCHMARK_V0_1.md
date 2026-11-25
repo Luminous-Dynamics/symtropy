@@ -215,6 +215,23 @@ These targets are research objectives, not ISO conformance criteria, regulatory 
 
 The benchmark does not copy any of these owners' generic state machines or ledgers.
 
+### 9.1 Standards edition and change control
+
+Pin the normative input versions per benchmark run; never rely on an unversioned “AP242” or “QIF” label.
+
+| Standard | Current published baseline as checked 25 November 2026 | Benchmark treatment |
+|---|---|---|
+| ISO 10303-242 | AP242:2025, Edition 4, published 25 August 2025 | Baseline edition for the rights-cleared golden corpus and supported projection profile |
+| ISO/CD 10303-242 | Edition 5 committee draft registered 23 February 2026; comments closed 22 April 2026; committee draft referred back to working group | Watch-only; no Edition 5 conformance claim. Build a separate differential probe when a rights-cleared draft/profile is available |
+| ISO 23952:2020 | QIF Edition 1, confirmed current by ISO on 14 June 2026 | Baseline QIF edition; pin specific schema/profile and application identifiers in each fixture |
+
+Sources:
+- AP242 Edition 4: https://www.iso.org/standard/84300.html
+- AP242 Edition 5 committee draft: https://www.iso.org/standard/93277.html
+- QIF Edition 1 current status: https://www.iso.org/standard/77461.html
+
+Edition change is a semantic migration event, not a parser-only update. The compatibility benchmark must record schema/profile digests, parser/exporter versions, fields added/changed/retired, defaulting behavior and all unsupported constructs. A successful Edition 4 round trip must not be presented as evidence of Edition 5 support. Likewise, no standards-conformance claim is made from the version register alone.
+
 ## 10. Non-claims
 
 This v0.1 benchmark specification does not implement AP242 or QIF parsers, prove standards conformance, authenticate publishers, prove physical identity, establish measurement truth, qualify a material/process/part, prove NDE probability of detection, substantiate aircraft structure, approve a configuration, authorize manufacturing/installation/operation, establish airworthiness or certification.

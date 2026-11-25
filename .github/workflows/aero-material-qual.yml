@@ -2,19 +2,25 @@ name: AERO Material Qualification Contract
 
 on:
   push:
-    branches: ["research/aero-evidence-binding-v0.2", "research/aero-duplicate-event-id-fix-v0.1"]
+    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1"]
     paths:
       - "crates/domains/symtropy-aero-material-qual/**"
       - "docs/research/aviation/AERO_EVIDENCE_BINDING_001_V0_2.md"
       - "docs/research/aviation/AERO_BASALT_MYCELIX_CHANGE_IMPACT_ADAPTER_V0_1.md"
       - "docs/research/aviation/AERO_AP242_QIF_SEMANTIC_INTEROP_BENCHMARK_V0_1.md"
       - "docs/research/aviation/AERO_DFI_SHM_CO_DESIGN_BENCHMARK_V0_1.md"
+      - "docs/research/aviation/AERO_PHYSICAL_PILOT_PREREGISTRATION_V0_1.md"
       - "docs/research/aviation/schemas/aero_evidence_binding_case_v0_2.schema.json"
       - "docs/research/aviation/examples/synthetic_aero_evidence_binding_case_v0_2.json"
       - "docs/research/aviation/examples/adversarial_evidence_binding_mutations_v0_2.json"
+      - "docs/research/aviation/AERO_TEMPORAL_EVIDENCE_ASSURANCE_V0_1.md"
+      - "docs/research/aviation/schemas/aero_temporal_replay_corpus_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_temporal_replay_corpus_v0_1.json"
+      - "docs/research/aviation/examples/aero_shm_dataset_manifest_v0_1.json"
+      - "docs/research/aviation/schemas/aero_shm_dataset_manifest_v0_1.schema.json"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
-    branches: ["main", "research/aero-material-process-qual-v0.1"]
+    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1"]
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
@@ -27,6 +33,12 @@ on:
       - "docs/research/aviation/schemas/aero_evidence_binding_case_v0_2.schema.json"
       - "docs/research/aviation/examples/synthetic_aero_evidence_binding_case_v0_2.json"
       - "docs/research/aviation/examples/adversarial_evidence_binding_mutations_v0_2.json"
+      - "docs/research/aviation/AERO_TEMPORAL_EVIDENCE_ASSURANCE_V0_1.md"
+      - "docs/research/aviation/schemas/aero_temporal_replay_corpus_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_temporal_replay_corpus_v0_1.json"
+      - "docs/research/aviation/AERO_DFI_SHM_CO_DESIGN_BENCHMARK_V0_1.md"
+      - "docs/research/aviation/examples/aero_shm_dataset_manifest_v0_1.json"
+      - "docs/research/aviation/schemas/aero_shm_dataset_manifest_v0_1.schema.json"
       - ".github/workflows/aero-material-qual.yml"
   workflow_dispatch:
 
@@ -133,6 +145,267 @@ jobs:
                   print(f"{list(error.absolute_path)}: {error.message}")
               raise SystemExit(f"v0.2 fixture failed schema validation ({len(errors)} errors)")
           print("v0.2 evidence-binding schema and fixture validation passed.")
+          PY
+
+      - name: Validate temporal replay corpus schema and frozen vectors
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema = json.loads((root / "docs/research/aviation/schemas/aero_temporal_replay_corpus_v0_1.schema.json").read_text())
+          corpus = json.loads((root / "docs/research/aviation/examples/aero_temporal_replay_corpus_v0_1.json").read_text())
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("temporal replay schema must declare Draft 2020-12")
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(corpus), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
+              raise SystemExit(f"temporal replay corpus failed schema validation ({len(errors)} errors)")
+          cases = corpus["cases"]
+          ids = [case["case_id"] for case in cases]
+          if len(ids) != len(set(ids)):
+              raise SystemExit("temporal replay case IDs must be unique")
+          if not any(case["expected"]["as_known_at"]["disposition"] == "ACCEPTED_FOR_BINDING_ONLY" for case in cases):
+              raise SystemExit("temporal replay corpus requires a positive control")
+          if not any(case["expected"]["as_known_at"]["disposition"] == "NOT_KNOWN_AT_SNAPSHOT" for case in cases):
+              raise SystemExit("temporal replay corpus requires a late-receipt control")
+          if corpus.get("oracle_review_status") != "NOT_INDEPENDENTLY_REVIEWED":
+              raise SystemExit("oracle review status must remain explicit until independent review")
+          if len(cases) != 29:
+              raise SystemExit(f"temporal replay corpus must contain exactly 29 frozen cases; found {len(cases)}")
+          all_events = [event for case in cases for event in case["events"]]
+          for event in all_events:
+              receipt_status = event["receiver_receipt_status"]
+              receipt_ref = event["receiver_receipt_reference"]
+              receipt_digest = event["receiver_receipt_digest_sha256"]
+              if receipt_status == "SYNTHETIC_VALID":
+                  if not receipt_ref or receipt_digest != event["payload_sha256"]:
+                      raise SystemExit(f"{event['event_id']}: synthetic receipt must bind exact event payload digest")
+              elif receipt_ref is not None or receipt_digest is not None:
+                  raise SystemExit(f"{event['event_id']}: non-verified receipt must not carry a verified receipt reference/digest")
+              timestamp_status = event["trusted_timestamp_status"]
+              timestamp_imprint = event["trusted_timestamp_imprint_sha256"]
+              if timestamp_status == "invalid_digest":
+                  if timestamp_imprint is None or timestamp_imprint == event["payload_sha256"]:
+                      raise SystemExit(f"{event['event_id']}: invalid-digest timestamp control must contain a mismatching imprint")
+              elif timestamp_status == "valid" and event["trusted_timestamp_at_unix_ms"] is None:
+                  raise SystemExit(f"{event['event_id']}: valid timestamp claim requires a timestamp value")
+              elif timestamp_status == "absent" and (event["trusted_timestamp_at_unix_ms"] is not None or timestamp_imprint is not None):
+                  raise SystemExit(f"{event['event_id']}: absent timestamp must not carry token fields")
+          if not any(event["receiver_receipt_status"] == "UNVERIFIED" for event in all_events):
+              raise SystemExit("temporal replay corpus requires an unverified-receipt control")
+          missing_target = next((case for case in cases if case["case_id"] == "correction-target-missing-or-not-received"), None)
+          if missing_target is None or missing_target["expected"]["as_known_at"]["disposition"] != "ABSTAIN" or "CORRECTION_TARGET_UNRESOLVED" not in missing_target["expected"]["as_known_at"]["reason_codes"]:
+              raise SystemExit("temporal corpus requires an unresolved correction-target control")
+          cross_scope = next((case for case in cases if case["case_id"] == "correction-target-cross-certificate-scope"), None)
+          if cross_scope is None or cross_scope["events"][0]["certificate_id"] == cross_scope["events"][1]["certificate_id"] or cross_scope["expected"]["as_known_at"]["disposition"] != "ABSTAIN":
+              raise SystemExit("temporal corpus requires a cross-certificate correction control")
+          reinstatement = next((case for case in cases if case["case_id"] == "reinstatement-event-does-not-silently-restore-calibration"), None)
+          if reinstatement is None or any(reinstatement["expected"][mode]["disposition"] != "ABSTAIN" for mode in required_modes):
+              raise SystemExit("temporal corpus requires fail-closed reinstatement behavior")
+          valid_correction = next((case for case in cases if case["case_id"] == "well-formed-correction-target-still-abstains-without-qualified-semantics"), None)
+          if valid_correction is None or valid_correction["events"][1]["corrects_event_id"] != valid_correction["events"][0]["event_id"] or valid_correction["events"][1]["issuer_recorded_at_unix_ms"] <= valid_correction["events"][0]["issuer_recorded_at_unix_ms"]:
+              raise SystemExit("well-formed correction control must resolve to an earlier same-source event")
+          if any(valid_correction["expected"][mode]["reason_codes"] != ["CALIBRATION_CORRECTION_SEMANTICS_UNQUALIFIED"] for mode in required_modes):
+              raise SystemExit("valid-shape correction must remain unqualified")
+          equal_time = next((case for case in cases if case["case_id"] == "correction-record-time-not-strictly-after-target-abstains"), None)
+          if equal_time is None or equal_time["events"][0]["issuer_recorded_at_unix_ms"] != equal_time["events"][1]["issuer_recorded_at_unix_ms"]:
+              raise SystemExit("equal-time correction control must have tied recorded times")
+          if any(equal_time["expected"][mode]["reason_codes"] != ["CORRECTION_TARGET_NOT_STRICTLY_EARLIER"] for mode in required_modes):
+              raise SystemExit("equal-time correction must abstain")
+          nested_correction = next((case for case in cases if case["case_id"] == "correction-of-correction-remains-unqualified"), None)
+          if nested_correction is None or nested_correction["events"][2]["corrects_event_id"] != nested_correction["events"][1]["event_id"]:
+              raise SystemExit("correction-of-correction target must point to prior correction")
+          if any(nested_correction["expected"][mode]["reason_codes"] != ["CALIBRATION_CORRECTION_SEMANTICS_UNQUALIFIED"] for mode in required_modes):
+              raise SystemExit("correction-of-correction semantics must remain unqualified")
+          required_modes = {"as_known_at", "recomputed_with_current_trust", "recomputed_with_current_evidence_and_trust"}
+          for case in cases:
+              if set(case["expected"]) != required_modes:
+                  raise SystemExit(f"{case['case_id']}: all three replay modes must be frozen")
+          historical_policy_digest = "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
+          current_policy_digest = "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+          for case in cases:
+              if case["verifier_profile_id"] != "aero-temporal-replay-reference-v0.1":
+                  raise SystemExit(f"{case['case_id']}: verifier profile must be pinned")
+              for view_name, view in (("snapshot", case["snapshot"]), ("current_reassessment", case["current_reassessment"])):
+                  if view["evidence_checkpoint_watermark_unix_ms"] != view["receiver_receipt_watermark_unix_ms"]:
+                      raise SystemExit(f"{case['case_id']}/{view_name}: checkpoint watermark must equal evidence watermark")
+                  if view["evidence_checkpoint_status"] == "SYNTHETIC_VALID":
+                      if not view["evidence_checkpoint_reference"] or view["evidence_checkpoint_digest_sha256"] != view["evidence_view_digest_sha256"]:
+                          if case["case_id"] != "evidence-checkpoint-digest-mismatch-rejects-historical-view" or view_name != "snapshot":
+                              raise SystemExit(f"{case['case_id']}/{view_name}: valid checkpoint must bind the exact evidence-view digest")
+                  elif view["evidence_checkpoint_reference"] is not None:
+                      raise SystemExit(f"{case['case_id']}/{view_name}: non-valid checkpoint must not carry a verified reference")
+                  if view["observer_coverage_status"] == "SYNTHETIC_QUALIFIED_COMPLETE":
+                      if not view["observer_coverage_profile_id"] or not view["observer_coverage_receipt_reference"] or view["observer_coverage_receipt_digest_sha256"] is None:
+                          raise SystemExit(f"{case['case_id']}/{view_name}: qualified observer coverage requires profile and receipt")
+                      if view["observer_coverage_watermark_unix_ms"] != view["receiver_receipt_watermark_unix_ms"]:
+                          raise SystemExit(f"{case['case_id']}/{view_name}: observer coverage watermark must equal evidence watermark")
+                  elif view["observer_coverage_status"] == "UNVERIFIED":
+                      if view["observer_coverage_receipt_reference"] is not None or view["observer_coverage_receipt_digest_sha256"] is not None:
+                          raise SystemExit(f"{case['case_id']}/{view_name}: unverified coverage must not carry a qualified receipt")
+              if case["snapshot"]["trust_policy_digest_sha256"] != historical_policy_digest:
+                  raise SystemExit(f"{case['case_id']}: historical policy digest mismatch")
+              if case["current_reassessment"]["trust_policy_digest_sha256"] != current_policy_digest:
+                  raise SystemExit(f"{case['case_id']}: current policy digest mismatch")
+              if case["snapshot"]["trust_status_as_of_unix_ms"] > case["snapshot"]["evaluated_at_unix_ms"]:
+                  raise SystemExit(f"{case['case_id']}: historical trust snapshot cannot be later than its historical subject cutoff")
+              if case["current_reassessment"]["receiver_receipt_watermark_unix_ms"] < case["snapshot"]["receiver_receipt_watermark_unix_ms"]:
+                  raise SystemExit(f"{case['case_id']}: retrospective evidence watermark cannot move backwards")
+              if case["current_reassessment"]["trust_status_as_of_unix_ms"] < case["snapshot"]["trust_status_as_of_unix_ms"]:
+                  raise SystemExit(f"{case['case_id']}: retrospective trust snapshot cannot move backwards")
+          for event in all_events:
+              if not event["issuer_identity_id"].strip():
+                  raise SystemExit(f"{event['event_id']}: stable issuer identity is required")
+              if event["source_namespace_binding_status"] not in ("SYNTHETIC_VALID", "UNVERIFIED", "CONFLICT"):
+                  raise SystemExit(f"{event['event_id']}: unknown namespace-binding state")
+          late = next((case for case in cases if case["case_id"] == "backdated-event-received-after-snapshot"), None)
+          if late is None:
+              raise SystemExit("temporal corpus requires a late retroactive event control")
+          if late["expected"]["as_known_at"]["disposition"] != "NOT_KNOWN_AT_SNAPSHOT" or late["expected"]["recomputed_with_current_trust"]["disposition"] != "NOT_KNOWN_AT_SNAPSHOT":
+              raise SystemExit("late event must not bleed into historical or trust-only replay")
+          if late["expected"]["recomputed_with_current_evidence_and_trust"]["disposition"] != "BLOCK":
+              raise SystemExit("late retroactive event must affect a new full retrospective replay")
+          if late["current_reassessment"]["receiver_receipt_watermark_unix_ms"] < late["events"][0]["receiver_first_seen_at_unix_ms"]:
+              raise SystemExit("late event must be included by the retrospective evidence watermark")
+          after_measurement = next((case for case in cases if case["case_id"] == "revocation-effective-after-acquisition-before-evaluation"), None)
+          if after_measurement is None:
+              raise SystemExit("temporal corpus requires a revocation-after-acquisition control")
+          after_event = after_measurement["events"][0]
+          if not (after_event["effective_at_unix_ms"] > after_measurement["acquisition_time_interval"]["latest_unix_ms"] and after_event["effective_at_unix_ms"] <= after_measurement["snapshot"]["evaluated_at_unix_ms"]):
+              raise SystemExit("post-acquisition revocation must be effective before report generation but after measurement")
+          if any(after_measurement["expected"][mode]["disposition"] != "NOT_YET_EFFECTIVE" for mode in required_modes):
+              raise SystemExit("post-acquisition revocation must not invalidate the earlier measurement")
+          overlap = next((case for case in cases if case["case_id"] == "event-effectivity-crosses-acquisition-uncertainty-window"), None)
+          if overlap is None:
+              raise SystemExit("temporal corpus requires an acquisition/effectivity overlap control")
+          overlap_event = overlap["events"][0]
+          if not (overlap["acquisition_time_interval"]["earliest_unix_ms"] < overlap_event["effective_at_unix_ms"] <= overlap["acquisition_time_interval"]["latest_unix_ms"]):
+              raise SystemExit("event effective time must overlap the acquisition uncertainty interval")
+          if any(overlap["expected"][mode]["disposition"] != "TIME_BOUNDARY_AMBIGUOUS" for mode in required_modes):
+              raise SystemExit("event effective time inside acquisition uncertainty must abstain")
+          after_measurement = next((case for case in cases if case["case_id"] == "revocation-effective-after-acquisition-before-evaluation"), None)
+          if after_measurement is None or after_measurement["events"][0]["effective_at_unix_ms"] <= after_measurement["acquisition_time_interval"]["latest_unix_ms"] or after_measurement["snapshot"]["evaluated_at_unix_ms"] <= after_measurement["events"][0]["effective_at_unix_ms"]:
+              raise SystemExit("after-measurement control must become effective after acquisition but before report generation")
+          if any(after_measurement["expected"][mode]["disposition"] != "NOT_YET_EFFECTIVE" for mode in required_modes):
+              raise SystemExit("a later revocation must not invalidate an earlier acquisition")
+          acquisition_overlap = next((case for case in cases if case["case_id"] == "event-effectivity-crosses-acquisition-uncertainty-window"), None)
+          if acquisition_overlap is None or not (acquisition_overlap["acquisition_time_interval"]["earliest_unix_ms"] < acquisition_overlap["events"][0]["effective_at_unix_ms"] <= acquisition_overlap["acquisition_time_interval"]["latest_unix_ms"]):
+              raise SystemExit("event effectivity must overlap the acquisition uncertainty interval")
+          if any(acquisition_overlap["expected"][mode]["disposition"] != "TIME_BOUNDARY_AMBIGUOUS" for mode in required_modes):
+              raise SystemExit("event effectivity within acquisition uncertainty must abstain")
+          valid_tsa = next((case for case in cases if case["case_id"] == "valid-timestamp-imprint-binds-event-payload"), None)
+          if valid_tsa is None or any(valid_tsa["expected"][mode]["disposition"] != "ACCEPTED_FOR_BINDING_ONLY" for mode in required_modes):
+              raise SystemExit("valid timestamp positive control is required")
+          valid_event = valid_tsa["events"][0]
+          if valid_event["trusted_timestamp_status"] != "valid" or valid_event["trusted_timestamp_imprint_sha256"] != valid_event["payload_sha256"] or valid_event["trusted_timestamp_at_unix_ms"] is None:
+              raise SystemExit("valid timestamp positive control must bind the exact payload and provide a timestamp")
+          bad_tsa = next((case for case in cases if case["case_id"] == "valid-timestamp-label-with-mismatching-imprint-rejected"), None)
+          if bad_tsa is None or any(bad_tsa["expected"][mode]["disposition"] != "REJECT" for mode in required_modes):
+              raise SystemExit("valid-label/wrong-imprint negative control is required")
+          bad_event = bad_tsa["events"][0]
+          if bad_event["trusted_timestamp_status"] != "valid" or bad_event["trusted_timestamp_imprint_sha256"] == bad_event["payload_sha256"]:
+              raise SystemExit("timestamp mismatch control must claim valid status while binding the wrong digest")
+          if any("TIMESTAMP_IMPRINT_MISMATCH" not in bad_tsa["expected"][mode]["reason_codes"] for mode in required_modes):
+              raise SystemExit("wrong-imprint control must expect TIMESTAMP_IMPRINT_MISMATCH")
+          unqualified_coverage = next((case for case in cases if case["case_id"] == "observer-coverage-unqualified-cannot-support-negative-claim"), None)
+          if unqualified_coverage is None or unqualified_coverage["snapshot"]["observer_coverage_status"] != "UNVERIFIED":
+              raise SystemExit("temporal corpus requires an unverified observer-coverage control")
+          if any(unqualified_coverage["expected"][mode]["disposition"] != "TRUST_UNRESOLVED" for mode in ("as_known_at", "recomputed_with_current_trust")):
+              raise SystemExit("unverified historical observer coverage must not support negative evidence claims")
+          if unqualified_coverage["expected"]["recomputed_with_current_evidence_and_trust"]["disposition"] != "ACCEPTED_FOR_BINDING_ONLY":
+              raise SystemExit("new qualified full view must be independently assessable")
+          incomplete_coverage = next((case for case in cases if case["case_id"] == "incomplete-observer-coverage-abstains-even-with-valid-checkpoint"), None)
+          if incomplete_coverage is None or any(incomplete_coverage["expected"][mode]["disposition"] != "ABSTAIN" for mode in required_modes):
+              raise SystemExit("incomplete observer coverage must abstain")
+          checkpoint_mismatch = next((case for case in cases if case["case_id"] == "evidence-checkpoint-digest-mismatch-rejects-historical-view"), None)
+          if checkpoint_mismatch is None or checkpoint_mismatch["snapshot"]["evidence_checkpoint_digest_sha256"] == checkpoint_mismatch["snapshot"]["evidence_view_digest_sha256"]:
+              raise SystemExit("checkpoint mismatch control must contain a different checkpoint and view digest")
+          if any(checkpoint_mismatch["expected"][mode]["disposition"] != "REJECT" for mode in ("as_known_at", "recomputed_with_current_trust")):
+              raise SystemExit("historical checkpoint mismatch must reject")
+          if checkpoint_mismatch["expected"]["recomputed_with_current_evidence_and_trust"]["disposition"] != "ACCEPTED_FOR_BINDING_ONLY":
+              raise SystemExit("a new independently valid current checkpoint can support a new full replay")
+          alias = next((case for case in cases if case["case_id"] == "same-issuer-cannot-bypass-identity-with-unverified-namespace-alias"), None)
+          if alias is None or len(alias["events"]) != 2:
+              raise SystemExit("temporal corpus requires a source namespace alias attack control")
+          alias_events = alias["events"]
+          if alias_events[0]["issuer_identity_id"] != alias_events[1]["issuer_identity_id"] or alias_events[0]["source_namespace"] == alias_events[1]["source_namespace"] or alias_events[1]["source_namespace_binding_status"] != "UNVERIFIED":
+              raise SystemExit("namespace alias control must use one issuer identity and an unverified second namespace")
+          if alias["expected"]["as_known_at"]["disposition"] != "TRUST_UNRESOLVED":
+              raise SystemExit("unverified namespace alias must not bypass source identity binding")
+          cross_namespace = next((case for case in cases if case["case_id"] == "same-local-id-in-distinct-source-namespaces-is-not-a-collision"), None)
+          if cross_namespace is None or len({event["source_namespace"] for event in cross_namespace["events"]}) < 2:
+              raise SystemExit("temporal corpus requires a cross-namespace local-ID control")
+          idempotent = next((case for case in cases if case["case_id"] == "same-source-id-same-payload-repeated-delivery-deduplicates-once"), None)
+          if idempotent is None or len(idempotent["events"]) != 2:
+              raise SystemExit("temporal corpus requires a repeated-delivery idempotency control")
+          pair = idempotent["events"]
+          if pair[0]["source_namespace"] != pair[1]["source_namespace"] or pair[0]["event_id"] != pair[1]["event_id"] or pair[0]["payload_sha256"] != pair[1]["payload_sha256"]:
+              raise SystemExit("idempotent delivery control must repeat the same source-scoped identity and payload digest")
+          cross_expected = cross_namespace["expected"]["as_known_at"]
+          cross_ids = cross_expected["applied_event_ids"]
+          if cross_expected["disposition"] != "BLOCK" or len(cross_ids) != 2 or len(set(cross_ids)) != 2:
+              raise SystemExit("cross-namespace ID control must preserve two distinct event identities")
+          if sorted(cross_ids) != sorted(f"{event['source_namespace']}:{event['event_id']}" for event in cross_namespace["events"]):
+              raise SystemExit("cross-namespace expected IDs must be source-scoped composite identities")
+          idempotent_expected = idempotent["expected"]["as_known_at"]
+          if idempotent_expected["disposition"] != "BLOCK" or len(idempotent_expected["applied_event_ids"]) != 1 or "REPEATED_DELIVERY_DEDUPLICATED_ONCE" not in idempotent_expected["reason_codes"]:
+              raise SystemExit("idempotent repeated-delivery oracle must apply exactly once")
+          if "REVOCATION_EFFECTIVE_AND_KNOWN" not in idempotent_expected["reason_codes"]:
+              raise SystemExit("idempotent delivery's underlying revocation must still block calibration use")
+          if pair[0]["receiver_receipt_reference"] == pair[1]["receiver_receipt_reference"]:
+              raise SystemExit("repeated deliveries must preserve distinct receiver receipt references")
+          conflict = next((case for case in cases if case["case_id"] == "same-namespace-duplicate-id-conflicting-payload"), None)
+          if conflict is None or len(conflict["events"]) != 2:
+              raise SystemExit("temporal corpus requires a conflicting same-namespace identity control")
+          conflicting = conflict["events"]
+          if conflicting[0]["source_namespace"] != conflicting[1]["source_namespace"] or conflicting[0]["event_id"] != conflicting[1]["event_id"] or conflicting[0]["payload_sha256"] == conflicting[1]["payload_sha256"]:
+              raise SystemExit("conflicting identity control must reuse one source-scoped ID with different payload digests")
+          if conflict["expected"]["as_known_at"]["disposition"] != "ABSTAIN":
+              raise SystemExit("conflicting payloads under one source-scoped ID must abstain")
+          print(f"Temporal replay corpus structure passed: {len(cases)} cases; semantic oracle review still required.")
+          PY
+
+      - name: Validate SHM dataset manifest schema and rights gates
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema = json.loads((root / "docs/research/aviation/schemas/aero_shm_dataset_manifest_v0_1.schema.json").read_text())
+          manifest = json.loads((root / "docs/research/aviation/examples/aero_shm_dataset_manifest_v0_1.json").read_text())
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("SHM dataset manifest schema must declare Draft 2020-12")
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(manifest), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
+              raise SystemExit(f"SHM dataset manifest failed schema validation ({len(errors)} errors)")
+          ids = [item["dataset_id"] for item in manifest["datasets"]]
+          if len(ids) != len(set(ids)):
+              raise SystemExit("SHM dataset IDs must be unique")
+          for item in manifest["datasets"]:
+              acquisition = item["acquisition"]
+              if item["rights"]["status"] != "CLEARED" and acquisition["download_status"] not in ("NOT_DOWNLOADED", "QUARANTINED"):
+                  raise SystemExit(f"{item['dataset_id']}: acquisition advanced before rights clearance")
+              if item["rights"]["status"] != "CLEARED" and acquisition["rights_reviewed"]:
+                  raise SystemExit(f"{item['dataset_id']}: rights_reviewed conflicts with rights status")
+              if item["security"]["format_risk"] == "UNTRUSTED_PICKLE_EXECUTION_RISK" and "network-isolated" not in item["security"]["required_handling"]:
+                  raise SystemExit(f"{item['dataset_id']}: unsafe pickle handling is not explicit")
+          if manifest["status"] != "DISCOVERY_ONLY":
+              raise SystemExit("manifest status must remain DISCOVERY_ONLY until all promotion gates are evidenced")
+          print(f"SHM manifest structure passed: {len(ids)} datasets; rights clearance and ingestion remain pending.")
           PY
 
       - name: Run evaluator tests

@@ -1,0 +1,3214 @@
+{
+  "corpus_id": "AERO-TEMPORAL-REPLAY-ORACLE-0.1",
+  "profile_id": "aero-temporal-evidence-assurance-v0.1",
+  "synthetic_only": true,
+  "claim_ceiling": "temporal evidence inclusion and replay semantics only",
+  "oracle_review_status": "NOT_INDEPENDENTLY_REVIEWED",
+  "expected_dispositions_frozen_separately_from_evaluator": true,
+  "snapshot_semantics": {
+    "as_known_at": "Only events first received at or before receiver_receipt_watermark_unix_ms may influence the historical result.",
+    "recomputed_with_current_trust": "Reassess the same historical query using current trust/key status while retaining the original as_known_at result.",
+    "issuer_recorded_at": "Self-declared source metadata; not a receipt or trusted timestamp.",
+    "trusted_timestamp": "Must bind the canonical payload digest; does not prove event truth or effective time."
+  },
+  "cases": [
+    {
+      "case_id": "positive-no-event-baseline",
+      "purpose": "A valid observation with no calibration events is accepted only at the binding-only ceiling.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ACCEPTED_FOR_BINDING_ONLY",
+          "reason_codes": [],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "ACCEPTED_FOR_BINDING_ONLY",
+          "reason_codes": [],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "ACCEPTED_FOR_BINDING_ONLY",
+          "reason_codes": [],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "known-but-future-effective-revocation",
+      "purpose": "A revocation is received before the snapshot but is not effective until after it.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-FUTURE",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 200,
+          "issuer_recorded_at_unix_ms": 110,
+          "receiver_first_seen_at_unix_ms": 120,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-FUTURE:120",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "NOT_YET_EFFECTIVE",
+          "reason_codes": [
+            "EVENT_NOT_YET_EFFECTIVE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-FUTURE"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "NOT_YET_EFFECTIVE",
+          "reason_codes": [
+            "EVENT_NOT_YET_EFFECTIVE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-FUTURE"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "NOT_YET_EFFECTIVE",
+          "reason_codes": [
+            "EVENT_NOT_YET_EFFECTIVE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-FUTURE"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "backdated-event-received-after-snapshot",
+      "purpose": "Issuer claims early recording, but receiver first saw the event after the historical receipt watermark.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-LATE",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 100,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 180,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-LATE:180",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "NOT_KNOWN_AT_SNAPSHOT",
+          "reason_codes": [
+            "EVENT_RECEIVED_AFTER_SNAPSHOT"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-LATE"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "NOT_KNOWN_AT_SNAPSHOT",
+          "reason_codes": [
+            "EVENT_RECEIVED_AFTER_SNAPSHOT"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-LATE"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "BLOCK",
+          "reason_codes": [
+            "REVOCATION_EFFECTIVE_AND_KNOWN"
+          ],
+          "applied_event_ids": [
+            "lab-a:EV-LATE"
+          ],
+          "excluded_event_ids": []
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "known-effective-revocation",
+      "purpose": "A revocation is received and effective before the requested snapshot.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-REVOKE",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 120,
+          "issuer_recorded_at_unix_ms": 125,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-REVOKE:130",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "BLOCK",
+          "reason_codes": [
+            "REVOCATION_EFFECTIVE_AND_KNOWN"
+          ],
+          "applied_event_ids": [
+            "EV-REVOKE"
+          ],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "BLOCK",
+          "reason_codes": [
+            "REVOCATION_EFFECTIVE_AND_KNOWN"
+          ],
+          "applied_event_ids": [
+            "EV-REVOKE"
+          ],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "BLOCK",
+          "reason_codes": [
+            "REVOCATION_EFFECTIVE_AND_KNOWN"
+          ],
+          "applied_event_ids": [
+            "EV-REVOKE"
+          ],
+          "excluded_event_ids": []
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "acquisition-uncertainty-crosses-calibration-end",
+      "purpose": "The measurement clock interval overlaps the exclusive calibration end boundary.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 195,
+        "latest_unix_ms": 205
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 210,
+        "receiver_receipt_watermark_unix_ms": 210,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 210,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:210",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 210,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:210",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 210,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [],
+      "expected": {
+        "as_known_at": {
+          "disposition": "TIME_BOUNDARY_AMBIGUOUS",
+          "reason_codes": [
+            "ACQUISITION_INTERVAL_CROSSES_CALIBRATION_BOUNDARY"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "TIME_BOUNDARY_AMBIGUOUS",
+          "reason_codes": [
+            "ACQUISITION_INTERVAL_CROSSES_CALIBRATION_BOUNDARY"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "TIME_BOUNDARY_AMBIGUOUS",
+          "reason_codes": [
+            "ACQUISITION_INTERVAL_CROSSES_CALIBRATION_BOUNDARY"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "timestamp-token-wrong-payload-digest",
+      "purpose": "The supplied timestamp token does not bind the event payload digest.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-TSA-BAD",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 120,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "invalid_digest",
+          "trusted_timestamp_at_unix_ms": 125,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "ABSENT",
+          "receiver_receipt_reference": null,
+          "receiver_receipt_digest_sha256": null,
+          "trusted_timestamp_imprint_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "REJECT",
+          "reason_codes": [
+            "TIMESTAMP_IMPRINT_MISMATCH"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-TSA-BAD"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "REJECT",
+          "reason_codes": [
+            "TIMESTAMP_IMPRINT_MISMATCH"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-TSA-BAD"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "REJECT",
+          "reason_codes": [
+            "TIMESTAMP_IMPRINT_MISMATCH"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-TSA-BAD"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "issuer-authority-unknown",
+      "purpose": "The signature is valid but authority to issue this certificate event is unknown.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-AUTH-UNKNOWN",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 120,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "unknown",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-AUTH-UNKNOWN:130",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "ISSUER_AUTHORITY_UNKNOWN"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-AUTH-UNKNOWN"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "ISSUER_AUTHORITY_UNKNOWN"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-AUTH-UNKNOWN"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "ISSUER_AUTHORITY_UNKNOWN"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-AUTH-UNKNOWN"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "source-sequence-gap",
+      "purpose": "The event is received but the owner-native sequence/checkpoint evidence shows a gap.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-GAP",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 120,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "gap",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-GAP:130",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "OWNER_EVENT_SEQUENCE_GAP"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-GAP"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "OWNER_EVENT_SEQUENCE_GAP"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-GAP"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "OWNER_EVENT_SEQUENCE_GAP"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-GAP"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "same-namespace-duplicate-id-conflicting-payload",
+      "purpose": "Two events reuse one source-scoped immutable ID with different payload digests; neither may win by array order.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-DUP",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 120,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-DUP:130",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        },
+        {
+          "event_id": "EV-DUP",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "suspended",
+          "payload_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "effective_at_unix_ms": 121,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 131,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-DUP:131",
+          "receiver_receipt_digest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "DUPLICATE_EVENT_ID_CONFLICT"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-DUP"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "DUPLICATE_EVENT_ID_CONFLICT"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-DUP"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "DUPLICATE_EVENT_ID_CONFLICT"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-DUP"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "historical-policy-versus-current-key-compromise",
+      "purpose": "The old snapshot accepted an event while its key was not known compromised; current reassessment lacks an independent timestamp proving pre-compromise existence.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-ISSUED",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "issued",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 80,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 95,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "compromised",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-ISSUED:95",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ACCEPTED_FOR_BINDING_ONLY",
+          "reason_codes": [],
+          "applied_event_ids": [
+            "EV-ISSUED"
+          ],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "SIGNER_KEY_COMPROMISE_EFFECTIVE_TIME_UNKNOWN"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-ISSUED"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "SIGNER_KEY_COMPROMISE_EFFECTIVE_TIME_UNKNOWN"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-ISSUED"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "correction-cycle",
+      "purpose": "Two corrections point to each other, so no unique historical event state exists.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-CORR-A",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "corrected",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 80,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 95,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": "EV-CORR-B",
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-CORR-A:95",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        },
+        {
+          "event_id": "EV-CORR-B",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "corrected",
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "effective_at_unix_ms": 80,
+          "issuer_recorded_at_unix_ms": 91,
+          "receiver_first_seen_at_unix_ms": 96,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": "EV-CORR-A",
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-CORR-B:96",
+          "receiver_receipt_digest_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CORRECTION_CYCLE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CORR-A",
+            "EV-CORR-B"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CORRECTION_CYCLE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CORR-A",
+            "EV-CORR-B"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CORRECTION_CYCLE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CORR-A",
+            "EV-CORR-B"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "source-clock-rollback",
+      "purpose": "The source event time regresses relative to a trusted owner sequence/receipt observation.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-CLOCK",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 120,
+          "issuer_recorded_at_unix_ms": 80,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "rollback_detected",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-CLOCK:130",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "SOURCE_CLOCK_ROLLBACK"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CLOCK"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "SOURCE_CLOCK_ROLLBACK"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CLOCK"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "SOURCE_CLOCK_ROLLBACK"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CLOCK"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "issuer-claimed-receipt-is-not-an-independent-receipt",
+      "purpose": "The source claims an early record time and a receiver first-seen time, but no verifiable receipt evidence or digest binding is supplied.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-RECEIPT-UNVERIFIED",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 100,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 120,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "UNVERIFIED",
+          "receiver_receipt_reference": null,
+          "receiver_receipt_digest_sha256": null,
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "RECEIVER_RECEIPT_NOT_VERIFIABLE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-RECEIPT-UNVERIFIED"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "RECEIVER_RECEIPT_NOT_VERIFIABLE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-RECEIPT-UNVERIFIED"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "RECEIVER_RECEIPT_NOT_VERIFIABLE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-RECEIPT-UNVERIFIED"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "same-local-id-in-distinct-source-namespaces-is-not-a-collision",
+      "purpose": "The same local event ID is used by two different source namespaces; composite source-namespace/event-ID identities remain distinct and both effective events are considered.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-LOCAL-1",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "suspended",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 120,
+          "issuer_recorded_at_unix_ms": 125,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-LOCAL-1:130",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        },
+        {
+          "event_id": "EV-LOCAL-1",
+          "source_namespace": "issuer-b",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "effective_at_unix_ms": 125,
+          "issuer_recorded_at_unix_ms": 128,
+          "receiver_first_seen_at_unix_ms": 135,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:issuer-b:EV-LOCAL-1:135",
+          "receiver_receipt_digest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:issuer-b",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "BLOCK",
+          "reason_codes": [
+            "CALIBRATION_EVENTS_KNOWN_AND_EFFECTIVE"
+          ],
+          "applied_event_ids": [
+            "issuer-b:EV-LOCAL-1",
+            "lab-a:EV-LOCAL-1"
+          ],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "BLOCK",
+          "reason_codes": [
+            "CALIBRATION_EVENTS_KNOWN_AND_EFFECTIVE"
+          ],
+          "applied_event_ids": [
+            "issuer-b:EV-LOCAL-1",
+            "lab-a:EV-LOCAL-1"
+          ],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "BLOCK",
+          "reason_codes": [
+            "CALIBRATION_EVENTS_KNOWN_AND_EFFECTIVE"
+          ],
+          "applied_event_ids": [
+            "issuer-b:EV-LOCAL-1",
+            "lab-a:EV-LOCAL-1"
+          ],
+          "excluded_event_ids": []
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "same-source-id-same-payload-repeated-delivery-deduplicates-once",
+      "purpose": "At-least-once delivery repeats the exact same source-scoped event and payload digest; the event is counted once, with duplicate receipt retained for audit.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-REPEAT-1",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "effective_at_unix_ms": 120,
+          "issuer_recorded_at_unix_ms": 125,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-REPEAT-1:delivery-1",
+          "receiver_receipt_digest_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        },
+        {
+          "event_id": "EV-REPEAT-1",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "effective_at_unix_ms": 120,
+          "issuer_recorded_at_unix_ms": 125,
+          "receiver_first_seen_at_unix_ms": 132,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-REPEAT-1:delivery-2",
+          "receiver_receipt_digest_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "BLOCK",
+          "reason_codes": [
+            "REPEATED_DELIVERY_DEDUPLICATED_ONCE",
+            "REVOCATION_EFFECTIVE_AND_KNOWN"
+          ],
+          "applied_event_ids": [
+            "lab-a:EV-REPEAT-1"
+          ],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "BLOCK",
+          "reason_codes": [
+            "REPEATED_DELIVERY_DEDUPLICATED_ONCE",
+            "REVOCATION_EFFECTIVE_AND_KNOWN"
+          ],
+          "applied_event_ids": [
+            "lab-a:EV-REPEAT-1"
+          ],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "BLOCK",
+          "reason_codes": [
+            "REPEATED_DELIVERY_DEDUPLICATED_ONCE",
+            "REVOCATION_EFFECTIVE_AND_KNOWN"
+          ],
+          "applied_event_ids": [
+            "lab-a:EV-REPEAT-1"
+          ],
+          "excluded_event_ids": []
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "same-issuer-cannot-bypass-identity-with-unverified-namespace-alias",
+      "purpose": "A single issuer principal presents the same local event ID under a second unverified namespace. Namespace separation is accepted only when the binding from namespace to issuer is trusted; an unverified alias must not bypass duplicate-identity detection.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-LOCAL-1",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "suspended",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 120,
+          "issuer_recorded_at_unix_ms": 125,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-LOCAL-1:130",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        },
+        {
+          "event_id": "EV-LOCAL-1",
+          "source_namespace": "lab-a-alias",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "effective_at_unix_ms": 125,
+          "issuer_recorded_at_unix_ms": 128,
+          "receiver_first_seen_at_unix_ms": 135,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a-alias:EV-LOCAL-1:135",
+          "receiver_receipt_digest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "UNVERIFIED"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "SOURCE_NAMESPACE_BINDING_UNVERIFIED"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "lab-a-alias:EV-LOCAL-1",
+            "lab-a:EV-LOCAL-1"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "SOURCE_NAMESPACE_BINDING_UNVERIFIED"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "lab-a-alias:EV-LOCAL-1",
+            "lab-a:EV-LOCAL-1"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "SOURCE_NAMESPACE_BINDING_UNVERIFIED"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "lab-a-alias:EV-LOCAL-1",
+            "lab-a:EV-LOCAL-1"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "revocation-effective-after-acquisition-before-evaluation",
+      "purpose": "A revocation becomes effective after the physical measurement but before the later report/evaluation time. It must not invalidate the earlier acquisition merely because the report is generated later.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 200,
+        "receiver_receipt_watermark_unix_ms": 180,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 200,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:180",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 180,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:180",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 180,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-REVOCATION-AFTER-MEASUREMENT",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 150,
+          "issuer_recorded_at_unix_ms": 155,
+          "receiver_first_seen_at_unix_ms": 160,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-REVOCATION-AFTER-MEASUREMENT:160",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "NOT_YET_EFFECTIVE",
+          "reason_codes": [
+            "EVENT_NOT_YET_EFFECTIVE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-REVOCATION-AFTER-MEASUREMENT"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "NOT_YET_EFFECTIVE",
+          "reason_codes": [
+            "EVENT_NOT_YET_EFFECTIVE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-REVOCATION-AFTER-MEASUREMENT"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "NOT_YET_EFFECTIVE",
+          "reason_codes": [
+            "EVENT_NOT_YET_EFFECTIVE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-REVOCATION-AFTER-MEASUREMENT"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "event-effectivity-crosses-acquisition-uncertainty-window",
+      "purpose": "The revocation effective time falls inside the acquisition-time uncertainty interval. The evaluator must abstain rather than choose a favorable side of the interval.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 160
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 200,
+        "receiver_receipt_watermark_unix_ms": 180,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 200,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:180",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 180,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:180",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 180,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-REVOCATION-BOUNDARY-OVERLAP",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 150,
+          "issuer_recorded_at_unix_ms": 165,
+          "receiver_first_seen_at_unix_ms": 170,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-REVOCATION-BOUNDARY-OVERLAP:170",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "TIME_BOUNDARY_AMBIGUOUS",
+          "reason_codes": [
+            "EVENT_EFFECTIVITY_CROSSES_ACQUISITION_INTERVAL"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-REVOCATION-BOUNDARY-OVERLAP"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "TIME_BOUNDARY_AMBIGUOUS",
+          "reason_codes": [
+            "EVENT_EFFECTIVITY_CROSSES_ACQUISITION_INTERVAL"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-REVOCATION-BOUNDARY-OVERLAP"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "TIME_BOUNDARY_AMBIGUOUS",
+          "reason_codes": [
+            "EVENT_EFFECTIVITY_CROSSES_ACQUISITION_INTERVAL"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-REVOCATION-BOUNDARY-OVERLAP"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "valid-timestamp-imprint-binds-event-payload",
+      "purpose": "A synthetic-valid RFC 3161-style timestamp status is accompanied by a non-null timestamp and an imprint exactly equal to the canonical event payload digest. This tests field consistency only, not token cryptographic verification.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-TSA-VALID",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "issued",
+          "payload_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "effective_at_unix_ms": 80,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 120,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "valid",
+          "trusted_timestamp_at_unix_ms": 110,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-TSA-VALID:120",
+          "receiver_receipt_digest_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "trusted_timestamp_imprint_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ACCEPTED_FOR_BINDING_ONLY",
+          "reason_codes": [],
+          "applied_event_ids": [
+            "EV-TSA-VALID"
+          ],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "ACCEPTED_FOR_BINDING_ONLY",
+          "reason_codes": [],
+          "applied_event_ids": [
+            "EV-TSA-VALID"
+          ],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "ACCEPTED_FOR_BINDING_ONLY",
+          "reason_codes": [],
+          "applied_event_ids": [
+            "EV-TSA-VALID"
+          ],
+          "excluded_event_ids": []
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "valid-timestamp-label-with-mismatching-imprint-rejected",
+      "purpose": "A timestamp record claims valid status but its imprint differs from the canonical payload digest. The status label cannot override the digest binding.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-TSA-VALID-MISMATCH",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "issued",
+          "payload_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "effective_at_unix_ms": 80,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 120,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "valid",
+          "trusted_timestamp_at_unix_ms": 110,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-TSA-VALID-MISMATCH:120",
+          "receiver_receipt_digest_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "trusted_timestamp_imprint_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "REJECT",
+          "reason_codes": [
+            "TIMESTAMP_IMPRINT_MISMATCH"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-TSA-VALID-MISMATCH"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "REJECT",
+          "reason_codes": [
+            "TIMESTAMP_IMPRINT_MISMATCH"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-TSA-VALID-MISMATCH"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "REJECT",
+          "reason_codes": [
+            "TIMESTAMP_IMPRINT_MISMATCH"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-TSA-VALID-MISMATCH"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "correction-target-missing-or-not-received",
+      "purpose": "A correction points to an event absent from the source-scoped evidence history. It must remain unresolved rather than silently create a new current state.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-CORRECTION-MISSING",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "corrected",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 110,
+          "issuer_recorded_at_unix_ms": 120,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": "EV-MISSING",
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-CORRECTION-MISSING:130",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CORRECTION_TARGET_UNRESOLVED"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CORRECTION-MISSING"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CORRECTION_TARGET_UNRESOLVED"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CORRECTION-MISSING"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CORRECTION_TARGET_UNRESOLVED"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CORRECTION-MISSING"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "correction-target-cross-certificate-scope",
+      "purpose": "A same-source correction resolves a local event ID but the target belongs to a different certificate. The correction must not cross certificate scope.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-ORIGINAL-CAL-A",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "issued",
+          "payload_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "effective_at_unix_ms": 80,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 100,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-ORIGINAL-CAL-A:100",
+          "receiver_receipt_digest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        },
+        {
+          "event_id": "EV-CROSS-CERT-CORRECTION",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-B",
+          "event_type": "corrected",
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "effective_at_unix_ms": 110,
+          "issuer_recorded_at_unix_ms": 120,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": "EV-ORIGINAL-CAL-A",
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-CROSS-CERT-CORRECTION:130",
+          "receiver_receipt_digest_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CORRECTION_TARGET_SCOPE_MISMATCH"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CROSS-CERT-CORRECTION",
+            "EV-ORIGINAL-CAL-A"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CORRECTION_TARGET_SCOPE_MISMATCH"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CROSS-CERT-CORRECTION",
+            "EV-ORIGINAL-CAL-A"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CORRECTION_TARGET_SCOPE_MISMATCH"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CROSS-CERT-CORRECTION",
+            "EV-ORIGINAL-CAL-A"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "reinstatement-event-does-not-silently-restore-calibration",
+      "purpose": "A revocation is followed by a later authorized reinstatement event targeting it. Until reinstatement/lifecycle semantics are independently qualified, the replay must abstain instead of assuming automatic restoration.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-REVOCATION",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "effective_at_unix_ms": 120,
+          "issuer_recorded_at_unix_ms": 125,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-REVOCATION:130",
+          "receiver_receipt_digest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        },
+        {
+          "event_id": "EV-REINSTATEMENT",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "reinstated",
+          "payload_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "effective_at_unix_ms": 135,
+          "issuer_recorded_at_unix_ms": 145,
+          "receiver_first_seen_at_unix_ms": 150,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": "EV-REVOCATION",
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-REINSTATEMENT:150",
+          "receiver_receipt_digest_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CALIBRATION_REINSTATEMENT_SEMANTICS_UNQUALIFIED"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-REINSTATEMENT",
+            "EV-REVOCATION"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CALIBRATION_REINSTATEMENT_SEMANTICS_UNQUALIFIED"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-REINSTATEMENT",
+            "EV-REVOCATION"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CALIBRATION_REINSTATEMENT_SEMANTICS_UNQUALIFIED"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-REINSTATEMENT",
+            "EV-REVOCATION"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "well-formed-correction-target-still-abstains-without-qualified-semantics",
+      "purpose": "A correction points to an earlier same-source, same-certificate event and has strictly later recorded time. The link is structurally valid, but the reference profile must not infer its effect without owner-qualified lifecycle semantics.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-ORIGINAL",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "issued",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 80,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 100,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-ORIGINAL:100",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        },
+        {
+          "event_id": "EV-CORRECT",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "corrected",
+          "payload_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "effective_at_unix_ms": 110,
+          "issuer_recorded_at_unix_ms": 120,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": "EV-ORIGINAL",
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-CORRECT:130",
+          "receiver_receipt_digest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CALIBRATION_CORRECTION_SEMANTICS_UNQUALIFIED"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CORRECT"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CALIBRATION_CORRECTION_SEMANTICS_UNQUALIFIED"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CORRECT"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CALIBRATION_CORRECTION_SEMANTICS_UNQUALIFIED"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CORRECT"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "correction-record-time-not-strictly-after-target-abstains",
+      "purpose": "A correction has a same-certificate target but its record time equals the target's record time. Non-monotonic correction chronology is invalid even when the target resolves.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-ORIGINAL-EQUAL",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "issued",
+          "payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "effective_at_unix_ms": 80,
+          "issuer_recorded_at_unix_ms": 120,
+          "receiver_first_seen_at_unix_ms": 100,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-ORIGINAL-EQUAL:100",
+          "receiver_receipt_digest_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        },
+        {
+          "event_id": "EV-CORRECT-EQUAL-TIME",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "corrected",
+          "payload_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "effective_at_unix_ms": 110,
+          "issuer_recorded_at_unix_ms": 120,
+          "receiver_first_seen_at_unix_ms": 130,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": "EV-ORIGINAL-EQUAL",
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-CORRECT-EQUAL-TIME:130",
+          "receiver_receipt_digest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CORRECTION_TARGET_NOT_STRICTLY_EARLIER"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CORRECT-EQUAL-TIME"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CORRECTION_TARGET_NOT_STRICTLY_EARLIER"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CORRECT-EQUAL-TIME"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CORRECTION_TARGET_NOT_STRICTLY_EARLIER"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-CORRECT-EQUAL-TIME"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "correction-of-correction-remains-unqualified",
+      "purpose": "A later supersession targets a prior correction event. Even though the chain is acyclic and strictly ordered, the reference profile does not yet implement qualified correction-of-correction semantics.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [
+        {
+          "event_id": "EV-NESTED-ORIGINAL",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "issued",
+          "payload_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "effective_at_unix_ms": 80,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 100,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-NESTED-ORIGINAL:100",
+          "receiver_receipt_digest_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        },
+        {
+          "event_id": "EV-PARENT-CORRECTION",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "corrected",
+          "payload_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "effective_at_unix_ms": 100,
+          "issuer_recorded_at_unix_ms": 110,
+          "receiver_first_seen_at_unix_ms": 120,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": "EV-NESTED-ORIGINAL",
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-PARENT-CORRECTION:120",
+          "receiver_receipt_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        },
+        {
+          "event_id": "EV-NESTED-CORRECTION",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "superseded",
+          "payload_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "effective_at_unix_ms": 120,
+          "issuer_recorded_at_unix_ms": 130,
+          "receiver_first_seen_at_unix_ms": 140,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": "EV-PARENT-CORRECTION",
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-NESTED-CORRECTION:140",
+          "receiver_receipt_digest_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "trusted_timestamp_imprint_sha256": null,
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CALIBRATION_CORRECTION_SEMANTICS_UNQUALIFIED"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-NESTED-CORRECTION",
+            "EV-PARENT-CORRECTION"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CALIBRATION_CORRECTION_SEMANTICS_UNQUALIFIED"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-NESTED-CORRECTION",
+            "EV-PARENT-CORRECTION"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "CALIBRATION_CORRECTION_SEMANTICS_UNQUALIFIED"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-NESTED-CORRECTION",
+            "EV-PARENT-CORRECTION"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "observer-coverage-unqualified-cannot-support-negative-claim",
+      "purpose": "The historical evidence checkpoint is internally intact, but the observer-coverage qualification is unverified. The receiver cannot claim that no revocation existed merely because none appears in the supplied view. A later full retrospective view has a qualified complete observer receipt.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "UNVERIFIED",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": null,
+        "observer_coverage_receipt_digest_sha256": null,
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [],
+      "expected": {
+        "as_known_at": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "OBSERVER_COVERAGE_UNQUALIFIED"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "OBSERVER_COVERAGE_UNQUALIFIED"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "ACCEPTED_FOR_BINDING_ONLY",
+          "reason_codes": [],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "incomplete-observer-coverage-abstains-even-with-valid-checkpoint",
+      "purpose": "The evidence-view checkpoint is internally consistent, but the capture profile explicitly reports an uncovered source channel. The evaluator must abstain rather than infer no revocation from an incomplete view.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "INCOMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150:incomplete",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "OBSERVER_COVERAGE_INCOMPLETE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "OBSERVER_COVERAGE_INCOMPLETE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "ABSTAIN",
+          "reason_codes": [
+            "OBSERVER_COVERAGE_INCOMPLETE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "INCOMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220:incomplete",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    },
+    {
+      "case_id": "evidence-checkpoint-digest-mismatch-rejects-historical-view",
+      "purpose": "The checkpoint claims synthetic-valid status but its digest does not match the expected view commitment. Historical and trust-only replay reject this view; a later current view has its own valid checkpoint and qualified coverage.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:150",
+        "evidence_checkpoint_digest_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "evidence_checkpoint_watermark_unix_ms": 150,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:150",
+        "observer_coverage_receipt_digest_sha256": "3f89b83d2c3b01e045bac6c9d8c9e6d8b7fda5b01c9c7e6c8a9c8a1d5e3f7b92",
+        "observer_coverage_watermark_unix_ms": 150,
+        "evidence_view_digest_sha256": "1d67f61b0a1980fe23a9d3b1c7b6a7c4a6db8910e9a73a5fbc7042d6f182ad31"
+      },
+      "events": [],
+      "expected": {
+        "as_known_at": {
+          "disposition": "REJECT",
+          "reason_codes": [
+            "EVIDENCE_CHECKPOINT_DIGEST_MISMATCH"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "REJECT",
+          "reason_codes": [
+            "EVIDENCE_CHECKPOINT_DIGEST_MISMATCH"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "ACCEPTED_FOR_BINDING_ONLY",
+          "reason_codes": [],
+          "applied_event_ids": [],
+          "excluded_event_ids": []
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8",
+        "evidence_checkpoint_status": "SYNTHETIC_VALID",
+        "evidence_checkpoint_reference": "synthetic-evidence-view:220",
+        "evidence_checkpoint_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evidence_checkpoint_watermark_unix_ms": 220,
+        "observer_coverage_status": "SYNTHETIC_QUALIFIED_COMPLETE",
+        "observer_coverage_profile_id": "synthetic-basalt-observer-profile-v0.1",
+        "observer_coverage_receipt_reference": "synthetic-coverage:220",
+        "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
+        "observer_coverage_watermark_unix_ms": 220,
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
+    }
+  ]
+}
