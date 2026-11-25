@@ -8,7 +8,7 @@
 //! pathwise horizon reducer's set-union outcome, never by summing per-window
 //! probabilities or treating windows as independent.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::pathwise_event::{
     HorizonContactDisposition, HorizonEventDefinition, PathWindowOutcome, PathwiseHorizonOutcome,
@@ -26,11 +26,22 @@ pub struct FinitePathwiseTrajectoryAtom {
     pub window_outcomes: Vec<PathWindowOutcome>,
 }
 
+/// Independently declared finite trajectory-support inventory.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FinitePathwiseSupportManifest {
+    /// Opaque source identity for the frozen finite-support manifest.
+    pub manifest_digest: [u8; 32],
+    /// Exact expected atom IDs in strictly increasing canonical order.
+    pub expected_atom_ids: Vec<[u8; 32]>,
+}
+
 /// Finite proposal support whose event flags were derived from pathwise unions.
 #[derive(Debug, Clone, PartialEq)]
 pub struct FinitePathwiseProposalSupport {
     /// Source-bound event-definition identity supplied by the caller.
     pub event_digest: [u8; 32],
+    /// Opaque source identity for the finite-support manifest.
+    pub support_manifest_digest: [u8; 32],
     /// Event identity from the frozen horizon definition.
     pub event_id: String,
     /// Event-definition revision from the frozen horizon definition.
@@ -72,6 +83,10 @@ pub enum PathwiseProposalError {
     InvalidEventDefinitionIdentity,
     /// The trajectory support is empty.
     EmptyTrajectorySupport,
+    /// The source support manifest is malformed.
+    InvalidSupportManifest,
+    /// Observed trajectory atom IDs do not exactly match the frozen support manifest.
+    SupportManifestMismatch,
     /// The trajectory support exceeds the finite random-ticket support limit.
     TooManyTrajectoryAtoms,
     /// An atom identity is all zero.
@@ -98,6 +113,8 @@ impl core::fmt::Display for PathwiseProposalError {
             Self::InvalidEventDigest => "pathwise proposal event digest is invalid",
             Self::InvalidEventDefinitionIdentity => "pathwise event definition identity is invalid",
             Self::EmptyTrajectorySupport => "finite pathwise trajectory support is empty",
+            Self::InvalidSupportManifest => "finite pathwise support manifest is invalid",
+            Self::SupportManifestMismatch => "observed pathwise trajectory atoms differ from the support manifest",
             Self::TooManyTrajectoryAtoms => "finite pathwise support exceeds the ticket-space limit",
             Self::InvalidAtomIdentity => "pathwise trajectory atom identity is invalid",
             Self::DuplicateAtomIdentity => "pathwise trajectory atom identity is duplicated",
@@ -123,6 +140,7 @@ impl std::error::Error for PathwiseProposalError {}
 pub fn derive_finite_pathwise_proposal_support(
     event_digest: [u8; 32],
     definition: &HorizonEventDefinition,
+    manifest: &FinitePathwiseSupportManifest,
     trajectories: &[FinitePathwiseTrajectoryAtom],
 ) -> Result<FinitePathwiseProposalSupport, PathwiseProposalError> {
     if is_zero_digest(&event_digest) {
@@ -131,6 +149,22 @@ pub fn derive_finite_pathwise_proposal_support(
     if definition.event_id().trim().is_empty() || definition.revision().trim().is_empty() {
         return Err(PathwiseProposalError::InvalidEventDefinitionIdentity);
     }
+    if is_zero_digest(&manifest.manifest_digest)
+        || manifest.expected_atom_ids.is_empty()
+        || manifest
+            .expected_atom_ids
+            .iter()
+            .any(is_zero_digest)
+        || manifest
+            .expected_atom_ids
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
+    {
+        return Err(PathwiseProposalError::InvalidSupportManifest);
+    }
+    if manifest.expected_atom_ids.len() > TICKET_SPACE as usize {
+        return Err(PathwiseProposalError::TooManyTrajectoryAtoms);
+    }
     if trajectories.is_empty() {
         return Err(PathwiseProposalError::EmptyTrajectorySupport);
     }
@@ -138,20 +172,36 @@ pub fn derive_finite_pathwise_proposal_support(
         return Err(PathwiseProposalError::TooManyTrajectoryAtoms);
     }
 
-    let mut atom_ids = BTreeSet::new();
+    let mut by_atom_id = BTreeMap::new();
+    for trajectory in trajectories {
+        if is_zero_digest(&trajectory.atom_id) {
+            return Err(PathwiseProposalError::InvalidAtomIdentity);
+        }
+        if by_atom_id.insert(trajectory.atom_id, trajectory).is_some() {
+            return Err(PathwiseProposalError::DuplicateAtomIdentity);
+        }
+    }
+    if by_atom_id.len() != manifest.expected_atom_ids.len()
+        || manifest
+            .expected_atom_ids
+            .iter()
+            .any(|atom_id| !by_atom_id.contains_key(atom_id))
+    {
+        return Err(PathwiseProposalError::SupportManifestMismatch);
+    }
+
+    // Canonical manifest order, not caller receipt order, defines proposal atom order.
     let mut realization_ids = BTreeSet::new();
     let mut atoms = Vec::with_capacity(trajectories.len());
     let mut horizon_outcomes = Vec::with_capacity(trajectories.len());
     let mut any_contact_atom_count = 0;
     let mut no_contact_atom_count = 0;
 
-    for trajectory in trajectories {
-        if is_zero_digest(&trajectory.atom_id) {
-            return Err(PathwiseProposalError::InvalidAtomIdentity);
-        }
-        if !atom_ids.insert(trajectory.atom_id) {
-            return Err(PathwiseProposalError::DuplicateAtomIdentity);
-        }
+    for atom_id in &manifest.expected_atom_ids {
+        let trajectory = by_atom_id
+            .get(atom_id)
+            .copied()
+            .ok_or(PathwiseProposalError::SupportManifestMismatch)?;
         let realization_id = trajectory
             .window_outcomes
             .first()
@@ -180,7 +230,7 @@ pub fn derive_finite_pathwise_proposal_support(
         };
 
         atoms.push(FiniteProposalAtom {
-            atom_id: trajectory.atom_id,
+            atom_id: *atom_id,
             is_event,
         });
         horizon_outcomes.push(horizon);
@@ -188,6 +238,7 @@ pub fn derive_finite_pathwise_proposal_support(
 
     Ok(FinitePathwiseProposalSupport {
         event_digest,
+        support_manifest_digest: manifest.manifest_digest,
         event_id: definition.event_id().to_owned(),
         event_revision: definition.revision().to_owned(),
         atoms,
