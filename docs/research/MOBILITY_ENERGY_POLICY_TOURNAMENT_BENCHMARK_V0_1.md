@@ -22,7 +22,7 @@ The v0.1 Rust evaluator consumes completed policy-run summaries. It does not run
 
 ### 2.1 Exact matched experiment
 
-Every policy must have exactly one result for each scenario/replication pair. Across policies, that pair must match on:
+Every policy must have exactly one result for each scenario/replication pair. Every run carries an information-trace digest, an information-audit digest, a future-information access count and a nonanticipativity violation count. A nonanticipative-online run with any future-information access or nonanticipativity violation is flagged as an evidence-integrity hard failure. The audit receipts are supplied by the replay harness; the evaluator checks their digest shape and reported counts, but does not authenticate the audit producer or independently prove information flow. Across policies, the exogenous pair must match on:
 - scenario ID, scenario family, independent cluster ID and replication ID;
 - random seed, scenario digest and exogenous-input digest;
 - evidence class;
@@ -49,7 +49,7 @@ Positive metered response above the declared DC-network-deliverable cap is a vis
 
 ### 2.4 Paired statistics, not pseudo-replication
 
-Candidate-minus-reference deltas are calculated on identical scenario/replication pairs. Within each declared independent cluster (for example site-day or independently generated incident block), run-level deltas are averaged; bootstrap resampling then draws clusters, not individual 1-second or 15-minute intervals. The report records bootstrap seed, number of replicates, confidence level and cluster count. With too few independent clusters, the confidence interval is withheld.
+Candidate-minus-reference deltas are calculated on identical scenario/replication pairs. Within each declared independent cluster (for example site-day or independently generated incident block), run-level deltas are averaged; bootstrap resampling then draws clusters, not individual 1-second or 15-minute intervals. The report records bootstrap seed, number of replicates, confidence level and cluster count. A checked work budget caps the product of independent clusters, bootstrap resamples, policy comparisons and six reported metrics at 100 million sample operations. With too few independent clusters, the confidence interval is withheld.
 
 The intervals describe the empirical resampling design and the supplied cluster labels. They are not distribution-free field guarantees, nor do they establish independence where the underlying cluster design is wrong.
 
