@@ -589,13 +589,104 @@ pub fn generate_corpus() -> Vec<FuelServiceCase> {
 }
 
 impl FuelServiceCase {
-    /// Deterministic JSON Lines projection. Strings are controlled enum values
-    /// and synthetic identifiers; no source text or user input is interpolated.
-    pub fn to_json_line(&self) -> String {
+    /// Planner-visible projection. Hidden inventory truth, computed delivery,
+    /// generated energy and final service verdict are deliberately excluded.
+    pub fn to_planner_observation_json_line(&self) -> String {
         format!(
             concat!(
                 "{{",
                 "\"schemaVersion\":\"{}\",",
+                "\"recordKind\":\"planner_observation\",",
+                "\"caseId\":\"{}\",",
+                "\"archetype\":\"{}\",",
+                "\"seed\":{},",
+                "\"scenarioStartUnixS\":{},",
+                "\"horizonHours\":{},",
+                "\"evidenceMaturity\":\"synthetic_fixture\",",
+                "\"inventoryObservation\":{{",
+                    "\"product\":\"{}\",",
+                    "\"measurementUncertaintyBasisPoints\":{},",
+                    "\"observedLowerGrams\":{},",
+                    "\"observedUpperGrams\":{},",
+                    "\"quarantinedGrams\":{},",
+                    "\"operatingHeelGrams\":{},",
+                    "\"encumberedGrams\":{},",
+                    "\"authorityAvailable\":{}",
+                "}},",
+                "\"transportCapability\":{{",
+                    "\"cargoArrivalHour\":{},",
+                    "\"transitDelayHours\":{},",
+                    "\"primaryCapacityGramsPerHour\":{},",
+                    "\"alternateCapacityGramsPerHour\":{},",
+                    "\"effectiveCapacityGramsPerHour\":{},",
+                    "\"commonCauseGroup\":\"{}\"",
+                "}},",
+                "\"conversionCapability\":{{",
+                    "\"inputProduct\":\"{}\",",
+                    "\"outputProduct\":\"{}\",",
+                    "\"processCapacityGrams\":{},",
+                    "\"yieldBasisPoints\":{},",
+                    "\"processModelId\":\"{}\"",
+                "}},",
+                "\"generatorCapability\":{{",
+                    "\"fuelGradeCompatible\":{},",
+                    "\"syntheticLhvMilliWhPerGram\":{},",
+                    "\"efficiencyBasisPoints\":{},",
+                    "\"ratedPowerCapacityKw\":{},",
+                    "\"derateBasisPoints\":{},",
+                    "\"networkDeliveryBasisPoints\":{}",
+                "}},",
+                "\"serviceRequirement\":{{",
+                    "\"demandWh\":{},",
+                    "\"criticalFloorWh\":{},",
+                    "\"telemetryState\":\"{}\"",
+                "}}",
+                "}}"
+            ),
+            self.schema_version,
+            self.case_id,
+            self.archetype.slug(),
+            self.seed,
+            self.scenario_start_unix_s,
+            self.horizon_hours,
+            self.inventory.product.as_str(),
+            self.inventory.measurement_uncertainty_basis_points,
+            self.inventory.observed_lower_grams,
+            self.inventory.observed_upper_grams,
+            self.inventory.quarantined_grams,
+            self.inventory.operating_heel_grams,
+            self.inventory.encumbered_grams,
+            self.inventory.authority_available,
+            self.transport.cargo_arrival_hour,
+            self.transport.transit_delay_hours,
+            self.transport.primary_capacity_grams_per_hour,
+            self.transport.alternate_capacity_grams_per_hour,
+            self.transport.effective_capacity_grams_per_hour,
+            self.transport.common_cause_group,
+            self.conversion.input_product.as_str(),
+            self.conversion.output_product.as_str(),
+            self.conversion.process_capacity_grams,
+            self.conversion.yield_basis_points,
+            self.conversion.process_model_id,
+            self.generator.fuel_grade_compatible,
+            self.generator.synthetic_lhv_milli_wh_per_gram,
+            self.generator.efficiency_basis_points,
+            self.generator.rated_power_capacity_kw,
+            self.generator.derate_basis_points,
+            self.generator.network_delivery_basis_points,
+            self.service.demand_wh,
+            self.service.critical_floor_wh,
+            self.service.telemetry_state.as_str(),
+        )
+    }
+
+    /// Oracle-only projection. Keep this file out of planner input paths.
+    pub fn to_oracle_truth_json_line(&self) -> String {
+        format!(
+            concat!(
+                "{{",
+                "\"schemaVersion\":\"{}\",",
+                "\"recordKind\":\"oracle_truth\",",
                 "\"caseId\":\"{}\",",
                 "\"archetype\":\"{}\",",
                 "\"seed\":{},",
@@ -751,11 +842,20 @@ mod tests {
 
     #[test]
     fn generated_jsonl_is_deterministic_and_has_120_rows() {
-        let left = generate_corpus().iter().map(FuelServiceCase::to_json_line).collect::<Vec<_>>();
-        let right = generate_corpus().iter().map(FuelServiceCase::to_json_line).collect::<Vec<_>>();
-        assert_eq!(left, right);
-        assert_eq!(left.len(), 120);
-        assert!(left.iter().all(|line| line.starts_with("{\"schemaVersion\":\"0.1.0\"")));
+        let cases = generate_corpus();
+        let observations_left = cases.iter().map(FuelServiceCase::to_planner_observation_json_line).collect::<Vec<_>>();
+        let observations_right = generate_corpus().iter().map(FuelServiceCase::to_planner_observation_json_line).collect::<Vec<_>>();
+        let oracle_left = cases.iter().map(FuelServiceCase::to_oracle_truth_json_line).collect::<Vec<_>>();
+        let oracle_right = generate_corpus().iter().map(FuelServiceCase::to_oracle_truth_json_line).collect::<Vec<_>>();
+        assert_eq!(observations_left, observations_right);
+        assert_eq!(oracle_left, oracle_right);
+        assert_eq!(observations_left.len(), 120);
+        assert_eq!(oracle_left.len(), 120);
+        assert!(observations_left.iter().all(|line| line.contains("\"recordKind\":\"planner_observation\"")));
+        assert!(oracle_left.iter().all(|line| line.contains("\"recordKind\":\"oracle_truth\"")));
+        assert!(observations_left.iter().all(|line| !line.contains("\"closingGrams\"")));
+        assert!(observations_left.iter().all(|line| !line.contains("\"grossElectricityWh\"")));
+        assert!(observations_left.iter().all(|line| !line.contains("\"disposition\"")));
     }
 
     #[test]
