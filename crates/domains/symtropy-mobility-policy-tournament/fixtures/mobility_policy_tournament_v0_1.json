@@ -73,7 +73,11 @@
       "status": "completed",
       "instructed_grid_response_wh": 100,
       "metered_grid_response_wh": 100,
-      "operating_cost_micro_units": 100000
+      "operating_cost_micro_units": 100000,
+      "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "future_information_access_count": 0,
+      "nonanticipativity_violation_count": 0
     },
     {
       "scenario_id": "scenario-1",
@@ -111,7 +115,11 @@
       "status": "completed",
       "instructed_grid_response_wh": 140,
       "metered_grid_response_wh": 140,
-      "operating_cost_micro_units": 110000
+      "operating_cost_micro_units": 110000,
+      "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "future_information_access_count": 0,
+      "nonanticipativity_violation_count": 0
     },
     {
       "scenario_id": "scenario-1",
@@ -149,7 +157,11 @@
       "status": "completed",
       "instructed_grid_response_wh": 160,
       "metered_grid_response_wh": 160,
-      "operating_cost_micro_units": 105000
+      "operating_cost_micro_units": 105000,
+      "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "future_information_access_count": 0,
+      "nonanticipativity_violation_count": 0
     },
     {
       "scenario_id": "scenario-2",
@@ -187,7 +199,11 @@
       "status": "completed",
       "instructed_grid_response_wh": 100,
       "metered_grid_response_wh": 100,
-      "operating_cost_micro_units": 100000
+      "operating_cost_micro_units": 100000,
+      "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "future_information_access_count": 0,
+      "nonanticipativity_violation_count": 0
     },
     {
       "scenario_id": "scenario-2",
@@ -225,7 +241,11 @@
       "status": "completed",
       "instructed_grid_response_wh": 140,
       "metered_grid_response_wh": 140,
-      "operating_cost_micro_units": 110000
+      "operating_cost_micro_units": 110000,
+      "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "future_information_access_count": 0,
+      "nonanticipativity_violation_count": 0
     },
     {
       "scenario_id": "scenario-2",
@@ -263,7 +283,11 @@
       "status": "completed",
       "instructed_grid_response_wh": 160,
       "metered_grid_response_wh": 160,
-      "operating_cost_micro_units": 105000
+      "operating_cost_micro_units": 105000,
+      "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "future_information_access_count": 0,
+      "nonanticipativity_violation_count": 0
     },
     {
       "scenario_id": "scenario-3",
@@ -301,7 +325,11 @@
       "status": "completed",
       "instructed_grid_response_wh": 100,
       "metered_grid_response_wh": 100,
-      "operating_cost_micro_units": 100000
+      "operating_cost_micro_units": 100000,
+      "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "future_information_access_count": 0,
+      "nonanticipativity_violation_count": 0
     },
     {
       "scenario_id": "scenario-3",
@@ -339,7 +367,11 @@
       "status": "completed",
       "instructed_grid_response_wh": 140,
       "metered_grid_response_wh": 140,
-      "operating_cost_micro_units": 110000
+      "operating_cost_micro_units": 110000,
+      "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "future_information_access_count": 0,
+      "nonanticipativity_violation_count": 0
     },
     {
       "scenario_id": "scenario-3",
@@ -377,7 +409,11 @@
       "status": "completed",
       "instructed_grid_response_wh": 160,
       "metered_grid_response_wh": 160,
-      "operating_cost_micro_units": 105000
+      "operating_cost_micro_units": 105000,
+      "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "future_information_access_count": 0,
+      "nonanticipativity_violation_count": 0
     },
     {
       "scenario_id": "scenario-4",
@@ -415,7 +451,11 @@
       "status": "completed",
       "instructed_grid_response_wh": 100,
       "metered_grid_response_wh": 100,
-      "operating_cost_micro_units": 100000
+      "operating_cost_micro_units": 100000,
+      "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "future_information_access_count": 0,
+      "nonanticipativity_violation_count": 0
     },
     {
       "scenario_id": "scenario-4",
@@ -453,7 +493,11 @@
       "status": "completed",
       "instructed_grid_response_wh": 140,
       "metered_grid_response_wh": 140,
-      "operating_cost_micro_units": 110000
+      "operating_cost_micro_units": 110000,
+      "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "future_information_access_count": 0,
+      "nonanticipativity_violation_count": 0
     },
     {
       "scenario_id": "scenario-4",
@@ -491,7 +535,11 @@
       "status": "completed",
       "instructed_grid_response_wh": 160,
       "metered_grid_response_wh": 160,
-      "operating_cost_micro_units": 105000
+      "operating_cost_micro_units": 105000,
+      "information_trace_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "information_audit_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "future_information_access_count": 0,
+      "nonanticipativity_violation_count": 0
     }
   ]
 }
