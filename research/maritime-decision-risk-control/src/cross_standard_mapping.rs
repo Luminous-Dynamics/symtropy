@@ -451,7 +451,7 @@ struct Case {
     reversibility: MappingReversibility,
 }
 
-fn cases() -> [Case; 10] {
+fn cases() -> [Case; 17] {
     [
         Case {
             id: "classifier_to_extension_field_exact",
@@ -523,12 +523,61 @@ fn cases() -> [Case; 10] {
             kind: MappingKind::Exact,
             reversibility: MappingReversibility::Reversible,
         },
+        Case {
+            id: "exact_mapping_value_changed_rejected",
+            expected: "EXACT_MAPPING_VALUE_CHANGED",
+            target_field: "sourceMaturity",
+            kind: MappingKind::Exact,
+            reversibility: MappingReversibility::Reversible,
+        },
+        Case {
+            id: "draft_mapping_rule_rejected",
+            expected: "MAPPING_RULE_NOT_APPROVED",
+            target_field: "sourceMaturity",
+            kind: MappingKind::Exact,
+            reversibility: MappingReversibility::Reversible,
+        },
+        Case {
+            id: "unsupported_cbv_bizstep_rejected",
+            expected: "INVALID_TARGET_VOCABULARY_VALUE",
+            target_field: "bizStep",
+            kind: MappingKind::Contextual,
+            reversibility: MappingReversibility::Irreversible,
+        },
+        Case {
+            id: "mapping_bundle_digest_invalid",
+            expected: "INVALID_MAPPING_BUNDLE_DIGEST",
+            target_field: "sourceMaturity",
+            kind: MappingKind::Exact,
+            reversibility: MappingReversibility::Reversible,
+        },
+        Case {
+            id: "source_subject_identity_missing",
+            expected: "SOURCE_SUBJECT_IDENTITY_MISSING",
+            target_field: "sourceMaturity",
+            kind: MappingKind::Exact,
+            reversibility: MappingReversibility::Reversible,
+        },
+        Case {
+            id: "source_payload_reference_missing",
+            expected: "SOURCE_PAYLOAD_REFERENCE_MISSING",
+            target_field: "sourceMaturity",
+            kind: MappingKind::Exact,
+            reversibility: MappingReversibility::Reversible,
+        },
+        Case {
+            id: "source_payload_reference_mismatch",
+            expected: "SOURCE_PAYLOAD_REFERENCE_MISMATCH",
+            target_field: "sourceMaturity",
+            kind: MappingKind::Exact,
+            reversibility: MappingReversibility::Reversible,
+        },
     ]
 }
 
 pub fn render_csv() -> String {
     let mut output = String::from(
-        "case_id,expected_mapping_kind,observed_status,target_field,source_payload_digest_carried,reversibility,claim_ceiling\n",
+        "case_id,expected_mapping_kind,observed_status,target_field,mapping_bundle_revision,review_status,source_payload_digest_carried,reversibility,claim_ceiling\n",
     );
     for case in cases() {
         let mut source = source_fixture();
@@ -578,6 +627,24 @@ pub fn render_csv() -> String {
                 case.reversibility,
                 None,
             ),
+            "exact_mapping_value_changed_rejected" => rule(
+                "eventClassifierCode",
+                "ACT",
+                case.target_field,
+                "actual",
+                case.kind,
+                case.reversibility,
+                None,
+            ),
+            "unsupported_cbv_bizstep_rejected" => rule(
+                "equipmentEventTypeCode",
+                "LOAD",
+                case.target_field,
+                "urn:epcglobal:cbv:bizstep:not_a_bizstep",
+                case.kind,
+                case.reversibility,
+                Some("synthetic unsupported vocabulary value"),
+            ),
             _ => rule(
                 "eventClassifierCode",
                 "ACT",
@@ -598,23 +665,42 @@ pub fn render_csv() -> String {
                     .fields
                     .insert("eventClassifierCode".to_owned(), "PLN".to_owned());
             }
+            "draft_mapping_rule_rejected" => {
+                mapping_rule.review_status = MappingReviewStatus::Draft;
+            }
+            "mapping_bundle_digest_invalid" => {
+                mapping_rule.mapping_bundle_sha256 = "not-a-digest".to_owned();
+            }
+            "source_subject_identity_missing" => source.subject_id.clear(),
+            "source_payload_reference_missing" => source.raw_payload_ref.clear(),
+            "source_payload_reference_mismatch" => {
+                source.raw_payload_ref =
+                    "urn:source-artifact:sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned();
+            }
             _ => {}
         }
 
         let result = map_field(&source, EPCIS_VERSION, &mapping_rule);
-        let (observed, preserved, reversibility) = match result {
+        let (observed, digest_carried, reversibility) = match result {
             Ok(receipt) => (
                 receipt.kind.label(),
                 receipt.source_payload_digest_carried,
                 receipt.reversibility.label(),
             ),
-            Err(error) => (error.label(), true, "NONE"),
+            Err(error) => (error.label(), false, "NONE"),
         };
         assert_eq!(observed, case.expected, "crosswalk case {}", case.id);
         let _ = writeln!(
             output,
-            "{},{},{},{},{},{},SYNTHETIC_ONLY",
-            case.id, case.expected, observed, case.target_field, preserved, reversibility
+            "{},{},{},{},{},{},{},{},SYNTHETIC_ONLY",
+            case.id,
+            case.expected,
+            observed,
+            case.target_field,
+            mapping_rule.mapping_bundle_revision,
+            mapping_rule.review_status.label(),
+            digest_carried,
+            reversibility
         );
     }
     output
@@ -835,9 +921,9 @@ mod tests {
     fn receipt_is_deterministic_and_contains_every_mapping_boundary() {
         let first = render_csv();
         assert_eq!(first, render_csv());
-        assert_eq!(first.lines().count(), 11);
+        assert_eq!(first.lines().count(), 18);
         let width = first.lines().next().expect("header").split(',').count();
-        assert_eq!(width, 7);
+        assert_eq!(width, 9);
         for row in first.lines().skip(1) {
             assert_eq!(row.split(',').count(), width);
         }
@@ -845,6 +931,9 @@ mod tests {
         assert!(first.contains("CONTEXTUAL"));
         assert!(first.contains("DCSA_CLASSIFIER_CANNOT_MAP_TO_BIZSTEP"));
         assert!(first.contains("DCSA_CLASSIFIER_CANNOT_MAP_TO_DISPOSITION"));
+        assert!(first.contains("MAPPING_RULE_NOT_APPROVED"));
+        assert!(first.contains("INVALID_TARGET_VOCABULARY_VALUE"));
+        assert!(first.contains("SOURCE_PAYLOAD_REFERENCE_MISMATCH"));
         assert!(first.contains("source_payload_digest_carried"));
     }
 }
