@@ -49,7 +49,9 @@
     "independent_copies": 3,
     "independent_failure_domains": 3,
     "tolerate_complete_region_loss": true,
-    "maximum_unrecoverable_payload_fraction": 0
+    "maximum_unrecoverable_payload_fraction": 0,
+    "dependency_profile_ref": null,
+    "dependency_profile_status": "unavailable"
   },
   "constraints": {
     "allowed_medium_families": [
