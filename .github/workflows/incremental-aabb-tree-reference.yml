@@ -2,7 +2,7 @@ name: Incremental AABB Tree Reference
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, "research/incremental-aabb-tree-reference-v0.1"]
     paths:
       - "research/incremental-aabb-tree-reference/v0.1/**"
       - ".github/workflows/incremental-aabb-tree-reference.yml"
