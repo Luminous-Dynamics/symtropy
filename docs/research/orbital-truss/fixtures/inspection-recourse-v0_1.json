@@ -21,17 +21,17 @@
           "action_id": "VIEW-ONLY",
           "duration_ms": 4,
           "energy_mj": 3,
-          "model_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "model_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000001",
           "gates": [
             {
               "gate_id": "CALIBRATION",
               "state": "PASS",
-              "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000002"
             },
             {
               "gate_id": "ACQUISITION_INTEGRITY",
               "state": "PASS",
-              "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000003"
             }
           ],
           "outcomes_by_world": [
@@ -41,7 +41,7 @@
               "possible_outcomes": [
                 "CLEAR"
               ],
-              "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000004"
             },
             {
               "world_id": "W_REPAIR",
@@ -49,7 +49,7 @@
               "possible_outcomes": [
                 "DEFECT"
               ],
-              "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000005"
             }
           ]
         }
@@ -82,17 +82,17 @@
           "action_id": "VIEW-1",
           "duration_ms": 3,
           "energy_mj": 2,
-          "model_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "model_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000006",
           "gates": [
             {
               "gate_id": "CALIBRATION",
               "state": "PASS",
-              "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000007"
             },
             {
               "gate_id": "ACQUISITION_INTEGRITY",
               "state": "PASS",
-              "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000008"
             }
           ],
           "outcomes_by_world": [
@@ -102,7 +102,7 @@
               "possible_outcomes": [
                 "CLEAR"
               ],
-              "receipt_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000009"
             },
             {
               "world_id": "W_REPAIR",
@@ -110,7 +110,7 @@
               "possible_outcomes": [
                 "AMBIGUOUS"
               ],
-              "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+              "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000000a"
             },
             {
               "world_id": "W_ACCEPT_B",
@@ -118,7 +118,7 @@
               "possible_outcomes": [
                 "AMBIGUOUS"
               ],
-              "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+              "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000000b"
             }
           ]
         },
@@ -126,17 +126,17 @@
           "action_id": "VIEW-2",
           "duration_ms": 8,
           "energy_mj": 6,
-          "model_receipt_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+          "model_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000000c",
           "gates": [
             {
               "gate_id": "CALIBRATION",
               "state": "PASS",
-              "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000000d"
             },
             {
               "gate_id": "ACQUISITION_INTEGRITY",
               "state": "PASS",
-              "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+              "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000000e"
             }
           ],
           "outcomes_by_world": [
@@ -146,7 +146,7 @@
               "possible_outcomes": [
                 "AMBIGUOUS"
               ],
-              "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+              "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000000f"
             },
             {
               "world_id": "W_REPAIR",
@@ -154,7 +154,7 @@
               "possible_outcomes": [
                 "DEFECT"
               ],
-              "receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000010"
             },
             {
               "world_id": "W_ACCEPT_B",
@@ -162,7 +162,7 @@
               "possible_outcomes": [
                 "AMBIGUOUS"
               ],
-              "receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000011"
             }
           ]
         }
@@ -211,12 +211,12 @@
           "action_id": "UNQUALIFIED_VIEW",
           "duration_ms": 1,
           "energy_mj": 1,
-          "model_receipt_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh",
+          "model_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000012",
           "gates": [
             {
               "gate_id": "CALIBRATION",
               "state": "UNKNOWN",
-              "receipt_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000013"
             }
           ],
           "outcomes_by_world": [
@@ -226,7 +226,7 @@
               "possible_outcomes": [
                 "CLEAR"
               ],
-              "receipt_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000014"
             },
             {
               "world_id": "W_REPAIR",
@@ -234,7 +234,7 @@
               "possible_outcomes": [
                 "DEFECT"
               ],
-              "receipt_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000015"
             }
           ]
         }
@@ -263,17 +263,17 @@
           "action_id": "SHARED-FAILURE-DOMAIN-VIEW",
           "duration_ms": 1,
           "energy_mj": 1,
-          "model_receipt_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll",
+          "model_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000016",
           "gates": [
             {
               "gate_id": "CALIBRATION",
               "state": "PASS",
-              "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000017"
             },
             {
               "gate_id": "ACQUISITION_INTEGRITY",
               "state": "PASS",
-              "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000018"
             }
           ],
           "outcomes_by_world": [
@@ -283,7 +283,7 @@
               "possible_outcomes": [
                 "UNAVAILABLE"
               ],
-              "receipt_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000019"
             },
             {
               "world_id": "W_REPAIR",
@@ -291,7 +291,7 @@
               "possible_outcomes": [
                 "UNAVAILABLE"
               ],
-              "receipt_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+              "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000001a"
             }
           ]
         }
@@ -320,17 +320,17 @@
           "action_id": "VIEW-TOO-MANY-STATES",
           "duration_ms": 1,
           "energy_mj": 1,
-          "model_receipt_sha256": "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo",
+          "model_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000001b",
           "gates": [
             {
               "gate_id": "CALIBRATION",
               "state": "PASS",
-              "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000001c"
             },
             {
               "gate_id": "ACQUISITION_INTEGRITY",
               "state": "PASS",
-              "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+              "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000001d"
             }
           ],
           "outcomes_by_world": [
@@ -340,7 +340,7 @@
               "possible_outcomes": [
                 "CLEAR"
               ],
-              "receipt_sha256": "pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp"
+              "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000001e"
             },
             {
               "world_id": "W_REPAIR",
@@ -348,7 +348,7 @@
               "possible_outcomes": [
                 "DEFECT"
               ],
-              "receipt_sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+              "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000001f"
             }
           ]
         }
@@ -377,17 +377,17 @@
           "action_id": "TOO-EXPENSIVE-VIEW",
           "duration_ms": 20,
           "energy_mj": 20,
-          "model_receipt_sha256": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+          "model_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000020",
           "gates": [
             {
               "gate_id": "CALIBRATION",
               "state": "PASS",
-              "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000021"
             },
             {
               "gate_id": "ACQUISITION_INTEGRITY",
               "state": "PASS",
-              "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000022"
             }
           ],
           "outcomes_by_world": [
@@ -397,7 +397,7 @@
               "possible_outcomes": [
                 "CLEAR"
               ],
-              "receipt_sha256": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000023"
             },
             {
               "world_id": "W_REPAIR",
@@ -405,7 +405,7 @@
               "possible_outcomes": [
                 "DEFECT"
               ],
-              "receipt_sha256": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000024"
             }
           ]
         }
@@ -434,17 +434,17 @@
           "action_id": "UNMODELED-VIEW",
           "duration_ms": 1,
           "energy_mj": 1,
-          "model_receipt_sha256": "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu",
+          "model_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000025",
           "gates": [
             {
               "gate_id": "CALIBRATION",
               "state": "PASS",
-              "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000026"
             },
             {
               "gate_id": "ACQUISITION_INTEGRITY",
               "state": "PASS",
-              "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000027"
             }
           ],
           "outcomes_by_world": [
@@ -452,13 +452,13 @@
               "world_id": "W_ACCEPT",
               "mapping_state": "KNOWN",
               "possible_outcomes": [],
-              "receipt_sha256": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000028"
             },
             {
               "world_id": "W_REPAIR",
               "mapping_state": "UNKNOWN",
               "possible_outcomes": [],
-              "receipt_sha256": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+              "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000029"
             }
           ]
         }
