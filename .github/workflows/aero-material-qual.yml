@@ -169,6 +169,7 @@ jobs:
               raise SystemExit(f"temporal replay corpus failed schema validation ({len(errors)} errors)")
           cases = corpus["cases"]
           ids = [case["case_id"] for case in cases]
+          required_modes = {"as_known_at", "recomputed_with_current_trust", "recomputed_with_current_evidence_and_trust"}
           if len(ids) != len(set(ids)):
               raise SystemExit("temporal replay case IDs must be unique")
           if not any(case["expected"]["as_known_at"]["disposition"] == "ACCEPTED_FOR_BINDING_ONLY" for case in cases):
@@ -224,7 +225,6 @@ jobs:
               raise SystemExit("correction-of-correction target must point to prior correction")
           if any(nested_correction["expected"][mode]["reason_codes"] != ["CALIBRATION_CORRECTION_SEMANTICS_UNQUALIFIED"] for mode in required_modes):
               raise SystemExit("correction-of-correction semantics must remain unqualified")
-          required_modes = {"as_known_at", "recomputed_with_current_trust", "recomputed_with_current_evidence_and_trust"}
           for case in cases:
               if set(case["expected"]) != required_modes:
                   raise SystemExit(f"{case['case_id']}: all three replay modes must be frozen")
@@ -407,6 +407,74 @@ jobs:
               raise SystemExit("manifest status must remain DISCOVERY_ONLY until all promotion gates are evidenced")
           print(f"SHM manifest structure passed: {len(ids)} datasets; rights clearance and ingestion remain pending.")
           PY
+
+      - name: Run temporal replay scale smoke benchmark
+        shell: bash
+        run: |
+          cargo bench --locked --package symtropy-aero-material-qual --bench temporal_replay_scale -- 10000 1 > "$RUNNER_TEMP/aero-temporal-scale.csv"
+          grep -q '^10000,AS_KNOWN_AT,1,.*ACCEPTED_FOR_BINDING_ONLY
+      - name: Run evaluator Clippy
+        run: cargo clippy --locked --package symtropy-aero-material-qual --all-targets -- -D warnings
+
+      - name: Run evaluator CLI smoke test
+        shell: bash
+        run: |
+          cargo run --locked --package symtropy-aero-material-qual -- docs/research/aviation/examples/synthetic_material_process_case_v0_1.json > "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"structural_status": "STRUCTURALLY_COMPLETE"' "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"model_applicability_status": "NOT_EVALUATED_V0_1"' "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"evidence_sufficiency_status": "NOT_EVALUATED_V0_1"' "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"decision_status": "NOT_ELIGIBLE_SYNTHETIC_ONLY"' "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"physical_qualification_status": "OUT_OF_SCOPE_NOT_CLAIMED"' "$RUNNER_TEMP/aero-material-qual-report.json"
+
+          cargo run --locked --package symtropy-aero-material-qual -- docs/research/aviation/examples/synthetic_aero_evidence_binding_case_v0_2.json > "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"specimen_identity_status": "INDEPENDENT_IDENTITY_CONSISTENT"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"intended_configuration_status": "INTENDED_CONFIGURATION_CONSISTENT"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"metrology_binding_status": "METROLOGY_BINDING_CONSISTENT_ONLY"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"decision_status": "NOT_ELIGIBLE_SYNTHETIC_ONLY"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"physical_qualification_status": "OUT_OF_SCOPE_NOT_CLAIMED"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+ "$RUNNER_TEMP/aero-temporal-scale.csv"
+          grep -q '^10000,CURRENT_TRUST,1,.*ACCEPTED_FOR_BINDING_ONLY
+      - name: Run evaluator Clippy
+        run: cargo clippy --locked --package symtropy-aero-material-qual --all-targets -- -D warnings
+
+      - name: Run evaluator CLI smoke test
+        shell: bash
+        run: |
+          cargo run --locked --package symtropy-aero-material-qual -- docs/research/aviation/examples/synthetic_material_process_case_v0_1.json > "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"structural_status": "STRUCTURALLY_COMPLETE"' "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"model_applicability_status": "NOT_EVALUATED_V0_1"' "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"evidence_sufficiency_status": "NOT_EVALUATED_V0_1"' "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"decision_status": "NOT_ELIGIBLE_SYNTHETIC_ONLY"' "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"physical_qualification_status": "OUT_OF_SCOPE_NOT_CLAIMED"' "$RUNNER_TEMP/aero-material-qual-report.json"
+
+          cargo run --locked --package symtropy-aero-material-qual -- docs/research/aviation/examples/synthetic_aero_evidence_binding_case_v0_2.json > "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"specimen_identity_status": "INDEPENDENT_IDENTITY_CONSISTENT"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"intended_configuration_status": "INTENDED_CONFIGURATION_CONSISTENT"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"metrology_binding_status": "METROLOGY_BINDING_CONSISTENT_ONLY"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"decision_status": "NOT_ELIGIBLE_SYNTHETIC_ONLY"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"physical_qualification_status": "OUT_OF_SCOPE_NOT_CLAIMED"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+ "$RUNNER_TEMP/aero-temporal-scale.csv"
+          grep -q '^10000,CURRENT_EVIDENCE_AND_TRUST,1,.*ACCEPTED_FOR_BINDING_ONLY
+      - name: Run evaluator Clippy
+        run: cargo clippy --locked --package symtropy-aero-material-qual --all-targets -- -D warnings
+
+      - name: Run evaluator CLI smoke test
+        shell: bash
+        run: |
+          cargo run --locked --package symtropy-aero-material-qual -- docs/research/aviation/examples/synthetic_material_process_case_v0_1.json > "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"structural_status": "STRUCTURALLY_COMPLETE"' "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"model_applicability_status": "NOT_EVALUATED_V0_1"' "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"evidence_sufficiency_status": "NOT_EVALUATED_V0_1"' "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"decision_status": "NOT_ELIGIBLE_SYNTHETIC_ONLY"' "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"physical_qualification_status": "OUT_OF_SCOPE_NOT_CLAIMED"' "$RUNNER_TEMP/aero-material-qual-report.json"
+
+          cargo run --locked --package symtropy-aero-material-qual -- docs/research/aviation/examples/synthetic_aero_evidence_binding_case_v0_2.json > "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"specimen_identity_status": "INDEPENDENT_IDENTITY_CONSISTENT"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"intended_configuration_status": "INTENDED_CONFIGURATION_CONSISTENT"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"metrology_binding_status": "METROLOGY_BINDING_CONSISTENT_ONLY"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"decision_status": "NOT_ELIGIBLE_SYNTHETIC_ONLY"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+          grep -q '"physical_qualification_status": "OUT_OF_SCOPE_NOT_CLAIMED"' "$RUNNER_TEMP/aero-evidence-binding-report.json"
+ "$RUNNER_TEMP/aero-temporal-scale.csv"
 
       - name: Run evaluator tests
         run: cargo test --locked --package symtropy-aero-material-qual
