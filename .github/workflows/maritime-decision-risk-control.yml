@@ -221,7 +221,7 @@ jobs:
           awk -F, '$1=="LOCAL_PORT_GAIN_NO_RECEIVER_GAIN" { if ($3 >= 130 || $5 != 150) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/service-variability.csv
           awk -F, '$1=="RECEIVER_REGRESSION" { if ($3 >= 130 || $5 != 190 || $13 != 0) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/service-variability.csv
           awk -F, '$1=="FAIRNESS_COHORT_FLOOR_HIDDEN_BY_AGGREGATE" { if ($5 != 100 || $13 != 900 || $14 != 1) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/service-variability.csv
-          awk -F, '$1=="EXPECTED_UNITS_WITH_UNRESOLVED_DELIVERY" { if ($2 != 20 || $13 != 900 || $19 != 18 || $20 != 1 || $23 != 1) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/service-variability.csv
+          awk -F, '$1=="EXPECTED_UNITS_WITH_UNRESOLVED_DELIVERY" { if ($2 != 20 || $13 != 900 || $19 != 18 || $20 != 1 || $21 != 0 || $22 != 0 || $23 != 1) exit 1; found=1 } END { if (!found) exit 1 }' /tmp/service-variability.csv
           echo "Maritime repeated-sampling risk tournament smoke receipt passed."
           echo "Maritime decision-risk and finite-grid non-monotone receipts passed."
 
