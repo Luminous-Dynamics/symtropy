@@ -380,13 +380,14 @@ Run:
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin service-variability-audit
 ~~~
 
-The synthetic receipt includes five cases:
+The synthetic receipt includes six cases:
 
-1. **Mean-matched stable vs high-variability:** both have mean end-to-end time 100 minutes. The stable case has p95 100 minutes and 100% on-time delivery. The high-variability case has p95 280 minutes and 90% on-time delivery, with a 20-call maximum arrival burst in 60 minutes.
+1. **Mean-matched stable vs high-variability:** both have mean end-to-end time 100 minutes. The stable case has p95 100 minutes and 100% on-time delivery. The high-variability case has p95 280 minutes and 90% on-time delivery, with a 20-call maximum arrival burst in a 60-minute window.
 2. **Baseline end-to-end service:** port elapsed 130 minutes plus 20 inland minutes = 150 minutes.
 3. **Local port optimization:** port elapsed improves by 20 minutes, but inland time increases by 20; end-to-end service remains 150 minutes. A port-only metric would show a win where the receiver receives no improvement.
 4. **Receiver regression:** port elapsed is still 20 minutes lower than baseline, but inland time increases by 60; end-to-end service worsens to 190 minutes and on-time delivery falls to zero under the 160-minute deadline.
-5. **Protected cohort:** the receiver-regression case assigns 18 observations to a priority cohort and two to a small-receiver cohort. The small cohort has zero on-time delivery and violates its 95% service floor; the aggregate cannot erase that outcome.
+5. **Protected cohort:** a mean-100-minute scenario assigns 18 observations to a priority cohort and two to a small-receiver cohort. The small cohort has zero on-time delivery and violates its 95% service floor, while the aggregate on-time rate is 90%.
+6. **Burst load:** the high-variability, receiver-regression and protected-cohort scenarios separately exercise a clustered 20-call arrival window; the regular-arrival comparator peaks at two calls per 60 minutes.
 
 The code also keeps vessel wait, berth work, terminal dwell, combined port elapsed, inland transfer and end-to-end time as separate distributions. It rejects duplicate observation identities, invalid deadlines and duplicate arrival IDs.
 
