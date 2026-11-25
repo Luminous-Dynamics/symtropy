@@ -1,0 +1,171 @@
+name: Mobility RRVR Endpoint Effect Fence
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-endpoint-effect-fence-v0-1
+    paths:
+      - "research/mobility-rrvr-runtime-trace/ENDPOINT_EFFECT_FENCE_V0.1.md"
+      - "research/mobility-rrvr-runtime-trace/model/EndpointEffectFence*"
+      - "research/mobility-rrvr-runtime-trace/fixtures/endpoint_effect_fence_profile_v0_1.json"
+      - "research/mobility-rrvr-runtime-trace/schemas/endpoint_effect_fence_profile_v0_1.schema.json"
+      - ".github/workflows/mobility-rrvr-endpoint-effect-fence.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-runtime-trace/ENDPOINT_EFFECT_FENCE_V0.1.md"
+      - "research/mobility-rrvr-runtime-trace/model/EndpointEffectFence*"
+      - "research/mobility-rrvr-runtime-trace/fixtures/endpoint_effect_fence_profile_v0_1.json"
+      - "research/mobility-rrvr-runtime-trace/schemas/endpoint_effect_fence_profile_v0_1.schema.json"
+      - ".github/workflows/mobility-rrvr-endpoint-effect-fence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  endpoint-effect-fence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download and verify pinned TLC and model inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/tla"
+          JAR="$RUNNER_TEMP/tla/tla2tools.jar"
+          curl --fail --location --retry 3 \
+            "https://github.com/microsoft/tlalink/releases/download/tla2tools-2ef2af8/tla2tools.jar" \
+            --output "$JAR"
+          printf '%s  %s\n' "d15655eeaff4b3f7b3d65c46b838bc0f35d131b2ef4b1e473689b62c98d4726f" "$JAR" | sha256sum --check
+          ROOT="research/mobility-rrvr-runtime-trace/model"
+          MODEL="$ROOT/EndpointEffectFence.tla"
+          SAFE="$ROOT/EndpointEffectFence_Safe.cfg"
+          REPLAY="$ROOT/EndpointEffectFence_UnsafeReplay.cfg"
+          STALE="$ROOT/EndpointEffectFence_UnsafeStaleEpoch.cfg"
+          printf '%s  %s\n' "d070d1a9539ff41b1e524d86f0c44859eadd1f6b90cd6054a044117644c2add3" "$MODEL" | sha256sum --check
+          printf '%s  %s\n' "9b220bc42e3d7c83c95792a744213bd108687d4d19e20089772547747ef37827" "$SAFE" | sha256sum --check
+          printf '%s  %s\n' "a43183dabdff429212253f026cbb6536c651215a6ffd9b515824e36b64dcb719" "$REPLAY" | sha256sum --check
+          printf '%s  %s\n' "0cab31acda1ef8a36efa76a3c035ddecbeb18dbad34cb91d1a011d3f703e0693" "$STALE" | sha256sum --check
+
+      - name: Validate effect-class profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCHEMA="research/mobility-rrvr-runtime-trace/schemas/endpoint_effect_fence_profile_v0_1.schema.json"
+          FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/endpoint_effect_fence_profile_v0_1.json"
+          jq empty "$SCHEMA"
+          jq empty "$FIXTURE"
+          jq -e '
+            .schema_version == "0.1"
+            and .benchmark == "RRVR-ENDPOINT-EFFECT-FENCE"
+            and (.effect_classes | length == 4)
+            and ([.effect_classes[].id] | unique | length == 4)
+            and (.endpoint_obligations | length >= 10)
+            and any(.endpoint_obligations[]; . == "durable_token_before_effect")
+            and any(.endpoint_obligations[]; . == "stale_epoch_rejected_at_actuation_boundary")
+          ' "$FIXTURE"
+
+      - name: Model-check safe endpoint effect token and fencing
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace/model"
+          OUT="$RUNNER_TEMP/rrvr-endpoint-effect-fence"
+          DIR="$OUT/safe"
+          mkdir -p "$DIR"
+          cp "$ROOT/EndpointEffectFence.tla" "$DIR/"
+          cp "$ROOT/EndpointEffectFence_Safe.cfg" "$DIR/"
+          (
+            cd "$DIR"
+            java -XX:+UseParallelGC -cp "$RUNNER_TEMP/tla/tla2tools.jar" tlc2.TLC \
+              -workers 1 -metadir "$RUNNER_TEMP/tlc-endpoint-effect-safe" \
+              -config EndpointEffectFence_Safe.cfg EndpointEffectFence.tla
+          ) | tee "$OUT/tlc-safe.log"
+          grep -Fq "Model checking completed. No error has been found." "$OUT/tlc-safe.log"
+          grep -Fq "0 states left on queue" "$OUT/tlc-safe.log"
+
+      - name: Require NVM-loss duplicate-effect counterexample
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace/model"
+          OUT="$RUNNER_TEMP/rrvr-endpoint-effect-fence"
+          DIR="$OUT/unsafe-replay"
+          mkdir -p "$DIR"
+          cp "$ROOT/EndpointEffectFence.tla" "$DIR/"
+          cp "$ROOT/EndpointEffectFence_UnsafeReplay.cfg" "$DIR/"
+          set +e
+          (
+            cd "$DIR"
+            java -XX:+UseParallelGC -cp "$RUNNER_TEMP/tla/tla2tools.jar" tlc2.TLC \
+              -workers 1 -metadir "$RUNNER_TEMP/tlc-endpoint-effect-replay" \
+              -config EndpointEffectFence_UnsafeReplay.cfg EndpointEffectFence.tla
+          ) > "$OUT/tlc-unsafe-replay.log" 2>&1
+          status=$?
+          set -e
+          test "$status" -ne 0
+          grep -Fq "Invariant AtMostOnePhysicalEffectPerToken is violated" "$OUT/tlc-unsafe-replay.log"
+
+      - name: Require stale-epoch actuator counterexample
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace/model"
+          OUT="$RUNNER_TEMP/rrvr-endpoint-effect-fence"
+          DIR="$OUT/unsafe-stale-epoch"
+          mkdir -p "$DIR"
+          cp "$ROOT/EndpointEffectFence.tla" "$DIR/"
+          cp "$ROOT/EndpointEffectFence_UnsafeStaleEpoch.cfg" "$DIR/"
+          set +e
+          (
+            cd "$DIR"
+            java -XX:+UseParallelGC -cp "$RUNNER_TEMP/tla/tla2tools.jar" tlc2.TLC \
+              -workers 1 -metadir "$RUNNER_TEMP/tlc-endpoint-stale-epoch" \
+              -config EndpointEffectFence_UnsafeStaleEpoch.cfg EndpointEffectFence.tla
+          ) > "$OUT/tlc-unsafe-stale-epoch.log" 2>&1
+          status=$?
+          set -e
+          test "$status" -ne 0
+          grep -Fq "Invariant NoOldEpochEffectAfterFence is violated" "$OUT/tlc-unsafe-stale-epoch.log"
+
+      - name: Emit endpoint effect-fence manifest and checksums
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-runtime-trace/model"
+          OUT="$RUNNER_TEMP/rrvr-endpoint-effect-fence"
+          MODEL="$ROOT/EndpointEffectFence.tla"
+          SAFE="$ROOT/EndpointEffectFence_Safe.cfg"
+          REPLAY="$ROOT/EndpointEffectFence_UnsafeReplay.cfg"
+          STALE="$ROOT/EndpointEffectFence_UnsafeStaleEpoch.cfg"
+          FIXTURE="research/mobility-rrvr-runtime-trace/fixtures/endpoint_effect_fence_profile_v0_1.json"
+          SCHEMA="research/mobility-rrvr-runtime-trace/schemas/endpoint_effect_fence_profile_v0_1.schema.json"
+          sha256sum "$MODEL" "$SAFE" "$REPLAY" "$STALE" "$FIXTURE" "$SCHEMA" \
+            "$OUT/tlc-safe.log" "$OUT/tlc-unsafe-replay.log" "$OUT/tlc-unsafe-stale-epoch.log" > "$OUT/SHA256SUMS"
+          jq -n \
+            --arg model_sha256 "$(sha256sum "$MODEL" | cut -d ' ' -f 1)" \
+            --arg safe_log_sha256 "$(sha256sum "$OUT/tlc-safe.log" | cut -d ' ' -f 1)" \
+            --arg replay_log_sha256 "$(sha256sum "$OUT/tlc-unsafe-replay.log" | cut -d ' ' -f 1)" \
+            --arg stale_log_sha256 "$(sha256sum "$OUT/tlc-unsafe-stale-epoch.log" | cut -d ' ' -f 1)" \
+            '{
+              schema_version:"0.1",
+              model:"EndpointEffectFence",
+              safe_check:{result:"passed",invariants:["TypeOK","AtMostOnePhysicalEffectPerToken","AtMostOneEndpointInvocationPerToken","NoOldEpochEffectAfterFence","EffectRequiresAcceptedToken","UnknownTokenIsNotReExecutable"],log_sha256:$safe_log_sha256},
+              negative_controls:[
+                {mutation:"volatile endpoint token history followed by same-token replay",expected:"AtMostOnePhysicalEffectPerToken counterexample",result:"rejected",log_sha256:$replay_log_sha256},
+                {mutation:"old-authority command accepted after endpoint fence",expected:"NoOldEpochEffectAfterFence counterexample",result:"rejected",log_sha256:$stale_log_sha256}
+              ],
+              pins:{model_sha256:$model_sha256},
+              claim_ceiling:"Bounded endpoint abstraction only; no NVM, actuator, firmware, ROS/Gazebo, power-cut, HIL or physical robot qualification."
+            }' > "$OUT/formal-manifest.json"
+
+      - name: Upload endpoint effect-fence evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rrvr-endpoint-effect-fence-${{ github.sha }}
+          path: ${{ runner.temp }}/rrvr-endpoint-effect-fence
+          if-no-files-found: ignore
+          retention-days: 90

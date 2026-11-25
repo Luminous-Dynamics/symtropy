@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/endpoint-effect-fence-v0.1.schema.json",
+  "title": "RRVR Endpoint Effect Fence Profile v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark",
+    "claim_ceiling",
+    "effect_classes",
+    "endpoint_obligations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "benchmark": {
+      "const": "RRVR-ENDPOINT-EFFECT-FENCE"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 20
+    },
+    "effect_classes": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "examples",
+          "recovery"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "desired_state",
+              "one_shot",
+              "continuous_lease",
+              "trajectory"
+            ]
+          },
+          "examples": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "recovery": {
+            "type": "string",
+            "minLength": 5
+          }
+        }
+      }
+    },
+    "endpoint_obligations": {
+      "type": "array",
+      "minItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

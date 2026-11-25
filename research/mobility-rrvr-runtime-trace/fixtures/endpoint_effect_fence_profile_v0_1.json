@@ -1,0 +1,53 @@
+{
+  "schema_version": "0.1",
+  "benchmark": "RRVR-ENDPOINT-EFFECT-FENCE",
+  "claim_ceiling": "Declared effect-class and endpoint-token obligations only; no endpoint implementation or physical execution result.",
+  "effect_classes": [
+    {
+      "id": "desired_state",
+      "examples": [
+        "set_gripper_position",
+        "set_table_height"
+      ],
+      "recovery": "reconcile_actual_vs_desired"
+    },
+    {
+      "id": "one_shot",
+      "examples": [
+        "dispense",
+        "release_latch",
+        "cut"
+      ],
+      "recovery": "durable_endpoint_token_no_same_token_replay"
+    },
+    {
+      "id": "continuous_lease",
+      "examples": [
+        "velocity",
+        "torque",
+        "force_enable"
+      ],
+      "recovery": "epoch_fenced_bounded_lease_and_watchdog"
+    },
+    {
+      "id": "trajectory",
+      "examples": [
+        "arm_trajectory",
+        "mobile_base_path"
+      ],
+      "recovery": "checkpoint_plus_physical_progress_reconciliation"
+    }
+  ],
+  "endpoint_obligations": [
+    "durable_token_before_effect",
+    "same_token_same_payload_no_reactuation",
+    "same_token_changed_payload_conflict",
+    "monotonic_authority_epoch",
+    "stale_epoch_rejected_at_actuation_boundary",
+    "reserved_token_restart_becomes_unknown",
+    "nvm_history_loss_detected_and_inhibits",
+    "read_only_status_query",
+    "rollback_resistance_or_fail_closed_inhibit",
+    "independent_physical_effect_evidence"
+  ]
+}
