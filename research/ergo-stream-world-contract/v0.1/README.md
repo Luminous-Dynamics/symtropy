@@ -171,7 +171,7 @@ Symtropy [#7495 — ERGO-STREAM-CLOCK-BASELINE-001](https://github.com/Luminous-
 - Huber IRLS with Theil–Sen initialization and signed-residual MAD scale;
 - one-anchor, repeated-time, duplicate-ID, non-positive-scale and invalid-configuration rejection;
 - integer-centered timestamp differences plus exact reference epochs to reduce precision loss for large absolute timestamps;
-- nine focused tests including a gross endpoint outlier and large timestamp epoch.
+- eleven focused tests including a gross endpoint outlier, large absolute timestamp epochs, negative-rate rejection and the 128-anchor bound.
 
 These estimators consume only public paired sensor-time anchors. They do not consume evaluator time, event identities, arrival delay or hidden clock parameters. They are generic baselines, not a reproduction of MATH-SYNC. Exact-head Rust 1.96 format/tests/strict Clippy remain pending.
 
