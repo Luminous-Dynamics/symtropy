@@ -350,6 +350,40 @@ pub fn evaluate_case(case: &Value, mode: ReplayMode) -> TemporalDisposition {
                 &all_events,
             );
         }
+        if text(event, "trusted_timestamp_status") == Some("valid") {
+            if text(event, "trusted_timestamp_imprint_sha256")
+                != text(event, "payload_sha256")
+            {
+                return one_reason(
+                    "REJECT",
+                    "TIMESTAMP_IMPRINT_MISMATCH",
+                    &[],
+                    &included,
+                    &all_events,
+                );
+            }
+            if number(event, "trusted_timestamp_at_unix_ms").is_none() {
+                return one_reason(
+                    "REJECT",
+                    "TIMESTAMP_TOKEN_TIME_MISSING",
+                    &[],
+                    &included,
+                    &all_events,
+                );
+            }
+        }
+        if text(event, "trusted_timestamp_status") == Some("absent")
+            && (text(event, "trusted_timestamp_imprint_sha256").is_some()
+                || number(event, "trusted_timestamp_at_unix_ms").is_some())
+        {
+            return one_reason(
+                "REJECT",
+                "ABSENT_TIMESTAMP_HAS_TOKEN_FIELDS",
+                &[],
+                &included,
+                &all_events,
+            );
+        }
         if text(event, "trusted_timestamp_status") == Some("unknown") {
             return one_reason(
                 "TRUST_UNRESOLVED",
@@ -704,7 +738,7 @@ mod tests {
             .get("cases")
             .and_then(Value::as_array)
             .expect("temporal replay cases");
-        assert_eq!(cases.len(), 18);
+        assert_eq!(cases.len(), 20);
 
         let modes = [
             ReplayMode::AsKnownAt,
@@ -822,6 +856,30 @@ mod tests {
                 vec!["EVENT_EFFECTIVITY_CROSSES_ACQUISITION_INTERVAL".to_owned()]
             );
         }
+    }
+
+    #[test]
+    fn valid_timestamp_claim_requires_exact_payload_imprint_and_token_time() {
+        let corpus: Value = serde_json::from_str(CORPUS).expect("temporal corpus parses");
+        let cases = corpus["cases"].as_array().expect("cases");
+        let valid = cases
+            .iter()
+            .find(|case| case["case_id"] == "valid-timestamp-imprint-binds-event-payload")
+            .expect("valid timestamp positive control");
+        let valid_report = evaluate_case(valid, ReplayMode::AsKnownAt);
+        assert_eq!(valid_report.disposition, "ACCEPTED_FOR_BINDING_ONLY");
+        assert_eq!(valid_report.applied_event_ids, vec!["EV-TSA-VALID"]);
+
+        let mismatch = cases
+            .iter()
+            .find(|case| case["case_id"] == "valid-timestamp-label-with-mismatching-imprint-rejected")
+            .expect("valid label/wrong digest negative control");
+        let mismatch_report = evaluate_case(mismatch, ReplayMode::AsKnownAt);
+        assert_eq!(mismatch_report.disposition, "REJECT");
+        assert_eq!(
+            mismatch_report.reason_codes,
+            vec!["TIMESTAMP_IMPRINT_MISMATCH".to_owned()]
+        );
     }
 
     #[test]
