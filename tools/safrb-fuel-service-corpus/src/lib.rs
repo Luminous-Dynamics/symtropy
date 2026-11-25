@@ -820,6 +820,24 @@ impl FuelServiceCase {
     /// Planner-visible projection. Hidden inventory truth, computed delivery,
     /// generated energy and final service verdict are deliberately excluded.
     pub fn to_planner_observation_json_line(&self) -> String {
+        let hourly_observations = self.hourly_trajectory.iter().map(|row| {
+            format!(
+                concat!(
+                    "{{",
+                    "\"hourIndex\":{},",
+                    "\"intervalStartUnixS\":{},",
+                    "\"demandWh\":{},",
+                    "\"criticalFloorWh\":{},",
+                    "\"telemetryState\":\"{}\"",
+                    "}}"
+                ),
+                row.hour_index,
+                row.interval_start_unix_s,
+                row.demand_wh,
+                row.critical_floor_wh,
+                row.telemetry_state.as_str(),
+            )
+        }).collect::<Vec<_>>().join(",");
         format!(
             concat!(
                 "{{",
@@ -868,7 +886,8 @@ impl FuelServiceCase {
                     "\"demandWh\":{},",
                     "\"criticalFloorWh\":{},",
                     "\"telemetryState\":\"{}\"",
-                "}}",
+                "}},",
+                "\"hourlyObservations\":[{}]",
                 "}}"
             ),
             self.schema_version,
@@ -905,11 +924,50 @@ impl FuelServiceCase {
             self.service.demand_wh,
             self.service.critical_floor_wh,
             self.service.telemetry_state.as_str(),
+            hourly_observations,
         )
     }
 
     /// Oracle-only projection. Keep this file out of planner input paths.
     pub fn to_oracle_truth_json_line(&self) -> String {
+        let hourly_truth = self.hourly_trajectory.iter().map(|row| {
+            format!(
+                concat!(
+                    "{{",
+                    "\"hourIndex\":{},",
+                    "\"intervalStartUnixS\":{},",
+                    "\"routeDeliveryGrams\":{},",
+                    "\"conversionInputGrams\":{},",
+                    "\"conversionOutputGrams\":{},",
+                    "\"processLossGrams\":{},",
+                    "\"fuelConsumedGrams\":{},",
+                    "\"grossGenerationWh\":{},",
+                    "\"networkDeliverableWh\":{},",
+                    "\"demandWh\":{},",
+                    "\"criticalFloorWh\":{},",
+                    "\"deliveredLowerWh\":{},",
+                    "\"deliveredUpperWh\":{},",
+                    "\"telemetryState\":\"{}\",",
+                    "\"disposition\":\"{}\"",
+                    "}}"
+                ),
+                row.hour_index,
+                row.interval_start_unix_s,
+                row.route_delivery_grams,
+                row.conversion_input_grams,
+                row.conversion_output_grams,
+                row.process_loss_grams,
+                row.fuel_consumed_grams,
+                row.gross_generation_wh,
+                row.network_deliverable_wh,
+                row.demand_wh,
+                row.critical_floor_wh,
+                row.delivered_lower_wh,
+                row.delivered_upper_wh,
+                row.telemetry_state.as_str(),
+                row.disposition.as_str(),
+            )
+        }).collect::<Vec<_>>().join(",");
         format!(
             concat!(
                 "{{",
@@ -976,7 +1034,8 @@ impl FuelServiceCase {
                     "\"uncertaintyBasisPoints\":{},",
                     "\"telemetryState\":\"{}\",",
                     "\"disposition\":\"{}\"",
-                "}}",
+                "}},",
+                "\"hourlyTrajectory\":[{}]",
                 "}}"
             ),
             self.schema_version,
@@ -1031,6 +1090,7 @@ impl FuelServiceCase {
             self.service.uncertainty_basis_points,
             self.service.telemetry_state.as_str(),
             self.service.disposition.as_str(),
+            hourly_truth,
         )
     }
 }
