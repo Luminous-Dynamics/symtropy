@@ -171,6 +171,7 @@ UnsafeRedispatch ==
     /\ journalIntent
     /\ recoveryGate \in {"blocked", "reconciled"}
     /\ dispatchCalls < 2
+    /\ physicalEffects = 1
     /\ dispatchCalls' = dispatchCalls + 1
     /\ lastCallBootEpoch' = bootEpoch
     /\ IF ownerLedger = "absent"
