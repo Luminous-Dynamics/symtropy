@@ -56,7 +56,7 @@ Every receipt states source_bytes_authenticated=false and authority_granted=fals
 
 ## Frozen corpus
 
-The 26 synthetic cases cover:
+The 28 synthetic cases cover:
 1. all identities and intervals match;
 2. camera, lens/intrinsics and robot/mount mismatch;
 3. target asset revision and coordinate-frame mismatch;
@@ -67,7 +67,7 @@ The 26 synthetic cases cover:
 8. acquisition/event identity mismatch;
 9. individually valid calibration scoped to a different instrument configuration;
 10. evidence interval is definitely disjoint (before or after) from the acquisition;
-11. acquisition uncertainty envelope overlaps or touches the half-open calibration validity boundary (INDETERMINATE);
+11. acquisition uncertainty envelope overlaps or touches the half-open calibration validity boundary (INDETERMINATE);\n12. exact zero-width acquisition-time interval at a single instant is allowed; zero-width evidence-validity interval is INVALID_INPUT;
 12. missing feature/sensor-pattern scope;
 13. duplicate scope claims and malformed digest shape;
 14. revoked source;
