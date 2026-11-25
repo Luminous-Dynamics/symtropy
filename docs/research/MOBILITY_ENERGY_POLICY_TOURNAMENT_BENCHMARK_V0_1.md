@@ -22,7 +22,7 @@ The v0.1 Rust evaluator consumes completed policy-run summaries. It does not run
 
 ### 2.1 Exact matched experiment
 
-Every policy must have exactly one result for each scenario/replication pair. Every run carries an information-trace digest, an information-audit digest, a future-information access count and a nonanticipativity violation count. A nonanticipative-online run with any future-information access or nonanticipativity violation is flagged as an evidence-integrity hard failure. The audit receipts are supplied by the replay harness; the evaluator checks their digest shape and reported counts, but does not authenticate the audit producer or independently prove information flow. Across policies, the exogenous pair must match on:
+Every policy must have exactly one result for each scenario/replication pair. Every run carries an information-trace digest, an information-audit digest, a future-information access count and a nonanticipativity violation count. A nonanticipative-online run with any future-information access or nonanticipativity violation is flagged as an evidence-integrity hard failure and reports `information_boundary_clean=false`; a clean online run reports `true`. This field is `null` for a clairvoyant offline upper-bound track, where nonanticipativity is not applicable. The audit receipts are supplied by the replay harness; the evaluator checks their digest shape and reported counts, but does not authenticate the audit producer or independently prove information flow. Across policies, the exogenous pair must match on:
 - scenario ID, scenario family, independent cluster ID and replication ID;
 - random seed, scenario digest and exogenous-input digest;
 - evidence class;
