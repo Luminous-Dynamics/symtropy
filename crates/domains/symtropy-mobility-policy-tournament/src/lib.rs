@@ -506,13 +506,6 @@ fn validate_input(input: &MobilityPolicyTournamentInput) -> Result<(), Tournamen
                 )));
             }
         }
-        if run.metered_grid_response_wh > 0
-            && run.metered_grid_response_wh as u64
-                > run.maximum_dc_network_deliverable_wh
-        {
-            // This remains a visible hard violation in the summary; it is not clipped.
-        }
-
         *run_count_by_policy.entry(run.policy_id.as_str()).or_default() += 1;
         let pair_key = (run.scenario_id.clone(), run.replication_id.clone());
         let keys = pair_keys.entry(run.policy_id.clone()).or_default();
@@ -703,7 +696,7 @@ fn cluster_means(
         .collect()
 }
 
-fn sum_violations(run: &PolicyRun) -> Result<BTreeMap<HardGateCategory, u64>, TournamentError> {
+fn sum_violations(run: &PolicyRun) -> BTreeMap<HardGateCategory, u64> {
     let mut result = BTreeMap::new();
     for violation in &run.hard_gate_violations {
         result.insert(violation.category, violation.count as u64);
@@ -713,7 +706,7 @@ fn sum_violations(run: &PolicyRun) -> Result<BTreeMap<HardGateCategory, u64>, To
     {
         *result.entry(HardGateCategory::NetworkDeliverability).or_default() += 1;
     }
-    Ok(result)
+    result
 }
 
 fn summarize_policy(
