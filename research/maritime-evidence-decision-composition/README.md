@@ -119,3 +119,30 @@ The v0 corpus is synthetic contract evidence. Passing it does not prove:
 - real-port service improvement or operational deployment safety.
 
 No dispatch, berth booking, custody transfer, payment, TOS mutation or other operational action is authorized by this harness.
+
+
+## Executable v0 increment (25 November 2026)
+
+The first implementation now exists in this research crate:
+
+- `src/lib.rs`: dependency-free typed gate reducer. It evaluates 25 upstream composition dispositions, preserves all blockers, and gives known contradictions precedence over abstention. `eligible_for_decision_review` is explicitly not execution authority.
+- `src/bin/composition_audit.rs`: deterministic per-case receipt emitter.
+- `fixtures/composition-cases.tsv`: executable four-column manifest corresponding to the human-readable JSON corpus.
+- `scripts/independent_reference.py`: test-only, standard-library Python reference. It independently reads the JSON and TSV, uses a literal 30-case known-answer map, executes the Rust receipt binary and compares every output row. Python is not part of the production path.
+- `.github/workflows/maritime-evidence-decision-composition.yml`: pinned Rust 1.96.0 format, test, strict Clippy, receipt and independent-reference workflow.
+
+The frozen corpus has 30 unique cases: 1 eligible-for-review baseline, 10 abstention cases and 19 rejection cases. The valid fixture is synthetic and exists only to check composition logic.
+
+### Validation status
+
+- JSON/TSV/reference-map parity was independently checked from the GitHub-hosted files: 30/30 case IDs and expected outcomes match.
+- The Rust compiler is not available in the current execution environment. Therefore formatting, compilation, Rust tests and Clippy have **not** been run locally.
+- No exact-head workflow result is claimed until the workflow reports a result for the exact PR head.
+- A passing synthetic corpus would establish only that the reducer matches this known-answer contract. It would not authenticate inputs, prove oracle independence, or qualify an operational decision.
+
+### Reducer semantics
+
+- Contradictory evidence, unsupported claims, rights violations, authorization violations, physical infeasibility, participant-floor violations, cargo-conservation failures, identity/revision mismatches and statistical-guarantee mislabelling reject the proposal.
+- Missing, unknown, stale, incomplete, not-identifiable or not-evaluable evidence abstains.
+- A known rejection dominates a separate abstention; all blockers remain in the receipt.
+- Only a fully passing bundle is eligible for human/authorized decision review. No operational mutation is performed.
