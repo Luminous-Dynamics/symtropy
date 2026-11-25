@@ -209,7 +209,8 @@ UnsafeReplayAfterNvmLoss ==
 UnsafeStaleEpochEffect ==
     /\ AllowStaleEpoch
     /\ deviceUp
-    /\ requestEpoch < endpointFenceEpoch
+    /\ tokenState = "reserved"
+    /\ acceptedEpoch < endpointFenceEpoch
     /\ staleEffectCount = 0
     /\ staleEffectCount' = staleEffectCount + 1
     /\ UNCHANGED <<deviceUp, deviceBoot, authorityEpoch, endpointFenceEpoch,
