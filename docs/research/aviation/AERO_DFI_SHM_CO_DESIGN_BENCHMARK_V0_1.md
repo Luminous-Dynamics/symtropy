@@ -198,6 +198,30 @@ Physical claims require blind, rights-cleared, independently reviewed evidence f
 - MIL-HDBK-1823A: active DoD handbook for NDE system reliability assessment; DLA identifies it as guidance only, not a standalone requirement.
 - Di Fiore et al. (8 June 2026), “Real-time sensing digital twin for aerospace structural health monitoring,” Structural and Multidisciplinary Optimization 69, article 159. It separates structural and sensing degradation and reconstructs sensor-fault-affected signals; its demonstration is a simulated composite wing panel and must not be represented as a physical flight/aircraft qualification.
 
+- Yan et al. (2026), “Physics-informed digital twin for spacecraft structures under sensor faults: Virtual sensing via a frequency attention U-Net and closed-loop model updating,” *Aerospace Science and Technology* 177, 112794, DOI: 10.1016/j.ast.2026.112794. This is a stronger adjacent experimental comparator: the authors report tests on a scaled reconfigurable spacecraft across multiple geometric configurations and 10 Hz / 800 Hz excitation, combining reduced-order FEM priors, frequency-domain neural reconstruction and constrained model updating. Their paper reports a 76.7 dB average reduction in a specific log-amplitude main-peak error metric at 800 Hz and 8–10 dB masked-channel errors versus up to 48 dB for spatial interpolation under its stated protocol. These are study-specific results, not directly transferable AERO targets, not aircraft qualification, and not evidence of general superiority. Replicate the exact metric/protocol before comparison.
+
+### 8.1 Replication and extension benchmark
+
+The SHM tournament should include two distinct benchmark tiers instead of collapsing different evidence types:
+
+1. **Numerical replication tier:** reproduce the Di Fiore composite-panel study's published geometry/material/model assumptions, damage parameterization, virtual sensor layout, six sensor-fault families (bias, drift, gain, saturation, dropout and stuck), sampling protocol and reported task metrics where the authors' artifacts permit. Preserve the fact that its structural damage is modelled by local element-stiffness weakening and its sensor data are synthetic; this is a controlled software/model baseline, not physical defect validation.
+2. **Experimental replication tier:** reproduce the Yan et al. scaled-spacecraft virtual-sensing/model-updating protocol on its stated configurations and 10 Hz / 800 Hz conditions, with the exact signal-processing and peak-search definitions. Compare against its spatial-interpolation baseline and disclosed ROM/FEM baselines. Report absolute and normalized errors, not only the paper's headline dB difference.
+
+**AERO extension challenges** should add:
+- held-out physical geometry/configuration and excitation conditions, rather than random time-window splits;
+- simultaneous structural changes plus sensor faults, with independent and common-cause sensor-fault groups;
+- correlated thermal/load/environment shifts, clock offset/drift and synchronization faults;
+- sensor relocation, partial channel loss and sensor-layout perturbation;
+- joint/contact nonlinearity and model-form discrepancy, with scope explicitly declared;
+- blind physical defect/NDE holdouts whose damage mechanism and detectability domain are known independently;
+- an unknown/OOD arm where a model must abstain instead of reconstructing a plausible but unsupported healthy response.
+
+**Required ablations and baselines:** spatial interpolation; ROM-only virtual sensing; data-driven reconstruction without physics prior; physics-informed reconstruction; sensor-health classifier without reconstruction; full coupled reconstruction + sensor-health + model update; and human analyst adjudication. Keep each study's native baselines separate where the testbeds are not interchangeable.
+
+**Score separately:** complex frequency-response error (magnitude and phase); peak amplitude and frequency error; modal-parameter and model-update residuals; damage-detection sensitivity and false-alarm exposure; sensor-fault detection/diagnosis; simultaneous-fault missed-damage rate; uncertainty calibration; OOD/abstention; latency and compute; and raw-to-derived evidence lineage. A lower reconstruction error must never be allowed to compensate for a missed damage indication or false structural-health clearance.
+
+The cross-study stretch goal is not to beat either published headline number on a different testbed. It is to demonstrate a better risk–resource Pareto frontier on a preregistered, matched testbed: no increase in missed-damage risk or unsupported healthy clearances, lower reconstruction/model-update error, calibrated uncertainty, and lower compute/inspection burden.
+
 ## 9. Non-claims
 
 This benchmark does not establish physical POD, structural health monitoring acceptance, fatigue/damage tolerance, maintenance interval, repair approval, structural substantiation, part acceptance, airworthiness, aircraft certification or authority to operate. It is an experiment and software-benchmark contract only.
