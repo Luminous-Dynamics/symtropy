@@ -41,7 +41,7 @@ The robust Huber implementation is a generic baseline, not a claimed reimplement
 
 ## Focused tests
 
-Eight tests currently cover:
+Eleven tests currently cover:
 
 1. exact affine OLS recovery;
 2. exact Theil–Sen recovery;
@@ -51,7 +51,9 @@ Eight tests currently cover:
 6. duplicate anchor identity rejection;
 7. input-order invariance under robust fitting;
 8. invalid Huber iteration/tolerance rejection;
-9. large absolute timestamp epochs with preserved local rate (the test suite now includes this additional ninth case).
+9. large absolute timestamp epochs with preserved local rate;
+10. rejection of negative clock rate;
+11. rejection above the 128-anchor resource bound.
 
 ## Next validation and comparison gates
 
