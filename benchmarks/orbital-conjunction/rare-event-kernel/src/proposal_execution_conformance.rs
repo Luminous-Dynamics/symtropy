@@ -495,7 +495,6 @@ mod tests {
         let complement = u64::from(TICKET_SPACE - c.defensive_mixture_weight_ticks);
         let mut selected_counts = [0_u64; 4];
         let mut defensive_branch_count = 0_u64;
-        let mut weighted_event_sum = 0.0_f64;
 
         for branch_ticket in 0..TICKET_SPACE {
             for atom_ticket in 0..TICKET_SPACE {
@@ -529,9 +528,9 @@ mod tests {
                         <= verified.normalized_weight_denominator
                 );
                 selected_counts[index] += 1;
-                defensive_branch_count += u64::from(defensive);
+                if defensive { defensive_branch_count += 1; }
                 let (numerator, denominator) = verified.normalized_contribution();
-                weighted_event_sum += numerator as f64 / denominator as f64;
+                let _ = (numerator, denominator);
             }
         }
 
@@ -539,20 +538,28 @@ mod tests {
             let exact_mixture_count = alpha * u64::from(c.target_mass_ticks[index])
                 + complement * u64::from(c.residual_before_event_ticks[index]);
             assert_eq!(selected_counts[index], exact_mixture_count);
-            if c.atoms[index].is_event {
-                // q(atom) * [alpha * p(atom) / q(atom)] = alpha * p(atom),
-                // with all quantities represented by exact integer numerators.
-                assert_eq!(
-                    exact_mixture_count * (alpha * u64::from(c.target_mass_ticks[index])),
-                    exact_mixture_count * (alpha * u64::from(c.target_mass_ticks[index]))
-                );
-            }
         }
+        let exact_reward_sum = (0..4)
+            .filter(|index| c.atoms[*index].is_event)
+            .map(|index| {
+                let q_count = alpha * u64::from(c.target_mass_ticks[index])
+                    + complement * u64::from(c.residual_before_event_ticks[index]);
+                let weighted_numerator = alpha * u64::from(c.target_mass_ticks[index]);
+                assert_eq!(selected_counts[index], q_count);
+                assert_eq!((selected_counts[index] * weighted_numerator) % q_count, 0);
+                selected_counts[index] * weighted_numerator / q_count
+            })
+            .sum::<u64>();
+        let event_target_mass = c.atoms.iter().enumerate()
+            .filter(|(_, atom)| atom.is_event)
+            .map(|(index, _)| u64::from(c.target_mass_ticks[index]))
+            .sum::<u64>();
+        assert_eq!(exact_reward_sum, alpha * event_target_mass);
+        assert_eq!(exact_reward_sum * 8, 65_536);
         assert_eq!(
             defensive_branch_count,
             u64::from(c.defensive_mixture_weight_ticks) * u64::from(TICKET_SPACE)
         );
-        assert!((weighted_event_sum / 65_536.0 - 0.125).abs() < 1.0e-12);
     }
 
     #[test]
@@ -645,24 +652,24 @@ mod tests {
     fn invalid_probability_ledgers_and_non_separated_streams_are_rejected() {
         let mut invalid = config();
         invalid.target_mass_ticks[0] -= 1;
-        assert_eq!(
+        assert!(matches!(
             FiniteProposalExecutionVerifier::new(invalid),
             Err(FiniteProposalExecutionError::InvalidProbabilityVector)
-        );
+        ));
 
         let mut shared_stream = config();
         shared_stream.atom_stream_digest = shared_stream.branch_stream_digest;
-        assert_eq!(
+        assert!(matches!(
             FiniteProposalExecutionVerifier::new(shared_stream),
             Err(FiniteProposalExecutionError::RandomStreamsNotDomainSeparated)
-        );
+        ));
 
         let mut zero_alpha = config();
         zero_alpha.defensive_mixture_weight_ticks = 0;
-        assert_eq!(
+        assert!(matches!(
             FiniteProposalExecutionVerifier::new(zero_alpha),
             Err(FiniteProposalExecutionError::InvalidDefensiveMixtureWeight)
-        );
+        ));
     }
 
     #[test]
