@@ -863,6 +863,15 @@ mod tests {
         );
         assert_eq!(clock_score.anchor_pairs, 2);
         assert!(clock_score.rms_residual.unwrap() < 1.0);
+
+        let one_anchor_view = world.policy_view(1);
+        let one_anchor_score = world.evaluate_clock_map(&one_anchor_view, None);
+        assert_eq!(one_anchor_score.anchor_pairs, 1);
+        assert_eq!(
+            one_anchor_score.disposition,
+            ClockDispositionV0::NonIdentifiableFromAvailableAnchors
+        );
+        assert!(one_anchor_score.correct_abstention);
     }
 
     #[test]
