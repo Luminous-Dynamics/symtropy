@@ -44,12 +44,24 @@ jobs:
           cargo run --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --release --locked -- --emit target/safrb-fuel-corpus-v0.1
           test "$(wc -l < target/safrb-fuel-corpus-v0.1/planner-observations.jsonl)" -eq 120
           test "$(wc -l < target/safrb-fuel-corpus-v0.1/oracle-truth.jsonl)" -eq 120
-          sha256sum target/safrb-fuel-corpus-v0.1/planner-observations.jsonl
-          sha256sum target/safrb-fuel-corpus-v0.1/oracle-truth.jsonl
-      - name: Retain generated corpus
+          cd target/safrb-fuel-corpus-v0.1
+          sha256sum planner-observations.jsonl oracle-truth.jsonl > SHA256SUMS
+          test -s SHA256SUMS
+      - name: Retain planner-visible observations
         uses: actions/upload-artifact@v4
         with:
-          name: safrb-fuel-service-corpus-v0.1
-          path: target/safrb-fuel-corpus-v0.1/*.jsonl
+          name: safrb-fuel-service-observations-v0.1
+          path: |
+            target/safrb-fuel-corpus-v0.1/planner-observations.jsonl
+            target/safrb-fuel-corpus-v0.1/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain evaluator-only oracle truth
+        uses: actions/upload-artifact@v4
+        with:
+          name: safrb-fuel-service-oracle-truth-v0.1
+          path: |
+            target/safrb-fuel-corpus-v0.1/oracle-truth.jsonl
+            target/safrb-fuel-corpus-v0.1/SHA256SUMS
           if-no-files-found: error
           retention-days: 90
