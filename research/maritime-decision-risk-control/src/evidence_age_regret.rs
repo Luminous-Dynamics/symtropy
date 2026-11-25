@@ -94,6 +94,7 @@ pub struct OperationalObservation {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ObservationValidationError {
     EmptyIdentity,
+    SubjectIdentityMismatch,
     ZeroSourceRevision,
     NegativeTimestamp,
     PublicationAfterRetrieval,
@@ -147,7 +148,7 @@ impl DecisionInput {
         for observation in &self.observations {
             observation.validate()?;
             if observation.subject_id != self.subject_id {
-                return Err(ObservationValidationError::EmptyIdentity);
+                return Err(ObservationValidationError::SubjectIdentityMismatch);
             }
         }
         Ok(())
@@ -360,6 +361,8 @@ pub struct PolicyDecision {
     /// Count of shared source-dependency clusters in the fresh evidence set.
     /// This is not inferred independence and does not imply statistical exchangeability.
     pub source_cluster_count: usize,
+    /// Maturity labels of the selected source record(s); not physical truth.
+    pub selected_maturity_summary: String,
     pub stale_evidence_used: bool,
     pub withdrawn_evidence_used: bool,
     pub claim_ceiling: &'static str,
@@ -389,9 +392,16 @@ impl PolicyDecision {
             active_published_observation_count: active.len(),
             fresh_observation_count: fresh_count,
             source_cluster_count: input.evidence_cluster_count(),
+            selected_maturity_summary: selected
+                .iter()
+                .map(|observation| observation.maturity.label())
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect::<Vec<_>>()
+                .join("+"),
             stale_evidence_used,
             withdrawn_evidence_used,
-            claim_ceiling: "SOURCE_REPORTED_PLANNING_INPUT_ONLY",
+            claim_ceiling: "SOURCE_REPORTED_ONLY_NOT_PHYSICAL_TRUTH",
         }
     }
 }
@@ -635,7 +645,7 @@ pub fn evaluate(
             PlannedAction::Contingent { .. } => (WRONG_WINDOW_LOSS, false, false, true),
             PlannedAction::Abstain { .. } => (ABSTENTION_LOSS, false, false, false),
         };
-    let abstained = matches!(decision.action, PlannedAction::Abstain { .. });
+    let abstained = matches!(&decision.action, PlannedAction::Abstain { .. });
     let fresh_windows = input.feasible_claimed_windows(&input.fresh_active_observations());
     let unanimous_fresh_feasible = !fresh_windows.is_empty() && fresh_windows.len() == 1;
     let unnecessary_abstention = abstained && unanimous_fresh_feasible;
@@ -804,7 +814,7 @@ pub fn benchmark_cases() -> Vec<BenchmarkCase> {
 
 pub fn render_csv() -> String {
     let mut output = String::from(
-        "case_id,strategy,as_of,action,primary_window,fallback_window,available_observations,active_published_observations,fresh_observations,source_cluster_count,stale_evidence_used,withdrawn_evidence_used,service_regret_units,false_confidence,contingent_fallback_recovered,unsupported_commitment,abstained,unnecessary_abstention,primary_source_id,fallback_source_id,claim_ceiling,status\n",
+        "case_id,strategy,as_of,action,primary_window,fallback_window,available_observations,active_published_observations,fresh_observations,source_cluster_count,selected_maturity,stale_evidence_used,withdrawn_evidence_used,service_regret_units,false_confidence,contingent_fallback_recovered,unsupported_commitment,abstained,unnecessary_abstention,primary_source_id,fallback_source_id,claim_ceiling,status\n",
     );
     for case in benchmark_cases() {
         for strategy in DecisionStrategy::ALL {
@@ -813,7 +823,7 @@ pub fn render_csv() -> String {
             let (primary_source, fallback_source) = decision.action.source_ids();
             let _ = writeln!(
                 output,
-                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},SYNTHETIC_ONLY",
+                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},SYNTHETIC_ONLY",
                 case.case_id,
                 strategy.label(),
                 case.input.as_of,
@@ -824,6 +834,9 @@ pub fn render_csv() -> String {
                 decision.active_published_observation_count,
                 decision.fresh_observation_count,
                 decision.source_cluster_count,
+                decision
+                    .selected_maturity_summary
+                    .as_str(),
                 decision.stale_evidence_used,
                 decision.withdrawn_evidence_used,
                 score.service_regret_units,
@@ -857,7 +870,7 @@ mod tests {
         let scenario = case("fresh_conflict_bounded_contingency_recovers");
         let input_only = &scenario.input;
         let decision = decide(input_only, DecisionStrategy::FailClosed).expect("valid input");
-        assert!(matches!(decision.action, PlannedAction::Abstain { .. }));
+        assert!(matches!(&decision.action, PlannedAction::Abstain { .. }));
     }
 
     #[test]
@@ -893,7 +906,7 @@ mod tests {
         let scenario = case("fresh_conflict_bounded_contingency_recovers");
         let decision = decide(&scenario.input, DecisionStrategy::FailClosed).expect("valid");
         assert!(matches!(
-            decision.action,
+            &decision.action,
             PlannedAction::Abstain {
                 reason: AbstentionReason::ConflictingEvidence
             }
@@ -910,7 +923,7 @@ mod tests {
         let decision =
             decide(&scenario.input, DecisionStrategy::BoundedContingent).expect("valid");
         assert!(matches!(
-            decision.action,
+            &decision.action,
             PlannedAction::Contingent {
                 primary_window: ServiceWindow::WindowB,
                 fallback_window: ServiceWindow::WindowA,
@@ -949,7 +962,7 @@ mod tests {
         let freshest = decide(&scenario.input, DecisionStrategy::FreshestPublished).expect("valid");
         let strict = decide(&scenario.input, DecisionStrategy::FailClosed).expect("valid");
         assert!(matches!(freshest.action, PlannedAction::Abstain { .. }));
-        assert!(matches!(strict.action, PlannedAction::Abstain { .. }));
+        assert!(matches!(&strict.action, PlannedAction::Abstain { .. }));
         let naive = decide(&scenario.input, DecisionStrategy::LatestIngested).expect("valid");
         assert_eq!(
             naive.action.primary_window(),
@@ -980,7 +993,7 @@ mod tests {
         let decision = decide(&scenario.input, DecisionStrategy::BoundedContingent).expect("valid");
         assert_eq!(decision.fresh_observation_count, 2);
         assert_eq!(decision.source_cluster_count, 1);
-        assert!(matches!(decision.action, PlannedAction::Contingent { .. }));
+        assert!(matches!(&decision.action, PlannedAction::Contingent { .. }));
     }
 
     #[test]
@@ -988,7 +1001,7 @@ mod tests {
         let scenario = case("too_many_conflicting_alternatives");
         let decision = decide(&scenario.input, DecisionStrategy::BoundedContingent).expect("valid");
         assert!(matches!(
-            decision.action,
+            &decision.action,
             PlannedAction::Abstain {
                 reason: AbstentionReason::MoreThanTwoFeasibleAlternatives
             }
@@ -1000,9 +1013,25 @@ mod tests {
         for scenario in benchmark_cases() {
             for strategy in DecisionStrategy::ALL {
                 let decision = decide(&scenario.input, strategy).expect("valid input");
-                assert_eq!(decision.claim_ceiling, "SOURCE_REPORTED_PLANNING_INPUT_ONLY");
+                assert_eq!(decision.claim_ceiling, "SOURCE_REPORTED_ONLY_NOT_PHYSICAL_TRUTH");
             }
         }
+    }
+
+    #[test]
+    fn source_reported_actual_maturity_remains_a_reported_claim() {
+        let mut scenario = case("fresh_unanimous_consensus");
+        scenario.input.observations[0].maturity = ClaimMaturity::SourceReportedActual;
+        let decision = decide(&scenario.input, DecisionStrategy::FreshestPublished)
+            .expect("valid actual-classified source record");
+        assert_eq!(
+            decision.selected_maturity_summary,
+            "ACT_SOURCE_REPORTED"
+        );
+        assert_eq!(
+            decision.claim_ceiling,
+            "SOURCE_REPORTED_ONLY_NOT_PHYSICAL_TRUTH"
+        );
     }
 
     #[test]
@@ -1028,7 +1057,7 @@ mod tests {
         let lines = first.lines().collect::<Vec<_>>();
         assert_eq!(lines.len(), 1 + benchmark_cases().len() * DecisionStrategy::ALL.len());
         let width = lines[0].split(',').count();
-        assert_eq!(width, 22);
+        assert_eq!(width, 23);
         for row in lines.iter().skip(1) {
             assert_eq!(row.split(',').count(), width);
         }
