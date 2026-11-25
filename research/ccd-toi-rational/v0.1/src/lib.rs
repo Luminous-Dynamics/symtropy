@@ -531,6 +531,35 @@ mod tests {
     }
 
     #[test]
+    fn exact_half_time_roots_are_enclosed_for_both_primitive_families() {
+        let root = rational(1, 2);
+        let narrow = ToiInterval::new(root, root).unwrap();
+        let score = evaluate_toi(&[
+            ToiEvaluation::new(
+                key(QueryKind::EdgeEdge, 0),
+                Some(root),
+                ToiClaim::ReportedInterval(narrow),
+            ),
+            ToiEvaluation::new(
+                key(QueryKind::VertexFace, 0),
+                Some(root),
+                ToiClaim::ReportedInterval(narrow),
+            ),
+        ])
+        .unwrap();
+
+        assert_eq!(score.counts.oracle_positive_queries, 2);
+        assert_eq!(score.counts.interval_claims, 2);
+        assert_eq!(score.counts.interval_root_enclosures, 2);
+        assert_eq!(score.counts.interval_enclosure_basis_points(), Some(10_000));
+        assert_eq!(
+            score.interval_width_percentile(50),
+            Some(RationalTime::ZERO)
+        );
+        assert!(score.counts.toi_claims_qualified());
+    }
+
+    #[test]
     fn point_estimate_is_not_mislabeled_as_interval_certificate() {
         let root = rational(1, 2);
         let exact = evaluate_toi(&[ToiEvaluation::new(
