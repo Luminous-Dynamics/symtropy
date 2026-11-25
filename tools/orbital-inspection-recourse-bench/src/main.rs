@@ -31,7 +31,10 @@ fn main() {
             receipt.expected_outcome_mismatches
         );
         for case in &receipt.cases {
-            eprintln!("case={} status={:?} states={}", case.case_id, case.status, case.search_states_expanded);
+            eprintln!(
+                "case={} status={:?} states={}",
+                case.case_id, case.status, case.search_states_expanded
+            );
         }
         process::exit(1);
     }
