@@ -78,6 +78,20 @@
       "source": "https://s24.q4cdn.com/101481333/files/content_files/STX-US-CORRECTED-TRANSCRIPT-Seagate-Technology-Holdings-PlcSTXUS-Q1-2027-Earnings-Call-27-ET-PM-26-10-2026-2026-10-26-0.pdf"
     },
     {
+      "id": "seagate_mozaic_5",
+      "medium": "HAMR magnetic disk",
+      "use_case": "future nearline HDD",
+      "status": "roadmap_prequalification",
+      "source_date": "2026-10-27",
+      "reported": {
+        "target_capacity_tb_per_drive": ">50",
+        "target_qualification_shipments": "toward_end_calendar_2027",
+        "laboratory_demonstration_tb_per_disk": 8
+      },
+      "status_note": "October 2026 earnings-call statements are product-roadmap and laboratory-demonstration information, not a shipping product or production qualification.",
+      "source": "https://s24.q4cdn.com/101481333/files/content_files/STX-US-CORRECTED-TRANSCRIPT-Seagate-Technology-Holdings-PlcSTXUS-Q1-2027-Earnings-Call-27-ET-PM-26-10-2026-2026-10-26-0.pdf"
+    },
+    {
       "id": "wd_40tb_ultrasmr_epmr",
       "medium": "ePMR/UltraSMR magnetic disk",
       "use_case": "nearline HDD",
@@ -101,7 +115,9 @@
         "transfer_rate_mb_per_s_native": 400
       },
       "compression_note": "100 TB compressed capacity assumes 2.5:1 data compression; native capacity is 40 TB.",
-      "source": "https://www.lto.org/lto-10/"
+      "source": "https://www.lto.org/lto-10/",
+      "security_note": "Compatible drives support hardware encryption. Fujifilm's 2026 product notice lists WORM on its 30 TB LTO-10 variant, not the 40 TB cartridge.",
+      "source_secondary": "https://newsroom-us.fujifilm.com/press-releases/press-release-details/2026/FUJIFILM-North-America-Corporation-Announces-U-S--Availability-of-FUJIFILM-LTO-Ultrium-Generation-10-40TB-Data-Cartridges-04-02-2026/default.aspx"
     },
     {
       "id": "micron_6600_ion",
