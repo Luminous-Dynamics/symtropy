@@ -19,6 +19,10 @@ fn frozen_three_policy_four_cluster_tournament_emits_paired_results() {
     assert_eq!(report.comparisons.len(), 2);
     assert!(report.all_policies_hard_gate_clean);
     assert!(report.all_policies_false_safe_free);
+    assert!(report.policies.iter().all(|policy| {
+        policy.information_boundary_clean == Some(true)
+            && policy.decision_mapping_conflict_count == 0
+    }));
     let mpc = report.comparisons.iter().find(|entry| entry.policy_id == "mpc").unwrap();
     assert_eq!(mpc.on_time_service_rate_basis_points.mean_delta, Some(1000.0));
     assert_eq!(mpc.signed_metered_grid_response_wh_per_run.mean_delta, Some(40.0));
