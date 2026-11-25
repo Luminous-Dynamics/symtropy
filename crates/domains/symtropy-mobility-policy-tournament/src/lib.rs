@@ -226,7 +226,7 @@ pub struct PolicySummary {
     pub p95_queue_wait_p95_ms: u64,
     pub future_information_access_count: u64,
     pub nonanticipativity_violation_count: u64,
-    pub information_boundary_clean: bool,
+    pub information_boundary_clean: Option<bool>,
     pub p95_mission_reserve_shortfall_wh: u64,
     pub p95_recovery_shortfall_wh: u64,
     pub empirical_cvar95_mission_reserve_shortfall_wh: f64,
@@ -1467,7 +1467,7 @@ mod tests {
         let report = evaluate_mobility_policy_tournament(&input).unwrap();
         let mpc = report.policies.iter().find(|policy| policy.policy_id == "mpc").unwrap();
         assert_eq!(mpc.future_information_access_count, 1);
-        assert!(!mpc.information_boundary_clean);
+        assert_eq!(mpc.information_boundary_clean, Some(false));
         assert!(!mpc.hard_gate_clean);
         assert_eq!(
             mpc.hard_gate_violations
