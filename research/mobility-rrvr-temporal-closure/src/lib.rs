@@ -25,6 +25,9 @@ pub struct NodeEvidence {
     /// Terminal nodes must enforce this at the actual actuation transition.
     pub endpoint_fence_enforced: bool,
     /// Fenced-and-drained evidence for this node.
+    pub sequence_generation_id: String,
+    pub accepted_sequence_generation_id: String,
+    pub retired_sequence_generation_id: String,
     pub last_accepted_sequence: u64,
     pub last_retired_sequence: u64,
     pub outstanding_commands: u32,
@@ -85,6 +88,7 @@ pub enum HoldReason {
     InvalidatedEvidence,
     DuplicateNode,
     DuplicateEdge,
+    DuplicateEdgePath,
     MissingIngress,
     MultipleIngresses,
     MissingTerminal,
@@ -96,6 +100,7 @@ pub enum HoldReason {
     MissingOldEpochFence,
     EndpointFenceMissing,
     UnaccountedNodeSequence,
+    SequenceGenerationMismatch,
     OutstandingNodeCommands,
     InFlightEdgeMessages,
     FutureEnqueuePossible,
@@ -174,12 +179,16 @@ fn graph_indexes(
     }
 
     let mut edge_ids = BTreeSet::new();
+    let mut edge_paths = BTreeSet::new();
     let mut adjacency = vec![Vec::new(); envelope.nodes.len()];
     let mut indegree = vec![0_usize; envelope.nodes.len()];
     let mut outdegree = vec![0_usize; envelope.nodes.len()];
     for edge in &envelope.edges {
         if !nonempty(&edge.edge_id) || !edge_ids.insert(edge.edge_id.clone()) {
             return Err(HoldReason::DuplicateEdge);
+        }
+        if !edge_paths.insert((edge.from_node_id.clone(), edge.to_node_id.clone())) {
+            return Err(HoldReason::DuplicateEdgePath);
         }
         let Some(&from) = ids.get(&edge.from_node_id) else {
             return Err(HoldReason::UnknownEdgeEndpoint);
@@ -252,6 +261,12 @@ fn fenced_and_drained(envelope: &TemporalClosureEnvelope) -> Result<(), HoldReas
         }
         if node.is_terminal && !node.endpoint_fence_enforced {
             return Err(HoldReason::EndpointFenceMissing);
+        }
+        if !nonempty(&node.sequence_generation_id)
+            || node.accepted_sequence_generation_id != node.sequence_generation_id
+            || node.retired_sequence_generation_id != node.sequence_generation_id
+        {
+            return Err(HoldReason::SequenceGenerationMismatch);
         }
         if node.last_accepted_sequence != node.last_retired_sequence {
             return Err(HoldReason::UnaccountedNodeSequence);
@@ -388,6 +403,9 @@ mod tests {
                 is_terminal: false,
                 rejects_old_epoch: true,
                 endpoint_fence_enforced: false,
+                sequence_generation_id: "generation-1".into(),
+                accepted_sequence_generation_id: "generation-1".into(),
+                retired_sequence_generation_id: "generation-1".into(),
                 last_accepted_sequence: 12,
                 last_retired_sequence: 12,
                 outstanding_commands: 0,
@@ -412,6 +430,9 @@ mod tests {
                 is_terminal: true,
                 rejects_old_epoch: true,
                 endpoint_fence_enforced: true,
+                sequence_generation_id: "generation-1".into(),
+                accepted_sequence_generation_id: "generation-1".into(),
+                retired_sequence_generation_id: "generation-1".into(),
                 last_accepted_sequence: 12,
                 last_retired_sequence: 12,
                 outstanding_commands: 0,
@@ -602,6 +623,28 @@ mod tests {
         assert_eq!(
             evaluate(&envelope),
             ClosureDecision::Hold(HoldReason::MissingOldEpochFence)
+        );
+    }
+
+    #[test]
+    fn accepted_and_retired_sequences_must_share_the_inventory_generation() {
+        let mut envelope = base_envelope();
+        envelope.nodes[1].retired_sequence_generation_id = "generation-0".into();
+        assert_eq!(
+            evaluate(&envelope),
+            ClosureDecision::Hold(HoldReason::SequenceGenerationMismatch)
+        );
+    }
+
+    #[test]
+    fn duplicate_parallel_edge_identity_is_rejected() {
+        let mut envelope = base_envelope();
+        let mut duplicate = envelope.edges[0].clone();
+        duplicate.edge_id = "controller-driver-duplicate".into();
+        envelope.edges.push(duplicate);
+        assert_eq!(
+            evaluate(&envelope),
+            ClosureDecision::Hold(HoldReason::DuplicateEdgePath)
         );
     }
 
