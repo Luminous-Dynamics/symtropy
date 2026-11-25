@@ -8,7 +8,7 @@ For contact-local coordinates [normal, tangent_1, tangent_2], this crate evaluat
 
 Contact frames must be orthonormal and right-handed. Inverse inertia tensors must be finite, symmetric and positive semidefinite; singular tensors are allowed. Static bodies use zero inverse mass/inertia.
 
-materialize_dense() constructs the small-system reference matrix through basis-vector applications. It is O(m^2) and must remain a validation path, not the production execution path.
+materialize_dense() independently assembles the sparse contact Jacobian rows and contracts shared-body inverse-mass/inertia blocks. It is O(m^2 B) in the worst case and must remain a tiny-system validation path, not the production execution path.
 
 ## Run
 
