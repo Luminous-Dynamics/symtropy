@@ -12,6 +12,8 @@ use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub mod evidence_binding_v0_2;
+/// Research-only synthetic temporal replay reference model; not a production trust verifier.
+pub mod temporal_replay_v0_1;
 
 const PROFILE_ID: &str = "aero-material-process-qual-v0.1";
 const CLAIM_CEILING: &str = "synthetic_contract_test_only";
