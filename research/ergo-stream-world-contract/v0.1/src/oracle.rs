@@ -376,48 +376,13 @@ fn enumerate_kind_mapping_classes(
         report,
     )
 }
-fn find_kind_and_relation_mapping(
-    source: &StructureV0,
-    target: &StructureV0,
-    node_map: &BTreeMap<u32, u32>,
-    node_correspondence: &[NodeCorrespondenceV0],
-) -> Option<StructuralCorrespondenceV0> {
-    let source_kinds = relation_kinds(source);
-    let target_kinds = relation_kinds(target);
-    let mut compatibility = Vec::with_capacity(source_kinds.len());
-
-    for source_kind in &source_kinds {
-        let mut candidates = Vec::new();
-        for target_kind in &target_kinds {
-            if let Some(transform) =
-                compatible_kind_transform(source, target, *source_kind, *target_kind, node_map)
-            {
-                candidates.push((*target_kind, transform));
-            }
-        }
-        compatibility.push(candidates);
-    }
-
-    choose_kind_mapping(
-        0,
-        &source_kinds,
-        &compatibility,
-        &mut Vec::new(),
-        &mut BTreeSet::new(),
-        source,
-        target,
-        node_map,
-        node_correspondence,
-    )
-}
-
-fn compatible_kind_transform(
+fn compatible_kind_transforms(
     source: &StructureV0,
     target: &StructureV0,
     source_kind: u16,
     target_kind: u16,
     node_map: &BTreeMap<u32, u32>,
-) -> Option<ParticipantTransformV0> {
+) -> Vec<ParticipantTransformV0> {
     let source_relations = source
         .relations
         .iter()
@@ -429,7 +394,7 @@ fn compatible_kind_transform(
         .filter(|relation| relation.kind == target_kind)
         .collect::<Vec<_>>();
     if source_relations.len() != target_relations.len() || source_relations.is_empty() {
-        return None;
+        return Vec::new();
     }
 
     let source_directed = source_relations
@@ -456,29 +421,30 @@ fn compatible_kind_transform(
             ParticipantTransformV0::ReverseOrder,
         ],
         (false, true, false, true) => &[ParticipantTransformV0::Unordered],
-        _ => return None,
+        _ => return Vec::new(),
     };
 
-    transforms.iter().copied().find(|transform| {
-        let mut source_signatures = source_relations
-            .iter()
-            .map(|relation| {
-                source_relation_signature(relation, node_map, *transform)
-            })
-            .collect::<Option<Vec<_>>>();
-        let Some(source_signatures) = source_signatures.as_mut() else {
-            return false;
-        };
-        let mut target_signatures = target_relations
-            .iter()
-            .map(|relation| target_relation_signature(relation, *transform))
-            .collect::<Vec<_>>();
-        source_signatures.sort();
-        target_signatures.sort();
-        *source_signatures == target_signatures
-    })
+    transforms
+        .iter()
+        .copied()
+        .filter(|transform| {
+            let mut source_signatures = source_relations
+                .iter()
+                .map(|relation| source_relation_signature(relation, node_map, *transform))
+                .collect::<Option<Vec<_>>>();
+            let Some(source_signatures) = source_signatures.as_mut() else {
+                return false;
+            };
+            let mut target_signatures = target_relations
+                .iter()
+                .map(|relation| target_relation_signature(relation, *transform))
+                .collect::<Vec<_>>();
+            source_signatures.sort();
+            target_signatures.sort();
+            *source_signatures == target_signatures
+        })
+        .collect()
 }
-
 fn source_relation_signature(
     relation: &super::transfer::RelationV0,
     node_map: &BTreeMap<u32, u32>,
@@ -538,7 +504,8 @@ fn orientation_code(orientation: RelationOrientationV0) -> u8 {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn choose_kind_mapping(
+#[allow(clippy::too_many_arguments)]
+fn choose_kind_mapping_classes(
     index: usize,
     source_kinds: &[u16],
     compatibility: &[Vec<(u16, ParticipantTransformV0)>],
@@ -548,15 +515,26 @@ fn choose_kind_mapping(
     target: &StructureV0,
     node_map: &BTreeMap<u32, u32>,
     node_correspondence: &[NodeCorrespondenceV0],
-) -> Option<StructuralCorrespondenceV0> {
+    report: &mut IsomorphismOracleReportV0,
+) -> bool {
     if index == source_kinds.len() {
-        return build_correspondence(
+        if let Some(correspondence) = build_correspondence(
             source,
             target,
             node_map,
             node_correspondence,
             chosen,
-        );
+        ) {
+            if report.valid_witness_class_count >= MAX_ORACLE_WITNESS_CLASSES_V0 {
+                report.witness_count_complete = false;
+                return false;
+            }
+            report.valid_witness_class_count += 1;
+            if report.correspondence.is_none() {
+                report.correspondence = Some(correspondence);
+            }
+        }
+        return true;
     }
 
     for (target_kind, transform) in &compatibility[index] {
@@ -568,7 +546,7 @@ fn choose_kind_mapping(
             target_kind: *target_kind,
             participant_transform: *transform,
         });
-        let found = choose_kind_mapping(
+        let complete = choose_kind_mapping_classes(
             index + 1,
             source_kinds,
             compatibility,
@@ -578,16 +556,16 @@ fn choose_kind_mapping(
             target,
             node_map,
             node_correspondence,
+            report,
         );
         chosen.pop();
         used_target_kinds.remove(target_kind);
-        if found.is_some() {
-            return found;
+        if !complete {
+            return false;
         }
     }
-    None
+    true
 }
-
 fn build_correspondence(
     source: &StructureV0,
     target: &StructureV0,
