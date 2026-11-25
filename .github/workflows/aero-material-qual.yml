@@ -193,11 +193,10 @@ jobs:
               if timestamp_status == "invalid_digest":
                   if timestamp_imprint is None or timestamp_imprint == event["payload_sha256"]:
                       raise SystemExit(f"{event['event_id']}: invalid-digest timestamp control must contain a mismatching imprint")
-              elif timestamp_status == "valid":
-                  if timestamp_imprint != event["payload_sha256"] or event["trusted_timestamp_at_unix_ms"] is None:
-                      raise SystemExit(f"{event['event_id']}: valid timestamp requires non-null time and exact payload imprint")
-              elif timestamp_status == "absent" and event["trusted_timestamp_at_unix_ms"] is not None:
-                  raise SystemExit(f"{event['event_id']}: absent timestamp must not carry a timestamp value")
+              elif timestamp_status == "valid" and event["trusted_timestamp_at_unix_ms"] is None:
+                  raise SystemExit(f"{event['event_id']}: valid timestamp claim requires a timestamp value")
+              elif timestamp_status == "absent" and (event["trusted_timestamp_at_unix_ms"] is not None or timestamp_imprint is not None):
+                  raise SystemExit(f"{event['event_id']}: absent timestamp must not carry token fields")
           if not any(event["receiver_receipt_status"] == "UNVERIFIED" for event in all_events):
               raise SystemExit("temporal replay corpus requires an unverified-receipt control")
           required_modes = {"as_known_at", "recomputed_with_current_trust", "recomputed_with_current_evidence_and_trust"}
@@ -262,9 +261,17 @@ jobs:
           valid_tsa = next((case for case in cases if case["case_id"] == "valid-timestamp-imprint-binds-event-payload"), None)
           if valid_tsa is None or any(valid_tsa["expected"][mode]["disposition"] != "ACCEPTED_FOR_BINDING_ONLY" for mode in required_modes):
               raise SystemExit("valid timestamp positive control is required")
+          valid_event = valid_tsa["events"][0]
+          if valid_event["trusted_timestamp_status"] != "valid" or valid_event["trusted_timestamp_imprint_sha256"] != valid_event["payload_sha256"] or valid_event["trusted_timestamp_at_unix_ms"] is None:
+              raise SystemExit("valid timestamp positive control must bind the exact payload and provide a timestamp")
           bad_tsa = next((case for case in cases if case["case_id"] == "valid-timestamp-label-with-mismatching-imprint-rejected"), None)
           if bad_tsa is None or any(bad_tsa["expected"][mode]["disposition"] != "REJECT" for mode in required_modes):
               raise SystemExit("valid-label/wrong-imprint negative control is required")
+          bad_event = bad_tsa["events"][0]
+          if bad_event["trusted_timestamp_status"] != "valid" or bad_event["trusted_timestamp_imprint_sha256"] == bad_event["payload_sha256"]:
+              raise SystemExit("timestamp mismatch control must claim valid status while binding the wrong digest")
+          if any("TIMESTAMP_IMPRINT_MISMATCH" not in bad_tsa["expected"][mode]["reason_codes"] for mode in required_modes):
+              raise SystemExit("wrong-imprint control must expect TIMESTAMP_IMPRINT_MISMATCH")
           alias = next((case for case in cases if case["case_id"] == "same-issuer-cannot-bypass-identity-with-unverified-namespace-alias"), None)
           if alias is None or len(alias["events"]) != 2:
               raise SystemExit("temporal corpus requires a source namespace alias attack control")
