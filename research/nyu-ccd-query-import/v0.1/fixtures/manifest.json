@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "dataset": "NYU Scalable CCD sample",
+  "scene": "armadillo-rollers",
+  "time_step": 3,
+  "query_kind": "edge-edge",
+  "source_repository": "https://github.com/Continuous-Collision-Detection/Sample-Scalable-CCD-Data",
+  "source_license": "Apache-2.0",
+  "files": {
+    "queries/3ee.csv": {
+      "source_path": "armadillo-rollers/queries/3ee.csv",
+      "sha256": "411fde8c0561a15d2821249bb644cd4efefa1652302426c1e15e2d819b7b52ed",
+      "bytes": 1749,
+      "rows": 16,
+      "queries": 2,
+      "columns": 6
+    },
+    "mma_bool/3ee_mma_bool.json": {
+      "source_path": "armadillo-rollers/mma_bool/3ee_mma_bool.json",
+      "sha256": "03e40de8fa245c0d50a473f70029148e8b01553a50b3388cdb034f485fcf1a51",
+      "bytes": 15,
+      "queries": 2,
+      "positive_queries": 0
+    },
+    "boxes/3ee.json": {
+      "source_path": "armadillo-rollers/boxes/3ee.json",
+      "sha256": "4cb0a177bf9d67ddf310a06378798004679acddb05eed5c38b9b09f3a3e36af7",
+      "bytes": 39,
+      "box_pairs": 2
+    }
+  },
+  "expected_import": {
+    "query_count": 2,
+    "oracle_positive_queries": 0,
+    "oracle_negative_queries": 2,
+    "broadphase_box_pairs": 2
+  }
+}
