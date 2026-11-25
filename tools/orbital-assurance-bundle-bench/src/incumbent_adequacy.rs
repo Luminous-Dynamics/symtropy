@@ -1390,3 +1390,8 @@ mod tests {
         assert!(report.cases.iter().all(|case| !case.authority_granted));
     }
 }
+
+/// Evaluate one already source-pinned incumbent bridge case without weakening the corpus gate.
+pub fn evaluate_single_case(case: &Case) -> CaseResult {
+    evaluate_case(case)
+}
