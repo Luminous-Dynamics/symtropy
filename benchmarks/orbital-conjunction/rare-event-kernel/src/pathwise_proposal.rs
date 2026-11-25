@@ -265,7 +265,7 @@ mod tests {
     }
 
     fn proposal_config(atoms: Vec<FiniteProposalAtom>, event_digest: [u8; 32]) -> FiniteAdaptiveProposalConfig {
-        let count = atoms.len() as u16;
+        let count = u16::try_from(atoms.len()).unwrap();
         assert!(count > 0 && count <= TICKET_SPACE);
         let target_mass = TICKET_SPACE / count;
         let mut masses = vec![target_mass; usize::from(count)];
@@ -511,4 +511,47 @@ mod tests {
             Err(PathwiseProposalError::EventDigestMismatch)
         );
     }
+
+    #[test]
+    fn empty_support_and_zero_event_digest_fail_closed() {
+        let definition = definition(
+            WindowInventoryCoverage::DeclaredComplete,
+            vec![window("a", 10.0, 20.0)],
+        );
+        assert_eq!(
+            derive_finite_pathwise_proposal_support(EVENT_DIGEST, &definition, &[]),
+            Err(PathwiseProposalError::EmptyTrajectorySupport)
+        );
+        assert_eq!(
+            derive_finite_pathwise_proposal_support(
+                [0; 32],
+                &definition,
+                &[FinitePathwiseTrajectoryAtom {
+                    atom_id: [31; 32],
+                    window_outcomes: vec![no_contact("trajectory-none", "a")],
+                }],
+            ),
+            Err(PathwiseProposalError::InvalidEventDigest)
+        );
+    }
+
+    #[test]
+    fn zero_atom_identity_is_rejected() {
+        let definition = definition(
+            WindowInventoryCoverage::DeclaredComplete,
+            vec![window("a", 10.0, 20.0)],
+        );
+        assert_eq!(
+            derive_finite_pathwise_proposal_support(
+                EVENT_DIGEST,
+                &definition,
+                &[FinitePathwiseTrajectoryAtom {
+                    atom_id: [0; 32],
+                    window_outcomes: vec![no_contact("trajectory-zero-id", "a")],
+                }],
+            ),
+            Err(PathwiseProposalError::InvalidAtomIdentity)
+        );
+    }
+
 }
