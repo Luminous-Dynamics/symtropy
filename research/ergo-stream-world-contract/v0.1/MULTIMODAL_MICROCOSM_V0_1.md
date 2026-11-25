@@ -75,15 +75,16 @@ A valid clock map does not prove semantic event correspondence. A semantically p
 
 ## Initial tests
 
-Seven tests cover:
+Eight tests cover:
 
 1. aligned correspondence and independently evaluated affine clock mapping;
 2. exact per-modality symbol and timestamp marginal preservation under shuffled cross-modal association, including dropout;
 3. rejection of same-slot pairings in the shuffled negative;
-4. four-way periodic correspondence ambiguity and correct set-valued/abstention outcomes;
+4. four-way periodic correspondence ambiguity even when clock anchors make the affine map identifiable;
 5. clock scoring invariance to semantic shuffling;
 6. clock abstention when shared anchors are absent;
-7. causal arrival-prefix filtering and fail-closed configuration checks.
+7. causal arrival-prefix filtering;
+8. deterministic out-of-order sensor-time delivery and fail-closed configuration checks.
 
 The existing `.github/workflows/ergo-stream-microcosm.yml` is the execution authority for Rust 1.96 formatting, tests and strict Clippy. The code is staged but not yet compiled or run in the authoring environment; no PASS is claimed until the workflow completes on the exact PR head.
 
