@@ -71,8 +71,8 @@
     {
       "case_id": "acquisition-before-calibration-window",
       "operation": "set",
-      "pointer": "/observations/0/acquired_at_utc",
-      "value": "2026-11-24T08:59:59Z",
+      "pointer": "/observations/0/acquired_at_unix_ms",
+      "value": 1795510799999,
       "expected_structurally_complete": false,
       "expected_violation_codes": [],
       "expected_blocker_codes": [
@@ -82,8 +82,8 @@
     {
       "case_id": "acquisition-at-exclusive-calibration-end",
       "operation": "set",
-      "pointer": "/observations/0/acquired_at_utc",
-      "value": "2026-11-24T11:00:00Z",
+      "pointer": "/observations/0/acquired_at_unix_ms",
+      "value": 1795518000000,
       "expected_structurally_complete": false,
       "expected_violation_codes": [],
       "expected_blocker_codes": [
@@ -121,7 +121,7 @@
       "expected_structurally_complete": false,
       "expected_violation_codes": [],
       "expected_blocker_codes": [
-        "TIME_BASIS_NOT_NORMALIZED_TO_UTC"
+        "TIME_BASIS_NOT_NORMALIZED_TO_UNIX_MS"
       ]
     },
     {
@@ -152,8 +152,8 @@
       "mutations": [
         {
           "operation": "set",
-          "pointer": "/evaluated_at_utc",
-          "value": "2026-11-24T10:40:00Z"
+          "pointer": "/evaluated_at_unix_ms",
+          "value": 1795516800000
         },
         {
           "operation": "append",
@@ -162,9 +162,9 @@
             "id": "EVENT-REVOKE-A",
             "certificate_id": "CAL-A",
             "event_type": "revoked",
-            "effective_at_utc": "2026-11-24T10:30:00Z",
-            "recorded_at_utc": "2026-11-24T10:35:00Z",
-            "retroactive": false
+            "retroactive": false,
+            "effective_at_unix_ms": 1795516200000,
+            "recorded_at_unix_ms": 1795516500000
           }
         }
       ],
@@ -175,14 +175,14 @@
       ]
     },
     {
-      "case_id": "invalid-calendar-timestamp",
+      "case_id": "negative-or-invalid-unix-time",
       "operation": "set",
-      "pointer": "/observations/0/acquired_at_utc",
+      "pointer": "/observations/0/acquired_at_unix_ms",
       "value": "2026-02-30T10:00:00Z",
       "expected_structurally_complete": false,
       "expected_violation_codes": [],
       "expected_blocker_codes": [
-        "ACQUISITION_TIMESTAMP_INVALID_OR_AMBIGUOUS"
+        "ACQUISITION_TIMESTAMP_MISSING_OR_INVALID"
       ]
     },
     {
@@ -194,9 +194,9 @@
         "certificate_id": "CAL-A",
         "event_type": "corrected",
         "corrects_event_id": "EVENT-NOT-FOUND",
-        "effective_at_utc": "2026-11-24T10:20:00Z",
-        "recorded_at_utc": "2026-11-24T10:21:00Z",
-        "retroactive": true
+        "retroactive": true,
+        "effective_at_unix_ms": 1795515600000,
+        "recorded_at_unix_ms": 1795515660000
       },
       "expected_structurally_complete": false,
       "expected_violation_codes": [
@@ -218,8 +218,6 @@
             "id": "EVENT-ORIGINAL",
             "certificate_id": "CAL-A",
             "event_type": "suspended",
-            "effective_at_utc": "2026-11-24T10:10:00Z",
-            "recorded_at_utc": "2026-11-24T10:11:00Z",
             "retroactive": false
           }
         },
@@ -231,9 +229,9 @@
             "certificate_id": "CAL-A",
             "event_type": "corrected",
             "corrects_event_id": "EVENT-ORIGINAL",
-            "effective_at_utc": "2026-11-24T10:20:00Z",
-            "recorded_at_utc": "2026-11-24T10:21:00Z",
-            "retroactive": true
+            "retroactive": true,
+            "effective_at_unix_ms": 1795515600000,
+            "recorded_at_unix_ms": 1795515660000
           }
         },
         {
@@ -244,9 +242,9 @@
             "certificate_id": "CAL-A",
             "event_type": "superseded",
             "corrects_event_id": "EVENT-ORIGINAL",
-            "effective_at_utc": "2026-11-24T10:22:00Z",
-            "recorded_at_utc": "2026-11-24T10:23:00Z",
-            "retroactive": true
+            "retroactive": true,
+            "effective_at_unix_ms": 1795515720000,
+            "recorded_at_unix_ms": 1795515780000
           }
         }
       ],
