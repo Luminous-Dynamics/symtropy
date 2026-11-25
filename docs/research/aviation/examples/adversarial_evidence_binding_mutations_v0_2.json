@@ -450,6 +450,62 @@
       "expected_structurally_complete": true,
       "expected_violation_codes": [],
       "expected_blocker_codes": []
+    },
+    {
+      "case_id": "specimen-item-id-reuse-across-distinct-sampling-events-accepted",
+      "operation": "composite",
+      "mutations": [
+        {
+          "operation": "append",
+          "pointer": "/hierarchy/specimens",
+          "value": {
+            "id": "SPEC-B",
+            "panel_id": "PANEL-A",
+            "configuration_id": "CONFIG-A"
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/specimen_source_assertions",
+          "value": {
+            "id": "SOURCE-ASSERTION-B",
+            "specimen_id": "SPEC-B",
+            "declared_material_lot_id": "LOT-A",
+            "declared_process_batch_id": "BATCH-A",
+            "declared_panel_id": "PANEL-A",
+            "verified_material_lot_id": "LOT-A",
+            "verified_process_batch_id": "BATCH-A",
+            "verified_panel_id": "PANEL-A",
+            "identity_status": "verified",
+            "source_system": "SYNTHETIC-TRAVELER-SYSTEM",
+            "source_record_id": "TRAVELER-0001",
+            "assertion_method": "independent-record-reconciliation",
+            "issuer_id": "SYNTHETIC-ISSUER-A",
+            "provenance_ref": "synthetic://traveler/0001#event-two",
+            "sampling_event_id": "SAMPLE-EVENT-0002",
+            "specimen_item_id": "SPECIMEN-ITEM-A"
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/intended_configuration_assertions",
+          "value": {
+            "id": "CONFIG-ASSERTION-B",
+            "specimen_id": "SPEC-B",
+            "declared_intended_configuration_id": "CONFIG-A",
+            "verified_intended_configuration_id": "CONFIG-A",
+            "identity_status": "verified",
+            "source_system": "SYNTHETIC-PLM",
+            "source_record_id": "PLM-RELEASE-0001",
+            "assertion_method": "independent-release-record-reconciliation",
+            "issuer_id": "SYNTHETIC-ISSUER-B",
+            "provenance_ref": "synthetic://plm/release/0001#event-two"
+          }
+        }
+      ],
+      "expected_structurally_complete": true,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": []
     }
   ],
   "oracle_review_status": "NOT_INDEPENDENTLY_REVIEWED",
