@@ -34,7 +34,7 @@ Required declaration: maximum physical-effect cardinality, endpoint token consum
 
 The command remains effective only within a bounded lease and authority epoch. Expiry and watchdog behavior must be enforced at the endpoint. Host process death alone is not a stop.
 
-Required declaration: lease duration, clock/epoch domain, endpoint expiry enforcement, watchdog reaction and measured stop behavior.
+Required declaration: lease duration, clock/epoch domain, endpoint epoch/expiry enforcement, exact watchdog reaction, device maximum watchdog response time, command-allowed response budget, and measured stop behavior. The command budget must be at least as large as the device's declared maximum response bound, and those reaction semantics must match exactly.
 
 ### Trajectory
 
