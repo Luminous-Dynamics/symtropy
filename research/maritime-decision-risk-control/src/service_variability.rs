@@ -295,7 +295,8 @@ impl ServiceReliabilityReport {
                     return Err(ServiceMetricError::ReceiverAcceptanceTimeMissing);
                 }
                 (DeliveryDisposition::ReceiverAccepted, Some(_), None)
-                | (DeliveryDisposition::ReceiverAccepted, Some(_), Some("")) => {
+                | (DeliveryDisposition::ReceiverAccepted, Some(_), Some(reference))
+                    if reference.trim().is_empty() => {
                     return Err(ServiceMetricError::ReceiverAcceptanceEvidenceMissing);
                 }
                 (DeliveryDisposition::ReceiverAccepted, Some(minutes), Some(_))
@@ -538,6 +539,7 @@ struct Scenario {
     cohorts: &'static [&'static str],
     deadline: u64,
     burst: bool,
+    include_unresolved_outcomes: bool,
 }
 
 const STABLE: [(u32, u32, u32, u32); 20] = [(50, 20, 20, 10); 20];
@@ -573,7 +575,7 @@ const FAIRNESS_COHORTS: [&str; 20] = [
     "PRIORITY_A", "PRIORITY_A", "PRIORITY_A", "SMALL_RECEIVER", "SMALL_RECEIVER",
 ];
 
-fn scenarios() -> [Scenario; 6] {
+fn scenarios() -> [Scenario; 7] {
     [
         Scenario {
             id: "MEAN_MATCHED_STABLE",
@@ -581,6 +583,7 @@ fn scenarios() -> [Scenario; 6] {
             cohorts: &[],
             deadline: 120,
             burst: false,
+            include_unresolved_outcomes: false,
         },
         Scenario {
             id: "MEAN_MATCHED_HIGH_VARIABILITY",
@@ -588,6 +591,7 @@ fn scenarios() -> [Scenario; 6] {
             cohorts: &[],
             deadline: 120,
             burst: true,
+            include_unresolved_outcomes: false,
         },
         Scenario {
             id: "BASELINE_END_TO_END",
@@ -595,6 +599,7 @@ fn scenarios() -> [Scenario; 6] {
             cohorts: &[],
             deadline: 160,
             burst: false,
+            include_unresolved_outcomes: false,
         },
         Scenario {
             id: "LOCAL_PORT_GAIN_NO_RECEIVER_GAIN",
@@ -602,6 +607,7 @@ fn scenarios() -> [Scenario; 6] {
             cohorts: &[],
             deadline: 160,
             burst: false,
+            include_unresolved_outcomes: false,
         },
         Scenario {
             id: "RECEIVER_REGRESSION",
@@ -609,6 +615,7 @@ fn scenarios() -> [Scenario; 6] {
             cohorts: &[],
             deadline: 160,
             burst: true,
+            include_unresolved_outcomes: false,
         },
         Scenario {
             id: "FAIRNESS_COHORT_FLOOR_HIDDEN_BY_AGGREGATE",
@@ -616,6 +623,15 @@ fn scenarios() -> [Scenario; 6] {
             cohorts: &FAIRNESS_COHORTS,
             deadline: 120,
             burst: true,
+            include_unresolved_outcomes: false,
+        },
+        Scenario {
+            id: "EXPECTED_UNITS_WITH_UNRESOLVED_DELIVERY",
+            observations: &STABLE,
+            cohorts: &[],
+            deadline: 120,
+            burst: false,
+            include_unresolved_outcomes: true,
         },
     ]
 }
@@ -630,12 +646,22 @@ pub fn render_csv() -> String {
         "scenario_id,n,port_mean_minutes,inland_mean_minutes,end_to_end_mean_minutes,p50_minutes,p90_minutes,p95_minutes,max_minutes,sample_sd_minutes,coefficient_of_variation,p95_to_p50_ratio,on_time_rate_per_mille,cohort_floor_violations,max_arrivals_in_60m,max_fcfs_wait_minutes,queue_wait_area_call_minutes,queue_completion_minutes,claim_ceiling\n",
     );
     for scenario in scenarios() {
-        let observations = synthetic_observations(
+        let mut observations = synthetic_observations(
             scenario.id,
             scenario.observations,
             scenario.cohorts,
             scenario.deadline,
         );
+        if scenario.include_unresolved_outcomes {
+            let not_delivered = observations.len() - 2;
+            observations[not_delivered].delivery_disposition = DeliveryDisposition::NotDelivered;
+            observations[not_delivered].receiver_delivery_minutes = None;
+            observations[not_delivered].receiver_acceptance_ref = None;
+            let unknown = observations.len() - 1;
+            observations[unknown].delivery_disposition = DeliveryDisposition::Unknown;
+            observations[unknown].receiver_delivery_minutes = None;
+            observations[unknown].receiver_acceptance_ref = None;
+        }
         let report = ServiceReliabilityReport::evaluate(
             &observations,
             MINIMUM_COHORT_ON_TIME_RATE_MILLI,
@@ -649,27 +675,37 @@ pub fn render_csv() -> String {
         let burst = maximum_arrivals_in_window(&arrivals, ARRIVAL_BURST_WINDOW_MINUTES)
             .expect("valid synthetic arrivals");
         let queue = simulate_fcfs_queue(&arrivals, 30, 2).expect("valid FCFS queue fixture");
+        let delivered = report
+            .end_to_end
+            .distribution
+            .as_ref()
+            .expect("each synthetic benchmark scenario has receiver acceptances");
         let _ = writeln!(
             output,
-            "{},{},{:.3},{:.3},{:.3},{},{},{},{},{},{},{},{},{},{},{},{},{},SYNTHETIC_ONLY",
+            "{},{},{:.3},{:.3},{:.3},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},SYNTHETIC_ONLY",
             scenario.id,
             report.observation_count,
             report.port_elapsed.mean_minutes,
             report.inland_transfer.mean_minutes,
-            report.end_to_end.distribution.mean_minutes,
-            report.end_to_end.distribution.p50_minutes,
-            report.end_to_end.distribution.p90_minutes,
-            report.end_to_end.distribution.p95_minutes,
-            report.end_to_end.distribution.maximum_minutes,
-            optional_float(report.end_to_end.distribution.sample_std_dev_minutes),
-            optional_float(report.end_to_end.distribution.coefficient_of_variation),
-            optional_float(report.end_to_end.distribution.p95_to_p50_ratio),
+            delivered.mean_minutes,
+            delivered.p50_minutes,
+            delivered.p90_minutes,
+            delivered.p95_minutes,
+            delivered.maximum_minutes,
+            optional_float(delivered.sample_std_dev_minutes),
+            optional_float(delivered.coefficient_of_variation),
+            optional_float(delivered.p95_to_p50_ratio),
             report.end_to_end.on_time_rate_milli,
             report.cohort_floor_violations,
             burst,
             queue.max_wait_minutes,
             queue.queue_wait_area_call_minutes,
-            queue.completion_time_minutes
+            queue.completion_time_minutes,
+            report.end_to_end.receiver_accepted_count,
+            report.end_to_end.not_delivered_count,
+            report.end_to_end.diverted_count,
+            report.end_to_end.cancelled_count,
+            report.end_to_end.unknown_count
         );
     }
     output
