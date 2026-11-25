@@ -94,7 +94,17 @@ The benchmark evaluates an envelope that references owner-native event/artifact 
 
 A timestamp token is evidence about the committed digest, not proof that the asserted event occurred at its stated effective time. A signature establishes attribution/integrity under a key policy; it does not alone establish the signer's authority over a calibration certificate or the truth of the underlying measurement.
 
-### 3.1 Canonicalization and immutable source bytes
+### 3.1 Receipt evidence is not a timestamp field
+
+The `receiver_first_seen_at` value is not sufficient by itself. The event envelope must also carry a receiver-receipt disposition, an immutable receipt reference and a digest of the exact event bytes covered by that receipt.
+
+For the synthetic corpus, `receiver_receipt_status=SYNTHETIC_VALID` is an oracle-controlled fixture label, not a cryptographic verification result. It requires a non-null receipt reference and `receiver_receipt_digest_sha256` exactly equal to `payload_sha256`. `UNVERIFIED` or `ABSENT` receipts cannot establish snapshot inclusion solely from the source's claimed `issuer_recorded_at` or `receiver_first_seen_at`. An invalid receipt/digest blocks or rejects according to the applicable challenge.
+
+A production adapter must replace these synthetic labels with an actual owner-native receiver receipt, verifiable inclusion proof or independently retained source bytes and receipt record. It must bind the exact event digest, receiver identity, durable receipt time and applicable evidence-inclusion watermark. The benchmark does not invent another receipt ledger.
+
+A trusted timestamp imprint is separately recorded as `trusted_timestamp_imprint_sha256`. A timestamp token whose imprint does not equal the canonical event digest is invalid timestamp evidence. A valid receiver receipt and a trusted timestamp token are different evidence mechanisms and must not be collapsed into one Boolean.
+
+### 3.2 Canonicalization and immutable source bytes
 
 The event digest must be computed over a versioned canonical representation. The canonicalization algorithm, schema/profile version and digest algorithm are part of the verification record.
 
@@ -108,7 +118,7 @@ Retain:
 
 Do not replace the source with a normalized form. Normalization and derived representations are new artifacts with parent references.
 
-### 3.2 Trusted time evidence
+### 3.3 Trusted time evidence
 
 RFC 3161 Time-Stamp Protocol is the first comparator for a timestamp authority. A valid token over the event digest can support the claim that the committed data existed no later than the token's asserted time, subject to its cryptographic and policy validation. It does **not** validate `effective_at`, event truth, physical acquisition, issuer authority or custody before the token.
 
@@ -116,7 +126,7 @@ RFC 4998 Evidence Record Syntax is a comparator for long-term integrity evidence
 
 Do not operate a new timestamp authority as part of this work. Consume independently verifiable evidence from an appropriate external provider or existing organizational service.
 
-### 3.3 Trust-policy snapshot
+### 3.4 Trust-policy snapshot
 
 An evaluation report must pin at least:
 - accepted trust roots and certificate/status evidence;
