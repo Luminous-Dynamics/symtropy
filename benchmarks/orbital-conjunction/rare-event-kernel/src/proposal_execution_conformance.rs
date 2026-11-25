@@ -747,6 +747,14 @@ mod tests {
             verifier.verify_next(wrong_scope),
             Err(FiniteProposalExecutionError::ReceiptScopeMismatch)
         );
+
+        let mut wrong_support_manifest = receipt(1, [109; 32], RESIDUAL_BEFORE, 0, 0, 0);
+        wrong_support_manifest.support_manifest_digest = [78; 32];
+        assert_eq!(
+            verifier.verify_next(wrong_support_manifest),
+            Err(FiniteProposalExecutionError::ReceiptScopeMismatch)
+        );
+        assert_eq!(verifier.sample_count(), 1);
     }
 
     #[test]
