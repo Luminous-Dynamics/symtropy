@@ -558,28 +558,33 @@ mod tests {
             }
         }
 
-        for index in 0..4 {
+        for (index, sample_count) in selected_counts.iter().copied().enumerate() {
             let exact_mixture_count = alpha * u64::from(c.target_mass_ticks[index])
                 + complement * u64::from(c.residual_before_event_ticks[index]);
-            assert_eq!(selected_counts[index], exact_mixture_count);
+            assert_eq!(sample_count, exact_mixture_count);
         }
-        let exact_reward_sum = (0..4)
-            .filter(|index| c.atoms[*index].is_event)
-            .map(|index| {
-                let q_count = alpha * u64::from(c.target_mass_ticks[index])
-                    + complement * u64::from(c.residual_before_event_ticks[index]);
-                let weighted_numerator = alpha * u64::from(c.target_mass_ticks[index]);
-                assert_eq!(selected_counts[index], q_count);
-                assert_eq!((selected_counts[index] * weighted_numerator) % q_count, 0);
-                selected_counts[index] * weighted_numerator / q_count
+        let exact_reward_sum = c
+            .atoms
+            .iter()
+            .zip(&c.target_mass_ticks)
+            .zip(&c.residual_before_event_ticks)
+            .zip(&selected_counts)
+            .filter(|(((atom, _), _), _)| atom.is_event)
+            .map(|(((_, target_mass), residual_mass), sample_count)| {
+                let q_count = alpha * u64::from(*target_mass)
+                    + complement * u64::from(*residual_mass);
+                let weighted_numerator = alpha * u64::from(*target_mass);
+                assert_eq!(*sample_count, q_count);
+                assert_eq!((*sample_count * weighted_numerator) % q_count, 0);
+                *sample_count * weighted_numerator / q_count
             })
             .sum::<u64>();
         let event_target_mass = c
             .atoms
             .iter()
-            .enumerate()
-            .filter(|(_, atom)| atom.is_event)
-            .map(|(index, _)| u64::from(c.target_mass_ticks[index]))
+            .zip(&c.target_mass_ticks)
+            .filter(|(atom, _)| atom.is_event)
+            .map(|(_, mass)| u64::from(*mass))
             .sum::<u64>();
         assert_eq!(exact_reward_sum, alpha * event_target_mass);
         assert_eq!(exact_reward_sum * 8, 65_536);
