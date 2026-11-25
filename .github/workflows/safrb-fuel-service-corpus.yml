@@ -41,13 +41,15 @@ jobs:
         run: cargo run --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --release --locked -- --check
       - name: Emit deterministic JSONL
         run: |
-          cargo run --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --release --locked -- --emit target/safrb-fuel-corpus-v0.1.jsonl
-          test "$(wc -l < target/safrb-fuel-corpus-v0.1.jsonl)" -eq 120
-          sha256sum target/safrb-fuel-corpus-v0.1.jsonl
+          cargo run --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --release --locked -- --emit target/safrb-fuel-corpus-v0.1
+          test "$(wc -l < target/safrb-fuel-corpus-v0.1/planner-observations.jsonl)" -eq 120
+          test "$(wc -l < target/safrb-fuel-corpus-v0.1/oracle-truth.jsonl)" -eq 120
+          sha256sum target/safrb-fuel-corpus-v0.1/planner-observations.jsonl
+          sha256sum target/safrb-fuel-corpus-v0.1/oracle-truth.jsonl
       - name: Retain generated corpus
         uses: actions/upload-artifact@v4
         with:
           name: safrb-fuel-service-corpus-v0.1
-          path: target/safrb-fuel-corpus-v0.1.jsonl
+          path: target/safrb-fuel-corpus-v0.1/*.jsonl
           if-no-files-found: error
           retention-days: 90
