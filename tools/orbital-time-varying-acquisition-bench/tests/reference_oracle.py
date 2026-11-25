@@ -75,14 +75,14 @@ def validate_case(case):
         or model["max_point_radius_um"] < model["min_depth_um"]
     ):
         reasons.add("RADIUS_ENVELOPE_INCONSISTENT")
-    for name in [
-        "motion_receipt_sha256",
-        "support_receipt_sha256",
-        "timing_receipt_sha256",
-        "calibration_receipt_sha256",
+    for name, reason in [
+        ("motion_receipt_sha256", "MOTION_RECEIPT_DIGEST_INVALID"),
+        ("support_receipt_sha256", "SUPPORT_RECEIPT_DIGEST_INVALID"),
+        ("timing_receipt_sha256", "TIMING_RECEIPT_DIGEST_INVALID"),
+        ("calibration_receipt_sha256", "CALIBRATION_RECEIPT_DIGEST_INVALID"),
     ]:
         if not valid_sha256(model[name]):
-            reasons.add(name.upper() + "_DIGEST_INVALID")
+            reasons.add(reason)
     return sorted(reasons)
 
 
