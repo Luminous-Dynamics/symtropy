@@ -99,10 +99,10 @@ fn display_id(events: &[&Value], event: &Value) -> String {
     }
 }
 
-fn sorted_ids(events: &[&Value]) -> Vec<String> {
+fn sorted_ids(events: &[&Value], all_events: &[&Value]) -> Vec<String> {
     events
         .iter()
-        .map(|event| display_id(events, event))
+        .map(|event| display_id(all_events, event))
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect()
@@ -118,8 +118,8 @@ fn disposition(
     TemporalDisposition {
         disposition: status.to_owned(),
         reason_codes: reasons.into_iter().collect::<BTreeSet<_>>().into_iter().collect(),
-        applied_event_ids: sorted_ids(applied),
-        excluded_event_ids: sorted_ids(excluded),
+        applied_event_ids: sorted_ids(applied, all_events),
+        excluded_event_ids: sorted_ids(excluded, all_events),
     }
 }
 
@@ -353,7 +353,6 @@ pub fn evaluate_case(case: &Value, mode: ReplayMode) -> TemporalDisposition {
     }
 
     for event in &included {
-        let id = display_id(&all_events, event);
         if text(event, "trusted_timestamp_status") == Some("invalid_digest") {
             return one_reason(
                 "REJECT",
@@ -367,6 +366,15 @@ pub fn evaluate_case(case: &Value, mode: ReplayMode) -> TemporalDisposition {
             return one_reason(
                 "REJECT",
                 "TIMESTAMP_TOKEN_INVALID",
+                &[],
+                &included,
+                &all_events,
+            );
+        }
+        if text(event, "trusted_timestamp_status") == Some("unknown") {
+            return one_reason(
+                "TRUST_UNRESOLVED",
+                "TIMESTAMP_TOKEN_STATUS_UNKNOWN",
                 &[],
                 &included,
                 &all_events,
@@ -551,7 +559,6 @@ pub fn evaluate_case(case: &Value, mode: ReplayMode) -> TemporalDisposition {
                 &all_events,
             );
         }
-        let _ = id;
     }
 
     // An event ID is scoped by its source namespace. A duplicated identity
