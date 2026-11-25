@@ -51,6 +51,14 @@ Sources:
 - https://technology.nasa.gov/advancing-commercial-space/autonomous_systems_robotics
 - https://www.nasa.gov/isam/robotic-servicing-arm/
 
+### Active visual perception and fair closed-loop evaluation
+
+Li et al. (15 October 2026), *Active Visual Perception: Opportunities and Challenges*, argues that active perception must be evaluated as a closed loop: specify missing task evidence, choose an action that can obtain it, estimate the value of the resulting observation, execute the action, then update the task state. It warns that a predicted useful view may be unreachable, and that task success alone does not prove the sensing policy caused the gain.
+
+The review's comparator recommendations are directly applicable here: fixed/passive, random, uniform, immediate-greedy, and a clearly labelled privileged/oracle upper bound. Keep the perception backbone, starting observation, candidate action set, sensing budget and task controller matched. Measure changes in the acquired evidence separately from downstream decision/task outcomes, plus view/path/action/time, compute, energy, reachability, collision and execution failures. Report premature stopping and unnecessary further observation separately; do not use a single weighted score.
+
+Source: https://www.mdpi.com/1424-8220/26/20/6544
+
 ### Probability of detection and conformity
 
 NIST TN 2119 lays out confidence intervals and confidence bounds for probability of detection, probability of identification and false-alarm rates. POD is a physical, method-specific qualification question; synthetic policy fixtures cannot establish it.
@@ -63,15 +71,19 @@ Every arm must receive the same geometry, target characteristics, candidate-view
 
 | Arm | Comparator | What it isolates |
 |---|---|---|
-| B0 | Fixed/teach-and-repeat route | Operational baseline |
-| B1 | Conventional coverage / viewpoint planner | Coverage and path planning |
-| B2 | Matched 2026 dexterity-oriented hierarchical planner | Published surface-inspection planning baseline |
-| B3 | Fixed recapture sequence | Non-adaptive inspection |
-| B4 | Greedy information gain per cost | Entropy reduction versus actual decision value |
-| B5 | Greedy worst-case decision-class separation | Decision-oriented heuristic |
-| B6 | Evidence-gated recourse | Proposed deployable policy |
-| B7 | Exhaustive finite policy oracle | Exact optimum on small support models only |
-| H | Hindsight/clairvoyant action selection | Evaluator-only upper bound; never a deployable competitor |
+| B0 | Fixed/teach-and-repeat route and fixed sensor schedule | Passive operational baseline |
+| B1 | Random feasible action selection | Uninformed-selection control |
+| B2 | Uniform spatial/temporal observation allocation | Uniform sensing control |
+| B3 | Conventional coverage / viewpoint planner | Coverage and path planning |
+| B4 | Matched 2026 dexterity-oriented hierarchical planner | Published surface-inspection planning baseline |
+| B5 | Greedy immediate information gain per cost | Entropy reduction versus actual decision value |
+| B6 | Greedy worst-case decision-class separation | Decision-oriented heuristic |
+| B7 | Fixed recapture sequence | Non-adaptive inspection control |
+| B8 | Evidence-gated sequential recourse using #6835/#6887/#7292 | Proposed operational policy, only after interfaces are qualified |
+| B9 | Exhaustive finite policy oracle | Exact optimum on tiny declared support models only |
+| H | Hindsight/clairvoyant action selection | Evaluator-only privileged upper bound; never a deployable competitor |
+
+Separately ablate the acquisition-envelope models without changing the sensing policy: translation-only #7384; constant-speed perspective #7399; time-varying acceleration/jerk #7422. Compare false holds and false-valid admissions against a time-synchronized reference trajectory, not only nominal blur scores.
 
 For the surface-inspection paper, first reproduce its own baseline and reported metrics under its geometry and sensor protocol. Then add the recourse objective on a separate, matched extension. If its raw data, CAD or implementation are unavailable, mark the comparison as not reproducible; do not infer a numerical comparison from the abstract.
 
@@ -83,11 +95,13 @@ For the surface-inspection paper, first reproduce its own baseline and reported 
 
 **Metrology:** characteristic-specific bias and repeatability, reference-method comparison, expanded uncertainty, uncertainty coverage, calibration invalidation detection delay, drift response and environment-specific performance.
 
-**Decision quality:** false engineering-decision commitment, false rejection, correct resolved decisions, appropriate abstention, unresolved decision-set size, decision regret, wasted observations and actions per resolved characteristic.
+**Observation-level evidence change:** visibility, valid depth, occlusion reduction, feature-local sampling, exposure/row/frame motion bound, timing association, photometric validity and calibrated characteristic-level uncertainty before/after each action.
+
+**Task/decision quality:** false engineering-decision commitment, false rejection, correct resolved decisions, appropriate abstention, unresolved decision-set size, decision regret, premature stopping, unnecessary additional observations, wasted observations and actions per resolved characteristic.
+
+**Action and system costs:** view count, path length, camera rotation, joint/robot action count, solver latency, completion time, computation, memory, robot energy, illumination/projector energy, communication volume, reachability, collision risk and execution failures.
 
 **Evidence assurance:** exact input/source binding, completeness, stale/revoked reference rejection, common-cause handling, deterministic replay, independent-oracle parity, audit completeness and policy non-anticipativity.
-
-**Resources:** worst-case/median time, robot energy, illumination/projector energy, compute, data volume and mandatory return reserve.
 
 Do not combine these into one weighted score. Report Pareto fronts and hard-gate violations separately.
 
@@ -129,8 +143,8 @@ A meaningful win must hold across repeated runs and hard scenarios—not only av
 - #7384: bounded acquisition integrity (synthetic evaluator).
 - #7382: calibration-chain validity (synthetic evaluator).
 - #7388: exact finite motion/exposure/illumination co-design (synthetic evaluator).
-- #7394: exact finite contingent inspection recourse (synthetic evaluator; qualification pending).
+- #7394: exact finite contingent inspection recourse (synthetic reference oracle; dedicated and cross-platform CI passed).
 - #6887: statistical sequential world-survival / anytime-valid decision sets.
-- #6845: parent inspectability and independent evidence programme.
+- #7399: perspective-aware translation/rotation projection envelope (11-case synthetic benchmark and Ubuntu/macOS/Windows CI passed).\n- #7422: time-varying acceleration/jerk envelope (17-case synthetic benchmark and independent Fraction oracle; exact-head CI pending).\n- #6845: parent inspectability and independent evidence programme.
 
 The implementation sequence should connect these contracts only through versioned, exact input and output receipts. Missing owners remain missing; synthetic or modeled evidence must never be presented as measured physical truth.
