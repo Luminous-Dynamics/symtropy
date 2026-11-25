@@ -91,7 +91,7 @@ pub struct DisplacementTerms {
 pub struct ProjectionBounds {
     pub row_time: DisplacementTerms,
     pub latest_row_exposure: DisplacementTerms,
-    pub combined_frame_path_um_upper: u64,
+    pub combined_frame: DisplacementTerms,
     pub exposure_x_micro_px_upper: u64,
     pub exposure_y_micro_px_upper: u64,
     pub row_time_x_micro_px_upper: u64,
@@ -248,6 +248,62 @@ fn sum_displacement_terms(speed: u64, acceleration: u64, jerk: u64) -> Result<Di
     })
 }
 
+fn acceleration_frame_term(
+    acceleration_um_s2: u64,
+    row_span_ns: u64,
+    exposure_ns: u64,
+) -> Result<u64, String> {
+    // Integral of |t| over [-E/2, T+E/2] is
+    // (E^2 + (2T+E)^2) / 8.
+    let t = u128::from(row_span_ns);
+    let e = u128::from(exposure_ns);
+    let twice_t_plus_e = t
+        .checked_mul(2)
+        .and_then(|value| value.checked_add(e))
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let e2 = e.checked_mul(e).ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let q2 = twice_t_plus_e
+        .checked_mul(twice_t_plus_e)
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let eight_i1 = e2
+        .checked_add(q2)
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let numerator = u128::from(acceleration_um_s2)
+        .checked_mul(eight_i1)
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    to_u64(ceil_div(numerator, 8 * NS2_PER_SECOND2)?)
+}
+
+fn jerk_frame_term(
+    jerk_um_s3: u64,
+    row_span_ns: u64,
+    exposure_ns: u64,
+) -> Result<u64, String> {
+    // Integral of t^2 over [-E/2, T+E/2] is
+    // ((2T+E)^3 + E^3) / 24. The speed envelope contains J*t^2/2.
+    let t = u128::from(row_span_ns);
+    let e = u128::from(exposure_ns);
+    let twice_t_plus_e = t
+        .checked_mul(2)
+        .and_then(|value| value.checked_add(e))
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let q2 = twice_t_plus_e
+        .checked_mul(twice_t_plus_e)
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let q3 = q2
+        .checked_mul(twice_t_plus_e)
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let e2 = e.checked_mul(e).ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let e3 = e2.checked_mul(e).ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let twenty_four_i2 = q3
+        .checked_add(e3)
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let numerator = u128::from(jerk_um_s3)
+        .checked_mul(twenty_four_i2)
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    to_u64(ceil_div(numerator, 48 * NS3_PER_SECOND3)?)
+}
+
 fn projected_axis_upper(
     focal_micro_px: u64,
     displacement_um: u64,
@@ -357,10 +413,25 @@ fn calculate_bounds(model: &MotionModel) -> Result<ProjectionBounds, String> {
         )?,
     )?;
 
-    let combined_um = row
-        .total_um
-        .checked_add(exposure.total_um)
+    // The combined frame is integrated directly over the complete acquisition
+    // interval [-E/2, T+E/2]. Adding separately rounded row/exposure maxima can
+    // under-bound this interval when T < E/2.
+    let full_frame_duration_ns = row_span_ns
+        .checked_add(exposure_ns)
         .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let combined_frame = sum_displacement_terms(
+        speed_term(model.reference_point_speed_um_s, full_frame_duration_ns)?,
+        acceleration_frame_term(
+            model.reference_point_acceleration_um_s2,
+            row_span_ns,
+            exposure_ns,
+        )?,
+        jerk_frame_term(
+            model.point_jerk_upper_um_s3,
+            row_span_ns,
+            exposure_ns,
+        )?,
+    )?;
 
     let exposure_x = projected_axis_upper(
         model.focal_x_micro_px,
@@ -388,13 +459,13 @@ fn calculate_bounds(model: &MotionModel) -> Result<ProjectionBounds, String> {
     )?;
     let combined_x = projected_axis_upper(
         model.focal_x_micro_px,
-        combined_um,
+        combined_frame.total_um,
         model.max_abs_x_um,
         model.min_depth_um,
     )?;
     let combined_y = projected_axis_upper(
         model.focal_y_micro_px,
-        combined_um,
+        combined_frame.total_um,
         model.max_abs_y_um,
         model.min_depth_um,
     )?;
@@ -402,7 +473,7 @@ fn calculate_bounds(model: &MotionModel) -> Result<ProjectionBounds, String> {
     Ok(ProjectionBounds {
         row_time: row,
         latest_row_exposure: exposure,
-        combined_frame_path_um_upper: combined_um,
+        combined_frame,
         exposure_x_micro_px_upper: exposure_x,
         exposure_y_micro_px_upper: exposure_y,
         row_time_x_micro_px_upper: row_x,
