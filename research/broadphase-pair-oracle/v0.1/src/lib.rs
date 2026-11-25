@@ -228,7 +228,7 @@ impl PairSetCounts {
     pub fn candidate_false_positive_rate_basis_points(self) -> Option<u64> {
         rate_basis_points(
             self.false_positive_pairs,
-            self.eligible_pairs_after_filter - self.oracle_overlapping_pairs,
+            self.eligible_pairs_after_filter.checked_sub(self.oracle_overlapping_pairs)?,
         )
     }
 
@@ -240,7 +240,7 @@ impl PairSetCounts {
     #[must_use]
     pub fn reduction_basis_points(self) -> Option<u64> {
         rate_basis_points(
-            self.eligible_pairs_after_filter - self.emitted_candidate_pairs,
+            self.eligible_pairs_after_filter.checked_sub(self.emitted_candidate_pairs)?,
             self.eligible_pairs_after_filter,
         )
     }
