@@ -62,3 +62,19 @@ After characterizing the reference instrument's repeatability and uncertainty, t
 - Independent Magpylib parity: not yet performed.
 - Physical encoder fabrication or measurement: not performed.
 - Industrial superiority: not demonstrated.
+
+
+## Application-level uncertainty propagation
+
+The encoder benchmark branch now includes a first-order covariance-to-phase function in the isolated Rust crate. It consumes an exact identity-matched trace of 2x2 (Bx, By) field covariance samples and an independent reference-uncertainty record.
+
+For the measured vector `B=(Bx,By)`, local phase gradient is `(-By/|B|^2, Bx/|B|^2)`; field covariance propagates through this Jacobian. Mechanical angle reference standard uncertainty is multiplied by pole-pair count; phase-zero calibration standard uncertainty remains a separate additive variance term. The phase-zero calibration record ID must match the independent calibration ID used by the deterministic phase requirements.
+
+This keeps three contributions visible:
+- field-map measurement uncertainty;
+- mechanical reference uncertainty, scaled by pole-pair count;
+- phase-zero calibration uncertainty.
+
+The function reports per-sample and aggregate standard-uncertainty summaries plus descriptive residual / standard-uncertainty ratios. It does not estimate covariance, establish coverage or model joint cross-sample common-mode correlation. It does not interpret normalized residuals as p-values. Physical calibration, covariance estimation and the independent reference instrument still need separate evidence.
+
+The implementation has synthetic known-answer, inverse-field-scaling, rotational covariance metamorphism, rank-one PSD, indefinite/NaN covariance, identity mismatch, calibration mismatch, weak-field and zero-uncertainty negative controls. They are authored tests, not yet a reported runner pass.
