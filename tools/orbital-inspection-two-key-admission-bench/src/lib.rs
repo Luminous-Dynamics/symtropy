@@ -67,6 +67,8 @@ pub struct PortfolioBinding {
     pub state: GateState,
     pub event_set_complete: bool,
     pub action_id: String,
+    pub vehicle_id: String,
+    pub trajectory_revision: String,
     pub horizon_id: String,
     pub event_set_revision: String,
     pub receipt_sha256: String,
@@ -78,6 +80,9 @@ pub struct MeasurementBinding {
     pub acquisition_state: GateState,
     pub scope_coherence_state: GateState,
     pub action_id: String,
+    pub vehicle_id: String,
+    pub trajectory_revision: String,
+    pub horizon_id: String,
     pub acquisition_id: String,
     pub camera_id: String,
     pub asset_id: String,
@@ -269,6 +274,8 @@ fn evaluate_case(case: &Case) -> CaseResult {
 
     if let Some(binding) = &candidate.post_action_portfolio {
         if !valid_text(&binding.action_id)
+            || !valid_text(&binding.vehicle_id)
+            || !valid_text(&binding.trajectory_revision)
             || !valid_text(&binding.horizon_id)
             || !valid_text(&binding.event_set_revision)
             || !valid_sha256(&binding.receipt_sha256)
@@ -276,6 +283,8 @@ fn evaluate_case(case: &Case) -> CaseResult {
             return result(Disposition::InvalidInput, vec!["PORTFOLIO_BINDING_INVALID".to_owned()]);
         }
         if !same(&scope.action_id, &binding.action_id)
+            || !same(&scope.vehicle_id, &binding.vehicle_id)
+            || !same(&scope.trajectory_revision, &binding.trajectory_revision)
             || !same(&scope.horizon_id, &binding.horizon_id)
         {
             return result(Disposition::OutOfScope, vec!["POST_ACTION_PORTFOLIO_SCOPE_MISMATCH".to_owned()]);
@@ -284,6 +293,9 @@ fn evaluate_case(case: &Case) -> CaseResult {
 
     if let Some(binding) = &candidate.measurement {
         if !valid_text(&binding.action_id)
+            || !valid_text(&binding.vehicle_id)
+            || !valid_text(&binding.trajectory_revision)
+            || !valid_text(&binding.horizon_id)
             || !valid_text(&binding.acquisition_id)
             || !valid_text(&binding.camera_id)
             || !valid_text(&binding.asset_id)
@@ -306,6 +318,9 @@ fn evaluate_case(case: &Case) -> CaseResult {
             return result(Disposition::Indeterminate, vec!["FEATURE_SCOPE_MISSING".to_owned()]);
         };
         if !same(&scope.action_id, &binding.action_id)
+            || !same(&scope.vehicle_id, &binding.vehicle_id)
+            || !same(&scope.trajectory_revision, &binding.trajectory_revision)
+            || !same(&scope.horizon_id, &binding.horizon_id)
             || !same(acquisition_id, &binding.acquisition_id)
             || !same(camera_id, &binding.camera_id)
             || !same(asset_id, &binding.asset_id)
