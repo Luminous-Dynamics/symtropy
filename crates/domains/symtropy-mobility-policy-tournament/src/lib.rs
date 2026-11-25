@@ -729,6 +729,18 @@ fn sum_violations(run: &PolicyRun) -> BTreeMap<HardGateCategory, u64> {
     {
         *result.entry(HardGateCategory::NetworkDeliverability).or_default() += 1;
     }
+    if run.mission_reserve_shortfall_wh > 0 {
+        result
+            .entry(HardGateCategory::MissionReserve)
+            .and_modify(|count| *count = (*count).max(1))
+            .or_insert(1);
+    }
+    if run.recovery_shortfall_wh > 0 {
+        result
+            .entry(HardGateCategory::ReserveRecovery)
+            .and_modify(|count| *count = (*count).max(1))
+            .or_insert(1);
+    }
     result
 }
 
@@ -768,9 +780,6 @@ fn summarize_strata(
             checked_add_signed(&mut metered, run.metered_grid_response_wh, "stratum metered response")?;
             for count in sum_violations(run).values() {
                 checked_add(&mut hard_violation_count, *count, "stratum hard violations")?;
-            }
-            if run.mission_reserve_shortfall_wh > 0 || run.recovery_shortfall_wh > 0 {
-                checked_add(&mut hard_violation_count, 1, "stratum reserve/recovery shortfall events")?;
             }
             if run.requested_grid_service_wh > 0 && run.shield_admitted && !run.oracle_action_feasible {
                 false_safe += 1;
@@ -944,10 +953,7 @@ fn summarize_policy(
         .iter()
         .map(|(category, count)| GateViolationCount { category: *category, count: *count })
         .collect();
-    totals.hard_gate_clean = violations.values().all(|count| *count == 0)
-        && totals.network_cap_conflicts == 0
-        && totals.total_mission_reserve_shortfall_wh == 0
-        && totals.total_recovery_shortfall_wh == 0;
+    totals.hard_gate_clean = violations.values().all(|count| *count == 0);
     totals.false_safe_free = totals.false_safe_admissions == 0;
     Ok(totals)
 }
