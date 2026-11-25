@@ -139,10 +139,7 @@ fn validate_pairs(pairs: &[ClockAnchorPairV0]) -> Result<OriginsV0, ClockFitErro
     })
 }
 
-fn centered_pairs(
-    pairs: &[ClockAnchorPairV0],
-    origins: OriginsV0,
-) -> Vec<CenteredPairV0> {
+fn centered_pairs(pairs: &[ClockAnchorPairV0]) -> Vec<CenteredPairV0> {
     let first = pairs[0];
     pairs
         .iter()
@@ -285,7 +282,7 @@ pub fn fit_affine_ols_v0(
     pairs: &[ClockAnchorPairV0],
 ) -> Result<ClockFitV0, ClockFitErrorV0> {
     let origins = validate_pairs(pairs)?;
-    let points = centered_pairs(pairs, origins);
+    let points = centered_pairs(pairs);
     let line = unweighted_least_squares(&points)?;
     build_fit(pairs, origins, &points, line, 0)
 }
