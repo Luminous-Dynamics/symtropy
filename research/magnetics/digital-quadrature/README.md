@@ -63,3 +63,21 @@ Each scenario result is preserved. The set reports accepted/rejected scenario co
 ## Boundaries
 
 Synthetic tests qualify arithmetic and state-machine semantics only. They do not establish physical sensor behaviour, physical edge timing, product speed limits, ring manufacturability, yield or industrial superiority. No machine-control, magnetization or component-release authority is provided.
+
+
+## Captured digital output reconciliation
+
+The crate also includes a separate CapturedQuadratureTrace record and reconcile_captured_output function. A capture is not accepted as a field trace. It must identify the physical sensor part, datasheet revision, channel mapping, sensor configuration, source field trace, coordinate frame, operating condition, independent rotor reference, clock calibration, synchronization record and latency calibration.
+
+Each captured edge carries an acquisition timestamp, independent mechanical reference angle and A/B state after the edge. The capture must cover the same full-revolution angle window as the prediction. The comparator reports:
+- predicted versus captured transition counts, missing and extra edges;
+- initial-state, state-after and direction mismatches;
+- illegal two-bit transitions in the capture;
+- captured edge containment in each predicted field-sample bracket;
+- distance to the predicted bracket and signed residual from its midpoint;
+- captured inter-edge time intervals;
+- latency correction and its uncertainty, DAQ clock uncertainty and rotor-angle uncertainty.
+
+The capture is never shifted or trimmed to force a match. The mechanical angle supplied for each edge must already reflect the declared synchronization/latency correction. The function records the correction and uncertainty but does not guess or apply one. Time uncertainties are not converted into angle without an independently established speed/time relationship.
+
+A synthetic generated capture only validates the record/reconciliation plumbing. It does not establish physical ASIC response, physical edge timing or a calibrated rotor-reference chain.
