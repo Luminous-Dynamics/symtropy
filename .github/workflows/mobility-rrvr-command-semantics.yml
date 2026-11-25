@@ -50,3 +50,12 @@ jobs:
             and any(.cases[]; .case_id == "SEM-008" and .expected == "hold" and .contract.restart_from_segment_zero_allowed == true)
             and any(.cases[]; .case_id == "SEM-009" and .expected == "hold" and .contract.coordinate_frame == "world-frame-substituted")
           ' "$FIXTURE"
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path research/mobility-rrvr-command-semantics/Cargo.toml -- --check
+
+      - name: Run command semantics reference tests
+        run: cargo test --locked --manifest-path research/mobility-rrvr-command-semantics/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/mobility-rrvr-command-semantics/Cargo.toml --all-targets -- -D warnings
