@@ -44,8 +44,11 @@ pub enum JointActionOutcomeState {
         post_action_snapshot: ConjunctionPortfolioSnapshot,
         /// Identity of the independently qualified consequence model.
         consequence_model_digest: [u8; 32],
-        /// Caller-supplied robust lower bound on consequence avoided, in fixed integer ticks.
-        robust_consequence_avoided_ticks: u64,
+        /// Caller-supplied signed lower bound on consequence avoided, in fixed integer ticks.
+        ///
+        /// Negative values represent a robust net consequence increase relative to no action.
+        /// The no-action control is exactly zero; values are never clamped to zero.
+        robust_consequence_avoided_ticks: i64,
         /// Evidence digest for required operator coordination.
         coordination_digest: Option<[u8; 32]>,
     },
@@ -114,8 +117,8 @@ pub struct JointActionCatalogueReport {
     pub selected_action_set_digest: Option<[u8; 32]>,
     /// Resource units consumed by the selected portfolio.
     pub selected_resource_cost: Option<u64>,
-    /// Robust consequence-avoided lower bound for the selected portfolio.
-    pub selected_robust_consequence_avoided_ticks: Option<u64>,
+    /// Signed robust lower bound on consequence avoided for the selected portfolio.
+    pub selected_robust_consequence_avoided_ticks: Option<i64>,
     /// Number of statically selectable coalitions whose outcome was required.
     pub expected_coalition_count: usize,
     /// Number of fully screened, below-threshold, consequence-qualified coalitions.
@@ -442,8 +445,8 @@ pub fn evaluate_joint_action_catalogue(
 }
 
 fn is_better(
-    candidate: &(Vec<[u8; 32]>, [u8; 32], u64, u64),
-    current: Option<&(Vec<[u8; 32]>, [u8; 32], u64, u64)>,
+    candidate: &(Vec<[u8; 32]>, [u8; 32], u64, i64),
+    current: Option<&(Vec<[u8; 32]>, [u8; 32], u64, i64)>,
 ) -> bool {
     let Some(current) = current else {
         return true;
@@ -534,7 +537,7 @@ mod tests {
         action_ids: Vec<[u8; 32]>,
         id: u8,
         post_events: Vec<ConjunctionEventProbabilityEnvelope>,
-        avoided: u64,
+        avoided: i64,
     ) -> JointActionOutcomeRecord {
         let post = if action_ids.is_empty() {
             baseline()
@@ -945,4 +948,65 @@ mod tests {
         assert_eq!(report.selected_action_ids, Some(vec![]));
         assert_eq!(report.infeasible_count, 1);
     }
+
+    #[test]
+    fn signed_consequence_delta_preserves_negative_values_when_no_action_is_unsafe() {
+        let a = [10; 32];
+        let b = [11; 32];
+        let outcomes = vec![
+            // No-action is fully assessed but fails the hard Pc gate.
+            qualified(vec![], 1, vec![event(10, (1, 1_000), (2, 1_000))], 0),
+            // Both portfolios clear the gate, but have negative worst-case consequence deltas.
+            qualified(
+                vec![a],
+                2,
+                vec![event(10, (1, 2_000_000), (2, 2_000_000))],
+                -12,
+            ),
+            qualified(
+                vec![b],
+                3,
+                vec![event(10, (1, 2_000_000), (2, 2_000_000))],
+                -5,
+            ),
+        ];
+        let report = evaluate_joint_action_catalogue(config(
+            vec![candidate(10, 1, OPERATOR_A), candidate(11, 1, OPERATOR_A)],
+            outcomes,
+            1,
+        ))
+        .unwrap();
+
+        assert_eq!(
+            report.disposition,
+            JointActionSelectionDisposition::QualifiedOptimum
+        );
+        assert_eq!(report.selected_action_ids, Some(vec![b]));
+        assert_eq!(report.selected_robust_consequence_avoided_ticks, Some(-5));
+        assert_eq!(report.threshold_exceeded_count, 1);
+        assert_eq!(report.qualified_safe_count, 2);
+    }
+
+    #[test]
+    fn no_action_control_remains_exactly_zero_and_is_not_silently_clamped() {
+        let a = [10; 32];
+        let outcomes = vec![
+            qualified(vec![], 1, vec![], 0),
+            qualified(
+                vec![a],
+                2,
+                vec![event(10, (1, 2_000_000), (2, 2_000_000))],
+                -1,
+            ),
+        ];
+        let report = evaluate_joint_action_catalogue(config(
+            vec![candidate(10, 1, OPERATOR_A)],
+            outcomes,
+            1,
+        ))
+        .unwrap();
+        assert_eq!(report.selected_action_ids, Some(vec![]));
+        assert_eq!(report.selected_robust_consequence_avoided_ticks, Some(0));
+    }
+
 }
