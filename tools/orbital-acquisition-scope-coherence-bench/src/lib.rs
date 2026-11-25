@@ -303,6 +303,26 @@ fn evaluate_binding(
         }
     }
 
+    // An owner may assert optional scope dimensions beyond its minimum contract.
+    // Never ignore an extra assertion: every supplied identity must still match
+    // the canonical acquisition descriptor.
+    for (field, actual) in &evidence_scope {
+        if required_fields(binding.kind).contains(&field.as_str()) {
+            continue;
+        }
+        match acquisition_scope.get(field) {
+            Some(expected) if expected == actual => {}
+            Some(_) => {
+                mismatched_fields.insert(field.clone());
+                reason_codes.insert(format!("SCOPE_MISMATCH:{field}"));
+            }
+            None => {
+                missing_fields.insert(field.clone());
+                reason_codes.insert(format!("ACQUISITION_SCOPE_FIELD_MISSING:{field}"));
+            }
+        }
+    }
+
     if evidence_scope
         .get("time_basis_id")
         .is_some_and(|value| value != &acquisition_interval.time_basis_id)
