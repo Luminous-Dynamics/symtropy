@@ -127,7 +127,7 @@ fn nonempty(value: &str) -> bool {
 
 fn graph_indexes(
     envelope: &TemporalClosureEnvelope,
-) -> Result<(usize, BTreeMap<String, usize>, Vec<Vec<usize>>), HoldReason> {
+) -> Result<(usize, Vec<Vec<usize>>), HoldReason> {
     if !nonempty(&envelope.profile_id) || !nonempty(&envelope.graph_revision) {
         return Err(HoldReason::MissingProfileIdentity);
     }
@@ -242,7 +242,7 @@ fn graph_indexes(
         return Err(HoldReason::UnreachableNode);
     }
 
-    Ok((ingress[0], ids, adjacency))
+    Ok((ingress[0], adjacency))
 }
 
 fn fenced_and_drained(envelope: &TemporalClosureEnvelope) -> Result<(), HoldReason> {
@@ -293,12 +293,6 @@ fn bounded_expiry_horizon(
         .scheduling_jitter_bound_ms
         .ok_or(HoldReason::MissingSchedulingBound)?;
 
-    let node_index: BTreeMap<&str, usize> = envelope
-        .nodes
-        .iter()
-        .enumerate()
-        .map(|(index, node)| (node.node_id.as_str(), index))
-        .collect();
     let edge_index: BTreeMap<(&str, &str), usize> = envelope
         .edges
         .iter()
@@ -310,7 +304,6 @@ fn bounded_expiry_horizon(
         index: usize,
         envelope: &TemporalClosureEnvelope,
         adjacency: &[Vec<usize>],
-        node_index: &BTreeMap<&str, usize>,
         edge_index: &BTreeMap<(&str, &str), usize>,
         memo: &mut [Option<u64>],
     ) -> Result<u64, HoldReason> {
@@ -335,12 +328,11 @@ fn bounded_expiry_horizon(
                 return Err(HoldReason::OriginalAgeNotPreserved);
             }
             let transit = edge.transit_bound_ms.ok_or(HoldReason::UnboundedTransit)?;
-            let child = longest_path(next, envelope, adjacency, node_index, edge_index, memo)?;
+            let child = longest_path(next, envelope, adjacency, edge_index, memo)?;
             longest_child = longest_child.max(checked_add(transit, child)?);
         }
         let value = checked_add(retention, longest_child)?;
         memo[index] = Some(value);
-        let _ = node_index;
         Ok(value)
     }
 
@@ -357,7 +349,7 @@ fn bounded_expiry_horizon(
 }
 
 pub fn evaluate(envelope: &TemporalClosureEnvelope) -> ClosureDecision {
-    let (ingress_index, _ids, adjacency) = match graph_indexes(envelope) {
+    let (ingress_index, adjacency) = match graph_indexes(envelope) {
         Ok(value) => value,
         Err(reason) => return ClosureDecision::Hold(reason),
     };
