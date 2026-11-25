@@ -4,7 +4,7 @@
   "title": "SAFRB synthetic fuel-to-service case v0.1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "recordKind", "caseId", "archetype", "seed", "scenarioStartUnixS", "horizonHours", "evidenceMaturity", "inventory", "transport", "conversion", "generator", "service"],
+  "required": ["schemaVersion", "recordKind", "caseId", "archetype", "seed", "scenarioStartUnixS", "horizonHours", "evidenceMaturity", "inventory", "transport", "conversion", "generator", "service", "hourlyTrajectory"],
   "properties": {
     "schemaVersion": { "const": "0.1.0" },
     "recordKind": { "const": "oracle_truth" },
@@ -79,6 +79,33 @@
         "networkDeliveryBasisPoints": { "type": "integer", "minimum": 0, "maximum": 10000 },
         "grossElectricityWh": { "type": "integer", "minimum": 0 },
         "networkDeliverableWh": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "hourlyTrajectory": {
+      "type": "array",
+      "minItems": 72,
+      "maxItems": 72,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["hourIndex", "intervalStartUnixS", "routeDeliveryGrams", "conversionInputGrams", "conversionOutputGrams", "processLossGrams", "fuelConsumedGrams", "grossGenerationWh", "networkDeliverableWh", "demandWh", "criticalFloorWh", "deliveredLowerWh", "deliveredUpperWh", "telemetryState", "disposition"],
+        "properties": {
+          "hourIndex": { "type": "integer", "minimum": 0, "maximum": 71 },
+          "intervalStartUnixS": { "type": "integer", "minimum": 0 },
+          "routeDeliveryGrams": { "type": "integer", "minimum": 0 },
+          "conversionInputGrams": { "type": "integer", "minimum": 0 },
+          "conversionOutputGrams": { "type": "integer", "minimum": 0 },
+          "processLossGrams": { "type": "integer", "minimum": 0 },
+          "fuelConsumedGrams": { "type": "integer", "minimum": 0 },
+          "grossGenerationWh": { "type": "integer", "minimum": 0 },
+          "networkDeliverableWh": { "type": "integer", "minimum": 0 },
+          "demandWh": { "type": "integer", "minimum": 0 },
+          "criticalFloorWh": { "type": "integer", "minimum": 0 },
+          "deliveredLowerWh": { "type": "integer", "minimum": 0 },
+          "deliveredUpperWh": { "type": "integer", "minimum": 0 },
+          "telemetryState": { "enum": ["fresh_synthetic", "stale_or_conflicting"] },
+          "disposition": { "enum": ["guaranteed", "confirmed_shortfall", "indeterminate"] }
+        }
       }
     },
     "service": {
