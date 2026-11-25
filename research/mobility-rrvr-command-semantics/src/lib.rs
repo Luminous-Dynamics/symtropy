@@ -13,7 +13,7 @@ use serde::Deserialize;
 
 pub mod fixture;
 
-pub const CONTRACT_VERSION: &str = "0.1";
+pub const CONTRACT_VERSION: &str = "0.2";
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "snake_case")]
