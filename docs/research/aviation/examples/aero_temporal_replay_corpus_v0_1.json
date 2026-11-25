@@ -79,7 +79,11 @@
           "issuer_key_status_at_snapshot": "good",
           "issuer_key_status_current": "good",
           "compromise_effective_at_unix_ms": null,
-          "corrects_event_id": null
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-FUTURE:120",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null
         }
       ],
       "expected": {
@@ -140,7 +144,11 @@
           "issuer_key_status_at_snapshot": "good",
           "issuer_key_status_current": "good",
           "compromise_effective_at_unix_ms": null,
-          "corrects_event_id": null
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-LATE:180",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null
         }
       ],
       "expected": {
@@ -201,7 +209,11 @@
           "issuer_key_status_at_snapshot": "good",
           "issuer_key_status_current": "good",
           "compromise_effective_at_unix_ms": null,
-          "corrects_event_id": null
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-REVOKE:130",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null
         }
       ],
       "expected": {
@@ -298,7 +310,11 @@
           "issuer_key_status_at_snapshot": "good",
           "issuer_key_status_current": "good",
           "compromise_effective_at_unix_ms": null,
-          "corrects_event_id": null
+          "corrects_event_id": null,
+          "receiver_receipt_status": "ABSENT",
+          "receiver_receipt_reference": null,
+          "receiver_receipt_digest_sha256": null,
+          "trusted_timestamp_imprint_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
         }
       ],
       "expected": {
@@ -359,7 +375,11 @@
           "issuer_key_status_at_snapshot": "good",
           "issuer_key_status_current": "good",
           "compromise_effective_at_unix_ms": null,
-          "corrects_event_id": null
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-AUTH-UNKNOWN:130",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null
         }
       ],
       "expected": {
@@ -420,7 +440,11 @@
           "issuer_key_status_at_snapshot": "good",
           "issuer_key_status_current": "good",
           "compromise_effective_at_unix_ms": null,
-          "corrects_event_id": null
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-GAP:130",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null
         }
       ],
       "expected": {
@@ -481,7 +505,11 @@
           "issuer_key_status_at_snapshot": "good",
           "issuer_key_status_current": "good",
           "compromise_effective_at_unix_ms": null,
-          "corrects_event_id": null
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-DUP:130",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null
         },
         {
           "event_id": "EV-DUP",
@@ -501,7 +529,11 @@
           "issuer_key_status_at_snapshot": "good",
           "issuer_key_status_current": "good",
           "compromise_effective_at_unix_ms": null,
-          "corrects_event_id": null
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-DUP:131",
+          "receiver_receipt_digest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "trusted_timestamp_imprint_sha256": null
         }
       ],
       "expected": {
@@ -561,8 +593,12 @@
           "source_clock_status": "consistent",
           "issuer_key_status_at_snapshot": "good",
           "issuer_key_status_current": "compromised",
-          "compromise_effective_at_unix_ms": 160,
-          "corrects_event_id": null
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-ISSUED:95",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null
         }
       ],
       "expected": {
@@ -577,7 +613,7 @@
         "recomputed_with_current_trust": {
           "disposition": "TRUST_UNRESOLVED",
           "reason_codes": [
-            "SIGNER_KEY_COMPROMISE_WITHOUT_PRESERVATION_TIMESTAMP"
+            "SIGNER_KEY_COMPROMISE_EFFECTIVE_TIME_UNKNOWN"
           ],
           "applied_event_ids": [],
           "excluded_event_ids": [
@@ -621,7 +657,11 @@
           "issuer_key_status_at_snapshot": "good",
           "issuer_key_status_current": "good",
           "compromise_effective_at_unix_ms": null,
-          "corrects_event_id": "EV-CORR-B"
+          "corrects_event_id": "EV-CORR-B",
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-CORR-A:95",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null
         },
         {
           "event_id": "EV-CORR-B",
@@ -641,7 +681,11 @@
           "issuer_key_status_at_snapshot": "good",
           "issuer_key_status_current": "good",
           "compromise_effective_at_unix_ms": null,
-          "corrects_event_id": "EV-CORR-A"
+          "corrects_event_id": "EV-CORR-A",
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-CORR-B:96",
+          "receiver_receipt_digest_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "trusted_timestamp_imprint_sha256": null
         }
       ],
       "expected": {
@@ -704,7 +748,11 @@
           "issuer_key_status_at_snapshot": "good",
           "issuer_key_status_current": "good",
           "compromise_effective_at_unix_ms": null,
-          "corrects_event_id": null
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-CLOCK:130",
+          "receiver_receipt_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "trusted_timestamp_imprint_sha256": null
         }
       ],
       "expected": {
@@ -726,6 +774,71 @@
           "applied_event_ids": [],
           "excluded_event_ids": [
             "EV-CLOCK"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "issuer-claimed-receipt-is-not-an-independent-receipt",
+      "purpose": "The source claims an early record time and a receiver first-seen time, but no verifiable receipt evidence or digest binding is supplied.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1"
+      },
+      "events": [
+        {
+          "event_id": "EV-RECEIPT-UNVERIFIED",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "revoked",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "effective_at_unix_ms": 100,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 120,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "absent",
+          "trusted_timestamp_at_unix_ms": null,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "UNVERIFIED",
+          "receiver_receipt_reference": null,
+          "receiver_receipt_digest_sha256": null,
+          "trusted_timestamp_imprint_sha256": null
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "RECEIVER_RECEIPT_NOT_VERIFIABLE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-RECEIPT-UNVERIFIED"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "TRUST_UNRESOLVED",
+          "reason_codes": [
+            "RECEIVER_RECEIPT_NOT_VERIFIABLE"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-RECEIPT-UNVERIFIED"
           ]
         }
       }
