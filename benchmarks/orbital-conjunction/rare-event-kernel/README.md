@@ -125,12 +125,12 @@ The pathwise proposal adapter turns a bounded finite set of such trajectory real
 
 The event Boolean is derived only from the reducer's three-way disposition: definite contact becomes an event, definite no-contact becomes a non-event, and ambiguous results are rejected. In particular, a caller-declared incomplete window inventory with no observed contact cannot become a false/non-event atom. A definite contact can still establish any-contact under incomplete inventory, but the reducer does not claim a complete first-contact time.
 
-Before a sampler config can be used, the adapter requires the exact event digest and exact atom ID/event-membership vector to match the pathwise-derived support. This stops a proposal from silently using one set of event flags while the trajectory evidence describes another.
+Before a sampler config can be used, the adapter requires the exact event digest and exact atom ID/event-membership vector to match the pathwise-derived support. It also requires the observed trajectory atom IDs to match a frozen, canonically sorted support manifest exactly; missing and unexpected atom IDs are rejected, and atom order is normalized to the manifest. This stops a proposal from silently using one set of event flags while the trajectory evidence describes another.
 
 ### Claim boundary
 
 - This composes the deterministic pathwise event reducer; it does not independently prove that the declared encounter-window inventory covers the full trajectory horizon.
 - Per-window classifications remain caller-supplied and must come from a separately qualified trajectory/geometry evaluator.
-- The finite categorical atom set is a discrete reference support, not a continuous orbital trajectory distribution or a proof of event-mode completeness.
+- The finite categorical atom set is a discrete reference support, not a continuous orbital trajectory distribution or a proof of event-mode completeness. Exact equality to a support manifest proves conformance to that manifest, not that the manifest contains every possible orbital trajectory mode.
 - No marginal per-window Pc values are added, no independence between encounter windows is assumed, and the union event is counted once per shared trajectory realization.
 - Statistical confidence-sequence guarantees still require a qualified joint-trajectory proposal density and actual sampling process.
