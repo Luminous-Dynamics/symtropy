@@ -39,7 +39,7 @@ Freeze pole-pair count, mechanical datum, sensor, sensor-plane position, air gap
 
 A literature geometry anchor is TI's 20-pole bonded NdFeB ring example (25.5 mm outer diameter, 21.5 mm inner diameter) and its documented sensor/air-gap context. This is a reference geometry, not an established universal optimum.
 
-A commercial on-axis absolute encoder such as Infineon's AS5048A is a useful system-level reference, but it uses a different magnet/sensor architecture. Its accuracy claims must be compared only with the stated sensor conditions and calibration process, never directly with a raw magnetic field-map metric.
+The trace contract also binds an operating-condition identity (sensor plane, air gap, temperature, eccentricity/tilt, sensor registration and background-field setup) and signed electrical phase progression. Distinct operating-condition groups are scored separately rather than pooled. A commercial on-axis absolute encoder such as Infineon's AS5048A is a useful system-level reference, but it uses a different magnet/sensor architecture. Its accuracy claims must be compared only with the stated sensor conditions and calibration process, never directly with a raw magnetic field-map metric.
 
 ## Challenge target
 
