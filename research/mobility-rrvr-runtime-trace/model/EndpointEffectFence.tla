@@ -129,7 +129,10 @@ RejectFencedToken ==
     /\ tokenState # "none"
     /\ acceptedEpoch < endpointFenceEpoch
     /\ reply' = "stale_epoch"
-    /\ UNCHANGED vars
+    /\ UNCHANGED <<deviceUp, deviceBoot, authorityEpoch, endpointFenceEpoch,
+                   requestEpoch, requestPayload, acceptedPayload, tokenState,
+                   historyLost, effectInvocations, physicalEffects,
+                   staleEffectCount, acceptedEpoch>>
 
 RejectStaleEpoch ==
     /\ deviceUp
