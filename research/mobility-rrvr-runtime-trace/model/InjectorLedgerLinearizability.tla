@@ -316,7 +316,7 @@ PayloadConflictNeverGranted ==
     /\ (reply1 = "payload_conflict" => ~grant1)
     /\ (reply2 = "payload_conflict" => ~grant2)
 
-AppliedRequiresObservedEffect ==
+AppliedRequiresModeledEffectCall ==
     ledgerStatus = "applied" => effectCount >= 1
 
 UnknownOutcomePreservesEffectUncertainty ==
