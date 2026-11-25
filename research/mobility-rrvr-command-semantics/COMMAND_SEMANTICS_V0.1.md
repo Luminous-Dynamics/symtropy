@@ -61,3 +61,14 @@ The known-answer corpus includes four positive class examples and negative contr
 ## Claim ceiling
 
 A schema/fixture PASS establishes only structural consistency of the submitted semantic profile against the stated test corpus. It does not prove device behavior, actuator idempotency, physical effect cardinality, firmware correctness, safe stopping, HIL, physical safety, PL/SIL, standards compliance or certification.
+
+## Reference evaluator v0.1
+
+The isolated dependency-free Rust reference crate is at `research/mobility-rrvr-command-semantics/`. Its `evaluate()` function compares a command declaration against a separately supplied exact device capability profile, including device ID/model, firmware revision, endpoint revision, configuration digest, payload schema, units and coordinate/reference frames.
+
+Crucially, the device capability profile independently declares support for absolute-target replay safety, durable one-shot token handling and duplicate rejection, maximum effect cardinality, authority epochs, lease expiry, watchdog reaction, stable trajectory segments, progress checkpoints, measured-progress resume and downstream queue reconciliation. A command's own assertion cannot make a missing device capability true.
+
+The evaluator returns only `AcceptProfile` or a typed `HoldReason`. It cannot authorize an action, classify a physical outcome, issue a RecoveryPermit or establish safe stopping.
+
+The JSON fixture and Rust types are separately authored at v0.1; a canonical JSON-to-Rust adapter and differential fixture execution remain future work.
+
