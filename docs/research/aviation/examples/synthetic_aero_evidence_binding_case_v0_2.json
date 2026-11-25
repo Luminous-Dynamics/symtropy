@@ -60,7 +60,8 @@
       "assertion_method": "independent-record-reconciliation",
       "issuer_id": "SYNTHETIC-ISSUER-A",
       "provenance_ref": "synthetic://traveler/0001",
-      "sampling_event_id": "SAMPLE-EVENT-0001"
+      "sampling_event_id": "SAMPLE-EVENT-0001",
+      "specimen_item_id": "SPECIMEN-ITEM-A"
     }
   ],
   "intended_configuration_assertions": [
