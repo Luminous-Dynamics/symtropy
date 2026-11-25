@@ -383,9 +383,9 @@ cargo run --quiet --locked --manifest-path research/maritime-decision-risk-contr
 The synthetic receipt includes seven cases:
 
 1. **Mean-matched stable vs high-variability:** both have a mean receiver-accepted end-to-end time of 100 minutes. The stable case has p95 100 minutes and 100% on-time delivery. The high-variability case has p95 280 minutes and 90% on-time delivery, with a 20-call maximum arrival burst in a 60-minute window.
-2. **Baseline end-to-end service:** port elapsed 130 minutes plus 20 inland minutes = 150 minutes.
-3. **Local port optimization:** port elapsed improves by 20 minutes, but inland time increases by 20; end-to-end service remains 150 minutes. A port-only metric would show a win where the receiver receives no improvement.
-4. **Receiver regression:** port elapsed is still 20 minutes lower than baseline, but inland time increases by 60; end-to-end service worsens to 190 minutes and on-time delivery falls to zero under the 160-minute deadline.
+2. **Baseline end-to-end service:** vessel waiting 60 + berth work 40 = 100 minutes; terminal cargo dwell is 30 and inland transfer is 20. The independently populated receiver elapsed-time fixture is 150 minutes.
+3. **Local vessel-side stage optimization:** vessel wait plus berth work improves from 100 to 80 minutes, terminal dwell remains 30 and inland transfer increases from 20 to 40. The independent receiver-time fixture remains 150 minutes. A local stage improves without receiver service improving.
+4. **Receiver regression:** vessel wait plus berth work is still 20 minutes lower than baseline, terminal dwell remains 30 and inland time increases by 60. The independent receiver-time fixture worsens to 190 minutes and on-time delivery falls to zero under the 160-minute deadline.
 5. **Protected cohort:** a mean-100-minute scenario assigns 18 observations to a priority cohort and two to a small-receiver cohort. The small cohort has zero on-time delivery and violates its 95% service floor, while aggregate on-time delivery is 90%.
 6. **Burst load:** the high-variability, receiver-regression and protected-cohort scenarios separately exercise a clustered 20-call arrival window; the regular-arrival comparator peaks at two calls per 60 minutes.
 7. **Conserved expected units:** of 20 expected units, 18 have independent receiver-acceptance references, one is explicitly NOT_DELIVERED and one is UNKNOWN. The reported verified on-time rate is 18/20 = 90%; neither unresolved unit is silently removed from the denominator.
@@ -419,7 +419,7 @@ Sources:
 
 The receipt additionally replays a transparent two-server FCFS queue with a fixed 30-minute service time. The regular 20-call comparator has zero waiting, zero queue-wait area and completes by minute 1,170. The 20-call burst has a maximum wait of 260 minutes, 2,680 call-minutes of queue-wait area and completes by minute 300 after the burst epoch. This demonstrates how the same total call count can create very different backlog and recovery burden when arrivals are clustered. It is a small queueing reference only, not a realistic full-terminal capacity model; production comparisons must use the frozen berth/crane/yard/AGV/rail resource model and matched solver baselines.
 
-The code also keeps vessel wait, berth work, terminal dwell, combined port elapsed and inland transfer as separate distributions. Receiver elapsed-time distribution is separately scoped to accepted cargo. It rejects duplicate observation identities, invalid deadlines, missing receiver receipts for accepted outcomes, and receiver evidence attached to non-accepted outcomes.
+The code keeps vessel wait, berth work, terminal cargo dwell and inland transfer as separate distributions. A separately named vessel-wait-plus-berth-work segment is not a CPPI port-time measure: CPPI requires its own anchored arrival-to-departure timestamps, including departure from berth. Receiver elapsed-time distribution is separately scoped to accepted cargo. It rejects duplicate observation identities, invalid deadlines, missing receiver receipts for accepted outcomes, and receiver evidence attached to non-accepted outcomes.
 ### Proposed benchmark acceptance targets
 
 These are targets, not present operational results:
