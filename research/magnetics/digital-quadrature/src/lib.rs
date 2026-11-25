@@ -131,6 +131,9 @@ pub struct QuadratureMetrics {
     pub direction_reversal_count: usize,
     pub periodic_state_match: bool,
     pub channel_edge_counts: ChannelEdgeCounts,
+    /// Absolute deviation from 90 degrees between integrated sensor axes.
+    /// None for two physically separated discrete latches.
+    pub integrated_axis_nonorthogonality_rad: Option<f64>,
     pub expected_quadrature_spacing_rad: f64,
     pub quadrature_spacing_interval_count: usize,
     /// Lower and upper bounds on the maximum absolute edge-spacing error.
@@ -159,7 +162,6 @@ pub enum EvaluationError {
     InvalidMetadata,
     InvalidConfiguration,
     InvalidThresholdHysteresis,
-    IntegratedAxesNotOrthogonal,
     InvalidTimingPolicy,
     TooFewSamples,
     NonFiniteSample { index: usize },
@@ -199,15 +201,6 @@ fn validate_config(config: QuadratureConfig) -> Result<(), EvaluationError> {
     }
     validate_latch(config.channel_a)?;
     validate_latch(config.channel_b)?;
-    if config.architecture == SensorArchitecture::IntegratedTwoAxisLatch {
-        let axis_dot = config.channel_a.axis_angle_rad.cos()
-            * config.channel_b.axis_angle_rad.cos()
-            + config.channel_a.axis_angle_rad.sin()
-                * config.channel_b.axis_angle_rad.sin();
-        if axis_dot.abs() > 1.0e-9 {
-            return Err(EvaluationError::IntegratedAxesNotOrthogonal);
-        }
-    }
     if let Some(policy) = config.edge_rate_policy {
         if !policy.rotational_speed_rpm.is_finite()
             || policy.rotational_speed_rpm < 0.0
@@ -575,6 +568,15 @@ pub fn evaluate_trace(
             direction_reversal_count,
             periodic_state_match,
             channel_edge_counts,
+            integrated_axis_nonorthogonality_rad: (config.architecture
+                == SensorArchitecture::IntegratedTwoAxisLatch)
+                .then(|| {
+                    let axis_dot = config.channel_a.axis_angle_rad.cos()
+                        * config.channel_b.axis_angle_rad.cos()
+                        + config.channel_a.axis_angle_rad.sin()
+                            * config.channel_b.axis_angle_rad.sin();
+                    axis_dot.abs().clamp(0.0, 1.0).asin()
+                }),
             expected_quadrature_spacing_rad,
             quadrature_spacing_interval_count,
             maximum_spacing_error_lower_bound_rad: (quadrature_spacing_interval_count > 0)
@@ -1136,14 +1138,15 @@ mod tests {
 
 
     #[test]
-    fn integrated_two_axis_latches_require_orthogonal_sensing_axes() {
+    fn integrated_sensor_reports_nonorthogonal_sensing_axes() {
         let trace = sinusoidal_trace("nonorthogonal-integrated-axes", 1, 361, 0.008, 1.0);
         let mut cfg = config(1);
         cfg.channel_b.axis_angle_rad = PI / 3.0;
 
-        assert_eq!(
-            evaluate_trace(&trace, cfg),
-            Err(EvaluationError::IntegratedAxesNotOrthogonal)
+        let result = evaluate_trace(&trace, cfg).unwrap();
+        assert!(
+            (result.metrics.integrated_axis_nonorthogonality_rad.unwrap() - PI / 6.0).abs()
+                < 1.0e-12
         );
     }
 
