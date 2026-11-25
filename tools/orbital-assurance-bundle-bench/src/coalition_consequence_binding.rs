@@ -740,9 +740,11 @@ fn compute_portfolio_metrics(
                     .ok_or_else(|| "below-threshold portfolio loss is missing".to_owned())?;
                 let best_below_threshold_loss = below_threshold_ids
                     .iter()
-                    .map(|safe_id| losses.get(safe_id).copied())
+                    .map(|below_threshold_id| losses.get(below_threshold_id).copied())
                     .collect::<Option<Vec<_>>>()
-                    .ok_or_else(|| "below-threshold portfolio comparison loss is missing".to_owned())?
+                    .ok_or_else(|| {
+                        "below-threshold portfolio comparison loss is missing".to_owned()
+                    })?
                     .into_iter()
                     .min()
                     .ok_or_else(|| "below-threshold portfolio set is empty".to_owned())?;
