@@ -25,6 +25,14 @@ Zou et al. (2026), *Human-Inspired Dexterity-Oriented Perception and Trajectory 
 
 Source: https://doi.org/10.3390/biomimetics11050296
 
+### Integrated discrete inspection planning
+
+Staderini's 2026 TU Wien dissertation, *Integrated Planning and Optimization Framework for Robotic Visual Inspection*, is a particularly relevant planning comparator. It combines CAD-derived viewpoint generation, Poisson-disc sampling, spatial-resolution-aware sampling density, photometric visibility using Blinn–Phong/Cook–Torrance BRDFs, Bayesian refinement of unreachable poses, and an SCGTSP integer-linear-program tour. Its abstract reports synthetic and real experiments with 3-, 6- and 8-DOF systems and reduced inspection time relative to sequential methods.
+
+This is materially broader than a plain coverage planner. The Symtropy programme must not claim novelty for integrating viewpoint geometry, photometric quality, kinematic feasibility and route ordering alone. Its additional testable proposition is that the executed acquisition itself is qualified over time, calibration state and provenance, and that subsequent inspection decisions are evidence-gated, sequentially valid and auditable. A fair comparison should reproduce the thesis' defined problem before adding those additional claims.
+
+Source: https://repositum.tuwien.at/bitstream/20.500.12708/226537/1/Staderini%20Vanessa%20-%202026%20-%20Integrated%20Planning%20and%20Optimization%20Framework%20for...pdf
+
 ### Traceable robot metrology
 
 Chekh et al. (2026), *Traceable Metrological Digital Twin for Robot-Based 3D Inspection*, integrates robot kinematic calibration, optical-sensor characterization, sensor-to-robot referencing and machine-readable metrological state. It propagates calibrated-parameter uncertainty using a GUM-aligned Monte Carlo method and compares a complex part against references at 67 characteristics. Its current validation is limited to the experimental campaign's environmental conditions and short-term stability; thermal drift and long-term stability are explicitly outside its current model.
