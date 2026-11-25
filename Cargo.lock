@@ -8904,6 +8904,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-aero-material-qual"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "symtropy-basin"
 version = "0.1.0"
 dependencies = [

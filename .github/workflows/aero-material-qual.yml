@@ -1,0 +1,108 @@
+name: AERO Material Qualification Contract
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/domains/symtropy-aero-material-qual/**"
+      - "docs/research/aviation/AERO_MATERIAL_PROCESS_QUAL_001_V0_1.md"
+      - "docs/research/aviation/schemas/aero_material_process_case_v0_1.schema.json"
+      - "docs/research/aviation/examples/synthetic_material_process_case_v0_1.json"
+      - "docs/research/aviation/examples/adversarial_material_process_mutations_v0_1.json"
+      - ".github/workflows/aero-material-qual.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aero-material-qual-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    name: Rust semantic contract (targeted)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check evaluator formatting
+        run: cargo fmt --manifest-path Cargo.toml --package symtropy-aero-material-qual -- --check
+
+      # This is a CI-only independent standards validator. Production evaluation
+      # remains Rust; the Python package is not a runtime dependency.
+      - name: Set up Python for independent schema validation
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Validate Draft 2020-12 schema and synthetic instance
+        run: |
+          python -m pip install --disable-pip-version-check "jsonschema==4.26.0"
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema_path = root / "docs/research/aviation/schemas/aero_material_process_case_v0_1.schema.json"
+          instance_path = root / "docs/research/aviation/examples/synthetic_material_process_case_v0_1.json"
+          schema = json.loads(schema_path.read_text())
+          instance = json.loads(instance_path.read_text())
+
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("schema must declare Draft 2020-12")
+
+          def check_local_refs(value):
+              if isinstance(value, dict):
+                  for key, child in value.items():
+                      if key in ("$dynamicRef", "$recursiveRef"):
+                          raise SystemExit(f"unsupported reference keyword: {key}")
+                      if key == "$ref" and (
+                          not isinstance(child, str) or not child.startswith("#/")
+                      ):
+                          raise SystemExit(f"non-local $ref is forbidden: {child!r}")
+                      check_local_refs(child)
+              elif isinstance(value, list):
+                  for child in value:
+                      check_local_refs(child)
+
+          check_local_refs(schema)
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema)
+          errors = sorted(validator.iter_errors(instance), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
+              raise SystemExit(f"fixture failed Draft 2020-12 validation ({len(errors)} errors)")
+          print("Draft 2020-12 meta-schema and fixture validation passed.")
+          PY
+
+      - name: Run evaluator tests
+        run: cargo test --locked --package symtropy-aero-material-qual
+
+      - name: Run evaluator Clippy
+        run: cargo clippy --locked --package symtropy-aero-material-qual --all-targets -- -D warnings
+
+      - name: Run evaluator CLI smoke test
+        shell: bash
+        run: |
+          cargo run --locked --package symtropy-aero-material-qual -- docs/research/aviation/examples/synthetic_material_process_case_v0_1.json > "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"structural_status": "STRUCTURALLY_COMPLETE"' "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"model_applicability_status": "NOT_EVALUATED_V0_1"' "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"evidence_sufficiency_status": "NOT_EVALUATED_V0_1"' "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"decision_status": "NOT_ELIGIBLE_SYNTHETIC_ONLY"' "$RUNNER_TEMP/aero-material-qual-report.json"
+          grep -q '"physical_qualification_status": "OUT_OF_SCOPE_NOT_CLAIMED"' "$RUNNER_TEMP/aero-material-qual-report.json"
