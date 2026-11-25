@@ -1,0 +1,70 @@
+name: SAFRB cargo receipt ledger qualification
+
+on:
+  push:
+    branches:
+      - research/safrb-cargo-receipt-ledger-v0.1
+    paths:
+      - "tools/safrb-cargo-receipt-ledger/**"
+      - ".github/workflows/safrb-cargo-receipt-ledger.yml"
+  pull_request:
+    paths:
+      - "tools/safrb-cargo-receipt-ledger/**"
+      - ".github/workflows/safrb-cargo-receipt-ledger.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: safrb-cargo-ledger-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cargo-ledger:
+    name: SAFRB synthetic cargo ledger Rust checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Verify formatting
+        run: cargo fmt --manifest-path tools/safrb-cargo-receipt-ledger/Cargo.toml -- --check
+      - name: Run tests
+        run: cargo test --manifest-path tools/safrb-cargo-receipt-ledger/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path tools/safrb-cargo-receipt-ledger/Cargo.toml --all-targets --locked -- -D warnings
+      - name: Validate synthetic corpus
+        run: cargo run --manifest-path tools/safrb-cargo-receipt-ledger/Cargo.toml --release --locked -- --check
+      - name: Emit planner and oracle outputs
+        run: |
+          cargo run --manifest-path tools/safrb-cargo-receipt-ledger/Cargo.toml --release --locked -- --emit target/safrb-cargo-ledger-v0.1
+          test "$(wc -l < target/safrb-cargo-ledger-v0.1/planner-manifests.jsonl)" -eq 9
+          test "$(wc -l < target/safrb-cargo-ledger-v0.1/oracle-ledger-truth.jsonl)" -eq 9
+          cd target/safrb-cargo-ledger-v0.1
+          sha256sum planner-manifests.jsonl > PLANNER.SHA256SUMS
+          sha256sum oracle-ledger-truth.jsonl cargo-ledger-report.json > EVALUATOR.SHA256SUMS
+      - name: Independent oracle and blind-split validation
+        run: python3 tools/safrb-cargo-receipt-ledger/tests/independent_oracle.py target/safrb-cargo-ledger-v0.1
+      - name: Retain planner-visible manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: safrb-cargo-ledger-planner-v0.1
+          path: |
+            target/safrb-cargo-ledger-v0.1/planner-manifests.jsonl
+            target/safrb-cargo-ledger-v0.1/PLANNER.SHA256SUMS
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain evaluator-only truth
+        uses: actions/upload-artifact@v4
+        with:
+          name: safrb-cargo-ledger-oracle-v0.1
+          path: |
+            target/safrb-cargo-ledger-v0.1/oracle-ledger-truth.jsonl
+            target/safrb-cargo-ledger-v0.1/cargo-ledger-report.json
+            target/safrb-cargo-ledger-v0.1/EVALUATOR.SHA256SUMS
+          if-no-files-found: error
+          retention-days: 90
