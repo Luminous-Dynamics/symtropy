@@ -187,6 +187,7 @@ jobs:
           grep -q "SOURCE_SUBJECT_IDENTITY_MISSING" /tmp/cross-standard-mapping.csv
           grep -q "SOURCE_PAYLOAD_REFERENCE_MISSING" /tmp/cross-standard-mapping.csv
           grep -q "SOURCE_PAYLOAD_REFERENCE_MISMATCH" /tmp/cross-standard-mapping.csv
+          grep -q "MAPPING_BUNDLE_REFERENCE_MISSING" /tmp/cross-standard-mapping.csv
           grep -q "MAPPING_BUNDLE_REFERENCE_MISMATCH" /tmp/cross-standard-mapping.csv
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin epcis-correction-audit > /tmp/epcis-corrections.csv
           cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin epcis-correction-audit > /tmp/epcis-corrections-replay.csv
