@@ -666,10 +666,19 @@ impl<const D: usize> GeneratedWorkload<D> {
                 ^ frame_index.wrapping_mul(0xd1b5_4a32_d192_ed03);
             let mut random = SplitMix64::new(frame_seed);
             let teleported = random.next_u64() % 10_000 < u64::from(teleport_basis_points);
-            let scale = if teleported { 32.0 } else { 1.0 };
-            let displacement = std::array::from_fn(|_| {
-                random.range(-max_displacement * scale, max_displacement * scale)
-            });
+            let displacement = if teleported {
+                std::array::from_fn(|_| {
+                    if random.next_u64() & 1 == 0 {
+                        max_displacement * 32.0
+                    } else {
+                        -max_displacement * 32.0
+                    }
+                })
+            } else {
+                std::array::from_fn(|_| {
+                    random.range(-max_displacement, max_displacement)
+                })
+            };
             let previous = proxy.tight_aabb;
             let next = Aabb::new(
                 std::array::from_fn(|axis| previous.min[axis] + displacement[axis]),
