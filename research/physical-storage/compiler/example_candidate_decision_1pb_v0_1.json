@@ -3,7 +3,7 @@
   "contract_id": "EXAMPLE-PB-ARCHIVE-01",
   "snapshot_date": "2026-11-25",
   "rankability": "not_rankable",
-  "ranking_reason": "The illustrative contract requires 100-year exact recovery, three independent failure domains, two independent readers, and a 10-day full restore. Available public sources do not provide matched, end-to-end evidence for all those constraints across these candidates. No score or recommendation is emitted.",
+  "ranking_reason": "The illustrative contract requires 100-year exact recovery, three dependency-independent failure domains, two independent readers, and a 10-day full restore. A 1 PB decimal payload over 10 days requires at least 1.157 GB/s aggregate user-payload throughput before metadata, mounts, ECC, retries, verification or network overhead. The published LTO-10 headline is up to 400 MB/s per drive; three drives provide only a 1.2 GB/s arithmetic upper bound and do not demonstrate an end-to-end library restore. The glass publication's 65.9 Mbit/s figure is a four-beam write rate, not a restore rate. Available public sources do not establish the full contract on a matched system boundary. No score or recommendation is emitted.",
   "candidates": [
     {
       "candidate_id": "silica_fused_silica_4_8tb",
@@ -84,6 +84,14 @@
           "status": "unknown",
           "source": null,
           "note": "No complete, identity-bound Mycelix dependency profile/cut-set receipt is included in this public product specification; three labels or copies cannot be assumed independent."
+        },
+        {
+          "metric": "native_transfer_rate_per_drive",
+          "required": "end-to-end archive sustains >= 1.157 GB/s aggregate user-payload restore rate",
+          "observed": "up to 400 MB/s per drive",
+          "status": "unknown",
+          "source": "https://www.lto.org/lto-10/",
+          "note": "Published native drive transfer headline. Three drives give 1.2 GB/s only as an arithmetic upper bound; no 1 PB library restore, mount/seek, verification or recovery benchmark is established here."
         }
       ]
     },
