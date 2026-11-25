@@ -59,7 +59,8 @@
       "source_record_id": "TRAVELER-0001",
       "assertion_method": "independent-record-reconciliation",
       "issuer_id": "SYNTHETIC-ISSUER-A",
-      "provenance_ref": "synthetic://traveler/0001"
+      "provenance_ref": "synthetic://traveler/0001",
+      "sampling_event_id": "SAMPLE-EVENT-0001"
     }
   ],
   "intended_configuration_assertions": [
