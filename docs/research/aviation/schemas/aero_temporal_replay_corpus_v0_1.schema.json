@@ -63,7 +63,7 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 15,
+      "minItems": 16,
       "items": {
         "$ref": "#/$defs/case"
       }
@@ -145,7 +145,9 @@
         "receiver_receipt_status",
         "receiver_receipt_reference",
         "receiver_receipt_digest_sha256",
-        "trusted_timestamp_imprint_sha256"
+        "trusted_timestamp_imprint_sha256",
+        "issuer_identity_id",
+        "source_namespace_binding_status"
       ],
       "properties": {
         "event_id": {
@@ -292,6 +294,17 @@
         },
         "trusted_timestamp_imprint_sha256": {
           "$ref": "#/$defs/nullableSha"
+        },
+        "issuer_identity_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_namespace_binding_status": {
+          "enum": [
+            "SYNTHETIC_VALID",
+            "UNVERIFIED",
+            "CONFLICT"
+          ]
         }
       }
     },
@@ -305,7 +318,8 @@
         "acquisition_time_interval",
         "snapshot",
         "events",
-        "expected"
+        "expected",
+        "current_reassessment"
       ],
       "properties": {
         "case_id": {
@@ -354,7 +368,8 @@
           "required": [
             "evaluated_at_unix_ms",
             "receiver_receipt_watermark_unix_ms",
-            "trust_policy_id"
+            "trust_policy_id",
+            "trust_status_as_of_unix_ms"
           ],
           "properties": {
             "evaluated_at_unix_ms": {
@@ -366,6 +381,9 @@
             "trust_policy_id": {
               "type": "string",
               "minLength": 1
+            },
+            "trust_status_as_of_unix_ms": {
+              "$ref": "#/$defs/time"
             }
           }
         },
@@ -380,7 +398,8 @@
           "additionalProperties": false,
           "required": [
             "as_known_at",
-            "recomputed_with_current_trust"
+            "recomputed_with_current_trust",
+            "recomputed_with_current_evidence_and_trust"
           ],
           "properties": {
             "as_known_at": {
@@ -388,6 +407,30 @@
             },
             "recomputed_with_current_trust": {
               "$ref": "#/$defs/disposition"
+            },
+            "recomputed_with_current_evidence_and_trust": {
+              "$ref": "#/$defs/disposition"
+            }
+          }
+        },
+        "current_reassessment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "receiver_receipt_watermark_unix_ms",
+            "trust_policy_id",
+            "trust_status_as_of_unix_ms"
+          ],
+          "properties": {
+            "receiver_receipt_watermark_unix_ms": {
+              "$ref": "#/$defs/time"
+            },
+            "trust_policy_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "trust_status_as_of_unix_ms": {
+              "$ref": "#/$defs/time"
             }
           }
         }
