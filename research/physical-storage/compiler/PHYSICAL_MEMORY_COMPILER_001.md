@@ -119,6 +119,25 @@ The Silica borosilicate phase-voxel demonstration reports 65.9 Mbit/s for four-b
 
 These calculations expose why media capacity, write throughput, read/restore throughput and full-system recovery are separate compiler inputs. Do not promote a per-drive headline or research writer rate into a full-archive service guarantee.
 
+### Nominal media-unit arithmetic for 1 PB × three copies
+
+For orientation only, using decimal capacities and rounding each copy up to a whole medium:
+
+| Medium | Public nominal capacity per unit | Units for one 1 PB copy | Units for three copies |
+|---|---:|---:|---:|
+| Fused-silica Silica platter | 4.8 TB | 209 | 627 |
+| Borosilicate phase-voxel platter | 2.02 TB | 496 | 1,488 |
+| LTO-10 (native, 40 TB) | 40 TB | 25 | 75 |
+| Seagate Mozaic 4+ HDD | up to 44 TB | 23 | 69 |
+| Micron 6600 ION SSD | 245.76 TB usable | 5 | 15 |
+
+The two glass regimes in the paper use a 120 × 120 × 2 mm medium (0.0288 L geometric glass volume per platter). At those nominal capacities, the three-copy media-only lower bound is about 18.1 L for fused silica and 42.9 L for borosilicate glass. This excludes holders, protective packaging, robotic handling, reader/writer optics, alignment, redundancy/spares, thermal management, facility infrastructure and service access.
+
+These counts expose the density advantage of glass but do not establish total deployed volume or cost. HDD/SSD unit capacities are not physically or economically comparable to a glass platter without including complete drive electronics, servers, power/cooling and replacement cycles. Three copies are only a logical replication count: the actual independence of sites, readers, power, keys, operators and software must pass the Mycelix/Symtropy dependency-cut qualification before any three-domain claim.
+
+For additional context, Micron's 245.76 TB 6600 ION technical specification lists up to 13,700 MB/s sequential read and 3,000 MB/s sequential write for that SKU. These are drive-level performance figures, not a measured 1 PB archive restore. The compiler must preserve unit-level and system-level rates separately.
+
+
 ## 7. Paradigm shifts
 
 ### 7.1 Compile the whole service, not the cell
