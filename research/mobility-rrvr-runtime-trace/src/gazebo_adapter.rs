@@ -3092,7 +3092,7 @@ mod tests {
             result.outcome,
             GazeboDispatchOutcome::Unknown { dispatch_id: None }
         );
-        assert_eq!(injector.dispatch_calls, 1);
+        assert_eq!(injector.inner.dispatch_calls, 1);
         assert_eq!(simulator.step_calls.len(), 1);
     }
 
@@ -3854,9 +3854,12 @@ mod tests {
         };
         request.payload_sha256 = dispatch_request_fingerprint(&request).unwrap();
         let mut registry = DispatchAttemptRegistry::default();
-        let mut injector = MockInjector {
-            dispatch_calls: 0,
-            lookup: DispatchLedgerResult::Unknown,
+        let mut injector = JournalObservingInjector {
+            inner: MockInjector {
+                dispatch_calls: 0,
+                lookup: DispatchLedgerResult::Unknown,
+            },
+            journal_path: path.clone(),
         };
         assert_eq!(
             dispatch_fault_once(&mut registry, &mut injector, &request),
@@ -4189,6 +4192,32 @@ mod tests {
         assert_eq!(simulator.reset_calls, 1);
         drop(journal);
         cleanup_journaled_test_path(&path);
+    }
+
+    struct JournalObservingInjector {
+        inner: MockInjector,
+        journal_path: std::path::PathBuf,
+    }
+
+    impl GazeboFaultInjectorTransport for JournalObservingInjector {
+        type Error = &'static str;
+
+        fn dispatch_once(
+            &mut self,
+            request: &GazeboDispatchRequest,
+        ) -> Result<GazeboDispatchOutcome, Self::Error> {
+            let summary = crate::durable_journal::verify_file(&self.journal_path)
+                .expect("dispatch intent must be readable and synced before injector call");
+            assert_eq!(summary.dispatch_intent_count, 1);
+            self.inner.dispatch_once(request)
+        }
+
+        fn lookup_dispatch(
+            &mut self,
+            idempotency_key: &str,
+        ) -> Result<DispatchLedgerResult, Self::Error> {
+            self.inner.lookup_dispatch(idempotency_key)
+        }
     }
 
     #[test]
