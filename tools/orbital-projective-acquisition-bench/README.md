@@ -24,7 +24,7 @@ cargo run --quiet --locked --manifest-path tools/orbital-projective-acquisition-
 python3 tools/orbital-projective-acquisition-bench/tests/reference_oracle.py docs/research/orbital-truss/fixtures/projective-acquisition-v0_1.json <40-hex-source-commit>
 ```
 
-The Python oracle uses exact `fractions.Fraction` arithmetic and standard library only. It is test-only.
+The frozen corpus contains 11 synthetic cases, including invalid depth and arithmetic-overflow controls. The Python oracle uses exact `fractions.Fraction` arithmetic and standard library only. It is test-only.
 
 ## Scope and limits
 
