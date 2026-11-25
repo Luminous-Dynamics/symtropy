@@ -4,52 +4,145 @@
   "title": "RRVR Temporal Closure Known-Answer Cases v0.1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "cases"],
+  "required": [
+    "version",
+    "cases"
+  ],
   "properties": {
-    "version": { "const": "0.1" },
+    "version": {
+      "const": "0.1"
+    },
     "cases": {
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/case" }
+      "items": {
+        "$ref": "#/$defs/case"
+      }
     }
   },
   "$defs": {
-    "identifier": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "\\S"
+    },
     "case": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["case_id", "class", "mutation", "expected_decision", "expected_path", "expected_reason", "expected_horizon_ms", "envelope"],
+      "required": [
+        "case_id",
+        "class",
+        "mutation",
+        "expected_decision",
+        "expected_path",
+        "expected_reason",
+        "expected_horizon_ms",
+        "envelope"
+      ],
       "properties": {
-        "case_id": { "$ref": "#/$defs/identifier" },
-        "class": { "enum": ["positive", "negative"] },
-        "mutation": { "$ref": "#/$defs/identifier" },
-        "expected_decision": { "enum": ["closed", "hold"] },
-        "expected_path": { "enum": ["fenced_and_drained", "bounded_expiry", "none"] },
-        "expected_reason": { "type": ["string", "null"] },
-        "expected_horizon_ms": { "type": ["integer", "null"], "minimum": 0 },
-        "envelope": { "$ref": "#/$defs/envelope" }
+        "case_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "class": {
+          "enum": [
+            "positive",
+            "negative"
+          ]
+        },
+        "mutation": {
+          "$ref": "#/$defs/identifier"
+        },
+        "expected_decision": {
+          "enum": [
+            "closed",
+            "hold"
+          ]
+        },
+        "expected_path": {
+          "enum": [
+            "fenced_and_drained",
+            "bounded_expiry",
+            "none"
+          ]
+        },
+        "expected_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "expected_horizon_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "envelope": {
+          "$ref": "#/$defs/envelope"
+        }
       }
     },
     "envelope": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "profile_id", "graph_revision", "old_authority_epoch", "current_authority_epoch",
-        "nodes", "edges", "inventory_complete", "clock_profile_valid",
-        "clock_uncertainty_bound_ms", "scheduling_jitter_bound_ms",
-        "elapsed_since_ingress_fence_ms", "invalidated"
+        "profile_id",
+        "graph_revision",
+        "old_authority_epoch",
+        "current_authority_epoch",
+        "nodes",
+        "edges",
+        "inventory_complete",
+        "clock_profile_valid",
+        "clock_uncertainty_bound_ms",
+        "scheduling_jitter_bound_ms",
+        "elapsed_since_ingress_fence_ms",
+        "invalidated"
       ],
       "properties": {
-        "profile_id": { "$ref": "#/$defs/identifier" },
-        "graph_revision": { "$ref": "#/$defs/identifier" },
-        "old_authority_epoch": { "type": "integer", "minimum": 0 },
-        "current_authority_epoch": { "type": "integer", "minimum": 1 },
-        "inventory_complete": { "type": "boolean" },
-        "clock_profile_valid": { "type": "boolean" },
-        "clock_uncertainty_bound_ms": { "type": ["integer", "null"], "minimum": 0 },
-        "scheduling_jitter_bound_ms": { "type": ["integer", "null"], "minimum": 0 },
-        "elapsed_since_ingress_fence_ms": { "type": "integer", "minimum": 0 },
-        "invalidated": { "type": "boolean" },
+        "profile_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "graph_revision": {
+          "$ref": "#/$defs/identifier"
+        },
+        "old_authority_epoch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "current_authority_epoch": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "inventory_complete": {
+          "type": "boolean"
+        },
+        "clock_profile_valid": {
+          "type": "boolean"
+        },
+        "clock_uncertainty_bound_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "scheduling_jitter_bound_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "elapsed_since_ingress_fence_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "invalidated": {
+          "type": "boolean"
+        },
         "nodes": {
           "type": "array",
           "minItems": 1,
@@ -58,22 +151,67 @@
             "type": "object",
             "additionalProperties": false,
             "required": [
-              "node_id", "is_ingress", "is_terminal", "rejects_old_epoch",
-              "endpoint_fence_enforced", "last_accepted_sequence",
-              "last_retired_sequence", "outstanding_commands",
-              "retention_bound_ms", "receiver_enforces_expiry"
+              "node_id",
+              "is_ingress",
+              "is_terminal",
+              "rejects_old_epoch",
+              "endpoint_fence_enforced",
+              "sequence_generation_id",
+              "accepted_sequence_generation_id",
+              "retired_sequence_generation_id",
+              "last_accepted_sequence",
+              "last_retired_sequence",
+              "outstanding_commands",
+              "retention_bound_ms",
+              "receiver_enforces_expiry"
             ],
             "properties": {
-              "node_id": { "$ref": "#/$defs/identifier" },
-              "is_ingress": { "type": "boolean" },
-              "is_terminal": { "type": "boolean" },
-              "rejects_old_epoch": { "type": "boolean" },
-              "endpoint_fence_enforced": { "type": "boolean" },
-              "last_accepted_sequence": { "type": "integer", "minimum": 0 },
-              "last_retired_sequence": { "type": "integer", "minimum": 0 },
-              "outstanding_commands": { "type": "integer", "minimum": 0 },
-              "retention_bound_ms": { "type": ["integer", "null"], "minimum": 0 },
-              "receiver_enforces_expiry": { "type": "boolean" }
+              "node_id": {
+                "$ref": "#/$defs/identifier"
+              },
+              "is_ingress": {
+                "type": "boolean"
+              },
+              "is_terminal": {
+                "type": "boolean"
+              },
+              "rejects_old_epoch": {
+                "type": "boolean"
+              },
+              "endpoint_fence_enforced": {
+                "type": "boolean"
+              },
+              "last_accepted_sequence": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "last_retired_sequence": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "outstanding_commands": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "retention_bound_ms": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "receiver_enforces_expiry": {
+                "type": "boolean"
+              },
+              "sequence_generation_id": {
+                "$ref": "#/$defs/identifier"
+              },
+              "accepted_sequence_generation_id": {
+                "$ref": "#/$defs/identifier"
+              },
+              "retired_sequence_generation_id": {
+                "$ref": "#/$defs/identifier"
+              }
             }
           }
         },
@@ -84,17 +222,41 @@
             "type": "object",
             "additionalProperties": false,
             "required": [
-              "edge_id", "from_node_id", "to_node_id", "in_flight_messages",
-              "no_future_old_epoch_enqueue", "transit_bound_ms", "preserves_original_age"
+              "edge_id",
+              "from_node_id",
+              "to_node_id",
+              "in_flight_messages",
+              "no_future_old_epoch_enqueue",
+              "transit_bound_ms",
+              "preserves_original_age"
             ],
             "properties": {
-              "edge_id": { "$ref": "#/$defs/identifier" },
-              "from_node_id": { "$ref": "#/$defs/identifier" },
-              "to_node_id": { "$ref": "#/$defs/identifier" },
-              "in_flight_messages": { "type": "integer", "minimum": 0 },
-              "no_future_old_epoch_enqueue": { "type": "boolean" },
-              "transit_bound_ms": { "type": ["integer", "null"], "minimum": 0 },
-              "preserves_original_age": { "type": "boolean" }
+              "edge_id": {
+                "$ref": "#/$defs/identifier"
+              },
+              "from_node_id": {
+                "$ref": "#/$defs/identifier"
+              },
+              "to_node_id": {
+                "$ref": "#/$defs/identifier"
+              },
+              "in_flight_messages": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "no_future_old_epoch_enqueue": {
+                "type": "boolean"
+              },
+              "transit_bound_ms": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "preserves_original_age": {
+                "type": "boolean"
+              }
             }
           }
         }
