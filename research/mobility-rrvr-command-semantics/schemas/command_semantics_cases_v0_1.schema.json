@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://luminousdynamics.io/schemas/rrvr/command-semantics-cases-v0.1.schema.json",
-  "title": "RRVR Command Semantics Known-Answer Cases v0.1",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/command-semantics-cases-v0.2.schema.json",
+  "title": "RRVR Command Semantics Known-Answer Cases v0.2",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -12,7 +12,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "0.1"
+      "const": "0.2"
     },
     "benchmark": {
       "const": "RRVR-COMMAND-SEMANTICS"
@@ -30,80 +30,281 @@
     }
   },
   "$defs": {
-    "identifier": {
+    "id": {
       "type": "string",
       "minLength": 1,
       "maxLength": 256,
       "pattern": "\\\\S"
     },
-    "contract": {
+    "device": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "device_id",
+        "device_model",
         "firmware_revision",
+        "endpoint_revision",
         "configuration_sha256",
-        "command_id",
         "payload_schema_sha256",
         "units",
         "coordinate_frame",
         "reference_frame",
-        "motion_semantics",
-        "target_predicate",
-        "logical_effect_id_required",
-        "device_capabilities",
-        "watchdog_response_bound_ms"
+        "supports_absolute_target",
+        "absolute_target_replay_safe",
+        "absolute_target_side_effect_free",
+        "supports_durable_one_shot_token",
+        "rejects_duplicate_one_shot_token",
+        "maximum_effects_per_token",
+        "endpoint_enforces_authority_epoch",
+        "enforces_lease_expiry",
+        "watchdog_reaction",
+        "watchdog_response_bound_ms",
+        "supports_stable_trajectory_segments",
+        "supports_progress_checkpoints",
+        "supports_measured_progress_resume",
+        "supports_downstream_queue_reconciliation"
       ],
       "properties": {
         "device_id": {
-          "$ref": "#/$defs/identifier"
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\\\S"
+        },
+        "device_model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\\\S"
         },
         "firmware_revision": {
-          "$ref": "#/$defs/identifier"
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\\\S"
+        },
+        "endpoint_revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\\\S"
         },
         "configuration_sha256": {
           "type": "string",
           "pattern": "^[a-fA-F0-9]{64}$"
-        },
-        "command_id": {
-          "$ref": "#/$defs/identifier"
         },
         "payload_schema_sha256": {
           "type": "string",
           "pattern": "^[a-fA-F0-9]{64}$"
         },
         "units": {
-          "$ref": "#/$defs/identifier"
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\\\S"
         },
         "coordinate_frame": {
-          "$ref": "#/$defs/identifier"
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\\\S"
         },
         "reference_frame": {
-          "$ref": "#/$defs/identifier"
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\\\S"
         },
-        "motion_semantics": {
-          "$ref": "#/$defs/identifier"
+        "supports_absolute_target": {
+          "type": "boolean"
         },
-        "target_predicate": {
-          "$ref": "#/$defs/identifier"
+        "absolute_target_replay_safe": {
+          "type": "boolean"
+        },
+        "absolute_target_side_effect_free": {
+          "type": "boolean"
+        },
+        "supports_durable_one_shot_token": {
+          "type": "boolean"
+        },
+        "rejects_duplicate_one_shot_token": {
+          "type": "boolean"
+        },
+        "maximum_effects_per_token": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "endpoint_enforces_authority_epoch": {
+          "type": "boolean"
+        },
+        "enforces_lease_expiry": {
+          "type": "boolean"
+        },
+        "watchdog_reaction": {
+          "enum": [
+            "controlled_stop",
+            "disable_output",
+            "hold_last_value",
+            "none"
+          ]
+        },
+        "watchdog_response_bound_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "supports_stable_trajectory_segments": {
+          "type": "boolean"
+        },
+        "supports_progress_checkpoints": {
+          "type": "boolean"
+        },
+        "supports_measured_progress_resume": {
+          "type": "boolean"
+        },
+        "supports_downstream_queue_reconciliation": {
+          "type": "boolean"
+        }
+      }
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command_id",
+        "device_id",
+        "device_model",
+        "firmware_revision",
+        "endpoint_revision",
+        "configuration_sha256",
+        "logical_effect_id_required",
+        "attempt_id_required",
+        "effect_class",
+        "payload_schema_sha256",
+        "units",
+        "coordinate_frame",
+        "reference_frame",
+        "motion_semantics",
+        "target_predicate",
+        "side_effect_envelope",
+        "watchdog_reaction"
+      ],
+      "properties": {
+        "command_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\\\S"
+        },
+        "device_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\\\S"
+        },
+        "device_model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\\\S"
+        },
+        "firmware_revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\\\S"
+        },
+        "endpoint_revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\\\S"
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
         },
         "logical_effect_id_required": {
           "type": "boolean"
         },
-        "tolerance": {
-          "type": "string"
+        "attempt_id_required": {
+          "type": "boolean"
         },
-        "idempotent_under_declared_state_contract": {
+        "effect_class": {
+          "enum": [
+            "desired_state",
+            "one_shot",
+            "continuous_lease",
+            "trajectory"
+          ]
+        },
+        "payload_schema_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "units": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\\\S"
+        },
+        "coordinate_frame": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\\\S"
+        },
+        "reference_frame": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\\\S"
+        },
+        "motion_semantics": {
+          "enum": [
+            "absolute",
+            "relative",
+            "one_shot",
+            "continuous",
+            "segmented_trajectory"
+          ]
+        },
+        "target_predicate": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\\\S"
+        },
+        "idempotent_under_declared_contract": {
           "type": "boolean"
         },
         "same_payload_replay_safe": {
           "type": "boolean"
         },
-        "hidden_impulse_envelope": {
-          "type": "string"
+        "tolerance_microunits": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "side_effect_envelope": {
+          "enum": [
+            "no_additional_effect_declared",
+            "bounded_additional_effect_declared",
+            "unknown"
+          ]
         },
         "maximum_physical_effects_per_attempt": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1
         },
         "endpoint_token_required": {
@@ -132,13 +333,31 @@
           "type": "boolean"
         },
         "watchdog_reaction": {
-          "type": "string"
+          "enum": [
+            "controlled_stop",
+            "disable_output",
+            "hold_last_value",
+            "none"
+          ]
+        },
+        "watchdog_response_bound_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
         },
         "clock_profile_id": {
-          "$ref": "#/$defs/identifier"
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\\\S"
         },
         "segment_count": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1
         },
         "segment_ids_are_stable": {
@@ -155,138 +374,6 @@
         },
         "downstream_queue_reconciliation_required": {
           "type": "boolean"
-        },
-        "device_model": {
-          "$ref": "#/$defs/identifier"
-        },
-        "endpoint_revision": {
-          "$ref": "#/$defs/identifier"
-        },
-        "device_capabilities": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "absolute_target_supported",
-            "absolute_target_replay_safe",
-            "absolute_target_side_effect_free",
-            "durable_one_shot_token_supported",
-            "duplicate_one_shot_token_rejected",
-            "maximum_effects_per_token",
-            "authority_epoch_supported",
-            "lease_expiry_enforced",
-            "watchdog_reaction",
-            "stable_trajectory_segments_supported",
-            "progress_checkpoints_supported",
-            "measured_progress_resume_supported",
-            "downstream_queue_reconciliation_supported"
-          ],
-          "properties": {
-            "absolute_target_supported": {
-              "type": "boolean"
-            },
-            "absolute_target_replay_safe": {
-              "type": "boolean"
-            },
-            "absolute_target_side_effect_free": {
-              "type": "boolean"
-            },
-            "durable_one_shot_token_supported": {
-              "type": "boolean"
-            },
-            "duplicate_one_shot_token_rejected": {
-              "type": "boolean"
-            },
-            "maximum_effects_per_token": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "minimum": 0
-            },
-            "lease_expiry_enforced": {
-              "type": "boolean"
-            },
-            "watchdog_reaction": {
-              "enum": [
-                "controlled_stop",
-                "disable_output",
-                "hold_last_value",
-                "none"
-              ]
-            },
-            "stable_trajectory_segments_supported": {
-              "type": "boolean"
-            },
-            "progress_checkpoints_supported": {
-              "type": "boolean"
-            },
-            "measured_progress_resume_supported": {
-              "type": "boolean"
-            },
-            "downstream_queue_reconciliation_supported": {
-              "type": "boolean"
-            },
-            "endpoint_enforces_authority_epoch": {
-              "type": "boolean"
-            },
-            "watchdog_response_bound_ms": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "minimum": 1
-            }
-          }
-        },
-        "watchdog_response_bound_ms": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 1
-        }
-      }
-    },
-    "case": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "case_id",
-        "class",
-        "effect_class",
-        "mutation",
-        "expected",
-        "contract"
-      ],
-      "properties": {
-        "case_id": {
-          "$ref": "#/$defs/identifier"
-        },
-        "class": {
-          "enum": [
-            "positive",
-            "negative"
-          ]
-        },
-        "effect_class": {
-          "enum": [
-            "desired_state",
-            "one_shot",
-            "continuous_lease",
-            "trajectory"
-          ]
-        },
-        "mutation": {
-          "$ref": "#/$defs/identifier"
-        },
-        "expected": {
-          "enum": [
-            "accept_profile",
-            "hold"
-          ]
-        },
-        "contract": {
-          "$ref": "#/$defs/contract"
         }
       },
       "allOf": [
@@ -299,14 +386,14 @@
             }
           },
           "then": {
+            "required": [
+              "idempotent_under_declared_contract",
+              "same_payload_replay_safe",
+              "tolerance_microunits"
+            ],
             "properties": {
-              "contract": {
-                "required": [
-                  "tolerance",
-                  "idempotent_under_declared_state_contract",
-                  "same_payload_replay_safe",
-                  "hidden_impulse_envelope"
-                ]
+              "motion_semantics": {
+                "const": "absolute"
               }
             }
           }
@@ -320,14 +407,15 @@
             }
           },
           "then": {
+            "required": [
+              "maximum_physical_effects_per_attempt",
+              "endpoint_token_required",
+              "same_token_reactuates",
+              "independent_outcome_observation_required"
+            ],
             "properties": {
-              "contract": {
-                "required": [
-                  "maximum_physical_effects_per_attempt",
-                  "endpoint_token_required",
-                  "same_token_reactuates",
-                  "independent_outcome_observation_required"
-                ]
+              "motion_semantics": {
+                "const": "one_shot"
               }
             }
           }
@@ -341,16 +429,17 @@
             }
           },
           "then": {
+            "required": [
+              "lease_expiry_ms",
+              "endpoint_enforces_authority_epoch",
+              "endpoint_enforces_expiry",
+              "watchdog_supported",
+              "watchdog_response_bound_ms",
+              "clock_profile_id"
+            ],
             "properties": {
-              "contract": {
-                "required": [
-                  "lease_expiry_ms",
-                  "endpoint_enforces_authority_epoch",
-                  "endpoint_enforces_expiry",
-                  "watchdog_supported",
-                  "watchdog_reaction",
-                  "clock_profile_id"
-                ]
+              "motion_semantics": {
+                "const": "continuous"
               }
             }
           }
@@ -364,21 +453,73 @@
             }
           },
           "then": {
+            "required": [
+              "segment_count",
+              "segment_ids_are_stable",
+              "progress_checkpoints_required",
+              "resume_from_measured_progress",
+              "restart_from_segment_zero_allowed",
+              "downstream_queue_reconciliation_required"
+            ],
             "properties": {
-              "contract": {
-                "required": [
-                  "segment_count",
-                  "segment_ids_are_stable",
-                  "progress_checkpoints_required",
-                  "resume_from_measured_progress",
-                  "restart_from_segment_zero_allowed",
-                  "downstream_queue_reconciliation_required"
-                ]
+              "motion_semantics": {
+                "const": "segmented_trajectory"
               }
             }
           }
         }
       ]
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "class",
+        "mutation",
+        "expected_decision",
+        "expected_reason",
+        "device",
+        "command"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\\\S"
+        },
+        "class": {
+          "enum": [
+            "positive",
+            "negative"
+          ]
+        },
+        "mutation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "\\\\S"
+        },
+        "expected_decision": {
+          "enum": [
+            "accept_profile",
+            "hold"
+          ]
+        },
+        "expected_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "device": {
+          "$ref": "#/$defs/device"
+        },
+        "command": {
+          "$ref": "#/$defs/command"
+        }
+      }
     }
   }
 }
