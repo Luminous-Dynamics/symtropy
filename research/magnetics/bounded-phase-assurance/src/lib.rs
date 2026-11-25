@@ -55,6 +55,10 @@ pub struct BoundedEncoderRequirements {
 #[derive(Clone, Debug, PartialEq)]
 pub struct BoundedAngularErrorRecord {
     pub uncertainty_record_id: String,
+    pub trace_id: String,
+    pub frame_id: String,
+    pub operating_condition_id: String,
+    pub grid_id: String,
     pub phase_zero_calibration_id: String,
     pub mechanical_angle_error_bound_rad: f64,
     pub phase_zero_error_bound_rad: f64,
@@ -73,6 +77,10 @@ pub enum BoundedEvaluationError {
     InvalidMetadata,
     InvalidRequirements,
     InvalidAngularErrorRecord,
+    AngularTraceIdentityMismatch,
+    AngularFrameIdentityMismatch,
+    AngularConditionIdentityMismatch,
+    AngularGridIdentityMismatch,
     AngularCalibrationIdentityMismatch,
     TooFewSamples,
     NonFiniteSample { index: usize },
@@ -211,9 +219,14 @@ fn validate_trace(trace: &BoundedFieldTrace) -> Result<(), BoundedEvaluationErro
 
 fn validate_angular_error_record(
     record: &BoundedAngularErrorRecord,
+    trace: &BoundedFieldTrace,
     requirements: &BoundedEncoderRequirements,
 ) -> Result<(), BoundedEvaluationError> {
     if !nonempty(&record.uncertainty_record_id)
+        || !nonempty(&record.trace_id)
+        || !nonempty(&record.frame_id)
+        || !nonempty(&record.operating_condition_id)
+        || !nonempty(&record.grid_id)
         || !nonempty(&record.phase_zero_calibration_id)
         || !record.mechanical_angle_error_bound_rad.is_finite()
         || record.mechanical_angle_error_bound_rad < 0.0
@@ -223,6 +236,18 @@ fn validate_angular_error_record(
         return Err(BoundedEvaluationError::InvalidAngularErrorRecord);
     }
 
+    if record.trace_id != trace.trace_id {
+        return Err(BoundedEvaluationError::AngularTraceIdentityMismatch);
+    }
+    if record.frame_id != trace.frame_id {
+        return Err(BoundedEvaluationError::AngularFrameIdentityMismatch);
+    }
+    if record.operating_condition_id != trace.operating_condition_id {
+        return Err(BoundedEvaluationError::AngularConditionIdentityMismatch);
+    }
+    if record.grid_id != trace.grid_id {
+        return Err(BoundedEvaluationError::AngularGridIdentityMismatch);
+    }
     if record.phase_zero_calibration_id != requirements.phase_zero_calibration_id {
         return Err(BoundedEvaluationError::AngularCalibrationIdentityMismatch);
     }
@@ -250,7 +275,7 @@ pub fn evaluate_bounded_trace(
 ) -> Result<BoundedTraceMetrics, BoundedEvaluationError> {
     validate_requirements(requirements)?;
     validate_trace(trace)?;
-    validate_angular_error_record(angular_error, requirements)?;
+    validate_angular_error_record(angular_error, trace, requirements)?;
 
     let mechanical_phase_bound =
         requirements.pole_pairs as f64 * angular_error.mechanical_angle_error_bound_rad;
@@ -426,6 +451,10 @@ mod tests {
     ) -> BoundedAngularErrorRecord {
         BoundedAngularErrorRecord {
             uncertainty_record_id: "angle-bound-record-001".to_owned(),
+            trace_id: "trace-001".to_owned(),
+            frame_id: "sensor-frame-001".to_owned(),
+            operating_condition_id: "condition-001".to_owned(),
+            grid_id: "grid-16-uniform".to_owned(),
             phase_zero_calibration_id: "phase-zero-cal-001".to_owned(),
             mechanical_angle_error_bound_rad,
             phase_zero_error_bound_rad,
@@ -583,6 +612,44 @@ mod tests {
         assert!(matches!(
             evaluate_bounded_trace(&trace(2, 1), &requirements(2, 1), &record),
             Err(BoundedEvaluationError::AngularCalibrationIdentityMismatch)
+        ));
+    }
+
+    #[test]
+    fn angular_error_record_must_match_exact_trace_identity() {
+        let mut record = angular_error(0.0, 0.0);
+        record.trace_id = "different-trace".to_owned();
+
+        assert!(matches!(
+            evaluate_bounded_trace(&trace(2, 1), &requirements(2, 1), &record),
+            Err(BoundedEvaluationError::AngularTraceIdentityMismatch)
+        ));
+    }
+
+    #[test]
+    fn angular_error_record_must_match_frame_condition_and_grid() {
+        let input = trace(2, 1);
+        let req = requirements(2, 1);
+
+        let mut wrong_frame = angular_error(0.0, 0.0);
+        wrong_frame.frame_id = "other-frame".to_owned();
+        assert!(matches!(
+            evaluate_bounded_trace(&input, &req, &wrong_frame),
+            Err(BoundedEvaluationError::AngularFrameIdentityMismatch)
+        ));
+
+        let mut wrong_condition = angular_error(0.0, 0.0);
+        wrong_condition.operating_condition_id = "other-condition".to_owned();
+        assert!(matches!(
+            evaluate_bounded_trace(&input, &req, &wrong_condition),
+            Err(BoundedEvaluationError::AngularConditionIdentityMismatch)
+        ));
+
+        let mut wrong_grid = angular_error(0.0, 0.0);
+        wrong_grid.grid_id = "other-grid".to_owned();
+        assert!(matches!(
+            evaluate_bounded_trace(&input, &req, &wrong_grid),
+            Err(BoundedEvaluationError::AngularGridIdentityMismatch)
         ));
     }
 
