@@ -544,8 +544,8 @@ mod tests {
             "0123456789abcdef0123456789abcdef01234567",
         )
         .expect("scope corpus audits");
-        assert_eq!(receipt.case_count, 23);
-        assert_eq!(receipt.expected_disposition_matches, 23);
+        assert_eq!(receipt.case_count, 24);
+        assert_eq!(receipt.expected_disposition_matches, 24);
         assert_eq!(receipt.expected_disposition_mismatches, 0);
         assert!(!receipt.source_bytes_authenticated);
         assert!(!receipt.authority_granted);
@@ -576,6 +576,19 @@ mod tests {
             let case = input.cases.iter().find(|case| case.case_id == id).unwrap();
             assert_eq!(evaluate_case(case).disposition, Disposition::OutOfScope);
         }
+    }
+
+    #[test]
+    fn extra_scope_claims_are_checked_not_ignored() {
+        let input = corpus();
+        let case = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "SC-024-EXTRA-SCOPE-CLAIM-MISMATCH")
+            .unwrap();
+        let result = evaluate_case(case);
+        assert_eq!(result.disposition, Disposition::OutOfScope);
+        assert!(result.reason_codes.contains(&"SCOPE_MISMATCH:camera_id".to_owned()));
     }
 
     #[test]
