@@ -1,6 +1,4 @@
-use orbital_assurance_bundle_bench::coalition_consequence_binding::{
-    evaluate, Corpus,
-};
+use orbital_assurance_bundle_bench::coalition_consequence_binding::{evaluate, Corpus};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::{env, fs, process::ExitCode};
