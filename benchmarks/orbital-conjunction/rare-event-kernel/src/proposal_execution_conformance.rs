@@ -477,6 +477,10 @@ fn is_zero_digest(digest: &[u8; 32]) -> bool {
 mod tests {
     use super::*;
     use crate::adaptive_importance_sampling::AdaptiveImportanceSamplingConfidenceSequence;
+    use crate::hedged_capital_sequence::{
+        AdaptiveImportanceSamplingHedgedSequence, HedgedCapitalConfidenceSequence,
+    };
+    use crate::predictable_empirical_bernstein::AdaptiveImportanceSamplingPrPlEbSequence;
 
     const EVENT: [u8; 32] = [1; 32];
     const TARGET: [u8; 32] = [2; 32];
@@ -876,6 +880,53 @@ mod tests {
             Err(FiniteProposalExecutionError::UnpredictableProposalSelection)
         );
         assert_eq!(verifier.sample_count(), 0);
+    }
+
+
+    #[test]
+    fn verified_draw_bridges_into_fixed_stake_prpl_eb_and_hedged_adapters() {
+        let mut verifier = FiniteProposalExecutionVerifier::new(config()).unwrap();
+        let verified = verifier
+            .verify_next(receipt(0, [123; 32], RESIDUAL_BEFORE, 100, 0, 0))
+            .unwrap();
+        let draw = verified.into_adaptive_importance_draw();
+
+        let mut fixed_stake = AdaptiveImportanceSamplingConfidenceSequence::new(
+            EVENT,
+            TARGET,
+            DEFENSIVE,
+            0.25,
+            0.05,
+        )
+        .unwrap();
+        let mut prpl_eb = AdaptiveImportanceSamplingPrPlEbSequence::new(
+            EVENT,
+            TARGET,
+            DEFENSIVE,
+            0.25,
+            0.05,
+        )
+        .unwrap();
+        let hedged_grid =
+            HedgedCapitalConfidenceSequence::log_tailed_parameter_grid(1.0e-8, 0.02, 48, 48)
+                .unwrap();
+        let mut hedged = AdaptiveImportanceSamplingHedgedSequence::new(
+            EVENT,
+            TARGET,
+            DEFENSIVE,
+            0.25,
+            0.05,
+            hedged_grid,
+        )
+        .unwrap();
+
+        fixed_stake.observe(draw).unwrap();
+        prpl_eb.observe(draw).unwrap();
+        hedged.observe(draw).unwrap();
+
+        assert_eq!(fixed_stake.summary().unwrap().sample_count, 1);
+        assert_eq!(prpl_eb.summary().unwrap().sample_count, 1);
+        assert_eq!(hedged.summary().unwrap().sample_count, 1);
     }
 
 }
