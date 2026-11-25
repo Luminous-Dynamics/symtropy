@@ -364,6 +364,11 @@ pub fn apply_named_fault(bundle: &mut EvidenceBundle, fault: &str) -> Result<(),
             GateState::NotEvaluable,
             "NO_FEASIBLE_AUTHORIZED_ACTION",
         ),
+        "AGGREGATE_CLAIM_NOT_UNIT_RECEIPT" => (
+            "receiver",
+            GateState::NotEvaluable,
+            "AGGREGATE_CLAIM_NOT_UNIT_RECEIPT",
+        ),
         other => return Err(format!("unknown fault code: {other}")),
     };
 
@@ -501,8 +506,8 @@ mod tests {
     fn frozen_tsv_manifest_has_thirty_matching_cases() {
         let manifest = include_str!("../fixtures/composition-cases.tsv");
         let summary = audit_manifest(manifest).unwrap();
-        assert_eq!(summary.total, 30);
-        assert_eq!(summary.passed, 30);
+        assert_eq!(summary.total, 31);
+        assert_eq!(summary.passed, 31);
         assert!(summary.failures.is_empty());
     }
 }
