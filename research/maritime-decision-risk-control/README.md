@@ -581,14 +581,16 @@ This is a targeted EPCIS compatibility fixture, **not** the complete EPCIS parse
 
 ## DCSA event classifier maturity adapter (24 November 2026)
 
-The `dcsa_maturity` module preserves the four DCSA event maturity codes as distinct typed values:
+The `dcsa_maturity` module preserves the shared DCSA event-classifier vocabulary as distinct typed values:
 
 - `EST` → ESTIMATED_ONLY
 - `REQ` → REQUESTED_ONLY
 - `PLN` → PLANNED_ONLY
 - `ACT` → SOURCE_REPORTED_ACTUAL_ONLY
 
-This adapter is pinned to the DCSA Track & Trace 2.2 release label and retains standard version, eventID, canonical subject ID, source-native record ID, event time, timezone offset, repository record time, publication time and retrieval time. It rejects unknown classifier codes, release-version drift, missing publication time, publication after retrieval, records unavailable by the historical as-of cutoff, and an ACT event without event time.
+The DCSA Information Model 3.2 reference table lists all four values at the shared classifier-entity level. Its event-family tables are narrower in places: for example, the Shipment Event field lists PLN/ACT/EST, while the Operations Event field lists PLN/REQ/ACT/EST. Consequently, the current maturity adapter is a classifier-preservation fixture, **not** an event-family-specific T&T 2.2 schema validator. Any live DCSA adapter must validate the exact event family, API release and OpenAPI enum before accepting a code. Do not infer that REQ is valid in every shipment/equipment/transport payload.
+
+The adapter retains standard version, eventID, canonical subject ID, source-native record ID, event time, timezone offset, repository record time, publication time and retrieval time. It rejects unknown classifier codes, release-version drift, missing publication time, publication after retrieval, records unavailable by the historical as-of cutoff, and an ACT event without event time.
 
 **Critical claim ceiling:** ACT means that the DCSA source classified its milestone as actual. It is still source-reported evidence; the adapter always sets `independent_physical_observation=false`. An ACT event cannot be used as an independently verified berth occupancy, cargo movement, custody handoff or receiver acceptance without a separate qualified witness and evidence chain.
 
@@ -605,17 +607,13 @@ The synthetic tournament covers all four maturity values, unknown classifier, wr
 
 ## Cross-standard mapping contract: preserve meaning, declare loss (24 November 2026)
 
-The `cross_standard_mapping` module treats cross-standard translation as an explicit, versioned evidence operation rather than an informal field rename. Each mapping rule records:
-- exact source and target standard versions;
-- source field/value and target field/value;
-- mapping class: EXACT, CONTEXTUAL or LOSSY;
-- reversibility: REVERSIBLE or IRREVERSIBLE;
-- mapping-review evidence reference;
-- an explicit reason for contextual or lossy translation.
+The `cross_standard_mapping` module treats cross-standard translation as an explicit, versioned evidence operation rather than an informal field rename. Each mapping rule records exact source/target standard versions, source/target field and value, mapping class, reversibility, a mapping-bundle ID/revision/SHA-256/reference, declared review status and reviewer/evidence references.
 
-The mapper binds each receipt to the source event ID, source-native record ID and raw source-payload SHA-256. It never mutates the source message. An EXACT mapping must be declared reversible; CONTEXTUAL and LOSSY mappings must be declared irreversible and include a reason. A rule without a review evidence reference is rejected.
+The rules are content-addressed: the bundle reference must match its SHA-256, and each receipt carries the bundle revision and declared review state. Only `APPROVED` rules are admitted. This is an enforceable declaration, not proof that an external human review occurred; the reviewer/evidence references must be resolved by the governance workflow before operational use. `EXACT` mappings must preserve the literal source value and be reversible. `CONTEXTUAL` and `LOSSY` mappings must be irreversible and include a reason.
 
-A key semantic firewall prohibits mapping DCSA `eventClassifierCode` directly to EPCIS `bizStep` or `disposition`. DCSA EST/REQ/PLN/ACT describes milestone maturity; EPCIS/CBV business-step and disposition describe what business process/condition an event represents. The code domains are related but not interchangeable. A source-specific DCSA event type may map contextually to a CBV business-step only through an explicit reviewed rule; the synthetic fixture shows this as CONTEXTUAL / IRREVERSIBLE, not a silent exact rewrite.
+A key semantic firewall prohibits mapping DCSA `eventClassifierCode` directly to EPCIS `bizStep` or `disposition`. DCSA EST/REQ/PLN/ACT describes milestone maturity; EPCIS/CBV business-step and disposition describe what business process/condition an event represents. The code domains are related but not interchangeable. A source-specific DCSA `equipmentEventTypeCode=LOAD` may map contextually to CBV `loading` only through an explicitly versioned rule; the synthetic fixture marks it CONTEXTUAL / IRREVERSIBLE, not a silent exact rewrite. The target validator checks a pinned subset of CBV 2.0 logistics vocabulary values and URI forms; it is not the full CBV validator. In JSON/JSON-LD, EPCIS 2.0's scoped context can represent standard CBV values as bare terms such as `loading`, while XML/canonical model representations may use the equivalent CBV URI.
+
+The source payload bytes are **not** copied into this mapping module. Each receipt carries the original source SHA-256 and a content-addressed source-store reference; the source evidence store remains the bytes' owner. This avoids implying that a digest alone proves payload retention.
 
 Run the deterministic crosswalk receipt:
 
@@ -623,6 +621,6 @@ Run the deterministic crosswalk receipt:
 cargo run --quiet --locked --manifest-path research/maritime-decision-risk-control/Cargo.toml --bin cross-standard-mapping-audit
 ~~~
 
-The receipt covers exact classifier-maturity preservation, contextual DCSA equipment-event-type to GS1 CBV business-step translation, forbidden classifier-to-bizStep/disposition shortcuts, invalid target vocabulary, false reversibility, non-approved rules, mapping-bundle digest/reference drift, source subject identity and source payload-reference failures. Accepted receipts carry the immutable mapping bundle revision, review state, source subject/record/event identity, raw payload digest and object-store reference. This crate does not hold the source bytes; the source evidence store remains their owner.
+The 19-case receipt covers exact classifier-maturity preservation, contextual DCSA equipment-event-type to GS1 CBV business-step translation, forbidden classifier-to-bizStep/disposition shortcuts, invalid target vocabulary, false reversibility, non-approved rules, exact-value mismatch, mapping-bundle digest/reference drift, source subject identity and source payload-reference failures. Accepted receipts carry the immutable mapping bundle revision, review state, source subject/record/event identity, raw payload digest and object-store reference. This crate does not hold the source bytes; the source evidence store remains their owner.
 
 This is not a full DCSA/EPCIS parser, JSON-LD serializer, CBV vocabulary validator, or official conformance tool. It is the contract that any future parser/crosswalk must satisfy before its normalized output can enter the downstream assurance and risk layers.
