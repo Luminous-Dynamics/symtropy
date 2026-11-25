@@ -35,6 +35,14 @@
           "status": "fail",
           "source": "https://www.nature.com/articles/s41586-025-10042-w",
           "note": "Published research demonstrator; not a commercial production product."
+        },
+        {
+          "metric": "dependency_qualified_failure_domains",
+          "required": 3,
+          "observed": null,
+          "status": "unknown",
+          "source": null,
+          "note": "No complete, identity-bound Mycelix dependency profile/cut-set receipt is included in this public product specification; three labels or copies cannot be assumed independent."
         }
       ]
     },
@@ -68,6 +76,14 @@
           "status": "unknown",
           "source": null,
           "note": "Depends on archive architecture, library replication, site policy and independent verification, not cartridge capacity alone."
+        },
+        {
+          "metric": "dependency_qualified_failure_domains",
+          "required": 3,
+          "observed": null,
+          "status": "unknown",
+          "source": null,
+          "note": "No complete, identity-bound Mycelix dependency profile/cut-set receipt is included in this public product specification; three labels or copies cannot be assumed independent."
         }
       ]
     },
@@ -93,6 +109,14 @@
           "status": "unknown",
           "source": "https://investors.seagate.com/news/news-details/2026/Seagate-Delivers-Industrys-Highest-Capacity-Hard-Drives-with-Next-Generation-Mozaic-4/default.aspx",
           "note": "No matched system-level 1 PB restore benchmark is present in this source."
+        },
+        {
+          "metric": "dependency_qualified_failure_domains",
+          "required": 3,
+          "observed": null,
+          "status": "unknown",
+          "source": null,
+          "note": "No complete, identity-bound Mycelix dependency profile/cut-set receipt is included in this public product specification; three labels or copies cannot be assumed independent."
         }
       ]
     },
@@ -118,6 +142,14 @@
           "status": "unknown",
           "source": "https://www.micron.com/products/storage/ssd/data-center-ssd/6600-ion",
           "note": "No matched 1 PB full-system restore test or service architecture is provided by this product page."
+        },
+        {
+          "metric": "dependency_qualified_failure_domains",
+          "required": 3,
+          "observed": null,
+          "status": "unknown",
+          "source": null,
+          "note": "No complete, identity-bound Mycelix dependency profile/cut-set receipt is included in this public product specification; three labels or copies cannot be assumed independent."
         }
       ]
     },
@@ -143,6 +175,14 @@
           "status": "fail",
           "source": "https://s24.q4cdn.com/101481333/files/content_files/STX-US-CORRECTED-TRANSCRIPT-Seagate-Technology-Holdings-PlcSTXUS-Q1-2027-Earnings-Call-27-ET-PM-26-10-2026-2026-10-26-0.pdf",
           "note": "Roadmap and laboratory demonstration only; cannot qualify as a production candidate."
+        },
+        {
+          "metric": "dependency_qualified_failure_domains",
+          "required": 3,
+          "observed": null,
+          "status": "unknown",
+          "source": null,
+          "note": "No complete, identity-bound Mycelix dependency profile/cut-set receipt is included in this public product specification; three labels or copies cannot be assumed independent."
         }
       ]
     }
