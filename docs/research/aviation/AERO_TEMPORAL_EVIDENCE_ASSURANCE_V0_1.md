@@ -364,6 +364,21 @@ Therefore AERO does **not** claim to invent tritemporal databases, event sourcin
 
 This is a domain-specific assurance composition over established temporal concepts, with physical measurement and engineering-claim boundaries. Novelty must be demonstrated through matched correctness, completeness, independent replay and verification economics—not by renaming the time model.
 
+### 7.2 Reproducible reference-model scale harness
+
+The research-only Rust reference model includes `benches/temporal_replay_scale.rs`, a deterministic in-memory benchmark using the crate's existing Serde dependencies.
+
+Run:
+```bash
+cargo bench --locked --package symtropy-aero-material-qual --bench temporal_replay_scale -- 10000,100000 5
+```
+
+The first argument is a comma-separated list of event counts; the second is iteration count. The default is 10,000 events and three iterations. Larger 100,000 / 1,000,000 / 10,000,000 runs are opt-in. The output is CSV with event count, replay mode, iterations, median/minimum latency and resulting disposition.
+
+The routine CI workflow runs only the 10,000-event, one-iteration smoke and checks all three replay modes return `ACCEPTED_FOR_BINDING_ONLY`. It is a compile/functional smoke, **not** a performance result or competitive benchmark.
+
+A published performance claim requires repeated runs on pinned hardware/OS/toolchain, peak resident memory, CPU time, evidence-view size, events scanned, warm/cold state, p50/p95/p99 latency and a matched append-only/bitemporal baseline. Include fixture-generation cost separately from replay time. The synthetic digests/receipt labels in the harness are not cryptographic evidence. Do not use a successful benchmark run as evidence of trusted source coverage, physical correctness or qualification.
+
 ## 8. Standards and research comparators
 
 - **NIST IR 8536 (final, 9 September 2026):** Manufacturing Supply Chain Traceability Meta-Framework. It defines interoperable, cryptographically verifiable traceability links, temporally ordered provenance, selective disclosure and cross-ecosystem event exchange while preserving existing standards. Treat it as an architecture/interoperability comparator and map AERO's event envelope to its concepts; do not create a competing manufacturing traceability framework. NIST's September 2026 announcement stated its Python reference implementation was in final review and that the public repository would follow approval; check the project page before integrating or claiming implementation parity: https://csrc.nist.gov/pubs/ir/8536/final and https://www.nccoe.nist.gov/projects/supply-chain-traceability-principles-manufacturing-meta-framework.
