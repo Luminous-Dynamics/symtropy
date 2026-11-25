@@ -181,6 +181,17 @@ def evaluate_binding(binding, acquisition_interval, acquisition_scope):
             missing.add(field)
             reasons.add("EVIDENCE_SCOPE_FIELD_MISSING:" + field)
 
+    # Extra assertions are also binding claims; never silently ignore them.
+    for field, actual in evidence_scope.items():
+        if field in REQUIRED_FIELDS[binding["kind"]]:
+            continue
+        if field not in acquisition_scope:
+            missing.add(field)
+            reasons.add("ACQUISITION_SCOPE_FIELD_MISSING:" + field)
+        elif actual != acquisition_scope[field]:
+            mismatched.add(field)
+            reasons.add("SCOPE_MISMATCH:" + field)
+
     evidence_time_basis = evidence_scope.get("time_basis_id")
     if (
         evidence_time_basis is not None
