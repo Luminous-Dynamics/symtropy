@@ -1,0 +1,13 @@
+[package]
+name = "asteroid-optical-isru-reference"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Evidence-bounded reference evaluator for optical small-body ISRU benchmark cases"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[workspace]

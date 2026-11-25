@@ -1,0 +1,333 @@
+{
+  "schema_version": "0.1",
+  "claim_ceiling": "Corpus identity and declared arithmetic contracts only. This fixture does not establish physical model accuracy, asteroid resource abundance, recoverable reserves, economic viability, hardware or flight qualification.",
+  "source_records": [
+    {
+      "id": "nasa-optical-mining-8kw",
+      "title": "Optical Mining of Asteroids, Moons, and Planets to Enable Sustainable Human Exploration and Space Industrialization",
+      "url": "https://www.nasa.gov/general/optical-mining-of-asteroids-moons-and-planets-to-enable-sustainable-human-exploration-and-space-industrialization/",
+      "evidence_class": "historical_experimental",
+      "caveat": "NASA describes an 8 kW full-scale optical-mining demonstration using high-fidelity CI-type asteroid simulant in vacuum and sunlight from a 10 m diameter concentrator. Do not infer operational mission performance or unreported accepted-product throughput."
+    },
+    {
+      "id": "nectar-optical-mining-2025",
+      "title": "Optical mining of carbonaceous chondrite simulants: Testing and lessons learned in asteroid mining research",
+      "url": "https://doi.org/10.1016/j.actaastro.2025.04.033",
+      "evidence_class": "peer_reviewed_experiment",
+      "caveat": "Vacuum optical-mining experiments report irradiance-, morphology- and failure-regime-dependent excavation and water production; organic vapour deposition can hamper operation. Reproduce only accessible source data and preserve the exact Nectar material identity."
+    },
+    {
+      "id": "asteroid-laser-mining-cryogenic-vacuum-2026",
+      "title": "Asteroid laser mining under cryogenic vacuum conditions: Particle ejection and Fe-Ni enrichment from asteroid simulants",
+      "url": "https://doi.org/10.1016/j.cherd.2026.08.007",
+      "evidence_class": "peer_reviewed_experiment",
+      "caveat": "C- and S-type simulants were irradiated for 30 s at 300, 600 and 900 W using a continuous-wave fibre laser in a chamber at 10^-2 Pa and 253 K. Fe-Ni-enriched ejected fines are not refined or qualified metal."
+    },
+    {
+      "id": "lunar-concentrated-water-extraction-2025",
+      "title": "Thermal extraction of H2O(s) from lunar regolith simulant with concentrated solar irradiation: Experimental analysis",
+      "url": "https://doi.org/10.1016/j.actaastro.2025.03.040",
+      "evidence_class": "peer_reviewed_experiment",
+      "caveat": "High-vacuum lunar simulant experiments provide adjacent receiver/process evidence, not asteroid results. The reported indirect-receiver sublimation improvement is source-specific and must not be generalized."
+    },
+    {
+      "id": "nasa-card-integrated-ground-test-2026",
+      "title": "Prototype Demonstration of Solar-Carbothermal System to Extract Oxygen From Regolith",
+      "url": "https://ntrs.nasa.gov/citations/20260003603",
+      "evidence_class": "integrated_ground_demonstration",
+      "caveat": "NASA reports an integrated concentrator/reactor/control prototype using simulated lunar regolith and confirms carbon monoxide production. Do not promote this to a deployed lunar plant or purified oxygen production."
+    },
+    {
+      "id": "jpl-cislunar-laser-beaming-2026",
+      "title": "Phased-array beaming of laser power from cislunar space to the lunar surface",
+      "url": "https://doi.org/10.1103/hry6-dl1g",
+      "evidence_class": "peer_reviewed_model",
+      "caveat": "End-to-end cislunar laser-beaming model with time-dependent visibility, divergence, jitter, conversion and thermal/dust limits. Numerical delivered-energy cases are model results, not flight demonstrations."
+    },
+    {
+      "id": "nasa-lunar-surface-laser-beaming-study-2024",
+      "title": "Design Study of Surface to Surface Laser Power Beaming on the Moon",
+      "url": "https://ntrs.nasa.gov/citations/20240004427",
+      "evidence_class": "engineering_design_study",
+      "caveat": "The 300 W continuous, 10 km, five-year and under-625 kg figures are source-defined design requirements, not demonstrated lunar service."
+    },
+    {
+      "id": "nasa-fission-surface-power-40kw",
+      "title": "Fission Surface Power",
+      "url": "https://www.nasa.gov/exploration-systems-development-mission-directorate/fission-surface-power/",
+      "evidence_class": "programme_reference",
+      "caveat": "NASA/DOE are designing a 40 kWe-class lunar surface fission system for a future demonstration. It is a competing design reference, not a currently deployed lunar plant."
+    }
+  ],
+  "cases": [
+    {
+      "id": "ref-nasa-optical-mining-8kw",
+      "evidence_class": "historical_experimental_reference",
+      "expected_disposition": "REFERENCE_ONLY_SOURCE_REPRODUCTION_REQUIRED",
+      "note": "Preserve the 8 kW optical mining demonstration and 10 m concentrator as the source-reported experiment boundary; unreported yield remains null.",
+      "source_id": "nasa-optical-mining-8kw",
+      "conditions": {
+        "source_power_kw": 8,
+        "concentrator_diameter_m": 10,
+        "environment": "vacuum",
+        "feedstock": "high_fidelity_CI_type_asteroid_simulant",
+        "mechanical_contact": false,
+        "downforce": false
+      }
+    },
+    {
+      "id": "ref-nectar-2025",
+      "evidence_class": "peer_reviewed_experiment_reference",
+      "expected_disposition": "REFERENCE_ONLY_SOURCE_DATA_REQUIRED",
+      "note": "Use source-accessible per-sample irradiance and response data. Preserve the observed non-monotonic excavation response and organic-vapour fouling; do not create missing points.",
+      "source_id": "nectar-optical-mining-2025",
+      "conditions": {
+        "feedstock_family": "carbonaceous_chondrite_simulant",
+        "environment": "vacuum",
+        "required_factors": [
+          "irradiance",
+          "mineral_morphology",
+          "brittle_ductile_transition",
+          "organic_vapour_deposition"
+        ]
+      }
+    },
+    {
+      "id": "ref-laser-mining-cryogenic-2026",
+      "evidence_class": "peer_reviewed_experiment_reference",
+      "expected_disposition": "REFERENCE_ONLY_SOURCE_DATA_REQUIRED",
+      "note": "The 300/600/900 W results belong to the reported 30 s, 10^-2 Pa, 253 K chamber experiment. Ejected Fe-Ni-enriched fines are not refined metal.",
+      "source_id": "asteroid-laser-mining-cryogenic-vacuum-2026",
+      "conditions": {
+        "laser_type": "continuous_wave_fibre",
+        "power_levels_w": [
+          300,
+          600,
+          900
+        ],
+        "exposure_s": 30,
+        "pressure_pa": 0.01,
+        "initial_temperature_k": 253,
+        "feedstock_families": [
+          "C_type_simulant",
+          "S_type_simulant"
+        ],
+        "original_feedstock_fe_ni_percent": 16.7,
+        "ejected_fines_fe_ni_percent": 69.6
+      }
+    },
+    {
+      "id": "ref-lunar-water-concentrated-2025",
+      "evidence_class": "peer_reviewed_adjacent_experiment",
+      "expected_disposition": "ADJACENT_REFERENCE_NOT_ASTEROID_RESULT",
+      "note": "Use the vacuum ice/regolith receiver experiments to inform lunar design comparisons only; do not transfer results to asteroid compositions.",
+      "source_id": "lunar-concentrated-water-extraction-2025",
+      "conditions": {
+        "feedstock": "LHS_1_icy_lunar_regolith_simulant",
+        "irradiance_kw_m2": [
+          37.06,
+          74.62
+        ],
+        "reported_indirect_receiver_sublimation_gain_percent": 18.7,
+        "reported_gain_uncertainty_percent": 10.4,
+        "irradiance_uncertainty_kw_m2": [
+          2.66,
+          3.57
+        ]
+      }
+    },
+    {
+      "id": "ref-nasa-card-2026",
+      "evidence_class": "integrated_ground_demonstration_reference",
+      "expected_disposition": "CO_CONFIRMED_OXYGEN_PRODUCT_NOT_PROMOTED",
+      "note": "Keep CO detection, inferred process progression and accepted purified oxygen as different evidence states.",
+      "source_id": "nasa-card-integrated-ground-test-2026",
+      "conditions": {
+        "feedstock": "simulated_lunar_regolith",
+        "integrated_subsystems": [
+          "deployable_solar_concentrator",
+          "crossed_Dragone_mirrors",
+          "carbothermal_reactor",
+          "control_software",
+          "gas_analysis"
+        ],
+        "confirmed_species": [
+          "CO"
+        ],
+        "purified_oxygen_confirmed": false
+      }
+    },
+    {
+      "id": "ref-jpl-cislunar-laser-2026",
+      "evidence_class": "peer_reviewed_model_reference",
+      "expected_disposition": "MODEL_REFERENCE_NOT_FLIGHT_DEMONSTRATION",
+      "note": "Use the end-to-end chain and delivered daily energy; do not compare optical aperture power directly with receiver load energy.",
+      "source_id": "jpl-cislunar-laser-beaming-2026",
+      "conditions": {
+        "orbit_example": "NRHO_to_Shackleton_rim",
+        "wavelength_nm": 1064,
+        "small_array_aperture_m": 2,
+        "small_array_mean_delivered_power_w": 28,
+        "large_array_effective_aperture_m": 10,
+        "large_array_transmitter_power_kw": 100,
+        "large_array_delivered_energy_kwh_day": [
+          30,
+          50
+        ],
+        "receiver_area_m2": 1,
+        "small_array_delivered_energy_kwh_day": [
+          0.6,
+          0.8
+        ]
+      }
+    },
+    {
+      "id": "ref-nasa-lunar-beaming-study-2024",
+      "evidence_class": "engineering_design_study_reference",
+      "expected_disposition": "DESIGN_TARGET_NOT_DEMONSTRATED_PERFORMANCE",
+      "note": "The design specifies a 300 W continuous user load up to 10 km, five-year lifetime and under-625 kg landed mass; verify the source's entire energy chain and duty cycle.",
+      "source_id": "nasa-lunar-surface-laser-beaming-study-2024",
+      "conditions": {
+        "usable_power_w": 300,
+        "maximum_range_km": 10,
+        "design_life_years": 5,
+        "landed_mass_limit_kg": 625
+      }
+    },
+    {
+      "id": "ref-fission-40kw",
+      "evidence_class": "programme_reference",
+      "expected_disposition": "FUTURE_DESIGN_REFERENCE_NOT_DEPLOYED",
+      "note": "Compare continuous firm power as a service alternative, with realistic landed mass, radiator, fuel, shielding and mission constraints when source data are available.",
+      "source_id": "nasa-fission-surface-power-40kw",
+      "conditions": {
+        "target_electric_power_kw": 40,
+        "status": "design_and_development_for_future_demonstration"
+      }
+    },
+    {
+      "id": "synthetic-flux-2au",
+      "evidence_class": "synthetic_analytic_screen",
+      "expected_disposition": "PASS_ARITHMETIC_ONLY",
+      "note": "Inverse-square solar flux check; not an orbit, site illumination or collector performance prediction.",
+      "source_id": null,
+      "conditions": {
+        "reference_flux_w_m2": 1361,
+        "reference_distance_au": 1,
+        "target_distance_au": 2,
+        "expected_flux_w_m2": 340.25
+      }
+    },
+    {
+      "id": "synthetic-solar-image-100km",
+      "evidence_class": "synthetic_analytic_screen",
+      "expected_disposition": "PASS_GEOMETRY_ONLY",
+      "note": "Finite solar angular diameter produces a broad focal image; optical aberrations and nonuniformity are not modeled.",
+      "source_id": null,
+      "conditions": {
+        "sun_angular_diameter_rad": 0.0093,
+        "mirror_to_target_range_m": 100000,
+        "expected_solar_image_diameter_m": 930
+      }
+    },
+    {
+      "id": "synthetic-solar-image-100km-2p7au",
+      "evidence_class": "synthetic_analytic_screen",
+      "expected_disposition": "PASS_HELIOCENTRIC_GEOMETRY_ONLY",
+      "note": "The solar angular diameter decreases inversely with heliocentric distance; this is a geometric focal-image screen, not a collector or asteroid thermal-process model.",
+      "source_id": null,
+      "conditions": {
+        "reference_solar_angular_diameter_at_1au_rad": 0.0093,
+        "heliocentric_distance_au": 2.7,
+        "mirror_to_target_range_m": 100000,
+        "expected_solar_image_diameter_m": 344.44444444444446
+      }
+    },
+    {
+      "id": "synthetic-local-concentrator-10m-at-100m",
+      "evidence_class": "synthetic_analytic_screen",
+      "expected_disposition": "PASS_IDEAL_GEOMETRIC_CONCENTRATION_ONLY",
+      "note": "An ideal 10 m circular collector focused at 100 m at 1 AU produces a 0.93 m solar image and about 115.6x geometric concentration before optical losses.",
+      "source_id": null,
+      "conditions": {
+        "collector_diameter_m": 10,
+        "focal_distance_m": 100,
+        "heliocentric_distance_au": 1,
+        "expected_solar_image_diameter_m": 0.93,
+        "expected_ideal_geometric_concentration_ratio": 115.6
+      }
+    },
+    {
+      "id": "synthetic-laser-diffraction-1km",
+      "evidence_class": "synthetic_analytic_screen",
+      "expected_disposition": "PASS_DIFFRACTION_SCREEN_ONLY",
+      "note": "Ideal circular-aperture Airy first-null diameter; excludes beam quality, jitter, pointing error, receiver capture and laser safety.",
+      "source_id": null,
+      "conditions": {
+        "wavelength_m": 0.000001064,
+        "range_m": 1000,
+        "aperture_m": 2,
+        "expected_airy_first_null_diameter_m": 0.00129808
+      }
+    },
+    {
+      "id": "synthetic-mass-balance-valid",
+      "evidence_class": "synthetic_hand_check",
+      "expected_disposition": "PASS_CONTRACT_ONLY",
+      "note": "All input feedstock mass is assigned to residue, captured/escaped solids, captured/escaped gas and other declared mass.",
+      "source_id": null,
+      "conditions": {
+        "feedstock_input_kg": 10,
+        "solid_residue_kg": 7,
+        "captured_solids_kg": 1,
+        "escaped_solids_kg": 0.5,
+        "captured_raw_gas_kg": 1,
+        "escaped_gas_kg": 0.4,
+        "other_accounted_mass_kg": 0.1,
+        "expected_residual_kg": 0
+      }
+    },
+    {
+      "id": "synthetic-product-purity-blocked",
+      "evidence_class": "synthetic_negative_control",
+      "expected_disposition": "BLOCKED_PRODUCT_BELOW_PURITY",
+      "note": "Captured gas cannot be promoted to accepted product when independent assay purity is below the specified product contract.",
+      "source_id": null,
+      "conditions": {
+        "captured_raw_gas_kg": 1,
+        "purified_product_kg": 0.7,
+        "measured_purity_fraction": 0.9,
+        "minimum_purity_fraction": 0.99,
+        "independent_assay_present": true
+      }
+    },
+    {
+      "id": "synthetic-energy-chain-overdraw",
+      "evidence_class": "synthetic_negative_control",
+      "expected_disposition": "REJECTED_ENERGY_BOUNDARY_OVERDRAW",
+      "note": "An energy stage exceeds the immediately preceding meter plane and must be rejected.",
+      "source_id": null,
+      "conditions": {
+        "source_boundary": "dc_electrical_at_transmitter",
+        "source_input_kwh": 10,
+        "optical_output_kwh": 4,
+        "receiver_incident_kwh": 4.5,
+        "expected_rejection": "receiver_incident_exceeds_optical_output"
+      }
+    },
+    {
+      "id": "synthetic-unknown-stage",
+      "evidence_class": "synthetic_negative_control",
+      "expected_disposition": "REJECTED_UNKNOWN_INTERMEDIATE",
+      "note": "A downstream measurement cannot be promoted when an upstream stage is unknown.",
+      "source_id": null,
+      "conditions": {
+        "source_input_kwh": 10,
+        "optical_output_kwh": 4,
+        "receiver_incident_kwh": null,
+        "receiver_absorbed_kwh": 2.5,
+        "expected_rejection": "downstream_after_missing_stage"
+      }
+    }
+  ]
+}
