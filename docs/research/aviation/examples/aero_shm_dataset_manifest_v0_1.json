@@ -1,0 +1,147 @@
+{
+  "manifest_id": "AERO-SHM-DATASET-MANIFEST-0.1",
+  "profile_id": "aero-shm-dataset-manifest-v0.1",
+  "status": "DISCOVERY_ONLY",
+  "synthetic_only": false,
+  "claim_ceiling": "public-source discovery metadata only; no dataset download, rights clearance, physical result or benchmark result claimed",
+  "checked_on": "2026-11-25",
+  "datasets": [
+    {
+      "dataset_id": "nasa-pcoe-cfrp-composites",
+      "title": "NASA PCoE Carbon Fiber-Reinforced Polymer (CFRP) Composites",
+      "tier": "P1_PHYSICAL_COMPOSITE_FATIGUE",
+      "landing_url": "https://www.nasa.gov/intelligent-systems-division/discovery-and-systems-health/pcoe/pcoe-data-set-repository/",
+      "data_url": "https://phm-datasets.s3.amazonaws.com/NASA/2.+Composites.zip",
+      "publication_or_citation": "Abhinav Saxena, Kai Goebel, Cecilia C. Larrosa, Fu-Kuo Chang, CFRP Composites Data Set, NASA Prognostics Data Repository.",
+      "provider": "Stanford Structures and Composites Laboratory in collaboration with NASA Ames PCoE",
+      "verified_metadata": {
+        "material": "CFRP composite panels",
+        "layup_count": 3,
+        "loading": "tension-tension fatigue run-to-failure",
+        "sensing": "16-channel PZT Lamb-wave network and multiple triaxial strain gauges",
+        "damage_truth": "periodic X-ray images",
+        "file_format": "NOT_INSPECTED",
+        "acquisition_frequency": "NOT_ESTABLISHED_FROM_LANDING_PAGE"
+      },
+      "limitations": [
+        "Panel/layup/run-specific; X-ray damage truth is periodic rather than continuously observed.",
+        "The landing page lists a download and citation but does not establish a dataset-specific reuse license.",
+        "NASA's general science-data policy says non-NASA-led/provider data may be supplied as-is; source rights must be checked with the originating provider."
+      ],
+      "access_status": "PUBLIC_DOWNLOAD_LISTED",
+      "rights": {
+        "status": "UNVERIFIED",
+        "evidence_url": "https://science.data.nasa.gov/about/license",
+        "notes": "Do not infer CC0 from NASA hosting. Confirm provider-originated rights and any third-party restrictions before reuse, redistribution or public leaderboard inclusion."
+      },
+      "security": {
+        "format_risk": "ARCHIVE_NOT_INSPECTED",
+        "required_handling": "Hash and inspect the archive before extraction; perform bounded extraction in an isolated workspace."
+      },
+      "acquisition": {
+        "download_status": "NOT_DOWNLOADED",
+        "artifact_sha256": null,
+        "artifact_bytes": null,
+        "manifest_sha256": null,
+        "rights_reviewed": false
+      }
+    },
+    {
+      "dataset_id": "outer-wing-guided-wave-demonstrator",
+      "title": "Guided-wave SHM database on a composite full-scale outer-wing demonstrator",
+      "tier": "P2_PHYSICAL_AEROSPACE_DEMONSTRATOR",
+      "landing_url": "https://journals.sagepub.com/doi/10.1177/1475921719889029",
+      "data_url": "http://shm.ing.unibo.it/",
+      "publication_or_citation": "Marzani et al., An open database for benchmarking guided waves structural health monitoring algorithms on a composite full-scale outer wing demonstrator, Structural Health Monitoring, DOI 10.1177/1475921719889029.",
+      "provider": "University of Bologna research collaborators",
+      "verified_metadata": {
+        "structure": "composite panel closing the bottom of a full-scale outer-wing demonstrator",
+        "approximate_length_m": 4.5,
+        "approximate_width_m": [
+          1.2,
+          2.3
+        ],
+        "sensor_count": 160,
+        "sensor_type": "secondarily bonded PZT transducers",
+        "sensor_health": "electromechanical impedance checks for transducer reliability and bond strength",
+        "test_stages": [
+          "before loading",
+          "before fatigue",
+          "before impacts",
+          "after impacts"
+        ],
+        "file_format": "NOT_INSPECTED"
+      },
+      "limitations": [
+        "A full-scale demonstrator/test article, not an in-service aircraft fleet or type-qualified structure.",
+        "The paper describes the database as freely available, but dataset-specific licensing and redistribution conditions must be recorded independently.",
+        "Damage localization/sizing claims must remain within the published article's ground-truth and test-stage scope."
+      ],
+      "access_status": "PUBLICLY_DESCRIBED_AS_FREELY_AVAILABLE",
+      "rights": {
+        "status": "UNVERIFIED",
+        "evidence_url": "https://journals.sagepub.com/doi/10.1177/1475921719889029",
+        "notes": "The article's free-availability statement is not a substitute for a machine-readable dataset license or redistribution grant; check the host's current terms."
+      },
+      "security": {
+        "format_risk": "ARCHIVE_NOT_INSPECTED",
+        "required_handling": "Inspect file formats, metadata, archive paths and size before processing; preserve source bytes and hashes."
+      },
+      "acquisition": {
+        "download_status": "NOT_DOWNLOADED",
+        "artifact_sha256": null,
+        "artifact_bytes": null,
+        "manifest_sha256": null,
+        "rights_reviewed": false
+      }
+    },
+    {
+      "dataset_id": "utah-long-term-guided-waves",
+      "title": "Dataset on guided waves from long-term SHM under uncontrolled and dynamic conditions",
+      "tier": "P3_LONG_DURATION_ENVIRONMENTAL_DRIFT",
+      "landing_url": "https://www.nature.com/articles/s41597-025-05300-5",
+      "data_url": "https://doi.org/10.6084/m9.figshare.28112504",
+      "code_url": "https://github.com/SmartDATA-Lab/Long_Term_Guided_Waves",
+      "publication_or_citation": "Yang et al., Scientific Data 12, 991 (2025), DOI 10.1038/s41597-025-05300-5; data DOI 10.6084/m9.figshare.28112504.",
+      "provider": "University of Utah / SmartDATA-Lab collaborators",
+      "verified_metadata": {
+        "structure": "outdoor monitored aluminum plate",
+        "monitoring_duration_years": 4.5,
+        "approximate_measurement_count": 6400000,
+        "introduced_damage_types": 13,
+        "public_files_count": 56,
+        "public_download_approx_gb": 100,
+        "original_acquisition_approx_tb": 9,
+        "original_measurement_interval_seconds": 8.6,
+        "public_measurement_interval_seconds": 176,
+        "original_samples_per_wave": 10000,
+        "public_samples_per_wave": 2000,
+        "channel_count": 8,
+        "file_format": "Python pickle (.pickle)"
+      },
+      "limitations": [
+        "The structure is an aluminum plate, not an aerospace composite; use for environmental/sensor/installation drift rather than direct aircraft transfer claims.",
+        "The published data are downsampled and trimmed relative to the original acquisition: approximately one of every 20 original measurements and 2,000 of 10,000 samples per wave.",
+        "The published repository README says to use the current Figshare link because the original dataset link is no longer available.",
+        "Data are Python pickle files; standard unpickling can execute arbitrary code. Never deserialize directly on developer workstations or CI."
+      ],
+      "access_status": "PUBLIC_FIGSHARE_DOI",
+      "rights": {
+        "status": "UNVERIFIED",
+        "evidence_url": "https://doi.org/10.6084/m9.figshare.28112504",
+        "notes": "Retrieve the item-specific license and version metadata from the Figshare record before reuse or redistribution; platform-level defaults do not establish this item's actual license."
+      },
+      "security": {
+        "format_risk": "UNTRUSTED_PICKLE_EXECUTION_RISK",
+        "required_handling": "Do not unpickle on a developer workstation or CI. Verify source and digest; if conversion is necessary, use a disposable network-isolated sandbox with no credentials, no writable host mounts, resource limits and a constrained converter. Prefer a safe, documented columnar interchange output with its own digest and provenance."
+      },
+      "acquisition": {
+        "download_status": "NOT_DOWNLOADED",
+        "artifact_sha256": null,
+        "artifact_bytes": null,
+        "manifest_sha256": null,
+        "rights_reviewed": false
+      }
+    }
+  ]
+}
