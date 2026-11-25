@@ -11,8 +11,8 @@ use std::collections::BTreeSet;
 use serde::Deserialize;
 
 use crate::{
-    CommandSemanticProfile, DeviceCapabilityProfile, EffectClass, HoldReason,
-    SemanticDecision, SemanticProfileInput, evaluate,
+    CommandSemanticProfile, DeviceCapabilityProfile, SemanticDecision,
+    SemanticProfileInput, evaluate,
 };
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
