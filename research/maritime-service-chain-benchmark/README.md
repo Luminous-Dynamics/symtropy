@@ -389,6 +389,8 @@ The synthetic receipt includes six cases:
 5. **Protected cohort:** a mean-100-minute scenario assigns 18 observations to a priority cohort and two to a small-receiver cohort. The small cohort has zero on-time delivery and violates its 95% service floor, while the aggregate on-time rate is 90%.
 6. **Burst load:** the high-variability, receiver-regression and protected-cohort scenarios separately exercise a clustered 20-call arrival window; the regular-arrival comparator peaks at two calls per 60 minutes.
 
+The receipt additionally replays a transparent two-server FCFS queue with a fixed 30-minute service time. The regular 20-call comparator has zero waiting, zero queue-wait area and completes by minute 1,170. The 20-call burst has a maximum wait of 260 minutes, 2,680 call-minutes of queue-wait area and completes by minute 300 after the burst epoch. This demonstrates how the same total call count can create very different backlog and recovery burden when arrivals are clustered. It is a small queueing reference only, not a realistic full-terminal capacity model; production comparisons must use the frozen berth/crane/yard/AGV/rail resource model and matched solver baselines.
+
 The code also keeps vessel wait, berth work, terminal dwell, combined port elapsed, inland transfer and end-to-end time as separate distributions. It rejects duplicate observation identities, invalid deadlines and duplicate arrival IDs.
 
 ### Proposed benchmark acceptance targets
