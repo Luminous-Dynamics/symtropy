@@ -183,3 +183,8 @@ A meaningful win must hold across repeated runs and hard scenarios—not only av
 - #7422: time-varying acceleration/jerk envelope (17-case synthetic benchmark and independent Fraction oracle; exact-head CI pending).\n- #6845: parent inspectability and independent evidence programme.
 
 The implementation sequence should connect these contracts only through versioned, exact input and output receipts. Missing owners remain missing; synthetic or modeled evidence must never be presented as measured physical truth.
+
+
+## New two-key action-admission work
+
+- #7484: non-compensatory physical-safety and measurement-evidence admission adapter, scoped to consume existing safety/risk and acquisition owners; no duplicated collision shield or trajectory engine.
