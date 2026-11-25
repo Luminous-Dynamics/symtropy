@@ -297,7 +297,8 @@
         "source_record_id",
         "assertion_method",
         "issuer_id",
-        "provenance_ref"
+        "provenance_ref",
+        "sampling_event_id"
       ],
       "properties": {
         "id": {
@@ -340,6 +341,9 @@
           "$ref": "#/$defs/id"
         },
         "provenance_ref": {
+          "$ref": "#/$defs/id"
+        },
+        "sampling_event_id": {
           "$ref": "#/$defs/id"
         }
       }
