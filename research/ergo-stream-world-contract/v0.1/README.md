@@ -153,18 +153,18 @@ The initial two-modality categorical microcosm is implemented in `src/multimodal
 - Independent affine clock models with offset, rate, jitter and bounded arrival delay.
 - Missing observations with fixed per-modality marginal-preserving generation.
 - Aligned positive and marginal-matched shuffled negative regimes. Independent PRNG substreams preserve each modality's event-symbol and timestamp marginals across those two regimes, including the declared dropout masks.
-- A periodic non-identifiable regime with four admissible phase correspondences and no shared clock anchors.
-- Separate evaluator functions for event-correspondence claims and affine clock-map residuals.
+- A periodic non-identifiable event regime with four admissible phase correspondences; shared clock-anchor presence is an independent control.
+- A separate evaluator-side exact correspondence pass reconstructed from private event-identity labels, plus independent clock-map residual scoring.
 - Unique / alternatives / unresolved claim dispositions; an unjustified singleton is explicitly scored as false-unique when the evaluator retains multiple admissible correspondences.
 - Causal policy views filter by arrival tick and order by arrival, never by sensor timestamp.
 
 The first version uses explicit shared calibration pulses as an optional independent clock-identifiability factor. It is not a general blind clock-estimation algorithm. Periodic event ambiguity can be tested both with anchors (identifiable clock, ambiguous correspondence) and without anchors (both unresolved). No semantic or causal labels are serialized to the policy view.
 
-Eight focused tests cover aligned positives, exact matched marginals under dropout, shuffled negative correspondence, periodic ambiguity with and without shared clock anchors, clock/semantic score separation, causal arrival prefixes, explicit out-of-order sensor-time delivery, and invalid configuration. The existing `ErgoStream microcosm` workflow is the execution authority; no test, doctest, Clippy or benchmark result is claimed until it passes on the exact branch head.
+Eight focused tests cover aligned positives, exact matched marginals under dropout, shuffled negative correspondence, periodic ambiguity with and without shared clock anchors, clock/semantic score separation, causal arrival prefixes, explicit out-of-order sensor-time delivery, and invalid configuration. The exact evaluator routine is separate from the candidate claim validator; hidden identity labels never enter the public view. The existing `ErgoStream microcosm` workflow is the execution authority; no test, doctest, Clippy or benchmark result is claimed until it passes on the exact branch head.
 
 ## 11. First executable milestone
 
-Extend the existing SIM-REL blind episode contract with a typed adapter for one discrete motif-stream world. Add one independent exact evaluator and one minimal child policy. Before adding large modalities, prove hidden-state non-exposure, exact replay, denominator conservation and held-out composition scoring.
+The current slice supplies the evaluator-side categorical world and exact correspondence scorer only. The minimal child policy / process adapter remains a follow-on under the existing blind episode contract. Before adding large modalities, prove hidden-state non-exposure, exact replay, denominator conservation and held-out composition scoring.
 
 ## 12. Non-claims
 
