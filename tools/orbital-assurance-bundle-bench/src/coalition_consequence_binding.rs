@@ -485,7 +485,7 @@ fn validate_coalitions(
 ) -> Result<(BTreeMap<String, &CoalitionOutcome>, String, String), String> {
     if case.coalitions.len() != expected.len() {
         return Err(
-            "coalition outcome count differs from exact statically selectable subset count".to_owned(),
+            "coalition outcome count differs from selectable subset count".to_owned(),
         );
     }
     let mut records = BTreeMap::new();
@@ -507,7 +507,7 @@ fn validate_coalitions(
             || expected.get(&row.portfolio_id) != Some(&row.action_ids)
         {
             return Err(
-                "coalition identity, action-set digest or membership does not match canonical enumeration"
+                "coalition identity or digest differs from canonical subset"
                     .to_owned(),
             );
         }
@@ -1012,12 +1012,18 @@ mod tests {
         let action_a = case
             .candidate_actions
             .iter()
-            .find(|a| a.action_id == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+            .find(|a| {
+                a.action_id
+                    == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            })
             .unwrap();
         let action_b = case
             .candidate_actions
             .iter()
-            .find(|a| a.action_id == "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+            .find(|a| {
+                a.action_id
+                    == "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            })
             .unwrap();
         assert_eq!(metric(&result, &[]).lower_bound_avoided_ticks, 0);
         assert_eq!(metric(&result, &[action_a.action_id.clone()]).lower_bound_avoided_ticks, 5);
