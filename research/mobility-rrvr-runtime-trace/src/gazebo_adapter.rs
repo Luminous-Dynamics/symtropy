@@ -3796,19 +3796,19 @@ mod tests {
             dispatch_fault_once(&mut registry, &mut injector, &request),
             GazeboDispatchOutcome::Unknown { dispatch_id: None }
         );
-        assert_eq!(injector.dispatch_calls, 1);
+        assert_eq!(injector.inner.dispatch_calls, 1);
         assert_eq!(
             reconcile_fault_dispatch(&mut registry, &mut injector, &request),
             ReconciliationDecision::ExistingDispatchAccepted
         );
-        assert_eq!(injector.dispatch_calls, 1);
+        assert_eq!(injector.inner.dispatch_calls, 1);
         assert_eq!(
             dispatch_fault_once(&mut registry, &mut injector, &request),
             GazeboDispatchOutcome::Reconciled {
                 decision: ReconciliationDecision::ExistingDispatchAccepted
             }
         );
-        assert_eq!(injector.dispatch_calls, 1);
+        assert_eq!(injector.inner.dispatch_calls, 1);
 
         let mut changed_payload = request.clone();
         changed_payload.target_id = "different-target".into();
@@ -3819,7 +3819,7 @@ mod tests {
                 idempotency_key: request.idempotency_key.clone()
             }
         );
-        assert_eq!(injector.dispatch_calls, 1);
+        assert_eq!(injector.inner.dispatch_calls, 1);
     }
 
     #[test]
@@ -3854,12 +3854,9 @@ mod tests {
         };
         request.payload_sha256 = dispatch_request_fingerprint(&request).unwrap();
         let mut registry = DispatchAttemptRegistry::default();
-        let mut injector = JournalObservingInjector {
-            inner: MockInjector {
-                dispatch_calls: 0,
-                lookup: DispatchLedgerResult::Unknown,
-            },
-            journal_path: path.clone(),
+        let mut injector = MockInjector {
+            dispatch_calls: 0,
+            lookup: DispatchLedgerResult::Unknown,
         };
         assert_eq!(
             dispatch_fault_once(&mut registry, &mut injector, &request),
@@ -3875,7 +3872,7 @@ mod tests {
                 decision: ReconciliationDecision::Unresolved
             }
         );
-        assert_eq!(injector.dispatch_calls, 1);
+        assert_eq!(injector.inner.dispatch_calls, 1);
 
         injector.lookup = DispatchLedgerResult::NoDispatchProven;
         assert_eq!(
@@ -3888,7 +3885,7 @@ mod tests {
                 decision: ReconciliationDecision::NoDispatchProven
             }
         );
-        assert_eq!(injector.dispatch_calls, 1);
+        assert_eq!(injector.inner.dispatch_calls, 1);
 
         let mut altered = request.clone();
         altered.target_id = "other-target".into();
@@ -3897,7 +3894,7 @@ mod tests {
             reconcile_fault_dispatch(&mut registry, &mut injector, &altered),
             ReconciliationDecision::PayloadConflict
         );
-        assert_eq!(injector.dispatch_calls, 1);
+        assert_eq!(injector.inner.dispatch_calls, 1);
     }
 
     #[test]
@@ -4253,9 +4250,12 @@ mod tests {
             run_epoch: "epoch-1",
             attempt_id: "attempt-1",
         };
-        let mut injector = MockInjector {
-            dispatch_calls: 0,
-            lookup: DispatchLedgerResult::Unknown,
+        let mut injector = JournalObservingInjector {
+            inner: MockInjector {
+                dispatch_calls: 0,
+                lookup: DispatchLedgerResult::Unknown,
+            },
+            journal_path: path.clone(),
         };
         let first = journaled::dispatch_planned_fault_once_journaled(
             &mut simulator,
@@ -4273,7 +4273,7 @@ mod tests {
                 decision: ReconciliationDecision::Unresolved
             }
         ));
-        assert_eq!(injector.dispatch_calls, 1);
+        assert_eq!(injector.inner.dispatch_calls, 1);
         drop(journal);
 
         let mut reopened = crate::durable_journal::Journal::open(&path).unwrap();
@@ -4288,7 +4288,7 @@ mod tests {
         )
         .unwrap();
         assert!(second.recovered_from_journal);
-        assert_eq!(injector.dispatch_calls, 1);
+        assert_eq!(injector.inner.dispatch_calls, 1);
         assert_eq!(reopened.summary().dispatch_intent_count, 1);
         drop(reopened);
         cleanup_journaled_test_path(&path);
