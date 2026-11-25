@@ -498,7 +498,7 @@
       "class": "negative",
       "mutation": "restart_from_segment_zero_after_partial_progress",
       "expected_decision": "hold",
-      "expected_reason": "TrajectoryRestartFromZeroAllowed",
+      "expected_reason": "TrajectoryRestartFromSegmentZeroAllowed",
       "device": {
         "device_id": "robot-arm-02",
         "device_model": "reference-actuator",
@@ -556,11 +556,11 @@
         "watchdog_response_bound_ms": null,
         "clock_profile_id": "unknown",
         "segment_count": 6,
-        "segment_ids_are_stable": false,
-        "progress_checkpoints_required": false,
-        "resume_from_measured_progress": false,
+        "segment_ids_are_stable": true,
+        "progress_checkpoints_required": true,
+        "resume_from_measured_progress": true,
         "restart_from_segment_zero_allowed": true,
-        "downstream_queue_reconciliation_required": false
+        "downstream_queue_reconciliation_required": true
       }
     },
     {
