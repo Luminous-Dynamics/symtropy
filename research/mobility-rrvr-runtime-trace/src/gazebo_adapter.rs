@@ -1332,6 +1332,7 @@ pub mod journaled {
         ArtifactDigestMismatch,
         InvalidJournalIdentity,
         ExistingAttemptConflict,
+        FreshAttemptAdmissionRequired,
     }
 
     impl From<GazeboAdapterError> for JournaledGazeboError {
@@ -2444,12 +2445,15 @@ pub mod journaled {
         // not a fresh attempt. Only a new attempt identity may cross that boundary.
         if projection.dispatches.iter().any(|state| {
             state.intent.logical_effect_id == scenario.logical_effect_id
-                && state.intent.attempt_id == identity.attempt_id
                 && state.intent.run_id == identity.run_id
                 && state.intent.run_epoch == identity.run_epoch
                 && state.intent.plan_sha256 == plan.plan_sha256
         }) {
-            return Err(JournaledGazeboError::ExistingAttemptConflict);
+            // This adapter does not authorize a new physical attempt. Changing
+            // attempt_id cannot bypass existing effect history. The existing
+            // native authority owner must admit fresh attempts after NoEffect,
+            // fencing and independent evidence qualification.
+            return Err(JournaledGazeboError::FreshAttemptAdmissionRequired);
         }
 
         let reset = projection
@@ -4288,6 +4292,25 @@ mod tests {
         )
         .unwrap();
         assert!(second.recovered_from_journal);
+        assert_eq!(injector.inner.dispatch_calls, 1);
+        assert_eq!(reopened.summary().dispatch_intent_count, 1);
+
+        let fresh_attempt_id = journaled::GazeboJournaledDispatchIdentity {
+            attempt_id: "attempt-2",
+            ..identity
+        };
+        assert!(matches!(
+            journaled::dispatch_planned_fault_once_journaled(
+                &mut simulator,
+                &mut injector,
+                &mut store,
+                &mut reopened,
+                &plan,
+                &session,
+                fresh_attempt_id,
+            ),
+            Err(JournaledGazeboError::FreshAttemptAdmissionRequired)
+        ));
         assert_eq!(injector.inner.dispatch_calls, 1);
         assert_eq!(reopened.summary().dispatch_intent_count, 1);
         drop(reopened);
