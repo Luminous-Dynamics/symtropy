@@ -24,17 +24,6 @@ pub enum ReplayMode {
 }
 
 impl ReplayMode {
-    fn receipt_watermark_field(self) -> &'static str {
-        match self {
-            Self::AsKnownAt | Self::RecomputedWithCurrentTrust => {
-                "snapshot/receiver_receipt_watermark_unix_ms"
-            }
-            Self::RecomputedWithCurrentEvidenceAndTrust => {
-                "current_reassessment/receiver_receipt_watermark_unix_ms"
-            }
-        }
-    }
-
     fn expected_key(self) -> &'static str {
         match self {
             Self::AsKnownAt => "as_known_at",
@@ -405,7 +394,11 @@ pub fn evaluate_case(case: &Value, mode: ReplayMode) -> TemporalDisposition {
             } else {
                 "RECEIVER_RECEIPT_NOT_VERIFIABLE"
             };
-            let status = if receipt_status == Some("INVALID") { "REJECT" } else { "TRUST_UNRESOLVED" };
+            let status = if receipt_status == Some("INVALID") {
+                "REJECT"
+            } else {
+                "TRUST_UNRESOLVED"
+            };
             return one_reason(status, reason, &[], &included, &all_events);
         }
         if text(event, "receiver_receipt_reference").is_none_or(str::is_empty)
@@ -690,7 +683,7 @@ pub fn evaluate_case(case: &Value, mode: ReplayMode) -> TemporalDisposition {
 #[cfg(test)]
 mod tests {
     use super::{CORPUS, ReplayMode, TemporalDisposition, evaluate_case};
-    use serde_json::{Value, json};
+    use serde_json::Value;
 
     fn expected(case: &Value, mode: ReplayMode) -> Value {
         case.get("expected")
@@ -803,8 +796,16 @@ mod tests {
         let report = evaluate_case(case, ReplayMode::AsKnownAt);
         assert_eq!(report.disposition, "BLOCK");
         assert_eq!(report.applied_event_ids, vec!["lab-a:EV-REPEAT-1"]);
-        assert!(report.reason_codes.contains(&"REVOCATION_EFFECTIVE_AND_KNOWN".to_owned()));
-        assert!(report.reason_codes.contains(&"REPEATED_DELIVERY_DEDUPLICATED_ONCE".to_owned()));
+        assert!(
+            report
+                .reason_codes
+                .contains(&"REVOCATION_EFFECTIVE_AND_KNOWN".to_owned())
+        );
+        assert!(
+            report
+                .reason_codes
+                .contains(&"REPEATED_DELIVERY_DEDUPLICATED_ONCE".to_owned())
+        );
     }
 
     #[test]
