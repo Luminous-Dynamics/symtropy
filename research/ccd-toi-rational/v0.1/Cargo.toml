@@ -1,0 +1,12 @@
+[package]
+name = "ccd-toi-rational"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Exact rational TOI interval evaluator for CCD benchmark claims"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
