@@ -47,6 +47,29 @@ pub struct TemporalDisposition {
     pub excluded_event_ids: Vec<String>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct AcquisitionTimeInterval {
+    pub earliest_unix_ms: u64,
+    pub latest_unix_ms: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ReplayCoordinate {
+    pub mode: String,
+    pub subject_time_interval: AcquisitionTimeInterval,
+    pub receiver_receipt_watermark_unix_ms: u64,
+    pub trust_status_as_of_unix_ms: u64,
+    pub trust_policy_id: String,
+    pub trust_policy_digest_sha256: String,
+    pub verifier_profile_id: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct TemporalReplayReport {
+    pub coordinate: ReplayCoordinate,
+    pub disposition: TemporalDisposition,
+}
+
 fn text<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.get(key).and_then(Value::as_str)
 }
@@ -173,6 +196,77 @@ fn has_correction_cycle(events: &[&Value]) -> bool {
     let mut visiting = BTreeSet::new();
     let mut visited = BTreeSet::new();
     edges.keys().any(|node| visit(node, &edges, &mut visiting, &mut visited))
+}
+
+fn valid_sha256(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+/// Construct the complete historical replay coordinate for a case and mode.
+///
+/// A report without this coordinate is not a reproducible historical result.
+pub fn replay_coordinate(case: &Value, mode: ReplayMode) -> Option<ReplayCoordinate> {
+    let subject_time_interval = AcquisitionTimeInterval {
+        earliest_unix_ms: nested_number(case, "/acquisition_time_interval/earliest_unix_ms")?,
+        latest_unix_ms: nested_number(case, "/acquisition_time_interval/latest_unix_ms")?,
+    };
+    if subject_time_interval.earliest_unix_ms > subject_time_interval.latest_unix_ms {
+        return None;
+    }
+    let (receipt_path, trust_path, policy_id_path, policy_digest_path) = match mode {
+        ReplayMode::AsKnownAt => (
+            "/snapshot/receiver_receipt_watermark_unix_ms",
+            "/snapshot/trust_status_as_of_unix_ms",
+            "/snapshot/trust_policy_id",
+            "/snapshot/trust_policy_digest_sha256",
+        ),
+        ReplayMode::RecomputedWithCurrentTrust
+        | ReplayMode::RecomputedWithCurrentEvidenceAndTrust => (
+            "/current_reassessment/receiver_receipt_watermark_unix_ms",
+            "/current_reassessment/trust_status_as_of_unix_ms",
+            "/current_reassessment/trust_policy_id",
+            "/current_reassessment/trust_policy_digest_sha256",
+        ),
+    };
+    let receiver_receipt_watermark_unix_ms = case.pointer(receipt_path)?.as_u64()?;
+    let trust_status_as_of_unix_ms = case.pointer(trust_path)?.as_u64()?;
+    let trust_policy_id = case.pointer(policy_id_path)?.as_str()?.to_owned();
+    let trust_policy_digest_sha256 = case.pointer(policy_digest_path)?.as_str()?.to_owned();
+    let verifier_profile_id = text(case, "verifier_profile_id")?.to_owned();
+    if trust_policy_id.trim().is_empty()
+        || verifier_profile_id.trim().is_empty()
+        || !valid_sha256(&trust_policy_digest_sha256)
+    {
+        return None;
+    }
+    Some(ReplayCoordinate {
+        mode: match mode {
+            ReplayMode::AsKnownAt => "AS_KNOWN_AT",
+            ReplayMode::RecomputedWithCurrentTrust => "RECOMPUTED_WITH_CURRENT_TRUST",
+            ReplayMode::RecomputedWithCurrentEvidenceAndTrust => {
+                "RECOMPUTED_WITH_CURRENT_EVIDENCE_AND_TRUST"
+            }
+        }
+        .to_owned(),
+        subject_time_interval,
+        receiver_receipt_watermark_unix_ms,
+        trust_status_as_of_unix_ms,
+        trust_policy_id,
+        trust_policy_digest_sha256,
+        verifier_profile_id,
+    })
+}
+
+/// Evaluate a case and retain the complete three-axis replay coordinate.
+///
+/// This model is synthetic-only and does not authenticate the policy digest or
+/// verifier binary. Those require owner-native immutable policy and execution
+/// evidence in a production adapter.
+pub fn evaluate_report(case: &Value, mode: ReplayMode) -> Option<TemporalReplayReport> {
+    Some(TemporalReplayReport {
+        coordinate: replay_coordinate(case, mode)?,
+        disposition: evaluate_case(case, mode),
+    })
 }
 
 /// Evaluate one synthetic temporal case at one of the three replay coordinates.
@@ -784,6 +878,51 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn replay_report_pins_subject_evidence_trust_policy_and_verifier_coordinates() {
+        let corpus: Value = serde_json::from_str(CORPUS).expect("temporal corpus parses");
+        let case = corpus["cases"]
+            .as_array()
+            .expect("cases")
+            .iter()
+            .find(|case| case["case_id"] == "backdated-event-received-after-snapshot")
+            .expect("late event control");
+        let historical = super::evaluate_report(case, ReplayMode::AsKnownAt)
+            .expect("historical coordinate");
+        let trust_only = super::evaluate_report(case, ReplayMode::RecomputedWithCurrentTrust)
+            .expect("trust-only coordinate");
+        let full = super::evaluate_report(case, ReplayMode::RecomputedWithCurrentEvidenceAndTrust)
+            .expect("full reassessment coordinate");
+
+        assert_eq!(
+            historical.coordinate.subject_time_interval,
+            AcquisitionTimeInterval {
+                earliest_unix_ms: 140,
+                latest_unix_ms: 140
+            }
+        );
+        assert_eq!(
+            historical.coordinate.receiver_receipt_watermark_unix_ms,
+            trust_only.coordinate.receiver_receipt_watermark_unix_ms
+        );
+        assert_ne!(
+            historical.coordinate.trust_policy_digest_sha256,
+            trust_only.coordinate.trust_policy_digest_sha256
+        );
+        assert!(full.coordinate.receiver_receipt_watermark_unix_ms
+            > historical.coordinate.receiver_receipt_watermark_unix_ms);
+        assert!(full.coordinate.trust_status_as_of_unix_ms
+            > historical.coordinate.trust_status_as_of_unix_ms);
+        assert_eq!(
+            full.disposition.disposition,
+            "BLOCK"
+        );
+        assert_eq!(
+            historical.disposition.disposition,
+            "NOT_KNOWN_AT_SNAPSHOT"
+        );
     }
 
     #[test]
