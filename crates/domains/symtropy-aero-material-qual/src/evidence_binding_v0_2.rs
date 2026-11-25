@@ -1036,8 +1036,8 @@ mod tests {
             "id": "EVENT-REVOKE-1",
             "certificate_id": "CAL-A",
             "event_type": "revoked",
-            "effective_at_unix_ms": 1795516200000,
-            "recorded_at_unix_ms": 1795516500000,
+            "effective_at_unix_ms": 1_795_516_200_000u64,
+            "recorded_at_unix_ms": 1_795_516_500_000u64,
             "retroactive": false
         }]);
         let report = evaluate_binding_case(&case);
@@ -1065,8 +1065,8 @@ mod tests {
             "id": "EVENT-1",
             "certificate_id": "CAL-A",
             "event_type": "corrected",
-            "effective_at_unix_ms": 1795516200000,
-            "recorded_at_unix_ms": 1795516500000,
+            "effective_at_unix_ms": 1_795_516_200_000u64,
+            "recorded_at_unix_ms": 1_795_516_500_000u64,
             "retroactive": true
         });
         replayed_event["calibration_events"] = serde_json::json!([event.clone(), event]);
@@ -1084,8 +1084,8 @@ mod tests {
             "certificate_id": "CAL-A",
             "event_type": "corrected",
             "corrects_event_id": "EVENT-NOT-FOUND",
-            "effective_at_unix_ms": 1795516200000,
-            "recorded_at_unix_ms": 1795516500000,
+            "effective_at_unix_ms": 1_795_516_200_000u64,
+            "recorded_at_unix_ms": 1_795_516_500_000u64,
             "retroactive": true
         }]);
         assert!(has_violation(
@@ -1098,8 +1098,8 @@ mod tests {
             "id": "EVENT-ORIGINAL",
             "certificate_id": "CAL-A",
             "event_type": "suspended",
-            "effective_at_unix_ms": 1795515300000,
-            "recorded_at_unix_ms": 1795515360000,
+            "effective_at_unix_ms": 1_795_515_300_000u64,
+            "recorded_at_unix_ms": 1_795_515_360_000u64,
             "retroactive": false
         });
         let correction_a = serde_json::json!({
@@ -1107,8 +1107,8 @@ mod tests {
             "certificate_id": "CAL-A",
             "event_type": "corrected",
             "corrects_event_id": "EVENT-ORIGINAL",
-            "effective_at_unix_ms": 1795515600000,
-            "recorded_at_unix_ms": 1795515660000,
+            "effective_at_unix_ms": 1_795_515_600_000u64,
+            "recorded_at_unix_ms": 1_795_515_660_000u64,
             "retroactive": true
         });
         let correction_b = serde_json::json!({
@@ -1116,8 +1116,8 @@ mod tests {
             "certificate_id": "CAL-A",
             "event_type": "superseded",
             "corrects_event_id": "EVENT-ORIGINAL",
-            "effective_at_unix_ms": 1795515720000,
-            "recorded_at_unix_ms": 1795515780000,
+            "effective_at_unix_ms": 1_795_515_720_000u64,
+            "recorded_at_unix_ms": 1_795_515_780_000u64,
             "retroactive": true
         });
         contradictory["calibration_events"] =
