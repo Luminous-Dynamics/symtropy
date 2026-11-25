@@ -814,7 +814,7 @@ fn optional_float(value: Option<f64>) -> String {
 /// Renders deterministic synthetic service-reliability and burst receipts.
 pub fn render_csv() -> String {
     let mut output = String::from(
-        "scenario_id,expected_units,port_mean_minutes,inland_mean_minutes,accepted_receiver_time_mean_minutes,accepted_p50_minutes,accepted_p90_minutes,accepted_p95_minutes,accepted_max_minutes,accepted_sample_sd_minutes,accepted_coefficient_of_variation,accepted_p95_to_p50_ratio,verified_on_time_rate_per_mille,cohort_floor_violations,max_arrivals_in_60m,max_fcfs_wait_minutes,queue_wait_area_call_minutes,queue_completion_minutes,receiver_accepted_count,not_delivered_count,diverted_count,cancelled_count,unknown_count,claim_ceiling\n",
+        "scenario_id,expected_units,port_mean_minutes,inland_mean_minutes,accepted_receiver_time_mean_minutes,accepted_p50_minutes,accepted_p90_minutes,accepted_p95_minutes,accepted_max_minutes,accepted_sample_sd_minutes,accepted_coefficient_of_variation,accepted_p95_to_p50_ratio,verified_on_time_rate_per_mille,cohort_floor_violations,max_arrivals_in_60m,max_fcfs_wait_minutes,queue_wait_area_call_minutes,queue_completion_minutes,receiver_accepted_count,source_reported_delivered_unverified_count,in_transit_expected_count,awaiting_berth_nomination_count,not_delivered_count,diverted_count,cancelled_count,unknown_count,claim_ceiling\n",
     );
     for scenario in scenarios() {
         let mut observations = synthetic_observations(
@@ -853,7 +853,7 @@ pub fn render_csv() -> String {
             .expect("each synthetic benchmark scenario has receiver acceptances");
         let _ = writeln!(
             output,
-            "{},{},{:.3},{:.3},{:.3},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},SYNTHETIC_ONLY",
+            "{},{},{:.3},{:.3},{:.3},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},SYNTHETIC_ONLY",
             scenario.id,
             report.expected_unit_ids.len(),
             report.port_elapsed.mean_minutes,
@@ -873,6 +873,9 @@ pub fn render_csv() -> String {
             queue.queue_wait_area_call_minutes,
             queue.completion_time_minutes,
             report.end_to_end.receiver_accepted_count,
+            report.end_to_end.source_reported_delivered_unverified_count,
+            report.end_to_end.in_transit_expected_count,
+            report.end_to_end.awaiting_berth_nomination_count,
             report.end_to_end.not_delivered_count,
             report.end_to_end.diverted_count,
             report.end_to_end.cancelled_count,
@@ -1188,6 +1191,32 @@ mod tests {
             ServiceReliabilityReport::evaluate(&observations, 950),
             Err(ServiceMetricError::ZeroReceiverDeadline)
         );
+    }
+
+    #[test]
+    fn unverified_and_preberth_statuses_do_not_become_receiver_acceptances() {
+        let mut observations = synthetic_observations("reported-statuses", &STABLE[..3], &[], 120);
+        observations[0].delivery_disposition =
+            DeliveryDisposition::SourceReportedDeliveredUnverified;
+        observations[0].receiver_delivery_minutes = None;
+        observations[0].receiver_acceptance_ref = None;
+        observations[1].delivery_disposition = DeliveryDisposition::InTransitExpected;
+        observations[1].receiver_delivery_minutes = None;
+        observations[1].receiver_acceptance_ref = None;
+        observations[2].delivery_disposition = DeliveryDisposition::AwaitingBerthNomination;
+        observations[2].receiver_delivery_minutes = None;
+        observations[2].receiver_acceptance_ref = None;
+
+        let report = ServiceReliabilityReport::evaluate(&observations, 950)
+            .expect("source statuses remain unverified expected units");
+        assert_eq!(report.end_to_end.expected_count, 3);
+        assert_eq!(report.end_to_end.receiver_accepted_count, 0);
+        assert_eq!(report.end_to_end.source_reported_delivered_unverified_count, 1);
+        assert_eq!(report.end_to_end.in_transit_expected_count, 1);
+        assert_eq!(report.end_to_end.awaiting_berth_nomination_count, 1);
+        assert_eq!(report.end_to_end.on_time_rate_milli, 0);
+        assert!(report.end_to_end.distribution.is_none());
+        assert!(report.receiver_acceptances.is_empty());
     }
 
     #[test]
