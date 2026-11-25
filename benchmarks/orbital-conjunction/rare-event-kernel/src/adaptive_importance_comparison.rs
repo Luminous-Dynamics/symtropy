@@ -921,12 +921,11 @@ mod tests {
             }
         }
 
-        for method_index in 0..3 {
-            for policy_index in 0..POLICY_COUNT {
+        for (method_index, policy_misses) in miss_probability.iter().enumerate() {
+            for (policy_index, probability) in policy_misses.iter().copied().enumerate() {
                 assert!(
-                    miss_probability[method_index][policy_index] <= 0.05 + 1.0e-10,
-                    "method index {method_index}, stop-policy index {policy_index} had miss probability {}",
-                    miss_probability[method_index][policy_index]
+                    probability <= 0.05 + 1.0e-10,
+                    "method index {method_index}, stop-policy index {policy_index} had miss probability {probability}"
                 );
             }
         }
