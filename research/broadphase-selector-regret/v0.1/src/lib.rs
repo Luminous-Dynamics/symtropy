@@ -64,6 +64,8 @@ pub struct PairEvidence {
     pub receipt_valid: bool,
     pub duplicate_pair_rows: u64,
     pub unknown_pair_endpoints: u64,
+    pub unsupported_case_count: u64,
+    pub invalid_prune_certificates: u64,
 }
 
 impl PairEvidence {
@@ -100,6 +102,8 @@ impl PairEvidence {
             && self.false_negative_pairs == 0
             && self.duplicate_pair_rows == 0
             && self.unknown_pair_endpoints == 0
+            && self.unsupported_case_count == 0
+            && self.invalid_prune_certificates == 0
     }
 }
 
@@ -924,6 +928,8 @@ mod tests {
             receipt_valid: true,
             duplicate_pair_rows: 0,
             unknown_pair_endpoints: 0,
+            unsupported_case_count: 0,
+            invalid_prune_certificates: 0,
         }
     }
 
@@ -1042,6 +1048,35 @@ mod tests {
             evaluate_sequence(&value),
             Err(SelectorError::SelectedBackendUnqualified)
         );
+    }
+
+    #[test]
+    fn unsupported_or_invalid_prune_receipts_disqualify_a_backend() {
+        let mut value = input(&["A", "A", "A"], &[]);
+        for row in &mut value.observations {
+            if row.backend.as_str() == "B" {
+                row.pair_evidence.invalid_prune_certificates = 1;
+                row.full_step_ns = 1;
+                row.broadphase_ns = 1;
+            }
+        }
+        let score = evaluate_sequence(&value).unwrap();
+        assert!(score
+            .offline_oracle_path
+            .iter()
+            .all(|backend| backend.as_str() == "A"));
+
+        for row in &mut value.observations {
+            if row.backend.as_str() == "B" {
+                row.pair_evidence.invalid_prune_certificates = 0;
+                row.pair_evidence.unsupported_case_count = 1;
+            }
+        }
+        assert!(evaluate_sequence(&value)
+            .unwrap()
+            .offline_oracle_path
+            .iter()
+            .all(|backend| backend.as_str() == "A"));
     }
 
     #[test]
