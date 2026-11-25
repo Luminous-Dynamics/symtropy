@@ -623,7 +623,7 @@ pub fn evaluate_sequence(input: &SequenceInput) -> Result<SequenceScore, Selecto
         if !frame.values().any(|observation| observation.qualifies()) {
             return Err(SelectorError::NoQualifiedBackendForFrame(*frame_index));
         }
-        frames.push(frame.clone());
+        frames.push((*frame).clone());
     }
     if !positive_oracle_population {
         return Err(SelectorError::EmptyOraclePositivePopulation);
@@ -1034,7 +1034,9 @@ mod tests {
         let mut value = input(&["A", "A", "A"], &[]);
         for row in &mut value.observations {
             if row.backend.as_str() == "B" {
+                let oracle_digest = row.pair_evidence.oracle_result_sha256.clone();
                 row.pair_evidence = evidence(2, 1);
+                row.pair_evidence.oracle_result_sha256 = oracle_digest;
                 row.full_step_ns = 1;
                 row.broadphase_ns = 1;
             }
@@ -1082,7 +1084,9 @@ mod tests {
     fn empty_positive_oracle_population_is_unavailable_not_a_perfect_score() {
         let mut value = input(&["A", "A", "A"], &[]);
         for row in &mut value.observations {
+            let oracle_digest = row.pair_evidence.oracle_result_sha256.clone();
             row.pair_evidence = evidence(0, 0);
+            row.pair_evidence.oracle_result_sha256 = oracle_digest;
         }
         assert_eq!(
             evaluate_sequence(&value),
