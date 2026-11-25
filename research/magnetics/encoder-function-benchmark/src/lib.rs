@@ -739,6 +739,375 @@ mod tests {
         1.0
     }
 
+
+    fn covariance_trace(
+        trace: &FieldTrace,
+        covariance: FieldCovariance2d,
+    ) -> FieldCovarianceTrace {
+        FieldCovarianceTrace {
+            trace_id: trace.trace_id.clone(),
+            frame_id: trace.frame_id.clone(),
+            operating_condition_id: trace.operating_condition_id.clone(),
+            grid_id: trace.grid_id.clone(),
+            samples: trace
+                .samples
+                .iter()
+                .map(|sample| FieldCovarianceSample {
+                    mechanical_angle_rad: sample.mechanical_angle_rad,
+                    covariance,
+                })
+                .collect(),
+        }
+    }
+
+    fn reference_uncertainty(
+        phase_zero_std_rad: f64,
+        mechanical_angle_std_rad: f64,
+    ) -> AngularReferenceUncertainty {
+        AngularReferenceUncertainty {
+            uncertainty_record_id: "angle-reference-uncertainty-v0".to_owned(),
+            phase_zero_calibration_id: "calibration-record-v0".to_owned(),
+            phase_zero_std_rad,
+            mechanical_angle_std_rad,
+        }
+    }
+
+
+    #[test]
+    fn propagates_diagonal_field_covariance_and_reference_uncertainty() {
+        let trace = make_trace(
+            "uncertainty-known-answer",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.2,
+            0.0,
+            constant_amplitude,
+            0.0,
+        );
+        let covariance = FieldCovariance2d {
+            xx_t2: 1.0e-8,
+            xy_t2: 0.0,
+            yy_t2: 1.0e-8,
+        };
+        let covariance_trace = covariance_trace(&trace, covariance);
+        let metrics = propagate_phase_uncertainty(
+            &trace,
+            &covariance_trace,
+            &requirements(1, 0.2),
+            &reference_uncertainty(0.001, 0.0002),
+        )
+        .unwrap();
+
+        assert!((metrics.measurement_phase_std_mean_rad - 0.0025).abs() < 1.0e-12);
+        assert!((metrics.total_phase_std_mean_rad - 0.0027).abs() < 1.0e-12);
+        assert!((metrics.reference_mechanical_phase_std_rad - 0.0002).abs() < 1.0e-15);
+        assert_eq!(metrics.zero_uncertainty_nonzero_residual_sample_count, 0);
+    }
+
+    #[test]
+    fn phase_uncertainty_scales_inversely_with_field_amplitude() {
+        let lower = make_trace(
+            "lower-field",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            constant_amplitude,
+            0.0,
+        );
+        let higher = make_trace(
+            "higher-field",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            |angle| 2.0,
+            0.0,
+        );
+        let covariance = FieldCovariance2d {
+            xx_t2: 1.0e-8,
+            xy_t2: 0.0,
+            yy_t2: 1.0e-8,
+        };
+        let lower_metrics = propagate_phase_uncertainty(
+            &lower,
+            &covariance_trace(&lower, covariance),
+            &requirements(1, 0.0),
+            &reference_uncertainty(0.0, 0.0),
+        )
+        .unwrap();
+        let higher_metrics = propagate_phase_uncertainty(
+            &higher,
+            &covariance_trace(&higher, covariance),
+            &requirements(1, 0.0),
+            &reference_uncertainty(0.0, 0.0),
+        )
+        .unwrap();
+
+        assert!(
+            (lower_metrics.measurement_phase_std_mean_rad
+                / higher_metrics.measurement_phase_std_mean_rad
+                - 2.0)
+                .abs()
+                < 1.0e-12
+        );
+    }
+
+    #[test]
+    fn rotating_field_and_covariance_together_preserves_phase_uncertainty() {
+        let trace = make_trace(
+            "rotation-covariance-base",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            constant_amplitude,
+            0.0,
+        );
+        let alpha = 0.37_f64;
+        let cosine = alpha.cos();
+        let sine = alpha.sin();
+        let mut rotated = trace.clone();
+        rotated.trace_id = "rotation-covariance-rotated".to_owned();
+        for sample in &mut rotated.samples {
+            let bx = sample.bx_t;
+            let by = sample.by_t;
+            sample.bx_t = cosine * bx - sine * by;
+            sample.by_t = sine * bx + cosine * by;
+        }
+
+        let base_covariance = FieldCovariance2d {
+            xx_t2: 4.0e-8,
+            xy_t2: 1.0e-8,
+            yy_t2: 1.0e-8,
+        };
+        let rotated_covariance = FieldCovariance2d {
+            xx_t2: cosine * cosine * base_covariance.xx_t2
+                - 2.0 * cosine * sine * base_covariance.xy_t2
+                + sine * sine * base_covariance.yy_t2,
+            xy_t2: cosine * sine * base_covariance.xx_t2
+                + (cosine * cosine - sine * sine) * base_covariance.xy_t2
+                - sine * cosine * base_covariance.yy_t2,
+            yy_t2: sine * sine * base_covariance.xx_t2
+                + 2.0 * sine * cosine * base_covariance.xy_t2
+                + cosine * cosine * base_covariance.yy_t2,
+        };
+
+        let base_metrics = propagate_phase_uncertainty(
+            &trace,
+            &covariance_trace(&trace, base_covariance),
+            &requirements(1, 0.0),
+            &reference_uncertainty(0.0, 0.0),
+        )
+        .unwrap();
+        let rotated_metrics = propagate_phase_uncertainty(
+            &rotated,
+            &covariance_trace(&rotated, rotated_covariance),
+            &requirements(1, alpha),
+            &reference_uncertainty(0.0, 0.0),
+        )
+        .unwrap();
+
+        assert!(
+            (base_metrics.measurement_phase_std_rms_rad
+                - rotated_metrics.measurement_phase_std_rms_rad)
+                .abs()
+                < 1.0e-12
+        );
+    }
+
+    #[test]
+    fn rejects_indefinite_field_covariance() {
+        let trace = make_trace(
+            "indefinite-covariance",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            constant_amplitude,
+            0.0,
+        );
+        let covariance = FieldCovariance2d {
+            xx_t2: 1.0e-8,
+            xy_t2: 2.0e-8,
+            yy_t2: 1.0e-8,
+        };
+        assert_eq!(
+            propagate_phase_uncertainty(
+                &trace,
+                &covariance_trace(&trace, covariance),
+                &requirements(1, 0.0),
+                &reference_uncertainty(0.0, 0.0),
+            ),
+            Err(EvaluationError::NonPositiveSemidefiniteFieldCovariance { index: 0 })
+        );
+    }
+
+    #[test]
+    fn rejects_nonfinite_field_covariance() {
+        let trace = make_trace(
+            "nan-covariance",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            constant_amplitude,
+            0.0,
+        );
+        let covariance = FieldCovariance2d {
+            xx_t2: 1.0e-8,
+            xy_t2: f64::NAN,
+            yy_t2: 1.0e-8,
+        };
+        assert_eq!(
+            propagate_phase_uncertainty(
+                &trace,
+                &covariance_trace(&trace, covariance),
+                &requirements(1, 0.0),
+                &reference_uncertainty(0.0, 0.0),
+            ),
+            Err(EvaluationError::NonFiniteFieldCovariance { index: 0 })
+        );
+    }
+
+    #[test]
+    fn requires_field_covariance_identity_and_grid_to_match() {
+        let trace = make_trace(
+            "covariance-identity",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            constant_amplitude,
+            0.0,
+        );
+        let covariance = FieldCovariance2d {
+            xx_t2: 1.0e-8,
+            xy_t2: 0.0,
+            yy_t2: 1.0e-8,
+        };
+        let mut mismatched = covariance_trace(&trace, covariance);
+        mismatched.frame_id = "other-frame".to_owned();
+        assert_eq!(
+            propagate_phase_uncertainty(
+                &trace,
+                &mismatched,
+                &requirements(1, 0.0),
+                &reference_uncertainty(0.0, 0.0),
+            ),
+            Err(EvaluationError::CovarianceTraceFrameMismatch)
+        );
+
+        let mut mismatched_grid = covariance_trace(&trace, covariance);
+        mismatched_grid.samples[10].mechanical_angle_rad += 1.0e-12;
+        assert_eq!(
+            propagate_phase_uncertainty(
+                &trace,
+                &mismatched_grid,
+                &requirements(1, 0.0),
+                &reference_uncertainty(0.0, 0.0),
+            ),
+            Err(EvaluationError::CoordinateGridMismatch)
+        );
+    }
+
+    #[test]
+    fn rejects_reference_uncertainty_bound_to_another_phase_calibration() {
+        let trace = make_trace(
+            "wrong-calibration-id",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            constant_amplitude,
+            0.0,
+        );
+        let covariance = FieldCovariance2d {
+            xx_t2: 1.0e-8,
+            xy_t2: 0.0,
+            yy_t2: 1.0e-8,
+        };
+        let mut reference = reference_uncertainty(0.0, 0.0);
+        reference.phase_zero_calibration_id = "unrelated-calibration".to_owned();
+        assert_eq!(
+            propagate_phase_uncertainty(
+                &trace,
+                &covariance_trace(&trace, covariance),
+                &requirements(1, 0.0),
+                &reference,
+            ),
+            Err(EvaluationError::InvalidReferenceUncertainty)
+        );
+    }
+
+    #[test]
+    fn refuses_phase_uncertainty_below_minimum_field() {
+        let trace = make_trace(
+            "weak-field",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            |angle| 0.25,
+            0.0,
+        );
+        let covariance = FieldCovariance2d {
+            xx_t2: 1.0e-8,
+            xy_t2: 0.0,
+            yy_t2: 1.0e-8,
+        };
+        assert_eq!(
+            propagate_phase_uncertainty(
+                &trace,
+                &covariance_trace(&trace, covariance),
+                &requirements(1, 0.0),
+                &reference_uncertainty(0.0, 0.0),
+            ),
+            Err(EvaluationError::FieldBelowMinimumForPhase { index: 0 })
+        );
+    }
+
+    #[test]
+    fn counts_nonzero_residual_when_declared_uncertainty_is_zero() {
+        let trace = make_trace(
+            "residual-zero-uncertainty",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.001,
+            constant_amplitude,
+            0.0,
+        );
+        let covariance = FieldCovariance2d {
+            xx_t2: 0.0,
+            xy_t2: 0.0,
+            yy_t2: 0.0,
+        };
+        let metrics = propagate_phase_uncertainty(
+            &trace,
+            &covariance_trace(&trace, covariance),
+            &requirements(1, 0.0),
+            &reference_uncertainty(0.0, 0.0),
+        )
+        .unwrap();
+
+        assert_eq!(
+            metrics.zero_uncertainty_nonzero_residual_sample_count,
+            trace.samples.len()
+        );
+        assert_eq!(metrics.rms_phase_error_over_total_std, None);
+    }
+
     #[test]
     fn ideal_single_pole_pair_trace_passes() {
         let trace = make_trace(
