@@ -175,7 +175,7 @@
         }
       ],
       "events": [],
-      "expected_status": "VALID_WITHIN_SCOPE",
+      "expected_status": "EXPIRED",
       "actual_conditions": {
         "temperature_milli_c": {
           "unit": "milli_degC",
@@ -256,7 +256,7 @@
         }
       ],
       "events": [],
-      "expected_status": "VALID_WITHIN_SCOPE",
+      "expected_status": "INDETERMINATE",
       "actual_conditions": {
         "temperature_milli_c": {
           "unit": "milli_degC",
