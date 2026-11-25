@@ -177,9 +177,92 @@ impl WorkloadFrame {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct WorkloadQuantiles {
+    pub frame_count: u64,
+    pub p50_broadphase_ns: Option<u64>,
+    pub p95_broadphase_ns: Option<u64>,
+    pub p99_broadphase_ns: Option<u64>,
+    pub p50_full_step_ns: Option<u64>,
+    pub p95_full_step_ns: Option<u64>,
+    pub p99_full_step_ns: Option<u64>,
+    pub total_node_visits: u64,
+    pub total_leaf_visits: u64,
+    pub total_reinserts: u64,
+    pub total_pair_cache_additions: u64,
+    pub total_pair_cache_removals: u64,
+    pub peak_memory_bytes: u64,
+}
+
+/// Summarize a frozen workload trace using nearest-rank p50/p95/p99.
+/// The environment/timer-resolution receipt is held by the calling run; this
+/// function preserves the raw nanosecond samples, including zero observations.
+pub fn summarize_workload_frames(
+    frames: &[WorkloadFrame],
+) -> Result<WorkloadQuantiles, PairSetError> {
+    if frames.is_empty() {
+        return Err(PairSetError::EmptyWorkloadSeries);
+    }
+
+    let mut broadphase_times = Vec::with_capacity(frames.len());
+    let mut full_step_times = Vec::with_capacity(frames.len());
+    let mut summary = WorkloadQuantiles {
+        frame_count: frames.len() as u64,
+        ..WorkloadQuantiles::default()
+    };
+    for frame in frames {
+        frame.validate()?;
+        broadphase_times.push(
+            frame
+                .broadphase_cost_ns()
+                .ok_or(PairSetError::WorkloadCostOverflow)?,
+        );
+        full_step_times.push(frame.full_step_ns);
+        summary.total_node_visits = summary
+            .total_node_visits
+            .checked_add(frame.node_visits)
+            .ok_or(PairSetError::WorkloadCountOverflow)?;
+        summary.total_leaf_visits = summary
+            .total_leaf_visits
+            .checked_add(frame.leaf_visits)
+            .ok_or(PairSetError::WorkloadCountOverflow)?;
+        summary.total_reinserts = summary
+            .total_reinserts
+            .checked_add(frame.reinserts)
+            .ok_or(PairSetError::WorkloadCountOverflow)?;
+        summary.total_pair_cache_additions = summary
+            .total_pair_cache_additions
+            .checked_add(frame.pair_cache_additions)
+            .ok_or(PairSetError::WorkloadCountOverflow)?;
+        summary.total_pair_cache_removals = summary
+            .total_pair_cache_removals
+            .checked_add(frame.pair_cache_removals)
+            .ok_or(PairSetError::WorkloadCountOverflow)?;
+        summary.peak_memory_bytes = summary.peak_memory_bytes.max(frame.peak_memory_bytes);
+    }
+
+    summary.p50_broadphase_ns = nearest_rank(&mut broadphase_times, 50);
+    summary.p95_broadphase_ns = nearest_rank(&mut broadphase_times, 95);
+    summary.p99_broadphase_ns = nearest_rank(&mut broadphase_times, 99);
+    summary.p50_full_step_ns = nearest_rank(&mut full_step_times, 50);
+    summary.p95_full_step_ns = nearest_rank(&mut full_step_times, 95);
+    summary.p99_full_step_ns = nearest_rank(&mut full_step_times, 99);
+    Ok(summary)
+}
+
+fn nearest_rank(values: &mut [u64], percentile: u8) -> Option<u64> {
+    if values.is_empty() || !(1..=100).contains(&percentile) {
+        return None;
+    }
+    values.sort_unstable();
+    let rank = (values.len() * usize::from(percentile)).div_ceil(100).max(1);
+    values.get(rank - 1).copied()
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PairSetError {
     InvalidFrameReceipt,
+    EmptyWorkloadSeries,
     OracleCoverageIncomplete,
     WorkloadPopulationMismatch,
     DuplicateColliderIdentity,
@@ -527,6 +610,62 @@ mod tests {
         assert_eq!(score.counts.eligible_pairs_after_filter, 2);
         assert_eq!(score.counts.candidate_false_positive_rate_basis_points(), Some(0));
         assert_eq!(score.counts.reduction_basis_points(), Some(5_000));
+    }
+
+    #[test]
+    fn summarizes_p50_p95_p99_and_cumulative_workload_counters() {
+        let frames = [10_u64, 20, 30, 40].map(|full_step| WorkloadFrame {
+            collider_count: 2,
+            static_colliders: 1,
+            awake_dynamic_colliders: 1,
+            moved_colliders: 1,
+            update_ns: full_step / 10,
+            rebuild_ns: full_step / 10,
+            pair_generation_ns: full_step / 2,
+            full_step_ns: full_step,
+            node_visits: 2,
+            leaf_visits: 3,
+            reinserts: 1,
+            pair_cache_additions: 4,
+            pair_cache_removals: 2,
+            peak_memory_bytes: full_step * 100,
+            ..WorkloadFrame::default()
+        });
+        let summary = summarize_workload_frames(&frames).unwrap();
+
+        assert_eq!(summary.frame_count, 4);
+        assert_eq!(summary.p50_full_step_ns, Some(20));
+        assert_eq!(summary.p95_full_step_ns, Some(40));
+        assert_eq!(summary.p99_full_step_ns, Some(40));
+        assert_eq!(summary.p50_broadphase_ns, Some(8));
+        assert_eq!(summary.p95_broadphase_ns, Some(32));
+        assert_eq!(summary.p99_broadphase_ns, Some(32));
+        assert_eq!(summary.total_node_visits, 8);
+        assert_eq!(summary.total_leaf_visits, 12);
+        assert_eq!(summary.total_reinserts, 4);
+        assert_eq!(summary.total_pair_cache_additions, 16);
+        assert_eq!(summary.total_pair_cache_removals, 8);
+        assert_eq!(summary.peak_memory_bytes, 4_000);
+    }
+
+    #[test]
+    fn rejects_empty_or_overflowing_workload_traces() {
+        assert_eq!(
+            summarize_workload_frames(&[]),
+            Err(PairSetError::EmptyWorkloadSeries)
+        );
+        let overflow = [
+            WorkloadFrame {
+                collider_count: 0,
+                update_ns: u64::MAX,
+                rebuild_ns: 1,
+                ..WorkloadFrame::default()
+            },
+        ];
+        assert_eq!(
+            summarize_workload_frames(&overflow),
+            Err(PairSetError::WorkloadCostOverflow)
+        );
     }
 
     #[test]
