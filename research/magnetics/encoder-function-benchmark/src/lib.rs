@@ -29,6 +29,8 @@ pub struct FieldTrace {
     pub trace_id: String,
     /// Opaque caller-supplied coordinate-frame identity.
     pub frame_id: String,
+    /// Opaque identity for the matched sensor/air-gap/environment condition.
+    pub operating_condition_id: String,
     /// Opaque caller-supplied full-revolution angular-grid identity.
     pub grid_id: String,
     pub evidence_kind: EvidenceKind,
@@ -38,6 +40,8 @@ pub struct FieldTrace {
 #[derive(Clone, Debug, PartialEq)]
 pub struct EncoderRequirements {
     pub pole_pairs: u32,
+    /// Direction of electrical phase progression as mechanical angle increases: +1 or -1.
+    pub phase_rotation_sense: i8,
     /// Identity of the independent calibration record supplying the phase zero.
     pub phase_zero_calibration_id: String,
     /// Zero-phase calibration from that independent record; never fit on the trace under test.
@@ -73,6 +77,7 @@ pub enum EvaluationError {
     MixedEvidenceKinds,
     FrameIdentityMismatch,
     GridIdentityMismatch,
+    OperatingConditionMismatch,
     CoordinateGridMismatch,
 }
 
@@ -122,6 +127,7 @@ fn validate_requirements(requirements: &EncoderRequirements) -> Result<(), Evalu
     .all(|value| value.is_finite() && value >= 0.0);
 
     if requirements.pole_pairs == 0
+        || !matches!(requirements.phase_rotation_sense, -1 | 1)
         || requirements.phase_zero_calibration_id.trim().is_empty()
         || !requirements.phase_zero_offset_rad.is_finite()
         || !requirements.minimum_in_plane_field_t.is_finite()
@@ -168,6 +174,7 @@ pub fn evaluate_trace(
 
     if trace.trace_id.trim().is_empty()
         || trace.frame_id.trim().is_empty()
+        || trace.operating_condition_id.trim().is_empty()
         || trace.grid_id.trim().is_empty()
     {
         return Err(EvaluationError::InvalidMetadata);
@@ -216,7 +223,8 @@ pub fn evaluate_trace(
             below_threshold_sample_count += 1;
         }
 
-        let expected_electrical_phase = requirements.pole_pairs as f64
+        let expected_electrical_phase = requirements.phase_rotation_sense as f64
+            * requirements.pole_pairs as f64
             * sample.mechanical_angle_rad
             + requirements.phase_zero_offset_rad;
         if !expected_electrical_phase.is_finite() {
@@ -337,6 +345,9 @@ pub fn evaluate_trace_set(
         if trace.frame_id != first.frame_id {
             return Err(EvaluationError::FrameIdentityMismatch);
         }
+        if trace.operating_condition_id != first.operating_condition_id {
+            return Err(EvaluationError::OperatingConditionMismatch);
+        }
         if trace.grid_id != first.grid_id {
             return Err(EvaluationError::GridIdentityMismatch);
         }
@@ -399,6 +410,7 @@ mod tests {
     fn requirements(pole_pairs: u32, phase_zero_offset_rad: f64) -> EncoderRequirements {
         EncoderRequirements {
             pole_pairs,
+            phase_rotation_sense: 1,
             phase_zero_calibration_id: "calibration-record-v0".to_owned(),
             phase_zero_offset_rad,
             minimum_in_plane_field_t: 0.020,
@@ -440,6 +452,7 @@ mod tests {
         FieldTrace {
             trace_id: trace_id.to_owned(),
             frame_id: "sensor-plane-v0".to_owned(),
+            operating_condition_id: "gap-3mm-temp-25C-v0".to_owned(),
             grid_id: format!("full-turn-{sample_count}-uniform-v0"),
             evidence_kind,
             samples,
@@ -699,6 +712,55 @@ mod tests {
         assert_eq!(
             evaluate_trace(&trace, &requirements),
             Err(EvaluationError::InvalidRequirements)
+        );
+    }
+
+
+    #[test]
+    fn reversed_electrical_phase_direction_is_supported() {
+        let mut trace = make_trace(
+            "reverse-direction",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.19,
+            0.0,
+            constant_amplitude,
+            0.0,
+        );
+        for sample in &mut trace.samples {
+            let phase = -sample.mechanical_angle_rad + 0.19;
+            let magnitude = sample.bx_t.hypot(sample.by_t);
+            sample.bx_t = magnitude * phase.cos();
+            sample.by_t = magnitude * phase.sin();
+        }
+        let mut requirements = requirements(1, 0.19);
+        requirements.phase_rotation_sense = -1;
+        let metrics = evaluate_trace(&trace, &requirements).unwrap();
+
+        assert!(metrics.accepted);
+        assert!(metrics.maximum_absolute_phase_error_rad < 1.0e-12);
+    }
+
+    #[test]
+    fn trace_set_rejects_different_operating_conditions() {
+        let first = make_trace(
+            "gap-3mm",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            constant_amplitude,
+            0.0,
+        );
+        let mut second = first.clone();
+        second.trace_id = "gap-4mm".to_owned();
+        second.operating_condition_id = "gap-4mm-temp-25C-v0".to_owned();
+
+        assert_eq!(
+            evaluate_trace_set(&[first, second], &requirements(1, 0.0)),
+            Err(EvaluationError::OperatingConditionMismatch)
         );
     }
 
