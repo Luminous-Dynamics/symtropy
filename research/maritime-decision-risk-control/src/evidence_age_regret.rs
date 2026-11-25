@@ -782,6 +782,7 @@ pub fn benchmark_cases() -> Vec<BenchmarkCase> {
                     observation("late-correction", "terminal-a", "terminal-owner-a", ServiceWindow::WindowA, Some(999), 1_001, ObservationStatus::Active, 2),
                 ]);
                 case_input.as_of = 1_010;
+                case_input.maximum_evidence_age = 15;
                 case_input
             },
             truth: EvaluationTruth {
@@ -807,6 +808,15 @@ pub fn benchmark_cases() -> Vec<BenchmarkCase> {
             ]),
             truth: EvaluationTruth {
                 realized_window: ServiceWindow::WindowB,
+            },
+        },
+        BenchmarkCase {
+            case_id: "all_known_evidence_exceeds_freshness_sla",
+            input: input(vec![
+                observation("stale-only-a", "terminal-a", "terminal-owner-a", ServiceWindow::WindowB, Some(950), 999, ObservationStatus::Active, 1),
+            ]),
+            truth: EvaluationTruth {
+                realized_window: ServiceWindow::WindowA,
             },
         },
     ]
@@ -972,6 +982,21 @@ mod tests {
     }
 
     #[test]
+    fn freshest_source_can_still_be_stale_while_fail_closed_abstains() {
+        let scenario = case("all_known_evidence_exceeds_freshness_sla");
+        let freshest = decide(&scenario.input, DecisionStrategy::FreshestPublished).expect("valid");
+        let strict = decide(&scenario.input, DecisionStrategy::FailClosed).expect("valid");
+        assert_eq!(
+            freshest.action.primary_window(),
+            Some(ServiceWindow::WindowB)
+        );
+        assert!(freshest.stale_evidence_used);
+        assert!(matches!(&strict.action, PlannedAction::Abstain {
+            reason: AbstentionReason::AllEvidenceStale
+        }));
+    }
+
+    #[test]
     fn later_correction_cannot_rewrite_what_was_available_at_earlier_cutoff() {
         let historical = case("correction_not_retrieved_at_historical_cutoff");
         let later = case("correction_available_after_cutoff");
@@ -981,8 +1006,21 @@ mod tests {
             old_view.action.primary_window(),
             Some(ServiceWindow::WindowB)
         );
+        let latest_ingested_old_view =
+            decide(&historical.input, DecisionStrategy::LatestIngested).expect("valid");
+        assert_eq!(
+            latest_ingested_old_view.action.primary_window(),
+            Some(ServiceWindow::WindowB),
+            "the later-retrieved correction must not enter the historical information set"
+        );
         assert_eq!(
             corrected_view.action.primary_window(),
+            Some(ServiceWindow::WindowA)
+        );
+        let corrected_strict =
+            decide(&later.input, DecisionStrategy::FailClosed).expect("valid");
+        assert_eq!(
+            corrected_strict.action.primary_window(),
             Some(ServiceWindow::WindowA)
         );
     }
