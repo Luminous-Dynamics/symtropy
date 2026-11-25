@@ -711,6 +711,105 @@ mod tests {
     }
 
     #[test]
+    fn pair_set_is_invariant_under_translation_scale_axis_permutation_and_reflection() {
+        fn pair_set(bounds: &[(ProxyId, Aabb<3>)]) -> Vec<ProxyPair> {
+            let mut tree = IncrementalAabbTree::<3>::new(0.125).unwrap();
+            for (proxy, aabb) in bounds {
+                tree.insert(*proxy, *aabb).unwrap();
+            }
+            tree.query_pairs().pairs
+        }
+
+        let mut original = Vec::new();
+        for index in 0..96_u64 {
+            let x = ((index * 37) % 127) as f64 * 0.3;
+            let y = ((index * 19) % 83) as f64 * 0.4;
+            let z = ((index * 11) % 59) as f64 * 0.5;
+            let radius = if index % 9 == 0 { 1.25 } else { 0.2 };
+            original.push((
+                ProxyId(index),
+                aabb(
+                    [x - radius, y - radius, z - radius],
+                    [x + radius, y + radius, z + radius],
+                ),
+            ));
+        }
+        let expected = pair_set(&original);
+
+        let translated = original
+            .iter()
+            .map(|(proxy, bounds)| {
+                (
+                    *proxy,
+                    aabb(
+                        [
+                            bounds.min[0] + 17.0,
+                            bounds.min[1] - 9.0,
+                            bounds.min[2] + 3.0,
+                        ],
+                        [
+                            bounds.max[0] + 17.0,
+                            bounds.max[1] - 9.0,
+                            bounds.max[2] + 3.0,
+                        ],
+                    ),
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(pair_set(&translated), expected);
+
+        let scaled = original
+            .iter()
+            .map(|(proxy, bounds)| {
+                (
+                    *proxy,
+                    aabb(
+                        [
+                            bounds.min[0] * 3.5,
+                            bounds.min[1] * 3.5,
+                            bounds.min[2] * 3.5,
+                        ],
+                        [
+                            bounds.max[0] * 3.5,
+                            bounds.max[1] * 3.5,
+                            bounds.max[2] * 3.5,
+                        ],
+                    ),
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(pair_set(&scaled), expected);
+
+        let permuted = original
+            .iter()
+            .map(|(proxy, bounds)| {
+                (
+                    *proxy,
+                    aabb(
+                        [bounds.min[2], bounds.min[0], bounds.min[1]],
+                        [bounds.max[2], bounds.max[0], bounds.max[1]],
+                    ),
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(pair_set(&permuted), expected);
+
+        let reflected = original
+            .iter()
+            .map(|(proxy, bounds)| {
+                (
+                    *proxy,
+                    aabb(
+                        [-bounds.max[0], bounds.min[1], bounds.min[2]],
+                        [-bounds.min[0], bounds.max[1], bounds.max[2]],
+                    ),
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(pair_set(&reflected), expected);
+    }
+
+    #[test]
     fn removing_proxies_preserves_tree_and_pair_completeness() {
         let mut tree = IncrementalAabbTree::<2>::new(0.0).unwrap();
         for index in 0..40_u64 {
