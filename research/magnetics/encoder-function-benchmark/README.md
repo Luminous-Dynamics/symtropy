@@ -44,3 +44,25 @@ No machine-control, magnetization, component-release or certification authority 
     cargo fmt --manifest-path research/magnetics/encoder-function-benchmark/Cargo.toml -- --check
     cargo clippy --manifest-path research/magnetics/encoder-function-benchmark/Cargo.toml --all-targets -- -D warnings
     cargo test --manifest-path research/magnetics/encoder-function-benchmark/Cargo.toml
+
+
+## Covariance-to-phase uncertainty
+
+The crate also provides `propagate_phase_uncertainty`, which consumes an identity-matched per-sample covariance trace for (Bx, By), plus independent angular-reference uncertainty records.
+
+For each sample, the atan2 Jacobian is:
+
+    g = (-By / (Bx^2 + By^2), Bx / (Bx^2 + By^2))
+
+The field-measurement contribution is `g * Sigma_Bxy * g^T`. Independent reference contributions are added separately:
+
+    sigma_phi_total^2 =
+        sigma_phi_measurement^2
+        + (pole_pairs * sigma_mechanical_reference)^2
+        + sigma_phase_zero_calibration^2
+
+The phase-zero calibration ID must match the ID in the phase requirements. Covariance samples must match trace ID, coordinate frame, operating condition, grid ID and bit-identical sample angles. 2x2 covariance inputs are checked for finite values and positive semidefiniteness.
+
+The output reports measurement-only and total phase standard uncertainty separately, including mean, RMS, p95 and maximum. It also reports residual / standard-uncertainty ratios as descriptive diagnostics; they are not p-values or coverage estimates.
+
+The model does not assume independent errors across samples. Shared calibration, registration and thermal errors may be correlated across the whole trace; per-sample marginal covariance does not encode that joint structure. No Gaussian coverage, confidence interval or production-yield claim is made. A field below the declared minimum is rejected for phase-uncertainty propagation.
