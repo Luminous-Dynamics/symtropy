@@ -434,6 +434,7 @@ mod tests {
     const DIGEST_A: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const DIGEST_B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
     const DIGEST_C: &str = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+    const DIGEST_D: &str = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
 
     fn policy() -> ConvergencePolicy {
         ConvergencePolicy {
@@ -514,8 +515,8 @@ mod tests {
         run.solver.software_id = "magpylib-material-response".to_owned();
         run.solver.formulation_id = "finite-element".to_owned();
         run.solver.method = SolverMethod::FiniteElement;
-        run.output_map_sha256 = DIGEST_B.to_owned();
-        run.convergence = Some(convergence(DIGEST_B, 3.0e-6, 6.0e-6));
+        run.output_map_sha256 = DIGEST_D.to_owned();
+        run.convergence = Some(convergence(DIGEST_D, 3.0e-6, 6.0e-6));
         run
     }
 
