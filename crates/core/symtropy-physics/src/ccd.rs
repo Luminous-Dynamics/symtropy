@@ -20,8 +20,8 @@ use nalgebra::SVector;
 /// Result of a continuous collision detection query.
 #[derive(Clone, Debug)]
 pub struct CcdHit<const D: usize> {
-    /// Time of impact [0, 1] within the current timestep.
-    /// 0 = start of step, 1 = end of step.
+    /// Elapsed simulation time in seconds from the start of the timestep.
+    /// The value is in [0, dt], not normalized to [0, 1].
     pub toi: f64,
     /// Hit point in world space at time of impact.
     pub point: SVector<f64, D>,
@@ -192,6 +192,20 @@ mod tests {
             "TOI = {}, expected ~0.2",
             hit.toi
         );
+    }
+
+    #[test]
+    fn sphere_sphere_toi_is_elapsed_seconds_for_non_unit_timestep() {
+        let pos_a = SVector::from([0.0, 0.0, 0.0]);
+        let vel_a = SVector::from([1.0, 0.0, 0.0]);
+        let pos_b = SVector::from([5.0, 0.0, 0.0]);
+        let vel_b = SVector::from([-1.0, 0.0, 0.0]);
+
+        // Center separation is 5, combined radius is 1, closing speed is 2.
+        // The TOI is 2 elapsed seconds. It is not the normalized fraction 2/3.
+        let hit = sphere_sphere(&pos_a, &vel_a, 0.5, &pos_b, &vel_b, 0.5, 3.0).unwrap();
+        assert!((hit.toi - 2.0).abs() < 1e-12);
+        assert!(hit.toi <= 3.0);
     }
 
     #[test]
