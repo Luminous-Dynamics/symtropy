@@ -66,3 +66,8 @@ The phase-zero calibration ID must match the ID in the phase requirements. Covar
 The output reports measurement-only and total phase standard uncertainty separately, including mean, RMS, p95 and maximum. It also reports residual / standard-uncertainty ratios as descriptive diagnostics; they are not p-values or coverage estimates.
 
 The model does not assume independent errors across samples. Shared calibration, registration and thermal errors may be correlated across the whole trace; per-sample marginal covariance does not encode that joint structure. No Gaussian coverage, confidence interval or production-yield claim is made. A field below the declared minimum is rejected for phase-uncertainty propagation.
+
+
+## Test inventory
+
+The current source contains 29 authored unit tests: 14 core field-to-angle controls and 15 covariance-to-phase / uncertainty negative controls. They cover known answers, rotational covariance, field-amplitude scaling, pole-pair scaling, rank-one PSD, indefinite and non-finite matrices, identity mismatches, weak/zero field and zero-uncertainty residuals. Test authorship is not a test pass; consult the current exact-head PR checks before using the crate as a verified reference.
