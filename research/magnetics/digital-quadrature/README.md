@@ -87,3 +87,8 @@ The capture is never shifted or trimmed to force a match. The mechanical angle s
 A synthetic generated capture only validates the record/reconciliation plumbing. It does not establish physical ASIC response, physical edge timing or a calibrated rotor-reference chain.
 
 The current source contains 41 authored unit tests. Test authorship is not a test pass; consult the current exact-head pull-request checks.
+
+
+## TI 20-pole threshold-mismatch reconstruction control
+
+A synthetic control uses 10 pole pairs, two spatial radial field traces offset by 90 degrees electrical, 1 mT / 7 mT BOP thresholds with symmetric negative BRP values, and an explicit 8.5 mT sinusoidal amplitude. The sampled edge-spacing interval should bound a maximum mechanical quadrature spacing error near the TI note's 4.9 degree design-analysis result. The 8.5 mT amplitude is a reproduction assumption, not a TI raw field dataset or an independently measured value. This test checks model arithmetic only; it does not reproduce TI's actual 3D ring field, sensor transfer curve or physical test.
