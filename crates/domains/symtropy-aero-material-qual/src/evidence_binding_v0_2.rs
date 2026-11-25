@@ -80,6 +80,7 @@ fn index_by_id<'a>(
     violations: &mut Vec<BindingFinding>,
 ) -> BTreeMap<String, &'a Value> {
     let mut index = BTreeMap::new();
+    let mut ambiguous_ids = BTreeSet::new();
     for (position, row) in rows.iter().enumerate() {
         let Some(id) = field_str(row, "id") else {
             push(
@@ -93,8 +94,16 @@ fn index_by_id<'a>(
             push(violations, "NON_CANONICAL_ENTITY_ID", id);
             continue;
         }
-        if index.insert(id.to_owned(), *row).is_some() {
+        if ambiguous_ids.contains(id) {
             push(violations, "DUPLICATE_ENTITY_ID", id);
+            continue;
+        }
+        if index.contains_key(id) {
+            index.remove(id);
+            ambiguous_ids.insert(id.to_owned());
+            push(violations, "DUPLICATE_ENTITY_ID", id);
+        } else {
+            index.insert(id.to_owned(), *row);
         }
     }
     index
@@ -1283,6 +1292,56 @@ mod tests {
         assert!(has_violation(
             &baseline,
             "CONTRADICTORY_CALIBRATION_CORRECTIONS"
+        ));
+
+        let mut permuted = case;
+        permuted["calibration_events"]
+            .as_array_mut()
+            .expect("calibration events")
+            .reverse();
+        assert_eq!(baseline, evaluate_binding_case(&permuted));
+    }
+
+    #[test]
+    fn conflicting_duplicate_event_ids_are_ambiguous_and_permutation_invariant() {
+        let mut case = fixture();
+        let duplicate_a = serde_json::json!({
+            "id": "EVENT-DUPLICATE",
+            "certificate_id": "CAL-A",
+            "event_type": "revoked",
+            "effective_at_unix_ms": 1_795_515_300_000u64,
+            "recorded_at_unix_ms": 1_795_515_360_000u64,
+            "retroactive": false
+        });
+        let duplicate_b = serde_json::json!({
+            "id": "EVENT-DUPLICATE",
+            "certificate_id": "CAL-A",
+            "event_type": "suspended",
+            "effective_at_unix_ms": 1_795_515_330_000u64,
+            "recorded_at_unix_ms": 1_795_515_390_000u64,
+            "retroactive": false
+        });
+        let correction = serde_json::json!({
+            "id": "EVENT-CORRECTION",
+            "certificate_id": "CAL-A",
+            "event_type": "corrected",
+            "corrects_event_id": "EVENT-DUPLICATE",
+            "effective_at_unix_ms": 1_795_515_420_000u64,
+            "recorded_at_unix_ms": 1_795_515_450_000u64,
+            "retroactive": true
+        });
+        case["calibration_events"] =
+            serde_json::json!([duplicate_a, duplicate_b, correction]);
+
+        let baseline = evaluate_binding_case(&case);
+        assert!(has_violation(&baseline, "CALIBRATION_EVENT_REPLAY"));
+        assert!(has_violation(
+            &baseline,
+            "CALIBRATION_CORRECTION_TARGET_INVALID"
+        ));
+        assert!(has_blocker(
+            &baseline,
+            "CALIBRATION_EVENT_HISTORY_UNRESOLVED"
         ));
 
         let mut permuted = case;
