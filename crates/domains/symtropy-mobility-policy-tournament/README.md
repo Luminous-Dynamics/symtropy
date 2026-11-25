@@ -4,7 +4,9 @@ A matched, fail-closed outcome evaluator for mobility-first charging and grid-fl
 
 ## Core comparison rule
 
-Every policy must be replayed on exactly the same exogenous scenario/replication pairs, random seeds, independent clusters, evidence class, compute environment and compute budget. Each policy keeps its own configuration digest. A missing, duplicated, invalid or mismatched run rejects the comparison; timeouts, failures and abstentions stay in the run denominator.
+Every policy must be replayed on exactly the same exogenous scenario/replication pairs, random seeds, independent clusters, evidence class, compute environment and compute budget. Each policy keeps its own configuration digest. A missing, duplicated, invalid or mismatched run rejects the comparison; timeouts, failures and abstentions stay in the run denominator. Each record must contain the complete realized horizon outcome, including any safe-fallback behaviour after timeout or abstention.
+
+Every run also carries an information-trace digest and information-audit digest, plus explicit future-information-access and nonanticipativity-violation counters. A nonanticipative-online policy with reported future-information access or any nonanticipativity violation is marked with an evidence-integrity hard-gate failure. The bridge checks digest shape and reported counters; it does not authenticate the audit producer or independently reproduce the policy's information-flow trace. Clairvoyant offline upper bounds remain a separate declared track.
 
 ## Two separate score planes
 
@@ -14,11 +16,15 @@ Every policy must be replayed on exactly the same exogenous scenario/replication
 
 The signed PCC response is retained. A negative value means increased import, not zero response. The evaluator also records when positive metered reduction exceeds the declared DC network-deliverable cap. It never clips such a conflict.
 
-## Paired inference
+## Paired inference and tail risk
 
 Candidate-minus-reference deltas are paired by scenario ID and replication ID. Repeated observations are first averaged within the declared independent cluster (for example site-day or independent incident block). The evaluator then reports a deterministic cluster-bootstrap percentile interval with an explicit random seed, resample count, confidence level and independent-cluster count.
 
 No interval is emitted when the declared minimum number of independent clusters is not met. These are resampling intervals over the supplied labelled clusters, not distribution-free guarantees and not a claim that correlated intervals are independent.
+
+Per-policy output also reports empirical upper-tail CVaR95 and maximum reserve/recovery shortfall, as well as scenario-family and independent-cluster strata. These are descriptive summaries over the supplied benchmark runs, not guarantees about unseen events.
+
+The bootstrap has an explicit 100,000,000 sample-operation work budget over independent clusters × resamples × candidate-policy comparisons × six metrics. Work is not charged when the independent-cluster threshold is too small to produce intervals. Excessive workloads are rejected before sampling.
 
 ## Run
 
