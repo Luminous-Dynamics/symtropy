@@ -261,7 +261,9 @@
         "independent_copies",
         "independent_failure_domains",
         "tolerate_complete_region_loss",
-        "maximum_unrecoverable_payload_fraction"
+        "maximum_unrecoverable_payload_fraction",
+        "dependency_profile_ref",
+        "dependency_profile_status"
       ],
       "properties": {
         "independent_copies": {
@@ -279,6 +281,21 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        },
+        "dependency_profile_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Versioned reference to the canonical Mycelix multi-valued/transitive dependency profile (ASSURE-PORTFOLIO-CUT-002 #5762). Null means no dependency-qualified independence claim is available."
+        },
+        "dependency_profile_status": {
+          "enum": [
+            "complete",
+            "incomplete",
+            "unavailable"
+          ],
+          "description": "Completeness of the exact dependency closure and cut-set evidence for the requested failure-domain diversity."
         }
       }
     },
