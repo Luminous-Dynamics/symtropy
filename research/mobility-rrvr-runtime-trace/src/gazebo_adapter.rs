@@ -1413,8 +1413,6 @@ pub mod journaled {
         plan_sha256: &'a str,
         simulator_profile_sha256: &'a str,
         world_id: &'a str,
-        prior_world_epoch: &'a str,
-        clock_id: &'a str,
         run_id: &'a str,
         run_epoch: &'a str,
     }
@@ -1441,8 +1439,6 @@ pub mod journaled {
             plan_sha256: &plan.plan_sha256,
             simulator_profile_sha256: &plan.platform.profile_sha256,
             world_id: &session.profile.world_name,
-            prior_world_epoch: &session.world_epoch,
-            clock_id: &session.clock_id,
             run_id: identity.run_id,
             run_epoch: identity.run_epoch,
         };
