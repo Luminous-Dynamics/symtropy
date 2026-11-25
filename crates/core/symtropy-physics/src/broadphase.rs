@@ -825,6 +825,136 @@ mod tests {
     }
 
     #[test]
+    fn static_morton_tree_matches_brute_force_and_prunes_leaf_tests() {
+        let mut bodies = Vec::new();
+        for index in 0..256 {
+            bodies.push(RigidBody::<3>::static_body(
+                BodyHandle(index),
+                Point::new([index as f64 * 4.0, 0.0, 0.0]),
+                Box::new(Sphere::unit()),
+            ));
+        }
+        for (offset, x) in [0.0, 200.0, 500.0, 800.0].into_iter().enumerate() {
+            bodies.push(RigidBody::<3>::dynamic_sphere(
+                BodyHandle(1_000 + offset),
+                Point::new([x, 0.0, 0.0]),
+                1.0,
+                1.0,
+            ));
+        }
+
+        let mut static_bp = StaticBroadphase::new();
+        static_bp.rebuild(&bodies);
+        let result = find_pairs_incremental_with_stats(&bodies, &static_bp);
+        let oracle = find_pairs_brute(&bodies);
+
+        assert_eq!(result.pairs, oracle);
+        assert_eq!(result.stats.dynamic_entries, 4);
+        assert_eq!(result.stats.static_entries, 256);
+        assert!(result.stats.static_bvh_node_visits > 0);
+        assert!(
+            result.stats.static_leaf_tests < result.stats.dynamic_entries * result.stats.static_entries,
+            "tree should test fewer leaves than the linear scan"
+        );
+        assert_eq!(result.stats.candidate_pairs, oracle.len());
+        assert_eq!(result.stats.static_linear_queries, 0);
+    }
+
+    #[test]
+    fn static_morton_tree_preserves_bidirectional_collision_filters() {
+        let mut static_body = RigidBody::<3>::static_body(
+            BodyHandle(1),
+            Point::origin(),
+            Box::new(Sphere::unit()),
+        );
+        static_body.collision_group = 0b0001;
+        static_body.collision_mask = 0b0010;
+
+        let mut dynamic_body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(2),
+            Point::new([1.0, 0.0, 0.0]),
+            1.0,
+            1.0,
+        );
+        dynamic_body.collision_group = 0b0010;
+        dynamic_body.collision_mask = 0b0001;
+
+        let mut bodies = vec![static_body, dynamic_body];
+        for index in 0..32 {
+            bodies.push(RigidBody::<3>::static_body(
+                BodyHandle(10 + index),
+                Point::new([100.0 + index as f64 * 4.0, 0.0, 0.0]),
+                Box::new(Sphere::unit()),
+            ));
+        }
+
+        let mut static_bp = StaticBroadphase::new();
+        static_bp.rebuild(&bodies);
+        let result = find_pairs_incremental_with_stats(&bodies, &static_bp);
+        assert_eq!(result.pairs, find_pairs_brute(&bodies));
+        assert_eq!(result.pairs, vec![BroadphasePair(BodyHandle(1), BodyHandle(2))]);
+
+        // If either side rejects the other, the overlapping AABBs must not
+        // produce a candidate.
+        bodies[1].collision_mask = 0;
+        static_bp.rebuild(&bodies);
+        let filtered = find_pairs_incremental_with_stats(&bodies, &static_bp);
+        assert!(filtered.pairs.is_empty());
+    }
+
+    #[test]
+    fn small_static_population_keeps_the_linear_fast_path() {
+        let mut bodies = Vec::new();
+        for index in 0..8 {
+            bodies.push(RigidBody::<3>::static_body(
+                BodyHandle(index),
+                Point::new([index as f64 * 4.0, 0.0, 0.0]),
+                Box::new(Sphere::unit()),
+            ));
+        }
+        bodies.push(RigidBody::<3>::dynamic_sphere(
+            BodyHandle(100),
+            Point::origin(),
+            1.0,
+            1.0,
+        ));
+
+        let mut static_bp = StaticBroadphase::new();
+        static_bp.rebuild(&bodies);
+        let result = find_pairs_incremental_with_stats(&bodies, &static_bp);
+        assert_eq!(result.pairs, find_pairs_brute(&bodies));
+        assert_eq!(result.stats.static_linear_queries, 1);
+        assert_eq!(result.stats.static_bvh_node_visits, 0);
+        assert_eq!(result.stats.static_leaf_tests, 8);
+    }
+
+    #[test]
+    fn high_dynamic_population_keeps_the_full_lbvh_fallback() {
+        let mut bodies = Vec::new();
+        for index in 0..64 {
+            bodies.push(RigidBody::<3>::static_body(
+                BodyHandle(index),
+                Point::new([index as f64 * 10.0, 0.0, 0.0]),
+                Box::new(Sphere::unit()),
+            ));
+        }
+        for index in 0..BRUTE_FORCE_THRESHOLD {
+            bodies.push(RigidBody::<3>::dynamic_sphere(
+                BodyHandle(1_000 + index),
+                Point::new([index as f64 * 3.0, 0.0, 0.0]),
+                1.0,
+                1.0,
+            ));
+        }
+
+        let mut static_bp = StaticBroadphase::new();
+        static_bp.rebuild(&bodies);
+        let result = find_pairs_incremental_with_stats(&bodies, &static_bp);
+        assert!(result.stats.used_full_lbvh_fallback);
+        assert_eq!(result.pairs, find_pairs(&bodies));
+    }
+
+    #[test]
     fn rotated_box_aabb_uses_orientation() {
         use std::f64::consts::FRAC_PI_2;
         use symtropy_math::{Bivector, HyperBox, Rotor, Transform};
