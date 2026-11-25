@@ -54,6 +54,21 @@ pub struct DeviceCapabilityProfile {
     pub units: String,
     pub coordinate_frame: String,
     pub reference_frame: String,
+
+    // Capabilities independently established for this exact device profile.
+    pub supports_absolute_target: bool,
+    pub absolute_target_replay_safe: bool,
+    pub absolute_target_side_effect_free: bool,
+    pub supports_durable_one_shot_token: bool,
+    pub rejects_duplicate_one_shot_token: bool,
+    pub maximum_effects_per_token: Option<u32>,
+    pub supports_authority_epoch: bool,
+    pub enforces_lease_expiry: bool,
+    pub watchdog_reaction: WatchdogReaction,
+    pub supports_stable_trajectory_segments: bool,
+    pub supports_progress_checkpoints: bool,
+    pub supports_measured_progress_resume: bool,
+    pub supports_downstream_queue_reconciliation: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -129,26 +144,39 @@ pub enum HoldReason {
     ReferenceFrameMismatch,
     MissingOutcomePredicate,
     DesiredStateRequiresAbsoluteMotion,
+    DeviceAbsoluteTargetUnsupported,
+    DeviceAbsoluteTargetNotReplaySafe,
+    DeviceAbsoluteTargetHasSideEffects,
     DesiredStateNotDeclaredIdempotent,
     DesiredStateReplayNotSafe,
     DesiredStateToleranceMissing,
     DesiredStateSideEffectsUnknown,
     OneShotCardinalityNotOne,
     OneShotTokenMissing,
+    DeviceOneShotTokenUnsupported,
+    DeviceOneShotTokenReplayUnsafe,
+    DeviceOneShotCardinalityNotOne,
     OneShotTokenCanReactuate,
     OneShotObserverMissing,
     ContinuousLeaseMissingExpiry,
     ContinuousLeaseEpochNotEnforced,
+    DeviceLeaseEpochUnsupported,
     ContinuousLeaseExpiryNotEnforced,
+    DeviceLeaseExpiryUnsupported,
     ContinuousLeaseWatchdogMissing,
     ContinuousLeaseUnsafeWatchdogReaction,
+    DeviceWatchdogUnsafe,
     ContinuousLeaseClockMissing,
     TrajectorySegmentCountMissing,
     TrajectorySegmentIdentityUnstable,
+    DeviceTrajectorySegmentsUnstable,
     TrajectoryCheckpointMissing,
+    DeviceTrajectoryCheckpointMissing,
     TrajectoryResumeNotMeasured,
+    DeviceTrajectoryResumeUnsupported,
     TrajectoryRestartFromZeroAllowed,
     TrajectoryQueueNotReconciled,
+    DeviceTrajectoryQueueReconciliationUnsupported,
     EffectClassMotionSemanticsMismatch,
 }
 
@@ -229,11 +257,23 @@ fn common_profile_checks(input: &SemanticProfileInput) -> Result<(), HoldReason>
     Ok(())
 }
 
-fn evaluate_class(command: &CommandSemanticProfile) -> Result<(), HoldReason> {
+fn evaluate_class(
+    device: &DeviceCapabilityProfile,
+    command: &CommandSemanticProfile,
+) -> Result<(), HoldReason> {
     match command.effect_class {
         EffectClass::DesiredState => {
             if command.motion_semantics != MotionSemantics::Absolute {
                 return Err(HoldReason::DesiredStateRequiresAbsoluteMotion);
+            }
+            if !device.supports_absolute_target {
+                return Err(HoldReason::DeviceAbsoluteTargetUnsupported);
+            }
+            if !device.absolute_target_replay_safe {
+                return Err(HoldReason::DeviceAbsoluteTargetNotReplaySafe);
+            }
+            if !device.absolute_target_side_effect_free {
+                return Err(HoldReason::DeviceAbsoluteTargetHasSideEffects);
             }
             if !command.idempotent_under_declared_contract {
                 return Err(HoldReason::DesiredStateNotDeclaredIdempotent);
@@ -255,6 +295,15 @@ fn evaluate_class(command: &CommandSemanticProfile) -> Result<(), HoldReason> {
             if command.maximum_physical_effects_per_attempt != Some(1) {
                 return Err(HoldReason::OneShotCardinalityNotOne);
             }
+            if device.maximum_effects_per_token != Some(1) {
+                return Err(HoldReason::DeviceOneShotCardinalityNotOne);
+            }
+            if !device.supports_durable_one_shot_token {
+                return Err(HoldReason::DeviceOneShotTokenUnsupported);
+            }
+            if !device.rejects_duplicate_one_shot_token {
+                return Err(HoldReason::DeviceOneShotTokenReplayUnsafe);
+            }
             if !command.endpoint_token_required {
                 return Err(HoldReason::OneShotTokenMissing);
             }
@@ -275,8 +324,14 @@ fn evaluate_class(command: &CommandSemanticProfile) -> Result<(), HoldReason> {
             if !command.endpoint_enforces_authority_epoch {
                 return Err(HoldReason::ContinuousLeaseEpochNotEnforced);
             }
+            if !device.supports_authority_epoch {
+                return Err(HoldReason::DeviceLeaseEpochUnsupported);
+            }
             if !command.endpoint_enforces_expiry {
                 return Err(HoldReason::ContinuousLeaseExpiryNotEnforced);
+            }
+            if !device.enforces_lease_expiry {
+                return Err(HoldReason::DeviceLeaseExpiryUnsupported);
             }
             if !command.watchdog_supported {
                 return Err(HoldReason::ContinuousLeaseWatchdogMissing);
@@ -286,6 +341,12 @@ fn evaluate_class(command: &CommandSemanticProfile) -> Result<(), HoldReason> {
                 WatchdogReaction::ControlledStop | WatchdogReaction::DisableOutput
             ) {
                 return Err(HoldReason::ContinuousLeaseUnsafeWatchdogReaction);
+            }
+            if !matches!(
+                device.watchdog_reaction,
+                WatchdogReaction::ControlledStop | WatchdogReaction::DisableOutput
+            ) {
+                return Err(HoldReason::DeviceWatchdogUnsafe);
             }
             if !nonempty(&command.clock_profile_id) || command.clock_profile_id == "unknown" {
                 return Err(HoldReason::ContinuousLeaseClockMissing);
@@ -301,17 +362,29 @@ fn evaluate_class(command: &CommandSemanticProfile) -> Result<(), HoldReason> {
             if !command.segment_ids_are_stable {
                 return Err(HoldReason::TrajectorySegmentIdentityUnstable);
             }
+            if !device.supports_stable_trajectory_segments {
+                return Err(HoldReason::DeviceTrajectorySegmentsUnstable);
+            }
             if !command.progress_checkpoints_required {
                 return Err(HoldReason::TrajectoryCheckpointMissing);
             }
+            if !device.supports_progress_checkpoints {
+                return Err(HoldReason::DeviceTrajectoryCheckpointMissing);
+            }
             if !command.resume_from_measured_progress {
                 return Err(HoldReason::TrajectoryResumeNotMeasured);
+            }
+            if !device.supports_measured_progress_resume {
+                return Err(HoldReason::DeviceTrajectoryResumeUnsupported);
             }
             if command.restart_from_segment_zero_allowed {
                 return Err(HoldReason::TrajectoryRestartFromZeroAllowed);
             }
             if !command.downstream_queue_reconciliation_required {
                 return Err(HoldReason::TrajectoryQueueNotReconciled);
+            }
+            if !device.supports_downstream_queue_reconciliation {
+                return Err(HoldReason::DeviceTrajectoryQueueReconciliationUnsupported);
             }
         }
     }
@@ -322,7 +395,7 @@ pub fn evaluate(input: &SemanticProfileInput) -> SemanticDecision {
     if let Err(reason) = common_profile_checks(input) {
         return SemanticDecision::Hold(reason);
     }
-    match evaluate_class(&input.command) {
+    match evaluate_class(&input.device, &input.command) {
         Ok(()) => SemanticDecision::AcceptProfile {
             effect_class: input.command.effect_class,
         },
@@ -345,6 +418,19 @@ mod tests {
             units: "radians".into(),
             coordinate_frame: "joint-space-v1".into(),
             reference_frame: "robot-base-v1".into(),
+            supports_absolute_target: true,
+            absolute_target_replay_safe: true,
+            absolute_target_side_effect_free: true,
+            supports_durable_one_shot_token: true,
+            rejects_duplicate_one_shot_token: true,
+            maximum_effects_per_token: Some(1),
+            supports_authority_epoch: true,
+            enforces_lease_expiry: true,
+            watchdog_reaction: WatchdogReaction::ControlledStop,
+            supports_stable_trajectory_segments: true,
+            supports_progress_checkpoints: true,
+            supports_measured_progress_resume: true,
+            supports_downstream_queue_reconciliation: true,
         }
     }
 
@@ -433,6 +519,56 @@ mod tests {
         for input in [valid_desired_state(), valid_one_shot(), valid_continuous_lease(), valid_trajectory()] {
             assert!(matches!(evaluate(&input), SemanticDecision::AcceptProfile { .. }));
         }
+    }
+
+    #[test]
+    fn rejects_device_without_absolute_target_capability() {
+        let mut input = valid_desired_state();
+        input.device.supports_absolute_target = false;
+        assert_eq!(
+            evaluate(&input),
+            SemanticDecision::Hold(HoldReason::DeviceAbsoluteTargetUnsupported)
+        );
+    }
+
+    #[test]
+    fn rejects_device_without_durable_one_shot_token() {
+        let mut input = valid_one_shot();
+        input.device.supports_durable_one_shot_token = false;
+        assert_eq!(
+            evaluate(&input),
+            SemanticDecision::Hold(HoldReason::DeviceOneShotTokenUnsupported)
+        );
+    }
+
+    #[test]
+    fn rejects_device_that_reacts_to_duplicate_one_shot_tokens() {
+        let mut input = valid_one_shot();
+        input.device.rejects_duplicate_one_shot_token = false;
+        assert_eq!(
+            evaluate(&input),
+            SemanticDecision::Hold(HoldReason::DeviceOneShotTokenReplayUnsafe)
+        );
+    }
+
+    #[test]
+    fn rejects_device_without_lease_expiry_enforcement() {
+        let mut input = valid_continuous_lease();
+        input.device.enforces_lease_expiry = false;
+        assert_eq!(
+            evaluate(&input),
+            SemanticDecision::Hold(HoldReason::DeviceLeaseExpiryUnsupported)
+        );
+    }
+
+    #[test]
+    fn rejects_device_without_checkpointed_trajectory_resume() {
+        let mut input = valid_trajectory();
+        input.device.supports_measured_progress_resume = false;
+        assert_eq!(
+            evaluate(&input),
+            SemanticDecision::Hold(HoldReason::DeviceTrajectoryResumeUnsupported)
+        );
     }
 
     #[test]
