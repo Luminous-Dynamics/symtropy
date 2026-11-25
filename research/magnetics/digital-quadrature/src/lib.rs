@@ -170,6 +170,9 @@ pub enum EvaluationError {
     InitialStateInconsistent { channel: char },
     ProjectedFieldOverflow { index: usize, channel: char },
     TransitionCountOverflow,
+    InvalidHarmonicRequest,
+    HarmonicOrderAboveNyquist,
+    SpectralNumericOverflow,
 }
 
 fn nonempty(value: &str) -> bool {
@@ -581,8 +584,43 @@ pub fn evaluate_trace(
     })
 }
 
-#[cfg(test)]
-mod tests {
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HallChannel {
+    A,
+    B,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SpatialHarmonic {
+    /// Multiple of the mechanical pole-pair fundamental.
+    pub harmonic_multiple: u32,
+    pub amplitude_t: f64,
+    pub phase_rad: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct HarmonicSpectrum {
+    pub trace_id: String,
+    pub channel: HallChannel,
+    pub pole_pairs: u32,
+    pub maximum_harmonic_multiple: u32,
+    pub dc_offset_t: f64,
+    pub total_rms_t: f64,
+    pub fundamental_amplitude_t: Option<f64>,
+    pub fundamental_phase_rad: Option<f64>,
+    /// RMS of the reported integer harmonics 2..K divided by fundamental RMS.
+    pub total_harmonic_distortion_ratio: Option<f64>,
+    /// RMS of spectral content not represented by DC or reported integer harmonics.
+    pub unresolved_spectral_residual_ratio: Option<f64>,
+    /// Combined higher-harmonic and unresolved residual RMS / fundamental RMS.
+    pub combined_nonfundamental_ratio: Option<f64>,
+    /// Absolute difference between projected first and final endpoint samples.
+    pub endpoint_discontinuity_t: f64,
+    pub harmonics: Vec<SpatialHarmonic>,
+}
+
+/// Decompose one projected Hall-channel field waveform into spatial harmonics.\n///\n/// The trace must include both endpoints of one full revolution. The repeated\n/// final endpoint is excluded from the discrete Fourier sum. Harmonic orders are\n/// integer multiples of pole_pairs and must remain strictly below Nyquist.\n/// This is a diagnostic decomposition, not a quadrature accuracy or qualification score.\npub fn analyze_channel_harmonics(\n    trace: &EncoderTrace,\n    channel: HallChannel,\n    pole_pairs: u32,\n    axis_angle_rad: f64,\n    maximum_harmonic_multiple: u32,\n) -> Result<HarmonicSpectrum, EvaluationError> {\n    if !nonempty(&trace.trace_id)\n        || !nonempty(&trace.coordinate_frame_id)\n        || !nonempty(&trace.operating_condition_id)\n        || !nonempty(&trace.angular_grid_id)\n        || pole_pairs == 0\n        || maximum_harmonic_multiple == 0\n        || !axis_angle_rad.is_finite()\n    {\n        return Err(EvaluationError::InvalidHarmonicRequest);\n    }\n    if trace.samples.len() < 5 {\n        return Err(EvaluationError::TooFewSamples);\n    }\n\n    let unique_count = trace.samples.len() - 1;\n    let maximum_order = u64::from(pole_pairs)\n        .checked_mul(u64::from(maximum_harmonic_multiple))\n        .ok_or(EvaluationError::HarmonicOrderAboveNyquist)?;\n    if maximum_order.checked_mul(2).is_none_or(|twice| twice >= unique_count as u64) {\n        return Err(EvaluationError::HarmonicOrderAboveNyquist);\n    }\n\n    let start_angle = trace.samples[0].mechanical_angle_rad;\n    let step = TAU / unique_count as f64;\n    let mut projected = Vec::with_capacity(unique_count);\n    for (index, sample) in trace.samples.iter().enumerate() {\n        let field = match channel {\n            HallChannel::A => sample.channel_a_field,\n            HallChannel::B => sample.channel_b_field,\n        };\n        if !sample.mechanical_angle_rad.is_finite()\n            || !field.radial_t.is_finite()\n            || !field.tangential_t.is_finite()\n        {\n            return Err(EvaluationError::NonFiniteSample { index });\n        }\n        let expected_angle = start_angle + index as f64 * step;\n        if (sample.mechanical_angle_rad - expected_angle).abs() > ANGLE_TOLERANCE_RAD {\n            return Err(EvaluationError::NonUniformOrIncompleteRevolution { index });\n        }\n        let value = project(field, axis_angle_rad);\n        if !value.is_finite() {\n            return Err(EvaluationError::ProjectedFieldOverflow {\n                index,\n                channel: match channel { HallChannel::A => 'A', HallChannel::B => 'B' },\n            });\n        }\n        if index < unique_count {\n            projected.push(value);\n        }\n    }\n\n    let endpoint_discontinuity_t = {\n        let first_field = match channel {\n            HallChannel::A => trace.samples[0].channel_a_field,\n            HallChannel::B => trace.samples[0].channel_b_field,\n        };\n        let final_field = match channel {\n            HallChannel::A => trace.samples[trace.samples.len() - 1].channel_a_field,\n            HallChannel::B => trace.samples[trace.samples.len() - 1].channel_b_field,\n        };\n        (project(first_field, axis_angle_rad) - project(final_field, axis_angle_rad)).abs()\n    };\n\n    let dc_offset_t = projected.iter().sum::<f64>() / unique_count as f64;\n    let total_rms_t = (projected.iter().map(|value| value * value).sum::<f64>()\n        / unique_count as f64)\n        .sqrt();\n    if !dc_offset_t.is_finite() || !total_rms_t.is_finite() || !endpoint_discontinuity_t.is_finite() {\n        return Err(EvaluationError::SpectralNumericOverflow);\n    }\n\n    let mut harmonics = Vec::with_capacity(maximum_harmonic_multiple as usize);\n    let mut harmonic_energy_t2 = 0.0_f64;\n    for multiple in 1..=maximum_harmonic_multiple {\n        let order = f64::from(pole_pairs) * f64::from(multiple);\n        let mut real = 0.0_f64;\n        let mut imaginary = 0.0_f64;\n        for (index, value) in projected.iter().enumerate() {\n            let angle = trace.samples[index].mechanical_angle_rad;\n            let phase = order * angle;\n            real += value * phase.cos();\n            imaginary -= value * phase.sin();\n        }\n        real /= unique_count as f64;\n        imaginary /= unique_count as f64;\n        let amplitude_t = 2.0 * real.hypot(imaginary);\n        let phase_rad = imaginary.atan2(real);\n        if !amplitude_t.is_finite() || !phase_rad.is_finite() {\n            return Err(EvaluationError::SpectralNumericOverflow);\n        }\n        harmonic_energy_t2 += amplitude_t * amplitude_t / 2.0;\n        harmonics.push(SpatialHarmonic {\n            harmonic_multiple: multiple,\n            amplitude_t,\n            phase_rad,\n        });\n    }\n\n    let fundamental_amplitude_t = harmonics.first().map(|component| component.amplitude_t);\n    let fundamental_phase_rad = harmonics.first().map(|component| component.phase_rad);\n    let residual_energy_t2 = (total_rms_t * total_rms_t\n        - dc_offset_t * dc_offset_t\n        - harmonic_energy_t2)\n        .max(0.0);\n    let unresolved_residual_rms_t = residual_energy_t2.sqrt();\n\n    let (total_harmonic_distortion_ratio, unresolved_spectral_residual_ratio, combined_nonfundamental_ratio) =\n        if let Some(fundamental) = fundamental_amplitude_t.filter(|amplitude| *amplitude > 0.0) {\n            let higher_harmonic_energy_t2 = harmonics\n                .iter()\n                .skip(1)\n                .map(|component| component.amplitude_t * component.amplitude_t / 2.0)\n                .sum::<f64>();\n            let fundamental_rms_t = fundamental / 2.0_f64.sqrt();\n            let thd = (higher_harmonic_energy_t2.sqrt()) / fundamental_rms_t;\n            let residual_ratio = unresolved_residual_rms_t / fundamental_rms_t;\n            let combined = (higher_harmonic_energy_t2 + residual_energy_t2).sqrt() / fundamental_rms_t;\n            (Some(thd), Some(residual_ratio), Some(combined))\n        } else {\n            (None, None, None)\n        };\n\n    if [total_harmonic_distortion_ratio, unresolved_spectral_residual_ratio, combined_nonfundamental_ratio]\n        .into_iter()\n        .flatten()\n        .any(|value| !value.is_finite())\n    {\n        return Err(EvaluationError::SpectralNumericOverflow);\n    }\n\n    Ok(HarmonicSpectrum {\n        trace_id: trace.trace_id.clone(),\n        channel,\n        pole_pairs,\n        maximum_harmonic_multiple,\n        dc_offset_t,\n        total_rms_t,\n        fundamental_amplitude_t,\n        fundamental_phase_rad,\n        total_harmonic_distortion_ratio,\n        unresolved_spectral_residual_ratio,\n        combined_nonfundamental_ratio,\n        endpoint_discontinuity_t,\n        harmonics,\n    })\n}\n\n#[cfg(test)]\nmod tests {
     use super::*;
 
     fn latch(axis_angle_rad: f64, initial_high: bool, bop: f64, brp: f64) -> HallLatchConfig {
@@ -673,6 +711,49 @@ mod tests {
             evidence_kind: EvidenceKind::SyntheticScenario,
             samples,
         }
+    }
+
+
+    #[test]
+    fn pure_fundamental_field_has_negligible_higher_harmonics() {
+        let trace = sinusoidal_trace("pure-fundamental", 10, 3601, 0.008, 1.0);
+        let spectrum = analyze_channel_harmonics(&trace, HallChannel::A, 10, 0.0, 5).unwrap();
+
+        assert!((spectrum.fundamental_amplitude_t.unwrap() - 0.008).abs() < 1.0e-10);
+        assert!(spectrum.total_harmonic_distortion_ratio.unwrap() < 1.0e-10);
+        assert!(spectrum.endpoint_discontinuity_t < 1.0e-10);
+    }
+
+    #[test]
+    fn second_spatial_harmonic_is_measured_independently() {
+        let mut trace = sinusoidal_trace("second-harmonic", 10, 3601, 0.008, 1.0);
+        for sample in &mut trace.samples {
+            let angle = sample.mechanical_angle_rad;
+            sample.channel_a_field.radial_t =
+                0.008 * (10.0 * angle).cos() + 0.0008 * (20.0 * angle + 0.31).cos();
+        }
+        let spectrum = analyze_channel_harmonics(&trace, HallChannel::A, 10, 0.0, 5).unwrap();
+
+        assert!((spectrum.harmonics[1].amplitude_t - 0.0008).abs() < 1.0e-9);
+        assert!((spectrum.total_harmonic_distortion_ratio.unwrap() - 0.1).abs() < 1.0e-7);
+    }
+
+    #[test]
+    fn reports_endpoint_discontinuity_separately() {
+        let mut trace = sinusoidal_trace("seam-discontinuity", 2, 721, 0.008, 1.0);
+        trace.samples.last_mut().unwrap().channel_a_field.radial_t += 0.001;
+        let spectrum = analyze_channel_harmonics(&trace, HallChannel::A, 2, 0.0, 3).unwrap();
+
+        assert!((spectrum.endpoint_discontinuity_t - 0.001).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn rejects_harmonic_order_at_or_above_nyquist() {
+        let trace = sinusoidal_trace("alias-control", 10, 101, 0.008, 1.0);
+        assert_eq!(
+            analyze_channel_harmonics(&trace, HallChannel::A, 10, 0.0, 5),
+            Err(EvaluationError::HarmonicOrderAboveNyquist)
+        );
     }
 
     #[test]
