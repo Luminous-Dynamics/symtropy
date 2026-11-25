@@ -1,0 +1,50 @@
+name: maritime-evidence-decision-composition
+
+on:
+  push:
+    paths:
+      - "research/maritime-evidence-decision-composition/**"
+      - ".github/workflows/maritime-evidence-decision-composition.yml"
+  pull_request:
+    paths:
+      - "research/maritime-evidence-decision-composition/**"
+      - ".github/workflows/maritime-evidence-decision-composition.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Formatting
+        run: cargo fmt --manifest-path research/maritime-evidence-decision-composition/Cargo.toml -- --check
+
+      - name: Tests
+        run: cargo test --locked --manifest-path research/maritime-evidence-decision-composition/Cargo.toml
+
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/maritime-evidence-decision-composition/Cargo.toml --all-targets -- -D warnings
+
+      - name: Emit deterministic per-case composition receipt
+        run: cargo run --locked --manifest-path research/maritime-evidence-decision-composition/Cargo.toml --bin composition-audit > composition-receipt.txt
+
+      - name: Independent reference and fixture parity
+        run: python3 research/maritime-evidence-decision-composition/scripts/independent_reference.py
+
+      - name: Upload deterministic receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-evidence-composition-receipt
+          path: composition-receipt.txt
+          if-no-files-found: error
+          retention-days: 30
