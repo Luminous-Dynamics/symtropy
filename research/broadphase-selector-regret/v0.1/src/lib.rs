@@ -631,6 +631,11 @@ pub fn evaluate_sequence(input: &SequenceInput) -> Result<SequenceScore, Selecto
         }
     }
 
+    // Establish that a complete qualified comparator path exists before
+    // attempting to score the submitted policy decisions.
+    let (offline_oracle_path, offline_oracle_cost_ns) =
+        offline_oracle_path(&frames, input.initial_backend.as_ref(), &transition_map)?;
+
     let mut decisions = BTreeMap::new();
     for decision in &input.decisions {
         validate_sha256(&decision.feature_snapshot_sha256)?;
@@ -695,8 +700,6 @@ pub fn evaluate_sequence(input: &SequenceInput) -> Result<SequenceScore, Selecto
         selected_path.push(decision.selected_backend.clone());
     }
 
-    let (offline_oracle_path, offline_oracle_cost_ns) =
-        offline_oracle_path(&frames, input.initial_backend.as_ref(), &transition_map)?;
     if online_total_cost_ns < offline_oracle_cost_ns {
         return Err(SelectorError::OfflineOracleNotOptimal);
     }
