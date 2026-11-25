@@ -2129,12 +2129,12 @@ mod tests {
                     outcome,
                     elapsed,
                 ]
-                .join("\\t"),
+                .join("\t"),
             );
         }
         let tsv = format!(
-            "#ccd-query-run-results-v1\\n{}",
-            rows.join("\\n")
+            "#ccd-query-run-results-v1\n{}",
+            rows.join("\n")
         );
         let run_results = parse_query_run_results_tsv(&tsv).unwrap();
         let profile = RunProfile::new(
