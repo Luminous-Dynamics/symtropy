@@ -10,7 +10,7 @@ A per-frame minimum is not a physically attainable selector oracle: it can chang
 
 - The evaluator accepts frozen backend/frame observations; it does not run broadphase algorithms or generate pair-oracle data.
 - Every backend for a frame must share the same AABB snapshot, collision-filter digest, environment digest, oracle result digest and oracle denominators.
-- A backend is eligible only if the receipt is valid, oracle coverage is complete, pair counts conserve, and it has zero false negatives, duplicate rows and unknown endpoints.
+- A backend is eligible only if the receipt is valid, oracle coverage is complete, pair counts conserve, and it has zero false negatives, duplicate rows, unknown endpoints, unsupported cases and invalid prune certificates.
 - A selected online backend must be qualified on that exact frame. Unqualified fast results cannot enter the score.
 - Every held-out frame is retained in order. Frame indices are contiguous and start at zero.
 - Selector decisions must occur before the simulation frame and disclose the latest completed frame used; future/current outcome leakage is rejected.
