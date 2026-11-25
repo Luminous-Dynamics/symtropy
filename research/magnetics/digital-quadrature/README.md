@@ -38,7 +38,7 @@ For p pole pairs, the expected number of A/B state transitions per full revoluti
 - transition sample brackets in angle and, when available, timestamp;
 - expected edge rate for the declared RPM and the caller-supplied edge-rate policy.
 
-The sample interval is retained because a field crossing is known only to lie between the two samples. No sub-sample switching time is invented.
+The sample interval is retained because a field crossing is known only to lie between the two samples. The evaluator derives lower/upper bounds on maximum quadrature edge-spacing error using interval arithmetic, including the wraparound gap when the trace is periodic. No sub-sample switching time is invented.
 
 The edge-rate policy is not automatically equivalent to a sensor datasheet's bandwidth. Vendor response delay, BOP dwell, digital filtering, output timing and worst-case limits require a separate part-specific model.
 
