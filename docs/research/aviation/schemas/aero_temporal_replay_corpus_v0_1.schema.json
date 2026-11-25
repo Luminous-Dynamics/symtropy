@@ -380,7 +380,8 @@
             "observer_coverage_profile_id",
             "observer_coverage_receipt_reference",
             "observer_coverage_receipt_digest_sha256",
-            "observer_coverage_watermark_unix_ms"
+            "observer_coverage_watermark_unix_ms",
+            "evidence_view_digest_sha256"
           ],
           "properties": {
             "evaluated_at_unix_ms": {
@@ -451,6 +452,10 @@
             },
             "observer_coverage_watermark_unix_ms": {
               "$ref": "#/$defs/time"
+            },
+            "evidence_view_digest_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
             }
           }
         },
@@ -496,7 +501,8 @@
             "observer_coverage_profile_id",
             "observer_coverage_receipt_reference",
             "observer_coverage_receipt_digest_sha256",
-            "observer_coverage_watermark_unix_ms"
+            "observer_coverage_watermark_unix_ms",
+            "evidence_view_digest_sha256"
           ],
           "properties": {
             "receiver_receipt_watermark_unix_ms": {
@@ -564,6 +570,10 @@
             },
             "observer_coverage_watermark_unix_ms": {
               "$ref": "#/$defs/time"
+            },
+            "evidence_view_digest_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
             }
           }
         },
