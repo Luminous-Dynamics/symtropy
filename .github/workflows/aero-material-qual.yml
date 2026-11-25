@@ -176,8 +176,8 @@ jobs:
               raise SystemExit("temporal replay corpus requires a late-receipt control")
           if corpus.get("oracle_review_status") != "NOT_INDEPENDENTLY_REVIEWED":
               raise SystemExit("oracle review status must remain explicit until independent review")
-          if len(cases) != 20:
-              raise SystemExit(f"temporal replay corpus must contain exactly 20 frozen cases; found {len(cases)}")
+          if len(cases) != 23:
+              raise SystemExit(f"temporal replay corpus must contain exactly 23 frozen cases; found {len(cases)}")
           all_events = [event for case in cases for event in case["events"]]
           for event in all_events:
               receipt_status = event["receiver_receipt_status"]
@@ -199,6 +199,15 @@ jobs:
                   raise SystemExit(f"{event['event_id']}: absent timestamp must not carry token fields")
           if not any(event["receiver_receipt_status"] == "UNVERIFIED" for event in all_events):
               raise SystemExit("temporal replay corpus requires an unverified-receipt control")
+          missing_target = next((case for case in cases if case["case_id"] == "correction-target-missing-or-not-received"), None)
+          if missing_target is None or missing_target["expected"]["as_known_at"]["disposition"] != "ABSTAIN" or "CORRECTION_TARGET_UNRESOLVED" not in missing_target["expected"]["as_known_at"]["reason_codes"]:
+              raise SystemExit("temporal corpus requires an unresolved correction-target control")
+          cross_scope = next((case for case in cases if case["case_id"] == "correction-target-cross-certificate-scope"), None)
+          if cross_scope is None or cross_scope["events"][0]["certificate_id"] == cross_scope["events"][1]["certificate_id"] or cross_scope["expected"]["as_known_at"]["disposition"] != "ABSTAIN":
+              raise SystemExit("temporal corpus requires a cross-certificate correction control")
+          reinstatement = next((case for case in cases if case["case_id"] == "reinstatement-event-does-not-silently-restore-calibration"), None)
+          if reinstatement is None or any(reinstatement["expected"][mode]["disposition"] != "ABSTAIN" for mode in required_modes):
+              raise SystemExit("temporal corpus requires fail-closed reinstatement behavior")
           required_modes = {"as_known_at", "recomputed_with_current_trust", "recomputed_with_current_evidence_and_trust"}
           for case in cases:
               if set(case["expected"]) != required_modes:
