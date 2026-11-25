@@ -57,7 +57,7 @@ The intervals describe the empirical resampling design and the supplied cluster 
 
 ### 3.1 Hierarchical day-ahead bidding and intraday tracking
 
-Chen et al., *Electronics* 15(11), 2444 (3 June 2026), propose an aggregation control strategy for battery-swapping-station clusters. It combines demand forecasting, day-ahead cluster bidding, intraday rolling optimization at 15-minute intervals and real-time station recommendations at 10-second intervals. The paper uses operational data and co-optimizes demand allocation and charging/discharging strategies to track the declared grid trajectory.
+Chen et al., *Electronics* 15(11), 2444 (3 June 2026), propose an aggregation control strategy for battery-swapping-station clusters. It combines demand forecasting, a 24-hour day-ahead cluster bidding horizon, intraday rolling optimization at 15-minute intervals and real-time station recommendations at 10-second intervals. The paper uses operational data and co-optimizes demand allocation and charging/discharging strategies to track the declared grid trajectory. It reports a 2.09-vehicle demand-forecast MAE, a 100% declared-power response rate and about 53% lower total cost in its own case, with an average optimization runtime of 2.36 seconds. Those are paper-reported outcomes under its own station/tariff and test boundaries, not portable performance targets.
 
 Source: https://doi.org/10.3390/electronics15112444
 
@@ -118,7 +118,7 @@ Paper: https://proceedings.mlr.press/v337/shi26a.html
 
 ## 4. South African market and qualification comparison
 
-The NTCSA Ancillary Services Technical Requirements for 2026/27–2030/31 specify reserves, system-restoration services, reactive power/voltage control and constrained generation. They state the reserve categories are exclusive: capacity assigned to one reserve category cannot simultaneously be used for another. Instantaneous reserve must be fully available within 10 seconds and sustained for at least 10 minutes.
+The NTCSA Ancillary Services Technical Requirements for 2026/27–2030/31 specify reserves, system-restoration services, reactive power/voltage control and constrained generation. Reserve categories are exclusive: capacity assigned to one reserve category cannot simultaneously be used for another. The document distinguishes **Instantaneous Reserve**, which must be fully available within 10 seconds and sustained for at least 10 minutes, from **Regulating Reserve**, which is available to respond within 10 seconds and fully activated within 10 minutes. Ten-minute reserve is a further category used to restore other reserves. These are different service envelopes, not one generic response target.
 
 Source: https://www.ntcsa.co.za/wp-content/uploads/2026/01/ASTR-2026_27-2030_31.pdf
 
