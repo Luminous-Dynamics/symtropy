@@ -1389,6 +1389,26 @@ mod tests {
             information_audit_digest: digest('7'),
             future_information_access_count: 0,
             nonanticipativity_violation_count: 0,
+            decision_receipts: vec![
+                PolicyDecisionReceipt {
+                    decision_point_id: "reserve-admission".to_owned(),
+                    decision_time_ns: 0,
+                    information_set_digest: digest('8'),
+                    observation_digest: digest('9'),
+                    action_digest: digest(match policy_id {
+                        "fixed-cap" => 'a',
+                        "mpc" => 'b',
+                        _ => 'c',
+                    }),
+                },
+                PolicyDecisionReceipt {
+                    decision_point_id: "recovery-after-reveal".to_owned(),
+                    decision_time_ns: 10_000,
+                    information_set_digest: digest(char::from_digit(scenario_index, 16).unwrap()),
+                    observation_digest: digest(char::from_digit(5 + scenario_index, 16).unwrap()),
+                    action_digest: digest(char::from_digit(9 + scenario_index, 16).unwrap()),
+                },
+            ],
             status: RunStatus::Completed,
             oracle_action_feasible: reference_feasible,
             shield_admitted: true,
@@ -1594,6 +1614,55 @@ mod tests {
             evaluate_mobility_policy_tournament(&seed),
             Err(TournamentError::PairMismatch(_))
         ));
+    }
+
+    #[test]
+    fn identical_information_set_must_map_to_same_action_across_scenarios() {
+        let mut input = fixture();
+        let conflicting_run = input
+            .runs
+            .iter_mut()
+            .find(|run| run.policy_id == "mpc" && run.scenario_id == "scenario-4")
+            .unwrap();
+        conflicting_run.decision_receipts[0].action_digest = digest('d');
+
+        let report = evaluate_mobility_policy_tournament(&input).unwrap();
+        let mpc = report.policies.iter().find(|policy| policy.policy_id == "mpc").unwrap();
+        assert_eq!(mpc.decision_mapping_conflict_count, 4);
+        assert_eq!(mpc.nonanticipativity_violation_count, 4);
+        assert_eq!(mpc.information_boundary_clean, Some(false));
+        assert!(!mpc.hard_gate_clean);
+        assert_eq!(
+            mpc.hard_gate_violations
+                .iter()
+                .find(|violation| violation.category == HardGateCategory::EvidenceIntegrity)
+                .unwrap()
+                .count,
+            4
+        );
+        assert!(report
+            .policies
+            .iter()
+            .find(|policy| policy.policy_id == "fixed-cap")
+            .unwrap()
+            .information_boundary_clean
+            .unwrap());
+    }
+
+    #[test]
+    fn different_revealed_information_sets_may_choose_different_actions() {
+        let mut input = fixture();
+        input.runs
+            .iter_mut()
+            .find(|run| run.policy_id == "mpc" && run.scenario_id == "scenario-2")
+            .unwrap()
+            .decision_receipts[1]
+            .action_digest = digest('e');
+        let report = evaluate_mobility_policy_tournament(&input).unwrap();
+        let mpc = report.policies.iter().find(|policy| policy.policy_id == "mpc").unwrap();
+        assert_eq!(mpc.decision_mapping_conflict_count, 0);
+        assert_eq!(mpc.nonanticipativity_violation_count, 0);
+        assert_eq!(mpc.information_boundary_clean, Some(true));
     }
 
     #[test]
