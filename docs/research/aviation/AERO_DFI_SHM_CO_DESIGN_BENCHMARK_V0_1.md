@@ -225,3 +225,81 @@ The cross-study stretch goal is not to beat either published headline number on 
 ## 9. Non-claims
 
 This benchmark does not establish physical POD, structural health monitoring acceptance, fatigue/damage tolerance, maintenance interval, repair approval, structural substantiation, part acceptance, airworthiness, aircraft certification or authority to operate. It is an experiment and software-benchmark contract only.
+
+
+## 8.2 Public physical-data comparators: add a separate replication tier
+
+The two 2026 comparators above should remain separate: Di Fiore et al. is a simulated composite-panel benchmark, while Yan et al. is an experimental scaled-spacecraft virtual-sensing/model-updating study. Do not pool their metrics or describe either as an aircraft qualification result.
+
+A stronger physical-data programme can use three additional public sources. They are different structures and materials, so each must retain its own domain and test protocol.
+
+### A. NASA PCoE CFRP composites dataset — fatigue and internal damage
+
+NASA's Prognostics Center of Excellence repository provides run-to-failure experiments on CFRP panels under tension–tension fatigue. The published description identifies three layups, a 16-channel PZT sensor network, triaxial strain gauges and periodic X-ray images used to characterize internal damage.
+
+Use this as a composite damage-progression baseline:
+- preserve whole-panel / layup / fatigue-run grouping;
+- use X-ray characterization only according to its documented timing and ground-truth scope;
+- distinguish damage progression from sensor-path or acquisition degradation;
+- report temporal prediction and detection tasks separately;
+- keep any sensor-fault injection clearly labeled as synthetic unless independently present in the released records.
+
+Source: NASA Prognostics Center of Excellence Data Set Repository, “Carbon Fiber-Reinforced Polymer (CFRP) Composites.” The dataset is linked from the NASA repository.
+
+### B. Full-scale composite outer-wing demonstrator — physical aerospace geometry
+
+Marzani et al. describe an open guided-wave database from a composite panel closing the bottom part of a full-scale outer-wing demonstrator approximately 4.5 m long and 1.2–2.3 m wide. The SHM system used 160 secondarily bonded PZT transducers. Measurements included electromechanical impedance checks at each transducer to assess reliability/bond strength, alongside active guided-wave screening. Measurements were made before loading, before fatigue, before impacts and after impacts.
+
+This is the highest aerospace-structural relevance of the three public sources, but it is still a demonstrator/test article rather than a certified in-service aircraft fleet. Its paired impedance and guided-wave measurements make it especially useful for the benchmark's sensor-health versus damage distinction.
+
+Use it to test:
+- physical sensor-network identity and channel mapping;
+- sensor bonding/reliability indicators versus structural damage indications;
+- pre/post loading, fatigue and impact comparisons;
+- localization and sizing only where the published truth and test configuration support them;
+- whether model transfer survives the demonstrator's geometry and sensor layout.
+
+Source: Marzani et al., “An open database for benchmarking guided waves structural health monitoring algorithms on a composite full-scale outer wing demonstrator,” *Structural Health Monitoring* (first published 28 November 2019), DOI: 10.1177/1475921719889029. The article links the database at shm.ing.unibo.it.
+
+### C. University of Utah / SmartDATA-Lab long-term guided waves — environmental and sensor drift
+
+Yang et al. (2025) publish a long-term outdoor guided-wave dataset from an aluminum plate monitored over more than 4.5 years, with approximately 6.4 million wave measurements and 13 introduced damage types. The records include environmental variables and document sensor drift and installation shifts. The released dataset is a downsampled/trimmed subset of the original acquisition, so that limitation must be preserved.
+
+This dataset is not an aerospace composite benchmark and must not be presented as one. It is valuable as an environmental and long-duration monitoring stress test:
+- hold out entire time periods, not random adjacent windows;
+- test temperature, humidity, weather, sensor drift and installation-shift robustness;
+- assess false alarms per operating exposure and detection delay;
+- distinguish baseline adaptation from damage absorption;
+- test whether a model can abstain when the environmental domain changes;
+- never let an adaptation routine normalize away a new damage signature.
+
+Source: Yang et al., “Dataset on guided waves from long-term structural health monitoring under uncontrolled and dynamic conditions,” *Scientific Data* 12, 991 (12 June 2025), DOI: 10.1038/s41597-025-05300-5. Data repository DOI: 10.6084/m9.figshare.28112504; loading code: github.com/SmartDATA-Lab/Long_Term_Guided_Waves.
+
+### Dataset eligibility and reproducibility gate
+
+Before using any source in a public leaderboard or external claim, record:
+- exact artifact URL, dataset version, license/rights and redistribution conditions;
+- immutable downloaded file hashes, file sizes and retrieval date;
+- data dictionary, channel map, units, calibration/timebase information and known missingness;
+- article/structure identity, material, layup, geometry and test campaign;
+- damage truth source, introduction time, location, type, severity and uncertainty;
+- sensor placement, attachment/bond evidence and any known sensor faults;
+- original versus downsampled/trimmed signals and all preprocessing;
+- fixed train/development/calibration/confirmatory partitions grouped by panel, campaign and time as appropriate;
+- benchmark code, dependency versions, random seeds, model checkpoints and exact evaluation manifest.
+
+Do not use a random row/window split where adjacent measurements share the same structure, damage state, weather episode or acquisition campaign. A temporal split is necessary for drift claims; whole-panel/test-campaign holdouts are necessary for structural generalization claims.
+
+### Recommended benchmark sequence
+
+| Tier | Dataset | Primary claim tested | Explicit limitation |
+|---|---|---|---|
+| S0 | Di Fiore simulated composite panel | Reproducible synthetic damage/sensor-fault logic | Simulated structure and virtual sensors |
+| S1 | Yan scaled reconfigurable spacecraft | Physics-informed virtual sensing under masked channels | Spacecraft test article; native metric/protocol only |
+| P1 | NASA PCoE CFRP composites | Physical composite fatigue/damage progression | Panel/layup/run-specific; X-ray truth scope |
+| P2 | Full-scale outer-wing demonstrator | Aerospace-scale composite guided-wave and sensor-health behavior | Demonstrator, not fleet/service qualification |
+| P3 | Utah long-term guided waves | Environmental drift, installation drift and long-duration false-alarm behavior | Aluminum plate, non-aerospace domain |
+
+The sequence is a research prioritization, not a universal ranking of dataset quality. Dataset-specific results must remain separate. A model that performs well on the Utah outdoor plate has not thereby demonstrated composite-wing generalization; a model that reconstructs masked spacecraft channels has not thereby demonstrated reliable NDE probability of detection.
+
+AERO should publish a benchmark card for every dataset with scope, rights, article identity, channels, time coverage, damage truth, independent grouping, preprocessing and claim ceiling. Cross-dataset transfer is a separate experiment with a held-out target domain and explicit abstention, not a pooled score.
