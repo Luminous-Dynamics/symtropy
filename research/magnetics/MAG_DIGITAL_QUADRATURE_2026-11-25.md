@@ -82,3 +82,14 @@ Do not compare a vector-sensor atan2 angle error with digital latch quadrature e
 The executable reference now evaluates multiple traces under one fixed sensor/latch configuration while allowing distinct operating-condition IDs. This is how air-gap, eccentricity, tilt, temperature and field-margin scenarios can be compared without pooling them as one identical condition. Frame, angular-grid ID, sample count and mechanical angle coordinates must match bit-for-bit; trace IDs must be unique; synthetic, solver-prediction, calibrated-measurement and captured-output evidence classes cannot be mixed.
 
 The evaluator preserves every scenario and reports worst-case missing/excess/illegal transitions, direction reversals, bounded quadrature spacing error and transition-bracket width. Its input evidence classes are synthetic field scenario, solver-predicted field and calibrated field measurement. A captured digital A/B output is a different record type and is not accepted as a magnetic field trace by this crate; Q3 requires a separate capture/reconciliation comparator. It emits no probability or manufacturing-yield inference. Use this finite-set layer before any statistically designed repeated-build analysis.
+
+
+## Captured A/B output reconciliation
+
+A separate capture record has been added to the same crate. It is deliberately not an EvidenceKind for field traces. CapturedQuadratureTrace records the sensor part and datasheet revision, channel mapping and sensor configuration, source field trace identity, frame and operating condition, independent rotor reference, clock calibration, synchronization and latency calibration.
+
+Each actual captured edge contains an acquisition timestamp, mechanical reference angle and observed A/B state after the edge. The comparator aligns only by the declared ordered transition sequence; it never drops, shifts or trims events to obtain a match. It reports predicted/captured counts, missing and extra events, initial/state/direction mismatches, illegal captured Gray transitions, whether each captured angle lies inside its predicted field-sample crossing bracket, bracket distance and midpoint residual. It preserves clock, rotor-reference and latency uncertainty separately.
+
+The capture must identify a latency correction already applied to the synchronized rotor-angle record. This software comparator neither guesses nor applies latency. It also does not convert timestamp uncertainty into angular uncertainty without a declared speed/time relationship.
+
+The synthetic capture test is contract plumbing only. Q3 still requires an actual TMAG5110/TMAG5111 EVM or equivalent sensor capture with independent calibrated rotor-angle reference.
