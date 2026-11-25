@@ -1501,6 +1501,25 @@ mod tests {
         }
     }
 
+    fn assert_height_balanced<const D: usize>(
+        tree: &IncrementalAabbTree<D>,
+        index: usize,
+    ) -> usize {
+        let node = tree.node(index);
+        if node.is_leaf() {
+            return 0;
+        }
+        let left = node.left.expect("branch has left child");
+        let right = node.right.expect("branch has right child");
+        let left_height = assert_height_balanced(tree, left);
+        let right_height = assert_height_balanced(tree, right);
+        assert!(
+            left_height.abs_diff(right_height) <= 1,
+            "AVL height invariant violated at node {index}: left={left_height}, right={right_height}"
+        );
+        1 + left_height.max(right_height)
+    }
+
     fn tree_brute_force_pairs<const D: usize>(tree: &IncrementalAabbTree<D>) -> Vec<ProxyPair> {
         let entries = tree
             .leaves
@@ -1547,6 +1566,7 @@ mod tests {
         assert_eq!(unbalanced.query_pairs().pairs, tree_brute_force_pairs(&unbalanced));
         assert_tree_invariants(&balanced);
         assert_tree_invariants(&unbalanced);
+        assert_height_balanced(&balanced, balanced.root.expect("non-empty tree"));
 
         for id in (0..128_u64).step_by(7) {
             let x = id as f64 * 3.0;
@@ -1562,11 +1582,13 @@ mod tests {
         assert_eq!(unbalanced.query_pairs().pairs, tree_brute_force_pairs(&unbalanced));
         assert_tree_invariants(&balanced);
         assert_tree_invariants(&unbalanced);
+        assert_height_balanced(&balanced, balanced.root.expect("non-empty tree"));
 
         let before = balanced.query_pairs().pairs;
         balanced.rebuild();
         assert_eq!(balanced.query_pairs().pairs, before);
         assert_tree_invariants(&balanced);
+        assert_height_balanced(&balanced, balanced.root.expect("non-empty tree"));
     }
 
     #[test]
@@ -1591,5 +1613,7 @@ mod tests {
         assert_eq!(first.query_pairs().pairs, second.query_pairs().pairs);
         assert_tree_invariants(&first);
         assert_tree_invariants(&second);
+        assert_height_balanced(&first, first.root.expect("non-empty tree"));
+        assert_height_balanced(&second, second.root.expect("non-empty tree"));
     }
 }
