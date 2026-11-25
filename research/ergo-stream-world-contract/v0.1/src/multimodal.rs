@@ -1016,6 +1016,28 @@ mod tests {
     }
 
     #[test]
+    fn arrival_order_can_differ_from_sensor_time_order() {
+        let mut config = config(AssociationRegimeV0::Aligned);
+        config.alpha_clock.jitter_bound = 20;
+        config.beta_clock.jitter_bound = 20;
+        config.alpha_clock.max_arrival_delay = 500;
+        config.beta_clock.max_arrival_delay = 500;
+        let world = MultimodalWorldV0::generate(config).unwrap();
+        let view = all_observations(&world);
+
+        let reordered = view.observations.windows(2).any(|window| {
+            window[0].modality == window[1].modality
+                && window[0].kind == ObservationKindV0::Event
+                && window[1].kind == ObservationKindV0::Event
+                && window[0].local_timestamp > window[1].local_timestamp
+        });
+        assert!(
+            reordered,
+            "the deterministic fixture must contain out-of-order sensor-time observations"
+        );
+    }
+
+    #[test]
     fn invalid_clock_and_missingness_parameters_fail_closed() {
         let mut bad_clock = config(AssociationRegimeV0::Aligned);
         bad_clock.beta_clock.rate_denominator = 0;
