@@ -197,7 +197,7 @@ pub struct StratumOutcomeSummary {
     pub empirical_cvar95_recovery_shortfall_wh: f64,
     pub future_information_access_count: u64,
     pub nonanticipativity_violation_count: u64,
-    pub information_boundary_clean: bool,
+    pub information_boundary_clean: Option<bool>,
     pub hard_gate_violation_count: u64,
     pub false_safe_admissions: u64,
     pub false_abstentions: u64,
@@ -778,9 +778,8 @@ fn sum_violations(
             .and_modify(|count| *count = (*count).max(1))
             .or_insert(1);
     }
-    if run.nonanticipativity_violation_count > 0
-        || (information_model == InformationModel::NonanticipativeOnline
-            && run.future_information_access_count > 0)
+    if information_model == InformationModel::NonanticipativeOnline
+        && (run.nonanticipativity_violation_count > 0 || run.future_information_access_count > 0)
     {
         result
             .entry(HardGateCategory::EvidenceIntegrity)
@@ -863,9 +862,11 @@ fn summarize_strata(
             empirical_cvar95_recovery_shortfall_wh: empirical_upper_cvar95(&recovery_shortfalls),
             future_information_access_count,
             nonanticipativity_violation_count,
-            information_boundary_clean: nonanticipativity_violation_count == 0
-                && (information_model != InformationModel::NonanticipativeOnline
-                    || future_information_access_count == 0),
+            information_boundary_clean: (information_model == InformationModel::NonanticipativeOnline)
+                .then_some(
+                    nonanticipativity_violation_count == 0
+                        && future_information_access_count == 0,
+                ),
             hard_gate_violation_count,
             false_safe_admissions: false_safe,
             false_abstentions,
@@ -900,7 +901,7 @@ fn summarize_policy(
         p95_queue_wait_p95_ms: 0,
         future_information_access_count: 0,
         nonanticipativity_violation_count: 0,
-        information_boundary_clean: true,
+        information_boundary_clean: None,
         p95_mission_reserve_shortfall_wh: 0,
         p95_recovery_shortfall_wh: 0,
         empirical_cvar95_mission_reserve_shortfall_wh: 0.0,
@@ -1007,10 +1008,12 @@ fn summarize_policy(
     totals.mean_queue_wait_p95_ms =
         queue_wait.iter().map(|value| *value as f64).sum::<f64>() / queue_wait.len() as f64;
     totals.p95_queue_wait_p95_ms = percentile_u64(&queue_wait, 9_500).unwrap_or(0);
-    totals.information_boundary_clean =
-        totals.nonanticipativity_violation_count == 0
-            && (identity.information_model != InformationModel::NonanticipativeOnline
-                || totals.future_information_access_count == 0);
+    totals.information_boundary_clean = (identity.information_model
+        == InformationModel::NonanticipativeOnline)
+        .then_some(
+            totals.nonanticipativity_violation_count == 0
+                && totals.future_information_access_count == 0,
+        );
     totals.p95_mission_reserve_shortfall_wh =
         percentile_u64(&mission_reserve_shortfall, 9_500).unwrap_or(0);
     totals.p95_recovery_shortfall_wh =
@@ -1490,10 +1493,9 @@ mod tests {
             report.information_model,
             InformationModel::ClairvoyantOfflineUpperBound
         );
-        assert!(report
-            .policies
-            .iter()
-            .all(|policy| policy.information_boundary_clean && policy.hard_gate_clean));
+        assert!(report.policies.iter().all(|policy| {
+            policy.information_boundary_clean.is_none() && policy.hard_gate_clean
+        }));
     }
 
     #[test]
