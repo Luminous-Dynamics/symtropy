@@ -1666,6 +1666,36 @@ mod tests {
     }
 
     #[test]
+    fn online_policy_requires_per_decision_information_set_receipts() {
+        let mut input = fixture();
+        let run = input
+            .runs
+            .iter_mut()
+            .find(|run| run.policy_id == "mpc" && run.scenario_id == "scenario-1")
+            .unwrap();
+        run.decision_receipts.clear();
+        assert!(matches!(
+            evaluate_mobility_policy_tournament(&input),
+            Err(TournamentError::EvidenceMismatch(_))
+        ));
+    }
+
+    #[test]
+    fn duplicate_decision_point_and_information_set_receipt_is_rejected() {
+        let mut input = fixture();
+        let run = input
+            .runs
+            .iter_mut()
+            .find(|run| run.policy_id == "mpc" && run.scenario_id == "scenario-1")
+            .unwrap();
+        run.decision_receipts.push(run.decision_receipts[0].clone());
+        assert!(matches!(
+            evaluate_mobility_policy_tournament(&input),
+            Err(TournamentError::InvalidMetric(_))
+        ));
+    }
+
+    #[test]
     fn online_information_leak_is_reported_as_evidence_integrity_failure() {
         let mut input = fixture();
         let run = input
