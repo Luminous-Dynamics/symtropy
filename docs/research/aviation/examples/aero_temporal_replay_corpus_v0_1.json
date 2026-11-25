@@ -211,7 +211,7 @@
             "REVOCATION_EFFECTIVE_AND_KNOWN"
           ],
           "applied_event_ids": [
-            "lab-a:EV-LATE"
+            "EV-LATE"
           ],
           "excluded_event_ids": []
         }
