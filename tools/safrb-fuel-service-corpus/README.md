@@ -66,7 +66,7 @@ cargo run --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --release -
 cargo run --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --release --locked -- --emit target/corpus-v0.1/
 ```
 
-The GitHub Actions workflow emits two separate JSONL files, checks that each contains exactly 120 rows and 72 hourly rows per case, calculates a shared SHA-256 manifest and retains them as separate planner-observation and evaluator-oracle artifacts.
+The GitHub Actions workflow emits two separate JSONL files, checks that each contains exactly 120 rows and 72 hourly rows per case, calculates separate SHA-256 manifests and retains planner observations and evaluator truth/report as separate artifacts.
 
 **No leakage rule:** planner implementations receive only planner-observations.jsonl. The oracle-truth.jsonl file contains closing stock, actual conversion/output quantities, generated/delivered energy and final service verdicts. Keep it in the evaluator/scorer boundary; never attach it to a planner prompt or planner execution input. CI publishes two distinct artifacts: a planner-observations artifact and an evaluator-only oracle artifact. A planner-only checksum file binds only planner observations; a separate evaluator checksum file binds oracle truth and the temporal-ablation report. The two 72-row-per-case interval views retain exact timestamps and common case IDs so that independent paired scoring is possible without giving the oracle to the planner.
 
