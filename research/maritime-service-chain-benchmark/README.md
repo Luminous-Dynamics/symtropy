@@ -160,15 +160,15 @@ A robust maritime evidence layer should not define a competing global event onto
 | Standard / system | What it standardizes | What it does **not** prove |
 |---|---|---|
 | DCSA Port Call 2.0.0 | Port-call event exchange and publisher/subscriber API conformance | That the physical event occurred or every event was captured |
-| DCSA Track & Trace 2.2 | Container/shipment visibility event definitions and API mapping | Complete physical custody, source independence or receiver acceptance |
-| GS1 EPCIS 2.0.0 | Visibility-event data model: subject/object IDs, eventTime, timezone, recordTime, readPoint, bizLocation, business step/disposition, sensor/source/destination context | That a sensor or source actually captured every event or that a business claim is independently true |
+| DCSA Track & Trace 2.2.0 | Container/shipment visibility event definitions and API mapping | Complete physical custody, source independence or receiver acceptance |
+| GS1 EPCIS 2.0.1 | Visibility-event data model: subject/object IDs, eventTime, timezone, recordTime, readPoint, bizLocation, business step/disposition, sensor/source/destination context | That a sensor or source actually captured every event or that a business claim is independently true |
 | GS1 CBV 2.0.0 | Standard business-step, disposition and event vocabulary alongside EPCIS | Physical proof or authority |
 | IMO FAL Maritime Single Window | Regulatory declarations and one-time electronic exchange for ship arrival, stay and departure across public authorities | Terminal operational event capture, cargo movement, custody or receiver delivery |
 | South African SARS Customs Single Window | Phased national customs / multi-agency information exchange, including inspection, permits and declarations | A complete maritime terminal event ledger or physical cargo outcome |
 
 GS1 EPCIS is especially relevant because it already separates the core evidence dimensions: **what** object/subject, **when** eventTime plus timezone and repository recordTime, **where** readPoint and business location, and **why** business step/disposition/transaction context. Its ErrorDeclaration semantics are also important: a later declaration says that a prior event's assertions were erroneous as of declarationTime; the prior event is not modified and subsequent queries return both original and declaration. Use this to represent corrections instead of overwriting earlier event rows.
 
-The new append-only EPCIS correction fixture in [draft PR #7389](https://github.com/Luminous-Dynamics/symtropy/pull/7387) implements this narrow rule: the ErrorDeclaration shares the prior eventID and is bound to the same subject IDs, eventTime, timezone and assertion-payload digest; correctiveEventIDs remain references until the corresponding corrected events have been recorded. The test preserves the original event, time-of-knowledge and correction availability separately. This is not a full EPCIS implementation or proof that the event source is truthful.
+The new append-only EPCIS correction fixture in [draft PR #7389](https://github.com/Luminous-Dynamics/symtropy/pull/7389) implements this narrow rule: the ErrorDeclaration shares the prior eventID and is bound to the same subject IDs, eventTime, timezone and assertion-payload digest; correctiveEventIDs remain references until the corresponding corrected events have been recorded. The test preserves the original event, time-of-knowledge and correction availability separately. This is not a full EPCIS implementation or proof that the event source is truthful.
 
 ### South African interoperability opportunity
 
@@ -187,8 +187,8 @@ Keep these systems federated. A successful API POST, FAL declaration, customs re
 ### Proposed conformance campaign
 
 1. **DCSA Port Call 2.0.0**: run the official publisher/subscriber conformance scenarios and pin the schema/test version.
-2. **DCSA Track & Trace 2.2**: run official API reference/conformance scenarios and map the event families into the source-claim adapter.
-3. **GS1 EPCIS 2.0 / CBV 2.0**: run JSON/JSON-LD schema and semantic validation, including eventTime, eventTimeZoneOffset, repository recordTime, EPC/eventID, readPoint/bizLocation, bizStep/disposition, source/destination, and ErrorDeclaration/correctiveEventIDs.
+2. **DCSA Track & Trace 2.2.0**: run official API reference/conformance scenarios and map the event families into the source-claim adapter.
+3. **GS1 EPCIS 2.0.1 / CBV 2.0.0**: run JSON/JSON-LD schema and semantic validation, including eventTime, eventTimeZoneOffset, repository recordTime, EPC/eventID, readPoint/bizLocation, bizStep/disposition, source/destination, and ErrorDeclaration/correctiveEventIDs.
 4. **FAL / national single window**: only test authorized sandbox or partner interfaces; keep customs/ship-clearance decisions and public-authority records under the relevant government authority. Do not simulate regulatory permission by merely passing a JSON schema.
 5. **Cross-standard bridge**: preserve the original native message, standard version, mapping revision, source record ID, canonical subject, publication/retrieval/valid/event/record times, rights and claim ceiling. Mapping must be reversible or explicitly lossy.
 6. **Physical/receiver closeout**: link the event chain to qualified independent observations, custody handoffs and receiver acceptance. Unresolved identity, source coverage, custody or authority remains UNKNOWN/NOT_EVALUABLE.
@@ -196,7 +196,7 @@ Keep these systems federated. A successful API POST, FAL declaration, customs re
 Proposed acceptance targets (not achieved): 100% applicable standard conformance scenarios; 100% replay of raw message digests; zero lossy cross-standard mappings silently marked reversible; zero event corrections that delete the original; zero planned/status/declaration records promoted to physical events; zero custody closure without an independently qualified receiver record.
 
 Sources:
-- [GS1 EPCIS 2.0.0](https://ref.gs1.org/standards/epcis/2.0.0/)
+- [GS1 EPCIS 2.0.1](https://ref.gs1.org/standards/epcis/2.0.0/)
 - [GS1 CBV 2.0.0](https://ref.gs1.org/standards/cbv/2.0.0/)
 - [DCSA Track & Trace implementation guide](https://reference.dcsa.org/content/standards/guidelines/implementation-guides/implementing-track-and-trace)
 - [IMO FAL Convention](https://www.imo.org/en/about/conventions/pages/convention-on-facilitation-of-international-maritime-traffic-(fal).aspx)
@@ -226,7 +226,7 @@ DCSA and GS1 EPCIS/CBV are complementary standards, not a common vocabulary with
 
 A hard negative control prevents DCSA `eventClassifierCode` values (EST/REQ/PLN/ACT maturity) from mapping directly to EPCIS `bizStep` or `disposition`. A reviewed DCSA event-type → CBV business-step crosswalk can be tested contextually, but it must not imply that source maturity proves a physical event or that the original source payload can be discarded. Every mapped receipt retains source record ID, event ID and raw payload digest.
 
-The executable contract is in draft [PR #7391](https://github.com/Luminous-Dynamics/symtropy/pull/7391). Proposed acceptance: 100% deterministic field mapping for pinned rules; zero unreviewed mappings; zero non-exact mappings labelled reversible; zero classifier-to-business-step/disposition promotion; 100% original raw payload digest retention.
+The executable contract is in draft [PR #7391](https://github.com/Luminous-Dynamics/symtropy/pull/7391). It pins DCSA T&T 2.2.0 EquipmentEvent to GS1 EPCIS 2.0.1 and CBV 2.0.0, and binds each mapping receipt to the exact event family, the source record/event/subject, raw payload digest/reference, and the content-addressed mapping-bundle digest. Synthetic-only rules are rejected on non-synthetic source records; external rules require a declared external approval record reference (which must be resolved by governance outside this mapper). Proposed acceptance: 100% deterministic known-answer mapping for pinned rules; zero unreviewed or fixture-only rules used on real sources; zero non-exact mappings labelled reversible; zero classifier-to-business-step/disposition promotion; 100% source digest/reference and mapping-bundle manifest verification.
 
 
 ## Terminal dwell process-mining benchmark: version and baseline discipline
@@ -285,3 +285,74 @@ References:
 - [OptIMIIst: Locally optimized inductive process discovery (2026)](https://link.springer.com/article/10.1007/s44311-026-00051-x)
 - [On Process Discovery Experimentation (ACM TOSEM, 2024)](https://doi.org/10.1145/3672447)
 - [South African berth allocation and quay-crane scheduling review (2025)](https://doi.org/10.3390/jmse13071339)
+
+
+## Current standard releases and a deliberate migration boundary (25 November 2026)
+
+The public interoperability baseline has two distinct version states that should not be conflated:
+
+- DCSA Track & Trace 2.2.0 remains the public implementation/conformance baseline used here. DCSA announced Track & Trace 3.0.0 on 30 September 2026 with IoT/reefer events and enhanced correction/withdrawal semantics, but says the new release is initially available to DCSA members and DCSA+ partners, with general public release planned for the second half of 2027. Until the exact 3.0.0 event-family schemas and conformance artefacts are publicly available or legitimately obtained by an authorized partner, do not claim a public 3.0.0 implementation or conformance result. Keep the adapter versioned and stage a separate migration campaign rather than silently changing 2.2.0 mappings.
+- GS1's current artefact page exposes EPCIS 2.0.1 with CBV 2.0.0, plus the JSON-LD context, OpenAPI, JSON Schema, SHACL and XML schemas. The crosswalk pins EPCIS and CBV separately; a target field with CBV semantics must also pin CBV version, not just EPCIS version.
+
+DCSA T&T 3.0.0 is a forward-looking challenge set: add IoT/reefer data, measurement provenance, calibration, device identity, custody, corrections/withdrawals and sensor common-cause failure to the evidence layer once its normative schemas can be validated. Do not implement from a press release alone.
+
+## Paradigm shift: optimize a service-chain outcome with an evidence constraint
+
+The conventional port optimizer solves a scheduling objective assuming its input state is correct. A more defensible system solves two linked problems:
+
+1. **Operations problem:** produce a feasible berth/quay-crane/yard/gate/inland plan under time, capacity, energy and resource constraints.
+2. **Evidence problem:** qualify whether the state and claimed result are supported by timely, versioned, source-attributed, correction-aware, identity-consistent and sufficiently complete evidence.
+
+A plan is only eligible for operational recommendation when the relevant physical/authority oracles can establish feasibility. An observed result is only scored as achieved service when the event/custody chain closes to an independently qualified receiver record. The assurance layer does not replace TOS dispatch; it compares, constrains, or abstains on top of multiple systems.
+
+### Industry and SOTA comparators
+
+| Comparator | What it already addresses | What Symtropy should measure beyond it |
+|---|---|---|
+| DCSA Port Call / Track & Trace | Standardized port-call and container event exchange, schemas, event definitions and conformance | Source-family schema validity plus capture completeness, bitemporal as-of replay, semantic claim ceilings, correction history and independent physical/receiver qualification |
+| GS1 EPCIS / CBV | Interoperable item/event visibility, business-step and disposition vocabularies, event corrections | Reversible/contextual/lossy mapping with explicit version and bundle provenance; no status-to-physical-truth promotion |
+| Kaleris N4 / incumbent TOS suites | Vessel, yard, rail, gate and control-room operating workflows and optimization products | Do not claim a TOS replacement; compare on independently adjudicated outcomes, safe abstention, source traceability and inter-system auditability |
+| Integrated continuous-time BAP + time-variant QC + yard assignment research (2025) | Coupled berth, quay-crane and yard-space decisions with exact solution methods on tractable instances | Matched benchmark quality plus source uncertainty, capture loss, schedule perturbations, energy/emissions, receiver deadlines and evidence-qualified execution |
+| Robust integrated BQCYAP research (2026) | Two-stage robust integrated berth/quay-crane/yard planning, exact column-and-constraint generation on smaller cases and heuristics for large cases | Compare robust baselines under identical uncertainty sets and compute budgets; add evidence missingness/correction, common-cause source dependence, service floors and receiver outcomes |
+| Integrated berth/QC/shore-power/energy-dispatch research (2026) | Coupled berth, crane, yard and power/energy decisions with carbon accounting | Multi-objective Pareto fronts for turnaround, energy, emissions, cost, service distribution and independently verified end delivery |
+
+Do not claim to beat these papers by presenting a synthetic toy fixture. Reproduce their public instances/protocols where rights allow; freeze code, objective, feasibility checker, input versions, compute budget and stopping rule. Report exact optimality gaps on small instances, anytime primal/dual bounds on larger instances, and a Pareto frontier on multi-objective cases. Compare with FCFS, greedy, deterministic MILP, robust/distributionally robust, ALNS, RL+ALNS and the strongest reproducible published exact/heuristic baseline.
+
+### New benchmark suite and acceptance targets
+
+All targets below are proposed, not achieved.
+
+| Benchmark dimension | Metric | Initial target |
+|---|---|---|
+| Standard conformance | Relevant DCSA/EPCIS/CBV normative schema + conformance test pass rate | 100% of the pinned applicable suite; version/family explicitly recorded |
+| Semantic preservation | Exact mappings preserve source value; non-exact mappings state irreversible loss | 100% known-answer correctness; zero invalid source-family or vocabulary acceptance |
+| Evidence integrity | Source raw-payload digest/reference and mapping-bundle manifest hashes | 100% replayable and verified against exact bytes in CI |
+| Synthetic/production separation | Fixture-only rule attempts on non-synthetic input | Zero accepted |
+| Correction history | Original event, declaration/correction and repository knowledge time | Zero destructive rewrites; deterministic as-of replay |
+| Physical truth | Plan/status/API/ACT source claims promoted to physical proof without independent witness | Zero false promotions |
+| Capture completeness | False-complete rate under omissions, duplicates, clock drift and common-cause failures | Zero false-complete in frozen adversarial controls; field confidence bounds only after representative independent episodes |
+| Logistics quality | Berth turnaround, QC/yard productivity, gate queue, inland reliability | Match published objective definitions; exact optimum on small instances; report median/p90/p95 and tail outcomes |
+| Service-chain outcome | Receiver-accepted on-time delivery, end-to-end delay, damage/loss, energy, carbon and total cost | Improve the held-out Pareto frontier without violating safety/authority or participant service floors |
+| Risk assurance | False-safe rate, coverage-risk curve, abstention, calibration by independent cluster | Zero false-safe in frozen oracle controls; cluster-aware field estimates with effective sample size and confidence intervals |
+
+### Falsification protocol
+
+The benchmark should actively try to make the system fail:
+- Reuse an EquipmentEvent mapping against a ShipmentEvent with the same property name.
+- Replay old source data after later publication, schema correction or event withdrawal; historical decisions must not use future knowledge.
+- Present an ACT message with no event time, contradictory timestamp, or missing source payload bytes.
+- Remove an EPCIS context mapping, change the CBV version, or supply a valid-looking but wrong vocabulary URI.
+- Replay a synthetic fixture crosswalk against a record marked non-synthetic.
+- Duplicate sensors under one common power/network/vendor dependency and test whether nominal witness count is mistaken for independent replication.
+- Inject out-of-order and duplicate cargo moves; require the original event plus error/corrective records to remain queryable.
+- Stress vessel bunching, crane outages, yard block congestion, customs holds, reefer alarms and inland rail/truck disruptions at once.
+
+The decisive advantage is not that a planner returns a schedule faster. It is that the system can say what it knows, what it does not know, which source rule produced a claim, how later corrections change the view, whether the action is authorized, and whether the receiver actually got the goods—then compare its operational decisions fairly against existing solvers.
+
+References:
+- [DCSA Track & Trace 3.0.0 announcement, 30 September 2026](https://dcsa.org/newsroom/track-and-trace-3-0-0-iot-reefer-visibility)
+- [DCSA Track & Trace standard](https://dcsa.org/standards/track-and-trace)
+- [GS1 EPCIS / CBV 2.0.1 artefacts](https://ref.gs1.org/standards/epcis/artefacts)
+- [Integrated continuous-time berth allocation, time-variant quay crane and yard assignment (Transportation Research Part B, 2025)](https://doi.org/10.1016/j.trb.2025.103317)
+- [Robust integrated berth, quay-crane and yard assignment (Computers & Industrial Engineering, 2026)](https://doi.org/10.1016/j.cie.2026.112092)
+- [Integrated berth allocation, quay-crane and onshore power/energy dispatch (Journal of Cleaner Production, 2026)](https://doi.org/10.1016/j.jclepro.2026.149105)
