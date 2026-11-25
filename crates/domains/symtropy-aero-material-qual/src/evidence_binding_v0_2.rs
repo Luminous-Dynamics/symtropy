@@ -14,7 +14,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 const PROFILE_ID: &str = "aero-evidence-binding-v0.2";
 const CLAIM_CEILING: &str = "synthetic_binding_contract_only";
-const INTERVAL_SEMANTICS: &str = "[valid_from_utc, valid_until_utc)";
+const INTERVAL_SEMANTICS: &str = "[valid_from_unix_ms, valid_until_unix_ms)";
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct BindingFinding {
@@ -532,7 +532,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
                     Some((target, target_event))
                         if field_str(target_event, "certificate_id") == Some(certificate_id)
                             && target != event_id
-                            && field_str(target_event, "recorded_at_utc")
+                            && field_u64(target_event, "recorded_at_unix_ms")
                                 .zip(field_u64(event, "recorded_at_unix_ms"))
                                 .is_some_and(|(prior, current)| prior < current) =>
                     {
@@ -834,8 +834,8 @@ mod tests {
     #[test]
     fn calibration_start_boundary_is_inclusive() {
         let mut case = fixture();
-        case["calibration_certificates"][0]["valid_from_utc"] =
-            Value::String("2026-11-24T10:00:00Z".to_owned());
+        case["calibration_certificates"][0]["valid_from_unix_ms"] =
+            Value::from(1_795_514_400_000u64);
         let report = evaluate_binding_case(&case);
         assert!(!has_blocker(&report, "CALIBRATION_OUTSIDE_VALIDITY_INTERVAL"));
     }
@@ -843,8 +843,8 @@ mod tests {
     #[test]
     fn calibration_end_boundary_is_exclusive() {
         let mut case = fixture();
-        case["calibration_certificates"][0]["valid_until_utc"] =
-            Value::String("2026-11-24T10:00:00Z".to_owned());
+        case["calibration_certificates"][0]["valid_until_unix_ms"] =
+            Value::from(1_795_514_400_000u64);
         let report = evaluate_binding_case(&case);
         assert!(has_blocker(
             &report,
@@ -855,16 +855,16 @@ mod tests {
     #[test]
     fn measurements_before_or_after_the_interval_are_blocked() {
         let mut before = fixture();
-        before["observations"][0]["acquired_at_utc"] =
-            Value::String("2026-11-24T08:59:59Z".to_owned());
+        before["observations"][0]["acquired_at_unix_ms"] =
+            Value::from(1_795_510_799_999u64);
         assert!(has_blocker(
             &evaluate_binding_case(&before),
             "CALIBRATION_OUTSIDE_VALIDITY_INTERVAL"
         ));
 
         let mut after = fixture();
-        after["observations"][0]["acquired_at_utc"] =
-            Value::String("2026-11-24T11:00:00Z".to_owned());
+        after["observations"][0]["acquired_at_unix_ms"] =
+            Value::from(1_795_518_000_000u64);
         assert!(has_blocker(
             &evaluate_binding_case(&after),
             "CALIBRATION_OUTSIDE_VALIDITY_INTERVAL"
@@ -919,24 +919,23 @@ mod tests {
         ));
 
         let mut ambiguous = fixture();
-        ambiguous["observations"][0]["acquired_at_utc"] =
-            Value::String("2026-11-24 10:00".to_owned());
+        ambiguous["observations"][0]["acquired_at_unix_ms"] = Value::from(-1);
         assert!(has_blocker(
             &evaluate_binding_case(&ambiguous),
-            "ACQUISITION_TIMESTAMP_INVALID_OR_AMBIGUOUS"
+            "ACQUISITION_TIMESTAMP_MISSING_OR_INVALID"
         ));
     }
 
     #[test]
     fn revocation_after_acquisition_is_preserved_and_blocks_positive_binding() {
         let mut case = fixture();
-        case["evaluated_at_utc"] = Value::String("2026-11-24T10:40:00Z".to_owned());
+        case["evaluated_at_unix_ms"] = Value::from(1_795_516_800_000u64);
         case["calibration_events"] = serde_json::json!([{
             "id": "EVENT-REVOKE-1",
             "certificate_id": "CAL-A",
             "event_type": "revoked",
-            "effective_at_utc": "2026-11-24T10:30:00Z",
-            "recorded_at_utc": "2026-11-24T10:35:00Z",
+            "effective_at_unix_ms": 1795516200000,
+            "recorded_at_unix_ms": 1795516500000,
             "retroactive": false
         }]);
         let report = evaluate_binding_case(&case);
@@ -964,8 +963,8 @@ mod tests {
             "id": "EVENT-1",
             "certificate_id": "CAL-A",
             "event_type": "corrected",
-            "effective_at_utc": "2026-11-24T10:30:00Z",
-            "recorded_at_utc": "2026-11-24T10:35:00Z",
+            "effective_at_unix_ms": 1795516200000,
+            "recorded_at_unix_ms": 1795516500000,
             "retroactive": true
         });
         replayed_event["calibration_events"] = serde_json::json!([event.clone(), event]);
@@ -983,8 +982,8 @@ mod tests {
             "certificate_id": "CAL-A",
             "event_type": "corrected",
             "corrects_event_id": "EVENT-NOT-FOUND",
-            "effective_at_utc": "2026-11-24T10:30:00Z",
-            "recorded_at_utc": "2026-11-24T10:35:00Z",
+            "effective_at_unix_ms": 1795516200000,
+            "recorded_at_unix_ms": 1795516500000,
             "retroactive": true
         }]);
         assert!(has_violation(
@@ -997,8 +996,8 @@ mod tests {
             "id": "EVENT-ORIGINAL",
             "certificate_id": "CAL-A",
             "event_type": "suspended",
-            "effective_at_utc": "2026-11-24T10:15:00Z",
-            "recorded_at_utc": "2026-11-24T10:16:00Z",
+            "effective_at_unix_ms": 1795515300000,
+            "recorded_at_unix_ms": 1795515360000,
             "retroactive": false
         });
         let correction_a = serde_json::json!({
@@ -1006,8 +1005,8 @@ mod tests {
             "certificate_id": "CAL-A",
             "event_type": "corrected",
             "corrects_event_id": "EVENT-ORIGINAL",
-            "effective_at_utc": "2026-11-24T10:20:00Z",
-            "recorded_at_utc": "2026-11-24T10:21:00Z",
+            "effective_at_unix_ms": 1795515600000,
+            "recorded_at_unix_ms": 1795515660000,
             "retroactive": true
         });
         let correction_b = serde_json::json!({
@@ -1015,8 +1014,8 @@ mod tests {
             "certificate_id": "CAL-A",
             "event_type": "superseded",
             "corrects_event_id": "EVENT-ORIGINAL",
-            "effective_at_utc": "2026-11-24T10:22:00Z",
-            "recorded_at_utc": "2026-11-24T10:23:00Z",
+            "effective_at_unix_ms": 1795515720000,
+            "recorded_at_unix_ms": 1795515780000,
             "retroactive": true
         });
         contradictory["calibration_events"] = serde_json::json!([original, correction_a, correction_b]);
