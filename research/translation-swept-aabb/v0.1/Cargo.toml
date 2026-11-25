@@ -1,0 +1,12 @@
+[package]
+name = "translation-swept-aabb"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Conservative fixed-orientation translation swept AABB research reference"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
