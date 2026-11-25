@@ -8,7 +8,7 @@ The executable v0.1 primitive lives at research/magnetics/encoder-function-bench
 
 ## Model boundary
 
-For a ring with p pole pairs, use the independently known mechanical reference angle theta and a phase-zero offset phi0 obtained from a separate calibration record:
+For a ring with p pole pairs, use the independently known mechanical reference angle theta and a phase-zero offset phi0 and calibration-record ID obtained from a separate calibration record:
 
 phase_error(theta) = wrap_to_pi(atan2(By, Bx) - (p * theta + phi0))
 
