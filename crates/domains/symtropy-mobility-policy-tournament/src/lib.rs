@@ -24,6 +24,7 @@ const BENCHMARK_ID: &str = "MOBILITY-ENERGY-POLICY-TOURNAMENT-001";
 const MAX_POLICIES: usize = 32;
 const MAX_RUNS: usize = 100_000;
 const MAX_RUNS_PER_POLICY: usize = 25_000;
+const MAX_DECISION_RECEIPTS_PER_RUN: usize = 256;
 const MAX_CLUSTERS: usize = 10_000;
 const MIN_BOOTSTRAP_RESAMPLES: u32 = 1_000;
 const MAX_BOOTSTRAP_RESAMPLES: u32 = 50_000;
@@ -103,6 +104,16 @@ pub struct HardGateViolation {
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
+pub struct PolicyDecisionReceipt {
+    pub decision_point_id: String,
+    pub decision_time_ns: u64,
+    pub information_set_digest: String,
+    pub observation_digest: String,
+    pub action_digest: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct PolicyRun {
     pub run_id: String,
     pub policy_id: String,
@@ -123,6 +134,8 @@ pub struct PolicyRun {
     pub information_audit_digest: String,
     pub future_information_access_count: u32,
     pub nonanticipativity_violation_count: u32,
+    /// The policy's action commitment at each decision/information set.
+    pub decision_receipts: Vec<PolicyDecisionReceipt>,
     pub status: RunStatus,
     /// Feasibility label from the independently declared oracle for this proposed action.
     pub oracle_action_feasible: bool,
@@ -197,6 +210,8 @@ pub struct StratumOutcomeSummary {
     pub empirical_cvar95_recovery_shortfall_wh: f64,
     pub future_information_access_count: u64,
     pub nonanticipativity_violation_count: u64,
+    /// Conflicting action mappings independently detected across shared information sets.
+    pub decision_mapping_conflict_count: u64,
     pub information_boundary_clean: Option<bool>,
     pub hard_gate_violation_count: u64,
     pub false_safe_admissions: u64,
@@ -226,6 +241,8 @@ pub struct PolicySummary {
     pub p95_queue_wait_p95_ms: u64,
     pub future_information_access_count: u64,
     pub nonanticipativity_violation_count: u64,
+    /// Conflicting action mappings independently detected across shared information sets.
+    pub decision_mapping_conflict_count: u64,
     pub information_boundary_clean: Option<bool>,
     pub p95_mission_reserve_shortfall_wh: u64,
     pub p95_recovery_shortfall_wh: u64,
@@ -393,7 +410,9 @@ fn percentile_u64(values: &[u64], basis_points: u16) -> Option<u64> {
     Some(sorted[rank - 1])
 }
 
-fn validate_input(input: &MobilityPolicyTournamentInput) -> Result<(), TournamentError> {
+fn validate_input(
+    input: &MobilityPolicyTournamentInput,
+) -> Result<BTreeMap<String, u64>, TournamentError> {
     if input.schema_version != SCHEMA_VERSION || input.benchmark_id != BENCHMARK_ID {
         return Err(TournamentError::InvalidInput(
             "schema_version or benchmark_id mismatch".to_owned(),
@@ -466,6 +485,10 @@ fn validate_input(input: &MobilityPolicyTournamentInput) -> Result<(), Tournamen
         .collect();
 
     let mut run_ids = BTreeSet::new();
+    let mut decision_actions: BTreeMap<
+        (String, String, String),
+        Vec<(String, u64, String, String)>,
+    > = BTreeMap::new();
     let mut pair_keys: BTreeMap<String, BTreeSet<(String, String)>> = BTreeMap::new();
     let mut pair_metadata: BTreeMap<(String, String), &PolicyRun> = BTreeMap::new();
     let mut run_count_by_policy: BTreeMap<&str, usize> = BTreeMap::new();
@@ -496,6 +519,54 @@ fn validate_input(input: &MobilityPolicyTournamentInput) -> Result<(), Tournamen
         check_digest("scenario input digest", &run.scenario_input_digest)?;
         check_digest("information trace digest", &run.information_trace_digest)?;
         check_digest("information audit digest", &run.information_audit_digest)?;
+        let information_model = policies
+            .get(run.policy_id.as_str())
+            .expect("run policy was checked against declared policy set")
+            .information_model;
+        if information_model == InformationModel::NonanticipativeOnline
+            && run.decision_receipts.is_empty()
+        {
+            return Err(TournamentError::EvidenceMismatch(format!(
+                "online run {} has no per-decision information-set/action receipts",
+                run.run_id
+            )));
+        }
+        if run.decision_receipts.len() > MAX_DECISION_RECEIPTS_PER_RUN {
+            return Err(TournamentError::InvalidInput(format!(
+                "run {} exceeds the per-run decision receipt bound",
+                run.run_id
+            )));
+        }
+        let mut local_decision_keys = BTreeSet::new();
+        for receipt in &run.decision_receipts {
+            nonempty("decision_point_id", &receipt.decision_point_id)?;
+            check_digest("decision information-set digest", &receipt.information_set_digest)?;
+            check_digest("decision observation digest", &receipt.observation_digest)?;
+            check_digest("decision action digest", &receipt.action_digest)?;
+            let local_key = (
+                receipt.decision_point_id.clone(),
+                receipt.information_set_digest.clone(),
+            );
+            if !local_decision_keys.insert(local_key) {
+                return Err(TournamentError::InvalidMetric(format!(
+                    "run {} repeats a decision point/information-set receipt",
+                    run.run_id
+                )));
+            }
+            if information_model == InformationModel::NonanticipativeOnline {
+                let key = (
+                    run.policy_id.clone(),
+                    receipt.decision_point_id.clone(),
+                    receipt.information_set_digest.clone(),
+                );
+                decision_actions.entry(key).or_default().push((
+                    run.run_id.clone(),
+                    receipt.decision_time_ns,
+                    receipt.observation_digest.clone(),
+                    receipt.action_digest.clone(),
+                ));
+            }
+        }
         check_digest("policy configuration digest", &run.policy_configuration_digest)?;
         check_digest("run compute environment digest", &run.compute_environment_digest)?;
         if run.policy_configuration_digest
@@ -629,7 +700,31 @@ fn validate_input(input: &MobilityPolicyTournamentInput) -> Result<(), Tournamen
             "bootstrap work estimate {bootstrap_work} exceeds budget {MAX_BOOTSTRAP_WORK_ITEMS}; reduce resamples, policies or independent clusters"
         )));
     }
-    Ok(())
+
+    // An online policy is a function of revealed information. For each policy,
+    // decision point and information-set digest, every observed run must bind
+    // the same decision time, observation digest and action digest.
+    let mut decision_mapping_conflicts = BTreeMap::<String, u64>::new();
+    for ((policy_id, decision_point_id, information_set_digest), entries) in decision_actions {
+        let Some(first) = entries.first() else {
+            continue;
+        };
+        let conflict = entries.iter().any(|entry| {
+            entry.1 != first.1 || entry.2 != first.2 || entry.3 != first.3
+        });
+        if conflict {
+            for (run_id, _, _, _) in entries {
+                let count = decision_mapping_conflicts.entry(run_id).or_default();
+                *count = count.checked_add(1).ok_or_else(|| {
+                    TournamentError::Arithmetic(
+                        "decision mapping conflict count overflow".to_owned(),
+                    )
+                })?;
+            }
+            let _conflict_identity = (policy_id, decision_point_id, information_set_digest);
+        }
+    }
+    Ok(decision_mapping_conflicts)
 }
 
 fn canonical_input_digest(input: &MobilityPolicyTournamentInput) -> Result<String, TournamentError> {
