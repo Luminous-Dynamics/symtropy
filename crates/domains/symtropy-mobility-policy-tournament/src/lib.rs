@@ -1233,6 +1233,10 @@ mod tests {
             compute_environment_digest: digest('3'),
             compute_budget_ms: 10_000,
             evidence_class: EvidenceClass::Synthetic,
+            information_trace_digest: digest('6'),
+            information_audit_digest: digest('7'),
+            future_information_access_count: 0,
+            nonanticipativity_violation_count: 0,
             status: RunStatus::Completed,
             oracle_action_feasible: reference_feasible,
             shield_admitted: true,
@@ -1438,6 +1442,50 @@ mod tests {
             evaluate_mobility_policy_tournament(&seed),
             Err(TournamentError::PairMismatch(_))
         ));
+    }
+
+    #[test]
+    fn online_information_leak_is_reported_as_evidence_integrity_failure() {
+        let mut input = fixture();
+        let run = input
+            .runs
+            .iter_mut()
+            .find(|run| run.policy_id == "mpc" && run.scenario_id == "scenario-3")
+            .unwrap();
+        run.future_information_access_count = 1;
+        let report = evaluate_mobility_policy_tournament(&input).unwrap();
+        let mpc = report.policies.iter().find(|policy| policy.policy_id == "mpc").unwrap();
+        assert_eq!(mpc.future_information_access_count, 1);
+        assert!(!mpc.information_boundary_clean);
+        assert!(!mpc.hard_gate_clean);
+        assert_eq!(
+            mpc.hard_gate_violations
+                .iter()
+                .find(|violation| violation.category == HardGateCategory::EvidenceIntegrity)
+                .unwrap()
+                .count,
+            1
+        );
+    }
+
+    #[test]
+    fn clairvoyant_future_information_is_allowed_only_on_the_separate_offline_track() {
+        let mut input = fixture();
+        for policy in &mut input.policies {
+            policy.information_model = InformationModel::ClairvoyantOfflineUpperBound;
+        }
+        for run in &mut input.runs {
+            run.future_information_access_count = 3;
+        }
+        let report = evaluate_mobility_policy_tournament(&input).unwrap();
+        assert_eq!(
+            report.information_model,
+            InformationModel::ClairvoyantOfflineUpperBound
+        );
+        assert!(report
+            .policies
+            .iter()
+            .all(|policy| policy.information_boundary_clean && policy.hard_gate_clean));
     }
 
     #[test]
