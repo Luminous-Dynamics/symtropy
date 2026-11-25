@@ -8096,6 +8096,632 @@
         }
       ],
       "expected_disposition": "OUT_OF_SCOPE"
+    },
+    {
+      "case_id": "SC-027-EXACT-INSTANT-ACQUISITION",
+      "acquisition_interval": {
+        "time_basis_id": "TAI-NS-EPOCH-A",
+        "start_tai_ns": 150,
+        "end_tai_ns": 150
+      },
+      "acquisition_scope": [
+        {
+          "field": "acquisition_id",
+          "value": "ACQ-1001"
+        },
+        {
+          "field": "camera_id",
+          "value": "CAM-01"
+        },
+        {
+          "field": "sensor_mode_id",
+          "value": "SENSOR-MODE-GS-4K"
+        },
+        {
+          "field": "intrinsics_revision",
+          "value": "INTR-REV-7"
+        },
+        {
+          "field": "robot_id",
+          "value": "ROBOT-2"
+        },
+        {
+          "field": "mount_revision",
+          "value": "MOUNT-REV-3"
+        },
+        {
+          "field": "asset_id",
+          "value": "TRUSS-ALPHA"
+        },
+        {
+          "field": "asset_revision",
+          "value": "ASSET-REV-12"
+        },
+        {
+          "field": "camera_frame_id",
+          "value": "CAM-FRAME-01"
+        },
+        {
+          "field": "asset_frame_id",
+          "value": "ASSET-FRAME-04"
+        },
+        {
+          "field": "transform_convention",
+          "value": "RIGHT-HANDED-SE3-XYZ"
+        },
+        {
+          "field": "feature_id",
+          "value": "FEATURE-JOINT-17"
+        },
+        {
+          "field": "support_id",
+          "value": "SUPPORT-FEATURE-JOINT-17-R2"
+        },
+        {
+          "field": "motion_model_revision",
+          "value": "MOTION-BOUND-REV-5"
+        },
+        {
+          "field": "calibration_scope_id",
+          "value": "CAL-SCOPE-CAM01-MOUNT03-ASSET12"
+        },
+        {
+          "field": "clock_map_id",
+          "value": "CLOCK-MAP-REV-9"
+        },
+        {
+          "field": "time_basis_id",
+          "value": "TAI-NS-EPOCH-A"
+        },
+        {
+          "field": "exposure_profile_id",
+          "value": "EXPOSURE-1MS-ROLLING"
+        },
+        {
+          "field": "projector_profile_id",
+          "value": "PROJECTOR-STRUCTURED-LIGHT-2"
+        },
+        {
+          "field": "pattern_sequence_id",
+          "value": "PATTERN-SEQ-004"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "EVD-1-MOTION",
+          "kind": "MOTION",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000000b",
+          "validity_interval": {
+            "time_basis_id": "TAI-NS-EPOCH-A",
+            "start_tai_ns": 50,
+            "end_tai_ns": 250
+          },
+          "scope_claims": [
+            {
+              "field": "acquisition_id",
+              "value": "ACQ-1001"
+            },
+            {
+              "field": "camera_id",
+              "value": "CAM-01"
+            },
+            {
+              "field": "sensor_mode_id",
+              "value": "SENSOR-MODE-GS-4K"
+            },
+            {
+              "field": "robot_id",
+              "value": "ROBOT-2"
+            },
+            {
+              "field": "mount_revision",
+              "value": "MOUNT-REV-3"
+            },
+            {
+              "field": "asset_id",
+              "value": "TRUSS-ALPHA"
+            },
+            {
+              "field": "asset_revision",
+              "value": "ASSET-REV-12"
+            },
+            {
+              "field": "camera_frame_id",
+              "value": "CAM-FRAME-01"
+            },
+            {
+              "field": "asset_frame_id",
+              "value": "ASSET-FRAME-04"
+            },
+            {
+              "field": "transform_convention",
+              "value": "RIGHT-HANDED-SE3-XYZ"
+            },
+            {
+              "field": "feature_id",
+              "value": "FEATURE-JOINT-17"
+            },
+            {
+              "field": "support_id",
+              "value": "SUPPORT-FEATURE-JOINT-17-R2"
+            },
+            {
+              "field": "motion_model_revision",
+              "value": "MOTION-BOUND-REV-5"
+            },
+            {
+              "field": "clock_map_id",
+              "value": "CLOCK-MAP-REV-9"
+            },
+            {
+              "field": "time_basis_id",
+              "value": "TAI-NS-EPOCH-A"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVD-1-SUPPORT",
+          "kind": "SUPPORT",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000000c",
+          "validity_interval": {
+            "time_basis_id": "TAI-NS-EPOCH-A",
+            "start_tai_ns": 50,
+            "end_tai_ns": 250
+          },
+          "scope_claims": [
+            {
+              "field": "asset_id",
+              "value": "TRUSS-ALPHA"
+            },
+            {
+              "field": "asset_revision",
+              "value": "ASSET-REV-12"
+            },
+            {
+              "field": "camera_frame_id",
+              "value": "CAM-FRAME-01"
+            },
+            {
+              "field": "asset_frame_id",
+              "value": "ASSET-FRAME-04"
+            },
+            {
+              "field": "transform_convention",
+              "value": "RIGHT-HANDED-SE3-XYZ"
+            },
+            {
+              "field": "feature_id",
+              "value": "FEATURE-JOINT-17"
+            },
+            {
+              "field": "support_id",
+              "value": "SUPPORT-FEATURE-JOINT-17-R2"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVD-1-CALIBRATION",
+          "kind": "CALIBRATION",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000000d",
+          "validity_interval": {
+            "time_basis_id": "TAI-NS-EPOCH-A",
+            "start_tai_ns": 50,
+            "end_tai_ns": 250
+          },
+          "scope_claims": [
+            {
+              "field": "camera_id",
+              "value": "CAM-01"
+            },
+            {
+              "field": "sensor_mode_id",
+              "value": "SENSOR-MODE-GS-4K"
+            },
+            {
+              "field": "intrinsics_revision",
+              "value": "INTR-REV-7"
+            },
+            {
+              "field": "robot_id",
+              "value": "ROBOT-2"
+            },
+            {
+              "field": "mount_revision",
+              "value": "MOUNT-REV-3"
+            },
+            {
+              "field": "asset_id",
+              "value": "TRUSS-ALPHA"
+            },
+            {
+              "field": "asset_revision",
+              "value": "ASSET-REV-12"
+            },
+            {
+              "field": "camera_frame_id",
+              "value": "CAM-FRAME-01"
+            },
+            {
+              "field": "asset_frame_id",
+              "value": "ASSET-FRAME-04"
+            },
+            {
+              "field": "calibration_scope_id",
+              "value": "CAL-SCOPE-CAM01-MOUNT03-ASSET12"
+            },
+            {
+              "field": "clock_map_id",
+              "value": "CLOCK-MAP-REV-9"
+            },
+            {
+              "field": "time_basis_id",
+              "value": "TAI-NS-EPOCH-A"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVD-1-TIMING",
+          "kind": "TIMING",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000000e",
+          "validity_interval": {
+            "time_basis_id": "TAI-NS-EPOCH-A",
+            "start_tai_ns": 50,
+            "end_tai_ns": 250
+          },
+          "scope_claims": [
+            {
+              "field": "acquisition_id",
+              "value": "ACQ-1001"
+            },
+            {
+              "field": "camera_id",
+              "value": "CAM-01"
+            },
+            {
+              "field": "sensor_mode_id",
+              "value": "SENSOR-MODE-GS-4K"
+            },
+            {
+              "field": "clock_map_id",
+              "value": "CLOCK-MAP-REV-9"
+            },
+            {
+              "field": "time_basis_id",
+              "value": "TAI-NS-EPOCH-A"
+            },
+            {
+              "field": "exposure_profile_id",
+              "value": "EXPOSURE-1MS-ROLLING"
+            },
+            {
+              "field": "projector_profile_id",
+              "value": "PROJECTOR-STRUCTURED-LIGHT-2"
+            },
+            {
+              "field": "pattern_sequence_id",
+              "value": "PATTERN-SEQ-004"
+            }
+          ]
+        }
+      ],
+      "expected_disposition": "SCOPE_COHERENT"
+    },
+    {
+      "case_id": "SC-028-ZERO-WIDTH-VALIDITY",
+      "acquisition_interval": {
+        "time_basis_id": "TAI-NS-EPOCH-A",
+        "start_tai_ns": 100,
+        "end_tai_ns": 200
+      },
+      "acquisition_scope": [
+        {
+          "field": "acquisition_id",
+          "value": "ACQ-1001"
+        },
+        {
+          "field": "camera_id",
+          "value": "CAM-01"
+        },
+        {
+          "field": "sensor_mode_id",
+          "value": "SENSOR-MODE-GS-4K"
+        },
+        {
+          "field": "intrinsics_revision",
+          "value": "INTR-REV-7"
+        },
+        {
+          "field": "robot_id",
+          "value": "ROBOT-2"
+        },
+        {
+          "field": "mount_revision",
+          "value": "MOUNT-REV-3"
+        },
+        {
+          "field": "asset_id",
+          "value": "TRUSS-ALPHA"
+        },
+        {
+          "field": "asset_revision",
+          "value": "ASSET-REV-12"
+        },
+        {
+          "field": "camera_frame_id",
+          "value": "CAM-FRAME-01"
+        },
+        {
+          "field": "asset_frame_id",
+          "value": "ASSET-FRAME-04"
+        },
+        {
+          "field": "transform_convention",
+          "value": "RIGHT-HANDED-SE3-XYZ"
+        },
+        {
+          "field": "feature_id",
+          "value": "FEATURE-JOINT-17"
+        },
+        {
+          "field": "support_id",
+          "value": "SUPPORT-FEATURE-JOINT-17-R2"
+        },
+        {
+          "field": "motion_model_revision",
+          "value": "MOTION-BOUND-REV-5"
+        },
+        {
+          "field": "calibration_scope_id",
+          "value": "CAL-SCOPE-CAM01-MOUNT03-ASSET12"
+        },
+        {
+          "field": "clock_map_id",
+          "value": "CLOCK-MAP-REV-9"
+        },
+        {
+          "field": "time_basis_id",
+          "value": "TAI-NS-EPOCH-A"
+        },
+        {
+          "field": "exposure_profile_id",
+          "value": "EXPOSURE-1MS-ROLLING"
+        },
+        {
+          "field": "projector_profile_id",
+          "value": "PROJECTOR-STRUCTURED-LIGHT-2"
+        },
+        {
+          "field": "pattern_sequence_id",
+          "value": "PATTERN-SEQ-004"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "EVD-1-MOTION",
+          "kind": "MOTION",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000000b",
+          "validity_interval": {
+            "time_basis_id": "TAI-NS-EPOCH-A",
+            "start_tai_ns": 50,
+            "end_tai_ns": 250
+          },
+          "scope_claims": [
+            {
+              "field": "acquisition_id",
+              "value": "ACQ-1001"
+            },
+            {
+              "field": "camera_id",
+              "value": "CAM-01"
+            },
+            {
+              "field": "sensor_mode_id",
+              "value": "SENSOR-MODE-GS-4K"
+            },
+            {
+              "field": "robot_id",
+              "value": "ROBOT-2"
+            },
+            {
+              "field": "mount_revision",
+              "value": "MOUNT-REV-3"
+            },
+            {
+              "field": "asset_id",
+              "value": "TRUSS-ALPHA"
+            },
+            {
+              "field": "asset_revision",
+              "value": "ASSET-REV-12"
+            },
+            {
+              "field": "camera_frame_id",
+              "value": "CAM-FRAME-01"
+            },
+            {
+              "field": "asset_frame_id",
+              "value": "ASSET-FRAME-04"
+            },
+            {
+              "field": "transform_convention",
+              "value": "RIGHT-HANDED-SE3-XYZ"
+            },
+            {
+              "field": "feature_id",
+              "value": "FEATURE-JOINT-17"
+            },
+            {
+              "field": "support_id",
+              "value": "SUPPORT-FEATURE-JOINT-17-R2"
+            },
+            {
+              "field": "motion_model_revision",
+              "value": "MOTION-BOUND-REV-5"
+            },
+            {
+              "field": "clock_map_id",
+              "value": "CLOCK-MAP-REV-9"
+            },
+            {
+              "field": "time_basis_id",
+              "value": "TAI-NS-EPOCH-A"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVD-1-SUPPORT",
+          "kind": "SUPPORT",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000000c",
+          "validity_interval": {
+            "time_basis_id": "TAI-NS-EPOCH-A",
+            "start_tai_ns": 50,
+            "end_tai_ns": 250
+          },
+          "scope_claims": [
+            {
+              "field": "asset_id",
+              "value": "TRUSS-ALPHA"
+            },
+            {
+              "field": "asset_revision",
+              "value": "ASSET-REV-12"
+            },
+            {
+              "field": "camera_frame_id",
+              "value": "CAM-FRAME-01"
+            },
+            {
+              "field": "asset_frame_id",
+              "value": "ASSET-FRAME-04"
+            },
+            {
+              "field": "transform_convention",
+              "value": "RIGHT-HANDED-SE3-XYZ"
+            },
+            {
+              "field": "feature_id",
+              "value": "FEATURE-JOINT-17"
+            },
+            {
+              "field": "support_id",
+              "value": "SUPPORT-FEATURE-JOINT-17-R2"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVD-1-CALIBRATION",
+          "kind": "CALIBRATION",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000000d",
+          "validity_interval": {
+            "time_basis_id": "TAI-NS-EPOCH-A",
+            "start_tai_ns": 100,
+            "end_tai_ns": 100
+          },
+          "scope_claims": [
+            {
+              "field": "camera_id",
+              "value": "CAM-01"
+            },
+            {
+              "field": "sensor_mode_id",
+              "value": "SENSOR-MODE-GS-4K"
+            },
+            {
+              "field": "intrinsics_revision",
+              "value": "INTR-REV-7"
+            },
+            {
+              "field": "robot_id",
+              "value": "ROBOT-2"
+            },
+            {
+              "field": "mount_revision",
+              "value": "MOUNT-REV-3"
+            },
+            {
+              "field": "asset_id",
+              "value": "TRUSS-ALPHA"
+            },
+            {
+              "field": "asset_revision",
+              "value": "ASSET-REV-12"
+            },
+            {
+              "field": "camera_frame_id",
+              "value": "CAM-FRAME-01"
+            },
+            {
+              "field": "asset_frame_id",
+              "value": "ASSET-FRAME-04"
+            },
+            {
+              "field": "calibration_scope_id",
+              "value": "CAL-SCOPE-CAM01-MOUNT03-ASSET12"
+            },
+            {
+              "field": "clock_map_id",
+              "value": "CLOCK-MAP-REV-9"
+            },
+            {
+              "field": "time_basis_id",
+              "value": "TAI-NS-EPOCH-A"
+            }
+          ]
+        },
+        {
+          "evidence_id": "EVD-1-TIMING",
+          "kind": "TIMING",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000000e",
+          "validity_interval": {
+            "time_basis_id": "TAI-NS-EPOCH-A",
+            "start_tai_ns": 50,
+            "end_tai_ns": 250
+          },
+          "scope_claims": [
+            {
+              "field": "acquisition_id",
+              "value": "ACQ-1001"
+            },
+            {
+              "field": "camera_id",
+              "value": "CAM-01"
+            },
+            {
+              "field": "sensor_mode_id",
+              "value": "SENSOR-MODE-GS-4K"
+            },
+            {
+              "field": "clock_map_id",
+              "value": "CLOCK-MAP-REV-9"
+            },
+            {
+              "field": "time_basis_id",
+              "value": "TAI-NS-EPOCH-A"
+            },
+            {
+              "field": "exposure_profile_id",
+              "value": "EXPOSURE-1MS-ROLLING"
+            },
+            {
+              "field": "projector_profile_id",
+              "value": "PROJECTOR-STRUCTURED-LIGHT-2"
+            },
+            {
+              "field": "pattern_sequence_id",
+              "value": "PATTERN-SEQ-004"
+            }
+          ]
+        }
+      ],
+      "expected_disposition": "INVALID_INPUT"
     }
   ]
 }
