@@ -27,7 +27,8 @@
         "evaluated_at_unix_ms": 150,
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 150
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [],
       "expected": {
@@ -53,8 +54,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
     {
       "case_id": "known-but-future-effective-revocation",
@@ -71,7 +74,8 @@
         "evaluated_at_unix_ms": 150,
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 150
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [
         {
@@ -136,8 +140,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
     {
       "case_id": "backdated-event-received-after-snapshot",
@@ -154,7 +160,8 @@
         "evaluated_at_unix_ms": 150,
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 150
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [
         {
@@ -219,8 +226,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
     {
       "case_id": "known-effective-revocation",
@@ -237,7 +246,8 @@
         "evaluated_at_unix_ms": 150,
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 150
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [
         {
@@ -302,8 +312,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
     {
       "case_id": "acquisition-uncertainty-crosses-calibration-end",
@@ -320,7 +332,8 @@
         "evaluated_at_unix_ms": 210,
         "receiver_receipt_watermark_unix_ms": 210,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 210
+        "trust_status_as_of_unix_ms": 210,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [],
       "expected": {
@@ -352,8 +365,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
     {
       "case_id": "timestamp-token-wrong-payload-digest",
@@ -370,7 +385,8 @@
         "evaluated_at_unix_ms": 150,
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 150
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [
         {
@@ -435,8 +451,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
     {
       "case_id": "issuer-authority-unknown",
@@ -453,7 +471,8 @@
         "evaluated_at_unix_ms": 150,
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 150
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [
         {
@@ -518,8 +537,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
     {
       "case_id": "source-sequence-gap",
@@ -536,7 +557,8 @@
         "evaluated_at_unix_ms": 150,
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 150
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [
         {
@@ -601,8 +623,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
     {
       "case_id": "same-namespace-duplicate-id-conflicting-payload",
@@ -619,7 +643,8 @@
         "evaluated_at_unix_ms": 150,
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 150
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [
         {
@@ -710,8 +735,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
     {
       "case_id": "historical-policy-versus-current-key-compromise",
@@ -728,7 +755,8 @@
         "evaluated_at_unix_ms": 150,
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 150
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [
         {
@@ -791,8 +819,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
     {
       "case_id": "correction-cycle",
@@ -809,7 +839,8 @@
         "evaluated_at_unix_ms": 150,
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 150
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [
         {
@@ -903,8 +934,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
     {
       "case_id": "source-clock-rollback",
@@ -921,7 +954,8 @@
         "evaluated_at_unix_ms": 150,
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 150
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [
         {
@@ -986,8 +1020,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
     {
       "case_id": "issuer-claimed-receipt-is-not-an-independent-receipt",
@@ -1004,7 +1040,8 @@
         "evaluated_at_unix_ms": 150,
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 150
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [
         {
@@ -1069,8 +1106,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
     {
       "case_id": "same-local-id-in-distinct-source-namespaces-is-not-a-collision",
@@ -1087,7 +1126,8 @@
         "evaluated_at_unix_ms": 150,
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 150
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [
         {
@@ -1181,8 +1221,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
     {
       "case_id": "same-source-id-same-payload-repeated-delivery-deduplicates-once",
@@ -1199,7 +1241,8 @@
         "evaluated_at_unix_ms": 150,
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 150
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [
         {
@@ -1293,8 +1336,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
     {
       "case_id": "same-issuer-cannot-bypass-identity-with-unverified-namespace-alias",
@@ -1311,7 +1356,8 @@
         "evaluated_at_unix_ms": 150,
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 150
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [
         {
@@ -1405,8 +1451,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
     {
       "case_id": "revocation-effective-after-acquisition-before-evaluation",
@@ -1423,7 +1471,8 @@
         "evaluated_at_unix_ms": 200,
         "receiver_receipt_watermark_unix_ms": 180,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 200
+        "trust_status_as_of_unix_ms": 200,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [
         {
@@ -1488,8 +1537,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
     {
       "case_id": "event-effectivity-crosses-acquisition-uncertainty-window",
@@ -1506,7 +1557,8 @@
         "evaluated_at_unix_ms": 200,
         "receiver_receipt_watermark_unix_ms": 180,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 200
+        "trust_status_as_of_unix_ms": 200,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [
         {
@@ -1571,8 +1623,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
     {
       "case_id": "valid-timestamp-imprint-binds-event-payload",
@@ -1589,7 +1643,8 @@
         "evaluated_at_unix_ms": 150,
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 150
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [
         {
@@ -1648,8 +1703,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
     {
       "case_id": "valid-timestamp-label-with-mismatching-imprint-rejected",
@@ -1666,7 +1723,8 @@
         "evaluated_at_unix_ms": 150,
         "receiver_receipt_watermark_unix_ms": 150,
         "trust_policy_id": "trust-policy-v1",
-        "trust_status_as_of_unix_ms": 150
+        "trust_status_as_of_unix_ms": 150,
+        "trust_policy_digest_sha256": "23b6c1fc30a18db6991c1eb295ba2b186a8ad98ebcd2d4ffca7694b81dba71b7"
       },
       "events": [
         {
@@ -1731,8 +1789,10 @@
       "current_reassessment": {
         "receiver_receipt_watermark_unix_ms": 220,
         "trust_policy_id": "trust-policy-current-v1",
-        "trust_status_as_of_unix_ms": 220
-      }
+        "trust_status_as_of_unix_ms": 220,
+        "trust_policy_digest_sha256": "5c5005d198495cbc4455f67db17d91b0ffdea6f78ff70354270f9ccf068005f8"
+      },
+      "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     }
   ]
 }
