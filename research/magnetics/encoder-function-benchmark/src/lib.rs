@@ -63,10 +63,81 @@ pub enum RequirementViolation {
     InPlaneSignalUnavailable,
 }
 
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct FieldCovariance2d {
+    /// Variance of Bx, in tesla squared.
+    pub xx_t2: f64,
+    /// Covariance of Bx and By, in tesla squared.
+    pub xy_t2: f64,
+    /// Variance of By, in tesla squared.
+    pub yy_t2: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct FieldCovarianceSample {
+    pub mechanical_angle_rad: f64,
+    pub covariance: FieldCovariance2d,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct FieldCovarianceTrace {
+    pub trace_id: String,
+    pub frame_id: String,
+    pub operating_condition_id: String,
+    pub grid_id: String,
+    pub samples: Vec<FieldCovarianceSample>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct AngularReferenceUncertainty {
+    /// Identity of the record supplying the angular uncertainty budget.
+    pub uncertainty_record_id: String,
+    /// Must match EncoderRequirements.phase_zero_calibration_id.
+    pub phase_zero_calibration_id: String,
+    /// Standard uncertainty of the independent phase-zero calibration, radians.
+    pub phase_zero_std_rad: f64,
+    /// Standard uncertainty of each mechanical angle reference sample, radians.
+    pub mechanical_angle_std_rad: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PhaseUncertaintyMetrics {
+    pub trace_id: String,
+    pub sample_count: usize,
+    pub uncertainty_record_id: String,
+    pub phase_zero_calibration_id: String,
+    pub measurement_phase_std_mean_rad: f64,
+    pub measurement_phase_std_rms_rad: f64,
+    pub measurement_phase_std_p95_rad: f64,
+    pub measurement_phase_std_max_rad: f64,
+    pub reference_phase_zero_std_rad: f64,
+    /// Pole-pair-scaled contribution p * sigma_theta_reference.
+    pub reference_mechanical_phase_std_rad: f64,
+    pub total_phase_std_mean_rad: f64,
+    pub total_phase_std_rms_rad: f64,
+    pub total_phase_std_p95_rad: f64,
+    pub total_phase_std_max_rad: f64,
+    /// Descriptive normalized residuals only; not a p-value or coverage test.
+    pub rms_phase_error_over_total_std: Option<f64>,
+    pub maximum_phase_error_over_total_std: Option<f64>,
+    pub zero_uncertainty_nonzero_residual_sample_count: usize,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum EvaluationError {
     InvalidMetadata,
     InvalidRequirements,
+    InvalidReferenceUncertainty,
+    CovarianceTraceIdentityMismatch,
+    CovarianceTraceFrameMismatch,
+    CovarianceTraceConditionMismatch,
+    CovarianceTraceGridMismatch,
+    NonFiniteFieldCovariance { index: usize },
+    NonPositiveSemidefiniteFieldCovariance { index: usize },
+    FieldBelowMinimumForPhase { index: usize },
+    PhaseUncertaintyNumericOverflow { index: usize },
+    ZeroInPlaneFieldForPhase { index: usize },
     TooFewSamples,
     NonFiniteSample { index: usize },
     NonMonotonicAngleGrid { index: usize },
@@ -401,6 +472,210 @@ pub fn evaluate_trace_set(
             metrics.iter().map(|metric| metric.rms_cross_axis_ratio),
         ),
         rejected_trace_ids,
+    })
+}
+
+
+fn validate_field_covariance(
+    covariance: FieldCovariance2d,
+    index: usize,
+) -> Result<(), EvaluationError> {
+    if !covariance.xx_t2.is_finite()
+        || !covariance.xy_t2.is_finite()
+        || !covariance.yy_t2.is_finite()
+    {
+        return Err(EvaluationError::NonFiniteFieldCovariance { index });
+    }
+
+    let scale = covariance
+        .xx_t2
+        .abs()
+        .max(covariance.xy_t2.abs())
+        .max(covariance.yy_t2.abs());
+    if scale == 0.0 {
+        return Ok(());
+    }
+
+    let xx = covariance.xx_t2 / scale;
+    let xy = covariance.xy_t2 / scale;
+    let yy = covariance.yy_t2 / scale;
+    let determinant = xx * yy - xy * xy;
+    const PSD_TOLERANCE: f64 = 1.0e-12;
+    if xx < -PSD_TOLERANCE || yy < -PSD_TOLERANCE || determinant < -PSD_TOLERANCE {
+        return Err(EvaluationError::NonPositiveSemidefiniteFieldCovariance { index });
+    }
+    Ok(())
+}
+
+fn nearest_rank_p95(values: &[f64]) -> f64 {
+    let mut sorted = values.to_vec();
+    sorted.sort_by(f64::total_cmp);
+    let index = (sorted.len() * 95).div_ceil(100).saturating_sub(1);
+    sorted[index]
+}
+
+/// Propagate per-sample in-plane field covariance through atan2(By, Bx).
+///
+/// The covariance trace must have exact matching IDs and bit-identical sample
+/// angles. The mechanical-reference contribution is scaled by pole_pairs and
+/// added separately from the phase-zero calibration contribution. Returned
+/// residual/standard-uncertainty ratios are descriptive, not coverage tests.
+pub fn propagate_phase_uncertainty(
+    trace: &FieldTrace,
+    covariance_trace: &FieldCovarianceTrace,
+    requirements: &EncoderRequirements,
+    reference: &AngularReferenceUncertainty,
+) -> Result<PhaseUncertaintyMetrics, EvaluationError> {
+    validate_requirements(requirements)?;
+    if !reference.uncertainty_record_id.trim().is_empty()
+        && !reference.phase_zero_calibration_id.trim().is_empty()
+        && reference.phase_zero_calibration_id == requirements.phase_zero_calibration_id
+        && reference.phase_zero_std_rad.is_finite()
+        && reference.phase_zero_std_rad >= 0.0
+        && reference.mechanical_angle_std_rad.is_finite()
+        && reference.mechanical_angle_std_rad >= 0.0
+    {
+        // The uncertainty record is independently identified and bound to the
+        // calibration record used by the deterministic phase evaluator.
+    } else {
+        return Err(EvaluationError::InvalidReferenceUncertainty);
+    }
+
+    // Reuse the deterministic evaluator for trace metadata, grid and field validation.
+    let _deterministic_metrics = evaluate_trace(trace, requirements)?;
+
+    if covariance_trace.trace_id != trace.trace_id {
+        return Err(EvaluationError::CovarianceTraceIdentityMismatch);
+    }
+    if covariance_trace.frame_id != trace.frame_id {
+        return Err(EvaluationError::CovarianceTraceFrameMismatch);
+    }
+    if covariance_trace.operating_condition_id != trace.operating_condition_id {
+        return Err(EvaluationError::CovarianceTraceConditionMismatch);
+    }
+    if covariance_trace.grid_id != trace.grid_id {
+        return Err(EvaluationError::CovarianceTraceGridMismatch);
+    }
+    if covariance_trace.samples.len() != trace.samples.len() {
+        return Err(EvaluationError::CoordinateGridMismatch);
+    }
+
+    let reference_phase_zero_std_rad = reference.phase_zero_std_rad;
+    let reference_mechanical_phase_std_rad =
+        f64::from(requirements.pole_pairs) * reference.mechanical_angle_std_rad;
+    if !reference_mechanical_phase_std_rad.is_finite() {
+        return Err(EvaluationError::InvalidReferenceUncertainty);
+    }
+
+    let reference_variance = reference_phase_zero_std_rad * reference_phase_zero_std_rad
+        + reference_mechanical_phase_std_rad * reference_mechanical_phase_std_rad;
+    if !reference_variance.is_finite() {
+        return Err(EvaluationError::InvalidReferenceUncertainty);
+    }
+
+    let mut measurement_stds = Vec::with_capacity(trace.samples.len());
+    let mut total_stds = Vec::with_capacity(trace.samples.len());
+    let mut normalized_residuals = Vec::with_capacity(trace.samples.len());
+    let mut zero_uncertainty_nonzero_residual_sample_count = 0_usize;
+
+    for (index, (sample, covariance_sample)) in trace
+        .samples
+        .iter()
+        .zip(covariance_trace.samples.iter())
+        .enumerate()
+    {
+        if sample.mechanical_angle_rad.to_bits()
+            != covariance_sample.mechanical_angle_rad.to_bits()
+        {
+            return Err(EvaluationError::CoordinateGridMismatch);
+        }
+        validate_field_covariance(covariance_sample.covariance, index)?;
+
+        let magnitude = sample.bx_t.hypot(sample.by_t);
+        if !magnitude.is_finite() {
+            return Err(EvaluationError::PhaseUncertaintyNumericOverflow { index });
+        }
+        if magnitude < requirements.minimum_in_plane_field_t {
+            return Err(EvaluationError::FieldBelowMinimumForPhase { index });
+        }
+        if magnitude == 0.0 {
+            return Err(EvaluationError::ZeroInPlaneFieldForPhase { index });
+        }
+
+        // Stable form of (-By / |B|^2, Bx / |B|^2).
+        let gradient_x = -(sample.by_t / magnitude) / magnitude;
+        let gradient_y = (sample.bx_t / magnitude) / magnitude;
+        let covariance = covariance_sample.covariance;
+        let term_x = gradient_x * gradient_x * covariance.xx_t2;
+        let term_xy = 2.0 * gradient_x * gradient_y * covariance.xy_t2;
+        let term_y = gradient_y * gradient_y * covariance.yy_t2;
+        let measurement_variance = term_x + term_xy + term_y;
+        let variance_scale = term_x.abs() + term_xy.abs() + term_y.abs();
+
+        if !measurement_variance.is_finite() || !variance_scale.is_finite() {
+            return Err(EvaluationError::PhaseUncertaintyNumericOverflow { index });
+        }
+        if measurement_variance < -1.0e-12 * variance_scale.max(f64::MIN_POSITIVE) {
+            return Err(EvaluationError::NonPositiveSemidefiniteFieldCovariance { index });
+        }
+
+        let measurement_std = measurement_variance.max(0.0).sqrt();
+        let total_variance = measurement_variance.max(0.0) + reference_variance;
+        let total_std = total_variance.sqrt();
+        if !measurement_std.is_finite() || !total_std.is_finite() {
+            return Err(EvaluationError::PhaseUncertaintyNumericOverflow { index });
+        }
+
+        let expected_phase = f64::from(requirements.pole_pairs)
+            * f64::from(requirements.phase_rotation_sense)
+            * sample.mechanical_angle_rad
+            + requirements.phase_zero_offset_rad;
+        let measured_phase = sample.by_t.atan2(sample.bx_t);
+        let absolute_phase_error = wrap_to_pi(measured_phase - expected_phase).abs();
+
+        if total_std > 0.0 {
+            normalized_residuals.push(absolute_phase_error / total_std);
+        } else if absolute_phase_error > 0.0 {
+            zero_uncertainty_nonzero_residual_sample_count += 1;
+        }
+
+        measurement_stds.push(measurement_std);
+        total_stds.push(total_std);
+    }
+
+    let rms_measurement_std = rms(&measurement_stds);
+    let rms_total_std = rms(&total_stds);
+    let rms_normalized_residual = (!normalized_residuals.is_empty())
+        .then(|| rms(&normalized_residuals));
+    let maximum_normalized_residual = normalized_residuals
+        .iter()
+        .copied()
+        .reduce(f64::max);
+
+    Ok(PhaseUncertaintyMetrics {
+        trace_id: trace.trace_id.clone(),
+        sample_count: trace.samples.len(),
+        uncertainty_record_id: reference.uncertainty_record_id.clone(),
+        phase_zero_calibration_id: reference.phase_zero_calibration_id.clone(),
+        measurement_phase_std_mean_rad: measurement_stds
+            .iter()
+            .map(|value| *value / measurement_stds.len() as f64)
+            .sum(),
+        measurement_phase_std_rms_rad: rms_measurement_std,
+        measurement_phase_std_p95_rad: nearest_rank_p95(&measurement_stds),
+        measurement_phase_std_max_rad: measurement_stds.iter().copied().fold(0.0, f64::max),
+        reference_phase_zero_std_rad,
+        reference_mechanical_phase_std_rad,
+        total_phase_std_mean_rad: total_stds
+            .iter()
+            .map(|value| *value / total_stds.len() as f64)
+            .sum(),
+        total_phase_std_rms_rad: rms_total_std,
+        total_phase_std_p95_rad: nearest_rank_p95(&total_stds),
+        total_phase_std_max_rad: total_stds.iter().copied().fold(0.0, f64::max),
+        rms_phase_error_over_total_std: rms_normalized_residual,
+        maximum_phase_error_over_total_std: maximum_normalized_residual,
+        zero_uncertainty_nonzero_residual_sample_count,
     })
 }
 
