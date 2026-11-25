@@ -34,6 +34,13 @@ jobs:
             .files["mma_bool/3ee_mma_bool.json"].sha256 + "  research/nyu-ccd-query-import/v0.1/fixtures/armadillo-rollers-3ee-mma-bool.json",
             .files["boxes/3ee.json"].sha256 + "  research/nyu-ccd-query-import/v0.1/fixtures/armadillo-rollers-3ee-boxes.json"
           ] | .[]' research/nyu-ccd-query-import/v0.1/fixtures/manifest.json | sha256sum --check --strict
+      - name: Verify analytic exact-rational CCD fixture checksums
+        run: |
+          jq -r '.query_sets[] | [
+            .queries_sha256 + "  research/ccd-query-recall/v0.1/fixtures/analytic-linear-v0.1/" + .queries_file,
+            .labels_sha256 + "  research/ccd-query-recall/v0.1/fixtures/analytic-linear-v0.1/" + .labels_file
+          ] | .[]' research/ccd-query-recall/v0.1/fixtures/analytic-linear-v0.1/manifest.json | sha256sum --check --strict
+          echo "40fa3bd19136344d749d939203c30e414f99e40cae75ef584f5e08876c876c32  research/ccd-query-recall/v0.1/fixtures/analytic-linear-v0.1/manifest.json" | sha256sum --check --strict
       - name: Check formatting
         run: cargo fmt --manifest-path research/ccd-query-recall/v0.1/Cargo.toml -- --check
       - name: Run tests
