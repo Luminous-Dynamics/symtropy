@@ -47,7 +47,7 @@ cargo run --quiet --locked --manifest-path tools/orbital-time-varying-acquisitio
 python3 tools/orbital-time-varying-acquisition-bench/tests/reference_oracle.py docs/research/orbital-truss/fixtures/time-varying-acquisition-v0_1.json <40-hex-source-commit>
 ```
 
-The independent Python oracle uses exact standard-library `fractions.Fraction` arithmetic and a separate derivation. It is test-only.
+The independent Python oracle uses exact standard-library `fractions.Fraction` arithmetic and a separate derivation. It is test-only. Every result also reports a constant-maximum-speed-over-the-whole-frame comparator and its excess over the integrated bound; this comparator is diagnostic only and never controls acceptance.
 
 ## Claim boundary
 
