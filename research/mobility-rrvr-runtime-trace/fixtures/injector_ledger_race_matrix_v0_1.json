@@ -1,0 +1,52 @@
+{
+  "schema_version": "0.1",
+  "benchmark": "RRVR-INJECTOR-LEDGER-LINEARIZABILITY",
+  "model": "InjectorLedgerLinearizability",
+  "claim_ceiling": "Formal schedule catalogue only; not a remote injector or physical execution result.",
+  "linearization_contract": {
+    "reservation": "atomic durable create-if-absent of (idempotency_key,payload_digest,attempt_identity) before any non-idempotent effect call",
+    "same_payload": "return existing reserved/applied/unknown state without a second effect",
+    "changed_payload": "return PayloadConflict without a second reservation",
+    "post_effect_crash": "preserve Unknown until owner/independent evidence resolves; never replay the same key"
+  },
+  "scenarios": [
+    {
+      "id": "same_payload_race",
+      "description": "Two coordinators concurrently submit the same key and same payload.",
+      "expected": "one reservation grant; second caller observes in-progress or prior result",
+      "mutator_call_limit": 1
+    },
+    {
+      "id": "changed_payload_race",
+      "description": "Two coordinators concurrently submit the same key with different payload digests.",
+      "expected": "one reservation grant; losing payload receives PayloadConflict",
+      "mutator_call_limit": 1
+    },
+    {
+      "id": "stale_empty_read",
+      "description": "Both coordinators read empty before either creates the reservation.",
+      "expected": "owner compare-and-set rechecks emptiness at the linearization point",
+      "mutator_call_limit": 1
+    },
+    {
+      "id": "crash_after_reservation_before_effect",
+      "description": "Owner crashes after durable reservation and before invoking the effect.",
+      "expected": "reservation remains; recovery must not allocate a second owner"
+    },
+    {
+      "id": "crash_after_effect_before_outcome",
+      "description": "Effect may have occurred but outcome was not durably recorded.",
+      "expected": "Unknown/hold; no same-key replay"
+    },
+    {
+      "id": "owner_history_lost",
+      "description": "Owner process restarts without its previous durable key/payload history.",
+      "expected": "Unknown/hold; absence of history is not proof of no effect"
+    },
+    {
+      "id": "concurrent_duplicate_execute",
+      "description": "Both callers attempt execution after a non-atomic reservation race.",
+      "expected": "at most one physical effect per key"
+    }
+  ]
+}
