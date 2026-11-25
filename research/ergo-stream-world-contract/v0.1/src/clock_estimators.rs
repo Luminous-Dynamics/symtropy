@@ -342,17 +342,16 @@ pub fn fit_affine_huber_irls_v0(
 
     for iteration in 1..=max_iterations {
         let errors = residuals(&points, line);
-        let absolute = errors.iter().map(|value| value.abs()).collect::<Vec<_>>();
-        let median_absolute = median(&absolute).ok_or(ClockFitErrorV0::NonFiniteEstimate)?;
-        let deviations = absolute
+        let residual_center = median(&errors).ok_or(ClockFitErrorV0::NonFiniteEstimate)?;
+        let centered_absolute = errors
             .iter()
-            .map(|value| (value - median_absolute).abs())
+            .map(|error| (error - residual_center).abs())
             .collect::<Vec<_>>();
-        let mad = median(&deviations).ok_or(ClockFitErrorV0::NonFiniteEstimate)?;
+        let mad = median(&centered_absolute).ok_or(ClockFitErrorV0::NonFiniteEstimate)?;
         let robust_scale = (MAD_NORMAL_SCALE_V0 * mad).max(1.0e-9);
         let cutoff = HUBER_TUNING_V0 * robust_scale;
 
-        let weights = absolute
+        let weights = centered_absolute
             .iter()
             .map(|error| {
                 if *error <= cutoff {
@@ -413,7 +412,7 @@ mod tests {
     #[test]
     fn huber_resists_a_gross_anchor_outlier_better_than_ols() {
         let mut pairs = anchors(20, 2, 1);
-        pairs[4].alpha_local_time += 500;
+        pairs[8].alpha_local_time += 500;
         let ols = fit_affine_ols_v0(&pairs).unwrap();
         let huber = fit_affine_huber_irls_v0(&pairs, 50, 1.0e-10).unwrap();
         let theil_sen = fit_affine_theil_sen_v0(&pairs).unwrap();
