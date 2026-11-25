@@ -1,0 +1,73 @@
+{
+  "schema_version": "physical-storage-service-contract-v0.1",
+  "contract_id": "EXAMPLE-PB-ARCHIVE-01",
+  "classification": "illustrative_not_customer_requirement",
+  "service_tier": "deep_archive",
+  "payload": {
+    "logical_capacity_bytes": 1000000000000000,
+    "expected_growth_bytes_per_year": 50000000000000,
+    "update_pattern": "append_mostly",
+    "maximum_individual_object_bytes": 1000000000000,
+    "object_count": 1000000
+  },
+  "access": {
+    "workload": "sequential_archive",
+    "sequential_read_fraction": 0.99,
+    "random_read_fraction": 0.01,
+    "maximum_full_restore_seconds": 864000,
+    "p99_random_read_latency_ms": null,
+    "maximum_ingest_seconds": null
+  },
+  "retention": {
+    "minimum_years": 100,
+    "target_confidence": 0.99,
+    "accelerated_ageing_allowed": true,
+    "same_degradation_mechanism_required": true,
+    "direct_observation_required": false
+  },
+  "environment": {
+    "temperature_celsius": {
+      "minimum": -10,
+      "maximum": 40
+    },
+    "relative_humidity_percent": {
+      "minimum": 20,
+      "maximum": 60
+    },
+    "non_condensing": true,
+    "shock_g": null,
+    "radiation_environment": "ambient"
+  },
+  "integrity": {
+    "exact_payload_recovery": true,
+    "hash_algorithm": "SHA-256",
+    "undetected_corruption_accepted": false,
+    "independent_reader_implementations": 2,
+    "cryptographic_authentication_required": true
+  },
+  "failure_tolerance": {
+    "independent_copies": 3,
+    "independent_failure_domains": 3,
+    "tolerate_complete_region_loss": true,
+    "maximum_unrecoverable_payload_fraction": 0
+  },
+  "constraints": {
+    "allowed_medium_families": [
+      "glass_optical",
+      "magnetic_tape",
+      "hdd",
+      "ssd_nand",
+      "hybrid"
+    ],
+    "max_media_volume_liters": null,
+    "max_mass_kg": null,
+    "max_capex_usd": null,
+    "max_annual_energy_kwh": null
+  },
+  "evidence_policy": {
+    "unknown_metric_handling": "do_not_rank",
+    "roadmap_products_eligible_for_production": false,
+    "research_results_eligible_for_exploration": true,
+    "production_requires_customer_qualification_or_commercial_status": true
+  }
+}
