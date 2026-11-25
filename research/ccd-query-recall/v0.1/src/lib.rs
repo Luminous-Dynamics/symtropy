@@ -1995,30 +1995,16 @@ mod tests {
 
     #[test]
     fn imports_constructed_exact_rational_collision_and_miss_cases() {
-        const EE: &str = include_str!(
-            "../fixtures/analytic-linear-v0.1/analytic-linear-ee.csv"
-        );
-        const EE_LABELS: &str = include_str!(
-            "../fixtures/analytic-linear-v0.1/analytic-linear-ee-labels.json"
-        );
-        const VF: &str = include_str!(
-            "../fixtures/analytic-linear-v0.1/analytic-linear-vf.csv"
-        );
-        const VF_LABELS: &str = include_str!(
-            "../fixtures/analytic-linear-v0.1/analytic-linear-vf-labels.json"
-        );
+        const EE: &str = include_str!("../fixtures/analytic-linear-v0.1/analytic-linear-ee.csv");
+        const EE_LABELS: &str =
+            include_str!("../fixtures/analytic-linear-v0.1/analytic-linear-ee-labels.json");
+        const VF: &str = include_str!("../fixtures/analytic-linear-v0.1/analytic-linear-vf.csv");
+        const VF_LABELS: &str =
+            include_str!("../fixtures/analytic-linear-v0.1/analytic-linear-vf-labels.json");
         let mut edge_queries = parse_queries_csv(EE, QueryKind::EdgeEdge).unwrap();
         let mut vertex_queries = parse_queries_csv(VF, QueryKind::VertexFace).unwrap();
-        attach_ground_truth(
-            &mut edge_queries,
-            &parse_boolean_json(EE_LABELS).unwrap(),
-        )
-        .unwrap();
-        attach_ground_truth(
-            &mut vertex_queries,
-            &parse_boolean_json(VF_LABELS).unwrap(),
-        )
-        .unwrap();
+        attach_ground_truth(&mut edge_queries, &parse_boolean_json(EE_LABELS).unwrap()).unwrap();
+        attach_ground_truth(&mut vertex_queries, &parse_boolean_json(VF_LABELS).unwrap()).unwrap();
 
         assert_eq!(edge_queries.len(), 2);
         assert_eq!(vertex_queries.len(), 2);
@@ -2132,10 +2118,7 @@ mod tests {
                 .join("\t"),
             );
         }
-        let tsv = format!(
-            "#ccd-query-run-results-v1\n{}",
-            rows.join("\n")
-        );
+        let tsv = format!("#ccd-query-run-results-v1\n{}", rows.join("\n"));
         let run_results = parse_query_run_results_tsv(&tsv).unwrap();
         let profile = RunProfile::new(
             RunProvenance::new(
