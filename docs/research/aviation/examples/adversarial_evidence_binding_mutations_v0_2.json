@@ -272,7 +272,7 @@
       ]
     },
     {
-      "case_id": "duplicate-sampling-event-id-across-specimens",
+      "case_id": "duplicate-specimen-item-id-across-specimens",
       "operation": "composite",
       "mutations": [
         {
@@ -302,7 +302,8 @@
             "source_record_id": "TRAVELER-0001",
             "assertion_method": "independent-record-reconciliation",
             "issuer_id": "SYNTHETIC-ISSUER-A",
-            "provenance_ref": "synthetic://traveler/0001#specimen-b"
+            "provenance_ref": "synthetic://traveler/0001#specimen-b",
+            "specimen_item_id": "SPECIMEN-ITEM-A"
           }
         },
         {
@@ -324,7 +325,7 @@
       ],
       "expected_structurally_complete": false,
       "expected_violation_codes": [
-        "SPECIMEN_SAMPLING_EVENT_REPLAY"
+        "SPECIMEN_ITEM_ID_REPLAY"
       ],
       "expected_blocker_codes": [
         "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED"
@@ -377,6 +378,19 @@
       ],
       "expected_blocker_codes": [
         "CALIBRATION_CERTIFICATE_EVIDENCE_UNBOUND"
+      ]
+    },
+    {
+      "case_id": "missing-specimen-item-id",
+      "operation": "set",
+      "pointer": "/specimen_source_assertions/0/specimen_item_id",
+      "value": "",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "SPECIMEN_ITEM_ID_MISSING"
+      ],
+      "expected_blocker_codes": [
+        "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED"
       ]
     }
   ],
