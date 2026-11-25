@@ -109,7 +109,7 @@ This is a narrow binding result. It is not measurement truth, uncertainty suffic
 - missing correction target and competing corrections to one event;
 - deterministic output under record-order permutations.
 
-The 21-case frozen mutation corpus is executed by the Rust tests with exact violation and blocker sets. It is synthetic software testing only; its expected dispositions are not yet an independently reviewed physical or metrology oracle. Independent review and a rights-cleared external corpus remain required before any external performance claim.
+The 22-case frozen mutation corpus is executed by the Rust tests with exact violation and blocker sets. It is synthetic software testing only; its expected dispositions are not yet an independently reviewed physical or metrology oracle. Independent review and a rights-cleared external corpus remain required before any external performance claim.
 
 ## 4. Paradigm shifts beyond a better optimizer
 
