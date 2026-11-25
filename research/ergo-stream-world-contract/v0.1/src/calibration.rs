@@ -1115,7 +1115,11 @@ mod tests {
             PROBABILITY_SCALE_PPM_V0
         );
         let predicted = calibrator
-            .predict(302, &conformal_identity(2, 100_000, 1, 2, PROBABILITY_SCALE_PPM_V0), 900_000)
+            .predict(
+                302,
+                &conformal_identity(2, 100_000, 1, 2, PROBABILITY_SCALE_PPM_V0),
+                900_000,
+            )
             .unwrap();
         assert!(predicted.include_transfer);
         assert!(predicted.include_non_transfer);
@@ -1190,7 +1194,11 @@ mod tests {
         .unwrap();
 
         let prediction = calibrator
-            .predict(205, &conformal_identity(8, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0), 950_000)
+            .predict(
+                205,
+                &conformal_identity(8, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0),
+                950_000,
+            )
             .unwrap();
 
         assert_eq!(prediction.evaluation_stratum_id, 8);
@@ -1232,14 +1240,13 @@ mod tests {
     #[test]
     fn split_conformal_fails_closed_when_claim_or_model_identity_changes() {
         let (forecasts, outcomes) = conformal_calibration_fixture();
-        let calibrator =
-            fit_split_conformal_binary_transfer(
-                &forecasts,
-                &outcomes,
-                &conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0),
-                100_000
-            )
-                .unwrap();
+        let calibrator = fit_split_conformal_binary_transfer(
+            &forecasts,
+            &outcomes,
+            &conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0),
+            100_000,
+        )
+        .unwrap();
 
         let baseline = conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0);
         let mut changed_identities = Vec::new();
@@ -1354,8 +1361,7 @@ mod tests {
             Err(TransferCalibrationErrorV0::InvalidCalibrationReceiptIdentity)
         );
 
-        let mut identity =
-            conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0);
+        let mut identity = conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0);
         identity.quantile_nonconformity_ppm = 900_000;
         assert_eq!(
             fit_split_conformal_binary_transfer(&forecasts, &outcomes, &identity, 100_000),
@@ -1382,7 +1388,11 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            calibrator.predict(999, &conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0), 1_000_001),
+            calibrator.predict(
+                999,
+                &conformal_identity(7, 100_000, 3, 4, PROBABILITY_SCALE_PPM_V0),
+                1_000_001
+            ),
             Err(TransferCalibrationErrorV0::ProbabilityOutOfRange)
         );
     }
