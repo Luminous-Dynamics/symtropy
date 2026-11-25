@@ -1,0 +1,5 @@
+version = 4
+
+[[package]]
+name = "safrb-cargo-receipt-ledger"
+version = "0.1.0"
