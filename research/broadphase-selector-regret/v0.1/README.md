@@ -28,9 +28,9 @@ cargo clippy --manifest-path research/broadphase-selector-regret/v0.1/Cargo.toml
 
 ## Metrics
 
-Per sequence: online total cost, sequence-level offline oracle cost/path, best fixed qualified backend, regret, regression versus best fixed, switch count, selector/switch overhead and selected broadphase cost.
+Per sequence: online total cost, sequence-level offline oracle cost/path, best fixed qualified backend, regret, regression versus best fixed, switch count, selector/switch overhead, selected broadphase cost, p50/p95/p99 selected broadphase and full-step latency, and peak selected-path memory.
 
-Per held-out family and campaign: median/p95 regret, p95 regression versus best fixed and median/p95 selector-plus-switch overhead.
+Per held-out family and campaign: median/p95 regret, p95 regression versus best fixed, median/p95 selector-plus-switch overhead, and an aggregate ratio of total selector/switch cost to total selected broadphase time. The aggregate ratio is the primary 2% overhead gate; per-sequence quantiles expose tail behavior.
 
 Basis points use 100 basis points per percentage point (500 = 5%, 1,000 = 10%).
 
