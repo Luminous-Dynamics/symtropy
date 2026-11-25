@@ -450,22 +450,37 @@ impl<const D: usize> StaticAabbBvh<D> {
         node_index
     }
 
-    fn query(&self, entries: &[BpEntry<D>], query_aabb: &Aabb<D>) -> Vec<usize> {
+    fn query(
+        &self,
+        entries: &[BpEntry<D>],
+        query_aabb: &Aabb<D>,
+    ) -> StaticQueryCandidates {
+        let mut stats = StaticQueryStats {
+            query_count: 1,
+            ..StaticQueryStats::default()
+        };
         let Some(root) = self.root else {
-            return Vec::new();
+            return StaticQueryCandidates {
+                entry_indices: Vec::new(),
+                stats,
+            };
         };
         let mut results = Vec::new();
         let mut stack = vec![root];
         while let Some(node_index) = stack.pop() {
+            stats.nodes_visited += 1;
             let node = &self.nodes[node_index];
             if !query_aabb.overlaps(&node.aabb) {
                 continue;
             }
             match node.kind {
                 StaticBvhNodeKind::Leaf { start, end } => {
+                    stats.leaf_nodes_visited += 1;
                     for position in start..end {
                         let entry_index = self.order[position];
+                        stats.entries_tested += 1;
                         if query_aabb.overlaps(&entries[entry_index].aabb) {
+                            stats.overlap_hits += 1;
                             results.push(entry_index);
                         }
                     }
@@ -477,8 +492,45 @@ impl<const D: usize> StaticAabbBvh<D> {
             }
         }
         results.sort_unstable_by_key(|index| entries[*index].handle);
-        results
+        StaticQueryCandidates {
+            entry_indices: results,
+            stats,
+        }
     }
+}
+
+/// Work counters emitted by one or more cached-population AABB queries.
+/// The linear and BVH backends use identical counter definitions.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct StaticQueryStats {
+    pub query_count: u64,
+    pub nodes_visited: u64,
+    pub leaf_nodes_visited: u64,
+    pub entries_tested: u64,
+    pub overlap_hits: u64,
+}
+
+impl StaticQueryStats {
+    fn checked_add(self, other: Self) -> Result<Self, StaticBroadphaseError> {
+        Ok(Self {
+            query_count: self.query_count.checked_add(other.query_count)
+                .ok_or(StaticBroadphaseError::CounterOverflow)?,
+            nodes_visited: self.nodes_visited.checked_add(other.nodes_visited)
+                .ok_or(StaticBroadphaseError::CounterOverflow)?,
+            leaf_nodes_visited: self.leaf_nodes_visited.checked_add(other.leaf_nodes_visited)
+                .ok_or(StaticBroadphaseError::CounterOverflow)?,
+            entries_tested: self.entries_tested.checked_add(other.entries_tested)
+                .ok_or(StaticBroadphaseError::CounterOverflow)?,
+            overlap_hits: self.overlap_hits.checked_add(other.overlap_hits)
+                .ok_or(StaticBroadphaseError::CounterOverflow)?,
+        })
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct StaticQueryCandidates {
+    entry_indices: Vec<usize>,
+    stats: StaticQueryStats,
 }
 
 pub struct StaticBroadphase<const D: usize> {
@@ -532,37 +584,32 @@ impl<const D: usize> StaticBroadphase<D> {
     /// kinematic body are retained to match the canonical find_pairs contract.
     /// The loops are O(K*S + K^2), not O((S+K)^2), so large static-only
     /// populations do not pay a quadratic scan.
-    fn query_cached_pairs(&self) -> Vec<BroadphasePair> {
-        let static_entries: Vec<&BpEntry<D>> = self
-            .entries
-            .iter()
-            .filter(|entry| entry.body_type == BodyType::Static)
-            .collect();
-        let kinematic_entries: Vec<&BpEntry<D>> = self
-            .entries
-            .iter()
-            .filter(|entry| entry.body_type == BodyType::Kinematic)
-            .collect();
-
+    fn query_cached_pairs(
+        &self,
+        backend: StaticQueryBackend,
+    ) -> Result<(Vec<BroadphasePair>, StaticQueryStats), StaticBroadphaseError> {
         let mut pairs = Vec::new();
-        for (index, kinematic) in kinematic_entries.iter().enumerate() {
-            for static_entry in &static_entries {
-                let group_ok = (kinematic.collision_group & static_entry.collision_mask != 0)
-                    && (static_entry.collision_group & kinematic.collision_mask != 0);
-                if group_ok && kinematic.aabb.overlaps(&static_entry.aabb) {
-                    let (left, right) = (kinematic.handle, static_entry.handle);
-                    pairs.push(if left < right {
-                        BroadphasePair(left, right)
-                    } else {
-                        BroadphasePair(right, left)
-                    });
-                }
-            }
+        let mut stats = StaticQueryStats::default();
 
-            for other in kinematic_entries.iter().skip(index + 1) {
+        for (index, kinematic) in self.entries.iter().enumerate() {
+            if kinematic.body_type != BodyType::Kinematic {
+                continue;
+            }
+            let candidates = self.query_indices(&kinematic.aabb, backend)?;
+            stats = stats.checked_add(candidates.stats)?;
+            for other_index in candidates.entry_indices {
+                if other_index <= index {
+                    continue;
+                }
+                let other = &self.entries[other_index];
+                if other.body_type != BodyType::Static
+                    && other.body_type != BodyType::Kinematic
+                {
+                    continue;
+                }
                 let group_ok = (kinematic.collision_group & other.collision_mask != 0)
                     && (other.collision_group & kinematic.collision_mask != 0);
-                if group_ok && kinematic.aabb.overlaps(&other.aabb) {
+                if group_ok {
                     let (left, right) = (kinematic.handle, other.handle);
                     pairs.push(if left < right {
                         BroadphasePair(left, right)
@@ -572,41 +619,49 @@ impl<const D: usize> StaticBroadphase<D> {
                 }
             }
         }
-        pairs
+        Ok((pairs, stats))
     }
 
     /// Reference backend: scan every cached entry.
-    fn query_against_linear(&self, dyn_entry: &BpEntry<D>) -> Vec<BroadphasePair> {
-        self.entries
-            .iter()
-            .filter_map(|entry| {
-                let group_ok = (dyn_entry.collision_group & entry.collision_mask != 0)
-                    && (entry.collision_group & dyn_entry.collision_mask != 0);
-                if group_ok && dyn_entry.aabb.overlaps(&entry.aabb) {
-                    let (left, right) = (dyn_entry.handle, entry.handle);
-                    Some(if left < right {
-                        BroadphasePair(left, right)
-                    } else {
-                        BroadphasePair(right, left)
-                    })
-                } else {
-                    None
+    fn query_indices(
+        &self,
+        query_aabb: &Aabb<D>,
+        backend: StaticQueryBackend,
+    ) -> Result<StaticQueryCandidates, StaticBroadphaseError> {
+        match backend {
+            StaticQueryBackend::LinearScan => {
+                let mut result = StaticQueryCandidates {
+                    entry_indices: Vec::new(),
+                    stats: StaticQueryStats {
+                        query_count: 1,
+                        ..StaticQueryStats::default()
+                    },
+                };
+                for (index, entry) in self.entries.iter().enumerate() {
+                    result.stats.entries_tested += 1;
+                    if query_aabb.overlaps(&entry.aabb) {
+                        result.stats.overlap_hits += 1;
+                        result.entry_indices.push(index);
+                    }
                 }
-            })
-            .collect()
+                Ok(result)
+            }
+            StaticQueryBackend::CachedBvh => {
+                let index = self.indexed.as_ref()
+                    .ok_or(StaticBroadphaseError::IndexNotBuilt)?;
+                Ok(index.query(&self.entries, query_aabb))
+            }
+        }
     }
 
-    /// Experimental backend: query the prebuilt static AABB BVH.
-    fn query_against_bvh(
+    fn query_against(
         &self,
         dyn_entry: &BpEntry<D>,
-    ) -> Result<Vec<BroadphasePair>, StaticBroadphaseError> {
-        let index = self
-            .indexed
-            .as_ref()
-            .ok_or(StaticBroadphaseError::IndexNotBuilt)?;
+        backend: StaticQueryBackend,
+    ) -> Result<(Vec<BroadphasePair>, StaticQueryStats), StaticBroadphaseError> {
+        let candidates = self.query_indices(&dyn_entry.aabb, backend)?;
         let mut pairs = Vec::new();
-        for entry_index in index.query(&self.entries, &dyn_entry.aabb) {
+        for entry_index in candidates.entry_indices {
             let entry = &self.entries[entry_index];
             let group_ok = (dyn_entry.collision_group & entry.collision_mask != 0)
                 && (entry.collision_group & dyn_entry.collision_mask != 0);
@@ -619,8 +674,10 @@ impl<const D: usize> StaticBroadphase<D> {
                 });
             }
         }
-        Ok(pairs)
+        Ok((pairs, candidates.stats))
     }
+
+
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -632,6 +689,7 @@ pub enum StaticQueryBackend {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StaticBroadphaseError {
     IndexNotBuilt,
+    CounterOverflow,
 }
 
 impl std::fmt::Display for StaticBroadphaseError {
@@ -674,16 +732,16 @@ pub fn find_pairs_incremental<const D: usize>(
 /// Select a static-cache query backend for matched correctness/performance runs.
 /// CachedBvh requires StaticBroadphase::rebuild_with_bvh; this API is opt-in and
 /// does not alter the production default.
-pub fn find_pairs_incremental_with_backend<const D: usize>(
+pub fn find_pairs_incremental_with_backend_and_stats<const D: usize>(
     bodies: &[RigidBody<D>],
     static_bp: &StaticBroadphase<D>,
     backend: StaticQueryBackend,
-) -> Result<Vec<BroadphasePair>, StaticBroadphaseError> {
+) -> Result<(Vec<BroadphasePair>, StaticQueryStats), StaticBroadphaseError> {
     if bodies.is_empty() {
-        return Ok(Vec::new());
+        return Ok((Vec::new(), StaticQueryStats::default()));
     }
     if static_bp.is_empty() {
-        return Ok(find_pairs(bodies));
+        return Ok((find_pairs(bodies), StaticQueryStats::default()));
     }
 
     let dynamic: Vec<BpEntry<D>> = bodies
@@ -693,10 +751,10 @@ pub fn find_pairs_incremental_with_backend<const D: usize>(
         .collect();
 
     if dynamic.len() >= BRUTE_FORCE_THRESHOLD {
-        return Ok(find_pairs(bodies));
+        return Ok((find_pairs(bodies), StaticQueryStats::default()));
     }
 
-    let mut pairs = static_bp.query_cached_pairs();
+    let (mut pairs, mut stats) = static_bp.query_cached_pairs(backend)?;
 
     // Dynamic-dynamic pairs remain brute-force for the current small-D regime.
     for i in 0..dynamic.len() {
@@ -716,21 +774,25 @@ pub fn find_pairs_incremental_with_backend<const D: usize>(
         }
     }
 
-    // Dynamic-cached pairs use either the reference scan or the opt-in BVH.
     for dyn_entry in &dynamic {
-        match backend {
-            StaticQueryBackend::LinearScan => {
-                pairs.extend(static_bp.query_against_linear(dyn_entry));
-            }
-            StaticQueryBackend::CachedBvh => {
-                pairs.extend(static_bp.query_against_bvh(dyn_entry)?);
-            }
-        }
+        let (mut dynamic_pairs, query_stats) =
+            static_bp.query_against(dyn_entry, backend)?;
+        pairs.append(&mut dynamic_pairs);
+        stats = stats.checked_add(query_stats)?;
     }
 
     pairs.sort_unstable_by_key(|pair| (pair.0, pair.1));
     pairs.dedup();
-    Ok(pairs)
+    Ok((pairs, stats))
+}
+
+pub fn find_pairs_incremental_with_backend<const D: usize>(
+    bodies: &[RigidBody<D>],
+    static_bp: &StaticBroadphase<D>,
+    backend: StaticQueryBackend,
+) -> Result<Vec<BroadphasePair>, StaticBroadphaseError> {
+    find_pairs_incremental_with_backend_and_stats(bodies, static_bp, backend)
+        .map(|(pairs, _)| pairs)
 }
 
 fn find_pairs_brute<const D: usize>(bodies: &[RigidBody<D>]) -> Vec<BroadphasePair> {
