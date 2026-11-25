@@ -1,0 +1,474 @@
+{
+  "schema": "luminous.orbital-inspection-recourse.corpus.v0.1",
+  "benchmark_id": "ORBITAL-INSPECTION-RECOURSE-001",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_finite_contingent_policy_over_declared_outcome_support_only",
+  "cases": [
+    {
+      "case_id": "IR-001-SINGLE-LOOK",
+      "worlds": [
+        {
+          "world_id": "W_ACCEPT",
+          "decision_class": "ACCEPT"
+        },
+        {
+          "world_id": "W_REPAIR",
+          "decision_class": "REPAIR"
+        }
+      ],
+      "actions": [
+        {
+          "action_id": "VIEW-ONLY",
+          "duration_ms": 4,
+          "energy_mj": 3,
+          "model_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "gates": [
+            {
+              "gate_id": "CALIBRATION",
+              "state": "PASS",
+              "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "gate_id": "ACQUISITION_INTEGRITY",
+              "state": "PASS",
+              "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            }
+          ],
+          "outcomes_by_world": [
+            {
+              "world_id": "W_ACCEPT",
+              "mapping_state": "KNOWN",
+              "possible_outcomes": [
+                "CLEAR"
+              ],
+              "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "world_id": "W_REPAIR",
+              "mapping_state": "KNOWN",
+              "possible_outcomes": [
+                "DEFECT"
+              ],
+              "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            }
+          ]
+        }
+      ],
+      "max_actions": 2,
+      "max_search_states": 100,
+      "budget_time_ms": 20,
+      "budget_energy_mj": 20,
+      "expected_status": "RESOLVED",
+      "expected_root_action": "VIEW-ONLY"
+    },
+    {
+      "case_id": "IR-002-CONTINGENT-TREE",
+      "worlds": [
+        {
+          "world_id": "W_ACCEPT_A",
+          "decision_class": "ACCEPT"
+        },
+        {
+          "world_id": "W_REPAIR",
+          "decision_class": "REPAIR"
+        },
+        {
+          "world_id": "W_ACCEPT_B",
+          "decision_class": "ACCEPT"
+        }
+      ],
+      "actions": [
+        {
+          "action_id": "VIEW-1",
+          "duration_ms": 3,
+          "energy_mj": 2,
+          "model_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "gates": [
+            {
+              "gate_id": "CALIBRATION",
+              "state": "PASS",
+              "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "gate_id": "ACQUISITION_INTEGRITY",
+              "state": "PASS",
+              "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            }
+          ],
+          "outcomes_by_world": [
+            {
+              "world_id": "W_ACCEPT_A",
+              "mapping_state": "KNOWN",
+              "possible_outcomes": [
+                "CLEAR"
+              ],
+              "receipt_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            {
+              "world_id": "W_REPAIR",
+              "mapping_state": "KNOWN",
+              "possible_outcomes": [
+                "AMBIGUOUS"
+              ],
+              "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            },
+            {
+              "world_id": "W_ACCEPT_B",
+              "mapping_state": "KNOWN",
+              "possible_outcomes": [
+                "AMBIGUOUS"
+              ],
+              "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            }
+          ]
+        },
+        {
+          "action_id": "VIEW-2",
+          "duration_ms": 8,
+          "energy_mj": 6,
+          "model_receipt_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+          "gates": [
+            {
+              "gate_id": "CALIBRATION",
+              "state": "PASS",
+              "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "gate_id": "ACQUISITION_INTEGRITY",
+              "state": "PASS",
+              "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            }
+          ],
+          "outcomes_by_world": [
+            {
+              "world_id": "W_ACCEPT_A",
+              "mapping_state": "KNOWN",
+              "possible_outcomes": [
+                "CLEAR"
+              ],
+              "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            },
+            {
+              "world_id": "W_REPAIR",
+              "mapping_state": "KNOWN",
+              "possible_outcomes": [
+                "DEFECT"
+              ],
+              "receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+            },
+            {
+              "world_id": "W_ACCEPT_B",
+              "mapping_state": "KNOWN",
+              "possible_outcomes": [
+                "CLEAR"
+              ],
+              "receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+            }
+          ]
+        }
+      ],
+      "max_actions": 3,
+      "max_search_states": 1000,
+      "budget_time_ms": 20,
+      "budget_energy_mj": 20,
+      "expected_status": "RESOLVED",
+      "expected_root_action": "VIEW-1"
+    },
+    {
+      "case_id": "IR-003-SAME-DECISION",
+      "worlds": [
+        {
+          "world_id": "W_ACCEPT_A",
+          "decision_class": "ACCEPT"
+        },
+        {
+          "world_id": "W_ACCEPT_B",
+          "decision_class": "ACCEPT"
+        }
+      ],
+      "actions": [],
+      "max_actions": 2,
+      "max_search_states": 100,
+      "budget_time_ms": 20,
+      "budget_energy_mj": 20,
+      "expected_status": "RESOLVED",
+      "expected_root_action": null
+    },
+    {
+      "case_id": "IR-004-UNKNOWN-GATE",
+      "worlds": [
+        {
+          "world_id": "W_ACCEPT",
+          "decision_class": "ACCEPT"
+        },
+        {
+          "world_id": "W_REPAIR",
+          "decision_class": "REPAIR"
+        }
+      ],
+      "actions": [
+        {
+          "action_id": "UNQUALIFIED_VIEW",
+          "duration_ms": 1,
+          "energy_mj": 1,
+          "model_receipt_sha256": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh",
+          "gates": [
+            {
+              "gate_id": "CALIBRATION",
+              "state": "UNKNOWN",
+              "receipt_sha256": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+            }
+          ],
+          "outcomes_by_world": [
+            {
+              "world_id": "W_ACCEPT",
+              "mapping_state": "KNOWN",
+              "possible_outcomes": [
+                "CLEAR"
+              ],
+              "receipt_sha256": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+            },
+            {
+              "world_id": "W_REPAIR",
+              "mapping_state": "KNOWN",
+              "possible_outcomes": [
+                "DEFECT"
+              ],
+              "receipt_sha256": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+            }
+          ]
+        }
+      ],
+      "max_actions": 2,
+      "max_search_states": 100,
+      "budget_time_ms": 20,
+      "budget_energy_mj": 20,
+      "expected_status": "ABSTAIN",
+      "expected_root_action": null
+    },
+    {
+      "case_id": "IR-005-COMMON-CAUSE",
+      "worlds": [
+        {
+          "world_id": "W_ACCEPT",
+          "decision_class": "ACCEPT"
+        },
+        {
+          "world_id": "W_REPAIR",
+          "decision_class": "REPAIR"
+        }
+      ],
+      "actions": [
+        {
+          "action_id": "SHARED-FAILURE-DOMAIN-VIEW",
+          "duration_ms": 1,
+          "energy_mj": 1,
+          "model_receipt_sha256": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll",
+          "gates": [
+            {
+              "gate_id": "CALIBRATION",
+              "state": "PASS",
+              "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "gate_id": "ACQUISITION_INTEGRITY",
+              "state": "PASS",
+              "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            }
+          ],
+          "outcomes_by_world": [
+            {
+              "world_id": "W_ACCEPT",
+              "mapping_state": "KNOWN",
+              "possible_outcomes": [
+                "UNAVAILABLE"
+              ],
+              "receipt_sha256": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+            },
+            {
+              "world_id": "W_REPAIR",
+              "mapping_state": "KNOWN",
+              "possible_outcomes": [
+                "UNAVAILABLE"
+              ],
+              "receipt_sha256": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+            }
+          ]
+        }
+      ],
+      "max_actions": 2,
+      "max_search_states": 100,
+      "budget_time_ms": 20,
+      "budget_energy_mj": 20,
+      "expected_status": "ABSTAIN",
+      "expected_root_action": null
+    },
+    {
+      "case_id": "IR-006-SEARCH-CAP",
+      "worlds": [
+        {
+          "world_id": "W_ACCEPT",
+          "decision_class": "ACCEPT"
+        },
+        {
+          "world_id": "W_REPAIR",
+          "decision_class": "REPAIR"
+        }
+      ],
+      "actions": [
+        {
+          "action_id": "VIEW-TOO-MANY-STATES",
+          "duration_ms": 1,
+          "energy_mj": 1,
+          "model_receipt_sha256": "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo",
+          "gates": [
+            {
+              "gate_id": "CALIBRATION",
+              "state": "PASS",
+              "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "gate_id": "ACQUISITION_INTEGRITY",
+              "state": "PASS",
+              "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            }
+          ],
+          "outcomes_by_world": [
+            {
+              "world_id": "W_ACCEPT",
+              "mapping_state": "KNOWN",
+              "possible_outcomes": [
+                "CLEAR"
+              ],
+              "receipt_sha256": "pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp"
+            },
+            {
+              "world_id": "W_REPAIR",
+              "mapping_state": "KNOWN",
+              "possible_outcomes": [
+                "DEFECT"
+              ],
+              "receipt_sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+            }
+          ]
+        }
+      ],
+      "max_actions": 2,
+      "max_search_states": 1,
+      "budget_time_ms": 20,
+      "budget_energy_mj": 20,
+      "expected_status": "SEARCH_LIMIT_NOT_PROVEN",
+      "expected_root_action": null
+    },
+    {
+      "case_id": "IR-007-BUDGET",
+      "worlds": [
+        {
+          "world_id": "W_ACCEPT",
+          "decision_class": "ACCEPT"
+        },
+        {
+          "world_id": "W_REPAIR",
+          "decision_class": "REPAIR"
+        }
+      ],
+      "actions": [
+        {
+          "action_id": "TOO-EXPENSIVE-VIEW",
+          "duration_ms": 20,
+          "energy_mj": 20,
+          "model_receipt_sha256": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+          "gates": [
+            {
+              "gate_id": "CALIBRATION",
+              "state": "PASS",
+              "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "gate_id": "ACQUISITION_INTEGRITY",
+              "state": "PASS",
+              "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            }
+          ],
+          "outcomes_by_world": [
+            {
+              "world_id": "W_ACCEPT",
+              "mapping_state": "KNOWN",
+              "possible_outcomes": [
+                "CLEAR"
+              ],
+              "receipt_sha256": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+            },
+            {
+              "world_id": "W_REPAIR",
+              "mapping_state": "KNOWN",
+              "possible_outcomes": [
+                "DEFECT"
+              ],
+              "receipt_sha256": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt"
+            }
+          ]
+        }
+      ],
+      "max_actions": 2,
+      "max_search_states": 100,
+      "budget_time_ms": 5,
+      "budget_energy_mj": 5,
+      "expected_status": "ABSTAIN",
+      "expected_root_action": null
+    },
+    {
+      "case_id": "IR-008-UNKNOWN-MODEL",
+      "worlds": [
+        {
+          "world_id": "W_ACCEPT",
+          "decision_class": "ACCEPT"
+        },
+        {
+          "world_id": "W_REPAIR",
+          "decision_class": "REPAIR"
+        }
+      ],
+      "actions": [
+        {
+          "action_id": "UNMODELED-VIEW",
+          "duration_ms": 1,
+          "energy_mj": 1,
+          "model_receipt_sha256": "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu",
+          "gates": [
+            {
+              "gate_id": "CALIBRATION",
+              "state": "PASS",
+              "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "gate_id": "ACQUISITION_INTEGRITY",
+              "state": "PASS",
+              "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            }
+          ],
+          "outcomes_by_world": [
+            {
+              "world_id": "W_ACCEPT",
+              "mapping_state": "KNOWN",
+              "possible_outcomes": [],
+              "receipt_sha256": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+            },
+            {
+              "world_id": "W_REPAIR",
+              "mapping_state": "UNKNOWN",
+              "possible_outcomes": [],
+              "receipt_sha256": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+            }
+          ]
+        }
+      ],
+      "max_actions": 2,
+      "max_search_states": 100,
+      "budget_time_ms": 20,
+      "budget_energy_mj": 20,
+      "expected_status": "ABSTAIN",
+      "expected_root_action": null
+    }
+  ]
+}
