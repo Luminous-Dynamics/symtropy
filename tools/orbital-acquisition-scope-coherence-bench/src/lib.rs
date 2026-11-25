@@ -553,8 +553,8 @@ mod tests {
             "0123456789abcdef0123456789abcdef01234567",
         )
         .expect("scope corpus audits");
-        assert_eq!(receipt.case_count, 24);
-        assert_eq!(receipt.expected_disposition_matches, 24);
+        assert_eq!(receipt.case_count, 26);
+        assert_eq!(receipt.expected_disposition_matches, 26);
         assert_eq!(receipt.expected_disposition_mismatches, 0);
         assert!(!receipt.source_bytes_authenticated);
         assert!(!receipt.authority_granted);
@@ -615,16 +615,31 @@ mod tests {
     }
 
     #[test]
-    fn half_open_validity_boundary_is_not_promoted() {
+    fn validity_boundary_overlap_is_indeterminate() {
         let input = corpus();
-        let case = input
-            .cases
-            .iter()
-            .find(|case| case.case_id == "SC-016-TOUCHES-VALID-UNTIL")
-            .unwrap();
-        let result = evaluate_case(case);
-        assert_eq!(result.disposition, Disposition::OutOfScope);
-        assert!(result.reason_codes.contains(&"EVIDENCE_VALIDITY_DOES_NOT_COVER_ACQUISITION".to_owned()));
+        for id in [
+            "SC-015-VALIDITY-START-TOO-LATE",
+            "SC-016-TOUCHES-VALID-UNTIL",
+        ] {
+            let case = input.cases.iter().find(|case| case.case_id == id).unwrap();
+            let result = evaluate_case(case);
+            assert_eq!(result.disposition, Disposition::Indeterminate);
+            assert!(result.reason_codes.contains(&"EVIDENCE_VALIDITY_BOUNDARY_OVERLAP".to_owned()));
+        }
+    }
+
+    #[test]
+    fn definitely_disjoint_validity_intervals_are_out_of_scope() {
+        let input = corpus();
+        for id in [
+            "SC-025-VALIDITY-WHOLLY-BEFORE",
+            "SC-026-ACQUISITION-WHOLLY-AFTER",
+        ] {
+            let case = input.cases.iter().find(|case| case.case_id == id).unwrap();
+            let result = evaluate_case(case);
+            assert_eq!(result.disposition, Disposition::OutOfScope);
+            assert!(result.reason_codes.contains(&"EVIDENCE_VALIDITY_DISJOINT".to_owned()));
+        }
     }
 
     #[test]
