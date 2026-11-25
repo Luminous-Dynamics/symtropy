@@ -173,6 +173,9 @@ pub struct PolicyDecision {
 pub struct SequenceInput {
     pub sequence_id: String,
     pub workload_family: String,
+    /// Digest of the frozen policy implementation/configuration used for all
+    /// decisions in this sequence.
+    pub policy_sha256: String,
     pub split: SequenceSplit,
     pub initial_backend: Option<BackendId>,
     pub observations: Vec<BackendFrameObservation>,
@@ -259,6 +262,7 @@ pub enum SelectorError {
     InconsistentEnvironment,
     InconsistentCollisionFilter,
     InconsistentBackendBuild,
+    InconsistentPolicy,
     NoQualifiedBackendForFrame(u64),
     EmptyOraclePositivePopulation,
     DuplicateTransitionCost,
@@ -544,6 +548,7 @@ pub fn evaluate_sequence(input: &SequenceInput) -> Result<SequenceScore, Selecto
     if input.sequence_id.trim().is_empty() || input.workload_family.trim().is_empty() {
         return Err(SelectorError::InvalidSequenceMetadata);
     }
+    validate_sha256(&input.policy_sha256)?;
     if input.split != SequenceSplit::HeldOut {
         return Err(SelectorError::TrainingSequenceNotEligible);
     }
@@ -795,9 +800,14 @@ pub fn evaluate_campaign(inputs: &[SequenceInput]) -> Result<CampaignSummary, Se
     if inputs.is_empty() {
         return Err(SelectorError::EmptyCampaign);
     }
+    let expected_policy = &inputs[0].policy_sha256;
+    validate_sha256(expected_policy)?;
     let mut ids = BTreeSet::new();
     let mut sequences = Vec::with_capacity(inputs.len());
     for input in inputs {
+        if &input.policy_sha256 != expected_policy {
+            return Err(SelectorError::InconsistentPolicy);
+        }
         if !ids.insert(input.sequence_id.clone()) {
             return Err(SelectorError::DuplicateSequenceId);
         }
@@ -1008,6 +1018,7 @@ mod tests {
         SequenceInput {
             sequence_id: "heldout-01".to_owned(),
             workload_family: "clustered".to_owned(),
+            policy_sha256: digest('8'),
             split: SequenceSplit::HeldOut,
             initial_backend: None,
             observations,
@@ -1226,6 +1237,28 @@ mod tests {
         assert_eq!(
             report.sequences[0].sequence_id,
             "heldout-01"
+        );
+    }
+
+    #[test]
+    fn campaign_rejects_mixed_selector_policy_versions() {
+        let first = input(&["A", "A", "A"], &[]);
+        let mut second = first.clone();
+        second.sequence_id = "heldout-02".to_owned();
+        second.policy_sha256 = digest('7');
+        assert_eq!(
+            evaluate_campaign(&[first, second]),
+            Err(SelectorError::InconsistentPolicy)
+        );
+    }
+
+    #[test]
+    fn invalid_policy_digest_is_rejected() {
+        let mut value = input(&["A", "A", "A"], &[]);
+        value.policy_sha256 = "not-a-sha256".to_owned();
+        assert_eq!(
+            evaluate_sequence(&value),
+            Err(SelectorError::InvalidDigest)
         );
     }
 
