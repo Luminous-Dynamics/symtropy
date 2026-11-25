@@ -16,7 +16,7 @@
     "inventory": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["product", "openingGrams", "acceptedInflowGrams", "withdrawalsGrams", "declaredLossesGrams", "closingGrams", "quarantinedGrams", "operatingHeelGrams", "usableGrams", "encumberedGrams", "authorityAvailable", "accessibleGrams"],
+      "required": ["product", "openingGrams", "acceptedInflowGrams", "withdrawalsGrams", "declaredLossesGrams", "closingGrams", "measurementUncertaintyBasisPoints", "observedLowerGrams", "observedUpperGrams", "quarantinedGrams", "operatingHeelGrams", "usableGrams", "encumberedGrams", "authorityAvailable", "accessibleGrams"],
       "properties": {
         "product": { "enum": ["crude_oil", "diesel"] },
         "openingGrams": { "type": "integer", "minimum": 0 },
@@ -24,6 +24,9 @@
         "withdrawalsGrams": { "type": "integer", "minimum": 0 },
         "declaredLossesGrams": { "type": "integer", "minimum": 0 },
         "closingGrams": { "type": "integer", "minimum": 0 },
+        "measurementUncertaintyBasisPoints": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "observedLowerGrams": { "type": "integer", "minimum": 0 },
+        "observedUpperGrams": { "type": "integer", "minimum": 0 },
         "quarantinedGrams": { "type": "integer", "minimum": 0 },
         "operatingHeelGrams": { "type": "integer", "minimum": 0 },
         "usableGrams": { "type": "integer", "minimum": 0 },
