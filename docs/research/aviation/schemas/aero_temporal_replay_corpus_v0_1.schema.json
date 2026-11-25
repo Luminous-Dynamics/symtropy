@@ -63,7 +63,7 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 26,
+      "minItems": 29,
       "items": {
         "$ref": "#/$defs/case"
       }
@@ -371,7 +371,17 @@
             "receiver_receipt_watermark_unix_ms",
             "trust_policy_id",
             "trust_status_as_of_unix_ms",
-            "trust_policy_digest_sha256"
+            "trust_policy_digest_sha256",
+            "evidence_checkpoint_status",
+            "evidence_checkpoint_reference",
+            "evidence_checkpoint_digest_sha256",
+            "evidence_checkpoint_watermark_unix_ms",
+            "observer_coverage_status",
+            "observer_coverage_profile_id",
+            "observer_coverage_receipt_reference",
+            "observer_coverage_receipt_digest_sha256",
+            "observer_coverage_watermark_unix_ms",
+            "evidence_view_digest_sha256"
           ],
           "properties": {
             "evaluated_at_unix_ms": {
@@ -389,6 +399,62 @@
             },
             "trust_policy_digest_sha256": {
               "$ref": "#/$defs/nullableSha",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "evidence_checkpoint_status": {
+              "enum": [
+                "SYNTHETIC_VALID",
+                "INVALID",
+                "UNVERIFIED"
+              ]
+            },
+            "evidence_checkpoint_reference": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "evidence_checkpoint_digest_sha256": {
+              "$ref": "#/$defs/nullableSha"
+            },
+            "evidence_checkpoint_watermark_unix_ms": {
+              "$ref": "#/$defs/time"
+            },
+            "observer_coverage_status": {
+              "enum": [
+                "SYNTHETIC_QUALIFIED_COMPLETE",
+                "INCOMPLETE",
+                "UNVERIFIED"
+              ]
+            },
+            "observer_coverage_profile_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "observer_coverage_receipt_reference": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "observer_coverage_receipt_digest_sha256": {
+              "$ref": "#/$defs/nullableSha"
+            },
+            "observer_coverage_watermark_unix_ms": {
+              "$ref": "#/$defs/time"
+            },
+            "evidence_view_digest_sha256": {
+              "type": "string",
               "pattern": "^[a-f0-9]{64}$"
             }
           }
@@ -426,7 +492,17 @@
             "receiver_receipt_watermark_unix_ms",
             "trust_policy_id",
             "trust_status_as_of_unix_ms",
-            "trust_policy_digest_sha256"
+            "trust_policy_digest_sha256",
+            "evidence_checkpoint_status",
+            "evidence_checkpoint_reference",
+            "evidence_checkpoint_digest_sha256",
+            "evidence_checkpoint_watermark_unix_ms",
+            "observer_coverage_status",
+            "observer_coverage_profile_id",
+            "observer_coverage_receipt_reference",
+            "observer_coverage_receipt_digest_sha256",
+            "observer_coverage_watermark_unix_ms",
+            "evidence_view_digest_sha256"
           ],
           "properties": {
             "receiver_receipt_watermark_unix_ms": {
@@ -440,6 +516,62 @@
               "$ref": "#/$defs/time"
             },
             "trust_policy_digest_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "evidence_checkpoint_status": {
+              "enum": [
+                "SYNTHETIC_VALID",
+                "INVALID",
+                "UNVERIFIED"
+              ]
+            },
+            "evidence_checkpoint_reference": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "evidence_checkpoint_digest_sha256": {
+              "$ref": "#/$defs/nullableSha"
+            },
+            "evidence_checkpoint_watermark_unix_ms": {
+              "$ref": "#/$defs/time"
+            },
+            "observer_coverage_status": {
+              "enum": [
+                "SYNTHETIC_QUALIFIED_COMPLETE",
+                "INCOMPLETE",
+                "UNVERIFIED"
+              ]
+            },
+            "observer_coverage_profile_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "observer_coverage_receipt_reference": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "observer_coverage_receipt_digest_sha256": {
+              "$ref": "#/$defs/nullableSha"
+            },
+            "observer_coverage_watermark_unix_ms": {
+              "$ref": "#/$defs/time"
+            },
+            "evidence_view_digest_sha256": {
               "type": "string",
               "pattern": "^[a-f0-9]{64}$"
             }
