@@ -626,3 +626,17 @@ cargo run --quiet --locked --manifest-path research/maritime-decision-risk-contr
 The 25-case receipt covers exact classifier-maturity preservation, contextual DCSA equipment-event type to GS1 CBV business-step translation, forbidden classifier-to-bizStep/disposition shortcuts, invalid target vocabulary, false reversibility, draft/rejected rules, synthetic-rule misuse on non-synthetic sources, event-family mismatch, EPCIS/CBV version mismatch, missing external approval reference, exact-value mismatch, content-addressed bundle digest/reference drift, source subject identity and source payload-reference failures. The CSV has 26 lines including its header and 13 columns. This is a deterministic synthetic qualification, not an external standards conformance score.
 
 This is not a full DCSA/EPCIS parser, event-family schema validator, JSON-LD serializer, complete CBV validator, external approval resolver or official conformance tool. It is the admissibility contract that a future parser/crosswalk must satisfy before normalized output can enter downstream assurance and risk layers.
+
+
+## Current exact-head qualification — cross-standard mapping (25 November 2026)
+
+Exact head `16628ecce5001cadede37269408c003e1b0656a9`, workflow #271 (`45570245753`), pinned Rust 1.96.0:
+- formatting, strict Clippy, compilation: passed;
+- **165 tests passed, 0 failed**;
+- the 25-case DCSA↔EPCIS/CBV receipt replay, 13-column schema and adversarial semantic checks: passed;
+- exact TOML mapping-bundle SHA-256 verification: passed;
+- global receipt digest manifest and 30-day reproducible artifact upload: passed.
+
+Artifact: https://github.com/Luminous-Dynamics/symtropy/actions/runs/45570245753/artifacts/15001688142
+
+This is a synthetic software qualification. The mapping bundle is fixture-only, external approval references are not independently resolved by this crate, and no DCSA API conformance, live source truth, physical cargo movement or receiver delivery is certified.
