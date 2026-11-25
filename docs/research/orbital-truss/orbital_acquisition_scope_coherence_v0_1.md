@@ -56,7 +56,7 @@ Every receipt states source_bytes_authenticated=false and authority_granted=fals
 
 ## Frozen corpus
 
-The 24 synthetic cases cover:
+The 26 synthetic cases cover:
 1. all identities and intervals match;
 2. camera, lens/intrinsics and robot/mount mismatch;
 3. target asset revision and coordinate-frame mismatch;
@@ -66,13 +66,13 @@ The 24 synthetic cases cover:
 7. clock-map and canonical-time-basis mismatch;
 8. acquisition/event identity mismatch;
 9. individually valid calibration scoped to a different instrument configuration;
-10. evidence interval begins too late or touches the half-open valid-until boundary;
-11. missing feature/sensor-pattern scope;
-12. duplicate scope claims and malformed digest shape;
-13. revoked source;
-14. digest-shaped but unauthenticated evidence;
-15. missing required timing evidence owner;
-16. extra, non-required source claim that contradicts the canonical acquisition identity.
+10. evidence interval is definitely disjoint (before or after) from the acquisition;\n11. acquisition uncertainty envelope overlaps or touches the half-open calibration validity boundary (INDETERMINATE);
+12. missing feature/sensor-pattern scope;
+13. duplicate scope claims and malformed digest shape;
+14. revoked source;
+15. digest-shaped but unauthenticated evidence;
+16. missing required timing evidence owner;
+17. extra, non-required source claim that contradicts the canonical acquisition identity.
 
 Rust tests also reverse case order, claim order and binding order; the canonical per-case result must remain unchanged.
 
