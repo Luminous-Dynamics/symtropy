@@ -609,7 +609,15 @@ fn validate_input(input: &MobilityPolicyTournamentInput) -> Result<(), Tournamen
             "independent cluster count exceeds the bounded contract".to_owned(),
         ));
     }
-    let bootstrap_work = (clusters.len() as u64)
+    // No resampling occurs when the independent-cluster threshold is not met.
+    let bootstrap_cluster_count = if clusters.len()
+        >= input.bootstrap.minimum_independent_clusters as usize
+    {
+        clusters.len() as u64
+    } else {
+        0
+    };
+    let bootstrap_work = bootstrap_cluster_count
         .checked_mul(input.bootstrap.resamples as u64)
         .and_then(|value| value.checked_mul((input.policies.len() - 1) as u64))
         .and_then(|value| value.checked_mul(BOOTSTRAP_METRIC_COUNT))
