@@ -500,7 +500,6 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
             &mut blockers,
         );
         specimen_identity_ok &= valid;
-
     }
 
     let mut configuration_identity_ok = true;
