@@ -63,7 +63,7 @@ The support bound is 32 events and 65,536 trajectory atoms in v0.1. The independ
 
 ## Synthetic controls
 
-The suite includes:
+The suite includes 10 authored Rust tests, including an integration test that maps #7443 pathwise horizon reducers onto shared cross-encounter trajectory outcomes. The suite includes:
 1. Independent events: the exact pathwise union matches the independence comparator.
 2. Perfect positive dependence: two 50% marginals have a 50% union, while the independence approximation reports 75%.
 3. Disjoint events: two 40% marginals have an 80% union, while independence reports 64%.
