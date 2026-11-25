@@ -1315,7 +1315,7 @@ mod tests {
         });
         let duplicate_b = serde_json::json!({
             "id": "EVENT-DUPLICATE",
-            "certificate_id": "CAL-A",
+            "certificate_id": "CAL-B",
             "event_type": "suspended",
             "effective_at_unix_ms": 1_795_515_330_000u64,
             "recorded_at_unix_ms": 1_795_515_390_000u64,
@@ -1335,6 +1335,7 @@ mod tests {
 
         let baseline = evaluate_binding_case(&case);
         assert!(has_violation(&baseline, "CALIBRATION_EVENT_REPLAY"));
+        assert!(has_violation(&baseline, "CALIBRATION_EVENT_CERTIFICATE_UNKNOWN"));
         assert!(has_violation(
             &baseline,
             "CALIBRATION_CORRECTION_TARGET_INVALID"
