@@ -640,6 +640,39 @@ mod tests {
     }
 
     #[test]
+    fn opaque_world_identifiers_do_not_change_policy() {
+        let corpus: Corpus = serde_json::from_slice(corpus_bytes()).unwrap();
+        let source = "0123456789abcdef0123456789abcdef01234567";
+        let original = audit_corpus(corpus_bytes(), source).unwrap();
+        let mut renamed = corpus.clone();
+
+        for case in &mut renamed.cases {
+            let mut replacements = BTreeMap::new();
+            for (index, world) in case.worlds.iter().enumerate() {
+                replacements.insert(
+                    world.world_id.clone(),
+                    format!("OPAQUE-{index:03}"),
+                );
+            }
+            for world in &mut case.worlds {
+                world.world_id = replacements[&world.world_id].clone();
+            }
+            for action in &mut case.actions {
+                for mapping in &mut action.outcomes_by_world {
+                    mapping.world_id = replacements[&mapping.world_id].clone();
+                }
+            }
+        }
+
+        let renamed_bytes = serde_json::to_vec(&renamed).unwrap();
+        let replay = audit_corpus(&renamed_bytes, source).unwrap();
+        for (left, right) in original.cases.iter().zip(replay.cases.iter()) {
+            assert_eq!(left.status, right.status);
+            assert_eq!(left.policy, right.policy);
+        }
+    }
+
+    #[test]
     fn input_permutation_does_not_change_canonical_policy() {
         let corpus: Corpus = serde_json::from_slice(corpus_bytes()).unwrap();
         let source = "0123456789abcdef0123456789abcdef01234567";
