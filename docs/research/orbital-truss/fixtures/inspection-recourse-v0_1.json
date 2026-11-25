@@ -237,6 +237,37 @@
               "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000015"
             }
           ]
+        },
+        {
+          "action_id": "REVOKED_CALIBRATION_VIEW",
+          "duration_ms": 1,
+          "energy_mj": 1,
+          "model_receipt_sha256": "00000000000000000000000000000000000000000000000000000000000001f5",
+          "gates": [
+            {
+              "gate_id": "CALIBRATION",
+              "state": "FAIL",
+              "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000001f6"
+            }
+          ],
+          "outcomes_by_world": [
+            {
+              "world_id": "W_ACCEPT",
+              "mapping_state": "KNOWN",
+              "possible_outcomes": [
+                "CLEAR"
+              ],
+              "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000001f7"
+            },
+            {
+              "world_id": "W_REPAIR",
+              "mapping_state": "KNOWN",
+              "possible_outcomes": [
+                "DEFECT"
+              ],
+              "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000001f8"
+            }
+          ]
         }
       ],
       "max_actions": 2,
