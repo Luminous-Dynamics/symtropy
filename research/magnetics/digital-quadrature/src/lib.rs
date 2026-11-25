@@ -638,6 +638,43 @@ mod tests {
         }
     }
 
+
+    fn discrete_spatial_trace(
+        trace_id: &str,
+        pole_pairs: u32,
+        sample_count: usize,
+        amplitude_t: f64,
+        phase_direction: f64,
+    ) -> EncoderTrace {
+        let samples = (0..sample_count)
+            .map(|index| {
+                let angle = TAU * index as f64 / (sample_count - 1) as f64;
+                let phase = phase_direction * pole_pairs as f64 * angle;
+                EncoderSample {
+                    mechanical_angle_rad: angle,
+                    timestamp_ns: Some(index as u64 * 100_000),
+                    channel_a_field: InPlaneField {
+                        radial_t: amplitude_t * phase.cos(),
+                        tangential_t: 0.0,
+                    },
+                    channel_b_field: InPlaneField {
+                        radial_t: amplitude_t * phase.sin(),
+                        tangential_t: 0.0,
+                    },
+                }
+            })
+            .collect();
+
+        EncoderTrace {
+            trace_id: trace_id.to_owned(),
+            coordinate_frame_id: "two-latch-ring-frame-v0".to_owned(),
+            operating_condition_id: "two-latch-9-degree-spacing-gap-3p25mm-v0".to_owned(),
+            angular_grid_id: format!("full-turn-{sample_count}-uniform"),
+            evidence_kind: EvidenceKind::SyntheticScenario,
+            samples,
+        }
+    }
+
     #[test]
     fn ideal_single_pole_pair_produces_four_valid_edges() {
         let trace = sinusoidal_trace("ideal-one-pair", 1, 3601, 0.008, 1.0);
@@ -699,6 +736,37 @@ mod tests {
         assert_eq!(b_edges, 20);
     }
 
+
+
+    #[test]
+    fn discrete_latches_can_use_separate_spatial_field_traces() {
+        let trace = discrete_spatial_trace("two-latch-20-pole-control", 10, 3601, 0.008, 1.0);
+        let mut cfg = config(10);
+        cfg.architecture = SensorArchitecture::DiscreteSpatialLatches;
+        cfg.channel_a = latch(0.0, true, 0.0001, -0.0001);
+        cfg.channel_b = latch(0.0, false, 0.0001, -0.0001);
+
+        let result = evaluate_trace(&trace, cfg).unwrap();
+        assert!(result.metrics.quadrature_sequence_valid);
+        assert_eq!(result.metrics.observed_valid_transitions, 40);
+    }
+
+    #[test]
+    fn discrete_two_latch_threshold_mismatch_has_bounded_spacing_error() {
+        let trace = discrete_spatial_trace("two-latch-threshold-mismatch", 10, 36001, 0.008, 1.0);
+        let mut cfg = config(10);
+        cfg.architecture = SensorArchitecture::DiscreteSpatialLatches;
+        cfg.channel_a = latch(0.0, true, 0.001, -0.001);
+        cfg.channel_b = latch(0.0, false, 0.007, -0.007);
+
+        let result = evaluate_trace(&trace, cfg).unwrap();
+        assert_eq!(result.metrics.observed_valid_transitions, 40);
+        assert!(result.metrics.maximum_spacing_error_lower_bound_rad.unwrap() > 0.0);
+        assert!(
+            result.metrics.maximum_spacing_error_upper_bound_rad.unwrap()
+                > result.metrics.maximum_spacing_error_lower_bound_rad.unwrap()
+        );
+    }
 
     #[test]
     fn threshold_mismatch_increases_bounded_quadrature_spacing_error() {
