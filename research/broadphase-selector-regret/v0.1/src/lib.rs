@@ -547,7 +547,6 @@ pub fn evaluate_sequence(input: &SequenceInput) -> Result<SequenceScore, Selecto
     let mut known_backends = BTreeSet::new();
     let mut implementation_by_backend: BTreeMap<BackendId, (String, String)> = BTreeMap::new();
     let mut environment_digest: Option<String> = None;
-    let mut filter_digest: Option<String> = None;
 
     for observation in &input.observations {
         observation.validate()?;
@@ -560,14 +559,6 @@ pub fn evaluate_sequence(input: &SequenceInput) -> Result<SequenceScore, Selecto
             None => environment_digest = Some(observation.environment_sha256.clone()),
             _ => {}
         }
-        match &filter_digest {
-            Some(expected) if expected != &observation.collision_filter_sha256 => {
-                return Err(SelectorError::InconsistentCollisionFilter);
-            }
-            None => filter_digest = Some(observation.collision_filter_sha256.clone()),
-            _ => {}
-        }
-
         let build = (
             observation.implementation_sha256.clone(),
             observation.config_sha256.clone(),
@@ -608,6 +599,9 @@ pub fn evaluate_sequence(input: &SequenceInput) -> Result<SequenceScore, Selecto
         for observation in frame.values() {
             if observation.aabb_snapshot_sha256 != first.aabb_snapshot_sha256 {
                 return Err(SelectorError::InconsistentFrameInputs);
+            }
+            if observation.collision_filter_sha256 != first.collision_filter_sha256 {
+                return Err(SelectorError::InconsistentCollisionFilter);
             }
             let left = &observation.pair_evidence;
             let right = &first.pair_evidence;
