@@ -506,6 +506,214 @@
       "expected_structurally_complete": true,
       "expected_violation_codes": [],
       "expected_blocker_codes": []
+    },
+    {
+      "case_id": "invalid-empty-calibration-interval",
+      "operation": "set",
+      "pointer": "/calibration_certificates/0/valid_until_unix_ms",
+      "value": 1795510800000,
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "CALIBRATION_INTERVAL_INVALID"
+      ]
+    },
+    {
+      "case_id": "future-recorded-revocation-does-not-rewrite-earlier-snapshot",
+      "operation": "append",
+      "pointer": "/calibration_events",
+      "value": {
+        "id": "EVENT-REVOKE-FUTURE",
+        "certificate_id": "CAL-A",
+        "event_type": "revoked",
+        "retroactive": false,
+        "effective_at_unix_ms": 1795515000000,
+        "recorded_at_unix_ms": 1795516500000
+      },
+      "expected_structurally_complete": true,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": []
+    },
+    {
+      "case_id": "retroactive-revocation-affects-prior-acquisition",
+      "operation": "append",
+      "pointer": "/calibration_events",
+      "value": {
+        "id": "EVENT-REVOKE-RETRO",
+        "certificate_id": "CAL-A",
+        "event_type": "revoked",
+        "retroactive": true,
+        "effective_at_unix_ms": 1795514200000,
+        "recorded_at_unix_ms": 1795515000000
+      },
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "CALIBRATION_REVOKED_PENDING_DISPOSITION"
+      ]
+    },
+    {
+      "case_id": "correction-cannot-target-another-certificates-event",
+      "operation": "composite",
+      "mutations": [
+        {
+          "operation": "append",
+          "pointer": "/calibration_certificates",
+          "value": {
+            "id": "CAL-B",
+            "calibration_evidence_id": "CAL-EVIDENCE-B",
+            "instrument_id": "INSTRUMENT-B",
+            "method_revision_id": "METHOD-B",
+            "calibration_lab": "SYNTHETIC-LAB-B",
+            "certificate_artifact_ref": "mycelix-packet://synthetic/CAL-B",
+            "authenticity_status": "authenticated",
+            "valid_from_unix_ms": 1795510800000,
+            "valid_until_unix_ms": 1795518000000
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-ORIGINAL-CAL-B",
+            "certificate_id": "CAL-B",
+            "event_type": "revoked",
+            "retroactive": false,
+            "effective_at_unix_ms": 1795515000000,
+            "recorded_at_unix_ms": 1795515060000
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-CORRECT-CROSS-CERT",
+            "certificate_id": "CAL-A",
+            "event_type": "corrected",
+            "corrects_event_id": "EVENT-ORIGINAL-CAL-B",
+            "retroactive": true,
+            "effective_at_unix_ms": 1795515600000,
+            "recorded_at_unix_ms": 1795515660000
+          }
+        }
+      ],
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "CALIBRATION_CORRECTION_TARGET_INVALID"
+      ],
+      "expected_blocker_codes": [
+        "CALIBRATION_CHANGE_PENDING_DISPOSITION",
+        "CALIBRATION_EVENT_HISTORY_UNRESOLVED"
+      ]
+    },
+    {
+      "case_id": "duplicate-calibration-event-identity",
+      "operation": "composite",
+      "mutations": [
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-REPLAY",
+            "certificate_id": "CAL-A",
+            "event_type": "revoked",
+            "retroactive": false,
+            "effective_at_unix_ms": 1795515000000,
+            "recorded_at_unix_ms": 1795515060000
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-REPLAY",
+            "certificate_id": "CAL-A",
+            "event_type": "revoked",
+            "retroactive": false,
+            "effective_at_unix_ms": 1795515000000,
+            "recorded_at_unix_ms": 1795515060000
+          }
+        }
+      ],
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "CALIBRATION_EVENT_REPLAY"
+      ],
+      "expected_blocker_codes": [
+        "CALIBRATION_EVENT_HISTORY_UNRESOLVED",
+        "CALIBRATION_REVOKED_AFTER_ACQUISITION_PENDING_DISPOSITION"
+      ]
+    },
+    {
+      "case_id": "observation-cannot-reference-unknown-specimen",
+      "operation": "set",
+      "pointer": "/observations/0/specimen_id",
+      "value": "SPECIMEN-DOES-NOT-EXIST",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [],
+      "expected_blocker_codes": [
+        "OBSERVATION_SPECIMEN_UNKNOWN"
+      ]
+    },
+    {
+      "case_id": "unknown-calibration-event-type-abstains",
+      "operation": "append",
+      "pointer": "/calibration_events",
+      "value": {
+        "id": "EVENT-UNKNOWN-TYPE",
+        "certificate_id": "CAL-A",
+        "event_type": "calibration_adjusted",
+        "retroactive": false,
+        "effective_at_unix_ms": 1795515000000,
+        "recorded_at_unix_ms": 1795515060000
+      },
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "UNKNOWN_CALIBRATION_EVENT_TYPE"
+      ],
+      "expected_blocker_codes": [
+        "CALIBRATION_EVENT_HISTORY_UNRESOLVED"
+      ]
+    },
+    {
+      "case_id": "correction-target-must-have-strictly-earlier-record-time",
+      "operation": "composite",
+      "mutations": [
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-SAME-TIME-ORIGINAL",
+            "certificate_id": "CAL-A",
+            "event_type": "suspended",
+            "retroactive": false,
+            "effective_at_unix_ms": 1795515000000,
+            "recorded_at_unix_ms": 1795515060000
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/calibration_events",
+          "value": {
+            "id": "EVENT-SAME-TIME-CORRECTION",
+            "certificate_id": "CAL-A",
+            "event_type": "corrected",
+            "corrects_event_id": "EVENT-SAME-TIME-ORIGINAL",
+            "retroactive": true,
+            "effective_at_unix_ms": 1795515600000,
+            "recorded_at_unix_ms": 1795515060000
+          }
+        }
+      ],
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "CALIBRATION_CORRECTION_TARGET_INVALID"
+      ],
+      "expected_blocker_codes": [
+        "CALIBRATION_CHANGE_PENDING_DISPOSITION",
+        "CALIBRATION_EVENT_HISTORY_UNRESOLVED",
+        "CALIBRATION_SUSPENDED_PENDING_DISPOSITION"
+      ]
     }
   ],
   "oracle_review_status": "NOT_INDEPENDENTLY_REVIEWED",
