@@ -592,11 +592,11 @@ pub fn propagate_phase_uncertainty(
         if !magnitude.is_finite() {
             return Err(EvaluationError::PhaseUncertaintyNumericOverflow { index });
         }
-        if magnitude < requirements.minimum_in_plane_field_t {
-            return Err(EvaluationError::FieldBelowMinimumForPhase { index });
-        }
         if magnitude == 0.0 {
             return Err(EvaluationError::ZeroInPlaneFieldForPhase { index });
+        }
+        if magnitude < requirements.minimum_in_plane_field_t {
+            return Err(EvaluationError::FieldBelowMinimumForPhase { index });
         }
 
         // Stable form of (-By / |B|^2, Bx / |B|^2).
@@ -1042,6 +1042,35 @@ mod tests {
                 &reference,
             ),
             Err(EvaluationError::InvalidReferenceUncertainty)
+        );
+    }
+
+
+    #[test]
+    fn refuses_zero_field_as_undefined_phase() {
+        let trace = make_trace(
+            "zero-field",
+            EvidenceKind::SyntheticScenario,
+            360,
+            1,
+            0.0,
+            0.0,
+            |_| 0.0,
+            0.0,
+        );
+        let covariance = FieldCovariance2d {
+            xx_t2: 0.0,
+            xy_t2: 0.0,
+            yy_t2: 0.0,
+        };
+        assert_eq!(
+            propagate_phase_uncertainty(
+                &trace,
+                &covariance_trace(&trace, covariance),
+                &requirements(1, 0.0),
+                &reference_uncertainty(0.0, 0.0),
+            ),
+            Err(EvaluationError::ZeroInPlaneFieldForPhase { index: 0 })
         );
     }
 
