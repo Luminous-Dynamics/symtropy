@@ -105,3 +105,12 @@ The tests include a non-additivity counterexample where each singleton is below 
 - The robust consequence score is caller-supplied and bound to a model digest; the oracle does not validate that model or score producer.
 - A missing or unresolved statically selectable coalition forces abstention. A complete exact optimum is claimed only over the declared finite action universe, resource constraints and supplied evidence.
 - The 16-action bound is a tractability limit for exhaustive reference enumeration, not a production optimizer scale claim. No autonomous maneuver authority is created.
+
+
+### Signed consequence deltas
+
+The joint-action oracle now uses a signed integer lower bound for consequence avoided. This matters because a coalition may pass the hard collision-risk threshold while still increasing some separately modelled consequence (for example, manoeuvre cost, debris exposure or another lifecycle loss). Such a coalition must not be clamped to zero or confused with the no-action baseline.
+
+The selector compares the signed lower bound only after the non-compensatory physical-safety and evidence gates have passed. If no-action is safe, its exact zero score dominates a negative-scored action, all else equal. If no-action is unsafe, it is excluded by the physical-safety gate and safe negative-scored actions remain comparable by their signed values. The selector chooses the greatest signed lower bound, then lower resource cost, then canonical action IDs.
+
+This is a caller-supplied score in v0.1, not an independently recomputed consequence. Binding that delta to the full joint physical-world/loss-model scenario receipt and independent model-universe qualification is tracked separately in issue #7466.
