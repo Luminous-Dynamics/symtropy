@@ -439,7 +439,8 @@
         "certificate_artifact_ref",
         "authenticity_status",
         "valid_from_unix_ms",
-        "valid_until_unix_ms"
+        "valid_until_unix_ms",
+        "calibration_evidence_id"
       ],
       "properties": {
         "id": {
@@ -469,6 +470,9 @@
         },
         "valid_until_unix_ms": {
           "$ref": "#/$defs/unixMs"
+        },
+        "calibration_evidence_id": {
+          "$ref": "#/$defs/id"
         }
       }
     },
