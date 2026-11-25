@@ -84,6 +84,16 @@ def evaluate_case(case):
     ):
         return result("INVALID_INPUT", "CASE_SCOPE_OR_COST_INVALID")
 
+    if candidate["class"] == "RECOVERY" and (
+        portfolio is not None
+        or measurement is not None
+        or any(
+            scope[name] is not None
+            for name in ["acquisition_id", "camera_id", "asset_id", "feature_id"]
+        )
+    ):
+        return result("INVALID_INPUT", "RECOVERY_ACTION_MUST_NOT_CLAIM_INSPECTION")
+
     if safety is None:
         return result("INDETERMINATE", "PHYSICAL_SAFETY_EVIDENCE_MISSING")
     if (
