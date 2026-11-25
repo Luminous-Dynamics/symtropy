@@ -1,37 +1,47 @@
 # CCD Query Recall v0.1
 
-A dependency-free evaluator over imported NYU CCD query records. It keeps query-level geometric ground truth separate from broadphase box-pair and rigid-body collider-pair metrics.
+A dependency-light evaluator for query-level continuous-collision-detection results. It keeps geometric query ground truth separate from broadphase box-pair and rigid-body collider-pair accounting.
 
-## Why this is a separate denominator
+## Benchmark populations and identities
 
-The NYU sample dataset provides one oracle Boolean per eight-row edge-edge or vertex-face query, plus a separate array of broadphase box-ID intersections. These are different populations and cannot be joined by row order. Symtropy body/collider pair IDs are a third identity space. Any mapping among them must be explicit and versioned.
+The NYU scalable corpus has at least two distinct populations: eight-row geometric queries with one independent Boolean label per query, and a separate list of broadphase box-ID intersections. Symtropy body/collider pairs form a third identity space. These populations must never share a denominator or be joined by array position.
 
-## Evaluated layers
+A query identity is the tuple:
 
-Candidate layer:
-- Forwarded and fallback queries reach narrowphase.
-- A certified-pruned query must carry certificate digest, frozen-input digest, verifier identity and explicit accepted-and-replayed status.
-- Candidate recall, precision, false-positive rate, false-negative count and fallback rate are computed only over query labels. Narrowphase recall is conditional on oracle-positive queries actually forwarded/fallen back to narrowphase; a candidate-pruned positive is not double-counted as a narrowphase miss. End-to-end recall uses all oracle-positive queries. Scores are stratified by dataset, scene, time step and query class; aggregate metrics never replace per-stratum results. Results are stratified by dataset, scene, time step and query class; the aggregate score never replaces the per-stratum rows.
+`(dataset, scene, time_step, query_class, query_index)`
 
-Narrowphase layer:
-- Each forwarded/fallback query must record collision, no collision or indeterminate.
-- Candidate omissions and narrowphase misses are counted separately; end-to-end recall exposes their combined effect.
-- An indeterminate positive is not silently credited as a true positive.
-- Zero-positive datasets return unavailable recall, never 100%.
+The algorithm adapter emits only that identity and its result. The oracle label is attached from the independently imported dataset. The join rejects duplicate, missing and orphan algorithm rows. Query IDs therefore survive sorting, batching and parallel execution.
 
-## Integration
+## Evaluated correctness layers
 
-The library depends on nyu-ccd-query-import and constructs query identity from dataset, scene, time step, query class and query index. The import adapter joins algorithm results by that identity, rejects duplicates, missing results and orphan rows, and never joins by array position. Ground truth must already be attached to the imported query; it is never accepted from the tested algorithm output.
+- **Candidate recall** counts oracle-positive queries forwarded or sent through reason-coded fallback. Certified-pruned positives are candidate false negatives.
+- **Conditional narrowphase recall** uses only oracle-positive queries that actually reached narrowphase. A candidate-pruned positive is not double-counted as a narrowphase miss.
+- **End-to-end recall** uses every oracle-positive query, exposing the combined result of candidate culling and narrowphase.
+- Candidate precision, false-positive rate, false-negative counts, fallback counts and certified-prune counts are reported separately.
+- Narrowphase outcomes are collision, no collision, indeterminate or not run. An indeterminate positive is not credited as detected.
+- Zero oracle-positive denominators produce unavailable recall and cannot qualify as a benchmark success.
+- Results are reported in per-dataset, scene, time-step and query-kind strata as well as an aggregate. The aggregate never replaces the stratum rows.
 
-The evaluator does not count broadphase box pairs, map query indices to collider pairs, or prove a pruning certificate. The verifier receipt is a declared input and must come from the independently qualified checker (#7307). The score is not a cryptographic attestation.
+A certified prune must carry a certificate SHA-256, frozen-input SHA-256, verifier identity and accepted-and-replayed status. This evaluator validates the presence and shape of that receipt; it does not execute the verifier or cryptographically attest that the digest came from the correct checker. Receipt production and independent replay belong to the qualified checker (#7307).
 
-Each scorecard carries immutable run provenance: algorithm name/version/commit, dataset-manifest SHA-256, configuration SHA-256, motion profile and arithmetic profile (for example, linearized/binary64 versus Symtropy semi-implicit/Q16.16). The convenience evaluators return an unspecified profile and are not benchmark-qualified. Scorecards may be pooled only when all provenance and model fields are explicit and identical; runs from different algorithms, commits, datasets, configurations or precision/motion models stay separate. A zero-oracle-positive population also cannot claim benchmark recall. Safe negative certificate-backed prunes can qualify even though their narrowphase is correctly not run; oracle-positive prunes remain explicit candidate and narrowphase false negatives. Safe negative certificate-backed prunes are counted as certified prunes and are allowed to qualify even though their narrowphase is correctly not run; oracle-positive prunes remain explicit candidate and narrowphase false negatives.
+## Reproducible run provenance
+
+Every benchmark-qualified scorecard is bound to all of the following:
+
+- Algorithm name, version and exact source commit.
+- Dataset-manifest SHA-256.
+- Canonical configuration SHA-256, covering method parameters and effective runtime options.
+- Environment SHA-256.
+- Measured timer-resolution nanoseconds.
+- Motion profile and arithmetic profile.
+
+Scorecards may be pooled only if every provenance field is explicit and identical. Different algorithms, commits, datasets, configurations, environments, motion models or arithmetic models remain separate. The convenience evaluator returns an unspecified profile for unit tests and is not benchmark-qualified.
 
 ## Per-query result interchange
 
-Adapters write UTF-8 TSV with an optional first line `#ccd-query-run-results-v1`. Every data row has exactly twelve fields:
+Adapters write UTF-8 tab-separated values, with an optional first line `#ccd-query-run-results-v1`. Every data row has exactly thirteen fields:
 
-| Index | Field | Allowed values |
+| # | Field | Allowed values |
 | ---: | --- | --- |
 | 1 | Dataset ID | lowercase letters, digits, `-`, `_`, `.` |
 | 2 | Scene ID | same token grammar |
@@ -39,25 +49,43 @@ Adapters write UTF-8 TSV with an optional first line `#ccd-query-run-results-v1`
 | 4 | Query class | `edge_edge`, `vertex_face` |
 | 5 | Query index | unsigned integer |
 | 6 | Candidate disposition | `forwarded`, `fallback`, `certified_pruned` |
-| 7 | Fallback reason | blank except for fallback rows; one of the typed reason codes |
-| 8 | Certificate SHA-256 | required for certified prune rows |
-| 9 | Frozen-input SHA-256 | required for certified prune rows |
-| 10 | Verifier ID | required for certified prune rows |
+| 7 | Fallback reason | blank except for fallback rows; one typed reason code |
+| 8 | Certificate SHA-256 | required for certified-pruned rows |
+| 9 | Frozen-input SHA-256 | required for certified-pruned rows |
+| 10 | Verifier ID | required for certified-pruned rows |
 | 11 | Verification status | `accepted_and_replayed`, `rejected`, `not_run` |
 | 12 | Narrowphase outcome | `collision`, `no_collision`, `indeterminate`, `not_run` |
-| 13 | Narrowphase elapsed time | integer nanoseconds when narrowphase ran (zero means below timer resolution); blank when `not_run` |
+| 13 | Narrowphase elapsed time | integer nanoseconds if run; blank if not run |
 
-Forwarded rows must leave fields 7-11 blank. Fallback rows require field 7 and leave fields 8-11 blank. Certified-pruned rows require fields 8-11 and leave field 7 blank. Oracle labels are never included in adapter output. The evaluator joins TSV rows to the independent imported query set by dataset/scene/time-step/query-kind/query-index, then rejects duplicate, missing and orphan rows. Forwarded and fallback rows must include an elapsed-time observation; zero is permitted and means the measurement fell below the run's declared clock resolution. `not_run` rows must leave it blank. The scorecard reports nearest-rank p50/p95/p99 narrowphase latency globally and per stratum, plus the count of below-resolution samples. `benchmark_qualified` covers correctness and complete timing records; `latency_comparable` is false when any sample is below clock resolution. This avoids inventing a 1 ns latency for a timer that only resolved to 1 μs. The official CCD-Wrapper reports microseconds; convert these to integer nanoseconds by multiplying by 1,000 and retain the source timer resolution in the run manifest.
+Forwarded rows leave fields 7-11 blank. Fallback rows require field 7 and leave fields 8-11 blank. Certified-pruned rows leave field 7 blank and require fields 8-11. Oracle labels are never included in adapter output.
+
+Forwarded and fallback rows must include an elapsed-time observation. Zero is permitted and means the observation fell below the timer's resolution; it is not replaced with a fabricated 1 ns value. A certified-pruned row must have `not_run` and a blank elapsed time. The scorecard reports nearest-rank p50/p95/p99 over actual narrowphase durations, globally and per stratum, plus the count of samples below the declared timer resolution. Correctness qualification and latency comparability are separate: a run can qualify on correctness while its clock is too coarse to support a latency ranking.
+
+The official CCD-Wrapper reports elapsed microseconds, but its underlying timer is platform-specific (Linux uses `gettimeofday`; macOS and Windows use their high-resolution counters). Convert the reported value to integer nanoseconds by multiplying by 1,000, and record the actual measured timer resolution per environment; do not assume all operating systems provide 1 μs resolution.
 
 Example rows (tabs separate fields):
 
 ```text
 #ccd-query-run-results-v1
-nyu-fixture-v1	armadillo-rollers	3	edge_edge	0	forwarded						no_collision
-nyu-fixture-v1	armadillo-rollers	3	edge_edge	1	fallback	unsupported_motion					no_collision
+nyu-fixture-v1	armadillo-rollers	3	edge_edge	0	forwarded						collision	125000
+nyu-fixture-v1	armadillo-rollers	3	edge_edge	1	fallback	unsupported_motion					no_collision	300000
 ```
 
-A production benchmark run must provide an explicit `RunProfile` with algorithm name/version/commit, dataset-manifest SHA-256, canonical configuration SHA-256, environment SHA-256, measured timer-resolution nanoseconds, motion profile and arithmetic profile. The convenience evaluator returns an unspecified profile and cannot qualify or be pooled. Only scorecards with identical explicit run provenance may be pooled; different algorithms and numeric models remain separate.
+## Included fixtures
+
+### NYU upstream import smoke test
+
+The imported `armadillo-rollers/3ee` sample checks two edge-edge queries, both labelled negative. It verifies that source coordinates remain exact rational strings and that the separate Boolean and broadphase-box files are parsed with distinct denominators. It is an import smoke test, not a recall benchmark.
+
+### Original exact-rational known-answer corpus
+
+`fixtures/analytic-linear-v0.1/` contains two edge-edge and two vertex-face queries. Each kind has one collision and one miss. The two positive queries have exact rational time of impact (t=1/2); the negative cases are separated by segment range or triangle barycentric bounds. The construction and proofs are described in `CONSTRUCTION.md`, and the manifest binds every fixture with SHA-256.
+
+This is a small, original unit-test corpus for testing positive recall, negative pruning, query identity and timing. It is not an external benchmark and must not be represented as SOTA evidence.
+
+## Current scope and claim boundary
+
+This crate evaluates independent Boolean ground truth, candidate dispositions, narrowphase classification, stable identity joins and narrowphase latency. It does not compute collision geometry, derive TOI roots, score TOI interval quality, count broadphase box pairs or prove prune certificates. Exact TOI and broader broadphase metrics require their own evidence-carrying scorecards and denominators.
 
 ## Run
 
@@ -67,11 +95,11 @@ cargo test --manifest-path research/ccd-query-recall/v0.1/Cargo.toml --locked
 cargo clippy --manifest-path research/ccd-query-recall/v0.1/Cargo.toml --locked --all-targets -- -D warnings
 ```
 
-## Promotion targets (not achieved results)
+## Promotion targets (aspirational, not achieved)
 
-- 100% candidate recall and 100% narrowphase recall on oracle-positive queries within each separately named motion/precision stratum.
+- 100% candidate recall and 100% conditional narrowphase recall on oracle-positive queries in every supported motion/precision stratum.
 - Zero invalid, stale or unreplayed certificate-backed prunes.
-- Complete per-query timing coverage for every forwarded/fallback query; report p50/p95/p99 separately by query stratum.
-- Candidate false-positive and fallback rates reported separately; no false-negative tradeoff.
-- Query IDs survive filtering, sorting, batching and parallel scheduling.
-- Join to broadphase/body-collider pair counts only through a reviewed explicit mapping with its own completeness denominator.
+- Complete per-query timing coverage for every forwarded/fallback query.
+- Candidate false-positive and fallback rates minimized only after correctness is preserved.
+- Pareto improvement in narrowphase work and p50/p95/p99 runtime on held-out scenes, with no false-negative tradeoff.
+- Query-to-broadphase-pair mapping only through an independently reviewed identity adapter with its own completeness denominator.
