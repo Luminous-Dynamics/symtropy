@@ -299,3 +299,12 @@ The next owner-side assurance slice is documented in [INJECTOR_LEDGER_LINEARIZAB
 The key contract is an atomic durable create-if-absent reservation binding the idempotency key to the payload digest and exact attempt before a non-idempotent effect call. A crash after the effect may have happened but before outcome commit remains Unknown and must not replay the same key.
 
 The model is not a concurrent process history test, real remote injector qualification, Rust/TLA refinement, target-storage durability, HIL or physical-robot result. Those remain part of #7361.
+
+
+## Endpoint-enforced physical effect fencing v0.1
+
+The next research layer is specified in [ENDPOINT_EFFECT_FENCE_V0.1.md](ENDPOINT_EFFECT_FENCE_V0.1.md). It separates four physical command semantics—desired state, one-shot effect, continuous lease and trajectory—and proposes endpoint-enforced one-shot tokens and monotonic authority epochs.
+
+The bounded TLA model in `model/EndpointEffectFence.tla` includes safe endpoint NVM behavior and two unsafe mutations: replay after endpoint history loss, and stale-epoch actuation after a newer endpoint fence. The profile fixture and schema declare the corresponding effect-class obligations.
+
+This is a design abstraction only. It does not qualify endpoint firmware, rollback-resistant NVM, actuator atomicity, physical truth, power-cut behavior, ROS/Gazebo, HIL or physical robot safety.
