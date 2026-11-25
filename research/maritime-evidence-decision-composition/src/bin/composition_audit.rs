@@ -48,7 +48,7 @@ fn main() -> ExitCode {
         "composition-corpus: cases={total} passed={} failed={failed}",
         total.saturating_sub(failed)
     );
-    if total == 30 && failed == 0 {
+    if total == 31 && failed == 0 {
         ExitCode::SUCCESS
     } else {
         ExitCode::FAILURE
