@@ -17,6 +17,12 @@ This increment tests the seam between existing evidence owners. It does not repl
 | #6662 | paired custody handoffs and receiver closure | consumes custody/receiver disposition |
 | #6997 | observable-query policy tree and decision-regret accounting | consumes query universe, cost and latency receipts |
 | #7305 | DGT source snapshot profile | preserves source class, rights and valid-time semantics |
+| #1949 / #7400 | stale/conflicting/corrected port-call evidence and regret tournament | consumes decision-time information-set result |
+| #6997 | non-anticipative observation/query policy trees | consumes admissible query-policy receipt |
+| #6578 | DGT intervention lifecycle and paired delivered-service evaluation | consumes realized intervention and service outcomes |
+| #7423 | burst/tail service reliability and aggregate pharma cohort semantics | consumes outcome cohort and claim ceiling |
+| #7436 | unit-safe container/TEU/tonne receiver-service quantities | consumes separate physical-unit outcome metrics |
+| #3683 | coastal-to-inland service-chain benchmark and 2026 SOTA tournament | composes end-to-end Pareto and decision-quality results |
 
 ## Core contract
 
