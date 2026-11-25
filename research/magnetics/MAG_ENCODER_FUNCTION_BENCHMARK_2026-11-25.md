@@ -24,7 +24,7 @@ Keep these quantities separate:
 4. Samples below the declared minimum field threshold.
 5. Worst-case metrics across a finite, explicitly identified set of traces.
 
-No synthetic scenario count is interpreted as probability. No yield or CVaR is calculated without a defensible physical sampling design and repeated builds/lots. A physical build and a synthetic scenario are separate evidence classes and cannot be combined in one set.
+No synthetic scenario count is interpreted as probability. No yield or CVaR is calculated without a defensible physical sampling design and repeated builds/lots. A physical build and a synthetic scenario are separate evidence classes and cannot be combined in one set. The new operating-condition tournament allows distinct condition IDs under one fixed frame/grid and requirements, preserves each scenario's condition identity, and reports worst-case results without treating the finite set as a probability sample.
 
 ## Matched baseline tournament
 
