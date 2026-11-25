@@ -1,0 +1,13 @@
+[package]
+name = "magnetic-solver-qualification"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "MIT"
+publish = false
+description = "Provenance and convergence qualification contract for magnetic solver comparisons"
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
