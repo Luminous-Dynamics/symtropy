@@ -313,7 +313,7 @@ pub fn validate_and_project(case: &CargoCase) -> Result<Projection, String> {
         let quotient = transfer.source_quantity_grams / u64::from(duration);
         let remainder = transfer.source_quantity_grams % u64::from(duration);
         for offset in 0..duration {
-            let portion = quotient + u64::from(u64::from(offset) < remainder);
+            let portion = quotient + if u64::from(offset) < remainder { 1 } else { 0 };
             let slot = route_hour_usage.entry((transfer.route_id.clone(), transfer.load_start_hour + offset)).or_insert(0);
             add(slot, portion, "route hourly throughput")?;
             if *slot > route.capacity_grams_per_hour {
@@ -432,7 +432,7 @@ pub fn validate_and_project(case: &CargoCase) -> Result<Projection, String> {
             admitted_grams: admitted, quarantined_or_unreleased_grams: quarantined,
             unverified_grams: unverified, terminal_closing_grams: terminal_close,
             transferred_source_grams: transferred, delivered_grams: delivered,
-            route_loss_grams: loss, fuel_issued_grams: issued,
+            route_loss_grams: loss, generator_closing_grams: delivered - issued, fuel_issued_grams: issued,
         });
     }
     Ok(Projection { hourly, batches })
