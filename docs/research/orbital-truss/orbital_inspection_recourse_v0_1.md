@@ -8,6 +8,17 @@ The stopping condition is decision-level identifiability, not physical-world ide
 
 ## Scope and composition
 
+## Relationship to the existing sequential decision engine
+
+This finite enumerator is a **test oracle and contract challenger only**. It is not a second production policy engine, not an alternative sequential evidence process, and not an operational planner.
+
+- #6835 already provides the exact finite-world decision-identifiability kernel and a decision-focused one-probe partition/ranking foundation.
+- #6887 owns sequential finite-sample surviving-world sets, adaptive observation, optional-stopping validity and calibrated abstention.
+- #7292 bridges the source-bound #6887 anytime-valid world-set receipt to downstream incumbent decision evaluation. Its v0.1 adapter checks source contract/inventory/cutoff structure; it does not generate or prove the upstream statistical guarantee.
+- This v0.1 evaluator challenges deterministic support-level recourse semantics against exhaustive toy cases: non-anticipativity, outcome-support unions, hard gates, bounded resource use, and decision-equivalent stopping. It may serve as an independent tiny-domain reference oracle for those properties; it must not replace the #6887/#7292 execution path.
+
+The eventual integration must consume the exact versioned #7292 source-bound survivor inventory and #6835 decision-class mapping (or approved successor interfaces), plus admissible actions from acquisition/calibration/measurement owners. Until those interfaces are explicitly pinned and reviewed, this crate's world inventory is synthetic evaluator input only. No hidden identity or synthetic action tree is to be promoted as a real robot policy.
+
 The v0.1 executable work is a finite support-level policy evaluator. It does not duplicate statistical sequential inference. #6887 remains the owner of finite-sample world survival, adaptive observation validity and anytime-valid e-process semantics. The recourse adapter should later consume its admissible surviving-world / decision-set outputs.
 
 Other inputs remain owned by their established workstreams:
