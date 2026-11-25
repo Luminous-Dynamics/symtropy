@@ -45,8 +45,8 @@ This is deliberately separate from specimen.configuration_id. A specimen record 
 
 Every observation contains:
 
-- acquired_at_utc, in canonical YYYY-MM-DDTHH:MM:SSZ form;
-- time_basis, which must explicitly be UTC.
+- acquired_at_unix_ms, an unsigned integer count of milliseconds since the Unix epoch;
+- time_basis, which must explicitly be UTC_UNIX_EPOCH_MS.
 
 Every test campaign references an instrument, method/protocol revision and calibration certificate. A calibration certificate contains:
 
@@ -55,13 +55,13 @@ Every test campaign references an instrument, method/protocol revision and calib
 - calibration laboratory;
 - Mycelix packet/artifact reference;
 - imported authenticity disposition (authenticated, unauthenticated or unknown);
-- valid_from_utc and valid_until_utc.
+- valid_from_unix_ms and valid_until_unix_ms.
 
 The interval rule is fixed by this profile:
 
-**[valid_from_utc, valid_until_utc) — start inclusive, end exclusive.**
+**[valid_from_unix_ms, valid_until_unix_ms) — start inclusive, end exclusive.**
 
-Thus acquisition exactly at valid_from_utc is inside the interval; acquisition exactly at valid_until_utc is outside it. Timestamps are normalized to UTC before comparison. Unknown timezone, offset not normalized, malformed date, impossible calendar date, missing timestamp or future acquisition relative to evaluation time blocks a positive metrology-binding disposition.
+Thus acquisition exactly at valid_from_unix_ms is inside the interval; acquisition exactly at valid_until_unix_ms is outside it. The integer field is millisecond-precision UTC epoch time, matching Mycelix AeroCommons CalibrationValidityV1 (`valid_from_unix_ms`, `valid_until_unix_ms`, `used_at_unix_ms`) without lossy second-level rounding. Source-native timestamp, timezone and clock evidence must still be preserved in the referenced packet; the integer alone does not authenticate the clock. Unknown time basis, negative/missing time, or future acquisition relative to the evaluation time blocks a positive metrology-binding disposition.
 
 The evaluator requires the certificate instrument to match the campaign instrument and the certificate method revision to match the campaign protocol revision.
 
@@ -70,12 +70,12 @@ The evaluator requires the certificate instrument to match the campaign instrume
 The calibration_events collection preserves revoked, suspended, corrected and superseded events, with:
 
 - immutable event ID and certificate ID;
-- effective_at_utc;
-- recorded_at_utc;
+- effective_at_unix_ms;
+- recorded_at_unix_ms;
 - explicit retroactive boolean;
 - for corrected / superseded, a corrects_event_id reference.
 
-Events are evaluated as known at evaluated_at_utc. A revocation recorded after acquisition but effective before evaluation blocks positive binding and requires an accountable disposition. A retroactive event also blocks affected historical observations. Corrections must point to a prior event for the same certificate; competing corrections to the same event are treated as contradictory history and block.
+Events are evaluated as known at evaluated_at_unix_ms. A revocation recorded after acquisition but effective before evaluation blocks positive binding and requires an accountable disposition. A retroactive event also blocks affected historical observations. Corrections must point to a prior event for the same certificate; competing corrections to the same event are treated as contradictory history and block.
 
 This is intentionally conservative: the evaluator does not decide whether a revoked certificate invalidates every earlier physical result. It preserves the event and abstains until the responsible metrology/engineering authority establishes the applicable disposition.
 
@@ -84,6 +84,8 @@ This is intentionally conservative: the evaluator does not decide whether a revo
 Certificate bytes, packet digests and byte lengths remain owned by Mycelix. The certificate_artifact_ref is a reference, not a second artifact store. authenticity_status is an imported assertion; v0.2 does not perform PKI validation, establish issuer authority, inspect instrument firmware, verify acquisition-clock trust or prove sample identity in the physical world.
 
 ## 3. Rust evaluator and report semantics
+
+The v0.2 evaluator aligns calibration-window fields with Mycelix's millisecond-precision half-open interval contract. It does not claim the Mycelix packet PR is merged or production-qualified.
 
 The v0.2 evaluator lives in crates/domains/symtropy-aero-material-qual/src/evidence_binding_v0_2.rs and is exposed as evidence_binding_v0_2::evaluate_binding_case.
 
