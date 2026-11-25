@@ -198,6 +198,7 @@
         "information_audit_digest",
         "future_information_access_count",
         "nonanticipativity_violation_count",
+        "decision_receipts",
         "status",
         "oracle_action_feasible",
         "shield_admitted",
@@ -389,6 +390,44 @@
         "nonanticipativity_violation_count": {
           "type": "integer",
           "minimum": 0
+        },
+        "decision_receipts": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/decision_receipt"
+          }
+        }
+      }
+    },
+    "decision_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_point_id",
+        "decision_time_ns",
+        "information_set_digest",
+        "observation_digest",
+        "action_digest"
+      ],
+      "properties": {
+        "decision_point_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "decision_time_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "information_set_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "observation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "action_digest": {
+          "$ref": "#/$defs/digest"
         }
       }
     }
