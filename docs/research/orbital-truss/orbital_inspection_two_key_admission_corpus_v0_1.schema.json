@@ -1,0 +1,328 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital_inspection_two_key_admission_corpus_v0_1.schema.json",
+  "title": "Orbital Inspection Two-Key Admission Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-inspection-two-key-admission.corpus.v0.1"
+    },
+    "benchmark_id": {
+      "const": "ORBITAL-INSPECTION-TWO-KEY-ADMISSION-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_non_compensatory_action_admission_composition_only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "candidate",
+          "expected_disposition"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_disposition": {
+            "enum": [
+              "ELIGIBLE_INSPECTION",
+              "ELIGIBLE_RECOVERY",
+              "REJECTED_SAFETY",
+              "REJECTED_PORTFOLIO",
+              "REJECTED_EVIDENCE",
+              "OUT_OF_SCOPE",
+              "INDETERMINATE",
+              "INVALID_INPUT"
+            ]
+          },
+          "candidate": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "class",
+              "scope",
+              "physical_safety",
+              "post_action_portfolio",
+              "measurement",
+              "delta_v_milli_m_s",
+              "duration_ms",
+              "compute_us",
+              "decision_value_milli"
+            ],
+            "properties": {
+              "class": {
+                "enum": [
+                  "INSPECTION",
+                  "RECOVERY"
+                ]
+              },
+              "scope": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action_id",
+                  "vehicle_id",
+                  "trajectory_revision",
+                  "horizon_id",
+                  "acquisition_id",
+                  "camera_id",
+                  "asset_id",
+                  "feature_id"
+                ],
+                "properties": {
+                  "action_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "vehicle_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "trajectory_revision": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "horizon_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "acquisition_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1
+                  },
+                  "camera_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1
+                  },
+                  "asset_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1
+                  },
+                  "feature_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1
+                  }
+                }
+              },
+              "physical_safety": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "state",
+                      "action_id",
+                      "vehicle_id",
+                      "trajectory_revision",
+                      "horizon_id",
+                      "receipt_sha256"
+                    ],
+                    "properties": {
+                      "state": {
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "UNKNOWN",
+                          "STALE"
+                        ]
+                      },
+                      "action_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "vehicle_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "trajectory_revision": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "horizon_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "receipt_sha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{64}$"
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "post_action_portfolio": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "state",
+                      "event_set_complete",
+                      "action_id",
+                      "horizon_id",
+                      "event_set_revision",
+                      "receipt_sha256"
+                    ],
+                    "properties": {
+                      "state": {
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "UNKNOWN",
+                          "STALE"
+                        ]
+                      },
+                      "event_set_complete": {
+                        "type": "boolean"
+                      },
+                      "action_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "horizon_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "event_set_revision": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "receipt_sha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{64}$"
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "measurement": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "acquisition_state",
+                      "scope_coherence_state",
+                      "action_id",
+                      "acquisition_id",
+                      "camera_id",
+                      "asset_id",
+                      "feature_id",
+                      "measurement_receipt_sha256",
+                      "scope_receipt_sha256"
+                    ],
+                    "properties": {
+                      "acquisition_state": {
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "UNKNOWN",
+                          "STALE"
+                        ]
+                      },
+                      "scope_coherence_state": {
+                        "enum": [
+                          "PASS",
+                          "FAIL",
+                          "UNKNOWN",
+                          "STALE"
+                        ]
+                      },
+                      "action_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "acquisition_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "camera_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "asset_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "feature_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "measurement_receipt_sha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{64}$"
+                      },
+                      "scope_receipt_sha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{64}$"
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "delta_v_milli_m_s": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000
+              },
+              "duration_ms": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000
+              },
+              "compute_us": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000
+              },
+              "decision_value_milli": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
