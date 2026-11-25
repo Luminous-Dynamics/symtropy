@@ -671,22 +671,34 @@ mod tests {
     #[test]
     fn latest_row_exposure_is_worst_under_the_monotone_envelope() {
         let input = corpus();
-        let early = input
-            .cases
-            .iter()
-            .find(|case| case.case_id == "TV-005-GLOBAL-SHUTTER")
-            .unwrap();
         let late = input
             .cases
             .iter()
             .find(|case| case.case_id == "TV-008-LATE-ROW")
             .unwrap();
-        let early_bounds = calculate_bounds(&early.model).unwrap();
-        let late_bounds = calculate_bounds(&late.model).unwrap();
-        assert!(
-            late_bounds.latest_row_exposure.total_um
-                >= early_bounds.latest_row_exposure.total_um
-        );
+        let model = &late.model;
+        let earliest = sum_displacement_terms(
+            speed_term(
+                model.reference_point_speed_um_s,
+                model.row_exposure_duration_ns,
+            )
+            .unwrap(),
+            exposure_acceleration_term(
+                model.reference_point_acceleration_um_s2,
+                0,
+                model.row_exposure_duration_ns,
+            )
+            .unwrap(),
+            exposure_jerk_term(
+                model.point_jerk_upper_um_s3,
+                0,
+                model.row_exposure_duration_ns,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let latest = calculate_bounds(model).unwrap().latest_row_exposure;
+        assert!(latest.total_um > earliest.total_um);
     }
 
     #[test]
