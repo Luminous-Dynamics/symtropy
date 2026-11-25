@@ -6,6 +6,7 @@ pub mod high_probability;
 pub mod lipschitz;
 pub mod oracle_adapter;
 pub mod repeated_sampling;
+pub mod service_variability;
 pub mod source_semantics;
 pub mod weighted_shift;
 

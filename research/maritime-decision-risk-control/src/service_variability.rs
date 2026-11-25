@@ -1,0 +1,1421 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+//! Distribution-aware maritime service reliability metrics.
+//!
+//! Mean vessel/terminal time is insufficient when burst arrivals and tail delays
+//! dominate schedule reliability. This module reports stage-separated and
+//! end-to-end distributions, including p50/p90/p95, maxima, sample standard
+//! deviation, coefficient of variation, tail ratio, on-time delivery and
+//! per-cohort service floors.
+//!
+//! Synthetic benchmark/reference implementation only. Not a causal estimator,
+//! TOS, operational feed or substitute for qualified source capture, physical
+//! feasibility, custody and receiver-acceptance evidence.
+
+use std::cmp::Reverse;
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
+use std::fmt::Write as FmtWrite;
+
+#[cfg(test)]
+const ON_TIME_WINDOW_MINUTES: u64 = 120;
+const MINIMUM_COHORT_ON_TIME_RATE_MILLI: u16 = 950;
+const ARRIVAL_BURST_WINDOW_MINUTES: u64 = 60;
+
+// Receiver elapsed times are independent synthetic observations, not sums of
+// vessel/berth/terminal/inland stage estimates.
+const RECEIVER_STABLE: [u64; 20] = [100; 20];
+const RECEIVER_BURSTY: [u64; 20] = [
+    80, 80, 80, 80, 80, 80, 80, 80, 80, 80,
+    80, 80, 80, 80, 80, 80, 80, 80, 280, 280,
+];
+const RECEIVER_BASELINE: [u64; 20] = [150; 20];
+const RECEIVER_LOCAL_GAIN: [u64; 20] = [150; 20];
+const RECEIVER_REGRESSION_TIMES: [u64; 20] = [190; 20];
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DeliveryDisposition {
+    ReceiverAccepted,
+    /// Source says delivered, but no per-unit independent receiver receipt is available.
+    SourceReportedDeliveredUnverified,
+    /// Cargo is expected in the wider national/port system but has not yet arrived.
+    InTransitExpected,
+    /// Shipping line has not nominated a vessel or berth for this expected cargo.
+    AwaitingBerthNomination,
+    NotDelivered,
+    Diverted,
+    Cancelled,
+    Unknown,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ServiceObservation {
+    /// Source observation/record identity; not the cargo identity.
+    pub observation_id: String,
+    /// Canonical expected cargo/service-unit identity from the lineage owner.
+    pub expected_unit_id: String,
+    pub cohort_id: String,
+    pub vessel_wait_minutes: u32,
+    pub berth_work_minutes: u32,
+    pub terminal_dwell_minutes: u32,
+    pub inland_transfer_minutes: u32,
+    pub receiver_deadline_minutes: u64,
+    /// Only populated when an independent receiver record confirms acceptance.
+    pub receiver_delivery_minutes: Option<u64>,
+    /// Reference to the independently qualified receiver-acceptance receipt.
+    pub receiver_acceptance_ref: Option<String>,
+    /// Expected units with any other disposition remain in the denominator.
+    pub delivery_disposition: DeliveryDisposition,
+}
+
+impl ServiceObservation {
+    /// Vessel-side waiting plus berth-work duration. This is not CPPI port time:
+    /// CPPI's vessel-time window also requires the independently sourced
+    /// departure-from-berth timestamp; terminal cargo dwell is a separate stage.
+    pub fn vessel_wait_plus_berth_work_minutes(&self) -> u64 {
+        u64::from(self.vessel_wait_minutes) + u64::from(self.berth_work_minutes)
+    }
+
+    pub fn on_time(&self) -> bool {
+        self.delivery_disposition == DeliveryDisposition::ReceiverAccepted
+            && self
+                .receiver_delivery_minutes
+                .is_some_and(|minutes| minutes <= self.receiver_deadline_minutes)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct VesselArrival {
+    pub call_id: String,
+    /// Monotonic minutes from a declared benchmark epoch.
+    pub arrival_minute: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ServiceMetricError {
+    EmptyObservations,
+    EmptyObservationIdentity,
+    EmptyExpectedUnitIdentity,
+    EmptyCohortIdentity,
+    DuplicateObservationIdentity,
+    DuplicateExpectedUnitIdentity,
+    ZeroReceiverDeadline,
+    ReceiverAcceptanceTimeMissing,
+    ReceiverAcceptanceEvidenceMissing,
+    NonAcceptedOutcomeHasDeliveryTime,
+    NonAcceptedOutcomeHasReceiverEvidence,
+    EmptyArrivalIdentity,
+    DuplicateArrivalIdentity,
+    ZeroArrivalWindow,
+    ZeroServiceDuration,
+    ZeroParallelServers,
+    EmptyCohortFloor,
+    CohortFloorOutsidePerMille,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct DistributionMetrics {
+    pub count: usize,
+    pub mean_minutes: f64,
+    pub p50_minutes: u64,
+    pub p90_minutes: u64,
+    pub p95_minutes: u64,
+    pub maximum_minutes: u64,
+    /// Sample standard deviation (n - 1 denominator); None for n < 2.
+    pub sample_std_dev_minutes: Option<f64>,
+    /// Sample standard deviation divided by mean; None when undefined.
+    pub coefficient_of_variation: Option<f64>,
+    /// p95 / p50; None when median is zero.
+    pub p95_to_p50_ratio: Option<f64>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ServiceMetrics {
+    /// Distribution over independently confirmed receiver acceptances only.
+    pub distribution: Option<DistributionMetrics>,
+    pub expected_count: usize,
+    pub receiver_accepted_count: usize,
+    pub source_reported_delivered_unverified_count: usize,
+    pub in_transit_expected_count: usize,
+    pub awaiting_berth_nomination_count: usize,
+    pub not_delivered_count: usize,
+    pub diverted_count: usize,
+    pub cancelled_count: usize,
+    pub unknown_count: usize,
+    pub on_time_count: usize,
+    /// Verified on-time receiver acceptance / all expected units, rounded down.
+    pub on_time_rate_milli: u16,
+}
+
+impl ServiceMetrics {
+    pub fn meets_on_time_floor(&self, floor_per_mille: u16) -> bool {
+        self.on_time_rate_milli >= floor_per_mille
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CohortMetrics {
+    pub cohort_id: String,
+    pub service: ServiceMetrics,
+    pub meets_service_floor: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AggregateCargoStatusError {
+    EmptySourceRecordId,
+    EmptySourceEvidenceReference,
+    NegativeTimestamp,
+    EvidenceNotAvailableAtAsOf,
+    StatusPartitionDoesNotMatchExpectedUnits,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AggregateCargoStatusSnapshot {
+    /// One source-native aggregate statement; deliberately not an individual cargo ID.
+    pub source_record_id: String,
+    pub source_evidence_ref: String,
+    pub published_at_unix: i64,
+    pub as_of_unix: i64,
+    pub expected_count: usize,
+    /// Transnet source-reported delivery; not independently verified receiver acceptance.
+    pub source_reported_delivered_unverified_count: usize,
+    pub in_transit_expected_count: usize,
+    pub awaiting_berth_nomination_count: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AggregateCargoStatusSummary {
+    pub source_record_id: String,
+    pub source_evidence_ref: String,
+    pub published_at_unix: i64,
+    pub as_of_unix: i64,
+    pub expected_count: usize,
+    pub source_reported_delivered_unverified_count: usize,
+    pub in_transit_expected_count: usize,
+    pub awaiting_berth_nomination_count: usize,
+    /// Aggregate source statement carries no per-unit receiver receipts.
+    pub independently_verified_receiver_acceptance_count: usize,
+    pub claim_ceiling: &'static str,
+}
+
+impl AggregateCargoStatusSnapshot {
+    /// Validates the exact aggregate partition without manufacturing per-unit IDs.
+    pub fn summarize(&self) -> Result<AggregateCargoStatusSummary, AggregateCargoStatusError> {
+        if self.source_record_id.trim().is_empty() {
+            return Err(AggregateCargoStatusError::EmptySourceRecordId);
+        }
+        if self.source_evidence_ref.trim().is_empty() {
+            return Err(AggregateCargoStatusError::EmptySourceEvidenceReference);
+        }
+        if self.published_at_unix < 0 || self.as_of_unix < 0 {
+            return Err(AggregateCargoStatusError::NegativeTimestamp);
+        }
+        if self.published_at_unix > self.as_of_unix {
+            return Err(AggregateCargoStatusError::EvidenceNotAvailableAtAsOf);
+        }
+        let partitioned = self.source_reported_delivered_unverified_count
+            + self.in_transit_expected_count
+            + self.awaiting_berth_nomination_count;
+        if partitioned != self.expected_count {
+            return Err(AggregateCargoStatusError::StatusPartitionDoesNotMatchExpectedUnits);
+        }
+        Ok(AggregateCargoStatusSummary {
+            source_record_id: self.source_record_id.clone(),
+            source_evidence_ref: self.source_evidence_ref.clone(),
+            published_at_unix: self.published_at_unix,
+            as_of_unix: self.as_of_unix,
+            expected_count: self.expected_count,
+            source_reported_delivered_unverified_count: self
+                .source_reported_delivered_unverified_count,
+            in_transit_expected_count: self.in_transit_expected_count,
+            awaiting_berth_nomination_count: self.awaiting_berth_nomination_count,
+            independently_verified_receiver_acceptance_count: 0,
+            claim_ceiling: "AGGREGATE_SOURCE_REPORTED_ONLY_NO_UNIT_RECEIPTS",
+        })
+    }
+}
+
+/// Synthetic known-answer projection of Transnet's public 23 November 2026
+/// pharmaceutical-container aggregate. No individual cargo IDs or receipts
+/// are invented; the three categories remain source claims.
+pub fn transnet_pharma_41_aggregate_fixture() -> AggregateCargoStatusSnapshot {
+    AggregateCargoStatusSnapshot {
+        source_record_id: "transnet-aggregate-pharma-41-2026-11-23".to_owned(),
+        source_evidence_ref: "https://www.sanews.gov.za/node/85835".to_owned(),
+        published_at_unix: 1_795_392_000,
+        as_of_unix: 1_795_392_000,
+        expected_count: 41,
+        source_reported_delivered_unverified_count: 18,
+        in_transit_expected_count: 7,
+        awaiting_berth_nomination_count: 16,
+    }
+}
+
+/// Deterministic aggregate-state receipt. The verified receiver-acceptance
+/// count remains zero because the aggregate statement contains no per-unit
+/// receiver evidence reference.
+pub fn render_aggregate_cargo_status_csv() -> String {
+    let summary = transnet_pharma_41_aggregate_fixture()
+        .summarize()
+        .expect("frozen 41-container status partition");
+    format!(
+        "source_record_id,expected_units,source_reported_delivered_unverified,in_transit_expected,awaiting_berth_nomination,independently_verified_receiver_acceptance,claim_ceiling\n{},{},{},{},{},{},{}\n",
+        summary.source_record_id,
+        summary.expected_count,
+        summary.source_reported_delivered_unverified_count,
+        summary.in_transit_expected_count,
+        summary.awaiting_berth_nomination_count,
+        summary.independently_verified_receiver_acceptance_count,
+        summary.claim_ceiling
+    )
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct FifoQueueMetrics {
+    pub call_count: usize,
+    pub max_wait_minutes: u64,
+    /// Area under the waiting-queue length curve, in call-minutes.
+    pub queue_wait_area_call_minutes: u64,
+    pub completion_time_minutes: u64,
+    pub wait_distribution: DistributionMetrics,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ReceiverAcceptanceBinding {
+    pub expected_unit_id: String,
+    pub evidence_ref: String,
+    pub receiver_delivery_minutes: u64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ServiceReliabilityReport {
+    pub observation_count: usize,
+    /// Canonical expected cargo/service-unit IDs, sorted deterministically.
+    pub expected_unit_ids: Vec<String>,
+    pub vessel_wait: DistributionMetrics,
+    pub berth_work: DistributionMetrics,
+    pub terminal_dwell: DistributionMetrics,
+    pub vessel_wait_plus_berth_work: DistributionMetrics,
+    pub inland_transfer: DistributionMetrics,
+    pub end_to_end: ServiceMetrics,
+    /// Each accepted expected cargo unit remains paired with its receiver receipt.
+    pub receiver_acceptances: Vec<ReceiverAcceptanceBinding>,
+    pub cohorts: Vec<CohortMetrics>,
+    pub cohort_floor_per_mille: u16,
+    pub cohort_floor_violations: usize,
+}
+
+fn nearest_rank(sorted: &[u64], percentile: usize) -> u64 {
+    let rank = (sorted.len() * percentile).div_ceil(100).max(1);
+    sorted[rank - 1]
+}
+
+fn distribution(values: &[u64]) -> DistributionMetrics {
+    let mut sorted = values.to_vec();
+    sorted.sort_unstable();
+    let count = sorted.len();
+    let sum = sorted.iter().sum::<u64>();
+    let mean = sum as f64 / count as f64;
+    let variance = if count > 1 {
+        let squared = sorted
+            .iter()
+            .map(|value| {
+                let delta = *value as f64 - mean;
+                delta * delta
+            })
+            .sum::<f64>();
+        Some(squared / (count - 1) as f64)
+    } else {
+        None
+    };
+    let sample_std_dev = variance.map(f64::sqrt);
+    let coefficient_of_variation = sample_std_dev.and_then(|std_dev| {
+        if mean > 0.0 {
+            Some(std_dev / mean)
+        } else {
+            None
+        }
+    });
+    let p50 = nearest_rank(&sorted, 50);
+    let p95 = nearest_rank(&sorted, 95);
+    DistributionMetrics {
+        count,
+        mean_minutes: mean,
+        p50_minutes: p50,
+        p90_minutes: nearest_rank(&sorted, 90),
+        p95_minutes: p95,
+        maximum_minutes: sorted[count - 1],
+        sample_std_dev_minutes: sample_std_dev,
+        coefficient_of_variation,
+        p95_to_p50_ratio: (p50 > 0).then_some(p95 as f64 / p50 as f64),
+    }
+}
+
+fn service_metrics(observations: &[&ServiceObservation]) -> ServiceMetrics {
+    let delivered = observations
+        .iter()
+        .filter_map(|observation| observation.receiver_delivery_minutes)
+        .collect::<Vec<_>>();
+    let on_time_count = observations
+        .iter()
+        .filter(|observation| observation.on_time())
+        .count();
+    let receiver_accepted_count = observations
+        .iter()
+        .filter(|observation| {
+            observation.delivery_disposition == DeliveryDisposition::ReceiverAccepted
+        })
+        .count();
+    let source_reported_delivered_unverified_count = observations
+        .iter()
+        .filter(|observation| {
+            observation.delivery_disposition
+                == DeliveryDisposition::SourceReportedDeliveredUnverified
+        })
+        .count();
+    let in_transit_expected_count = observations
+        .iter()
+        .filter(|observation| {
+            observation.delivery_disposition == DeliveryDisposition::InTransitExpected
+        })
+        .count();
+    let awaiting_berth_nomination_count = observations
+        .iter()
+        .filter(|observation| {
+            observation.delivery_disposition == DeliveryDisposition::AwaitingBerthNomination
+        })
+        .count();
+    let not_delivered_count = observations
+        .iter()
+        .filter(|observation| {
+            observation.delivery_disposition == DeliveryDisposition::NotDelivered
+        })
+        .count();
+    let diverted_count = observations
+        .iter()
+        .filter(|observation| observation.delivery_disposition == DeliveryDisposition::Diverted)
+        .count();
+    let cancelled_count = observations
+        .iter()
+        .filter(|observation| observation.delivery_disposition == DeliveryDisposition::Cancelled)
+        .count();
+    let unknown_count = observations
+        .iter()
+        .filter(|observation| observation.delivery_disposition == DeliveryDisposition::Unknown)
+        .count();
+    let rate = (on_time_count * 1_000 / observations.len()) as u16;
+    ServiceMetrics {
+        distribution: (!delivered.is_empty()).then(|| distribution(&delivered)),
+        expected_count: observations.len(),
+        receiver_accepted_count,
+        source_reported_delivered_unverified_count,
+        in_transit_expected_count,
+        awaiting_berth_nomination_count,
+        not_delivered_count,
+        diverted_count,
+        cancelled_count,
+        unknown_count,
+        on_time_count,
+        on_time_rate_milli: rate,
+    }
+}
+
+impl ServiceReliabilityReport {
+    pub fn evaluate(
+        observations: &[ServiceObservation],
+        cohort_floor_per_mille: u16,
+    ) -> Result<Self, ServiceMetricError> {
+        if observations.is_empty() {
+            return Err(ServiceMetricError::EmptyObservations);
+        }
+        if cohort_floor_per_mille > 1_000 {
+            return Err(ServiceMetricError::CohortFloorOutsidePerMille);
+        }
+        if cohort_floor_per_mille == 0 {
+            return Err(ServiceMetricError::EmptyCohortFloor);
+        }
+
+        let mut observation_ids = BTreeSet::new();
+        let mut expected_unit_ids = BTreeSet::new();
+        for observation in observations {
+            if observation.observation_id.trim().is_empty() {
+                return Err(ServiceMetricError::EmptyObservationIdentity);
+            }
+            if observation.expected_unit_id.trim().is_empty() {
+                return Err(ServiceMetricError::EmptyExpectedUnitIdentity);
+            }
+            if !expected_unit_ids.insert(observation.expected_unit_id.as_str()) {
+                return Err(ServiceMetricError::DuplicateExpectedUnitIdentity);
+            }
+            if observation.cohort_id.trim().is_empty() {
+                return Err(ServiceMetricError::EmptyCohortIdentity);
+            }
+            if !observation_ids.insert(observation.observation_id.as_str()) {
+                return Err(ServiceMetricError::DuplicateObservationIdentity);
+            }
+            if observation.receiver_deadline_minutes == 0 {
+                return Err(ServiceMetricError::ZeroReceiverDeadline);
+            }
+            match (
+                observation.delivery_disposition,
+                observation.receiver_delivery_minutes,
+                observation.receiver_acceptance_ref.as_deref(),
+            ) {
+                (DeliveryDisposition::ReceiverAccepted, None, _) => {
+                    return Err(ServiceMetricError::ReceiverAcceptanceTimeMissing);
+                }
+                (DeliveryDisposition::ReceiverAccepted, Some(_), None) => {
+                    return Err(ServiceMetricError::ReceiverAcceptanceEvidenceMissing);
+                }
+                (DeliveryDisposition::ReceiverAccepted, Some(_), Some(reference))
+                    if reference.trim().is_empty() =>
+                {
+                    return Err(ServiceMetricError::ReceiverAcceptanceEvidenceMissing);
+                }
+                (DeliveryDisposition::SourceReportedDeliveredUnverified
+                    | DeliveryDisposition::InTransitExpected
+                    | DeliveryDisposition::AwaitingBerthNomination
+                    | DeliveryDisposition::NotDelivered
+                    | DeliveryDisposition::Diverted
+                    | DeliveryDisposition::Cancelled
+                    | DeliveryDisposition::Unknown, Some(_), _) =>
+                {
+                    return Err(ServiceMetricError::NonAcceptedOutcomeHasDeliveryTime);
+                }
+                (DeliveryDisposition::SourceReportedDeliveredUnverified
+                    | DeliveryDisposition::InTransitExpected
+                    | DeliveryDisposition::AwaitingBerthNomination
+                    | DeliveryDisposition::NotDelivered
+                    | DeliveryDisposition::Diverted
+                    | DeliveryDisposition::Cancelled
+                    | DeliveryDisposition::Unknown, None, Some(_)) =>
+                {
+                    return Err(ServiceMetricError::NonAcceptedOutcomeHasReceiverEvidence);
+                }
+                _ => {}
+            }
+        }
+
+        let vessel_wait = observations
+            .iter()
+            .map(|item| u64::from(item.vessel_wait_minutes))
+            .collect::<Vec<_>>();
+        let berth_work = observations
+            .iter()
+            .map(|item| u64::from(item.berth_work_minutes))
+            .collect::<Vec<_>>();
+        let terminal_dwell = observations
+            .iter()
+            .map(|item| u64::from(item.terminal_dwell_minutes))
+            .collect::<Vec<_>>();
+        let vessel_wait_plus_berth_work = observations
+            .iter()
+            .map(ServiceObservation::vessel_wait_plus_berth_work_minutes)
+            .collect::<Vec<_>>();
+        let inland_transfer = observations
+            .iter()
+            .map(|item| u64::from(item.inland_transfer_minutes))
+            .collect::<Vec<_>>();
+        let mut cohort_rows = BTreeMap::<&str, Vec<&ServiceObservation>>::new();
+        for observation in observations {
+            cohort_rows
+                .entry(observation.cohort_id.as_str())
+                .or_default()
+                .push(observation);
+        }
+        let cohorts = cohort_rows
+            .into_iter()
+            .map(|(cohort_id, cohort_observations)| {
+                let service = service_metrics(&cohort_observations);
+                CohortMetrics {
+                    cohort_id: cohort_id.to_owned(),
+                    meets_service_floor: service.meets_on_time_floor(cohort_floor_per_mille),
+                    service,
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let cohort_floor_violations = cohorts
+            .iter()
+            .filter(|cohort| !cohort.meets_service_floor)
+            .count();
+
+        let mut receiver_acceptances = observations
+            .iter()
+            .filter_map(|observation| {
+                Some(ReceiverAcceptanceBinding {
+                    expected_unit_id: observation.expected_unit_id.clone(),
+                    evidence_ref: observation.receiver_acceptance_ref.clone()?,
+                    receiver_delivery_minutes: observation.receiver_delivery_minutes?,
+                })
+            })
+            .collect::<Vec<_>>();
+        receiver_acceptances.sort_by(|left, right| left.expected_unit_id.cmp(&right.expected_unit_id));
+
+        Ok(Self {
+            observation_count: observations.len(),
+            expected_unit_ids: expected_unit_ids.into_iter().map(str::to_owned).collect(),
+            vessel_wait: distribution(&vessel_wait),
+            berth_work: distribution(&berth_work),
+            terminal_dwell: distribution(&terminal_dwell),
+            vessel_wait_plus_berth_work: distribution(&vessel_wait_plus_berth_work),
+            inland_transfer: distribution(&inland_transfer),
+            end_to_end: service_metrics(&observations.iter().collect::<Vec<_>>()),
+            receiver_acceptances,
+            cohorts,
+            cohort_floor_per_mille,
+            cohort_floor_violations,
+        })
+    }
+}
+
+/// Maximum distinct vessel calls in any inclusive rolling window.
+/// This is a burst-load diagnostic, not an independence/cluster estimator.
+pub fn maximum_arrivals_in_window(
+    arrivals: &[VesselArrival],
+    window_minutes: u64,
+) -> Result<usize, ServiceMetricError> {
+    if window_minutes == 0 {
+        return Err(ServiceMetricError::ZeroArrivalWindow);
+    }
+    let mut call_ids = BTreeSet::new();
+    for arrival in arrivals {
+        if arrival.call_id.trim().is_empty() {
+            return Err(ServiceMetricError::EmptyArrivalIdentity);
+        }
+        if !call_ids.insert(arrival.call_id.as_str()) {
+            return Err(ServiceMetricError::DuplicateArrivalIdentity);
+        }
+    }
+    let mut ordered = arrivals.to_vec();
+    ordered.sort_by_key(|arrival| arrival.arrival_minute);
+    let mut max_count = 0;
+    let mut right = 0;
+    for left in 0..ordered.len() {
+        right = right.max(left);
+        while right < ordered.len()
+            && ordered[right].arrival_minute - ordered[left].arrival_minute <= window_minutes
+        {
+            right += 1;
+        }
+        max_count = max_count.max(right - left);
+    }
+    Ok(max_count)
+}
+
+/// Replays a deterministic FCFS multi-server queue for a fixed handling
+/// duration. This is a transparent queueing baseline, not a terminal optimizer.
+pub fn simulate_fcfs_queue(
+    arrivals: &[VesselArrival],
+    service_duration_minutes: u64,
+    parallel_servers: usize,
+) -> Result<FifoQueueMetrics, ServiceMetricError> {
+    if service_duration_minutes == 0 {
+        return Err(ServiceMetricError::ZeroServiceDuration);
+    }
+    if parallel_servers == 0 {
+        return Err(ServiceMetricError::ZeroParallelServers);
+    }
+    if arrivals.is_empty() {
+        return Err(ServiceMetricError::EmptyObservations);
+    }
+    let mut call_ids = BTreeSet::new();
+    for arrival in arrivals {
+        if arrival.call_id.trim().is_empty() {
+            return Err(ServiceMetricError::EmptyArrivalIdentity);
+        }
+        if !call_ids.insert(arrival.call_id.as_str()) {
+            return Err(ServiceMetricError::DuplicateArrivalIdentity);
+        }
+    }
+
+    let mut ordered = arrivals.to_vec();
+    ordered.sort_by(|left, right| {
+        left.arrival_minute
+            .cmp(&right.arrival_minute)
+            .then_with(|| left.call_id.cmp(&right.call_id))
+    });
+    let mut server_available = BinaryHeap::new();
+    for _ in 0..parallel_servers {
+        server_available.push(Reverse(0_u64));
+    }
+
+    let mut waits = Vec::with_capacity(ordered.len());
+    let mut max_wait = 0_u64;
+    let mut queue_wait_area = 0_u64;
+    let mut completion_time = 0_u64;
+    for arrival in &ordered {
+        let Reverse(available_at) = server_available
+            .pop()
+            .expect("at least one server is configured");
+        let start = available_at.max(arrival.arrival_minute);
+        let wait = start - arrival.arrival_minute;
+        let finish = start + service_duration_minutes;
+        server_available.push(Reverse(finish));
+        waits.push(wait);
+        max_wait = max_wait.max(wait);
+        queue_wait_area += wait;
+        completion_time = completion_time.max(finish);
+    }
+
+    Ok(FifoQueueMetrics {
+        call_count: ordered.len(),
+        max_wait_minutes: max_wait,
+        queue_wait_area_call_minutes: queue_wait_area,
+        completion_time_minutes: completion_time,
+        wait_distribution: distribution(&waits),
+    })
+}
+
+fn synthetic_observations(
+    scenario: &str,
+    stages: &[(u32, u32, u32, u32)],
+    receiver_times: &[u64],
+    cohorts: &[&str],
+    deadline: u64,
+) -> Vec<ServiceObservation> {
+    assert_eq!(stages.len(), receiver_times.len());
+    stages
+        .iter()
+        .zip(receiver_times)
+        .enumerate()
+        .map(|(index, ((vessel, berth, terminal, inland), receiver_minutes))| ServiceObservation {
+            observation_id: format!("{scenario}-source-record-{index:02}"),
+            expected_unit_id: format!("urn:example:expected-cargo-unit:{scenario}:{index:02}"),
+            cohort_id: cohorts.get(index).copied().unwrap_or("ALL").to_owned(),
+            vessel_wait_minutes: *vessel,
+            berth_work_minutes: *berth,
+            terminal_dwell_minutes: *terminal,
+            inland_transfer_minutes: *inland,
+            receiver_deadline_minutes: deadline,
+            receiver_delivery_minutes: Some(*receiver_minutes),
+            receiver_acceptance_ref: Some(format!("synthetic-receiver-receipt-{scenario}-{index:02}")),
+            delivery_disposition: DeliveryDisposition::ReceiverAccepted,
+        })
+        .collect()
+}
+
+fn regular_arrivals(prefix: &str, count: usize) -> Vec<VesselArrival> {
+    (0..count)
+        .map(|index| VesselArrival {
+            call_id: format!("{prefix}-vessel-{index:02}"),
+            arrival_minute: index as u64 * 60,
+        })
+        .collect()
+}
+
+fn burst_arrivals(prefix: &str, count: usize) -> Vec<VesselArrival> {
+    (0..count)
+        .map(|index| VesselArrival {
+            call_id: format!("{prefix}-vessel-{index:02}"),
+            arrival_minute: if index < count.saturating_sub(2) { 0 } else { 10 },
+        })
+        .collect()
+}
+
+#[derive(Clone, Copy)]
+struct Scenario {
+    id: &'static str,
+    observations: &'static [(u32, u32, u32, u32)],
+    receiver_times: &'static [u64],
+    cohorts: &'static [&'static str],
+    deadline: u64,
+    burst: bool,
+    include_unresolved_outcomes: bool,
+}
+
+const STABLE: [(u32, u32, u32, u32); 20] = [(50, 20, 20, 10); 20];
+const MEAN_MATCHED_BURSTY: [(u32, u32, u32, u32); 20] = [
+    (40, 15, 15, 10),
+    (40, 15, 15, 10),
+    (40, 15, 15, 10),
+    (40, 15, 15, 10),
+    (40, 15, 15, 10),
+    (40, 15, 15, 10),
+    (40, 15, 15, 10),
+    (40, 15, 15, 10),
+    (40, 15, 15, 10),
+    (40, 15, 15, 10),
+    (40, 15, 15, 10),
+    (40, 15, 15, 10),
+    (40, 15, 15, 10),
+    (40, 15, 15, 10),
+    (40, 15, 15, 10),
+    (40, 15, 15, 10),
+    (40, 15, 15, 10),
+    (40, 15, 15, 10),
+    (100, 60, 70, 50),
+    (100, 60, 70, 50),
+];
+const BASELINE_CHAIN: [(u32, u32, u32, u32); 20] = [(60, 40, 30, 20); 20];
+const LOCAL_PORT_GAIN: [(u32, u32, u32, u32); 20] = [(40, 40, 30, 40); 20];
+const RECEIVER_REGRESSION: [(u32, u32, u32, u32); 20] = [(40, 40, 30, 80); 20];
+const FAIRNESS_COHORTS: [&str; 20] = [
+    "PRIORITY_A", "PRIORITY_A", "PRIORITY_A", "PRIORITY_A", "PRIORITY_A",
+    "PRIORITY_A", "PRIORITY_A", "PRIORITY_A", "PRIORITY_A", "PRIORITY_A",
+    "PRIORITY_A", "PRIORITY_A", "PRIORITY_A", "PRIORITY_A", "PRIORITY_A",
+    "PRIORITY_A", "PRIORITY_A", "PRIORITY_A", "SMALL_RECEIVER", "SMALL_RECEIVER",
+];
+
+fn scenarios() -> [Scenario; 7] {
+    [
+        Scenario {
+            id: "MEAN_MATCHED_STABLE",
+            observations: &STABLE,
+            receiver_times: &RECEIVER_STABLE,
+            cohorts: &[],
+            deadline: 120,
+            burst: false,
+            include_unresolved_outcomes: false,
+        },
+        Scenario {
+            id: "MEAN_MATCHED_HIGH_VARIABILITY",
+            observations: &MEAN_MATCHED_BURSTY,
+            receiver_times: &RECEIVER_BURSTY,
+            cohorts: &[],
+            deadline: 120,
+            burst: true,
+            include_unresolved_outcomes: false,
+        },
+        Scenario {
+            id: "BASELINE_END_TO_END",
+            observations: &BASELINE_CHAIN,
+            receiver_times: &RECEIVER_BASELINE,
+            cohorts: &[],
+            deadline: 160,
+            burst: false,
+            include_unresolved_outcomes: false,
+        },
+        Scenario {
+            id: "LOCAL_PORT_GAIN_NO_RECEIVER_GAIN",
+            observations: &LOCAL_PORT_GAIN,
+            receiver_times: &RECEIVER_LOCAL_GAIN,
+            cohorts: &[],
+            deadline: 160,
+            burst: false,
+            include_unresolved_outcomes: false,
+        },
+        Scenario {
+            id: "RECEIVER_REGRESSION",
+            observations: &RECEIVER_REGRESSION,
+            receiver_times: &RECEIVER_REGRESSION_TIMES,
+            cohorts: &[],
+            deadline: 160,
+            burst: true,
+            include_unresolved_outcomes: false,
+        },
+        Scenario {
+            id: "FAIRNESS_COHORT_FLOOR_HIDDEN_BY_AGGREGATE",
+            observations: &MEAN_MATCHED_BURSTY,
+            receiver_times: &RECEIVER_BURSTY,
+            cohorts: &FAIRNESS_COHORTS,
+            deadline: 120,
+            burst: true,
+            include_unresolved_outcomes: false,
+        },
+        Scenario {
+            id: "EXPECTED_UNITS_WITH_UNRESOLVED_DELIVERY",
+            observations: &STABLE,
+            receiver_times: &RECEIVER_STABLE,
+            cohorts: &[],
+            deadline: 120,
+            burst: false,
+            include_unresolved_outcomes: true,
+        },
+    ]
+}
+
+fn optional_float(value: Option<f64>) -> String {
+    value.map_or_else(|| "NA".to_owned(), |number| format!("{number:.6}"))
+}
+
+/// Renders deterministic synthetic service-reliability and burst receipts.
+pub fn render_csv() -> String {
+    let mut output = String::from(
+        "scenario_id,expected_units,vessel_wait_plus_berth_work_mean_minutes,inland_mean_minutes,accepted_receiver_time_mean_minutes,accepted_p50_minutes,accepted_p90_minutes,accepted_p95_minutes,accepted_max_minutes,accepted_sample_sd_minutes,accepted_coefficient_of_variation,accepted_p95_to_p50_ratio,verified_on_time_rate_per_mille,cohort_floor_violations,max_arrivals_in_60m,max_fcfs_wait_minutes,queue_wait_area_call_minutes,queue_completion_minutes,receiver_accepted_count,source_reported_delivered_unverified_count,in_transit_expected_count,awaiting_berth_nomination_count,not_delivered_count,diverted_count,cancelled_count,unknown_count,claim_ceiling\n",
+    );
+    for scenario in scenarios() {
+        let mut observations = synthetic_observations(
+            scenario.id,
+            scenario.observations,
+            scenario.receiver_times,
+            scenario.cohorts,
+            scenario.deadline,
+        );
+        if scenario.include_unresolved_outcomes {
+            let not_delivered = observations.len() - 2;
+            observations[not_delivered].delivery_disposition = DeliveryDisposition::NotDelivered;
+            observations[not_delivered].receiver_delivery_minutes = None;
+            observations[not_delivered].receiver_acceptance_ref = None;
+            let unknown = observations.len() - 1;
+            observations[unknown].delivery_disposition = DeliveryDisposition::Unknown;
+            observations[unknown].receiver_delivery_minutes = None;
+            observations[unknown].receiver_acceptance_ref = None;
+        }
+        let report = ServiceReliabilityReport::evaluate(
+            &observations,
+            MINIMUM_COHORT_ON_TIME_RATE_MILLI,
+        )
+        .expect("valid synthetic service scenario");
+        let arrivals = if scenario.burst {
+            burst_arrivals(scenario.id, observations.len())
+        } else {
+            regular_arrivals(scenario.id, observations.len())
+        };
+        let burst = maximum_arrivals_in_window(&arrivals, ARRIVAL_BURST_WINDOW_MINUTES)
+            .expect("valid synthetic arrivals");
+        let queue = simulate_fcfs_queue(&arrivals, 30, 2).expect("valid FCFS queue fixture");
+        let delivered = report
+            .end_to_end
+            .distribution
+            .as_ref()
+            .expect("each synthetic benchmark scenario has receiver acceptances");
+        let _ = writeln!(
+            output,
+            "{},{},{:.3},{:.3},{:.3},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},SYNTHETIC_ONLY",
+            scenario.id,
+            report.expected_unit_ids.len(),
+            report.vessel_wait_plus_berth_work.mean_minutes,
+            report.inland_transfer.mean_minutes,
+            delivered.mean_minutes,
+            delivered.p50_minutes,
+            delivered.p90_minutes,
+            delivered.p95_minutes,
+            delivered.maximum_minutes,
+            optional_float(delivered.sample_std_dev_minutes),
+            optional_float(delivered.coefficient_of_variation),
+            optional_float(delivered.p95_to_p50_ratio),
+            report.end_to_end.on_time_rate_milli,
+            report.cohort_floor_violations,
+            burst,
+            queue.max_wait_minutes,
+            queue.queue_wait_area_call_minutes,
+            queue.completion_time_minutes,
+            report.end_to_end.receiver_accepted_count,
+            report.end_to_end.source_reported_delivered_unverified_count,
+            report.end_to_end.in_transit_expected_count,
+            report.end_to_end.awaiting_berth_nomination_count,
+            report.end_to_end.not_delivered_count,
+            report.end_to_end.diverted_count,
+            report.end_to_end.cancelled_count,
+            report.end_to_end.unknown_count
+        );
+    }
+    output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn naive_fcfs_queue(
+        arrivals: &[VesselArrival],
+        service_duration_minutes: u64,
+        parallel_servers: usize,
+    ) -> FifoQueueMetrics {
+        let mut ordered = arrivals.to_vec();
+        ordered.sort_by(|left, right| {
+            left.arrival_minute
+                .cmp(&right.arrival_minute)
+                .then_with(|| left.call_id.cmp(&right.call_id))
+        });
+        let mut available_at = vec![0_u64; parallel_servers];
+        let mut waits = Vec::with_capacity(ordered.len());
+        let mut max_wait = 0_u64;
+        let mut queue_wait_area = 0_u64;
+        let mut completion_time = 0_u64;
+        for arrival in &ordered {
+            let mut server = 0;
+            for candidate in 1..parallel_servers {
+                if available_at[candidate] < available_at[server] {
+                    server = candidate;
+                }
+            }
+            let start = available_at[server].max(arrival.arrival_minute);
+            let wait = start - arrival.arrival_minute;
+            let finish = start + service_duration_minutes;
+            available_at[server] = finish;
+            waits.push(wait);
+            max_wait = max_wait.max(wait);
+            queue_wait_area += wait;
+            completion_time = completion_time.max(finish);
+        }
+        FifoQueueMetrics {
+            call_count: ordered.len(),
+            max_wait_minutes: max_wait,
+            queue_wait_area_call_minutes: queue_wait_area,
+            completion_time_minutes: completion_time,
+            wait_distribution: distribution(&waits),
+        }
+    }
+
+    fn delivered_distribution(report: &ServiceReliabilityReport) -> &DistributionMetrics {
+        report
+            .end_to_end
+            .distribution
+            .as_ref()
+            .expect("test case has receiver-accepted deliveries")
+    }
+
+    fn equal_mean_pair() -> (ServiceReliabilityReport, ServiceReliabilityReport) {
+        let stable = synthetic_observations(
+            "stable",
+            &STABLE,
+            &RECEIVER_STABLE,
+            &[],
+            ON_TIME_WINDOW_MINUTES,
+        );
+        let bursty =
+            synthetic_observations("bursty", &MEAN_MATCHED_BURSTY, &RECEIVER_BURSTY, &[], ON_TIME_WINDOW_MINUTES);
+        (
+            ServiceReliabilityReport::evaluate(&stable, 950).expect("stable report"),
+            ServiceReliabilityReport::evaluate(&bursty, 950).expect("bursty report"),
+        )
+    }
+
+    #[test]
+    fn transnet_pharma_41_aggregate_preserves_three_distinct_source_states() {
+        let summary = transnet_pharma_41_aggregate_fixture()
+            .summarize()
+            .expect("valid 41-container aggregate");
+        assert_eq!(summary.expected_count, 41);
+        assert_eq!(summary.source_reported_delivered_unverified_count, 18);
+        assert_eq!(summary.in_transit_expected_count, 7);
+        assert_eq!(summary.awaiting_berth_nomination_count, 16);
+        assert_eq!(summary.independently_verified_receiver_acceptance_count, 0);
+        assert_eq!(
+            summary.claim_ceiling,
+            "AGGREGATE_SOURCE_REPORTED_ONLY_NO_UNIT_RECEIPTS"
+        );
+    }
+
+    #[test]
+    fn aggregate_cargo_status_rejects_wrong_denominator_and_future_publication() {
+        let mut snapshot = transnet_pharma_41_aggregate_fixture();
+        snapshot.expected_count = 40;
+        assert_eq!(
+            snapshot.summarize(),
+            Err(AggregateCargoStatusError::StatusPartitionDoesNotMatchExpectedUnits)
+        );
+        snapshot = transnet_pharma_41_aggregate_fixture();
+        snapshot.as_of_unix = snapshot.published_at_unix - 1;
+        assert_eq!(
+            snapshot.summarize(),
+            Err(AggregateCargoStatusError::EvidenceNotAvailableAtAsOf)
+        );
+    }
+
+    #[test]
+    fn aggregate_cargo_receipt_is_deterministic_and_does_not_claim_receiver_acceptance() {
+        let receipt = render_aggregate_cargo_status_csv();
+        assert_eq!(receipt, render_aggregate_cargo_status_csv());
+        assert!(receipt.contains(",41,18,7,16,0,AGGREGATE_SOURCE_REPORTED_ONLY_NO_UNIT_RECEIPTS"));
+    }
+
+    #[test]
+    fn mean_matched_scenarios_expose_hidden_variability_and_tail_loss() {
+        let (stable, bursty) = equal_mean_pair();
+        assert_eq!(
+            delivered_distribution(&stable).mean_minutes,
+            delivered_distribution(&bursty).mean_minutes
+        );
+        assert_eq!(delivered_distribution(&stable).p95_minutes, 100);
+        assert_eq!(delivered_distribution(&bursty).p95_minutes, 280);
+        assert_eq!(stable.end_to_end.on_time_rate_milli, 1_000);
+        assert_eq!(bursty.end_to_end.on_time_rate_milli, 900);
+        assert!(
+            delivered_distribution(&bursty).coefficient_of_variation
+                > delivered_distribution(&stable).coefficient_of_variation
+        );
+    }
+
+    #[test]
+    fn local_port_gain_cannot_be_claimed_as_end_to_end_service_gain() {
+        let baseline =
+            synthetic_observations("baseline", &BASELINE_CHAIN, &RECEIVER_BASELINE, &[], 160);
+        let optimized =
+            synthetic_observations("optimized", &LOCAL_PORT_GAIN, &RECEIVER_LOCAL_GAIN, &[], 160);
+        let baseline = ServiceReliabilityReport::evaluate(&baseline, 950).expect("baseline");
+        let optimized = ServiceReliabilityReport::evaluate(&optimized, 950).expect("optimized");
+        assert_eq!(
+            optimized.vessel_wait_plus_berth_work.mean_minutes + 20.0,
+            baseline.vessel_wait_plus_berth_work.mean_minutes
+        );
+        assert_eq!(
+            delivered_distribution(&optimized).mean_minutes,
+            delivered_distribution(&baseline).mean_minutes
+        );
+    }
+
+    #[test]
+    fn receiver_delay_can_worsen_even_when_port_time_improves() {
+        let baseline =
+            synthetic_observations("baseline", &BASELINE_CHAIN, &RECEIVER_BASELINE, &[], 160);
+        let regressed =
+            synthetic_observations("regressed", &RECEIVER_REGRESSION, &RECEIVER_REGRESSION_TIMES, &[], 160);
+        let baseline = ServiceReliabilityReport::evaluate(&baseline, 950).expect("baseline");
+        let regressed = ServiceReliabilityReport::evaluate(&regressed, 950).expect("regressed");
+        assert!(
+            regressed.vessel_wait_plus_berth_work.mean_minutes
+                < baseline.vessel_wait_plus_berth_work.mean_minutes
+        );
+        assert!(
+            delivered_distribution(&regressed).mean_minutes
+                > delivered_distribution(&baseline).mean_minutes
+        );
+        assert_eq!(regressed.end_to_end.on_time_rate_milli, 0);
+    }
+
+    #[test]
+    fn participant_floor_is_per_cohort_not_aggregated_away() {
+        let observations = synthetic_observations(
+            "fairness",
+            &MEAN_MATCHED_BURSTY,
+            &RECEIVER_BURSTY,
+            &FAIRNESS_COHORTS,
+            120,
+        );
+        let report = ServiceReliabilityReport::evaluate(&observations, 950).expect("fairness");
+        assert_eq!(report.cohort_floor_violations, 1);
+        let small = report
+            .cohorts
+            .iter()
+            .find(|cohort| cohort.cohort_id == "SMALL_RECEIVER")
+            .expect("small receiver cohort");
+        assert_eq!(small.service.on_time_rate_milli, 0);
+        assert!(!small.meets_service_floor);
+    }
+
+    #[test]
+    fn burst_arrival_metric_exposes_clustered_calls() {
+        let regular = maximum_arrivals_in_window(&regular_arrivals("regular", 20), 60)
+            .expect("regular arrivals");
+        let burst = maximum_arrivals_in_window(&burst_arrivals("burst", 20), 60)
+            .expect("burst arrivals");
+        assert_eq!(regular, 2);
+        assert_eq!(burst, 20);
+    }
+
+    #[test]
+    fn burst_arrivals_create_fcfs_queue_wait_and_longer_recovery() {
+        let regular =
+            simulate_fcfs_queue(&regular_arrivals("regular", 20), 30, 2).expect("regular queue");
+        let burst =
+            simulate_fcfs_queue(&burst_arrivals("burst", 20), 30, 2).expect("burst queue");
+        assert_eq!(regular.max_wait_minutes, 0);
+        assert_eq!(regular.queue_wait_area_call_minutes, 0);
+        assert_eq!(regular.completion_time_minutes, 1_170);
+        assert_eq!(burst.max_wait_minutes, 260);
+        assert_eq!(burst.queue_wait_area_call_minutes, 2_680);
+        assert_eq!(burst.completion_time_minutes, 300);
+    }
+
+    #[test]
+    fn heap_queue_matches_independent_tiny_naive_server_oracle() {
+        let arrivals = vec![
+            VesselArrival { call_id: "call-a".to_owned(), arrival_minute: 0 },
+            VesselArrival { call_id: "call-b".to_owned(), arrival_minute: 10 },
+            VesselArrival { call_id: "call-c".to_owned(), arrival_minute: 10 },
+            VesselArrival { call_id: "call-d".to_owned(), arrival_minute: 25 },
+            VesselArrival { call_id: "call-e".to_owned(), arrival_minute: 100 },
+        ];
+        for service_duration in [5, 30] {
+            for servers in 1..=3 {
+                let actual = simulate_fcfs_queue(&arrivals, service_duration, servers)
+                    .expect("heap queue result");
+                let expected = naive_fcfs_queue(&arrivals, service_duration, servers);
+                assert_eq!(actual, expected);
+            }
+        }
+    }
+
+    #[test]
+    fn queue_results_are_permutation_invariant_and_capacity_monotone() {
+        let arrivals = burst_arrivals("metamorphic", 20);
+        let expected = simulate_fcfs_queue(&arrivals, 30, 2).expect("baseline");
+        let mut reversed = arrivals.clone();
+        reversed.reverse();
+        assert_eq!(
+            simulate_fcfs_queue(&reversed, 30, 2).expect("permuted input"),
+            expected
+        );
+
+        let one_server = simulate_fcfs_queue(&arrivals, 30, 1).expect("one server");
+        let three_servers = simulate_fcfs_queue(&arrivals, 30, 3).expect("three servers");
+        assert!(three_servers.max_wait_minutes <= expected.max_wait_minutes);
+        assert!(
+            three_servers.queue_wait_area_call_minutes
+                <= expected.queue_wait_area_call_minutes
+        );
+        assert!(three_servers.completion_time_minutes <= expected.completion_time_minutes);
+        assert!(expected.max_wait_minutes <= one_server.max_wait_minutes);
+        assert!(
+            expected.queue_wait_area_call_minutes
+                <= one_server.queue_wait_area_call_minutes
+        );
+        assert!(expected.completion_time_minutes <= one_server.completion_time_minutes);
+    }
+
+    #[test]
+    fn fcfs_queue_rejects_zero_capacity_and_empty_arrivals() {
+        let arrivals = regular_arrivals("queue", 1);
+        assert_eq!(
+            simulate_fcfs_queue(&arrivals, 30, 0),
+            Err(ServiceMetricError::ZeroParallelServers)
+        );
+        assert_eq!(
+            simulate_fcfs_queue(&arrivals, 0, 2),
+            Err(ServiceMetricError::ZeroServiceDuration)
+        );
+        assert_eq!(
+            simulate_fcfs_queue(&[], 30, 2),
+            Err(ServiceMetricError::EmptyObservations)
+        );
+    }
+
+    #[test]
+    fn arrival_ids_must_be_unique_and_window_must_be_positive() {
+        let arrivals = vec![
+            VesselArrival {
+                call_id: "same".to_owned(),
+                arrival_minute: 0,
+            },
+            VesselArrival {
+                call_id: "same".to_owned(),
+                arrival_minute: 10,
+            },
+        ];
+        assert_eq!(
+            maximum_arrivals_in_window(&arrivals, 60),
+            Err(ServiceMetricError::DuplicateArrivalIdentity)
+        );
+        assert_eq!(
+            maximum_arrivals_in_window(&[], 0),
+            Err(ServiceMetricError::ZeroArrivalWindow)
+        );
+    }
+
+    #[test]
+    fn invalid_service_rows_are_rejected() {
+        assert_eq!(
+            ServiceReliabilityReport::evaluate(&[], 950),
+            Err(ServiceMetricError::EmptyObservations)
+        );
+        let mut observations = synthetic_observations("test", &STABLE[..2], &RECEIVER_STABLE[..2], &[], 120);
+        observations[1].observation_id = observations[0].observation_id.clone();
+        assert_eq!(
+            ServiceReliabilityReport::evaluate(&observations, 950),
+            Err(ServiceMetricError::DuplicateObservationIdentity)
+        );
+        observations[1].observation_id = "distinct".to_owned();
+        observations[0].receiver_deadline_minutes = 0;
+        assert_eq!(
+            ServiceReliabilityReport::evaluate(&observations, 950),
+            Err(ServiceMetricError::ZeroReceiverDeadline)
+        );
+    }
+
+    #[test]
+    fn unverified_and_preberth_statuses_do_not_become_receiver_acceptances() {
+        let mut observations = synthetic_observations("reported-statuses", &STABLE[..3], &RECEIVER_STABLE[..3], &[], 120);
+        observations[0].delivery_disposition =
+            DeliveryDisposition::SourceReportedDeliveredUnverified;
+        observations[0].receiver_delivery_minutes = None;
+        observations[0].receiver_acceptance_ref = None;
+        observations[1].delivery_disposition = DeliveryDisposition::InTransitExpected;
+        observations[1].receiver_delivery_minutes = None;
+        observations[1].receiver_acceptance_ref = None;
+        observations[2].delivery_disposition = DeliveryDisposition::AwaitingBerthNomination;
+        observations[2].receiver_delivery_minutes = None;
+        observations[2].receiver_acceptance_ref = None;
+
+        let report = ServiceReliabilityReport::evaluate(&observations, 950)
+            .expect("source statuses remain unverified expected units");
+        assert_eq!(report.end_to_end.expected_count, 3);
+        assert_eq!(report.end_to_end.receiver_accepted_count, 0);
+        assert_eq!(report.end_to_end.source_reported_delivered_unverified_count, 1);
+        assert_eq!(report.end_to_end.in_transit_expected_count, 1);
+        assert_eq!(report.end_to_end.awaiting_berth_nomination_count, 1);
+        assert_eq!(report.end_to_end.on_time_rate_milli, 0);
+        assert!(report.end_to_end.distribution.is_none());
+        assert!(report.receiver_acceptances.is_empty());
+    }
+
+    #[test]
+    fn expected_unit_denominator_retains_not_delivered_diverted_cancelled_and_unknown() {
+        let mut observations = synthetic_observations("dispositions", &STABLE[..5], &RECEIVER_STABLE[..5], &[], 120);
+        observations[1].delivery_disposition = DeliveryDisposition::NotDelivered;
+        observations[1].receiver_delivery_minutes = None;
+        observations[1].receiver_acceptance_ref = None;
+        observations[2].delivery_disposition = DeliveryDisposition::Diverted;
+        observations[2].receiver_delivery_minutes = None;
+        observations[2].receiver_acceptance_ref = None;
+        observations[3].delivery_disposition = DeliveryDisposition::Cancelled;
+        observations[3].receiver_delivery_minutes = None;
+        observations[3].receiver_acceptance_ref = None;
+        observations[4].delivery_disposition = DeliveryDisposition::Unknown;
+        observations[4].receiver_delivery_minutes = None;
+        observations[4].receiver_acceptance_ref = None;
+
+        let report = ServiceReliabilityReport::evaluate(&observations, 950)
+            .expect("all five expected outcomes are represented");
+        assert_eq!(report.end_to_end.expected_count, 5);
+        assert_eq!(report.end_to_end.receiver_accepted_count, 1);
+        assert_eq!(report.end_to_end.not_delivered_count, 1);
+        assert_eq!(report.end_to_end.diverted_count, 1);
+        assert_eq!(report.end_to_end.cancelled_count, 1);
+        assert_eq!(report.end_to_end.unknown_count, 1);
+        assert_eq!(report.end_to_end.on_time_count, 1);
+        assert_eq!(report.end_to_end.on_time_rate_milli, 200);
+        assert_eq!(report.end_to_end.distribution.as_ref().unwrap().count, 1);
+        assert_eq!(report.receiver_acceptances.len(), 1);
+        assert_eq!(report.receiver_acceptances[0].expected_unit_id, observations[0].expected_unit_id);
+        assert_eq!(report.receiver_acceptances[0].evidence_ref, observations[0].receiver_acceptance_ref.as_ref().unwrap());
+    }
+
+    #[test]
+    fn expected_units_without_any_receiver_acceptance_have_no_delivery_distribution() {
+        let mut observations = synthetic_observations("none-delivered", &STABLE[..3], &RECEIVER_STABLE[..3], &[], 120);
+        for observation in &mut observations {
+            observation.delivery_disposition = DeliveryDisposition::NotDelivered;
+            observation.receiver_delivery_minutes = None;
+            observation.receiver_acceptance_ref = None;
+        }
+        let report = ServiceReliabilityReport::evaluate(&observations, 950)
+            .expect("undelivered expected units remain visible");
+        assert_eq!(report.end_to_end.expected_count, 3);
+        assert_eq!(report.end_to_end.receiver_accepted_count, 0);
+        assert_eq!(report.end_to_end.on_time_rate_milli, 0);
+        assert!(report.end_to_end.distribution.is_none());
+        assert!(report.receiver_acceptances.is_empty());
+    }
+
+    #[test]
+    fn receiver_acceptance_requires_time_and_nonempty_receipt_reference() {
+        let mut observations = synthetic_observations("bad-receipt", &STABLE[..1], &RECEIVER_STABLE[..1], &[], 120);
+        observations[0].receiver_acceptance_ref = None;
+        assert_eq!(
+            ServiceReliabilityReport::evaluate(&observations, 950),
+            Err(ServiceMetricError::ReceiverAcceptanceEvidenceMissing)
+        );
+        observations[0].receiver_acceptance_ref = Some("   ".to_owned());
+        assert_eq!(
+            ServiceReliabilityReport::evaluate(&observations, 950),
+            Err(ServiceMetricError::ReceiverAcceptanceEvidenceMissing)
+        );
+        observations[0].receiver_acceptance_ref =
+            Some("independent-receiver-receipt-001".to_owned());
+        observations[0].receiver_delivery_minutes = None;
+        assert_eq!(
+            ServiceReliabilityReport::evaluate(&observations, 950),
+            Err(ServiceMetricError::ReceiverAcceptanceTimeMissing)
+        );
+    }
+
+    #[test]
+    fn nonaccepted_disposition_cannot_claim_receiver_time_or_acceptance_receipt() {
+        let mut observations = synthetic_observations("bad-not-delivered", &STABLE[..1], &RECEIVER_STABLE[..1], &[], 120);
+        observations[0].delivery_disposition = DeliveryDisposition::NotDelivered;
+        assert_eq!(
+            ServiceReliabilityReport::evaluate(&observations, 950),
+            Err(ServiceMetricError::NonAcceptedOutcomeHasDeliveryTime)
+        );
+        observations[0].receiver_delivery_minutes = None;
+        observations[0].receiver_acceptance_ref = None;
+        assert!(
+            ServiceReliabilityReport::evaluate(&observations, 950).is_ok(),
+            "a not-delivered expected unit without receiver evidence is retained"
+        );
+        observations[0].receiver_acceptance_ref = None;
+        observations[0].delivery_disposition = DeliveryDisposition::Unknown;
+        observations[0].receiver_acceptance_ref =
+            Some("must-not-be-present".to_owned());
+        assert_eq!(
+            ServiceReliabilityReport::evaluate(&observations, 950),
+            Err(ServiceMetricError::NonAcceptedOutcomeHasReceiverEvidence)
+        );
+    }
+
+    #[test]
+    fn distinct_source_records_cannot_double_count_the_same_expected_cargo_unit() {
+        let mut observations = synthetic_observations("duplicate-unit", &STABLE[..2], &RECEIVER_STABLE[..2], &[], 120);
+        observations[1].observation_id = "different-source-record".to_owned();
+        observations[1].expected_unit_id = observations[0].expected_unit_id.clone();
+        assert_eq!(
+            ServiceReliabilityReport::evaluate(&observations, 950),
+            Err(ServiceMetricError::DuplicateExpectedUnitIdentity)
+        );
+    }
+
+    #[test]
+    fn receiver_acceptance_evidence_remains_bound_to_its_expected_unit() {
+        let observations = synthetic_observations("paired-receipt", &STABLE[..2], &RECEIVER_STABLE[..2], &[], 120);
+        let report = ServiceReliabilityReport::evaluate(&observations, 950)
+            .expect("two independently referenced receiver acceptances");
+        assert_eq!(report.receiver_acceptances.len(), 2);
+        for binding in &report.receiver_acceptances {
+            let source = observations
+                .iter()
+                .find(|observation| observation.expected_unit_id == binding.expected_unit_id)
+                .expect("binding points to one expected unit");
+            assert_eq!(
+                source.receiver_acceptance_ref.as_deref(),
+                Some(binding.evidence_ref.as_str())
+            );
+            assert_eq!(
+                source.receiver_delivery_minutes,
+                Some(binding.receiver_delivery_minutes)
+            );
+        }
+    }
+
+    #[test]
+    fn report_preserves_canonical_expected_unit_ids_in_sorted_order() {
+        let observations = synthetic_observations("lineage", &STABLE[..3], &RECEIVER_STABLE[..3], &[], 120);
+        let report = ServiceReliabilityReport::evaluate(&observations, 950)
+            .expect("unique canonical expected units");
+        assert_eq!(report.expected_unit_ids.len(), 3);
+        assert_eq!(report.expected_unit_ids.len(), report.observation_count);
+        assert!(report.expected_unit_ids.windows(2).all(|pair| pair[0] < pair[1]));
+    }
+
+    #[test]
+    fn zero_mean_and_single_observation_leave_cv_undefined() {
+        let observations = vec![ServiceObservation {
+            observation_id: "zero-record".to_owned(),
+            expected_unit_id: "urn:example:expected-cargo-unit:zero".to_owned(),
+            cohort_id: "cohort".to_owned(),
+            vessel_wait_minutes: 0,
+            berth_work_minutes: 0,
+            terminal_dwell_minutes: 0,
+            inland_transfer_minutes: 0,
+            receiver_deadline_minutes: 1,
+            receiver_delivery_minutes: Some(0),
+            receiver_acceptance_ref: Some("synthetic-zero-delivery".to_owned()),
+            delivery_disposition: DeliveryDisposition::ReceiverAccepted,
+        }];
+        let report = ServiceReliabilityReport::evaluate(&observations, 950).expect("report");
+        let delivered = report.end_to_end.distribution.as_ref().expect("one accepted row");
+        assert_eq!(delivered.mean_minutes, 0.0);
+        assert_eq!(delivered.coefficient_of_variation, None);
+        assert_eq!(delivered.sample_std_dev_minutes, None);
+    }
+
+    #[test]
+    fn deterministic_receipt_is_byte_identical_and_has_fixed_schema() {
+        let first = render_csv();
+        assert_eq!(first, render_csv());
+        assert_eq!(first.lines().count(), 8);
+        let width = first.lines().next().expect("CSV header").split(',').count();
+        assert_eq!(width, 24);
+        for row in first.lines().skip(1) {
+            assert_eq!(row.split(',').count(), width);
+        }
+        assert!(first.contains("MEAN_MATCHED_HIGH_VARIABILITY"));
+        assert!(first.contains("LOCAL_PORT_GAIN_NO_RECEIVER_GAIN"));
+        assert!(first.contains("RECEIVER_REGRESSION"));
+        assert!(first.contains("FAIRNESS_COHORT_FLOOR_HIDDEN_BY_AGGREGATE"));
+        assert!(first.contains("EXPECTED_UNITS_WITH_UNRESOLVED_DELIVERY"));
+        assert!(first.contains("not_delivered_count"));
+    }
+}
