@@ -669,6 +669,76 @@ mod tests {
     }
 
     #[test]
+    fn displacement_bounds_are_monotone_in_speed_acceleration_jerk_and_time() {
+        let input = corpus();
+        let source = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "TV-002-ACCELERATION-GROWTH")
+            .unwrap();
+        let base = calculate_bounds(&source.model).unwrap();
+
+        let mut faster = source.model.clone();
+        faster.reference_point_speed_um_s += 10_000;
+        let faster_bounds = calculate_bounds(&faster).unwrap();
+        assert!(faster_bounds.combined_frame.total_um >= base.combined_frame.total_um);
+
+        let mut more_acceleration = source.model.clone();
+        more_acceleration.reference_point_acceleration_um_s2 += 10_000;
+        let acceleration_bounds = calculate_bounds(&more_acceleration).unwrap();
+        assert!(acceleration_bounds.combined_frame.total_um >= base.combined_frame.total_um);
+
+        let mut more_jerk = source.model.clone();
+        more_jerk.point_jerk_upper_um_s3 += 10_000;
+        let jerk_bounds = calculate_bounds(&more_jerk).unwrap();
+        assert!(jerk_bounds.combined_frame.total_um >= base.combined_frame.total_um);
+
+        let mut longer = source.model.clone();
+        longer.row_exposure_duration_ns += 100_000;
+        longer.first_to_last_row_midpoint_span_ns += 100_000;
+        let longer_bounds = calculate_bounds(&longer).unwrap();
+        assert!(longer_bounds.combined_frame.total_um >= base.combined_frame.total_um);
+    }
+
+    #[test]
+    fn common_spatial_unit_scaling_preserves_projected_pixel_bounds() {
+        let input = corpus();
+        let source = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "TV-002-ACCELERATION-GROWTH")
+            .unwrap();
+        let base = calculate_bounds(&source.model).unwrap();
+
+        let mut scaled = source.model.clone();
+        scaled.reference_point_speed_um_s *= 1_000;
+        scaled.reference_point_acceleration_um_s2 *= 1_000;
+        scaled.point_jerk_upper_um_s3 *= 1_000;
+        scaled.max_point_radius_um *= 1_000;
+        scaled.min_depth_um *= 1_000;
+        scaled.max_abs_x_um *= 1_000;
+        scaled.max_abs_y_um *= 1_000;
+
+        let scaled_bounds = calculate_bounds(&scaled).unwrap();
+        assert_eq!(
+            base.exposure_x_micro_px_upper,
+            scaled_bounds.exposure_x_micro_px_upper
+        );
+        assert_eq!(
+            base.exposure_y_micro_px_upper,
+            scaled_bounds.exposure_y_micro_px_upper
+        );
+        assert_eq!(
+            base.row_time_x_micro_px_upper,
+            scaled_bounds.row_time_x_micro_px_upper
+        );
+        assert_eq!(
+            base.combined_frame_x_micro_px_upper,
+            scaled_bounds.combined_frame_x_micro_px_upper
+        );
+    }
+
+    #[test]
     fn latest_row_exposure_is_worst_under_the_monotone_envelope() {
         let input = corpus();
         let late = input
