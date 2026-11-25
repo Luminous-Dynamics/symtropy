@@ -801,6 +801,161 @@ pub fn validate_case(case: &FuelServiceCase) -> Result<(), Vec<String>> {
     if errors.is_empty() { Ok(()) } else { Err(errors) }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TemporalAblationReport {
+    pub cases_total: usize,
+    pub aggregate_energy_guarantee_count: usize,
+    pub temporal_guarantee_count: usize,
+    pub temporal_confirmed_shortfall_count: usize,
+    pub temporal_indeterminate_count: usize,
+    pub aggregate_false_guarantee_count: usize,
+    pub false_guarantee_with_hourly_shortfall_count: usize,
+    pub false_guarantee_with_indeterminate_evidence_count: usize,
+    pub sustained_recovery_confirmed_count: usize,
+    pub right_censored_recovery_count: usize,
+    pub restoration_confirmation_hours: u32,
+}
+
+fn has_sustained_recovery_after_disruption(
+    rows: &[HourlyServiceInterval],
+    required_hours: u32,
+) -> bool {
+    let Some(first_disruption) = rows
+        .iter()
+        .position(|row| row.disposition != ServiceDisposition::Guaranteed)
+    else {
+        return false;
+    };
+    let mut streak = 0_u32;
+    for row in rows.iter().skip(first_disruption) {
+        if row.disposition == ServiceDisposition::Guaranteed {
+            streak = streak.saturating_add(1);
+            if streak >= required_hours {
+                return true;
+            }
+        } else {
+            streak = 0;
+        }
+    }
+    false
+}
+
+/// Compare a horizon-aggregate energy-only verdict with the non-compensatory
+/// 72-step temporal/evidence verdict. This is a synthetic assurance ablation,
+/// not a planner-performance or field-reliability benchmark.
+pub fn evaluate_temporal_ablation(
+    cases: &[FuelServiceCase],
+    restoration_confirmation_hours: u32,
+) -> Result<TemporalAblationReport, Vec<String>> {
+    let mut errors = Vec::new();
+    if restoration_confirmation_hours == 0 {
+        errors.push("restoration confirmation duration must be positive".to_string());
+    }
+    if let Err(case_errors) = validate_corpus(cases) {
+        errors.extend(case_errors);
+    }
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+
+    let mut report = TemporalAblationReport {
+        cases_total: cases.len(),
+        aggregate_energy_guarantee_count: 0,
+        temporal_guarantee_count: 0,
+        temporal_confirmed_shortfall_count: 0,
+        temporal_indeterminate_count: 0,
+        aggregate_false_guarantee_count: 0,
+        false_guarantee_with_hourly_shortfall_count: 0,
+        false_guarantee_with_indeterminate_evidence_count: 0,
+        sustained_recovery_confirmed_count: 0,
+        right_censored_recovery_count: 0,
+        restoration_confirmation_hours,
+    };
+
+    for case in cases {
+        let aggregate_energy_pass =
+            case.service.delivered_lower_wh >= case.service.critical_floor_wh;
+        if aggregate_energy_pass {
+            report.aggregate_energy_guarantee_count += 1;
+        }
+
+        match case.service.disposition {
+            ServiceDisposition::Guaranteed => report.temporal_guarantee_count += 1,
+            ServiceDisposition::ConfirmedShortfall => {
+                report.temporal_confirmed_shortfall_count += 1
+            }
+            ServiceDisposition::Indeterminate => report.temporal_indeterminate_count += 1,
+        }
+
+        let has_hourly_shortfall = case.hourly_trajectory
+            .iter()
+            .any(|row| row.disposition == ServiceDisposition::ConfirmedShortfall);
+        let has_hourly_indeterminate = case.hourly_trajectory
+            .iter()
+            .any(|row| row.disposition == ServiceDisposition::Indeterminate);
+        if aggregate_energy_pass
+            && case.service.disposition != ServiceDisposition::Guaranteed
+        {
+            report.aggregate_false_guarantee_count += 1;
+            if has_hourly_shortfall {
+                report.false_guarantee_with_hourly_shortfall_count += 1;
+            }
+            if has_hourly_indeterminate {
+                report.false_guarantee_with_indeterminate_evidence_count += 1;
+            }
+        }
+
+        let had_disruption = has_hourly_shortfall || has_hourly_indeterminate;
+        if had_disruption {
+            if has_sustained_recovery_after_disruption(
+                &case.hourly_trajectory,
+                restoration_confirmation_hours,
+            ) {
+                report.sustained_recovery_confirmed_count += 1;
+            } else {
+                report.right_censored_recovery_count += 1;
+            }
+        }
+    }
+
+    Ok(report)
+}
+
+impl TemporalAblationReport {
+    pub fn to_json(&self) -> String {
+        format!(
+            concat!(
+                "{{",
+                "\"reportVersion\":\"0.1.0\",",
+                "\"evidenceMaturity\":\"synthetic_fixture\",",
+                "\"casesTotal\":{},",
+                "\"aggregateEnergyGuaranteeCount\":{},",
+                "\"temporalGuaranteeCount\":{},",
+                "\"temporalConfirmedShortfallCount\":{},",
+                "\"temporalIndeterminateCount\":{},",
+                "\"aggregateFalseGuaranteeCount\":{},",
+                "\"falseGuaranteeWithHourlyShortfallCount\":{},",
+                "\"falseGuaranteeWithIndeterminateEvidenceCount\":{},",
+                "\"sustainedRecoveryConfirmedCount\":{},",
+                "\"rightCensoredRecoveryCount\":{},",
+                "\"restorationConfirmationHours\":{}",
+                "}}"
+            ),
+            self.cases_total,
+            self.aggregate_energy_guarantee_count,
+            self.temporal_guarantee_count,
+            self.temporal_confirmed_shortfall_count,
+            self.temporal_indeterminate_count,
+            self.aggregate_false_guarantee_count,
+            self.false_guarantee_with_hourly_shortfall_count,
+            self.false_guarantee_with_indeterminate_evidence_count,
+            self.sustained_recovery_confirmed_count,
+            self.right_censored_recovery_count,
+            self.restoration_confirmation_hours,
+        )
+    }
+}
+
 pub fn generate_corpus() -> Vec<FuelServiceCase> {
     let mut cases = Vec::with_capacity(Archetype::ALL.len() * SEEDS_PER_ARCHETYPE as usize);
     for archetype in Archetype::ALL {
