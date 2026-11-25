@@ -115,3 +115,22 @@ The exhaustive single-draw fixture enumerates all (256^2=65{,}536) branch/atom t
 - The sampler, policy, RNG, seed commitment and stream identities are pinned as supplied identifiers; this module does not cryptographically attest their binaries or prove those identifiers describe the executed implementation.
 - The finite-support calculation does not establish global defensive-mixture domination for a continuous orbital target measure, proposal support completeness, event-mode completeness, covariance realism, orbit-model adequacy or physical collision risk.
 - The exact ticket enumeration is a finite reference test, not a field coverage result or SOTA claim. The conversion into `AdaptiveImportanceDraw` closes the finite-support adapter boundary only; production Gaussian/GMM sampling, proposal-density evaluation, RNG quality, continuous-domain domination and event-mode completeness still require independent qualification.
+
+
+## Whole-horizon pathwise event atoms
+
+The pathwise event reducer from PR #6873 is composed into the isolated rare-event kernel. It classifies one shared trajectory realization across every declared encounter window and forms the logical any-contact union; it does not estimate probabilities or propagate trajectories.
+
+The pathwise proposal adapter turns a bounded finite set of such trajectory realizations into the categorical atom support used by the adaptive proposal verifier. Each finite atom binds one unique atom ID, one unique shared trajectory-realization ID, exactly one result for every declared window, and the resulting pathwise any-contact disposition.
+
+The event Boolean is derived only from the reducer's three-way disposition: definite contact becomes an event, definite no-contact becomes a non-event, and ambiguous results are rejected. In particular, a caller-declared incomplete window inventory with no observed contact cannot become a false/non-event atom. A definite contact can still establish any-contact under incomplete inventory, but the reducer does not claim a complete first-contact time.
+
+Before a sampler config can be used, the adapter requires the exact event digest, support-manifest digest, and atom ID/event-membership vector to match the pathwise-derived support. The support-manifest digest is then carried in the finite proposal config, every execution receipt, and every verified finite draw. It also requires the observed trajectory atom IDs to match a frozen, canonically sorted support manifest exactly; missing and unexpected atom IDs are rejected, and atom order is normalized to the manifest. This stops a proposal from silently using one set of event flags while the trajectory evidence describes another.
+
+### Claim boundary
+
+- This composes the deterministic pathwise event reducer; it does not independently prove that the declared encounter-window inventory covers the full trajectory horizon.
+- Per-window classifications remain caller-supplied and must come from a separately qualified trajectory/geometry evaluator.
+- The finite categorical atom set is a discrete reference support, not a continuous orbital trajectory distribution or a proof of event-mode completeness. Exact equality to a support manifest proves conformance to that manifest, not that the manifest contains every possible orbital trajectory mode.
+- No marginal per-window Pc values are added, no independence between encounter windows is assumed, and the union event is counted once per shared trajectory realization.
+- Statistical confidence-sequence guarantees still require a qualified joint-trajectory proposal density and actual sampling process.
