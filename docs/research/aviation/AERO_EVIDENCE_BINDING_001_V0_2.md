@@ -29,11 +29,11 @@ The specimen_source_assertions collection carries:
 - declared_material_lot_id, declared_process_batch_id, declared_panel_id;
 - verified_material_lot_id, verified_process_batch_id, verified_panel_id;
 - identity_status: verified, unresolved or conflict;
-- unique specimen-level sampling_event_id; source system, source record ID, assertion method, issuer ID and provenance reference. One parent traveler/source_record_id may cover several specimens; each specimen must retain its own sampling_event_id.
+- sampling_event_id (shared across all specimen cuts from one collection event when appropriate) and unique specimen_item_id within that event; source system, source record ID, assertion method, issuer ID and provenance reference. One parent traveler/source_record_id and one sampling_event_id may legitimately cover several specimens.
 
 The evaluator reconstructs ancestry from the material-lot → process-batch → panel → specimen hierarchy and compares it with both the declared and verified fields. It does not derive a source identity from a label, a hierarchy edge, row order or the same record it is supposed to independently check.
 
-One assertion per specimen is required. Sampling-event IDs must be unique to the specimen; reusing a parent traveler record ID is permitted when that traveler legitimately covers multiple specimen cuts. Missing, duplicate, replayed, unresolved or contradictory assertions are not positive evidence.
+One assertion per specimen is required. Sampling-event IDs may be shared by multiple specimen cuts from the same panel/traveler. Specimen-item IDs must be unique; reusing a parent traveler or sampling-event ID is permitted when it legitimately covers multiple cuts. Missing, duplicate, replayed, unresolved or contradictory assertions are not positive evidence.
 
 ### 2.2 Independent intended-configuration assertion
 
@@ -109,7 +109,7 @@ This is a narrow binding result. It is not measurement truth, uncertainty suffic
 - missing correction target and competing corrections to one event;
 - deterministic output under record-order permutations.
 
-The 20-case frozen mutation corpus is executed by the Rust tests with exact violation and blocker sets. It is synthetic software testing only; its expected dispositions are not yet an independently reviewed physical or metrology oracle. Independent review and a rights-cleared external corpus remain required before any external performance claim.
+The 21-case frozen mutation corpus is executed by the Rust tests with exact violation and blocker sets. It is synthetic software testing only; its expected dispositions are not yet an independently reviewed physical or metrology oracle. Independent review and a rights-cleared external corpus remain required before any external performance claim.
 
 ## 4. Paradigm shifts beyond a better optimizer
 
