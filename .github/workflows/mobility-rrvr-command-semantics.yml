@@ -44,17 +44,17 @@ jobs:
             and all(.cases[]; (.contract.payload_schema_sha256 | test("^[a-fA-F0-9]{64}$")))
             and any(.cases[]; .case_id == "SEM-001" and .expected == "accept_profile" and .contract.motion_semantics == "absolute" and .contract.idempotent_under_declared_state_contract == true)
             and any(.cases[]; .case_id == "SEM-002" and .expected == "accept_profile" and .contract.maximum_physical_effects_per_attempt == 1 and .contract.endpoint_token_required == true and .contract.same_token_reactuates == false)
-            and any(.cases[]; .case_id == "SEM-003" and .expected == "accept_profile" and .contract.lease_expiry_ms > 0 and .contract.endpoint_enforces_expiry == true and .contract.watchdog_supported == true)
+            and any(.cases[]; .case_id == "SEM-003" and .expected == "accept_profile" and .contract.lease_expiry_ms > 0 and .contract.endpoint_enforces_expiry == true and .contract.watchdog_supported == true and .contract.watchdog_response_bound_ms > 0 and .contract.device_capabilities.watchdog_response_bound_ms <= .contract.watchdog_response_bound_ms)
             and any(.cases[]; .case_id == "SEM-004" and .expected == "accept_profile" and .contract.progress_checkpoints_required == true and .contract.resume_from_measured_progress == true and .contract.restart_from_segment_zero_allowed == false)
             and any(.cases[]; .case_id == "SEM-005" and .expected == "hold" and .contract.motion_semantics == "relative" and .contract.idempotent_under_declared_state_contract == true)
             and any(.cases[]; .case_id == "SEM-006" and .expected == "hold" and .contract.endpoint_token_required == false)
-            and any(.cases[]; .case_id == "SEM-007" and .expected == "hold" and .contract.lease_expiry_ms == null and .contract.watchdog_supported == false)
+            and any(.cases[]; .case_id == "SEM-007" and .expected == "hold" and .contract.lease_expiry_ms == null and .contract.watchdog_supported == false and .contract.watchdog_response_bound_ms == null)
             and any(.cases[]; .case_id == "SEM-008" and .expected == "hold" and .contract.restart_from_segment_zero_allowed == true)
             and any(.cases[]; .case_id == "SEM-009" and .expected == "hold" and .contract.coordinate_frame == "world-frame-substituted")
             and any(.cases[]; .case_id == "SEM-010" and .expected == "hold" and .contract.device_capabilities.durable_one_shot_token_supported == false)
-            and any(.cases[]; .case_id == "SEM-011" and .expected == "hold" and .contract.device_capabilities.authority_epoch_supported == false)
+            and any(.cases[]; .case_id == "SEM-011" and .expected == "hold" and .contract.device_capabilities.endpoint_enforces_authority_epoch == false)
             and any(.cases[]; .case_id == "SEM-012" and .expected == "hold" and .contract.device_capabilities.measured_progress_resume_supported == false)
-            and all(.cases[]; (.contract.device_capabilities | has("maximum_effects_per_token") and has("watchdog_reaction") and has("downstream_queue_reconciliation_supported")))
+            and all(.cases[]; (.contract.device_capabilities | has("maximum_effects_per_token") and has("watchdog_reaction") and has("watchdog_response_bound_ms") and has("endpoint_enforces_authority_epoch") and has("downstream_queue_reconciliation_supported")))
           ' "$FIXTURE"
 
       - name: Check Rust formatting
