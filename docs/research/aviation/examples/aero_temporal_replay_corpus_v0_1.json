@@ -1573,6 +1573,166 @@
         "trust_policy_id": "trust-policy-current-v1",
         "trust_status_as_of_unix_ms": 220
       }
+    },
+    {
+      "case_id": "valid-timestamp-imprint-binds-event-payload",
+      "purpose": "A synthetic-valid RFC 3161-style timestamp status is accompanied by a non-null timestamp and an imprint exactly equal to the canonical event payload digest. This tests field consistency only, not token cryptographic verification.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150
+      },
+      "events": [
+        {
+          "event_id": "EV-TSA-VALID",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "issued",
+          "payload_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "effective_at_unix_ms": 80,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 120,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "valid",
+          "trusted_timestamp_at_unix_ms": 110,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-TSA-VALID:120",
+          "receiver_receipt_digest_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "trusted_timestamp_imprint_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "ACCEPTED_FOR_BINDING_ONLY",
+          "reason_codes": [],
+          "applied_event_ids": [
+            "EV-TSA-VALID"
+          ],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "ACCEPTED_FOR_BINDING_ONLY",
+          "reason_codes": [],
+          "applied_event_ids": [
+            "EV-TSA-VALID"
+          ],
+          "excluded_event_ids": []
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "ACCEPTED_FOR_BINDING_ONLY",
+          "reason_codes": [],
+          "applied_event_ids": [
+            "EV-TSA-VALID"
+          ],
+          "excluded_event_ids": []
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220
+      }
+    },
+    {
+      "case_id": "valid-timestamp-label-with-mismatching-imprint-rejected",
+      "purpose": "A timestamp record claims valid status but its imprint differs from the canonical payload digest. The status label cannot override the digest binding.",
+      "calibration_validity": {
+        "valid_from_unix_ms": 100,
+        "valid_until_unix_ms": 200
+      },
+      "acquisition_time_interval": {
+        "earliest_unix_ms": 140,
+        "latest_unix_ms": 140
+      },
+      "snapshot": {
+        "evaluated_at_unix_ms": 150,
+        "receiver_receipt_watermark_unix_ms": 150,
+        "trust_policy_id": "trust-policy-v1",
+        "trust_status_as_of_unix_ms": 150
+      },
+      "events": [
+        {
+          "event_id": "EV-TSA-VALID-MISMATCH",
+          "source_namespace": "lab-a",
+          "certificate_id": "CAL-A",
+          "event_type": "issued",
+          "payload_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "effective_at_unix_ms": 80,
+          "issuer_recorded_at_unix_ms": 90,
+          "receiver_first_seen_at_unix_ms": 120,
+          "signature_status": "valid",
+          "trusted_timestamp_status": "valid",
+          "trusted_timestamp_at_unix_ms": 110,
+          "issuer_authority_status": "authorized",
+          "sequence_status": "not_applicable",
+          "source_clock_status": "consistent",
+          "issuer_key_status_at_snapshot": "good",
+          "issuer_key_status_current": "good",
+          "compromise_effective_at_unix_ms": null,
+          "corrects_event_id": null,
+          "receiver_receipt_status": "SYNTHETIC_VALID",
+          "receiver_receipt_reference": "synthetic-receipt:lab-a:EV-TSA-VALID-MISMATCH:120",
+          "receiver_receipt_digest_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "trusted_timestamp_imprint_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "issuer_identity_id": "issuer:lab-a",
+          "source_namespace_binding_status": "SYNTHETIC_VALID"
+        }
+      ],
+      "expected": {
+        "as_known_at": {
+          "disposition": "REJECT",
+          "reason_codes": [
+            "TIMESTAMP_IMPRINT_MISMATCH"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-TSA-VALID-MISMATCH"
+          ]
+        },
+        "recomputed_with_current_trust": {
+          "disposition": "REJECT",
+          "reason_codes": [
+            "TIMESTAMP_IMPRINT_MISMATCH"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-TSA-VALID-MISMATCH"
+          ]
+        },
+        "recomputed_with_current_evidence_and_trust": {
+          "disposition": "REJECT",
+          "reason_codes": [
+            "TIMESTAMP_IMPRINT_MISMATCH"
+          ],
+          "applied_event_ids": [],
+          "excluded_event_ids": [
+            "EV-TSA-VALID-MISMATCH"
+          ]
+        }
+      },
+      "current_reassessment": {
+        "receiver_receipt_watermark_unix_ms": 220,
+        "trust_policy_id": "trust-policy-current-v1",
+        "trust_status_as_of_unix_ms": 220
+      }
     }
   ]
 }
