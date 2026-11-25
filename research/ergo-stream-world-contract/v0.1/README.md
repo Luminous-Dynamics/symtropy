@@ -158,7 +158,7 @@ The initial two-modality categorical microcosm is implemented in `src/multimodal
 - Unique / alternatives / unresolved claim dispositions; an unjustified singleton is explicitly scored as false-unique when the evaluator retains multiple admissible correspondences.
 - Causal policy views filter by arrival tick and order by arrival, never by sensor timestamp.
 
-The first version uses explicit shared calibration pulses for the identifiable affine-clock arms. It is not a general blind clock-estimation algorithm. The ambiguous arm omits those anchors and preserves multiple phase hypotheses. No semantic or causal labels are serialized to the policy view.
+The first version uses explicit shared calibration pulses as an optional independent clock-identifiability factor. It is not a general blind clock-estimation algorithm. Periodic event ambiguity can be tested both with anchors (identifiable clock, ambiguous correspondence) and without anchors (both unresolved). No semantic or causal labels are serialized to the policy view.
 
 Seven focused tests cover aligned positives, exact matched marginals, shuffled negative correspondence, periodic ambiguity, clock/semantic score separation, causal arrival prefixes, and invalid configuration. The existing `ErgoStream microcosm` workflow is the execution authority; no test, doctest, Clippy or benchmark result is claimed until it passes on the exact branch head.
 
