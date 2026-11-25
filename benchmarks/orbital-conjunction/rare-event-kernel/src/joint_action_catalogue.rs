@@ -784,4 +784,79 @@ mod tests {
         .unwrap();
         assert_eq!(report.selected_action_ids, Some(vec![a]));
     }
+
+    #[test]
+    fn threshold_overlap_for_one_joint_outcome_forces_global_abstention() {
+        let a = [10; 32];
+        let outcomes = vec![
+            qualified(vec![], 1, vec![], 0),
+            qualified(
+                vec![a],
+                2,
+                vec![event(10, (0, 1), (1, 10_000))],
+                50,
+            ),
+        ];
+        let report = evaluate_joint_action_catalogue(config(
+            vec![candidate(10, 1, OPERATOR_A)],
+            outcomes,
+            1,
+        ))
+        .unwrap();
+        assert_eq!(
+            report.disposition,
+            JointActionSelectionDisposition::AbstainIncompleteEvidence
+        );
+        assert_eq!(report.threshold_ambiguous_count, 1);
+        assert_eq!(report.selected_action_ids, None);
+    }
+
+    #[test]
+    fn catalog_revision_drift_prevents_a_global_optimum_claim() {
+        let a = [10; 32];
+        let mut row = qualified(
+            vec![a],
+            2,
+            vec![event(10, (1, 2_000_000), (2, 2_000_000))],
+            50,
+        );
+        if let JointActionOutcomeState::Qualified { post_action_snapshot, .. } = &mut row.state {
+            post_action_snapshot.catalog_revision_digest = [99; 32];
+        }
+        let report = evaluate_joint_action_catalogue(config(
+            vec![candidate(10, 1, OPERATOR_A)],
+            vec![qualified(vec![], 1, vec![], 0), row],
+            1,
+        ))
+        .unwrap();
+        assert_eq!(
+            report.disposition,
+            JointActionSelectionDisposition::AbstainIncompleteEvidence
+        );
+        assert_eq!(report.incomplete_evidence_count, 1);
+        assert_eq!(report.selected_action_ids, None);
+    }
+
+    #[test]
+    fn a_fully_assessed_infeasible_coalition_does_not_create_false_uncertainty() {
+        let a = [10; 32];
+        let outcomes = vec![
+            qualified(vec![], 1, vec![], 0),
+            JointActionOutcomeRecord {
+                action_ids: vec![a],
+                action_set_digest: [90; 32],
+                state: JointActionOutcomeState::Infeasible { reason_digest: [91; 32] },
+            },
+        ];
+        let report = evaluate_joint_action_catalogue(config(
+            vec![candidate(10, 1, OPERATOR_A)],
+            outcomes,
+            1,
+        ))
+        .unwrap();
+        assert_eq!(report.disposition, JointActionSelectionDisposition::QualifiedOptimum);
+        assert_eq!(report.selected_action_ids, Some(vec![]));
+        assert_eq!(report.infeasible_count, 1);
+    }
+
 }
