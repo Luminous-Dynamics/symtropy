@@ -559,8 +559,8 @@ mod tests {
             "0123456789abcdef0123456789abcdef01234567",
         )
         .expect("scope corpus audits");
-        assert_eq!(receipt.case_count, 26);
-        assert_eq!(receipt.expected_disposition_matches, 26);
+        assert_eq!(receipt.case_count, 28);
+        assert_eq!(receipt.expected_disposition_matches, 28);
         assert_eq!(receipt.expected_disposition_mismatches, 0);
         assert!(!receipt.source_bytes_authenticated);
         assert!(!receipt.authority_granted);
@@ -632,6 +632,27 @@ mod tests {
             assert_eq!(result.disposition, Disposition::Indeterminate);
             assert!(result.reason_codes.contains(&"EVIDENCE_VALIDITY_BOUNDARY_OVERLAP".to_owned()));
         }
+    }
+
+    #[test]
+    fn exact_acquisition_instant_is_valid_but_zero_width_validity_is_invalid() {
+        let input = corpus();
+        let exact = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "SC-027-EXACT-INSTANT-ACQUISITION")
+            .unwrap();
+        let zero_validity = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "SC-028-ZERO-WIDTH-VALIDITY")
+            .unwrap();
+
+        assert_eq!(evaluate_case(exact).disposition, Disposition::ScopeCoherent);
+        assert_eq!(
+            evaluate_case(zero_validity).disposition,
+            Disposition::InvalidInput
+        );
     }
 
     #[test]
