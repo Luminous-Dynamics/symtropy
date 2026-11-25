@@ -22,6 +22,17 @@ const ON_TIME_WINDOW_MINUTES: u64 = 120;
 const MINIMUM_COHORT_ON_TIME_RATE_MILLI: u16 = 950;
 const ARRIVAL_BURST_WINDOW_MINUTES: u64 = 60;
 
+// Receiver elapsed times are independent synthetic observations, not sums of
+// vessel/berth/terminal/inland stage estimates.
+const RECEIVER_STABLE: [u64; 20] = [100; 20];
+const RECEIVER_BURSTY: [u64; 20] = [
+    80, 80, 80, 80, 80, 80, 80, 80, 80, 80,
+    80, 80, 80, 80, 80, 80, 80, 80, 280, 280,
+];
+const RECEIVER_BASELINE: [u64; 20] = [150; 20];
+const RECEIVER_LOCAL_GAIN: [u64; 20] = [150; 20];
+const RECEIVER_REGRESSION_TIMES: [u64; 20] = [190; 20];
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DeliveryDisposition {
     ReceiverAccepted,
@@ -659,13 +670,16 @@ pub fn simulate_fcfs_queue(
 fn synthetic_observations(
     scenario: &str,
     stages: &[(u32, u32, u32, u32)],
+    receiver_times: &[u64],
     cohorts: &[&str],
     deadline: u64,
 ) -> Vec<ServiceObservation> {
+    assert_eq!(stages.len(), receiver_times.len());
     stages
         .iter()
+        .zip(receiver_times)
         .enumerate()
-        .map(|(index, (vessel, berth, terminal, inland))| ServiceObservation {
+        .map(|(index, ((vessel, berth, terminal, inland), receiver_minutes))| ServiceObservation {
             observation_id: format!("{scenario}-source-record-{index:02}"),
             expected_unit_id: format!("urn:example:expected-cargo-unit:{scenario}:{index:02}"),
             cohort_id: cohorts.get(index).copied().unwrap_or("ALL").to_owned(),
@@ -674,12 +688,7 @@ fn synthetic_observations(
             terminal_dwell_minutes: *terminal,
             inland_transfer_minutes: *inland,
             receiver_deadline_minutes: deadline,
-            receiver_delivery_minutes: Some(
-                u64::from(*vessel)
-                    + u64::from(*berth)
-                    + u64::from(*terminal)
-                    + u64::from(*inland),
-            ),
+            receiver_delivery_minutes: Some(*receiver_minutes),
             receiver_acceptance_ref: Some(format!("synthetic-receiver-receipt-{scenario}-{index:02}")),
             delivery_disposition: DeliveryDisposition::ReceiverAccepted,
         })
@@ -708,6 +717,7 @@ fn burst_arrivals(prefix: &str, count: usize) -> Vec<VesselArrival> {
 struct Scenario {
     id: &'static str,
     observations: &'static [(u32, u32, u32, u32)],
+    receiver_times: &'static [u64],
     cohorts: &'static [&'static str],
     deadline: u64,
     burst: bool,
@@ -752,6 +762,7 @@ fn scenarios() -> [Scenario; 7] {
         Scenario {
             id: "MEAN_MATCHED_STABLE",
             observations: &STABLE,
+            receiver_times: &RECEIVER_STABLE,
             cohorts: &[],
             deadline: 120,
             burst: false,
@@ -760,6 +771,7 @@ fn scenarios() -> [Scenario; 7] {
         Scenario {
             id: "MEAN_MATCHED_HIGH_VARIABILITY",
             observations: &MEAN_MATCHED_BURSTY,
+            receiver_times: &RECEIVER_BURSTY,
             cohorts: &[],
             deadline: 120,
             burst: true,
@@ -768,6 +780,7 @@ fn scenarios() -> [Scenario; 7] {
         Scenario {
             id: "BASELINE_END_TO_END",
             observations: &BASELINE_CHAIN,
+            receiver_times: &RECEIVER_BASELINE,
             cohorts: &[],
             deadline: 160,
             burst: false,
@@ -776,6 +789,7 @@ fn scenarios() -> [Scenario; 7] {
         Scenario {
             id: "LOCAL_PORT_GAIN_NO_RECEIVER_GAIN",
             observations: &LOCAL_PORT_GAIN,
+            receiver_times: &RECEIVER_LOCAL_GAIN,
             cohorts: &[],
             deadline: 160,
             burst: false,
@@ -784,6 +798,7 @@ fn scenarios() -> [Scenario; 7] {
         Scenario {
             id: "RECEIVER_REGRESSION",
             observations: &RECEIVER_REGRESSION,
+            receiver_times: &RECEIVER_REGRESSION_TIMES,
             cohorts: &[],
             deadline: 160,
             burst: true,
@@ -792,6 +807,7 @@ fn scenarios() -> [Scenario; 7] {
         Scenario {
             id: "FAIRNESS_COHORT_FLOOR_HIDDEN_BY_AGGREGATE",
             observations: &MEAN_MATCHED_BURSTY,
+            receiver_times: &RECEIVER_BURSTY,
             cohorts: &FAIRNESS_COHORTS,
             deadline: 120,
             burst: true,
@@ -800,6 +816,7 @@ fn scenarios() -> [Scenario; 7] {
         Scenario {
             id: "EXPECTED_UNITS_WITH_UNRESOLVED_DELIVERY",
             observations: &STABLE,
+            receiver_times: &RECEIVER_STABLE,
             cohorts: &[],
             deadline: 120,
             burst: false,
@@ -821,6 +838,7 @@ pub fn render_csv() -> String {
         let mut observations = synthetic_observations(
             scenario.id,
             scenario.observations,
+            scenario.receiver_times,
             scenario.cohorts,
             scenario.deadline,
         );
@@ -943,11 +961,12 @@ mod tests {
         let stable = synthetic_observations(
             "stable",
             &STABLE,
+            &RECEIVER_STABLE,
             &[],
             ON_TIME_WINDOW_MINUTES,
         );
         let bursty =
-            synthetic_observations("bursty", &MEAN_MATCHED_BURSTY, &[], ON_TIME_WINDOW_MINUTES);
+            synthetic_observations("bursty", &MEAN_MATCHED_BURSTY, &RECEIVER_BURSTY, &[], ON_TIME_WINDOW_MINUTES);
         (
             ServiceReliabilityReport::evaluate(&stable, 950).expect("stable report"),
             ServiceReliabilityReport::evaluate(&bursty, 950).expect("bursty report"),
@@ -1013,9 +1032,9 @@ mod tests {
     #[test]
     fn local_port_gain_cannot_be_claimed_as_end_to_end_service_gain() {
         let baseline =
-            synthetic_observations("baseline", &BASELINE_CHAIN, &[], 160);
+            synthetic_observations("baseline", &BASELINE_CHAIN, &RECEIVER_BASELINE, &[], 160);
         let optimized =
-            synthetic_observations("optimized", &LOCAL_PORT_GAIN, &[], 160);
+            synthetic_observations("optimized", &LOCAL_PORT_GAIN, &RECEIVER_LOCAL_GAIN, &[], 160);
         let baseline = ServiceReliabilityReport::evaluate(&baseline, 950).expect("baseline");
         let optimized = ServiceReliabilityReport::evaluate(&optimized, 950).expect("optimized");
         assert_eq!(
@@ -1033,7 +1052,7 @@ mod tests {
         let baseline =
             synthetic_observations("baseline", &BASELINE_CHAIN, &[], 160);
         let regressed =
-            synthetic_observations("regressed", &RECEIVER_REGRESSION, &[], 160);
+            synthetic_observations("regressed", &RECEIVER_REGRESSION, &RECEIVER_REGRESSION_TIMES, &[], 160);
         let baseline = ServiceReliabilityReport::evaluate(&baseline, 950).expect("baseline");
         let regressed = ServiceReliabilityReport::evaluate(&regressed, 950).expect("regressed");
         assert!(
@@ -1052,6 +1071,7 @@ mod tests {
         let observations = synthetic_observations(
             "fairness",
             &MEAN_MATCHED_BURSTY,
+            &RECEIVER_BURSTY,
             &FAIRNESS_COHORTS,
             120,
         );
@@ -1181,7 +1201,7 @@ mod tests {
             ServiceReliabilityReport::evaluate(&[], 950),
             Err(ServiceMetricError::EmptyObservations)
         );
-        let mut observations = synthetic_observations("test", &STABLE[..2], &[], 120);
+        let mut observations = synthetic_observations("test", &STABLE[..2], &RECEIVER_STABLE[..2], &[], 120);
         observations[1].observation_id = observations[0].observation_id.clone();
         assert_eq!(
             ServiceReliabilityReport::evaluate(&observations, 950),
@@ -1223,7 +1243,7 @@ mod tests {
 
     #[test]
     fn expected_unit_denominator_retains_not_delivered_diverted_cancelled_and_unknown() {
-        let mut observations = synthetic_observations("dispositions", &STABLE[..5], &[], 120);
+        let mut observations = synthetic_observations("dispositions", &STABLE[..5], &RECEIVER_STABLE[..5], &[], 120);
         observations[1].delivery_disposition = DeliveryDisposition::NotDelivered;
         observations[1].receiver_delivery_minutes = None;
         observations[1].receiver_acceptance_ref = None;
@@ -1255,7 +1275,7 @@ mod tests {
 
     #[test]
     fn expected_units_without_any_receiver_acceptance_have_no_delivery_distribution() {
-        let mut observations = synthetic_observations("none-delivered", &STABLE[..3], &[], 120);
+        let mut observations = synthetic_observations("none-delivered", &STABLE[..3], &RECEIVER_STABLE[..3], &[], 120);
         for observation in &mut observations {
             observation.delivery_disposition = DeliveryDisposition::NotDelivered;
             observation.receiver_delivery_minutes = None;
@@ -1272,7 +1292,7 @@ mod tests {
 
     #[test]
     fn receiver_acceptance_requires_time_and_nonempty_receipt_reference() {
-        let mut observations = synthetic_observations("bad-receipt", &STABLE[..1], &[], 120);
+        let mut observations = synthetic_observations("bad-receipt", &STABLE[..1], &RECEIVER_STABLE[..1], &[], 120);
         observations[0].receiver_acceptance_ref = None;
         assert_eq!(
             ServiceReliabilityReport::evaluate(&observations, 950),
@@ -1294,7 +1314,7 @@ mod tests {
 
     #[test]
     fn nonaccepted_disposition_cannot_claim_receiver_time_or_acceptance_receipt() {
-        let mut observations = synthetic_observations("bad-not-delivered", &STABLE[..1], &[], 120);
+        let mut observations = synthetic_observations("bad-not-delivered", &STABLE[..1], &RECEIVER_STABLE[..1], &[], 120);
         observations[0].delivery_disposition = DeliveryDisposition::NotDelivered;
         assert_eq!(
             ServiceReliabilityReport::evaluate(&observations, 950),
@@ -1318,7 +1338,7 @@ mod tests {
 
     #[test]
     fn distinct_source_records_cannot_double_count_the_same_expected_cargo_unit() {
-        let mut observations = synthetic_observations("duplicate-unit", &STABLE[..2], &[], 120);
+        let mut observations = synthetic_observations("duplicate-unit", &STABLE[..2], &RECEIVER_STABLE[..2], &[], 120);
         observations[1].observation_id = "different-source-record".to_owned();
         observations[1].expected_unit_id = observations[0].expected_unit_id.clone();
         assert_eq!(
@@ -1329,7 +1349,7 @@ mod tests {
 
     #[test]
     fn receiver_acceptance_evidence_remains_bound_to_its_expected_unit() {
-        let observations = synthetic_observations("paired-receipt", &STABLE[..2], &[], 120);
+        let observations = synthetic_observations("paired-receipt", &STABLE[..2], &RECEIVER_STABLE[..2], &[], 120);
         let report = ServiceReliabilityReport::evaluate(&observations, 950)
             .expect("two independently referenced receiver acceptances");
         assert_eq!(report.receiver_acceptances.len(), 2);
@@ -1351,7 +1371,7 @@ mod tests {
 
     #[test]
     fn report_preserves_canonical_expected_unit_ids_in_sorted_order() {
-        let observations = synthetic_observations("lineage", &STABLE[..3], &[], 120);
+        let observations = synthetic_observations("lineage", &STABLE[..3], &RECEIVER_STABLE[..3], &[], 120);
         let report = ServiceReliabilityReport::evaluate(&observations, 950)
             .expect("unique canonical expected units");
         assert_eq!(report.expected_unit_ids.len(), 3);
