@@ -451,7 +451,9 @@
             {
               "world_id": "W_ACCEPT",
               "mapping_state": "KNOWN",
-              "possible_outcomes": [],
+              "possible_outcomes": [
+                "CLEAR"
+              ],
               "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000028"
             },
             {
