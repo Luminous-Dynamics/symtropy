@@ -176,8 +176,8 @@ jobs:
               raise SystemExit("temporal replay corpus requires a late-receipt control")
           if corpus.get("oracle_review_status") != "NOT_INDEPENDENTLY_REVIEWED":
               raise SystemExit("oracle review status must remain explicit until independent review")
-          if len(cases) != 16:
-              raise SystemExit(f"temporal replay corpus must contain exactly 16 frozen cases; found {len(cases)}")
+          if len(cases) != 18:
+              raise SystemExit(f"temporal replay corpus must contain exactly 18 frozen cases; found {len(cases)}")
           all_events = [event for case in cases for event in case["events"]]
           for event in all_events:
               receipt_status = event["receiver_receipt_status"]
@@ -221,6 +221,16 @@ jobs:
               raise SystemExit("late retroactive event must affect a new full retrospective replay")
           if late["current_reassessment"]["receiver_receipt_watermark_unix_ms"] < late["events"][0]["receiver_first_seen_at_unix_ms"]:
               raise SystemExit("late event must be included by the retrospective evidence watermark")
+          after_measurement = next((case for case in cases if case["case_id"] == "revocation-effective-after-acquisition-before-evaluation"), None)
+          if after_measurement is None or after_measurement["events"][0]["effective_at_unix_ms"] <= after_measurement["acquisition_time_interval"]["latest_unix_ms"] or after_measurement["snapshot"]["evaluated_at_unix_ms"] <= after_measurement["events"][0]["effective_at_unix_ms"]:
+              raise SystemExit("after-measurement control must become effective after acquisition but before report generation")
+          if any(after_measurement["expected"][mode]["disposition"] != "NOT_YET_EFFECTIVE" for mode in required_modes):
+              raise SystemExit("a later revocation must not invalidate an earlier acquisition")
+          acquisition_overlap = next((case for case in cases if case["case_id"] == "event-effectivity-crosses-acquisition-uncertainty-window"), None)
+          if acquisition_overlap is None or not (acquisition_overlap["acquisition_time_interval"]["earliest_unix_ms"] < acquisition_overlap["events"][0]["effective_at_unix_ms"] <= acquisition_overlap["acquisition_time_interval"]["latest_unix_ms"]):
+              raise SystemExit("event effectivity must overlap the acquisition uncertainty interval")
+          if any(acquisition_overlap["expected"][mode]["disposition"] != "TIME_BOUNDARY_AMBIGUOUS" for mode in required_modes):
+              raise SystemExit("event effectivity within acquisition uncertainty must abstain")
           alias = next((case for case in cases if case["case_id"] == "same-issuer-cannot-bypass-identity-with-unverified-namespace-alias"), None)
           if alias is None or len(alias["events"]) != 2:
               raise SystemExit("temporal corpus requires a source namespace alias attack control")
