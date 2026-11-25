@@ -676,7 +676,10 @@ mod tests {
             outcomes,
             1,
         ));
-        assert_eq!(result, Err(JointActionCatalogueError::DuplicateCoalitionOutcome));
+        assert_eq!(
+            result,
+            Err(JointActionCatalogueError::DuplicateCoalitionOutcome)
+        );
     }
 
     #[test]
@@ -837,8 +840,18 @@ mod tests {
         let b = [11; 32];
         let outcomes = vec![
             qualified(vec![], 1, vec![], 0),
-            qualified(vec![a], 2, vec![event(10, (1, 2_000_000), (2, 2_000_000))], 5),
-            qualified(vec![b], 3, vec![event(10, (1, 2_000_000), (2, 2_000_000))], 5),
+            qualified(
+                vec![a],
+                2,
+                vec![event(10, (1, 2_000_000), (2, 2_000_000))],
+                5,
+            ),
+            qualified(
+                vec![b],
+                3,
+                vec![event(10, (1, 2_000_000), (2, 2_000_000))],
+                5,
+            ),
             qualified(
                 vec![a, b],
                 4,
@@ -932,5 +945,4 @@ mod tests {
         assert_eq!(report.selected_action_ids, Some(vec![]));
         assert_eq!(report.infeasible_count, 1);
     }
-
 }
