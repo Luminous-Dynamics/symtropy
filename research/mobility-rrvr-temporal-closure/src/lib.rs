@@ -341,7 +341,6 @@ fn bounded_expiry_horizon(
         ingress_index,
         envelope,
         adjacency,
-        &node_index,
         &edge_index,
         &mut memo,
     )?;
