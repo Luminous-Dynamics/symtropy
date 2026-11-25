@@ -45,8 +45,8 @@ jobs:
           errors = list(Draft202012Validator(schema).iter_errors(fixture))
           assert not errors, errors
           assert len(fixture["cases"]) == 11
-          assert len({case["case_id"] for case in fixture["cases"]}) == 10
-          print("10 projective acquisition cases and Draft 2020-12 schema validated")
+          assert len({case["case_id"] for case in fixture["cases"]}) == 11
+          print("11 projective acquisition cases and Draft 2020-12 schema validated")
           PY
       - name: Format
         run: cargo fmt --manifest-path tools/orbital-projective-acquisition-bench/Cargo.toml -- --check
