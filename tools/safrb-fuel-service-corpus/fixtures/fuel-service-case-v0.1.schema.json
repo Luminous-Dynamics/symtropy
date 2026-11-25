@@ -4,9 +4,10 @@
   "title": "SAFRB synthetic fuel-to-service case v0.1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "caseId", "archetype", "seed", "scenarioStartUnixS", "horizonHours", "evidenceMaturity", "inventory", "transport", "conversion", "generator", "service"],
+  "required": ["schemaVersion", "recordKind", "caseId", "archetype", "seed", "scenarioStartUnixS", "horizonHours", "evidenceMaturity", "inventory", "transport", "conversion", "generator", "service"],
   "properties": {
     "schemaVersion": { "const": "0.1.0" },
+    "recordKind": { "const": "oracle_truth" },
     "caseId": { "type": "string", "pattern": "^safrb-fuel-v0\\.1-" },
     "archetype": { "enum": ["baseline-all-paths", "crude-cargo-delay", "refined-diesel-cargo-delay", "tank-quality-quarantine", "tank-gauge-uncertainty", "pump-pipeline-failure", "berth-discharge-restriction", "refinery-process-trip", "generator-derating", "generator-fuel-grade-mismatch", "grid-islanded-backup-constraint", "common-cause-supplier-port-grid-comms"] },
     "seed": { "type": "integer", "minimum": 0 },
