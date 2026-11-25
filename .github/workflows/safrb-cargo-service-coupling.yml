@@ -1,0 +1,73 @@
+name: SAFRB cargo-to-service coupling qualification
+
+on:
+  push:
+    branches:
+      - research/safrb-cargo-service-coupling-v0.1
+    paths:
+      - "tools/safrb-cargo-service-coupling/**"
+      - ".github/workflows/safrb-cargo-service-coupling.yml"
+  pull_request:
+    paths:
+      - "tools/safrb-cargo-service-coupling/**"
+      - ".github/workflows/safrb-cargo-service-coupling.yml"
+      - "tools/safrb-cargo-receipt-ledger/**"
+      - "tools/safrb-usable-service-vector/**"
+      - "tools/safrb-fuel-service-corpus/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: safrb-cargo-service-coupling-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coupling:
+    name: SAFRB cargo-to-service Rust checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Verify formatting
+        run: cargo fmt --manifest-path tools/safrb-cargo-service-coupling/Cargo.toml -- --check
+      - name: Run tests
+        run: cargo test --manifest-path tools/safrb-cargo-service-coupling/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path tools/safrb-cargo-service-coupling/Cargo.toml --all-targets --locked -- -D warnings
+      - name: Validate coupled corpus
+        run: cargo run --manifest-path tools/safrb-cargo-service-coupling/Cargo.toml --release --locked -- --check
+      - name: Emit planner and evaluator artifacts
+        run: |
+          cargo run --manifest-path tools/safrb-cargo-service-coupling/Cargo.toml --release --locked -- --emit target/safrb-cargo-service-coupling-v0.1
+          test "$(wc -l < target/safrb-cargo-service-coupling-v0.1/planner-observations.jsonl)" -eq 12
+          test "$(wc -l < target/safrb-cargo-service-coupling-v0.1/oracle-truth.jsonl)" -eq 12
+          cd target/safrb-cargo-service-coupling-v0.1
+          sha256sum planner-observations.jsonl > PLANNER.SHA256SUMS
+          sha256sum oracle-truth.jsonl coupling-report.json > EVALUATOR.SHA256SUMS
+      - name: Independent reference oracle
+        run: python3 tools/safrb-cargo-service-coupling/tests/independent_oracle.py target/safrb-cargo-service-coupling-v0.1
+      - name: Retain planner-visible observations
+        uses: actions/upload-artifact@v4
+        with:
+          name: safrb-cargo-service-planner-v0.1
+          path: |
+            target/safrb-cargo-service-coupling-v0.1/planner-observations.jsonl
+            target/safrb-cargo-service-coupling-v0.1/PLANNER.SHA256SUMS
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain evaluator truth
+        uses: actions/upload-artifact@v4
+        with:
+          name: safrb-cargo-service-evaluator-v0.1
+          path: |
+            target/safrb-cargo-service-coupling-v0.1/oracle-truth.jsonl
+            target/safrb-cargo-service-coupling-v0.1/coupling-report.json
+            target/safrb-cargo-service-coupling-v0.1/EVALUATOR.SHA256SUMS
+          if-no-files-found: error
+          retention-days: 90
