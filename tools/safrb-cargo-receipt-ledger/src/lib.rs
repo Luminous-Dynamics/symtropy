@@ -165,6 +165,7 @@ pub struct BatchBalance {
     pub transferred_source_grams: u64,
     pub delivered_grams: u64,
     pub route_loss_grams: u64,
+    pub generator_closing_grams: u64,
     pub fuel_issued_grams: u64,
 }
 
@@ -502,10 +503,10 @@ impl CargoCase {
             h.in_transit_grams, h.delivered_to_generator_grams, h.generator_available_grams, h.fuel_issued_grams, h.route_loss_grams
         )).collect::<Vec<_>>().join(",");
         let balances = projection.batches.iter().map(|b| format!(
-            "{{\"batchId\":{},\"receivedLowerGrams\":{},\"admittedGrams\":{},\"quarantinedOrUnreleasedGrams\":{},\"unverifiedGrams\":{},\"terminalClosingGrams\":{},\"transferredSourceGrams\":{},\"deliveredGrams\":{},\"routeLossGrams\":{},\"fuelIssuedGrams\":{}}}",
+            "{{\"batchId\":{},\"receivedLowerGrams\":{},\"admittedGrams\":{},\"quarantinedOrUnreleasedGrams\":{},\"unverifiedGrams\":{},\"terminalClosingGrams\":{},\"transferredSourceGrams\":{},\"deliveredGrams\":{},\"routeLossGrams\":{},\"generatorClosingGrams\":{},\"fuelIssuedGrams\":{}}}",
             q(&b.batch_id), b.received_lower_grams, b.admitted_grams, b.quarantined_or_unreleased_grams,
             b.unverified_grams, b.terminal_closing_grams, b.transferred_source_grams, b.delivered_grams,
-            b.route_loss_grams, b.fuel_issued_grams
+            b.route_loss_grams, b.generator_closing_grams, b.fuel_issued_grams
         )).collect::<Vec<_>>().join(",");
         format!(
             "{{\"schemaVersion\":\"0.1.0\",\"recordKind\":\"oracle_truth\",\"caseId\":{},\"horizonHours\":72,\"evidenceMaturity\":\"synthetic_fixture\",\"receipts\":[{}],\"qualityAssessments\":[{}],\"authorizations\":[{}],\"routes\":[{}],\"transfers\":[{}],\"fuelIssues\":[{}],\"batchBalances\":[{}],\"hourlyTrajectory\":[{}]}}",
@@ -764,6 +765,7 @@ mod tests {
         let before = validate_and_project(&case).expect("baseline").batches[0].admitted_grams;
         case.receipts[0].received_lower_grams -= 100_000;
         case.quality_assessments[0].released_lower_grams -= 100_000;
+        case.authorizations[0].max_transfer_grams = 700_000;
         let after = validate_and_project(&case).expect("widened interval").batches[0].admitted_grams;
         assert!(after <= before);
     }
@@ -773,6 +775,6 @@ mod tests {
         let projection = validate_and_project(&find("verified-on-time")).expect("valid case");
         let balance = projection.batches.first().expect("batch balance");
         assert_eq!(balance.transferred_source_grams, balance.delivered_grams + balance.route_loss_grams);
-        assert_eq!(balance.delivered_grams, balance.fuel_issued_grams + (balance.delivered_grams - balance.fuel_issued_grams));
+        assert_eq!(balance.delivered_grams, balance.generator_closing_grams + balance.fuel_issued_grams);
     }
 }
