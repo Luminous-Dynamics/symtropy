@@ -1,0 +1,17 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://luminousdynamics.io/schemas/safrb-cargo-service-coupling-observation-v0.1.schema.json",
+  "title":"SAFRB cargo/service coupling planner observation v0.1",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["schemaVersion","recordKind","caseId","evidenceMaturity","cargoManifest","generatorCapability","hourlyRequirements"],
+  "properties":{
+    "schemaVersion":{"const":"0.1.0"},
+    "recordKind":{"const":"planner_observation"},
+    "caseId":{"type":"string","minLength":1},
+    "evidenceMaturity":{"const":"synthetic_fixture"},
+    "cargoManifest":{"type":"object","required":["recordKind","caseId","manifests"],"properties":{"recordKind":{"const":"planner_observation"},"caseId":{"type":"string"},"manifests":{"type":"array"}}},
+    "generatorCapability":{"type":"object"},
+    "hourlyRequirements":{"type":"array","minItems":72,"maxItems":72}
+  }
+}
