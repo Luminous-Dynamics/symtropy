@@ -13,7 +13,8 @@
 //! TOS, operational feed or substitute for qualified source capture, physical
 //! feasibility, custody and receiver-acceptance evidence.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::cmp::Reverse;
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
 use std::fmt::Write as FmtWrite;
 
 const ON_TIME_WINDOW_MINUTES: u64 = 120;
@@ -64,6 +65,8 @@ pub enum ServiceMetricError {
     EmptyArrivalIdentity,
     DuplicateArrivalIdentity,
     ZeroArrivalWindow,
+    ZeroServiceDuration,
+    ZeroParallelServers,
     EmptyCohortFloor,
     CohortFloorOutsidePerMille,
 }
@@ -103,6 +106,16 @@ pub struct CohortMetrics {
     pub cohort_id: String,
     pub service: ServiceMetrics,
     pub meets_service_floor: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct FifoQueueMetrics {
+    pub call_count: usize,
+    pub max_wait_minutes: u64,
+    /// Area under the waiting-queue length curve, in call-minutes.
+    pub queue_wait_area_call_minutes: u64,
+    pub completion_time_minutes: u64,
+    pub wait_distribution: DistributionMetrics,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -310,6 +323,70 @@ pub fn maximum_arrivals_in_window(
     Ok(max_count)
 }
 
+/// Replays a deterministic FCFS multi-server queue for a fixed handling
+/// duration. This is a transparent queueing baseline, not a terminal optimizer.
+pub fn simulate_fcfs_queue(
+    arrivals: &[VesselArrival],
+    service_duration_minutes: u64,
+    parallel_servers: usize,
+) -> Result<FifoQueueMetrics, ServiceMetricError> {
+    if service_duration_minutes == 0 {
+        return Err(ServiceMetricError::ZeroServiceDuration);
+    }
+    if parallel_servers == 0 {
+        return Err(ServiceMetricError::ZeroParallelServers);
+    }
+    if arrivals.is_empty() {
+        return Err(ServiceMetricError::EmptyObservations);
+    }
+    let mut call_ids = BTreeSet::new();
+    for arrival in arrivals {
+        if arrival.call_id.trim().is_empty() {
+            return Err(ServiceMetricError::EmptyArrivalIdentity);
+        }
+        if !call_ids.insert(arrival.call_id.as_str()) {
+            return Err(ServiceMetricError::DuplicateArrivalIdentity);
+        }
+    }
+
+    let mut ordered = arrivals.to_vec();
+    ordered.sort_by(|left, right| {
+        left.arrival_minute
+            .cmp(&right.arrival_minute)
+            .then_with(|| left.call_id.cmp(&right.call_id))
+    });
+    let mut server_available = BinaryHeap::new();
+    for _ in 0..parallel_servers {
+        server_available.push(Reverse(0_u64));
+    }
+
+    let mut waits = Vec::with_capacity(ordered.len());
+    let mut max_wait = 0_u64;
+    let mut queue_wait_area = 0_u64;
+    let mut completion_time = 0_u64;
+    for arrival in &ordered {
+        let Reverse(available_at) = server_available
+            .pop()
+            .expect("at least one server is configured");
+        let start = available_at.max(arrival.arrival_minute);
+        let wait = start - arrival.arrival_minute;
+        let finish = start + service_duration_minutes;
+        server_available.push(Reverse(finish));
+        waits.push(wait);
+        max_wait = max_wait.max(wait);
+        queue_wait_area += wait;
+        completion_time = completion_time.max(finish);
+    }
+
+    Ok(FifoQueueMetrics {
+        call_count: ordered.len(),
+        max_wait_minutes: max_wait,
+        queue_wait_area_call_minutes: queue_wait_area,
+        completion_time_minutes: completion_time,
+        wait_distribution: distribution(&waits),
+    })
+}
+
 fn synthetic_observations(
     scenario: &str,
     stages: &[(u32, u32, u32, u32)],
@@ -445,7 +522,7 @@ fn optional_float(value: Option<f64>) -> String {
 /// Renders deterministic synthetic service-reliability and burst receipts.
 pub fn render_csv() -> String {
     let mut output = String::from(
-        "scenario_id,n,port_mean_minutes,inland_mean_minutes,end_to_end_mean_minutes,p50_minutes,p90_minutes,p95_minutes,max_minutes,sample_sd_minutes,coefficient_of_variation,p95_to_p50_ratio,on_time_rate_per_mille,cohort_floor_violations,max_arrivals_in_60m,claim_ceiling\n",
+        "scenario_id,n,port_mean_minutes,inland_mean_minutes,end_to_end_mean_minutes,p50_minutes,p90_minutes,p95_minutes,max_minutes,sample_sd_minutes,coefficient_of_variation,p95_to_p50_ratio,on_time_rate_per_mille,cohort_floor_violations,max_arrivals_in_60m,max_fcfs_wait_minutes,queue_wait_area_call_minutes,queue_completion_minutes,claim_ceiling\n",
     );
     for scenario in scenarios() {
         let observations = synthetic_observations(
@@ -466,9 +543,10 @@ pub fn render_csv() -> String {
         };
         let burst = maximum_arrivals_in_window(&arrivals, ARRIVAL_BURST_WINDOW_MINUTES)
             .expect("valid synthetic arrivals");
+        let queue = simulate_fcfs_queue(&arrivals, 30, 2).expect("valid FCFS queue fixture");
         let _ = writeln!(
             output,
-            "{},{},{:.3},{:.3},{:.3},{},{},{},{},{},{},{},{},{},{},SYNTHETIC_ONLY",
+            "{},{},{:.3},{:.3},{:.3},{},{},{},{},{},{},{},{},{},{},{},{},{},SYNTHETIC_ONLY",
             scenario.id,
             report.observation_count,
             report.port_elapsed.mean_minutes,
@@ -483,7 +561,10 @@ pub fn render_csv() -> String {
             optional_float(report.end_to_end.distribution.p95_to_p50_ratio),
             report.end_to_end.on_time_rate_milli,
             report.cohort_floor_violations,
-            burst
+            burst,
+            queue.max_wait_minutes,
+            queue.queue_wait_area_call_minutes,
+            queue.completion_time_minutes
         );
     }
     output
@@ -591,6 +672,37 @@ mod tests {
     }
 
     #[test]
+    fn burst_arrivals_create_fcfs_queue_wait_and_longer_recovery() {
+        let regular =
+            simulate_fcfs_queue(&regular_arrivals("regular", 20), 30, 2).expect("regular queue");
+        let burst =
+            simulate_fcfs_queue(&burst_arrivals("burst", 20), 30, 2).expect("burst queue");
+        assert_eq!(regular.max_wait_minutes, 0);
+        assert_eq!(regular.queue_wait_area_call_minutes, 0);
+        assert_eq!(regular.completion_time_minutes, 1_170);
+        assert_eq!(burst.max_wait_minutes, 260);
+        assert_eq!(burst.queue_wait_area_call_minutes, 2_680);
+        assert_eq!(burst.completion_time_minutes, 300);
+    }
+
+    #[test]
+    fn fcfs_queue_rejects_zero_capacity_and_empty_arrivals() {
+        let arrivals = regular_arrivals("queue", 1);
+        assert_eq!(
+            simulate_fcfs_queue(&arrivals, 30, 0),
+            Err(ServiceMetricError::ZeroParallelServers)
+        );
+        assert_eq!(
+            simulate_fcfs_queue(&arrivals, 0, 2),
+            Err(ServiceMetricError::ZeroServiceDuration)
+        );
+        assert_eq!(
+            simulate_fcfs_queue(&[], 30, 2),
+            Err(ServiceMetricError::EmptyObservations)
+        );
+    }
+
+    #[test]
     fn arrival_ids_must_be_unique_and_window_must_be_positive() {
         let arrivals = vec![
             VesselArrival {
@@ -655,7 +767,7 @@ mod tests {
         assert_eq!(first, render_csv());
         assert_eq!(first.lines().count(), 7);
         let width = first.lines().next().expect("CSV header").split(',').count();
-        assert_eq!(width, 16);
+        assert_eq!(width, 19);
         for row in first.lines().skip(1) {
             assert_eq!(row.split(',').count(), width);
         }
