@@ -1,0 +1,91 @@
+{
+  "schema_version": "0.1.0",
+  "fixture_id": "TI-SBAA449B-20POLE-NEOBOND12M-2021",
+  "title": "TI SBAA449B multipole encoder ring reproduction reference",
+  "source": {
+    "organization": "Texas Instruments",
+    "document": "Reducing Quadrature Error for Incremental Rotary Encoding Using 2D Hall-Effect Sensors",
+    "document_id": "SBAA449B",
+    "revision": "B",
+    "publication_date": "2021-10",
+    "url": "https://www.ti.com/lit/an/sbaa449b/sbaa449b.pdf",
+    "source_kind": "published_application_note",
+    "claim_boundary": "Document-specific design calculations and physical position-sweep results; not a universal industry SOTA result."
+  },
+  "common_geometry": {
+    "magnet_material_name": "NeoBond12M",
+    "magnet_form": "bonded_multipole_ring",
+    "outer_diameter_mm": 25.5,
+    "inner_diameter_mm": 21.5,
+    "pole_count": 20,
+    "pole_pairs": 10,
+    "mechanical_electrical_period_deg": 36.0,
+    "expected_quadrature_spacing_mechanical_deg": 9.0,
+    "expected_quadrature_spacing_electrical_deg": 90.0
+  },
+  "published_design_analyses": [
+    {
+      "case_id": "discrete-latch-bop-mismatch",
+      "evidence_class": "published_design_analysis",
+      "sensor_architecture": "two_discrete_radial_hall_latches",
+      "sensor_distance_mm": 3.25,
+      "radial_field_peak_t": {
+        "approximate_value": 0.008,
+        "qualifier": "reported just above 8 mT"
+      },
+      "hall_operate_thresholds_mt": [1.0, 7.0],
+      "reported_maximum_mechanical_quadrature_error_deg": 4.9,
+      "interpretation": "Documented worst-case threshold-mismatch analysis for the stated discrete-latch arrangement.",
+      "raw_measurement_data_available_in_fixture": false
+    },
+    {
+      "case_id": "integrated-2d-latch-bop-mismatch",
+      "evidence_class": "published_design_analysis",
+      "sensor_architecture": "integrated_two_axis_radial_tangential_hall",
+      "sensor_axes": ["radial", "tangential"],
+      "hall_threshold_scenario_reference": "same application-note worst-case threshold-mismatch discussion; retain the figure's exact assumptions when reproducing",
+      "reported_mechanical_quadrature_error_deg": 1.35,
+      "interpretation": "Document-reported analysis for the integrated two-axis arrangement, not a measured system-wide accuracy specification.",
+      "raw_measurement_data_available_in_fixture": false
+    }
+  ],
+  "published_physical_position_sweep": {
+    "case_id": "tmag5110-radial-position-sweep",
+    "evidence_class": "published_physical_measurement",
+    "sensor_part": "TMAG5110",
+    "sensor_sensitivity_variant": "high_sensitivity",
+    "sensor_axis_configuration": "ZX",
+    "magnet_rotation_deg": 108.0,
+    "complete_pole_transition_cycles": 6,
+    "coarse_radial_position_step_mm": 0.635,
+    "fine_radial_position_step_mm": 0.06,
+    "reported_near_zero_average_error_radial_offset_mm": {
+      "approximate_value": 0.12,
+      "qualifier": "approximately 0.11 to 0.12 mm in the fine sweep"
+    },
+    "reported_transition_failure_beyond_radial_offset_mm": {
+      "approximate_value": 3.85,
+      "qualifier": "transitions failed beyond approximately 3.85 mm in the depicted test setup"
+    },
+    "figures": ["Figure 5-1", "Figure 5-2"],
+    "raw_curve_points_in_fixture": false,
+    "digitization_status": "not_digitized",
+    "interpretation": "Keep this physical radial-position sweep separate from the published analytical threshold-mismatch cases."
+  },
+  "reproduction_requirements": {
+    "freeze_sensor_part_and_revision": true,
+    "freeze_channel_mapping_and_axis_configuration": true,
+    "freeze_rotor_reference_and_zero": true,
+    "freeze_air_gap_and_radial_datum": true,
+    "freeze_threshold_and_hysteresis_assumptions": true,
+    "separate_analysis_from_measurement": true,
+    "preserve_figure_digitization_provenance": true,
+    "do_not_infer_raw_field_map_from_quadrature_error": true
+  },
+  "limitations": [
+    "This fixture contains source-reported summary values, not the raw 3D magnetic field map.",
+    "The 4.9 degree and 1.35 degree figures are document-specific analytical results and must not be presented as universal measured SOTA.",
+    "The physical sensor-position sweep is a separate measurement case; digitized curve points and the full uncertainty protocol are not included.",
+    "No Luminous Dynamics reproduction, EVM capture, physical ring measurement or independent replication is claimed."
+  ]
+}
