@@ -270,6 +270,78 @@
       "expected_blocker_codes": [
         "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED"
       ]
+    },
+    {
+      "case_id": "duplicate-sampling-event-id-across-specimens",
+      "operation": "composite",
+      "mutations": [
+        {
+          "operation": "append",
+          "pointer": "/hierarchy/specimens",
+          "value": {
+            "id": "SPEC-B",
+            "panel_id": "PANEL-A",
+            "configuration_id": "CONFIG-A"
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/specimen_source_assertions",
+          "value": {
+            "id": "SOURCE-ASSERTION-B",
+            "specimen_id": "SPEC-B",
+            "sampling_event_id": "SAMPLE-EVENT-0001",
+            "declared_material_lot_id": "LOT-A",
+            "declared_process_batch_id": "BATCH-A",
+            "declared_panel_id": "PANEL-A",
+            "verified_material_lot_id": "LOT-A",
+            "verified_process_batch_id": "BATCH-A",
+            "verified_panel_id": "PANEL-A",
+            "identity_status": "verified",
+            "source_system": "SYNTHETIC-TRAVELER-SYSTEM",
+            "source_record_id": "TRAVELER-0001",
+            "assertion_method": "independent-record-reconciliation",
+            "issuer_id": "SYNTHETIC-ISSUER-A",
+            "provenance_ref": "synthetic://traveler/0001#specimen-b"
+          }
+        },
+        {
+          "operation": "append",
+          "pointer": "/intended_configuration_assertions",
+          "value": {
+            "id": "CONFIG-ASSERTION-B",
+            "specimen_id": "SPEC-B",
+            "declared_intended_configuration_id": "CONFIG-A",
+            "verified_intended_configuration_id": "CONFIG-A",
+            "identity_status": "verified",
+            "source_system": "SYNTHETIC-PLM",
+            "source_record_id": "PLM-RELEASE-0001",
+            "assertion_method": "independent-release-record-reconciliation",
+            "issuer_id": "SYNTHETIC-ISSUER-B",
+            "provenance_ref": "synthetic://plm/release/0001#specimen-b"
+          }
+        }
+      ],
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "SPECIMEN_SAMPLING_EVENT_REPLAY"
+      ],
+      "expected_blocker_codes": [
+        "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED"
+      ]
+    },
+    {
+      "case_id": "missing-sampling-event-id",
+      "operation": "set",
+      "pointer": "/specimen_source_assertions/0/sampling_event_id",
+      "value": "",
+      "expected_structurally_complete": false,
+      "expected_violation_codes": [
+        "SPECIMEN_SAMPLING_EVENT_MISSING"
+      ],
+      "expected_blocker_codes": [
+        "SPECIMEN_SOURCE_IDENTITY_UNRESOLVED"
+      ]
     }
   ],
   "oracle_review_status": "NOT_INDEPENDENTLY_REVIEWED",
