@@ -109,7 +109,7 @@ This is a narrow binding result. It is not measurement truth, uncertainty suffic
 - missing correction target and competing corrections to one event;
 - deterministic output under record-order permutations.
 
-The 23-case frozen mutation corpus is executed by the Rust tests with exact violation and blocker sets. It is synthetic software testing only; its expected dispositions are not yet an independently reviewed physical or metrology oracle. Independent review and a rights-cleared external corpus remain required before any external performance claim.
+The 31-case frozen mutation corpus is executed by the Rust tests with exact violation and blocker sets. The expanded chronology cases cover as-of evaluation-time handling, retroactive revocation, cross-certificate correction rejection, duplicate event identity, strict correction chronology, invalid intervals and unknown references/events. The evaluator also tests calibration-event permutation invariance with a non-empty competing-correction history. This is synthetic software testing only; expected dispositions remain NOT_INDEPENDENTLY_REVIEWED and are not a physical or metrology oracle. Independent review and a rights-cleared external corpus remain required before any external performance claim.
 
 ## 4. Paradigm shifts beyond a better optimizer
 
