@@ -120,6 +120,7 @@ DropResponse ==
 CoordinatorCrash ==
     /\ coordinatorUp
     /\ bootEpoch = 0
+    /\ journalIntent
     /\ coordinatorUp' = FALSE
     /\ requestInFlight' = FALSE
     /\ ownerLedger' =
@@ -193,6 +194,13 @@ UnsafeInferNoEffectFromRejectedResponse ==
                    dispatchCalls, physicalEffects, lastCallBootEpoch,
                    recoveryGate>>
 
+TerminalHold ==
+    /\ coordinatorUp
+    /\ bootEpoch = 1
+    /\ journalIntent
+    /\ recoveryGate = "reconciled"
+    /\ UNCHANGED vars
+
 Next ==
     \/ PersistIntent
     \/ DispatchApply
@@ -203,6 +211,7 @@ Next ==
     \/ CoordinatorCrash
     \/ CoordinatorRestart
     \/ ReconcileOwnerLedger
+    \/ TerminalHold
     \/ UnsafeRedispatch
     \/ UnsafeInferNoEffectFromRejectedResponse
 
