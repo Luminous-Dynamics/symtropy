@@ -58,6 +58,13 @@ impl PairKey {
     pub fn second(&self) -> &ColliderKey { &self.second }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OracleCoverage {
+    Complete,
+    Partial,
+    Unknown,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FrameReceipt {
     world_revision: u64,
@@ -66,6 +73,7 @@ pub struct FrameReceipt {
     collision_filter_sha256: String,
     oracle_id: String,
     oracle_version: String,
+    oracle_coverage: OracleCoverage,
 }
 
 impl FrameReceipt {
@@ -77,6 +85,7 @@ impl FrameReceipt {
         collision_filter_sha256: impl Into<String>,
         oracle_id: impl Into<String>,
         oracle_version: impl Into<String>,
+        oracle_coverage: OracleCoverage,
     ) -> Self {
         Self {
             world_revision,
@@ -85,6 +94,7 @@ impl FrameReceipt {
             collision_filter_sha256: collision_filter_sha256.into(),
             oracle_id: oracle_id.into(),
             oracle_version: oracle_version.into(),
+            oracle_coverage,
         }
     }
 
@@ -113,6 +123,9 @@ impl FrameReceipt {
 
     #[must_use]
     pub fn oracle_version(&self) -> &str { &self.oracle_version }
+
+    #[must_use]
+    pub fn oracle_coverage(&self) -> OracleCoverage { self.oracle_coverage }
 }
 
 /// Per-frame workload and cost decomposition. Current object classes are
@@ -167,6 +180,8 @@ impl WorkloadFrame {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PairSetError {
     InvalidFrameReceipt,
+    OracleCoverageIncomplete,
+    WorkloadPopulationMismatch,
     DuplicateColliderIdentity,
     SelfPair,
     PairReferencesUnknownCollider,
@@ -275,6 +290,12 @@ pub fn evaluate_pair_sets(
     }
 
     let collider_count = colliders.len() as u64;
+    if workload.collider_count != collider_count {
+        errors.push(PairSetError::WorkloadPopulationMismatch);
+    }
+    if frame.oracle_coverage != OracleCoverage::Complete {
+        errors.push(PairSetError::OracleCoverageIncomplete);
+    }
     let possible_unfiltered_pairs =
         u128::from(collider_count) * u128::from(collider_count.saturating_sub(1)) / 2;
     if u128::from(eligible_pair_count) > possible_unfiltered_pairs {
@@ -355,7 +376,7 @@ mod tests {
             42, 7,
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            "brute-force-aabb-overlap", "v1",
+            "brute-force-aabb-overlap", "v1", OracleCoverage::Complete,
         )
     }
     fn workload(n: u64) -> WorkloadFrame {
@@ -445,7 +466,9 @@ mod tests {
     #[test]
     fn rejects_invalid_receipt_workload_and_pair_denominator() {
         let cs = vec![collider(0, 1, 0), collider(1, 1, 0)];
-        let bad_frame = FrameReceipt::new(1, 2, "bad", "bad", "", "");
+        let bad_frame = FrameReceipt::new(
+            1, 2, "bad", "bad", "", "", OracleCoverage::Complete,
+        );
         assert_eq!(
             evaluate_pair_sets(bad_frame, workload(2), &cs, 1, &[], &[]),
             Err(vec![PairSetError::InvalidFrameReceipt])
@@ -463,6 +486,35 @@ mod tests {
         assert_eq!(
             evaluate_pair_sets(frame(), workload(2), &cs, 2, &[], &[]),
             Err(vec![PairSetError::EligiblePairCountExceedsPopulation])
+        );
+    }
+
+    #[test]
+    fn partial_or_unknown_oracle_coverage_cannot_qualify() {
+        let cs = vec![collider(0, 1, 0), collider(1, 1, 0)];
+        for coverage in [OracleCoverage::Partial, OracleCoverage::Unknown] {
+            let receipt = FrameReceipt::new(
+                42,
+                7,
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "brute-force-aabb-overlap",
+                "v1",
+                coverage,
+            );
+            assert_eq!(
+                evaluate_pair_sets(receipt, workload(2), &cs, 1, &[], &[]),
+                Err(vec![PairSetError::OracleCoverageIncomplete])
+            );
+        }
+    }
+
+    #[test]
+    fn workload_population_must_match_frozen_collider_universe() {
+        let cs = vec![collider(0, 1, 0), collider(1, 1, 0)];
+        assert_eq!(
+            evaluate_pair_sets(frame(), workload(3), &cs, 1, &[], &[]),
+            Err(vec![PairSetError::WorkloadPopulationMismatch])
         );
     }
 
