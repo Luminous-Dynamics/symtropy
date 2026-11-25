@@ -44,6 +44,14 @@ with:
 
 The tempting shortcut Drow + Dexp is not a valid general upper bound for T < E/2. It may under-bound the integral of the full acquisition interval even though each diagnostic channel is separately rounded upward. Frozen case TV-016 has E=1 ms, T=0.25 ms and A0=32,000,000 µm/s²: Drow rounds to 1 µm and Dexp to 10 µm, but the complete-frame integral is 13 µm. The direct integral is therefore required.
 
+## Constant-maximum-speed comparator
+
+For analysis only, each receipt also includes the traditional single-maximum-speed envelope. The maximum absolute time in the complete frame interval is t_max = T + E/2. Apply V(t_max) to the entire frame duration T+E:
+
+`Dconstant = V0*(T+E) + A0*t_max*(T+E) + J*t_max^2*(T+E)/2`.
+
+This is a valid but generally looser upper bound under the same supplied envelope. The evaluator reports its path length, projected pixel bounds and excess over the direct integrated bound. It is **not** used for the acceptance decision. A useful improvement target is lower conservative excess and fewer potential false holds, with zero false-valid admissions against an independently qualified reference.
+
 ## Arithmetic
 
 Production evaluator uses Rust fixed-point integers, checked multiplications/additions and ceiling division. Speeds are in µm/s, acceleration in µm/s², jerk in µm/s³, times in ns, and pixel bounds in micro-pixels. Each non-negative rational contribution is independently rounded upward before summing. Inputs beyond declared limits, conversion overflow, zero minimum depth and invalid source digests produce INVALID_INPUT. FAIL gates produce BLOCKED; UNKNOWN gates produce INDETERMINATE.
