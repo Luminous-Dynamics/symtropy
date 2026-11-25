@@ -215,6 +215,8 @@ pub struct FamilySummary {
     pub median_regret_basis_points: Option<u128>,
     pub p95_regret_basis_points: Option<u128>,
     pub p95_regression_vs_best_fixed_basis_points: Option<i128>,
+    pub fixed_baseline_qualified_sequence_count: u64,
+    pub fixed_baseline_unavailable_sequence_count: u64,
     pub median_selector_and_switch_overhead_basis_points: Option<u128>,
     pub p95_selector_and_switch_overhead_basis_points: Option<u128>,
     /// Ratio of summed selector and transition costs to summed selected
@@ -229,6 +231,8 @@ pub struct CampaignSummary {
     pub median_regret_basis_points: Option<u128>,
     pub p95_regret_basis_points: Option<u128>,
     pub p95_regression_vs_best_fixed_basis_points: Option<i128>,
+    pub fixed_baseline_qualified_sequence_count: u64,
+    pub fixed_baseline_unavailable_sequence_count: u64,
     pub median_selector_and_switch_overhead_basis_points: Option<u128>,
     pub p95_selector_and_switch_overhead_basis_points: Option<u128>,
     /// Ratio of summed selector and transition costs to summed selected
@@ -836,6 +840,12 @@ pub fn evaluate_campaign(inputs: &[SequenceInput]) -> Result<CampaignSummary, Se
             .iter()
             .filter_map(|score| score.selector_and_switch_overhead_basis_points)
             .collect::<Vec<_>>();
+        let fixed_baseline_qualified_sequence_count = group
+            .iter()
+            .filter(|score| score.best_fixed_backend.is_some())
+            .count() as u64;
+        let fixed_baseline_unavailable_sequence_count =
+            group.len() as u64 - fixed_baseline_qualified_sequence_count;
         let family_overhead_total = group.iter().try_fold(0_u128, |sum, score| {
             sum.checked_add(score.selector_overhead_ns)
                 .and_then(|value| value.checked_add(score.transition_overhead_ns))
@@ -854,6 +864,8 @@ pub fn evaluate_campaign(inputs: &[SequenceInput]) -> Result<CampaignSummary, Se
                 &mut family_fixed_regressions,
                 95,
             ),
+            fixed_baseline_qualified_sequence_count,
+            fixed_baseline_unavailable_sequence_count,
             median_selector_and_switch_overhead_basis_points: nearest_rank_u128(
                 &mut family_overheads,
                 50,
@@ -868,6 +880,13 @@ pub fn evaluate_campaign(inputs: &[SequenceInput]) -> Result<CampaignSummary, Se
             )?,
         });
     }
+
+    let fixed_baseline_qualified_sequence_count = sequences
+        .iter()
+        .filter(|score| score.best_fixed_backend.is_some())
+        .count() as u64;
+    let fixed_baseline_unavailable_sequence_count =
+        sequences.len() as u64 - fixed_baseline_qualified_sequence_count;
 
     let campaign_overhead_total = sequences.iter().try_fold(0_u128, |sum, score| {
         sum.checked_add(score.selector_overhead_ns)
@@ -888,6 +907,8 @@ pub fn evaluate_campaign(inputs: &[SequenceInput]) -> Result<CampaignSummary, Se
             &mut fixed_regressions,
             95,
         ),
+        fixed_baseline_qualified_sequence_count,
+        fixed_baseline_unavailable_sequence_count,
         median_selector_and_switch_overhead_basis_points: nearest_rank_u128(
             &mut overheads,
             50,
@@ -1196,6 +1217,10 @@ mod tests {
         assert_eq!(report.sequences.len(), 2);
         assert_eq!(report.families.len(), 1);
         assert_eq!(report.families[0].workload_family, "clustered");
+        assert_eq!(report.fixed_baseline_qualified_sequence_count, 2);
+        assert_eq!(report.fixed_baseline_unavailable_sequence_count, 0);
+        assert_eq!(report.families[0].fixed_baseline_qualified_sequence_count, 2);
+        assert_eq!(report.families[0].fixed_baseline_unavailable_sequence_count, 0);
         assert!(report.aggregate_selector_and_switch_overhead_basis_points.is_some());
         assert!(report.families[0].aggregate_selector_and_switch_overhead_basis_points.is_some());
         assert_eq!(
