@@ -379,6 +379,9 @@ impl DelassusOperator {
                         );
                     }
                 }
+                if !value.is_finite() {
+                    return Err(DelassusError::NonFiniteResult);
+                }
                 matrix[row_index][column_index] = value;
             }
         }
