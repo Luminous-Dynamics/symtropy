@@ -45,6 +45,8 @@ jobs:
             and (.comparisons | length) == 2
             and .all_policies_hard_gate_clean == true
             and .all_policies_false_safe_free == true
+            and ([.policies[] | select(.information_boundary_clean == false)] | length) == 0
+            and ([.policies[] | select(.future_information_access_count != 0 or .nonanticipativity_violation_count != 0)] | length) == 0
             and .no_performance_score_offsets_hard_gate_failures == true
             and ([.comparisons[] | select(.policy_id == "mpc") | .on_time_service_rate_basis_points.mean_delta] == [1000])
             and ([.comparisons[] | select(.policy_id == "mpc") | .signed_metered_grid_response_wh_per_run.mean_delta] == [40])
