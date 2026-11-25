@@ -1136,6 +1136,10 @@ mod tests {
         assert_eq!(oracle_left.len(), 120);
         assert!(observations_left.iter().all(|line| line.contains("\"recordKind\":\"planner_observation\"")));
         assert!(oracle_left.iter().all(|line| line.contains("\"recordKind\":\"oracle_truth\"")));
+        assert!(observations_left.iter().all(|line| line.matches("\"hourIndex\"").count() == 72));
+        assert!(oracle_left.iter().all(|line| line.matches("\"hourIndex\"").count() == 72));
+        assert!(observations_left.iter().all(|line| line.contains("\"hourlyObservations\"")));
+        assert!(oracle_left.iter().all(|line| line.contains("\"hourlyTrajectory\"")));
         assert!(observations_left.iter().all(|line| !line.contains("\"closingGrams\"")));
         assert!(observations_left.iter().all(|line| !line.contains("\"grossElectricityWh\"")));
         assert!(observations_left.iter().all(|line| !line.contains("\"disposition\"")));
@@ -1308,11 +1312,12 @@ mod tests {
     }
 
     #[test]
-    fn one_hour_critical_floor_breach_cannot_be_hidden_by_horizon_energy() {
-        let mut case = generate_case(Archetype::BaselineAllPaths, 0);
-        case.hourly_trajectory[0].delivered_lower_wh = 0;
-        case.hourly_trajectory[0].delivered_upper_wh = 1;
-        case.hourly_trajectory[0].disposition = ServiceDisposition::ConfirmedShortfall;
+    fn an_hourly_critical_floor_breach_cannot_be_hidden_by_horizon_energy() {
+        let mut case = generate_case(Archetype::GridIslandedBackupConstraint, 3);
+        assert!(case.hourly_trajectory.iter().any(|row| {
+            row.disposition == ServiceDisposition::ConfirmedShortfall
+        }));
+        case.service.disposition = ServiceDisposition::Guaranteed;
         assert!(validate_case(&case).is_err());
     }
 }
