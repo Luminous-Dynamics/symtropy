@@ -187,15 +187,6 @@ pub fn evaluate_case(case: &Value, mode: ReplayMode) -> TemporalDisposition {
         .map(|items| items.iter().collect::<Vec<_>>())
         .unwrap_or_default();
 
-    let Some(subject_time) = nested_number(case, "/snapshot/evaluated_at_unix_ms") else {
-        return one_reason(
-            "REJECT",
-            "SUBJECT_TIME_MISSING",
-            &[],
-            &all_events,
-            &all_events,
-        );
-    };
     let Some(valid_from) = nested_number(case, "/calibration_validity/valid_from_unix_ms") else {
         return one_reason(
             "REJECT",
@@ -601,22 +592,39 @@ pub fn evaluate_case(case: &Value, mode: ReplayMode) -> TemporalDisposition {
         );
     }
 
-    let effective_revocations = deduplicated
+    let effectivity_ambiguous = deduplicated
+        .iter()
+        .copied()
+        .filter(|event| {
+            number(event, "effective_at_unix_ms").is_some_and(|effective| {
+                effective > acquisition_start && effective <= acquisition_end
+            })
+        })
+        .collect::<Vec<_>>();
+    if !effectivity_ambiguous.is_empty() {
+        return one_reason(
+            "TIME_BOUNDARY_AMBIGUOUS",
+            "EVENT_EFFECTIVITY_CROSSES_ACQUISITION_INTERVAL",
+            &[],
+            &effectivity_ambiguous,
+            &all_events,
+        );
+    }
+
+    let future_events = deduplicated
         .iter()
         .copied()
         .filter(|event| {
             number(event, "effective_at_unix_ms")
-                .is_some_and(|effective| effective > subject_time)
+                .is_some_and(|effective| effective > acquisition_end)
         })
         .collect::<Vec<_>>();
-    if !effective_revocations.is_empty()
-        && effective_revocations.len() == deduplicated.len()
-    {
+    if !future_events.is_empty() && future_events.len() == deduplicated.len() {
         return one_reason(
             "NOT_YET_EFFECTIVE",
             "EVENT_NOT_YET_EFFECTIVE",
             &[],
-            &effective_revocations,
+            &future_events,
             &all_events,
         );
     }
@@ -624,7 +632,7 @@ pub fn evaluate_case(case: &Value, mode: ReplayMode) -> TemporalDisposition {
     let active_revocations = deduplicated
         .iter()
         .copied()
-        .filter(|event| is_effective_revocation(event, subject_time))
+        .filter(|event| is_effective_revocation(event, acquisition_start))
         .collect::<Vec<_>>();
     if !active_revocations.is_empty() {
         let mut reasons = BTreeSet::new();
@@ -652,16 +660,6 @@ pub fn evaluate_case(case: &Value, mode: ReplayMode) -> TemporalDisposition {
             "EVENT_RECEIVED_AFTER_SNAPSHOT",
             &[],
             &not_yet_received,
-            &all_events,
-        );
-    }
-
-    if !effective_revocations.is_empty() {
-        return one_reason(
-            "NOT_YET_EFFECTIVE",
-            "EVENT_NOT_YET_EFFECTIVE",
-            &[],
-            &effective_revocations,
             &all_events,
         );
     }
