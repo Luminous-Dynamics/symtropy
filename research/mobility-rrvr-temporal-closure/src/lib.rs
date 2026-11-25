@@ -15,6 +15,9 @@ pub const CONTRACT_VERSION: &str = "0.1";
 pub const MAX_NODES: usize = 64;
 pub const MAX_EDGES: usize = 256;
 
+type EdgePathKey<'a> = (&'a str, &'a str);
+type EdgeIndex<'a> = BTreeMap<EdgePathKey<'a>, usize>;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NodeEvidence {
     pub node_id: String,
@@ -61,10 +64,12 @@ pub struct TemporalClosureEnvelope {
     pub edges: Vec<EdgeEvidence>,
     pub inventory_complete: bool,
     pub clock_profile_valid: bool,
+    /// Conservative path-wide aggregate of all source/receiver clock uncertainty.
     pub clock_uncertainty_bound_ms: Option<u64>,
+    /// Conservative path-wide scheduling/endpoint execution allowance.
     pub scheduling_jitter_bound_ms: Option<u64>,
-    /// Time elapsed after the old-epoch ingress fence. Used only by the
-    /// bounded-expiry path, never by fenced-and-drained.
+    /// Monotonic elapsed time after the ingress fence, never wall-clock time.
+    /// Used only by bounded expiry, never by fenced-and-drained.
     pub elapsed_since_ingress_fence_ms: u64,
     /// A late command, profile change, clock invalidation, epoch rollback,
     /// or other revocation invalidates an earlier closure candidate.
@@ -308,7 +313,7 @@ fn bounded_expiry_horizon(
         .scheduling_jitter_bound_ms
         .ok_or(HoldReason::MissingSchedulingBound)?;
 
-    let edge_index: BTreeMap<(&str, &str), usize> = envelope
+    let edge_index: EdgeIndex<'_> = envelope
         .edges
         .iter()
         .enumerate()
@@ -319,7 +324,7 @@ fn bounded_expiry_horizon(
         index: usize,
         envelope: &TemporalClosureEnvelope,
         adjacency: &[Vec<usize>],
-        edge_index: &BTreeMap<(&str, &str), usize>,
+        edge_index: &EdgeIndex<'_>,
         memo: &mut [Option<u64>],
     ) -> Result<u64, HoldReason> {
         if let Some(value) = memo[index] {
@@ -568,6 +573,31 @@ mod tests {
         assert_eq!(
             evaluate(&envelope),
             ClosureDecision::Hold(HoldReason::UnboundedTransit)
+        );
+    }
+
+    #[test]
+    fn bounded_expiry_holds_until_the_full_path_horizon_elapses() {
+        let mut envelope = base_envelope();
+        envelope.edges[0].in_flight_messages = 1;
+        envelope.edges[0].no_future_old_epoch_enqueue = false;
+        envelope.elapsed_since_ingress_fence_ms = 22;
+        assert_eq!(
+            evaluate(&envelope),
+            ClosureDecision::Hold(HoldReason::HorizonNotElapsed)
+        );
+    }
+
+    #[test]
+    fn arithmetic_overflow_cannot_produce_a_finite_closure_horizon() {
+        let mut envelope = base_envelope();
+        envelope.edges[0].in_flight_messages = 1;
+        envelope.edges[0].no_future_old_epoch_enqueue = false;
+        envelope.clock_uncertainty_bound_ms = Some(u64::MAX);
+        envelope.scheduling_jitter_bound_ms = Some(1);
+        assert_eq!(
+            evaluate(&envelope),
+            ClosureDecision::Hold(HoldReason::HorizonOverflow)
         );
     }
 
