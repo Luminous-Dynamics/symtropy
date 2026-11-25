@@ -283,6 +283,34 @@
         "timing_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000405"
       },
       "expected_status": "INVALID_INPUT"
+    },
+    {
+      "case_id": "PM-011-ARITHMETIC-OVERFLOW",
+      "model": {
+        "relative_translation_speed_um_s": 1000000000000,
+        "relative_angular_speed_urad_s": 0,
+        "max_point_radius_um": 200000,
+        "min_depth_um": 1,
+        "max_abs_x_um": 100000,
+        "max_abs_y_um": 50000,
+        "focal_x_micro_px": 1000000000000,
+        "focal_y_micro_px": 1000000000000,
+        "row_exposure_duration_ns": 1000000000000,
+        "first_to_last_row_midpoint_span_ns": 0,
+        "exposure_budget_x_micro_px": 1000000000000,
+        "exposure_budget_y_micro_px": 1000000000000,
+        "row_time_budget_x_micro_px": 5000000,
+        "row_time_budget_y_micro_px": 5000000,
+        "combined_frame_budget_x_micro_px": 1000000000000,
+        "combined_frame_budget_y_micro_px": 1000000000000,
+        "relative_motion_state": "PASS",
+        "support_envelope_state": "PASS",
+        "timing_state": "PASS",
+        "motion_receipt_sha256": "00000000000000000000000000000000000000000000000000000000000007d0",
+        "support_receipt_sha256": "00000000000000000000000000000000000000000000000000000000000007d1",
+        "timing_receipt_sha256": "00000000000000000000000000000000000000000000000000000000000007d2"
+      },
+      "expected_status": "INVALID_INPUT"
     }
   ]
 }
