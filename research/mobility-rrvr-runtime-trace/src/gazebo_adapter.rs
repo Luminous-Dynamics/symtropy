@@ -1862,6 +1862,135 @@ pub mod journaled {
         }
     }
 
+    #[derive(Serialize)]
+    struct AttemptBoundDispatchIdentity<'a> {
+        canonicalization: &'static str,
+        base_idempotency_key: &'a str,
+        logical_effect_id: &'a str,
+        attempt_id: &'a str,
+    }
+
+    fn attempt_bound_dispatch_key(
+        base_key: &str,
+        logical_effect_id: &str,
+        attempt_id: &str,
+    ) -> Result<String, JournaledGazeboError> {
+        if base_key.trim().is_empty()
+            || logical_effect_id.trim().is_empty()
+            || attempt_id.trim().is_empty()
+        {
+            return Err(JournaledGazeboError::InvalidJournalIdentity);
+        }
+        let identity = AttemptBoundDispatchIdentity {
+            canonicalization: "rrvr-attempt-bound-key-v0.1",
+            base_idempotency_key: base_key,
+            logical_effect_id,
+            attempt_id,
+        };
+        let value = serde_json::to_value(identity)
+            .map_err(|_| JournaledGazeboError::InvalidJournalIdentity)?;
+        let bytes = serde_json::to_vec(&value)
+            .map_err(|_| JournaledGazeboError::InvalidJournalIdentity)?;
+        Ok(format!("rrvr/v0.2/{}", digest_hex(&bytes)))
+    }
+
+    fn dispatch_after_intent_recheck<T, I>(
+        simulator: &mut T,
+        injector: &mut I,
+        plan: &CompiledCampaignPlan,
+        session: &GazeboAdapterSession,
+        identity: GazeboJournaledDispatchIdentity<'_>,
+        request: GazeboDispatchRequest,
+        cut_snapshot: GazeboWorldSnapshot,
+        target_binding: GazeboTargetBinding,
+    ) -> Result<GazeboPlannedDispatchResult, GazeboAdapterError>
+    where
+        T: GazeboSimulationTransport,
+        I: GazeboFaultInjectorTransport,
+    {
+        plan.verify_integrity()
+            .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
+        let scenario = plan
+            .scenarios
+            .iter()
+            .find(|scenario| scenario.scenario_id == identity.scenario_id)
+            .ok_or(GazeboAdapterError::ScenarioNotFound)?;
+        let fault = scenario
+            .fault_events
+            .iter()
+            .find(|fault| fault.fault_id == identity.fault_id)
+            .ok_or(GazeboAdapterError::FaultNotFound)?;
+        let live_profile = simulator
+            .get_simulator_features()
+            .map_err(|_| GazeboAdapterError::TransportFailure)?;
+        if live_profile != session.profile {
+            return Err(GazeboAdapterError::InvalidCapabilityProfile);
+        }
+        let before_dispatch = simulator
+            .get_world_state(&session.profile.world_name)
+            .map_err(|_| GazeboAdapterError::TransportFailure)?;
+        before_dispatch.validate_against_profile(&session.profile)?;
+        if before_dispatch.world_epoch != session.world_epoch {
+            return Err(GazeboAdapterError::WrongWorldEpoch);
+        }
+        if before_dispatch.clock_id != session.clock_id {
+            return Err(GazeboAdapterError::InvalidClock);
+        }
+        if before_dispatch.state != SimulationState::Paused {
+            return Err(GazeboAdapterError::SimulatorNotPaused);
+        }
+        if before_dispatch.simulation_step != fault.scheduled_simulation_step {
+            return Err(GazeboAdapterError::SimulationStepNotReached);
+        }
+        if before_dispatch.simulation_time_ns != cut_snapshot.simulation_time_ns
+            || before_dispatch.state_sha256 != cut_snapshot.state_sha256
+        {
+            return Err(GazeboAdapterError::WorldChangedAtCutPoint);
+        }
+        let refreshed_target = simulator
+            .resolve_target(&session.profile.world_name, &fault.target_component_id)
+            .map_err(|_| GazeboAdapterError::TransportFailure)?;
+        super::validate_target_binding(
+            &refreshed_target,
+            fault,
+            &session.profile.world_name,
+            &session.world_epoch,
+        )?;
+        if refreshed_target != target_binding {
+            return Err(GazeboAdapterError::TargetBindingChanged);
+        }
+        let expected_key = attempt_bound_dispatch_key(
+            &super::dispatch_idempotency_key(
+                plan,
+                scenario,
+                fault,
+                identity.run_id,
+                identity.run_epoch,
+                &session.world_epoch,
+                &session.clock_id,
+            )?,
+            &scenario.logical_effect_id,
+            identity.attempt_id,
+        )
+        .map_err(|_| GazeboAdapterError::InvalidDispatchRequest)?;
+        if request.idempotency_key != expected_key
+            || super::dispatch_request_fingerprint(&request)? != request.payload_sha256
+        {
+            return Err(GazeboAdapterError::InvalidDispatchRequest);
+        }
+        let outcome = super::dispatch_fault_once(
+            &mut DispatchAttemptRegistry::default(),
+            injector,
+            &request,
+        );
+        Ok(GazeboPlannedDispatchResult {
+            request,
+            cut_snapshot,
+            target_binding,
+            outcome,
+        })
+    }
+
     fn request_from_intent(intent: &DispatchIntentRecord) -> GazeboDispatchRequest {
         GazeboDispatchRequest {
             plan_sha256: intent.plan_sha256.clone(),
@@ -2250,7 +2379,7 @@ pub mod journaled {
             .iter()
             .find(|fault| fault.fault_id == identity.fault_id)
             .ok_or(GazeboAdapterError::FaultNotFound)?;
-        let candidate_key = super::dispatch_idempotency_key(
+        let base_candidate_key = super::dispatch_idempotency_key(
             plan,
             scenario,
             fault,
@@ -2258,6 +2387,11 @@ pub mod journaled {
             identity.run_epoch,
             &session.world_epoch,
             &session.clock_id,
+        )?;
+        let candidate_key = attempt_bound_dispatch_key(
+            &base_candidate_key,
+            &scenario.logical_effect_id,
+            identity.attempt_id,
         )?;
 
         let projection = journal.recovery_projection();
@@ -2339,11 +2473,10 @@ pub mod journaled {
             return Err(JournaledGazeboError::InvalidJournalIdentity);
         }
 
-        let (request, cut_snapshot, target_binding) =
+        let (mut request, cut_snapshot, target_binding) =
             prepare_dispatch_request(simulator, plan, session, identity)?;
-        if request.idempotency_key != candidate_key {
-            return Err(JournaledGazeboError::ExistingAttemptConflict);
-        }
+        request.idempotency_key = candidate_key.clone();
+        request.payload_sha256 = super::dispatch_request_fingerprint(&request)?;
         let intent = intent_from_request(
             &request,
             identity.reset_id,
@@ -2358,18 +2491,15 @@ pub mod journaled {
         // injector method below is never invoked.
         journal.append_dispatch_intent(intent)?;
 
-        match super::dispatch_planned_fault_once(
+        match dispatch_after_intent_recheck(
             simulator,
             injector,
-            &mut DispatchAttemptRegistry::default(),
             plan,
             session,
-            GazeboFaultRunIdentity {
-                scenario_id: identity.scenario_id,
-                fault_id: identity.fault_id,
-                run_id: identity.run_id,
-                run_epoch: identity.run_epoch,
-            },
+            identity,
+            request.clone(),
+            cut_snapshot.clone(),
+            target_binding.clone(),
         ) {
             Ok(result) => {
                 let response_status =
