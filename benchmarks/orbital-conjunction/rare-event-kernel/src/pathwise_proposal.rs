@@ -592,6 +592,12 @@ mod tests {
             support.verify_proposal_config(&config),
             Err(PathwiseProposalError::EventDigestMismatch)
         );
+        config.event_digest = EVENT_DIGEST;
+        config.support_manifest_digest = [98; 32];
+        assert_eq!(
+            support.verify_proposal_config(&config),
+            Err(PathwiseProposalError::SupportManifestMismatch)
+        );
     }
 
     #[test]
