@@ -192,6 +192,8 @@
                       "state",
                       "event_set_complete",
                       "action_id",
+                      "vehicle_id",
+                      "trajectory_revision",
                       "horizon_id",
                       "event_set_revision",
                       "receipt_sha256"
@@ -223,6 +225,14 @@
                       "receipt_sha256": {
                         "type": "string",
                         "pattern": "^[0-9a-fA-F]{64}$"
+                      },
+                      "vehicle_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "trajectory_revision": {
+                        "type": "string",
+                        "minLength": 1
                       }
                     }
                   },
@@ -240,6 +250,9 @@
                       "acquisition_state",
                       "scope_coherence_state",
                       "action_id",
+                      "vehicle_id",
+                      "trajectory_revision",
+                      "horizon_id",
                       "acquisition_id",
                       "camera_id",
                       "asset_id",
@@ -291,6 +304,18 @@
                       "scope_receipt_sha256": {
                         "type": "string",
                         "pattern": "^[0-9a-fA-F]{64}$"
+                      },
+                      "vehicle_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "trajectory_revision": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "horizon_id": {
+                        "type": "string",
+                        "minLength": 1
                       }
                     }
                   },
