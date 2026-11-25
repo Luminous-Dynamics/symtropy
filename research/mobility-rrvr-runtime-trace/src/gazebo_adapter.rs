@@ -1304,17 +1304,15 @@ where
     })
 }
 
-
 /// Journal-aware simulator and injector execution. This module is nested in
 /// gazebo_adapter so it can restore the private reset lifecycle from journaled
 /// evidence without exposing that lifecycle to arbitrary callers.
 pub mod journaled {
     use super::*;
     use crate::durable_journal::{
-        DispatchIntentRecord, DispatchOutcomeRecord, DispatchOutcomeSource,
-        DispatchOutcomeStatus, DispatchRecoveryDisposition, Journal, JournalError,
-        ResetIntentRecord, ResetOutcomeRecord, ResetOutcomeSource, ResetOutcomeStatus,
-        ResetRecoveryDisposition,
+        DispatchIntentRecord, DispatchOutcomeRecord, DispatchOutcomeSource, DispatchOutcomeStatus,
+        DispatchRecoveryDisposition, Journal, JournalError, ResetIntentRecord, ResetOutcomeRecord,
+        ResetOutcomeSource, ResetOutcomeStatus, ResetRecoveryDisposition,
     };
     use serde::Serialize;
     use std::fmt::Display;
@@ -1407,8 +1405,8 @@ pub mod journaled {
         name: &str,
         value: &T,
     ) -> Result<String, JournaledGazeboError> {
-        let bytes = serde_json::to_vec(value)
-            .map_err(|_| JournaledGazeboError::InvalidJournalIdentity)?;
+        let bytes =
+            serde_json::to_vec(value).map_err(|_| JournaledGazeboError::InvalidJournalIdentity)?;
         persist_bytes(store, name, &bytes)
     }
 
@@ -1449,8 +1447,8 @@ pub mod journaled {
         };
         let value = serde_json::to_value(payload)
             .map_err(|_| JournaledGazeboError::InvalidJournalIdentity)?;
-        let bytes = serde_json::to_vec(&value)
-            .map_err(|_| JournaledGazeboError::InvalidJournalIdentity)?;
+        let bytes =
+            serde_json::to_vec(&value).map_err(|_| JournaledGazeboError::InvalidJournalIdentity)?;
         Ok(format!("rrvr/reset/v0.1/{}", digest_hex(&bytes)))
     }
 
@@ -1540,13 +1538,7 @@ pub mod journaled {
             .any(|state| state.intent.reset_id == reset_id)
         {
             let snapshot = recover_reset_from_journal(
-                transport,
-                store,
-                journal,
-                plan,
-                session,
-                &reset_id,
-                identity,
+                transport, store, journal, plan, session, &reset_id, identity,
             )?;
             return Ok(GazeboJournaledResetResult {
                 reset_id,
@@ -1584,7 +1576,9 @@ pub mod journaled {
             ));
         }
         if before.clock_id != session.clock_id {
-            return Err(JournaledGazeboError::Adapter(GazeboAdapterError::InvalidClock));
+            return Err(JournaledGazeboError::Adapter(
+                GazeboAdapterError::InvalidClock,
+            ));
         }
         if before.state != SimulationState::Paused {
             return Err(JournaledGazeboError::Adapter(
@@ -1664,8 +1658,7 @@ pub mod journaled {
             Err(error) => {
                 // A transport error or post-call observation failure does not
                 // establish NoEffect. Preserve Unknown and reconcile read-only.
-                session.reset_lifecycle =
-                    GazeboResetLifecycle::OutcomeUnresolved(attempt);
+                session.reset_lifecycle = GazeboResetLifecycle::OutcomeUnresolved(attempt);
                 let response = serde_json::json!({
                     "schema_version": "0.1",
                     "producer": "mobility-rrvr-gazebo-adapter",
@@ -1677,8 +1670,7 @@ pub mod journaled {
                     "source_limit": "normalized adapter error; not raw middleware bytes",
                 });
                 let response_digest =
-                    persist_json(store, "gazebo-reset-transport-response-unknown", &response)
-                        .ok();
+                    persist_json(store, "gazebo-reset-transport-response-unknown", &response).ok();
                 journal.append_reset_outcome(ResetOutcomeRecord {
                     reset_id: reset_id.clone(),
                     source: ResetOutcomeSource::TransportResponse,
@@ -1786,9 +1778,11 @@ pub mod journaled {
             ));
         }
         let stepping_method = session.profile.validate_for_plan(plan)?;
-        if let Some(outcome) = state.latest_outcome.as_ref().filter(|outcome| {
-            outcome.status == ResetOutcomeStatus::Verified
-        }) {
+        if let Some(outcome) = state
+            .latest_outcome
+            .as_ref()
+            .filter(|outcome| outcome.status == ResetOutcomeStatus::Verified)
+        {
             let snapshot = transport
                 .get_world_state(&session.profile.world_name)
                 .map_err(|_| GazeboAdapterError::TransportFailure)?;
@@ -1824,8 +1818,7 @@ pub mod journaled {
         );
         match super::reconcile_reset(transport, plan, session) {
             Ok(snapshot) => {
-                let digest =
-                    persist_json(store, "gazebo-reset-restart-reconciliation", &snapshot)?;
+                let digest = persist_json(store, "gazebo-reset-restart-reconciliation", &snapshot)?;
                 journal.append_reset_outcome(ResetOutcomeRecord {
                     reset_id: reset_id.to_owned(),
                     source: ResetOutcomeSource::Reconciliation,
@@ -1889,8 +1882,8 @@ pub mod journaled {
         };
         let value = serde_json::to_value(identity)
             .map_err(|_| JournaledGazeboError::InvalidJournalIdentity)?;
-        let bytes = serde_json::to_vec(&value)
-            .map_err(|_| JournaledGazeboError::InvalidJournalIdentity)?;
+        let bytes =
+            serde_json::to_vec(&value).map_err(|_| JournaledGazeboError::InvalidJournalIdentity)?;
         Ok(format!("rrvr/v0.2/{}", digest_hex(&bytes)))
     }
 
@@ -1978,11 +1971,8 @@ pub mod journaled {
         {
             return Err(GazeboAdapterError::InvalidDispatchRequest);
         }
-        let outcome = super::dispatch_fault_once(
-            &mut DispatchAttemptRegistry::default(),
-            injector,
-            &request,
-        );
+        let outcome =
+            super::dispatch_fault_once(&mut DispatchAttemptRegistry::default(), injector, &request);
         Ok(GazeboPlannedDispatchResult {
             request,
             cut_snapshot,
@@ -2015,7 +2005,14 @@ pub mod journaled {
         plan: &CompiledCampaignPlan,
         session: &GazeboAdapterSession,
         identity: GazeboJournaledDispatchIdentity<'_>,
-    ) -> Result<(GazeboDispatchRequest, GazeboWorldSnapshot, GazeboTargetBinding), GazeboAdapterError> {
+    ) -> Result<
+        (
+            GazeboDispatchRequest,
+            GazeboWorldSnapshot,
+            GazeboTargetBinding,
+        ),
+        GazeboAdapterError,
+    > {
         plan.verify_integrity()
             .map_err(|_| GazeboAdapterError::InvalidCompiledPlan)?;
         let reset_verification = match &session.reset_lifecycle {
@@ -2023,7 +2020,8 @@ pub mod journaled {
             GazeboResetLifecycle::NotAttempted => {
                 return Err(GazeboAdapterError::ResetNotVerified);
             }
-            GazeboResetLifecycle::DispatchStarted(_) | GazeboResetLifecycle::OutcomeUnresolved(_) => {
+            GazeboResetLifecycle::DispatchStarted(_)
+            | GazeboResetLifecycle::OutcomeUnresolved(_) => {
                 return Err(GazeboAdapterError::ResetOutcomeUnresolved);
             }
         };
@@ -2225,15 +2223,15 @@ pub mod journaled {
         I: GazeboFaultInjectorTransport,
         S: GazeboEvidenceArtifactStore,
     {
-        let receipt = injector
-            .lookup_dispatch_bound(request)
-            .unwrap_or_else(|_| GazeboDispatchLedgerReceipt {
+        let receipt = injector.lookup_dispatch_bound(request).unwrap_or_else(|_| {
+            GazeboDispatchLedgerReceipt {
                 payload_sha256: None,
                 bound_payload_sha256: None,
                 status: DispatchLedgerResult::Unknown,
                 dispatch_id: None,
                 raw_artifact_bytes: None,
-            });
+            }
+        });
         let payload_bound =
             receipt.payload_sha256.as_deref() == Some(request.payload_sha256.as_str());
         let raw_owner_artifact = receipt.raw_artifact_bytes.is_some();
@@ -2251,8 +2249,7 @@ pub mod journaled {
             }))
             .unwrap_or_default()
         });
-        let ledger_artifact_sha256 =
-            persist_bytes(store, "gazebo-dispatch-ledger-lookup", &bytes)?;
+        let ledger_artifact_sha256 = persist_bytes(store, "gazebo-dispatch-ledger-lookup", &bytes)?;
 
         // The compatibility lookup method is intentionally insufficient to
         // prove payload binding. Only an owner receipt carrying the exact
@@ -2274,7 +2271,9 @@ pub mod journaled {
                     if receipt
                         .bound_payload_sha256
                         .as_deref()
-                        .is_some_and(|bound| valid_sha256(bound) && bound != request.payload_sha256) =>
+                        .is_some_and(|bound| {
+                            valid_sha256(bound) && bound != request.payload_sha256
+                        }) =>
                 {
                     DispatchOutcomeStatus::PayloadConflict
                 }
@@ -2317,13 +2316,14 @@ pub mod journaled {
         state: &crate::durable_journal::DispatchRecoveryState,
     ) -> Option<GazeboDispatchOutcome> {
         match state.disposition {
-            DispatchRecoveryDisposition::AcceptedAwaitingExecutionEvidence => {
-                state.latest_outcome.as_ref()?.dispatch_id.as_ref().map(|dispatch_id| {
-                    GazeboDispatchOutcome::Accepted {
-                        dispatch_id: dispatch_id.clone(),
-                    }
-                })
-            }
+            DispatchRecoveryDisposition::AcceptedAwaitingExecutionEvidence => state
+                .latest_outcome
+                .as_ref()?
+                .dispatch_id
+                .as_ref()
+                .map(|dispatch_id| GazeboDispatchOutcome::Accepted {
+                    dispatch_id: dispatch_id.clone(),
+                }),
             DispatchRecoveryDisposition::ReconciledAcceptedAwaitingExecutionEvidence => {
                 Some(GazeboDispatchOutcome::Reconciled {
                     decision: ReconciliationDecision::ExistingDispatchAccepted,
@@ -2506,7 +2506,8 @@ pub mod journaled {
                     transport_outcome_record(store, journal, &result.request, &result.outcome)?;
                 let final_outcome = if matches!(
                     response_status,
-                    DispatchOutcomeStatus::ResponseUnknown | DispatchOutcomeStatus::ResponseRejected
+                    DispatchOutcomeStatus::ResponseUnknown
+                        | DispatchOutcomeStatus::ResponseRejected
                 ) {
                     lookup_and_record(injector, store, journal, &result.request)?
                 } else {
@@ -2535,7 +2536,6 @@ pub mod journaled {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -4162,8 +4162,7 @@ mod tests {
             run_id: "run-reset-rehydrate",
             run_epoch: "epoch-1",
         };
-        let first_key =
-            journaled::reset_idempotency_key(&plan, &first_session, identity).unwrap();
+        let first_key = journaled::reset_idempotency_key(&plan, &first_session, identity).unwrap();
         let reset = journaled::reset_and_verify_journaled(
             &mut simulator,
             &mut store,
@@ -4294,5 +4293,4 @@ mod tests {
         drop(reopened);
         cleanup_journaled_test_path(&path);
     }
-
 }
