@@ -207,26 +207,30 @@ Sources:
 
 ### DCSA milestone maturity adapter
 
-The new DCSA maturity adapter maps the standard classifier codes to distinct evidence maturity:
+The new DCSA maturity adapter preserves the shared classifier vocabulary as four distinct values:
 - EST = estimated;
 - REQ = requested;
 - PLN = planned;
 - ACT = source-reported actual.
 
-It does not promote ACT to an independent physical witness. The exact source record, canonical subject, standard version, event time/timezone, record time, publication and retrieval times all remain attached. The receipt fails closed on unknown classifiers, version drift, missing event time for ACT, unknown publication, or an as-of cutoff that predates publication/retrieval. Estimated/requested/planned future event times remain valid forecasts/plans and are not treated as events already realized.
+The Information Model's shared classifier entity lists all four, but field-level event schemas can be narrower: the Shipment Event field lists PLN/ACT/EST, while the Operations Event field lists PLN/REQ/ACT/EST. Therefore this adapter is a classifier-preservation fixture, not the event-family-specific T&T schema validator. A live adapter must first validate the exact event-family OpenAPI schema and pinned release. DCSA T&T 3.0.0 was announced in September 2026 but remains restricted to members/DCSA+ partners until its planned public release in H2 2027; do not claim public 3.0.0 conformance from this 2.2.0 adapter.
 
-This is particularly important for ETA, pilot, berth and cargo milestones: “ACTUAL” is the publisher's maturity classification, not independent verification that an event physically occurred. The claim still requires separate capture completeness and physical/receiver evidence.
+The adapter does not promote ACT to an independent physical witness. The exact source record, canonical subject, standard version, event time/timezone, record time, publication and retrieval times all remain attached. The receipt fails closed on unknown classifiers, version drift, missing event time for ACT, unknown publication, or an as-of cutoff that predates publication/retrieval. Estimated/requested/planned future event times remain valid forecasts/plans and are not treated as events already realized.
+
+This is particularly important for ETA, pilot, berth and cargo milestones: ACT is the publisher's maturity classification, not independent verification that an event physically occurred. The claim still requires separate capture completeness and physical/receiver evidence.
 
 
 ### Cross-standard mapping and semantic loss
 
-DCSA and GS1 EPCIS/CBV are complementary standards, not a common vocabulary with one-to-one renames. The crosswalk contract requires source/target version, explicit field/value, reviewed rule identity and a declared mapping class:
-- **EXACT** mappings are reversible;
-- **CONTEXTUAL** and **LOSSY** mappings are explicitly irreversible and must explain what semantic information is lost or added.
+DCSA and GS1 EPCIS/CBV are complementary standards, not a common vocabulary with one-to-one renames. The crosswalk contract requires source release, DCSA event family, target EPCIS release, target CBV vocabulary release, an explicit field/value rule, mapping-bundle identity and a declared review scope:
+- **EXACT** mappings preserve the literal value and are reversible;
+- **CONTEXTUAL** and **LOSSY** mappings are explicitly irreversible and explain the semantic gap.
+- A rule scoped to EquipmentEvent cannot be reused against ShipmentEvent merely because a field name matches.
+- The target profile separately pins EPCIS 2.0.1 and CBV 2.0.0.
 
-A hard negative control prevents DCSA `eventClassifierCode` values (EST/REQ/PLN/ACT maturity) from mapping directly to EPCIS `bizStep` or `disposition`. A reviewed DCSA event-type → CBV business-step crosswalk can be tested contextually, but it must not imply that source maturity proves a physical event or that the original source payload can be discarded. Every mapped receipt retains source record ID, event ID and raw payload digest.
+A hard negative control prevents DCSA `eventClassifierCode` values (EST/REQ/PLN/ACT maturity) from mapping directly to EPCIS `bizStep` or `disposition`. A DCSA `equipmentEventTypeCode=LOAD` to CBV `loading` crosswalk is only CONTEXTUAL / IRREVERSIBLE; it cannot imply that the source message proves physical loading. The target validator covers a pinned logistics subset of CBV 2.0.0 terms and URI forms, not the complete vocabulary or EPCIS JSON-LD serializer.
 
-The executable contract is in draft [PR #7391](https://github.com/Luminous-Dynamics/symtropy/pull/7391). It pins DCSA T&T 2.2.0 EquipmentEvent to GS1 EPCIS 2.0.1 and CBV 2.0.0, and binds each mapping receipt to the exact event family, the source record/event/subject, raw payload digest/reference, and the content-addressed mapping-bundle digest. Synthetic-only rules are rejected on non-synthetic source records; external rules require a declared external approval record reference (which must be resolved by governance outside this mapper). Proposed acceptance: 100% deterministic known-answer mapping for pinned rules; zero unreviewed or fixture-only rules used on real sources; zero non-exact mappings labelled reversible; zero classifier-to-business-step/disposition promotion; 100% source digest/reference and mapping-bundle manifest verification.
+The executable contract is in draft [PR #7391](https://github.com/Luminous-Dynamics/symtropy/pull/7391). It carries the source record/event/subject, source-payload SHA-256 and source-store reference, as well as mapping-bundle revision/digest/ref and target vocabulary version. The checked-in 1.0.0 bundle is marked SYNTHETIC_FIXTURE_ONLY and its exact bytes are verified by SHA-256 in CI. Such a rule is rejected on any source message marked non-synthetic. EXTERNALLY_APPROVED rules require an approval-record reference, but this mapper only verifies that the reference is present; governance must resolve and verify it independently. The synthetic receipt has 25 known-answer cases (26 lines including header, 13 columns). Proposed acceptance: 100% deterministic known-answer mapping for pinned rules; zero unreviewed or fixture-only rules used on real sources; zero non-exact mappings labelled reversible; zero classifier-to-business-step/disposition promotion; 100% source digest/reference and mapping-bundle manifest verification.
 
 
 ## Terminal dwell process-mining benchmark: version and baseline discipline
