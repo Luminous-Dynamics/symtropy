@@ -42,7 +42,7 @@ jobs:
           SAFE_CFG="research/mobility-rrvr-runtime-trace/model/JournaledMutatorCrashCut.cfg"
           RETRY_CFG="research/mobility-rrvr-runtime-trace/model/JournaledMutatorCrashCut_UnsafeRedispatch.cfg"
           NO_EFFECT_CFG="research/mobility-rrvr-runtime-trace/model/JournaledMutatorCrashCut_UnsafeNoEffect.cfg"
-          printf '%s  %s\n' "62d70442ebfae83e380e44fa18f82e25034cb410e7375edf464e74ce7e69d7e9" "$MODEL" | sha256sum --check
+          printf '%s  %s\n' "10130cd8b87ed6ec05f509b6922b8c742686fd7c75b9b3b5b85bfe009733668c" "$MODEL" | sha256sum --check
           printf '%s  %s\n' "db1160862c36292ea517750fe96f59f6a743910920ade765a9ccb564a70c8550" "$SAFE_CFG" | sha256sum --check
           printf '%s  %s\n' "000a0b135fd9c46f4a5faede4ad5598d8951daedfef26c13c591e86910d2ef72" "$RETRY_CFG" | sha256sum --check
           printf '%s  %s\n' "f894728817c9f420c84f1df117033e4921b97da90993a20a0006c70405d83b3c" "$NO_EFFECT_CFG" | sha256sum --check
