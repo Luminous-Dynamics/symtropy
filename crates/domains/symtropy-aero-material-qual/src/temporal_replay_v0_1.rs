@@ -1140,7 +1140,23 @@ mod tests {
     }
 
     #[test]
-    fn event_order_permutations_do_not_change_any_temporal_replay_mode() {
+    fn exhaustive_event_order_permutations_preserve_all_three_replay_modes() {
+        fn collect_permutations<T: Clone>(
+            items: &mut [T],
+            start: usize,
+            output: &mut Vec<Vec<T>>,
+        ) {
+            if start == items.len() {
+                output.push(items.to_vec());
+                return;
+            }
+            for index in start..items.len() {
+                items.swap(start, index);
+                collect_permutations(items, start + 1, output);
+                items.swap(start, index);
+            }
+        }
+
         let corpus: Value = serde_json::from_str(CORPUS).expect("temporal corpus parses");
         let cases = corpus["cases"].as_array().expect("cases");
         let modes = [
@@ -1149,20 +1165,23 @@ mod tests {
             ReplayMode::RecomputedWithCurrentEvidenceAndTrust,
         ];
         for case in cases {
+            let events = case["events"].as_array().expect("events").clone();
+            let mut permutations = Vec::new();
+            collect_permutations(&mut events.clone(), 0, &mut permutations);
             for mode in modes {
                 let baseline = evaluate_case(case, mode);
-                let mut reversed = case.clone();
-                reversed["events"]
-                    .as_array_mut()
-                    .expect("events array")
-                    .reverse();
-                assert_eq!(
-                    baseline,
-                    evaluate_case(&reversed, mode),
-                    "{}: {:?}",
-                    case["case_id"].as_str().unwrap_or("unknown"),
-                    mode
-                );
+                for permutation in &permutations {
+                    let mut permuted = case.clone();
+                    permuted["events"] = Value::Array(permutation.clone());
+                    assert_eq!(
+                        baseline,
+                        evaluate_case(&permuted, mode),
+                        "{}: {:?} ({} event permutations)",
+                        case["case_id"].as_str().unwrap_or("unknown"),
+                        mode,
+                        permutations.len()
+                    );
+                }
             }
         }
     }
@@ -1432,6 +1451,39 @@ mod tests {
             evaluate_case(case, ReplayMode::RecomputedWithCurrentEvidenceAndTrust).disposition,
             "ACCEPTED_FOR_BINDING_ONLY"
         );
+    }
+
+    #[test]
+    fn report_coordinate_pins_checkpoint_and_coverage_evidence() {
+        let corpus: Value = serde_json::from_str(CORPUS).expect("temporal corpus parses");
+        let case = corpus["cases"]
+            .as_array()
+            .expect("cases")
+            .iter()
+            .find(|case| case["case_id"] == "positive-no-event-baseline")
+            .expect("positive baseline");
+        let report = super::evaluate_report(case, ReplayMode::AsKnownAt)
+            .expect("complete evidence coordinate");
+        assert_eq!(
+            report.coordinate.evidence_checkpoint_digest_sha256,
+            report.coordinate.evidence_view_digest_sha256
+        );
+        assert_eq!(
+            report.coordinate.evidence_checkpoint_watermark_unix_ms,
+            report.coordinate.receiver_receipt_watermark_unix_ms
+        );
+        assert_eq!(
+            report.coordinate.observer_coverage_watermark_unix_ms,
+            report.coordinate.receiver_receipt_watermark_unix_ms
+        );
+        assert_eq!(
+            report.coordinate.observer_coverage_status,
+            "SYNTHETIC_QUALIFIED_COMPLETE"
+        );
+        assert!(!report.coordinate.observer_coverage_receipt_reference.is_empty());
+        assert!(valid_sha256(
+            &report.coordinate.observer_coverage_receipt_digest_sha256
+        ));
     }
 
     #[test]
