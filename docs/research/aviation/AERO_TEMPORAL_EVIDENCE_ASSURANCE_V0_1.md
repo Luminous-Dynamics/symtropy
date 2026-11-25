@@ -87,7 +87,21 @@ For event E and evaluation snapshot T, the event may influence an as-of result o
 
 A known-but-not-yet-effective event is `NOT_YET_EFFECTIVE`. An event that exists only in a later receipt is `NOT_KNOWN_AT_SNAPSHOT`. Missing evidence or uncertain source chronology is `TRUST_UNRESOLVED` or `ABSTAIN`, never an implicit pass.
 
-### 2.5 Measurement-time uncertainty
+### 2.5 Acquisition time is not report/evaluation time
+
+The event effective-time comparison must use the subject's physical acquisition-time interval, not the timestamp at which a later report is generated. `evaluated_at_unix_ms` is report/query metadata; it is not a substitute for the measurement's acquisition interval.
+
+For an event whose effective time is (t_e) and acquisition-time interval is ([t_a^-,t_a^+]):
+
+- `t_e <= t_a^-`: the event is effective for every acquisition time supported by the interval.
+- `t_e > t_a^+`: the event is not yet effective for the acquisition.
+- `t_a^- < t_e <= t_a^+`: chronology overlaps the acquisition uncertainty; report `TIME_BOUNDARY_AMBIGUOUS` and do not choose a favorable side.
+
+A later report time cannot retroactively move the physical acquisition time. A late-arriving revocation can still change a new full retrospective report if its effective time precedes the acquisition interval; it cannot make a revocation effective before the time it actually claims to apply.
+
+The benchmark includes both a revocation effective after acquisition but before report generation (must remain `NOT_YET_EFFECTIVE` for that observation) and a revocation whose effective time falls inside the acquisition uncertainty interval (must abstain). This is distinct from whether the event was known at the evidence cutoff.
+
+### 2.6 Measurement-time uncertainty
 
 A timestamp is not infinitely precise. Preserve an acquisition-time interval or estimate plus uncertainty. For calibration validity `[valid_from, valid_until)`, a conservative positive binding requires the entire credible acquisition interval to be contained in the validity interval.
 
@@ -322,16 +336,16 @@ The machine-readable first slice is:
 - `docs/research/aviation/examples/aero_temporal_replay_corpus_v0_1.json`
 - `docs/research/aviation/schemas/aero_temporal_replay_corpus_v0_1.schema.json`
 
-It contains 16 synthetic controls, including a positive binding-only baseline, a known-but-future-effective revocation, an event received after the historical watermark despite a backdated issuer timestamp, a known effective revocation, acquisition-time uncertainty crossing a calibration boundary, a timestamp imprint mismatch, unknown issuer authority, source-sequence gaps, conflicting duplicate event IDs, current-trust key-compromise reassessment, correction cycles and source-clock rollback, and a backdated receiver-time claim without independently verifiable receipt evidence; an unauthorized namespace alias from the same issuer.
+It contains 18 synthetic controls, including a positive binding-only baseline, a known-but-future-effective revocation, an event received after the historical watermark despite a backdated issuer timestamp, a known effective revocation, acquisition-time uncertainty crossing a calibration boundary, a timestamp imprint mismatch, unknown issuer authority, source-sequence gaps, conflicting duplicate event IDs, current-trust key-compromise reassessment, correction cycles and source-clock rollback, and a backdated receiver-time claim without independently verifiable receipt evidence; an unauthorized namespace alias from the same issuer.
 
-Every case freezes `AS_KNOWN_AT`, `RECOMPUTED_WITH_CURRENT_TRUST` and `RECOMPUTED_WITH_CURRENT_EVIDENCE_AND_TRUST` dispositions over distinct evidence and trust cutoffs. The fixture deliberately permits duplicate event IDs so that the duplicate-conflict challenge is representable; uniqueness is a semantic rule to be evaluated, not a JSON Schema uniqueness rule over complete objects.
+Every case freezes `AS_KNOWN_AT`, `RECOMPUTED_WITH_CURRENT_TRUST` and `RECOMPUTED_WITH_CURRENT_EVIDENCE_AND_TRUST` dispositions over distinct evidence and trust cutoffs. Event effective-time comparison is against acquisition time, not report time. The fixture deliberately permits duplicate event IDs so that the duplicate-conflict challenge is representable; uniqueness is a semantic rule to be evaluated, not a JSON Schema uniqueness rule over complete objects.
 
 **Oracle status: `NOT_INDEPENDENTLY_REVIEWED`.** The corpus is a contract fixture and is schema-validated in CI. It is not yet wired to the v0.2 Rust evaluator and must not be described as a passing semantic oracle. Independent review should precede evaluator integration.
 
 ## 11. Execution sequence
 
 1. Independently review the existing 31 v0.2 dispositions and the Rust event replay test.
-2. Independently review the 16 temporal replay vectors and extend them with generated correction histories, sequence/fork properties and boundary cases.
+2. Independently review the 18 temporal replay vectors and extend them with generated correction histories, sequence/fork properties and boundary cases.
 3. Define an owner-native event receipt mapping with Mycelix and BASALT maintainers; do not add duplicate state.
 4. Resolve duplicate event identity before correction-reference resolution in the evaluator; add conflicting-payload permutation regression tests.
 5. Add a verifier adapter for supplied signature/timestamp evidence only after its source format and trust policy are pinned.
