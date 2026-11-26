@@ -89,3 +89,14 @@ The independent Python reference reconstructs the same canonical manifest direct
 The Rust unit suite now includes a second hand-authored topology family that reserves rail tracks, rail-mounted gantry-crane capacity and receiver-side rail-gate slots. Two vessel choices that each look feasible in isolation cannot both consume the same one-capacity track/time slot. The exact enumerator retains the two cross-track combinations, and both remain Pareto-undominated because they trade energy cost against emissions.
 
 This test is a resource-model regression, not a second independently serialized fixture yet. The primary 2-vessel berth/bridge/AGV/yard/OPS fixture remains the separately checked receipt (4 feasible / 3 Pareto); the sea–rail case is checked in Rust tests only.
+
+
+## Tidal mooring + approach bridge regression
+
+A new exhaustive two-vessel unit test adds the core topology coupling found in Pang et al., *Transportation Research Part B* 213 (November 2026), DOI 10.1016/j.trb.2026.103584:
+
+- mutually exclusive berth-segment reservations for north/south mooring orientation;
+- tide-window capacity, including a closed slot represented by capacity zero;
+- shared approach-bridge corridor reservations by time slot.
+
+The test enumerates only the two cross-orientation assignments. Same-orientation pairs overbook a berth segment and bridge; the tide-closed candidate is impossible. This is still a discrete micro-regression, not a reproduction of the paper's continuous tide/channel-time functions, berth geometry or complete Ningbo-Zhoushan dataset. The paper reports up to 10.9% objective improvement over the best Gurobi result within a two-hour limit on its own large instances; that percentage is literature context, not a result from this crate.
