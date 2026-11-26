@@ -84,6 +84,10 @@ Common random numbers can reduce the variance of an action difference when basel
 
 The covariance term can help or hurt. Pairing is therefore an empirical, preregistered variance-reduction hypothesis, not an automatic performance improvement.
 
+Common random numbers (CRN) are established simulation methodology, not a new method claimed by Symtropy. Glasserman and Yao (1992) analyse conditions under which CRN helps and when it may not. Yang and Nelson (1991) and Nelson and Matejcik (1995) study CRN with simultaneous multiple-comparison procedures and best-system selection. Symtropy's contribution must be the domain-specific evidence contract and its orbital, mission-wide validation—not the invention of CRN.
+
+A seed value alone is not an adequate coupling description. The implementation should bind semantic exogenous drivers (for example, primary-state perturbation, secondary-state perturbation, shared density-model error and force-model draw) to stable identities, so that action-dependent execution paths cannot silently shift which random variate represents which physical uncertainty. The exact coupling map must be replayable and preserve each arm's target marginal law.
+
 The coupling must preserve each arm's target marginal distribution. The same exogenous uncertainty identity may be applied to every arm, but each arm must recompute its state transition, propagated trajectory, encounter inventory and consequence. No arm may inherit another arm's collision classification or loss.
 
 A paired row is one multivariate observation. It must not be split into fictitious independent samples. Correlation across arms and events must be preserved in the variance estimator and in simultaneous portfolio comparisons.
@@ -224,3 +228,14 @@ Targets must be measured on held-out cases. No speedup, estimator superiority or
 This is a research/reference decision layer. It is not an orbit propagator, conjunction screening service, calibrated probability source, manoeuvre planner, operator notification service or operational authority. It does not replace NASA CARA, ISO 23705:2026, mission-specific risk governance or human/operator review.
 
 A matching digest, complete finite manifest or source-supplied BELOW_THRESHOLD status does not prove issuer authenticity, physical correctness, real-world universe completeness or safety. Unknown means unknown. No automatic manoeuvre authority is introduced.
+
+## 11. Selected prior art
+
+- Paul Glasserman and David D. Yao (1992), [Some Guidelines and Guarantees for Common Random Numbers](https://doi.org/10.1287/mnsc.38.6.884), *Management Science* 38(6).
+- Wei-Ning Yang and Barry L. Nelson (1991), [Using Common Random Numbers and Control Variates in Multiple-Comparison Procedures](https://doi.org/10.1287/opre.39.4.583), *Operations Research* 39(4).
+- Barry L. Nelson and Frank J. Matejcik (1995), [Using Common Random Numbers for Indifference-Zone Selection and Multiple Comparisons in Simulation](https://doi.org/10.1287/mnsc.41.12.1935), *Management Science* 41(12).
+- NASA, [Spacecraft Conjunction Assessment and Collision Avoidance Best Practices Handbook, Volume 2 (updated August 2026)](https://ntrs.nasa.gov/citations/20260000457).
+- Ryan Ketzner and Tarek A. Elgohary (2026), [Monte Carlo Orbital Conjunction Analysis Using the Cross-Entropy Method](https://doi.org/10.2514/1.G009204), *Journal of Guidance, Control, and Dynamics*.
+- Yannick Sztamfater-Garcia et al. (2025), [An approximate model for the computation of in-orbit collision probabilities using importance sampling](https://doi.org/10.1016/j.asr.2024.12.074), *Advances in Space Research*.
+
+These references establish prior methods to compare against. Their published gains must be reproduced under matched conditions before any Symtropy comparison is claimed.
