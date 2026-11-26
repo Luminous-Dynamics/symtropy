@@ -599,9 +599,8 @@ fn score_arm(arm_id: ArmId, rows: &[&EpisodeRecord]) -> ArmScorecard {
 }
 
 fn fault_stage_counts(rows: &[&EpisodeRecord]) -> FaultStageCounts {
-    let count = |predicate: fn(&EpisodeRecord) -> bool| {
-        rows.iter().filter(|row| predicate(row)).count()
-    };
+    let count =
+        |predicate: fn(&EpisodeRecord) -> bool| rows.iter().filter(|row| predicate(row)).count();
     FaultStageCounts {
         requested_n: count(|row| row.fault.requested),
         accepted_yes_n: count(|row| row.fault.accepted_by_injector == Some(true)),
