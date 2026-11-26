@@ -124,6 +124,17 @@ fn nonempty(value: &str) -> bool {
     !value.trim().is_empty()
 }
 
+fn is_recoverable_interval_error(error: &SearchError) -> bool {
+    matches!(
+        error,
+        SearchError::IntervalAd(
+            IntervalAdError::UnboundedValueEnclosure
+                | IntervalAdError::UnboundedDerivativeEnclosure { .. }
+                | IntervalAdError::SquareRootOutsideRealDomain
+        )
+    )
+}
+
 fn stable_midpoint(lower: f64, upper: f64) -> Option<f64> {
     let midpoint = if lower.is_sign_negative() == upper.is_sign_negative() {
         lower + (upper - lower) * 0.5
