@@ -29,7 +29,9 @@ fn parse_dimacs_max(input: &str) -> Result<FlowGraph, String> {
                     return Err(format!("line {line_number}: duplicate problem line"));
                 }
                 if source.is_some() || sink.is_some() || saw_arc {
-                    return Err(format!("line {line_number}: problem line must precede node/arc lines"));
+                    return Err(format!(
+                        "line {line_number}: problem line must precede node/arc lines"
+                    ));
                 }
                 if tokens.len() != 4 || tokens[1] != "max" {
                     return Err(format!("line {line_number}: expected p max <n> <m>"));
@@ -92,7 +94,9 @@ fn parse_dimacs_max(input: &str) -> Result<FlowGraph, String> {
                     .parse::<usize>()
                     .map_err(|_| format!("line {line_number}: invalid arc head"))?;
                 if !(1..=node_count).contains(&from) || !(1..=node_count).contains(&to) {
-                    return Err(format!("line {line_number}: arc endpoint outside 1..={node_count}"));
+                    return Err(format!(
+                        "line {line_number}: arc endpoint outside 1..={node_count}"
+                    ));
                 }
                 if from == to {
                     return Err(format!("line {line_number}: self-loop arcs are unsupported"));
