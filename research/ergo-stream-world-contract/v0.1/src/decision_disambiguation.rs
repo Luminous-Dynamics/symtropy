@@ -168,8 +168,7 @@ fn validate_problem(
         }
     }
 
-    let mut outcomes_by_probe_hypothesis =
-        BTreeMap::<(u32, u32), BTreeSet<u32>>::new();
+    let mut outcomes_by_probe_hypothesis = BTreeMap::<(u32, u32), BTreeSet<u32>>::new();
     for support in &problem.outcome_supports {
         if !option_by_probe.contains_key(&support.probe_id) {
             return Err(DecisionDisambiguationErrorV0::UnknownProbeId);
@@ -188,9 +187,7 @@ fn validate_problem(
 
     for probe_id in option_by_probe.keys() {
         for hypothesis_id in decision_by_hypothesis.keys() {
-            if !outcomes_by_probe_hypothesis
-                .contains_key(&(*probe_id, *hypothesis_id))
-            {
+            if !outcomes_by_probe_hypothesis.contains_key(&(*probe_id, *hypothesis_id)) {
                 return Err(DecisionDisambiguationErrorV0::IncompleteOutcomeSupport);
             }
         }
@@ -285,8 +282,7 @@ pub fn select_decision_sufficient_probe_v0(
 
         let mut decisions_by_outcome = BTreeMap::<u32, Vec<u32>>::new();
         for hypothesis_id in validated.decision_by_hypothesis.keys() {
-            let outcome_ids =
-                &validated.outcomes_by_probe_hypothesis[&(*probe_id, *hypothesis_id)];
+            let outcome_ids = &validated.outcomes_by_probe_hypothesis[&(*probe_id, *hypothesis_id)];
             let decision_class_id = validated.decision_by_hypothesis[hypothesis_id];
 
             for outcome_id in outcome_ids {
