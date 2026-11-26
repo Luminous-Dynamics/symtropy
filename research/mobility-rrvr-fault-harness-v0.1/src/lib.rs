@@ -302,12 +302,7 @@ impl<'a> Simulation<'a> {
             let event_name = match scheduled.event {
                 Event::ReserveOriginal => {
                     let command_id = self.original_command_id.clone();
-                    self.push_trace(
-                        scheduled.tick,
-                        scheduled.sequence,
-                        "reserve",
-                        &command_id,
-                    );
+                    self.push_trace(scheduled.tick, scheduled.sequence, "reserve", &command_id);
                     "reserve"
                 }
                 Event::DispatchOriginal => {
