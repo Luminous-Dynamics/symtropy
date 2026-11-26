@@ -1034,8 +1034,151 @@ mod tests {
             assert_eq!(row.false_positives, 0, "{family:?} backend {}", row.backend);
             assert_eq!(row.false_negatives, 0, "{family:?} backend {}", row.backend);
             assert_eq!(row.mismatch_frames, 0, "{family:?} backend {}", row.backend);
+            assert_eq!(row.event_mismatch_frames, 0, "{family:?} backend {}", row.backend);
             assert_eq!(row.oracle_pairs, row.candidate_pairs);
             assert!(row.frame_samples > 0);
+        }
+    }
+
+    fn test_proxy(id: u64, min: [f64; 2], max: [f64; 2]) -> ProxyFrame<2> {
+        ProxyFrame {
+            id: ProxyId(id),
+            bounds: Aabb::new(min, max).unwrap(),
+        }
+    }
+
+    #[test]
+    fn pair_delta_cache_emits_only_pair_births_and_deaths() {
+        let mut cache = PairDeltaCache::<2>::new();
+        let first = [
+            test_proxy(1, [0.0, 0.0], [1.0, 1.0]),
+            test_proxy(2, [0.5, 0.5], [1.5, 1.5]),
+            test_proxy(3, [5.0, 5.0], [6.0, 6.0]),
+        ];
+        let initial = cache.step(&first).unwrap();
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).unwrap();
+        assert_eq!(initial.added, vec![pair]);
+        assert!(initial.removed.is_empty());
+        assert_eq!(initial.active_pairs, 1);
+        assert_eq!(cache.active_pairs(), vec![pair]);
+
+        let unchanged = cache.step(&first).unwrap();
+        assert!(unchanged.added.is_empty());
+        assert!(unchanged.removed.is_empty());
+        assert_eq!(unchanged.dirty_proxies, 0);
+        assert_eq!(unchanged.overlap_tests, 0);
+        assert_eq!(unchanged.active_pairs, 1);
+
+        let separated = [
+            test_proxy(1, [0.0, 0.0], [1.0, 1.0]),
+            test_proxy(2, [3.0, 3.0], [4.0, 4.0]),
+            test_proxy(3, [5.0, 5.0], [6.0, 6.0]),
+        ];
+        let removal = cache.step(&separated).unwrap();
+        assert!(removal.added.is_empty());
+        assert_eq!(removal.removed, vec![pair]);
+        assert_eq!(removal.active_pairs, 0);
+        assert!(cache.active_pairs().is_empty());
+    }
+
+    #[test]
+    fn pair_delta_cache_preserves_pairs_when_both_endpoints_move_together() {
+        let mut cache = PairDeltaCache::<2>::new();
+        let first = [
+            test_proxy(1, [0.0, 0.0], [1.0, 1.0]),
+            test_proxy(2, [0.5, 0.0], [1.5, 1.0]),
+        ];
+        let initial = cache.step(&first).unwrap();
+        assert_eq!(initial.added.len(), 1);
+
+        let moved_together = [
+            test_proxy(1, [5.0, 0.0], [6.0, 1.0]),
+            test_proxy(2, [5.5, 0.0], [6.5, 1.0]),
+        ];
+        let moved = cache.step(&moved_together).unwrap();
+        assert_eq!(moved.dirty_proxies, 2);
+        assert_eq!(moved.overlap_tests, 1);
+        assert!(moved.added.is_empty());
+        assert!(moved.removed.is_empty());
+        assert_eq!(moved.active_pairs, 1);
+    }
+
+    #[test]
+    fn pair_delta_cache_handles_insert_remove_and_explicit_invalidation() {
+        let mut cache = PairDeltaCache::<2>::new();
+        let first = [
+            test_proxy(1, [0.0, 0.0], [1.0, 1.0]),
+            test_proxy(2, [0.5, 0.5], [1.5, 1.5]),
+        ];
+        let initial = cache.step(&first).unwrap();
+        assert_eq!(initial.added.len(), 1);
+
+        let inserted = [
+            first[0],
+            first[1],
+            test_proxy(3, [0.75, 0.75], [1.25, 1.25]),
+        ];
+        let add = cache.step(&inserted).unwrap();
+        assert_eq!(add.added.len(), 2);
+        assert!(add.removed.is_empty());
+        assert_eq!(cache.active_pair_count(), 3);
+
+        let removed = [inserted[0], inserted[2]];
+        let remove = cache.step(&removed).unwrap();
+        assert_eq!(remove.removed.len(), 2);
+        assert_eq!(cache.active_pairs(), Vec::<ProxyPair>::new());
+
+        cache.invalidate_all();
+        let revalidate = cache.step(&removed).unwrap();
+        assert_eq!(revalidate.dirty_proxies, 2);
+        assert_eq!(revalidate.overlap_tests, 1);
+        assert!(revalidate.added.is_empty());
+        assert!(revalidate.removed.is_empty());
+    }
+
+    #[test]
+    fn pair_delta_cache_matches_oracle_transitions_for_sleeping_wakeup_sequences() {
+        for dimension in [2_usize, 3, 4] {
+            match dimension {
+                2 => assert_pair_delta_matches_oracle::<2>(),
+                3 => assert_pair_delta_matches_oracle::<3>(),
+                4 => assert_pair_delta_matches_oracle::<4>(),
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    fn assert_pair_delta_matches_oracle<const D: usize>() {
+        let scene =
+            generate_scene::<D>(SceneFamily::SleepingWakeups, 128, 32, 0x5eed_1126).unwrap();
+        let oracle = scene
+            .frames
+            .iter()
+            .map(|frame| oracle_pairs(frame).unwrap())
+            .collect::<Vec<_>>();
+        let mut cache = PairDeltaCache::<D>::new();
+
+        for (frame_index, frame) in scene.frames.iter().enumerate() {
+            let delta = cache.step(frame).unwrap();
+            let previous = if frame_index == 0 {
+                BTreeSet::new()
+            } else {
+                oracle[frame_index - 1].clone()
+            };
+            let expected_added: BTreeSet<_> =
+                oracle[frame_index].difference(&previous).copied().collect();
+            let expected_removed: BTreeSet<_> =
+                previous.difference(&oracle[frame_index]).copied().collect();
+            assert_eq!(delta.added.iter().copied().collect::<BTreeSet<_>>(), expected_added);
+            assert_eq!(
+                delta.removed.iter().copied().collect::<BTreeSet<_>>(),
+                expected_removed
+            );
+            assert_eq!(cache.active_pairs().into_iter().collect::<BTreeSet<_>>(), oracle[frame_index]);
+            if frame_index > 0 {
+                assert!(delta.dirty_proxies <= 2);
+                assert!(delta.overlap_tests <= 2 * 128);
+            }
         }
     }
 
@@ -1077,6 +1220,9 @@ mod tests {
     #[test]
     fn static_heavy_sequence_preserves_candidate_population() {
         assert_all_backends_match::<3>(SceneFamily::StaticHeavy);
+        assert_all_backends_match::<2>(SceneFamily::SleepingWakeups);
+        assert_all_backends_match::<3>(SceneFamily::SleepingWakeups);
+        assert_all_backends_match::<4>(SceneFamily::SleepingWakeups);
     }
 
     #[test]
