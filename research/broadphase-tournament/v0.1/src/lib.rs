@@ -76,7 +76,7 @@ pub enum BackendKind {
 }
 
 impl BackendKind {
-    pub const ALL: [Self; 7] = [
+    pub const ALL: [Self; 8] = [
         Self::BruteForce,
         Self::SweepAndPrune,
         Self::TreePerLeafUnbalanced,
@@ -1089,7 +1089,10 @@ fn run_backend<const D: usize>(
                     BalancePolicy::HeightRotations,
                 )?)
             }
-            BackendKind::BruteForce | BackendKind::SweepAndPrune | BackendKind::PairDeltaCache => None,
+            BackendKind::BruteForce
+            | BackendKind::SweepAndPrune
+            | BackendKind::PairDeltaCache
+            | BackendKind::MortonLbvhAabbAdapter => None,
         };
         let mut pair_cache = (backend == BackendKind::PairDeltaCache)
             .then(PairDeltaCache::<D>::new);
@@ -1155,7 +1158,8 @@ fn run_backend<const D: usize>(
                         }
                         BackendKind::BruteForce
                         | BackendKind::SweepAndPrune
-                        | BackendKind::PairDeltaCache => {
+                        | BackendKind::PairDeltaCache
+                        | BackendKind::MortonLbvhAabbAdapter => {
                             unreachable!("non-tree backend entered tree query arm")
                         }
                     };
@@ -1197,6 +1201,46 @@ fn run_backend<const D: usize>(
                         .as_mut()
                         .expect("pair-delta backend initializes a pair cache");
                     pair_delta = Some(cache.step(frame)?);
+                }
+                BackendKind::MortonLbvhAabbAdapter => {
+                    let (pairs, work) = symtropy_morton_lbvh_aabb(frame);
+                    actual = pairs;
+                    counters.pair_tests = counters
+                        .pair_tests
+                        .checked_add(work.pair_tests)
+                        .ok_or(TournamentError::CounterOverflow)?;
+                    counters.node_visits = counters
+                        .node_visits
+                        .checked_add(work.node_visits)
+                        .ok_or(TournamentError::CounterOverflow)?;
+                    counters.leaf_tests = counters
+                        .leaf_tests
+                        .checked_add(work.leaf_tests)
+                        .ok_or(TournamentError::CounterOverflow)?;
+                    counters.aabb_tests = counters
+                        .aabb_tests
+                        .checked_add(work.aabb_tests)
+                        .ok_or(TournamentError::CounterOverflow)?;
+                    if work.brute_force_fallback {
+                        counters.lbvh_bruteforce_fallback_frames = counters
+                            .lbvh_bruteforce_fallback_frames
+                            .checked_add(1)
+                            .ok_or(TournamentError::CounterOverflow)?;
+                    } else {
+                        counters.lbvh_builds = counters
+                            .lbvh_builds
+                            .checked_add(1)
+                            .ok_or(TournamentError::CounterOverflow)?;
+                    }
+                    counters.lbvh_internal_nodes = counters
+                        .lbvh_internal_nodes
+                        .checked_add(
+                            u64::try_from(work.internal_nodes)
+                                .map_err(|_| TournamentError::CounterOverflow)?,
+                        )
+                        .ok_or(TournamentError::CounterOverflow)?;
+                    counters.max_tree_nodes =
+                        counters.max_tree_nodes.max(work.internal_nodes);
                 }
             }
 
