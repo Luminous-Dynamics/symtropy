@@ -234,7 +234,7 @@ def temporal_group_reference(rows: list[list[str]]) -> tuple[str, str, str]:
 def verify_temporal_reference(receipt_path: Path, fixture_path: Path) -> None:
     with fixture_path.open("r", encoding="utf-8", newline="") as handle:
         fixture_rows = [
-            row for row in csv.reader(handle, delimiter="\\t")
+            row for row in csv.reader(handle, delimiter="\t")
             if row and not row[0].startswith("#")
         ]
 
@@ -256,14 +256,14 @@ def verify_temporal_reference(receipt_path: Path, fixture_path: Path) -> None:
         expected_rows[case_id] = expected
 
     receipt_lines = receipt_path.read_text(encoding="utf-8").splitlines()
-    if len(receipt_lines) < 4 or receipt_lines[0] != "MDTR_TEMPORAL_RECEIPT\\t0.1.0":
+    if len(receipt_lines) < 4 or receipt_lines[0] != "MDTR_TEMPORAL_RECEIPT\t0.1.0":
         raise AssertionError("missing or invalid MDTR temporal receipt header")
-    if receipt_lines[1] != "case_id\\tselected_revisions\\taudit_projection\\terror":
+    if receipt_lines[1] != "case_id\tselected_revisions\taudit_projection\terror":
         raise AssertionError("unexpected MDTR temporal receipt columns")
 
     actual_rows: dict[str, tuple[str, str, str]] = {}
     for line in receipt_lines[2:]:
-        fields = line.split("\\t")
+        fields = line.split("\t")
         if fields[0] == "SUMMARY":
             continue
         if len(fields) != 4:
@@ -284,7 +284,7 @@ def verify_temporal_reference(receipt_path: Path, fixture_path: Path) -> None:
             f"temporal Rust/reference mismatch; missing={missing}, extra={extra}, "
             f"mismatched={mismatched}"
         )
-    print(f"TEMPORAL_REFERENCE\\tPASS\\t{len(actual_rows)}/{len(expected_rows)}")
+    print(f"TEMPORAL_REFERENCE\tPASS\t{len(actual_rows)}/{len(expected_rows)}")
 
 
 if __name__ == "__main__":
