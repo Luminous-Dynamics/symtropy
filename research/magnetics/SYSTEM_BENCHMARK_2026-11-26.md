@@ -11,15 +11,16 @@ Do not put magnetic field solvers, Hall latches, magnetic absolute encoders and 
 |---|---|---|---|
 | TI TMAG5110/TMAG5111 | 2D dual-channel Hall latch; typical BOP variants 1.4 mT and 3 mT; product page lists 40 kHz bandwidth and -40°C to +125°C; independent A/B latch output or speed/direction output | Hall field-to-digital transition chain, speed/direction, packaging, field margin and operating-temperature challenge | A calibrated absolute-angle system accuracy specification |
 | RLS AksIM-2 | Axial off-axis magnetic absolute encoder; 17–20-bit resolution, up to 10,000 rpm (size-dependent); system accuracy ±0.004° to ±0.020° after self-calibration in the May 2026 data sheet; hysteresis and repeatability below one unit of resolution | High-end magnetic absolute encoder system, including calibration and ring/readhead integration | A raw Hall-latch sensor or a solver benchmark |
-| Renishaw RESOLUTE | Optical absolute rotary system; published typical installed accuracy varies with ring size, approximately ±12.7 arcsec for 52 mm down to ±3.6 arcsec for 255 mm in the cited configuration | Upper industrial optical metrology reference and independent rotor-angle truth source | A direct magnetic BOM/environment competitor without application normalization |
+| Renishaw RESOLUTE | Optical absolute rotary system; current comparison table lists system accuracy ±4.28 to ±0.41 arcsec depending on RESA30/REXA30 ring diameter (52–550 mm / 52–417 mm); two-readhead typical installed accuracy up to ±1 arcsec; size/resolution-dependent speed up to 36,000 rpm for RESA30 | Upper industrial optical metrology reference and independent rotor-angle truth source | A direct magnetic BOM/environment competitor without application normalization |
 | Magpylib Material Response 0.15.0 | Analytical-source and face-charge browser/WASM kernels; face-charge differentiable through JAX/PyTorch; release source describes shared 50-digit references | Open solver and differentiable-kernel reference for value/gradient qualification | A complete replacement for nonlinear/an-isotropic FEM or physical metrology |
 
 Sources:
 - TI TMAG5110/TMAG5111 product page: https://www.ti.com/product/TMAG5111
 - TI TMAG511x datasheet Rev D: https://www.ti.com/lit/ds/symlink/tmag5111.pdf
+- RLS AksIM-2 official product page (retrieved 26 Nov 2026): https://www.rls.si/eng/aksim-2-off-axis-rotary-absolute-encoder
 - RLS AksIM-2 data sheet MBD01_15, issue 15, 13 May 2026: https://www.rls.si/cn_tw/fileuploader/download/download/?d=0&id=267&title=Data+sheet%3A+AksIM-2%E2%84%A2+off-axis+rotary+absolute+magnetic+encoder+%28MBD01%29
 - RLS AksIM-2 official product page: https://www.rls.si/eng/aksim-2-off-axis-rotary-absolute-encoder
-- Renishaw RESOLUTE technical system data: https://www.renishaw.com/resourcecentre/download/%288a82e17fae1b46118c029a0c0f9594f4%29?userLanguage=en
+- Renishaw current open-encoder comparison table: https://www.renishaw.com/en/open-optical-encoders-comparison-table--6789
 - Magpylib Material Response 0.15.0 PyPI release and artifact digests: https://pypi.org/project/magpylib-material-response/0.15.0/
 - Magpylib Material Response 0.15.0 source commit: https://github.com/magpylib/magpylib-material-response/commit/492b37459a47f4220d7e44380668c2d9ab720784
 
