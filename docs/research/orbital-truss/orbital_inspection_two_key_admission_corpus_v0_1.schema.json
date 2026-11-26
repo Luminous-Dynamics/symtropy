@@ -65,7 +65,8 @@
               "delta_v_milli_m_s",
               "duration_ms",
               "compute_us",
-              "decision_value_milli"
+              "decision_value_milli",
+              "decision_value_basis"
             ],
             "properties": {
               "class": {
@@ -343,6 +344,12 @@
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 1000000000000
+              },
+              "decision_value_basis": {
+                "enum": [
+                  "PREDICTED",
+                  "OBSERVED"
+                ]
               }
             }
           }
