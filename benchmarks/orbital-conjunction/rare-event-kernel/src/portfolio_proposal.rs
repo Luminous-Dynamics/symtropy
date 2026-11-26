@@ -920,13 +920,33 @@ mod tests {
         let c = PortfolioDefensiveGaussianMixture::new(
                 TARGET_MEASURE_ID,
                 DENSITY_SPACE_ID,
-            target,
+            target.clone(),
             0.2,
             vec![key(10, 1, 1)],
             vec![proposal(1, key(10, 1, 1), 1.0, 4.0)],
         )
         .unwrap();
+        let d = PortfolioDefensiveGaussianMixture::new(
+            [92; 32],
+            DENSITY_SPACE_ID,
+            target.clone(),
+            0.2,
+            vec![key(10, 1, 1)],
+            vec![proposal(1, key(10, 1, 1), 1.0, 3.0)],
+        )
+        .unwrap();
+        let e = PortfolioDefensiveGaussianMixture::new(
+            TARGET_MEASURE_ID,
+            [93; 32],
+            target,
+            0.2,
+            vec![key(10, 1, 1)],
+            vec![proposal(1, key(10, 1, 1), 1.0, 3.0)],
+        )
+        .unwrap();
         assert_ne!(a.configuration_digest(), b.configuration_digest());
         assert_ne!(a.configuration_digest(), c.configuration_digest());
+        assert_ne!(a.configuration_digest(), d.configuration_digest());
+        assert_ne!(a.configuration_digest(), e.configuration_digest());
     }
 }
