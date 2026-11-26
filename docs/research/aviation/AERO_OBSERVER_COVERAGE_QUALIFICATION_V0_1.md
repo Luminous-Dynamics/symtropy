@@ -372,7 +372,7 @@ No AERO code may turn a structurally valid receipt into a trusted observer quali
 
 **Stage 1 — synthetic adapter contract**
 - Add a Draft 2020-12 schema and frozen synthetic corpus.
-- Add a separate verifier test that checks scope, source/partition watermarks, sequence continuity, receipt/checkpoint binding and non-compensatory critical channels.
+- Add the Rust research evaluator `crates/domains/symtropy-aero-material-qual/src/observer_coverage_v0_1.rs` with frozen-corpus and fail-closed mutation tests. It classifies the synthetic scope, integrity, observer, source-identity, stream-epoch and capture-obligation facts; it does not verify real receipts or qualify a live observer.
 - Keep oracle status `NOT_INDEPENDENTLY_REVIEWED` until an independent reviewer signs off.
 
 **Stage 2 — owner-native integration**
