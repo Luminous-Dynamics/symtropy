@@ -39,7 +39,8 @@
         "energy_metering_required",
         "required_stages",
         "independent_reader_paths_required",
-        "required_energy_boundary"
+        "required_energy_boundary",
+        "migration_required"
       ],
       "properties": {
         "workload_id": {
@@ -110,6 +111,9 @@
             "ReaderAndCompute",
             null
           ]
+        },
+        "migration_required": {
+          "type": "boolean"
         }
       }
     },
@@ -168,7 +172,10 @@
               "energy_calibration_ref",
               "energy_boundary",
               "energy_sample_interval_ms",
-              "energy_evidence_sha256"
+              "energy_evidence_sha256",
+              "source_digest_status",
+              "destination_digest_status",
+              "migration_lineage_status"
             ],
             "properties": {
               "workload_id": {
@@ -376,6 +383,33 @@
                   "null"
                 ],
                 "pattern": "^[0-9a-fA-F]{64}$"
+              },
+              "source_digest_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "destination_digest_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "migration_lineage_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
               }
             }
           },
