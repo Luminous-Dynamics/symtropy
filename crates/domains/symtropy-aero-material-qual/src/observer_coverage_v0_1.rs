@@ -10,6 +10,7 @@
 use serde_json::Value;
 use std::collections::BTreeSet;
 
+#[cfg(test)]
 const CORPUS: &str = include_str!(
     "../../../../docs/research/aviation/examples/aero_observer_coverage_corpus_v0_1.json"
 );
