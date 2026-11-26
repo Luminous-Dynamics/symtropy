@@ -4,8 +4,8 @@
 # ROUTE <route_id>
 # STEP <route_id> <task_id> <travel_before>
 INSTANCE	SYNC-UNCERTAIN-QC-AGV	1	1	1
-TASK	A	QC-A	3	1	-
-TASK	B	QC-B	4	3	-
+TASK	A	QC-A	0	3	1	-
+TASK	B	QC-B	4	4	3	-
 ROUTE	AB
 STEP	AB	A	5
 STEP	AB	B	0
