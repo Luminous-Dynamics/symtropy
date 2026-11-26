@@ -723,7 +723,7 @@ pub fn evaluate_json(
         benchmark: BENCHMARK.to_owned(),
         episode_id: episode.episode_id.clone(),
         candidate_snapshot_sha256: snapshot_sha256,
-        evaluator_profile_sha256: pack.evaluator_profile_sha256,
+        evaluator_profile_sha256: pack.evaluator_profile_sha256.clone(),
         candidate_contract_valid,
         candidate_reason_codes: candidate_reasons,
         scheduled_observation_n: episode.observations.len(),
