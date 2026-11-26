@@ -601,10 +601,12 @@ pub fn evaluate_sequence(input: &SequenceInput) -> Result<SequenceScore, Selecto
         }
     }
 
-    if let Some(initial) = &input.initial_backend {
-        if initial.as_str().trim().is_empty() {
-            return Err(SelectorError::InvalidBackendId);
-        }
+    if input
+        .initial_backend
+        .as_ref()
+        .is_some_and(|initial| initial.as_str().trim().is_empty())
+    {
+        return Err(SelectorError::InvalidBackendId);
     }
 
     let mut frames: Vec<BTreeMap<BackendId, &BackendFrameObservation>> =
@@ -723,15 +725,15 @@ pub fn evaluate_sequence(input: &SequenceInput) -> Result<SequenceScore, Selecto
         selected_broadphase_samples.push(observation.broadphase_ns);
         selected_peak_memory_bytes = selected_peak_memory_bytes.max(observation.peak_memory_bytes);
 
-        if let Some(previous) = &previous_backend {
-            if previous != &decision.selected_backend {
-                let transition =
-                    transition_lookup(&transition_map, previous, &decision.selected_backend)
-                        .ok_or(SelectorError::MissingPolicySwitchCost)?;
-                transition_overhead_ns = add_cost(transition_overhead_ns, transition)?;
-                online_total_cost_ns = add_cost(online_total_cost_ns, transition)?;
-                selected_switches = selected_switches.saturating_add(1);
-            }
+        if let Some(previous) = &previous_backend
+            && previous != &decision.selected_backend
+        {
+            let transition =
+                transition_lookup(&transition_map, previous, &decision.selected_backend)
+                    .ok_or(SelectorError::MissingPolicySwitchCost)?;
+            transition_overhead_ns = add_cost(transition_overhead_ns, transition)?;
+            online_total_cost_ns = add_cost(online_total_cost_ns, transition)?;
+            selected_switches = selected_switches.saturating_add(1);
         }
 
         previous_backend = Some(decision.selected_backend.clone());
