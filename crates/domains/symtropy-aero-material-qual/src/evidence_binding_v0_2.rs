@@ -1330,12 +1330,14 @@ mod tests {
             "recorded_at_unix_ms": 1_795_515_450_000u64,
             "retroactive": true
         });
-        case["calibration_events"] =
-            serde_json::json!([duplicate_a, duplicate_b, correction]);
+        case["calibration_events"] = serde_json::json!([duplicate_a, duplicate_b, correction]);
 
         let baseline = evaluate_binding_case(&case);
         assert!(has_violation(&baseline, "CALIBRATION_EVENT_REPLAY"));
-        assert!(has_violation(&baseline, "CALIBRATION_EVENT_CERTIFICATE_UNKNOWN"));
+        assert!(has_violation(
+            &baseline,
+            "CALIBRATION_EVENT_CERTIFICATE_UNKNOWN"
+        ));
         assert!(has_violation(
             &baseline,
             "CALIBRATION_CORRECTION_TARGET_INVALID"
