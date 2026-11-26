@@ -817,6 +817,58 @@ mod tests {
     }
 
     #[test]
+    fn seeded_graphs_through_eight_nodes_match_independent_cut_oracle() {
+        // Fixed local PRNG: no external crate, no wall-clock seed and no
+        // benchmark-only behavior in the production kernel.
+        let mut state = 0x6a09_e667_f3bc_c909_u64;
+        let mut next = || {
+            state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            state ^ (state >> 23)
+        };
+
+        let mut checked = 0_usize;
+        for node_count in 2..=8 {
+            for _case in 0..160 {
+                let mut edges = Vec::new();
+                for from in 0..node_count {
+                    for to in 0..node_count {
+                        if from == to {
+                            continue;
+                        }
+                        let sample = next();
+                        if sample % 100 < 37 {
+                            // Mixed small and wide values exercise capacity
+                            // skew without overflowing the total source cut.
+                            let capacity = match sample % 4 {
+                                0 => sample & 0x0f,
+                                1 => (sample & 0xffff) + 1,
+                                2 => (sample & 0xffff_ffff) + 1,
+                                _ => (sample & 0x0000_ffff_ffff_ffff) + 1,
+                            };
+                            edges.push((from, to, capacity));
+                        }
+                    }
+                }
+
+                let candidate = graph(node_count, &edges);
+                let expected = exhaustive_min_cut(&candidate);
+                let result = candidate.solve().unwrap();
+                assert_eq!(
+                    result.max_flow, expected,
+                    "seeded differential case {checked}, nodes={node_count}"
+                );
+                assert_eq!(result.min_cut.capacity, expected);
+                candidate.verify_result(&result).unwrap();
+                checked += 1;
+            }
+        }
+
+        assert_eq!(checked, 7 * 160);
+    }
+
+    #[test]
     fn parallel_antiparallel_cycles_and_zero_capacity_edges_are_supported() {
         let candidate = FlowGraph {
             commodity_ref: "test-commodity".to_string(),
