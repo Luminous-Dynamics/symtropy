@@ -725,7 +725,11 @@ fn evaluate_fault_delivered(
                     ObservationFinding::FaultPresent | ObservationFinding::FaultAbsent
                 ) =>
             {
-                Some((*capsule, *finding, coverage_is_complete(coverage.as_ref(), *coverage_complete, claim)))
+                Some((
+                    *capsule,
+                    *finding,
+                    coverage_is_complete(coverage.as_ref(), *coverage_complete, claim),
+                ))
             }
             _ => None,
         })
