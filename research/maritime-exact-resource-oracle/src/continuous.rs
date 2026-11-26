@@ -636,6 +636,7 @@ fn replay(
 
 fn evaluate_plan(
     instance: &ContinuousInstance,
+    plan: &CandidatePlan,
     structure: &PlanStructure,
 ) -> Result<PlanEvaluation, ContinuousError> {
     let dimensions = instance.tasks.len();
@@ -796,7 +797,7 @@ pub fn evaluate_continuous_tournament(
             return Err(ContinuousError::DuplicatePlan(plan.plan_id.clone()));
         }
         let structure = validate_plan(instance, plan)?;
-        plans.push(evaluate_plan(instance, &structure)?);
+        plans.push(evaluate_plan(instance, plan, &structure)?);
     }
     plans.sort_by(|left, right| left.plan_id.cmp(&right.plan_id));
 
