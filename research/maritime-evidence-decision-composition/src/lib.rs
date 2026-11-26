@@ -233,7 +233,7 @@ pub fn apply_named_fault(bundle: &mut EvidenceBundle, fault: &str) -> Result<(),
         "SUBJECT_BINDING_MISMATCH" => ("subject", GateState::Fail, "SUBJECT_BINDING_MISMATCH"),
         "ARTIFACT_NOT_VISIBLE_AS_OF" => {
             ("as_of", GateState::Incomplete, "ARTIFACT_NOT_VISIBLE_AS_OF")
-        },
+        }
         "EVENT_NOT_KNOWN_AT_DECISION_TIME" => (
             "as_of",
             GateState::Incomplete,
@@ -276,7 +276,7 @@ pub fn apply_named_fault(bundle: &mut EvidenceBundle, fault: &str) -> Result<(),
         ),
         "AUTHORIZATION_SCOPE_INVALID" => {
             ("authority", GateState::Fail, "AUTHORIZATION_SCOPE_INVALID")
-        },
+        }
         "UNKNOWN_PHYSICAL_STATE_BLOCKS" => (
             "physical",
             GateState::Unknown,
@@ -297,7 +297,7 @@ pub fn apply_named_fault(bundle: &mut EvidenceBundle, fault: &str) -> Result<(),
         "MISSING_OUTCOME_PROMOTED" => ("outcome", GateState::Fail, "MISSING_OUTCOME_PROMOTED"),
         "CARGO_CONSERVATION_VIOLATION" => {
             ("cargo", GateState::Fail, "CARGO_CONSERVATION_VIOLATION")
-        },
+        }
         "RECEIVER_HANDOFF_BINDING_MISMATCH" => (
             "receiver",
             GateState::Fail,
