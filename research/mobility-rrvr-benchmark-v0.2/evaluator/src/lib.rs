@@ -311,14 +311,35 @@ fn validate_bundle(bundle: &ResultsBundle) -> Result<(), String> {
         for (name, digest) in [
             ("policy_sha256", &episode.matching.policy_sha256),
             ("scene_sha256", &episode.matching.scene_sha256),
-            ("initial_state_sha256", &episode.matching.initial_state_sha256),
-            ("action_prefix_sha256", &episode.matching.action_prefix_sha256),
-            ("simulator_profile_sha256", &episode.matching.simulator_profile_sha256),
-            ("fault_schedule_sha256", &episode.matching.fault_schedule_sha256),
-            ("observer_profile_sha256", &episode.matching.observer_profile_sha256),
+            (
+                "initial_state_sha256",
+                &episode.matching.initial_state_sha256,
+            ),
+            (
+                "action_prefix_sha256",
+                &episode.matching.action_prefix_sha256,
+            ),
+            (
+                "simulator_profile_sha256",
+                &episode.matching.simulator_profile_sha256,
+            ),
+            (
+                "fault_schedule_sha256",
+                &episode.matching.fault_schedule_sha256,
+            ),
+            (
+                "observer_profile_sha256",
+                &episode.matching.observer_profile_sha256,
+            ),
             ("robot_asset_sha256", &episode.clusters.robot_asset_sha256),
-            ("hardware_profile_sha256", &episode.clusters.hardware_profile_sha256),
-            ("firmware_profile_sha256", &episode.clusters.firmware_profile_sha256),
+            (
+                "hardware_profile_sha256",
+                &episode.clusters.hardware_profile_sha256,
+            ),
+            (
+                "firmware_profile_sha256",
+                &episode.clusters.firmware_profile_sha256,
+            ),
         ] {
             require_digest(name, digest)?;
         }
