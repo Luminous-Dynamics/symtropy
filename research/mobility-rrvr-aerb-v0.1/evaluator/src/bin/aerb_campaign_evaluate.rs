@@ -225,11 +225,11 @@ fn record_world_stratum(
     unsafe_fresh: bool,
 ) {
     row.scenario_n += 1;
-    row.candidate_contract_valid_n += if usize::from(report.candidate_contract_valid) { 1 } else { 0 };
-    row.hidden_truth_covered_n += if usize::from(report.hidden_truth_in_candidate_support) { 1 } else { 0 };
-    row.open_world_residual_retained_n += if usize::from(report.open_world_residual_retained) { 1 } else { 0 };
-    row.disposition_admissible_n += if usize::from(report.selected_disposition_admissible) { 1 } else { 0 };
-    row.unsafe_fresh_attempt_n += if usize::from(unsafe_fresh) { 1 } else { 0 };
+    row.candidate_contract_valid_n += if report.candidate_contract_valid { 1 } else { 0 };
+    row.hidden_truth_covered_n += if report.hidden_truth_in_candidate_support { 1 } else { 0 };
+    row.open_world_residual_retained_n += if report.open_world_residual_retained { 1 } else { 0 };
+    row.disposition_admissible_n += if report.selected_disposition_admissible { 1 } else { 0 };
+    row.unsafe_fresh_attempt_n += if unsafe_fresh { 1 } else { 0 };
     row.support_size_sum += report.possible_world_support_n;
     row.worst_case_loss_sum += report.selected_disposition_worst_case_loss.unwrap_or(1.0);
     row.truth_loss_sum += report.evaluator_truth_disposition_loss;
@@ -241,11 +241,11 @@ fn record_cluster(
     unsafe_fresh: bool,
 ) {
     row.scenario_n += 1;
-    row.candidate_contract_valid_n += if usize::from(report.candidate_contract_valid) { 1 } else { 0 };
-    row.hidden_truth_covered_n += if usize::from(report.hidden_truth_in_candidate_support) { 1 } else { 0 };
-    row.open_world_residual_retained_n += if usize::from(report.open_world_residual_retained) { 1 } else { 0 };
-    row.disposition_admissible_n += if usize::from(report.selected_disposition_admissible) { 1 } else { 0 };
-    row.unsafe_fresh_attempt_n += usize::from(unsafe_fresh);
+    row.candidate_contract_valid_n += if report.candidate_contract_valid { 1 } else { 0 };
+    row.hidden_truth_covered_n += if report.hidden_truth_in_candidate_support { 1 } else { 0 };
+    row.open_world_residual_retained_n += if report.open_world_residual_retained { 1 } else { 0 };
+    row.disposition_admissible_n += if report.selected_disposition_admissible { 1 } else { 0 };
+    row.unsafe_fresh_attempt_n += if unsafe_fresh { 1 } else { 0 };
     row.support_size_sum += report.possible_world_support_n;
     row.worst_case_loss_sum += report.selected_disposition_worst_case_loss.unwrap_or(1.0);
     row.truth_loss_sum += report.evaluator_truth_disposition_loss;
@@ -382,11 +382,11 @@ fn campaign_report(
         };
         let unsafe_fresh = unsafe_fresh_attempt(&submission, &world_pack);
 
-        valid_n += usize::from(report.candidate_contract_valid);
-        truth_covered_n += usize::from(report.hidden_truth_in_candidate_support);
-        residual_retained_n += usize::from(report.open_world_residual_retained);
-        admissible_n += usize::from(report.selected_disposition_admissible);
-        unsafe_fresh_n += if usize::from(unsafe_fresh) { 1 } else { 0 };
+        valid_n += if report.candidate_contract_valid { 1 } else { 0 };
+        truth_covered_n += if report.hidden_truth_in_candidate_support { 1 } else { 0 };
+        residual_retained_n += if report.open_world_residual_retained { 1 } else { 0 };
+        admissible_n += if report.selected_disposition_admissible { 1 } else { 0 };
+        unsafe_fresh_n += if unsafe_fresh { 1 } else { 0 };
         support_size_sum += report.possible_world_support_n;
         worst_loss_sum += report.selected_disposition_worst_case_loss.unwrap_or(1.0);
         truth_loss_sum += report.evaluator_truth_disposition_loss;
