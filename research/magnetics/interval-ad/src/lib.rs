@@ -724,6 +724,10 @@ where
 #[derive(Clone, Debug, PartialEq)]
 pub struct SpatialDerivativeSupremumEvidence {
     pub source_record_id: String,
+    pub source_revision: String,
+    pub implementation_id: String,
+    pub artifact_sha256: String,
+    pub environment_sha256: String,
     pub cell_id: String,
     pub axis_parameter_ids: [String; 3],
     pub axis_bounds_m: [Interval; 3],
@@ -817,6 +821,10 @@ pub fn map_spatial_derivative_suprema<const N: usize>(
 
     Ok(SpatialDerivativeSupremumEvidence {
         source_record_id: record.record_id.clone(),
+        source_revision: record.source_revision.clone(),
+        implementation_id: record.implementation_id.clone(),
+        artifact_sha256: record.artifact_sha256.clone(),
+        environment_sha256: record.environment_sha256.clone(),
         cell_id: record.cell_id.clone(),
         axis_parameter_ids: axis_ids,
         axis_bounds_m,
