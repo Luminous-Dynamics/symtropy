@@ -167,7 +167,8 @@
               "energy_meter_id",
               "energy_calibration_ref",
               "energy_boundary",
-              "energy_sample_interval_ms"
+              "energy_sample_interval_ms",
+              "energy_evidence_sha256"
             ],
             "properties": {
               "workload_id": {
@@ -368,6 +369,13 @@
                   "null"
                 ],
                 "minimum": 1
+              },
+              "energy_evidence_sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[0-9a-fA-F]{64}$"
               }
             }
           },
