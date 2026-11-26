@@ -245,10 +245,12 @@ fn validate_uncertainty_record(
     if !bounds.sensor_frame_rotation_error_bound_rad.is_finite()
         || bounds.sensor_frame_rotation_error_bound_rad < 0.0
     {
-        return Err(BoundedDesignTournamentError::InvalidSensorFrameRotationBound {
-            candidate_index,
-            scenario_index,
-        });
+        return Err(
+            BoundedDesignTournamentError::InvalidSensorFrameRotationBound {
+                candidate_index,
+                scenario_index,
+            },
+        );
     }
     for (sample_index, (field_bound, angle_bound)) in bounds
         .field_vector_error_radius_t
@@ -946,11 +948,9 @@ mod tests {
         );
     }
 
-
     #[test]
     fn sensor_frame_rotation_bound_must_be_finite_and_nonnegative() {
-        let mut candidate =
-            bounded_candidate("invalid-sensor-frame", 1.0, 0.0, 0.0, 0.0, 0.0);
+        let mut candidate = bounded_candidate("invalid-sensor-frame", 1.0, 0.0, 0.0, 0.0, 0.0);
         candidate.scenario_uncertainty[0].sensor_frame_rotation_error_bound_rad = f64::NAN;
         assert_eq!(
             rank_bounded_magnetic_designs(
@@ -968,8 +968,7 @@ mod tests {
 
     #[test]
     fn large_finite_field_maps_do_not_overflow_the_mean_lower_bound() {
-        let candidate =
-            bounded_candidate("large-finite-field", 1.0e306, 0.01, 0.0, 0.0, 0.0);
+        let candidate = bounded_candidate("large-finite-field", 1.0e306, 0.01, 0.0, 0.0, 0.0);
         let result = rank_bounded_magnetic_designs(
             "large-field-mean-tournament",
             &[candidate],
@@ -977,14 +976,17 @@ mod tests {
         )
         .expect("finite high-magnitude field maps remain numerically bounded");
         assert_eq!(result.robustly_accepted_candidate_count, 1);
-        assert!(result.candidates[0]
-            .worst_amplitude_ripple_upper_bound_fraction
-            .is_some_and(f64::is_finite));
-        assert!(result.candidates[0]
-            .minimum_in_plane_field_lower_bound_t
-            .is_finite());
+        assert!(
+            result.candidates[0]
+                .worst_amplitude_ripple_upper_bound_fraction
+                .is_some_and(f64::is_finite)
+        );
+        assert!(
+            result.candidates[0]
+                .minimum_in_plane_field_lower_bound_t
+                .is_finite()
+        );
     }
-
 
     #[test]
     fn uncertainty_records_must_match_the_source_archive_and_calibration() {
