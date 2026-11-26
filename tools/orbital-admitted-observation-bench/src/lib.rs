@@ -617,9 +617,16 @@ pub fn audit_corpus(bytes: &[u8], source_commit: &str) -> Result<Receipt, String
             .get(campaign_id)
             .ok_or_else(|| "CAMPAIGN_SEQUENCE_INVENTORY_MISSING".to_owned())?;
         if u64::try_from(sequences.len()).ok() != Some(*expected_count)
-            || sequences.iter().copied().enumerate().any(|(index, sequence)| {
-                u64::try_from(index).ok().and_then(|value| value.checked_add(1)) != Some(sequence)
-            })
+            || sequences
+                .iter()
+                .copied()
+                .enumerate()
+                .any(|(index, sequence)| {
+                    u64::try_from(index)
+                        .ok()
+                        .and_then(|value| value.checked_add(1))
+                        != Some(sequence)
+                })
         {
             return Err("CAMPAIGN_ATTEMPT_SEQUENCE_GAP".to_owned());
         }
@@ -649,7 +656,9 @@ mod tests {
     use super::*;
 
     fn corpus_bytes() -> &'static [u8] {
-        include_bytes!("../../../docs/research/orbital-truss/fixtures/admitted-observation-v0_1.json")
+        include_bytes!(
+            "../../../docs/research/orbital-truss/fixtures/admitted-observation-v0_1.json"
+        )
     }
 
     fn corpus() -> Corpus {
@@ -743,12 +752,10 @@ mod tests {
     #[test]
     fn stale_sources_unknown_outcomes_and_bad_digests_fail_closed() {
         let input = corpus();
-        for id in [
-            "AO-021-REVOKED-CALIBRATION",
-            "AO-022-UNKNOWN-OUTCOME",
-        ] {
+        for id in ["AO-021-REVOKED-CALIBRATION", "AO-022-UNKNOWN-OUTCOME"] {
             assert_eq!(
-                evaluate_case(input.cases.iter().find(|case| case.case_id == id).unwrap()).disposition,
+                evaluate_case(input.cases.iter().find(|case| case.case_id == id).unwrap())
+                    .disposition,
                 Disposition::AbstainUnmodelledOutcome
             );
         }
@@ -773,9 +780,15 @@ mod tests {
             .iter()
             .find(|case| case.case_id == "AO-020-JOINT-CHANNEL-FAILURE")
             .unwrap();
-        assert_eq!(evaluate_case(mismatch).disposition, Disposition::InadmissibleMeasurement);
+        assert_eq!(
+            evaluate_case(mismatch).disposition,
+            Disposition::InadmissibleMeasurement
+        );
         let result = evaluate_case(common);
-        assert_eq!(result.disposition, Disposition::ModelledObservationProcessOutcome);
+        assert_eq!(
+            result.disposition,
+            Disposition::ModelledObservationProcessOutcome
+        );
         assert_eq!(result.missing_channel_ids.len(), 2);
     }
 
@@ -826,8 +839,7 @@ mod tests {
         input.cases[1].cutoff.history_max_sequence = 2;
 
         let bytes = serde_json::to_vec(&input).unwrap();
-        let error = audit_corpus(&bytes, "0123456789abcdef0123456789abcdef01234567")
-            .unwrap_err();
+        let error = audit_corpus(&bytes, "0123456789abcdef0123456789abcdef01234567").unwrap_err();
         assert_eq!(error, "CAMPAIGN_ATTEMPT_SEQUENCE_GAP");
     }
 
