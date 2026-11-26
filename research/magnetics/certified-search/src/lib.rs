@@ -345,7 +345,7 @@ where
                     depth: pending.depth,
                     design_bounds: pending.design_bounds,
                     disposition: BoxDisposition::UnresolvedNodeBudget,
-                    objective_lower_bound: None,
+                    objective_lower_bound: pending.inherited_objective_lower_bound,
                     margin_enclosure: None,
                     split_parameter_id: None,
                     child_node_ids: Vec::new(),
@@ -531,9 +531,17 @@ where
 
         let mut selected_axis = None;
         let mut selected_score = 0.0;
+        let mut any_axis_wide_enough = false;
         for axis in 0..design_dimension {
             let bounds = node.design_bounds[axis];
             let width = bounds.upper() - bounds.lower();
+            if !width.is_finite()
+                || width <= policy.minimum_design_widths[axis]
+                || stable_midpoint(bounds.lower(), bounds.upper()).is_none()
+            {
+                continue;
+            }
+            any_axis_wide_enough = true;
             let objective_score = objective.derivative_abs_supremum[axis]
                 * width
                 / policy.objective_sensitivity_scale;
@@ -541,9 +549,10 @@ where
                 * width
                 / policy.margin_sensitivity_scale;
             let score = objective_score.max(margin_score);
-            if width.is_finite() && stable_midpoint(bounds.lower(), bounds.upper()).is_some()
-                && score > selected_score
-            {
+            let lexical_tie_break = selected_axis.is_some_and(|selected| {
+                score == selected_score && root.parameter_ids[axis] < root.parameter_ids[selected]
+            });
+            if score > selected_score || lexical_tie_break {
                 selected_axis = Some(axis);
                 selected_score = score;
             }
@@ -570,7 +579,11 @@ where
                 parent_node_id: node.parent_node_id,
                 depth: node.depth,
                 design_bounds: node.design_bounds,
-                disposition: BoxDisposition::UnresolvedNoSensitivity,
+                disposition: if any_axis_wide_enough {
+                    BoxDisposition::UnresolvedNoSensitivity
+                } else {
+                    BoxDisposition::UnresolvedMinimumWidth
+                },
                 objective_lower_bound: Some(objective_lower),
                 margin_enclosure: Some(margin.value_enclosure),
                 split_parameter_id: None,
@@ -596,12 +609,14 @@ where
             parent_node_id: Some(node.node_id.clone()),
             depth: node.depth + 1,
             design_bounds: left_bounds,
+            inherited_objective_lower_bound: Some(objective_lower),
         });
         queue.push_back(WorkNode {
             node_id: right_id.clone(),
             parent_node_id: Some(node.node_id.clone()),
             depth: node.depth + 1,
             design_bounds: right_bounds,
+            inherited_objective_lower_bound: Some(objective_lower),
         });
         records.push(DesignBoxRecord {
             node_id: node.node_id,
