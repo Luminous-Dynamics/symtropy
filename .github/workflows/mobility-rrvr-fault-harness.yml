@@ -1,0 +1,89 @@
+name: RRVR Deterministic Fault Harness v0.1
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-fault-harness-v0-1
+    paths:
+      - "research/mobility-rrvr-fault-harness-v0.1/**"
+      - ".github/workflows/mobility-rrvr-fault-harness.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-fault-harness-v0.1/**"
+      - ".github/workflows/mobility-rrvr-fault-harness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-fault-harness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path research/mobility-rrvr-fault-harness-v0.1/Cargo.toml -- --check
+
+      - name: Execute deterministic crash-replay campaign
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-fault-harness-v0.1"
+          jq empty "$ROOT/fixtures/scenario_manifest_v0_1.json"
+          jq -e '.scenarios | length == 6' "$ROOT/fixtures/scenario_manifest_v0_1.json"
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_fault_harness -- --known-campaign > "$RUNNER_TEMP/rrvr-harness.json"
+          jq -e --slurpfile manifest "$ROOT/fixtures/scenario_manifest_v0_1.json" '
+            .campaign_id == "rrvr-crash-replay-known-cases-v0.1"
+            and .pair_n == 6
+            and (.pairs | length == 6)
+            and ([.pairs[].pair_id] | sort) == ($manifest[0].scenarios | map(.scenario_id) | sort)
+            and all(.pairs[];
+              .native.frozen_input_id == .rrvr.frozen_input_id
+              and .native.arm == "native_retry"
+              and .rrvr.arm == "rrvr"
+            )
+            and any(.pairs[];
+              .pair_id == "effect_then_lost_ack"
+              and .native.actual_effect_count == 2
+              and .native.unsafe_admission
+              and .native.false_no_effect
+              and .rrvr.actual_effect_count == 1
+              and (.rrvr.fresh_attempt_admitted | not)
+            )
+            and any(.pairs[];
+              .pair_id == "no_effect_then_lost_ack"
+              and .rrvr.reported_disposition == "no_effect"
+              and .rrvr.fresh_attempt_admitted
+              and (.rrvr.unsafe_admission | not)
+              and (.rrvr.false_no_effect | not)
+            )
+            and any(.pairs[];
+              .pair_id == "observer_outage"
+              and .rrvr.reported_disposition == "unknown"
+              and .rrvr.unresolved_outcome
+              and (.rrvr.fresh_attempt_admitted | not)
+            )
+            and any(.pairs[];
+              .pair_id == "incomplete_command_graph"
+              and (.rrvr.temporal_closure_issued | not)
+              and (.rrvr.fresh_attempt_admitted | not)
+            )
+            and any(.pairs[];
+              .pair_id == "dedupe_loss_without_queue_rollover"
+              and .native.actual_effect_count == 3
+              and .rrvr.actual_effect_count == 1
+              and (.rrvr.stale_effect_after_fence | not)
+            )
+          ' "$RUNNER_TEMP/rrvr-harness.json"
+          jq -r '.pairs[] | [.pair_id, .native.actual_effect_count, .rrvr.actual_effect_count, .rrvr.reported_disposition, .rrvr.fresh_attempt_admitted] | @tsv' "$RUNNER_TEMP/rrvr-harness.json"
+
+      - name: Run deterministic fault-harness tests
+        run: cargo test --locked --manifest-path research/mobility-rrvr-fault-harness-v0.1/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/mobility-rrvr-fault-harness-v0.1/Cargo.toml --all-targets -- -D warnings

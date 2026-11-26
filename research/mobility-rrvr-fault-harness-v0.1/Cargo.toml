@@ -1,0 +1,19 @@
+# Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+[package]
+name = "mobility-rrvr-fault-harness"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Deterministic process-fault harness for RRVR recovery assurance"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "rrvr_fault_harness"
+path = "src/bin/rrvr_fault_harness.rs"
+
+[workspace]
