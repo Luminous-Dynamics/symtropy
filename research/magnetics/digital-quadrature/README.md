@@ -64,6 +64,25 @@ The crate also exposes a finite-scenario evaluator. One fixed latch/sensor confi
 
 Each scenario result is preserved. The set reports accepted/rejected scenario counts, worst missing/excess/illegal transitions, worst direction reversal, worst interval-bounded spacing error and worst transition bracket. A finite set is a deterministic robustness challenge only—not an IID manufacturing sample, probability of passing, production yield or CVaR.
 
+
+## Robust configuration synthesis
+
+The crate also exposes `robust_synthesis::synthesize_robust_configurations`. It evaluates an explicit ordered list of candidate latch/sensor configurations against a fixed finite scenario set, reusing the same `evaluate_trace` state machine rather than duplicating latch semantics.
+
+Each scenario supplies simultaneous per-sample Euclidean error radii for the two in-plane field vectors. Because each bound is a vector-radius, it bounds projection error for any declared sensor-axis angle. These radii are absolute deterministic bounds, not standard deviations or marginal confidence intervals. Each bound record is identity-bound to the exact trace, coordinate frame, operating condition, angular grid and its own evidence record.
+
+For each channel and each nominal transition, the synthesis layer calculates:
+- the earliest sample at which an admissible field could trigger the threshold;
+- the latest sample by which every admissible field must have triggered it;
+- the angular interval containing the transition;
+- state-retention and threshold-crossing margins, including the opposite hysteresis threshold so the latch cannot immediately reverse inside the interval.
+
+The A/B transition windows must remain ordered and non-overlapping. Their interval arithmetic produces a worst-case quadrature-spacing error and maximum transition bracket. Candidates must pass the existing nominal sequence/edge-rate checks, the declared spacing and bracket limits, and the robust field-margin floor. The output retains the exact candidate configuration and each scenario's evidence identities.
+
+The accepted candidate set is reported as a Pareto frontier over three separate objectives: maximize minimum robust threshold margin, minimize worst spacing error, and minimize maximum transition bracket. There is no weighted composite score, random search or claim of global optimality. Candidate order is preserved exactly; this is an evaluator for a finite supplied candidate set, not an autonomous optimizer.
+
+The guarantee is only as strong as the supplied simultaneous vector-error bounds. IDs are opaque and do not authenticate records. No probability, manufacturing yield, physical ASIC qualification or lifetime reliability is inferred.
+
 ## Boundaries
 
 Synthetic tests qualify arithmetic and state-machine semantics only. They do not establish physical sensor behaviour, physical edge timing, product speed limits, ring manufacturability, yield or industrial superiority. No machine-control, magnetization or component-release authority is provided.
@@ -86,7 +105,7 @@ The capture is never shifted or trimmed to force a match. The mechanical angle s
 
 A synthetic generated capture only validates the record/reconciliation plumbing. It does not establish physical ASIC response, physical edge timing or a calibrated rotor-reference chain.
 
-The current source contains 41 authored unit tests. Test authorship is not a test pass; consult the current exact-head pull-request checks.
+The current source contains 49 authored unit tests, including seven robust synthesis controls. Authored tests are not a test pass; consult the current exact-head pull-request checks. Test authorship is not a test pass; consult the current exact-head pull-request checks.
 
 
 ## TI 20-pole threshold-mismatch reconstruction control
