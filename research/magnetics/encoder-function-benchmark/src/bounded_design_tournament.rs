@@ -290,12 +290,6 @@ fn bounded_scenario_metrics(
     candidate_index: usize,
     scenario_index: usize,
 ) -> Result<BoundedScenarioMetrics, BoundedDesignTournamentError> {
-    let nominal = evaluate_trace(trace, requirements).map_err(|error| {
-        BoundedDesignTournamentError::BaseTournament(DesignTournamentError::ScenarioEvaluation(
-            error,
-        ))
-    })?;
-
     let mut phase_error_upper_bounds = Vec::with_capacity(trace.samples.len());
     let mut lower_in_plane_magnitudes = Vec::with_capacity(trace.samples.len());
     let mut upper_in_plane_magnitudes = Vec::with_capacity(trace.samples.len());
@@ -346,6 +340,8 @@ fn bounded_scenario_metrics(
 
         if nominal_in_plane <= 0.0 || radius >= nominal_in_plane {
             unbounded_phase_sample_count += 1;
+            field_direction_error_bounds.push(std::f64::consts::PI);
+            mechanical_reference_error_contributions.push(pole_pairs * angle_bound_rad);
             phase_error_upper_bounds.push(std::f64::consts::PI);
             continue;
         }
@@ -354,8 +350,12 @@ fn bounded_scenario_metrics(
         // subtends at most asin(r/m) radians at the origin when r < m.
         let field_direction_error = (radius / nominal_in_plane).asin();
         let mechanical_phase_error = pole_pairs * angle_bound_rad;
-        let total_phase_error_bound =
-            field_direction_error + mechanical_phase_error + bounds.phase_zero_error_bound_rad;
+        field_direction_error_bounds.push(field_direction_error);
+        mechanical_reference_error_contributions.push(mechanical_phase_error);
+        let total_phase_error_bound = field_direction_error
+            + mechanical_phase_error
+            + bounds.sensor_frame_rotation_error_bound_rad
+            + bounds.phase_zero_error_bound_rad;
         if !total_phase_error_bound.is_finite() {
             return Err(BoundedDesignTournamentError::NumericOverflow {
                 candidate_index,
