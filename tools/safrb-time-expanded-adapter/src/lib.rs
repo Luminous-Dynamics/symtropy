@@ -710,6 +710,47 @@ mod tests {
     }
 
     #[test]
+    fn serial_physical_gates_are_allowed_but_all_gate_bypass_is_not() {
+        let node_rows = ["source", "pump-in", "pump-out", "treatment-in", "treatment-out", "sink"]
+            .iter()
+            .map(|id| {
+                (
+                    (*id).to_string(),
+                    Node { id: (*id).to_string(), kind: "stage".to_string(), time: 0 },
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        let make_edge = |id: &str, from: &str, to: &str| Edge {
+            id: id.to_string(),
+            from: from.to_string(),
+            to: to.to_string(),
+            lower: 1,
+            upper: 1,
+            resource: id.to_string(),
+            time: 0,
+        };
+        let mut edges = vec![
+            make_edge("feed", "source", "pump-in"),
+            make_edge("pump-gate", "pump-in", "pump-out"),
+            make_edge("pump-to-treatment", "pump-out", "treatment-in"),
+            make_edge("treatment-gate", "treatment-in", "treatment-out"),
+            make_edge("distribution", "treatment-out", "sink"),
+        ];
+        let gates = BTreeSet::from(["pump-gate".to_string(), "treatment-gate".to_string()]);
+        assert!(!path_exists_excluding(&node_rows, &edges, &gates, "source", "sink"));
+
+        for gate_id in &gates {
+            let excluded = BTreeSet::from([gate_id.clone()]);
+            let gate = edges.iter().find(|edge| &edge.id == gate_id).unwrap();
+            assert!(path_exists_excluding(&node_rows, &edges, &excluded, "source", &gate.from));
+            assert!(path_exists_excluding(&node_rows, &edges, &excluded, &gate.to, "sink"));
+        }
+
+        edges.push(make_edge("unmetered-bypass", "source", "sink"));
+        assert!(path_exists_excluding(&node_rows, &edges, &gates, "source", "sink"));
+    }
+
+    #[test]
     fn a_new_service_path_cannot_bypass_the_shared_pump() {
         let mut input = scenario();
         input["edges"].as_array_mut().unwrap().push(serde_json::json!({
