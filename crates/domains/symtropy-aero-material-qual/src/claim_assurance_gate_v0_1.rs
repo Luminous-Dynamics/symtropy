@@ -485,7 +485,8 @@ mod tests {
         EvidenceAdmissionState, RequiredEvidenceAdmission, compute_component_report_sha256,
         evaluate_claim_gate,
     };
-    use crate::decision_context_v0_1::{DecisionContextV0_1, compute_required_evidence_manifest_sha256};
+    use crate::decision_context_v0_1::compute_required_evidence_manifest_sha256;
+    use crate::decision_context_v0_1::DecisionContextV0_1;
     use crate::effectivity_interval_v0_1::EffectivityRelation;
     use crate::observer_coverage_v0_1::{CoverageAssessment, CoverageStatus, ReplayConsequence};
     use crate::vector_watermark_v0_1::{CutAssessment, CutStatus};
@@ -548,15 +549,19 @@ mod tests {
             evidence_knowledge_cut_sha256: "b".repeat(64),
             trust_policy_sha256: "c".repeat(64),
             claim_specification_sha256: "d".repeat(64),
-            required_evidence_manifest_sha256: compute_required_evidence_manifest_sha256(evidence_refs)
-                .expect("evidence manifest serializes"),
+            required_evidence_manifest_sha256:
+                compute_required_evidence_manifest_sha256(evidence_refs)
+                    .expect("evidence manifest serializes"),
             risk_classification_sha256: "e".repeat(64),
             model_applicability_profile_sha256: "f".repeat(64),
         }
     }
 
     fn context_for_evidence(evidence: &[RequiredEvidenceAdmission]) -> DecisionContextV0_1 {
-        let refs = evidence.iter().map(|item| item.evidence_ref.clone()).collect::<Vec<_>>();
+        let refs = evidence
+            .iter()
+            .map(|item| item.evidence_ref.clone())
+            .collect::<Vec<_>>();
         decision_context_for_refs(&refs)
     }
 
@@ -649,7 +654,8 @@ mod tests {
         let coverage_result = coverage(coverage_status);
         let cut_result = cut(cut_status);
         let decision_context = context_for_evidence(evidence);
-        let component_bindings = bindings_for(&coverage_result, &cut_result, effectivity, &decision_context);
+        let component_bindings =
+            bindings_for(&coverage_result, &cut_result, effectivity, &decision_context);
         evaluate_with_bindings(
             coverage_status,
             cut_status,
