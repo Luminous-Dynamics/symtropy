@@ -172,7 +172,8 @@
       "required": [
         "frame_id",
         "frame_kind",
-        "units"
+        "units",
+        "candidate_only"
       ],
       "properties": {
         "frame_id": {
@@ -320,7 +321,35 @@
         "source_observation_refs": {
           "$ref": "#/$defs/source_refs"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "epistemic_origin": {
+                "enum": [
+                  "observed",
+                  "inferred",
+                  "remembered",
+                  "predicted",
+                  "simulated",
+                  "counterfactual"
+                ]
+              }
+            },
+            "required": [
+              "epistemic_origin"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_observation_refs": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
     },
     "relation_claim": {
       "type": "object",
@@ -387,7 +416,35 @@
         "supersedes_claim_id": {
           "$ref": "#/$defs/id"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "epistemic_origin": {
+                "enum": [
+                  "observed",
+                  "inferred",
+                  "remembered",
+                  "predicted",
+                  "simulated",
+                  "counterfactual"
+                ]
+              }
+            },
+            "required": [
+              "epistemic_origin"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_observation_refs": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
     },
     "unresolved_constraint": {
       "type": "object",
