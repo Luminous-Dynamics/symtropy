@@ -604,7 +604,7 @@ fn validate_world_pack<'a>(
                 outcome.possible_world_ids.iter().any(|world_id| world_id.as_str() == OPEN_WORLD_RESIDUAL)
             });
             let has_scope_closed_outcome = probe.outcomes.iter().any(|outcome| {
-                !outcome.possible_world_ids.iter().any(|world_id| world_id == OPEN_WORLD_RESIDUAL)
+                !outcome.possible_world_ids.iter().any(|world_id| world_id.as_str() == OPEN_WORLD_RESIDUAL)
             });
             if !has_unresolved_scope_outcome || !has_scope_closed_outcome {
                 return Err(EvaluatorError::InvalidWorldPack(
