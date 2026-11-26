@@ -68,8 +68,6 @@ pub struct DefensivePortfolioDrawReceipt {
     pub mode_key: PortfolioEventModeKey,
     /// Stable identity for the consequence unit, sign convention and tick scale.
     pub consequence_unit_id: [u8; 32],
-    /// Stable identity for the consequence unit, sign convention and tick scale.
-    pub consequence_unit_id: [u8; 32],
     /// Target-measure identity.
     pub target_measure_id: [u8; 32],
     /// Density-space identity.
@@ -112,6 +110,8 @@ pub struct DefensivePortfolioPairInterval {
 /// Family-wise simultaneous selection report for the frozen portfolio universe.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SimultaneousDefensivePortfolioReport {
+    /// Stable identity for the consequence unit, sign convention and tick scale.
+    pub consequence_unit_id: [u8; 32],
     /// Family-wise error budget frozen before sampling.
     pub family_alpha: f64,
     /// Number of frozen candidate portfolio arms.
@@ -597,6 +597,7 @@ impl SimultaneousDefensivePortfolioSelection {
         }
 
         Ok(SimultaneousDefensivePortfolioReport {
+            consequence_unit_id: self.consequence_unit_id,
             family_alpha: self.family_alpha,
             portfolio_count: self.portfolio_bounds.len(),
             contrast_count: self.pair_processes.len(),
