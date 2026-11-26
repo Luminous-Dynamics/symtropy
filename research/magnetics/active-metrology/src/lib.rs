@@ -13,6 +13,14 @@ pub enum MeasurementRole {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct FunctionalSensitivityInterval {
+    pub record_id: String,
+    /// Signed interval enclosing the functional-margin derivative over the full disagreement segment.
+    pub derivative_lower_rad_per_t: f64,
+    pub derivative_upper_rad_per_t: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct ScanCandidate {
     pub candidate_id: String,
     pub coordinate_frame_id: String,
@@ -25,10 +33,11 @@ pub struct ScanCandidate {
     pub y_m: f64,
     pub z_m: f64,
     pub standoff_m: f64,
-    /// Upper bound on the pointwise diameter of applicable qualified model predictions, tesla.
-    pub model_disagreement_bound_t: Option<f64>,
-    /// Absolute sensitivity of the named functional margin to local field, radians/tesla.
-    pub functional_margin_sensitivity_rad_per_t: Option<f64>,
+    /// Lower bound on the separation between at least two qualified model-prediction intervals, tesla.
+    pub model_disagreement_lower_bound_t: Option<f64>,
+    pub model_disagreement_record_id: Option<String>,
+    /// Signed derivative interval over the full model-disagreement segment and declared condition.
+    pub functional_sensitivity_interval: Option<FunctionalSensitivityInterval>,
     /// Simultaneous absolute measurement error bound at this point, tesla.
     pub measurement_error_bound_t: f64,
     pub acquisition_cost_s: f64,
@@ -55,6 +64,7 @@ pub struct ScanPolicy {
 pub enum NotRankableReason {
     MissingQualifiedModelDisagreement,
     MissingFunctionalSensitivity,
+    SensitivityIntervalCrossesZero,
     NoPositiveDecisionImpact,
     MeasurementBoundMasksModelDisagreement,
     ProtectedEvidenceRole,
@@ -82,14 +92,16 @@ pub enum CandidateDisposition {
 pub struct ScanCandidateMetrics {
     pub candidate_id: String,
     pub input_index: usize,
-    pub model_disagreement_bound_t: Option<f64>,
+    pub model_disagreement_lower_bound_t: Option<f64>,
+    pub model_disagreement_record_id: Option<String>,
     pub measurement_error_bound_t: f64,
-    pub functional_margin_sensitivity_rad_per_t: Option<f64>,
-    /// Conservative upper bound on the effect of model disagreement on the named margin.
-    pub decision_impact_bound_rad: Option<f64>,
-    /// Portion of model separation that exceeds two-sided measurement error.
-    pub resolvable_model_separation_bound_t: Option<f64>,
-    pub resolvable_decision_impact_bound_rad: Option<f64>,
+    pub functional_sensitivity_record_id: Option<String>,
+    pub functional_sensitivity_minimum_absolute_rad_per_t: Option<f64>,
+    /// Conservative lower bound on change in the named margin.
+    pub decision_impact_lower_bound_rad: Option<f64>,
+    /// Lower bound on model separation remaining after two-sided measurement error.
+    pub resolvable_model_separation_lower_bound_t: Option<f64>,
+    pub resolvable_decision_impact_lower_bound_rad: Option<f64>,
     /// Resolvable decision impact divided by acquisition cost.
     pub priority_rad_per_s: Option<f64>,
     pub disposition: CandidateDisposition,
@@ -151,11 +163,11 @@ fn validate_policy(policy: &ScanPolicy) -> Result<(), PlanningError> {
     Ok(())
 }
 
-fn distance_squared(left: &ScanCandidate, right: &ScanCandidate) -> f64 {
+fn distance(left: &ScanCandidate, right: &ScanCandidate) -> f64 {
     let dx = left.x_m - right.x_m;
     let dy = left.y_m - right.y_m;
     let dz = left.z_m - right.z_m;
-    dx.mul_add(dx, dy.mul_add(dy, dz * dz))
+    dx.hypot(dy).hypot(dz)
 }
 
 fn validate_candidate(
@@ -206,16 +218,23 @@ fn validate_candidate(
     }
 
     if candidate
-        .model_disagreement_bound_t
+        .model_disagreement_lower_bound_t
         .is_some_and(|value| !value.is_finite() || value < 0.0)
+        || candidate.model_disagreement_lower_bound_t.is_some()
+            && candidate
+                .model_disagreement_record_id
+                .as_deref()
+                .is_none_or(|record_id| !nonempty(record_id))
     {
         return Err(PlanningError::InvalidModelDisagreement { index });
     }
 
-    if candidate
-        .functional_margin_sensitivity_rad_per_t
-        .is_some_and(|value| !value.is_finite() || value < 0.0)
-    {
+    if candidate.functional_sensitivity_interval.as_ref().is_some_and(|interval| {
+        !nonempty(&interval.record_id)
+            || !interval.derivative_lower_rad_per_t.is_finite()
+            || !interval.derivative_upper_rad_per_t.is_finite()
+            || interval.derivative_lower_rad_per_t > interval.derivative_upper_rad_per_t
+    }) {
         return Err(PlanningError::InvalidFunctionalSensitivity { index });
     }
 
@@ -225,17 +244,22 @@ fn validate_candidate(
 fn candidate_metrics(
     candidate: &ScanCandidate,
     input_index: usize,
+    allow_revisit: bool,
 ) -> Result<ScanCandidateMetrics, PlanningError> {
     let not_rankable = |reason| ScanCandidateMetrics {
         candidate_id: candidate.candidate_id.clone(),
         input_index,
-        model_disagreement_bound_t: candidate.model_disagreement_bound_t,
+        model_disagreement_lower_bound_t: candidate.model_disagreement_lower_bound_t,
+        model_disagreement_record_id: candidate.model_disagreement_record_id.clone(),
         measurement_error_bound_t: candidate.measurement_error_bound_t,
-        functional_margin_sensitivity_rad_per_t: candidate
-            .functional_margin_sensitivity_rad_per_t,
-        decision_impact_bound_rad: None,
-        resolvable_model_separation_bound_t: None,
-        resolvable_decision_impact_bound_rad: None,
+        functional_sensitivity_record_id: candidate
+            .functional_sensitivity_interval
+            .as_ref()
+            .map(|interval| interval.record_id.clone()),
+        functional_sensitivity_minimum_absolute_rad_per_t: None,
+        decision_impact_lower_bound_rad: None,
+        resolvable_model_separation_lower_bound_t: None,
+        resolvable_decision_impact_lower_bound_rad: None,
         priority_rad_per_s: None,
         disposition: CandidateDisposition::NotRankable(reason),
     };
@@ -243,35 +267,43 @@ fn candidate_metrics(
     if candidate.role != MeasurementRole::AdaptiveExploration {
         return Ok(not_rankable(NotRankableReason::ProtectedEvidenceRole));
     }
-    if candidate.already_measured {
+    if candidate.already_measured && !allow_revisit {
         return Ok(not_rankable(NotRankableReason::AlreadyMeasured));
     }
 
-    let Some(disagreement) = candidate.model_disagreement_bound_t else {
+    let Some(disagreement_lower_bound) = candidate.model_disagreement_lower_bound_t else {
         return Ok(not_rankable(NotRankableReason::MissingQualifiedModelDisagreement));
     };
-    let Some(sensitivity) = candidate.functional_margin_sensitivity_rad_per_t else {
+    let Some(sensitivity_interval) = candidate.functional_sensitivity_interval.as_ref() else {
         return Ok(not_rankable(NotRankableReason::MissingFunctionalSensitivity));
     };
-    if sensitivity <= 0.0 || disagreement <= 0.0 {
+    let sensitivity_lower_bound = if sensitivity_interval.derivative_lower_rad_per_t > 0.0 {
+        sensitivity_interval.derivative_lower_rad_per_t
+    } else if sensitivity_interval.derivative_upper_rad_per_t < 0.0 {
+        -sensitivity_interval.derivative_upper_rad_per_t
+    } else {
+        return Ok(not_rankable(NotRankableReason::SensitivityIntervalCrossesZero));
+    };
+    if sensitivity_lower_bound <= 0.0 || disagreement_lower_bound <= 0.0 {
         return Ok(not_rankable(NotRankableReason::NoPositiveDecisionImpact));
     }
 
-    // Two model predictions with separation D are distinguishable by a
-    // measurement with absolute error bound u only when D > 2u.
-    let resolvable_separation =
-        (disagreement - 2.0 * candidate.measurement_error_bound_t).max(0.0);
+    // A lower bound on model-set separation remains resolvable only after
+    // subtracting both sides of the absolute measurement-error bound.
+    let resolvable_separation = (disagreement_lower_bound
+        - 2.0 * candidate.measurement_error_bound_t)
+        .max(0.0);
     if resolvable_separation <= 0.0 {
         return Ok(not_rankable(
             NotRankableReason::MeasurementBoundMasksModelDisagreement,
         ));
     }
 
-    let decision_impact = disagreement * sensitivity;
-    let resolvable_impact = resolvable_separation * sensitivity;
-    let priority = resolvable_impact / candidate.acquisition_cost_s;
-    if !decision_impact.is_finite()
-        || !resolvable_impact.is_finite()
+    let decision_impact_lower_bound = disagreement_lower_bound * sensitivity_lower_bound;
+    let resolvable_impact_lower_bound = resolvable_separation * sensitivity_lower_bound;
+    let priority = resolvable_impact_lower_bound / candidate.acquisition_cost_s;
+    if !decision_impact_lower_bound.is_finite()
+        || !resolvable_impact_lower_bound.is_finite()
         || !priority.is_finite()
     {
         return Err(PlanningError::NumericOverflow { index: input_index });
@@ -280,12 +312,14 @@ fn candidate_metrics(
     Ok(ScanCandidateMetrics {
         candidate_id: candidate.candidate_id.clone(),
         input_index,
-        model_disagreement_bound_t: Some(disagreement),
+        model_disagreement_lower_bound_t: Some(disagreement_lower_bound),
+        model_disagreement_record_id: candidate.model_disagreement_record_id.clone(),
         measurement_error_bound_t: candidate.measurement_error_bound_t,
-        functional_margin_sensitivity_rad_per_t: Some(sensitivity),
-        decision_impact_bound_rad: Some(decision_impact),
-        resolvable_model_separation_bound_t: Some(resolvable_separation),
-        resolvable_decision_impact_bound_rad: Some(resolvable_impact),
+        functional_sensitivity_record_id: Some(sensitivity_interval.record_id.clone()),
+        functional_sensitivity_minimum_absolute_rad_per_t: Some(sensitivity_lower_bound),
+        decision_impact_lower_bound_rad: Some(decision_impact_lower_bound),
+        resolvable_model_separation_lower_bound_t: Some(resolvable_separation),
+        resolvable_decision_impact_lower_bound_rad: Some(resolvable_impact_lower_bound),
         priority_rad_per_s: Some(priority),
         disposition: CandidateDisposition::NotSelected(ExclusionReason::BelowPriorityFloor),
     })
@@ -293,12 +327,15 @@ fn candidate_metrics(
 
 /// Produce a deterministic scan order from supplied exploratory candidates.
 ///
-/// The planner uses a transparent worst-case decision-impact bound:
+/// The planner uses a transparent conservative lower-bound decision impact:
 ///
-///   max(0, model_disagreement - 2 * measurement_error) * |d margin / d B|
+///   max(0, model_separation_lower_bound - 2 * measurement_error)
+///       * minimum_absolute_sensitivity
 ///
-/// divided by acquisition cost. This is a deterministic screening heuristic,
-/// not expected information gain, a probability or a claim about model truth.
+/// divided by acquisition cost. The model separation must be a lower bound on
+/// the gap between qualified model-prediction intervals. The signed sensitivity
+/// interval must enclose the derivative over that entire gap and exclude zero.
+/// This is not expected information gain or a probability.
 /// Protected calibration/holdout/qualification candidates are never selected.
 pub fn plan_decision_directed_scan(
     candidates: &[ScanCandidate],
@@ -316,7 +353,7 @@ pub fn plan_decision_directed_scan(
             return Err(PlanningError::DuplicateCandidateId);
         }
 
-        let mut result = candidate_metrics(candidate, index)?;
+        let mut result = candidate_metrics(candidate, index, policy.allow_revisit)?;
         if let Some(priority) = result.priority_rad_per_s {
             if priority >= policy.minimum_priority_rad_per_s {
                 ranked.push(index);
@@ -360,11 +397,19 @@ pub fn plan_decision_directed_scan(
             continue;
         }
 
-        let minimum_distance_squared = policy.minimum_separation_m.powi(2);
-        let conflicts = selected.iter().any(|selected_index| {
-            distance_squared(candidate, &candidates[*selected_index])
-                < minimum_distance_squared
-        });
+        let mut conflicts = false;
+        for selected_index in &selected {
+            let separation = distance(candidate, &candidates[*selected_index]);
+            if !separation.is_finite() {
+                return Err(PlanningError::NumericOverflow {
+                    index: candidate_index,
+                });
+            }
+            if separation < policy.minimum_separation_m {
+                conflicts = true;
+                break;
+            }
+        }
         if conflicts {
             metrics[candidate_index].disposition = CandidateDisposition::NotSelected(
                 ExclusionReason::MinimumSeparationConflict,
@@ -435,8 +480,13 @@ mod tests {
             y_m: 0.0,
             z_m: 0.0,
             standoff_m: 0.003,
-            model_disagreement_bound_t: Some(disagreement_t),
-            functional_margin_sensitivity_rad_per_t: Some(sensitivity),
+            model_disagreement_lower_bound_t: Some(disagreement_t),
+            model_disagreement_record_id: Some(format!("model-gap-{id}")),
+            functional_sensitivity_interval: Some(FunctionalSensitivityInterval {
+                record_id: format!("sensitivity-{id}"),
+                derivative_lower_rad_per_t: sensitivity,
+                derivative_upper_rad_per_t: sensitivity,
+            }),
             measurement_error_bound_t: error_t,
             acquisition_cost_s: cost_s,
             already_measured: false,
@@ -460,7 +510,7 @@ mod tests {
     #[test]
     fn field_disagreement_without_functional_sensitivity_is_not_ranked() {
         let mut point = candidate("no-sensitivity", 0.0, 0.05, 0.0, 0.001, 1.0);
-        point.functional_margin_sensitivity_rad_per_t = None;
+        point.functional_sensitivity_interval = None;
         let result = plan_decision_directed_scan(&[point], &policy()).expect("valid plan");
         assert!(matches!(
             result.candidates[0].disposition,
@@ -589,10 +639,54 @@ mod tests {
         ));
     }
 
+
+    #[test]
+    fn sensitivity_interval_crossing_zero_is_not_ranked() {
+        let mut point = candidate("nonmonotonic-margin", 0.0, 0.02, 1.0, 0.001, 1.0);
+        point.functional_sensitivity_interval = Some(FunctionalSensitivityInterval {
+            record_id: "sensitivity-crosses-zero".to_owned(),
+            derivative_lower_rad_per_t: -0.1,
+            derivative_upper_rad_per_t: 0.2,
+        });
+        let result = plan_decision_directed_scan(&[point], &policy()).expect("valid plan");
+        assert!(matches!(
+            result.candidates[0].disposition,
+            CandidateDisposition::NotRankable(NotRankableReason::SensitivityIntervalCrossesZero)
+        ));
+    }
+
+    #[test]
+    fn negative_monotonic_sensitivity_interval_uses_minimum_absolute_derivative() {
+        let mut point = candidate("negative-sensitivity", 0.0, 0.02, 1.0, 0.001, 1.0);
+        point.functional_sensitivity_interval = Some(FunctionalSensitivityInterval {
+            record_id: "sensitivity-negative".to_owned(),
+            derivative_lower_rad_per_t: -3.0,
+            derivative_upper_rad_per_t: -2.0,
+        });
+        let result = plan_decision_directed_scan(&[point], &policy()).expect("valid plan");
+        let metrics = &result.candidates[0];
+        assert_eq!(
+            metrics.functional_sensitivity_minimum_absolute_rad_per_t,
+            Some(2.0)
+        );
+        assert!((metrics.decision_impact_lower_bound_rad.unwrap() - 0.036).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn explicit_revisit_policy_can_include_a_previously_measured_point() {
+        let mut point = candidate("explicit-revisit", 0.0, 0.02, 1.0, 0.001, 1.0);
+        point.already_measured = true;
+        let mut p = policy();
+        p.allow_revisit = true;
+        let result = plan_decision_directed_scan(&[point], &p).expect("valid revisit plan");
+        assert_eq!(result.selected_candidate_ids, vec!["explicit-revisit"]);
+    }
+
     #[test]
     fn missing_model_disagreement_is_not_replaced_with_a_guess() {
         let mut point = candidate("no-model-bound", 0.0, 0.02, 1.0, 0.001, 1.0);
-        point.model_disagreement_bound_t = None;
+        point.model_disagreement_lower_bound_t = None;
+        point.model_disagreement_record_id = None;
         let result = plan_decision_directed_scan(&[point], &policy()).expect("valid plan");
         assert!(matches!(
             result.candidates[0].disposition,
