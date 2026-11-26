@@ -9,6 +9,28 @@ use super::{overlaps, validate_proxy_sequence, PairDeltaFrame, ProxyFrame, Tourn
 use incremental_aabb_tree_reference::{BalancePolicy, IncrementalAabbTree, ProxyId, ProxyPair};
 use std::collections::{BTreeMap, BTreeSet};
 
+fn full_relation_reconciliation_threshold(population: usize) -> usize {
+    let population = population.max(1);
+    let ceil_log2 =
+        (usize::BITS - population.saturating_sub(1).leading_zeros()).max(1) as usize;
+    population.saturating_mul(ceil_log2)
+}
+
+#[cfg(test)]
+mod threshold_tests {
+    use super::full_relation_reconciliation_threshold;
+
+    #[test]
+    fn rebuild_threshold_is_n_times_ceiling_log2_n() {
+        assert_eq!(full_relation_reconciliation_threshold(0), 1);
+        assert_eq!(full_relation_reconciliation_threshold(1), 1);
+        assert_eq!(full_relation_reconciliation_threshold(2), 2);
+        assert_eq!(full_relation_reconciliation_threshold(8), 24);
+        assert_eq!(full_relation_reconciliation_threshold(9), 36);
+        assert_eq!(full_relation_reconciliation_threshold(16), 64);
+    }
+}
+
 #[derive(Debug)]
 pub(super) struct IndexedPairDeltaCache<const D: usize> {
     previous_bounds: BTreeMap<ProxyId, super::Aabb<D>>,
@@ -336,11 +358,10 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
         // reconciliation path. The threshold is a work estimate, not a timing
         // claim; the selected mode is exported in the frame receipt.
         let population = self.previous_bounds.len().max(frame.len()).max(1);
-        let log_factor =
-            (usize::BITS - population.saturating_sub(1).leading_zeros()).max(1) as usize;
+        let threshold = full_relation_reconciliation_threshold(population);
         let dirty_pair_upper_bound =
             dirty.len().saturating_mul(dirty.len().saturating_sub(1)) / 2;
-        if dirty_pair_upper_bound > population.saturating_mul(log_factor) {
+        if dirty_pair_upper_bound > threshold {
             return self.apply_full_relation_reconciliation(
                 frame,
                 &dirty,
