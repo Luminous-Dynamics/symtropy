@@ -28,6 +28,8 @@ pub struct MeasurementDisposition {
     pub observation_id: String,
     pub status: String,
     pub reasons: Vec<String>,
+    /// Known events retained as non-applicable to this subject-time acquisition.
+    pub non_applicable_event_ids: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -712,6 +714,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
     for observation in &observations {
         let observation_id = field_str(observation, "id").unwrap_or("observation");
         let mut reasons = BTreeSet::new();
+        let mut non_applicable_event_ids = BTreeSet::new();
         let acquisition_interval = match hard_time_interval(
             observation,
             "acquired_at_unix_ms",
@@ -816,6 +819,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
                 if field_str(event, "certificate_id") != Some(certificate_id) {
                     continue;
                 }
+                let event_id = field_str(event, "id").unwrap_or("event");
                 let Some(recorded_at) = field_u64(event, "recorded_at_unix_ms") else {
                     continue;
                 };
@@ -844,7 +848,10 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
                     latest_unix_ms: evaluated,
                 };
                 match compare_effectivity_intervals(event_interval, snapshot).relation {
-                    EffectivityRelation::DefinitelyNotYetEffective => continue,
+                    EffectivityRelation::DefinitelyNotYetEffective => {
+                        non_applicable_event_ids.insert(event_id.to_owned());
+                        continue;
+                    }
                     EffectivityRelation::BoundaryAmbiguous => {
                         reasons.insert(
                             "CALIBRATION_EVENT_EFFECTIVITY_BOUNDARY_AMBIGUOUS_AT_SNAPSHOT"
@@ -867,7 +874,10 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
                     }
                 };
                 match compare_effectivity_intervals(event_interval, acquisition).relation {
-                    EffectivityRelation::DefinitelyNotYetEffective => continue,
+                    EffectivityRelation::DefinitelyNotYetEffective => {
+                        non_applicable_event_ids.insert(event_id.to_owned());
+                        continue;
+                    }
                     EffectivityRelation::BoundaryAmbiguous => {
                         reasons.insert(
                             "CALIBRATION_EVENT_EFFECTIVITY_BOUNDARY_AMBIGUOUS_AT_ACQUISITION"
@@ -911,6 +921,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
             observation_id: observation_id.to_owned(),
             status: status.to_owned(),
             reasons,
+            non_applicable_event_ids: non_applicable_event_ids.into_iter().collect(),
         });
     }
 
