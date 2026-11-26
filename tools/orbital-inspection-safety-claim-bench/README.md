@@ -15,6 +15,8 @@ The finite-horizon claim must provide a complete temporal enclosure and a lower 
 
 The validator checks declared structure, exact scope, temporal coverage, claim type and declared numerical margin. It does **not** reproduce or authenticate the external dynamics proof, propagator, invariant set or source bytes.
 
+The frozen corpus contains 26 synthetic cases, including exact half-open interval boundary controls. The Rust tests and independent Python oracle are required to agree on the full receipt.
+
 ## Reproduce
 
 ```sh
