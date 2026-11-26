@@ -1310,6 +1310,55 @@ mod tests {
     }
 
     #[test]
+    fn known_future_effective_event_is_retained_but_not_applied_at_snapshot() {
+        let mut case = fixture();
+        let acquired = 1_795_514_400_000u64;
+        case["evaluated_at_unix_ms"] = Value::from(acquired + 1_000);
+        case["calibration_events"] = serde_json::json!([{
+            "id": "EVENT-FUTURE-KNOWN",
+            "certificate_id": "CAL-A",
+            "event_type": "revoked",
+            "effective_at_unix_ms": acquired + 2_000,
+            "recorded_at_unix_ms": acquired + 500,
+            "retroactive": false
+        }]);
+        let report = evaluate_binding_case(&case);
+        assert!(!has_blocker(
+            &report,
+            "CALIBRATION_REVOKED_PENDING_DISPOSITION"
+        ));
+        assert_eq!(
+            report.measurement_dispositions[0].non_applicable_event_ids,
+            vec!["EVENT-FUTURE-KNOWN".to_owned()]
+        );
+    }
+
+    #[test]
+    fn event_recorded_after_snapshot_does_not_leak_into_as_known_report() {
+        let mut case = fixture();
+        let acquired = 1_795_514_400_000u64;
+        case["evaluated_at_unix_ms"] = Value::from(acquired + 1_000);
+        case["calibration_events"] = serde_json::json!([{
+            "id": "EVENT-RECORDED-LATE",
+            "certificate_id": "CAL-A",
+            "event_type": "revoked",
+            "effective_at_unix_ms": acquired - 1_000,
+            "recorded_at_unix_ms": acquired + 2_000,
+            "retroactive": false
+        }]);
+        let report = evaluate_binding_case(&case);
+        assert!(!has_blocker(
+            &report,
+            "CALIBRATION_REVOKED_PENDING_DISPOSITION"
+        ));
+        assert!(
+            report.measurement_dispositions[0]
+                .non_applicable_event_ids
+                .is_empty()
+        );
+    }
+
+    #[test]
     fn event_effective_hard_bounds_overlapping_snapshot_abstain() {
         let mut case = fixture();
         let evaluated = 1_795_516_800_000u64;
