@@ -673,7 +673,7 @@ fn nominal_metrics(
         ordered.push((loss, weight));
     }
     let mean = exact_rational(mean_numerator, u128::from(distribution.denominator))?;
-    ordered.sort_by(|left, right| right.0.cmp(&left.0));
+    ordered.sort_by_key(|row| std::cmp::Reverse(row.0));
     let tail_mass = u128::from(distribution.denominator / 20);
     let mut remaining = tail_mass;
     let mut tail_numerator = 0_u128;
@@ -1050,11 +1050,11 @@ mod tests {
             .unwrap();
         assert_eq!(metric(&result, &[]).lower_bound_avoided_ticks, 0);
         assert_eq!(
-            metric(&result, &[action_a.action_id.clone()]).lower_bound_avoided_ticks,
+            metric(&result, std::slice::from_ref(&action_a.action_id)).lower_bound_avoided_ticks,
             5
         );
         assert_eq!(
-            metric(&result, &[action_b.action_id.clone()]).lower_bound_avoided_ticks,
+            metric(&result, std::slice::from_ref(&action_b.action_id)).lower_bound_avoided_ticks,
             -3
         );
         assert_eq!(
