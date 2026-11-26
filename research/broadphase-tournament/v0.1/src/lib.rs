@@ -220,12 +220,21 @@ fn next_between(state: &mut u64, min: f64, max: f64) -> f64 {
     min + (max - min) * next_unit(state)
 }
 
-fn integer_grid_coordinate(slot: usize, axis: usize) -> f64 {
+fn integer_grid_coordinate(
+    slot: usize,
+    axis: usize,
+    population: usize,
+    dimensions: usize,
+) -> f64 {
+    let side = (population as f64)
+        .powf(1.0 / dimensions as f64)
+        .ceil()
+        .max(1.0) as usize;
     let mut divisor = 1_usize;
     for _ in 0..axis {
-        divisor = divisor.saturating_mul(16);
+        divisor = divisor.saturating_mul(side);
     }
-    ((slot / divisor) % 16) as f64 * 5.0
+    ((slot / divisor) % side) as f64 * 5.0
 }
 
 /// Generate a deterministic sequence. The same family, count, frame count and
@@ -253,18 +262,24 @@ pub fn generate_scene<const D: usize>(
         for axis in 0..D {
             center[axis] = match family {
                 SceneFamily::SparseCoherent | SceneFamily::StaticHeavy => {
-                    integer_grid_coordinate(slot, axis) + next_between(&mut state, -0.1, 0.1)
+                    integer_grid_coordinate(slot, axis, proxy_count, D)
+                        + next_between(&mut state, -0.1, 0.1)
                 }
                 SceneFamily::DenseClustered => next_between(&mut state, -4.0, 4.0),
                 SceneFamily::HighChurn => next_between(&mut state, -30.0, 30.0),
                 SceneFamily::Anisotropic => next_between(&mut state, -24.0, 24.0),
                 SceneFamily::TeleportChurn => next_between(&mut state, -30.0, 30.0),
                 SceneFamily::SleepingWakeups => {
-                    let mut divisor = 1_usize;
-                    for _ in 0..axis {
-                        divisor = divisor.saturating_mul(4);
-                    }
-                    ((slot / divisor) % 4) as f64 * 0.85 + next_between(&mut state, -0.01, 0.01)
+                    let pair_slot = slot / 2;
+                    let pair_population = proxy_count.div_ceil(2);
+                    let pair_offset = if axis == 0 {
+                        if slot % 2 == 0 { -0.25 } else { 0.25 }
+                    } else {
+                        0.0
+                    };
+                    integer_grid_coordinate(pair_slot, axis, pair_population, D)
+                        + pair_offset
+                        + next_between(&mut state, -0.01, 0.01)
                 }
             };
 
@@ -346,8 +361,8 @@ pub fn generate_scene<const D: usize>(
             for axis in 0..D {
                 center[axis] += velocities[slot][axis] * frame_index as f64;
                 if family == SceneFamily::SleepingWakeups && slot % 64 == 0 {
-                    // Two bodies wake and change their bounds once every eight
-                    // frames, then remain stationary until the next wake.
+                    // Two endpoints of distinct contact pairs wake and move at
+                    // discrete eight-frame intervals, remaining still between.
                     let wake_steps = frame_index / 8;
                     center[axis] += wake_steps as f64 * 0.025 * (axis as f64 + 1.0);
                 }
