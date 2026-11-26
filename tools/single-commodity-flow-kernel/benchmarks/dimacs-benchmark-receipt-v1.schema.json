@@ -1,0 +1,546 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous:dimacs-benchmark-receipt:v1",
+  "title": "DIMACS Network Flows 2.0 benchmark receipt",
+  "description": "Per-instance, per-solver benchmark evidence. Missing or unfinished cases must remain explicit; never omit a failed or unsupported case from an aggregate.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "instance",
+    "source",
+    "graph",
+    "solver",
+    "environment",
+    "status",
+    "timings_ms",
+    "memory_bytes",
+    "result",
+    "receipt_claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "luminous-dimacs-benchmark-receipt-v1"
+    },
+    "instance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instance_id",
+        "family",
+        "format_lane"
+      ],
+      "properties": {
+        "instance_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "format_lane": {
+          "enum": [
+            "dimacs_max_32",
+            "dimacs_u64_extension",
+            "generated",
+            "domain_specific"
+          ]
+        },
+        "generator": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "generator_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "parameters": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "seed": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_url",
+        "archive_sha256",
+        "original_instance_sha256",
+        "translator"
+      ],
+      "properties": {
+        "source_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "archive_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "original_instance_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "translator": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "translator_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "normalized_graph_sha256",
+        "node_count",
+        "arc_count",
+        "parallel_arc_count",
+        "capacity_min",
+        "capacity_max"
+      ],
+      "properties": {
+        "normalized_graph_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "node_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "arc_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "parallel_arc_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "capacity_min": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "capacity_max": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "capacity_distribution": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      }
+    },
+    "solver": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "algorithm",
+        "commit_or_release",
+        "configuration"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "algorithm": {
+          "type": "string",
+          "minLength": 1
+        },
+        "commit_or_release": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "configuration": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "warm_or_cold": {
+          "enum": [
+            "cold",
+            "warm",
+            "incremental",
+            "not_applicable"
+          ]
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "os",
+        "cpu",
+        "memory_total_bytes",
+        "compiler",
+        "toolchain"
+      ],
+      "properties": {
+        "os": {
+          "type": "string"
+        },
+        "cpu": {
+          "type": "string"
+        },
+        "memory_total_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "compiler": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "toolchain": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "dnf",
+        "unsupported",
+        "failed",
+        "not_run"
+      ]
+    },
+    "timings_ms": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parse",
+        "normalization",
+        "solve",
+        "bundle",
+        "verify",
+        "end_to_end"
+      ],
+      "properties": {
+        "parse": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "normalization": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "solve": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "bundle": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "verify": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "end_to_end": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "repetitions": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "p50_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "p95_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "p99_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "memory_bytes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "peak_rss",
+        "peak_allocated"
+      ],
+      "properties": {
+        "peak_rss": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "peak_allocated": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "flow_value",
+        "cut_value",
+        "certificate_status",
+        "reference_flow_value",
+        "reference_cut_value",
+        "parity"
+      ],
+      "properties": {
+        "flow_value": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "cut_value": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "certificate_status": {
+          "enum": [
+            "valid",
+            "invalid",
+            "not_available",
+            "not_run"
+          ]
+        },
+        "reference_flow_value": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "reference_cut_value": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "parity": {
+          "enum": [
+            "exact_match",
+            "mismatch",
+            "not_compared",
+            "not_applicable"
+          ]
+        }
+      }
+    },
+    "failure_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "unsupported_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "receipt_claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "completed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "properties": {
+              "flow_value": {
+                "type": "integer"
+              },
+              "cut_value": {
+                "type": "integer"
+              },
+              "certificate_status": {
+                "const": "valid"
+              }
+            }
+          },
+          "timings_ms": {
+            "properties": {
+              "solve": {
+                "type": "number"
+              },
+              "verify": {
+                "type": "number"
+              },
+              "end_to_end": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "dnf"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failure_reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "unsupported"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "unsupported_reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  ]
+}
