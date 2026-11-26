@@ -1001,11 +1001,25 @@ mod tests {
         result.upper_bundle.verify().unwrap();
         assert_eq!(result.lower_bundle.result.max_flow, result.lower.max_flow);
         assert_eq!(result.upper_bundle.result.max_flow, result.upper.max_flow);
+        let lower_json = serde_json::to_vec(&result.lower_bundle).unwrap();
+        let upper_json = serde_json::to_vec(&result.upper_bundle).unwrap();
+        let lower_round_trip: FlowCertificateBundle = serde_json::from_slice(&lower_json).unwrap();
+        let upper_round_trip: FlowCertificateBundle = serde_json::from_slice(&upper_json).unwrap();
+        lower_round_trip.verify().unwrap();
+        upper_round_trip.verify().unwrap();
         for window in &result.windows {
             let lower_bundle = window.lower_individual_certificate.as_ref().unwrap();
             let upper_bundle = window.upper_individual_certificate.as_ref().unwrap();
             lower_bundle.verify().unwrap();
             upper_bundle.verify().unwrap();
+            let lower_round_trip: FlowCertificateBundle = serde_json::from_slice(
+                &serde_json::to_vec(lower_bundle).unwrap()
+            ).unwrap();
+            let upper_round_trip: FlowCertificateBundle = serde_json::from_slice(
+                &serde_json::to_vec(upper_bundle).unwrap()
+            ).unwrap();
+            lower_round_trip.verify().unwrap();
+            upper_round_trip.verify().unwrap();
             assert_eq!(
                 Some(lower_bundle.result.max_flow),
                 window.lower_individual_max_deliverable
@@ -1115,6 +1129,14 @@ mod tests {
         assert_eq!(result.upper_certificate.max_flow, 12);
         result.lower_bundle.verify().unwrap();
         result.upper_bundle.verify().unwrap();
+        let lower_round_trip: FlowCertificateBundle = serde_json::from_slice(
+            &serde_json::to_vec(&result.lower_bundle).unwrap()
+        ).unwrap();
+        let upper_round_trip: FlowCertificateBundle = serde_json::from_slice(
+            &serde_json::to_vec(&result.upper_bundle).unwrap()
+        ).unwrap();
+        lower_round_trip.verify().unwrap();
+        upper_round_trip.verify().unwrap();
         assert_eq!(result.lower_bundle.result.max_flow, 12);
         assert_eq!(result.upper_bundle.result.max_flow, 12);
         assert_eq!(
