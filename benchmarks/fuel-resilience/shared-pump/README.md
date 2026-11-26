@@ -47,15 +47,15 @@ See [SAFRB_INTEGRATION_BENCHMARK_PROTOCOL_V0_1.md](SAFRB_INTEGRATION_BENCHMARK_P
 
 ## Counterfactual service-restoration frontier
 
-The two-window verifier now enumerates the smallest conservative pump-capacity lower bound in window 2 that would satisfy both beneficiary floors, holding every other declared input fixed.
+The two-window verifier now enumerates the smallest **hypothetical** pump-capacity lower bound in window 2 that would satisfy both beneficiary floors, holding every other declared input fixed. The counterfactual capacity evidence is explicitly marked `hypothetical_counterfactual_not_admitted`; the frozen baseline evidence remains unchanged.
 
 - Baseline window-2 pump lower bound: 3 t.
 - Baseline conservative horizon delivery: 9 t / 12 t required.
 - At 5 t lower-bound pump capacity, horizon flow is 11 t; one tonne remains unserved.
 - At 6 t lower-bound pump capacity, horizon max-flow/min-cut is 12/12 t and both separate window service obligations are met.
-- The fixture therefore has a **synthetic mathematical threshold of +3 t of qualified lower-bound pump capacity in window 2**.
+- The fixture therefore has a **synthetic mathematical threshold of +3 t in the hypothetical window-2 pump lower bound**. This is not admitted evidence and does not imply the physical pump can deliver that amount.
 
-This is a counterfactual sensitivity result for the declared graph, not a repair recommendation, procurement quantity, market price, asset rating, dispatch approval or proof that the physical pump can deliver 6 t. A real intervention requires owner authority, calibrated evidence valid over the operation window, independent dependency review and fresh qualification.
+This is a counterfactual sensitivity result for the declared graph, not a repair recommendation, procurement quantity, market price, qualified asset rating, dispatch approval or proof that the physical pump can deliver 6 t. A real intervention requires owner authority, calibrated evidence valid over the operation window, independent dependency review and fresh qualification.
 
 The broader investment frontier should compare capacity uplift, genuinely independent redundancy, delivery rescheduling (only where the beneficiary contract permits it), demand-side alternatives and recovery time as a Pareto set. Do not collapse cost, reliability, rights, emissions and cohort outcomes into one arbitrary weighted score.
 The offline qualification workflow also checks the first counterfactual restoration frontier: it enumerates the minimum second-window pump lower bound needed to meet both service floors and verifies that the immediately smaller bound still leaves a deficit. This is a graph sensitivity control, not a field repair recommendation.
