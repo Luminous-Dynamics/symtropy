@@ -979,7 +979,7 @@ mod tests {
         let exactly_at_threshold =
             mean_final_five_ssim(&[Some(0.99); FRAME_PAIR_N]).expect("five exact threshold scores");
         assert_eq!(exactly_at_threshold, SSIM_THRESHOLD);
-        assert!(exactly_at_threshold > SSIM_THRESHOLD == false);
+        assert!(exactly_at_threshold <= SSIM_THRESHOLD);
         assert!(mean_final_five_ssim(&[Some(1.0); 4]).is_none());
         assert!(
             mean_final_five_ssim(&[Some(1.0), None, Some(1.0), Some(1.0), Some(1.0)]).is_none()
