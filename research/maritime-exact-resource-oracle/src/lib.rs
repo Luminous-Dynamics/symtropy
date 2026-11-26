@@ -629,6 +629,105 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn tidal_mooring_orientation_and_approach_bridge_are_joint_resources() {
+        let candidate = |candidate_id: &str,
+                         vessel_id: &str,
+                         berth_segment: &str,
+                         bridge: &str,
+                         tide_slot: u32,
+                         wait: u64| CandidateAction {
+            candidate_id: candidate_id.to_owned(),
+            vessel_id: vessel_id.to_owned(),
+            reservations: vec![
+                Reservation {
+                    resource_id: berth_segment.to_owned(),
+                    slot: 1,
+                    units: 1,
+                },
+                Reservation {
+                    resource_id: "TIDE-WINDOW".to_owned(),
+                    slot: tide_slot,
+                    units: 1,
+                },
+                Reservation {
+                    resource_id: bridge.to_owned(),
+                    slot: 2,
+                    units: 1,
+                },
+            ],
+            objective: ObjectiveVector {
+                vessel_wait: wait,
+                receiver_delay: 1,
+                energy_cost: 2,
+                emissions: 1,
+                missed_connections: 0,
+            },
+        };
+
+        let scenario = Scenario {
+            vessel_ids: vec!["V1".to_owned(), "V2".to_owned()],
+            capacities: vec![
+                ResourceCapacity {
+                    resource_id: "BERTH-NORTH".to_owned(),
+                    slot: 1,
+                    capacity: 1,
+                },
+                ResourceCapacity {
+                    resource_id: "BERTH-SOUTH".to_owned(),
+                    slot: 1,
+                    capacity: 1,
+                },
+                ResourceCapacity {
+                    resource_id: "TIDE-WINDOW".to_owned(),
+                    slot: 0,
+                    capacity: 0,
+                },
+                ResourceCapacity {
+                    resource_id: "TIDE-WINDOW".to_owned(),
+                    slot: 1,
+                    capacity: 2,
+                },
+                ResourceCapacity {
+                    resource_id: "BRIDGE-EAST".to_owned(),
+                    slot: 2,
+                    capacity: 1,
+                },
+                ResourceCapacity {
+                    resource_id: "BRIDGE-WEST".to_owned(),
+                    slot: 2,
+                    capacity: 1,
+                },
+            ],
+            candidates: vec![
+                candidate("V1_NORTH", "V1", "BERTH-NORTH", "BRIDGE-EAST", 1, 0),
+                candidate("V1_SOUTH", "V1", "BERTH-SOUTH", "BRIDGE-WEST", 1, 1),
+                candidate("V1_TIDE_CLOSED", "V1", "BERTH-NORTH", "BRIDGE-EAST", 0, 0),
+                candidate("V2_NORTH", "V2", "BERTH-NORTH", "BRIDGE-EAST", 1, 0),
+                candidate("V2_SOUTH", "V2", "BERTH-SOUTH", "BRIDGE-WEST", 1, 1),
+            ],
+        };
+
+        let result = enumerate(&scenario).unwrap();
+        assert_eq!(result.feasible_plans.len(), 2);
+        assert_eq!(
+            result
+                .feasible_plans
+                .iter()
+                .map(|plan| plan.candidate_ids.clone())
+                .collect::<Vec<_>>(),
+            vec![
+                vec!["V1_NORTH".to_owned(), "V2_SOUTH".to_owned()],
+                vec!["V1_SOUTH".to_owned(), "V2_NORTH".to_owned()],
+            ]
+        );
+        assert!(result
+            .feasible_plans
+            .iter()
+            .all(|plan| !plan.candidate_ids.contains(&"V1_TIDE_CLOSED".to_owned())));
+    }
+
     #[test]
     fn duplicate_vessel_selection_cannot_be_constructed_by_enumerator() {
         let mut scenario = base_scenario();
