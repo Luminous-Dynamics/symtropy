@@ -247,7 +247,7 @@ fn build_episode(seed: u64, index: usize, profile_sha256: &str) -> CandidateEpis
             payload_sha256: digest_label(&format!("{episode_id}:payload")),
             action_prefix_sha256: digest_label(&format!("{episode_id}:action-prefix")),
             endpoint_id: "manipulator-endpoint-01".to_owned(),
-            endpoint_profile_sha256: digest_label("aerb-generator-endpoint-profile-v0.1"),
+            endpoint_profile_sha256: profile_sha256.to_owned(),
             authority_epoch: 7 + (index % 3) as u64,
             queue_generation: 2 + (index % 5) as u64,
             execution_scope_id: "robot-cell-01".to_owned(),
