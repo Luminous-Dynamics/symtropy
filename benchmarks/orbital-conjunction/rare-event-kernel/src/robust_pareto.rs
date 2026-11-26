@@ -307,10 +307,9 @@ pub fn evaluate_robust_pareto(
         }
         if let ScenarioFeasibility::Infeasible { reason_digest }
         | ScenarioFeasibility::Unresolved { reason_digest } = assessment.feasibility
+            && reason_digest.iter().all(|byte| *byte == 0)
         {
-            if reason_digest.iter().all(|byte| *byte == 0) {
-                return Err(RobustParetoError::InvalidFeasibilityReason);
-            }
+            return Err(RobustParetoError::InvalidFeasibilityReason);
         }
 
         assessment
@@ -324,9 +323,7 @@ pub fn evaluate_robust_pareto(
         let requires_objectives = assessment.feasibility == ScenarioFeasibility::Feasible;
         let has_complete_objectives = observed_ids == objective_ids;
         let has_no_objectives = observed_ids.is_empty();
-        if (requires_objectives && !has_complete_objectives)
-            || (!requires_objectives && !has_complete_objectives && !has_no_objectives)
-        {
+        if !has_complete_objectives && (requires_objectives || !has_no_objectives) {
             return Err(RobustParetoError::InvalidObjectiveProduct);
         }
         if rows
