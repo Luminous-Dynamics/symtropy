@@ -80,7 +80,7 @@ pub enum BackendKind {
 }
 
 impl BackendKind {
-    pub const ALL: [Self; 8] = [
+    pub const ALL: [Self; 9] = [
         Self::BruteForce,
         Self::SweepAndPrune,
         Self::TreePerLeafUnbalanced,
@@ -663,9 +663,11 @@ impl<const D: usize> PairDeltaCache<D> {
                     frontier_proxy_visits = frontier_proxy_visits
                         .checked_add(1)
                         .ok_or(TournamentError::CounterOverflow)?;
-                    frontier_pair_candidates = frontier_pair_candidates
-                        .checked_add(1)
-                        .ok_or(TournamentError::CounterOverflow)?;
+                    if other.id != *dirty_id {
+                        frontier_pair_candidates = frontier_pair_candidates
+                            .checked_add(1)
+                            .ok_or(TournamentError::CounterOverflow)?;
+                    }
                     if let Some(pair) = ProxyPair::new(*dirty_id, other.id) {
                         affected_pairs.insert(pair);
                     }
