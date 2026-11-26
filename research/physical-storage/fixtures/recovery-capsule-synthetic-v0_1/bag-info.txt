@@ -1,0 +1,4 @@
+Bagging-Date: 2026-11-26
+Payload-Oxum: 57.1
+Bag-Software-Agent: Physical Recovery Capsule synthetic fixture v0.1
+External-Identifier: urn:luminous-dynamics:physical-recovery-capsule:synthetic-001
