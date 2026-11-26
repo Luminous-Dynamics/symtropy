@@ -113,6 +113,17 @@ class PortableCertificateTests(unittest.TestCase):
         with self.assertRaises(CertificateError):
             verify_bundle(changed)
 
+    def test_u64_max_golden_bundle_preserves_the_exact_integer_token(self):
+        path = FIXTURE.with_name("flow-certificate-v1.u64-max.json")
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("18446744073709551615", text)
+        self.assertNotIn("18446744073709552000", text)
+        bundle = load_json_strict(text)
+        report = verify_bundle(bundle)
+        self.assertEqual(report["maximum_flow"], (1 << 64) - 1)
+        self.assertEqual(report["minimum_cut"], (1 << 64) - 1)
+        self.assertEqual(bundle["graph"]["edges"][0]["capacity"], (1 << 64) - 1)
+
     def test_uint64_boundaries_are_exact_python_integers(self):
         for value in (0, (1 << 53) - 1, (1 << 53) + 1, (1 << 63), (1 << 64) - 1):
             self.assertIsInstance(value, int)
