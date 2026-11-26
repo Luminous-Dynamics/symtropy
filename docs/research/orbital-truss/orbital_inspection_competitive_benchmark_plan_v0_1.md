@@ -88,6 +88,46 @@ NIST TN 2119 lays out confidence intervals and confidence bounds for probability
 
 Source: https://doi.org/10.6028/NIST.TN.2119
 
+## Spacecraft-inspection baseline: shielded RL versus PRM–MIQCQP
+
+Stephenson and Schaub (2026), *Two Approaches to Autonomous Spacecraft Inspection: Shielded Reinforcement Learning versus Probabilistic Roadmaps*, is a direct orbital comparator rather than an adjacent industrial analogy. It models an eccentric-LEO servicer inspecting a Hill-frame-fixed resident object under range, pointing, illumination and collision constraints. The terminal task requires inspection of at least 90% of illuminated surface points, with a 5 m keep-out constraint in the shield experiment. The study compares:
+
+- an onboard PPO/MLP closed-loop policy with an optimization-based action shield;
+- an offline probabilistic roadmap plus mixed-integer quadratically-constrained quadratic program (PRM–MIQCQP) that searches a fuel/time trade space.
+
+Its reported results are useful engineering targets, not general guarantees:
+- the 2×256 MLP inference takes about 100 µs per decision;
+- the offline PRM–MIQCQP takes about 10 minutes on an Apple M2 Pro 12-core system with Gurobi 10.0.1;
+- over 1,000 shield comparison seeds, the shield eliminates the observed collisions, while adding an average 0.12 orbits and 0.21 m/s fuel;
+- the shield intervenes on 33.8% of actions, with mean adjustment about 0.04 m/s;
+- the PRM Pareto front generally dominates the studied RL fuel/time front in that simulator, but is an offline open-loop plan.
+
+Source: https://doi.org/10.1007/s40295-026-00631-w
+
+The paper states no dataset was generated or analyzed. A genuine reproduction may therefore require rebuilding the environment and equations from the paper; label that as an independent reimplementation, not an exact source-code replication. Freeze the environment, orbital elements, RSO geometry/attitude, target point set, illumination model, maneuver limits, keep-out radius, initial states, solver and seed set before comparing.
+
+### Orbital comparator tournament
+
+Use the paper's two original approaches as the baseline and add:
+1. **Offline PRM–MIQCQP** — fuel/time Pareto reference.
+2. **Shielded closed-loop RL** — onboard reactive and low-latency baseline.
+3. **Hybrid PRM + receding-horizon repair** — offline global route, onboard bounded local repair when the observed asset state or inspection evidence diverges.
+4. **Two-key admission** — every proposed inspection action must pass independently qualified physical safety and measurement evidence gates; recovery actions are a separate type.
+5. **Evidence-gated recourse** — only after the doubly admissible action set exists, use #7393/#7178 decision-value ranking and #6887/#7292 sequential evidence state.
+6. **Exact finite oracle** — evaluator-only comparison on tiny action graphs, not a runtime spacecraft planner.
+
+Run paired trials under identical dynamics, candidate action spaces, initial state, target points, illumination and propellant/time budgets. The same action must be judged under the same keep-out and trajectory model. Report:
+- fuel / delta-v and elapsed orbits;
+- inspection point coverage and valid-evidence coverage separately;
+- collision / keep-out violations and minimum margin;
+- shield intervention rate, magnitude and false-intervention burden;
+- ineligible action rates split by safety, portfolio, calibration, timing and scope;
+- correct resolution, premature stop, appropriate abstention and reacquisition;
+- offline planning time, onboard decision latency, memory, compute, communications and energy;
+- degradation under ephemeris/attitude uncertainty, tumbling or slewing targets, delayed messages, lighting/shadow changes and stale evidence.
+
+The stretch target is a Pareto improvement over the original baselines in **evidence-valid inspection yield** at matched risk, while preserving the RL-class onboard response time and moving closer to the PRM-class fuel/time frontier. Do not claim this until the matched simulator and held-out seeds exist. Safety violations remain a disqualifying metric; they cannot be traded against additional coverage or information value.
+
 ## Fair comparator tournament
 
 Every arm must receive the same geometry, target characteristics, candidate-view pool, hardware limits, sensor model, calibration state, evidence prefix, resource budget and evaluation truth.
