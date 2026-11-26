@@ -463,10 +463,7 @@ fn validate_claim_shape(claim: &Claim) -> Result<(), String> {
     match claim.claim_type {
         ClaimType::FaultDelivered => {
             if claim.observation_window.is_none() && !claim.asserted_value {
-                return Err(format!(
-                    "FAULT_ABSENCE_REQUIRES_WINDOW: {}",
-                    claim.claim_id
-                ));
+                return Err(format!("FAULT_ABSENCE_REQUIRES_WINDOW: {}", claim.claim_id));
             }
         }
         ClaimType::EffectApplied => {
