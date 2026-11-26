@@ -10,6 +10,7 @@ publish = false
 swept-pair-oracle = { path = "../../swept-pair-oracle/v0.1" }
 directional-motion-envelopes = { path = "../../directional-motion-envelopes/v0.1" }
 incremental-aabb-tree-reference = { path = "../../incremental-aabb-tree-reference/v0.1" }
+sha2 = "0.10.9"
 
 [lib]
 path = "src/lib.rs"
