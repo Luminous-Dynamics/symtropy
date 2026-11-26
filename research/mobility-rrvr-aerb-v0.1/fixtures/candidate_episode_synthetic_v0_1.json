@@ -77,5 +77,6 @@
       "acquisition_cost_units": 1,
       "result_delay_steps": 3
     }
-  ]
+  ],
+  "world_vocabulary_version": "aerb-ambiguous-command-history-v0.1"
 }
