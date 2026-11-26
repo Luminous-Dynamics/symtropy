@@ -1,0 +1,28 @@
+{
+  "schema_version": "0.1",
+  "benchmark": "AERB",
+  "episode_id": "aerb-synthetic-0001",
+  "candidate_snapshot_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "model_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "observer_profile_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "possible_world_support_ids": [
+    "not_dispatched",
+    "dispatched_no_effect",
+    "applied_once_ack_lost",
+    "partial_effect",
+    "duplicate_effect",
+    "stale_authority_effect",
+    "unresolved_command_holder"
+  ],
+  "disposition": "request_observation",
+  "requested_probe_id": "read_endpoint_journal",
+  "reason_codes": [
+    "ACKNOWLEDGEMENT_LOST",
+    "EFFECT_HISTORY_UNRESOLVED",
+    "PRESERVE_POSSIBLE_WORLDS"
+  ],
+  "explanation_observation_ids": [
+    "obs-001",
+    "obs-002"
+  ]
+}
