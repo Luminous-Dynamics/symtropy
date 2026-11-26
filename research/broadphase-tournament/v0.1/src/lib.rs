@@ -348,10 +348,9 @@ pub fn generate_scene<const D: usize>(
     })
 }
 
-fn validate_frame<const D: usize>(frame: &[ProxyFrame<D>]) -> Result<(), TournamentError> {
-    if frame.is_empty() {
-        return Err(TournamentError::EmptyFrame);
-    }
+fn validate_proxy_sequence<const D: usize>(
+    frame: &[ProxyFrame<D>],
+) -> Result<(), TournamentError> {
     let mut previous = None;
     for proxy in frame {
         if !proxy.bounds.is_valid() {
@@ -363,6 +362,13 @@ fn validate_frame<const D: usize>(frame: &[ProxyFrame<D>]) -> Result<(), Tournam
         previous = Some(proxy.id);
     }
     Ok(())
+}
+
+fn validate_frame<const D: usize>(frame: &[ProxyFrame<D>]) -> Result<(), TournamentError> {
+    if frame.is_empty() {
+        return Err(TournamentError::EmptyFrame);
+    }
+    validate_proxy_sequence(frame)
 }
 
 fn overlaps<const D: usize>(left: &Aabb<D>, right: &Aabb<D>) -> bool {
@@ -483,7 +489,7 @@ impl<const D: usize> PairDeltaCache<D> {
         &self,
         frame: &[ProxyFrame<D>],
     ) -> Result<Vec<ProxyId>, TournamentError> {
-        validate_frame(frame)?;
+        validate_proxy_sequence(frame)?;
         let mut dirty = BTreeSet::<ProxyId>::new();
         let mut old_iter = self.previous_bounds.iter().peekable();
         let mut new_iter = frame.iter().peekable();
@@ -570,7 +576,7 @@ impl<const D: usize> PairDeltaCache<D> {
         dirty_ids: &[ProxyId],
         allow_full_invalidation: bool,
     ) -> Result<PairDeltaFrame, TournamentError> {
-        validate_frame(frame)?;
+        validate_proxy_sequence(frame)?;
         if self.force_dirty && !allow_full_invalidation {
             return Err(TournamentError::DirtyJournalCannotApplyFullInvalidation);
         }
@@ -1491,6 +1497,31 @@ mod tests {
         assert_eq!(removal.removed, vec![pair]);
         assert_eq!(removal.active_pairs, 0);
         assert!(cache.active_pairs().is_empty());
+    }
+
+    #[test]
+    fn pair_delta_cache_removes_last_proxy_and_accepts_empty_frames() {
+        let mut cache = PairDeltaCache::<2>::new();
+        let initial = [
+            test_proxy(1, [0.0, 0.0], [1.0, 1.0]),
+            test_proxy(2, [0.5, 0.5], [1.5, 1.5]),
+        ];
+        assert_eq!(cache.step(&initial).unwrap().added.len(), 1);
+
+        let dirty = cache.derive_dirty_proxy_ids(&[]).unwrap();
+        assert_eq!(dirty, vec![ProxyId(1), ProxyId(2)]);
+        assert!(cache.verify_dirty_proxy_ids(&[], &dirty).unwrap());
+        let removed = cache.step(&[]).unwrap();
+        assert_eq!(removed.removed.len(), 1);
+        assert_eq!(removed.active_pairs, 0);
+        assert!(cache.active_pairs().is_empty());
+
+        let reinitialized = [test_proxy(3, [10.0, 10.0], [11.0, 11.0])];
+        let fresh = cache.step(&reinitialized).unwrap();
+        assert!(fresh.added.is_empty());
+        assert!(fresh.removed.is_empty());
+        assert_eq!(fresh.dirty_proxies, 1);
+        assert_eq!(fresh.active_pairs, 0);
     }
 
     #[test]
