@@ -153,10 +153,9 @@ mod tests {
                 for acquisition_earliest in 0..=3 {
                     for acquisition_latest in acquisition_earliest..=3 {
                         let event = interval(event_earliest, event_latest);
-                        let acquisition =
-                            interval(acquisition_earliest, acquisition_latest);
-                        let every_pair_effective = (event_earliest..=event_latest)
-                            .all(|event_time| {
+                        let acquisition = interval(acquisition_earliest, acquisition_latest);
+                        let every_pair_effective =
+                            (event_earliest..=event_latest).all(|event_time| {
                                 (acquisition_earliest..=acquisition_latest)
                                     .all(|acquisition_time| event_time <= acquisition_time)
                             });
@@ -185,8 +184,7 @@ mod tests {
 
     #[test]
     fn event_definitely_effective_before_every_acquisition_time() {
-        let result =
-            compare_effectivity_intervals(interval(80, 90), interval(100, 110));
+        let result = compare_effectivity_intervals(interval(80, 90), interval(100, 110));
         assert_eq!(result.relation, EffectivityRelation::DefinitelyEffective);
     }
 
