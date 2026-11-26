@@ -2081,6 +2081,29 @@ mod tests {
     }
 
     #[test]
+    fn sleeping_wakeup_fixture_has_zero_work_intervals_and_two_proxy_wake_frontiers() {
+        let scene =
+            generate_scene::<3>(SceneFamily::SleepingWakeups, 128, 40, 0x5eed_1126).unwrap();
+        for (frame_index, frame) in scene.frames.iter().enumerate() {
+            let dirty = if frame_index == 0 {
+                frame.iter().map(|proxy| proxy.id).collect::<Vec<_>>()
+            } else {
+                changed_proxy_ids(&scene.frames[frame_index - 1], frame)
+                    .into_iter()
+                    .collect()
+            };
+            let expected = if frame_index == 0 {
+                128
+            } else if frame_index % 8 == 0 {
+                2
+            } else {
+                0
+            };
+            assert_eq!(dirty.len(), expected, "frame {frame_index}");
+        }
+    }
+
+    #[test]
     fn high_churn_reinsertions_receive_fresh_proxy_generation_ids() {
         let scene = generate_scene::<3>(SceneFamily::HighChurn, 64, 40, 0x6e65_7767).unwrap();
         let mut previously_active = BTreeSet::<ProxyId>::new();
