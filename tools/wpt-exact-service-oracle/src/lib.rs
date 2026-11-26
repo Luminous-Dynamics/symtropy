@@ -370,8 +370,16 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
 pub struct ReceiverAllocation {
     pub receiver_id: String,
     pub minimum_service_mwh: u64,
-    pub delivered_mwh: u64,
-    pub shortfall_mwh: u64,
+    /// This receiver's allocation in the one joint max-flow witness.
+    /// It is not an individual maximum or a fairness guarantee.
+    pub joint_witness_allocation_mwh: u64,
+    pub joint_witness_shortfall_mwh: u64,
+    /// Maximum flow to this receiver when other receiver-obligation sink
+    /// edges are removed. Independent maxima are not additive across receivers.
+    pub individual_max_deliverable_mwh: u64,
+    pub individual_max_min_cut_capacity_mwh: u64,
+    pub individual_max_graph_sha256: String,
+    pub individual_floor_feasible: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -605,17 +613,40 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
         .map(|edge| (edge.id.clone(), edge.flow))
         .collect::<BTreeMap<_, _>>();
 
+    let obligation_edge_ids = demand_edge_ids.values()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
     let mut receiver_allocations = Vec::with_capacity(scenario.receivers.len());
     for (receiver_id, receiver) in &scenario.receivers {
         let edge_id = demand_edge_ids
             .get(receiver_id)
             .ok_or_else(|| format!("missing demand edge for {receiver_id}"))?;
-        let delivered_mwh = required_wpt_flow(&edge_flows, edge_id)?;
+        let joint_witness_allocation_mwh = required_wpt_flow(&edge_flows, edge_id)?;
+
+        // Remove other receiver sink obligations to compute this receiver's
+        // isolated maximum. This diagnostic is not additive: shared capacity
+        // may make the sum of these maxima exceed the joint maximum flow.
+        let mut individual_graph = graph.clone();
+        individual_graph.edges.retain(|edge| {
+            !obligation_edge_ids.contains(edge.id.as_str())
+                || edge.id.as_str() == edge_id.as_str()
+        });
+        let individual_result = individual_graph
+            .solve()
+            .map_err(|error| format!("individual maximum for {receiver_id}: {error}"))?;
+        let individual_max_deliverable_mwh = individual_result.max_flow;
+
         receiver_allocations.push(ReceiverAllocation {
             receiver_id: receiver_id.clone(),
             minimum_service_mwh: receiver.minimum_service_mwh,
-            delivered_mwh,
-            shortfall_mwh: receiver.minimum_service_mwh - delivered_mwh,
+            joint_witness_allocation_mwh,
+            joint_witness_shortfall_mwh: receiver.minimum_service_mwh
+                - joint_witness_allocation_mwh,
+            individual_max_deliverable_mwh,
+            individual_max_min_cut_capacity_mwh: individual_result.min_cut.capacity,
+            individual_max_graph_sha256: individual_result.graph_sha256,
+            individual_floor_feasible: individual_max_deliverable_mwh
+                >= receiver.minimum_service_mwh,
         });
     }
 
@@ -729,7 +760,8 @@ mod tests {
             report
                 .receiver_allocations
                 .iter()
-                .all(|row| row.shortfall_mwh == 0)
+                .all(|row| row.joint_witness_shortfall_mwh == 0
+                && row.individual_floor_feasible)
         );
         assert_eq!(
             report
