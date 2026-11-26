@@ -12,7 +12,7 @@ fn parse_dimacs_max(input: &str) -> Result<FlowGraph, String> {
     let mut problem: Option<(usize, usize)> = None;
     let mut source: Option<usize> = None;
     let mut sink: Option<usize> = None;
-    let mut arcs: Vec<(usize, usize, u64, usize)> = Vec::new();
+    let mut arcs: Vec<(usize, usize, u64)> = Vec::new();
     let mut saw_arc = false;
 
     for (line_zero, raw_line) in input.lines().enumerate() {
@@ -108,7 +108,7 @@ fn parse_dimacs_max(input: &str) -> Result<FlowGraph, String> {
                 if arcs.len() >= arc_count {
                     return Err(format!("line {line_number}: more arcs than declared"));
                 }
-                arcs.push((from, to, capacity, line_number));
+                arcs.push((from, to, capacity));
             }
             other => {
                 return Err(format!("line {line_number}: unsupported record type {other}"));
@@ -137,7 +137,7 @@ fn parse_dimacs_max(input: &str) -> Result<FlowGraph, String> {
     let edges = arcs
         .into_iter()
         .enumerate()
-        .map(|(index, (from, to, capacity, line_number))| {
+        .map(|(index, (from, to, capacity))| {
             FlowEdge::new(
                 format!("arc-{index:010}"),
                 format!("node-{from:010}"),
