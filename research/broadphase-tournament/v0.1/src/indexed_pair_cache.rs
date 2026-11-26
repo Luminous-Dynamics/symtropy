@@ -97,12 +97,30 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
         Ok(dirty.into_iter().collect())
     }
 
+    /// Require complete geometric coverage while allowing additional known
+    /// IDs for wake-only or explicit lifecycle invalidations. Snapshot
+    /// comparison cannot prove the provenance of these extra wake reasons.
     pub(super) fn verify_dirty_proxy_ids(
         &self,
         frame: &[ProxyFrame<D>],
         supplied: &[ProxyId],
     ) -> Result<bool, TournamentError> {
-        Ok(self.derive_dirty_proxy_ids(frame)? == supplied)
+        let expected = self.derive_dirty_proxy_ids(frame)?;
+        let mut previous = None;
+        for id in supplied {
+            if previous.is_some_and(|prior| prior >= *id) {
+                return Ok(false);
+            }
+            let existed_before = self.previous_bounds.contains_key(id);
+            let exists_now = frame.binary_search_by_key(id, |proxy| proxy.id).is_ok();
+            if !existed_before && !exists_now {
+                return Ok(false);
+            }
+            previous = Some(*id);
+        }
+        Ok(expected
+            .iter()
+            .all(|id| supplied.binary_search(id).is_ok()))
     }
 
     pub(super) fn step(
