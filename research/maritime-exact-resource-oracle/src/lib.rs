@@ -727,7 +727,6 @@ mod tests {
             .all(|plan| !plan.candidate_ids.contains(&"V1_TIDE_CLOSED".to_owned())));
     }
 
-
     #[test]
     fn dgt_recovery_routes_direct_berth_102_or_ngqura_feeder_and_gauteng_rail() {
         let direct = |candidate_id: &str, vessel_id: &str| CandidateAction {
