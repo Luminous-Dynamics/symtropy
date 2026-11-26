@@ -8,7 +8,9 @@
 //! approve an aircraft. A consistent binding is only a prerequisite for
 //! evidence review by competent authorities.
 
-use crate::effectivity_interval_v0_1::{EffectivityRelation, TimeInterval, compare_effectivity_intervals};
+use crate::effectivity_interval_v0_1::{
+    EffectivityRelation, TimeInterval, compare_effectivity_intervals,
+};
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -149,8 +151,8 @@ fn hard_time_interval(
             latest_unix_ms: point,
         }),
         (true, true) => {
-            let earliest = field_u64(value, earliest_field)
-                .ok_or("TIME_BOUNDS_VALUE_MISSING_OR_INVALID")?;
+            let earliest =
+                field_u64(value, earliest_field).ok_or("TIME_BOUNDS_VALUE_MISSING_OR_INVALID")?;
             let latest =
                 field_u64(value, latest_field).ok_or("TIME_BOUNDS_VALUE_MISSING_OR_INVALID")?;
             if earliest > latest {
@@ -1202,7 +1204,10 @@ mod tests {
             "retroactive": false
         }]);
         let report = evaluate_binding_case(&case);
-        assert!(!has_blocker(&report, "CALIBRATION_REVOKED_PENDING_DISPOSITION"));
+        assert!(!has_blocker(
+            &report,
+            "CALIBRATION_REVOKED_PENDING_DISPOSITION"
+        ));
         assert_eq!(
             report.measurement_dispositions[0].status,
             "METROLOGY_BINDING_CONSISTENT_ONLY"
@@ -1217,10 +1222,8 @@ mod tests {
     fn acquisition_hard_bounds_inside_calibration_validity_are_admitted_for_binding() {
         let mut case = fixture();
         let acquired = 1_795_514_400_000u64;
-        case["observations"][0]["acquisition_time_earliest_unix_ms"] =
-            Value::from(acquired - 50);
-        case["observations"][0]["acquisition_time_latest_unix_ms"] =
-            Value::from(acquired + 50);
+        case["observations"][0]["acquisition_time_earliest_unix_ms"] = Value::from(acquired - 50);
+        case["observations"][0]["acquisition_time_latest_unix_ms"] = Value::from(acquired + 50);
         let report = evaluate_binding_case(&case);
         assert!(!has_blocker(
             &report,
@@ -1241,10 +1244,8 @@ mod tests {
         let mut case = fixture();
         let start = 1_795_510_800_000u64;
         case["observations"][0]["acquired_at_unix_ms"] = Value::from(start);
-        case["observations"][0]["acquisition_time_earliest_unix_ms"] =
-            Value::from(start - 1);
-        case["observations"][0]["acquisition_time_latest_unix_ms"] =
-            Value::from(start + 1);
+        case["observations"][0]["acquisition_time_earliest_unix_ms"] = Value::from(start - 1);
+        case["observations"][0]["acquisition_time_latest_unix_ms"] = Value::from(start + 1);
         let report = evaluate_binding_case(&case);
         assert!(has_blocker(
             &report,
@@ -1258,10 +1259,8 @@ mod tests {
         let evaluated = 1_795_516_800_000u64;
         case["evaluated_at_unix_ms"] = Value::from(evaluated);
         case["observations"][0]["acquired_at_unix_ms"] = Value::from(evaluated);
-        case["observations"][0]["acquisition_time_earliest_unix_ms"] =
-            Value::from(evaluated - 1);
-        case["observations"][0]["acquisition_time_latest_unix_ms"] =
-            Value::from(evaluated + 1);
+        case["observations"][0]["acquisition_time_earliest_unix_ms"] = Value::from(evaluated - 1);
+        case["observations"][0]["acquisition_time_latest_unix_ms"] = Value::from(evaluated + 1);
         assert!(has_blocker(
             &evaluate_binding_case(&case),
             "ACQUISITION_TIME_BOUNDARY_AMBIGUOUS_AT_EVALUATION_SNAPSHOT"
