@@ -158,6 +158,12 @@ impl From<KernelError> for PortfolioProposalError {
 pub struct DefensiveProposalEvaluation {
     /// Mode key whose coverage is being evaluated.
     pub mode_key: PortfolioEventModeKey,
+    /// Source-declared identity of the target probability measure.
+    pub target_measure_id: [u8; 32],
+    /// Density-space identity for coordinates, frame, units and epoch semantics.
+    pub density_space_id: [u8; 32],
+    /// Digest of the exact target, mode universe and defensive proposal configuration.
+    pub configuration_digest: [u8; 32],
     /// Log target density p(u).
     pub log_target_density: f64,
     /// Log density of the complete defensive mixture q(u).
@@ -465,6 +471,9 @@ impl PortfolioDefensiveGaussianMixture {
 
         Ok(DefensiveProposalEvaluation {
             mode_key,
+            target_measure_id: self.target_measure_id,
+            density_space_id: self.density_space_id,
+            configuration_digest: self.configuration_digest,
             log_target_density,
             log_full_proposal_density,
             log_importance_weight,
@@ -643,6 +652,9 @@ mod tests {
         for point in [-40.0, -5.0, 0.0, 5.0, 40.0] {
             for mode in [key(10, 1, 1), key(20, 1, 2)] {
                 let result = mixture.evaluate_draw(mode, &[point], 1.0).unwrap();
+                assert_eq!(result.target_measure_id, mixture.target_measure_id());
+                assert_eq!(result.density_space_id, mixture.density_space_id());
+                assert_eq!(result.configuration_digest, mixture.configuration_digest());
                 assert!(
                     result.log_importance_weight <= -mixture.defensive_fraction().ln() + 1.0e-12
                 );
