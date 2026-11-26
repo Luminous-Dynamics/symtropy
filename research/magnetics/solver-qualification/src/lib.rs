@@ -311,7 +311,11 @@ pub fn validate_run(
         run.problem.coordinate_frame_id.as_str(),
     ];
     if identity_strings.into_iter().any(|value| !nonempty(value))
-        || run.solver.direct_dependency_ids.iter().any(|value| !nonempty(value))
+        || run
+            .solver
+            .direct_dependency_ids
+            .iter()
+            .any(|value| !nonempty(value))
     {
         return Err(QualificationError::EmptyIdentity);
     }
@@ -322,10 +326,7 @@ pub fn validate_run(
     validate_digest(&run.problem.geometry_sha256, "geometry_sha256")?;
     validate_digest(&run.problem.material_sha256, "material_sha256")?;
     validate_digest(&run.problem.physics_input_sha256, "physics_input_sha256")?;
-    validate_digest(
-        &run.problem.observer_grid_sha256,
-        "observer_grid_sha256",
-    )?;
+    validate_digest(&run.problem.observer_grid_sha256, "observer_grid_sha256")?;
 
     if !method_supports_model(run.solver.method, run.problem.model_class) {
         return Err(QualificationError::IncompatibleMethodAndModel);
