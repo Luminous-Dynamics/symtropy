@@ -572,7 +572,7 @@ mod tests {
         for edge in &result.lower.edge_flows {
             assert_eq!(
                 edge.flow,
-                expected_witness[&edge.id].as_u64().unwrap(),
+                expected_witness.get(edge.id.as_str()).unwrap().as_u64().unwrap(),
                 "lower flow witness edge {}",
                 edge.id
             );
