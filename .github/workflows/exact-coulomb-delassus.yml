@@ -2,12 +2,12 @@ name: Exact Coulomb Delassus Reference
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, "research/exact-coulomb-delassus-v0.1", "research/exact-coulomb-contact-law-v0.1"]
     paths:
       - "research/exact-coulomb-delassus/v0.1/**"
       - ".github/workflows/exact-coulomb-delassus.yml"
   push:
-    branches: [main, "research/exact-coulomb-delassus-v0.1"]
+    branches: [main, "research/exact-coulomb-delassus-v0.1", "research/exact-coulomb-contact-law-v0.1"]
     paths:
       - "research/exact-coulomb-delassus/v0.1/**"
       - ".github/workflows/exact-coulomb-delassus.yml"
@@ -31,12 +31,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: delassus-rustfmt
-          path: research/exact-coulomb-delassus/v0.1/src/lib.rs
+          path: research/exact-coulomb-delassus/v0.1/src/
           if-no-files-found: error
       - name: Commit rustfmt changes on branch push
         if: github.event_name == 'push'
         env:
-          SOURCE_PATH: research/exact-coulomb-delassus/v0.1/src/lib.rs
+          SOURCE_PATH: research/exact-coulomb-delassus/v0.1/src
         run: |
           if ! git diff --quiet -- "$SOURCE_PATH"; then
             git config user.name "github-actions[bot]"
