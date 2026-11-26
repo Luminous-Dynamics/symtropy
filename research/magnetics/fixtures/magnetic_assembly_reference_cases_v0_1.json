@@ -1,0 +1,54 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MAG-ARRAY-REF-001",
+  "evidence_status": "independent_gauss_legendre_surface_integral_reference_not_measurement",
+  "model": "prescribed_uniform_polarization_rigid_cuboid_sources_with_linear_superposition",
+  "units": {
+    "half_dimensions": "m",
+    "translation": "m",
+    "polarization": "T",
+    "B": "T"
+  },
+  "pose_contract": {
+    "rotation": "right_handed_orthonormal_3x3_determinant_plus_one",
+    "local_observer": "R^T * (x_global - translation)",
+    "global_field": "R * B_local"
+  },
+  "cases": [
+    {
+      "case_id": "ARRAY-FOUR-SEGMENT-CENTRE-001",
+      "half_dimensions_m": [0.01, 0.01, 0.02],
+      "observer_global_m": [0.0, 0.0, 0.0],
+      "components": [
+        {"id": 1, "center_m": [-0.03, 0.0, 0.0], "rotation": [[1,0,0],[0,1,0],[0,0,1]], "polarization_J_T": [1.0,0.0,0.0]},
+        {"id": 2, "center_m": [0.03, 0.0, 0.0], "rotation": [[1,0,0],[0,1,0],[0,0,1]], "polarization_J_T": [1.0,0.0,0.0]},
+        {"id": 3, "center_m": [0.0, -0.03, 0.0], "rotation": [[1,0,0],[0,1,0],[0,0,1]], "polarization_J_T": [0.0,1.0,0.0]},
+        {"id": 4, "center_m": [0.0, 0.03, 0.0], "rotation": [[1,0,0],[0,1,0],[0,0,1]], "polarization_J_T": [0.0,1.0,0.0]}
+      ],
+      "quadrature_method": "220x220 tensor-product Gauss-Legendre surface integration on each charged face of all four components",
+      "expected_B_T": [0.13564553917542044, 0.13564553917542044, 0.0]
+    }
+  ],
+  "negative_controls": [
+    "empty_assembly",
+    "duplicate_component_id",
+    "non_orthonormal_rotation",
+    "reflection_determinant_negative_one",
+    "non_finite_translation",
+    "non_finite_observer",
+    "source_component_boundary_error"
+  ],
+  "metamorphic_controls": [
+    "identity_pose_matches_single_cuboid",
+    "global_rotation_covariance",
+    "assembly_order_invariance_within_roundoff",
+    "linear_polarization_superposition"
+  ],
+  "interpretation": {
+    "mutual_demagnetization_solved": false,
+    "nonlinear_BH": false,
+    "component_overlap_checked": false,
+    "physical_measurement": false,
+    "component_qualification": false
+  }
+}

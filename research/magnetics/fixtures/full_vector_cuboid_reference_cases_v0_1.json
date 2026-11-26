@@ -1,0 +1,70 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MAG-FINITE-VECTOR-001",
+  "evidence_status": "independent_gauss_legendre_surface_integral_reference_not_measurement",
+  "model": "uniformly_polarized_cuboid_six_rectangular_surface_charge_faces",
+  "units": {
+    "half_dimensions": "m",
+    "polarization": "T",
+    "observer_position": "m",
+    "B": "T"
+  },
+  "quadrature_reference": {
+    "method": "2D tensor-product Gauss-Legendre integration over each of six charged rectangular faces",
+    "nodes_per_axis": 220,
+    "source_term": "sigma/(4*pi) * (r-r')/|r-r'|^3 dA",
+    "material_term": "add J only for strictly interior observer"
+  },
+  "cases": [
+    {
+      "case_id": "CUBOID-3D-CENTRE-001",
+      "half_dimensions_m": [0.05,0.04,0.03],
+      "polarization_J_T": [0.3,-0.1,1.2],
+      "observer_m": [0.0,0.0,0.0],
+      "expected_B_T": [0.23750736462628469,-0.068957385855997394,0.62248191122289265]
+    },
+    {
+      "case_id": "CUBOID-3D-INSIDE-OFFAXIS-001",
+      "half_dimensions_m": [0.05,0.04,0.03],
+      "polarization_J_T": [0.3,-0.1,1.2],
+      "observer_m": [0.03,0.02,0.01],
+      "expected_B_T": [0.26206018774489753,-0.0013019874126937864,0.73005793993482149]
+    },
+    {
+      "case_id": "CUBOID-3D-OUTSIDE-OFFAXIS-001",
+      "half_dimensions_m": [0.05,0.04,0.03],
+      "polarization_J_T": [0.3,-0.1,1.2],
+      "observer_m": [0.1,0.08,0.06],
+      "expected_B_T": [0.015926295793236546,0.018502084308102039,-0.0039083808506699437]
+    },
+    {
+      "case_id": "CUBOID-3D-OUTSIDE-MIXED-001",
+      "half_dimensions_m": [0.05,0.04,0.03],
+      "polarization_J_T": [0.3,-0.1,1.2],
+      "observer_m": [-0.01,0.03,0.075],
+      "expected_B_T": [-0.027407633010405701,0.05914710861782526,0.096075180845258373]
+    }
+  ],
+  "metamorphic_controls": [
+    "central_inversion_B_minus_r_equals_B_r",
+    "polarization_linearity",
+    "global_polarization_reversal",
+    "common_geometry_scaling_at_fixed_polarization",
+    "far_field_converges_to_same_volume_point_dipole"
+  ],
+  "negative_controls": [
+    "observer_on_face_or_cuboid_coordinate_plane",
+    "non_finite_dimension",
+    "non_positive_dimension",
+    "non_finite_polarization",
+    "non_finite_observer",
+    "unrepresentable_normalized_geometry"
+  ],
+  "interpretation": {
+    "full_vector_off_axis": true,
+    "homogeneous_prescribed_polarization_only": true,
+    "nonlinear_BH": false,
+    "physical_measurement": false,
+    "component_qualification": false
+  }
+}
