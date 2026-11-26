@@ -1,5 +1,5 @@
 use maritime_plan_bundle::{
-    evaluate_bundle, BundleDisposition, CommitmentProjectionProvider, CommitmentProjectionReceipt,
+    evaluate_bundle, CommitmentProjectionProvider, CommitmentProjectionReceipt,
     CommitmentRequirement, CommitmentState, PhysicalDisposition, PlannedReservation, ProviderError,
     ResourcePlanReceipt,
 };
