@@ -377,7 +377,7 @@ fn compatible_kind_transform(
     transforms.iter().copied().find(|transform| {
         let mut source_signatures = source_relations
             .iter()
-.map(|relation| source_relation_signature(relation, node_map, *transform))
+            .map(|relation| source_relation_signature(relation, node_map, *transform))
             .collect::<Option<Vec<_>>>();
         let Some(source_signatures) = source_signatures.as_mut() else {
             return false;
