@@ -19,7 +19,7 @@ The crate checks five claim classes:
 - Fault delivered: injector execution receipt plus a physical observation from a different declared independence group.
 - Effect applied / no effect: a physical observation for the effect identity. An absence claim additionally requires complete observation coverage over a declared interval.
 - Endpoint fenced: endpoint receipt with accepted epoch, retired high-water, queue generation, no outstanding/in-flight work, and terminal actuator fencing.
-- Temporal closure: a complete independent holder/edge inventory; a qualifying fence receipt for every holder; and old-epoch enqueue closure for every inventoried edge.
+- Temporal closure: a complete independent holder/edge inventory; a qualifying fence receipt for every holder; and old-epoch enqueue closure for every inventoried edge, with each edge receipt bound to the required authority epoch and exact queue generation.
 
 A claim's decision cutoff is an ingest sequence. Evidence ingested later and not named in the claim snapshot is counted as excluded late evidence; it cannot silently rewrite the earlier claim. A new claim or superseding assessment is required.
 
