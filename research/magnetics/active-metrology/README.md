@@ -4,35 +4,44 @@ A zero-dependency Rust reference for deterministic, decision-directed selection 
 
 ## Research thesis
 
-Uniform grids are useful baselines, but a measurement has the greatest engineering value where qualified models disagree and that disagreement is consequential to a named functional requirement.
+Uniform grids are useful baselines, but an informative measurement should be located where qualified model predictions are provably separated and the downstream functional requirement is sensitive to the measured field.
 
 For each candidate point, the planner consumes:
-- a model-set disagreement bound in tesla;
-- an absolute sensitivity of the named functional margin in radians per tesla;
-- a simultaneous absolute measurement-error bound in tesla;
+- a **lower bound** on the separation between at least two qualified model-prediction intervals, in tesla;
+- a signed interval enclosing the derivative of the named functional margin over the complete model-disagreement segment, in radians per tesla;
+- a simultaneous absolute measurement-error bound, in tesla;
 - acquisition cost in seconds;
-- exact frame, operating-condition, probe-calibration, qualified-model-set and requirement identities.
+- exact frame, operating-condition, probe-calibration, model-set and requirement identities.
+
+The signed sensitivity interval must lie wholly above or below zero. If its interval crosses zero, a positive decision-impact lower bound cannot be established and the point is not ranked.
 
 The transparent screening metric is:
 
-    resolvable_field_separation = max(0, model_disagreement - 2 * measurement_error)
-    resolvable_decision_impact = resolvable_field_separation * abs(d_margin / dB)
-    priority = resolvable_decision_impact / acquisition_cost
+    resolvable_model_separation_lower_bound =
+        max(0, model_disagreement_lower_bound - 2 * measurement_error_bound)
 
-The factor of two reflects the two-sided absolute measurement-error bound: two model predictions separated by no more than twice the measurement bound are not guaranteed to be distinguishable by this observation. This is a deterministic screening heuristic, not expected information gain or a probability.
+    minimum_absolute_sensitivity =
+        min(abs(sensitivity_interval.lower), abs(sensitivity_interval.upper))
 
-The full unadjusted decision-impact bound is also reported. Model disagreement, measurement uncertainty, sensitivity and acquisition cost remain individually visible; no opaque weighted composite is used.
+    decision_impact_lower_bound =
+        resolvable_model_separation_lower_bound * minimum_absolute_sensitivity
+
+    priority = decision_impact_lower_bound / acquisition_cost
+
+The factor of two reflects the two-sided absolute measurement-error bound: model-prediction intervals separated by less than this cannot be guaranteed distinguishable by this measurement. The product is a conservative lower bound only when the supplied model-separation and signed sensitivity intervals are themselves valid over the declared point and condition.
+
+All source record IDs and component values remain separately visible. A missing disagreement lower bound or sensitivity interval is not replaced with a guessed value.
 
 ## Evidence separation
 
 Only `AdaptiveExploration` points may be selected. Model-calibration, blind-holdout and post-selection-qualification candidates remain protected and are not ranked. The planner cannot consume the blind validation map or move its points into the adaptive scan.
 
-Each candidate is bound to exact frame, operating condition, probe calibration, qualified model-set and functional-requirement identities. Mismatches fail closed. Previously measured points are excluded unless an explicit policy permits revisit.
+Each candidate is bound to exact frame, operating condition, probe calibration, qualified model-set and functional-requirement identities. Mismatches fail closed. Previously measured points are excluded unless the policy explicitly permits revisiting.
 
 ## Scan constraints
 
 Selection is deterministic and greedy over the supplied candidate list:
-- descending priority;
+- descending lower-bound decision impact per second;
 - stable candidate ID for exact score ties;
 - input order as a final tie-break;
 - minimum Euclidean 3D spacing;
@@ -44,10 +53,10 @@ The planner reports selected order and explicit exclusion/not-rankable reasons f
 
 ## Benchmark programme
 
-Compare against a uniform grid, seeded random sampling, maximum field-variance sampling, maximum solver-disagreement sampling, sensitivity-only sampling and a full-map oracle. Use identical probe calibration, coordinate registration, standoff, condition, cost model and blind holdout map.
+Compare against a uniform grid, seeded random sampling, maximum field-variance sampling, maximum cross-solver disagreement sampling, sensitivity-only sampling, decision-directed sampling and a full-map oracle. Use identical probe calibration, coordinate registration, standoff, condition, cost model and blind holdout map.
 
 Report observations and scan time to stabilize the engineering decision, blind-holdout functional error, false-accept/false-reject rate, missed risk regions, calibration overhead and planner determinism. Do not claim sample-efficiency improvement until these matched trials exist.
 
 ## Claim ceiling
 
-This crate ranks only the supplied candidate list and supplied source-bound values. It does not verify the physical correctness of model disagreement or sensitivity, estimate a probability, establish field-map calibration, replace blind validation, infer manufacturing yield or qualify a component.
+This crate ranks only the supplied candidate list and supplied source-bound values. It does not verify the physical correctness of the model-separation or sensitivity records, estimate a probability, establish field-map calibration, replace blind validation, infer manufacturing yield or qualify a component.
