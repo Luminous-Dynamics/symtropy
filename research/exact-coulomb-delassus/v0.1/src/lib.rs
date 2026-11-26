@@ -1,10 +1,10 @@
 #![forbid(unsafe_code)]
 
-pub mod coulomb_cone;
-
 //! Dependency-free 3D matrix-free Delassus reference operator.
 //! Evaluates J M^-1 J^T lambda without materializing the dense matrix.
 //! This is a linear response operator, not a Coulomb contact solver.
+
+pub mod coulomb_cone;
 
 use std::collections::BTreeMap;
 use std::error::Error;
