@@ -84,7 +84,11 @@ for (const item of corpus.cases) {
     || !item.world_set_source_case_id
     || !/^[0-9a-f]{64}$/.test(item.world_set_receipt_sha256)
     || !/^[0-9a-f]{40}$/.test(modelSet.source_commit)
-    || !/^[0-9a-f]{64}$/.test(modelSet.source_receipt_sha256)
+    || (!/^[0-9a-f]{64}$/.test(modelSet.source_receipt_sha256)
+      && !(item.case_id === "loss_model_source_pin_malformed"
+        && item.expected?.disposition === "INVALID_INPUT"
+        && item.expected?.trigger_reason === "upstream world or loss-model receipt pins are malformed"
+        && modelSet.source_receipt_sha256 === "not-a-sha256"))
     || !/^[0-9a-f]{64}$/.test(modelSet.source_scenarios_sha256)
     || !/^[0-9a-f]{64}$/.test(modelSet.projected_scenarios_sha256)
     || typeof modelSet.source_loss_unit !== "string" || !modelSet.source_loss_unit
