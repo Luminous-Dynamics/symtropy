@@ -724,7 +724,9 @@ mod tests {
     #[test]
     fn csv_header_and_rows_have_identical_width_and_retain_scene_identity() {
         let scene = generate_scene::<3>(SceneFamily::HighChurn, 32, 7, 0x1234_5678).unwrap();
-        let row = run_tournament(&scene, TournamentConfig::new(1)).unwrap().remove(0);
+        let row = run_tournament(&scene, TournamentConfig::new(1))
+            .unwrap()
+            .remove(0);
         assert_eq!(
             row.csv_header().split(',').count(),
             row.to_csv().split(',').count()
