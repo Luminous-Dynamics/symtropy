@@ -38,6 +38,10 @@ pub struct WindowResult {
     /// Individual maxima for different obligations need not be jointly feasible.
     pub lower_individual_max_deliverable: u64,
     pub upper_individual_max_deliverable: u64,
+    /// Full primal/dual certificates for each isolated maximum. These bind
+    /// the modified graph digest, edge-flow witness and min-cut witness.
+    pub lower_individual_certificate: FlowResult,
+    pub upper_individual_certificate: FlowResult,
     pub disposition: WindowDisposition,
 }
 
@@ -648,6 +652,8 @@ fn evaluate_internal(value: &Value, allow_hypothetical: bool) -> Result<SafrbCer
             upper_joint_witness_allocation: upper_joint,
             lower_individual_max_deliverable: lower_individual_max,
             upper_individual_max_deliverable: upper_individual_max,
+            lower_individual_certificate: lower_individual,
+            upper_individual_certificate: upper_individual,
             disposition: individual_verdict(
                 lower_individual_max,
                 upper_individual_max,
@@ -889,6 +895,22 @@ mod tests {
             (result.windows[0].lower_joint_witness_allocation, result.windows[1].lower_joint_witness_allocation),
             (6, 3)
         );
+        for window in &result.windows {
+            assert_eq!(
+                window.lower_individual_certificate.max_flow,
+                window.lower_individual_max_deliverable
+            );
+            assert_eq!(
+                window.lower_individual_certificate.max_flow,
+                window.lower_individual_certificate.min_cut.capacity
+            );
+            assert_eq!(
+                window.upper_individual_certificate.max_flow,
+                window.upper_individual_certificate.min_cut.capacity
+            );
+            assert!(window.lower_individual_certificate.graph_sha256.starts_with("sha256:"));
+            assert!(window.upper_individual_certificate.graph_sha256.starts_with("sha256:"));
+        }
         assert_eq!(result.disposition, ServiceDisposition::IndeterminateNotGuaranteed);
         let expected_witness = expected["flow_witness"].as_object().unwrap();
         for edge in &result.lower.edge_flows {
