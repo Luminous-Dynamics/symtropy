@@ -591,60 +591,45 @@ fn push_status(status: &mut AuditStatus, next: AuditStatus) {
     };
 }
 
-fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> CandidateAudit {
+fn audit_pose(comparison: &PoseComparison, label: &str) -> (AuditStatus, PoseCheck, Vec<String>) {
+    let mut check = PoseCheck {
+        observed_error_mm: None,
+        threshold_mm: POSE_THRESHOLD_MM,
+        passed: None,
+    };
+    let mut reasons = Vec::new();
+    match pose_error_mm(&comparison.original, &comparison.replayed) {
+        Ok(error_mm) => {
+            let passed = error_mm < POSE_THRESHOLD_MM;
+            check.observed_error_mm = Some(error_mm);
+            check.passed = Some(passed);
+            if !passed {
+                reasons.push(format!("{label}_POSE_ERROR_NOT_BELOW_2MM"));
+                (AuditStatus::Invalid, check, reasons)
+            } else {
+                (AuditStatus::Valid, check, reasons)
+            }
+        }
+        Err(reason) => {
+            reasons.push(reason);
+            (AuditStatus::Unresolved, check, reasons)
+        }
+    }
+}
+
+fn audit_frame_sequence(
+    frame_pairs: &[FramePairAsset],
+    artifact_root: &Path,
+) -> (AuditStatus, Vec<FrameCheck>, Option<f64>, Option<bool>, Vec<String>) {
     let mut status = AuditStatus::Valid;
-    let mut reason_codes = Vec::new();
-    let mut end_effector = PoseCheck {
-        observed_error_mm: None,
-        threshold_mm: POSE_THRESHOLD_MM,
-        passed: None,
-    };
-    let mut object_pose = PoseCheck {
-        observed_error_mm: None,
-        threshold_mm: POSE_THRESHOLD_MM,
-        passed: None,
-    };
-    for (name, comparison, check) in [
-        ("END_EFFECTOR", &candidate.end_effector, &mut end_effector),
-        ("OBJECT", &candidate.object_pose, &mut object_pose),
-    ] {
-        match pose_error_mm(&comparison.original, &comparison.replayed) {
-            Ok(error_mm) => {
-                let passed = error_mm < POSE_THRESHOLD_MM;
-                check.observed_error_mm = Some(error_mm);
-                check.passed = Some(passed);
-                if !passed {
-                    reason_codes.push(format!("{name}_POSE_ERROR_NOT_BELOW_2MM"));
-                    push_status(&mut status, AuditStatus::Invalid);
-                }
-            }
-            Err(reason) => {
-                reason_codes.push(reason);
-                push_status(&mut status, AuditStatus::Unresolved);
-            }
-        }
-    }
-
-    let successes = match validate_difficulty_screen(&candidate.difficulty_screen) {
-        Ok(successes) => successes,
-        Err(reasons) => {
-            reason_codes.extend(reasons);
-            push_status(&mut status, AuditStatus::Invalid);
-            candidate.difficulty_screen.trials.iter().filter(|trial| trial.success).count()
-        }
-    };
-    if let Err(reason) = validate_spot_check(&candidate.spot_check) {
-        reason_codes.push(reason);
-        push_status(&mut status, AuditStatus::Invalid);
-    }
-
-    let mut frame_checks = Vec::with_capacity(candidate.final_frame_pairs.len());
-    if candidate.final_frame_pairs.len() != FRAME_PAIR_N {
-        reason_codes.push("FINAL_FRAME_PAIR_COUNT_NOT_5".to_owned());
+    let mut reasons = Vec::new();
+    let mut frame_checks = Vec::with_capacity(frame_pairs.len());
+    if frame_pairs.len() != FRAME_PAIR_N {
+        reasons.push("FINAL_FRAME_PAIR_COUNT_NOT_5".to_owned());
         push_status(&mut status, AuditStatus::Invalid);
     }
     let mut seen_frame_indices = BTreeSet::new();
-    for (expected_index, frame) in candidate.final_frame_pairs.iter().enumerate() {
+    for (expected_index, frame) in frame_pairs.iter().enumerate() {
         let mut check = FrameCheck {
             frame_index: frame.frame_index,
             original_sha256: frame.original_sha256.clone(),
@@ -656,23 +641,23 @@ fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> Candida
             ssim: None,
         };
         if frame.frame_index as usize != expected_index {
-            reason_codes.push("FRAME_INDEX_ORDER_INVALID".to_owned());
+            reasons.push("FRAME_INDEX_ORDER_INVALID".to_owned());
             push_status(&mut status, AuditStatus::Invalid);
         }
         if !seen_frame_indices.insert(frame.frame_index) {
-            reason_codes.push("FRAME_INDEX_DUPLICATED".to_owned());
+            reasons.push("FRAME_INDEX_DUPLICATED".to_owned());
             push_status(&mut status, AuditStatus::Invalid);
             frame_checks.push(check);
             continue;
         }
         if frame.frame_index as usize >= FRAME_PAIR_N {
-            reason_codes.push("FRAME_INDEX_OUT_OF_RANGE".to_owned());
+            reasons.push("FRAME_INDEX_OUT_OF_RANGE".to_owned());
             push_status(&mut status, AuditStatus::Invalid);
             frame_checks.push(check);
             continue;
         }
         if !is_sha256(&frame.original_sha256) || !is_sha256(&frame.replay_sha256) {
-            reason_codes.push("FRAME_DIGEST_INVALID".to_owned());
+            reasons.push("FRAME_DIGEST_INVALID".to_owned());
             push_status(&mut status, AuditStatus::Invalid);
             frame_checks.push(check);
             continue;
@@ -680,7 +665,7 @@ fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> Candida
         let original_path = match safe_artifact_path(artifact_root, &frame.original_path) {
             Ok(path) => path,
             Err(reason) => {
-                reason_codes.push(reason);
+                reasons.push(reason);
                 push_status(&mut status, AuditStatus::Unresolved);
                 frame_checks.push(check);
                 continue;
@@ -689,7 +674,7 @@ fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> Candida
         let replay_path = match safe_artifact_path(artifact_root, &frame.replay_path) {
             Ok(path) => path,
             Err(reason) => {
-                reason_codes.push(reason);
+                reasons.push(reason);
                 push_status(&mut status, AuditStatus::Unresolved);
                 frame_checks.push(check);
                 continue;
@@ -698,7 +683,7 @@ fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> Candida
         let original_bytes = match fs::read(original_path) {
             Ok(bytes) => bytes,
             Err(error) => {
-                reason_codes.push(format!("ORIGINAL_FRAME_READ_FAILED: {error}"));
+                reasons.push(format!("ORIGINAL_FRAME_READ_FAILED: {error}"));
                 push_status(&mut status, AuditStatus::Unresolved);
                 frame_checks.push(check);
                 continue;
@@ -707,7 +692,7 @@ fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> Candida
         let replay_bytes = match fs::read(replay_path) {
             Ok(bytes) => bytes,
             Err(error) => {
-                reason_codes.push(format!("REPLAY_FRAME_READ_FAILED: {error}"));
+                reasons.push(format!("REPLAY_FRAME_READ_FAILED: {error}"));
                 push_status(&mut status, AuditStatus::Unresolved);
                 frame_checks.push(check);
                 continue;
@@ -716,7 +701,7 @@ fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> Candida
         if sha256_hex(&original_bytes) != frame.original_sha256
             || sha256_hex(&replay_bytes) != frame.replay_sha256
         {
-            reason_codes.push("FRAME_DIGEST_MISMATCH".to_owned());
+            reasons.push("FRAME_DIGEST_MISMATCH".to_owned());
             push_status(&mut status, AuditStatus::Invalid);
             frame_checks.push(check);
             continue;
@@ -724,7 +709,7 @@ fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> Candida
         let original_image = match decode_png(&original_bytes) {
             Ok(image) => image,
             Err(reason) => {
-                reason_codes.push(format!("ORIGINAL_{reason}"));
+                reasons.push(format!("ORIGINAL_{reason}"));
                 push_status(&mut status, AuditStatus::Invalid);
                 frame_checks.push(check);
                 continue;
@@ -733,7 +718,7 @@ fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> Candida
         let replay_image = match decode_png(&replay_bytes) {
             Ok(image) => image,
             Err(reason) => {
-                reason_codes.push(format!("REPLAY_{reason}"));
+                reasons.push(format!("REPLAY_{reason}"));
                 push_status(&mut status, AuditStatus::Invalid);
                 frame_checks.push(check);
                 continue;
@@ -744,28 +729,92 @@ fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> Candida
         check.replay_width = Some(replay_image.width);
         check.replay_height = Some(replay_image.height);
         match compute_ssim(&original_image, &replay_image) {
-            Ok(ssim) => {
-                check.ssim = Some(ssim);
-            }
+            Ok(ssim) => check.ssim = Some(ssim),
             Err(reason) => {
-                reason_codes.push(reason);
+                reasons.push(reason);
                 push_status(&mut status, AuditStatus::Invalid);
             }
         }
         frame_checks.push(check);
     }
     if (0..FRAME_PAIR_N as u8).any(|index| !seen_frame_indices.contains(&index)) {
-        reason_codes.push("FRAME_INDEX_SEQUENCE_INCOMPLETE".to_owned());
+        reasons.push("FRAME_INDEX_SEQUENCE_INCOMPLETE".to_owned());
         push_status(&mut status, AuditStatus::Invalid);
     }
     frame_checks.sort_by_key(|check| check.frame_index);
-    let frame_scores: Vec<Option<f64>> =
-        frame_checks.iter().map(|check| check.ssim).collect();
-    let mean_final_five_ssim = mean_final_five_ssim(&frame_scores);
-    let mean_ssim_passed = mean_final_five_ssim.map(|mean| mean > SSIM_THRESHOLD);
+
+    let scores: Vec<Option<f64>> = frame_checks.iter().map(|check| check.ssim).collect();
+    let mean_ssim = mean_final_five_ssim(&scores);
+    let mean_ssim_passed = mean_ssim.map(|mean| mean > SSIM_THRESHOLD);
     if mean_ssim_passed == Some(false) {
-        reason_codes.push("MEAN_FINAL_FIVE_FRAME_SSIM_NOT_ABOVE_0_99".to_owned());
+        reasons.push("MEAN_FINAL_FIVE_FRAME_SSIM_NOT_ABOVE_0_99".to_owned());
         push_status(&mut status, AuditStatus::Invalid);
+    } else if mean_ssim_passed.is_none() {
+        push_status(&mut status, AuditStatus::Unresolved);
+    }
+
+    (status, frame_checks, mean_ssim, mean_ssim_passed, reasons)
+}
+
+fn audit_spot_check_attempt(attempt: &SpotCheckAttempt, artifact_root: &Path) -> SpotCheckAudit {
+    let (ee_status, end_effector, mut reason_codes) =
+        audit_pose(&attempt.end_effector, "END_EFFECTOR");
+    let (object_status, object_pose, object_reasons) =
+        audit_pose(&attempt.object_pose, "OBJECT");
+    reason_codes.extend(object_reasons);
+
+    let (frame_status, frame_checks, mean_final_five_ssim, mean_ssim_passed, frame_reasons) =
+        audit_frame_sequence(&attempt.final_frame_pairs, artifact_root);
+    reason_codes.extend(frame_reasons);
+
+    let mut status = AuditStatus::Valid;
+    push_status(&mut status, ee_status);
+    push_status(&mut status, object_status);
+    push_status(&mut status, frame_status);
+
+    SpotCheckAudit {
+        attempt_id: attempt.attempt_id.clone(),
+        status,
+        end_effector,
+        object_pose,
+        frame_checks,
+        mean_final_five_ssim,
+        mean_ssim_threshold: SSIM_THRESHOLD,
+        mean_ssim_passed,
+        reason_codes,
+    }
+}
+
+fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> CandidateAudit {
+    let mut status = AuditStatus::Valid;
+    let mut reason_codes = Vec::new();
+
+    let successes = match validate_difficulty_screen(&candidate.difficulty_screen) {
+        Ok(successes) => successes,
+        Err(reasons) => {
+            reason_codes.extend(reasons);
+            push_status(&mut status, AuditStatus::Invalid);
+            candidate.difficulty_screen.trials.iter().filter(|trial| trial.success).count()
+        }
+    };
+
+    if let Err((selection_status, reason)) = validate_spot_check(
+        &candidate.spot_check,
+        &candidate.difficulty_screen,
+        artifact_root,
+    ) {
+        reason_codes.push(reason);
+        push_status(&mut status, selection_status);
+    }
+
+    let spot_checks: Vec<SpotCheckAudit> = candidate
+        .spot_check
+        .attempts
+        .iter()
+        .map(|attempt| audit_spot_check_attempt(attempt, artifact_root))
+        .collect();
+    for attempt_audit in &spot_checks {
+        push_status(&mut status, attempt_audit.status);
     }
 
     CandidateAudit {
@@ -775,15 +824,10 @@ fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> Candida
         source_trajectory_id: candidate.source_trajectory_id.clone(),
         trajectory_cluster_id: candidate.trajectory_cluster_id.clone(),
         status,
-        end_effector,
-        object_pose,
-        frame_checks,
-        mean_final_five_ssim,
-        mean_ssim_threshold: SSIM_THRESHOLD,
-        mean_ssim_passed,
         difficulty_success_n: successes,
         difficulty_trial_n: candidate.difficulty_screen.trials.len(),
         spot_check_attempt_ids: candidate.spot_check.selected_attempt_ids.clone(),
+        spot_checks,
         reason_codes,
     }
 }
