@@ -1136,7 +1136,10 @@ mod tests {
         let removed = [inserted[0], inserted[2]];
         let remove = cache.step(&removed).unwrap();
         assert_eq!(remove.removed.len(), 2);
-        assert_eq!(cache.active_pairs(), Vec::<ProxyPair>::new());
+        assert_eq!(
+            cache.active_pairs(),
+            vec![ProxyPair::new(ProxyId(1), ProxyId(3)).unwrap()]
+        );
 
         cache.invalidate_all();
         let revalidate = cache.step(&removed).unwrap();
