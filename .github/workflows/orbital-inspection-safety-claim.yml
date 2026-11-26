@@ -44,9 +44,9 @@ jobs:
           Draft202012Validator.check_schema(schema)
           errors = list(Draft202012Validator(schema).iter_errors(fixture))
           assert not errors, errors
-          assert len(fixture["cases"]) == 24
-          assert len({case["case_id"] for case in fixture["cases"]}) == 24
-          print("24 typed safety-claim cases and Draft 2020-12 schema validated")
+          assert len(fixture["cases"]) == 26
+          assert len({case["case_id"] for case in fixture["cases"]}) == 26
+          print("26 typed safety-claim cases and Draft 2020-12 schema validated")
           PY
       - name: Format
         run: cargo fmt --manifest-path tools/orbital-inspection-safety-claim-bench/Cargo.toml -- --check
@@ -70,7 +70,7 @@ jobs:
           rust = json.loads(Path("/tmp/safety-claim-rust-a.json").read_text())
           oracle = json.loads(Path("/tmp/safety-claim-python.json").read_text())
           assert rust == oracle
-          assert rust["expected_disposition_matches"] == 24
+          assert rust["expected_disposition_matches"] == 26
           assert rust["expected_disposition_mismatches"] == 0
           assert rust["source_bytes_authenticated"] is False
           assert rust["authority_granted"] is False
@@ -80,7 +80,9 @@ jobs:
           assert cases["SA-014-PC-ONLY"]["disposition"] == "RISK_ONLY"
           assert cases["SA-019-CLEARANCE-TOO-SMALL"]["disposition"] == "SAFETY_CLAIM_FAILED"
           assert cases["SA-024-ABORT-REACHABLE-CONTINUATION"]["disposition"] == "SAFETY_CLAIMS_COMPLETE"
-          print("Rust and independent oracle agree on all 24 typed safety-claim cases")
+          assert cases["SA-025-FINITE-VALID-UNTIL-EQUALS-ACTION-END"]["disposition"] == "SAFETY_CLAIMS_COMPLETE"
+          assert cases["SA-026-TERMINAL-VALID-UNTIL-EQUALS-EPOCH"]["disposition"] == "OUT_OF_SCOPE"
+          print("Rust and independent oracle agree on all 26 typed safety-claim cases")
           PY
       - name: Retain exact-head evidence
         if: success()
