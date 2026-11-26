@@ -285,14 +285,16 @@ impl DefensiveContrastConfidenceSequence {
         let epsilon = self.proposal.defensive_fraction();
         let (normalized_lower, normalized_upper) = if let Some(sequence) = &self.sequence {
             let current = sequence.confidence_sequence();
-            let lower = next_down(current.lower / epsilon).max(0.0);
-            let upper = next_up(current.upper / epsilon).min(1.0);
+            let lower = next_down(current.lower / epsilon).clamp(0.0, 1.0);
+            let upper = next_up(current.upper / epsilon).clamp(0.0, 1.0);
             if !lower.is_finite() || !upper.is_finite() || lower > upper {
                 return Err(DefensiveContrastSequenceError::NumericalFailure);
             }
             (lower, upper)
         } else {
-            (0.0, 1.0)
+            // A zero-width consequence range maps to the constant normalized
+            // contrast zero; no stochastic interval or proposal draw is needed.
+            (0.0, 0.0)
         };
 
         let width = (self.upper_consequence_bound_ticks - self.lower_consequence_bound_ticks) as f64;
