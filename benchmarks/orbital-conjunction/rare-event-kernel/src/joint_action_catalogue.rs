@@ -721,8 +721,7 @@ mod tests {
     fn post_action_event_inventory_digest_is_order_invariant_and_content_bound() {
         let first = event(10, (1, 2_000_000), (2, 2_000_000));
         let second = event(11, (1, 3_000_000), (1, 3_000_000));
-        let forward =
-            canonical_post_action_event_inventory_digest(&[first, second]).unwrap();
+        let forward = canonical_post_action_event_inventory_digest(&[first, second]).unwrap();
         let reverse = canonical_post_action_event_inventory_digest(&[second, first]).unwrap();
         let single = canonical_post_action_event_inventory_digest(&[event(
             10,
