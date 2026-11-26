@@ -83,6 +83,24 @@ The accepted candidate set is reported as a Pareto frontier over three separate 
 
 The guarantee is only as strong as the supplied simultaneous vector-error bounds. IDs are opaque and do not authenticate records. No probability, manufacturing yield, physical ASIC qualification or lifetime reliability is inferred.
 
+
+## Sensor-parameter tolerance synthesis
+
+The additional `robust_synthesis::synthesize_with_sensor_parameter_bounds` entry point extends the finite candidate tournament to include independently declared per-channel sensor-axis, BOP and BRP absolute error bounds. Each parameter record binds to the exact candidate configuration ID and carries its own record ID.
+
+For a nominal in-plane field vector magnitude `|B|`, field-vector error radius `r`, and axis-angle bound `delta` in [0, pi], the projection-axis rotation contribution is bounded by:
+
+    delta_B_axis <= 2 * (|B| + r) * sin(delta / 2)
+
+The effective projected-field radius conservatively adds:
+- the original field-vector error radius;
+- the axis-projection chord bound;
+- the larger of that channel's BOP and BRP absolute error bounds.
+
+Using the larger threshold bound symmetrically is safe for low/high state and rising/falling transition checks, but can be more conservative than separate asymmetric BOP/BRP interval propagation. The output keeps the original field-bound record, parameter-bound record, maximum axis contribution and maximum effective projected radius separate. It fails closed if the robust BOP lower endpoint is not strictly greater than the robust BRP upper endpoint.
+
+These bounds are still deterministic absolute bounds, not standard deviations, typical datasheet values or probabilistic coverage. The sensor-tolerance function is an engineering assurance layer, not a device-specific ASIC model; actual temperature dependence, delay, output timing and guaranteed vendor threshold ranges need source-matched specifications and physical calibration/capture.
+
 ## Boundaries
 
 Synthetic tests qualify arithmetic and state-machine semantics only. They do not establish physical sensor behaviour, physical edge timing, product speed limits, ring manufacturability, yield or industrial superiority. No machine-control, magnetization or component-release authority is provided.
@@ -105,7 +123,7 @@ The capture is never shifted or trimmed to force a match. The mechanical angle s
 
 A synthetic generated capture only validates the record/reconciliation plumbing. It does not establish physical ASIC response, physical edge timing or a calibrated rotor-reference chain.
 
-The current source contains 49 authored unit tests, including seven robust synthesis controls. Authored tests are not a test pass; consult the current exact-head pull-request checks. Test authorship is not a test pass; consult the current exact-head pull-request checks.
+The current source contains 54 authored unit tests, including seven robust field-synthesis controls and five sensor-parameter tolerance controls. Authored tests are not a test pass; consult the current exact-head pull-request checks. Test authorship is not a test pass; consult the current exact-head pull-request checks.
 
 
 ## TI 20-pole threshold-mismatch reconstruction control
