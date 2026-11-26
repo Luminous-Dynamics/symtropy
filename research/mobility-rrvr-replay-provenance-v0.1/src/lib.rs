@@ -1056,6 +1056,63 @@ mod tests {
         (replay_json, provenance_json)
     }
 
+    fn finish_resealed_spot_check(
+        mut replay: serde_json::Value,
+        mut provenance: serde_json::Value,
+    ) -> (String, String) {
+        let spot_value = &mut replay["candidates"][0]["spot_check"];
+        let spot: SpotCheck =
+            serde_json::from_value(spot_value.clone()).expect("spot-check after mutation");
+        spot_value["manifest_sha256"] = serde_json::json!(
+            spot_check_manifest_digest(&spot).expect("recompute spot-check manifest digest")
+        );
+        let replay_json = serde_json::to_string(&replay).expect("re-serialize replay manifest");
+        provenance["replay_manifest_sha256"] =
+            serde_json::json!(sha256_hex(replay_json.as_bytes()));
+        let provenance_json =
+            serde_json::to_string(&provenance).expect("re-serialize provenance manifest");
+        (replay_json, provenance_json)
+    }
+
+    fn reseal_spot_check(
+        replay_json: &str,
+        provenance_json: &str,
+        mutate: impl FnOnce(&mut serde_json::Value),
+    ) -> (String, String) {
+        let mut replay: serde_json::Value =
+            serde_json::from_str(replay_json).expect("replay json");
+        let provenance: serde_json::Value =
+            serde_json::from_str(provenance_json).expect("provenance json");
+        mutate(&mut replay["candidates"][0]["spot_check"]);
+        finish_resealed_spot_check(replay, provenance)
+    }
+
+    fn reseal_selection_record(
+        root: &Path,
+        replay_json: &str,
+        provenance_json: &str,
+        mutate: impl FnOnce(&mut serde_json::Value),
+    ) -> (String, String) {
+        let mut replay: serde_json::Value =
+            serde_json::from_str(replay_json).expect("replay json");
+        let provenance: serde_json::Value =
+            serde_json::from_str(provenance_json).expect("provenance json");
+        let selection_path = replay["candidates"][0]["spot_check"]["selection_record_path"]
+            .as_str()
+            .expect("selection path")
+            .to_owned();
+        let artifact_path = root.join(selection_path);
+        let mut record: serde_json::Value =
+            serde_json::from_slice(&fs::read(&artifact_path).expect("read selection record"))
+                .expect("selection record json");
+        mutate(&mut record);
+        let record_bytes = serde_json::to_vec(&record).expect("selection record bytes");
+        fs::write(&artifact_path, &record_bytes).expect("write selection record");
+        replay["candidates"][0]["spot_check"]["selection_record_sha256"] =
+            serde_json::json!(sha256_hex(&record_bytes));
+        finish_resealed_spot_check(replay, provenance)
+    }
+
     fn fixture() -> (PathBuf, String, String) {
         let root = temp_root();
         let instruction = write_bytes(&root, "source/instruction.txt", b"Pick up the red block.");
@@ -1328,6 +1385,79 @@ mod tests {
         assert_eq!(report.invalid_n, 0);
         assert_eq!(report.candidate_reports[0].selected_attempt_n, 3);
         assert_eq!(report.candidate_reports[0].verified_artifact_n, 50);
+    }
+
+    #[test]
+    fn raw_selection_record_tampering_is_rejected() {
+        let (root, replay, provenance) = fixture();
+        let replay_value: serde_json::Value =
+            serde_json::from_str(&replay).expect("replay json");
+        let relative = replay_value["candidates"][0]["spot_check"]["selection_record_path"]
+            .as_str()
+            .expect("selection record path");
+        fs::write(root.join(relative), b"tampered").expect("tamper selection record");
+        let report = validate_provenance_json(&replay, &provenance, &root).expect("report");
+        assert_eq!(report.invalid_n, 1);
+        assert_eq!(
+            report.candidate_reports[0].reason_codes[0],
+            "SPOT_CHECK_SELECTION_RECORD_RAW_DIGEST_MISMATCH"
+        );
+    }
+
+    #[test]
+    fn correctly_resealed_but_mismatched_selection_record_is_rejected() {
+        let (root, replay, provenance) = fixture();
+        let (replay, provenance) = reseal_selection_record(
+            &root,
+            &replay,
+            &provenance,
+            |record| {
+                record["selected_attempt_ids"][1] = serde_json::json!("attempt-0");
+            },
+        );
+        let report = validate_provenance_json(&replay, &provenance, &root).expect("report");
+        assert_eq!(report.invalid_n, 1);
+        assert_eq!(
+            report.candidate_reports[0].reason_codes[0],
+            "SPOT_CHECK_SELECTION_RECORD_ATTEMPTS_MISMATCH"
+        );
+    }
+
+    #[test]
+    fn duplicate_frame_index_is_rejected_after_manifest_reseal() {
+        let (root, replay, provenance) = fixture();
+        let (replay, provenance) = reseal_spot_check(
+            &replay,
+            &provenance,
+            |spot| {
+                spot["attempts"][0]["final_frame_pairs"][1]["frame_index"] =
+                    serde_json::json!(0);
+            },
+        );
+        let report = validate_provenance_json(&replay, &provenance, &root).expect("report");
+        assert_eq!(report.invalid_n, 1);
+        assert_eq!(
+            report.candidate_reports[0].reason_codes[0],
+            "SPOT_CHECK_FRAME_PAIR_IDENTITY_INVALID"
+        );
+    }
+
+    #[test]
+    fn raw_frame_asset_tampering_is_rejected() {
+        let (root, replay, provenance) = fixture();
+        let replay_value: serde_json::Value =
+            serde_json::from_str(&replay).expect("replay json");
+        let relative = replay_value["candidates"][0]["spot_check"]["attempts"][1]
+            ["final_frame_pairs"][3]["original_path"]
+            .as_str()
+            .expect("original frame path");
+        fs::write(root.join(relative), b"tampered-frame").expect("tamper frame");
+        let report = validate_provenance_json(&replay, &provenance, &root).expect("report");
+        assert_eq!(report.invalid_n, 1);
+        assert_eq!(
+            report.candidate_reports[0].reason_codes[0],
+            "ORIGINAL_FRAME_RAW_DIGEST_MISMATCH"
+        );
     }
 
     #[test]
