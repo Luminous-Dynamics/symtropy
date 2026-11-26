@@ -82,8 +82,10 @@ pub struct SpotCheckSelectionRecord {
 #[serde(deny_unknown_fields)]
 pub struct SpotCheckAttempt {
     pub attempt_id: String,
-    pub end_effector: PoseComparison,
-    pub object_pose: PoseComparison,
+    pub original_state_path: String,
+    pub original_state_sha256: String,
+    pub replay_state_path: String,
+    pub replay_state_sha256: String,
     pub final_frame_pairs: Vec<FramePairAsset>,
 }
 
@@ -120,9 +122,13 @@ pub struct PositionMm {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct PoseComparison {
-    pub original: PositionMm,
-    pub replayed: PositionMm,
+pub struct ReplayStateSnapshot {
+    pub schema_version: String,
+    pub scenario_id: String,
+    pub attempt_id: String,
+    pub simulator_profile_sha256: String,
+    pub end_effector_position: PositionMm,
+    pub object_position: PositionMm,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -192,6 +198,8 @@ pub struct FrameCheck {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct SpotCheckAudit {
     pub attempt_id: String,
+    pub original_state_sha256: String,
+    pub replay_state_sha256: String,
     pub status: AuditStatus,
     pub end_effector: PoseCheck,
     pub object_pose: PoseCheck,
