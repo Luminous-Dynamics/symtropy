@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! Independent directional-derivative evidence contract for magnetic inverse design.
 //!
 //! This crate does not execute a differentiable kernel. It validates source-bound
@@ -292,7 +294,7 @@ fn median(values: &[f64]) -> f64 {
     let mut sorted = values.to_vec();
     sorted.sort_by(f64::total_cmp);
     let middle = sorted.len() / 2;
-    if sorted.len() % 2 == 1 {
+    if !sorted.len().is_multiple_of(2) {
         sorted[middle]
     } else {
         sorted[middle - 1] / 2.0 + sorted[middle] / 2.0
@@ -636,7 +638,7 @@ mod tests {
     #[test]
     fn direction_must_be_unit_length() {
         let mut input = trial("case-non-unit");
-        input.direction = vec![2.0_f64.sqrt() / 2.0, 2.0_f64.sqrt() / 2.0];
+        input.direction = vec![0.8, 0.8];
         let mut bad_policy = policy();
         bad_policy.direction_norm_tolerance = 0.0;
         assert_eq!(
