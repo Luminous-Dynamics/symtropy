@@ -807,8 +807,10 @@ fn evaluate_effect_claim(
     if observations.is_empty() {
         return unresolved("PHYSICAL_EFFECT_OBSERVATION_MISSING");
     }
-    let findings: BTreeSet<ObservationFinding> =
-        observations.iter().map(|(_, finding, _)| *finding).collect();
+    let findings: BTreeSet<ObservationFinding> = observations
+        .iter()
+        .map(|(_, finding, _)| *finding)
+        .collect();
     if findings.len() > 1 {
         return disputed("PHYSICAL_EFFECT_OBSERVATIONS_CONTRADICT");
     }
