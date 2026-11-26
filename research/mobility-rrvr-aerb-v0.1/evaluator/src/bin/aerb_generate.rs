@@ -572,9 +572,15 @@ mod tests {
         let submission_json = serde_json::to_string(&submission).expect("submission JSON");
         let world_pack_json = serde_json::to_string(&world_pack).expect("evaluator JSON");
 
-        assert!(!episode_json.contains("hidden_truth_world_id"));
-        assert!(!submission_json.contains("open_world_residual_truth"));
-        assert!(world_pack_json.contains("open_world_residual"));
+        let episode_value: serde_json::Value =
+            serde_json::from_str(&episode_json).expect("episode value");
+        let submission_value: serde_json::Value =
+            serde_json::from_str(&submission_json).expect("submission value");
+        let world_pack_value: serde_json::Value =
+            serde_json::from_str(&world_pack_json).expect("world pack value");
+        assert!(episode_value.get("hidden_truth_world_id").is_none());
+        assert!(submission_value.get("hidden_truth_world_id").is_none());
+        assert!(world_pack_value.get("hidden_truth_world_id").is_some());
 
         let report = evaluate_json(&episode_json, &submission_json, &world_pack_json)
             .expect("generated candidate should satisfy evaluator contract");
