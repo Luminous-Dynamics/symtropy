@@ -1,0 +1,12 @@
+[package]
+name = "broadphase-selector-regret"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Evidence-gated sequence-level regret evaluator for adaptive broadphase portfolios"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
