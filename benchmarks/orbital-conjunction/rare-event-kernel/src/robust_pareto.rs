@@ -860,8 +860,20 @@ mod tests {
     #[test]
     fn exact_dominance_work_budget_is_checked_before_assessment_processing() {
         let config = RobustParetoConfig {
-            portfolio_ids: (1_u16..=512).map(|id| [id as u8; 32]).collect(),
-            scenario_ids: (1_u16..=17).map(|id| [id as u8; 32]).collect(),
+            portfolio_ids: (1_u16..=512)
+                .map(|id| {
+                    let mut identity = [0_u8; 32];
+                    identity[30..].copy_from_slice(&id.to_be_bytes());
+                    identity
+                })
+                .collect(),
+            scenario_ids: (1_u16..=17)
+                .map(|id| {
+                    let mut identity = [0_u8; 32];
+                    identity[30..].copy_from_slice(&id.to_be_bytes());
+                    identity
+                })
+                .collect(),
             objectives: vec![objective(1, 11, ObjectiveDirection::Minimize)],
             assessments: Vec::new(),
         };
