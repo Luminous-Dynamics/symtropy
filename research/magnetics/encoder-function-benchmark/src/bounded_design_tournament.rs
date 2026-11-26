@@ -81,20 +81,60 @@ pub struct BoundedMagneticDesignTournament {
 #[derive(Clone, Debug, PartialEq)]
 pub enum BoundedDesignTournamentError {
     BaseTournament(DesignTournamentError),
-    UncertaintyScenarioCountMismatch { candidate_index: usize },
+    UncertaintyScenarioCountMismatch {
+        candidate_index: usize,
+    },
     DuplicateUncertaintyRecordId,
-    InvalidUncertaintyMetadata { candidate_index: usize, scenario_index: usize },
-    UncertaintyTraceIdentityMismatch { candidate_index: usize, scenario_index: usize },
-    UncertaintyFrameIdentityMismatch { candidate_index: usize, scenario_index: usize },
-    UncertaintyConditionIdentityMismatch { candidate_index: usize, scenario_index: usize },
-    UncertaintyGridIdentityMismatch { candidate_index: usize, scenario_index: usize },
-    UncertaintyArchiveDigestMismatch { candidate_index: usize, scenario_index: usize },
-    UncertaintySolverRunMismatch { candidate_index: usize, scenario_index: usize },
-    UncertaintyCalibrationMismatch { candidate_index: usize, scenario_index: usize },
-    UncertaintySampleCountMismatch { candidate_index: usize, scenario_index: usize },
-    InvalidUncertaintyBound { candidate_index: usize, scenario_index: usize, sample_index: usize },
-    InvalidPhaseZeroBound { candidate_index: usize, scenario_index: usize },
-    NumericOverflow { candidate_index: usize, scenario_index: usize, sample_index: usize },
+    InvalidUncertaintyMetadata {
+        candidate_index: usize,
+        scenario_index: usize,
+    },
+    UncertaintyTraceIdentityMismatch {
+        candidate_index: usize,
+        scenario_index: usize,
+    },
+    UncertaintyFrameIdentityMismatch {
+        candidate_index: usize,
+        scenario_index: usize,
+    },
+    UncertaintyConditionIdentityMismatch {
+        candidate_index: usize,
+        scenario_index: usize,
+    },
+    UncertaintyGridIdentityMismatch {
+        candidate_index: usize,
+        scenario_index: usize,
+    },
+    UncertaintyArchiveDigestMismatch {
+        candidate_index: usize,
+        scenario_index: usize,
+    },
+    UncertaintySolverRunMismatch {
+        candidate_index: usize,
+        scenario_index: usize,
+    },
+    UncertaintyCalibrationMismatch {
+        candidate_index: usize,
+        scenario_index: usize,
+    },
+    UncertaintySampleCountMismatch {
+        candidate_index: usize,
+        scenario_index: usize,
+    },
+    InvalidUncertaintyBound {
+        candidate_index: usize,
+        scenario_index: usize,
+        sample_index: usize,
+    },
+    InvalidPhaseZeroBound {
+        candidate_index: usize,
+        scenario_index: usize,
+    },
+    NumericOverflow {
+        candidate_index: usize,
+        scenario_index: usize,
+        sample_index: usize,
+    },
 }
 
 fn nonempty(value: &str) -> bool {
@@ -120,34 +160,44 @@ fn validate_uncertainty_record(
         });
     }
     if bounds.trace_id != trace.trace_id {
-        return Err(BoundedDesignTournamentError::UncertaintyTraceIdentityMismatch {
-            candidate_index,
-            scenario_index,
-        });
+        return Err(
+            BoundedDesignTournamentError::UncertaintyTraceIdentityMismatch {
+                candidate_index,
+                scenario_index,
+            },
+        );
     }
     if bounds.frame_id != trace.frame_id {
-        return Err(BoundedDesignTournamentError::UncertaintyFrameIdentityMismatch {
-            candidate_index,
-            scenario_index,
-        });
+        return Err(
+            BoundedDesignTournamentError::UncertaintyFrameIdentityMismatch {
+                candidate_index,
+                scenario_index,
+            },
+        );
     }
     if bounds.operating_condition_id != trace.operating_condition_id {
-        return Err(BoundedDesignTournamentError::UncertaintyConditionIdentityMismatch {
-            candidate_index,
-            scenario_index,
-        });
+        return Err(
+            BoundedDesignTournamentError::UncertaintyConditionIdentityMismatch {
+                candidate_index,
+                scenario_index,
+            },
+        );
     }
     if bounds.grid_id != trace.grid_id {
-        return Err(BoundedDesignTournamentError::UncertaintyGridIdentityMismatch {
-            candidate_index,
-            scenario_index,
-        });
+        return Err(
+            BoundedDesignTournamentError::UncertaintyGridIdentityMismatch {
+                candidate_index,
+                scenario_index,
+            },
+        );
     }
     if bounds.field_archive_sha256 != design.field_archive_sha256 {
-        return Err(BoundedDesignTournamentError::UncertaintyArchiveDigestMismatch {
-            candidate_index,
-            scenario_index,
-        });
+        return Err(
+            BoundedDesignTournamentError::UncertaintyArchiveDigestMismatch {
+                candidate_index,
+                scenario_index,
+            },
+        );
     }
     if !design
         .solver_run_ids
@@ -160,18 +210,22 @@ fn validate_uncertainty_record(
         });
     }
     if bounds.phase_zero_calibration_id != requirements.phase_zero_calibration_id {
-        return Err(BoundedDesignTournamentError::UncertaintyCalibrationMismatch {
-            candidate_index,
-            scenario_index,
-        });
+        return Err(
+            BoundedDesignTournamentError::UncertaintyCalibrationMismatch {
+                candidate_index,
+                scenario_index,
+            },
+        );
     }
     if bounds.field_vector_error_radius_t.len() != trace.samples.len()
         || bounds.mechanical_angle_error_bound_rad.len() != trace.samples.len()
     {
-        return Err(BoundedDesignTournamentError::UncertaintySampleCountMismatch {
-            candidate_index,
-            scenario_index,
-        });
+        return Err(
+            BoundedDesignTournamentError::UncertaintySampleCountMismatch {
+                candidate_index,
+                scenario_index,
+            },
+        );
     }
     if !bounds.phase_zero_error_bound_rad.is_finite() || bounds.phase_zero_error_bound_rad < 0.0 {
         return Err(BoundedDesignTournamentError::InvalidPhaseZeroBound {
@@ -203,8 +257,7 @@ fn validate_uncertainty_record(
 }
 
 fn wrap_to_pi(angle: f64) -> f64 {
-    (angle + std::f64::consts::PI).rem_euclid(std::f64::consts::TAU)
-        - std::f64::consts::PI
+    (angle + std::f64::consts::PI).rem_euclid(std::f64::consts::TAU) - std::f64::consts::PI
 }
 
 fn rms(values: &[f64]) -> f64 {
@@ -257,7 +310,10 @@ fn bounded_scenario_metrics(
         let angle_bound_rad = *angle_radius;
         let lower_in_plane = nominal_in_plane - radius;
         let upper_in_plane = nominal_in_plane + radius;
-        if !nominal_in_plane.is_finite() || !lower_in_plane.is_finite() || !upper_in_plane.is_finite() {
+        if !nominal_in_plane.is_finite()
+            || !lower_in_plane.is_finite()
+            || !upper_in_plane.is_finite()
+        {
             return Err(BoundedDesignTournamentError::NumericOverflow {
                 candidate_index,
                 scenario_index,
@@ -287,9 +343,8 @@ fn bounded_scenario_metrics(
         // subtends at most asin(r/m) radians at the origin when r < m.
         let field_direction_error = (radius / nominal_in_plane).asin();
         let mechanical_phase_error = pole_pairs * angle_bound_rad;
-        let total_phase_error_bound = field_direction_error
-            + mechanical_phase_error
-            + bounds.phase_zero_error_bound_rad;
+        let total_phase_error_bound =
+            field_direction_error + mechanical_phase_error + bounds.phase_zero_error_bound_rad;
         if !total_phase_error_bound.is_finite() {
             return Err(BoundedDesignTournamentError::NumericOverflow {
                 candidate_index,
@@ -297,12 +352,10 @@ fn bounded_scenario_metrics(
                 sample_index,
             });
         }
-        let expected_phase = requirements.phase_rotation_sense as f64
-            * pole_pairs
-            * sample.mechanical_angle_rad
-            + requirements.phase_zero_offset_rad;
-        let nominal_phase_error =
-            wrap_to_pi(sample.by_t.atan2(sample.bx_t) - expected_phase);
+        let expected_phase =
+            requirements.phase_rotation_sense as f64 * pole_pairs * sample.mechanical_angle_rad
+                + requirements.phase_zero_offset_rad;
+        let nominal_phase_error = wrap_to_pi(sample.by_t.atan2(sample.bx_t) - expected_phase);
         let upper_phase_error =
             (nominal_phase_error.abs() + total_phase_error_bound).min(std::f64::consts::PI);
         if !upper_phase_error.is_finite() {
@@ -326,15 +379,14 @@ fn bounded_scenario_metrics(
     let mean_in_plane_field_lower_bound_t =
         lower_in_plane_magnitudes.iter().sum::<f64>() / lower_in_plane_magnitudes.len() as f64;
 
-    let amplitude_ripple_upper_bound_fraction =
-        if mean_in_plane_field_lower_bound_t > 0.0 {
-            Some(
-                (maximum_in_plane_field_upper_bound_t - minimum_in_plane_field_lower_bound_t)
-                    / mean_in_plane_field_lower_bound_t,
-            )
-        } else {
-            None
-        };
+    let amplitude_ripple_upper_bound_fraction = if mean_in_plane_field_lower_bound_t > 0.0 {
+        Some(
+            (maximum_in_plane_field_upper_bound_t - minimum_in_plane_field_lower_bound_t)
+                / mean_in_plane_field_lower_bound_t,
+        )
+    } else {
+        None
+    };
 
     let rms_in_plane_field_lower_bound_t = rms(&lower_in_plane_magnitudes);
     let rms_out_of_plane_field_upper_bound_t = rms(&upper_out_of_plane_magnitudes);
@@ -422,10 +474,8 @@ fn dominates(left: &BoundedMagneticDesignMetrics, right: &BoundedMagneticDesignM
         > right.minimum_in_plane_field_lower_bound_t
         || left.worst_peak_phase_error_upper_bound_rad
             < right.worst_peak_phase_error_upper_bound_rad
-        || left.worst_rms_phase_error_upper_bound_rad
-            < right.worst_rms_phase_error_upper_bound_rad
-        || left.worst_p95_phase_error_upper_bound_rad
-            < right.worst_p95_phase_error_upper_bound_rad
+        || left.worst_rms_phase_error_upper_bound_rad < right.worst_rms_phase_error_upper_bound_rad
+        || left.worst_p95_phase_error_upper_bound_rad < right.worst_p95_phase_error_upper_bound_rad
         || left_ripple < right_ripple
         || left_cross < right_cross;
     no_worse && strictly_better
@@ -459,9 +509,9 @@ pub fn rank_bounded_magnetic_designs(
 
     for (candidate_index, candidate) in candidates.iter().enumerate() {
         if candidate.scenario_uncertainty.len() != candidate.design.scenarios.len() {
-            return Err(BoundedDesignTournamentError::UncertaintyScenarioCountMismatch {
-                candidate_index,
-            });
+            return Err(
+                BoundedDesignTournamentError::UncertaintyScenarioCountMismatch { candidate_index },
+            );
         }
 
         let mut scenario_results = Vec::with_capacity(candidate.design.scenarios.len());
@@ -513,11 +563,15 @@ pub fn rank_bounded_magnetic_designs(
         let worst_amplitude_ripple_upper_bound_fraction = scenario_results
             .iter()
             .map(|scenario| scenario.amplitude_ripple_upper_bound_fraction)
-            .try_fold(0.0_f64, |maximum, value| value.map(|value| maximum.max(value)));
+            .try_fold(0.0_f64, |maximum, value| {
+                value.map(|value| maximum.max(value))
+            });
         let worst_rms_cross_axis_ratio_upper_bound = scenario_results
             .iter()
             .map(|scenario| scenario.rms_cross_axis_ratio_upper_bound)
-            .try_fold(0.0_f64, |maximum, value| value.map(|value| maximum.max(value)));
+            .try_fold(0.0_f64, |maximum, value| {
+                value.map(|value| maximum.max(value))
+            });
 
         let nominal_candidate_metrics = nominal_tournament.candidates[candidate_index].clone();
         let robustly_accepted = nominal_candidate_metrics.accepted_all_scenarios
@@ -543,11 +597,14 @@ pub fn rank_bounded_magnetic_designs(
         .enumerate()
         .map(|(index, candidate)| {
             candidate.robustly_accepted
-                && !bounded_candidates.iter().enumerate().any(|(other_index, other)| {
-                    other_index != index
-                        && other.robustly_accepted
-                        && dominates(other, candidate)
-                })
+                && !bounded_candidates
+                    .iter()
+                    .enumerate()
+                    .any(|(other_index, other)| {
+                        other_index != index
+                            && other.robustly_accepted
+                            && dominates(other, candidate)
+                    })
         })
         .collect::<Vec<_>>();
     for (candidate, is_pareto_optimal) in bounded_candidates.iter_mut().zip(pareto_flags) {
@@ -604,7 +661,12 @@ mod tests {
         }
     }
 
-    fn trace(trace_id: &str, condition_id: &str, amplitude_t: f64, phase_bias_rad: f64) -> FieldTrace {
+    fn trace(
+        trace_id: &str,
+        condition_id: &str,
+        amplitude_t: f64,
+        phase_bias_rad: f64,
+    ) -> FieldTrace {
         let samples = (0..256)
             .map(|index| {
                 let mechanical = TAU * index as f64 / 256.0;
@@ -635,8 +697,18 @@ mod tests {
             field_archive_sha256: DIGEST_C.to_owned(),
             solver_run_ids: vec![format!("solver-run-{id}")],
             scenarios: vec![
-                trace(&format!("{id}-nominal"), "nominal", amplitude_t, phase_bias_rad),
-                trace(&format!("{id}-gap"), "increased-gap", amplitude_t * 0.9, phase_bias_rad),
+                trace(
+                    &format!("{id}-nominal"),
+                    "nominal",
+                    amplitude_t,
+                    phase_bias_rad,
+                ),
+                trace(
+                    &format!("{id}-gap"),
+                    "increased-gap",
+                    amplitude_t * 0.9,
+                    phase_bias_rad,
+                ),
             ],
         }
     }
@@ -667,7 +739,10 @@ mod tests {
                 phase_zero_error_bound_rad: phase_zero_error_rad,
             })
             .collect();
-        BoundedMagneticDesignCandidate { design, scenario_uncertainty }
+        BoundedMagneticDesignCandidate {
+            design,
+            scenario_uncertainty,
+        }
     }
 
     #[test]
@@ -679,12 +754,9 @@ mod tests {
             &requirements(),
         )
         .unwrap();
-        let bounded = rank_bounded_magnetic_designs(
-            "zero-bounds-tournament",
-            &[candidate],
-            &requirements(),
-        )
-        .unwrap();
+        let bounded =
+            rank_bounded_magnetic_designs("zero-bounds-tournament", &[candidate], &requirements())
+                .unwrap();
 
         let nominal_scenarios = &nominal.candidates[0].scenario_metrics.scenarios;
         let bounded_scenarios = &bounded.candidates[0].scenarios;
@@ -735,7 +807,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn field_direction_error_uses_exact_asin_disk_bound() {
         let candidate = bounded_candidate("asin-control", 1.0, 0.0, 0.05, 0.0, 0.0);
@@ -776,10 +847,12 @@ mod tests {
         )
         .unwrap();
         assert_eq!(result.robustly_accepted_candidate_count, 0);
-        assert!(result.candidates[0]
-            .scenarios
-            .iter()
-            .all(|scenario| scenario.unbounded_phase_sample_count > 0));
+        assert!(
+            result.candidates[0]
+                .scenarios
+                .iter()
+                .all(|scenario| scenario.unbounded_phase_sample_count > 0)
+        );
         assert!(!result.candidates[0].robustly_accepted);
     }
 
@@ -787,10 +860,10 @@ mod tests {
     fn mechanical_reference_uncertainty_scales_with_pole_pairs() {
         let candidate = bounded_candidate("angle-bound", 1.0, 0.0, 0.0, 0.01, 0.0);
         let result =
-            rank_bounded_magnetic_designs("angle-tournament", &[candidate], &requirements()).unwrap();
+            rank_bounded_magnetic_designs("angle-tournament", &[candidate], &requirements())
+                .unwrap();
         assert!(
-            (result.candidates[0].worst_peak_phase_error_upper_bound_rad - 0.04).abs()
-                < 1.0e-12
+            (result.candidates[0].worst_peak_phase_error_upper_bound_rad - 0.04).abs() < 1.0e-12
         );
     }
 
@@ -799,13 +872,11 @@ mod tests {
         let no_offset = bounded_candidate("phase-zero-a", 1.0, 0.0, 0.01, 0.0, 0.0);
         let with_offset = bounded_candidate("phase-zero-b", 1.0, 0.0, 0.01, 0.0, 0.005);
         let baseline =
-            rank_bounded_magnetic_designs("phase-zero-base", &[no_offset], &requirements()).unwrap();
-        let perturbed = rank_bounded_magnetic_designs(
-            "phase-zero-perturbed",
-            &[with_offset],
-            &requirements(),
-        )
-        .unwrap();
+            rank_bounded_magnetic_designs("phase-zero-base", &[no_offset], &requirements())
+                .unwrap();
+        let perturbed =
+            rank_bounded_magnetic_designs("phase-zero-perturbed", &[with_offset], &requirements())
+                .unwrap();
         assert!(
             perturbed.candidates[0].worst_peak_phase_error_upper_bound_rad
                 > baseline.candidates[0].worst_peak_phase_error_upper_bound_rad
@@ -817,12 +888,8 @@ mod tests {
         let mut candidate = bounded_candidate("bad-source", 1.0, 0.0, 0.01, 0.0, 0.0);
         candidate.scenario_uncertainty[0].field_archive_sha256 = "different-archive".to_owned();
         assert_eq!(
-            rank_bounded_magnetic_designs(
-                "bad-source-tournament",
-                &[candidate],
-                &requirements(),
-            )
-            .expect_err("archive mismatch"),
+            rank_bounded_magnetic_designs("bad-source-tournament", &[candidate], &requirements(),)
+                .expect_err("archive mismatch"),
             BoundedDesignTournamentError::UncertaintyArchiveDigestMismatch {
                 candidate_index: 0,
                 scenario_index: 0
@@ -835,12 +902,8 @@ mod tests {
         let mut candidate = bounded_candidate("bad-bound", 1.0, 0.0, 0.01, 0.0, 0.0);
         candidate.scenario_uncertainty[1].field_vector_error_radius_t[3] = f64::NAN;
         assert_eq!(
-            rank_bounded_magnetic_designs(
-                "bad-bound-tournament",
-                &[candidate],
-                &requirements(),
-            )
-            .expect_err("non-finite radius"),
+            rank_bounded_magnetic_designs("bad-bound-tournament", &[candidate], &requirements(),)
+                .expect_err("non-finite radius"),
             BoundedDesignTournamentError::InvalidUncertaintyBound {
                 candidate_index: 0,
                 scenario_index: 1,
@@ -852,7 +915,9 @@ mod tests {
     #[test]
     fn uncertainty_sample_count_and_condition_records_cannot_be_pooled() {
         let mut candidate = bounded_candidate("bad-count", 1.0, 0.0, 0.01, 0.0, 0.0);
-        candidate.scenario_uncertainty[0].field_vector_error_radius_t.pop();
+        candidate.scenario_uncertainty[0]
+            .field_vector_error_radius_t
+            .pop();
         assert_eq!(
             rank_bounded_magnetic_designs("bad-count-tournament", &[candidate], &requirements())
                 .expect_err("sample count mismatch"),
