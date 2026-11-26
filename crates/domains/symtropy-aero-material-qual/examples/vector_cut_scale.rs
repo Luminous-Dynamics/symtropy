@@ -22,10 +22,12 @@ const DIGEST: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 const PARTITIONS: usize = 32;
 
 fn generate_cut(event_count: usize) -> EvidenceCut {
-    let per_partition = event_count.div_ceil(PARTITIONS);
     let mut watermarks = Vec::with_capacity(PARTITIONS);
     let mut events = Vec::with_capacity(event_count);
     let mut identities = Vec::with_capacity(PARTITIONS);
+    let partition_counts = (0..PARTITIONS)
+        .map(|source| event_count / PARTITIONS + usize::from(source < event_count % PARTITIONS))
+        .collect::<Vec<_>>();
 
     for source in 0..PARTITIONS {
         identities.push(format!("sensor-{source:02}"));
@@ -33,18 +35,14 @@ fn generate_cut(event_count: usize) -> EvidenceCut {
             source_id: identities[source].clone(),
             partition_id: "0".to_owned(),
             stream_epoch: "epoch-1".to_owned(),
-            last_contiguous_sequence: per_partition as u64,
-            receiver_inclusion_offset: (per_partition as u64) * 8,
+            last_contiguous_sequence: partition_counts[source] as u64,
+            receiver_inclusion_offset: (partition_counts[source] as u64) * 8,
             checkpoint_digest_sha256: DIGEST.to_owned(),
         });
     }
 
     for source in 0..PARTITIONS {
-        for sequence in 1..=per_partition {
-            let global_index = source * per_partition + sequence - 1;
-            if global_index >= event_count {
-                continue;
-            }
+        for sequence in 1..=partition_counts[source] {
             let event_ref = format!("{}-event-{sequence:08}", identities[source]);
             let mut dependencies = Vec::with_capacity(2);
 
@@ -104,7 +102,7 @@ fn parse_positive(value: Option<String>, default: usize, name: &str) -> Result<u
 fn main() -> Result<(), String> {
     let mut args = env::args().skip(1);
     let event_count = parse_positive(args.next(), 10_000, "event_count")?;
-    let iterations = parse_positive(args.next(), 7, "iterations")?;
+    let iterations = parse_positive(args.next(), 101, "iterations")?;
     if args.next().is_some() {
         return Err("usage: vector_cut_scale [event_count] [iterations]".to_owned());
     }
@@ -115,6 +113,10 @@ fn main() -> Result<(), String> {
         cut.events.len()
     );
     println!("events,partitions,iterations,p50_us,p95_us,p99_us,status,dependencies");
+
+    for _ in 0..3 {
+        black_box(validate_causal_cut(black_box(&cut)));
+    }
 
     let mut samples = Vec::with_capacity(iterations);
     let mut final_report: Option<CutAssessment> = None;
