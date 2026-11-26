@@ -110,7 +110,19 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
         frame: &[ProxyFrame<D>],
     ) -> Result<PairDeltaFrame, TournamentError> {
         let dirty = self.derive_dirty_proxy_ids(frame)?;
-        self.apply_dirty_ids(frame, &dirty, true)
+        let snapshot_entries_visited = u64::try_from(self.previous_bounds.len())
+            .ok()
+            .and_then(|previous| {
+                u64::try_from(frame.len())
+                    .ok()
+                    .and_then(|current| {
+                        current
+                            .checked_mul(2)
+                            .and_then(|current| previous.checked_add(current))
+                    })
+            })
+            .ok_or(TournamentError::CounterOverflow)?;
+        self.apply_dirty_ids(frame, &dirty, true, true, snapshot_entries_visited)
     }
 
     pub(super) fn step_with_dirty_ids(
@@ -118,7 +130,7 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
         frame: &[ProxyFrame<D>],
         dirty_ids: &[ProxyId],
     ) -> Result<PairDeltaFrame, TournamentError> {
-        self.apply_dirty_ids(frame, dirty_ids, false)
+        self.apply_dirty_ids(frame, dirty_ids, false, false, 0)
     }
 
     fn apply_dirty_ids(
@@ -126,8 +138,12 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
         frame: &[ProxyFrame<D>],
         dirty_ids: &[ProxyId],
         allow_full_invalidation: bool,
+        frame_prevalidated: bool,
+        dirty_snapshot_entries_visited: u64,
     ) -> Result<PairDeltaFrame, TournamentError> {
-        validate_proxy_sequence(frame)?;
+        if !frame_prevalidated {
+            validate_proxy_sequence(frame)?;
+        }
         if self.force_dirty && !allow_full_invalidation {
             return Err(TournamentError::DirtyJournalCannotApplyFullInvalidation);
         }
@@ -331,6 +347,7 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
             dirty_proxies: dirty.len(),
             overlap_tests,
             active_pairs: self.active_pair_count,
+            dirty_snapshot_entries_visited,
             frontier_proxy_visits,
             frontier_pair_candidates,
             frontier_unique_pairs: u64::try_from(affected_pairs.len())
