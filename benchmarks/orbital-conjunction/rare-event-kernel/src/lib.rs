@@ -42,6 +42,8 @@ pub mod ncdot_refinement;
 pub mod ncdot_sphere;
 pub mod ncdot_temporal;
 pub mod normal_positive_part;
+/// Exact paired finite-support counterfactual consequence comparisons.
+pub mod paired_counterfactual;
 pub mod pathwise_event;
 pub mod pathwise_proposal;
 pub mod pop_col_adjustment;
@@ -105,6 +107,11 @@ pub use ncdot_temporal::{
 };
 pub use normal_positive_part::{
     GaussianPositivePartBranch, GaussianPositivePartReport, gaussian_negative_part_expectation,
+};
+pub use paired_counterfactual::{
+    MAX_PAIRED_COUNTERFACTUAL_ATOMS, PairedCounterfactualAtom, PairedCounterfactualError,
+    PairedCounterfactualReport, PairingEffect, SignedRational,
+    compare_paired_counterfactual_support,
 };
 pub use pathwise_event::{
     EncounterWindow, HorizonContactDisposition, HorizonEventConfig, HorizonEventDefinition,
