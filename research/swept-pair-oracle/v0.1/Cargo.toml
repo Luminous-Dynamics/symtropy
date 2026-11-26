@@ -1,0 +1,15 @@
+[package]
+name = "swept-pair-oracle"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Fail-closed temporal broadphase pair-set reference and independent linear AABB oracle"
+publish = false
+
+[dependencies]
+directional-motion-envelopes = { path = "../../directional-motion-envelopes/v0.1" }
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
