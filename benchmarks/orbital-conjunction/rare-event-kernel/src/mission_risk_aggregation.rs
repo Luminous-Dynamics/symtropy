@@ -413,8 +413,7 @@ pub fn aggregate_finite_mission_risk(
     if trajectories.is_empty() || trajectories.len() > MAX_TRAJECTORY_ATOMS {
         return Err(MissionRiskAggregationError::InvalidTrajectoryInventorySize);
     }
-    if manifest.expected_atom_ids.len() != trajectories.len()
-        || manifest.expected_atom_ids.is_empty()
+    if manifest.expected_atom_ids.is_empty()
         || manifest.expected_atom_ids.iter().any(is_zero_digest)
         || manifest
             .expected_atom_ids
@@ -989,7 +988,7 @@ mod tests {
         let one_atom = [atom(1, 100, &[("a", miss())])];
         assert_eq!(
             aggregate_finite_mission_risk(&manifest, &one_atom),
-            Err(MissionRiskAggregationError::InvalidTrajectoryInventorySize)
+            Err(MissionRiskAggregationError::TrajectoryAtomInventoryMismatch)
         );
 
         let mut incomplete = manifest.clone();
