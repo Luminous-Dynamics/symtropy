@@ -359,80 +359,125 @@ where
             objective_lower_bound(root, &node, design_dimension, &objective);
         let margin_result = margin_enclosure(root, &node, design_dimension, &compliance_margin);
 
-        let (objective, margin) = match (objective_result, margin_result) {
-            (Ok(objective), Ok(margin)) => (objective, margin),
-            (Err(SearchError::IntervalAd(IntervalAdError::UnboundedValueEnclosure
-                | IntervalAdError::UnboundedDerivativeEnclosure { .. }
-                | IntervalAdError::SquareRootOutsideRealDomain)),
-             _)
-            | (_, Err(SearchError::IntervalAd(IntervalAdError::UnboundedValueEnclosure
-                | IntervalAdError::UnboundedDerivativeEnclosure { .. }
-                | IntervalAdError::SquareRootOutsideRealDomain))) => {
-                let mut split = None;
-                let mut best_width = 0.0;
-                for (index, bounds) in node.design_bounds.iter().enumerate() {
-                    let width = bounds.upper() - bounds.lower();
-                    if width > best_width
-                        && width > 0.0
-                        && stable_midpoint(bounds.lower(), bounds.upper()).is_some()
-                    {
-                        best_width = width;
-                        split = Some(index);
-                    }
-                }
+        let recoverable_error = objective_result
+            .as_ref()
+            .err()
+            .is_some_and(is_recoverable_interval_error)
+            || margin_result
+                .as_ref()
+                .err()
+                .is_some_and(is_recoverable_interval_error);
+        if let Some(error) = objective_result
+            .as_ref()
+            .err()
+            .filter(|error| !is_recoverable_interval_error(error))
+            .or_else(|| {
+                margin_result
+                    .as_ref()
+                    .err()
+                    .filter(|error| !is_recoverable_interval_error(error))
+            })
+        {
+            return Err(error.clone());
+        }
 
-                if let Some(axis) = split {
-                    let bounds = node.design_bounds[axis];
-                    let midpoint = stable_midpoint(bounds.lower(), bounds.upper())
-                        .expect("selected axis has midpoint");
-                    let mut left_bounds = node.design_bounds.clone();
-                    let mut right_bounds = node.design_bounds.clone();
-                    left_bounds[axis] = Interval::new(bounds.lower(), midpoint)
-                        .map_err(|_| SearchError::InvalidDesignWidth { index: axis })?;
-                    right_bounds[axis] = Interval::new(midpoint, bounds.upper())
-                        .map_err(|_| SearchError::InvalidDesignWidth { index: axis })?;
-                    let left_id = format!("{}/{}-0", node.node_id, root.parameter_ids[axis]);
-                    let right_id = format!("{}/{}-1", node.node_id, root.parameter_ids[axis]);
-                    queue.push_back(WorkNode {
-                        node_id: left_id.clone(),
-                        parent_node_id: Some(node.node_id.clone()),
-                        depth: node.depth + 1,
-                        design_bounds: left_bounds,
-                    });
-                    queue.push_back(WorkNode {
-                        node_id: right_id.clone(),
-                        parent_node_id: Some(node.node_id.clone()),
-                        depth: node.depth + 1,
-                        design_bounds: right_bounds,
-                    });
-                    records.push(DesignBoxRecord {
-                        node_id: node.node_id,
-                        parent_node_id: node.parent_node_id,
-                        depth: node.depth,
-                        design_bounds: node.design_bounds,
-                        disposition: BoxDisposition::Split,
-                        objective_lower_bound: None,
-                        margin_enclosure: None,
-                        split_parameter_id: Some(root.parameter_ids[axis].clone()),
-                        child_node_ids: vec![left_id, right_id],
-                    });
-                } else {
-                    records.push(DesignBoxRecord {
-                        node_id: node.node_id,
-                        parent_node_id: node.parent_node_id,
-                        depth: node.depth,
-                        design_bounds: node.design_bounds,
-                        disposition: BoxDisposition::UnresolvedUnboundedExpression,
-                        objective_lower_bound: None,
-                        margin_enclosure: None,
-                        split_parameter_id: None,
-                        child_node_ids: Vec::new(),
-                    });
-                }
+        if recoverable_error {
+            let current_objective_lower = objective_result
+                .as_ref()
+                .ok()
+                .map(|result| result.value_enclosure.lower())
+                .or(node.inherited_objective_lower_bound);
+            let current_margin_enclosure = margin_result
+                .as_ref()
+                .ok()
+                .map(|result| result.value_enclosure);
+
+            if node.depth >= policy.maximum_depth {
+                records.push(DesignBoxRecord {
+                    node_id: node.node_id,
+                    parent_node_id: node.parent_node_id,
+                    depth: node.depth,
+                    design_bounds: node.design_bounds,
+                    disposition: BoxDisposition::UnresolvedMaximumDepth,
+                    objective_lower_bound: current_objective_lower,
+                    margin_enclosure: current_margin_enclosure,
+                    split_parameter_id: None,
+                    child_node_ids: Vec::new(),
+                });
                 continue;
             }
-            (Err(error), _) | (_, Err(error)) => return Err(error),
-        };
+
+            let mut selected_axis = None;
+            let mut selected_width = 0.0;
+            for (axis, bounds) in node.design_bounds.iter().enumerate() {
+                let width = bounds.upper() - bounds.lower();
+                let can_split = width > policy.minimum_design_widths[axis]
+                    && stable_midpoint(bounds.lower(), bounds.upper()).is_some();
+                let is_better_tie = selected_axis.is_some_and(|previous_axis| {
+                    width == selected_width
+                        && root.parameter_ids[axis] < root.parameter_ids[previous_axis]
+                });
+                if can_split && (width > selected_width || is_better_tie) {
+                    selected_axis = Some(axis);
+                    selected_width = width;
+                }
+            }
+
+            if let Some(axis) = selected_axis {
+                let bounds = node.design_bounds[axis];
+                let midpoint = stable_midpoint(bounds.lower(), bounds.upper())
+                    .expect("selected axis has an interior midpoint");
+                let mut left_bounds = node.design_bounds.clone();
+                let mut right_bounds = node.design_bounds.clone();
+                left_bounds[axis] = Interval::new(bounds.lower(), midpoint)
+                    .map_err(|_| SearchError::InvalidDesignWidth { index: axis })?;
+                right_bounds[axis] = Interval::new(midpoint, bounds.upper())
+                    .map_err(|_| SearchError::InvalidDesignWidth { index: axis })?;
+                let left_id = format!("{}/{}-0", node.node_id, root.parameter_ids[axis]);
+                let right_id = format!("{}/{}-1", node.node_id, root.parameter_ids[axis]);
+                queue.push_back(WorkNode {
+                    node_id: left_id.clone(),
+                    parent_node_id: Some(node.node_id.clone()),
+                    depth: node.depth + 1,
+                    design_bounds: left_bounds,
+                    inherited_objective_lower_bound: current_objective_lower,
+                });
+                queue.push_back(WorkNode {
+                    node_id: right_id.clone(),
+                    parent_node_id: Some(node.node_id.clone()),
+                    depth: node.depth + 1,
+                    design_bounds: right_bounds,
+                    inherited_objective_lower_bound: current_objective_lower,
+                });
+                records.push(DesignBoxRecord {
+                    node_id: node.node_id,
+                    parent_node_id: node.parent_node_id,
+                    depth: node.depth,
+                    design_bounds: node.design_bounds,
+                    disposition: BoxDisposition::Split,
+                    objective_lower_bound: current_objective_lower,
+                    margin_enclosure: current_margin_enclosure,
+                    split_parameter_id: Some(root.parameter_ids[axis].clone()),
+                    child_node_ids: vec![left_id, right_id],
+                });
+            } else {
+                records.push(DesignBoxRecord {
+                    node_id: node.node_id,
+                    parent_node_id: node.parent_node_id,
+                    depth: node.depth,
+                    design_bounds: node.design_bounds.clone(),
+                    disposition: BoxDisposition::UnresolvedMinimumWidth,
+                    objective_lower_bound: current_objective_lower,
+                    margin_enclosure: current_margin_enclosure,
+                    split_parameter_id: None,
+                    child_node_ids: Vec::new(),
+                });
+            }
+            continue;
+        }
+
+        let objective = objective_result.expect("non-recoverable errors returned above");
+        let margin = margin_result.expect("non-recoverable errors returned above");
 
         if margin.value_enclosure.upper() < 0.0 {
             robust_infeasible_count += 1;
