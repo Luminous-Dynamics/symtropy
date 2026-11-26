@@ -755,7 +755,11 @@ fn validate_candidate(
         if !is_sha256(&reset.initial_state_sha256) {
             return Err("RESET_RECEIPT_INITIAL_STATE_DIGEST_INVALID".to_owned());
         }
-        assert_eq_field(reset.initial_state_sha256.clone(), expected_initial_state_sha.clone(), "RESET_RECEIPT_INITIAL_STATE_MISMATCH")?;
+        assert_eq_field(
+            reset.initial_state_sha256.clone(),
+            replay_attempt.original_state_sha256.clone(),
+            "RESET_RECEIPT_INITIAL_STATE_MISMATCH",
+        )?;
 
         assert_eq_field(indexed_prefix.attempt_id.clone(), attempt_id.clone(), "ACTION_PREFIX_INDEX_ATTEMPT_ID_MISMATCH")?;
         assert_eq_field(indexed_prefix.policy_id.clone(), expected_policy.clone(), "ACTION_PREFIX_INDEX_POLICY_ID_MISMATCH")?;
