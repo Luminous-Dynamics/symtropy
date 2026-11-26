@@ -162,9 +162,9 @@ pub use portfolio_selection::{
 };
 pub use scenario_robust_selection::{
     MAX_ROBUST_EPISTEMIC_SCENARIOS, MAX_ROBUST_SCENARIO_BATCHES,
-    ScenarioDefensiveBatchReceipt, ScenarioDefensiveDrawBatch, ScenarioPortfolioSnapshot,
-    ScenarioRobustPortfolioReport, ScenarioRobustPortfolioSelection,
-    ScenarioRobustSelectionError,
+    ScenarioDefensiveBatchReceipt, ScenarioDefensiveDrawBatch, ScenarioDefensiveProposal,
+    ScenarioDefensiveScenarioReceipt, ScenarioPortfolioSnapshot, ScenarioRobustPortfolioReport,
+    ScenarioRobustPortfolioSelection, ScenarioRobustSelectionError,
 };
 pub use predictable_empirical_bernstein::{
     AdaptiveImportanceSamplingPrPlEbSequence, DEFAULT_BET_FRACTION_CAP, PrPlEbConfidenceSequence,
