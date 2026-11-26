@@ -578,10 +578,7 @@ fn score_arm(arm_id: ArmId, rows: &[&EpisodeRecord]) -> ArmScorecard {
         native_episode_safety: RateMetric::complete(episode_n, episode_safe_n),
         native_policy_recovery_success: metric_from_optional(episode_n, recovery_values),
         fault_delivery: fault_stage_counts(rows),
-        false_no_effect: RateMetric::complete(
-            false_no_effect_eligible.len(),
-            false_no_effect_n,
-        ),
+        false_no_effect: RateMetric::complete(false_no_effect_eligible.len(), false_no_effect_n),
         false_applied: RateMetric::complete(false_applied_eligible.len(), false_applied_n),
         false_closed,
         duplicate_one_shot_effect: duplicate_one_shot,
