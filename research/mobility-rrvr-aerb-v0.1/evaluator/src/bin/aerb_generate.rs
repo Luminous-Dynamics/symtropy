@@ -332,6 +332,20 @@ fn build_submission(episode: &CandidateEpisode) -> Result<CandidateSubmission, S
     let snapshot_sha256 = canonical_sorted_json_sha256(&episode_json)
         .map_err(|error| format!("EPISODE_DIGEST_FAILED: {error}"))?;
 
+    let has_unqualified_observation = episode.observations.iter().any(|observation| {
+        observation.quality != ObservationQuality::Admitted
+    });
+    let disposition = if has_unqualified_observation {
+        Disposition::Abstain
+    } else {
+        Disposition::RequestObservation
+    };
+    let requested_probe_id = if disposition == Disposition::RequestObservation {
+        Some("reconcile_effect_and_scope".to_owned())
+    } else {
+        None
+    };
+
     Ok(CandidateSubmission {
         schema_version: SCHEMA_VERSION.to_owned(),
         benchmark: "AERB".to_owned(),
@@ -340,8 +354,8 @@ fn build_submission(episode: &CandidateEpisode) -> Result<CandidateSubmission, S
         model_sha256: digest_label("aerb-generator-broad-support-baseline-v0.1"),
         observer_profile_sha256: digest_label("aerb-generator-broad-support-profile-v0.1"),
         possible_world_support_ids: WORLD_IDS.iter().map(|world| (*world).to_owned()).collect(),
-        disposition: Disposition::RequestObservation,
-        requested_probe_id: Some("reconcile_effect_and_scope".to_owned()),
+        disposition,
+        requested_probe_id,
         reason_codes: vec![
             "GENERATOR_BASELINE_NOT_A_LEARNED_AGENT".to_owned(),
             "PRESERVE_ALL_POSSIBLE_HISTORIES".to_owned(),
