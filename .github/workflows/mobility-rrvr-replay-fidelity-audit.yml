@@ -44,14 +44,18 @@ jobs:
           set -euo pipefail
           ROOT="research/mobility-rrvr-replay-fidelity-audit-v0.1"
           ARTIFACT_ROOT="$RUNNER_TEMP/replay-artifacts"
-          mkdir -p "$ARTIFACT_ROOT/metadata"
+          mkdir -p "$ARTIFACT_ROOT/metadata" "$ARTIFACT_ROOT/states"
           cp "$ROOT/fixtures/selection_record_v0_1.json" "$ARTIFACT_ROOT/metadata/synthetic-replay-valid-selection.json"
           ATTEMPTS=(
             synthetic-replay-valid-screen-policy-0-trial-0
             synthetic-replay-valid-screen-policy-1-trial-2
             synthetic-replay-valid-screen-policy-2-trial-4
           )
+          INDEX=0
           for attempt in "${ATTEMPTS[@]}"; do
+            cp "$ROOT/fixtures/state-original-$INDEX.json" "$ARTIFACT_ROOT/states/$attempt-original.json"
+            cp "$ROOT/fixtures/state-replay-$INDEX.json" "$ARTIFACT_ROOT/states/$attempt-replay.json"
+            INDEX=$((INDEX + 1))
             mkdir -p "$ARTIFACT_ROOT/frames/$attempt"
             for i in 0 1 2 3 4; do
               base64 -d "$ROOT/fixtures/identical_rgb16x16.png.b64" > "$ARTIFACT_ROOT/frames/$attempt/original-$i.png"
