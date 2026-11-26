@@ -2,13 +2,13 @@ name: Broadphase Architecture Tournament
 
 on:
   pull_request:
-    branches: [research/stateful-tree-broadphase-v0.1]
+    branches: [research/stateful-tree-broadphase-v0.1, research/broadphase-tournament-v0.1]
     paths:
       - "research/broadphase-tournament/v0.1/**"
       - "research/incremental-aabb-tree-reference/v0.1/**"
       - ".github/workflows/broadphase-tournament.yml"
   push:
-    branches: [research/broadphase-tournament-v0.1]
+    branches: [research/broadphase-tournament-v0.1, research/sleep-aware-pair-delta-v0.1]
     paths:
       - "research/broadphase-tournament/v0.1/**"
       - ".github/workflows/broadphase-tournament.yml"
@@ -57,8 +57,8 @@ jobs:
             printf 'cargo run --release ... -- 128 40 2\n'
           } > "$results_dir/manifest.txt"
           cargo run --release --manifest-path research/broadphase-tournament/v0.1/Cargo.toml --bin broadphase-tournament -- 128 40 2 > "$results_dir/results.csv"
-          test "$(wc -l < "$results_dir/results.csv")" -eq 109
-          awk -F, 'NR > 1 && (NF != 35 || $12 != 0 || $13 != 0 || $14 != 0) { print "invalid benchmark row", NR, "columns", NF; failed = 1 } END { exit failed }' "$results_dir/results.csv"
+          test "$(wc -l < "$results_dir/results.csv")" -eq 148
+          awk -F, 'NR > 1 && (NF != 45 || $13 != 0 || $14 != 0 || $15 != 0 || $16 != 0) { print "invalid benchmark row", NR, "columns", NF; failed = 1 } END { exit failed }' "$results_dir/results.csv"
           printf 'validated_rows=%s\n' "$(($(wc -l < "$results_dir/results.csv") - 1))" >> "$results_dir/manifest.txt"
       - name: Retain benchmark evidence
         uses: actions/upload-artifact@v4
