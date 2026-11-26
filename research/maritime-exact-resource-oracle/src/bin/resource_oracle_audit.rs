@@ -105,15 +105,22 @@ fn parse_scenario() -> Result<Scenario, Box<dyn Error>> {
     })
 }
 
+fn objective_line(objective: ObjectiveVector) -> String {
+    format!(
+        "{}\t{}\t{}\t{}\t{}",
+        objective.vessel_wait,
+        objective.receiver_delay,
+        objective.energy_cost,
+        objective.emissions,
+        objective.missed_connections
+    )
+}
+
 fn plan_line(plan: &maritime_exact_resource_oracle::Plan) -> String {
     format!(
-        "{}\t{}\t{}\t{}\t{}\t{}",
+        "{}\t{}",
         plan.candidate_ids.join(","),
-        plan.objective.vessel_wait,
-        plan.objective.receiver_delay,
-        plan.objective.energy_cost,
-        plan.objective.emissions,
-        plan.objective.missed_connections
+        objective_line(plan.objective)
     )
 }
 
@@ -151,13 +158,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             "SCENARIO_CANDIDATE\t{}\t{}\t{}",
             candidate.candidate_id,
             candidate.vessel_id,
-            plan_line(&maritime_exact_resource_oracle::Plan {
-                candidate_ids: vec![candidate.candidate_id.clone()],
-                objective: candidate.objective,
-            })
-            .split_once('\t')
-            .map(|(_, objectives)| objectives)
-            .unwrap_or_default()
+            objective_line(candidate.objective)
         );
         let mut reservations = candidate.reservations.clone();
         reservations.sort_by(|left, right| {
