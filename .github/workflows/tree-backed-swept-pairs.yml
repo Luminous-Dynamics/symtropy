@@ -27,6 +27,12 @@ jobs:
           components: clippy, rustfmt
       - name: Check formatting
         run: cargo fmt --manifest-path research/tree-backed-swept-pairs/v0.1/Cargo.toml -- --check
+      - name: Bootstrap lockfile temporarily
+        run: |
+          cargo generate-lockfile --manifest-path research/tree-backed-swept-pairs/v0.1/Cargo.toml
+          echo "LOCKFILE_OUTPUT_BEGIN"
+          cat research/tree-backed-swept-pairs/v0.1/Cargo.lock
+          echo "LOCKFILE_OUTPUT_END"
       - name: Run tests
         run: cargo test --manifest-path research/tree-backed-swept-pairs/v0.1/Cargo.toml --locked
       - name: Run strict Clippy
