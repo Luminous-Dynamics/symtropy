@@ -72,6 +72,18 @@ pub struct PortfolioScenarioRiskCheck {
     pub scenario_id: [u8; 32],
     /// Portfolio identity.
     pub portfolio_id: [u8; 32],
+    /// Post-action mission-support manifest digest.
+    pub manifest_digest: [u8; 32],
+    /// Target probability measure identity within this scenario.
+    pub target_measure_digest: [u8; 32],
+    /// Density coordinate/frame/epoch space identity within this scenario.
+    pub density_space_digest: [u8; 32],
+    /// Post-action event-inventory identity for this portfolio.
+    pub event_inventory_digest: [u8; 32],
+    /// Content digest of the complete envelope, horizon and risk-policy cell.
+    pub risk_envelope_digest: [u8; 32],
+    /// Exact total target-support mass ticks.
+    pub total_mass_ticks: u64,
     /// Digest of the approving-agent post-action screening horizon.
     pub post_action_horizon_digest: [u8; 32],
     /// Digest of the collision-risk budget policy / approval context.
@@ -400,6 +412,12 @@ impl ScenarioMissionRiskGate {
                 risk_checks.push(PortfolioScenarioRiskCheck {
                     scenario_id: *scenario_id,
                     portfolio_id: *portfolio_id,
+                    manifest_digest: contract.manifest_digest,
+                    target_measure_digest: contract.target_measure_digest,
+                    density_space_digest: contract.density_space_digest,
+                    event_inventory_digest: contract.event_inventory_digest,
+                    risk_envelope_digest: contract.risk_envelope_digest,
+                    total_mass_ticks: contract.total_mass_ticks,
                     post_action_horizon_digest: contract.post_action_horizon_digest,
                     risk_policy_digest: contract.risk_policy_digest,
                     mission_union_mass: envelope.pathwise_union_mass,
@@ -1188,6 +1206,25 @@ mod tests {
             report.ineligible_scenarios_by_portfolio.get(&PORTFOLIO_C),
             Some(&vec![SCENARIO_B])
         );
+        let checked = report
+            .scenario_portfolio_risk_checks
+            .iter()
+            .find(|row| {
+                row.scenario_id == SCENARIO_B && row.portfolio_id == PORTFOLIO_C
+            })
+            .unwrap();
+        let contract = contracts()
+            .into_iter()
+            .find(|row| row.scenario_id == SCENARIO_B && row.portfolio_id == PORTFOLIO_C)
+            .unwrap();
+        assert_eq!(checked.manifest_digest, contract.manifest_digest);
+        assert_eq!(checked.target_measure_digest, contract.target_measure_digest);
+        assert_eq!(checked.density_space_digest, contract.density_space_digest);
+        assert_eq!(checked.event_inventory_digest, contract.event_inventory_digest);
+        assert_eq!(checked.risk_envelope_digest, contract.risk_envelope_digest);
+        assert_eq!(checked.total_mass_ticks, contract.total_mass_ticks);
+        assert_eq!(checked.post_action_horizon_digest, contract.post_action_horizon_digest);
+        assert_eq!(checked.risk_policy_digest, contract.risk_policy_digest);
 
         // After C is removed by the hard gate, A/B regrets are A=20 and B=10.
         // B is therefore the unique minimum-regret portfolio among eligible arms.
