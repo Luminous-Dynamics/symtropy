@@ -54,7 +54,7 @@ This is a valid but generally looser upper bound under the same supplied envelop
 
 ## Arithmetic
 
-Production evaluator uses Rust fixed-point integers, checked multiplications/additions and ceiling division. Speeds are in µm/s, acceleration in µm/s², jerk in µm/s³, times in ns, and pixel bounds in micro-pixels. Each non-negative rational contribution is independently rounded upward before summing. Inputs beyond declared limits, conversion overflow, zero minimum depth and invalid source digests produce INVALID_INPUT. FAIL gates produce BLOCKED; UNKNOWN gates produce INDETERMINATE.
+Production evaluator uses Rust fixed-point integers, checked multiplications/additions and ceiling division. Inputs remain in micrometre-based units (speed µm/s, acceleration µm/s², jerk µm/s³, spatial support µm) and time in ns. Integrated path terms are retained in nanometres through the perspective projection; the final micro-pixel result is rounded outward once. This avoids unnecessary false holds from rounding path displacement to whole micrometres before projection. Inputs beyond declared limits, conversion overflow, zero minimum depth and invalid source digests produce INVALID_INPUT. FAIL gates produce BLOCKED; UNKNOWN gates produce INDETERMINATE.
 
 ## Integration
 
