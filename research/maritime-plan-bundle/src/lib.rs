@@ -348,13 +348,16 @@ fn check_requirement<P: CommitmentProjectionProvider>(
                 }
             }
         }
-        CommitmentState::Revoked | CommitmentState::Rejected | CommitmentState::Expired => {
-            RequirementResult {
-                reservation_id: reservation.reservation_id.clone(),
-                commitment_id,
-                disposition: RequirementDisposition::CommitmentNotAccepted,
-            }
-        }
+        CommitmentState::Revoked | CommitmentState::Rejected => RequirementResult {
+            reservation_id: reservation.reservation_id.clone(),
+            commitment_id,
+            disposition: RequirementDisposition::CommitmentNotAccepted,
+        },
+        CommitmentState::Expired => RequirementResult {
+            reservation_id: reservation.reservation_id.clone(),
+            commitment_id,
+            disposition: RequirementDisposition::CommitmentExpired,
+        },
         CommitmentState::Offered => RequirementResult {
             reservation_id: reservation.reservation_id.clone(),
             commitment_id,
@@ -758,6 +761,74 @@ mod tests {
         let report = evaluate_bundle(&receipt, &requirements(), 120, &provider()).unwrap();
         assert_eq!(report.disposition, BundleDisposition::PhysicalPlanUnknown);
         assert!(report.results.is_empty());
+    }
+
+
+    #[test]
+    fn missing_requirement_is_visible_per_reservation() {
+        let report = evaluate_bundle(&plan(), &requirements()[..1], 120, &provider()).unwrap();
+        assert_eq!(
+            report.results[1].disposition,
+            RequirementDisposition::MissingRequirement
+        );
+        assert_eq!(report.disposition, BundleDisposition::Incomplete);
+    }
+
+    #[test]
+    fn orphan_requirement_is_reported_not_silently_ignored() {
+        let mut reqs = requirements();
+        reqs.push(requirement(
+            "R-NOT-IN-PLAN",
+            "C-ORPHAN",
+            "POWER-SOCKET",
+            9,
+            1,
+            "connection",
+        ));
+        let report = evaluate_bundle(&plan(), &reqs, 120, &provider()).unwrap();
+        assert!(report
+            .results
+            .iter()
+            .any(|result| result.disposition == RequirementDisposition::OrphanRequirement));
+        assert_eq!(report.disposition, BundleDisposition::Incomplete);
+    }
+
+    #[test]
+    fn controller_and_accepting_participant_are_exact_terms() {
+        let mut wrong = requirements();
+        wrong[0].controller_id = "OTHER-TERMINAL".to_owned();
+        wrong[1].accepting_participant_id = "OTHER-CARRIER".to_owned();
+        let report = evaluate_bundle(&plan(), &wrong, 120, &provider()).unwrap();
+        assert_eq!(
+            report.results[0].disposition,
+            RequirementDisposition::TermsMismatch
+        );
+        assert_eq!(
+            report.results[1].disposition,
+            RequirementDisposition::TermsMismatch
+        );
+    }
+
+    #[test]
+    fn expired_state_from_commitment_owner_is_not_eligible() {
+        let mut value = provider();
+        value.projections.insert(
+            "C-RAIL".to_owned(),
+            projection(
+                "C-RAIL",
+                "RAIL-TRACK-A",
+                5,
+                12,
+                "container",
+                CommitmentState::Expired,
+                120,
+            ),
+        );
+        let report = evaluate_bundle(&plan(), &requirements(), 120, &value).unwrap();
+        assert_eq!(
+            report.results[1].disposition,
+            RequirementDisposition::CommitmentExpired
+        );
     }
 
     #[test]
