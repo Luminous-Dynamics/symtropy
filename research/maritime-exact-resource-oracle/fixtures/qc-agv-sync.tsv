@@ -3,7 +3,7 @@
 # TASK <id> <qc_id> <nominal_service> <service_deviation> <qc_predecessor|->
 # ROUTE <route_id>
 # STEP <route_id> <task_id> <travel_before>
-INSTANCE	SYNC-UNCERTAIN-QC-AGV	1	1	1
+INSTANCE	SYNC-UNCERTAIN-QC-AGV	1	5	1
 TASK	A	QC-A	0	3	1	-
 TASK	B	QC-B	4	4	3	-
 ROUTE	AB
