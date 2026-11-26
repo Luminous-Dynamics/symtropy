@@ -146,6 +146,37 @@ pub struct FlowResult {
     pub min_cut: MinimumCut,
 }
 
+/// Portable proof-carrying artifact: the exact input graph plus the
+/// constructive max-flow/min-cut result. Consumers must call verify after
+/// deserializing; JSON validity alone is not a certificate check.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FlowCertificateBundle {
+    pub schema_version: String,
+    pub graph: FlowGraph,
+    pub result: FlowResult,
+}
+
+impl FlowCertificateBundle {
+    /// Bind a result to its graph and reject mismatches before exporting.
+    pub fn new(graph: FlowGraph, result: FlowResult) -> Result<Self, FlowError> {
+        graph.verify_result(&result)?;
+        Ok(Self {
+            schema_version: CERTIFICATE_SCHEMA_VERSION.to_owned(),
+            graph,
+            result,
+        })
+    }
+
+    /// Independently verify the graph/result pair after loading the bundle.
+    pub fn verify(&self) -> Result<(), FlowError> {
+        if self.schema_version != CERTIFICATE_SCHEMA_VERSION {
+            return Err(FlowError::new("unsupported flow certificate bundle schema"));
+        }
+        self.graph.verify_result(&self.result)
+    }
+}
+
 #[derive(Debug, Clone)]
 struct ResidualArc {
     to: usize,
@@ -1042,6 +1073,31 @@ mod tests {
             ],
         };
         assert!(candidate.verify_result(&result).is_err());
+    }
+
+    #[test]
+    fn portable_bundle_binds_graph_and_certificate_after_deserialization() {
+        let candidate = graph(
+            4,
+            &[(0, 1, 7), (0, 2, 5), (1, 2, 2), (1, 3, 4), (2, 3, 8)],
+        );
+        let result = candidate.solve().unwrap();
+        let bundle = FlowCertificateBundle::new(candidate.clone(), result).unwrap();
+        let encoded = serde_json::to_vec(&bundle).unwrap();
+        let decoded: FlowCertificateBundle = serde_json::from_slice(&encoded).unwrap();
+        decoded.verify().unwrap();
+
+        let mut wrong_graph = decoded.clone();
+        wrong_graph.graph.edges[0].capacity += 1;
+        assert!(wrong_graph.verify().is_err());
+
+        let mut wrong_bundle_schema = decoded.clone();
+        wrong_bundle_schema.schema_version = "luminous-flow-bundle-v0".to_string();
+        assert!(wrong_bundle_schema.verify().is_err());
+
+        let mut unknown = serde_json::to_value(&decoded).unwrap();
+        unknown["unrecognized_semantics"] = serde_json::Value::Bool(true);
+        assert!(serde_json::from_value::<FlowCertificateBundle>(unknown).is_err());
     }
 
     #[test]
