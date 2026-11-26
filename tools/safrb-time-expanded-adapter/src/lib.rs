@@ -191,6 +191,9 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
     }
     let case_id = sfield(value, "case_id", "$")?;
     let scope = sfield(value, "claim_scope", "$")?;
+    if scope != "FUEL-DELIVERABILITY" {
+        return Err(err("$.claim_scope", "v0.1 adapter supports FUEL-DELIVERABILITY only"));
+    }
 
     let timebase = get(value, "timebase", "$")?;
     if sfield(timebase, "kind", "$.timebase")? != "relative_discrete_intervals"
@@ -265,13 +268,20 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
     if source_ids.is_empty() || expected_ids.len() != source_ids.len() {
         return Err(err("$.total_opening_stock.source_ids", "must be non-empty and unique"));
     }
-    let stock = edges.iter().filter(|e| e.from == source && nodes.get(&e.to).is_some_and(|n| n.kind == "inventory")).collect::<Vec<_>>();
+    let source_edges = edges.iter().filter(|e| e.from == source).collect::<Vec<_>>();
+    let stock = source_edges.iter().copied().filter(|e| nodes.get(&e.to).is_some_and(|n| n.kind == "inventory")).collect::<Vec<_>>();
+    if source_edges.len() != stock.len() {
+        return Err(err("$.edges", "v0.1 source may connect only to opening inventory nodes"));
+    }
     let actual_ids = stock.iter().map(|e| e.resource.clone()).collect::<BTreeSet<_>>();
     if stock.len() != source_ids.len() || actual_ids != expected_ids {
         return Err(err("$.total_opening_stock", "source inventory edges do not reconcile to source identities"));
     }
     let stock_sum = stock.iter().try_fold(0_u64, |sum, edge| sum.checked_add(edge.lower).ok_or_else(|| err("$.total_opening_stock", "stock overflow")))?;
-    if stock_sum != opening_quantity { return Err(err("$.total_opening_stock", "source stock lower bounds do not reconcile")); }
+    let stock_upper = stock.iter().try_fold(0_u64, |sum, edge| sum.checked_add(edge.upper).ok_or_else(|| err("$.total_opening_stock", "opening-stock upper bound overflow")))?;
+    if stock_sum != opening_quantity || stock_upper != opening_quantity {
+        return Err(err("$.total_opening_stock", "exact opening-stock lower and upper capacities must both reconcile"));
+    }
 
     let aliases = array(value, "resource_aliases", "$")?;
     let mut logicals = BTreeSet::new();
@@ -313,7 +323,9 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
         let path = format!("$.route_transit[{i}]");
         let id = sfield(row, "route_id", &path)?;
         if !route_ids.insert(id) { return Err(err(&path, "duplicate route ID")); }
-        if nfield(row, "transit_intervals", &path)? == 0 { return Err(err(&path, "transit must be positive")); }
+        if nfield(row, "transit_intervals", &path)? != 1 {
+            return Err(err(&path, "v0.1 adapter supports exactly one transit interval"));
+        }
         for resource in array(row, "physical_resources", &path)? {
             let resource = strv(resource, &format!("{path}.physical_resources[]"))?;
             if !physical_gates.contains_key(&resource) { return Err(err(&path, "route references an unknown physical resource")); }
@@ -543,7 +555,11 @@ mod tests {
 
     #[test]
     fn frozen_two_window_case_has_9t_lower_and_12t_upper() {
-        let result = evaluate_scenario(&scenario()).unwrap();
+        let document = bundled_fixture().unwrap();
+        let input = document["scenario"].clone();
+        let expected = &document["certificate"];
+        let result = evaluate_scenario(&input).unwrap();
+        assert_eq!(result.scenario_sha256, expected["scenario_sha256"].as_str().unwrap());
         assert_eq!(result.lower.max_flow, 9);
         assert_eq!(result.lower.min_cut.capacity, 9);
         assert_eq!(result.upper.max_flow, 12);
@@ -552,6 +568,20 @@ mod tests {
         assert_eq!((result.windows[0].lower_delivered, result.windows[0].upper_delivered), (6, 6));
         assert_eq!((result.windows[1].lower_delivered, result.windows[1].upper_delivered), (3, 6));
         assert_eq!(result.disposition, ServiceDisposition::IndeterminateNotGuaranteed);
+        let expected_witness = expected["flow_witness"].as_object().unwrap();
+        for edge in &result.lower.edge_flows {
+            assert_eq!(
+                edge.flow,
+                expected_witness[&edge.id].as_u64().unwrap(),
+                "lower flow witness edge {}",
+                edge.id
+            );
+        }
+        let expected_cut = expected["cut_edge_ids"].as_array().unwrap()
+            .iter().map(|value| value.as_str().unwrap().to_string()).collect::<BTreeSet<_>>();
+        let actual_cut = result.lower.min_cut.edges.iter()
+            .map(|edge| edge.id.clone()).collect::<BTreeSet<_>>();
+        assert_eq!(actual_cut, expected_cut);
     }
 
     #[test]
