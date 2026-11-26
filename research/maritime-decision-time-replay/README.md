@@ -366,3 +366,35 @@ The exact-resource micro-oracle should grow from one tiny scenario into held-out
 - inland gate and receiver appointment capacity.
 
 Measure train/test transfer across port topology and operating regime, not only random seeds from one geometry. Use public AIS only for vessel movement/call timing; unit-level cargo identity and receiver service require rights-cleared sources.
+
+
+## Comparator refresh — November 2026
+
+The external baseline is moving; this research track should not rely on older berth-only benchmarks.
+
+### New strongest comparator details
+
+- **Tidal port + approach bridge branch-and-price (November 2026):** Pang et al., *Transportation Research Part B* 213, DOI 10.1016/j.trb.2026.103584, jointly model berth-segment occupancy, tide-dependent vessel mooring orientation, yard allocation and truck flows over constrained approach bridges. The paper reports up to 10.9% better objective value than the best Gurobi solution within a two-hour limit on its large instances. That is a result on the authors' Ningbo-Zhoushan data and model—not a directly comparable gain on our synthetic cases. This must be a named exact/heuristic comparator, not just a literature citation.
+- **Health-aware AGV + maintenance (22 October 2026):** Yang et al., *Journal of Industrial and Management Optimization* 22(11), DOI 10.3934/jimo.2026198, combine assignment, routing, charging, maintenance, degradation and stochastic failure in HA-QMIX. The authors explicitly report throughput variability across five seeds as a remaining limitation. Our tournament should publish more seeds, confidence intervals, tail throughput and paired-seed differences; one winning seed is insufficient.
+- **Integrated berth/QC/AGV (15 September 2026):** Li & Li, DOI 10.3390/jmse14181714, combine RL-enhanced ALNS and GNN/MAPPO across berth, QC, buffer and AGV stages. Their work underlines that stage-coupling and buffer occupancy are necessary baseline dimensions.
+- **OPS/energy dispatch (18 August 2026):** Li & Hu, DOI 10.1016/j.jclepro.2026.149105, couple berth, QC/YC, shore power and multi-source energy dispatch with carbon accounting. Their reported cost results are model/dataset-specific; we should compare against a reproduced model, not quote headline savings as expected field improvement.
+- **Robust arrival/OPS planning (15 June 2026):** Wang et al., DOI 10.1016/j.oceaneng.2026.125850, combine berth/yard/shore power and uncertain vessel arrivals with adversarial hierarchical multi-agent SAC.
+
+### Industry data and interoperability constraints
+
+The World Bank / S&P Global CPPI 2025 is still the global vessel-time benchmark, not a cargo receiver-service benchmark. S&P reports its granular underlying dataset covers approximately 180,000 port calls annually at over 1,000 terminals in 500 ports, with vessel/operator timestamps and move counts. That dataset is commercial; any head-to-head benchmark requires licensed access and a transparent mapping of event boundaries. Public AIS is not a substitute for those call-level operational measurements.
+
+StormGeo announced it acquired Portchain on 30 October 2026, explicitly positioning the combination around connecting voyage routing/speed decisions with current berth availability and terminal plans. This is evidence that voyage-to-berth coordination is an active, commercially integrated capability. The research differentiation should therefore be cross-vendor evidence, authority, revocation, historical replay, commitment completeness and independently adjudicated outcomes—not the claim that these systems do not coordinate.
+
+DCSA's 2026 Standards Roadmap emphasizes moving from siloed spreadsheets/databases/manual re-entry toward interoperable APIs. Use DCSA's current Port Call and Track & Trace schemas/conformance materials as the event-interchange baseline; interoperability does not establish physical truth or receiver acceptance.
+
+### How this changes our tournament
+
+1. Match the tidal-port/bridge branch-and-price family on instances with berth segments, mooring orientation, tide windows and bridge capacities.
+2. Match HA-QMIX with health degradation, maintenance bays, charging slots and stochastic AGV failures; publish at least 20 independent seeds as a research target.
+3. Match GNN/MAPPO and RL-ALNS on identical buffer/AGV scenarios.
+4. Match OPS/energy MILP and robust adversarial arrival planning on the same grid/berth scenarios.
+5. Report CPPI-compatible vessel-time separately from terminal cargo and receiver service. Do not treat either as a proxy for the other.
+6. Where commercial data is unavailable, publish the data gap and use open/synthetic instances only for the claims they support.
+
+Sources: [Pang et al., tidal-port branch-and-price](https://doi.org/10.1016/j.trb.2026.103584); [Yang et al., HA-QMIX](https://doi.org/10.3934/jimo.2026198); [Li & Li, coordinated berth/QC/AGV](https://doi.org/10.3390/jmse14181714); [Li & Hu, OPS/energy dispatch](https://doi.org/10.1016/j.jclepro.2026.149105); [Wang et al., robust berth/yard/OPS](https://doi.org/10.1016/j.oceaneng.2026.125850); [CPPI 2025](https://www.worldbank.org/en/topic/transport/publication/cppi); [StormGeo–Portchain acquisition](https://stormgeo.com/insights/stormgeo-acquires-portchain-to-advance-just-in-time-voyage-optimization-at-scale); [DCSA Standards Roadmap 2026](https://dcsa.org/newsroom/dcsa-standards-roadmap-2026).
