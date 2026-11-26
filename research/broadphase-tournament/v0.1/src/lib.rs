@@ -150,6 +150,7 @@ pub struct WorkCounters {
     pub frontier_aabb_tests: u64,
     pub frontier_index_mutations: u64,
     pub frontier_index_reinsertions: u64,
+    pub full_relation_reconciliations: u64,
     pub lbvh_builds: u64,
     pub lbvh_internal_nodes: u64,
     pub lbvh_bruteforce_fallback_frames: u64,
@@ -539,6 +540,7 @@ pub struct PairDeltaFrame {
     pub frontier_aabb_tests: u64,
     pub frontier_index_mutations: u64,
     pub frontier_index_reinsertions: u64,
+    pub full_relation_reconciliation: bool,
 }
 
 /// Persistent symmetric adjacency cache over the exact current-frame AABB
@@ -866,6 +868,7 @@ impl<const D: usize> PairDeltaCache<D> {
             frontier_aabb_tests: 0,
             frontier_index_mutations: 0,
             frontier_index_reinsertions: 0,
+            full_relation_reconciliation: false,
         })
     }
 }
@@ -1457,6 +1460,12 @@ fn run_backend<const D: usize>(
                 counters.frontier_index_reinsertions = counters.frontier_index_reinsertions
                     .checked_add(delta.frontier_index_reinsertions)
                     .ok_or(TournamentError::CounterOverflow)?;
+                if delta.full_relation_reconciliation {
+                    counters.full_relation_reconciliations = counters
+                        .full_relation_reconciliations
+                        .checked_add(1)
+                        .ok_or(TournamentError::CounterOverflow)?;
+                }
                 counters.pair_cache_peak_pairs =
                     counters.pair_cache_peak_pairs.max(delta.active_pairs);
 
@@ -1647,13 +1656,13 @@ pub fn run_scale_tournament<const D: usize>(
 impl TournamentRow {
     #[must_use]
     pub fn csv_header() -> &'static str {
-        "family,dimension,seed,declared_proxy_count,scene_frames,backend,oracle_method,output_contract,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,event_mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,p50_pair_materialize_ns,p95_pair_materialize_ns,p99_pair_materialize_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,tree_rotations,pair_cache_dirty_proxies,pair_cache_overlap_tests,pair_events_added,pair_events_removed,pair_cache_peak_pairs,lbvh_builds,lbvh_internal_nodes,lbvh_bruteforce_fallback_frames,max_tree_height,max_tree_nodes,max_active_proxies,pair_revalidations,dirty_snapshot_entries_visited,frontier_proxy_visits,frontier_pair_candidates,frontier_unique_pairs,frontier_node_visits,frontier_leaf_tests,frontier_aabb_tests,frontier_index_mutations,frontier_index_reinsertions"
+        "family,dimension,seed,declared_proxy_count,scene_frames,backend,oracle_method,output_contract,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,event_mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,p50_pair_materialize_ns,p95_pair_materialize_ns,p99_pair_materialize_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,tree_rotations,pair_cache_dirty_proxies,pair_cache_overlap_tests,pair_events_added,pair_events_removed,pair_cache_peak_pairs,lbvh_builds,lbvh_internal_nodes,lbvh_bruteforce_fallback_frames,max_tree_height,max_tree_nodes,max_active_proxies,pair_revalidations,dirty_snapshot_entries_visited,frontier_proxy_visits,frontier_pair_candidates,frontier_unique_pairs,frontier_node_visits,frontier_leaf_tests,frontier_aabb_tests,frontier_index_mutations,frontier_index_reinsertions,full_relation_reconciliations"
     }
 
     #[must_use]
     pub fn to_csv(&self) -> String {
         format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             self.family,
             self.dimension,
             self.seed,
@@ -1712,7 +1721,8 @@ impl TournamentRow {
             self.counters.frontier_leaf_tests,
             self.counters.frontier_aabb_tests,
             self.counters.frontier_index_mutations,
-            self.counters.frontier_index_reinsertions
+            self.counters.frontier_index_reinsertions,
+            self.counters.full_relation_reconciliations
         )
     }
 }
