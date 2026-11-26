@@ -1,0 +1,20 @@
+# Continuous-budget, multi-vehicle fixed-plan event fixture v0.1
+# INSTANCE <id> <gamma> <qc_wait_weight> <agv_wait_weight>
+# TASK <id> <qc_id> <qc_predecessor|-> <qc_release> <nominal_service> <deviation> <LOADING|UNLOADING> <loaded_delivery_after>
+# PLAN <plan_id>
+# ROUTE <plan_id> <vehicle_id> <task_id> <travel_before_task>
+INSTANCE	QCAGV-CONTINUOUS-2AGV	0.5	5.0	1.0
+TASK	A	QC-1	-	0	10	2	UNLOADING	3
+TASK	B	QC-2	-	0	8	3	LOADING	0
+TASK	C	QC-1	A	0	7	2	UNLOADING	2
+TASK	D	QC-3	-	4	6	1	UNLOADING	0
+PLAN	P0
+ROUTE	P0	AGV-1	A	0
+ROUTE	P0	AGV-1	C	1
+ROUTE	P0	AGV-2	B	0
+ROUTE	P0	AGV-2	D	2
+PLAN	P1
+ROUTE	P1	AGV-1	A	0
+ROUTE	P1	AGV-2	D	0
+ROUTE	P1	AGV-2	B	1
+ROUTE	P1	AGV-2	C	1
