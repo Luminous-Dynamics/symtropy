@@ -1052,8 +1052,7 @@ mod tests {
                 )
                 .unwrap();
 
-                let actual_worst =
-                    brute_force_worst_conflicts(&classes, &support_masks);
+                let actual_worst = brute_force_worst_conflicts(&classes, &support_masks);
                 assert!(report.candidate_policy_result_matches_problem);
                 assert_eq!(report.correctly_bound_hypotheses, 3);
                 assert_eq!(report.false_excluded_hypotheses, 0);
@@ -1100,5 +1099,4 @@ mod tests {
 
         assert_eq!(worlds_checked, 729);
     }
-
 }
