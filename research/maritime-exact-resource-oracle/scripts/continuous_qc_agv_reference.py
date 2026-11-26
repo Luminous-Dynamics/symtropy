@@ -337,7 +337,7 @@ def evaluate_plan(tasks, plan_routes, gamma, qc_weight, agv_weight):
         "makespan": replay_result[3],
         "events": replay_result[4],
         "combinations": combinations_examined,
-        "vertices": feasible_vertices,
+        "active_bases": feasible_vertices,
     }
 
 
