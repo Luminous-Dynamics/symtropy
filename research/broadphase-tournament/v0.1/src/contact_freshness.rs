@@ -1,0 +1,509 @@
+//! Revision-bound contact freshness decisions for the broadphase research crate.
+//!
+//! A broadphase pair can stay active while its cached manifold becomes stale.
+//! Conversely, a body can wake without changing the geometry of an existing
+//! contact. This module keeps three decisions separate:
+//!
+//! - geometry/manifold reuse;
+//! - solver warm-start reuse;
+//! - solver-island reactivation.
+//!
+//! The stamp is written by the contact-producing side after successful
+//! narrowphase work. Broadphase code must not manufacture or self-authorize
+//! these stamps. The caller remains responsible for proving that its supplied
+//! endpoint/global revisions came from the authoritative world mutation log.
+
+use incremental_aabb_tree_reference::{ProxyId, ProxyPair};
+use std::collections::BTreeSet;
+
+/// Revision domains attached to one generation-stable collider identity.
+///
+/// Revisions must be monotonic for one proxy generation. A new generation
+/// starts a new identity lifetime and invalidates all prior contact state.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct EndpointRevisions {
+    pub proxy: ProxyId,
+    pub generation: u64,
+    pub transform: u64,
+    pub shape: u64,
+    pub eligibility: u64,
+    pub motion_class: u64,
+    pub material: u64,
+    pub wake_epoch: u64,
+}
+
+/// Global inputs that can change contact interpretation for every pair.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct GlobalContactRevisions {
+    pub world: u64,
+    pub collision_policy: u64,
+    /// SHA-256 digest of the narrowphase algorithm/configuration contract.
+    pub narrowphase_config_sha256: [u8; 32],
+    /// SHA-256 digest of the solver algorithm/configuration contract.
+    pub solver_config_sha256: [u8; 32],
+}
+
+/// The exact revision tuple under which a contact manifold was last produced.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ContactFreshnessStamp {
+    pub pair: ProxyPair,
+    pub global: GlobalContactRevisions,
+    pub left: EndpointRevisions,
+    pub right: EndpointRevisions,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum RevisionDomain {
+    World,
+    CollisionPolicy,
+    Generation,
+    Transform,
+    Shape,
+    Eligibility,
+    MotionClass,
+    Material,
+    WakeEpoch,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ContactFreshnessError {
+    PairIdentityMismatch,
+    WorldRevisionRegressed,
+    CollisionPolicyRevisionRegressed,
+    EndpointRevisionRegressed {
+        proxy: ProxyId,
+        domain: RevisionDomain,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum FreshnessReason {
+    ProxyGenerationChanged,
+    TransformChanged,
+    ShapeChanged,
+    CollisionEligibilityChanged,
+    MotionClassChanged,
+    CollisionPolicyChanged,
+    NarrowphaseConfigurationChanged,
+    ContactMaterialChanged,
+    SolverConfigurationChanged,
+    WakeEpochAdvanced,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ReuseDisposition {
+    Reusable,
+    RefreshRequired,
+}
+
+/// Independent decisions for manifold geometry, warm-start impulses and wake.
+///
+/// Wake-only changes deliberately do not invalidate geometry or warm-start
+/// state. The solver island must be reactivated, but the existing manifold may
+/// remain useful. A geometry or solver-input revision change is conservative:
+/// the relevant cached data is not reused.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ContactReuseDecision {
+    pub geometry: ReuseDisposition,
+    pub warm_start: ReuseDisposition,
+    pub pair_eligibility_recheck_required: bool,
+    pub solver_activation_required: bool,
+    pub reasons: Vec<FreshnessReason>,
+}
+
+impl ContactFreshnessStamp {
+    /// Capture a stamp after a successful narrowphase/contact update.
+    pub fn new(
+        pair: ProxyPair,
+        global: GlobalContactRevisions,
+        left: EndpointRevisions,
+        right: EndpointRevisions,
+    ) -> Result<Self, ContactFreshnessError> {
+        if pair.0 != left.proxy || pair.1 != right.proxy {
+            return Err(ContactFreshnessError::PairIdentityMismatch);
+        }
+        Ok(Self {
+            pair,
+            global,
+            left,
+            right,
+        })
+    }
+
+    /// Decide which cached contact data may be reused for the supplied world
+    /// state. Any revision regression is an error and must fail closed.
+    ///
+    /// A world revision may advance by more than one while this pair remains
+    /// untouched. Reuse therefore depends on exact endpoint/global revision
+    /// equality and a trustworthy complete mutation journal, not on requiring
+    /// every pair stamp to be rewritten every frame.
+    pub fn assess(
+        &self,
+        global: GlobalContactRevisions,
+        left: EndpointRevisions,
+        right: EndpointRevisions,
+    ) -> Result<ContactReuseDecision, ContactFreshnessError> {
+        if self.pair.0 != left.proxy || self.pair.1 != right.proxy {
+            return Err(ContactFreshnessError::PairIdentityMismatch);
+        }
+        if global.world < self.global.world {
+            return Err(ContactFreshnessError::WorldRevisionRegressed);
+        }
+        if global.collision_policy < self.global.collision_policy {
+            return Err(ContactFreshnessError::CollisionPolicyRevisionRegressed);
+        }
+
+        let mut reasons = BTreeSet::new();
+        let mut geometry_reusable = true;
+        let mut warm_start_reusable = true;
+        let mut pair_eligibility_recheck_required = false;
+        let mut solver_activation_required = false;
+
+        for (previous, current) in [(self.left, left), (self.right, right)] {
+            if current.generation < previous.generation {
+                return Err(ContactFreshnessError::EndpointRevisionRegressed {
+                    proxy: current.proxy,
+                    domain: RevisionDomain::Generation,
+                });
+            }
+
+            if current.generation != previous.generation {
+                reasons.insert(FreshnessReason::ProxyGenerationChanged);
+                geometry_reusable = false;
+                warm_start_reusable = false;
+                // Counters for a recycled slot belong to a new identity
+                // lifetime and must not be compared with the old generation.
+                continue;
+            }
+
+            check_revision(
+                previous.transform,
+                current.transform,
+                current.proxy,
+                RevisionDomain::Transform,
+            )?;
+            if current.transform != previous.transform {
+                reasons.insert(FreshnessReason::TransformChanged);
+                geometry_reusable = false;
+            }
+
+            check_revision(
+                previous.shape,
+                current.shape,
+                current.proxy,
+                RevisionDomain::Shape,
+            )?;
+            if current.shape != previous.shape {
+                reasons.insert(FreshnessReason::ShapeChanged);
+                geometry_reusable = false;
+            }
+
+            check_revision(
+                previous.eligibility,
+                current.eligibility,
+                current.proxy,
+                RevisionDomain::Eligibility,
+            )?;
+            if current.eligibility != previous.eligibility {
+                reasons.insert(FreshnessReason::CollisionEligibilityChanged);
+                geometry_reusable = false;
+                pair_eligibility_recheck_required = true;
+            }
+
+            check_revision(
+                previous.motion_class,
+                current.motion_class,
+                current.proxy,
+                RevisionDomain::MotionClass,
+            )?;
+            if current.motion_class != previous.motion_class {
+                reasons.insert(FreshnessReason::MotionClassChanged);
+                geometry_reusable = false;
+                pair_eligibility_recheck_required = true;
+            }
+
+            check_revision(
+                previous.material,
+                current.material,
+                current.proxy,
+                RevisionDomain::Material,
+            )?;
+            if current.material != previous.material {
+                reasons.insert(FreshnessReason::ContactMaterialChanged);
+                warm_start_reusable = false;
+            }
+
+            check_revision(
+                previous.wake_epoch,
+                current.wake_epoch,
+                current.proxy,
+                RevisionDomain::WakeEpoch,
+            )?;
+            if current.wake_epoch != previous.wake_epoch {
+                reasons.insert(FreshnessReason::WakeEpochAdvanced);
+                solver_activation_required = true;
+            }
+        }
+
+        if global.collision_policy != self.global.collision_policy {
+            reasons.insert(FreshnessReason::CollisionPolicyChanged);
+            geometry_reusable = false;
+            pair_eligibility_recheck_required = true;
+        }
+        if global.narrowphase_config_sha256 != self.global.narrowphase_config_sha256 {
+            reasons.insert(FreshnessReason::NarrowphaseConfigurationChanged);
+            geometry_reusable = false;
+        }
+        if global.solver_config_sha256 != self.global.solver_config_sha256 {
+            reasons.insert(FreshnessReason::SolverConfigurationChanged);
+            warm_start_reusable = false;
+        }
+
+        if !geometry_reusable {
+            warm_start_reusable = false;
+        }
+
+        Ok(ContactReuseDecision {
+            geometry: if geometry_reusable {
+                ReuseDisposition::Reusable
+            } else {
+                ReuseDisposition::RefreshRequired
+            },
+            warm_start: if warm_start_reusable {
+                ReuseDisposition::Reusable
+            } else {
+                ReuseDisposition::RefreshRequired
+            },
+            pair_eligibility_recheck_required,
+            solver_activation_required,
+            reasons: reasons.into_iter().collect(),
+        })
+    }
+}
+
+fn check_revision(
+    previous: u64,
+    current: u64,
+    proxy: ProxyId,
+    domain: RevisionDomain,
+) -> Result<(), ContactFreshnessError> {
+    if current < previous {
+        return Err(ContactFreshnessError::EndpointRevisionRegressed { proxy, domain });
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn endpoint(id: u64) -> EndpointRevisions {
+        EndpointRevisions {
+            proxy: ProxyId(id),
+            generation: 1,
+            transform: 4,
+            shape: 2,
+            eligibility: 3,
+            motion_class: 1,
+            material: 7,
+            wake_epoch: 2,
+        }
+    }
+
+    fn global() -> GlobalContactRevisions {
+        GlobalContactRevisions {
+            world: 10,
+            collision_policy: 5,
+            narrowphase_config_sha256: [11; 32],
+            solver_config_sha256: [12; 32],
+        }
+    }
+
+    fn stamp() -> ContactFreshnessStamp {
+        ContactFreshnessStamp::new(
+            ProxyPair::new(ProxyId(1), ProxyId(2)).expect("distinct IDs"),
+            global(),
+            endpoint(1),
+            endpoint(2),
+        )
+        .expect("canonical pair identity")
+    }
+
+    #[test]
+    fn unchanged_revisions_reuse_geometry_and_warm_start() {
+        let stamp = stamp();
+        let decision = stamp
+            .assess(global(), endpoint(1), endpoint(2))
+            .expect("monotonic unchanged revisions");
+        assert_eq!(decision.geometry, ReuseDisposition::Reusable);
+        assert_eq!(decision.warm_start, ReuseDisposition::Reusable);
+        assert!(!decision.solver_activation_required);
+        assert!(decision.reasons.is_empty());
+    }
+
+    #[test]
+    fn wake_only_change_reactivates_solver_without_discarding_manifold() {
+        let stamp = stamp();
+        let mut awake = endpoint(1);
+        awake.wake_epoch += 1;
+        let decision = stamp
+            .assess(global(), awake, endpoint(2))
+            .expect("wake epoch advances monotonically");
+        assert_eq!(decision.geometry, ReuseDisposition::Reusable);
+        assert_eq!(decision.warm_start, ReuseDisposition::Reusable);
+        assert!(decision.solver_activation_required);
+        assert_eq!(decision.reasons, vec![FreshnessReason::WakeEpochAdvanced]);
+    }
+
+    #[test]
+    fn transform_change_refreshes_manifold_and_warm_start() {
+        let stamp = stamp();
+        let mut moved = endpoint(1);
+        moved.transform += 1;
+        let decision = stamp
+            .assess(global(), moved, endpoint(2))
+            .expect("transform advances monotonically");
+        assert_eq!(decision.geometry, ReuseDisposition::RefreshRequired);
+        assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
+        assert_eq!(decision.reasons, vec![FreshnessReason::TransformChanged]);
+    }
+
+    #[test]
+    fn material_change_preserves_geometry_but_rejects_warm_start() {
+        let stamp = stamp();
+        let mut material = endpoint(2);
+        material.material += 1;
+        let decision = stamp
+            .assess(global(), endpoint(1), material)
+            .expect("material advances monotonically");
+        assert_eq!(decision.geometry, ReuseDisposition::Reusable);
+        assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
+        assert_eq!(decision.reasons, vec![FreshnessReason::ContactMaterialChanged]);
+    }
+
+    #[test]
+    fn filter_eligibility_change_requires_pair_policy_recheck() {
+        let stamp = stamp();
+        let mut changed = endpoint(1);
+        changed.eligibility += 1;
+        let decision = stamp
+            .assess(global(), changed, endpoint(2))
+            .expect("eligibility advances monotonically");
+        assert_eq!(decision.geometry, ReuseDisposition::RefreshRequired);
+        assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
+        assert!(decision.pair_eligibility_recheck_required);
+        assert_eq!(
+            decision.reasons,
+            vec![FreshnessReason::CollisionEligibilityChanged]
+        );
+    }
+
+    #[test]
+    fn shape_change_invalidates_manifold_even_when_transform_is_stable() {
+        let stamp = stamp();
+        let mut changed = endpoint(2);
+        changed.shape += 1;
+        let decision = stamp
+            .assess(global(), endpoint(1), changed)
+            .expect("shape advances monotonically");
+        assert_eq!(decision.geometry, ReuseDisposition::RefreshRequired);
+        assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
+        assert_eq!(decision.reasons, vec![FreshnessReason::ShapeChanged]);
+    }
+
+    #[test]
+    fn generation_change_never_aliases_old_contact_state() {
+        let stamp = stamp();
+        let mut recycled = endpoint(1);
+        recycled.generation += 1;
+        recycled.transform = 0;
+        let decision = stamp
+            .assess(global(), recycled, endpoint(2))
+            .expect("new generation is a new identity lifetime");
+        assert_eq!(decision.geometry, ReuseDisposition::RefreshRequired);
+        assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
+        assert_eq!(
+            decision.reasons,
+            vec![FreshnessReason::ProxyGenerationChanged]
+        );
+    }
+
+    #[test]
+    fn world_revision_regression_fails_closed() {
+        let stamp = stamp();
+        let mut older = global();
+        older.world -= 1;
+        assert_eq!(
+            stamp.assess(older, endpoint(1), endpoint(2)),
+            Err(ContactFreshnessError::WorldRevisionRegressed)
+        );
+    }
+
+    #[test]
+    fn endpoint_revision_regression_fails_closed() {
+        let stamp = stamp();
+        let mut older = endpoint(2);
+        older.shape -= 1;
+        assert_eq!(
+            stamp.assess(global(), endpoint(1), older),
+            Err(ContactFreshnessError::EndpointRevisionRegressed {
+                proxy: ProxyId(2),
+                domain: RevisionDomain::Shape,
+            })
+        );
+    }
+
+    #[test]
+    fn narrowphase_and_solver_configuration_changes_are_separate() {
+        let stamp = stamp();
+        let mut changed = global();
+        changed.narrowphase_config_sha256 = [13; 32];
+        let decision = stamp
+            .assess(changed, endpoint(1), endpoint(2))
+            .expect("configuration digest change");
+        assert_eq!(decision.geometry, ReuseDisposition::RefreshRequired);
+        assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
+        assert_eq!(
+            decision.reasons,
+            vec![FreshnessReason::NarrowphaseConfigurationChanged]
+        );
+
+        let mut solver_changed = global();
+        solver_changed.solver_config_sha256 = [14; 32];
+        let decision = stamp
+            .assess(solver_changed, endpoint(1), endpoint(2))
+            .expect("solver digest change");
+        assert_eq!(decision.geometry, ReuseDisposition::Reusable);
+        assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
+        assert_eq!(
+            decision.reasons,
+            vec![FreshnessReason::SolverConfigurationChanged]
+        );
+    }
+
+    #[test]
+    fn motion_class_and_global_filter_changes_request_eligibility_recheck() {
+        let stamp = stamp();
+        let mut changed_endpoint = endpoint(1);
+        changed_endpoint.motion_class += 1;
+        let decision = stamp
+            .assess(global(), changed_endpoint, endpoint(2))
+            .expect("motion class advances");
+        assert!(decision.pair_eligibility_recheck_required);
+        assert_eq!(
+            decision.reasons,
+            vec![FreshnessReason::MotionClassChanged]
+        );
+
+        let mut changed_global = global();
+        changed_global.collision_policy += 1;
+        let decision = stamp
+            .assess(changed_global, endpoint(1), endpoint(2))
+            .expect("global policy advances");
+        assert!(decision.pair_eligibility_recheck_required);
+        assert_eq!(
+            decision.reasons,
+            vec![FreshnessReason::CollisionPolicyChanged]
+        );
+    }
+}
