@@ -200,8 +200,7 @@ pub fn generate_scene<const D: usize>(
         for axis in 0..D {
             center[axis] = match family {
                 SceneFamily::SparseCoherent | SceneFamily::StaticHeavy => {
-                    integer_grid_coordinate(slot, axis)
-                        + next_between(&mut state, -0.1, 0.1)
+                    integer_grid_coordinate(slot, axis) + next_between(&mut state, -0.1, 0.1)
                 }
                 SceneFamily::DenseClustered => next_between(&mut state, -4.0, 4.0),
                 SceneFamily::HighChurn => next_between(&mut state, -30.0, 30.0),
@@ -296,9 +295,7 @@ pub fn generate_scene<const D: usize>(
     })
 }
 
-fn validate_frame<const D: usize>(
-    frame: &[ProxyFrame<D>],
-) -> Result<(), TournamentError> {
+fn validate_frame<const D: usize>(frame: &[ProxyFrame<D>]) -> Result<(), TournamentError> {
     if frame.is_empty() {
         return Err(TournamentError::EmptyFrame);
     }
@@ -316,9 +313,8 @@ fn validate_frame<const D: usize>(
 }
 
 fn overlaps<const D: usize>(left: &Aabb<D>, right: &Aabb<D>) -> bool {
-    (0..D).all(|axis| {
-        left.max()[axis] >= right.min()[axis] && right.max()[axis] >= left.min()[axis]
-    })
+    (0..D)
+        .all(|axis| left.max()[axis] >= right.min()[axis] && right.max()[axis] >= left.min()[axis])
 }
 
 /// Independent all-pairs reference, computed outside every timed backend.
@@ -382,9 +378,7 @@ fn choose_sweep_axis<const D: usize>(frame: &[ProxyFrame<D>]) -> usize {
 
 /// Sweep-and-prune with a current-frame-only axis heuristic. No future frame
 /// or held-out sequence information participates in axis selection.
-fn sweep_and_prune<const D: usize>(
-    frame: &[ProxyFrame<D>],
-) -> (Vec<ProxyPair>, usize, u64) {
+fn sweep_and_prune<const D: usize>(frame: &[ProxyFrame<D>]) -> (Vec<ProxyPair>, usize, u64) {
     let axis = choose_sweep_axis(frame);
     let mut ordered: Vec<_> = frame.iter().collect();
     ordered.sort_by(|left, right| {
@@ -413,10 +407,7 @@ fn sweep_and_prune<const D: usize>(
     (pairs, axis, pair_tests)
 }
 
-fn compare_candidates(
-    actual: &[ProxyPair],
-    expected: &BTreeSet<ProxyPair>,
-) -> (u64, u64) {
+fn compare_candidates(actual: &[ProxyPair], expected: &BTreeSet<ProxyPair>) -> (u64, u64) {
     let actual_set: BTreeSet<_> = actual.iter().copied().collect();
     let false_positives = actual_set.difference(expected).count() as u64;
     let false_negatives = expected.difference(&actual_set).count() as u64;
@@ -433,15 +424,23 @@ fn percentile(sorted: &[u128], percentile: usize) -> u128 {
 
 fn checked_add(target: &mut u64, value: usize) -> Result<(), TournamentError> {
     let value = u64::try_from(value).map_err(|_| TournamentError::CounterOverflow)?;
-    *target = target.checked_add(value).ok_or(TournamentError::CounterOverflow)?;
+    *target = target
+        .checked_add(value)
+        .ok_or(TournamentError::CounterOverflow)?;
     Ok(())
 }
 
 fn maintenance_delta(previous: MaintenanceStats, current: MaintenanceStats) -> MaintenanceStats {
     MaintenanceStats {
-        insert_operations: current.insert_operations.saturating_sub(previous.insert_operations),
-        remove_operations: current.remove_operations.saturating_sub(previous.remove_operations),
-        update_operations: current.update_operations.saturating_sub(previous.update_operations),
+        insert_operations: current
+            .insert_operations
+            .saturating_sub(previous.insert_operations),
+        remove_operations: current
+            .remove_operations
+            .saturating_sub(previous.remove_operations),
+        update_operations: current
+            .update_operations
+            .saturating_sub(previous.update_operations),
         fat_contained_updates: current
             .fat_contained_updates
             .saturating_sub(previous.fat_contained_updates),
