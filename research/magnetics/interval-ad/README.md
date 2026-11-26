@@ -15,7 +15,8 @@ The method is established validated-numerics mathematics, not a new invention. T
 v0.1 deliberately implements:
 - IEEE-754 binary64 intervals with outward expansion around each basic arithmetic result;
 - addition, subtraction, multiplication, reciprocal and division;
-- square root with a checked real-domain condition;
+- square root with a checked real-domain condition; a box straddling the negative domain is rejected rather than clipped;
+- a dedicated interval-square operation avoids the dependency overestimate of X*X when X crosses zero, and the dual-number square uses the exact chain rule 2X·X';
 - forward-mode interval dual numbers with add, subtract, multiply, divide, negate, integer powers and square root.
 
 It intentionally does **not** call platform `sin`, `cos`, `log`, `atan`, or `atan2` and call them rigorous. These require a separately validated elementary-function implementation with proven range reduction and rounding error. The first magnetic application target is algebraic/rational dipole and multipole kernels, plus square-root geometry, where the supported expression can be written without those functions.
