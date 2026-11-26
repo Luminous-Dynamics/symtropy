@@ -280,12 +280,12 @@ fn validate_bundle(bundle: &EvidenceBundle) -> Result<(), String> {
         }
         let expected_digest = capsule_digest(capsule)?;
         if expected_digest != capsule.content_sha256 {
-            return Err(format!(
-                "EVIDENCE_DIGEST_MISMATCH: {}",
-                capsule.evidence_id
-            ));
+            return Err(format!("EVIDENCE_DIGEST_MISMATCH: {}", capsule.evidence_id));
         }
-        if by_id.insert(capsule.evidence_id.as_str(), capsule).is_some() {
+        if by_id
+            .insert(capsule.evidence_id.as_str(), capsule)
+            .is_some()
+        {
             return Err(format!("DUPLICATE_EVIDENCE_ID: {}", capsule.evidence_id));
         }
     }
