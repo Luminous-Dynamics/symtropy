@@ -171,6 +171,10 @@ pub enum EvaluationError {
     GridIdentityMismatch,
     OperatingConditionMismatch,
     CoordinateGridMismatch,
+    InvalidScenarioSetId,
+    ScenarioFrameMismatch,
+    ScenarioGridMismatch,
+    ScenarioGridCoordinatesMismatch,
 }
 
 #[derive(Clone, Debug, PartialEq)]
