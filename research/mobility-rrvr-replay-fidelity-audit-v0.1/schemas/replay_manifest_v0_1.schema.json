@@ -4,11 +4,12 @@
   "title": "RRVR Replay Fidelity Manifest v0.1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "benchmark", "profile_id", "campaign_id", "split_manifest_sha256", "data_license_and_provenance", "candidates"],
+  "required": ["schema_version", "benchmark", "profile_id", "metric_profile_id", "campaign_id", "split_manifest_sha256", "data_license_and_provenance", "candidates"],
   "properties": {
     "schema_version": { "const": "0.1" },
     "benchmark": { "const": "RRVR-REPLAY-FIDELITY" },
-    "profile_id": { "const": "RoboRecoverReplayV1" },
+    "profile_id": { "const": "RoboRecoverPublishedThresholdsV1" },
+    "metric_profile_id": { "const": "RRVR-SSIM-GAUSSIAN11-SIGMA1_5-RGB8-V0_1" },
     "campaign_id": { "type": "string", "minLength": 1 },
     "split_manifest_sha256": { "$ref": "#/$defs/sha256" },
     "data_license_and_provenance": { "type": "string", "minLength": 1 },
@@ -39,8 +40,9 @@
     "difficulty_trial": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["policy_id", "trial_index", "success"],
+      "required": ["attempt_id", "policy_id", "trial_index", "success"],
       "properties": {
+        "attempt_id": { "type": "string", "minLength": 1 },
         "policy_id": { "type": "string", "minLength": 1 },
         "trial_index": { "type": "integer", "minimum": 0, "maximum": 4 },
         "success": { "type": "boolean" }
@@ -58,6 +60,31 @@
         "replay_sha256": { "$ref": "#/$defs/sha256" }
       }
     },
+    "spot_check_attempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attempt_id", "end_effector", "object_pose", "final_frame_pairs"],
+      "properties": {
+        "attempt_id": { "type": "string", "minLength": 1 },
+        "end_effector": { "$ref": "#/$defs/pose_comparison" },
+        "object_pose": { "$ref": "#/$defs/pose_comparison" },
+        "final_frame_pairs": { "type": "array", "minItems": 5, "maxItems": 5, "items": { "$ref": "#/$defs/frame_pair" } }
+      }
+    },
+    "spot_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seed", "selection_method_id", "selection_record_path", "selection_record_sha256", "selected_attempt_ids", "attempts", "manifest_sha256"],
+      "properties": {
+        "seed": { "const": 42 },
+        "selection_method_id": { "type": "string", "minLength": 1 },
+        "selection_record_path": { "type": "string", "minLength": 1 },
+        "selection_record_sha256": { "$ref": "#/$defs/sha256" },
+        "selected_attempt_ids": { "type": "array", "minItems": 3, "maxItems": 3, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "attempts": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "$ref": "#/$defs/spot_check_attempt" } },
+        "manifest_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
     "candidate": {
       "type": "object",
       "additionalProperties": false,
@@ -66,8 +93,7 @@
         "source_trajectory_id", "trajectory_cluster_id", "instruction_sha256",
         "action_prefix_sha256", "split_leakage_keys_sha256", "simulator_profile_sha256",
         "robot_model_profile_sha256", "controller_profile_sha256", "rendering_profile_sha256",
-        "reset_receipt_sha256", "action_prefix_receipt_sha256", "difficulty_screen",
-        "spot_check", "end_effector", "object_pose", "final_frame_pairs"
+        "reset_receipt_sha256", "action_prefix_receipt_sha256", "difficulty_screen", "spot_check"
       ],
       "properties": {
         "scenario_id": { "type": "string", "minLength": 1 },
@@ -93,19 +119,7 @@
             "trials": { "type": "array", "minItems": 20, "maxItems": 20, "items": { "$ref": "#/$defs/difficulty_trial" } }
           }
         },
-        "spot_check": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["seed", "selected_attempt_ids", "manifest_sha256"],
-          "properties": {
-            "seed": { "const": 42 },
-            "selected_attempt_ids": { "type": "array", "minItems": 3, "maxItems": 3, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
-            "manifest_sha256": { "$ref": "#/$defs/sha256" }
-          }
-        },
-        "end_effector": { "$ref": "#/$defs/pose_comparison" },
-        "object_pose": { "$ref": "#/$defs/pose_comparison" },
-        "final_frame_pairs": { "type": "array", "minItems": 5, "maxItems": 5, "items": { "$ref": "#/$defs/frame_pair" } }
+        "spot_check": { "$ref": "#/$defs/spot_check" }
       }
     }
   }
