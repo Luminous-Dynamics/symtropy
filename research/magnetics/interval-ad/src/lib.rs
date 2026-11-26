@@ -237,6 +237,9 @@ impl Div for Interval {
 }
 
 fn divide_intervals(numerator: Interval, denominator: Interval) -> Interval {
+    if denominator.contains_zero() {
+        return Interval::ENTIRE;
+    }
     let reciprocal = denominator.reciprocal();
     Interval {
         lower: (numerator * reciprocal).lower,
@@ -661,6 +664,12 @@ mod tests {
     }
 
     #[test]
+    fn zero_numerator_does_not_hide_a_zero_crossing_denominator() {
+        let result = Interval::ZERO / interval(-1.0, 1.0);
+        assert_eq!(result, Interval::ENTIRE);
+    }
+
+    #[test]
     fn reciprocal_of_negative_interval_preserves_order() {
         let result = interval(-4.0, -2.0).reciprocal();
         assert!(result.lower() <= -0.5);
@@ -719,6 +728,16 @@ mod tests {
         .expect("denominator is separated from zero");
         assert!(result.derivative_intervals[0].is_finite());
         assert!(result.derivative_abs_supremum[0].is_finite());
+    }
+
+    #[test]
+    fn quadratic_derivative_is_enclosed_when_input_crosses_zero() {
+        let scope = domain(["x"], [interval(-2.0, 3.0)]);
+        let result = certify_expression(&scope, |[x]| Ok(x * x))
+            .expect("bounded quadratic across zero");
+        assert!(result.derivative_intervals[0].lower() <= -4.0);
+        assert!(result.derivative_intervals[0].upper() >= 6.0);
+        assert!(result.derivative_abs_supremum[0] >= 6.0);
     }
 
     #[test]
