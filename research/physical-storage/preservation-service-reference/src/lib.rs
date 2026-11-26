@@ -288,6 +288,7 @@ pub fn score(
     if receipt.candidate_claimed_full_success
         && (receipt.independently_accepted_bytes != contract.requested_bytes
             || receipt.independently_accepted_objects != contract.requested_objects
+            || receipt.unrecoverable_objects > 0
             || receipt.expected_digest_status != EvidenceStatus::Pass
             || (contract.manifest_required && receipt.manifest_status != EvidenceStatus::Pass)
             || (contract.provenance_required && receipt.provenance_status != EvidenceStatus::Pass)
@@ -476,6 +477,35 @@ mod tests {
         let mut receipt = passing_receipt();
         receipt.energy_meter_status = EvidenceStatus::Incomplete;
         receipt.energy_millijoules = None;
+        assert_eq!(score(&contract(), &receipt).unwrap().disposition, ServiceDisposition::Incomplete);
+    }
+
+    #[test]
+    fn reader_independence_and_agreement_are_separate_hard_gates() {
+        let mut disagreement = passing_receipt();
+        disagreement.reader_agreement_status = EvidenceStatus::Fail;
+        assert_eq!(score(&contract(), &disagreement).unwrap().disposition, ServiceDisposition::Fail);
+
+        let mut shared_dependencies = passing_receipt();
+        shared_dependencies.reader_independence_status = EvidenceStatus::Incomplete;
+        shared_dependencies.candidate_claimed_full_success = false;
+        assert_eq!(
+            score(&contract(), &shared_dependencies).unwrap().disposition,
+            ServiceDisposition::Incomplete
+        );
+
+        let mut one_path = passing_receipt();
+        one_path.reader_path_ids.pop();
+        one_path.candidate_claimed_full_success = false;
+        assert_eq!(score(&contract(), &one_path).unwrap().disposition, ServiceDisposition::Incomplete);
+    }
+
+    #[test]
+    fn unrecoverable_object_blocks_success() {
+        let mut receipt = passing_receipt();
+        receipt.unrecoverable_objects = 1;
+        assert_eq!(score(&contract(), &receipt).unwrap().disposition, ServiceDisposition::Fail);
+        receipt.candidate_claimed_full_success = false;
         assert_eq!(score(&contract(), &receipt).unwrap().disposition, ServiceDisposition::Incomplete);
     }
 
