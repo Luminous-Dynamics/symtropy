@@ -131,9 +131,9 @@ Those numbers are proposed engineering targets. They are not measured performanc
 
 ### D. Magnetic absolute encoder system
 
-Only if the programme elects to build an absolute-angle product, benchmark against RLS AksIM-2 with the same ring size, installation, calibration and thermal protocol. An ambitious first system target is ≤ ±0.020° after calibration over the declared envelope; a stretch target is ≤ ±0.010°. The aspirational gate is deliberately not claimed to beat the current AksIM-2 upper-performing variants at ±0.004°.
+Only if the programme elects to build an absolute-angle product, use the current RLS AksIM-4 HIPERFACE DSL MCD06 variants as the primary magnetic absolute challenge: MC053 (53 mm ring, published system accuracy ±0.006°) and MC080 (80 mm ring, published system accuracy ±0.004°). Match the exact ring, installation, readhead count, self-calibration procedure and thermal protocol. A first parity target is ≤ ±0.004° system accuracy on the MC080-matched challenge; the stretch target is ≤ ±0.003°. For the MC053-sized build, target ≤ ±0.005° against its published ±0.006° system figure. These are research targets, not achieved results. System accuracy and typical/actual installed accuracy are different observables and must be measured/reported separately; do not silently treat the vendor system figure as an installed-field result.
 
-Report resolution, accuracy, repeatability, hysteresis, installed eccentricity/runout sensitivity, temperature drift, speed, bandwidth, external-field susceptibility, calibration burden, power, BOM and serviceability separately. Compare optical RESOLUTE as a metrology reference, not as a direct like-for-like magnetic product.
+Report resolution, system accuracy, calibrated and uncalibrated installed accuracy, repeatability, hysteresis, installed eccentricity/runout sensitivity, temperature drift, speed, bandwidth, external-field susceptibility, calibration burden, power, BOM and serviceability separately. Compare optical RESOLUTE as a metrology reference, not as a direct like-for-like magnetic product.
 
 ### E. Active metrology
 
