@@ -261,3 +261,16 @@ The DNA research row now links two current coding studies:
 - Ding et al., Bioinformatics 42(8), btag563 (3 August 2026), present Polus/SeqFormer. Its 38.9% DNA Fountain coverage reduction and approximate 80% effective-density uplift are in-silico, scenario-specific results. It also evaluates platform-dependent soft erasures and adaptive resequencing. https://doi.org/10.1093/bioinformatics/btag563
 
 The first comparison provides the in-vitro anchor and archived DT4DDS/ENA materials; the second provides the soft-decision challenge target. Keep the evidence classes separate. Neither result qualifies a commercial DNA archive or resolves system-level synthesis, access, storage lifetime and exact restore economics.
+
+
+## Physical Recovery Capsule and reader replacement
+
+The physical archive service now has a dedicated self-describing package profile in [PHYSICAL-RECOVERY-CAPSULE-001 #7571](https://github.com/Luminous-Dynamics/symtropy/issues/7571), with draft [PR #7572](https://github.com/Luminous-Dynamics/symtropy/pull/7572).
+
+The profile composes existing standards rather than introducing another generic container: BagIt RFC 8493 for payload/tag fixity, OCFL 1.1.1 for application-independent object/version layout, PREMIS 3.0 for preservation events/agents/rights, E-ARK CSIP/AIP 2.2.0 for information package structure, and OAIS AIP/DIP concepts.
+
+The capsule adds physical format, layout, calibration, raw-reader input, decoder source/build, known-answer vectors, recovery procedures, authenticity and dependency references. It separates fixity, authenticity, exact recovery, implementation independence and operational failure-domain independence. Mycelix's canonical dependency profile remains the authority for common-cause closure.
+
+A 12-file synthetic BagIt-shaped fixture and a standard-library verifier are provided in `fixtures/recovery-capsule-synthetic-v0_1/` and `fixtures/verify_synthetic_recovery_capsule.py`. The fixture explicitly remains `fixture_only`: its two decoder entries are documentation placeholders, independence is unassessed, and no physical reader replacement was performed. The local Python verification checked the BagIt v1.0 declaration, payload/tag manifest coverage, payload byte count, known-answer SHA-256, descriptor/known-answer agreement and decoder source digests. It is not a formal general-purpose BagIt validator or physical qualification.
+
+The blind Reader Replacement Challenge is owned on the Symthaea side by [#13734](https://github.com/Luminous-Dynamics/symthaea/issues/13734). A production qualification requires two independently implemented reader/decoder paths, offline recovery with the original vendor runtime withheld, exact byte equality, independent payload digest verification, negative controls and dependency review.
