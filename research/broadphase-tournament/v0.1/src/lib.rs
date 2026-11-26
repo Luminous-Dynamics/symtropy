@@ -1265,6 +1265,54 @@ mod tests {
     }
 
     #[test]
+    fn pair_delta_cache_accepts_verified_dirty_journals_and_rejects_invalid_ordering() {
+        let mut cache = PairDeltaCache::<2>::new();
+        let first = [
+            test_proxy(1, [0.0, 0.0], [1.0, 1.0]),
+            test_proxy(2, [0.5, 0.5], [1.5, 1.5]),
+            test_proxy(3, [5.0, 5.0], [6.0, 6.0]),
+        ];
+        cache.step(&first).unwrap();
+
+        let next = [
+            test_proxy(2, [0.5, 0.5], [1.5, 1.5]),
+            test_proxy(3, [0.8, 0.8], [1.8, 1.8]),
+        ];
+        let dirty = cache.derive_dirty_proxy_ids(&next).unwrap();
+        assert_eq!(dirty, vec![ProxyId(1), ProxyId(3)]);
+        assert!(cache.verify_dirty_proxy_ids(&next, &dirty).unwrap());
+        assert!(!cache
+            .verify_dirty_proxy_ids(&next, &[ProxyId(1)])
+            .unwrap());
+
+        assert_eq!(
+            cache.step_with_dirty_ids(&next, &[ProxyId(3), ProxyId(1)]),
+            Err(TournamentError::InvalidDirtyJournal)
+        );
+        assert_eq!(
+            cache.step_with_dirty_ids(&next, &[ProxyId(1), ProxyId(1)]),
+            Err(TournamentError::InvalidDirtyJournal)
+        );
+        assert_eq!(cache.active_pair_count(), 1);
+
+        let delta = cache.step_with_dirty_ids(&next, &dirty).unwrap();
+        assert_eq!(delta.removed.len(), 1);
+        assert_eq!(delta.added.len(), 1);
+        assert_eq!(
+            cache.active_pairs(),
+            vec![ProxyPair::new(ProxyId(2), ProxyId(3)).unwrap()]
+        );
+
+        cache.invalidate_all();
+        let full_dirty = cache.derive_dirty_proxy_ids(&next).unwrap();
+        assert_eq!(
+            cache.step_with_dirty_ids(&next, &full_dirty),
+            Err(TournamentError::DirtyJournalCannotApplyFullInvalidation)
+        );
+        assert_eq!(cache.step(&next).unwrap().overlap_tests, 1);
+    }
+
+    #[test]
     fn pair_delta_cache_matches_oracle_transitions_for_sleeping_wakeup_sequences() {
         for dimension in [2_usize, 3, 4] {
             match dimension {
