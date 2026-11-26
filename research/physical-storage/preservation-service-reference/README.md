@@ -20,7 +20,7 @@ The primary rate is independently accepted bytes divided by end-to-end elapsed t
 - No run remains not evaluated.
 - Energy is only compared when a declared meter boundary and a valid meter result exist.
 
-The workload contract, including the mandatory stage list, is supplied by the frozen benchmark and not chosen by the candidate. Stage timings are observations; because stages may overlap, their durations are not blindly summed to recreate elapsed wall time.
+The workload contract, including the mandatory stage list and whether independent reader/decoder paths are required, is supplied by the frozen benchmark and not chosen by the candidate. When required, two distinct path IDs, independent dependency assessment and byte/semantic agreement are explicit pass gates. Stage timings are observations; because stages may overlap, their durations are not blindly summed to recreate elapsed wall time.
 
 ## Commands
 
