@@ -157,7 +157,7 @@ fn validate_and_index<'a>(
             return Err(OracleError::DuplicateVessel(vessel_id.clone()));
         }
     }
-    let vessel_ids: Vec<String> = vessel_set.into_iter().collect();
+    let vessel_ids: Vec<String> = vessel_set.iter().cloned().collect();
 
     let mut capacities: CapacityIndex = BTreeMap::new();
     for capacity in &scenario.capacities {
