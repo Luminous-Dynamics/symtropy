@@ -66,6 +66,10 @@ This crate closes the first-order Newtonian arithmetic chain for beta <= 0.05:
 
 It does not solve plasma-magnet electrodynamics, collisionless plasma response, relativistic flow, magnetic field mass, superconducting cryogenics, thermal rejection, off-axis control, variable medium density, trajectory or braking. A future 0.05c–0.2c model requires a separate relativistic energy-momentum derivation and independent oracle.
 
+### First sensitivity result
+
+The illustrative input gives 1.347 GW bus power and 125.83 N ideal thrust, but harvesting plus assumed parasitic drag total about 123.58 N. The nominal net force is only 2.25 N (about 1.82% of the opposing force), with the assumed 0.05c exhaust velocity close to the model's 0.0509c break-even value. This is a deliberately fragile synthetic case. The next Q-drive gate should require a positive lower confidence bound on net acceleration after uncertainty in medium density, interaction coupling, field direction, conversion, thruster efficiency, parasitic drag and full subsystem mass—not simply a nominal positive result.
+
 ## 4. Climate and human heat-risk boundary
 
 A planetary shade is a solar-radiation-modification proposal, not greenhouse-gas removal. IPCC AR6 WGII SPM B.5.5 reports that SRM would introduce widespread risks to people and ecosystems that are not well understood, that regional/seasonal residual or overcompensating changes are possible, and that SRM would not reduce atmospheric CO2 or ocean acidification under continued emissions: https://www.ipcc.ch/report/ar6/wg2/
