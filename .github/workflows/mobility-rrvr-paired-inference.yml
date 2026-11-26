@@ -3,7 +3,7 @@ name: RRVR Paired Cluster-Aware Inference v0.1
 on:
   push:
     branches:
-      - research/mobility-rrvr-paired-inference-v0-1
+      - research/mobility-rrvr-paired-inference-isolated-v0-1
     paths:
       - "research/mobility-rrvr-paired-inference-v0.1/**"
       - ".github/workflows/mobility-rrvr-paired-inference.yml"
