@@ -10,18 +10,18 @@ fn main() {
 
     println!(
         concat!(
-            "{\n",
+            "{{\n",
             "  \"schema_version\": \"0.1.0\",\n",
             "  \"evidence_class\": \"synthetic_analytical_screening\",\n",
-            "  \"sunshade\": {\n",
+            "  \"sunshade\": {{\n",
             "    \"target_flux_reduction_fraction\": 0.01,\n",
             "    \"equivalent_aperture_area_km2\": {:.12},\n",
             "    \"installed_mass_kg\": {:.12e},\n",
             "    \"locally_sourced_mass_kg\": {:.12e},\n",
             "    \"earth_supplied_mass_kg\": {:.12e},\n",
             "    \"intercepted_power_reduction_w\": {:.12e}\n",
-            "  },\n",
-            "  \"qdrive\": {\n",
+            "  }},\n",
+            "  \"qdrive\": {{\n",
             "    \"beta\": {:.12},\n",
             "    \"dynamic_pressure_pa\": {:.12e},\n",
             "    \"harvesting_drag_n\": {:.12e},\n",
@@ -34,7 +34,7 @@ fn main() {
             "    \"jet_power_identity_residual_w\": {:.12e}\n",
             "  },\n",
             "  \"claim_ceiling\": \"arithmetic_screening_only_not_orbit_optics_climate_plasma_or_hardware_validation\"\n",
-            "}"
+            "}}"
         ),
         shade.equivalent_aperture_area_km2,
         shade.installed_mass_kg,
