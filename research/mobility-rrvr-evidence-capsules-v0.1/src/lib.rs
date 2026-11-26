@@ -687,9 +687,7 @@ fn evaluate_asserted_claim(
 ) -> (AssessmentStatus, Vec<String>) {
     match claim.claim_type {
         ClaimType::FaultDelivered => evaluate_fault_delivered(claim, evidence),
-        ClaimType::EffectApplied | ClaimType::NoEffect => {
-            evaluate_effect_claim(claim, evidence)
-        }
+        ClaimType::EffectApplied | ClaimType::NoEffect => evaluate_effect_claim(claim, evidence),
         ClaimType::EndpointFenced => evaluate_endpoint_fenced(claim, evidence),
         ClaimType::TemporalClosure => evaluate_temporal_closure(claim, evidence),
     }
