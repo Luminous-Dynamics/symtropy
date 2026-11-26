@@ -851,4 +851,45 @@ mod tests {
             .expect("constant expression");
         assert_eq!(result.derivative_abs_supremum[0], 0.0);
     }
+
+    #[test]
+    fn signed_zero_is_preserved_and_recognized_as_zero() {
+        let positive_zero = Interval::ZERO;
+        let negative_zero = -positive_zero;
+        assert!(negative_zero.contains_zero());
+        assert_eq!(negative_zero.lower().to_bits(), (-0.0_f64).to_bits());
+        assert_eq!(negative_zero.upper().to_bits(), (-0.0_f64).to_bits());
+        assert_eq!(positive_zero + positive_zero, Interval::ZERO);
+    }
+
+    #[test]
+    fn subnormal_product_is_enclosed_outward() {
+        let exact = f64::MIN_POSITIVE * 0.5;
+        let result = interval(f64::MIN_POSITIVE, f64::MIN_POSITIVE)
+            * interval(0.5, 0.5);
+        assert!(result.lower() <= exact);
+        assert!(result.upper() >= exact);
+        assert!(result.lower() < result.upper());
+    }
+
+    #[test]
+    fn overflowed_value_cannot_be_promoted_to_a_finite_certificate() {
+        let scope = domain(["x"], [interval(f64::MAX, f64::MAX)]);
+        let result = certify_expression(&scope, |[x]| Ok(x * x));
+        assert_eq!(
+            result.expect_err("overflowed value is unbounded"),
+            IntervalAdError::UnboundedValueEnclosure
+        );
+    }
+
+    #[test]
+    fn integer_power_uses_the_interval_chain_rule() {
+        let scope = domain(["x"], [interval(1.0, 2.0)]);
+        let result = certify_expression(&scope, |[x]| Ok(x.powi(3)))
+            .expect("bounded cubic expression");
+        assert!(result.derivative_intervals[0].lower() <= 3.0);
+        assert!(result.derivative_intervals[0].upper() >= 12.0);
+        assert!(result.derivative_abs_supremum[0] >= 12.0);
+    }
+
 }
