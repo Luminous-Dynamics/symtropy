@@ -73,9 +73,18 @@ def verify(doc):
         fail(type(e["capacity_lower"]) is int and type(e["capacity_upper"]) is int,"non-integer capacity")
         fail(0<=e["capacity_lower"]<=e["capacity_upper"],"invalid capacity interval")
         fail(e["unit"]==s["commodity"]["quantity_unit"],"unit mismatch")
-        fail(by_node[e["from"]]["time_index"]<=by_node[e["to"]]["time_index"],"backwards time edge")
-    fail(sum(e["capacity_lower"] for e in s["edges"] if e["id"] in {"supply-a","supply-b"})==s["total_opening_stock"]["quantity"],"opening stock does not reconcile")
+        source_time=by_node[e["from"]]["time_index"]
+        target_time=by_node[e["to"]]["time_index"]
+        fail(source_time==e["time_index"],"edge departure time does not match source-node time")
+        fail(source_time<=target_time<=source_time+1,"invalid time-expanded edge chronology")
+        if by_node[e["from"]]["kind"]=="resource_output" and by_node[e["to"]]["kind"]=="route_arrival":
+            fail(target_time==source_time+1,"route transit interval was not respected")
+    stock_edges=[e for e in s["edges"] if e["from"]==s["source_node"] and by_node[e["to"]]["kind"]=="inventory"]
+    fail(len(stock_edges)==2,"opening-stock source edges must enumerate each terminal stock exactly once")
+    fail(len({e["resource_id"] for e in stock_edges})==len(stock_edges),"opening stock resource was double-counted")
+    fail(sum(e["capacity_lower"] for e in stock_edges)==s["total_opening_stock"]["quantity"],"opening stock does not reconcile")
     evidence={e["time_index"]:e for e in s["capacity_evidence"]}
+    fail(len(evidence)==len(s["capacity_evidence"])==2,"capacity evidence time slots must be unique and complete")
     pump_edges=[e for e in s["edges"] if e["resource_id"]=="physical:pump-01"]
     fail(len(pump_edges)==2 and {e["time_index"] for e in pump_edges}=={0,1},"shared pump must have one capacity gate per interval")
     for edge in pump_edges:
@@ -109,6 +118,8 @@ def verify(doc):
         window=c["per_window"][f"window_{t}"]
         fail(window["lower_bound_delivered"]==delivered,"per-window lower delivery mismatch")
         fail(window["required"]==obligation["required_lower"],"per-window requirement mismatch")
+        upper_delivered=high[4][f"service-obligation-t{t}"]
+        fail(window["upper_bound_delivered"]==upper_delivered,"per-window optimistic delivery mismatch")
     fail(c["per_window"]["window_1"]["lower_bound_delivered"]==6,"window 1 is not met")
     fail(c["per_window"]["window_2"]["lower_bound_delivered"]==3,"window 2 is not met")
     fail(c["lower_bound_service_deficit"]==3,"service deficit mismatch")
