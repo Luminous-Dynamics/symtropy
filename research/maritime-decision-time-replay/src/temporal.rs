@@ -384,8 +384,9 @@ mod tests {
         let mut second = record(1, "digest-b", 91, 96);
         second.source_id = "SOURCE-B".to_owned();
 
+        let history = [first, second];
         let selected =
-            select_decision_revisions(&[first, second], "BOX-1", cutoffs(100, 100, 200)).unwrap();
+            select_decision_revisions(&history, "BOX-1", cutoffs(100, 100, 200)).unwrap();
         assert_eq!(selected.len(), 2);
         assert!(selected.iter().any(|item| item.source_id == "SOURCE-A"));
         assert!(selected.iter().any(|item| item.source_id == "SOURCE-B"));
@@ -429,8 +430,9 @@ mod tests {
             },
         ];
 
+        let history = [value];
         let selected =
-            select_decision_revisions(&[value], "BOX-1", cutoffs(100, 100, 200)).unwrap();
+            select_decision_revisions(&history, "BOX-1", cutoffs(100, 100, 200)).unwrap();
         assert_eq!(selected.len(), 1);
         assert_eq!(selected[0].source_revision, 1);
     }
