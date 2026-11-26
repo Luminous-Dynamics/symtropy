@@ -38,7 +38,8 @@
         "provenance_required",
         "energy_metering_required",
         "required_stages",
-        "independent_reader_paths_required"
+        "independent_reader_paths_required",
+        "required_energy_boundary"
       ],
       "properties": {
         "workload_id": {
@@ -97,6 +98,18 @@
         },
         "independent_reader_paths_required": {
           "type": "boolean"
+        },
+        "required_energy_boundary": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "WholeService",
+            "StorageSubsystem",
+            "ReaderAndCompute",
+            null
+          ]
         }
       }
     },
@@ -150,7 +163,11 @@
               "stage_observations",
               "reader_path_ids",
               "reader_independence_status",
-              "reader_agreement_status"
+              "reader_agreement_status",
+              "energy_meter_id",
+              "energy_calibration_ref",
+              "energy_boundary",
+              "energy_sample_interval_ms"
             ],
             "properties": {
               "workload_id": {
@@ -318,6 +335,39 @@
                   "NotEvaluated",
                   "NotRequired"
                 ]
+              },
+              "energy_meter_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1
+              },
+              "energy_calibration_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1
+              },
+              "energy_boundary": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "WholeService",
+                  "StorageSubsystem",
+                  "ReaderAndCompute",
+                  null
+                ]
+              },
+              "energy_sample_interval_ms": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1
               }
             }
           },
