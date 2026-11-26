@@ -114,7 +114,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .collect::<Vec<_>>()
             .join(",");
         println!(
-            "ROUTE\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+            "ROUTE\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
             route.route_id,
             route.nominal.weighted_wait_cost,
             route.worst_case.weighted_wait_cost,
