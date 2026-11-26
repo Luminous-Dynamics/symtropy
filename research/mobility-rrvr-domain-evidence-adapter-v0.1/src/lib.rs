@@ -351,8 +351,7 @@ fn adapt_arm(
             },
         },
     );
-    let inventory_complete =
-        scenario.holder_inventory_complete && scenario.edge_inventory_complete;
+    let inventory_complete = scenario.holder_inventory_complete && scenario.edge_inventory_complete;
     let inventory_receipt = capsule(
         &capsule_scope,
         CapsuleDraft {
