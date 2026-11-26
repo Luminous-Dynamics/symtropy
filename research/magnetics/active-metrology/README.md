@@ -34,7 +34,7 @@ All source record IDs and component values remain separately visible. A missing 
 
 ## Evidence separation
 
-Only `AdaptiveExploration` points may be selected. Model-calibration, blind-holdout and post-selection-qualification candidates remain protected and are not ranked. The planner cannot consume the blind validation map or move its points into the adaptive scan.
+Only `AdaptiveExploration` points may be supplied to the planner. Passing model-calibration, blind-holdout or post-selection-qualification evidence fails closed; those protected datasets must remain outside the adaptive planning input entirely. The planner cannot consume the blind validation map or move its points into the adaptive scan.
 
 Each candidate is bound to exact frame, operating condition, probe calibration, qualified model-set and functional-requirement identities. Mismatches fail closed. Previously measured points are excluded unless the policy explicitly permits revisiting.
 
