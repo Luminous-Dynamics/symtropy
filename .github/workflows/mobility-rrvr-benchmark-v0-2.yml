@@ -45,7 +45,7 @@ jobs:
               and (.simulator_profile_sha256 | test("^[a-fA-F0-9]{64}$"))
               and (.fault_schedule_sha256 | test("^[a-fA-F0-9]{64}$"))
               and (.observer_profile_sha256 | test("^[a-fA-F0-9]{64}$"))
-              and ([.arms[].arm_id] | unique | length == (.arms | length))
+              and (([.arms[].arm_id] | unique | length) == (.arms | length))
               and any(.arms[]; .arm_id == "native")
               and any(.arms[]; .arm_id == "full_rrvr")
               and all(.arms[]; .native_benchmark_preserved == true)
