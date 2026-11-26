@@ -13,11 +13,28 @@ A reproducible cross-check between the balanced/unbalanced incremental AABB tree
 - Captures tree revision, balance policy, registry snapshot, tree statistics, query statistics, fallback pairs and the independent reference receipt.
 - Replays the tree build/query and rejects any mismatch.
 
+## Two qualification paths
+
+### One-shot rebuild reference
+
+`build_tree_swept_pair_set` reconstructs a deterministic tree per call from the current supported proxy population. It is useful for checking tree policy parity and replaying a single frame from the complete proxy population and registry snapshot.
+
+### Stateful incremental reference
+
+`TreeBackedBroadphase` preserves the tree and monotonic identity registry across calls. Each `step` applies only the required insert/update/remove operations:
+
+- New supported identities are inserted.
+- Changed envelopes are updated; tree-contained changes avoid reinsertion when the prior conservative proxy still contains the new envelope.
+- Removed or newly unsupported identities are removed from the tree.
+- Unsupported eligible pairs are restored as explicit fail-closed fallback candidates.
+- Registry IDs are tombstoned and reused only for the same complete collider identity; a new generation receives a new ID.
+- Per-frame maintenance deltas distinguish inserts, removals, updates, fat-contained updates and proxy reinsertions.
+
+Each frame receipt retains the full canonical frame history so a verifier can reconstruct the exact tree operation sequence and compare candidate sets, registry state, tree/query counters and maintenance deltas. This is intentionally a research assurance receipt; history storage grows with replay length.
+
 ## Important scope
 
-This is a **rebuild-based qualification adapter**, not a stateful incremental broadphase. It rebuilds a tree per call so insertion order and topology can be replayed from the complete current proxy population and stable registry snapshot. The registry itself can be retained across frames. A later increment should keep the tree alive across frames and qualify insert/update/remove lifecycle operations before claiming incremental runtime benefits.
-
-The O(n²) reference is intentionally retained as an independent candidate oracle. Consequently, this crate is not yet a performance path. It qualifies that the tree's supported-supported query output is complete relative to the oracle and that unsupported pairs are never silently lost.
+Both paths retain the O(n²) swept-pair oracle as an independent candidate reference. The stateful API therefore qualifies incremental lifecycle behavior and tree/oracle parity, but it is **not yet a performance path**. Full-history receipts are not a production storage design. The next step is to separate qualification recording from the measured runtime path, then run held-out temporal benchmark campaigns with identical candidate/contact denominators.
 
 ## Tree implementation
 
