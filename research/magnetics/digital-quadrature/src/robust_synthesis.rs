@@ -1283,7 +1283,7 @@ mod tests {
         let bounded = synthesize_with_sensor_parameter_bounds(
             "set-sensor-tolerance",
             &[input],
-            &[parameter_candidate("candidate-tolerance", 0.10, 0.01, 0.01)],
+            &[parameter_candidate("candidate-tolerance", 0.30, 0.01, 0.01)],
             requirements(),
         )
         .expect("valid parameter bounds");
@@ -1358,7 +1358,7 @@ mod tests {
             ParameterAwareSynthesisError::InvalidParameterBoundValue
         );
 
-        let mut invalid_threshold =
+        let invalid_threshold =
             parameter_candidate("candidate-invalid-threshold", 0.0, -0.001, 0.0);
         assert_eq!(
             synthesize_with_sensor_parameter_bounds(
