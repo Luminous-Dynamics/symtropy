@@ -1,0 +1,985 @@
+{
+  "schema_version": "preservation-watch-cases-v0.1",
+  "corpus_id": "PW-IQ-001-CASES-V0.1",
+  "evidence_class": "synthetic_semantic_fixture",
+  "qualification_status": "not_run",
+  "cases": [
+    {
+      "case_id": "PW-001-STABLE",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor"
+        ],
+        "minimum_independent_copies": 2
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-1",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        }
+      ],
+      "expected_disposition": "Stable",
+      "expected_contract_error": null,
+      "expected_actions": [],
+      "rationale": "All required observations are fresh, verified and healthy."
+    },
+    {
+      "case_id": "PW-002-MISSING-REQUIRED-CALIBRATION",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor"
+        ],
+        "minimum_independent_copies": 2
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-1",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        }
+      ],
+      "expected_disposition": "Unknown",
+      "expected_contract_error": null,
+      "expected_actions": [
+        "GatherFreshEvidence",
+        "RecalibrateReader",
+        "ReplaceReader",
+        "HumanReview"
+      ],
+      "rationale": "A missing required observation is unknown and never treated as healthy."
+    },
+    {
+      "case_id": "PW-003-FIXITY-MISMATCH",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor"
+        ],
+        "minimum_independent_copies": 2
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-1",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Alert",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        }
+      ],
+      "expected_disposition": "Blocked",
+      "expected_contract_error": null,
+      "expected_actions": [
+        "IsolateSuspectCopy",
+        "VerifyFixity",
+        "RecoverFromIndependentCopy",
+        "HumanReview"
+      ],
+      "rationale": "Confirmed fixity failure blocks acceptance and produces non-executing recovery proposals."
+    },
+    {
+      "case_id": "PW-004-TRUST-ANCHOR-MISSING",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor"
+        ],
+        "minimum_independent_copies": 2
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-1",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Alert",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        }
+      ],
+      "expected_disposition": "Unknown",
+      "expected_contract_error": null,
+      "expected_actions": [
+        "ObtainTrustAnchor",
+        "HumanReview"
+      ],
+      "rationale": "Integrity can remain healthy while authenticity is unknown without a trusted external anchor."
+    },
+    {
+      "case_id": "PW-005-TECHNOLOGY-SUPPORT-AT-RISK",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor"
+        ],
+        "minimum_independent_copies": 2
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-1",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TECH-1",
+          "target_id": "archive-A",
+          "signal": "TechnologySupport",
+          "sequence": 1,
+          "state": "Alert",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        }
+      ],
+      "expected_disposition": "Watch",
+      "expected_contract_error": null,
+      "expected_actions": [
+        "PlanMigration",
+        "RunControlledReadTrial"
+      ],
+      "rationale": "A support-risk warning schedules reassessment and migration planning, not an immediate integrity failure."
+    },
+    {
+      "case_id": "PW-006-EXPIRED-REVOCATION-EVIDENCE",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor",
+          "RevocationFreshness"
+        ],
+        "minimum_independent_copies": 2
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-1",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "REV-1",
+          "target_id": "archive-A",
+          "signal": "RevocationFreshness",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 120,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        }
+      ],
+      "expected_disposition": "Unknown",
+      "expected_contract_error": null,
+      "expected_actions": [
+        "RefreshRevocationEvidence",
+        "HumanReview",
+        "GatherFreshEvidence"
+      ],
+      "rationale": "Expired trust-status evidence becomes unknown; historical signature validity is not silently promoted to current trust."
+    },
+    {
+      "case_id": "PW-007-UNVERIFIED-OBSERVER",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor"
+        ],
+        "minimum_independent_copies": 2
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-1",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Alert",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Unverified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        }
+      ],
+      "expected_disposition": "Unknown",
+      "expected_contract_error": null,
+      "expected_actions": [
+        "RecalibrateReader",
+        "ReplaceReader",
+        "HumanReview",
+        "GatherFreshEvidence"
+      ],
+      "rationale": "An unverified alert source cannot establish a confirmed calibration failure or a healthy calibration."
+    },
+    {
+      "case_id": "PW-008-INVALID-EVIDENCE-PROVENANCE",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor"
+        ],
+        "minimum_independent_copies": 2
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-1",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Alert",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Invalid",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        }
+      ],
+      "expected_disposition": "Blocked",
+      "expected_contract_error": null,
+      "expected_actions": [
+        "IsolateSuspectCopy",
+        "HumanReview"
+      ],
+      "rationale": "Invalid evidence provenance is a blocker and requires independent investigation."
+    },
+    {
+      "case_id": "PW-009-ENVIRONMENT-ENVELOPE-EXCEEDED",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor",
+          "EnvironmentEnvelope"
+        ],
+        "minimum_independent_copies": 2
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-1",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "ENV-1",
+          "target_id": "archive-A",
+          "signal": "EnvironmentEnvelope",
+          "sequence": 1,
+          "state": "Alert",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        }
+      ],
+      "expected_disposition": "InterventionRequired",
+      "expected_contract_error": null,
+      "expected_actions": [
+        "InspectMedia",
+        "RunControlledReadTrial",
+        "HumanReview"
+      ],
+      "rationale": "A measured threshold breach proposes inspection and controlled reading without extrapolating lifetime."
+    },
+    {
+      "case_id": "PW-010-INDEPENDENT-COPIES-BELOW-POLICY",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor",
+          "IndependentCopies"
+        ],
+        "minimum_independent_copies": 2
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-1",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "COPIES-1",
+          "target_id": "archive-A",
+          "signal": "IndependentCopies",
+          "sequence": 1,
+          "state": "Alert",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": 1
+        }
+      ],
+      "expected_disposition": "InterventionRequired",
+      "expected_contract_error": null,
+      "expected_actions": [
+        "CreateIndependentCopy",
+        "AssessFailureDomains"
+      ],
+      "rationale": "The independently assessed number of independent copies is below the declared policy minimum."
+    },
+    {
+      "case_id": "PW-011-VERIFIED-REMEDIATION",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor"
+        ],
+        "minimum_independent_copies": 2
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-ALERT",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Alert",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "FIX-CLEAR",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 2,
+          "state": "Healthy",
+          "observed_at_unix": 102,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": "FIX-ALERT",
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        }
+      ],
+      "expected_disposition": "Stable",
+      "expected_contract_error": null,
+      "expected_actions": [],
+      "rationale": "Fresh verified fixity evidence explicitly supersedes the prior alert."
+    },
+    {
+      "case_id": "PW-012-UNSUBSTANTIATED-CLEAR",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor"
+        ],
+        "minimum_independent_copies": 2
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-ALERT",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Alert",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "FIX-CLEAR",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 2,
+          "state": "Healthy",
+          "observed_at_unix": 102,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        }
+      ],
+      "expected_disposition": null,
+      "expected_contract_error": "UnsubstantiatedClear",
+      "expected_actions": [],
+      "rationale": "A prior active alert cannot clear without a fresh verified remediation observation referencing the alert."
+    },
+    {
+      "case_id": "PW-013-CONTRADICTORY-COPY-METRIC",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor",
+          "IndependentCopies"
+        ],
+        "minimum_independent_copies": 2
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-1",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "COPIES-1",
+          "target_id": "archive-A",
+          "signal": "IndependentCopies",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": 1
+        }
+      ],
+      "expected_disposition": null,
+      "expected_contract_error": "InconsistentIndependentCopyEvidence",
+      "expected_actions": [],
+      "rationale": "The copy-count metric is below the policy threshold while the observation claims healthy; reject the contradiction."
+    },
+    {
+      "case_id": "PW-014-FUTURE-OBSERVATION",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor"
+        ],
+        "minimum_independent_copies": 2
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-1",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 999,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        }
+      ],
+      "expected_disposition": null,
+      "expected_contract_error": "InvalidObservationTime",
+      "expected_actions": [],
+      "rationale": "Future-dated observations are rejected rather than used to claim current health."
+    }
+  ]
+}
