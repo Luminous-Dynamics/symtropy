@@ -40,6 +40,8 @@ pub mod defensive_contrast_sequence;
 pub mod epistemic_minimax_regret;
 /// Exact finite-support adaptive defensive portfolio counterfactuals.
 pub mod finite_adaptive_portfolio_selection;
+/// Exact cross-scenario mission-risk feasibility gate before regret selection.
+pub mod scenario_mission_risk_gate;
 /// Exact finite-support adaptive defensive portfolio counterfactuals.
 pub mod finite_adaptive_portfolio_selection;
 pub mod hedged_capital_sequence;
@@ -110,6 +112,11 @@ pub use finite_adaptive_portfolio_selection::{
     FiniteAdaptivePortfolioDrawReceipt, FiniteAdaptivePortfolioError,
     FiniteAdaptivePortfolioPairObservation, FiniteAdaptivePortfolioSelection,
     FinitePortfolioAtomOutcome, FinitePortfolioEventFlag,
+};
+pub use scenario_mission_risk_gate::{
+    EligiblePortfolioRegretInterval, PortfolioScenarioRiskCheck, PortfolioScenarioRiskContract,
+    PortfolioScenarioRiskEvidence, ScenarioMissionRiskGate, ScenarioMissionRiskGateError,
+    ScenarioMissionRiskGateReport,
 };
 pub use finite_adaptive_portfolio_selection::{
     FiniteAdaptivePortfolioDrawReceipt, FiniteAdaptivePortfolioError,
