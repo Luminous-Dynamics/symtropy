@@ -30,7 +30,9 @@ A reproducible cross-check between the balanced/unbalanced incremental AABB tree
 - Registry IDs are tombstoned and reused only for the same complete collider identity; a new generation receives a new ID.
 - Per-frame maintenance deltas distinguish inserts, removals, updates, fat-contained updates and proxy reinsertions.
 
-Each frame receipt retains the full canonical frame history so a verifier can reconstruct the exact tree operation sequence and compare candidate sets, registry state, tree/query counters and maintenance deltas. This is intentionally a research assurance receipt; history storage grows with replay length.
+Each frame receipt retains the full canonical frame history so a verifier can reconstruct the exact tree operation sequence and compare candidate sets, registry state, tree/query counters and maintenance deltas. A SHA-256 commitment covers the ordered frame count, dimensionality, stable identities, collision filters, motion-evidence variant, source context/digests, exact floating-point bit patterns, bounds, displacement intervals, integrator state and guard values. The verifier checks the commitment before replay, so changing history while retaining the receipt's commitment is rejected.
+
+The commitment is tamper-evident, not a digital signature. A party able to rewrite both the frame history and commitment can produce a new internally consistent receipt; authenticity requires an external signature or independently trusted root. Full history storage grows with replay length, so this is a research assurance receipt rather than a production persistence format.
 
 ## Important scope
 
