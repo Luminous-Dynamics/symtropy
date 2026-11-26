@@ -7,9 +7,8 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use mobility_rrvr_evidence_capsule::{
-    Claim, ClaimState, ClaimType, EvidenceBundle, EvidenceCapsule, EvidenceDomain,
-    EvidencePayload, EvidenceReport, EvidenceSource, SourceRole, TimeInterval, evaluate_json,
-    seal_bundle,
+    Claim, ClaimState, ClaimType, EvidenceBundle, EvidenceCapsule, EvidenceDomain, EvidencePayload,
+    EvidenceReport, EvidenceSource, SourceRole, TimeInterval, evaluate_json, seal_bundle,
 };
 use mobility_rrvr_fault_harness::{
     ArmResult, CampaignReport, Scenario, TraceEntry, known_scenarios, run_campaign,
