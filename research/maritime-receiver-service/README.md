@@ -53,15 +53,15 @@ Keep three distinct scorecards: CPPI-compatible vessel time; terminal resource p
 
 ## Exact-head qualification record
 
-The dedicated `maritime-receiver-service` workflow passed on commit `8628da80fffe7c02b570bdd9243884d3da2b8bd9`:
+The dedicated `maritime-receiver-service` workflow passed on current commit `bb0dbb5f5da222354bf253e08980b3195700b968`:
 - Formatting: pass
-- Rust tests: 15 passed, 0 failed
+- Rust tests: 16 passed, 0 failed
 - Strict Clippy: pass
 - Deterministic receiver-service receipt: pass
 - Independent Python reference: 10/10 frozen scenario cases
 - Receipt artifact uploaded
 
-This establishes only the declared synthetic outcome arithmetic and state contract. It does not establish live cargo delivery, causal benefit or source authenticity.
+This establishes only the declared synthetic outcome arithmetic and state contract. It does not establish live cargo delivery, causal benefit or source authenticity. The exact-head run's repository-wide CI matrix was still in progress when this note was written.
 
 
 The Rust suite also rejects a protected-floor configuration that has no scheduled units in the corresponding (cohort, unit) group. A floor cannot disappear merely because its denominator is missing.
