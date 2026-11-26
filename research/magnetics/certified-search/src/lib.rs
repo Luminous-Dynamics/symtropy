@@ -862,4 +862,49 @@ mod tests {
                 .expect("replay");
         assert_eq!(first, second);
     }
+
+    #[test]
+    fn constant_objective_closes_gap_from_terminal_dominated_leaf() {
+        let result = branch_and_bound(
+            &root_domain(),
+            1,
+            policy(1.0e-12),
+            | _variables | {
+                Ok(IntervalDual::constant(interval(1.0, 1.0)))
+            },
+            |_variables| Ok(IntervalDual::constant(interval(0.5, 0.5))),
+        )
+        .expect("constant robust problem");
+        assert!(result.incumbent.is_some());
+        assert_eq!(result.objective_dominated_count, 1);
+        assert_eq!(result.unresolved_leaf_count, 0);
+        assert_eq!(result.global_objective_lower_bound, Some(1.0));
+        assert_eq!(result.global_objective_upper_bound, Some(1.0));
+        assert!(result.certified_within_gap);
+        assert_eq!(result.termination, SearchTermination::OptimalityGapSatisfied);
+    }
+
+    #[test]
+    fn minimum_design_width_budget_preserves_unresolved_region() {
+        let mut bounded = policy(1.0e-12);
+        bounded.minimum_design_widths = vec![3.0];
+        let result = branch_and_bound(&root_domain(), 1, bounded, objective, margin)
+            .expect("valid minimum width budget");
+        assert!(result.incumbent.is_some());
+        assert_eq!(result.unresolved_leaf_count, 1);
+        assert_eq!(result.nodes[0].disposition, BoxDisposition::UnresolvedMinimumWidth);
+        assert!(!result.certified_within_gap);
+    }
+
+    #[test]
+    fn policy_design_width_dimension_must_match_search_dimension() {
+        let mut invalid = policy(0.01);
+        invalid.minimum_design_widths.clear();
+        assert_eq!(
+            branch_and_bound(&root_domain(), 1, invalid, objective, margin)
+                .expect_err("width vector must match design dimension"),
+            SearchError::InvalidPolicy
+        );
+    }
+
 }
