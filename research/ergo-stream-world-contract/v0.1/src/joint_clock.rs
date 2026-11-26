@@ -462,7 +462,8 @@ fn weighted_rank_revealing_qr_v0(
         }
         let factor = 2.0 / vector_norm_squared;
 
-        for (column_index, _) in a[0].iter().enumerate().skip(pivot_index) {
+        let remaining_columns = (pivot_index..column_count).collect::<Vec<_>>();
+        for column_index in remaining_columns {
             let dot = householder
                 .iter()
                 .enumerate()
