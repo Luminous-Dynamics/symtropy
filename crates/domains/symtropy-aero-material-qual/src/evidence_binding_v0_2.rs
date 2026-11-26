@@ -1201,6 +1201,10 @@ mod tests {
             report.measurement_dispositions[0].status,
             "METROLOGY_BINDING_CONSISTENT_ONLY"
         );
+        assert_eq!(
+            report.measurement_dispositions[0].non_applicable_event_ids,
+            vec!["EVENT-REVOKE-AFTER".to_owned()]
+        );
     }
 
     #[test]
