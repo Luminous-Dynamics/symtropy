@@ -438,7 +438,6 @@ fn evaluate_case(case: &Case) -> CaseResult {
     }
 
     let owner_map = owner_map(case);
-    let owner_map = owner_map(case);
     if let Some(binding) = owner_map
         .values()
         .find(|binding| binding.source_state != SourceState::Current)
@@ -471,9 +470,8 @@ fn evaluate_case(case: &Case) -> CaseResult {
         {
             return inadmissible_case(case, "ACTION_REALIZATION_NOT_VERIFIED", owners);
         }
-        if let Some(binding) = case
-            .owner_bindings
-            .iter()
+        if let Some(binding) = owner_map
+            .values()
             .find(|binding| binding.required && binding.state == GateState::Fail)
         {
             return inadmissible_case(
@@ -858,6 +856,28 @@ mod tests {
         let result = evaluate_case(case);
         assert_eq!(result.disposition, Disposition::AbstainUnmodelledOutcome);
         assert!(!result.sequential_update_permitted);
+    }
+
+    #[test]
+    fn duplicate_attempt_ids_are_rejected_within_a_campaign() {
+        let mut input = corpus();
+        input.cases[0].campaign_id = "SHARED-CAMPAIGN".to_owned();
+        input.cases[1].campaign_id = "SHARED-CAMPAIGN".to_owned();
+        input.cases[0].attempt_id = "DUPLICATE-ATTEMPT".to_owned();
+        input.cases[1].attempt_id = "DUPLICATE-ATTEMPT".to_owned();
+        input.cases[0].campaign_attempt_count = 2;
+        input.cases[1].campaign_attempt_count = 2;
+        input.cases[0].sequence_no = 1;
+        input.cases[1].sequence_no = 2;
+        input.cases[0].cutoff.sequence_watermark = 1;
+        input.cases[0].cutoff.history_max_sequence = 0;
+        input.cases[1].cutoff.sequence_watermark = 2;
+        input.cases[1].cutoff.history_max_sequence = 1;
+
+        let bytes = serde_json::to_vec(&input).unwrap();
+        let error = audit_corpus(&bytes, "0123456789abcdef0123456789abcdef01234567")
+            .unwrap_err();
+        assert_eq!(error, "ATTEMPT_ID_DUPLICATE_WITHIN_CAMPAIGN");
     }
 
     #[test]
