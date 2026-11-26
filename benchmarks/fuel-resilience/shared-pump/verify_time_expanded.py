@@ -135,9 +135,12 @@ def restoration_threshold(scenario):
         trial=copy.deepcopy(scenario)
         gate=next(e for e in trial["edges"] if e["id"]=="pump-physical-t1")
         gate["capacity_lower"]=candidate
+        evidence=next(e for e in trial["capacity_evidence"] if e["time_index"]==1)
+        evidence["lower"]=candidate
+        evidence["status"]="hypothetical_counterfactual_not_admitted"
         flow,reachable,cut,cutcap,witness=solve(trial,"capacity_lower")
         if flow >= sum(o["required_lower"] for o in trial["service_obligations"]):
-            return candidate,flow,cutcap,witness
+            return candidate,flow,cutcap,witness,trial
     return None
 
 def main():
@@ -146,10 +149,14 @@ def main():
     low,high=verify(doc)
     threshold=restoration_threshold(doc["scenario"])
     fail(threshold is not None,"no capacity-restoration threshold found in declared upper bound")
-    threshold_capacity,threshold_flow,threshold_cut,threshold_witness=threshold
-    fail(threshold_capacity==6,"unexpected minimum qualified lower-bound pump capacity for window 2")
+    threshold_capacity,threshold_flow,threshold_cut,threshold_witness,threshold_scenario=threshold
+    fail(threshold_capacity==6,"unexpected minimum hypothetical lower-bound pump capacity for window 2")
     fail(threshold_flow==threshold_cut==12,"restoration threshold lacks max-flow/min-cut equality")
     fail(threshold_witness["service-obligation-t1"]==6 and threshold_witness["service-obligation-t2"]==6,"restoration threshold does not meet each separate service window")
+    counterfactual_evidence=next(e for e in threshold_scenario["capacity_evidence"] if e["time_index"]==1)
+    baseline_evidence=next(e for e in doc["scenario"]["capacity_evidence"] if e["time_index"]==1)
+    fail(counterfactual_evidence["lower"]==threshold_capacity and counterfactual_evidence["status"]=="hypothetical_counterfactual_not_admitted","capacity uplift must remain explicitly hypothetical and unadmitted")
+    fail(baseline_evidence["lower"]==3 and baseline_evidence["status"]=="synthetic_admitted","counterfactual changed the frozen baseline evidence")
     one_below=copy.deepcopy(doc["scenario"])
     next(e for e in one_below["edges"] if e["id"]=="pump-physical-t1")["capacity_lower"]=threshold_capacity-1
     below_flow=solve(one_below,"capacity_lower")[0]
@@ -172,7 +179,7 @@ def main():
         try: verify(attack)
         except (AssertionError,KeyError,ValueError): rejected+=1
     fail(rejected==len(attacks),"a hostile mutation escaped independent verifier")
-    print(f"PASS: lower flow/cut={low[0]}/{low[3]} t; upper flow/cut={high[0]}/{high[3]} t; window deliveries=6 t, 3 t; shortfall=3 t; minimum window-2 pump lower-bound uplift=+{threshold_capacity-3} t to {threshold_capacity} t; one-below control flow={below_flow} t; hostile mutations rejected={rejected}")
+    print(f"PASS: lower flow/cut={low[0]}/{low[3]} t; upper flow/cut={high[0]}/{high[3]} t; window deliveries=6 t, 3 t; shortfall=3 t; minimum hypothetical window-2 pump lower-bound uplift=+{threshold_capacity-3} t to {threshold_capacity} t (not admitted); one-below control flow={below_flow} t; hostile mutations rejected={rejected}")
 
 if __name__=="__main__":
     main()
