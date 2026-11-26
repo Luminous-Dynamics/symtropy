@@ -138,3 +138,8 @@ The spatial-state protocol now adds separate TUM RGB-D, EuRoC MAV, KITTI Odometr
 ## Geometric validation fixtures
 
 The [geometric-validation matrix](./scenario-matrix-geometric-validation-v0.tsv) adds 20 metadata-only cases (10 paired controls/mutations) for transform direction, pose-graph cycles, calibration drift/revision, monocular scale ambiguity, false loop closure, dynamic scenes, map correction/retraction, camera–IMU clock alignment, ground-truth common-cause provenance and lifelong relocalization. It complements the 22 spatial decision-sufficiency cases; neither matrix yet represents rendered or replayed sensor data.
+
+
+## Candidate spatial-state projection
+
+The separate [spatial-state-projection-v0.schema.json](./spatial-state-projection-v0.schema.json) and [example](./spatial-state-projection-v0.example.json) define the candidate-only map-state interchange. The schema keeps source observations, candidate frame/transform/geometry claims, entity hypotheses, relation claims and source-linked unresolved constraints separate from evaluator truth. Structural negative checks reject hidden-truth fields, malformed digests, missing candidate frame markers, source-free inferred entities and invalid quaternion arity. Runtime cross-reference and geometry validation are not implemented yet.
