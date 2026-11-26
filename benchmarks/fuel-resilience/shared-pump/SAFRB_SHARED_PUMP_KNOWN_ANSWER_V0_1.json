@@ -1,0 +1,203 @@
+{
+  "scenario": {
+    "schema_version": "safrb-shared-pump-network-v0.1",
+    "case_id": "SAFRB-SHARED-PUMP-2ROUTE-001",
+    "evidence_maturity": "synthetic_known_truth",
+    "claim_scope": "FUEL-DELIVERABILITY",
+    "time_window": {
+      "start": "2026-11-26T00:00:00Z",
+      "duration_seconds": 3600,
+      "interval_semantics": "[start,end)"
+    },
+    "commodity": {
+      "product_id": "synthetic-diesel-grade-A",
+      "quantity_unit": "t",
+      "unit_basis": "synthetic tonnes; no density or volume conversion"
+    },
+    "source_node": "supply",
+    "sink_node": "beneficiary",
+    "required_delivery": 12,
+    "nodes": [
+      {
+        "id": "supply",
+        "kind": "aggregate_supply"
+      },
+      {
+        "id": "terminal-a",
+        "kind": "terminal"
+      },
+      {
+        "id": "terminal-b",
+        "kind": "terminal"
+      },
+      {
+        "id": "pump-in",
+        "kind": "shared_resource_input"
+      },
+      {
+        "id": "pump-out",
+        "kind": "shared_resource_output"
+      },
+      {
+        "id": "route-a",
+        "kind": "route"
+      },
+      {
+        "id": "route-b",
+        "kind": "route"
+      },
+      {
+        "id": "generator",
+        "kind": "generator"
+      },
+      {
+        "id": "beneficiary",
+        "kind": "beneficiary"
+      }
+    ],
+    "edges": [
+      {
+        "id": "supply-a",
+        "from": "supply",
+        "to": "terminal-a",
+        "capacity_lower": 10,
+        "capacity_upper": 10,
+        "unit": "t",
+        "resource_id": "stock:terminal-a"
+      },
+      {
+        "id": "supply-b",
+        "from": "supply",
+        "to": "terminal-b",
+        "capacity_lower": 10,
+        "capacity_upper": 10,
+        "unit": "t",
+        "resource_id": "stock:terminal-b"
+      },
+      {
+        "id": "terminal-a-pump",
+        "from": "terminal-a",
+        "to": "pump-in",
+        "capacity_lower": 10,
+        "capacity_upper": 10,
+        "unit": "t",
+        "resource_id": "transfer:terminal-a"
+      },
+      {
+        "id": "terminal-b-pump",
+        "from": "terminal-b",
+        "to": "pump-in",
+        "capacity_lower": 10,
+        "capacity_upper": 10,
+        "unit": "t",
+        "resource_id": "transfer:terminal-b"
+      },
+      {
+        "id": "pump-01-gate",
+        "from": "pump-in",
+        "to": "pump-out",
+        "capacity_lower": 8,
+        "capacity_upper": 14,
+        "unit": "t",
+        "resource_id": "physical:pump-01"
+      },
+      {
+        "id": "pump-route-a",
+        "from": "pump-out",
+        "to": "route-a",
+        "capacity_lower": 10,
+        "capacity_upper": 10,
+        "unit": "t",
+        "resource_id": "route-link:a"
+      },
+      {
+        "id": "pump-route-b",
+        "from": "pump-out",
+        "to": "route-b",
+        "capacity_lower": 10,
+        "capacity_upper": 10,
+        "unit": "t",
+        "resource_id": "route-link:b"
+      },
+      {
+        "id": "route-a-generator",
+        "from": "route-a",
+        "to": "generator",
+        "capacity_lower": 10,
+        "capacity_upper": 10,
+        "unit": "t",
+        "resource_id": "pipeline:a"
+      },
+      {
+        "id": "route-b-generator",
+        "from": "route-b",
+        "to": "generator",
+        "capacity_lower": 10,
+        "capacity_upper": 10,
+        "unit": "t",
+        "resource_id": "pipeline:b"
+      },
+      {
+        "id": "generator-beneficiary",
+        "from": "generator",
+        "to": "beneficiary",
+        "capacity_lower": 12,
+        "capacity_upper": 12,
+        "unit": "t",
+        "resource_id": "delivery:beneficiary"
+      }
+    ],
+    "resource_aliases": [
+      {
+        "logical_edge_ref": "route-a:shared-pump",
+        "physical_resource_id": "physical:pump-01"
+      },
+      {
+        "logical_edge_ref": "route-b:shared-pump",
+        "physical_resource_id": "physical:pump-01"
+      }
+    ],
+    "adversarial_mutations": [
+      "split-one-physical-pump-into-two-logical-capacities",
+      "treat-unknown-resource-alias-as-independent",
+      "promote-upper-bound-14-into-guaranteed-lower-bound",
+      "accept-expired-pump-capacity-evidence",
+      "change-tonnes-to-litres-without-a-qualified-conversion",
+      "replay-certificate-after-resource-revision-change",
+      "use-future-cargo-before-physical-receipt",
+      "omit-the-beneficiary-service-scope"
+    ]
+  },
+  "certificate": {
+    "certificate_version": "safrb-single-commodity-flow-certificate-v0.1",
+    "scenario_sha256": "0a1c507d3bff9b3062e24ca8718e102244473d839c2a31c5ead31812ee249be2",
+    "model_class": "single_commodity_directed_capacity_network",
+    "lower_bound_max_flow": 8,
+    "lower_bound_min_cut_capacity": 8,
+    "lower_bound_service_deficit": 4,
+    "flow_witness": {
+      "supply-a": 4,
+      "supply-b": 4,
+      "terminal-a-pump": 4,
+      "terminal-b-pump": 4,
+      "pump-01-gate": 8,
+      "pump-route-a": 4,
+      "pump-route-b": 4,
+      "route-a-generator": 4,
+      "route-b-generator": 4,
+      "generator-beneficiary": 8
+    },
+    "source_side_nodes": [
+      "supply",
+      "terminal-a",
+      "terminal-b",
+      "pump-in"
+    ],
+    "cut_edge_ids": [
+      "pump-01-gate"
+    ],
+    "lower_bound_verdict": "indeterminate",
+    "upper_bound_max_flow": 12,
+    "interpretation": "The conservative lower-bound network delivers 8 t against a 12 t obligation, while the optimistic upper-bound network can deliver 12 t. The service is not guaranteed; this is not a proof that delivery is physically impossible."
+  }
+}
