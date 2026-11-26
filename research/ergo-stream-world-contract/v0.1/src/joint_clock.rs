@@ -420,7 +420,7 @@ fn weighted_rank_revealing_qr_v0(
     for pivot_index in 0..limit {
         let mut best_column = pivot_index;
         let mut best_norm_squared = -1.0_f64;
-        for column_index in pivot_index..column_count {
+        for (column_index, _) in a[0].iter().enumerate().skip(pivot_index) {
             let norm_squared = (pivot_index..row_count)
                 .map(|row_index| a[row_index][column_index] * a[row_index][column_index])
                 .sum::<f64>();
@@ -462,7 +462,7 @@ fn weighted_rank_revealing_qr_v0(
         }
         let factor = 2.0 / vector_norm_squared;
 
-        for column_index in pivot_index..column_count {
+        for (column_index, _) in a[0].iter().enumerate().skip(pivot_index) {
             let dot = householder
                 .iter()
                 .enumerate()
@@ -484,8 +484,8 @@ fn weighted_rank_revealing_qr_v0(
         }
 
         a[pivot_index][pivot_index] = alpha;
-        for row_index in (pivot_index + 1)..row_count {
-            a[row_index][pivot_index] = 0.0;
+        for row in a.iter_mut().skip(pivot_index + 1) {
+            row[pivot_index] = 0.0;
         }
 
         let diagonal = alpha.abs();
