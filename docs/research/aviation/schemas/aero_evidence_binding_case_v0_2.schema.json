@@ -429,7 +429,21 @@
         },
         "acquired_at_unix_ms": {
           "$ref": "#/$defs/unixMs"
+        },
+        "acquisition_time_earliest_unix_ms": {
+          "$ref": "#/$defs/unixMs"
+        },
+        "acquisition_time_latest_unix_ms": {
+          "$ref": "#/$defs/unixMs"
         }
+      },
+      "dependentRequired": {
+        "acquisition_time_earliest_unix_ms": [
+          "acquisition_time_latest_unix_ms"
+        ],
+        "acquisition_time_latest_unix_ms": [
+          "acquisition_time_earliest_unix_ms"
+        ]
       }
     },
     "calibrationCertificate": {
@@ -517,6 +531,12 @@
         },
         "recorded_at_unix_ms": {
           "$ref": "#/$defs/unixMs"
+        },
+        "effective_time_earliest_unix_ms": {
+          "$ref": "#/$defs/unixMs"
+        },
+        "effective_time_latest_unix_ms": {
+          "$ref": "#/$defs/unixMs"
         }
       },
       "allOf": [
@@ -540,7 +560,15 @@
             ]
           }
         }
-      ]
+      ],
+      "dependentRequired": {
+        "effective_time_earliest_unix_ms": [
+          "effective_time_latest_unix_ms"
+        ],
+        "effective_time_latest_unix_ms": [
+          "effective_time_earliest_unix_ms"
+        ]
+      }
     },
     "unixMs": {
       "type": "integer",
