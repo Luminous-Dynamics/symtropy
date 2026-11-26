@@ -73,9 +73,9 @@ jobs:
           assert rust["expected_outcome_matches"] == 17
           assert rust["expected_outcome_mismatches"] == 0
           cases = {case["case_id"]: case for case in rust["cases"]}
-          assert cases["TV-016-FRAME-WINDOW-TRAP"]["bounds"]["combined_frame"]["total_um"] == 13
-          assert cases["TV-016-FRAME-WINDOW-TRAP"]["bounds"]["constant_max_speed_frame"]["total_um"] == 30
-          assert cases["TV-016-FRAME-WINDOW-TRAP"]["bounds"]["constant_speed_excess_um_upper"] == 17
+          assert cases["TV-016-FRAME-WINDOW-TRAP"]["bounds"]["combined_frame"]["total_nm"] == 13000
+          assert cases["TV-016-FRAME-WINDOW-TRAP"]["bounds"]["constant_max_speed_frame"]["total_nm"] == 30000
+          assert cases["TV-016-FRAME-WINDOW-TRAP"]["bounds"]["constant_speed_excess_nm_upper"] == 17000
           for case in cases.values():
               if case["bounds"] is not None:
                   assert case["bounds"]["constant_max_speed_frame"]["total_um"] >= case["bounds"]["combined_frame"]["total_um"]
