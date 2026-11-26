@@ -640,6 +640,12 @@ mod tests {
         assert!(report.isomorphic);
         assert_eq!(report.explored_node_bijections, 1);
         assert_eq!(report.valid_node_mapping_count, 1);
+        assert_eq!(report.valid_witness_class_count, 1);
+        assert!(report.witness_count_complete);
+        assert_eq!(
+            report.ambiguity_status,
+            StructuralWitnessAmbiguityV0::UniqueUnderDeclaredEquivalence
+        );
         let correspondence = report.correspondence.unwrap();
         let witness =
             validate_structural_correspondence(&source, &target, &correspondence).unwrap();
@@ -728,6 +734,9 @@ mod tests {
         // The automorphism group of an undirected six-cycle is the dihedral
         // group D6: six rotations and six reflections.
         assert_eq!(report.valid_node_mapping_count, 12);
+        assert_eq!(report.valid_witness_class_count, 12);
+        assert!(report.witness_count_complete);
+        assert_eq!(report.ambiguity_status, StructuralWitnessAmbiguityV0::Ambiguous);
         assert!(report.correspondence.is_some());
     }
 
