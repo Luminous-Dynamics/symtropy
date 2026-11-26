@@ -35,7 +35,13 @@ The added sleeping-wakeup family keeps most proxies stationary and moves only tw
 
 The tree backend uses zero extra fat margin because the tournament inputs are already authoritative AABBs. Candidate parity is exact for current-frame AABB overlap; it is not a shape-level or continuous time-of-impact proof.
 
-The pair-delta output is a different API contract from full candidate-set output. Do not compare its event-generation p95 directly to full-set p95 without accounting for the consumer's persistent-pair integration and the separately reported materialization cost. The pair cache supports explicit full invalidation for non-geometric eligibility changes such as collision filter/layer updates.
+The pair-delta output is a different API contract from full candidate-set output. Do not compare its event-generation p95 directly to full-set p95 without accounting for the consumer's persistent-pair integration and the separately reported materialization cost.
+
+The cache exposes two input paths:
+- `step` safely derives changed identities by diffing the prior/current AABB snapshots. This is the path used by the current tournament row.
+- `step_with_dirty_ids` accepts a strictly sorted authoritative change journal from a physics world. The caller is responsible for completeness; `verify_dirty_proxy_ids` independently checks it against the snapshots in the audit path. This fast path is implemented and unit-tested, but it is not yet the measured tournament backend.
+
+A full invalidation (for example, collision filter/layer policy change) forces the safe snapshot-derived path; the dirty-journal fast path rejects it until all affected relationships are revalidated. A production integration must bind the journal to exact world revisions and a trusted source before treating it as authoritative.
 
 ## Run
 
