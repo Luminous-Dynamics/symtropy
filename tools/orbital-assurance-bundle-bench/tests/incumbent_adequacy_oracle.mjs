@@ -126,7 +126,7 @@ function evaluateCase(item) {
   if (!validId(item.case_id) || !validId(item.loss_unit) || !validId(item.incumbent_action_id)
     || !validSha(item.scope_sha256) || !Array.isArray(item.action_ids) || !item.action_ids.length
     || item.action_ids.length > MAX_ACTIONS || !Array.isArray(item.expected_world_ids)
-    || !item.expected_world_ids.length || item.expected_world_ids.length > MAX_WORLDS
+    || item.expected_world_ids.length > MAX_WORLDS
     || !Array.isArray(item.worlds) || item.worlds.length > MAX_SCENARIOS
     || !Array.isArray(item.loss_model_set?.expected_scenario_ids)
     || item.loss_model_set.expected_scenario_ids.length > MAX_SCENARIOS
