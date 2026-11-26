@@ -88,6 +88,16 @@ Common random numbers (CRN) are established simulation methodology, not a new me
 
 A seed value alone is not an adequate coupling description. The implementation should bind semantic exogenous drivers (for example, primary-state perturbation, secondary-state perturbation, shared density-model error and force-model draw) to stable identities, so that action-dependent execution paths cannot silently shift which random variate represents which physical uncertainty. The exact coupling map must be replayable and preserve each arm's target marginal law.
 
+An exact four-atom control should make the non-guarantee visible. Let (U) be uniform on four atoms and baseline loss be (L_0=[0,1,2,3]). Its population variance is 1.25.
+
+| Action-arm loss on the same four atoms | Covariance with baseline | Paired-difference variance | Independent-arm difference variance |
+|---|---:|---:|---:|
+| (L_A=[1,2,3,4]) | (+1.25) | (0) | (2.5) |
+| (L_B=[0,1,1,0]) | (0) | (1.5) | (1.5) |
+| (L_C=[3,2,1,0]) | (-1.25) | (5.0) | (2.5) |
+
+This exact arithmetic control must be included in the first finite fixture. It demonstrates when pairing can help, do nothing or hurt. It proves only the statistical mechanism on a toy finite measure; it does not predict orbital covariance or establish a physical variance reduction.
+
 The coupling must preserve each arm's target marginal distribution. The same exogenous uncertainty identity may be applied to every arm, but each arm must recompute its state transition, propagated trajectory, encounter inventory and consequence. No arm may inherit another arm's collision classification or loss.
 
 A paired row is one multivariate observation. It must not be split into fictitious independent samples. Correlation across arms and events must be preserved in the variance estimator and in simultaneous portfolio comparisons.
@@ -145,6 +155,14 @@ When proposals adapt, adaptation must be predictable from prior information. An 
 
 For multiple candidate portfolios, the system must account for simultaneous comparisons and post-selection bias. Per-arm marginal intervals do not automatically give a valid interval for the selected winner.
 
+The proposal must cover the union of rare-event regions across the no-action arm, every candidate portfolio, every encounter and every admitted scenario. A proposal adapted to one manoeuvre can miss a collision mode introduced by another. One defensive construction to benchmark is:
+
+[
+q_t(U)=epsilon p_s(U)+(1-epsilon)sum_{j=1}^{J}alpha_{j,t}q_{j,t}(U),quad epsilon>0,
+]
+
+where components target distinct portfolio/event/scenario modes. Use the exact density of the full mixture in the likelihood ratio—not merely the selected component density—and bind the mixture weights and adaptation history in the receipt. Arm-specific proposals require a separately justified multiple-importance-sampling estimator and a valid cross-arm coupling; their draws must not be pooled as if they shared one proposal density.
+
 ## 6. Integration plan
 
 1. Reuse #7443's shared-trajectory pathwise event reduction and #7503's exact mission union. Do not create another event reducer.
@@ -152,6 +170,7 @@ For multiple candidate portfolios, the system must account for simultaneous comp
 3. Introduce versioned campaign, latent-atom, portfolio-arm, coupling-receipt and paired-outcome types in the isolated Rust research kernel.
 4. Define an independent challenger that reconstructs pairing identity, target/proposal weights, pathwise unions, signed paired deltas and variance statistics.
 5. Add a selection layer only after the paired estimator and simultaneous uncertainty contract are qualified.
+6. Extend from static portfolios to non-anticipative mission policies (pi_t(mathcal H_t)) that depend only on observations available by decision time (t). Add twin-world tests: two worlds with identical observable history through (t) must induce the same action at (t), even when their hidden future trajectories differ. This prevents hindsight leakage in mission replanning.
 
 ## 7. Adversarial known-answer corpus
 
@@ -194,7 +213,19 @@ Known research baselines include Ketzner & Elgohary (2026), “Monte Carlo Orbit
 
 All comparisons must freeze or report ephemeris epoch, force model, covariance and cross-correlation treatment, hard-body radius, event geometry, full mission horizon, event inventory, proposal support, hardware, expensive trajectory-call budget and stopping rule.
 
-## 9. Metrics and prospective targets
+## 9. Multi-fidelity extension to investigate
+
+Do not make paired high-fidelity Monte Carlo the only route to fewer expensive propagations. Evaluate a multi-fidelity control-variate extension where (F(a,U)) is the expensive trajectory/consequence calculation and (G(a,U)) is an inexpensive, estimand-aligned model:
+
+[
+mathbb E[F]=mathbb E[G]+mathbb E[F-G].
+]
+
+The low-fidelity term may be evaluated broadly, with the correction estimated on a smaller high-fidelity sample. The estimator must preserve the exact target expectation; any fitting or calibration of (G) must be separated or cross-fitted, and discrepancy/bias must be reported independently from sampling variance. A CARA Pc/Nc calculation can be a risk comparator or control variate only for a matched risk estimand; it is not automatically a proxy for arbitrary consequence loss. A surrogate must not turn model error into an apparently narrow confidence interval.
+
+Measure correction variance, high-fidelity call reduction, held-out residual coverage and bias bounds against independent propagated cases. Keep this separate from the base paired estimator until it has its own evidence contract.
+
+## 10. Metrics and prospective targets
 
 Report at least:
 
@@ -202,6 +233,8 @@ Report at least:
 - marginal and simultaneous interval coverage;
 - false-safe, false-positive and abstention rates;
 - paired-difference variance / unpaired-difference variance;
+- paired versus unpaired high-fidelity calls at matched simultaneous coverage and correct portfolio-selection rate;
+- low-/high-fidelity correction bias and variance, cross-fit calibration error and held-out residual coverage;
 - high-fidelity trajectory calls to reach preregistered error and coverage;
 - probability of selecting the wrong portfolio and regret against the exhaustive finite oracle;
 - full event-signature and support coverage;
@@ -223,13 +256,13 @@ Report at least:
 
 Targets must be measured on held-out cases. No speedup, estimator superiority or physical qualification is claimed by this design proposal.
 
-## 10. Claim and authority boundary
+## 11. Claim and authority boundary
 
 This is a research/reference decision layer. It is not an orbit propagator, conjunction screening service, calibrated probability source, manoeuvre planner, operator notification service or operational authority. It does not replace NASA CARA, ISO 23705:2026, mission-specific risk governance or human/operator review.
 
 A matching digest, complete finite manifest or source-supplied BELOW_THRESHOLD status does not prove issuer authenticity, physical correctness, real-world universe completeness or safety. Unknown means unknown. No automatic manoeuvre authority is introduced.
 
-## 11. Selected prior art
+## 12. Selected prior art
 
 - Paul Glasserman and David D. Yao (1992), [Some Guidelines and Guarantees for Common Random Numbers](https://doi.org/10.1287/mnsc.38.6.884), *Management Science* 38(6).
 - Wei-Ning Yang and Barry L. Nelson (1991), [Using Common Random Numbers and Control Variates in Multiple-Comparison Procedures](https://doi.org/10.1287/opre.39.4.583), *Operations Research* 39(4).
