@@ -336,7 +336,8 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
         // reconciliation path. The threshold is a work estimate, not a timing
         // claim; the selected mode is exported in the frame receipt.
         let population = self.previous_bounds.len().max(frame.len()).max(1);
-        let log_factor = (usize::BITS - population.leading_zeros()) as usize;
+        let log_factor =
+            (usize::BITS - population.saturating_sub(1).leading_zeros()).max(1) as usize;
         let dirty_pair_upper_bound =
             dirty.len().saturating_mul(dirty.len().saturating_sub(1)) / 2;
         if dirty_pair_upper_bound > population.saturating_mul(log_factor) {
