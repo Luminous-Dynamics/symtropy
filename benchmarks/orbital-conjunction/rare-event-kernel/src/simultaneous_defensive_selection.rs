@@ -66,6 +66,10 @@ pub struct DefensivePortfolioDrawReceipt {
     pub draw_id: [u8; 32],
     /// Frozen mode identity for this draw.
     pub mode_key: PortfolioEventModeKey,
+    /// Stable identity for the consequence unit, sign convention and tick scale.
+    pub consequence_unit_id: [u8; 32],
+    /// Stable identity for the consequence unit, sign convention and tick scale.
+    pub consequence_unit_id: [u8; 32],
     /// Target-measure identity.
     pub target_measure_id: [u8; 32],
     /// Density-space identity.
@@ -142,6 +146,8 @@ pub struct SimultaneousDefensivePortfolioReport {
 pub enum SimultaneousDefensiveSelectionError {
     /// Family error probability must lie strictly in (0,1).
     InvalidFamilyAlpha,
+    /// Consequence unit identity is zero or invalid.
+    InvalidConsequenceUnitIdentity,
     /// At least two portfolios are required.
     TooFewPortfolios,
     /// Portfolio count exceeds the bounded pairwise comparison limit.
@@ -176,6 +182,7 @@ impl core::fmt::Display for SimultaneousDefensiveSelectionError {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let message = match self {
             Self::InvalidFamilyAlpha => "family-wise alpha must lie strictly between zero and one",
+            Self::InvalidConsequenceUnitIdentity => "consequence unit identity is zero or invalid",
             Self::TooFewPortfolios => "at least two portfolio arms are required",
             Self::TooManyPortfolios => "portfolio universe exceeds the bounded comparison limit",
             Self::InvalidPortfolioIdentity => "portfolio identity is zero or duplicated",
@@ -231,6 +238,7 @@ struct DefensivePairProcess {
 pub struct SimultaneousDefensivePortfolioSelection {
     family_alpha: f64,
     contrast_alpha: f64,
+    consequence_unit_id: [u8; 32],
     portfolio_bounds: Vec<PortfolioConsequenceBound>,
     proposal: PortfolioDefensiveGaussianMixture,
     pair_processes: Vec<DefensivePairProcess>,
@@ -246,11 +254,15 @@ impl SimultaneousDefensivePortfolioSelection {
     /// Family alpha is split uniformly across K(K-1)/2 pairwise PrPl-EB sequences.
     pub fn new(
         family_alpha: f64,
+        consequence_unit_id: [u8; 32],
         mut portfolio_bounds: Vec<PortfolioConsequenceBound>,
         proposal: PortfolioDefensiveGaussianMixture,
     ) -> Result<Self, SimultaneousDefensiveSelectionError> {
         if !family_alpha.is_finite() || family_alpha <= 0.0 || family_alpha >= 1.0 {
             return Err(SimultaneousDefensiveSelectionError::InvalidFamilyAlpha);
+        }
+        if consequence_unit_id.iter().all(|byte| *byte == 0) {
+            return Err(SimultaneousDefensiveSelectionError::InvalidConsequenceUnitIdentity);
         }
         if portfolio_bounds.len() < 2 {
             return Err(SimultaneousDefensiveSelectionError::TooFewPortfolios);
@@ -317,6 +329,7 @@ impl SimultaneousDefensivePortfolioSelection {
         Ok(Self {
             family_alpha,
             contrast_alpha,
+            consequence_unit_id,
             portfolio_bounds,
             proposal,
             pair_processes,
@@ -473,6 +486,7 @@ impl SimultaneousDefensivePortfolioSelection {
 
         Ok(DefensivePortfolioDrawReceipt {
             draw_index: draw.draw_index,
+            consequence_unit_id: self.consequence_unit_id,
             draw_id: draw.draw_id,
             mode_key: draw.mode_key,
             target_measure_id: common_evaluation.target_measure_id,
@@ -600,6 +614,7 @@ impl SimultaneousDefensivePortfolioSelection {
             scenario_id: self.proposal.scenario_id(),
             configuration_digest: self.proposal.configuration_digest(),
             effective_defensive_fraction: epsilon,
+            consequence_unit_id: self.consequence_unit_id,
         })
     }
 }
@@ -636,6 +651,7 @@ mod tests {
 
     const TARGET_MEASURE_ID: [u8; 32] = [90; 32];
     const DENSITY_SPACE_ID: [u8; 32] = [91; 32];
+    const CONSEQUENCE_UNIT_ID: [u8; 32] = [92; 32];
 
     fn gaussian(mean: f64, variance: f64) -> Gaussian {
         Gaussian::new(vec![mean], vec![variance]).unwrap()
@@ -724,7 +740,7 @@ mod tests {
     #[test]
     fn family_alpha_is_split_over_all_pairwise_contrasts() {
         let process =
-            SimultaneousDefensivePortfolioSelection::new(0.06, bounds(), proposal_three_modes())
+            SimultaneousDefensivePortfolioSelection::new(0.06, CONSEQUENCE_UNIT_ID, bounds(), proposal_three_modes())
                 .unwrap();
         let report = process.report().unwrap();
 
@@ -743,7 +759,7 @@ mod tests {
     #[test]
     fn one_shared_draw_updates_every_pair_and_evaluates_density_once() {
         let mut process =
-            SimultaneousDefensivePortfolioSelection::new(0.05, bounds(), proposal_three_modes())
+            SimultaneousDefensivePortfolioSelection::new(0.05, CONSEQUENCE_UNIT_ID, bounds(), proposal_three_modes())
                 .unwrap();
         let receipt = process
             .observe(&draw(1, 1, &[(30, 12), (10, 2), (20, 7)]))
@@ -776,7 +792,7 @@ mod tests {
     #[test]
     fn shared_draw_ledger_rejects_duplicate_ids_and_duplicate_indices() {
         let mut process =
-            SimultaneousDefensivePortfolioSelection::new(0.05, bounds(), proposal_three_modes())
+            SimultaneousDefensivePortfolioSelection::new(0.05, CONSEQUENCE_UNIT_ID, bounds(), proposal_three_modes())
                 .unwrap();
         process
             .observe(&draw(1, 9, &[(10, 1), (20, 2), (30, 3)]))
@@ -796,7 +812,7 @@ mod tests {
     #[test]
     fn missing_duplicate_and_out_of_bound_portfolio_rows_are_rejected_transactionally() {
         let mut process =
-            SimultaneousDefensivePortfolioSelection::new(0.05, bounds(), proposal_three_modes())
+            SimultaneousDefensivePortfolioSelection::new(0.05, CONSEQUENCE_UNIT_ID, bounds(), proposal_three_modes())
                 .unwrap();
 
         assert_eq!(
@@ -820,6 +836,20 @@ mod tests {
     }
 
     #[test]
+    fn zero_consequence_unit_identity_is_rejected() {
+        assert_eq!(
+            SimultaneousDefensivePortfolioSelection::new(
+                0.05,
+                [0; 32],
+                bounds(),
+                proposal_three_modes(),
+            )
+            .unwrap_err(),
+            SimultaneousDefensiveSelectionError::InvalidConsequenceUnitIdentity
+        );
+    }
+
+    #[test]
     fn omitted_proposal_portfolio_is_rejected_at_construction() {
         let one_target = GaussianMixture::new(vec![
             GaussianComponent::new(1.0, gaussian(0.0, 1.0)).unwrap(),
@@ -838,7 +868,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            SimultaneousDefensivePortfolioSelection::new(0.05, bounds(), restricted).unwrap_err(),
+            SimultaneousDefensivePortfolioSelection::new(0.05, CONSEQUENCE_UNIT_ID, bounds(), restricted).unwrap_err(),
             SimultaneousDefensiveSelectionError::IncompleteProposalPortfolioCoverage
         );
     }
@@ -846,7 +876,7 @@ mod tests {
     #[test]
     fn separated_best_portfolio_is_reported_only_after_all_pairs_are_resolved() {
         let mut process =
-            SimultaneousDefensivePortfolioSelection::new(0.05, bounds(), proposal_three_modes())
+            SimultaneousDefensivePortfolioSelection::new(0.05, CONSEQUENCE_UNIT_ID, bounds(), proposal_three_modes())
                 .unwrap();
         for index in 1..=2_000 {
             process
@@ -895,7 +925,7 @@ mod tests {
             ],
         )
         .unwrap();
-        let process = SimultaneousDefensivePortfolioSelection::new(0.05, fixed, proposal).unwrap();
+        let process = SimultaneousDefensivePortfolioSelection::new(0.05, CONSEQUENCE_UNIT_ID, fixed, proposal).unwrap();
         let report = process.report().unwrap();
         assert_eq!(
             report.pairwise_intervals[0].lower_expected_difference_ticks,
