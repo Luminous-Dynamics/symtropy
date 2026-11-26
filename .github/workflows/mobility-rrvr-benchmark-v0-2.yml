@@ -1,0 +1,54 @@
+name: RRVR Matched Benchmark Protocol v0.2
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-benchmark-v0-2
+    paths:
+      - "research/mobility-rrvr-benchmark-v0.2/**"
+      - ".github/workflows/mobility-rrvr-benchmark-v0-2.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-benchmark-v0.2/**"
+      - ".github/workflows/mobility-rrvr-benchmark-v0-2.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  matched-protocol-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check JSON syntax and matched-pair invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCHEMA="research/mobility-rrvr-benchmark-v0.2/schemas/matched_benchmark_pairs_v0_2.schema.json"
+          FIXTURE="research/mobility-rrvr-benchmark-v0.2/fixtures/matched_benchmark_pairs_v0_2.json"
+          jq empty "$SCHEMA"
+          jq empty "$FIXTURE"
+          jq -e '
+            .schema_version == "0.2"
+            and .benchmark == "RRVR-MATCHED-CAMPAIGN"
+            and (.claim_ceiling | length >= 40)
+            and (.pairs | length == 2)
+            and ([.pairs[].pair_id] | unique | length == 2)
+            and all(.pairs[];
+              (.task_id | length > 0)
+              and (.policy_sha256 | test("^[a-fA-F0-9]{64}$"))
+              and (.scene_sha256 | test("^[a-fA-F0-9]{64}$"))
+              and (.initial_state_sha256 | test("^[a-fA-F0-9]{64}$"))
+              and (.action_prefix_sha256 | test("^[a-fA-F0-9]{64}$"))
+              and (.simulator_profile_sha256 | test("^[a-fA-F0-9]{64}$"))
+              and (.fault_schedule_sha256 | test("^[a-fA-F0-9]{64}$"))
+              and (.observer_profile_sha256 | test("^[a-fA-F0-9]{64}$"))
+              and (([.arms[].arm_id] | unique | length) == (.arms | length))
+              and any(.arms[]; .arm_id == "native")
+              and any(.arms[]; .arm_id == "full_rrvr")
+              and all(.arms[]; .native_benchmark_preserved == true)
+              and all(.arms[]; (.implementation_sha256 | test("^[a-fA-F0-9]{64}$")))
+            )
+          ' "$FIXTURE"

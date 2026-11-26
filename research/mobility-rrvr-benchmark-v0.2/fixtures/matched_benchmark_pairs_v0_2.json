@@ -1,0 +1,64 @@
+{
+  "schema_version": "0.2",
+  "benchmark": "RRVR-MATCHED-CAMPAIGN",
+  "claim_ceiling": "Synthetic known-answer manifest only. No benchmark episode was executed and no comparative score or safety result is claimed.",
+  "campaign_id": "rrvr-matched-pair-reference-001",
+  "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "oracle_revision": "rrvr-independent-oracle-v0.2",
+  "pairs": [
+    {
+      "pair_id": "PAIR-001",
+      "task_id": "robot-pick-place-001",
+      "policy_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "scene_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "initial_state_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "action_prefix_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "seed": 42,
+      "simulator_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "fault_schedule_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "observer_profile_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "expected_disposition": "unknown",
+      "arms": [
+        {
+          "arm_id": "native",
+          "implementation_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "native_benchmark_preserved": true,
+          "qualification_tier": "simulator"
+        },
+        {
+          "arm_id": "full_rrvr",
+          "implementation_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "native_benchmark_preserved": true,
+          "qualification_tier": "formal"
+        }
+      ]
+    },
+    {
+      "pair_id": "PAIR-002",
+      "task_id": "robot-dispense-001",
+      "policy_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "scene_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "initial_state_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "action_prefix_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "seed": 43,
+      "simulator_profile_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "fault_schedule_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "observer_profile_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "expected_disposition": "no_effect",
+      "arms": [
+        {
+          "arm_id": "native",
+          "implementation_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "native_benchmark_preserved": true,
+          "qualification_tier": "simulator"
+        },
+        {
+          "arm_id": "full_rrvr",
+          "implementation_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "native_benchmark_preserved": true,
+          "qualification_tier": "simulator"
+        }
+      ]
+    }
+  ]
+}
