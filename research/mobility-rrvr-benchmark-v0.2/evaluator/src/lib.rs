@@ -330,8 +330,14 @@ fn validate_bundle(bundle: &ResultsBundle) -> Result<(), String> {
             ("reset_replay", episode.latencies_ms.reset_replay),
             ("endpoint_fence", episode.latencies_ms.endpoint_fence),
             ("temporal_closure", episode.latencies_ms.temporal_closure),
-            ("independent_observation", episode.latencies_ms.independent_observation),
-            ("native_authority_admission", episode.latencies_ms.native_authority_admission),
+            (
+                "independent_observation",
+                episode.latencies_ms.independent_observation,
+            ),
+            (
+                "native_authority_admission",
+                episode.latencies_ms.native_authority_admission,
+            ),
         ] {
             if let Some(milliseconds) = value
                 && (!milliseconds.is_finite() || milliseconds < 0.0)
