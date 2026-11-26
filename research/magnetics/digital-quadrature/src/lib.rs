@@ -1535,10 +1535,28 @@ mod tests {
         let trace = sinusoidal_trace("predicted-field-trace-illegal-capture", 1, 3601, 0.008, 1.0);
         let prediction = evaluate_trace(&trace, config(1)).unwrap();
         let mut capture = captured_trace_from_prediction(&prediction);
-        capture.transitions[0].state_after = QuadratureState {
-            channel_a_high: !capture.initial_state.channel_a_high,
-            channel_b_high: !capture.initial_state.channel_b_high,
+        let initial = capture.initial_state;
+        let opposite = QuadratureState {
+            channel_a_high: !initial.channel_a_high,
+            channel_b_high: !initial.channel_b_high,
         };
+        let after_opposite_b = QuadratureState {
+            channel_a_high: opposite.channel_a_high,
+            channel_b_high: initial.channel_b_high,
+        };
+        let after_initial_a = initial;
+        let after_initial_b = QuadratureState {
+            channel_a_high: initial.channel_a_high,
+            channel_b_high: !initial.channel_b_high,
+        };
+        for (transition, state_after) in capture.transitions.iter_mut().zip([
+            opposite,
+            after_opposite_b,
+            after_initial_a,
+            after_initial_b,
+        ]) {
+            transition.state_after = state_after;
+        }
 
         let metrics = reconcile_captured_output(&prediction, &capture).unwrap();
         assert_eq!(metrics.captured_illegal_two_bit_transition_count, 1);
@@ -1730,7 +1748,11 @@ mod tests {
     #[test]
     fn reverse_field_rotation_reverses_quadrature_direction() {
         let trace = sinusoidal_trace("reverse-direction-control", 3, 3601, 0.008, -1.0);
-        let result = evaluate_trace(&trace, config(3)).unwrap();
+        let mut reverse_config = config(3);
+        // The reverse sweep arrives at theta=0 from the positive side of B's
+        // hysteresis cycle, so its periodic starting B state is high.
+        reverse_config.channel_b.initial_high = true;
+        let result = evaluate_trace(&trace, reverse_config).unwrap();
         assert!(result.metrics.quadrature_sequence_valid);
         assert!(
             result
@@ -1993,6 +2015,7 @@ mod tests {
         let trace = sinusoidal_trace("nonorthogonal-integrated-axes", 1, 361, 0.008, 1.0);
         let mut cfg = config(1);
         cfg.channel_b.axis_angle_rad = PI / 3.0;
+        cfg.channel_b.initial_high = true;
 
         let result = evaluate_trace(&trace, cfg).unwrap();
         assert!(
