@@ -1628,16 +1628,14 @@ pub fn run_scale_tournament<const D: usize>(
         .iter()
         .map(|frame| oracle_pairs_sweep(frame))
         .collect::<Result<Vec<_>, _>>()?;
-    let backends = [
-        BackendKind::SweepAndPrune,
-        BackendKind::TreePerLeafUnbalanced,
-        BackendKind::TreeSelfPairUnbalanced,
-        BackendKind::TreePerLeafBalanced,
-        BackendKind::TreeSelfPairBalanced,
-        BackendKind::PairDeltaCache,
-        BackendKind::IndexedPairDeltaCache,
-        BackendKind::MortonLbvhAabbAdapter,
-    ];
+    let backends = BackendKind::ALL
+        .into_iter()
+        .filter(|backend| {
+            *backend != BackendKind::BruteForce
+                && (*backend != BackendKind::PairDeltaCache
+                    || scene.declared_proxy_count <= 4_096)
+        })
+        .collect::<Vec<_>>();
 
     backends
         .into_iter()
