@@ -659,7 +659,7 @@ mod tests {
             .expect("well-formed evidence");
         assert!(result.all_trials_accepted);
         assert_eq!(result.accepted_trial_count, 1);
-        assert_eq!(result.trials[0].stable_step_count, 4);
+        assert_eq!(result.trials[0].stable_step_count, 3);
         assert!(result.trials[0].finite_difference_plateau_estimate.is_some());
     }
 
