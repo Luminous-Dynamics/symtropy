@@ -131,9 +131,9 @@ The following are candidate adapters, not universal mandatory requirements. Impl
 | Supply-chain events | GS1 EPCIS 2.0.1 (published 2025-07-01) paired with CBV 2.0.0 (published 2022-06-22) | Cross-enterprise visibility and traceability events; selected sensor summaries | Does not replace owner-native inventory accounting, metrology or source qualification |
 | Trade/transport locations | UNECE UN/LOCODE Recommendation 16 and pinned code-list release | Port, airport, inland terminal and trade-location references | A location code is not a tank, berth, pump, route section or asset identity |
 | Units | UCUM 2.2 | Machine-readable quantity/unit interchange and dimensional validation | Domain admissibility and physical conversion rules remain profile-owned |
-| Geospatial features | OGC API - Features | Web feature access using interoperable API building blocks | A feature geometry does not establish asset identity, condition or authority |
-| Geospatial discovery | OGC API - Records | Discovery of source/asset metadata records | A catalogue record does not establish rights, freshness or truth |
-| Geospatial exchange | OGC Features and Geometries JSON (JSON-FG) 1.0.0 | GeoJSON-compatible feature exchange with richer geometry/CRS semantics | Must preserve the exact CRS, datum, transformation and source lineage |
+| Geospatial features | OGC API - Features Part 1: Core 1.0.1 (read-only core; corrigendum) | Web feature access using interoperable API building blocks | A feature geometry does not establish asset identity, condition or authority |
+| Geospatial discovery | OGC API - Records Part 1: Core 1.0.0 | Discovery of source/asset metadata records | A catalogue record does not establish rights, freshness or truth |
+| Geospatial exchange | OGC Features and Geometries JSON (JSON-FG) Part 1: Core 1.0.0 | GeoJSON-compatible feature exchange with richer geometry/CRS semantics | Must preserve the exact CRS, datum, transformation and source lineage |
 | Provenance | W3C PROV-O / PROV-JSON | Exchange mapping for entities, activities and agents | Provenance presence is not proof of claim truth or causal independence |
 | Electricity networks | IEC CIM (IEC 61970 / IEC 61968 profiles) | Utility asset/network semantics and system integration | Requires exact profile, version and mapping validation |
 | Substation automation | IEC 61850 series; applicable IEC 62351 security profiles | Electrical automation data models, SCL and communications | Not a generic fuel/logistics protocol or a substitute for OT security qualification |
@@ -309,7 +309,7 @@ A successful conformance result means only that the declared adapter and claim s
 - IEC 61970-301 CIM base: https://webstore.iec.ch/en/publication/62698
 - IEC TS 62898-3-5:2026: https://webstore.iec.ch/en/publication/84175
 - NIST SI for Manufacturing / TIDAL: https://www.nist.gov/programs-projects/super-intelligence-si-manufacturing
-- NIST IR 8536, Supply Chain Traceability Principles: https://csrc.nist.gov/News/2026/nccoe-releases-nist-ir-8536
+- NIST IR 8536: https://csrc.nist.gov/pubs/ir/8536/final (DOI: https://doi.org/10.6028/NIST.IR.8536)
 - NIST IR 8356, Security and Trust Considerations for Digital Twin Technology: https://csrc.nist.gov/pubs/ir/8356/final
 - OGC JSON-FG 1.0.0: https://www.ogc.org/standards/json-fg/
 - IANA Time Zone Database: https://www.iana.org/time-zones
