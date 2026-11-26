@@ -895,6 +895,56 @@ mod tests {
     }
 
     #[test]
+    fn individual_diagnostics_are_omitted_above_the_declared_receiver_bound() {
+        let receivers = (0..33).map(|index| serde_json::json!({
+            "receiver_id": format!("receiver-{index:02}"),
+            "arrival_interval": 0,
+            "departure_interval": 1,
+            "minimum_service_mwh": 1
+        })).collect::<Vec<_>>();
+        let receiver_slots = (0..33).map(|index| serde_json::json!({
+            "receiver_id": format!("receiver-{index:02}"),
+            "interval_index": 0,
+            "max_acceptance_mwh": 1
+        })).collect::<Vec<_>>();
+        let transfer_links = (0..33).map(|index| serde_json::json!({
+            "link_id": format!("segment-to-receiver-{index:02}"),
+            "segment_id": "segment-a",
+            "receiver_id": format!("receiver-{index:02}"),
+            "interval_index": 0,
+            "max_deliverable_energy_mwh": 1
+        })).collect::<Vec<_>>();
+        let scenario = serde_json::json!({
+            "schema_version": "wpt-exact-service-oracle-v0",
+            "scenario_id": "receiver-individual-maxima-bound",
+            "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+            "interval_count": 1,
+            "segment_slots": [{
+                "segment_id": "segment-a",
+                "interval_index": 0,
+                "available_deliverable_energy_mwh": 1
+            }],
+            "receivers": receivers,
+            "receiver_slots": receiver_slots,
+            "transfer_links": transfer_links,
+            "quality_flags": ["SYNTHETIC_ONLY"]
+        });
+
+        let report = evaluate_scenario(&scenario).unwrap();
+        assert!(!report.feasible);
+        assert_eq!(
+            report.individual_maxima_status,
+            IndividualMaximaStatus::OmittedAboveDeclaredReceiverLimit
+        );
+        assert!(report.receiver_allocations.iter().all(|row| {
+            row.individual_max_deliverable_mwh.is_none()
+                && row.individual_max_min_cut_capacity_mwh.is_none()
+                && row.individual_max_graph_sha256.is_none()
+                && row.individual_floor_feasible.is_none()
+        }));
+    }
+
+    #[test]
     fn shared_segment_energy_shortage_returns_exact_min_cut_certificate() {
         let mut scenario = fixture();
         scenario["segment_slots"][2]["available_deliverable_energy_mwh"] = Value::from(0);
