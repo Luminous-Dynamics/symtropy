@@ -193,7 +193,9 @@ impl core::fmt::Display for JointActionCatalogueError {
                 "a statically selectable coalition lacks an outcome row"
             }
             Self::DuplicateActionSetDigest => "different coalition rows reuse an action-set digest",
-            Self::ActionSetDigestMismatch => "action-set digest differs from the canonical action-ID sequence",
+            Self::ActionSetDigestMismatch => {
+                "action-set digest differs from the canonical action-ID sequence"
+            }
             Self::InvalidReasonDigest => "infeasible or unresolved outcome lacks a reason digest",
             Self::ConsequenceModelMismatch => {
                 "qualified coalition uses a different consequence model"
@@ -576,8 +578,8 @@ mod tests {
         } else {
             snapshot([id + 40; 32], [id + 50; 32], post_events)
         };
-        let action_set_digest = canonical_joint_action_set_digest(&action_ids)
-            .expect("fixture action-set digest");
+        let action_set_digest =
+            canonical_joint_action_set_digest(&action_ids).expect("fixture action-set digest");
         JointActionOutcomeRecord {
             action_ids,
             action_set_digest,
@@ -1094,5 +1096,4 @@ mod tests {
         assert_eq!(report.selected_action_ids, Some(vec![]));
         assert_eq!(report.selected_robust_consequence_avoided_ticks, Some(0));
     }
-
 }
