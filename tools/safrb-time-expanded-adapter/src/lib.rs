@@ -135,6 +135,16 @@ fn u64v(value: &Value, path: &str) -> Result<u64, String> {
     value.as_u64().ok_or_else(|| err(path, "must be a non-negative integer"))
 }
 
+fn exact_keys(value: &Value, allowed: &[&str], path: &str) -> Result<(), String> {
+    let object = value.as_object().ok_or_else(|| err(path, "must be an object"))?;
+    for key in object.keys() {
+        if !allowed.contains(&key.as_str()) {
+            return Err(err(path, &format!("unknown property {key}")));
+        }
+    }
+    Ok(())
+}
+
 fn sfield(value: &Value, key: &str, path: &str) -> Result<String, String> {
     strv(get(value, key, path)?, &format!("{path}.{key}"))
 }
@@ -253,6 +263,12 @@ fn verify_physical_gate_dominance(parsed: &Parsed) -> Result<(), String> {
 }
 
 fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
+    exact_keys(value, &[
+        "schema_version", "case_id", "evidence_maturity", "claim_scope", "timebase",
+        "commodity", "source_node", "sink_node", "total_opening_stock", "nodes", "edges",
+        "resource_aliases", "capacity_evidence", "service_obligations", "route_transit",
+        "adversarial_mutations",
+    ], "$")?;
     if sfield(value, "schema_version", "$")? != SCHEMA {
         return Err(err("$.schema_version", "unsupported model/schema; multi-commodity and process-coupled graphs are not supported"));
     }
@@ -269,6 +285,7 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
     }
 
     let timebase = get(value, "timebase", "$")?;
+    exact_keys(timebase, &["kind", "interval_seconds", "interval_semantics", "origin"], "$.timebase")?;
     if sfield(timebase, "kind", "$.timebase")? != "relative_discrete_intervals"
         || sfield(timebase, "interval_semantics", "$.timebase")? != "half_open"
         || sfield(timebase, "origin", "$.timebase")? != "scenario_start"
@@ -281,6 +298,7 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
     }
 
     let commodity_obj = get(value, "commodity", "$")?;
+    exact_keys(commodity_obj, &["product_id", "quantity_unit", "unit_basis"], "$.commodity")?;
     let commodity = sfield(commodity_obj, "product_id", "$.commodity")?;
     let unit = sfield(commodity_obj, "quantity_unit", "$.commodity")?;
     let unit_basis = sfield(commodity_obj, "unit_basis", "$.commodity")?;
@@ -292,6 +310,7 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
     let mut nodes = BTreeMap::new();
     for (i, row) in array(value, "nodes", "$")?.iter().enumerate() {
         let path = format!("$.nodes[{i}]");
+        exact_keys(row, &["id", "kind", "time_index"], &path)?;
         let id = sfield(row, "id", &path)?;
         let node = Node { id: id.clone(), kind: sfield(row, "kind", &path)?, time: nfield(row, "time_index", &path)? };
         if nodes.insert(id.clone(), node).is_some() { return Err(err(&path, "duplicate node ID")); }
@@ -307,11 +326,15 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
     let mut edge_ids = BTreeSet::new();
     for (i, row) in array(value, "edges", "$")?.iter().enumerate() {
         let path = format!("$.edges[{i}]");
+        exact_keys(row, &["id", "from", "to", "capacity_lower", "capacity_upper", "unit", "resource_id", "time_index"], &path)?;
         let id = sfield(row, "id", &path)?;
         if !edge_ids.insert(id.clone()) { return Err(err(&path, "duplicate edge ID")); }
         let from = sfield(row, "from", &path)?;
         let to = sfield(row, "to", &path)?;
         if from == to { return Err(err(&path, "self-loop unsupported")); }
+        if from == sink || to == source {
+            return Err(err(&path, "source and sink must be terminal graph nodes"));
+        }
         let from_node = nodes.get(&from).ok_or_else(|| err(&path, "unknown source endpoint"))?;
         let to_node = nodes.get(&to).ok_or_else(|| err(&path, "unknown target endpoint"))?;
         let lower = nfield(row, "capacity_lower", &path)?;
@@ -331,6 +354,7 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
     if edges.is_empty() || edges.len() > 65_536 { return Err(err("$.edges", "edge count outside 1..=65536")); }
 
     let opening = get(value, "total_opening_stock", "$")?;
+    exact_keys(opening, &["quantity", "unit", "source_ids"], "$.total_opening_stock")?;
     if sfield(opening, "unit", "$.total_opening_stock")? != unit {
         return Err(err("$.total_opening_stock.unit", "unit mismatch"));
     }
@@ -359,13 +383,16 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
     let aliases = array(value, "resource_aliases", "$")?;
     if aliases.is_empty() { return Err(err("$.resource_aliases", "must not be empty")); }
     let mut logicals = BTreeSet::new();
+    let mut logical_physical = BTreeMap::<String, String>::new();
     let mut physical_gates = BTreeMap::<String, BTreeSet<String>>::new();
     let mut all_gates = BTreeSet::new();
     for (i, row) in aliases.iter().enumerate() {
         let path = format!("$.resource_aliases[{i}]");
+        exact_keys(row, &["logical_route_id", "physical_resource_id", "capacity_gate_edge_ids"], &path)?;
         let logical = sfield(row, "logical_route_id", &path)?;
         let physical = sfield(row, "physical_resource_id", &path)?;
-        if !logicals.insert(logical) { return Err(err(&path, "duplicate logical route")); }
+        if !logicals.insert(logical.clone()) { return Err(err(&path, "duplicate logical route")); }
+        logical_physical.insert(logical, physical.clone());
         let gate_ids = array(row, "capacity_gate_edge_ids", &path)?.iter()
             .map(|v| strv(v, &format!("{path}.capacity_gate_edge_ids[]"))).collect::<Result<BTreeSet<_>, _>>()?;
         if gate_ids.is_empty() { return Err(err(&path, "empty physical gate set")); }
@@ -395,16 +422,27 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
     let mut route_ids = BTreeSet::new();
     for (i, row) in array(value, "route_transit", "$")?.iter().enumerate() {
         let path = format!("$.route_transit[{i}]");
+        exact_keys(row, &["route_id", "transit_intervals", "physical_resources"], &path)?;
         let id = sfield(row, "route_id", &path)?;
-        if !route_ids.insert(id) { return Err(err(&path, "duplicate route ID")); }
+        if !route_ids.insert(id.clone()) { return Err(err(&path, "duplicate route ID")); }
+        let declared_physical = logical_physical.get(&id)
+            .ok_or_else(|| err(&path, "route has no corresponding logical-to-physical alias"))?;
         if nfield(row, "transit_intervals", &path)? != 1 {
             return Err(err(&path, "v0.1 adapter supports exactly one transit interval"));
         }
         let physical_resources = array(row, "physical_resources", &path)?;
         if physical_resources.is_empty() { return Err(err(&path, "physical_resources must not be empty")); }
-        for resource in physical_resources {
-            let resource = strv(resource, &format!("{path}.physical_resources[]"))?;
-            if !physical_gates.contains_key(&resource) { return Err(err(&path, "route references an unknown physical resource")); }
+        let route_resources = physical_resources.iter()
+            .map(|resource| strv(resource, &format!("{path}.physical_resources[]")))
+            .collect::<Result<BTreeSet<_>, _>>()?;
+        if route_resources.len() != physical_resources.len() {
+            return Err(err(&path, "physical_resources contains duplicates"));
+        }
+        if route_resources != BTreeSet::from([declared_physical.clone()]) {
+            return Err(err(&path, "route physical_resources do not match the authoritative alias mapping"));
+        }
+        if route_resources.iter().any(|resource| !physical_gates.contains_key(resource)) {
+            return Err(err(&path, "route references an unknown physical resource"));
         }
     }
     if route_ids != logicals { return Err(err("$.route_transit", "route IDs do not match logical aliases")); }
@@ -414,6 +452,7 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
     let mut hypothetical = false;
     for (i, row) in array(value, "capacity_evidence", "$")?.iter().enumerate() {
         let path = format!("$.capacity_evidence[{i}]");
+        exact_keys(row, &["evidence_id", "physical_resource_id", "time_index", "lower", "upper", "unit", "status", "valid_interval"], &path)?;
         let id = sfield(row, "evidence_id", &path)?;
         if !evidence_ids.insert(id) { return Err(err(&path, "duplicate evidence ID")); }
         let physical = sfield(row, "physical_resource_id", &path)?;
@@ -444,6 +483,7 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
     let mut obligation_times = BTreeSet::new();
     for (i, row) in array(value, "service_obligations", "$")?.iter().enumerate() {
         let path = format!("$.service_obligations[{i}]");
+        exact_keys(row, &["obligation_id", "node_id", "time_index", "required_lower", "unit", "interval"], &path)?;
         let id = sfield(row, "obligation_id", &path)?;
         if !obligation_ids.insert(id.clone()) { return Err(err(&path, "duplicate obligation ID")); }
         let node_id = sfield(row, "node_id", &path)?;
@@ -766,6 +806,22 @@ mod tests {
     fn opening_stock_alias_duplication_is_rejected() {
         let mut input = scenario();
         input["total_opening_stock"]["source_ids"][1] = Value::String("terminal-a-stock".into());
+        assert!(evaluate_scenario(&input).is_err());
+    }
+
+    #[test]
+    fn unknown_schema_properties_and_route_alias_mismatches_are_rejected() {
+        let mut input = scenario();
+        input["edges"][0]["unrecognized_capacity_hint"] = Value::from(999);
+        assert!(evaluate_scenario(&input).is_err());
+
+        let mut input = scenario();
+        input["route_transit"][1]["physical_resources"][0] =
+            Value::String("physical:pump-02".into());
+        assert!(evaluate_scenario(&input).is_err());
+
+        let mut input = scenario();
+        input["unrecognized_top_level_semantics"] = Value::Bool(true);
         assert!(evaluate_scenario(&input).is_err());
     }
 
