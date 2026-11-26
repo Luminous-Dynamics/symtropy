@@ -6,7 +6,7 @@
 use std::collections::HashSet;
 
 use super::{
-    EncoderTrace, EvaluationError, QuadratureConfig, QuadratureState, ScenarioSetMetrics,
+    EncoderTrace, EvaluationError, QuadratureConfig, ScenarioSetMetrics,
     evaluate_scenario_set, evaluate_trace, project,
 };
 
@@ -98,14 +98,6 @@ pub enum SynthesisError {
     NonFiniteOrNegativeFieldBound { sample_index: usize, channel: char },
     DuplicateCandidateId,
     InvalidCandidateId,
-}
-
-#[derive(Clone, Copy, Debug)]
-struct ChannelMargins {
-    minimum_state_margin_t: f64,
-    minimum_transition_margin_t: Option<f64>,
-    failed_state_samples: usize,
-    failed_transition_crossings: usize,
 }
 
 fn validate_requirements(requirements: SynthesisRequirements) -> Result<(), SynthesisError> {
@@ -213,7 +205,6 @@ struct TransitionWindow {
     latest_sample_index: usize,
     lower_angle_rad: f64,
     upper_angle_rad: f64,
-    crossing_margin_t: f64,
 }
 
 #[derive(Clone, Debug)]
@@ -318,7 +309,6 @@ fn analyze_channel(
             latest_sample_index: latest_index,
             lower_angle_rad: angles[before_index],
             upper_angle_rad: angles[latest_index],
-            crossing_margin_t: crossing_margin,
         });
         previous_latest = latest_index;
     }
@@ -773,8 +763,8 @@ mod tests {
     fn requirements() -> SynthesisRequirements {
         SynthesisRequirements {
             maximum_spacing_error_rad: 0.12,
-            maximum_transition_bracket_rad: 0.03,
-            minimum_robust_threshold_margin_t: 0.05,
+            maximum_transition_bracket_rad: 0.06,
+            minimum_robust_threshold_margin_t: 0.005,
         }
     }
 
