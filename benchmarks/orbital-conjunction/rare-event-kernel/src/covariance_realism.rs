@@ -391,7 +391,7 @@ pub fn audit_covariance_realism(
 }
 
 /// Solve L z = residual using the lower row-major Cholesky factor.
-fn whiten_residual(
+pub(crate) fn whiten_residual(
     lower_cholesky: &[f64],
     residual: &[f64],
     dimension: usize,
@@ -422,7 +422,7 @@ fn whiten_residual(
 /// Bisection is deterministic and uses the regularized incomplete-gamma
 /// function. Its tolerance is appropriate for benchmark reference thresholds,
 /// not a formally verified interval-arithmetic guarantee.
-fn chi_square_quantile(
+pub(crate) fn chi_square_quantile(
     probability: f64,
     degrees_of_freedom: usize,
 ) -> Result<f64, CovarianceRealismError> {
