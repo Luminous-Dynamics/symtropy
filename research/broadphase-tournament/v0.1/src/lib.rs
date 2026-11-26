@@ -72,6 +72,7 @@ pub enum BackendKind {
     TreePerLeafBalanced,
     TreeSelfPairBalanced,
     PairDeltaCache,
+    MortonLbvhAabbAdapter,
 }
 
 impl BackendKind {
@@ -83,6 +84,7 @@ impl BackendKind {
         Self::TreePerLeafBalanced,
         Self::TreeSelfPairBalanced,
         Self::PairDeltaCache,
+        Self::MortonLbvhAabbAdapter,
     ];
 
     #[must_use]
@@ -95,6 +97,7 @@ impl BackendKind {
             Self::TreePerLeafBalanced => "tree_per_leaf_balanced",
             Self::TreeSelfPairBalanced => "tree_self_pair_balanced",
             Self::PairDeltaCache => "pair_delta_cache",
+            Self::MortonLbvhAabbAdapter => "symtropy_morton_lbvh_aabb_adapter",
         }
     }
 }
@@ -131,6 +134,9 @@ pub struct WorkCounters {
     pub pair_events_added: u64,
     pub pair_events_removed: u64,
     pub pair_cache_peak_pairs: usize,
+    pub lbvh_builds: u64,
+    pub lbvh_internal_nodes: u64,
+    pub lbvh_bruteforce_fallback_frames: u64,
     pub max_tree_height: usize,
     pub max_tree_nodes: usize,
     pub max_active_proxies: usize,
@@ -757,6 +763,240 @@ fn sweep_and_prune<const D: usize>(frame: &[ProxyFrame<D>]) -> (Vec<ProxyPair>, 
     }
     pairs.sort_unstable();
     (pairs, axis, pair_tests)
+}
+
+const MORTON_LBVH_BRUTE_FORCE_THRESHOLD: usize = 50;
+const MORTON_LBVH_LEAF_BIT: u32 = 0x8000_0000;
+
+#[derive(Clone, Copy, Debug)]
+struct MortonLbvhNode<const D: usize> {
+    bounds: Aabb<D>,
+    left: u32,
+    right: u32,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct MortonLbvhWork {
+    pair_tests: u64,
+    internal_nodes: usize,
+    node_visits: u64,
+    leaf_tests: u64,
+    aabb_tests: u64,
+    brute_force_fallback: bool,
+}
+
+fn morton_quantize(value: f64, world_min: f64, world_max: f64, bits: usize) -> u32 {
+    let range = world_max - world_min;
+    if range <= 0.0 {
+        return 0;
+    }
+    let max_value = if bits >= 64 {
+        u64::MAX as f64
+    } else {
+        ((1_u64 << bits) - 1) as f64
+    };
+    let normalized = ((value - world_min) / range).clamp(0.0, 1.0);
+    (normalized * max_value) as u32
+}
+
+fn morton_encode<const D: usize>(
+    position: &[f64; D],
+    world_min: &[f64; D],
+    world_max: &[f64; D],
+) -> u64 {
+    let bits = 64 / D;
+    let mut code = 0_u64;
+    for bit in 0..bits {
+        for axis in 0..D {
+            let quantized =
+                morton_quantize(position[axis], world_min[axis], world_max[axis], bits);
+            code |= (u64::from((quantized >> bit) & 1)) << (bit * D + axis);
+        }
+    }
+    code
+}
+
+fn morton_find_split(codes: &[u64], first: usize, last: usize) -> usize {
+    if codes[first] == codes[last] {
+        return (first + last) / 2;
+    }
+    let common_prefix = (codes[first] ^ codes[last]).leading_zeros();
+    let mut split = first;
+    let mut step = last - first;
+    loop {
+        step = step.div_ceil(2);
+        let next_split = split + step;
+        if next_split < last
+            && (codes[first] ^ codes[next_split]).leading_zeros() > common_prefix
+        {
+            split = next_split;
+        }
+        if step <= 1 {
+            break;
+        }
+    }
+    split
+}
+
+fn morton_is_leaf(index: u32) -> bool {
+    index & MORTON_LBVH_LEAF_BIT != 0
+}
+
+fn morton_leaf_index(index: u32) -> usize {
+    (index & !MORTON_LBVH_LEAF_BIT) as usize
+}
+
+fn morton_build_recursive<const D: usize>(
+    codes: &[u64],
+    sorted_bounds: &[Aabb<D>],
+    first: usize,
+    last: usize,
+    nodes: &mut Vec<MortonLbvhNode<D>>,
+) -> u32 {
+    if first == last {
+        return MORTON_LBVH_LEAF_BIT | (first as u32);
+    }
+    let split = morton_find_split(codes, first, last);
+    let left = morton_build_recursive(codes, sorted_bounds, first, split, nodes);
+    let right = morton_build_recursive(codes, sorted_bounds, split + 1, last, nodes);
+
+    let left_bounds = if morton_is_leaf(left) {
+        sorted_bounds[morton_leaf_index(left)]
+    } else {
+        nodes[left as usize].bounds
+    };
+    let right_bounds = if morton_is_leaf(right) {
+        sorted_bounds[morton_leaf_index(right)]
+    } else {
+        nodes[right as usize].bounds
+    };
+    let index = nodes.len() as u32;
+    nodes.push(MortonLbvhNode {
+        bounds: left_bounds.union(&right_bounds),
+        left,
+        right,
+    });
+    index
+}
+
+/// AABB adaptation of Symtropy's live Morton/LBVH broadphase algorithm.
+///
+/// It follows the production Morton quantization, sorted-index layout,
+/// common-prefix split construction, per-leaf traversal, final sort/dedup and
+/// the existing <50-body brute-force fallback. Body-type and collision-filter
+/// checks are omitted because the frozen tournament AABBs are already the
+/// eligible proxy population. This is therefore an algorithmic AABB adapter,
+/// not an end-to-end RigidBody/shape/static-cache integration.
+fn symtropy_morton_lbvh_aabb<const D: usize>(
+    frame: &[ProxyFrame<D>],
+) -> (Vec<ProxyPair>, MortonLbvhWork) {
+    if frame.len() < MORTON_LBVH_BRUTE_FORCE_THRESHOLD {
+        let mut pairs = Vec::new();
+        let mut work = MortonLbvhWork {
+            brute_force_fallback: true,
+            ..MortonLbvhWork::default()
+        };
+        for left_index in 0..frame.len() {
+            for right_index in (left_index + 1)..frame.len() {
+                work.pair_tests = work.pair_tests.saturating_add(1);
+                if overlaps(&frame[left_index].bounds, &frame[right_index].bounds) {
+                    pairs.push(
+                        ProxyPair::new(frame[left_index].id, frame[right_index].id)
+                            .expect("validated frame IDs are distinct"),
+                    );
+                }
+            }
+        }
+        return (pairs, work);
+    }
+
+    let mut world_min = [f64::INFINITY; D];
+    let mut world_max = [f64::NEG_INFINITY; D];
+    for proxy in frame {
+        for axis in 0..D {
+            world_min[axis] = world_min[axis].min(proxy.bounds.min()[axis]);
+            world_max[axis] = world_max[axis].max(proxy.bounds.max()[axis]);
+        }
+    }
+    for axis in 0..D {
+        if world_max[axis] - world_min[axis] < 1e-6 {
+            world_min[axis] -= 1.0;
+            world_max[axis] += 1.0;
+        }
+    }
+
+    let bits = 64 / D;
+    let morton_codes = frame
+        .iter()
+        .map(|proxy| {
+            let center = std::array::from_fn(|axis| {
+                (proxy.bounds.min()[axis] + proxy.bounds.max()[axis]) * 0.5
+            });
+            morton_encode(&center, &world_min, &world_max)
+        })
+        .collect::<Vec<_>>();
+
+    // Stable index sort mirrors the production LBVH layout, including equal
+    // Morton-code degeneracies.
+    let mut sorted_indices = (0..frame.len()).collect::<Vec<_>>();
+    sorted_indices.sort_by_key(|index| morton_codes[*index]);
+    let sorted_codes = sorted_indices
+        .iter()
+        .map(|index| morton_codes[*index])
+        .collect::<Vec<_>>();
+    let sorted_bounds = sorted_indices
+        .iter()
+        .map(|index| frame[*index].bounds)
+        .collect::<Vec<_>>();
+    let mut nodes = Vec::<MortonLbvhNode<D>>::with_capacity(frame.len() - 1);
+    let root = morton_build_recursive(
+        &sorted_codes,
+        &sorted_bounds,
+        0,
+        sorted_codes.len() - 1,
+        &mut nodes,
+    );
+
+    let mut pairs = Vec::new();
+    let mut work = MortonLbvhWork {
+        internal_nodes: nodes.len(),
+        ..MortonLbvhWork::default()
+    };
+    for leaf_index in 0..sorted_bounds.len() {
+        let leaf_bounds = &sorted_bounds[leaf_index];
+        let mut stack = vec![root];
+        while let Some(node_index) = stack.pop() {
+            work.node_visits = work.node_visits.saturating_add(1);
+            if morton_is_leaf(node_index) {
+                let other_index = morton_leaf_index(node_index);
+                if other_index > leaf_index {
+                    work.leaf_tests = work.leaf_tests.saturating_add(1);
+                    work.aabb_tests = work.aabb_tests.saturating_add(1);
+                    if leaf_bounds.overlaps(&sorted_bounds[other_index]) {
+                        work.pair_tests = work.pair_tests.saturating_add(1);
+                        let left = frame[sorted_indices[leaf_index]].id;
+                        let right = frame[sorted_indices[other_index]].id;
+                        pairs.push(
+                            ProxyPair::new(left, right)
+                                .expect("validated frame IDs are distinct"),
+                        );
+                    }
+                }
+                continue;
+            }
+
+            let node = &nodes[node_index as usize];
+            work.aabb_tests = work.aabb_tests.saturating_add(1);
+            if leaf_bounds.overlaps(&node.bounds) {
+                stack.push(node.left);
+                stack.push(node.right);
+            }
+        }
+    }
+    pairs.sort_unstable();
+    pairs.dedup();
+    let _bits_per_axis = bits;
+    (pairs, work)
 }
 
 fn compare_candidates(actual: &[ProxyPair], expected: &BTreeSet<ProxyPair>) -> (u64, u64) {
