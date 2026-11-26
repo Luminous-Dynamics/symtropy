@@ -94,3 +94,16 @@ The evaluator uses #7577 to score false exclusion/inclusion, false decision merg
 - Passing synthetic fixtures does not establish sensor calibration, physical localization, causal discovery or SOTA.
 
 The first implementation should remain a pure adapter over existing types and owner contracts. Do not add a new service until a concrete missing capability is demonstrated by a failing test.
+
+
+## Candidate-visible receipt schema
+
+The candidate claim envelope now has a machine-readable draft:
+- `decision-sufficiency-receipt-v0.schema.json`
+- `decision-sufficiency-receipt-v0.example.json`
+
+It binds the candidate disposition to the exact DecisionNeed digest, utility/action contract digest, evidence-prefix digest, candidate-policy digest, probe-catalogue digest, resource/deadline context and residual-retention contract. When unresolved candidate hypotheses remain, it requires a residual-index digest and at least one source-evidence reference. The example deliberately retains two unresolved map hypotheses while stopping acquisition for the current safe-exit decision.
+
+This is a **candidate assertion envelope**, not an evaluator receipt. It contains no canonical evaluator witness IDs, hidden world IDs, true decision classes, evaluator outcome supports or gold labels. #7577's evaluator-owned receipt remains separate. The schema's JSON syntax and example were parsed and structurally inspected after commit; a dedicated JSON Schema validator and runtime adapter have not yet been implemented.
+
+The schema can enforce shape and basic conditional presence, but cross-field semantics remain owner-validated: the decision-sufficiency result must be recomputed; probe cost/latency must fit the frozen budget; a proposed probe must reduce worst-case disagreement under evaluator truth; and stale DecisionNeed/policy/evidence/catalogue context must invalidate the old certificate.
