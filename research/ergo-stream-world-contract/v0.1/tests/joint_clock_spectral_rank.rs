@@ -11,14 +11,18 @@ fn two_stream_problem(mask: u32) -> JointClockProblemV0 {
     let local_times = [[0_i64, 10, 30], [5_i64, 10, 20]];
     let mut observations = Vec::new();
 
-    for (stream_index, stream_id) in stream_ids.iter().copied().enumerate() {
-        for (event_index, event_id) in event_ids.iter().copied().enumerate() {
+    for (stream_index, (stream_id, times)) in
+        stream_ids.iter().copied().zip(local_times.iter()).enumerate()
+    {
+        for (event_index, (event_id, local_timestamp)) in
+            event_ids.iter().copied().zip(times.iter()).enumerate()
+        {
             let bit = 1_u32 << (stream_index * event_ids.len() + event_index);
             if mask & bit != 0 {
                 observations.push(SensorEventObservationV0 {
                     stream_id,
                     event_id,
-                    local_timestamp: local_times[stream_index][event_index],
+                    local_timestamp: *local_timestamp,
                 });
             }
         }
@@ -42,12 +46,12 @@ fn multistream_problem() -> JointClockProblemV0 {
     ];
     let mut observations = Vec::new();
 
-    for (stream_index, stream_id) in stream_ids.iter().copied().enumerate() {
-        for (event_index, event_id) in event_ids.iter().copied().enumerate() {
+    for (stream_id, times) in stream_ids.iter().copied().zip(local_times.iter()) {
+        for (event_id, local_timestamp) in event_ids.iter().copied().zip(times.iter()) {
             observations.push(SensorEventObservationV0 {
                 stream_id,
                 event_id,
-                local_timestamp: local_times[stream_index][event_index],
+                local_timestamp: *local_timestamp,
             });
         }
     }
@@ -113,15 +117,16 @@ fn independently_build_column_scaled_design(
 
     // Match the production rank audit's column scaling, but not its QR
     // factorization or pivot/rank calculation.
-    for column in 0..parameter_count {
-        let squared_norm = matrix
-            .iter()
-            .map(|row| row[column] * row[column])
-            .sum::<f64>();
-        if squared_norm > 0.0 {
-            let norm = squared_norm.sqrt();
-            for row in &mut matrix {
-                row[column] /= norm;
+    let mut squared_norms = vec![0.0_f64; parameter_count];
+    for row in &matrix {
+        for (squared_norm, value) in squared_norms.iter_mut().zip(row) {
+            *squared_norm += value * value;
+        }
+    }
+    for row in &mut matrix {
+        for (value, squared_norm) in row.iter_mut().zip(&squared_norms) {
+            if *squared_norm > 0.0 {
+                *value /= squared_norm.sqrt();
             }
         }
     }
@@ -141,12 +146,14 @@ fn singular_values_one_sided_jacobi(matrix: &[Vec<f64>]) -> Vec<f64> {
         "the design must be rectangular"
     );
 
-    let mut columns = vec![vec![0.0_f64; row_count]; column_count];
-    for row_index in 0..row_count {
-        for column_index in 0..column_count {
-            columns[column_index][row_index] = matrix[row_index][column_index];
-        }
-    }
+    let mut columns = (0..column_count)
+        .map(|column_index| {
+            matrix
+                .iter()
+                .map(|row| row[column_index])
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
 
     let rotation_tolerance = 1.0e-14_f64;
     let maximum_sweeps = 128 * column_count.max(1);
@@ -161,9 +168,7 @@ fn singular_values_one_sided_jacobi(matrix: &[Vec<f64>]) -> Vec<f64> {
                 let mut beta = 0.0_f64;
                 let mut gamma = 0.0_f64;
 
-                for row in 0..row_count {
-                    let x = columns[left][row];
-                    let y = columns[right][row];
+                for (&x, &y) in columns[left].iter().zip(&columns[right]) {
                     alpha += x * x;
                     beta += y * y;
                     gamma += x * y;
@@ -188,11 +193,15 @@ fn singular_values_one_sided_jacobi(matrix: &[Vec<f64>]) -> Vec<f64> {
                 let cosine = 1.0 / (1.0 + tangent * tangent).sqrt();
                 let sine = cosine * tangent;
 
-                for row in 0..row_count {
-                    let x = columns[left][row];
-                    let y = columns[right][row];
-                    columns[left][row] = cosine * x - sine * y;
-                    columns[right][row] = sine * x + cosine * y;
+                let (left_columns, right_columns) = columns.split_at_mut(right);
+                for (x, y) in left_columns[left]
+                    .iter_mut()
+                    .zip(right_columns[0].iter_mut())
+                {
+                    let old_x = *x;
+                    let old_y = *y;
+                    *x = cosine * old_x - sine * old_y;
+                    *y = sine * old_x + cosine * old_y;
                 }
 
                 rotated_in_sweep = true;
@@ -221,8 +230,7 @@ fn singular_values_one_sided_jacobi(matrix: &[Vec<f64>]) -> Vec<f64> {
 fn independent_svd_rank(matrix: &[Vec<f64>]) -> usize {
     let row_count = matrix.len();
     let column_count = matrix[0].len();
-    let threshold =
-        JOINT_CLOCK_RANK_TOLERANCE_V0 * row_count.max(column_count) as f64;
+    let threshold = JOINT_CLOCK_RANK_TOLERANCE_V0 * row_count.max(column_count) as f64;
 
     singular_values_one_sided_jacobi(matrix)
         .into_iter()
@@ -234,11 +242,9 @@ fn independent_svd_rank(matrix: &[Vec<f64>]) -> usize {
 fn qr_rank_matches_independent_svd_for_every_two_stream_anchor_subset() {
     for mask in 1_u32..(1_u32 << 6) {
         let problem = two_stream_problem(mask);
-        let report = analyze_joint_clock_design_v0(
-            &problem,
-            JOINT_CLOCK_RANK_TOLERANCE_V0,
-        )
-        .expect("non-empty anchor subset should produce a design report");
+        let report =
+            analyze_joint_clock_design_v0(&problem, JOINT_CLOCK_RANK_TOLERANCE_V0)
+                .expect("non-empty anchor subset should produce a design report");
         let independent_design = independently_build_column_scaled_design(&problem);
         let svd_rank = independent_svd_rank(&independent_design);
 
@@ -257,11 +263,9 @@ fn qr_rank_matches_independent_svd_for_every_two_stream_anchor_subset() {
 #[test]
 fn full_multistream_design_matches_independent_svd() {
     let problem = multistream_problem();
-    let report = analyze_joint_clock_design_v0(
-        &problem,
-        JOINT_CLOCK_RANK_TOLERANCE_V0,
-    )
-    .expect("complete multi-stream design should be analyzable");
+    let report =
+        analyze_joint_clock_design_v0(&problem, JOINT_CLOCK_RANK_TOLERANCE_V0)
+            .expect("complete multi-stream design should be analyzable");
     let independent_design = independently_build_column_scaled_design(&problem);
     let singular_values = singular_values_one_sided_jacobi(&independent_design);
 
@@ -272,7 +276,8 @@ fn full_multistream_design_matches_independent_svd() {
     );
     assert!(
         singular_values.last().copied().unwrap_or(0.0)
-            > JOINT_CLOCK_RANK_TOLERANCE_V0 * independent_design.len().max(report.parameter_count) as f64
+            > JOINT_CLOCK_RANK_TOLERANCE_V0
+                * independent_design.len().max(report.parameter_count) as f64
     );
 }
 
@@ -281,11 +286,9 @@ fn single_shared_event_remains_rank_deficient_in_both_auditors() {
     // One paired event supplies two observations but cannot identify the
     // event-time vector plus both inverse-clock parameters.
     let problem = two_stream_problem((1_u32 << 0) | (1_u32 << 3));
-    let report = analyze_joint_clock_design_v0(
-        &problem,
-        JOINT_CLOCK_RANK_TOLERANCE_V0,
-    )
-    .expect("the deficient design still has a report");
+    let report =
+        analyze_joint_clock_design_v0(&problem, JOINT_CLOCK_RANK_TOLERANCE_V0)
+            .expect("the deficient design still has a report");
     let independent_design = independently_build_column_scaled_design(&problem);
 
     assert!(report.rank < report.parameter_count);
