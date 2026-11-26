@@ -761,6 +761,7 @@ mod tests {
         SearchPolicy {
             maximum_nodes: 256,
             maximum_depth: 20,
+            minimum_design_widths: vec![1.0e-3],
             absolute_optimality_gap: gap,
             relative_optimality_gap: 0.0,
             objective_sensitivity_scale: 1.0,
@@ -768,16 +769,16 @@ mod tests {
         }
     }
 
-    fn objective<const N: usize>(
-        [x, u]: [IntervalDual<N>; N],
-    ) -> Result<IntervalDual<N>, IntervalAdError> {
+    fn objective(
+        [x, u]: [IntervalDual<2>; 2],
+    ) -> Result<IntervalDual<2>, IntervalAdError> {
         let tenth = IntervalDual::constant(interval(0.1, 0.1));
         Ok(x.square() + tenth * u.square())
     }
 
-    fn margin<const N: usize>(
-        [x, u]: [IntervalDual<N>; N],
-    ) -> Result<IntervalDual<N>, IntervalAdError> {
+    fn margin(
+        [x, u]: [IntervalDual<2>; 2],
+    ) -> Result<IntervalDual<2>, IntervalAdError> {
         let threshold = IntervalDual::constant(interval(0.51, 0.51));
         Ok(x - threshold - u.square())
     }
@@ -786,7 +787,7 @@ mod tests {
     fn root_candidate_gets_a_valid_robust_gap_when_already_feasible() {
         let mut domain = root_domain();
         domain.parameter_bounds[0] = interval(-0.1, 0.1);
-        let result = branch_and_bound(&domain, 1, policy(0.002), objective::<2>, |[x, u]| {
+        let result = branch_and_bound(&domain, 1, policy(0.002), objective, |[x, u]| {
             let one = IntervalDual::constant(Interval::ONE);
             Ok(one - x.square() - u.square())
         })
@@ -801,7 +802,7 @@ mod tests {
     #[test]
     fn search_discovers_a_robust_feasible_candidate_after_subdivision() {
         let result =
-            branch_and_bound(&root_domain(), 1, policy(0.02), objective::<2>, margin::<2>)
+            branch_and_bound(&root_domain(), 1, policy(0.02), objective::<2>, margin)
                 .expect("valid search");
         let incumbent = result.incumbent.expect("feasible candidate discovered");
         assert!(incumbent.design_point[0] >= 0.52);
@@ -837,7 +838,7 @@ mod tests {
     }
 
     #[test]
-    fn no_sensitivity_or_budget_is_not_mislabeled_optimal() {
+    fn depth_exhaustion_is_not_mislabeled_optimal() {
         let mut bounded_policy = policy(1.0e-12);
         bounded_policy.maximum_depth = 0;
         let result =
