@@ -74,7 +74,7 @@ F_net = T - D_h * (1 + parasitic_drag_ratio)
 a_net = F_net / vehicle_mass
 \`\`\`
 
-The model rejects beta > 0.05. This does **not** cover the 0.05c–0.2c relativistic regime discussed in interstellar q-drive literature. Effective area and drag coefficient are abstract fit parameters; they do not derive from a coil geometry or solve collisionless plasma / electromagnetic coupling. The model also omits field-generation and superconducting mass, thermal rejection, power conditioning, thrust-vector misalignment, relativistic transformations, variable medium profiles, orbital dynamics, trajectory optimisation and braking.
+The model rejects beta > 0.05 for both vehicle/medium relative speed and exhaust speed. This does **not** cover the 0.05c–0.2c relativistic regime discussed in interstellar q-drive literature. Effective area and drag coefficient are abstract fit parameters; they do not derive from a coil geometry or solve collisionless plasma / electromagnetic coupling. The model also omits field-generation and superconducting mass, thermal rejection, power conditioning, thrust-vector misalignment, relativistic transformations, variable medium profiles, orbital dynamics, trajectory optimisation and braking.
 
 ## Frozen illustrative q-drive case
 
@@ -85,8 +85,8 @@ The model rejects beta > 0.05. This does **not** cover the 0.05c–0.2c relativi
 | Effective interaction area | 1.0 × 10⁸ m² |
 | Effective drag coefficient | 1.0 |
 | Power conversion efficiency | 80% |
-| Thruster efficiency | 70% |
-| Exhaust speed | 0.05c |
+| Thruster efficiency | 60% |
+| Exhaust speed | 0.043c |
 | Vehicle mass | 1.0 × 10⁶ kg |
 | Parasitic drag / harvesting drag | 10% |
 
