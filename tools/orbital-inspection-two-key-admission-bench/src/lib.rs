@@ -646,8 +646,8 @@ mod tests {
     fn frozen_corpus_matches_every_expected_disposition() {
         let receipt = audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567")
             .expect("corpus audits");
-        assert_eq!(receipt.case_count, 24);
-        assert_eq!(receipt.expected_disposition_matches, 24);
+        assert_eq!(receipt.case_count, 30);
+        assert_eq!(receipt.expected_disposition_matches, 30);
         assert_eq!(receipt.expected_disposition_mismatches, 0);
         assert!(!receipt.authority_granted);
         assert!(!receipt.source_bytes_authenticated);
@@ -842,6 +842,73 @@ mod tests {
         let result = evaluate_case(&case);
         assert_eq!(result.disposition, Disposition::EligibleInspection);
         assert_eq!(result.decision_value_basis, DecisionValueBasis::Observed);
+    }
+
+    #[test]
+    fn structural_safety_claims_require_external_proof_verification() {
+        let input = corpus();
+        let unknown = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "TK-025-COMPLETE-STRUCTURE-VERIFIER-UNKNOWN")
+            .unwrap();
+        let stale = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "TK-030-COMPLETE-VERIFIER-STALE")
+            .unwrap();
+
+        let unknown_result = evaluate_case(unknown);
+        assert_eq!(unknown_result.disposition, Disposition::Indeterminate);
+        assert_eq!(
+            unknown_result.reason_codes,
+            vec!["PHYSICAL_SAFETY_PROOF_VERIFICATION_UNKNOWN".to_owned()]
+        );
+        assert_eq!(
+            unknown_result.physical_safety_claim_disposition,
+            Some(SafetyClaimDisposition::SafetyClaimsComplete)
+        );
+        assert_eq!(
+            unknown_result.finite_horizon_claim_sha256,
+            unknown.candidate.physical_safety.as_ref().unwrap().finite_horizon_claim_sha256
+        );
+        assert_eq!(
+            unknown_result.safe_continuation_claim_sha256,
+            unknown.candidate.physical_safety.as_ref().unwrap().safe_continuation_claim_sha256
+        );
+        assert_eq!(evaluate_case(stale).disposition, Disposition::Indeterminate);
+    }
+
+    #[test]
+    fn risk_only_and_single_component_claims_never_admit() {
+        let input = corpus();
+        for (id, expected_reason) in [
+            (
+                "TK-026-RISK-ONLY-NEVER-SHIELD",
+                "PHYSICAL_SAFETY_CLAIM_NOT_COMPOSITE",
+            ),
+            (
+                "TK-027-FINITE-ONLY-NEVER-SHIELD",
+                "PHYSICAL_SAFETY_CLAIM_NOT_COMPOSITE",
+            ),
+        ] {
+            let case = input.cases.iter().find(|case| case.case_id == id).unwrap();
+            let result = evaluate_case(case);
+            assert_eq!(result.disposition, Disposition::Indeterminate);
+            assert_eq!(result.reason_codes, vec![expected_reason.to_owned()]);
+        }
+    }
+
+    #[test]
+    fn composite_claim_missing_or_malformed_component_reference_is_invalid() {
+        let input = corpus();
+        for id in [
+            "TK-028-COMPLETE-MISSING-TERMINAL-REF",
+            "TK-029-COMPLETE-MALFORMED-FINITE-REF",
+        ] {
+            let case = input.cases.iter().find(|case| case.case_id == id).unwrap();
+            assert_eq!(evaluate_case(case).disposition, Disposition::InvalidInput);
+        }
     }
 
     #[test]
