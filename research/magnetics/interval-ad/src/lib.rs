@@ -76,12 +76,7 @@ impl Interval {
         if !self.is_finite() {
             return None;
         }
-        let maximum = self.lower.abs().max(self.upper.abs());
-        if maximum == 0.0 {
-            Some(0.0)
-        } else {
-            Some(next_up(maximum))
-        }
+        Some(self.lower.abs().max(self.upper.abs()))
     }
 
     pub fn sqrt(self) -> Result<Self, IntervalError> {
@@ -237,7 +232,15 @@ impl Div for Interval {
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self::Output {
-        self * rhs.reciprocal()
+        divide_intervals(self, rhs)
+    }
+}
+
+fn divide_intervals(numerator: Interval, denominator: Interval) -> Interval {
+    let reciprocal = denominator.reciprocal();
+    Interval {
+        lower: (numerator * reciprocal).lower,
+        upper: (numerator * reciprocal).upper,
     }
 }
 
@@ -293,9 +296,17 @@ impl<const N: usize> IntervalDual<N> {
         if exponent == 0 {
             return Self::constant(Interval::ONE);
         }
+        let mut power = self;
+        let mut remaining = exponent.unsigned_abs();
         let mut result = Self::constant(Interval::ONE);
-        for _ in 0..exponent.unsigned_abs() {
-            result = result * self;
+        while remaining > 0 {
+            if remaining & 1 == 1 {
+                result = result * power;
+            }
+            remaining >>= 1;
+            if remaining > 0 {
+                power = power * power;
+            }
         }
         if exponent < 0 {
             Self::constant(Interval::ONE) / result
@@ -354,14 +365,22 @@ impl<const N: usize> Div for IntervalDual<N> {
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self::Output {
-        let denominator = rhs.value * rhs.value;
-        Self {
-            value: self.value / rhs.value,
-            gradient: std::array::from_fn(|index| {
-                (self.gradient[index] * rhs.value - self.value * rhs.gradient[index])
-                    / denominator
-            }),
-        }
+        divide_duals(self, rhs)
+    }
+}
+
+fn divide_duals<const N: usize>(
+    numerator: IntervalDual<N>,
+    denominator: IntervalDual<N>,
+) -> IntervalDual<N> {
+    let denominator_squared = denominator.value * denominator.value;
+    IntervalDual {
+        value: divide_intervals(numerator.value, denominator.value),
+        gradient: std::array::from_fn(|index| {
+            let top_left = numerator.gradient[index] * denominator.value;
+            let top_right = numerator.value * denominator.gradient[index];
+            divide_intervals(top_left - top_right, denominator_squared)
+        }),
     }
 }
 
@@ -532,15 +551,19 @@ where
     }
 
     let derivative_intervals = output.gradient;
-    let derivative_abs_supremum = std::array::from_fn(|index| {
+    let derivative_abs_supremum: [Option<f64>; N] = std::array::from_fn(|index| {
         derivative_intervals[index].abs_upper_bound()
     });
     let mut finite_suprema = [0.0; N];
-    for index in 0..N {
-        let Some(supremum) = derivative_abs_supremum[index] else {
+    for (index, (supremum, output)) in derivative_abs_supremum
+        .iter()
+        .zip(finite_suprema.iter_mut())
+        .enumerate()
+    {
+        let Some(supremum) = supremum else {
             return Err(IntervalAdError::UnboundedDerivativeEnclosure { index });
         };
-        finite_suprema[index] = supremum;
+        *output = *supremum;
     }
 
     Ok(ValidatedDerivativeEnclosure {
