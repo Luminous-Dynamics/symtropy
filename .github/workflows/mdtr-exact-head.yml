@@ -32,12 +32,16 @@ jobs:
         run: cargo clippy --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml --all-targets -- -D warnings
       - name: Emit deterministic replay receipt
         run: cargo run --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml --bin mdtr-audit > mdtr-receipt.tsv
+      - name: Emit deterministic tri-temporal receipt
+        run: cargo run --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml --bin temporal-audit > mdtr-temporal-receipt.tsv
       - name: Independent reference and frozen fixture parity
-        run: python3 research/maritime-decision-time-replay/scripts/independent_reference.py --receipt mdtr-receipt.tsv
-      - name: Upload deterministic replay receipt
+        run: python3 research/maritime-decision-time-replay/scripts/independent_reference.py --receipt mdtr-receipt.tsv --temporal-receipt mdtr-temporal-receipt.tsv
+      - name: Upload deterministic replay receipts
         uses: actions/upload-artifact@v4
         with:
-          name: mdtr-replay-receipt
-          path: mdtr-receipt.tsv
+          name: mdtr-replay-receipts
+          path: |
+            mdtr-receipt.tsv
+            mdtr-temporal-receipt.tsv
           if-no-files-found: error
           retention-days: 30
