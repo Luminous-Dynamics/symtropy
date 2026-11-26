@@ -113,3 +113,8 @@ At source review, the TSV contains 22 unique case IDs, 11 pair IDs with exactly 
 ## Decision-sufficiency adapter bridge
 
 See [decision-sufficiency-bridge-v0.md](./decision-sufficiency-bridge-v0.md) for the candidate/evaluator handoff from spatial map hypotheses into existing Symtropy #7558/#7577 types. It explicitly keeps #6675 as the sequential action/deadline owner and MACE #13284 as the memory cost–decision-regret evaluator. No new scheduler, map service, truth store or memory engine is introduced.
+
+
+## Candidate sufficiency receipt schema
+
+The candidate-visible, DecisionNeed-scoped claim format is specified in [decision-sufficiency-receipt-v0.schema.json](./decision-sufficiency-receipt-v0.schema.json), with [a safe-decision example](./decision-sufficiency-receipt-v0.example.json). It binds query/utility/evidence/policy/catalogue/budget digests and source-linked residual retention. It is not evaluator truth or an independent qualification receipt; hidden witness identities and true outcome supports stay with #7577.
