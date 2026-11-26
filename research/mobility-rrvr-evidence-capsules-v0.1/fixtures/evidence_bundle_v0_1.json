@@ -51,6 +51,7 @@
       "state": "asserted",
       "subject_id": "effect-1",
       "required_epoch": null,
+      "required_queue_generation": null,
       "observation_window": null,
       "expected_holder_ids": [],
       "expected_edge_ids": [],
