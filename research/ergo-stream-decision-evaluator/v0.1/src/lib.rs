@@ -66,6 +66,7 @@ pub enum DecisionEvaluatorErrorV0 {
     BindingForUnknownCandidateHypothesis,
     BindingToUnknownWitness,
     DuplicateTruthProbeOutcome,
+    TruthOutcomeForUnknownProbe,
     MissingTruthProbeOutcomeSupport,
     ArithmeticOverflow,
 }
@@ -83,6 +84,9 @@ impl fmt::Display for DecisionEvaluatorErrorV0 {
             }
             Self::BindingToUnknownWitness => "binding references a witness outside ground truth",
             Self::DuplicateTruthProbeOutcome => "ground-truth probe outcome row is duplicated",
+            Self::TruthOutcomeForUnknownProbe => {
+                "ground-truth outcome references an undeclared probe"
+            }
             Self::MissingTruthProbeOutcomeSupport => {
                 "ground truth lacks support for a declared probe/witness pair"
             }
@@ -149,9 +153,17 @@ fn validate_truth(
         }
     }
 
+    let declared_probe_ids = problem
+        .probes
+        .iter()
+        .map(|option| option.probe_id)
+        .collect::<BTreeSet<_>>();
     let mut outcomes_by_probe_witness = BTreeMap::<(u32, u64), BTreeSet<u32>>::new();
     let mut seen_rows = BTreeSet::new();
     for row in &truth.probe_outcome_supports {
+        if !declared_probe_ids.contains(&row.probe_id) {
+            return Err(DecisionEvaluatorErrorV0::TruthOutcomeForUnknownProbe);
+        }
         if !decision_by_witness.contains_key(&row.witness_key) {
             return Err(DecisionEvaluatorErrorV0::BindingToUnknownWitness);
         }
@@ -932,6 +944,30 @@ mod tests {
         assert!(report.spurious_probe_outcome_supports > 0);
         assert_eq!(report.missed_probe_outcome_supports, 0);
     }
+    #[test]
+    fn rejects_truth_outcomes_for_undeclared_probes() {
+        let candidate_problem = problem();
+        let selected = select_decision_sufficient_probe_v0(&candidate_problem).unwrap();
+        let bindings = bindings();
+        let mut ground_truth = truth();
+        ground_truth
+            .probe_outcome_supports
+            .push(GroundTruthProbeOutcomeSupportV0 {
+                probe_id: 999,
+                witness_key: 101,
+                possible_outcome_id: 999,
+            });
+
+        let error = evaluate_decision_disambiguation_claim_v0(
+            &candidate_problem,
+            &selected,
+            &bindings,
+            &ground_truth,
+        )
+        .unwrap_err();
+        assert_eq!(error, DecisionEvaluatorErrorV0::TruthOutcomeForUnknownProbe);
+    }
+
     /// Exhaustively cross-check the evaluator's decision/probe scoring against
     /// a deliberately simple pair-enumeration oracle. This covers all 3-way
     /// decision-label assignments (3^3) and all non-empty two-outcome support
