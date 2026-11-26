@@ -100,10 +100,13 @@ impl Interval {
     }
 
     pub fn sqrt(self) -> Result<Self, IntervalError> {
-        if self.upper < 0.0 {
+        // The complete interval must lie in the real domain. Clipping a
+        // negative lower endpoint to zero would silently discard part of the
+        // declared parameter box and produce an invalid certificate.
+        if self.lower < 0.0 {
             return Err(IntervalError::SquareRootOutsideRealDomain);
         }
-        let lower = if self.lower <= 0.0 {
+        let lower = if self.lower == 0.0 {
             0.0
         } else {
             next_down(self.lower.sqrt()).max(0.0)
@@ -745,6 +748,16 @@ mod tests {
     fn square_root_rejects_a_wholly_negative_interval() {
         assert_eq!(
             interval(-4.0, -1.0).sqrt().expect_err("outside real domain"),
+            IntervalError::SquareRootOutsideRealDomain
+        );
+    }
+
+    #[test]
+    fn square_root_rejects_a_box_that_straddles_the_negative_domain() {
+        assert_eq!(
+            interval(-0.1, 4.0)
+                .sqrt()
+                .expect_err("complete box is not in the square-root domain"),
             IntervalError::SquareRootOutsideRealDomain
         );
     }
