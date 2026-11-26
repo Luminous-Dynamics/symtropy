@@ -289,9 +289,26 @@ impl PortfolioDefensiveGaussianMixture {
             flattened.push(GaussianComponent::new(weight, component.distribution.clone())?);
         }
         let full_proposal = GaussianMixture::new(flattened)?;
+        // GaussianMixture normalizes the flattened weights to remove residual
+        // floating-point summation error. Use the actual defensive mass after
+        // that normalization in both the likelihood bound and the bounded
+        // contribution, so the algebra and represented q use the same epsilon.
+        let effective_defensive_fraction: f64 = full_proposal
+            .components()
+            .iter()
+            .take(canonical_target.component_count())
+            .map(GaussianComponent::weight)
+            .sum();
+        if !effective_defensive_fraction.is_finite()
+            || effective_defensive_fraction <= 0.0
+            || effective_defensive_fraction >= 1.0
+        {
+            return Err(PortfolioProposalError::NumericalFailure);
+        }
 
         let configuration_digest = configuration_digest(
             defensive_fraction,
+            effective_defensive_fraction,
             &canonical_target,
             &expected_modes,
             &proposal_components,
@@ -304,7 +321,7 @@ impl PortfolioDefensiveGaussianMixture {
         Ok(Self {
             target: canonical_target,
             full_proposal,
-            defensive_fraction,
+            defensive_fraction: effective_defensive_fraction,
             expected_modes,
             component_ids,
             configuration_digest,
@@ -451,14 +468,16 @@ fn gaussian_digest(gaussian: &Gaussian) -> Result<[u8; 32], PortfolioProposalErr
 }
 
 fn configuration_digest(
-    defensive_fraction: f64,
+    declared_defensive_fraction: f64,
+    effective_defensive_fraction: f64,
     target: &GaussianMixture,
     modes: &[PortfolioEventModeKey],
     proposal_components: &[DefensiveProposalComponent],
 ) -> Result<[u8; 32], PortfolioProposalError> {
     let mut hasher = Sha256::new();
     hasher.update(b"luminous.orbital-defensive-portfolio-mixture.v0.1\0");
-    hash_f64(&mut hasher, defensive_fraction);
+    hash_f64(&mut hasher, declared_defensive_fraction);
+    hash_f64(&mut hasher, effective_defensive_fraction);
     hasher.update((target.component_count() as u64).to_be_bytes());
     for component in target.components() {
         hash_f64(&mut hasher, component.weight());
@@ -555,6 +574,7 @@ mod tests {
             0.4_f64.ln() + proposal_right.log_pdf(&point).unwrap(),
         ]);
         let observed = mixture.log_full_proposal_density(&point).unwrap();
+        assert!((mixture.defensive_fraction() - 0.2).abs() < 1.0e-15);
         assert!((observed - expected).abs() < 1.0e-13);
         assert_ne!(observed, proposal_left.log_pdf(&point).unwrap());
     }
