@@ -168,11 +168,9 @@
           }
         }
       ],
-      "expected_structurally_complete": false,
+      "expected_structurally_complete": true,
       "expected_violation_codes": [],
-      "expected_blocker_codes": [
-        "CALIBRATION_REVOKED_AFTER_ACQUISITION_PENDING_DISPOSITION"
-      ]
+      "expected_blocker_codes": []
     },
     {
       "case_id": "negative-or-invalid-unix-time",
