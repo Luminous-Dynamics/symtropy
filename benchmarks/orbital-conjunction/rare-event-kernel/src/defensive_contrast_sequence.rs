@@ -226,12 +226,16 @@ impl DefensiveContrastConfidenceSequence {
             return Err(DefensiveContrastSequenceError::ConsequenceOutsideFrozenBounds);
         }
 
-        let width = self.upper_consequence_bound_ticks - self.lower_consequence_bound_ticks;
+        // The difference of two i64 bounds can exceed the i64 range.
+        // Compute both offset and width in i128 before conversion to f64.
+        let width = i128::from(self.upper_consequence_bound_ticks)
+            - i128::from(self.lower_consequence_bound_ticks);
+        let offset = i128::from(draw.consequence_difference_ticks)
+            - i128::from(self.lower_consequence_bound_ticks);
         let normalized_consequence_difference = if width == 0 {
             0.0
         } else {
-            (draw.consequence_difference_ticks - self.lower_consequence_bound_ticks) as f64
-                / width as f64
+            offset as f64 / width as f64
         };
         if !normalized_consequence_difference.is_finite()
             || !(0.0..=1.0).contains(&normalized_consequence_difference)
@@ -297,7 +301,8 @@ impl DefensiveContrastConfidenceSequence {
             (0.0, 0.0)
         };
 
-        let width = (self.upper_consequence_bound_ticks - self.lower_consequence_bound_ticks) as f64;
+        let width = (i128::from(self.upper_consequence_bound_ticks)
+            - i128::from(self.lower_consequence_bound_ticks)) as f64;
         let lower_ticks = if width == 0.0 {
             self.lower_consequence_bound_ticks as f64
         } else {
@@ -500,6 +505,25 @@ mod tests {
         assert_eq!(report.upper_expected_difference_ticks, 4.0);
         assert_eq!(report.lower_normalized_expected_difference, 0.0);
         assert_eq!(report.upper_normalized_expected_difference, 0.0);
+    }
+
+    #[test]
+    fn full_i64_consequence_range_does_not_overflow_normalization() {
+        let mut process = DefensiveContrastConfidenceSequence::new(
+            fixture(),
+            0.01,
+            i64::MIN,
+            i64::MAX,
+        )
+        .unwrap();
+        let observation = process
+            .observe(&draw(1, 1, 0, key(10, 1, 1)))
+            .unwrap();
+        assert!((observation.normalized_consequence_difference - 0.5).abs() < 1.0e-15);
+
+        let report = process.report().unwrap();
+        assert!(report.lower_expected_difference_ticks >= i64::MIN as f64);
+        assert!(report.upper_expected_difference_ticks <= i64::MAX as f64);
     }
 
     #[test]
