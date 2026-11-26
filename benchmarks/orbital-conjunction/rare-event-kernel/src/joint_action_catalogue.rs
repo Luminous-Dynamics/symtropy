@@ -43,7 +43,7 @@ pub enum JointActionOutcomeState {
     /// Independently produced, complete post-action portfolio and consequence result.
     Qualified {
         /// Complete post-action event inventory screened against the declared catalog.
-        post_action_snapshot: ConjunctionPortfolioSnapshot,
+        post_action_snapshot: Box<ConjunctionPortfolioSnapshot>,
         /// Identity of the independently qualified consequence model.
         consequence_model_digest: [u8; 32],
         /// Caller-supplied signed lower bound on consequence avoided, in fixed integer ticks.
@@ -109,6 +109,14 @@ pub enum JointActionSelectionDisposition {
 }
 
 /// Summary of exact joint-action catalogue enumeration and selection.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct RankedJointAction {
+    action_ids: Vec<[u8; 32]>,
+    action_set_digest: [u8; 32],
+    resource_cost: u64,
+    consequence_avoided_ticks: i64,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JointActionCatalogueReport {
     /// Final policy disposition.
@@ -365,7 +373,7 @@ pub fn evaluate_joint_action_catalogue(
         unresolved_count: 0,
         statically_excluded_count: subset_count - expected.len(),
     };
-    let mut best: Option<(Vec<[u8; 32]>, [u8; 32], u64, i64)> = None;
+    let mut best: Option<RankedJointAction> = None;
     let mut must_abstain = false;
 
     for (action_ids, resource_cost) in &expected {
@@ -406,7 +414,7 @@ pub fn evaluate_joint_action_catalogue(
                 }
                 coordination_required |= operators.len() > 1;
                 if action_ids.is_empty()
-                    && (post_action_snapshot != &config.baseline_snapshot
+                    && (post_action_snapshot.as_ref() != &config.baseline_snapshot
                         || *robust_consequence_avoided_ticks != 0)
                 {
                     return Err(JointActionCatalogueError::InvalidNoActionControl);
@@ -438,12 +446,12 @@ pub fn evaluate_joint_action_catalogue(
                 match reconciliation.disposition {
                     ActionPortfolioDisposition::PostActionBelowThreshold => {
                         report.qualified_safe_count += 1;
-                        let candidate = (
-                            action_ids.clone(),
-                            outcome.action_set_digest,
-                            *resource_cost,
-                            *robust_consequence_avoided_ticks,
-                        );
+                        let candidate = RankedJointAction {
+                            action_ids: action_ids.clone(),
+                            action_set_digest: outcome.action_set_digest,
+                            resource_cost: *resource_cost,
+                            consequence_avoided_ticks: *robust_consequence_avoided_ticks,
+                        };
                         if is_better(&candidate, best.as_ref()) {
                             best = Some(candidate);
                         }
@@ -468,26 +476,26 @@ pub fn evaluate_joint_action_catalogue(
         report.disposition = JointActionSelectionDisposition::AbstainIncompleteEvidence;
         return Ok(report);
     }
-    if let Some((action_ids, digest, resource_cost, avoided)) = best {
+    if let Some(best) = best {
         report.disposition = JointActionSelectionDisposition::QualifiedOptimum;
-        report.selected_action_ids = Some(action_ids);
-        report.selected_action_set_digest = Some(digest);
-        report.selected_resource_cost = Some(resource_cost);
-        report.selected_robust_consequence_avoided_ticks = Some(avoided);
+        report.selected_action_ids = Some(best.action_ids);
+        report.selected_action_set_digest = Some(best.action_set_digest);
+        report.selected_resource_cost = Some(best.resource_cost);
+        report.selected_robust_consequence_avoided_ticks =
+            Some(best.consequence_avoided_ticks);
     }
     Ok(report)
 }
 
-fn is_better(
-    candidate: &(Vec<[u8; 32]>, [u8; 32], u64, i64),
-    current: Option<&(Vec<[u8; 32]>, [u8; 32], u64, i64)>,
-) -> bool {
+fn is_better(candidate: &RankedJointAction, current: Option<&RankedJointAction>) -> bool {
     let Some(current) = current else {
         return true;
     };
-    candidate.3 > current.3
-        || (candidate.3 == current.3
-            && (candidate.2 < current.2 || (candidate.2 == current.2 && candidate.0 < current.0)))
+    candidate.consequence_avoided_ticks > current.consequence_avoided_ticks
+        || (candidate.consequence_avoided_ticks == current.consequence_avoided_ticks
+            && (candidate.resource_cost < current.resource_cost
+                || (candidate.resource_cost == current.resource_cost
+                    && candidate.action_ids < current.action_ids)))
 }
 
 fn is_zero_digest(digest: &[u8; 32]) -> bool {
@@ -584,7 +592,7 @@ mod tests {
             action_ids,
             action_set_digest,
             state: JointActionOutcomeState::Qualified {
-                post_action_snapshot: post,
+                post_action_snapshot: Box::new(post),
                 consequence_model_digest: CONSEQUENCE,
                 robust_consequence_avoided_ticks: avoided,
                 coordination_digest: None,
@@ -772,7 +780,6 @@ mod tests {
 
     #[test]
     fn missing_selectable_coalition_row_prevents_an_optimality_claim() {
-        let a = [10; 32];
         let outcomes = vec![qualified(vec![], 1, vec![], 0)];
         assert_eq!(
             evaluate_joint_action_catalogue(config(
