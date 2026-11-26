@@ -834,6 +834,24 @@ mod tests {
     }
 
     #[test]
+    fn invalid_optional_signal_is_not_silently_ignored() {
+        let mut observations = healthy_snapshot();
+        observations.push(observation(
+            "SANDBOX-INVALID",
+            WatchSignal::SandboxPolicy,
+            ObservationState::Alert,
+            1,
+        ));
+        let index = observations.len() - 1;
+        observations[index].provenance = EvidenceProvenance::Invalid;
+        let receipt = evaluate_watch("archive-A", 150, &policy(), &observations).unwrap();
+        assert_eq!(receipt.disposition, WatchDisposition::Blocked);
+        assert!(receipt.action_proposals.iter().any(
+            |proposal| proposal.action == ProposedAction::IsolateSuspectCopy
+        ));
+    }
+
+    #[test]
     fn duplicate_required_signals_are_rejected() {
         let mut duplicate_policy = policy();
         duplicate_policy.required_signals.push(WatchSignal::Fixity);
