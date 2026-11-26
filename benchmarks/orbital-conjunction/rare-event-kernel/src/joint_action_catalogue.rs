@@ -606,6 +606,55 @@ mod tests {
     }
 
     #[test]
+    fn canonical_action_set_identity_is_order_independent_and_domain_separated() {
+        let a = [10; 32];
+        let b = [11; 32];
+        let ab = canonical_joint_action_set_digest(&[a, b]).unwrap();
+        let ba = canonical_joint_action_set_digest(&[b, a]).unwrap();
+        let a_only = canonical_joint_action_set_digest(&[a]).unwrap();
+        let empty = canonical_joint_action_set_digest(&[]).unwrap();
+
+        assert_eq!(ab, ba);
+        assert_ne!(ab, a_only);
+        assert_ne!(a_only, empty);
+        assert_ne!(empty, [0; 32]);
+    }
+
+    #[test]
+    fn caller_supplied_action_set_digest_is_recomputed() {
+        let a = [10; 32];
+        let mut row = qualified(
+            vec![a],
+            2,
+            vec![event(10, (1, 2_000_000), (2, 2_000_000))],
+            5,
+        );
+        row.action_set_digest = [99; 32];
+
+        assert_eq!(
+            evaluate_joint_action_catalogue(config(
+                vec![candidate(10, 1, OPERATOR_A)],
+                vec![qualified(vec![], 1, vec![], 0), row],
+                1,
+            )),
+            Err(JointActionCatalogueError::ActionSetDigestMismatch)
+        );
+    }
+
+    #[test]
+    fn canonical_action_set_identity_rejects_zero_and_duplicate_action_ids() {
+        let a = [10; 32];
+        assert_eq!(
+            canonical_joint_action_set_digest(&[[0; 32]]),
+            Err(JointActionCatalogueError::InvalidActionIdentity)
+        );
+        assert_eq!(
+            canonical_joint_action_set_digest(&[a, a]),
+            Err(JointActionCatalogueError::InvalidActionIdentity)
+        );
+    }
+
+    #[test]
     fn exact_catalogue_selects_the_highest_robust_safe_joint_outcome() {
         let a = [10; 32];
         let b = [11; 32];
@@ -740,7 +789,7 @@ mod tests {
             qualified(vec![], 1, vec![], 0),
             JointActionOutcomeRecord {
                 action_ids: vec![a],
-                action_set_digest: [90; 32],
+                action_set_digest: canonical_joint_action_set_digest(&[a]).unwrap(),
                 state: JointActionOutcomeState::Unresolved {
                     reason_digest: [91; 32],
                 },
