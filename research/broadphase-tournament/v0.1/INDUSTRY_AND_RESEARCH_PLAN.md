@@ -8,20 +8,20 @@ This document separates documented engine capabilities, Symtropy's current exper
 
 | Engine | Documented architecture / strength | What Symtropy must compare fairly |
 |---|---|---|
-| Box2D 3.2 | Binary dynamic AABB tree; query stats expose leaf visits and node visits; public metrics include tree height, area ratio, proxy count and byte count. | Query frontier work, tree quality, bytes, node-pool effects, filters and the cost of pair/contact updates. Box2D is a 2D engine; do not compare its full simulation cost directly to a 3D engine. |
-| Jolt 5.1 | Multiple broadphase layers with separate AABB quadtrees, commonly static and dynamic. Concurrent body movement expands root-to-leaf nodes lock-free; a tighter tree is rebuilt in the background and swapped during the step. Body IDs use sequence numbers to avoid immediate stale-ID reuse. | Layered static/dynamic/sleeping partitioning, expansion debt, background rebuild overlap, synchronization, generation identity and query consistency while rebuilds are in flight. |
+| Box2D 3.x | Binary dynamic AABB tree. Query stats expose leaf visits and node visits; public metrics include tree height, area ratio, proxy count and bytes used. | Query frontier work, tree quality, bytes, node-pool effects, filters and the cost of pair/contact updates. Box2D is a 2D engine; do not compare its full simulation cost directly to a 3D engine. |
+| Jolt 5.2 | Multiple broadphase layers with separate AABB quadtrees, commonly static and dynamic. Concurrent body movement expands root-to-leaf nodes lock-free; a tighter tree is rebuilt in the background and swapped before the step ends. | Layered static/dynamic/sleeping partitioning, expansion debt, background rebuild overlap, synchronization, generation identity and query consistency while rebuilds are in flight. |
 | Bullet DBVT | Separate dynamic and fixed DBVT sets, staging/maintenance and a persistent overlapping-pair cache. Cached pairs can preserve contact data such as previous constraint forces for warmstarting. | Pair creation/deletion churn, fixed↔dynamic migration, pair-cache consistency, contact warmstart retention and incremental maintenance costs. |
-| MuJoCo Warp | NxN and SAP broadphases have an incremental sleeping pass. With the prior awake mask, only pairs involving newly awakened bodies are emitted; where graph conditionals are available the pass can be skipped entirely if no body woke. SAP has tiled and segmented GPU sorting paths. | Exact wake-frontier semantics, no-wake skip cost, wake storms, GPU sort/scan costs, pair buffer handling and downstream narrowphase refresh. This is the closest direct comparator for sleep-aware pair emission. |
-| NVIDIA PhysX | eSAP, eMBP, eABP, ePABP and eGPU. Documentation characterizes SAP as strong with sleeping populations but less suited to all-moving or high insertion/removal churn; MBP addresses moving/insertion-heavy cases but requires regions; ABP automatically manages regions; PABP parallelizes ABP; GPU broadphase has a different execution model. | Workload-stratified comparisons, region setup/occupancy, migration and insertion spikes, CPU/GPU transfer and synchronization, and identical filter semantics. |
+| MuJoCo Warp 3.17 | NxN and SAP broadphases support an incremental sleeping pass. With the prior awake mask, only pairs involving newly awakened bodies are emitted. Graph conditionals can skip the NxN pass wholesale when no body woke; SAP still runs sort/scan but filters emitted pairs. SAP has tiled and segmented GPU sorting paths. | Exact wake-frontier semantics, no-wake skip cost, wake storms, GPU sort/scan costs, pair buffer handling and downstream narrowphase refresh. This is the closest direct comparator for sleep-aware pair emission. |
+| NVIDIA PhysX 5.5 | eSAP, eMBP, eABP, ePABP and eGPU. Documentation characterizes SAP as strong with sleeping populations but less suited to all-moving or high insertion/removal churn; MBP addresses moving/insertion-heavy cases but requires regions; ABP automatically manages regions; PABP parallelizes ABP; GPU broadphase is a separate execution lane. | Workload-stratified comparisons, region setup/occupancy, migration and insertion spikes, CPU/GPU transfer and synchronization, and identical filter semantics. |
 | Newton | NxN for small worlds, SAP for coherent larger scenes, and EXPLICIT precomputed compatible pairs. Explicit topology can be efficient for fixed shape connectivity, but its storage scales with compatible pair count and must be reconsidered when topology changes. | Static-topology workloads, pair-array memory, topology mutation, SAP coherence, candidate buffer capacity and the cost of rebuilding explicit pairs. |
 
 ### Primary references
 
-- Box2D dynamic tree: https://box2d.org/documentation/group__tree.html
-- Jolt Physics 5.1 broadphase: https://jrouwe.github.io/JoltPhysicsDocs/5.1.0/
-- Bullet DBVT broadphase: https://github.com/bulletphysics/bullet3/blob/master/src/BulletCollision/BroadphaseCollision/btDbvtBroadphase.h
-- MuJoCo Warp API (collision, NxN and SAP): https://mujoco.readthedocs.io/en/latest/mjwarp/api.html
-- PhysX broadphase API: https://github.com/NVIDIA-Omniverse/PhysX/blob/main/physx/include/PxBroadPhase.h
+- Box2D dynamic tree and query statistics: https://box2d.org/documentation/group__tree.html
+- Jolt Physics 5.2 broadphase: https://jrouwe.github.io/JoltPhysicsDocs/5.2.0/
+- Bullet DBVT broadphase and its fixed/dynamic trees + pair cache: https://github.com/bulletphysics/bullet3/blob/master/src/BulletCollision/BroadphaseCollision/btDbvtBroadphase.h
+- MuJoCo Warp 3.17 API (incremental sleeping pass, NxN and SAP_TILE/SAP_SEGMENTED): https://mujoco.readthedocs.io/en/3.17.0/mjwarp/api.html
+- PhysX 5.5 broadphase choices: https://nvidia-omniverse.github.io/PhysX/physx/5.5.0/docs/RigidBodyCollision.html
 - Newton collision pipeline: https://newton-physics.github.io/newton/latest/concepts/collisions.html
 
 ## 2. What is and is not novel
