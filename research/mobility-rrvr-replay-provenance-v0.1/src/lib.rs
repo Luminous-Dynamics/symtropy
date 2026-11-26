@@ -573,6 +573,27 @@ fn validate_replay_candidate_set(candidates: &[ReplayCandidate]) -> Result<(), S
         }
     }
 
+    let mut cluster_splits: BTreeMap<(&'static str, &str), &'static str> = BTreeMap::new();
+    for candidate in candidates {
+        let platform_id = match candidate.platform {
+            Platform::RoboTwin => "robo_twin",
+            Platform::Libero => "libero",
+        };
+        let split_id = match candidate.split {
+            Split::Train => "train",
+            Split::Test => "test",
+        };
+        let key = (platform_id, candidate.trajectory_cluster_id.as_str());
+        if let Some(previous_split) = cluster_splits.insert(key, split_id) {
+            if previous_split != split_id {
+                return Err(format!(
+                    "TRAJECTORY_CLUSTER_CROSSES_SPLITS: {}",
+                    candidate.trajectory_cluster_id
+                ));
+            }
+        }
+    }
+
     for ((platform_id, split_id), keys) in &keys_by_platform_and_split {
         let opposite_id = if *split_id == "train" { "test" } else { "train" };
         if let Some(opposite) = keys_by_platform_and_split.get(&(*platform_id, opposite_id)) {
@@ -897,7 +918,7 @@ fn validate_candidate(
     if action_index.attempts.len() != 3 || action_receipt.attempts.len() != 3 {
         return Err("ACTION_PREFIX_ATTEMPT_COUNT_NOT_THREE".to_owned());
     }
-    let mut verified = 11usize; // source episode + instruction + index + four profiles + policy roster + two receipt bundles + selection record
+    let mut verified = 12usize; // source episode + instruction + index + four profiles + policy roster + two receipt bundles + selection record + split manifest
     let mut frame_asset_paths = BTreeSet::new();
     for (index, attempt_id) in selected.iter().enumerate() {
         let expected_policy = &selected_policies[index];
@@ -1234,6 +1255,11 @@ mod tests {
         let root = temp_root();
         let instruction = write_bytes(&root, "source/instruction.txt", b"Pick up the red block.");
         let action0 = write_bytes(&root, "actions/attempt-0.json", br#"[{"step":0,"joint":1}] "#);
+        let split_manifest = write_bytes(
+            &root,
+            "splits/split-manifest.json",
+            b"synthetic-split-manifest-v0.1:scenario-1=test:cluster-1",
+        );
         let action1 = write_bytes(&root, "actions/attempt-1.json", br#"[{"step":0,"joint":2}] "#);
         let action2 = write_bytes(&root, "actions/attempt-2.json", br#"[{"step":0,"joint":3}] "#);
         let scope = "robot-cell-01";
@@ -1443,7 +1469,7 @@ mod tests {
             "profile_id":"RoboRecoverPublishedThresholdsV1",
             "metric_profile_id":"RRVR-SSIM-GAUSSIAN11-SIGMA1_5-RGB8-V0_1",
             "campaign_id":"rrvr-provenance-known-answer-v0.1",
-            "split_manifest_sha256":"f".repeat(64),
+            "split_manifest_sha256":split_manifest.sha256,
             "data_license_and_provenance":"Synthetic sidecar fixture only.",
             "candidates":[{
                 "scenario_id":"scenario-1","platform":"robo_twin","split":"test",
@@ -1481,6 +1507,7 @@ mod tests {
         let provenance = serde_json::json!({
             "schema_version":"0.1","benchmark":"RRVR-REPLAY-PROVENANCE",
             "replay_manifest_sha256":replay_hash,
+            "split_manifest":split_manifest,
             "policy_roster_profile_id":"frozen-four-policy-roster-v1",
             "candidates":[{
                 "scenario_id":"scenario-1","platform":"robo_twin","split":"test",
@@ -1505,7 +1532,7 @@ mod tests {
         assert_eq!(report.valid_n, 1);
         assert_eq!(report.invalid_n, 0);
         assert_eq!(report.candidate_reports[0].selected_attempt_n, 3);
-        assert_eq!(report.candidate_reports[0].verified_artifact_n, 50);
+        assert_eq!(report.candidate_reports[0].verified_artifact_n, 51);
     }
 
     #[test]
@@ -1614,6 +1641,50 @@ mod tests {
             report.candidate_reports[0].reason_codes[0],
             "REPLAY_STATE_RAW_DIGEST_MISMATCH"
         );
+    }
+
+    #[test]
+    fn raw_split_manifest_tampering_is_rejected() {
+        let (root, replay, provenance) = fixture();
+        fs::write(root.join("splits/split-manifest.json"), b"tampered-split")
+            .expect("tamper split manifest");
+        let report = validate_provenance_json(&replay, &provenance, &root).expect("report");
+        assert_eq!(report.invalid_n, 1);
+        assert_eq!(
+            report.candidate_reports[0].reason_codes[0],
+            "SPLIT_MANIFEST_RAW_DIGEST_MISMATCH"
+        );
+    }
+
+    #[test]
+    fn identical_hashed_leakage_key_across_train_and_test_is_rejected() {
+        let (_root, replay, _provenance) = fixture();
+        let mut manifest: ReplayManifest =
+            serde_json::from_str(&replay).expect("replay manifest");
+        let mut second = manifest.candidates[0].clone();
+        second.scenario_id = "scenario-2".to_owned();
+        second.split = Split::Train;
+        second.trajectory_cluster_id = "cluster-2".to_owned();
+        manifest.candidates.push(second);
+        assert_eq!(
+            validate_replay_candidate_set(&manifest.candidates).unwrap_err(),
+            "TRAIN_TEST_LEAKAGE_KEY_OVERLAP: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        );
+    }
+
+    #[test]
+    fn same_trajectory_cluster_cannot_cross_train_test_split() {
+        let (_root, replay, _provenance) = fixture();
+        let mut manifest: ReplayManifest =
+            serde_json::from_str(&replay).expect("replay manifest");
+        let mut second = manifest.candidates[0].clone();
+        second.scenario_id = "scenario-2".to_owned();
+        second.split = Split::Train;
+        second.split_leakage_keys_sha256 = vec!["e".repeat(64)];
+        manifest.candidates.push(second);
+        assert!(validate_replay_candidate_set(&manifest.candidates)
+            .unwrap_err()
+            .starts_with("TRAJECTORY_CLUSTER_CROSSES_SPLITS"));
     }
 
     #[test]
