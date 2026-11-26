@@ -356,7 +356,6 @@ fn validate_plan(
 
 fn build_affine_plan_model(
     instance: &ContinuousInstance,
-    plan: &CandidatePlan,
     structure: &PlanStructure,
     branch_mask: usize,
 ) -> AffinePlanModel {
@@ -526,7 +525,6 @@ fn feasible(point: &[f64], constraints: &[LinearConstraint]) -> bool {
 
 fn replay(
     instance: &ContinuousInstance,
-    plan: &CandidatePlan,
     structure: &PlanStructure,
     witness: &[f64],
 ) -> Replay {
@@ -603,7 +601,7 @@ fn evaluate_plan(
             .map(|index| if (sign_mask & (1usize << index)) == 0 { 1.0 } else { -1.0 })
             .collect();
         for branch_mask in 0..branches_count {
-            let model = build_affine_plan_model(instance, plan, structure, branch_mask);
+            let model = build_affine_plan_model(instance, structure, branch_mask);
             let mut constraints = Vec::with_capacity(3 * dimensions + 1);
             for index in 0..dimensions {
                 let mut lower = vec![0.0; dimensions];
@@ -686,14 +684,14 @@ fn evaluate_plan(
     }
 
     let (worst_case_cost, witness) = best.ok_or(ContinuousError::NoFeasibleActiveRegion)?;
-    let worst = replay(instance, plan, structure, &witness);
+    let worst = replay(instance, structure, &witness);
     if (worst.objective - worst_case_cost).abs() > COST_TOLERANCE {
         return Err(ContinuousError::NumericalMismatch {
             lp_cost: worst_case_cost,
             replay_cost: worst.objective,
         });
     }
-    let nominal = replay(instance, plan, structure, &vec![0.0; dimensions]);
+    let nominal = replay(instance, structure, &vec![0.0; dimensions]);
     let witness = instance
         .tasks
         .iter()
