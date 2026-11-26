@@ -71,6 +71,10 @@ pub struct DefensiveContrastObservation {
 /// Anytime-valid interval for the target expected consequence difference.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DefensiveContrastConfidenceInterval {
+    /// Stable identity of the left portfolio in the contrast.
+    pub left_portfolio_id: [u8; 32],
+    /// Stable identity of the right portfolio in the contrast.
+    pub right_portfolio_id: [u8; 32],
     /// Number of accepted defensive observations.
     pub draw_count: u64,
     /// Per-contrast error probability, already family-adjusted.
@@ -104,6 +108,8 @@ pub struct DefensiveContrastConfidenceInterval {
 pub enum DefensiveContrastSequenceError {
     /// Per-contrast alpha must lie strictly in (0,1).
     InvalidAlpha,
+    /// Portfolio contrast identities are zero, equal, or absent from the mode universe.
+    InvalidPortfolioPair,
     /// Frozen lower consequence bound exceeds upper bound.
     InvalidConsequenceBounds,
     /// Draw ID is zero or already used in this sequence.
@@ -124,6 +130,7 @@ impl core::fmt::Display for DefensiveContrastSequenceError {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let message = match self {
             Self::InvalidAlpha => "per-contrast alpha must lie strictly between zero and one",
+            Self::InvalidPortfolioPair => "portfolio contrast identity is invalid or absent from the mode universe",
             Self::InvalidConsequenceBounds => "frozen consequence bounds are invalid",
             Self::InvalidOrDuplicateDrawIdentity => "draw identity is zero or duplicated",
             Self::InvalidDrawIndex => "draw index is not the next consecutive sequence index",
@@ -157,6 +164,8 @@ impl From<PrPlEbError> for DefensiveContrastSequenceError {
 #[derive(Debug, Clone, PartialEq)]
 pub struct DefensiveContrastConfidenceSequence {
     proposal: PortfolioDefensiveGaussianMixture,
+    left_portfolio_id: [u8; 32],
+    right_portfolio_id: [u8; 32],
     lower_consequence_bound_ticks: i64,
     upper_consequence_bound_ticks: i64,
     alpha: f64,
@@ -172,12 +181,28 @@ impl DefensiveContrastConfidenceSequence {
     /// Consequence bounds are frozen before the first observation.
     pub fn new(
         proposal: PortfolioDefensiveGaussianMixture,
+        left_portfolio_id: [u8; 32],
+        right_portfolio_id: [u8; 32],
         alpha: f64,
         lower_consequence_bound_ticks: i64,
         upper_consequence_bound_ticks: i64,
     ) -> Result<Self, DefensiveContrastSequenceError> {
         if !alpha.is_finite() || alpha <= 0.0 || alpha >= 1.0 {
             return Err(DefensiveContrastSequenceError::InvalidAlpha);
+        }
+        if left_portfolio_id.iter().all(|byte| *byte == 0)
+            || right_portfolio_id.iter().all(|byte| *byte == 0)
+            || left_portfolio_id == right_portfolio_id
+            || !proposal
+                .expected_modes()
+                .iter()
+                .any(|mode| mode.portfolio_id == left_portfolio_id)
+            || !proposal
+                .expected_modes()
+                .iter()
+                .any(|mode| mode.portfolio_id == right_portfolio_id)
+        {
+            return Err(DefensiveContrastSequenceError::InvalidPortfolioPair);
         }
         if lower_consequence_bound_ticks > upper_consequence_bound_ticks {
             return Err(DefensiveContrastSequenceError::InvalidConsequenceBounds);
@@ -190,6 +215,8 @@ impl DefensiveContrastConfidenceSequence {
 
         Ok(Self {
             proposal,
+            left_portfolio_id,
+            right_portfolio_id,
             lower_consequence_bound_ticks,
             upper_consequence_bound_ticks,
             alpha,
@@ -320,6 +347,8 @@ impl DefensiveContrastConfidenceSequence {
         }
 
         Ok(DefensiveContrastConfidenceInterval {
+            left_portfolio_id: self.left_portfolio_id,
+            right_portfolio_id: self.right_portfolio_id,
             draw_count: self.draw_count,
             alpha: self.alpha,
             effective_defensive_fraction: epsilon,
@@ -428,7 +457,15 @@ mod tests {
     #[test]
     fn first_report_is_full_support_and_bound_to_frozen_proposal() {
         let process =
-            DefensiveContrastConfidenceSequence::new(fixture(), 0.01, -10, 10).unwrap();
+            DefensiveContrastConfidenceSequence::new(
+                fixture(),
+                [10; 32],
+                [20; 32],
+                0.01,
+                -10,
+                10,
+            )
+            .unwrap();
         let report = process.report().unwrap();
 
         assert_eq!(report.draw_count, 0);
@@ -495,7 +532,15 @@ mod tests {
     #[test]
     fn degenerate_consequence_bounds_are_exact() {
         let mut process =
-            DefensiveContrastConfidenceSequence::new(fixture(), 0.01, 4, 4).unwrap();
+            DefensiveContrastConfidenceSequence::new(
+                fixture(),
+                [10; 32],
+                [20; 32],
+                0.01,
+                4,
+                4,
+            )
+            .unwrap();
         let observation = process.observe(&draw(1, 1, 4, key(10, 1, 1))).unwrap();
         assert_eq!(observation.normalized_consequence_difference, 0.0);
         assert_eq!(observation.defensive_contribution, 0.0);
@@ -527,13 +572,57 @@ mod tests {
     }
 
     #[test]
+    fn contrast_is_bound_to_two_distinct_portfolio_identities() {
+        assert_eq!(
+            DefensiveContrastConfidenceSequence::new(
+                fixture(),
+                [10; 32],
+                [10; 32],
+                0.01,
+                -10,
+                10,
+            )
+            .unwrap_err(),
+            DefensiveContrastSequenceError::InvalidPortfolioPair
+        );
+        assert_eq!(
+            DefensiveContrastConfidenceSequence::new(
+                fixture(),
+                [10; 32],
+                [30; 32],
+                0.01,
+                -10,
+                10,
+            )
+            .unwrap_err(),
+            DefensiveContrastSequenceError::InvalidPortfolioPair
+        );
+    }
+
+    #[test]
     fn invalid_bounds_and_alpha_fail_before_any_draw() {
         assert_eq!(
-            DefensiveContrastConfidenceSequence::new(fixture(), 0.0, -1, 1).unwrap_err(),
+            DefensiveContrastConfidenceSequence::new(
+                fixture(),
+                [10; 32],
+                [20; 32],
+                0.0,
+                -1,
+                1,
+            )
+            .unwrap_err(),
             DefensiveContrastSequenceError::InvalidAlpha
         );
         assert_eq!(
-            DefensiveContrastConfidenceSequence::new(fixture(), 0.01, 2, 1).unwrap_err(),
+            DefensiveContrastConfidenceSequence::new(
+                fixture(),
+                [10; 32],
+                [20; 32],
+                0.01,
+                2,
+                1,
+            )
+            .unwrap_err(),
             DefensiveContrastSequenceError::InvalidConsequenceBounds
         );
     }
