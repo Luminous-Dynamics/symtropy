@@ -132,17 +132,17 @@ impl core::fmt::Display for PortfolioSelectionError {
             Self::TooManyPortfolios => "portfolio universe exceeds the exact comparison limit",
             Self::InvalidPortfolioIdentity => {
                 "portfolio identity is zero, duplicated or inconsistent"
-            },
+            }
             Self::InvalidConsequenceBound => "portfolio consequence bound is invalid",
             Self::IncompletePortfolioDraw => {
                 "paired draw does not cover the frozen portfolio universe"
-            },
+            }
             Self::ConsequenceOutsideBound => "portfolio consequence lies outside its frozen bound",
             Self::InvalidDrawIndex => "paired draw index is not the next expected sequence number",
             Self::ContrastCountOverflow => "pairwise contrast count overflowed",
             Self::NumericalFailure => {
                 "portfolio contrast normalization or interval failed numerically"
-            },
+            }
             Self::PrPlEbFailure => "underlying PrPl-EB confidence-sequence update failed",
         };
         formatter.write_str(message)
