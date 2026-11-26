@@ -39,7 +39,7 @@ The area is an **abstract target-plane attenuation equivalent**, not a physical 
 | Mean Earth radius | 6,371,000 m |
 | Solar irradiance | 1,361 W/m² |
 | Target flux reduction | 1% |
-| Effective aperture factor | 0.90 |
+| Abstract target-plane attenuation effectiveness | 0.90 |
 | Installed areal density | 0.01 kg/m² |
 | Locally sourced material fraction | 50% |
 
@@ -47,9 +47,9 @@ The 50% local-material fraction and 10 g/m² installed areal density are scenari
 
 ### Mass sensitivity — why the membrane system boundary matters
 
-For the same 1% target and abstract 0.90 aperture-effectiveness factor, the equivalent aperture remains about **1.4168 million km²**. The equivalent-area mass proxy scales linearly with the assumed *scenario* areal mass density:
+For the same 1% target and abstract 0.90 attenuation-effectiveness factor, the equivalent target-plane attenuation area remains about **1.4168 million km²**. The equivalent-area mass proxy scales linearly with the assumed *scenario* areal mass density:
 
-| Assumed installed areal density | Implied installed mass | Metric tonnes |
+| Scenario areal mass density | Equivalent-area mass proxy | Metric tonnes |
 |---:|---:|---:|
 | 1 g/m² | 1.4168 × 10⁹ kg | 1.42 million t |
 | 10 g/m² | 1.4168 × 10¹⁰ kg | 14.17 million t |
