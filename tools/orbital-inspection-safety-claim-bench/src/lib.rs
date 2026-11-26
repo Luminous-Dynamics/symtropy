@@ -20,6 +20,7 @@ pub enum ClaimComponent {
 pub enum AssuranceClass {
     RobustTrajectoryEnclosure,
     PassiveInvariantSet,
+    AbortReachableSet,
     ProbabilisticRiskBound,
 }
 
@@ -67,6 +68,7 @@ pub struct ActionScope {
     pub time_basis_id: String,
     pub action_start_tai_ns: u64,
     pub action_end_tai_ns: u64,
+    pub required_clearance_um: u64,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -192,6 +194,9 @@ fn validate_scope(scope: &ActionScope) -> Result<(), String> {
     if scope.action_start_tai_ns >= scope.action_end_tai_ns {
         return Err("ACTION_INTERVAL_INVALID".to_owned());
     }
+    if scope.required_clearance_um == 0 {
+        return Err("REQUIRED_CLEARANCE_MUST_BE_POSITIVE".to_owned());
+    }
     Ok(())
 }
 
@@ -218,7 +223,7 @@ fn validate_claim_shape(claim: &SafetyClaim) -> Result<(), String> {
             if claim.assurance_class != AssuranceClass::RobustTrajectoryEnclosure
                 || !claim.temporal_enclosure_complete
                 || claim.minimum_clearance_lower_um.is_none()
-                || claim.required_clearance_um.is_none()
+                || claim.required_clearance_um != Some(claim.scope.required_clearance_um)
                 || claim.terminal_set_id.is_some()
                 || claim.terminal_set_revision.is_some()
                 || claim.terminal_epoch_tai_ns.is_some()
@@ -229,7 +234,10 @@ fn validate_claim_shape(claim: &SafetyClaim) -> Result<(), String> {
             }
         }
         ClaimComponent::SafeContinuation => {
-            if claim.assurance_class != AssuranceClass::PassiveInvariantSet
+            if !matches!(
+                    claim.assurance_class,
+                    AssuranceClass::PassiveInvariantSet | AssuranceClass::AbortReachableSet
+                )
                 || !claim.temporal_enclosure_complete
                 || !claim.terminal_set_id.as_deref().is_some_and(valid_text)
                 || !claim.terminal_set_revision.as_deref().is_some_and(valid_text)
@@ -285,7 +293,7 @@ fn evaluate_claim(claim: &SafetyClaim, action: &ActionScope) -> ClaimResult {
     match claim.component {
         ClaimComponent::FiniteHorizonKeepOut => {
             if claim.validity.start_tai_ns > action.action_start_tai_ns
-                || claim.validity.end_tai_ns < action.action_end_tai_ns
+                || claim.validity.end_tai_ns <= action.action_end_tai_ns
             {
                 return result(
                     Disposition::OutOfScope,
