@@ -1,0 +1,35 @@
+name: Broadphase Architecture Tournament
+
+on:
+  pull_request:
+    branches: [research/stateful-tree-broadphase-v0.1]
+    paths:
+      - "research/broadphase-tournament/v0.1/**"
+      - ".github/workflows/broadphase-tournament.yml"
+  push:
+    branches: [research/broadphase-tournament-v0.1]
+    paths:
+      - "research/broadphase-tournament/v0.1/**"
+      - ".github/workflows/broadphase-tournament.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Rust 1.96 broadphase tournament checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/broadphase-tournament/v0.1/Cargo.toml -- --check
+      - name: Run tests
+        run: cargo test --manifest-path research/broadphase-tournament/v0.1/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/broadphase-tournament/v0.1/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Run release smoke benchmark
+        run: cargo run --release --manifest-path research/broadphase-tournament/v0.1/Cargo.toml --bin broadphase-tournament -- 24 6 1
