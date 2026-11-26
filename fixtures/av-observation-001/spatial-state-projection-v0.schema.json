@@ -480,7 +480,8 @@
           }
         },
         "source_observation_refs": {
-          "$ref": "#/$defs/source_refs"
+          "$ref": "#/$defs/source_refs",
+          "minItems": 1
         },
         "reopen_hint": {
           "type": "string",
