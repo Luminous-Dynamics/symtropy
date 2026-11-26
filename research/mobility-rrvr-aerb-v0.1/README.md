@@ -45,7 +45,7 @@ AERB uses two distinct artifacts and processes:
 
 Contains the frozen command context, decision cut, admitted observations, their timestamps/clock domains/source roles, and the permitted probe menu with costs/deadlines. It contains no hidden truth ID, world outcome supports, likelihoods or evaluator loss matrix.
 
-The candidate snapshot digest in the submission is SHA-256 over RFC 8785 JSON Canonicalization Scheme (JCS) bytes of the complete candidate-visible episode artifact. The synthetic submission fixture binds to its exact episode fixture; do not copy that digest to a modified episode.
+The candidate snapshot digest in the submission is SHA-256 over the complete candidate-visible episode using the AERB compact sorted-JSON profile: recursively lexicographically sorted object keys, compact separators, UTF-8 output, integer numeric fields in v0.1, and no trailing newline. The CI conformance command uses `jq -S -c` and removes its final newline before hashing. This is a pinned v0.1 serialization profile, not a claim of general RFC 8785 conformance for arbitrary JSON numbers or Unicode input. The synthetic submission fixture binds to its exact episode fixture; do not copy that digest to a modified episode.
 
 ### Evaluator-only world pack
 
