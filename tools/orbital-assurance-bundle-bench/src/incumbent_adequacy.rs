@@ -1395,4 +1395,3 @@ mod tests {
         assert!(report.cases.iter().all(|case| !case.authority_granted));
     }
 }
-
