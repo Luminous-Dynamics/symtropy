@@ -359,7 +359,9 @@ pub fn evaluate_robust_pareto(
             .iter()
             .filter(|portfolio_id| {
                 rows.get(&(**portfolio_id, *scenario_id))
-                    .is_some_and(|row| matches!(row.feasibility, ScenarioFeasibility::Infeasible { .. }))
+                    .is_some_and(|row| {
+                        matches!(row.feasibility, ScenarioFeasibility::Infeasible { .. })
+                    })
             })
             .copied()
             .collect();
@@ -368,7 +370,9 @@ pub fn evaluate_robust_pareto(
             .iter()
             .filter(|portfolio_id| {
                 rows.get(&(**portfolio_id, *scenario_id))
-                    .is_some_and(|row| matches!(row.feasibility, ScenarioFeasibility::Unresolved { .. }))
+                    .is_some_and(|row| {
+                        matches!(row.feasibility, ScenarioFeasibility::Unresolved { .. })
+                    })
             })
             .copied()
             .collect();
