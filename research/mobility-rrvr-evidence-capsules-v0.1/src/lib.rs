@@ -524,8 +524,10 @@ fn validate_claim_shape(claim: &Claim) -> Result<(), String> {
             claim.claim_id
         ));
     }
-    if !matches!(claim.claim_type, ClaimType::EndpointFenced | ClaimType::TemporalClosure)
-        && claim.required_queue_generation.is_some()
+    if !matches!(
+        claim.claim_type,
+        ClaimType::EndpointFenced | ClaimType::TemporalClosure
+    ) && claim.required_queue_generation.is_some()
     {
         return Err(format!(
             "UNEXPECTED_QUEUE_GENERATION_SCOPE: {}",
