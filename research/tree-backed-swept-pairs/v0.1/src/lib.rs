@@ -21,8 +21,7 @@ use swept_pair_oracle::{
     MotionEvidence, PairKey, PairSetError, PairSetReceipt, Proxy, build_swept_pair_set,
 };
 
-pub const TREE_REFERENCE_REVISION: &str =
-    "fed9ba265485d495d9f6191f280ff826d255e648";
+pub const TREE_REFERENCE_REVISION: &str = "fed9ba265485d495d9f6191f280ff826d255e648";
 pub const TREE_FAT_MARGIN: f64 = 0.0;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -584,12 +583,8 @@ mod tests {
     fn tampered_registry_and_tree_policy_invalidate_receipt() {
         let proxies = [proxy(1, [0.0], [1.0], [0.0]), proxy(2, [3.0], [4.0], [0.0])];
         let mut registry = ProxyIdRegistry::new();
-        let receipt = build_tree_swept_pair_set(
-            &proxies,
-            &mut registry,
-            TreeBuildConfig::default(),
-        )
-        .unwrap();
+        let receipt =
+            build_tree_swept_pair_set(&proxies, &mut registry, TreeBuildConfig::default()).unwrap();
 
         let mut bad_registry = receipt.clone();
         bad_registry.registry.next_proxy_id = 1;
@@ -608,7 +603,9 @@ mod tests {
                     .wrapping_mul(6_364_136_223_846_793_005)
                     .wrapping_add(1_442_695_040_888_963_407);
                 let x = ((state >> 11) as f64 / ((1_u64 << 53) as f64)) * 30.0 - 15.0;
-                state = state.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1_442_695_040_888_963_407);
+                state = state
+                    .wrapping_mul(6_364_136_223_846_793_005)
+                    .wrapping_add(1_442_695_040_888_963_407);
                 let extent = 0.2 + ((state >> 11) as f64 / ((1_u64 << 53) as f64)) * 1.5;
                 let min = std::array::from_fn(|axis| x + axis as f64 * 2.0);
                 let max = std::array::from_fn(|axis| min[axis] + extent);
