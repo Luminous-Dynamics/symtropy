@@ -1877,6 +1877,74 @@ mod tests {
     }
 
     #[test]
+    fn fixed_x_sweep_oracle_matches_independent_brute_force_on_small_temporal_fixtures() {
+        let fixtures = [
+            (SceneFamily::SparseCoherent, 2_usize),
+            (SceneFamily::DenseClustered, 3),
+            (SceneFamily::StaticHeavy, 4),
+            (SceneFamily::HighChurn, 2),
+            (SceneFamily::Anisotropic, 3),
+            (SceneFamily::TeleportChurn, 4),
+            (SceneFamily::SleepingWakeups, 3),
+        ];
+        for (family, dimension) in fixtures {
+            match dimension {
+                2 => {
+                    let scene = generate_scene::<2>(family, 96, 12, 0x51ee_2026).unwrap();
+                    for frame in &scene.frames {
+                        assert_eq!(oracle_pairs_sweep(frame).unwrap(), oracle_pairs(frame).unwrap());
+                    }
+                }
+                3 => {
+                    let scene = generate_scene::<3>(family, 96, 12, 0x51ee_2026).unwrap();
+                    for frame in &scene.frames {
+                        assert_eq!(oracle_pairs_sweep(frame).unwrap(), oracle_pairs(frame).unwrap());
+                    }
+                }
+                4 => {
+                    let scene = generate_scene::<4>(family, 96, 12, 0x51ee_2026).unwrap();
+                    for frame in &scene.frames {
+                        assert_eq!(oracle_pairs_sweep(frame).unwrap(), oracle_pairs(frame).unwrap());
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    #[test]
+    fn scale_grid_does_not_alias_sparse_proxies_and_sleeping_pairs_stay_linear() {
+        let sparse = generate_scene::<3>(SceneFamily::SparseCoherent, 10_000, 1, 0x5ca1_e000).unwrap();
+        let sparse_pairs = oracle_pairs_sweep(&sparse.frames[0]).unwrap();
+        assert!(sparse_pairs.is_empty());
+
+        let sleeping =
+            generate_scene::<3>(SceneFamily::SleepingWakeups, 10_000, 1, 0x5ca1_e001).unwrap();
+        let sleeping_pairs = oracle_pairs_sweep(&sleeping.frames[0]).unwrap();
+        assert_eq!(sleeping_pairs.len(), 5_000);
+        assert!(
+            sleeping_pairs
+                .iter()
+                .all(|pair| pair.1.0 == pair.0.0 + 1 && pair.0.0 % 2 == 1)
+        );
+    }
+
+    #[test]
+    fn scale_tournament_uses_exact_sweep_oracle_and_all_declared_scale_backends() {
+        let scene =
+            generate_scene::<3>(SceneFamily::SleepingWakeups, 1_024, 16, 0x5ca1_e002).unwrap();
+        let rows = run_scale_tournament(&scene, TournamentConfig::new(1)).unwrap();
+        assert_eq!(rows.len(), 8);
+        for row in rows {
+            assert_eq!(row.oracle_method, "fixed_x_exact_sweep");
+            assert_eq!(row.false_positives, 0, "backend {}", row.backend);
+            assert_eq!(row.false_negatives, 0, "backend {}", row.backend);
+            assert_eq!(row.mismatch_frames, 0, "backend {}", row.backend);
+            assert_eq!(row.event_mismatch_frames, 0, "backend {}", row.backend);
+        }
+    }
+
+    #[test]
     fn pair_delta_cache_emits_only_pair_births_and_deaths() {
         let mut cache = PairDeltaCache::<2>::new();
         let first = [
