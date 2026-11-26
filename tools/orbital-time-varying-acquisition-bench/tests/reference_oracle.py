@@ -156,14 +156,14 @@ def calculate_bounds(model):
         + Fraction((row_span + Fraction(exposure, 2)) ** 2, 2)
     )
     frame_acceleration = ceil_fraction(
-        Fraction(acceleration, 1) * integral_abs_time_frame / (NS**2)
+        Fraction(acceleration, 1) * integral_abs_time_frame / NS2
     )
     integral_time_squared_frame = (
         (row_span + Fraction(exposure, 2)) ** 3
         + Fraction(exposure, 2) ** 3
     ) / 3
     frame_jerk = ceil_fraction(
-        Fraction(jerk, 2) * integral_time_squared_frame / (NS**3)
+        Fraction(jerk, 2) * integral_time_squared_frame / NS3
     )
     combined_frame = displacement_terms(frame_speed, frame_acceleration, frame_jerk)
 
@@ -172,10 +172,10 @@ def calculate_bounds(model):
     twice_max_time = 2 * row_span + exposure
     constant_speed = ceil_fraction(Fraction(speed * frame_duration, NS))
     constant_acceleration = ceil_fraction(
-        Fraction(acceleration * twice_max_time * frame_duration, 2 * (NS**2))
+        Fraction(acceleration * twice_max_time * frame_duration, 2 * NS2)
     )
     constant_jerk = ceil_fraction(
-        Fraction(jerk * twice_max_time**2 * frame_duration, 8 * (NS**3))
+        Fraction(jerk * twice_max_time**2 * frame_duration, 8 * NS3)
     )
     constant_max_speed_frame = displacement_terms(
         constant_speed, constant_acceleration, constant_jerk
