@@ -14,6 +14,7 @@ use single_commodity_flow_kernel::{FlowEdge, FlowGraph, FlowNode};
 const MAX_INTERVALS: u64 = 256;
 const MAX_SEGMENT_SLOTS: usize = 4096;
 const MAX_RECEIVERS: usize = 128;
+const MAX_INDIVIDUAL_MAXIMA: usize = 32;
 const MAX_RECEIVER_SLOTS: usize = 16384;
 const MAX_TRANSFER_LINKS: usize = 8192;
 
@@ -366,6 +367,13 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
     })
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IndividualMaximaStatus {
+    NotNeededJointServiceFeasible,
+    ComputedForInfeasibleJointService,
+    OmittedAboveDeclaredReceiverLimit,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReceiverAllocation {
     pub receiver_id: String,
@@ -374,12 +382,12 @@ pub struct ReceiverAllocation {
     /// It is not an individual maximum or a fairness guarantee.
     pub joint_witness_allocation_mwh: u64,
     pub joint_witness_shortfall_mwh: u64,
-    /// Maximum flow to this receiver when other receiver-obligation sink
-    /// edges are removed. Independent maxima are not additive across receivers.
-    pub individual_max_deliverable_mwh: u64,
-    pub individual_max_min_cut_capacity_mwh: u64,
-    pub individual_max_graph_sha256: String,
-    pub individual_floor_feasible: bool,
+    /// Independent diagnostic; absent when not needed or above the bound.
+    /// Independent maxima are not additive across receivers.
+    pub individual_max_deliverable_mwh: Option<u64>,
+    pub individual_max_min_cut_capacity_mwh: Option<u64>,
+    pub individual_max_graph_sha256: Option<String>,
+    pub individual_floor_feasible: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -426,6 +434,7 @@ pub struct ServiceOracleReport {
     pub maximum_deliverable_mwh: u64,
     pub total_shortfall_mwh: u64,
     pub feasible: bool,
+    pub individual_maxima_status: IndividualMaximaStatus,
     pub receiver_allocations: Vec<ReceiverAllocation>,
     /// Constructive interval-level use of each segment's deliverable-energy budget.
     pub segment_allocations: Vec<SegmentSlotAllocation>,
@@ -613,6 +622,14 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
         .map(|edge| (edge.id.clone(), edge.flow))
         .collect::<BTreeMap<_, _>>();
 
+    let feasible = flow_result.max_flow == scenario.total_minimum_service_mwh;
+    let individual_maxima_status = if feasible {
+        IndividualMaximaStatus::NotNeededJointServiceFeasible
+    } else if scenario.receivers.len() <= MAX_INDIVIDUAL_MAXIMA {
+        IndividualMaximaStatus::ComputedForInfeasibleJointService
+    } else {
+        IndividualMaximaStatus::OmittedAboveDeclaredReceiverLimit
+    };
     let obligation_edge_ids = demand_edge_ids.values()
         .map(String::as_str)
         .collect::<BTreeSet<_>>();
@@ -623,18 +640,32 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
             .ok_or_else(|| format!("missing demand edge for {receiver_id}"))?;
         let joint_witness_allocation_mwh = required_wpt_flow(&edge_flows, edge_id)?;
 
-        // Remove other receiver sink obligations to compute this receiver's
-        // isolated maximum. This diagnostic is not additive: shared capacity
-        // may make the sum of these maxima exceed the joint maximum flow.
-        let mut individual_graph = graph.clone();
-        individual_graph.edges.retain(|edge| {
-            !obligation_edge_ids.contains(edge.id.as_str())
-                || edge.id.as_str() == edge_id.as_str()
-        });
-        let individual_result = individual_graph
-            .solve()
-            .map_err(|error| format!("individual maximum for {receiver_id}: {error}"))?;
-        let individual_max_deliverable_mwh = individual_result.max_flow;
+        let individual_result = if individual_maxima_status
+            == IndividualMaximaStatus::ComputedForInfeasibleJointService
+        {
+            // Remove other receiver sink obligations to compute this receiver's
+            // isolated maximum. This diagnostic is not additive: shared capacity
+            // may make the sum of these maxima exceed the joint maximum flow.
+            let mut individual_graph = graph.clone();
+            individual_graph.edges.retain(|edge| {
+                !obligation_edge_ids.contains(edge.id.as_str())
+                    || edge.id.as_str() == edge_id.as_str()
+            });
+            Some(individual_graph.solve().map_err(|error| {
+                format!("individual maximum for {receiver_id}: {error}")
+            })?)
+        } else {
+            None
+        };
+
+        let individual_max_deliverable_mwh =
+            individual_result.as_ref().map(|result| result.max_flow);
+        let individual_floor_feasible = if feasible {
+            Some(true)
+        } else {
+            individual_max_deliverable_mwh
+                .map(|maximum| maximum >= receiver.minimum_service_mwh)
+        };
 
         receiver_allocations.push(ReceiverAllocation {
             receiver_id: receiver_id.clone(),
@@ -643,10 +674,13 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
             joint_witness_shortfall_mwh: receiver.minimum_service_mwh
                 - joint_witness_allocation_mwh,
             individual_max_deliverable_mwh,
-            individual_max_min_cut_capacity_mwh: individual_result.min_cut.capacity,
-            individual_max_graph_sha256: individual_result.graph_sha256,
-            individual_floor_feasible: individual_max_deliverable_mwh
-                >= receiver.minimum_service_mwh,
+            individual_max_min_cut_capacity_mwh: individual_result
+                .as_ref()
+                .map(|result| result.min_cut.capacity),
+            individual_max_graph_sha256: individual_result
+                .as_ref()
+                .map(|result| result.graph_sha256.clone()),
+            individual_floor_feasible,
         });
     }
 
@@ -710,7 +744,6 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
         .collect::<Result<Vec<_>, String>>()?;
     minimum_cut_edges.sort_by_key(|edge| (edge.kind.clone(), edge.label.clone()));
 
-    let feasible = flow_result.max_flow == scenario.total_minimum_service_mwh;
     let total_shortfall_mwh = scenario.total_minimum_service_mwh - flow_result.max_flow;
 
     Ok(ServiceOracleReport {
@@ -723,6 +756,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
         maximum_deliverable_mwh: flow_result.max_flow,
         total_shortfall_mwh,
         feasible,
+        individual_maxima_status,
         receiver_allocations,
         segment_allocations,
         transfer_allocations,
@@ -761,7 +795,8 @@ mod tests {
                 .receiver_allocations
                 .iter()
                 .all(|row| row.joint_witness_shortfall_mwh == 0
-                && row.individual_floor_feasible)
+                && row.individual_floor_feasible == Some(true)
+                && row.individual_max_deliverable_mwh.is_none())
         );
         assert_eq!(
             report
@@ -842,8 +877,12 @@ mod tests {
                 .sum::<u64>(),
             8
         );
+        assert_eq!(
+            report.individual_maxima_status,
+            IndividualMaximaStatus::ComputedForInfeasibleJointService
+        );
         assert!(report.receiver_allocations.iter()
-            .all(|row| row.individual_max_deliverable_mwh == 5));
+            .all(|row| row.individual_max_deliverable_mwh == Some(5)));
         assert_eq!(
             report.receiver_allocations.iter()
                 .map(|row| row.individual_max_deliverable_mwh)
@@ -851,7 +890,8 @@ mod tests {
             10
         );
         assert!(report.receiver_allocations.iter()
-            .all(|row| row.individual_max_graph_sha256.starts_with("sha256:")));
+            .all(|row| row.individual_max_graph_sha256.as_deref()
+                .is_some_and(|digest| digest.starts_with("sha256:"))));
     }
 
     #[test]
@@ -922,6 +962,8 @@ mod tests {
             .unwrap();
         assert_eq!(receiver.joint_witness_allocation_mwh, 0);
         assert_eq!(receiver.joint_witness_shortfall_mwh, 4);
+        assert_eq!(receiver.individual_max_deliverable_mwh, Some(0));
+        assert_eq!(receiver.individual_floor_feasible, Some(false));
         assert!(!report.feasible);
     }
 
