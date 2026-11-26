@@ -976,19 +976,20 @@ pub fn run_tournament<const D: usize>(
 impl TournamentRow {
     #[must_use]
     pub fn csv_header() -> &'static str {
-        "family,dimension,seed,declared_proxy_count,scene_frames,backend,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,tree_rotations,max_tree_height,max_tree_nodes,max_active_proxies"
+        "family,dimension,seed,declared_proxy_count,scene_frames,backend,output_contract,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,event_mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,p50_pair_materialize_ns,p95_pair_materialize_ns,p99_pair_materialize_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,tree_rotations,pair_cache_dirty_proxies,pair_cache_overlap_tests,pair_events_added,pair_events_removed,pair_cache_peak_pairs,max_tree_height,max_tree_nodes,max_active_proxies"
     }
 
     #[must_use]
     pub fn to_csv(&self) -> String {
         format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             self.family,
             self.dimension,
             self.seed,
             self.declared_proxy_count,
             self.scene_frames,
             self.backend,
+            self.output_contract,
             self.repetitions,
             self.frame_samples,
             self.proxy_observations,
@@ -997,9 +998,13 @@ impl TournamentRow {
             self.false_positives,
             self.false_negatives,
             self.mismatch_frames,
+            self.event_mismatch_frames,
             self.p50_frame_ns,
             self.p95_frame_ns,
             self.p99_frame_ns,
+            self.p50_pair_materialize_ns,
+            self.p95_pair_materialize_ns,
+            self.p99_pair_materialize_ns,
             self.sum_frame_ns,
             self.campaign_wall_ns,
             self.counters.pair_tests,
@@ -1015,9 +1020,14 @@ impl TournamentRow {
             self.counters.proxy_reinsertions,
             self.counters.full_rebuilds,
             self.counters.tree_rotations,
+            self.counters.pair_cache_dirty_proxies,
+            self.counters.pair_cache_overlap_tests,
+            self.counters.pair_events_added,
+            self.counters.pair_events_removed,
+            self.counters.pair_cache_peak_pairs,
             self.counters.max_tree_height,
             self.counters.max_tree_nodes,
-            self.counters.max_active_proxies,
+            self.counters.max_active_proxies
         )
     }
 }
