@@ -11,26 +11,30 @@ Do not put magnetic field solvers, Hall latches, magnetic absolute encoders and 
 |---|---|---|---|
 | TI TMAG5110/TMAG5111 | 2D dual-channel Hall latch; typical BOP variants 1.4 mT and 3 mT; product page lists 40 kHz bandwidth and -40°C to +125°C; independent A/B latch output or speed/direction output | Hall field-to-digital transition chain, speed/direction, packaging, field margin and operating-temperature challenge | A calibrated absolute-angle system accuracy specification |
 | RLS AksIM-2 | Axial off-axis magnetic absolute encoder; up to 20-bit; 10,000 rpm; official page lists system accuracy ±0.004° to ±0.020° after self-calibration (configuration-dependent) | High-end magnetic absolute encoder accuracy, calibration, ring/readhead integration | A Hall latch or a solver benchmark |
-| RLS AksIM-4 | Off-axis true-absolute encoder; standard 17–20-bit / high 19–22-bit options by ring size; 22–150 mm outer diameters; system accuracy ±0.020° (MC022) down to ±0.004° (MC064–MC150); typical calibrated installed accuracy ±0.030° to ±0.009°; uncalibrated ±0.100° to ±0.029°; less than 1 LSB hysteresis/repeatability; up to 10,000 rpm on MC022–MC080, 7,350 rpm MC115 and 4,750 rpm MC150; -40°C to +105°C with connector or +125°C with solder pads | Current high-resolution magnetic absolute encoder, including resolution-vs-accuracy, calibration, ring-size, speed and temperature tradeoffs | An optical accuracy reference or a Hall-latch component |
+| RLS AksIM-4 (standard family) | Off-axis true-absolute magnetic encoder; up to 22-bit; ring outer diameter 22–150 mm; connector operating/storage range -40°C to +105°C or solder-pad range to +125°C | General-purpose high-resolution magnetic absolute encoder, package and temperature envelope | HDSL-specific accuracy values, which must not be generalized to every ring/readhead variant |
+| RLS AksIM-4 HIPERFACE DSL (MCD06) | 20/22-bit variants; 53/80 mm rings; system accuracy ±0.006° (MC053) / ±0.004° (MC080); readhead -40°C to +115°C and ring -40°C to +125°C; current product page links MCD06 | Most relevant current RLS HDSL magnetic absolute comparator; exact variant, ring and calibration must match | An installed accuracy result or a generic accuracy guarantee for every AksIM-4 |
 | RLS AksIM-4 Dual Concentric | Two absolute channels in one encoder; 19-bit input and output; stated system accuracy up to ±0.010°; -40°C to +105°C | Dual-sensor robot-joint feedback and compact dual-measurement architectures | A single-channel Hall latch |
-| Renishaw RESOLUTE | Optical absolute rotary system; current comparison table lists system accuracy ±4.28 to ±0.41 arcsec depending on RESA30/REXA30 ring diameter (52–550 mm / 52–417 mm); two-readhead typical installed accuracy up to ±1 arcsec; size/resolution-dependent speed up to 36,000 rpm for RESA30 | Upper industrial optical metrology reference and independent rotor-angle truth source | A direct magnetic BOM/environment competitor without application normalization |
+| Renishaw RESOLUTE ETR (RESA30) | Optical absolute rotary system; current ETR datasheet reports typical installed accuracy ±12.7 arcsec at 52 mm, ±4.3 arcsec at 200 mm and ±1.9 arcsec at 550 mm; corresponding maximum reading speeds 18,000, 4,750 and 1,700 rpm. The datasheet explicitly notes 32-bit resolution below the encoder noise floor. | Optical installed-angle/metrology reference and independent rotor-angle truth source | A direct magnetic BOM/environment competitor without application normalization |
 | Magpylib Material Response 0.15.0 | 25 Nov 2026 release adds analytical and face-charge WASM field kernels checked against shared 50-digit references; face-charge runs through JAX/PyTorch with JIT and gradients; release changelog reports a far-axis cylinder numerical-stability case | Open field-kernel, differentiable face-charge and numerical-stability reference | A replacement for nonlinear/anisotropic FEM or physical metrology |
 
 Sources:
 - TI TMAG5110/TMAG5111 product page: https://www.ti.com/product/TMAG5111
 - TI TMAG511x datasheet Rev D: https://www.ti.com/lit/ds/symlink/tmag5111.pdf
 - RLS AksIM-2 official product page: https://www.rls.si/eng/aksim-2-off-axis-rotary-absolute-encoder
-- RLS AksIM-4 official product page: https://www.rls.si/eng/aksim-4-off-axis-rotary-absolute-encoder
-- RLS AksIM-4 data sheet MCD04_01, issue 01, 19 November 2026: https://cdn.rls.si/media/documents/MCD04.pdf
+- RLS AksIM-4 standard family official product page: https://www.rls.si/eng/aksim-4-off-axis-rotary-absolute-encoder
+- RLS AksIM-4 HIPERFACE DSL official product page (current page links MCD06): https://www.rls.si/eng/aksim-hdsl-rotary-absolute-magnetic-encoder
+- RLS current absolute-encoder portfolio (standard family and HDSL variant distinction): https://www.rls.si/eng/products/rotary-magnetic-encoders/absolute-encoders
 - RLS AksIM-4 Dual Concentric official product page: https://www.rls.si/eng/aksim-dual
-- RLS absolute-encoder product portfolio: https://www.rls.si/eng/products/rotary-magnetic-encoders/absolute-encoders
-- Renishaw current open-encoder comparison table: https://www.renishaw.com/en/open-optical-encoders-comparison-table--6789
+- RLS MCD05 Issue 04 lifecycle notice; directs new designs to MCD06: https://www.rls.si/cn/en/fileuploader/download/download/?d=0&id=713&title=Data+sheet%3A+AksIM-4%E2%84%A2+HIPERFACE+DSL%C2%AE+Absolute+Rotary+Magnetic+Encoder
+- Renishaw RESOLUTE ETR datasheet, installed accuracy by RESA30 ring diameter: https://www.renishaw.com/resourcecentre/download/%28844aab74daa246dd80cff7ec2e451af0%29?userLanguage=en
 - Magpylib Material Response 0.15.0 changelog: https://magpylib-material-response.readthedocs.io/en/stable/changelog.html
 - Magpylib Material Response 0.15.0 PyPI release and artifact digests: https://pypi.org/project/magpylib-material-response/0.15.0/
 - Magpylib Material Response 0.15.0 source commit: https://github.com/magpylib/magpylib-material-response/commit/492b37459a47f4220d7e44380668c2d9ab720784
 - Insinga and Bjørk, “Gradient-based optimization of permanent-magnet assemblies for any objective”, Physical Review Applied 20, 064030 (2023): https://doi.org/10.1103/PhysRevApplied.20.064030
 
 Important qualification note: TI product-page operating-point summaries include typical and maximum values for different device variants; the Rev D datasheet's threshold curves are typical characteristics. Do not turn a typical curve or graph digitization into a guaranteed tolerance interval. Obtain the exact part suffix, guaranteed electrical table, temperature/supply conditions and traceable component characterization before creating a hard sensor bound.
+
+For RLS, distinguish the AksIM-4 standard family page from the HDSL MCD06 variant page. The standard family page advertises up to 22-bit and 22–150 mm rings but does not license applying the HDSL MC053/MC080 system-accuracy numbers to all standard AksIM-4 configurations. The MCD05 page now carries a new-design warning and points users to MCD06. For Renishaw RESOLUTE ETR, the cited values above are *typical installed accuracy* by ring diameter, not an interchangeable system-accuracy specification. Match ring size, installation, readhead count, calibration and speed before comparing any of these values.
 
 ## 2. Paradigm shift: optimize the physical measurement function
 
