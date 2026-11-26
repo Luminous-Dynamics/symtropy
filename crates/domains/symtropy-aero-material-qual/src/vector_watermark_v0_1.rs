@@ -13,6 +13,7 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct EvidenceCut {
+    pub cut_id: String,
     pub watermarks: Vec<PartitionWatermark>,
     pub events: Vec<CutEvent>,
 }
@@ -442,7 +443,10 @@ mod tests {
         }
     }
 
-    fn cut(value: serde_json::Value) -> EvidenceCut {
+    fn cut(mut value: serde_json::Value) -> EvidenceCut {
+        if value.get("cut_id").is_none() {
+            value["cut_id"] = serde_json::Value::String("synthetic-test-cut".to_owned());
+        }
         from_value(value).expect("evidence cut fixture parses")
     }
 
@@ -620,6 +624,7 @@ mod tests {
     #[test]
     fn empty_watermark_vector_is_unverified() {
         let evidence = EvidenceCut {
+            cut_id: "empty-vector-test".to_owned(),
             watermarks: Vec::new(),
             events: Vec::new(),
         };
