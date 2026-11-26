@@ -344,7 +344,9 @@ fn gaussian_receipt_digest(
             hasher.update(key.scenario_id);
             hasher.update(key.event_mode_id);
         }
-        None => hasher.update([0]),
+        None => {
+            hasher.update([0]);
+        }
     }
     hasher.update((receipt.claimed_point.len() as u64).to_be_bytes());
     for value in &receipt.claimed_point {
