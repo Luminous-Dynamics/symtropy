@@ -1015,6 +1015,51 @@ mod tests {
     }
 
     #[test]
+    fn profile_scope_mismatch_is_rejected_after_hashes_are_resealed() {
+        let (root, replay, provenance) = fixture();
+        let mut replay_value: serde_json::Value =
+            serde_json::from_str(&replay).expect("replay json");
+        let mut sidecar_value: serde_json::Value =
+            serde_json::from_str(&provenance).expect("sidecar json");
+        let profile_path = root.join("profiles/controller.json");
+        let mut profile: serde_json::Value =
+            serde_json::from_slice(&fs::read(&profile_path).expect("read profile"))
+                .expect("profile json");
+        profile["execution_scope_id"] = serde_json::json!("wrong-cell");
+        let profile_bytes = serde_json::to_vec(&profile).expect("profile bytes");
+        fs::write(&profile_path, &profile_bytes).expect("write profile");
+        let profile_sha = sha256_hex(&profile_bytes);
+        sidecar_value["candidates"][0]["controller_profile"]["sha256"] =
+            serde_json::json!(profile_sha);
+        replay_value["candidates"][0]["controller_profile_sha256"] =
+            serde_json::json!(profile_sha);
+
+        let receipt_path = root.join("receipts/action-prefix.json");
+        let mut receipt: serde_json::Value =
+            serde_json::from_slice(&fs::read(&receipt_path).expect("read receipt"))
+                .expect("receipt json");
+        receipt["controller_profile_sha256"] = serde_json::json!(profile_sha);
+        let receipt_bytes = serde_json::to_vec(&receipt).expect("receipt bytes");
+        fs::write(&receipt_path, &receipt_bytes).expect("write receipt");
+        let receipt_sha = sha256_hex(&receipt_bytes);
+        sidecar_value["candidates"][0]["action_prefix_receipt_bundle"]["sha256"] =
+            serde_json::json!(receipt_sha);
+        replay_value["candidates"][0]["action_prefix_receipt_sha256"] =
+            serde_json::json!(receipt_sha);
+
+        let replay = serde_json::to_string(&replay_value).expect("resealed replay");
+        sidecar_value["replay_manifest_sha256"] =
+            serde_json::json!(sha256_hex(replay.as_bytes()));
+        let sidecar = serde_json::to_string(&sidecar_value).expect("resealed sidecar");
+        let report = validate_provenance_json(&replay, &sidecar, &root).expect("report");
+        assert_eq!(report.invalid_n, 1);
+        assert_eq!(
+            report.candidate_reports[0].reason_codes[0],
+            "PROFILE_SCOPE_MISMATCH"
+        );
+    }
+
+    #[test]
     fn action_receipt_wrong_policy_is_rejected_after_raw_digest_is_resealed() {
         let (root, replay, provenance) = fixture();
         let (replay, provenance) = reseal_action_receipt(
