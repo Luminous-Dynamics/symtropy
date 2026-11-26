@@ -2,12 +2,12 @@ name: Tree-Backed Swept Pair Qualification
 
 on:
   pull_request:
-    branches: [research/stateful-tree-broadphase-v0.1]
+    branches: [research/tree-backed-swept-pairs-v0.1]
     paths:
       - "research/tree-backed-swept-pairs/v0.1/**"
       - ".github/workflows/tree-backed-swept-pairs.yml"
   push:
-    branches: [research/tree-backed-swept-pairs-v0.1]
+    branches: [research/stateful-tree-broadphase-v0.1]
     paths:
       - "research/tree-backed-swept-pairs/v0.1/**"
       - ".github/workflows/tree-backed-swept-pairs.yml"
