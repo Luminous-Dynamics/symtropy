@@ -14,14 +14,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::paired_counterfactual::MAX_PAIRED_COUNTERFACTUAL_PORTFOLIOS;
-use crate::portfolio_proposal::{
-    PortfolioDefensiveGaussianMixture, PortfolioEventModeKey,
-};
+use crate::portfolio_proposal::{PortfolioDefensiveGaussianMixture, PortfolioEventModeKey};
 use crate::portfolio_selection::PortfolioConsequenceBound;
 use crate::simultaneous_defensive_selection::{
-    DefensivePortfolioDraw, DefensivePortfolioDrawReceipt,
-    SimultaneousDefensivePortfolioReport, SimultaneousDefensivePortfolioSelection,
-    SimultaneousDefensiveSelectionError,
+    DefensivePortfolioDraw, DefensivePortfolioDrawReceipt, SimultaneousDefensivePortfolioReport,
+    SimultaneousDefensivePortfolioSelection, SimultaneousDefensiveSelectionError,
 };
 
 /// Maximum number of explicit epistemic scenarios in one robust campaign.
@@ -119,16 +116,26 @@ pub enum ScenarioRobustSelectionError {
 impl core::fmt::Display for ScenarioRobustSelectionError {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let message = match self {
-            Self::InvalidFamilyAlpha => "robust family alpha must lie strictly between zero and one",
+            Self::InvalidFamilyAlpha => {
+                "robust family alpha must lie strictly between zero and one"
+            }
             Self::EmptyScenarioSet => "at least one epistemic scenario is required",
             Self::TooManyScenarios => "epistemic scenario set exceeds its configured limit",
             Self::InvalidOrDuplicateScenarioIdentity => "scenario identity is zero or duplicated",
-            Self::InconsistentPortfolioUniverse => "scenario entries use inconsistent portfolio universes",
+            Self::InconsistentPortfolioUniverse => {
+                "scenario entries use inconsistent portfolio universes"
+            }
             Self::TooManyPortfolios => "portfolio universe exceeds the bounded comparison limit",
             Self::InvalidBatchIndex => "scenario batch index is not the next consecutive index",
-            Self::InvalidOrDuplicateBatchIdentity => "scenario batch identity is zero or duplicated",
-            Self::IncompleteScenarioBatch => "scenario batch does not contain every frozen scenario",
-            Self::InvalidScenarioDrawIdentity => "scenario draw identity is duplicated or mismatched",
+            Self::InvalidOrDuplicateBatchIdentity => {
+                "scenario batch identity is zero or duplicated"
+            }
+            Self::IncompleteScenarioBatch => {
+                "scenario batch does not contain every frozen scenario"
+            }
+            Self::InvalidScenarioDrawIdentity => {
+                "scenario draw identity is duplicated or mismatched"
+            }
             Self::ScenarioUpdateFailure => "one scenario portfolio update failed",
             Self::NumericalFailure => "robust scenario comparison failed numerically",
         };
@@ -218,9 +225,7 @@ impl ScenarioRobustPortfolioSelection {
         }
 
         let per_scenario_alpha = family_alpha / proposals.len() as f64;
-        if !per_scenario_alpha.is_finite()
-            || per_scenario_alpha <= 0.0
-            || per_scenario_alpha >= 1.0
+        if !per_scenario_alpha.is_finite() || per_scenario_alpha <= 0.0 || per_scenario_alpha >= 1.0
         {
             return Err(ScenarioRobustSelectionError::NumericalFailure);
         }
@@ -262,8 +267,7 @@ impl ScenarioRobustPortfolioSelection {
             .batch_count
             .checked_add(1)
             .ok_or(ScenarioRobustSelectionError::InvalidBatchIndex)?;
-        if batch.batch_index != expected_index
-            || batch.batch_index > MAX_ROBUST_SCENARIO_BATCHES
+        if batch.batch_index != expected_index || batch.batch_index > MAX_ROBUST_SCENARIO_BATCHES {
         {
             return Err(ScenarioRobustSelectionError::InvalidBatchIndex);
         }
@@ -324,9 +328,7 @@ impl ScenarioRobustPortfolioSelection {
     }
 
     /// Report per-scenario evidence and robust dominance without scenario averaging.
-    pub fn report(
-        &self,
-    ) -> Result<ScenarioRobustPortfolioReport, ScenarioRobustSelectionError> {
+    pub fn report(&self) -> Result<ScenarioRobustPortfolioReport, ScenarioRobustSelectionError> {
         let scenario_reports = self
             .entries
             .iter()
@@ -393,8 +395,7 @@ impl ScenarioRobustPortfolioSelection {
                     opponent_beats_candidate_in_every_scenario &= opponent_proven_better;
                 }
 
-                beats_every_other_in_every_scenario &=
-                    candidate_beats_opponent_in_every_scenario;
+                beats_every_other_in_every_scenario &= candidate_beats_opponent_in_every_scenario;
                 robustly_dominated |= opponent_beats_candidate_in_every_scenario;
             }
 
@@ -448,11 +449,7 @@ mod tests {
         }
     }
 
-    fn component(
-        component_id: u8,
-        portfolio: u8,
-        scenario: u8,
-    ) -> DefensiveProposalComponent {
+    fn component(component_id: u8, portfolio: u8, scenario: u8) -> DefensiveProposalComponent {
         DefensiveProposalComponent {
             component_id: [component_id; 32],
             mode_key: key(portfolio, scenario),
@@ -516,10 +513,12 @@ mod tests {
             point: vec![0.0],
             portfolio_consequences: outcomes
                 .iter()
-                .map(|(portfolio, consequence_ticks)| PortfolioConsequenceObservation {
-                    portfolio_id: [*portfolio; 32],
-                    consequence_ticks: *consequence_ticks,
-                })
+                .map(
+                    |(portfolio, consequence_ticks)| PortfolioConsequenceObservation {
+                        portfolio_id: [*portfolio; 32],
+                        consequence_ticks: *consequence_ticks,
+                    },
+                )
                 .collect(),
         }
     }
@@ -610,8 +609,14 @@ mod tests {
         }
 
         let report = process.report().unwrap();
-        assert_eq!(report.scenario_reports[0].report.unique_best_portfolio_id, Some([10; 32]));
-        assert_eq!(report.scenario_reports[1].report.unique_best_portfolio_id, Some([30; 32]));
+        assert_eq!(
+            report.scenario_reports[0].report.unique_best_portfolio_id,
+            Some([10; 32])
+        );
+        assert_eq!(
+            report.scenario_reports[1].report.unique_best_portfolio_id,
+            Some([30; 32])
+        );
         assert_eq!(report.unique_robust_best_portfolio_id, None);
         assert_eq!(
             report.robustly_undominated_portfolio_ids,
@@ -665,12 +670,14 @@ mod tests {
             Err(ScenarioRobustSelectionError::ScenarioUpdateFailure)
         );
         assert_eq!(process.batch_count(), 0);
-        assert!(process
-            .report()
-            .unwrap()
-            .scenario_reports
-            .iter()
-            .all(|snapshot| snapshot.report.draw_count == 0));
+        assert!(
+            process
+                .report()
+                .unwrap()
+                .scenario_reports
+                .iter()
+                .all(|snapshot| snapshot.report.draw_count == 0)
+        );
     }
 
     #[test]
