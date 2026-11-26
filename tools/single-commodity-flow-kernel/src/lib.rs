@@ -411,7 +411,7 @@ impl FlowGraph {
         if source_side.len() != result.source_side_nodes.len()
             || !source_side.contains(self.source.as_str())
             || source_side.contains(self.sink.as_str())
-            || source_side.iter().any(|node| !known_nodes.contains(node))
+            || source_side.iter().any(|node| !known_nodes.contains(*node))
         {
             return Err(FlowError::new("invalid residual source-side node set"));
         }
@@ -482,7 +482,6 @@ impl FlowGraph {
         }
 
         let mut edge_ids = BTreeSet::new();
-        let mut source_capacity = 0_u64;
         for edge in &self.edges {
             if edge.id.trim().is_empty() {
                 return Err(FlowError::new("edge IDs must be non-empty"));
@@ -501,11 +500,6 @@ impl FlowGraph {
                     "edge {} has a dangling endpoint",
                     edge.id
                 )));
-            }
-            if edge.from == self.source {
-                source_capacity = source_capacity
-                    .checked_add(edge.capacity)
-                    .ok_or_else(|| FlowError::new("sum of source capacities overflowed u64"))?;
             }
         }
         Ok(())
