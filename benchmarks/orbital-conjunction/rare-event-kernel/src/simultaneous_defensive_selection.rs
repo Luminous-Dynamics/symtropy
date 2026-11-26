@@ -615,7 +615,6 @@ impl SimultaneousDefensivePortfolioSelection {
             scenario_id: self.proposal.scenario_id(),
             configuration_digest: self.proposal.configuration_digest(),
             effective_defensive_fraction: epsilon,
-            consequence_unit_id: self.consequence_unit_id,
         })
     }
 }
