@@ -131,6 +131,7 @@ pub enum ContractError {
     MissingRequiredDeadline,
     NoRequiredStages,
     MissingMigrationStage,
+    MigrationRequiresProvenance,
     RequiredStageDuplicated,
     ObservedStageDuplicated,
     ObjectAccountingOverflow,
@@ -209,8 +210,13 @@ pub fn score(
     if contains_duplicate_stages(&contract.required_stages) {
         return Err(ContractError::RequiredStageDuplicated);
     }
+    if contract.migration_required && !contract.provenance_required {
+        return Err(ContractError::MigrationRequiresProvenance);
+    }
     if contract.migration_required
         && [
+            Stage::PhysicalRead,
+            Stage::FixityAndManifest,
             Stage::MigrationWrite,
             Stage::MigrationReadback,
             Stage::DestinationVerify,
@@ -552,6 +558,23 @@ mod tests {
         assert_eq!(
             score(&incomplete_contract, &passing_receipt()),
             Err(ContractError::MissingMigrationStage)
+        );
+    }
+
+    #[test]
+    fn migration_requires_source_read_fixity_and_provenance_stages() {
+        let mut no_source_read = migration_contract();
+        no_source_read.required_stages.retain(|stage| *stage != Stage::PhysicalRead);
+        assert_eq!(
+            score(&no_source_read, &migration_receipt()),
+            Err(ContractError::MissingMigrationStage)
+        );
+
+        let mut no_provenance = migration_contract();
+        no_provenance.provenance_required = false;
+        assert_eq!(
+            score(&no_provenance, &migration_receipt()),
+            Err(ContractError::MigrationRequiresProvenance)
         );
     }
 
