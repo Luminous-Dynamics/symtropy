@@ -35,7 +35,7 @@ cargo clippy --manifest-path research/directional-motion-envelopes/v0.1/Cargo.to
 - Mixed-sign 2D displacement intervals and directional rather than symmetric padding.
 - Endpoint-box containment, stationary bounds and explicit guard expansion.
 - 4D reference use.
-- Semi-implicit Euler post-velocity sweep, endpoint enclosure, Q16.16 deterministic-net guard, rotation fallback, and receipt replay over velocity/timestep/quantization inputs.
+- Semi-implicit Euler post-velocity sweep, endpoint enclosure, Q16.16 deterministic-net guard, rotation and skipped-body fallbacks, and receipt replay over velocity/timestep/quantization/participation inputs.
 - Unsupported rotation/unbounded motion returns no certificate.
 - Replay rejection for changed identity, revision, horizon, arithmetic profile or displacement.
 - Invalid identities, intervals, guards, bounds and arithmetic overflow.
