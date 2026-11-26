@@ -678,6 +678,7 @@ fn validate_candidate(
         replay.spot_check.manifest_sha256.clone(),
         "SPOT_CHECK_MANIFEST_DIGEST_MISMATCH",
     )?;
+    verified += 1;
     if selected
         != &replay
             .spot_check
@@ -802,7 +803,7 @@ fn validate_candidate(
     if action_index.attempts.len() != 3 || action_receipt.attempts.len() != 3 {
         return Err("ACTION_PREFIX_ATTEMPT_COUNT_NOT_THREE".to_owned());
     }
-    let mut verified = 10usize; // source episode + instruction + index + four profiles + policy roster + two receipt bundles
+    let mut verified = 11usize; // source episode + instruction + index + four profiles + policy roster + two receipt bundles + selection record
     for (index, attempt_id) in selected.iter().enumerate() {
         let expected_policy = &selected_policies[index];
         let reset = &reset_bundle.attempts[index];
@@ -1198,6 +1199,71 @@ mod tests {
         });
         let action_receipt = write_json(&root, "receipts/action-prefix.json", &action_receipt_value);
 
+        let selected_attempt_ids = vec![
+            "attempt-0".to_owned(),
+            "attempt-1".to_owned(),
+            "attempt-2".to_owned(),
+        ];
+        let selection_record_value = serde_json::json!({
+            "schema_version":"0.1",
+            "seed":42,
+            "selection_method_id":"upstream-seed42",
+            "selected_attempt_ids":selected_attempt_ids
+        });
+        let selection_record_bytes =
+            serde_json::to_vec(&selection_record_value).expect("selection record bytes");
+        let selection_record = write_bytes(
+            &root,
+            "receipts/selection-record.json",
+            &selection_record_bytes,
+        );
+
+        let mut spot_attempts = Vec::new();
+        for index in 0..3 {
+            let attempt_id = format!("attempt-{index}");
+            let mut final_frame_pairs = Vec::new();
+            for frame_index in 0..5 {
+                let original_path =
+                    format!("frames/original-{attempt_id}-{frame_index}.frame");
+                let replay_path =
+                    format!("frames/replay-{attempt_id}-{frame_index}.frame");
+                let original_bytes =
+                    format!("original-frame-bytes:{attempt_id}:{frame_index}");
+                let replay_bytes =
+                    format!("replay-frame-bytes:{attempt_id}:{frame_index}");
+                let original_frame =
+                    write_bytes(&root, &original_path, original_bytes.as_bytes());
+                let replay_frame =
+                    write_bytes(&root, &replay_path, replay_bytes.as_bytes());
+                final_frame_pairs.push(FramePairAsset {
+                    frame_index: frame_index as u8,
+                    original_path: original_frame.relative_path,
+                    original_sha256: original_frame.sha256,
+                    replay_path: replay_frame.relative_path,
+                    replay_sha256: replay_frame.sha256,
+                });
+            }
+            spot_attempts.push(SpotCheckAttempt {
+                attempt_id: attempt_id.clone(),
+                original_state_path: state_artifacts[index].0.relative_path.clone(),
+                original_state_sha256: state_artifacts[index].0.sha256.clone(),
+                replay_state_path: state_artifacts[index].1.relative_path.clone(),
+                replay_state_sha256: state_artifacts[index].1.sha256.clone(),
+                final_frame_pairs,
+            });
+        }
+        let mut spot_check = SpotCheck {
+            seed: 42,
+            selection_method_id: "upstream-seed42".to_owned(),
+            selection_record_path: selection_record.relative_path,
+            selection_record_sha256: selection_record.sha256,
+            selected_attempt_ids,
+            attempts: spot_attempts,
+            manifest_sha256: String::new(),
+        };
+        spot_check.manifest_sha256 =
+            spot_check_manifest_digest(&spot_check).expect("spot-check digest");
+
         let replay = serde_json::json!({
             "schema_version":"0.1","benchmark":"RRVR-REPLAY-FIDELITY",
             "profile_id":"RoboRecoverPublishedThresholdsV1",
@@ -1229,16 +1295,7 @@ mod tests {
                         "success":i<2
                     })
                 }).collect::<Vec<_>>()},
-                "spot_check":{
-                    "seed":42,
-                    "selection_method_id":"upstream-seed42",
-                    "selected_attempt_ids":["attempt-0","attempt-1","attempt-2"],
-                    "attempts":[
-                        {"attempt_id":"attempt-0","original_state_path":state_artifacts[0].0.relative_path,"original_state_sha256":state_artifacts[0].0.sha256,"replay_state_path":state_artifacts[0].1.relative_path,"replay_state_sha256":state_artifacts[0].1.sha256},
-                        {"attempt_id":"attempt-1","original_state_path":state_artifacts[1].0.relative_path,"original_state_sha256":state_artifacts[1].0.sha256,"replay_state_path":state_artifacts[1].1.relative_path,"replay_state_sha256":state_artifacts[1].1.sha256},
-                        {"attempt_id":"attempt-2","original_state_path":state_artifacts[2].0.relative_path,"original_state_sha256":state_artifacts[2].0.sha256,"replay_state_path":state_artifacts[2].1.relative_path,"replay_state_sha256":state_artifacts[2].1.sha256}
-                    ]
-                }
+                "spot_check":serde_json::to_value(&spot_check).expect("serialize spot-check manifest")
             }]
         });
         let replay_json = serde_json::to_string(&replay).expect("replay json");
@@ -1270,7 +1327,7 @@ mod tests {
         assert_eq!(report.valid_n, 1);
         assert_eq!(report.invalid_n, 0);
         assert_eq!(report.candidate_reports[0].selected_attempt_n, 3);
-        assert_eq!(report.candidate_reports[0].verified_artifact_n, 19);
+        assert_eq!(report.candidate_reports[0].verified_artifact_n, 50);
     }
 
     #[test]
