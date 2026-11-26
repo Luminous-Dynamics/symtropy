@@ -535,8 +535,8 @@ mod tests {
     fn frozen_safety_claim_corpus_matches_expected_dispositions() {
         let receipt = audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567")
             .expect("safety corpus audits");
-        assert_eq!(receipt.case_count, 24);
-        assert_eq!(receipt.expected_disposition_matches, 24);
+        assert_eq!(receipt.case_count, 26);
+        assert_eq!(receipt.expected_disposition_matches, 26);
         assert_eq!(receipt.expected_disposition_mismatches, 0);
         assert!(!receipt.source_bytes_authenticated);
         assert!(!receipt.authority_granted);
@@ -662,6 +662,30 @@ mod tests {
             let case = input.cases.iter().find(|case| case.case_id == id).unwrap();
             assert_eq!(evaluate_case(case).disposition, Disposition::InvalidInput);
         }
+    }
+
+    #[test]
+    fn half_open_validity_boundaries_distinguish_action_horizon_from_terminal_epoch() {
+        let input = corpus();
+        let finite = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "SA-025-FINITE-VALID-UNTIL-EQUALS-ACTION-END")
+            .unwrap();
+        let terminal = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "SA-026-TERMINAL-VALID-UNTIL-EQUALS-EPOCH")
+            .unwrap();
+
+        assert_eq!(
+            evaluate_case(finite).disposition,
+            Disposition::SafetyClaimsComplete
+        );
+        assert_eq!(
+            evaluate_case(terminal).disposition,
+            Disposition::OutOfScope
+        );
     }
 
     #[test]
