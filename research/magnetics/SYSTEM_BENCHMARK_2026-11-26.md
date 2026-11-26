@@ -15,7 +15,7 @@ Do not put magnetic field solvers, Hall latches, magnetic absolute encoders and 
 | RLS AksIM-4 HIPERFACE DSL (MCD06) | 20/22-bit variants; 53/80 mm rings; system accuracy ±0.006° (MC053) / ±0.004° (MC080); readhead -40°C to +115°C and ring -40°C to +125°C; current product page links MCD06 | Most relevant current RLS HDSL magnetic absolute comparator; exact variant, ring and calibration must match | An installed accuracy result or a generic accuracy guarantee for every AksIM-4 |
 | RLS AksIM-4 Dual Concentric | Two absolute channels in one encoder; 19-bit input and output; stated system accuracy up to ±0.010°; -40°C to +105°C | Dual-sensor robot-joint feedback and compact dual-measurement architectures | A single-channel Hall latch |
 | Renishaw RESOLUTE ETR (RESA30) | Optical absolute rotary system; current ETR datasheet reports typical installed accuracy ±12.7 arcsec at 52 mm, ±4.3 arcsec at 200 mm and ±1.9 arcsec at 550 mm; corresponding maximum reading speeds 18,000, 4,750 and 1,700 rpm. The datasheet explicitly notes 32-bit resolution below the encoder noise floor. | Optical installed-angle/metrology reference and independent rotor-angle truth source | A direct magnetic BOM/environment competitor without application normalization |
-| Magpylib Material Response 0.15.0 | 25 Nov 2026 release adds analytical and face-charge WASM field kernels checked against shared 50-digit references; face-charge runs through JAX/PyTorch with JIT and gradients; release changelog reports a far-axis cylinder numerical-stability case | Open field-kernel, differentiable face-charge and numerical-stability reference | A replacement for nonlinear/anisotropic FEM or physical metrology |
+| Magpylib Material Response 0.15.0 | 25 Nov 2026 release adds analytical and face-charge WASM field kernels checked against shared 50-digit references; face-charge runs through JAX/PyTorch with JIT and gradients; changelog reports a cylinder far-axis stability regression at 576 radii where the previous formula could lose up to 29% of digits | Open field-kernel, differentiable face-charge and numerical-stability reference | A replacement for nonlinear/anisotropic FEM or physical metrology |
 
 Sources:
 - TI TMAG5110/TMAG5111 product page: https://www.ti.com/product/TMAG5111
@@ -30,6 +30,7 @@ Sources:
 - Magpylib Material Response 0.15.0 changelog: https://magpylib-material-response.readthedocs.io/en/stable/changelog.html
 - Magpylib Material Response 0.15.0 PyPI release and artifact digests: https://pypi.org/project/magpylib-material-response/0.15.0/
 - Magpylib Material Response 0.15.0 source commit: https://github.com/magpylib/magpylib-material-response/commit/492b37459a47f4220d7e44380668c2d9ab720784
+- Magpylib Material Response 0.15.0 changelog (576-radius cylinder stress case): https://magpylib-material-response.readthedocs.io/en/stable/changelog.html
 - Insinga and Bjørk, “Gradient-based optimization of permanent-magnet assemblies for any objective”, Physical Review Applied 20, 064030 (2023): https://doi.org/10.1103/PhysRevApplied.20.064030
 
 Important qualification note: TI product-page operating-point summaries include typical and maximum values for different device variants; the Rev D datasheet's threshold curves are typical characteristics. Do not turn a typical curve or graph digitization into a guaranteed tolerance interval. Obtain the exact part suffix, guaranteed electrical table, temperature/supply conditions and traceable component characterization before creating a hard sensor bound.
@@ -76,6 +77,8 @@ Do not apply these thresholds to a different model class merely because both sol
 Pin artifact hashes, source commit, dependency versions, runtime, precision, backend, inputs and reference data. For the 0.15.0 wheel, PyPI reports SHA-256 `31ba18ce68114fc67627f4baa83d9a578041b79afae62632857b35bf818eda2f`; the source distribution is `763c6d111abf59a0823ff35b83e31b7a7a8d24ca5a46239ab9374e14a807ab99`.
 
 Compare field values and derivatives independently. Check rotational/translation covariance, scale laws, source superposition, mesh/panel refinement, finite-difference step stability, near-axis/far-field behaviour and degenerate geometry. JAX eager/JIT, PyTorch eager, WASM and high-precision reference runs need matched numerical tolerances before speed comparisons.
+
+Add a pinned cylinder-axis stress case at 576 cylinder radii. Magpylib Material Response 0.15.0's changelog reports that the previous formula could lose up to 29% of digits at that distance and that the new kernel preserves high-precision reference digits. Reproduce with fixed cylinder geometry, observer coordinate and independent high-precision reference; compare 0.14.x and 0.15.0 artifact hashes, normalized vector error and derivative behaviour. This is an upstream-reported regression target, not a Symtropy result until independently reproduced.
 
 Inverse design should use differentiable fast models for exploration, then re-check finalists with independent FEM/refinement and calibrated physical measurements. A differentiable solver is an optimizer aid, not proof that the physical design is correct.
 
@@ -173,3 +176,14 @@ A specific claim boundary follows from the current market: AksIM-4's high-resolu
 ## Claim boundary
 
 This file sets proposed benchmark protocols and target gates. It does not report benchmark completion, physical measurement, commercial superiority, global design optimality or certification.
+
+## 7. Validated sensitivity and global-search research (26 November 2026)
+
+The new software research layers are separate and conditional:
+- [#7536](https://github.com/Luminous-Dynamics/symtropy/issues/7536) / [#7635](https://github.com/Luminous-Dynamics/symtropy/pull/7635): qualify directional gradients against independent references and central-difference plateaus.
+- [#7653](https://github.com/Luminous-Dynamics/symtropy/issues/7653) / [#7655](https://github.com/Luminous-Dynamics/symtropy/pull/7655): interval forward-mode AD, currently limited to algebraic/rational expressions and square root, producing cell-wide derivative enclosures under a declared binary64 outward-expansion model.
+- [#7639](https://github.com/Luminous-Dynamics/symtropy/issues/7639) / [#7642](https://github.com/Luminous-Dynamics/symtropy/pull/7642): continuous-domain functional-margin certification, conditional on valid component-wise derivative supremum bounds over each cell.
+- [#7658](https://github.com/Luminous-Dynamics/symtropy/issues/7658) / [#7660](https://github.com/Luminous-Dynamics/symtropy/pull/7660): interval branch-and-bound for a single scalar objective and robust margin. v0.1 keeps one unsplit nuisance box and is stacked on interval AD.
+
+These are research implementations, not verified product capabilities or SOTA results. The global-search branch is intentionally stacked; current CI filters PR runs to `main`, so #7660 does not yet receive a standalone PR-triggered matrix run. Do not report absent checks as queued or passed.
+
