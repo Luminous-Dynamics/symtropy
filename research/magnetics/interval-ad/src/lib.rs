@@ -349,7 +349,7 @@ impl<const N: usize> IntervalDual<N> {
             }
             remaining >>= 1;
             if remaining > 0 {
-                power = power * power;
+                power = power.square();
             }
         }
         if exponent < 0 {
