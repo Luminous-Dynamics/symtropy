@@ -9,6 +9,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
+#[cfg(test)]
 const PACKET: &str =
     include_str!("../../../../docs/research/aviation/examples/aero_evidence_gap_packet_v0_1.json");
 
