@@ -152,7 +152,7 @@ fn transformed_obb_gjk_matches_seeded_independent_sat_reference() {
     let mut false_negatives = 0usize;
     let mut translation_only_disagreements = 0usize;
 
-    for case_id in 0..CASES {
+    for _ in 0..CASES {
         let angle_a = sample_range(&mut state, -PI, PI);
         let angle_b = sample_range(&mut state, -PI, PI);
         let center_b = [
@@ -208,4 +208,112 @@ fn transformed_obb_gjk_matches_seeded_independent_sat_reference() {
         translation_only_disagreements > CASES / 10,
         "negative control was too weak: only {translation_only_disagreements}/{CASES} translation-only cases disagreed"
     );
+    println!(
+        "OBB seed: cases={CASES}, false_positives={false_positives}, false_negatives={false_negatives}, translation_only_disagreements={translation_only_disagreements}"
+    );
+}
+
+fn rotate_point(point: [f64; 2], angle: f64) -> [f64; 2] {
+    let (sin, cos) = angle.sin_cos();
+    [
+        cos * point[0] - sin * point[1],
+        sin * point[0] + cos * point[1],
+    ]
+}
+
+#[test]
+fn transformed_obb_classification_is_invariant_under_common_rigid_motion() {
+    const CASES: usize = 1_024;
+    const SEED: u64 = 0x4d45_5441_4d4f_5250;
+
+    let half_a = [1.0, 0.5];
+    let half_b = [0.75, 0.35];
+    let shape_a = HyperBox::<2>::new(half_a);
+    let shape_b = HyperBox::<2>::new(half_b);
+    let center_a = [0.0, 0.0];
+    let mut state = SEED;
+
+    for _ in 0..CASES {
+        let angle_a = sample_range(&mut state, -PI, PI);
+        let angle_b = sample_range(&mut state, -PI, PI);
+        let center_b = [
+            sample_range(&mut state, -2.5, 2.5),
+            sample_range(&mut state, -2.0, 2.0),
+        ];
+        let global_rotation = sample_range(&mut state, -PI, PI);
+        let translation = [
+            sample_range(&mut state, -10.0, 10.0),
+            sample_range(&mut state, -10.0, 10.0),
+        ];
+
+        let base_expected =
+            obb_sat_reference(center_a, half_a, angle_a, center_b, half_b, angle_b);
+        let base_observed = gjk::intersects_transformed(
+            &shape_a,
+            &Transform {
+                translation: Point::new(center_a),
+                rotation: rotor_2d(angle_a),
+            },
+            &shape_b,
+            &Transform {
+                translation: Point::new(center_b),
+                rotation: rotor_2d(angle_b),
+            },
+        )
+        .intersecting;
+
+        let moved_center_a = rotate_point(center_a, global_rotation);
+        let moved_center_b = rotate_point(center_b, global_rotation);
+        let moved_center_a = [
+            moved_center_a[0] + translation[0],
+            moved_center_a[1] + translation[1],
+        ];
+        let moved_center_b = [
+            moved_center_b[0] + translation[0],
+            moved_center_b[1] + translation[1],
+        ];
+        let moved_angle_a = angle_a + global_rotation;
+        let moved_angle_b = angle_b + global_rotation;
+
+        let moved_expected = obb_sat_reference(
+            moved_center_a,
+            half_a,
+            moved_angle_a,
+            moved_center_b,
+            half_b,
+            moved_angle_b,
+        );
+        let moved_observed = gjk::intersects_transformed(
+            &shape_a,
+            &Transform {
+                translation: Point::new(moved_center_a),
+                rotation: rotor_2d(moved_angle_a),
+            },
+            &shape_b,
+            &Transform {
+                translation: Point::new(moved_center_b),
+                rotation: rotor_2d(moved_angle_b),
+            },
+        )
+        .intersecting;
+
+        assert_eq!(
+            moved_expected, base_expected,
+            "independent SAT changed under common rigid motion"
+        );
+        assert_eq!(
+            moved_observed, base_observed,
+            "transformed GJK changed under common rigid motion"
+        );
+        assert_eq!(
+            base_observed, base_expected,
+            "base transformed GJK disagreed with independent SAT"
+        );
+        assert_eq!(
+            moved_observed, moved_expected,
+            "moved transformed GJK disagreed with independent SAT"
+        );
+    }
+
+    println!("OBB metamorphic seed: common rigid-motion cases={CASES}, mismatches=0");
 }
