@@ -659,11 +659,7 @@ mod tests {
         input.samples[4].mechanical_angle_rad += 0.001;
 
         assert!(matches!(
-            evaluate_bounded_trace(
-                &input,
-                &requirements(2, 1),
-                &angular_error(0.0, 0.0)
-            ),
+            evaluate_bounded_trace(&input, &requirements(2, 1), &angular_error(0.0, 0.0)),
             Err(BoundedEvaluationError::NonUniformOrIncompleteRevolution { .. })
         ));
     }
