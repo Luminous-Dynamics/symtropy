@@ -59,6 +59,7 @@ pub struct WorkloadContract {
     pub deadline_required: bool,
     pub manifest_required: bool,
     pub provenance_required: bool,
+    pub migration_required: bool,
     pub energy_metering_required: bool,
     /// Frozen energy boundary; None is valid only when energy is not required.
     pub required_energy_boundary: Option<EnergyBoundary>,
@@ -92,6 +93,11 @@ pub struct ServiceReceipt {
     pub expected_digest_status: EvidenceStatus,
     pub manifest_status: EvidenceStatus,
     pub provenance_status: EvidenceStatus,
+    /// For migration trials, source and destination payload digests are
+    /// independently checked against scorer-held expectations.
+    pub source_digest_status: EvidenceStatus,
+    pub destination_digest_status: EvidenceStatus,
+    pub migration_lineage_status: EvidenceStatus,
     pub reader_path_ids: Vec<String>,
     pub reader_independence_status: EvidenceStatus,
     pub reader_agreement_status: EvidenceStatus,
@@ -124,6 +130,7 @@ pub enum ContractError {
     ZeroElapsedTime,
     MissingRequiredDeadline,
     NoRequiredStages,
+    MissingMigrationStage,
     RequiredStageDuplicated,
     ObservedStageDuplicated,
     ObjectAccountingOverflow,
@@ -201,6 +208,16 @@ pub fn score(
     }
     if contains_duplicate_stages(&contract.required_stages) {
         return Err(ContractError::RequiredStageDuplicated);
+    }
+    if contract.migration_required
+        && [
+            Stage::MigrationWrite,
+            Stage::MigrationReadback,
+            Stage::DestinationVerify,
+            Stage::ProvenanceAcceptance,
+        ].iter().any(|required| !contract.required_stages.contains(required))
+    {
+        return Err(ContractError::MissingMigrationStage);
     }
 
     let observed_stages: Vec<Stage> =
@@ -289,6 +306,10 @@ pub fn score(
     let hard_evidence_failure = receipt.expected_digest_status == EvidenceStatus::Fail
         || (contract.manifest_required && receipt.manifest_status == EvidenceStatus::Fail)
         || (contract.provenance_required && receipt.provenance_status == EvidenceStatus::Fail)
+        || (contract.migration_required
+            && (receipt.source_digest_status == EvidenceStatus::Fail
+                || receipt.destination_digest_status == EvidenceStatus::Fail
+                || receipt.migration_lineage_status == EvidenceStatus::Fail))
         || (contract.independent_reader_paths_required
             && (receipt.reader_independence_status == EvidenceStatus::Fail
                 || receipt.reader_agreement_status == EvidenceStatus::Fail))
@@ -314,6 +335,10 @@ pub fn score(
             || receipt.manifest_status == EvidenceStatus::NotEvaluated)
         && (!contract.provenance_required
             || receipt.provenance_status == EvidenceStatus::NotEvaluated)
+        && (!contract.migration_required
+            || (receipt.source_digest_status == EvidenceStatus::NotEvaluated
+                && receipt.destination_digest_status == EvidenceStatus::NotEvaluated
+                && receipt.migration_lineage_status == EvidenceStatus::NotEvaluated))
         && (!contract.independent_reader_paths_required
             || (receipt.reader_independence_status == EvidenceStatus::NotEvaluated
                 && receipt.reader_agreement_status == EvidenceStatus::NotEvaluated))
@@ -340,6 +365,10 @@ pub fn score(
             || receipt.expected_digest_status != EvidenceStatus::Pass
             || (contract.manifest_required && receipt.manifest_status != EvidenceStatus::Pass)
             || (contract.provenance_required && receipt.provenance_status != EvidenceStatus::Pass)
+            || (contract.migration_required
+                && (receipt.source_digest_status != EvidenceStatus::Pass
+                    || receipt.destination_digest_status != EvidenceStatus::Pass
+                    || receipt.migration_lineage_status != EvidenceStatus::Pass))
             || (contract.independent_reader_paths_required
                 && (receipt.reader_path_ids.len() < 2
                     || receipt.reader_independence_status != EvidenceStatus::Pass
@@ -359,6 +388,10 @@ pub fn score(
     let required_evidence_incomplete = receipt.expected_digest_status != EvidenceStatus::Pass
         || (contract.manifest_required && receipt.manifest_status != EvidenceStatus::Pass)
         || (contract.provenance_required && receipt.provenance_status != EvidenceStatus::Pass)
+        || (contract.migration_required
+            && (receipt.source_digest_status != EvidenceStatus::Pass
+                || receipt.destination_digest_status != EvidenceStatus::Pass
+                || receipt.migration_lineage_status != EvidenceStatus::Pass))
         || (contract.independent_reader_paths_required
             && (receipt.reader_path_ids.len() < 2
                 || receipt.reader_independence_status != EvidenceStatus::Pass
@@ -401,6 +434,7 @@ mod tests {
             deadline_required: true,
             manifest_required: true,
             provenance_required: true,
+            migration_required: false,
             energy_metering_required: true,
             required_energy_boundary: Some(EnergyBoundary::WholeService),
             independent_reader_paths_required: true,
@@ -433,6 +467,9 @@ mod tests {
             expected_digest_status: EvidenceStatus::Pass,
             manifest_status: EvidenceStatus::Pass,
             provenance_status: EvidenceStatus::Pass,
+            source_digest_status: EvidenceStatus::NotRequired,
+            destination_digest_status: EvidenceStatus::NotRequired,
+            migration_lineage_status: EvidenceStatus::NotRequired,
             reader_path_ids: vec!["reader-path-a".into(), "reader-path-b".into()],
             reader_independence_status: EvidenceStatus::Pass,
             reader_agreement_status: EvidenceStatus::Pass,
@@ -448,6 +485,74 @@ mod tests {
                 StageObservation { stage, elapsed_ms: 100, evidence_present: true }
             }).collect(),
         }
+    }
+
+    fn migration_contract() -> WorkloadContract {
+        let mut value = contract();
+        value.migration_required = true;
+        value.required_stages.extend([
+            Stage::MigrationWrite,
+            Stage::MigrationReadback,
+            Stage::DestinationVerify,
+        ]);
+        value
+    }
+
+    fn migration_receipt() -> ServiceReceipt {
+        let mut value = passing_receipt();
+        value.source_digest_status = EvidenceStatus::Pass;
+        value.destination_digest_status = EvidenceStatus::Pass;
+        value.migration_lineage_status = EvidenceStatus::Pass;
+        value.stage_observations.extend([
+            Stage::MigrationWrite,
+            Stage::MigrationReadback,
+            Stage::DestinationVerify,
+        ].into_iter().map(|stage| StageObservation {
+            stage,
+            elapsed_ms: 250,
+            evidence_present: true,
+        }));
+        value
+    }
+
+    #[test]
+    fn migration_requires_source_destination_and_lineage_evidence() {
+        assert_eq!(
+            score(&migration_contract(), &migration_receipt()).unwrap().disposition,
+            ServiceDisposition::Pass
+        );
+
+        let mut source_bad = migration_receipt();
+        source_bad.source_digest_status = EvidenceStatus::Fail;
+        assert_eq!(
+            score(&migration_contract(), &source_bad).unwrap().disposition,
+            ServiceDisposition::Fail
+        );
+
+        let mut destination_bad = migration_receipt();
+        destination_bad.destination_digest_status = EvidenceStatus::Fail;
+        assert_eq!(
+            score(&migration_contract(), &destination_bad).unwrap().disposition,
+            ServiceDisposition::Fail
+        );
+
+        let mut lineage_missing = migration_receipt();
+        lineage_missing.migration_lineage_status = EvidenceStatus::Incomplete;
+        lineage_missing.candidate_claimed_full_success = false;
+        assert_eq!(
+            score(&migration_contract(), &lineage_missing).unwrap().disposition,
+            ServiceDisposition::Incomplete
+        );
+    }
+
+    #[test]
+    fn migration_contract_cannot_omit_destination_or_lineage_stages() {
+        let mut incomplete_contract = contract();
+        incomplete_contract.migration_required = true;
+        assert_eq!(
+            score(&incomplete_contract, &passing_receipt()),
+            Err(ContractError::MissingMigrationStage)
+        );
     }
 
     #[test]
@@ -619,6 +724,9 @@ mod tests {
         receipt.expected_digest_status = EvidenceStatus::NotEvaluated;
         receipt.manifest_status = EvidenceStatus::NotEvaluated;
         receipt.provenance_status = EvidenceStatus::NotEvaluated;
+        receipt.source_digest_status = EvidenceStatus::NotEvaluated;
+        receipt.destination_digest_status = EvidenceStatus::NotEvaluated;
+        receipt.migration_lineage_status = EvidenceStatus::NotEvaluated;
         receipt.reader_independence_status = EvidenceStatus::NotEvaluated;
         receipt.reader_agreement_status = EvidenceStatus::NotEvaluated;
         receipt.reader_path_ids.clear();
