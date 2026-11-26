@@ -135,6 +135,7 @@ pub enum WatchContractError {
     EmptyRequiredSignals,
     DuplicateRequiredSignal,
     ZeroMinimumIndependentCopies,
+    CopyThresholdWithoutSignal,
     MissingIndependentCopyCount,
     CopyCountOnWrongSignal,
     InconsistentIndependentCopyEvidence,
@@ -284,8 +285,12 @@ pub fn evaluate_watch(
     if policy.required_signals.is_empty() {
         return Err(WatchContractError::EmptyRequiredSignals);
     }
-    if policy.minimum_independent_copies == 0 {
+    let copies_required = policy.required_signals.contains(&WatchSignal::IndependentCopies);
+    if copies_required && policy.minimum_independent_copies == 0 {
         return Err(WatchContractError::ZeroMinimumIndependentCopies);
+    }
+    if !copies_required && policy.minimum_independent_copies > 0 {
+        return Err(WatchContractError::CopyThresholdWithoutSignal);
     }
     if policy.required_signals.iter().enumerate().any(
         |(index, signal)| policy.required_signals[..index].contains(signal)
@@ -327,6 +332,9 @@ pub fn evaluate_watch(
             return Err(WatchContractError::HealthyStateWithAlertOnlyProvenance);
         }
         if observation.signal == WatchSignal::IndependentCopies {
+            if !copies_required {
+                return Err(WatchContractError::CopyThresholdWithoutSignal);
+            }
             if observation.observed_independent_copies.is_none() {
                 return Err(WatchContractError::MissingIndependentCopyCount);
             }
@@ -571,7 +579,7 @@ mod tests {
                 WatchSignal::Calibration,
                 WatchSignal::TrustAnchor,
             ],
-            minimum_independent_copies: 2,
+            minimum_independent_copies: 0,
         }
     }
 
@@ -771,6 +779,7 @@ mod tests {
     fn independent_copy_threshold_is_enforced_from_measured_count() {
         let mut copy_policy = policy();
         copy_policy.required_signals.push(WatchSignal::IndependentCopies);
+        copy_policy.minimum_independent_copies = 2;
         let mut observations = healthy_snapshot();
         let mut copies = observation(
             "COPIES-1",
@@ -791,6 +800,7 @@ mod tests {
     fn copy_count_and_reported_state_must_not_contradict() {
         let mut copy_policy = policy();
         copy_policy.required_signals.push(WatchSignal::IndependentCopies);
+        copy_policy.minimum_independent_copies = 2;
         let mut observations = healthy_snapshot();
         let mut copies = observation(
             "COPIES-1",
@@ -803,6 +813,23 @@ mod tests {
         assert_eq!(
             evaluate_watch("archive-A", 150, &copy_policy, &observations),
             Err(WatchContractError::InconsistentIndependentCopyEvidence)
+        );
+    }
+
+    #[test]
+    fn copy_threshold_requires_an_explicit_required_signal() {
+        let mut invalid_policy = policy();
+        invalid_policy.minimum_independent_copies = 2;
+        assert_eq!(
+            evaluate_watch("archive-A", 150, &invalid_policy, &healthy_snapshot()),
+            Err(WatchContractError::CopyThresholdWithoutSignal)
+        );
+
+        let mut zero_policy = policy();
+        zero_policy.required_signals.push(WatchSignal::IndependentCopies);
+        assert_eq!(
+            evaluate_watch("archive-A", 150, &zero_policy, &healthy_snapshot()),
+            Err(WatchContractError::ZeroMinimumIndependentCopies)
         );
     }
 
