@@ -516,7 +516,9 @@ fn score_arm(arm_id: ArmId, rows: &[&EpisodeRecord]) -> ArmScorecard {
         .collect::<Vec<_>>();
     let stale_effect = metric_from_optional(
         fenced_rows.len(),
-        fenced_rows.iter().map(|row| row.assurance.old_epoch_effect_after_fence),
+        fenced_rows
+            .iter()
+            .map(|row| row.assurance.old_epoch_effect_after_fence),
     );
 
     let admission_rows = rows
