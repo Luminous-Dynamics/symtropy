@@ -2,7 +2,7 @@
   "schema_version": "0.1",
   "benchmark": "AERB",
   "episode_id": "aerb-synthetic-0001",
-  "candidate_snapshot_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "candidate_snapshot_sha256": "e260a51dad40e1c4c3641712d1556aa1c8699bd97c6ab9198e5d565019ed181d",
   "model_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
   "observer_profile_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
   "possible_world_support_ids": [
