@@ -176,8 +176,8 @@ pub struct PortfolioMetric {
     pub portfolio_id: String,
     pub action_ids: Vec<String>,
     pub risk_screening_state: String,
-/// True only when the supplied post-action snapshot states BELOW_THRESHOLD.
-/// This field does not independently validate the snapshot issuer or Pc calculation.
+    /// True only when the supplied post-action snapshot states BELOW_THRESHOLD.
+    /// This field does not independently validate the snapshot issuer or Pc calculation.
     pub risk_snapshot_below_threshold: bool,
     /// min_s (L(no_action,s) - L(portfolio,s)); signed and never clamped.
     pub lower_bound_avoided_ticks: i64,
@@ -265,7 +265,9 @@ fn digest_ids(ids: &[String]) -> Result<String, String> {
 
 fn valid_id(value: &str) -> bool {
     !value.trim().is_empty()
-        && value.bytes().all(|byte| byte.is_ascii_graphic() || byte == b' ')
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_graphic() || byte == b' ')
 }
 
 fn valid_lower_hex(value: &str, length: usize) -> bool {
@@ -289,7 +291,9 @@ fn portfolio_identity(action_ids: &[String]) -> Result<(String, String), String>
     if sorted.windows(2).any(|pair| pair[0] == pair[1]) {
         return Err("coalition action IDs contain duplicates".to_owned());
     }
-    let payload = PortfolioIdPayload { action_ids: &sorted };
+    let payload = PortfolioIdPayload {
+        action_ids: &sorted,
+    };
     let digest = canonical_digest(&payload)?;
     Ok((format!("portfolio-{digest}"), digest))
 }
@@ -303,10 +307,16 @@ fn enumerate_portfolios(
     }
     let mut sorted = candidates.to_vec();
     sorted.sort_by(|left, right| left.action_id.cmp(&right.action_id));
-    if sorted.iter().any(|action| !valid_lower_hex(&action.action_id, 64)) {
+    if sorted
+        .iter()
+        .any(|action| !valid_lower_hex(&action.action_id, 64))
+    {
         return Err("candidate action identity must be lowercase SHA-256 hex".to_owned());
     }
-    if sorted.windows(2).any(|pair| pair[0].action_id == pair[1].action_id) {
+    if sorted
+        .windows(2)
+        .any(|pair| pair[0].action_id == pair[1].action_id)
+    {
         return Err("candidate action identity is duplicated".to_owned());
     }
 
@@ -375,7 +385,10 @@ fn scenario_loss_map(
                 ));
             }
         }
-        if scenarios.insert(world.scenario_id.clone(), losses).is_some() {
+        if scenarios
+            .insert(world.scenario_id.clone(), losses)
+            .is_some()
+        {
             return Err("joint scenario identity is duplicated".to_owned());
         }
     }
@@ -457,15 +470,22 @@ fn validate_model_universe(case: &Case) -> Result<(String, String, String), Stri
     for world in &mut canonical_model_case.worlds {
         world.profile_tags.sort();
     }
-    canonical_model_case.worlds.sort_by(|left, right| left.world_id.cmp(&right.world_id));
-    canonical_model_case.producer_models.sort_by(|left, right| left.model_id.cmp(&right.model_id));
+    canonical_model_case
+        .worlds
+        .sort_by(|left, right| left.world_id.cmp(&right.world_id));
+    canonical_model_case
+        .producer_models
+        .sort_by(|left, right| left.model_id.cmp(&right.model_id));
     canonical_model_case.declared_model_ids.sort();
     canonical_model_case.applicability.sort_by(|left, right| {
         (&left.world_id, &left.model_id).cmp(&(&right.world_id, &right.model_id))
     });
     canonical_model_case.joint_pairs.sort_by(|left, right| {
-        (&left.scenario_id, &left.world_id, &left.model_id)
-            .cmp(&(&right.scenario_id, &right.world_id, &right.model_id))
+        (&left.scenario_id, &left.world_id, &left.model_id).cmp(&(
+            &right.scenario_id,
+            &right.world_id,
+            &right.model_id,
+        ))
     });
     canonical_model_case.expected.missing_model_ids.sort();
     canonical_model_case.expected.missing_pair_ids.sort();
@@ -473,11 +493,7 @@ fn validate_model_universe(case: &Case) -> Result<(String, String, String), Stri
     canonical_model_case.expected.unexpected_pair_ids.sort();
     let model_digest = canonical_digest(&canonical_model_case)?;
     let world_digest = digest_ids(&bridge.expected_world_ids)?;
-    Ok((
-        evaluation.disposition,
-        model_digest,
-        world_digest,
-    ))
+    Ok((evaluation.disposition, model_digest, world_digest))
 }
 
 fn validate_coalitions<'a>(
@@ -486,9 +502,7 @@ fn validate_coalitions<'a>(
     world_digest: &str,
 ) -> Result<(BTreeMap<String, &'a CoalitionOutcome>, String, String), String> {
     if case.coalitions.len() != expected.len() {
-        return Err(
-            "coalition outcome count differs from selectable subset count".to_owned(),
-        );
+        return Err("coalition outcome count differs from selectable subset count".to_owned());
     }
     let mut records = BTreeMap::new();
     let mut catalog_revision: Option<String> = None;
@@ -508,10 +522,7 @@ fn validate_coalitions<'a>(
             || !expected.contains_key(&row.portfolio_id)
             || expected.get(&row.portfolio_id) != Some(&row.action_ids)
         {
-            return Err(
-                "coalition identity or digest differs from canonical subset"
-                    .to_owned(),
-            );
+            return Err("coalition identity or digest differs from canonical subset".to_owned());
         }
         if records.insert(row.portfolio_id.clone(), row).is_some() {
             return Err("duplicate coalition outcome row".to_owned());
@@ -579,11 +590,9 @@ fn validate_coalitions<'a>(
         threshold.get_or_insert((risk.threshold_numerator, risk.threshold_denominator));
 
         let requires_coordination = row.action_ids.iter().any(|action_id| {
-            case.candidate_actions
-                .iter()
-                .any(|candidate| {
-                    &candidate.action_id == action_id && candidate.coordination_required
-                })
+            case.candidate_actions.iter().any(|candidate| {
+                &candidate.action_id == action_id && candidate.coordination_required
+            })
         });
         match (&row.coordination_receipt_sha256, requires_coordination) {
             (Some(digest), _) if !valid_sha(digest) => {
@@ -630,7 +639,9 @@ fn nominal_metrics(
         if !valid_id(&probability.scenario_id)
             || probability.weight == 0
             || probability.weight > MAX_SAFE_INTEGER
-            || weights.insert(probability.scenario_id.clone(), probability.weight).is_some()
+            || weights
+                .insert(probability.scenario_id.clone(), probability.weight)
+                .is_some()
         {
             return Err("nominal probability row is malformed or duplicated".to_owned());
         }
@@ -715,19 +726,16 @@ fn compute_portfolio_metrics(
         let mut lower_bound = i64::MAX;
         let mut worst_loss = i64::MIN;
         for losses in scenario_losses.values() {
-            let baseline = *losses
-                .get(&baseline_id)
-                .ok_or_else(|| "no-action portfolio loss is missing in a joint scenario".to_owned())?;
-            let portfolio = *losses
-                .get(portfolio_id)
-                .ok_or_else(|| {
-                    format!("portfolio {portfolio_id} loss is missing in a joint scenario")
-                })?;
-            lower_bound = lower_bound.min(
-                baseline
-                    .checked_sub(portfolio)
-                    .ok_or_else(|| "signed avoided-consequence subtraction overflowed".to_owned())?,
-            );
+            let baseline = *losses.get(&baseline_id).ok_or_else(|| {
+                "no-action portfolio loss is missing in a joint scenario".to_owned()
+            })?;
+            let portfolio = *losses.get(portfolio_id).ok_or_else(|| {
+                format!("portfolio {portfolio_id} loss is missing in a joint scenario")
+            })?;
+            lower_bound =
+                lower_bound.min(baseline.checked_sub(portfolio).ok_or_else(|| {
+                    "signed avoided-consequence subtraction overflowed".to_owned()
+                })?);
             worst_loss = worst_loss.max(portfolio);
         }
 
@@ -850,8 +858,7 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
         }
     }
 
-    let bridge_evaluation =
-        incumbent_adequacy::evaluate_single_case(&case.incumbent_bridge_case);
+    let bridge_evaluation = incumbent_adequacy::evaluate_single_case(&case.incumbent_bridge_case);
     if !bridge_evaluation.expected_result_matched
         || bridge_evaluation.authority_granted
         || bridge_evaluation
@@ -878,11 +885,14 @@ fn evaluate_case(case: &Case) -> Result<CaseResult, String> {
         .collect::<BTreeMap<_, _>>();
     let actual_metrics_match = metrics.len() == expected_metrics.len()
         && metrics.iter().all(|metric| {
-            expected_metrics.get(metric.portfolio_id.as_str()).is_some_and(|expected| {
-                metric.lower_bound_avoided_ticks == expected.lower_bound_avoided_ticks
-                    && metric.worst_absolute_loss_ticks == expected.worst_absolute_loss_ticks
-                    && metric.worst_scenario_regret_ticks == expected.worst_scenario_regret_ticks
-            })
+            expected_metrics
+                .get(metric.portfolio_id.as_str())
+                .is_some_and(|expected| {
+                    metric.lower_bound_avoided_ticks == expected.lower_bound_avoided_ticks
+                        && metric.worst_absolute_loss_ticks == expected.worst_absolute_loss_ticks
+                        && metric.worst_scenario_regret_ticks
+                            == expected.worst_scenario_regret_ticks
+                })
         });
     let scenario_digest = digest_ids(&scenario_ids)?;
     let expected_result_matched = case.expected.coalition_count == metrics.len()
@@ -966,7 +976,10 @@ pub fn evaluate(corpus: &Corpus) -> Result<Evaluation, String> {
             .iter()
             .filter(|case| case.disposition == "ABSTAIN_RISK_EVIDENCE")
             .count(),
-        invalid_cases: cases.iter().filter(|case| case.disposition == "INVALID_INPUT").count(),
+        invalid_cases: cases
+            .iter()
+            .filter(|case| case.disposition == "INVALID_INPUT")
+            .count(),
         coalition_rows: cases.iter().map(|case| case.coalition_count).sum(),
         scenario_rows: cases.iter().map(|case| case.scenario_count).sum(),
         expected_result_mismatches: cases
@@ -1009,7 +1022,11 @@ mod tests {
 
     fn metric<'a>(result: &'a CaseResult, action_set: &[String]) -> &'a PortfolioMetric {
         let (id, _) = portfolio_identity(action_set).expect("portfolio identity");
-        result.portfolios.iter().find(|row| row.portfolio_id == id).expect("portfolio metric")
+        result
+            .portfolios
+            .iter()
+            .find(|row| row.portfolio_id == id)
+            .expect("portfolio metric")
     }
 
     #[test]
@@ -1020,21 +1037,25 @@ mod tests {
             .candidate_actions
             .iter()
             .find(|a| {
-                a.action_id
-                    == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                a.action_id == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             })
             .unwrap();
         let action_b = case
             .candidate_actions
             .iter()
             .find(|a| {
-                a.action_id
-                    == "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                a.action_id == "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
             })
             .unwrap();
         assert_eq!(metric(&result, &[]).lower_bound_avoided_ticks, 0);
-        assert_eq!(metric(&result, &[action_a.action_id.clone()]).lower_bound_avoided_ticks, 5);
-        assert_eq!(metric(&result, &[action_b.action_id.clone()]).lower_bound_avoided_ticks, -3);
+        assert_eq!(
+            metric(&result, &[action_a.action_id.clone()]).lower_bound_avoided_ticks,
+            5
+        );
+        assert_eq!(
+            metric(&result, &[action_b.action_id.clone()]).lower_bound_avoided_ticks,
+            -3
+        );
         assert_eq!(
             metric(
                 &result,
@@ -1056,7 +1077,10 @@ mod tests {
     #[test]
     fn exact_common_action_bridge_and_separate_hindsight_regret_are_reported() {
         let result = result();
-        assert_eq!(result.bridge_disposition.as_deref(), Some("REOPTIMIZATION_WARRANTED"));
+        assert_eq!(
+            result.bridge_disposition.as_deref(),
+            Some("REOPTIMIZATION_WARRANTED")
+        );
         assert_eq!(result.bridge_worst_case_improvement, Some(5));
         let case = fixture();
         let a = case.candidate_actions[0].action_id.clone();
@@ -1081,38 +1105,63 @@ mod tests {
         corpus.cases[0].coalitions.pop();
         assert!(evaluate(&corpus).is_err());
         let mut corpus = fixture();
-        corpus.cases[0].incumbent_bridge_case.loss_model_set.expected_scenario_ids.pop();
+        corpus.cases[0]
+            .incumbent_bridge_case
+            .loss_model_set
+            .expected_scenario_ids
+            .pop();
         assert!(evaluate(&corpus).is_err());
     }
 
     #[test]
     fn independent_model_grammar_omission_is_rejected() {
         let mut corpus = fixture();
-        corpus.cases[0].loss_model_universe_case.declared_model_ids.pop();
+        corpus.cases[0]
+            .loss_model_universe_case
+            .declared_model_ids
+            .pop();
         assert!(evaluate(&corpus).is_err());
     }
 
     #[test]
     fn risk_snapshot_must_bind_exact_portfolio_and_consistent_catalog() {
         let mut corpus = fixture();
-        corpus.cases[0].coalitions[1].risk_snapshot.action_set_sha256 = "0".repeat(64);
+        corpus.cases[0].coalitions[1]
+            .risk_snapshot
+            .action_set_sha256 = "0".repeat(64);
         assert!(evaluate(&corpus).is_err());
         let mut corpus = fixture();
-        corpus.cases[0].coalitions[1].risk_snapshot.catalog_revision_sha256 = "f".repeat(64);
-        corpus.cases[0].coalitions[1].risk_snapshot.snapshot_sha256 =
-            corpus.cases[0].coalitions[1].risk_snapshot.digest().unwrap();
+        corpus.cases[0].coalitions[1]
+            .risk_snapshot
+            .catalog_revision_sha256 = "f".repeat(64);
+        corpus.cases[0].coalitions[1].risk_snapshot.snapshot_sha256 = corpus.cases[0].coalitions[1]
+            .risk_snapshot
+            .digest()
+            .unwrap();
         assert!(evaluate(&corpus).is_err());
     }
 
     #[test]
     fn no_nominal_or_wasserstein_claim_is_invented() {
         let result = result();
-        assert!(result.portfolios.iter().all(|metric| metric.nominal_mean_loss.is_none()));
-        assert!(result.portfolios.iter().all(|metric| metric.nominal_cvar95_loss.is_none()));
-        assert!(result
-            .portfolios
-            .iter()
-            .all(|metric| metric.wasserstein_dro_cvar95_loss.is_none()));
+        assert!(
+            result
+                .portfolios
+                .iter()
+                .all(|metric| metric.nominal_mean_loss.is_none())
+        );
+        assert!(
+            result
+                .portfolios
+                .iter()
+                .all(|metric| metric.nominal_cvar95_loss.is_none())
+        );
+        assert!(
+            result
+                .portfolios
+                .iter()
+                .all(|metric| metric.wasserstein_dro_cvar95_loss.is_none())
+        );
         assert_eq!(
             result.distributionally_robust_cvar95_status,
             "NOT_CONSUMED_NO_VERIFIED_WASSERSTEIN_DRO_RECEIPT"
@@ -1129,7 +1178,10 @@ mod tests {
             world.feasible_action_ids.reverse();
             world.losses.reverse();
         }
-        corpus.cases[0].loss_model_universe_case.joint_pairs.reverse();
+        corpus.cases[0]
+            .loss_model_universe_case
+            .joint_pairs
+            .reverse();
         corpus.cases[0].loss_model_universe_case.worlds.reverse();
         let actual = evaluate(&corpus).expect("permuted evaluation");
         assert_eq!(
