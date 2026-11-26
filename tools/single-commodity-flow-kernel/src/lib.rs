@@ -778,6 +778,50 @@ mod tests {
     }
 
     #[test]
+    fn reverse_residual_edges_can_reroute_an_earlier_augmentation() {
+        let candidate = FlowGraph {
+            commodity_ref: "test-commodity".to_string(),
+            capacity_unit_ref: "test-capacity-unit".to_string(),
+            quantity_boundary_ref: "test-boundary".to_string(),
+            nodes: vec![
+                FlowNode::new("s"),
+                FlowNode::new("a"),
+                FlowNode::new("b"),
+                FlowNode::new("x"),
+                FlowNode::new("y"),
+                FlowNode::new("t"),
+            ],
+            edges: vec![
+                FlowEdge::new("00-s-a", "s", "a", 1, None),
+                FlowEdge::new("01-s-b", "s", "b", 1, None),
+                FlowEdge::new("02-a-x", "a", "x", 1, None),
+                FlowEdge::new("03-a-y", "a", "y", 1, None),
+                FlowEdge::new("04-b-x", "b", "x", 1, None),
+                FlowEdge::new("05-x-t", "x", "t", 1, None),
+                FlowEdge::new("06-y-t", "y", "t", 1, None),
+            ],
+            source: "s".to_string(),
+            sink: "t".to_string(),
+        };
+
+        let result = candidate.solve().unwrap();
+        assert_eq!(result.max_flow, 2);
+        assert_eq!(result.min_cut.capacity, 2);
+        candidate.verify_result(&result).unwrap();
+
+        let flows = result.edge_flows.iter()
+            .map(|edge| (edge.id.as_str(), edge.flow))
+            .collect::<BTreeMap<_, _>>();
+        assert_eq!(flows["00-s-a"], 1);
+        assert_eq!(flows["01-s-b"], 1);
+        assert_eq!(flows["02-a-x"], 0, "the first augmentation must be cancelled through a reverse residual arc");
+        assert_eq!(flows["03-a-y"], 1);
+        assert_eq!(flows["04-b-x"], 1);
+        assert_eq!(flows["05-x-t"], 1);
+        assert_eq!(flows["06-y-t"], 1);
+    }
+
+    #[test]
     fn graph_digest_and_witness_are_permutation_invariant() {
         let first = graph(4, &[(0, 1, 3), (0, 2, 2), (1, 3, 3), (2, 3, 2)]);
         let mut second = first.clone();
