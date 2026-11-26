@@ -46,7 +46,7 @@ fn ceil_div_nonnegative(numerator: i128, denominator: i128) -> Option<i128> {
         return None;
     }
     let quotient = numerator / denominator;
-    if numerator % denominator == 0 {
+    if numerator.is_multiple_of(denominator) {
         Some(quotient)
     } else {
         quotient.checked_add(1)
@@ -55,8 +55,8 @@ fn ceil_div_nonnegative(numerator: i128, denominator: i128) -> Option<i128> {
 
 fn dot(left: [i128; 3], right: [i128; 3]) -> Option<i128> {
     let mut sum = 0_i128;
-    for index in 0..3 {
-        sum = sum.checked_add(left[index].checked_mul(right[index])?)?;
+    for (left_component, right_component) in left.into_iter().zip(right) {
+        sum = sum.checked_add(left_component.checked_mul(right_component)?)?;
     }
     Some(sum)
 }
