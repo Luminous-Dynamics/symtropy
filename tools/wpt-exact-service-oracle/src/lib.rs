@@ -10,7 +10,7 @@
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use single_commodity_flow_kernel::{
-    FlowEdge, FlowGraph, FlowNode, FlowResult, MAX_EDGES, MAX_NODES,
+    FlowCertificateBundle, FlowEdge, FlowGraph, FlowNode, MAX_EDGES, MAX_NODES,
 };
 
 const MAX_INTERVALS: u64 = 256;
@@ -421,7 +421,7 @@ pub struct ReceiverAllocation {
     pub individual_max_graph_sha256: Option<String>,
     /// Full primal/dual result for independent verification of the isolated
     /// receiver maximum. Absent when diagnostics are not computed.
-    pub individual_max_certificate: Option<FlowResult>,
+    pub individual_max_certificate: Option<FlowCertificateBundle>,
     pub individual_floor_feasible: Option<bool>,
 }
 
@@ -470,6 +470,8 @@ pub struct ServiceOracleReport {
     pub total_shortfall_mwh: u64,
     pub feasible: bool,
     pub individual_maxima_status: IndividualMaximaStatus,
+    /// Full graph-bound primal/dual certificate for simultaneous receiver service.
+    pub joint_certificate: FlowCertificateBundle,
     pub receiver_allocations: Vec<ReceiverAllocation>,
     /// Constructive interval-level use of each segment's deliverable-energy budget.
     pub segment_allocations: Vec<SegmentSlotAllocation>,
@@ -653,6 +655,8 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
         sink: "99-sink".to_string(),
     };
     let flow_result = graph.solve().map_err(|error| error.to_string())?;
+    let joint_certificate = FlowCertificateBundle::new(graph.clone(), flow_result.clone())
+        .map_err(|error| format!("joint WPT flow certificate: {error}"))?;
     let edge_flows = flow_result
         .edge_flows
         .iter()
@@ -714,17 +718,22 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
             target_edge.capacity = individual_source_capacity_bound.ok_or_else(|| {
                 "individual source-capacity bound was unexpectedly absent".to_string()
             })?;
+            let individual_result = individual_graph
+                .solve()
+                .map_err(|error| format!("individual maximum for {receiver_id}: {error}"))?;
             Some(
-                individual_graph
-                    .solve()
-                    .map_err(|error| format!("individual maximum for {receiver_id}: {error}"))?,
+                FlowCertificateBundle::new(individual_graph, individual_result)
+                    .map_err(|error| {
+                        format!("individual WPT certificate for {receiver_id}: {error}")
+                    })?,
             )
         } else {
             None
         };
 
-        let individual_max_deliverable_mwh =
-            individual_result.as_ref().map(|result| result.max_flow);
+        let individual_max_deliverable_mwh = individual_result
+            .as_ref()
+            .map(|bundle| bundle.result.max_flow);
         let individual_floor_feasible = if feasible {
             Some(true)
         } else {
@@ -740,10 +749,10 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
             individual_max_deliverable_mwh,
             individual_max_min_cut_capacity_mwh: individual_result
                 .as_ref()
-                .map(|result| result.min_cut.capacity),
+                .map(|bundle| bundle.result.min_cut.capacity),
             individual_max_graph_sha256: individual_result
                 .as_ref()
-                .map(|result| result.graph_sha256.clone()),
+                .map(|bundle| bundle.result.graph_sha256.clone()),
             individual_max_certificate: individual_result.clone(),
             individual_floor_feasible,
         });
@@ -828,6 +837,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
         total_shortfall_mwh,
         feasible,
         individual_maxima_status,
+        joint_certificate,
         receiver_allocations,
         segment_allocations,
         transfer_allocations,
@@ -861,6 +871,8 @@ mod tests {
         assert_eq!(report.maximum_deliverable_mwh, 16);
         assert_eq!(report.total_shortfall_mwh, 0);
         assert_eq!(report.minimum_cut_capacity_mwh, 16);
+        report.joint_certificate.verify().unwrap();
+        assert_eq!(report.joint_certificate.result.max_flow, 16);
         assert!(
             report
                 .receiver_allocations
@@ -975,11 +987,13 @@ mod tests {
                 && row
                     .individual_max_certificate
                     .as_ref()
-                    .is_some_and(|certificate| {
-                        Some(certificate.graph_sha256.as_str())
-                            == row.individual_max_graph_sha256.as_deref()
-                            && Some(certificate.max_flow) == row.individual_max_deliverable_mwh
-                            && certificate.max_flow == certificate.min_cut.capacity
+                    .is_some_and(|bundle| {
+                        bundle.verify().is_ok()
+                            && Some(bundle.result.graph_sha256.as_str())
+                                == row.individual_max_graph_sha256.as_deref()
+                            && Some(bundle.result.max_flow)
+                                == row.individual_max_deliverable_mwh
+                            && bundle.result.max_flow == bundle.result.min_cut.capacity
                     })
         }));
     }
