@@ -576,10 +576,7 @@ fn score_arm(arm_id: ArmId, rows: &[&EpisodeRecord]) -> ArmScorecard {
         episode_n,
         native_task_success: RateMetric::complete(episode_n, task_success_n),
         native_episode_safety: RateMetric::complete(episode_n, episode_safe_n),
-        native_policy_recovery_success: metric_from_optional(
-            episode_n,
-            recovery_values,
-        ),
+        native_policy_recovery_success: metric_from_optional(episode_n, recovery_values),
         fault_delivery: fault_stage_counts(rows),
         false_no_effect: RateMetric::complete(
             false_no_effect_eligible.len(),
