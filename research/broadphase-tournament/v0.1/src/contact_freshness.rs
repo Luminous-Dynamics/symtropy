@@ -20,7 +20,7 @@ use std::collections::BTreeSet;
 ///
 /// Revisions must be monotonic for one proxy generation. A new generation
 /// starts a new identity lifetime and invalidates all prior contact state.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct EndpointRevisions {
     pub proxy: ProxyId,
     pub generation: u64,
