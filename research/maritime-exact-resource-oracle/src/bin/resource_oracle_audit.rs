@@ -122,6 +122,62 @@ fn main() -> Result<(), Box<dyn Error>> {
     let result = enumerate(&scenario)?;
 
     println!("RESOURCE_ORACLE_RECEIPT\t0.1.0");
+
+    let mut vessel_ids = scenario.vessel_ids.clone();
+    vessel_ids.sort();
+    for vessel_id in vessel_ids {
+        println!("SCENARIO_VESSEL\t{vessel_id}");
+    }
+
+    let mut capacities = scenario.capacities.clone();
+    capacities.sort_by(|left, right| {
+        (&left.resource_id, left.slot, left.capacity).cmp(&(
+            &right.resource_id,
+            right.slot,
+            right.capacity,
+        ))
+    });
+    for capacity in capacities {
+        println!(
+            "SCENARIO_CAPACITY\t{}\t{}\t{}",
+            capacity.resource_id, capacity.slot, capacity.capacity
+        );
+    }
+
+    let mut candidates = scenario.candidates.clone();
+    candidates.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
+    for candidate in candidates {
+        println!(
+            "SCENARIO_CANDIDATE\t{}\t{}\t{}",
+            candidate.candidate_id,
+            candidate.vessel_id,
+            plan_line(&maritime_exact_resource_oracle::Plan {
+                candidate_ids: vec![candidate.candidate_id.clone()],
+                objective: candidate.objective,
+            })
+            .split_once('\t')
+            .map(|(_, objectives)| objectives)
+            .unwrap_or_default()
+        );
+        let mut reservations = candidate.reservations.clone();
+        reservations.sort_by(|left, right| {
+            (&left.resource_id, left.slot, left.units).cmp(&(
+                &right.resource_id,
+                right.slot,
+                right.units,
+            ))
+        });
+        for reservation in reservations {
+            println!(
+                "SCENARIO_RESERVATION\t{}\t{}\t{}\t{}",
+                candidate.candidate_id,
+                reservation.resource_id,
+                reservation.slot,
+                reservation.units
+            );
+        }
+    }
+
     println!("FEASIBLE_COUNT\t{}", result.feasible_plans.len());
     for plan in &result.feasible_plans {
         println!("FEASIBLE\t{}", plan_line(plan));
