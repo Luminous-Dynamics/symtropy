@@ -74,21 +74,19 @@ impl AxisAlignedBox3 {
     }
 
     pub fn half_widths_m(self) -> [f64; 3] {
+        let centre = self.centre_m();
         std::array::from_fn(|index| {
-            let minimum = self.minimum_m[index];
-            let maximum = self.maximum_m[index];
-            if minimum.is_sign_negative() == maximum.is_sign_negative() {
-                (maximum - minimum) * 0.5
-            } else {
-                maximum * 0.5 - minimum * 0.5
-            }
+            let left_distance = centre[index] - self.minimum_m[index];
+            let right_distance = self.maximum_m[index] - centre[index];
+            next_up(left_distance.max(right_distance))
         })
     }
 
     pub fn widths_m(self) -> Result<[f64; 3], CertificationError> {
         self.validate()?;
-        let half = self.half_widths_m();
-        let widths = [half[0] * 2.0, half[1] * 2.0, half[2] * 2.0];
+        let widths = std::array::from_fn(|index| {
+            self.maximum_m[index] - self.minimum_m[index]
+        });
         if widths.iter().any(|value| !value.is_finite() || *value <= 0.0) {
             return Err(CertificationError::InvalidBox);
         }
@@ -599,8 +597,17 @@ pub fn plan_refinement(
     let mut any_axis_wide_enough = false;
     for axis in Axis::ALL {
         let index = axis.index();
-        // Each child width equals the parent's half-width on the split axis.
-        if half_widths[index] < policy.minimum_child_width_m[index] {
+        let Some(midpoint) = stable_midpoint(
+            evidence.bounds.minimum_m[index],
+            evidence.bounds.maximum_m[index],
+        ) else {
+            continue;
+        };
+        let left_child_width = midpoint - evidence.bounds.minimum_m[index];
+        let right_child_width = evidence.bounds.maximum_m[index] - midpoint;
+        if left_child_width < policy.minimum_child_width_m[index]
+            || right_child_width < policy.minimum_child_width_m[index]
+        {
             continue;
         }
         any_axis_wide_enough = true;
