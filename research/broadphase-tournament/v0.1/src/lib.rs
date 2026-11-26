@@ -142,6 +142,7 @@ pub struct WorkCounters {
     pub pair_revalidations: u64,
     pub pair_cache_peak_pairs: usize,
     pub dirty_snapshot_entries_visited: u64,
+    pub frame_validation_entries_visited: u64,
     pub frontier_proxy_visits: u64,
     pub frontier_pair_candidates: u64,
     pub frontier_unique_pairs: u64,
@@ -546,6 +547,7 @@ pub struct PairDeltaFrame {
     pub overlap_tests: u64,
     pub active_pairs: usize,
     pub dirty_snapshot_entries_visited: u64,
+    pub frame_validation_entries_visited: u64,
     pub frontier_proxy_visits: u64,
     pub frontier_pair_candidates: u64,
     pub frontier_unique_pairs: u64,
@@ -1469,6 +1471,10 @@ fn run_backend<const D: usize>(
                     .dirty_snapshot_entries_visited
                     .checked_add(delta.dirty_snapshot_entries_visited)
                     .ok_or(TournamentError::CounterOverflow)?;
+                counters.frame_validation_entries_visited = counters
+                    .frame_validation_entries_visited
+                    .checked_add(delta.frame_validation_entries_visited)
+                    .ok_or(TournamentError::CounterOverflow)?;
                 counters.frontier_proxy_visits = counters.frontier_proxy_visits
                     .checked_add(delta.frontier_proxy_visits)
                     .ok_or(TournamentError::CounterOverflow)?;
@@ -1687,13 +1693,13 @@ pub fn run_scale_tournament<const D: usize>(
 impl TournamentRow {
     #[must_use]
     pub fn csv_header() -> &'static str {
-        "family,dimension,seed,declared_proxy_count,scene_frames,backend,oracle_method,output_contract,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,event_mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,p50_pair_materialize_ns,p95_pair_materialize_ns,p99_pair_materialize_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,tree_rotations,pair_cache_dirty_proxies,pair_cache_overlap_tests,pair_events_added,pair_events_removed,pair_cache_peak_pairs,lbvh_builds,lbvh_internal_nodes,lbvh_bruteforce_fallback_frames,max_tree_height,max_tree_nodes,max_active_proxies,pair_revalidations,dirty_snapshot_entries_visited,frontier_proxy_visits,frontier_pair_candidates,frontier_unique_pairs,frontier_node_visits,frontier_leaf_tests,frontier_aabb_tests,frontier_index_mutations,frontier_index_reinsertions,full_relation_reconciliations"
+        "family,dimension,seed,declared_proxy_count,scene_frames,backend,oracle_method,output_contract,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,event_mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,p50_pair_materialize_ns,p95_pair_materialize_ns,p99_pair_materialize_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,tree_rotations,pair_cache_dirty_proxies,pair_cache_overlap_tests,pair_events_added,pair_events_removed,pair_cache_peak_pairs,lbvh_builds,lbvh_internal_nodes,lbvh_bruteforce_fallback_frames,max_tree_height,max_tree_nodes,max_active_proxies,pair_revalidations,dirty_snapshot_entries_visited,frame_validation_entries_visited,frontier_proxy_visits,frontier_pair_candidates,frontier_unique_pairs,frontier_node_visits,frontier_leaf_tests,frontier_aabb_tests,frontier_index_mutations,frontier_index_reinsertions,full_relation_reconciliations"
     }
 
     #[must_use]
     pub fn to_csv(&self) -> String {
         format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             self.family,
             self.dimension,
             self.seed,
@@ -1745,6 +1751,7 @@ impl TournamentRow {
             self.counters.max_active_proxies,
             self.counters.pair_revalidations,
             self.counters.dirty_snapshot_entries_visited,
+            self.counters.frame_validation_entries_visited,
             self.counters.frontier_proxy_visits,
             self.counters.frontier_pair_candidates,
             self.counters.frontier_unique_pairs,
