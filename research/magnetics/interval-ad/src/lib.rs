@@ -588,7 +588,7 @@ pub fn certify_expression<const N: usize, F>(
     evaluate: F,
 ) -> Result<ValidatedDerivativeEnclosure<N>, IntervalAdError>
 where
-    F: FnOnce([IntervalDual<N>; N]) -> Result<IntervalDual<N>, IntervalAdError>,
+    F: Fn([IntervalDual<N>; N]) -> Result<IntervalDual<N>, IntervalAdError>,
 {
     validate_domain(domain)?;
 
@@ -922,6 +922,18 @@ mod tests {
                 .expect_err("input domain must be bounded"),
             IntervalAdError::NonFiniteParameterBound { index: 0 }
         );
+    }
+
+    #[test]
+    fn one_expression_can_be_replayed_over_multiple_parameter_boxes() {
+        let narrow = domain(["x"], [interval(1.0, 2.0)]);
+        let wide = domain(["x"], [interval(2.0, 3.0)]);
+        let expression = |[x]| Ok(x.square());
+        let first = certify_expression(&narrow, expression).expect("first box");
+        let second = certify_expression(&wide, expression).expect("second box");
+        assert!(first.derivative_intervals[0].lower() <= 2.0);
+        assert!(second.derivative_intervals[0].upper() >= 6.0);
+        assert_ne!(first.parameter_bounds, second.parameter_bounds);
     }
 
     #[test]
