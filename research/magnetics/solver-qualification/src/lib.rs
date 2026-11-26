@@ -387,7 +387,7 @@ pub fn compare_runs(
     right: &SolverRunRecord,
     policy: ConvergencePolicy,
 ) -> Result<ComparablePair, QualificationError> {
-    validate_run(left, policy)?;
+    validate_run(left, policy.clone())?;
     validate_run(right, policy)?;
 
     if left.problem.model_class != right.problem.model_class {
