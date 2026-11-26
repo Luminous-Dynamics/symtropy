@@ -803,7 +803,11 @@ fn evaluate_effect_claim(
                     ObservationFinding::EffectPresent | ObservationFinding::EffectAbsent
                 ) =>
             {
-                Some((*capsule, *finding, coverage_is_complete(coverage.as_ref(), *coverage_complete, claim)))
+                Some((
+                    *capsule,
+                    *finding,
+                    coverage_is_complete(coverage.as_ref(), *coverage_complete, claim),
+                ))
             }
             _ => None,
         })
