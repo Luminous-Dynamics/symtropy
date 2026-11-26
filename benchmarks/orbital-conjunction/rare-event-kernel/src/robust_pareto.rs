@@ -760,10 +760,12 @@ mod tests {
             report.robust_portfolio_summaries[0].worst_case_objectives[0].value_ticks,
             7
         );
+        assert_eq!(report.robust_frontier_portfolio_ids, vec![[20; 32]]);
         assert_eq!(
-            report.robust_frontier_portfolio_ids,
-            vec![[10; 32], [20; 32]]
+            report.robust_portfolio_summaries[0].dominated_by,
+            vec![[20; 32]]
         );
+        assert!(report.robust_portfolio_summaries[1].dominated_by.is_empty());
     }
 
     #[test]
