@@ -1,0 +1,17 @@
+[package]
+name = "tree-backed-swept-pairs"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Replayable tree-backed swept-pair qualification adapter"
+publish = false
+
+[dependencies]
+swept-pair-oracle = { path = "../../swept-pair-oracle/v0.1" }
+directional-motion-envelopes = { path = "../../directional-motion-envelopes/v0.1" }
+incremental-aabb-tree-reference = { path = "../../incremental-aabb-tree-reference/v0.1" }
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
