@@ -59,6 +59,31 @@ ASME V&V 20 requires simulation accuracy to be assessed at specified validation 
 
 For each exact-head run, preserve the source commit, toolchain, seed, case count, reference algorithm version, tolerances, false-positive/negative counts, translation-only negative-control count, and raw test log. If the corpus changes, increment its version and retain the prior seed for regression comparison.
 
+## Industry benchmark snapshot and fair-comparison rules (2026-11-26)
+
+A useful current external reference is the Rapier 0.35 / Godot 4.7 performance comparison. The published Godot Rapier table reports p50 physics-step times on the same M1 machine, release builds, and with rendering excluded. Examples include a 10k-body 2D box pyramid (Rapier2D 15.6 ms vs Box2D 17.0 ms), mixed 3D piles (Rapier3D 10.8 ms vs Jolt 12.4 ms), and query storms (Rapier3D 5.7 ms vs Jolt 22.3 ms). The table also includes an unstable/timeout joint-grid result for Jolt; that must remain a failure/unsupported result, not be omitted from an aggregate. These are Godot-integrated scene results, not isolated engine microbenchmarks and not directly comparable with Symtropy's current GJK nanosecond measurements. See the [published benchmark table](https://godot.rapier.rs/docs/documentation/performance/) and [Rapier 2026 update](https://godot.rapier.rs/blog/2026-updates/).
+
+Jolt documents an optional cross-platform deterministic build mode with an approximately 8% performance cost and lists compiler, configuration, OS and architecture targets. It also documents that broadphase queries remain non-deterministic due to multithreaded broadphase mutation. This is a useful comparator for Symtropy's deterministic-replay work: the comparison must name which APIs are deterministic, not generalize one deterministic path to every query. See [Jolt's architecture and determinism notes](https://jrouwe.github.io/JoltPhysics/).
+
+Dimforge's Q3 2026 report describes recent Rapier/Nexus performance work and discusses scaling limits reported for MuJoCo, MJX, Newton and Genesis in the workloads it measured. This is a vendor engineering report, not an independent cross-engine adjudication; treat it as hypothesis-generating evidence and rerun matched workloads before using it for comparative claims. See [Dimforge Q3 2026 technical report](https://dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/).
+
+### Symtropy comparison ladder
+
+1. **Core microbenchmarks:** keep Criterion GJK/EPA/raycast/step microbenchmarks, but publish CPU, compiler, features, body distribution, build mode, warm-up, sample count, p50/p95/p99 and allocation metrics.
+2. **Matched engine scenes:** port the same frozen scene definitions to Symtropy, Rapier, Jolt and Box2D where the dimension and semantics overlap. Match shapes, masses, friction/restitution, timestep, solver iterations, sleeping, contact filters, CCD mode, thread count, precision and termination criteria. Include both engines' wrapper/integration overhead separately.
+3. **Correctness and stability gates:** compare contact sets and collision classifications against independent analytical/brute-force oracles; report tunneling, solver divergence, residuals, non-finite states, stack collapse, joint explosion and timeouts. A faster unstable run is not a win.
+4. **Scale/latency frontier:** report p50/p95/p99 full-tick latency, throughput, maximum stable population under a declared error budget, memory, allocations, energy and warm/cold startup.
+5. **Determinism frontier:** compare exact state hashes and replay agreement across repeated runs, compilers, build profiles, OS and CPU architectures; report APIs excluded from deterministic guarantees.
+
+Symtropy already has dedicated internal AABB broadphase tournaments (#7588 / #7585) and a separate public analytic TOI/CCD qualification proposal (#7593). This VVUQ seed complements those lanes by checking numerical integration and transformed narrowphase geometry; it must not duplicate broadphase or imply that current-frame AABB candidate correctness establishes swept-collision correctness.
+
+### Proposed comparative targets (research targets, not achieved)
+
+- On the shared 2D/3D rigid-body subset, first match Rapier/Jolt correctness and stability contracts. Only then target within 10% of the median p95 tick time on at least two matched workloads.
+- On the N-dimensional differentiator (especially 4D), target a distinct capability frontier: validated reference error and deterministic replay on a supported subset, rather than claiming superiority in 3D game-physics throughput.
+- For every promotion, require zero false negatives against the benchmark's independent reference corpus and no regression beyond a preregistered tolerance on held-out scenes.
+- Publish the whole Pareto frontier: accuracy/robustness, p95/p99 latency, throughput, memory, allocations, energy and deterministic coverage. Do not rank an implementation on mean FPS alone.
+
 ## References
 
 - [Symtropy research validation envelope](../../crates/core/symtropy-physics/RESEARCH_VALIDATION.md).
