@@ -16,7 +16,8 @@
     "change_impact",
     "claim_ceiling",
     "no_actuation",
-    "authority_granted"
+    "authority_granted",
+    "evidence_dependency_groups"
   ],
   "properties": {
     "schema": {
@@ -130,6 +131,20 @@
     },
     "authority_granted": {
       "const": false
+    },
+    "evidence_dependency_groups": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "propertyNames": {
+        "pattern": "^\\S(?:.*\\S)?$"
+      }
     }
   },
   "$defs": {
