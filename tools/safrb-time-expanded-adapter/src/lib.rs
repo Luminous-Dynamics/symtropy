@@ -930,31 +930,33 @@ mod tests {
         assert_eq!(result.windows.len(), 2);
         assert_eq!(
             (result.windows[0].lower_individual_max_deliverable, result.windows[0].upper_individual_max_deliverable),
-            (6, 8)
+            (Some(6), Some(8))
         );
         assert_eq!(
             (result.windows[1].lower_individual_max_deliverable, result.windows[1].upper_individual_max_deliverable),
-            (3, 8)
+            (Some(3), Some(8))
         );
         assert_eq!(
             (result.windows[0].lower_joint_witness_allocation, result.windows[1].lower_joint_witness_allocation),
             (6, 3)
         );
+        assert_eq!(
+            result.individual_maxima_status,
+            IndividualMaximaStatus::ComputedForInfeasibleJointService
+        );
+        assert_eq!(
+            (result.windows[0].upper_joint_witness_allocation, result.windows[1].upper_joint_witness_allocation),
+            (6, 6)
+        );
         for window in &result.windows {
-            assert_eq!(
-                window.lower_individual_certificate.max_flow,
-                window.lower_individual_max_deliverable
-            );
-            assert_eq!(
-                window.lower_individual_certificate.max_flow,
-                window.lower_individual_certificate.min_cut.capacity
-            );
-            assert_eq!(
-                window.upper_individual_certificate.max_flow,
-                window.upper_individual_certificate.min_cut.capacity
-            );
-            assert!(window.lower_individual_certificate.graph_sha256.starts_with("sha256:"));
-            assert!(window.upper_individual_certificate.graph_sha256.starts_with("sha256:"));
+            let lower_certificate = window.lower_individual_certificate.as_ref().unwrap();
+            let upper_certificate = window.upper_individual_certificate.as_ref().unwrap();
+            assert_eq!(Some(lower_certificate.max_flow), window.lower_individual_max_deliverable);
+            assert_eq!(Some(upper_certificate.max_flow), window.upper_individual_max_deliverable);
+            assert_eq!(lower_certificate.max_flow, lower_certificate.min_cut.capacity);
+            assert_eq!(upper_certificate.max_flow, upper_certificate.min_cut.capacity);
+            assert!(lower_certificate.graph_sha256.starts_with("sha256:"));
+            assert!(upper_certificate.graph_sha256.starts_with("sha256:"));
         }
         assert_eq!(result.disposition, ServiceDisposition::IndeterminateNotGuaranteed);
         let expected_witness = expected["flow_witness"].as_object().unwrap();
@@ -974,6 +976,30 @@ mod tests {
     }
 
     #[test]
+    fn joint_lower_feasibility_skips_redundant_individual_solves() {
+        let mut input = scenario();
+        input["edges"].as_array_mut().unwrap().iter_mut()
+            .find(|edge| edge["id"] == "pump-physical-t1").unwrap()["capacity_lower"] = Value::from(6);
+        input["capacity_evidence"].as_array_mut().unwrap().iter_mut()
+            .find(|row| row["time_index"] == 1).unwrap()["lower"] = Value::from(6);
+
+        let result = evaluate_scenario(&input).unwrap();
+        assert_eq!(result.disposition, ServiceDisposition::GuaranteedWithinDeclaredLowerEnvelope);
+        assert_eq!(
+            result.individual_maxima_status,
+            IndividualMaximaStatus::NotNeededJointServiceFeasible
+        );
+        assert!(result.windows.iter().all(|window| {
+            window.lower_joint_witness_allocation == window.required
+                && window.lower_individual_max_deliverable.is_none()
+                && window.lower_individual_certificate.is_none()
+                && window.disposition == Some(
+                    WindowDisposition::IndividuallyFeasibleWithinDeclaredLowerEnvelope
+                )
+        }));
+    }
+
+    #[test]
     fn individual_maximum_is_not_truncated_at_the_service_floor() {
         let mut input = scenario();
         input["service_obligations"][0]["required_lower"] = Value::from(5);
@@ -989,8 +1015,8 @@ mod tests {
         // 6 t through the shared pump although its required floor is 5 t.
         let result = evaluate_scenario(&input).unwrap();
         assert_eq!(result.windows[0].required, 5);
-        assert_eq!(result.windows[0].lower_individual_max_deliverable, 6);
-        assert_eq!(result.windows[0].upper_individual_max_deliverable, 8);
+        assert_eq!(result.windows[0].lower_individual_max_deliverable, Some(6));
+        assert_eq!(result.windows[0].upper_individual_max_deliverable, Some(8));
     }
 
     #[test]
@@ -1003,6 +1029,19 @@ mod tests {
         assert_eq!(result.additional_capacity, 3);
         assert_eq!(result.lower_flow, 12);
         assert_eq!(result.lower_cut, 12);
+        assert_eq!(result.lower_certificate.max_flow, 12);
+        assert_eq!(result.lower_certificate.min_cut.capacity, 12);
+        assert_eq!(result.upper_certificate.max_flow, 12);
+        assert_eq!(
+            result.individual_maxima_status,
+            IndividualMaximaStatus::NotNeededJointServiceFeasible
+        );
+        assert!(result.windows.iter().all(|window| {
+            window.lower_individual_max_deliverable.is_none()
+                && window.upper_individual_max_deliverable.is_none()
+                && window.lower_individual_certificate.is_none()
+                && window.upper_individual_certificate.is_none()
+        }));
         assert_eq!(result.evidence_status, HYPOTHETICAL);
         assert_eq!(digest(&input).unwrap(), before);
     }
