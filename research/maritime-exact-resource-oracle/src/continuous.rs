@@ -78,7 +78,7 @@ pub struct PlanEvaluation {
     pub worst_case_agv_wait: f64,
     pub worst_case_makespan: f64,
     pub worst_case_events: Vec<TaskEvent>,
-    pub active_regions_examined: usize,
+    pub active_set_combinations_examined: usize,
     pub feasible_region_vertices: usize,
 }
 
@@ -595,7 +595,7 @@ fn evaluate_plan(
     let signs_count = 1usize << dimensions;
     let branches_count = 1usize << dimensions;
     let mut best: Option<(f64, Vec<f64>)> = None;
-    let mut active_regions_examined = 0usize;
+    let mut active_set_combinations_examined = 0usize;
     let mut feasible_region_vertices = 0usize;
 
     for sign_mask in 0..signs_count {
@@ -643,7 +643,7 @@ fn evaluate_plan(
                 .collect();
 
             enumerate_combinations(&constraints, dimensions, &mut |indices| {
-                active_regions_examined += 1;
+                active_set_combinations_examined += 1;
                 let matrix: Vec<Vec<f64>> = indices
                     .iter()
                     .map(|index| constraints[*index].coefficients.clone())
@@ -710,7 +710,7 @@ fn evaluate_plan(
         worst_case_agv_wait: worst.agv_wait,
         worst_case_makespan: worst.makespan,
         worst_case_events: worst.events,
-        active_regions_examined,
+        active_set_combinations_examined,
         feasible_region_vertices,
     })
 }
@@ -912,7 +912,7 @@ mod tests {
         assert!(result
             .plans
             .iter()
-            .all(|plan| plan.active_regions_examined > 0
+            .all(|plan| plan.active_set_combinations_examined > 0
                 && plan.feasible_region_vertices > 0
                 && plan.worst_case_makespan >= 0.0));
         assert!(!result.nominal_best_plan.is_empty());
@@ -932,18 +932,18 @@ mod tests {
     #[test]
     fn exact_active_region_reference_caps_task_count() {
         let mut invalid = instance(1.0);
-        let task = invalid.tasks[0].clone();
-        invalid.tasks.push(ContinuousTask {
-            task_id: "D".to_owned(),
-            qc_id: "QC-D".to_owned(),
-            qc_predecessor: None,
-            qc_release_at: 0.0,
-            nominal_service: 2.0,
-            service_deviation: 1.0,
-            direction: TaskDirection::Loading,
-            loaded_delivery_after: 0.0,
-        });
-        let _ = task;
+        for suffix in ["D", "E"] {
+            invalid.tasks.push(ContinuousTask {
+                task_id: suffix.to_owned(),
+                qc_id: format!("QC-{suffix}"),
+                qc_predecessor: None,
+                qc_release_at: 0.0,
+                nominal_service: 2.0,
+                service_deviation: 1.0,
+                direction: TaskDirection::Loading,
+                loaded_delivery_after: 0.0,
+            });
+        }
         assert_eq!(
             evaluate_continuous_tournament(&invalid),
             Err(ContinuousError::TooManyTasks(4))
