@@ -1008,9 +1008,11 @@ mod tests {
             .collect();
         let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
         assert_eq!(report.invalid_n, 1);
-        assert!(report.candidate_audits[0]
-            .reason_codes
-            .contains(&"FRAME_SSIM_NOT_ABOVE_0_99".to_owned()));
+        assert!(
+            report.candidate_audits[0]
+                .reason_codes
+                .contains(&"FRAME_SSIM_NOT_ABOVE_0_99".to_owned())
+        );
     }
 
     #[test]
@@ -1020,9 +1022,11 @@ mod tests {
         candidate.final_frame_pairs.pop();
         let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
         assert_eq!(report.invalid_n, 1);
-        assert!(report.candidate_audits[0]
-            .reason_codes
-            .contains(&"FINAL_FRAME_PAIR_COUNT_NOT_5".to_owned()));
+        assert!(
+            report.candidate_audits[0]
+                .reason_codes
+                .contains(&"FINAL_FRAME_PAIR_COUNT_NOT_5".to_owned())
+        );
     }
 
     #[test]
@@ -1035,9 +1039,11 @@ mod tests {
         let report = audit_manifest(&manifest(vec![train, test, test2]), &root).expect("audit");
         assert_eq!(report.invalid_n, 2);
         assert_eq!(report.valid_n, 1);
-        assert!(report.candidate_audits[0]
-            .reason_codes
-            .contains(&"TRAIN_TEST_LEAKAGE_KEY_OVERLAP".to_owned()));
+        assert!(
+            report.candidate_audits[0]
+                .reason_codes
+                .contains(&"TRAIN_TEST_LEAKAGE_KEY_OVERLAP".to_owned())
+        );
     }
 
     #[test]
@@ -1047,9 +1053,11 @@ mod tests {
         candidate.end_effector.replayed.coordinate_frame_id = "camera".to_owned();
         let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
         assert_eq!(report.unresolved_n, 1);
-        assert!(report.candidate_audits[0]
-            .reason_codes
-            .contains(&"POSE_COORDINATE_FRAME_UNRESOLVED".to_owned()));
+        assert!(
+            report.candidate_audits[0]
+                .reason_codes
+                .contains(&"POSE_COORDINATE_FRAME_UNRESOLVED".to_owned())
+        );
     }
 
     #[test]
@@ -1063,7 +1071,8 @@ mod tests {
                 })
                 .collect(),
         };
-        let error = validate_difficulty_screen(&screen).expect_err("one success is too easy/hard filter fail");
+        let error = validate_difficulty_screen(&screen)
+            .expect_err("one success is too easy/hard filter fail");
         assert!(error.contains(&"DIFFICULTY_SUCCESS_COUNT_OUT_OF_RANGE".to_owned()));
         screen.trials[1].success = true;
         assert!(validate_difficulty_screen(&screen).is_ok());
