@@ -1,7 +1,8 @@
 {
   "schema_version": "0.1",
   "benchmark": "RRVR-REPLAY-FIDELITY",
-  "profile_id": "RoboRecoverReplayV1",
+  "profile_id": "RoboRecoverPublishedThresholdsV1",
+  "metric_profile_id": "RRVR-SSIM-GAUSSIAN11-SIGMA1_5-RGB8-V0_1",
   "campaign_id": "synthetic-known-answer-replay-fidelity-v0.1",
   "split_manifest_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
   "data_license_and_provenance": "Synthetic known-answer fixture generated for replay-audit tests; no RoboRecover or LIBERO dataset content is included.",
@@ -27,101 +28,121 @@
       "difficulty_screen": {
         "trials": [
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-0-trial-0",
             "policy_id": "screen-policy-0",
             "trial_index": 0,
             "success": true
           },
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-0-trial-1",
             "policy_id": "screen-policy-0",
             "trial_index": 1,
             "success": true
           },
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-0-trial-2",
             "policy_id": "screen-policy-0",
             "trial_index": 2,
             "success": false
           },
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-0-trial-3",
             "policy_id": "screen-policy-0",
             "trial_index": 3,
             "success": false
           },
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-0-trial-4",
             "policy_id": "screen-policy-0",
             "trial_index": 4,
             "success": false
           },
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-1-trial-0",
             "policy_id": "screen-policy-1",
             "trial_index": 0,
             "success": false
           },
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-1-trial-1",
             "policy_id": "screen-policy-1",
             "trial_index": 1,
             "success": false
           },
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-1-trial-2",
             "policy_id": "screen-policy-1",
             "trial_index": 2,
             "success": false
           },
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-1-trial-3",
             "policy_id": "screen-policy-1",
             "trial_index": 3,
             "success": false
           },
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-1-trial-4",
             "policy_id": "screen-policy-1",
             "trial_index": 4,
             "success": false
           },
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-2-trial-0",
             "policy_id": "screen-policy-2",
             "trial_index": 0,
             "success": false
           },
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-2-trial-1",
             "policy_id": "screen-policy-2",
             "trial_index": 1,
             "success": false
           },
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-2-trial-2",
             "policy_id": "screen-policy-2",
             "trial_index": 2,
             "success": false
           },
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-2-trial-3",
             "policy_id": "screen-policy-2",
             "trial_index": 3,
             "success": false
           },
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-2-trial-4",
             "policy_id": "screen-policy-2",
             "trial_index": 4,
             "success": false
           },
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-3-trial-0",
             "policy_id": "screen-policy-3",
             "trial_index": 0,
             "success": false
           },
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-3-trial-1",
             "policy_id": "screen-policy-3",
             "trial_index": 1,
             "success": false
           },
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-3-trial-2",
             "policy_id": "screen-policy-3",
             "trial_index": 2,
             "success": false
           },
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-3-trial-3",
             "policy_id": "screen-policy-3",
             "trial_index": 3,
             "success": false
           },
           {
+            "attempt_id": "synthetic-replay-valid-screen-policy-3-trial-4",
             "policy_id": "screen-policy-3",
             "trial_index": 4,
             "success": false
@@ -130,78 +151,222 @@
       },
       "spot_check": {
         "seed": 42,
+        "selection_method_id": "upstream-exported-seed42-selection-v1",
+        "selection_record_path": "metadata/synthetic-replay-valid-selection.json",
+        "selection_record_sha256": "c9550134d732d0f2196b8d7c43cf8c8fc80b51dcf0502ad21388aa2f2fea89f9",
         "selected_attempt_ids": [
-          "screen-attempt-03",
-          "screen-attempt-08",
-          "screen-attempt-14"
+          "synthetic-replay-valid-screen-policy-0-trial-0",
+          "synthetic-replay-valid-screen-policy-1-trial-2",
+          "synthetic-replay-valid-screen-policy-2-trial-4"
         ],
-        "manifest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
-      },
-      "end_effector": {
-        "original": {
-          "coordinate_frame_id": "world",
-          "x_mm": 100,
-          "y_mm": 200,
-          "z_mm": 300
-        },
-        "replayed": {
-          "coordinate_frame_id": "world",
-          "x_mm": 101,
-          "y_mm": 200,
-          "z_mm": 300
-        }
-      },
-      "object_pose": {
-        "original": {
-          "coordinate_frame_id": "world",
-          "x_mm": 400,
-          "y_mm": 500,
-          "z_mm": 600
-        },
-        "replayed": {
-          "coordinate_frame_id": "world",
-          "x_mm": 401,
-          "y_mm": 500,
-          "z_mm": 600
-        }
-      },
-      "final_frame_pairs": [
-        {
-          "frame_index": 0,
-          "original_path": "frames/original-0.png",
-          "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
-          "replay_path": "frames/replay-0.png",
-          "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
-        },
-        {
-          "frame_index": 1,
-          "original_path": "frames/original-1.png",
-          "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
-          "replay_path": "frames/replay-1.png",
-          "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
-        },
-        {
-          "frame_index": 2,
-          "original_path": "frames/original-2.png",
-          "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
-          "replay_path": "frames/replay-2.png",
-          "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
-        },
-        {
-          "frame_index": 3,
-          "original_path": "frames/original-3.png",
-          "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
-          "replay_path": "frames/replay-3.png",
-          "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
-        },
-        {
-          "frame_index": 4,
-          "original_path": "frames/original-4.png",
-          "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
-          "replay_path": "frames/replay-4.png",
-          "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
-        }
-      ]
+        "attempts": [
+          {
+            "attempt_id": "synthetic-replay-valid-screen-policy-0-trial-0",
+            "end_effector": {
+              "original": {
+                "coordinate_frame_id": "world",
+                "x_mm": 100,
+                "y_mm": 200,
+                "z_mm": 300
+              },
+              "replayed": {
+                "coordinate_frame_id": "world",
+                "x_mm": 101,
+                "y_mm": 200,
+                "z_mm": 300
+              }
+            },
+            "object_pose": {
+              "original": {
+                "coordinate_frame_id": "world",
+                "x_mm": 400,
+                "y_mm": 500,
+                "z_mm": 600
+              },
+              "replayed": {
+                "coordinate_frame_id": "world",
+                "x_mm": 401,
+                "y_mm": 500,
+                "z_mm": 600
+              }
+            },
+            "final_frame_pairs": [
+              {
+                "frame_index": 0,
+                "original_path": "frames/synthetic-replay-valid-screen-policy-0-trial-0/original-0.png",
+                "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+                "replay_path": "frames/synthetic-replay-valid-screen-policy-0-trial-0/replay-0.png",
+                "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+              },
+              {
+                "frame_index": 1,
+                "original_path": "frames/synthetic-replay-valid-screen-policy-0-trial-0/original-1.png",
+                "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+                "replay_path": "frames/synthetic-replay-valid-screen-policy-0-trial-0/replay-1.png",
+                "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+              },
+              {
+                "frame_index": 2,
+                "original_path": "frames/synthetic-replay-valid-screen-policy-0-trial-0/original-2.png",
+                "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+                "replay_path": "frames/synthetic-replay-valid-screen-policy-0-trial-0/replay-2.png",
+                "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+              },
+              {
+                "frame_index": 3,
+                "original_path": "frames/synthetic-replay-valid-screen-policy-0-trial-0/original-3.png",
+                "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+                "replay_path": "frames/synthetic-replay-valid-screen-policy-0-trial-0/replay-3.png",
+                "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+              },
+              {
+                "frame_index": 4,
+                "original_path": "frames/synthetic-replay-valid-screen-policy-0-trial-0/original-4.png",
+                "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+                "replay_path": "frames/synthetic-replay-valid-screen-policy-0-trial-0/replay-4.png",
+                "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+              }
+            ]
+          },
+          {
+            "attempt_id": "synthetic-replay-valid-screen-policy-1-trial-2",
+            "end_effector": {
+              "original": {
+                "coordinate_frame_id": "world",
+                "x_mm": 100,
+                "y_mm": 200,
+                "z_mm": 300
+              },
+              "replayed": {
+                "coordinate_frame_id": "world",
+                "x_mm": 101,
+                "y_mm": 200,
+                "z_mm": 300
+              }
+            },
+            "object_pose": {
+              "original": {
+                "coordinate_frame_id": "world",
+                "x_mm": 400,
+                "y_mm": 500,
+                "z_mm": 600
+              },
+              "replayed": {
+                "coordinate_frame_id": "world",
+                "x_mm": 401,
+                "y_mm": 500,
+                "z_mm": 600
+              }
+            },
+            "final_frame_pairs": [
+              {
+                "frame_index": 0,
+                "original_path": "frames/synthetic-replay-valid-screen-policy-1-trial-2/original-0.png",
+                "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+                "replay_path": "frames/synthetic-replay-valid-screen-policy-1-trial-2/replay-0.png",
+                "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+              },
+              {
+                "frame_index": 1,
+                "original_path": "frames/synthetic-replay-valid-screen-policy-1-trial-2/original-1.png",
+                "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+                "replay_path": "frames/synthetic-replay-valid-screen-policy-1-trial-2/replay-1.png",
+                "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+              },
+              {
+                "frame_index": 2,
+                "original_path": "frames/synthetic-replay-valid-screen-policy-1-trial-2/original-2.png",
+                "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+                "replay_path": "frames/synthetic-replay-valid-screen-policy-1-trial-2/replay-2.png",
+                "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+              },
+              {
+                "frame_index": 3,
+                "original_path": "frames/synthetic-replay-valid-screen-policy-1-trial-2/original-3.png",
+                "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+                "replay_path": "frames/synthetic-replay-valid-screen-policy-1-trial-2/replay-3.png",
+                "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+              },
+              {
+                "frame_index": 4,
+                "original_path": "frames/synthetic-replay-valid-screen-policy-1-trial-2/original-4.png",
+                "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+                "replay_path": "frames/synthetic-replay-valid-screen-policy-1-trial-2/replay-4.png",
+                "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+              }
+            ]
+          },
+          {
+            "attempt_id": "synthetic-replay-valid-screen-policy-2-trial-4",
+            "end_effector": {
+              "original": {
+                "coordinate_frame_id": "world",
+                "x_mm": 100,
+                "y_mm": 200,
+                "z_mm": 300
+              },
+              "replayed": {
+                "coordinate_frame_id": "world",
+                "x_mm": 101,
+                "y_mm": 200,
+                "z_mm": 300
+              }
+            },
+            "object_pose": {
+              "original": {
+                "coordinate_frame_id": "world",
+                "x_mm": 400,
+                "y_mm": 500,
+                "z_mm": 600
+              },
+              "replayed": {
+                "coordinate_frame_id": "world",
+                "x_mm": 401,
+                "y_mm": 500,
+                "z_mm": 600
+              }
+            },
+            "final_frame_pairs": [
+              {
+                "frame_index": 0,
+                "original_path": "frames/synthetic-replay-valid-screen-policy-2-trial-4/original-0.png",
+                "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+                "replay_path": "frames/synthetic-replay-valid-screen-policy-2-trial-4/replay-0.png",
+                "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+              },
+              {
+                "frame_index": 1,
+                "original_path": "frames/synthetic-replay-valid-screen-policy-2-trial-4/original-1.png",
+                "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+                "replay_path": "frames/synthetic-replay-valid-screen-policy-2-trial-4/replay-1.png",
+                "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+              },
+              {
+                "frame_index": 2,
+                "original_path": "frames/synthetic-replay-valid-screen-policy-2-trial-4/original-2.png",
+                "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+                "replay_path": "frames/synthetic-replay-valid-screen-policy-2-trial-4/replay-2.png",
+                "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+              },
+              {
+                "frame_index": 3,
+                "original_path": "frames/synthetic-replay-valid-screen-policy-2-trial-4/original-3.png",
+                "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+                "replay_path": "frames/synthetic-replay-valid-screen-policy-2-trial-4/replay-3.png",
+                "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+              },
+              {
+                "frame_index": 4,
+                "original_path": "frames/synthetic-replay-valid-screen-policy-2-trial-4/original-4.png",
+                "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+                "replay_path": "frames/synthetic-replay-valid-screen-policy-2-trial-4/replay-4.png",
+                "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+              }
+            ]
+          }
+        ],
+        "manifest_sha256": "4f9dfd7adde79458c21f713b02b9f2bae4f884f11c73b4916d8b4a934634477e"
+      }
     }
   ]
 }
