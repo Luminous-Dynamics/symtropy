@@ -66,6 +66,19 @@
       "holder_inventory_complete": true,
       "edge_inventory_complete": true,
       "delayed_original_message": true
+    },
+    {
+      "scenario_id": "dedupe_loss_without_queue_rollover",
+      "seed": 16,
+      "effect_before_ack": true,
+      "acknowledgement_lost": true,
+      "endpoint_restarts": false,
+      "nvm_dedupe_loss": true,
+      "observer_available": true,
+      "observation_window_complete": true,
+      "holder_inventory_complete": true,
+      "edge_inventory_complete": true,
+      "delayed_original_message": true
     }
   ]
 }
