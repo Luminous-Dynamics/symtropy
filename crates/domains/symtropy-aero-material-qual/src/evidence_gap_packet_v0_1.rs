@@ -487,7 +487,10 @@ mod tests {
             .selector_projection()
             .expect("incomplete frontier is valid evidence-gap input");
         assert_eq!(
-            projection.change_impact.expect("change impact").completeness,
+            projection
+                .change_impact
+                .expect("change impact")
+                .completeness,
             "INCOMPLETE"
         );
     }
