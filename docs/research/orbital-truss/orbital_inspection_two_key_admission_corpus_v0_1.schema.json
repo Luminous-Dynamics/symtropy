@@ -141,7 +141,10 @@
                     "type": "object",
                     "additionalProperties": false,
                     "required": [
-                      "state",
+                      "claim_disposition",
+                      "proof_verification_state",
+                      "finite_horizon_claim_sha256",
+                      "safe_continuation_claim_sha256",
                       "action_id",
                       "vehicle_id",
                       "trajectory_revision",
@@ -149,13 +152,38 @@
                       "receipt_sha256"
                     ],
                     "properties": {
-                      "state": {
+                      "claim_disposition": {
+                        "enum": [
+                          "SAFETY_CLAIMS_COMPLETE",
+                          "SAFETY_CLAIM_FAILED",
+                          "SAFETY_CLAIM_INCOMPLETE",
+                          "RISK_ONLY",
+                          "OUT_OF_SCOPE",
+                          "INDETERMINATE",
+                          "INVALID_INPUT"
+                        ]
+                      },
+                      "proof_verification_state": {
                         "enum": [
                           "PASS",
                           "FAIL",
                           "UNKNOWN",
                           "STALE"
                         ]
+                      },
+                      "finite_horizon_claim_sha256": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^[0-9a-fA-F]{64}$"
+                      },
+                      "safe_continuation_claim_sha256": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^[0-9a-fA-F]{64}$"
                       },
                       "action_id": {
                         "type": "string",
@@ -177,7 +205,33 @@
                         "type": "string",
                         "minLength": 1
                       }
-                    }
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "claim_disposition": {
+                              "const": "SAFETY_CLAIMS_COMPLETE"
+                            }
+                          },
+                          "required": [
+                            "claim_disposition"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "finite_horizon_claim_sha256": {
+                              "type": "string",
+                              "pattern": "^[0-9a-fA-F]{64}$"
+                            },
+                            "safe_continuation_claim_sha256": {
+                              "type": "string",
+                              "pattern": "^[0-9a-fA-F]{64}$"
+                            }
+                          }
+                        }
+                      }
+                    ]
                   },
                   {
                     "type": "null"
