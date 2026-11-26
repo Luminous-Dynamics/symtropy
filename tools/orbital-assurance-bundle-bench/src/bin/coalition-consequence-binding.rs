@@ -1,4 +1,4 @@
-use orbital_assurance_bundle_bench::coalition_consequence_binding::{evaluate, Corpus};
+use orbital_assurance_bundle_bench::coalition_consequence_binding::{Corpus, evaluate};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::{env, fs, process::ExitCode};
@@ -21,10 +21,9 @@ fn run() -> Result<ExitCode, String> {
         return Err("source commit must be 40 lowercase hex characters".into());
     }
 
-    let bytes = fs::read(&fixture)
-        .map_err(|error| format!("cannot read fixture: {error}"))?;
-    let corpus: Corpus = serde_json::from_slice(&bytes)
-        .map_err(|error| format!("cannot parse fixture: {error}"))?;
+    let bytes = fs::read(&fixture).map_err(|error| format!("cannot read fixture: {error}"))?;
+    let corpus: Corpus =
+        serde_json::from_slice(&bytes).map_err(|error| format!("cannot parse fixture: {error}"))?;
     let evaluation = evaluate(&corpus)?;
     let fixture_sha256 = Sha256::digest(&bytes)
         .iter()
