@@ -300,3 +300,33 @@ python3 research/maritime-decision-time-replay/scripts/independent_reference.py 
 The temporal reference is a separate implementation and a separate receipt, not a second import or call into the Rust projection. Both the Rust selector and Python reference preserve source-local native event identity; a shared dependency-cluster label is retained as metadata but is not interpreted as statistical independence.
 
 The v0.2 head is not qualified until the exact commit's dedicated workflow is green. Do not infer a pass from the earlier v0.1 workflow result.
+
+
+## Additional topology-aware and dynamic optimization comparators (26 November 2026)
+
+The 2026 comparator set also shows that a single generic "integrated terminal optimizer" is too coarse a benchmark category:
+
+- **Deep RL-enhanced branch-and-price (March 2026):** integrated berth allocation, quay-crane assignment and yard assignment; uses a learned branching policy and a tripartite graph representation of the branch-and-price tree. This is a solver-acceleration comparator, distinct from plain C&CG or ALNS. DOI: [10.1016/j.cie.2026.111815](https://doi.org/10.1016/j.cie.2026.111815).
+- **Dynamic AGV/yard-crane scheduling (January 2026):** reactive deep-RL integration of AGV and yard-crane operations under observed information rather than fixed handling/transport times. DOI: [10.1016/j.engappai.2025.112912](https://doi.org/10.1016/j.engappai.2025.112912).
+- **Tidal ports and approach bridges (November 2026):** a new *Transportation Research Part B* study integrates berth and yard space allocation under tide-dependent mooring orientation and truck traffic over constrained approach bridges, using branch-and-price and data from two Ningbo-Zhoushan terminals. DOI: [10.1016/j.trb.2026.103584](https://doi.org/10.1016/j.trb.2026.103584).
+
+The last paper matters for our modelling strategy: the physical topology and access corridors may form the binding resource, not berth length or crane count alone. A globally useful benchmark should parameterize tide windows, one-way bridges, narrow access corridors, turning/holding capacity, tug/pilot windows, yard access and inland gate/rail slots as time-indexed shared resources. These constraints must be explicit in the same physical feasibility oracle, rather than treated as soft penalties in a scheduler.
+
+This suggests a **time-expanded, multi-layer resource graph**:
+- nodes represent berth/yard/transfer/receiver states and physical interfaces;
+- edges represent transport or handoff capabilities with duration, capacity, direction and operating windows;
+- resource-time reservations represent cranes, AGVs, bridge segments, pilot/tug windows, OPS berths and inland slots;
+- evidence receipts qualify whether a resource state or reservation was actually known and authorized at a decision cutoff.
+
+For new ports, geography, tides, topology and standards vary. The benchmark should therefore measure transfer across *held-out port topologies*, not just held-out random seeds on one terminal layout. It must not imply that one topology or operating pattern generalizes globally without external validation.
+
+## Benchmark extension priorities after v0.2
+
+1. **Temporal histories:** clock uncertainty intervals, timezone normalization provenance, source revision supersession, effective-dated rights and append-only adjudication ordering.
+2. **Network topology:** time-expanded berth/yard/bridge/AGV/rail/road/receiver graph with explicit capacities and restricted access.
+3. **Contingent recovery:** non-anticipative recourse policies with query/wait/act/abstain options and hard decision deadlines.
+4. **Resource state:** AGV/YC/QC health, charging, maintenance and shared repair resources; OPS/energy/carbon constraints.
+5. **Benchmark transfer:** train/develop on selected topologies, freeze the evaluator, then test on held-out port geometries and disruption families.
+6. **Field evaluation:** rights-cleared read-only terminal evidence, independent physical milestone adjudication, and unit-level receiver-side closure before any performance claim.
+
+The v0.2 Rust temporal module has not yet qualified clock-uncertainty or source-revision supersession semantics. The above are explicit future acceptance targets, not implemented claims.
