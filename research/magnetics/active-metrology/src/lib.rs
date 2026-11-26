@@ -255,8 +255,7 @@ fn validate_candidate(
         return Err(PlanningError::OutsideScanEnvelope { index });
     }
 
-    if !candidate.measurement_error_bound_t.is_finite()
-        || candidate.measurement_error_bound_t < 0.0
+    if !candidate.measurement_error_bound_t.is_finite() || candidate.measurement_error_bound_t < 0.0
     {
         return Err(PlanningError::InvalidMeasurementBound { index });
     }
@@ -277,12 +276,16 @@ fn validate_candidate(
         return Err(PlanningError::InvalidModelDisagreement { index });
     }
 
-    if candidate.functional_sensitivity_interval.as_ref().is_some_and(|interval| {
-        !nonempty(&interval.record_id)
-            || !interval.derivative_lower_rad_per_t.is_finite()
-            || !interval.derivative_upper_rad_per_t.is_finite()
-            || interval.derivative_lower_rad_per_t > interval.derivative_upper_rad_per_t
-    }) {
+    if candidate
+        .functional_sensitivity_interval
+        .as_ref()
+        .is_some_and(|interval| {
+            !nonempty(&interval.record_id)
+                || !interval.derivative_lower_rad_per_t.is_finite()
+                || !interval.derivative_upper_rad_per_t.is_finite()
+                || interval.derivative_lower_rad_per_t > interval.derivative_upper_rad_per_t
+        })
+    {
         return Err(PlanningError::InvalidFunctionalSensitivity { index });
     }
 
@@ -317,17 +320,23 @@ fn candidate_metrics(
     }
 
     let Some(disagreement_lower_bound) = candidate.model_disagreement_lower_bound_t else {
-        return Ok(not_rankable(NotRankableReason::MissingQualifiedModelDisagreement));
+        return Ok(not_rankable(
+            NotRankableReason::MissingQualifiedModelDisagreement,
+        ));
     };
     let Some(sensitivity_interval) = candidate.functional_sensitivity_interval.as_ref() else {
-        return Ok(not_rankable(NotRankableReason::MissingFunctionalSensitivity));
+        return Ok(not_rankable(
+            NotRankableReason::MissingFunctionalSensitivity,
+        ));
     };
     let sensitivity_lower_bound = if sensitivity_interval.derivative_lower_rad_per_t > 0.0 {
         sensitivity_interval.derivative_lower_rad_per_t
     } else if sensitivity_interval.derivative_upper_rad_per_t < 0.0 {
         -sensitivity_interval.derivative_upper_rad_per_t
     } else {
-        return Ok(not_rankable(NotRankableReason::SensitivityIntervalCrossesZero));
+        return Ok(not_rankable(
+            NotRankableReason::SensitivityIntervalCrossesZero,
+        ));
     };
     if sensitivity_lower_bound <= 0.0 || disagreement_lower_bound <= 0.0 {
         return Ok(not_rankable(NotRankableReason::NoPositiveDecisionImpact));
@@ -335,9 +344,8 @@ fn candidate_metrics(
 
     // A lower bound on model-set separation remains resolvable only after
     // subtracting both sides of the absolute measurement-error bound.
-    let resolvable_separation = (disagreement_lower_bound
-        - 2.0 * candidate.measurement_error_bound_t)
-        .max(0.0);
+    let resolvable_separation =
+        (disagreement_lower_bound - 2.0 * candidate.measurement_error_bound_t).max(0.0);
     if resolvable_separation <= 0.0 {
         return Ok(not_rankable(
             NotRankableReason::MeasurementBoundMasksModelDisagreement,
@@ -402,9 +410,8 @@ pub fn plan_decision_directed_scan(
         if let Some(priority) = result.priority_rad_per_s {
             if priority >= policy.minimum_priority_rad_per_s {
                 ranked.push(index);
-                result.disposition = CandidateDisposition::NotSelected(
-                    ExclusionReason::BelowPriorityFloor,
-                );
+                result.disposition =
+                    CandidateDisposition::NotSelected(ExclusionReason::BelowPriorityFloor);
             }
         }
         metrics.push(result);
@@ -417,7 +424,11 @@ pub fn plan_decision_directed_scan(
         let right_score = metrics[*right].priority_rad_per_s.unwrap_or(0.0);
         right_score
             .total_cmp(&left_score)
-            .then_with(|| candidates[*left].candidate_id.cmp(&candidates[*right].candidate_id))
+            .then_with(|| {
+                candidates[*left]
+                    .candidate_id
+                    .cmp(&candidates[*right].candidate_id)
+            })
             .then_with(|| left.cmp(right))
     });
 
@@ -428,17 +439,15 @@ pub fn plan_decision_directed_scan(
     for candidate_index in ranked {
         let candidate = &candidates[candidate_index];
         if selected.len() >= policy.maximum_point_count {
-            metrics[candidate_index].disposition = CandidateDisposition::NotSelected(
-                ExclusionReason::MaximumPointCountReached,
-            );
+            metrics[candidate_index].disposition =
+                CandidateDisposition::NotSelected(ExclusionReason::MaximumPointCountReached);
             continue;
         }
 
         let remaining_budget = policy.maximum_acquisition_cost_s - total_cost;
         if candidate.acquisition_cost_s > remaining_budget {
-            metrics[candidate_index].disposition = CandidateDisposition::NotSelected(
-                ExclusionReason::InsufficientRemainingBudget,
-            );
+            metrics[candidate_index].disposition =
+                CandidateDisposition::NotSelected(ExclusionReason::InsufficientRemainingBudget);
             continue;
         }
 
@@ -456,9 +465,8 @@ pub fn plan_decision_directed_scan(
             }
         }
         if conflicts {
-            metrics[candidate_index].disposition = CandidateDisposition::NotSelected(
-                ExclusionReason::MinimumSeparationConflict,
-            );
+            metrics[candidate_index].disposition =
+                CandidateDisposition::NotSelected(ExclusionReason::MinimumSeparationConflict);
             continue;
         }
 
@@ -569,9 +577,7 @@ mod tests {
         let result = plan_decision_directed_scan(&[point], &policy()).expect("valid plan");
         assert!(matches!(
             result.candidates[0].disposition,
-            CandidateDisposition::NotRankable(
-                NotRankableReason::MissingFunctionalSensitivity
-            )
+            CandidateDisposition::NotRankable(NotRankableReason::MissingFunctionalSensitivity)
         ));
         assert_eq!(result.selected_point_count, 0);
     }
