@@ -911,7 +911,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn sensor_frame_rotation_error_is_added_as_an_independent_phase_bound() {
         let candidate = bounded_candidate("sensor-frame-error", 1.0, 0.0, 0.0, 0.0, 0.0);
@@ -929,11 +928,13 @@ mod tests {
             result.candidates[0].worst_peak_phase_error_upper_bound_rad,
             0.003,
         );
-        assert!(result.candidates[0].scenarios.iter().all(|scenario| {
-            scenario.sensor_frame_rotation_error_bound_rad == 0.003
-        }));
+        assert!(
+            result.candidates[0]
+                .scenarios
+                .iter()
+                .all(|scenario| { scenario.sensor_frame_rotation_error_bound_rad == 0.003 })
+        );
     }
-
 
     #[test]
     fn uncertainty_records_must_match_the_source_archive_and_calibration() {
