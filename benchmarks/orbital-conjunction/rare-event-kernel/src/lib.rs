@@ -33,6 +33,8 @@ pub mod adaptive_importance_sampling;
 pub mod conditional_velocity;
 pub mod coverage;
 pub mod decision_gate;
+/// Anytime-valid paired contrast sequence under a frozen defensive proposal.
+pub mod defensive_contrast_sequence;
 pub mod decision_refinement;
 pub mod hedged_capital_sequence;
 pub mod lebedev;
@@ -78,6 +80,11 @@ pub use conditional_velocity::{
     ConditionalDirectionReport, ConditionalVelocityConfig, ConditionalVelocityDiagnostics,
     ConditionalVelocityDistribution, Matrix3, RelativePositionVelocityCovarianceBlocks,
     ZeroConditionalVarianceMode,
+};
+pub use defensive_contrast_sequence::{
+    MAX_DEFENSIVE_CONTRAST_DRAWS, DefensiveContrastConfidenceInterval,
+    DefensiveContrastConfidenceSequence, DefensiveContrastDraw,
+    DefensiveContrastObservation, DefensiveContrastSequenceError,
 };
 pub use decision_gate::{
     DecisionGateError, DecisionSufficiency, DecisionSufficiencyReport, RiskThresholdRule,
