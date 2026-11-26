@@ -58,6 +58,8 @@ pub enum DesignTournamentError {
     DuplicateSolverRunId { index: usize },
     DuplicateCandidateId,
     DuplicateTraceId,
+    OperatingConditionSetMismatch,
+    SolverRunIdReusedAcrossCandidates,
     MixedEvidenceKinds,
     FrameIdentityMismatch,
     GridIdentityMismatch,
@@ -187,15 +189,35 @@ pub fn rank_magnetic_designs(
     let evidence_kind = first_trace.evidence_kind;
     let frame_id = first_trace.frame_id.as_str();
     let grid_id = first_trace.grid_id.as_str();
+    let expected_condition_ids = first_candidate
+        .scenarios
+        .iter()
+        .map(|trace| trace.operating_condition_id.as_str())
+        .collect::<Vec<_>>();
 
     let mut candidate_ids = HashSet::with_capacity(candidates.len());
     let mut trace_ids = HashSet::new();
+    let mut solver_run_ids = HashSet::new();
     let mut results = Vec::with_capacity(candidates.len());
 
     for (index, candidate) in candidates.iter().enumerate() {
         validate_candidate(candidate, index)?;
         if !candidate_ids.insert(candidate.candidate_id.as_str()) {
             return Err(DesignTournamentError::DuplicateCandidateId);
+        }
+        let condition_ids_match = candidate.scenarios.len() == expected_condition_ids.len()
+            && candidate
+                .scenarios
+                .iter()
+                .zip(expected_condition_ids.iter())
+                .all(|(trace, expected)| trace.operating_condition_id == *expected);
+        if !condition_ids_match {
+            return Err(DesignTournamentError::OperatingConditionSetMismatch);
+        }
+        for run_id in &candidate.solver_run_ids {
+            if !solver_run_ids.insert(run_id.as_str()) {
+                return Err(DesignTournamentError::SolverRunIdReusedAcrossCandidates);
+            }
         }
 
         for trace in &candidate.scenarios {
@@ -498,6 +520,40 @@ mod tests {
             rank_magnetic_designs("tournament-011", &[no_solver], &requirements())
                 .expect_err("solver provenance required"),
             DesignTournamentError::EmptySolverRunSet { index: 0 }
+        );
+    }
+
+
+    #[test]
+    fn every_candidate_uses_the_same_ordered_operating_condition_set() {
+        let mut changed_condition =
+            candidate("changed-condition", 1.0, 0.01, EvidenceKind::SyntheticScenario);
+        changed_condition.scenarios[1].operating_condition_id = "easy-only".to_owned();
+        assert_eq!(
+            rank_magnetic_designs("tournament-condition-set", &[changed_condition], &requirements())
+                .expect_err("condition set must be matched"),
+            DesignTournamentError::OperatingConditionSetMismatch
+        );
+
+        let mut missing_condition =
+            candidate("missing-condition", 1.0, 0.01, EvidenceKind::SyntheticScenario);
+        missing_condition.scenarios.pop();
+        assert_eq!(
+            rank_magnetic_designs("tournament-condition-count", &[missing_condition], &requirements())
+                .expect_err("missing operating corner must fail"),
+            DesignTournamentError::OperatingConditionSetMismatch
+        );
+    }
+
+    #[test]
+    fn one_solver_run_cannot_be_reused_for_two_distinct_design_candidates() {
+        let first = candidate("solver-owner-a", 1.0, 0.01, EvidenceKind::SyntheticScenario);
+        let mut second = candidate("solver-owner-b", 1.2, 0.01, EvidenceKind::SyntheticScenario);
+        second.solver_run_ids[0] = first.solver_run_ids[0].clone();
+        assert_eq!(
+            rank_magnetic_designs("tournament-shared-run", &[first, second], &requirements())
+                .expect_err("solver run cannot identify two designs"),
+            DesignTournamentError::SolverRunIdReusedAcrossCandidates
         );
     }
 
