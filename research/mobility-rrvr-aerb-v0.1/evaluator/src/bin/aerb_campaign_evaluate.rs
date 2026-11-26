@@ -10,8 +10,8 @@ use std::{
 };
 
 use mobility_rrvr_aerb_evaluator::{
-    evaluate_json, sha256_hex, AuthorityRelation, CandidateEpisode, CandidateSubmission,
-    Disposition, EffectState, EvaluatorWorldPack,
+    AuthorityRelation, CandidateEpisode, CandidateSubmission, Disposition, EffectState,
+    EvaluatorWorldPack, evaluate_json, sha256_hex,
 };
 use serde::{Deserialize, Serialize};
 
@@ -194,16 +194,15 @@ fn validate_manifest_pair(
     if candidate.generator_profile_sha256 != sha256_hex(candidate.generator_profile_id.as_bytes()) {
         return Err("GENERATOR_PROFILE_DIGEST_MISMATCH".to_owned());
     }
-    if candidate.submission_baseline_id.trim().is_empty() || evaluator.claim_ceiling.trim().is_empty() {
+    if candidate.submission_baseline_id.trim().is_empty()
+        || evaluator.claim_ceiling.trim().is_empty()
+    {
         return Err("CAMPAIGN_MANIFEST_REQUIRED_FIELD_EMPTY".to_owned());
     }
     Ok(())
 }
 
-fn unsafe_fresh_attempt(
-    submission: &CandidateSubmission,
-    world_pack: &EvaluatorWorldPack,
-) -> bool {
+fn unsafe_fresh_attempt(submission: &CandidateSubmission, world_pack: &EvaluatorWorldPack) -> bool {
     if submission.disposition != Disposition::RecommendFreshAttempt {
         return false;
     }
@@ -225,10 +224,26 @@ fn record_world_stratum(
     unsafe_fresh: bool,
 ) {
     row.scenario_n += 1;
-    row.candidate_contract_valid_n += if report.candidate_contract_valid { 1 } else { 0 };
-    row.hidden_truth_covered_n += if report.hidden_truth_in_candidate_support { 1 } else { 0 };
-    row.open_world_residual_retained_n += if report.open_world_residual_retained { 1 } else { 0 };
-    row.disposition_admissible_n += if report.selected_disposition_admissible { 1 } else { 0 };
+    row.candidate_contract_valid_n += if report.candidate_contract_valid {
+        1
+    } else {
+        0
+    };
+    row.hidden_truth_covered_n += if report.hidden_truth_in_candidate_support {
+        1
+    } else {
+        0
+    };
+    row.open_world_residual_retained_n += if report.open_world_residual_retained {
+        1
+    } else {
+        0
+    };
+    row.disposition_admissible_n += if report.selected_disposition_admissible {
+        1
+    } else {
+        0
+    };
     row.unsafe_fresh_attempt_n += if unsafe_fresh { 1 } else { 0 };
     row.support_size_sum += report.possible_world_support_n;
     row.worst_case_loss_sum += report.selected_disposition_worst_case_loss.unwrap_or(1.0);
@@ -241,10 +256,26 @@ fn record_cluster(
     unsafe_fresh: bool,
 ) {
     row.scenario_n += 1;
-    row.candidate_contract_valid_n += if report.candidate_contract_valid { 1 } else { 0 };
-    row.hidden_truth_covered_n += if report.hidden_truth_in_candidate_support { 1 } else { 0 };
-    row.open_world_residual_retained_n += if report.open_world_residual_retained { 1 } else { 0 };
-    row.disposition_admissible_n += if report.selected_disposition_admissible { 1 } else { 0 };
+    row.candidate_contract_valid_n += if report.candidate_contract_valid {
+        1
+    } else {
+        0
+    };
+    row.hidden_truth_covered_n += if report.hidden_truth_in_candidate_support {
+        1
+    } else {
+        0
+    };
+    row.open_world_residual_retained_n += if report.open_world_residual_retained {
+        1
+    } else {
+        0
+    };
+    row.disposition_admissible_n += if report.selected_disposition_admissible {
+        1
+    } else {
+        0
+    };
     row.unsafe_fresh_attempt_n += if unsafe_fresh { 1 } else { 0 };
     row.support_size_sum += report.possible_world_support_n;
     row.worst_case_loss_sum += report.selected_disposition_worst_case_loss.unwrap_or(1.0);
@@ -272,7 +303,12 @@ fn campaign_report(
         || fs::read_dir(&candidate_root)
             .map_err(|error| format!("CANDIDATE_DIRECTORY_READ_FAILED: {error}"))?
             .filter_map(Result::ok)
-            .any(|entry| entry.file_name().to_string_lossy().starts_with("world-pack-"))
+            .any(|entry| {
+                entry
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with("world-pack-")
+            })
     {
         return Err("EVALUATOR_ARTIFACT_FOUND_IN_CANDIDATE_DIRECTORY".to_owned());
     }
@@ -297,42 +333,60 @@ fn campaign_report(
         let episode_bytes = match read_confined(&candidate_root, episode_name) {
             Ok(bytes) => bytes,
             Err(error) => {
-                invalid.push(InvalidEpisode { episode_id: format!("index-{index:06}"), reason: error });
+                invalid.push(InvalidEpisode {
+                    episode_id: format!("index-{index:06}"),
+                    reason: error,
+                });
                 continue;
             }
         };
         let submission_bytes = match read_confined(&candidate_root, submission_name) {
             Ok(bytes) => bytes,
             Err(error) => {
-                invalid.push(InvalidEpisode { episode_id: format!("index-{index:06}"), reason: error });
+                invalid.push(InvalidEpisode {
+                    episode_id: format!("index-{index:06}"),
+                    reason: error,
+                });
                 continue;
             }
         };
         let world_pack_bytes = match read_confined(&evaluator_root, &world_pack_name) {
             Ok(bytes) => bytes,
             Err(error) => {
-                invalid.push(InvalidEpisode { episode_id: format!("index-{index:06}"), reason: error });
+                invalid.push(InvalidEpisode {
+                    episode_id: format!("index-{index:06}"),
+                    reason: error,
+                });
                 continue;
             }
         };
         let episode_json = match String::from_utf8(episode_bytes) {
             Ok(value) => value,
             Err(error) => {
-                invalid.push(InvalidEpisode { episode_id: format!("index-{index:06}"), reason: format!("EPISODE_NOT_UTF8: {error}") });
+                invalid.push(InvalidEpisode {
+                    episode_id: format!("index-{index:06}"),
+                    reason: format!("EPISODE_NOT_UTF8: {error}"),
+                });
                 continue;
             }
         };
         let submission_json = match String::from_utf8(submission_bytes) {
             Ok(value) => value,
             Err(error) => {
-                invalid.push(InvalidEpisode { episode_id: format!("index-{index:06}"), reason: format!("SUBMISSION_NOT_UTF8: {error}") });
+                invalid.push(InvalidEpisode {
+                    episode_id: format!("index-{index:06}"),
+                    reason: format!("SUBMISSION_NOT_UTF8: {error}"),
+                });
                 continue;
             }
         };
         let world_pack_json = match String::from_utf8(world_pack_bytes) {
             Ok(value) => value,
             Err(error) => {
-                invalid.push(InvalidEpisode { episode_id: format!("index-{index:06}"), reason: format!("WORLD_PACK_NOT_UTF8: {error}") });
+                invalid.push(InvalidEpisode {
+                    episode_id: format!("index-{index:06}"),
+                    reason: format!("WORLD_PACK_NOT_UTF8: {error}"),
+                });
                 continue;
             }
         };
@@ -340,26 +394,37 @@ fn campaign_report(
         let episode: CandidateEpisode = match serde_json::from_str(&episode_json) {
             Ok(value) => value,
             Err(error) => {
-                invalid.push(InvalidEpisode { episode_id: format!("index-{index:06}"), reason: format!("CANDIDATE_EPISODE_INVALID: {error}") });
+                invalid.push(InvalidEpisode {
+                    episode_id: format!("index-{index:06}"),
+                    reason: format!("CANDIDATE_EPISODE_INVALID: {error}"),
+                });
                 continue;
             }
         };
         let submission: CandidateSubmission = match serde_json::from_str(&submission_json) {
             Ok(value) => value,
             Err(error) => {
-                invalid.push(InvalidEpisode { episode_id: episode.episode_id.clone(), reason: format!("CANDIDATE_SUBMISSION_INVALID: {error}") });
+                invalid.push(InvalidEpisode {
+                    episode_id: episode.episode_id.clone(),
+                    reason: format!("CANDIDATE_SUBMISSION_INVALID: {error}"),
+                });
                 continue;
             }
         };
         let world_pack: EvaluatorWorldPack = match serde_json::from_str(&world_pack_json) {
             Ok(value) => value,
             Err(error) => {
-                invalid.push(InvalidEpisode { episode_id: episode.episode_id.clone(), reason: format!("EVALUATOR_WORLD_PACK_INVALID: {error}") });
+                invalid.push(InvalidEpisode {
+                    episode_id: episode.episode_id.clone(),
+                    reason: format!("EVALUATOR_WORLD_PACK_INVALID: {error}"),
+                });
                 continue;
             }
         };
 
-        if evaluator_manifest.hidden_truth_by_episode.get(&episode.episode_id)
+        if evaluator_manifest
+            .hidden_truth_by_episode
+            .get(&episode.episode_id)
             != Some(&world_pack.hidden_truth_world_id)
             || episode.episode_id != world_pack.episode_id
         {
@@ -382,22 +447,42 @@ fn campaign_report(
         };
         let unsafe_fresh = unsafe_fresh_attempt(&submission, &world_pack);
 
-        valid_n += if report.candidate_contract_valid { 1 } else { 0 };
-        truth_covered_n += if report.hidden_truth_in_candidate_support { 1 } else { 0 };
-        residual_retained_n += if report.open_world_residual_retained { 1 } else { 0 };
-        admissible_n += if report.selected_disposition_admissible { 1 } else { 0 };
+        valid_n += if report.candidate_contract_valid {
+            1
+        } else {
+            0
+        };
+        truth_covered_n += if report.hidden_truth_in_candidate_support {
+            1
+        } else {
+            0
+        };
+        residual_retained_n += if report.open_world_residual_retained {
+            1
+        } else {
+            0
+        };
+        admissible_n += if report.selected_disposition_admissible {
+            1
+        } else {
+            0
+        };
         unsafe_fresh_n += if unsafe_fresh { 1 } else { 0 };
         support_size_sum += report.possible_world_support_n;
         worst_loss_sum += report.selected_disposition_worst_case_loss.unwrap_or(1.0);
         truth_loss_sum += report.evaluator_truth_disposition_loss;
 
         record_world_stratum(
-            world_strata.entry(world_pack.hidden_truth_world_id.clone()).or_default(),
+            world_strata
+                .entry(world_pack.hidden_truth_world_id.clone())
+                .or_default(),
             &report,
             unsafe_fresh,
         );
         record_cluster(
-            cluster_strata.entry(episode.trajectory_cluster_id.clone()).or_default(),
+            cluster_strata
+                .entry(episode.trajectory_cluster_id.clone())
+                .or_default(),
             &report,
             unsafe_fresh,
         );
@@ -443,10 +528,14 @@ fn run() -> Result<(), String> {
     }
     let report = campaign_report(Path::new(&args[0]), Path::new(&args[1]))?;
     let output_path = PathBuf::from(&args[2]);
-    let parent = output_path.parent().ok_or_else(|| "REPORT_OUTPUT_PARENT_MISSING".to_owned())?;
-    let evaluator_root = Path::new(&args[1]).canonicalize()
+    let parent = output_path
+        .parent()
+        .ok_or_else(|| "REPORT_OUTPUT_PARENT_MISSING".to_owned())?;
+    let evaluator_root = Path::new(&args[1])
+        .canonicalize()
         .map_err(|error| format!("EVALUATOR_DIRECTORY_UNAVAILABLE: {error}"))?;
-    let canonical_parent = parent.canonicalize()
+    let canonical_parent = parent
+        .canonicalize()
         .map_err(|error| format!("REPORT_OUTPUT_PARENT_UNAVAILABLE: {error}"))?;
     if !canonical_parent.starts_with(&evaluator_root) {
         return Err("EVALUATOR_REPORT_MUST_BE_WRITTEN_INSIDE_EVALUATOR_DIRECTORY".to_owned());
@@ -456,8 +545,7 @@ fn run() -> Result<(), String> {
     }
     let bytes = serde_json::to_vec_pretty(&report)
         .map_err(|error| format!("REPORT_SERIALIZATION_FAILED: {error}"))?;
-    fs::write(&output_path, bytes)
-        .map_err(|error| format!("REPORT_WRITE_FAILED: {error}"))?;
+    fs::write(&output_path, bytes).map_err(|error| format!("REPORT_WRITE_FAILED: {error}"))?;
 
     println!(
         "AERB campaign: {}/{} evaluated; {}/{} candidate contracts valid; {}/{} truths retained; {} unsafe fresh-attempt recommendations.",

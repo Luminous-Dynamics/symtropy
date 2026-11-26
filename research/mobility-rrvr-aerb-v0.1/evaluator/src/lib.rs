@@ -299,11 +299,19 @@ impl std::fmt::Display for EvaluatorError {
             Self::Json(reason) => write!(formatter, "JSON invalid: {reason}"),
             Self::UnsupportedSchema(reason) => write!(formatter, "unsupported schema: {reason}"),
             Self::IdentityMismatch(reason) => write!(formatter, "identity mismatch: {reason}"),
-            Self::InvalidEpisode(reason) => write!(formatter, "candidate episode invalid: {reason}"),
-            Self::InvalidSubmission(reason) => write!(formatter, "candidate submission invalid: {reason}"),
-            Self::InvalidWorldPack(reason) => write!(formatter, "evaluator world pack invalid: {reason}"),
+            Self::InvalidEpisode(reason) => {
+                write!(formatter, "candidate episode invalid: {reason}")
+            }
+            Self::InvalidSubmission(reason) => {
+                write!(formatter, "candidate submission invalid: {reason}")
+            }
+            Self::InvalidWorldPack(reason) => {
+                write!(formatter, "evaluator world pack invalid: {reason}")
+            }
             Self::SnapshotDigestMismatch => write!(formatter, "candidate snapshot digest mismatch"),
-            Self::CandidateArtifactMalformed(reason) => write!(formatter, "candidate artifact malformed: {reason}"),
+            Self::CandidateArtifactMalformed(reason) => {
+                write!(formatter, "candidate artifact malformed: {reason}")
+            }
         }
     }
 }
@@ -322,7 +330,9 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
 
 fn is_sha256(value: &str) -> bool {
     value.len() == 64
-        && value.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 /// Version 0.1 uses serde_json's compact serialization of a Value.
@@ -332,8 +342,8 @@ fn is_sha256(value: &str) -> bool {
 pub fn canonical_sorted_json_sha256(raw_json: &str) -> Result<String, EvaluatorError> {
     let value: Value =
         serde_json::from_str(raw_json).map_err(|error| EvaluatorError::Json(error.to_string()))?;
-    let bytes = serde_json::to_vec(&value)
-        .map_err(|error| EvaluatorError::Json(error.to_string()))?;
+    let bytes =
+        serde_json::to_vec(&value).map_err(|error| EvaluatorError::Json(error.to_string()))?;
     Ok(sha256_hex(&bytes))
 }
 
@@ -343,10 +353,14 @@ fn nonempty(value: &str) -> bool {
 
 fn validate_episode(episode: &CandidateEpisode) -> Result<(), EvaluatorError> {
     if episode.schema_version != SCHEMA_VERSION || episode.benchmark != BENCHMARK {
-        return Err(EvaluatorError::UnsupportedSchema("candidate episode".to_owned()));
+        return Err(EvaluatorError::UnsupportedSchema(
+            "candidate episode".to_owned(),
+        ));
     }
     if episode.world_vocabulary_version != WORLD_VOCABULARY_VERSION {
-        return Err(EvaluatorError::UnsupportedSchema("world vocabulary".to_owned()));
+        return Err(EvaluatorError::UnsupportedSchema(
+            "world vocabulary".to_owned(),
+        ));
     }
     if ![
         episode.episode_id.as_str(),
@@ -361,32 +375,46 @@ fn validate_episode(episode: &CandidateEpisode) -> Result<(), EvaluatorError> {
     .iter()
     .all(|value| nonempty(value))
     {
-        return Err(EvaluatorError::InvalidEpisode("required identity field empty".to_owned()));
+        return Err(EvaluatorError::InvalidEpisode(
+            "required identity field empty".to_owned(),
+        ));
     }
     if episode.decision_cut_sequence != episode.ledger_frontier_sequence {
-        return Err(EvaluatorError::InvalidEpisode("decision cut differs from ledger frontier".to_owned()));
+        return Err(EvaluatorError::InvalidEpisode(
+            "decision cut differs from ledger frontier".to_owned(),
+        ));
     }
     if episode.current_step > episode.decision_deadline_step {
-        return Err(EvaluatorError::InvalidEpisode("current step is beyond decision deadline".to_owned()));
+        return Err(EvaluatorError::InvalidEpisode(
+            "current step is beyond decision deadline".to_owned(),
+        ));
     }
     if !episode.remaining_probe_budget_units.is_finite()
         || episode.remaining_probe_budget_units < 0.0
     {
-        return Err(EvaluatorError::InvalidEpisode("remaining probe budget invalid".to_owned()));
+        return Err(EvaluatorError::InvalidEpisode(
+            "remaining probe budget invalid".to_owned(),
+        ));
     }
     for digest in [
         &episode.command_context.payload_sha256,
         &episode.command_context.action_prefix_sha256,
         &episode.command_context.endpoint_profile_sha256,
         &episode.command_context.system_boundary_manifest_sha256,
-        &episode.command_context.effect_producing_inventory_profile_sha256,
+        &episode
+            .command_context
+            .effect_producing_inventory_profile_sha256,
     ] {
         if !is_sha256(digest) {
-            return Err(EvaluatorError::InvalidEpisode("command context digest invalid".to_owned()));
+            return Err(EvaluatorError::InvalidEpisode(
+                "command context digest invalid".to_owned(),
+            ));
         }
     }
     if episode.observations.is_empty() {
-        return Err(EvaluatorError::InvalidEpisode("observation list empty".to_owned()));
+        return Err(EvaluatorError::InvalidEpisode(
+            "observation list empty".to_owned(),
+        ));
     }
 
     let mut observation_ids = BTreeSet::new();
@@ -398,34 +426,50 @@ fn validate_episode(episode: &CandidateEpisode) -> Result<(), EvaluatorError> {
             || !nonempty(&observation.event_time.clock_domain_id)
             || !nonempty(&observation.acquired_time.clock_domain_id)
         {
-            return Err(EvaluatorError::InvalidEpisode("observation identity or clock empty".to_owned()));
+            return Err(EvaluatorError::InvalidEpisode(
+                "observation identity or clock empty".to_owned(),
+            ));
         }
         if !observation_ids.insert(observation.observation_id.as_str()) {
-            return Err(EvaluatorError::InvalidEpisode("duplicate observation ID".to_owned()));
+            return Err(EvaluatorError::InvalidEpisode(
+                "duplicate observation ID".to_owned(),
+            ));
         }
         if !ingest_sequences.insert(observation.ingest_sequence) {
-            return Err(EvaluatorError::InvalidEpisode("duplicate ingest sequence".to_owned()));
+            return Err(EvaluatorError::InvalidEpisode(
+                "duplicate ingest sequence".to_owned(),
+            ));
         }
         if observation.ingest_sequence > episode.decision_cut_sequence {
-            return Err(EvaluatorError::InvalidEpisode("observation ingested after decision cut".to_owned()));
+            return Err(EvaluatorError::InvalidEpisode(
+                "observation ingested after decision cut".to_owned(),
+            ));
         }
         if !is_sha256(&observation.artifact_sha256) {
-            return Err(EvaluatorError::InvalidEpisode("observation artifact digest invalid".to_owned()));
+            return Err(EvaluatorError::InvalidEpisode(
+                "observation artifact digest invalid".to_owned(),
+            ));
         }
         if observation.event_time.clock_domain_id == observation.acquired_time.clock_domain_id
             && observation.acquired_time.ticks_ns < observation.event_time.ticks_ns
         {
-            return Err(EvaluatorError::InvalidEpisode("acquisition precedes event in same clock domain".to_owned()));
+            return Err(EvaluatorError::InvalidEpisode(
+                "acquisition precedes event in same clock domain".to_owned(),
+            ));
         }
     }
 
     let mut probe_ids = BTreeSet::new();
     for probe in &episode.permitted_probes {
         if !nonempty(&probe.probe_id) || !probe_ids.insert(probe.probe_id.as_str()) {
-            return Err(EvaluatorError::InvalidEpisode("probe ID empty or duplicated".to_owned()));
+            return Err(EvaluatorError::InvalidEpisode(
+                "probe ID empty or duplicated".to_owned(),
+            ));
         }
         if !probe.acquisition_cost_units.is_finite() || probe.acquisition_cost_units < 0.0 {
-            return Err(EvaluatorError::InvalidEpisode("probe cost invalid".to_owned()));
+            return Err(EvaluatorError::InvalidEpisode(
+                "probe cost invalid".to_owned(),
+            ));
         }
     }
     Ok(())
@@ -437,26 +481,36 @@ fn validate_submission(
     snapshot_sha256: &str,
 ) -> Result<(), EvaluatorError> {
     if submission.schema_version != SCHEMA_VERSION || submission.benchmark != BENCHMARK {
-        return Err(EvaluatorError::UnsupportedSchema("candidate submission".to_owned()));
+        return Err(EvaluatorError::UnsupportedSchema(
+            "candidate submission".to_owned(),
+        ));
     }
     if submission.episode_id != episode.episode_id {
-        return Err(EvaluatorError::IdentityMismatch("candidate submission episode ID".to_owned()));
+        return Err(EvaluatorError::IdentityMismatch(
+            "candidate submission episode ID".to_owned(),
+        ));
     }
     if !is_sha256(&submission.model_sha256) || !is_sha256(&submission.observer_profile_sha256) {
-        return Err(EvaluatorError::InvalidSubmission("model/profile digest invalid".to_owned()));
+        return Err(EvaluatorError::InvalidSubmission(
+            "model/profile digest invalid".to_owned(),
+        ));
     }
     if submission.candidate_snapshot_sha256 != snapshot_sha256 {
         return Err(EvaluatorError::SnapshotDigestMismatch);
     }
     if submission.possible_world_support_ids.is_empty() {
-        return Err(EvaluatorError::InvalidSubmission("possible-world support empty".to_owned()));
+        return Err(EvaluatorError::InvalidSubmission(
+            "possible-world support empty".to_owned(),
+        ));
     }
     let unique = submission
         .possible_world_support_ids
         .iter()
         .collect::<BTreeSet<_>>();
     if unique.len() != submission.possible_world_support_ids.len() {
-        return Err(EvaluatorError::InvalidSubmission("duplicate possible-world support ID".to_owned()));
+        return Err(EvaluatorError::InvalidSubmission(
+            "duplicate possible-world support ID".to_owned(),
+        ));
     }
     let observation_ids = episode
         .observations
@@ -468,27 +522,32 @@ fn validate_submission(
         .iter()
         .any(|observation_id| !observation_ids.contains(observation_id.as_str()))
     {
-        return Err(EvaluatorError::InvalidSubmission("explanation cites unknown observation".to_owned()));
+        return Err(EvaluatorError::InvalidSubmission(
+            "explanation cites unknown observation".to_owned(),
+        ));
     }
-    let has_unqualified_observation = episode.observations.iter().any(|observation| {
-        observation.quality != ObservationQuality::Admitted
-    });
+    let has_unqualified_observation = episode
+        .observations
+        .iter()
+        .any(|observation| observation.quality != ObservationQuality::Admitted);
     if has_unqualified_observation && submission.disposition != Disposition::Abstain {
         return Err(EvaluatorError::InvalidSubmission(
-            "stale, unknown or disputed observations require abstention".to_owned()
+            "stale, unknown or disputed observations require abstention".to_owned(),
         ));
     }
 
     match submission.disposition {
         Disposition::RequestObservation if submission.requested_probe_id.is_none() => {
-            return Err(EvaluatorError::InvalidSubmission("request_observation requires a probe ID".to_owned()));
+            return Err(EvaluatorError::InvalidSubmission(
+                "request_observation requires a probe ID".to_owned(),
+            ));
         }
-        Disposition::HoldReconcile
-        | Disposition::Abstain
-        | Disposition::RecommendFreshAttempt
+        Disposition::HoldReconcile | Disposition::Abstain | Disposition::RecommendFreshAttempt
             if submission.requested_probe_id.is_some() =>
         {
-            return Err(EvaluatorError::InvalidSubmission("non-probe disposition must not request probe".to_owned()));
+            return Err(EvaluatorError::InvalidSubmission(
+                "non-probe disposition must not request probe".to_owned(),
+            ));
         }
         _ => {}
     }
@@ -502,24 +561,37 @@ fn build_loss_table(
     let mut table = BTreeMap::new();
     for row in &pack.decision_losses {
         if !worlds.contains(row.world_id.as_str()) {
-            return Err(EvaluatorError::InvalidWorldPack("decision loss references unknown world".to_owned()));
+            return Err(EvaluatorError::InvalidWorldPack(
+                "decision loss references unknown world".to_owned(),
+            ));
         }
         if !row.loss.is_finite() || !(0.0..=1.0).contains(&row.loss) {
-            return Err(EvaluatorError::InvalidWorldPack("decision loss outside [0,1]".to_owned()));
+            return Err(EvaluatorError::InvalidWorldPack(
+                "decision loss outside [0,1]".to_owned(),
+            ));
         }
-        if table.insert((row.disposition, row.world_id.clone()), row.loss).is_some() {
-            return Err(EvaluatorError::InvalidWorldPack("duplicate decision loss row".to_owned()));
+        if table
+            .insert((row.disposition, row.world_id.clone()), row.loss)
+            .is_some()
+        {
+            return Err(EvaluatorError::InvalidWorldPack(
+                "duplicate decision loss row".to_owned(),
+            ));
         }
     }
     for world_id in worlds {
         for disposition in Disposition::ALL {
             if !table.contains_key(&(disposition, (*world_id).to_owned())) {
-                return Err(EvaluatorError::InvalidWorldPack("decision loss matrix incomplete".to_owned()));
+                return Err(EvaluatorError::InvalidWorldPack(
+                    "decision loss matrix incomplete".to_owned(),
+                ));
             }
         }
     }
     if table.len() != worlds.len() * Disposition::ALL.len() {
-        return Err(EvaluatorError::InvalidWorldPack("decision loss matrix has extra rows".to_owned()));
+        return Err(EvaluatorError::InvalidWorldPack(
+            "decision loss matrix has extra rows".to_owned(),
+        ));
     }
     Ok(table)
 }
@@ -527,7 +599,9 @@ fn build_loss_table(
 fn validate_world_semantics(world: &EvaluatorWorld) -> Result<(), EvaluatorError> {
     let effect_count_valid = match world.effect_state {
         EffectState::None | EffectState::Unknown => world.effect_count == 0,
-        EffectState::Once | EffectState::Partial | EffectState::StaleEpoch => world.effect_count == 1,
+        EffectState::Once | EffectState::Partial | EffectState::StaleEpoch => {
+            world.effect_count == 1
+        }
         EffectState::Duplicate => world.effect_count >= 2,
     };
     if !effect_count_valid {
@@ -545,8 +619,7 @@ fn validate_world_semantics(world: &EvaluatorWorld) -> Result<(), EvaluatorError
             world.world_id
         )));
     }
-    if world.dispatch_state == DispatchState::Unknown
-        && world.effect_state != EffectState::Unknown
+    if world.dispatch_state == DispatchState::Unknown && world.effect_state != EffectState::Unknown
     {
         return Err(EvaluatorError::InvalidWorldPack(format!(
             "unknown dispatch state requires unknown effect state: {}",
@@ -575,36 +648,58 @@ fn validate_world_semantics(world: &EvaluatorWorld) -> Result<(), EvaluatorError
 fn validate_world_pack<'a>(
     pack: &'a EvaluatorWorldPack,
     episode: &CandidateEpisode,
-) -> Result<(BTreeMap<&'a str, &'a EvaluatorWorld>, BTreeMap<(Disposition, String), f64>), EvaluatorError> {
+) -> Result<
+    (
+        BTreeMap<&'a str, &'a EvaluatorWorld>,
+        BTreeMap<(Disposition, String), f64>,
+    ),
+    EvaluatorError,
+> {
     if pack.schema_version != SCHEMA_VERSION || pack.benchmark != BENCHMARK {
-        return Err(EvaluatorError::UnsupportedSchema("evaluator world pack".to_owned()));
+        return Err(EvaluatorError::UnsupportedSchema(
+            "evaluator world pack".to_owned(),
+        ));
     }
     if pack.episode_id != episode.episode_id {
-        return Err(EvaluatorError::IdentityMismatch("evaluator world pack episode ID".to_owned()));
+        return Err(EvaluatorError::IdentityMismatch(
+            "evaluator world pack episode ID".to_owned(),
+        ));
     }
     if !is_sha256(&pack.evaluator_profile_sha256) {
-        return Err(EvaluatorError::InvalidWorldPack("evaluator profile digest invalid".to_owned()));
+        return Err(EvaluatorError::InvalidWorldPack(
+            "evaluator profile digest invalid".to_owned(),
+        ));
     }
     if !pack.maximum_worst_case_loss.is_finite()
         || !(0.0..=1.0).contains(&pack.maximum_worst_case_loss)
     {
-        return Err(EvaluatorError::InvalidWorldPack("maximum worst-case loss threshold invalid".to_owned()));
+        return Err(EvaluatorError::InvalidWorldPack(
+            "maximum worst-case loss threshold invalid".to_owned(),
+        ));
     }
     if pack.worlds.is_empty() {
-        return Err(EvaluatorError::InvalidWorldPack("world catalog empty".to_owned()));
+        return Err(EvaluatorError::InvalidWorldPack(
+            "world catalog empty".to_owned(),
+        ));
     }
     let mut worlds = BTreeMap::new();
     for world in &pack.worlds {
         if !nonempty(&world.world_id) || worlds.insert(world.world_id.as_str(), world).is_some() {
-            return Err(EvaluatorError::InvalidWorldPack("world ID empty or duplicated".to_owned()));
+            return Err(EvaluatorError::InvalidWorldPack(
+                "world ID empty or duplicated".to_owned(),
+            ));
         }
         validate_world_semantics(world)?;
     }
     if !worlds.contains_key(pack.hidden_truth_world_id.as_str()) {
-        return Err(EvaluatorError::InvalidWorldPack("hidden truth not in world catalog".to_owned()));
+        return Err(EvaluatorError::InvalidWorldPack(
+            "hidden truth not in world catalog".to_owned(),
+        ));
     }
     if !worlds.contains_key(OPEN_WORLD_RESIDUAL) {
-        return Err(EvaluatorError::InvalidWorldPack("open-world residual absent".to_owned()));
+        return Err(EvaluatorError::InvalidWorldPack(
+            "open-world residual absent".to_owned(),
+        ));
     }
     let world_ids = worlds.keys().copied().collect::<BTreeSet<_>>();
     let loss_table = build_loss_table(pack, &world_ids)?;
@@ -617,62 +712,91 @@ fn validate_world_pack<'a>(
     let mut pack_probe_ids = BTreeSet::new();
     for probe in &pack.probe_outcome_supports {
         if !pack_probe_ids.insert(probe.probe_id.as_str()) {
-            return Err(EvaluatorError::InvalidWorldPack("duplicate probe-support ID".to_owned()));
+            return Err(EvaluatorError::InvalidWorldPack(
+                "duplicate probe-support ID".to_owned(),
+            ));
         }
         if !candidate_probe_ids.contains(probe.probe_id.as_str()) {
-            return Err(EvaluatorError::InvalidWorldPack("probe support not in candidate menu".to_owned()));
+            return Err(EvaluatorError::InvalidWorldPack(
+                "probe support not in candidate menu".to_owned(),
+            ));
         }
         if probe.outcomes.is_empty() {
-            return Err(EvaluatorError::InvalidWorldPack("probe outcome set empty".to_owned()));
+            return Err(EvaluatorError::InvalidWorldPack(
+                "probe outcome set empty".to_owned(),
+            ));
         }
         let mut outcome_ids = BTreeSet::new();
         let mut covered_worlds = BTreeSet::new();
         for outcome in &probe.outcomes {
             if !nonempty(&outcome.outcome_id) || !outcome_ids.insert(outcome.outcome_id.as_str()) {
-                return Err(EvaluatorError::InvalidWorldPack("probe outcome ID empty or duplicated".to_owned()));
+                return Err(EvaluatorError::InvalidWorldPack(
+                    "probe outcome ID empty or duplicated".to_owned(),
+                ));
             }
             if outcome.possible_world_ids.is_empty() {
-                return Err(EvaluatorError::InvalidWorldPack("probe outcome support empty".to_owned()));
+                return Err(EvaluatorError::InvalidWorldPack(
+                    "probe outcome support empty".to_owned(),
+                ));
             }
             let mut outcome_worlds = BTreeSet::new();
             for world_id in &outcome.possible_world_ids {
                 if !world_ids.contains(world_id.as_str()) {
-                    return Err(EvaluatorError::InvalidWorldPack("probe support references unknown world".to_owned()));
+                    return Err(EvaluatorError::InvalidWorldPack(
+                        "probe support references unknown world".to_owned(),
+                    ));
                 }
                 if !outcome_worlds.insert(world_id.as_str()) {
-                    return Err(EvaluatorError::InvalidWorldPack("duplicate world in one outcome support".to_owned()));
+                    return Err(EvaluatorError::InvalidWorldPack(
+                        "duplicate world in one outcome support".to_owned(),
+                    ));
                 }
                 covered_worlds.insert(world_id.as_str());
             }
         }
         if covered_worlds != world_ids {
-            return Err(EvaluatorError::InvalidWorldPack("probe outcome supports do not cover world catalog".to_owned()));
+            return Err(EvaluatorError::InvalidWorldPack(
+                "probe outcome supports do not cover world catalog".to_owned(),
+            ));
         }
 
         if probe.probe_id != SCOPE_CLOSURE_PROBE_ID {
             if probe.outcomes.iter().any(|outcome| {
-                !outcome.possible_world_ids.iter().any(|world_id| world_id.as_str() == OPEN_WORLD_RESIDUAL)
+                !outcome
+                    .possible_world_ids
+                    .iter()
+                    .any(|world_id| world_id.as_str() == OPEN_WORLD_RESIDUAL)
             }) {
                 return Err(EvaluatorError::InvalidWorldPack(
-                    "ordinary observation probe attempts to eliminate open-world residual".to_owned()
+                    "ordinary observation probe attempts to eliminate open-world residual"
+                        .to_owned(),
                 ));
             }
         } else {
             let has_unresolved_scope_outcome = probe.outcomes.iter().any(|outcome| {
-                outcome.possible_world_ids.iter().any(|world_id| world_id.as_str() == OPEN_WORLD_RESIDUAL)
+                outcome
+                    .possible_world_ids
+                    .iter()
+                    .any(|world_id| world_id.as_str() == OPEN_WORLD_RESIDUAL)
             });
             let has_scope_closed_outcome = probe.outcomes.iter().any(|outcome| {
-                !outcome.possible_world_ids.iter().any(|world_id| world_id.as_str() == OPEN_WORLD_RESIDUAL)
+                !outcome
+                    .possible_world_ids
+                    .iter()
+                    .any(|world_id| world_id.as_str() == OPEN_WORLD_RESIDUAL)
             });
             if !has_unresolved_scope_outcome || !has_scope_closed_outcome {
                 return Err(EvaluatorError::InvalidWorldPack(
-                    "scope-closure probe must distinguish closed and unresolved scope outcomes".to_owned()
+                    "scope-closure probe must distinguish closed and unresolved scope outcomes"
+                        .to_owned(),
                 ));
             }
         }
     }
     if pack_probe_ids != candidate_probe_ids {
-        return Err(EvaluatorError::InvalidWorldPack("probe support menu differs from candidate permitted probes".to_owned()));
+        return Err(EvaluatorError::InvalidWorldPack(
+            "probe support menu differs from candidate permitted probes".to_owned(),
+        ));
     }
     Ok((worlds, loss_table))
 }
@@ -688,7 +812,11 @@ fn probe_admission(
     let Some(probe_id) = requested_probe_id else {
         return (ProbeAdmission::RequestMissing, None, None);
     };
-    let Some(probe) = episode.permitted_probes.iter().find(|probe| probe.probe_id == probe_id) else {
+    let Some(probe) = episode
+        .permitted_probes
+        .iter()
+        .find(|probe| probe.probe_id == probe_id)
+    else {
         return (ProbeAdmission::NotPermitted, None, None);
     };
     let cost = Some(probe.acquisition_cost_units);
@@ -696,7 +824,11 @@ fn probe_admission(
     if probe.acquisition_cost_units > episode.remaining_probe_budget_units {
         return (ProbeAdmission::OverBudget, cost, delay);
     }
-    if episode.current_step.saturating_add(probe.result_delay_steps) > episode.decision_deadline_step {
+    if episode
+        .current_step
+        .saturating_add(probe.result_delay_steps)
+        > episode.decision_deadline_step
+    {
         return (ProbeAdmission::MissesDeadline, cost, delay);
     }
     (ProbeAdmission::Eligible, cost, delay)
@@ -707,12 +839,12 @@ pub fn evaluate_json(
     submission_json: &str,
     evaluator_world_pack_json: &str,
 ) -> Result<EvaluatorReport, EvaluatorError> {
-    let episode: CandidateEpisode =
-        serde_json::from_str(episode_json).map_err(|error| EvaluatorError::Json(error.to_string()))?;
-    let submission: CandidateSubmission =
-        serde_json::from_str(submission_json).map_err(|error| EvaluatorError::Json(error.to_string()))?;
-    let pack: EvaluatorWorldPack =
-        serde_json::from_str(evaluator_world_pack_json).map_err(|error| EvaluatorError::Json(error.to_string()))?;
+    let episode: CandidateEpisode = serde_json::from_str(episode_json)
+        .map_err(|error| EvaluatorError::Json(error.to_string()))?;
+    let submission: CandidateSubmission = serde_json::from_str(submission_json)
+        .map_err(|error| EvaluatorError::Json(error.to_string()))?;
+    let pack: EvaluatorWorldPack = serde_json::from_str(evaluator_world_pack_json)
+        .map_err(|error| EvaluatorError::Json(error.to_string()))?;
 
     validate_episode(&episode)?;
     let snapshot_sha256 = canonical_sorted_json_sha256(episode_json)?;
@@ -748,10 +880,11 @@ pub fn evaluate_json(
         }
         worst_case_loss = Some(worst);
     }
-    let disposition_admissible = worst_case_loss
-        .is_some_and(|loss| loss <= pack.maximum_worst_case_loss + 1.0e-12);
+    let disposition_admissible =
+        worst_case_loss.is_some_and(|loss| loss <= pack.maximum_worst_case_loss + 1.0e-12);
     if !disposition_admissible {
-        candidate_reasons.push("SELECTED_DISPOSITION_EXCEEDS_HARD_RISK_CEILING_OR_SUPPORT_INVALID".to_owned());
+        candidate_reasons
+            .push("SELECTED_DISPOSITION_EXCEEDS_HARD_RISK_CEILING_OR_SUPPORT_INVALID".to_owned());
     }
 
     let truth_loss = *loss_table
@@ -766,14 +899,34 @@ pub fn evaluate_json(
         ProbeAdmission::Eligible | ProbeAdmission::NotRequested => {}
         ProbeAdmission::NotPermitted => candidate_reasons.push("PROBE_NOT_PERMITTED".to_owned()),
         ProbeAdmission::OverBudget => candidate_reasons.push("PROBE_OVER_BUDGET".to_owned()),
-        ProbeAdmission::MissesDeadline => candidate_reasons.push("PROBE_MISSES_DECISION_DEADLINE".to_owned()),
-        ProbeAdmission::RequestMissing => candidate_reasons.push("PROBE_REQUEST_MISSING".to_owned()),
+        ProbeAdmission::MissesDeadline => {
+            candidate_reasons.push("PROBE_MISSES_DECISION_DEADLINE".to_owned())
+        }
+        ProbeAdmission::RequestMissing => {
+            candidate_reasons.push("PROBE_REQUEST_MISSING".to_owned())
+        }
     }
 
-    let admitted_n = episode.observations.iter().filter(|row| row.quality == ObservationQuality::Admitted).count();
-    let stale_n = episode.observations.iter().filter(|row| row.quality == ObservationQuality::Stale).count();
-    let unknown_n = episode.observations.iter().filter(|row| row.quality == ObservationQuality::Unknown).count();
-    let disputed_n = episode.observations.iter().filter(|row| row.quality == ObservationQuality::Disputed).count();
+    let admitted_n = episode
+        .observations
+        .iter()
+        .filter(|row| row.quality == ObservationQuality::Admitted)
+        .count();
+    let stale_n = episode
+        .observations
+        .iter()
+        .filter(|row| row.quality == ObservationQuality::Stale)
+        .count();
+    let unknown_n = episode
+        .observations
+        .iter()
+        .filter(|row| row.quality == ObservationQuality::Unknown)
+        .count();
+    let disputed_n = episode
+        .observations
+        .iter()
+        .filter(|row| row.quality == ObservationQuality::Disputed)
+        .count();
     let candidate_contract_valid = candidate_reasons.is_empty();
 
     Ok(EvaluatorReport {
@@ -813,8 +966,7 @@ pub fn canonical_report_json(report: &EvaluatorReport) -> Result<Vec<u8>, Evalua
 mod tests {
     use super::*;
 
-    const EPISODE: &str =
-        include_str!("../../fixtures/candidate_episode_synthetic_v0_1.json");
+    const EPISODE: &str = include_str!("../../fixtures/candidate_episode_synthetic_v0_1.json");
     const SUBMISSION: &str =
         include_str!("../../fixtures/candidate_submission_synthetic_v0_1.json");
     const WORLDPACK: &str =
@@ -844,7 +996,11 @@ mod tests {
         assert_eq!(report.probe_admission, ProbeAdmission::Eligible);
         assert_eq!(report.selected_disposition_worst_case_loss, Some(0.3));
         assert!(report.selected_disposition_admissible);
-        assert!(!serde_json::to_string(&report).unwrap().contains("applied_once_ack_lost"));
+        assert!(
+            !serde_json::to_string(&report)
+                .unwrap()
+                .contains("applied_once_ack_lost")
+        );
     }
 
     #[test]
@@ -856,7 +1012,8 @@ mod tests {
                 &serde_json::to_string(&episode).unwrap(),
                 &serde_json::to_string(&submission).unwrap(),
                 &serde_json::to_string(&worldpack).unwrap()
-            ).unwrap_err(),
+            )
+            .unwrap_err(),
             EvaluatorError::SnapshotDigestMismatch
         );
     }
@@ -864,28 +1021,42 @@ mod tests {
     #[test]
     fn dropping_open_world_residual_is_a_candidate_violation() {
         let (episode, mut submission, worldpack) = values();
-        let support = submission["possible_world_support_ids"].as_array_mut().unwrap();
+        let support = submission["possible_world_support_ids"]
+            .as_array_mut()
+            .unwrap();
         support.retain(|value| value.as_str() != Some(OPEN_WORLD_RESIDUAL));
         let episode = serde_json::to_string(&episode).unwrap();
         let submission = serde_json::to_string(&submission).unwrap();
         let worldpack = serde_json::to_string(&worldpack).unwrap();
-        let report = evaluate_json(&episode, &submission, &worldpack).expect("score invalid candidate");
+        let report =
+            evaluate_json(&episode, &submission, &worldpack).expect("score invalid candidate");
         assert!(!report.candidate_contract_valid);
         assert!(!report.open_world_residual_retained);
-        assert!(report.candidate_reason_codes.iter().any(|code| code == "OPEN_WORLD_RESIDUAL_DROPPED"));
+        assert!(
+            report
+                .candidate_reason_codes
+                .iter()
+                .any(|code| code == "OPEN_WORLD_RESIDUAL_DROPPED")
+        );
     }
 
     #[test]
     fn truth_omission_is_reported_without_revealing_world_id() {
         let (episode, mut submission, worldpack) = values();
-        submission["possible_world_support_ids"] = serde_json::json!(["not_dispatched", OPEN_WORLD_RESIDUAL]);
+        submission["possible_world_support_ids"] =
+            serde_json::json!(["not_dispatched", OPEN_WORLD_RESIDUAL]);
         let report = evaluate_json(
             &serde_json::to_string(&episode).unwrap(),
             &serde_json::to_string(&submission).unwrap(),
-            &serde_json::to_string(&worldpack).unwrap()
-        ).expect("score");
+            &serde_json::to_string(&worldpack).unwrap(),
+        )
+        .expect("score");
         assert!(!report.hidden_truth_in_candidate_support);
-        assert!(!serde_json::to_string(&report).unwrap().contains("applied_once_ack_lost"));
+        assert!(
+            !serde_json::to_string(&report)
+                .unwrap()
+                .contains("applied_once_ack_lost")
+        );
     }
 
     #[test]
@@ -907,8 +1078,9 @@ mod tests {
         let report = evaluate_json(
             &serde_json::to_string(&episode).unwrap(),
             &serde_json::to_string(&submission).unwrap(),
-            &serde_json::to_string(&worldpack).unwrap()
-        ).expect("abstention remains scoreable");
+            &serde_json::to_string(&worldpack).unwrap(),
+        )
+        .expect("abstention remains scoreable");
         assert!(report.candidate_contract_valid);
         assert_eq!(report.disputed_observation_n, 0);
         assert_eq!(report.stale_observation_n, 1);
@@ -922,8 +1094,9 @@ mod tests {
         let report = evaluate_json(
             &serde_json::to_string(&episode).unwrap(),
             &serde_json::to_string(&submission).unwrap(),
-            &serde_json::to_string(&worldpack).unwrap()
-        ).expect("score");
+            &serde_json::to_string(&worldpack).unwrap(),
+        )
+        .expect("score");
         assert!(!report.selected_disposition_admissible);
         assert!(report.selected_disposition_worst_case_loss.unwrap() > 0.45);
     }
@@ -935,8 +1108,9 @@ mod tests {
         let report = evaluate_json(
             &serde_json::to_string(&episode).unwrap(),
             &serde_json::to_string(&submission).unwrap(),
-            &serde_json::to_string(&worldpack).unwrap()
-        ).expect("score invalid candidate");
+            &serde_json::to_string(&worldpack).unwrap(),
+        )
+        .expect("score invalid candidate");
         assert_eq!(report.probe_admission, ProbeAdmission::NotPermitted);
         assert!(!report.candidate_contract_valid);
     }
@@ -960,7 +1134,8 @@ mod tests {
     fn scope_closure_probe_must_preserve_an_unresolved_outcome_and_a_closed_outcome() {
         let (episode, submission, mut worldpack) = values();
         let index = worldpack["probe_outcome_supports"]
-            .as_array().unwrap()
+            .as_array()
+            .unwrap()
             .iter()
             .position(|probe| probe["probe_id"] == SCOPE_CLOSURE_PROBE_ID)
             .unwrap();
@@ -979,7 +1154,8 @@ mod tests {
     #[test]
     fn incomplete_probe_support_is_rejected_by_evaluator() {
         let (episode, submission, mut worldpack) = values();
-        worldpack["probe_outcome_supports"][0]["outcomes"][0]["possible_world_ids"] = serde_json::json!(["not_dispatched"]);
+        worldpack["probe_outcome_supports"][0]["outcomes"][0]["possible_world_ids"] =
+            serde_json::json!(["not_dispatched"]);
         assert!(matches!(
             evaluate_json(
                 &serde_json::to_string(&episode).unwrap(),
@@ -999,8 +1175,9 @@ mod tests {
         let report = evaluate_json(
             &serde_json::to_string(&episode).unwrap(),
             &serde_json::to_string(&submission).unwrap(),
-            &serde_json::to_string(&worldpack).unwrap()
-        ).expect("score late probe");
+            &serde_json::to_string(&worldpack).unwrap(),
+        )
+        .expect("score late probe");
         assert_eq!(report.probe_admission, ProbeAdmission::MissesDeadline);
         assert!(!report.candidate_contract_valid);
     }
@@ -1014,8 +1191,9 @@ mod tests {
         let report = evaluate_json(
             &serde_json::to_string(&episode).unwrap(),
             &serde_json::to_string(&submission).unwrap(),
-            &serde_json::to_string(&worldpack).unwrap()
-        ).expect("score over budget probe");
+            &serde_json::to_string(&worldpack).unwrap(),
+        )
+        .expect("score over budget probe");
         assert_eq!(report.probe_admission, ProbeAdmission::OverBudget);
     }
 
@@ -1037,7 +1215,8 @@ mod tests {
     fn contradictory_evaluator_world_record_is_rejected() {
         let (episode, submission, mut worldpack) = values();
         let index = worldpack["worlds"]
-            .as_array().unwrap()
+            .as_array()
+            .unwrap()
             .iter()
             .position(|world| world["world_id"] == "applied_once_ack_lost")
             .unwrap();
@@ -1070,6 +1249,9 @@ mod tests {
     fn frozen_inputs_produce_identical_report_bytes() {
         let first = evaluate_json(EPISODE, SUBMISSION, WORLDPACK).expect("first");
         let second = evaluate_json(EPISODE, SUBMISSION, WORLDPACK).expect("second");
-        assert_eq!(canonical_report_json(&first).unwrap(), canonical_report_json(&second).unwrap());
+        assert_eq!(
+            canonical_report_json(&first).unwrap(),
+            canonical_report_json(&second).unwrap()
+        );
     }
 }

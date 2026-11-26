@@ -3,19 +3,17 @@
 
 use std::{
     collections::BTreeMap,
-    env,
-    fs,
+    env, fs,
     path::{Path, PathBuf},
     process::ExitCode,
 };
 
 use mobility_rrvr_aerb_evaluator::{
-    canonical_sorted_json_sha256, evaluate_json, sha256_hex, AcknowledgementState, AuthorityRelation,
-    CandidateEpisode, CandidateSubmission, ClockStamp, CommandContext, DecisionLoss,
-    DispatchState, Disposition, EffectState, EvaluatorWorld, EvaluatorWorldPack,
-    EvidenceDomain, Observation, ObservationQuality, PermittedProbe, ProbeOutcomeSupport,
-    ProbeSupport, SourceRole, OPEN_WORLD_RESIDUAL, SCHEMA_VERSION,
-    WORLD_VOCABULARY_VERSION,
+    AcknowledgementState, AuthorityRelation, CandidateEpisode, CandidateSubmission, ClockStamp,
+    CommandContext, DecisionLoss, DispatchState, Disposition, EffectState, EvaluatorWorld,
+    EvaluatorWorldPack, EvidenceDomain, OPEN_WORLD_RESIDUAL, Observation, ObservationQuality,
+    PermittedProbe, ProbeOutcomeSupport, ProbeSupport, SCHEMA_VERSION, SourceRole,
+    WORLD_VOCABULARY_VERSION, canonical_sorted_json_sha256, evaluate_json, sha256_hex,
 };
 use serde::Serialize;
 
@@ -61,8 +59,7 @@ impl SplitMix64 {
 }
 
 fn shuffled_world_cycle(seed: u64, cycle: usize) -> Vec<&'static str> {
-    let cycle_seed = seed
-        .wrapping_add((cycle as u64).wrapping_mul(0xD134_2543_DE82_EF95));
+    let cycle_seed = seed.wrapping_add((cycle as u64).wrapping_mul(0xD134_2543_DE82_EF95));
     let mut rng = SplitMix64::new(cycle_seed);
     let mut worlds = WORLD_IDS.to_vec();
     for index in (1..worlds.len()).rev() {
@@ -77,71 +74,66 @@ fn digest_label(label: &str) -> String {
 }
 
 fn world_record(world_id: &str) -> EvaluatorWorld {
-    let (
-        dispatch_state,
-        effect_state,
-        effect_count,
-        authority_relation,
-        acknowledgement_state,
-    ) = match world_id {
-        "not_dispatched" => (
-            DispatchState::NotDispatched,
-            EffectState::None,
-            0,
-            AuthorityRelation::NotApplicable,
-            AcknowledgementState::Unknown,
-        ),
-        "dispatched_no_effect" => (
-            DispatchState::Dispatched,
-            EffectState::None,
-            0,
-            AuthorityRelation::CurrentEpoch,
-            AcknowledgementState::Lost,
-        ),
-        "applied_once_ack_lost" => (
-            DispatchState::Dispatched,
-            EffectState::Once,
-            1,
-            AuthorityRelation::CurrentEpoch,
-            AcknowledgementState::Lost,
-        ),
-        "partial_effect" => (
-            DispatchState::Dispatched,
-            EffectState::Partial,
-            1,
-            AuthorityRelation::CurrentEpoch,
-            AcknowledgementState::Lost,
-        ),
-        "duplicate_effect" => (
-            DispatchState::Dispatched,
-            EffectState::Duplicate,
-            2,
-            AuthorityRelation::CurrentEpoch,
-            AcknowledgementState::Lost,
-        ),
-        "stale_authority_effect" => (
-            DispatchState::Dispatched,
-            EffectState::StaleEpoch,
-            1,
-            AuthorityRelation::StaleEpoch,
-            AcknowledgementState::Unknown,
-        ),
-        "unresolved_command_holder" => (
-            DispatchState::Unknown,
-            EffectState::Unknown,
-            0,
-            AuthorityRelation::UnresolvedHolder,
-            AcknowledgementState::Unknown,
-        ),
-        OPEN_WORLD_RESIDUAL => (
-            DispatchState::Unknown,
-            EffectState::Unknown,
-            0,
-            AuthorityRelation::UnresolvedHolder,
-            AcknowledgementState::Unknown,
-        ),
-        _ => unreachable!("world ID must be in the fixed catalog"),
-    };
+    let (dispatch_state, effect_state, effect_count, authority_relation, acknowledgement_state) =
+        match world_id {
+            "not_dispatched" => (
+                DispatchState::NotDispatched,
+                EffectState::None,
+                0,
+                AuthorityRelation::NotApplicable,
+                AcknowledgementState::Unknown,
+            ),
+            "dispatched_no_effect" => (
+                DispatchState::Dispatched,
+                EffectState::None,
+                0,
+                AuthorityRelation::CurrentEpoch,
+                AcknowledgementState::Lost,
+            ),
+            "applied_once_ack_lost" => (
+                DispatchState::Dispatched,
+                EffectState::Once,
+                1,
+                AuthorityRelation::CurrentEpoch,
+                AcknowledgementState::Lost,
+            ),
+            "partial_effect" => (
+                DispatchState::Dispatched,
+                EffectState::Partial,
+                1,
+                AuthorityRelation::CurrentEpoch,
+                AcknowledgementState::Lost,
+            ),
+            "duplicate_effect" => (
+                DispatchState::Dispatched,
+                EffectState::Duplicate,
+                2,
+                AuthorityRelation::CurrentEpoch,
+                AcknowledgementState::Lost,
+            ),
+            "stale_authority_effect" => (
+                DispatchState::Dispatched,
+                EffectState::StaleEpoch,
+                1,
+                AuthorityRelation::StaleEpoch,
+                AcknowledgementState::Unknown,
+            ),
+            "unresolved_command_holder" => (
+                DispatchState::Unknown,
+                EffectState::Unknown,
+                0,
+                AuthorityRelation::UnresolvedHolder,
+                AcknowledgementState::Unknown,
+            ),
+            OPEN_WORLD_RESIDUAL => (
+                DispatchState::Unknown,
+                EffectState::Unknown,
+                0,
+                AuthorityRelation::UnresolvedHolder,
+                AcknowledgementState::Unknown,
+            ),
+            _ => unreachable!("world ID must be in the fixed catalog"),
+        };
 
     EvaluatorWorld {
         world_id: world_id.to_owned(),
@@ -188,34 +180,106 @@ fn probe_supports() -> Vec<ProbeSupport> {
         ProbeSupport {
             probe_id: "read_endpoint_journal".to_owned(),
             outcomes: vec![
-                outcome("journal_no_effect_complete", &["not_dispatched", "dispatched_no_effect", OPEN_WORLD_RESIDUAL]),
-                outcome("journal_applied_once_complete", &["applied_once_ack_lost", OPEN_WORLD_RESIDUAL]),
-                outcome("journal_partial_duplicate_or_stale", &["partial_effect", "duplicate_effect", "stale_authority_effect", OPEN_WORLD_RESIDUAL]),
-                outcome("journal_incomplete_or_holder_unresolved", &["unresolved_command_holder", OPEN_WORLD_RESIDUAL]),
+                outcome(
+                    "journal_no_effect_complete",
+                    &[
+                        "not_dispatched",
+                        "dispatched_no_effect",
+                        OPEN_WORLD_RESIDUAL,
+                    ],
+                ),
+                outcome(
+                    "journal_applied_once_complete",
+                    &["applied_once_ack_lost", OPEN_WORLD_RESIDUAL],
+                ),
+                outcome(
+                    "journal_partial_duplicate_or_stale",
+                    &[
+                        "partial_effect",
+                        "duplicate_effect",
+                        "stale_authority_effect",
+                        OPEN_WORLD_RESIDUAL,
+                    ],
+                ),
+                outcome(
+                    "journal_incomplete_or_holder_unresolved",
+                    &["unresolved_command_holder", OPEN_WORLD_RESIDUAL],
+                ),
             ],
         },
         ProbeSupport {
             probe_id: "independent_pose_observation".to_owned(),
             outcomes: vec![
-                outcome("no_pose_change", &["not_dispatched", "dispatched_no_effect", "unresolved_command_holder", OPEN_WORLD_RESIDUAL]),
-                outcome("target_pose_once", &["applied_once_ack_lost", "unresolved_command_holder", OPEN_WORLD_RESIDUAL]),
-                outcome("partial_or_multiple_pose_change", &["partial_effect", "duplicate_effect", "stale_authority_effect", "unresolved_command_holder", OPEN_WORLD_RESIDUAL]),
+                outcome(
+                    "no_pose_change",
+                    &[
+                        "not_dispatched",
+                        "dispatched_no_effect",
+                        "unresolved_command_holder",
+                        OPEN_WORLD_RESIDUAL,
+                    ],
+                ),
+                outcome(
+                    "target_pose_once",
+                    &[
+                        "applied_once_ack_lost",
+                        "unresolved_command_holder",
+                        OPEN_WORLD_RESIDUAL,
+                    ],
+                ),
+                outcome(
+                    "partial_or_multiple_pose_change",
+                    &[
+                        "partial_effect",
+                        "duplicate_effect",
+                        "stale_authority_effect",
+                        "unresolved_command_holder",
+                        OPEN_WORLD_RESIDUAL,
+                    ],
+                ),
             ],
         },
         ProbeSupport {
             probe_id: "inventory_command_holders".to_owned(),
             outcomes: vec![
-                outcome("holder_inventory_closed", &["not_dispatched", "dispatched_no_effect", "applied_once_ack_lost", "partial_effect", "duplicate_effect", "stale_authority_effect", OPEN_WORLD_RESIDUAL]),
-                outcome("unresolved_holder_found", &["unresolved_command_holder", OPEN_WORLD_RESIDUAL]),
+                outcome(
+                    "holder_inventory_closed",
+                    &[
+                        "not_dispatched",
+                        "dispatched_no_effect",
+                        "applied_once_ack_lost",
+                        "partial_effect",
+                        "duplicate_effect",
+                        "stale_authority_effect",
+                        OPEN_WORLD_RESIDUAL,
+                    ],
+                ),
+                outcome(
+                    "unresolved_holder_found",
+                    &["unresolved_command_holder", OPEN_WORLD_RESIDUAL],
+                ),
             ],
         },
         ProbeSupport {
             probe_id: "reconcile_effect_and_scope".to_owned(),
             outcomes: vec![
-                outcome("complete_no_effect", &["not_dispatched", "dispatched_no_effect"]),
+                outcome(
+                    "complete_no_effect",
+                    &["not_dispatched", "dispatched_no_effect"],
+                ),
                 outcome("complete_applied_once", &["applied_once_ack_lost"]),
-                outcome("partial_duplicate_or_stale", &["partial_effect", "duplicate_effect", "stale_authority_effect"]),
-                outcome("scope_incomplete_or_unmodelled", &["unresolved_command_holder", OPEN_WORLD_RESIDUAL]),
+                outcome(
+                    "partial_duplicate_or_stale",
+                    &[
+                        "partial_effect",
+                        "duplicate_effect",
+                        "stale_authority_effect",
+                    ],
+                ),
+                outcome(
+                    "scope_incomplete_or_unmodelled",
+                    &["unresolved_command_holder", OPEN_WORLD_RESIDUAL],
+                ),
             ],
         },
     ]
@@ -253,7 +317,9 @@ fn build_episode(index: usize, profile_sha256: &str) -> CandidateEpisode {
             queue_generation: 2 + (index % 5) as u64,
             execution_scope_id: "robot-cell-01".to_owned(),
             system_boundary_manifest_sha256: digest_label("aerb-generator-system-boundary-v0.1"),
-            effect_producing_inventory_profile_sha256: digest_label("aerb-generator-inventory-profile-v0.1"),
+            effect_producing_inventory_profile_sha256: digest_label(
+                "aerb-generator-inventory-profile-v0.1",
+            ),
         },
         observations: vec![
             Observation {
@@ -332,9 +398,10 @@ fn build_submission(episode: &CandidateEpisode) -> Result<CandidateSubmission, S
     let snapshot_sha256 = canonical_sorted_json_sha256(&episode_json)
         .map_err(|error| format!("EPISODE_DIGEST_FAILED: {error}"))?;
 
-    let has_unqualified_observation = episode.observations.iter().any(|observation| {
-        observation.quality != ObservationQuality::Admitted
-    });
+    let has_unqualified_observation = episode
+        .observations
+        .iter()
+        .any(|observation| observation.quality != ObservationQuality::Admitted);
     let disposition = if has_unqualified_observation {
         Disposition::Abstain
     } else {
@@ -438,7 +505,10 @@ fn validate_disjoint_directories(candidate_dir: &Path, evaluator_dir: &Path) -> 
     let evaluator = evaluator_dir
         .canonicalize()
         .map_err(|error| format!("EVALUATOR_DIR_CANONICALIZE_FAILED: {error}"))?;
-    if candidate == evaluator || candidate.starts_with(&evaluator) || evaluator.starts_with(&candidate) {
+    if candidate == evaluator
+        || candidate.starts_with(&evaluator)
+        || evaluator.starts_with(&candidate)
+    {
         return Err("CANDIDATE_AND_EVALUATOR_OUTPUT_DIRECTORIES_MUST_BE_DISJOINT".to_owned());
     }
     if candidate.join("candidate_manifest.json").exists()
@@ -485,11 +555,8 @@ fn run() -> Result<(), String> {
         let hidden_truth = shuffled_world_cycle(seed, cycle)[position];
         let episode = build_episode(index, &generator_profile_sha256);
         let submission = build_submission(&episode)?;
-        let world_pack = build_world_pack(
-            &episode.episode_id,
-            hidden_truth,
-            &evaluator_profile_sha256,
-        );
+        let world_pack =
+            build_world_pack(&episode.episode_id, hidden_truth, &evaluator_profile_sha256);
 
         let stem = format!("episode-{index:06}");
         let episode_file = format!("{stem}.json");
@@ -527,13 +594,21 @@ fn run() -> Result<(), String> {
         claim_ceiling: "Deterministic synthetic coverage corpus only. The schedule is balanced by construction and is not a prior or estimate of real-world world frequencies.".to_owned(),
     };
 
-    write_json(&candidate_dir.join("candidate_manifest.json"), &candidate_manifest)?;
-    write_json(&evaluator_dir.join("evaluator_manifest.json"), &evaluator_manifest)?;
+    write_json(
+        &candidate_dir.join("candidate_manifest.json"),
+        &candidate_manifest,
+    )?;
+    write_json(
+        &evaluator_dir.join("evaluator_manifest.json"),
+        &evaluator_manifest,
+    )?;
 
     println!(
         "Generated {scenario_count} AERB synthetic cases; candidate and evaluator artifacts are in separate directories."
     );
-    println!("World schedule: deterministic seed-shuffled cycles over eight states; no real-world prior is implied.");
+    println!(
+        "World schedule: deterministic seed-shuffled cycles over eight states; no real-world prior is implied."
+    );
     Ok(())
 }
 
@@ -555,7 +630,10 @@ mod tests {
     fn each_world_cycle_covers_all_eight_states_once() {
         for cycle in 0..12 {
             let values = shuffled_world_cycle(42, cycle);
-            let unique = values.iter().copied().collect::<std::collections::BTreeSet<_>>();
+            let unique = values
+                .iter()
+                .copied()
+                .collect::<std::collections::BTreeSet<_>>();
             assert_eq!(values.len(), WORLD_IDS.len());
             assert_eq!(unique.len(), WORLD_IDS.len());
             for world_id in WORLD_IDS {
@@ -593,15 +671,26 @@ mod tests {
         assert!(episode_value.get("hidden_truth_world_id").is_none());
         assert!(submission_value.get("hidden_truth_world_id").is_none());
         assert!(world_pack_value.get("hidden_truth_world_id").is_some());
-        assert_eq!(episode_value["episode_id"].as_str(), Some("aerb-case-000003"));
-        assert!(!episode_value["episode_id"].as_str().unwrap().contains("seed"));
+        assert_eq!(
+            episode_value["episode_id"].as_str(),
+            Some("aerb-case-000003")
+        );
+        assert!(
+            !episode_value["episode_id"]
+                .as_str()
+                .unwrap()
+                .contains("seed")
+        );
 
         let report = evaluate_json(&episode_json, &submission_json, &world_pack_json)
             .expect("generated candidate should satisfy evaluator contract");
         assert!(report.candidate_contract_valid);
         assert!(report.hidden_truth_in_candidate_support);
         assert!(report.open_world_residual_retained);
-        assert_eq!(report.probe_admission, mobility_rrvr_aerb_evaluator::ProbeAdmission::Eligible);
+        assert_eq!(
+            report.probe_admission,
+            mobility_rrvr_aerb_evaluator::ProbeAdmission::Eligible
+        );
     }
 
     #[test]
@@ -635,7 +724,11 @@ mod tests {
                 *counts.entry(world_id).or_insert(0usize) += 1;
             }
         }
-        assert!(WORLD_IDS.iter().all(|world_id| counts.get(world_id) == Some(&3)));
+        assert!(
+            WORLD_IDS
+                .iter()
+                .all(|world_id| counts.get(world_id) == Some(&3))
+        );
     }
 
     #[test]
