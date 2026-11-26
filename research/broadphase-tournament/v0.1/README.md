@@ -44,7 +44,7 @@ The cache exposes two input paths:
 - `step` safely derives changed identities by diffing the prior/current AABB snapshots. This is the path used by the current tournament row.
 - `step_with_dirty_ids` accepts a strictly sorted authoritative change journal from a physics world. The caller is responsible for completeness; `verify_dirty_proxy_ids` independently checks it against the snapshots in the audit path. This fast path is implemented and unit-tested, but it is not yet the measured tournament backend.
 
-A full invalidation (for example, collision filter/layer policy change) forces the safe snapshot-derived path; the dirty-journal fast path rejects it until all affected relationships are revalidated. A production integration must bind the journal to exact world revisions and a trusted source before treating it as authoritative.
+A full invalidation (for example, collision filter/layer policy change) forces the safe snapshot-derived path; the dirty-journal fast path rejects it until all affected relationships are revalidated. Empty frames are supported by the stateful cache, so removing the last proxy emits every remaining pair removal and a later insertion can reinitialize the relation. The tournament scene oracle still uses non-empty frames. A production integration must bind the journal to exact world revisions and a trusted source before treating it as authoritative.
 
 ## Run
 
