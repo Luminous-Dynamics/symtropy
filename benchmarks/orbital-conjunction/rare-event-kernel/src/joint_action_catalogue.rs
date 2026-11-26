@@ -390,7 +390,7 @@ pub fn evaluate_joint_action_catalogue(
 
     let mut outcome_by_set = BTreeMap::new();
     let mut action_set_digests = BTreeSet::new();
-    for outcome in &config.outcomes {
+    for outcome in config.outcomes {
         if outcome.action_ids.windows(2).any(|pair| pair[0] >= pair[1]) {
             return Err(JointActionCatalogueError::NonCanonicalActionSet);
         }
@@ -445,11 +445,11 @@ pub fn evaluate_joint_action_catalogue(
 
     for (action_ids, resource_cost) in &expected {
         let outcome = outcome_by_set
-            .get(action_ids)
+            .remove(action_ids)
             .ok_or(JointActionCatalogueError::MissingCoalitionOutcome)?;
-        match &outcome.state {
+        match outcome.state {
             JointActionOutcomeState::Infeasible { reason_digest } => {
-                if is_zero_digest(reason_digest) {
+                if is_zero_digest(&reason_digest) {
                     return Err(JointActionCatalogueError::InvalidReasonDigest);
                 }
                 report.infeasible_count += 1;
@@ -457,13 +457,13 @@ pub fn evaluate_joint_action_catalogue(
                     action_ids: action_ids.clone(),
                     action_set_digest: outcome.action_set_digest,
                     resource_cost: *resource_cost,
-                    outcome_state: outcome.state.clone(),
+                    outcome_state: JointActionOutcomeState::Infeasible { reason_digest },
                     post_action_event_inventory_digest: None,
                     reconciliation: None,
                 });
             }
             JointActionOutcomeState::Unresolved { reason_digest } => {
-                if is_zero_digest(reason_digest) {
+                if is_zero_digest(&reason_digest) {
                     return Err(JointActionCatalogueError::InvalidReasonDigest);
                 }
                 report.unresolved_count += 1;
@@ -472,7 +472,7 @@ pub fn evaluate_joint_action_catalogue(
                     action_ids: action_ids.clone(),
                     action_set_digest: outcome.action_set_digest,
                     resource_cost: *resource_cost,
-                    outcome_state: outcome.state.clone(),
+                    outcome_state: JointActionOutcomeState::Unresolved { reason_digest },
                     post_action_event_inventory_digest: None,
                     reconciliation: None,
                 });
@@ -483,7 +483,7 @@ pub fn evaluate_joint_action_catalogue(
                 robust_consequence_avoided_ticks,
                 coordination_digest,
             } => {
-                if *consequence_model_digest != config.consequence_model_digest {
+                if consequence_model_digest != config.consequence_model_digest {
                     return Err(JointActionCatalogueError::ConsequenceModelMismatch);
                 }
                 let mut operators = BTreeSet::new();
@@ -498,7 +498,7 @@ pub fn evaluate_joint_action_catalogue(
                 coordination_required |= operators.len() > 1;
                 if action_ids.is_empty()
                     && (post_action_snapshot.as_ref() != &config.baseline_snapshot
-                        || *robust_consequence_avoided_ticks != 0)
+                        || robust_consequence_avoided_ticks != 0)
                 {
                     return Err(JointActionCatalogueError::InvalidNoActionControl);
                 }
@@ -509,11 +509,11 @@ pub fn evaluate_joint_action_catalogue(
                     post_action_snapshot_digest: post_action_snapshot.snapshot_digest,
                     post_action_ephemeris_digest: post_action_snapshot.ephemeris_digest,
                     secondary_maneuverable: coordination_required,
-                    coordination_digest: *coordination_digest,
+                    coordination_digest,
                 };
                 let reconciliation = reconcile_action_effects(
                     &config.baseline_snapshot,
-                    post_action_snapshot,
+                    post_action_snapshot.as_ref(),
                     receipt,
                     config.probability_threshold,
                 )?;
@@ -523,7 +523,12 @@ pub fn evaluate_joint_action_catalogue(
                     action_ids: action_ids.clone(),
                     action_set_digest: outcome.action_set_digest,
                     resource_cost: *resource_cost,
-                    outcome_state: outcome.state.clone(),
+                    outcome_state: JointActionOutcomeState::Qualified {
+                        post_action_snapshot,
+                        consequence_model_digest,
+                        robust_consequence_avoided_ticks,
+                        coordination_digest,
+                    },
                     post_action_event_inventory_digest: Some(event_inventory_digest),
                     reconciliation: Some(reconciliation.clone()),
                 });
@@ -543,7 +548,7 @@ pub fn evaluate_joint_action_catalogue(
                             action_ids: action_ids.clone(),
                             action_set_digest: outcome.action_set_digest,
                             resource_cost: *resource_cost,
-                            consequence_avoided_ticks: *robust_consequence_avoided_ticks,
+                            consequence_avoided_ticks: robust_consequence_avoided_ticks,
                         };
                         if is_better(&candidate, best.as_ref()) {
                             best = Some(candidate);
@@ -564,7 +569,6 @@ pub fn evaluate_joint_action_catalogue(
             }
         }
     }
-
     if must_abstain {
         report.disposition = JointActionSelectionDisposition::AbstainIncompleteEvidence;
         return Ok(report);
