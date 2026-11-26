@@ -18,6 +18,7 @@ A maximum flow equal to the sum of all minimum obligations is a constructive fea
 ## Arithmetic and semantics
 
 - All capacities are unsigned integer mWh. No floating-point optimization or tolerance is used.
+- The adapter checks the fully expanded graph's node and edge counts against the shared kernel limits (4,096 nodes and 65,536 edges) before solving. A scenario that exceeds either limit is rejected at input validation; it is not partially built or silently truncated.
 - Time windows are half-open: `[arrival_interval, departure_interval)`.
 - All capacities share a common **deliverable-energy** boundary. The upstream metrology / energy-accounting layer must convert source measurements and losses into conservative endpoint energy bounds. This crate does not apply an efficiency factor or infer missing loss terms.
 - The submitted segment, transfer and receiver capacities must be **jointly realizable** for the simultaneous paths admitted by the graph. Individually conservative pairwise link maxima are insufficient when mutual coupling, cross-regulation, thermal interaction or switching constraints make those links incompatible when used together.
