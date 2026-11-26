@@ -244,11 +244,14 @@ where
     }))
 }
 
-fn normalized_gap(upper: f64, lower: f64) -> (f64, f64) {
-    let absolute = (upper - lower).max(0.0);
+fn normalized_gap(upper: f64, lower: f64) -> Result<(f64, f64), SearchError> {
+    if upper < lower {
+        return Err(SearchError::InconsistentObjectiveBounds);
+    }
+    let absolute = upper - lower;
     let scale = upper.abs().max(lower.abs());
     let relative = if scale == 0.0 { 0.0 } else { absolute / scale };
-    (absolute, relative)
+    Ok((absolute, relative))
 }
 
 fn gap_satisfied(policy: SearchPolicy, upper: f64, lower: f64) -> bool {
@@ -631,45 +634,49 @@ where
         });
     }
 
-    let mut unresolved_lower_bounds = Vec::new();
+    let mut terminal_lower_bounds = Vec::new();
     let mut unresolved_leaf_count = 0usize;
-    let mut has_unbounded_leaf = false;
+    let mut has_unbounded_terminal_leaf = false;
     for record in &records {
         match record.disposition {
-            BoxDisposition::UnresolvedMaximumDepth
+            BoxDisposition::RobustInfeasible | BoxDisposition::Split => {}
+            BoxDisposition::ObjectiveDominated
+            | BoxDisposition::UnresolvedMaximumDepth
             | BoxDisposition::UnresolvedMinimumWidth
             | BoxDisposition::UnresolvedNoSensitivity
             | BoxDisposition::UnresolvedUnboundedExpression
             | BoxDisposition::UnresolvedNodeBudget => {
-                unresolved_leaf_count += 1;
+                if matches!(
+                    record.disposition,
+                    BoxDisposition::UnresolvedMaximumDepth
+                        | BoxDisposition::UnresolvedMinimumWidth
+                        | BoxDisposition::UnresolvedNoSensitivity
+                        | BoxDisposition::UnresolvedUnboundedExpression
+                        | BoxDisposition::UnresolvedNodeBudget
+                ) {
+                    unresolved_leaf_count += 1;
+                }
                 if let Some(lower) = record.objective_lower_bound {
-                    unresolved_lower_bounds.push(lower);
+                    terminal_lower_bounds.push(lower);
                 } else {
-                    has_unbounded_leaf = true;
+                    has_unbounded_terminal_leaf = true;
                 }
             }
-            _ => {}
         }
     }
 
-    let incumbent_lower = incumbent
-        .as_ref()
-        .map(|candidate| candidate.objective_lower_bound);
-    let global_objective_lower_bound = if has_unbounded_leaf {
+    // The global lower bound comes from the terminal design partition, not
+    // from the incumbent's objective lower endpoint. A feasible incumbent
+    // supplies an upper bound; it is not a lower bound on the global minimum.
+    let global_objective_lower_bound = if has_unbounded_terminal_leaf {
         None
     } else {
-        incumbent_lower
-            .into_iter()
-            .chain(unresolved_lower_bounds)
-            .reduce(f64::min)
+        terminal_lower_bounds.into_iter().reduce(f64::min)
     };
     let global_objective_upper_bound =
         incumbent.as_ref().map(|candidate| candidate.worst_case_objective_upper_bound);
     let gaps = match (global_objective_lower_bound, global_objective_upper_bound) {
-        (Some(lower), Some(upper)) => {
-            let (absolute, relative) = normalized_gap(upper, lower);
-            Some((absolute, relative))
-        }
+        (Some(lower), Some(upper)) => Some(normalized_gap(upper, lower)?),
         _ => None,
     };
     let certified_within_gap = gaps.is_some_and(|(absolute, _)| {
@@ -681,7 +688,6 @@ where
                         + policy.relative_optimality_gap * upper.abs().max(lower.abs())
             })
     });
-
     let termination = if certified_within_gap {
         SearchTermination::OptimalityGapSatisfied
     } else if budget_exhausted {
@@ -694,7 +700,7 @@ where
 
     Ok(CertifiedSearchReport {
         expression_id: root.expression_id.clone(),
-        objective_id: root.requirement_id.clone(),
+        objective_id: root.expression_id.clone(),
         compliance_requirement_id: root.requirement_id.clone(),
         design_dimension,
         total_parameter_ids: root.parameter_ids.clone(),
