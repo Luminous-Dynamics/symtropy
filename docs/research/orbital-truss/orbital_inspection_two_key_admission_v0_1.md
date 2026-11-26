@@ -38,11 +38,11 @@ The physical-safety interface and measurement-evidence interface are intentional
 - #7425 owns cross-receipt identity/interval coherence;
 - Mycelix owns custody/authentication concerns.
 
-If no applicable trajectory/keep-out shield or safety admissibility receipt exists, the physical-safety gate is UNKNOWN. The adapter must not infer collision-free execution from a collision-probability estimate or from an information score.
+If no applicable trajectory/keep-out shield or safety admissibility receipt exists, the physical-safety gate is UNKNOWN. The adapter now consumes a typed claim disposition and separate finite-horizon / safe-continuation component references from #7575, but it additionally requires a separate external proof-verification state of PASS. A structurally complete claim bundle is not itself proof verification. RISK_ONLY, finite-only, incomplete, unknown or stale verification remains INDETERMINATE. The adapter must not infer collision-free execution from a collision-probability estimate or from an information score.
 
 ## Frozen corpus
 
-Twenty-four synthetic cases cover:
+Thirty synthetic cases cover:
 1. all gates PASS;
 2. physical-safety FAIL and UNKNOWN;
 3. measurement acquisition FAIL and UNKNOWN;
@@ -58,7 +58,10 @@ Twenty-four synthetic cases cover:
 13. scope-coherence FAIL;
 14. post-action portfolio trajectory mismatch;
 15. measurement vehicle/horizon mismatch.
-16. predicted versus observed decision-value provenance is retained but never changes hard-gate admission.
+16. predicted versus observed decision-value provenance is retained but never changes hard-gate admission;
+17. structurally complete safety claims with unknown/stale external verification do not admit;
+18. risk-only and finite-only claims do not admit;
+19. missing or malformed component proof references are invalid.
 
 The independent Python oracle and Rust evaluator must agree on the full receipt. Case ordering and source input ordering do not alter canonical output.
 
