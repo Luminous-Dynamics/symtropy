@@ -959,7 +959,7 @@ fn evaluate_temporal_closure(
         edge_states.push(states[0]);
     }
 
-    if evidence.iter().any(|capsule| {
+    let stale_effect_observed = evidence.iter().any(|capsule| {
         matches!(
             &capsule.payload,
             EvidencePayload::Observation {
@@ -967,11 +967,10 @@ fn evaluate_temporal_closure(
                 ..
             }
         )
-    }) {
-        return contradicted("STALE_EFFECT_OBSERVED");
-    }
+    });
     let observed_closed = holder_states.iter().all(|state| *state)
-        && edge_states.iter().all(|state| *state);
+        && edge_states.iter().all(|state| *state)
+        && !stale_effect_observed;
     if observed_closed == claim.asserted_value {
         qualified("TEMPORAL_CLOSURE_CORROBORATED")
     } else {
@@ -1121,8 +1120,8 @@ mod tests {
     #[test]
     fn content_digest_tampering_is_rejected() {
         let changed = FIXTURE.replacen(
-            "\"content_sha256\": \"",
-            "\"content_sha256\": \"0",
+            "3128b1a1892cba39e4a6838a1ae3fb73c26ed470761566c50b1bfa6728b79328",
+            "0128b1a1892cba39e4a6838a1ae3fb73c26ed470761566c50b1bfa6728b79328",
             1,
         );
         let error = evaluate_json(&changed).expect_err("mutated digest must reject");
