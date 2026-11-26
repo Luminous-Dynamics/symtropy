@@ -112,6 +112,17 @@ jobs:
                   . as $world_id | ($covered | index($world_id)) != null
                 )
             )
+            and all($pack.probe_outcome_supports[];
+              . as $probe
+              | if $probe.probe_id == "reconcile_effect_and_scope" then
+                  (any($probe.outcomes[]; any(.possible_world_ids[]; . == "open_world_residual"))
+                   and any($probe.outcomes[]; all(.possible_world_ids[]; . != "open_world_residual")))
+                else
+                  all($probe.outcomes[];
+                    any(.possible_world_ids[]; . == "open_world_residual")
+                  )
+                end
+            )
             and (
               ["hold_reconcile","request_observation","abstain","recommend_fresh_attempt"] as $dispositions
               | all($world_ids[];
