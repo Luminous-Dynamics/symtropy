@@ -107,7 +107,7 @@ A run that rejects everything is not useful: supported positive controls and uns
 
 ## 6. Metric vector (do not collapse to a weighted score)
 
-**Physical:** exact flow/witness/cut agreement, conservation, false guarantees, false rejection, shared-resource double-counts, unsupported model refusals, capacity-bound sensitivity, p50/p95 verifier latency.
+**Physical:** exact flow/witness/cut agreement, conservation, false guarantees, false rejection, shared-resource double-counts, unsupported model refusals, capacity-bound sensitivity, p50/p95 verifier latency. Distinguish (a) joint feasibility across all service floors, (b) each beneficiary's independently maximized deliverable quantity, and (c) the allocation in one joint feasible witness. Individual maxima are not additive when resources are shared; never label one witness allocation a beneficiary-level guarantee. Benchmark the accuracy of all three outputs separately, including adversarial cases where independent maxima exceed the joint optimum.
 
 **Evidence and federation:** source-to-output traceability, semantic preservation, stale/conflict/revocation detection, alias/common-cause fidelity, authority/certainty/currentness/specificity promotion count, disclosure excess, offline conflict preservation.
 
