@@ -32,12 +32,18 @@ jobs:
         run: cargo clippy --locked --manifest-path research/maritime-exact-resource-oracle/Cargo.toml --all-targets -- -D warnings
       - name: Emit exhaustive resource receipt
         run: cargo run --locked --manifest-path research/maritime-exact-resource-oracle/Cargo.toml --bin resource-oracle-audit > resource-oracle-receipt.tsv
-      - name: Independent exact reference
-        run: python3 research/maritime-exact-resource-oracle/scripts/independent_reference.py --receipt resource-oracle-receipt.tsv
-      - name: Upload deterministic receipt
+      - name: Emit deterministic DGT recovery receipt
+        run: cargo run --locked --manifest-path research/maritime-exact-resource-oracle/Cargo.toml --bin dgt-recovery-audit > dgt-recovery-receipt.tsv
+      - name: Independent exact references
+        run: |
+          python3 research/maritime-exact-resource-oracle/scripts/independent_reference.py --receipt resource-oracle-receipt.tsv
+          python3 research/maritime-exact-resource-oracle/scripts/dgt_reference.py --receipt dgt-recovery-receipt.tsv
+      - name: Upload deterministic receipts
         uses: actions/upload-artifact@v4
         with:
-          name: maritime-exact-resource-oracle-receipt
-          path: resource-oracle-receipt.tsv
+          name: maritime-exact-resource-oracle-receipts
+          path: |
+            resource-oracle-receipt.tsv
+            dgt-recovery-receipt.tsv
           if-no-files-found: error
           retention-days: 30
