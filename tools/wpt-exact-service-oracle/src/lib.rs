@@ -9,7 +9,9 @@
 
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
-use single_commodity_flow_kernel::{FlowEdge, FlowGraph, FlowNode, FlowResult, MAX_EDGES, MAX_NODES};
+use single_commodity_flow_kernel::{
+    FlowEdge, FlowGraph, FlowNode, FlowResult, MAX_EDGES, MAX_NODES,
+};
 
 const MAX_INTERVALS: u64 = 256;
 const MAX_SEGMENT_SLOTS: usize = 4096;
@@ -371,7 +373,8 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
         ));
     }
 
-    let modeled_edge_count = segment_slots.len()
+    let modeled_edge_count = segment_slots
+        .len()
         .checked_add(receiver_slots.len())
         .and_then(|count| count.checked_add(transfer_links.len()))
         .and_then(|count| count.checked_add(receivers.len()))
@@ -505,10 +508,7 @@ fn push_wpt_edge(
     edge_metadata.insert(id, (kind.to_string(), label));
 }
 
-fn required_wpt_flow(
-    edge_flows: &BTreeMap<String, u64>,
-    edge_id: &str,
-) -> Result<u64, String> {
+fn required_wpt_flow(edge_flows: &BTreeMap<String, u64>, edge_id: &str) -> Result<u64, String> {
     edge_flows
         .get(edge_id)
         .copied()
@@ -604,7 +604,12 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
             .clone();
         let to = receiver_demand_node_ids
             .get(&slot.receiver_id)
-            .ok_or_else(|| format!("missing mapped receiver demand node for {}", slot.receiver_id))?
+            .ok_or_else(|| {
+                format!(
+                    "missing mapped receiver demand node for {}",
+                    slot.receiver_id
+                )
+            })?
             .clone();
         push_wpt_edge(
             &mut edges,
@@ -662,18 +667,24 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
     } else {
         IndividualMaximaStatus::OmittedAboveDeclaredReceiverLimit
     };
-    let individual_source_capacity_bound = if individual_maxima_status
-        == IndividualMaximaStatus::ComputedForInfeasibleJointService
-    {
-        Some(scenario.segment_slots.values().try_fold(0_u64, |sum, slot| {
-            sum.checked_add(slot.available_deliverable_energy_mwh)
-                .ok_or_else(|| "individual WPT source-capacity bound overflowed u64".to_string())
-        })?)
-    } else {
-        None
-    };
-    let obligation_edge_ids = demand_edge_ids.values()
-        .map(String::as_str)
+    let individual_source_capacity_bound =
+        if individual_maxima_status == IndividualMaximaStatus::ComputedForInfeasibleJointService {
+            Some(
+                scenario
+                    .segment_slots
+                    .values()
+                    .try_fold(0_u64, |sum, slot| {
+                        sum.checked_add(slot.available_deliverable_energy_mwh)
+                            .ok_or_else(|| {
+                                "individual WPT source-capacity bound overflowed u64".to_string()
+                            })
+                    })?,
+            )
+        } else {
+            None
+        };
+    let obligation_edge_ids = demand_edge_ids
+        .values()
         .collect::<BTreeSet<_>>();
     let mut receiver_allocations = Vec::with_capacity(scenario.receivers.len());
     for (receiver_id, receiver) in &scenario.receivers {
@@ -693,14 +704,21 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
                 !obligation_edge_ids.contains(edge.id.as_str())
                     || edge.id.as_str() == edge_id.as_str()
             });
-            let target_edge = individual_graph.edges.iter_mut()
+            let target_edge = individual_graph
+                .edges
+                .iter_mut()
                 .find(|edge| edge.id == *edge_id)
-                .ok_or_else(|| format!("individual graph omitted receiver obligation edge for {receiver_id}"))?;
-            target_edge.capacity = individual_source_capacity_bound
-                .ok_or_else(|| "individual source-capacity bound was unexpectedly absent".to_string())?;
-            Some(individual_graph.solve().map_err(|error| {
-                format!("individual maximum for {receiver_id}: {error}")
-            })?)
+                .ok_or_else(|| {
+                    format!("individual graph omitted receiver obligation edge for {receiver_id}")
+                })?;
+            target_edge.capacity = individual_source_capacity_bound.ok_or_else(|| {
+                "individual source-capacity bound was unexpectedly absent".to_string()
+            })?;
+            Some(
+                individual_graph
+                    .solve()
+                    .map_err(|error| format!("individual maximum for {receiver_id}: {error}"))?,
+            )
         } else {
             None
         };
@@ -710,8 +728,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
         let individual_floor_feasible = if feasible {
             Some(true)
         } else {
-            individual_max_deliverable_mwh
-                .map(|maximum| maximum >= receiver.minimum_service_mwh)
+            individual_max_deliverable_mwh.map(|maximum| maximum >= receiver.minimum_service_mwh)
         };
 
         receiver_allocations.push(ReceiverAllocation {
@@ -734,9 +751,12 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
 
     let mut segment_allocations = Vec::with_capacity(scenario.segment_slots.len());
     for (key, slot) in &scenario.segment_slots {
-        let edge_id = segment_edge_ids
-            .get(key)
-            .ok_or_else(|| format!("missing segment supply edge for {}@{}", slot.segment_id, slot.interval_index))?;
+        let edge_id = segment_edge_ids.get(key).ok_or_else(|| {
+            format!(
+                "missing segment supply edge for {}@{}",
+                slot.segment_id, slot.interval_index
+            )
+        })?;
         segment_allocations.push(SegmentSlotAllocation {
             segment_id: slot.segment_id.clone(),
             interval_index: slot.interval_index,
@@ -762,9 +782,12 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
 
     let mut receiver_slot_allocations = Vec::with_capacity(scenario.receiver_slots.len());
     for (key, slot) in &scenario.receiver_slots {
-        let edge_id = receiver_slot_edge_ids
-            .get(key)
-            .ok_or_else(|| format!("missing receiver acceptance edge for {}@{}", slot.receiver_id, slot.interval_index))?;
+        let edge_id = receiver_slot_edge_ids.get(key).ok_or_else(|| {
+            format!(
+                "missing receiver acceptance edge for {}@{}",
+                slot.receiver_id, slot.interval_index
+            )
+        })?;
         receiver_slot_allocations.push(ReceiverSlotAllocation {
             receiver_id: slot.receiver_id.clone(),
             interval_index: slot.interval_index,
@@ -843,8 +866,8 @@ mod tests {
                 .receiver_allocations
                 .iter()
                 .all(|row| row.joint_witness_shortfall_mwh == 0
-                && row.individual_floor_feasible == Some(true)
-                && row.individual_max_deliverable_mwh.is_none())
+                    && row.individual_floor_feasible == Some(true)
+                    && row.individual_max_deliverable_mwh.is_none())
         );
         assert_eq!(
             report
@@ -920,7 +943,9 @@ mod tests {
         assert_eq!(report.total_minimum_service_mwh, 10);
         assert_eq!(report.maximum_deliverable_mwh, 8);
         assert_eq!(
-            report.receiver_allocations.iter()
+            report
+                .receiver_allocations
+                .iter()
                 .map(|row| row.joint_witness_allocation_mwh)
                 .sum::<u64>(),
             8
@@ -929,24 +954,33 @@ mod tests {
             report.individual_maxima_status,
             IndividualMaximaStatus::ComputedForInfeasibleJointService
         );
-        assert!(report.receiver_allocations.iter()
-            .all(|row| row.individual_max_deliverable_mwh == Some(5)));
+        assert!(
+            report
+                .receiver_allocations
+                .iter()
+                .all(|row| row.individual_max_deliverable_mwh == Some(5))
+        );
         assert_eq!(
-            report.receiver_allocations.iter()
+            report
+                .receiver_allocations
+                .iter()
                 .map(|row| row.individual_max_deliverable_mwh)
                 .sum::<u64>(),
             10
         );
         assert!(report.receiver_allocations.iter().all(|row| {
-            row.individual_max_graph_sha256.as_deref()
+            row.individual_max_graph_sha256
+                .as_deref()
                 .is_some_and(|digest| digest.starts_with("sha256:"))
-                && row.individual_max_certificate.as_ref().is_some_and(|certificate| {
-                    Some(certificate.graph_sha256.as_str())
-                        == row.individual_max_graph_sha256.as_deref()
-                        && Some(certificate.max_flow)
-                            == row.individual_max_deliverable_mwh
-                        && certificate.max_flow == certificate.min_cut.capacity
-                })
+                && row
+                    .individual_max_certificate
+                    .as_ref()
+                    .is_some_and(|certificate| {
+                        Some(certificate.graph_sha256.as_str())
+                            == row.individual_max_graph_sha256.as_deref()
+                            && Some(certificate.max_flow) == row.individual_max_deliverable_mwh
+                            && certificate.max_flow == certificate.min_cut.capacity
+                    })
         }));
     }
 
@@ -957,7 +991,9 @@ mod tests {
         scenario["receivers"][1]["minimum_service_mwh"] = Value::from(5);
         let report = evaluate_scenario(&scenario).unwrap();
         assert!(!report.feasible);
-        let vehicle_one = report.receiver_allocations.iter()
+        let vehicle_one = report
+            .receiver_allocations
+            .iter()
             .find(|row| row.receiver_id == "vehicle-01")
             .unwrap();
         assert_eq!(vehicle_one.minimum_service_mwh, 8);
@@ -968,24 +1004,36 @@ mod tests {
 
     #[test]
     fn individual_diagnostics_are_omitted_above_the_declared_receiver_bound() {
-        let receivers = (0..33).map(|index| serde_json::json!({
-            "receiver_id": format!("receiver-{index:02}"),
-            "arrival_interval": 0,
-            "departure_interval": 1,
-            "minimum_service_mwh": 1
-        })).collect::<Vec<_>>();
-        let receiver_slots = (0..33).map(|index| serde_json::json!({
-            "receiver_id": format!("receiver-{index:02}"),
-            "interval_index": 0,
-            "max_acceptance_mwh": 1
-        })).collect::<Vec<_>>();
-        let transfer_links = (0..33).map(|index| serde_json::json!({
-            "link_id": format!("segment-to-receiver-{index:02}"),
-            "segment_id": "segment-a",
-            "receiver_id": format!("receiver-{index:02}"),
-            "interval_index": 0,
-            "max_deliverable_energy_mwh": 1
-        })).collect::<Vec<_>>();
+        let receivers = (0..33)
+            .map(|index| {
+                serde_json::json!({
+                    "receiver_id": format!("receiver-{index:02}"),
+                    "arrival_interval": 0,
+                    "departure_interval": 1,
+                    "minimum_service_mwh": 1
+                })
+            })
+            .collect::<Vec<_>>();
+        let receiver_slots = (0..33)
+            .map(|index| {
+                serde_json::json!({
+                    "receiver_id": format!("receiver-{index:02}"),
+                    "interval_index": 0,
+                    "max_acceptance_mwh": 1
+                })
+            })
+            .collect::<Vec<_>>();
+        let transfer_links = (0..33)
+            .map(|index| {
+                serde_json::json!({
+                    "link_id": format!("segment-to-receiver-{index:02}"),
+                    "segment_id": "segment-a",
+                    "receiver_id": format!("receiver-{index:02}"),
+                    "interval_index": 0,
+                    "max_deliverable_energy_mwh": 1
+                })
+            })
+            .collect::<Vec<_>>();
         let scenario = serde_json::json!({
             "schema_version": "wpt-exact-service-oracle-v0",
             "scenario_id": "receiver-individual-maxima-bound",
