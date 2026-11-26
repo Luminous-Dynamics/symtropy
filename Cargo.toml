@@ -176,6 +176,7 @@ members = [
     "crates/domains/symtropy-firstlight-catastrophe",
     "tools/wpt-exact-service-oracle",
     "tools/single-commodity-flow-kernel",
+    "tools/safrb-time-expanded-adapter",
 ]
 
 [lints.clippy]

@@ -1,0 +1,459 @@
+{
+  "scenario": {
+    "schema_version": "safrb-time-expanded-network-v0.1",
+    "case_id": "SAFRB-TWO-WINDOW-SHARED-PUMP-001",
+    "evidence_maturity": "synthetic_known_truth",
+    "claim_scope": "FUEL-DELIVERABILITY",
+    "timebase": {
+      "kind": "relative_discrete_intervals",
+      "interval_seconds": 3600,
+      "interval_semantics": "half_open",
+      "origin": "scenario_start"
+    },
+    "commodity": {
+      "product_id": "synthetic-diesel-grade-A",
+      "quantity_unit": "t",
+      "unit_basis": "synthetic tonnes; no density or volume conversion"
+    },
+    "source_node": "source",
+    "sink_node": "sink",
+    "total_opening_stock": {
+      "quantity": 20,
+      "unit": "t",
+      "source_ids": [
+        "terminal-a-stock",
+        "terminal-b-stock"
+      ]
+    },
+    "nodes": [
+      {
+        "id": "source",
+        "kind": "source",
+        "time_index": 0
+      },
+      {
+        "id": "inventory-a-t0",
+        "kind": "inventory",
+        "time_index": 0
+      },
+      {
+        "id": "inventory-b-t0",
+        "kind": "inventory",
+        "time_index": 0
+      },
+      {
+        "id": "inventory-a-t1",
+        "kind": "inventory",
+        "time_index": 1
+      },
+      {
+        "id": "inventory-b-t1",
+        "kind": "inventory",
+        "time_index": 1
+      },
+      {
+        "id": "pump-in-t0",
+        "kind": "resource_input",
+        "time_index": 0
+      },
+      {
+        "id": "pump-out-t0",
+        "kind": "resource_output",
+        "time_index": 0
+      },
+      {
+        "id": "pump-in-t1",
+        "kind": "resource_input",
+        "time_index": 1
+      },
+      {
+        "id": "pump-out-t1",
+        "kind": "resource_output",
+        "time_index": 1
+      },
+      {
+        "id": "route-a-arrival-t1",
+        "kind": "route_arrival",
+        "time_index": 1
+      },
+      {
+        "id": "route-b-arrival-t1",
+        "kind": "route_arrival",
+        "time_index": 1
+      },
+      {
+        "id": "service-t1",
+        "kind": "beneficiary_service",
+        "time_index": 1
+      },
+      {
+        "id": "route-a-arrival-t2",
+        "kind": "route_arrival",
+        "time_index": 2
+      },
+      {
+        "id": "route-b-arrival-t2",
+        "kind": "route_arrival",
+        "time_index": 2
+      },
+      {
+        "id": "service-t2",
+        "kind": "beneficiary_service",
+        "time_index": 2
+      },
+      {
+        "id": "sink",
+        "kind": "sink",
+        "time_index": 2
+      }
+    ],
+    "edges": [
+      {
+        "id": "supply-a",
+        "from": "source",
+        "to": "inventory-a-t0",
+        "capacity_lower": 10,
+        "capacity_upper": 10,
+        "unit": "t",
+        "resource_id": "terminal-a-stock",
+        "time_index": 0
+      },
+      {
+        "id": "supply-b",
+        "from": "source",
+        "to": "inventory-b-t0",
+        "capacity_lower": 10,
+        "capacity_upper": 10,
+        "unit": "t",
+        "resource_id": "terminal-b-stock",
+        "time_index": 0
+      },
+      {
+        "id": "pump-feed-a-t0",
+        "from": "inventory-a-t0",
+        "to": "pump-in-t0",
+        "capacity_lower": 10,
+        "capacity_upper": 10,
+        "unit": "t",
+        "resource_id": "transfer-a-t0",
+        "time_index": 0
+      },
+      {
+        "id": "pump-feed-b-t0",
+        "from": "inventory-b-t0",
+        "to": "pump-in-t0",
+        "capacity_lower": 10,
+        "capacity_upper": 10,
+        "unit": "t",
+        "resource_id": "transfer-b-t0",
+        "time_index": 0
+      },
+      {
+        "id": "storage-a-t0-t1",
+        "from": "inventory-a-t0",
+        "to": "inventory-a-t1",
+        "capacity_lower": 10,
+        "capacity_upper": 10,
+        "unit": "t",
+        "resource_id": "storage-a",
+        "time_index": 0
+      },
+      {
+        "id": "storage-b-t0-t1",
+        "from": "inventory-b-t0",
+        "to": "inventory-b-t1",
+        "capacity_lower": 10,
+        "capacity_upper": 10,
+        "unit": "t",
+        "resource_id": "storage-b",
+        "time_index": 0
+      },
+      {
+        "id": "pump-feed-a-t1",
+        "from": "inventory-a-t1",
+        "to": "pump-in-t1",
+        "capacity_lower": 10,
+        "capacity_upper": 10,
+        "unit": "t",
+        "resource_id": "transfer-a-t1",
+        "time_index": 1
+      },
+      {
+        "id": "pump-feed-b-t1",
+        "from": "inventory-b-t1",
+        "to": "pump-in-t1",
+        "capacity_lower": 10,
+        "capacity_upper": 10,
+        "unit": "t",
+        "resource_id": "transfer-b-t1",
+        "time_index": 1
+      },
+      {
+        "id": "pump-physical-t0",
+        "from": "pump-in-t0",
+        "to": "pump-out-t0",
+        "capacity_lower": 6,
+        "capacity_upper": 8,
+        "unit": "t",
+        "resource_id": "physical:pump-01",
+        "time_index": 0
+      },
+      {
+        "id": "pump-physical-t1",
+        "from": "pump-in-t1",
+        "to": "pump-out-t1",
+        "capacity_lower": 3,
+        "capacity_upper": 8,
+        "unit": "t",
+        "resource_id": "physical:pump-01",
+        "time_index": 1
+      },
+      {
+        "id": "pump-t0-route-a",
+        "from": "pump-out-t0",
+        "to": "route-a-arrival-t1",
+        "capacity_lower": 6,
+        "capacity_upper": 6,
+        "unit": "t",
+        "resource_id": "route-a-t0",
+        "time_index": 0
+      },
+      {
+        "id": "pump-t0-route-b",
+        "from": "pump-out-t0",
+        "to": "route-b-arrival-t1",
+        "capacity_lower": 6,
+        "capacity_upper": 6,
+        "unit": "t",
+        "resource_id": "route-b-t0",
+        "time_index": 0
+      },
+      {
+        "id": "route-a-t1-service",
+        "from": "route-a-arrival-t1",
+        "to": "service-t1",
+        "capacity_lower": 6,
+        "capacity_upper": 6,
+        "unit": "t",
+        "resource_id": "route-a-t1",
+        "time_index": 1
+      },
+      {
+        "id": "route-b-t1-service",
+        "from": "route-b-arrival-t1",
+        "to": "service-t1",
+        "capacity_lower": 6,
+        "capacity_upper": 6,
+        "unit": "t",
+        "resource_id": "route-b-t1",
+        "time_index": 1
+      },
+      {
+        "id": "service-obligation-t1",
+        "from": "service-t1",
+        "to": "sink",
+        "capacity_lower": 6,
+        "capacity_upper": 6,
+        "unit": "t",
+        "resource_id": "beneficiary-service-t1",
+        "time_index": 1
+      },
+      {
+        "id": "pump-t1-route-a",
+        "from": "pump-out-t1",
+        "to": "route-a-arrival-t2",
+        "capacity_lower": 6,
+        "capacity_upper": 6,
+        "unit": "t",
+        "resource_id": "route-a-t1",
+        "time_index": 1
+      },
+      {
+        "id": "pump-t1-route-b",
+        "from": "pump-out-t1",
+        "to": "route-b-arrival-t2",
+        "capacity_lower": 6,
+        "capacity_upper": 6,
+        "unit": "t",
+        "resource_id": "route-b-t1",
+        "time_index": 1
+      },
+      {
+        "id": "route-a-t2-service",
+        "from": "route-a-arrival-t2",
+        "to": "service-t2",
+        "capacity_lower": 6,
+        "capacity_upper": 6,
+        "unit": "t",
+        "resource_id": "route-a-t2",
+        "time_index": 2
+      },
+      {
+        "id": "route-b-t2-service",
+        "from": "route-b-arrival-t2",
+        "to": "service-t2",
+        "capacity_lower": 6,
+        "capacity_upper": 6,
+        "unit": "t",
+        "resource_id": "route-b-t2",
+        "time_index": 2
+      },
+      {
+        "id": "service-obligation-t2",
+        "from": "service-t2",
+        "to": "sink",
+        "capacity_lower": 6,
+        "capacity_upper": 6,
+        "unit": "t",
+        "resource_id": "beneficiary-service-t2",
+        "time_index": 2
+      }
+    ],
+    "resource_aliases": [
+      {
+        "logical_route_id": "route-a",
+        "physical_resource_id": "physical:pump-01",
+        "capacity_gate_edge_ids": [
+          "pump-physical-t0",
+          "pump-physical-t1"
+        ]
+      },
+      {
+        "logical_route_id": "route-b",
+        "physical_resource_id": "physical:pump-01",
+        "capacity_gate_edge_ids": [
+          "pump-physical-t0",
+          "pump-physical-t1"
+        ]
+      }
+    ],
+    "capacity_evidence": [
+      {
+        "evidence_id": "pump-capacity-window-0",
+        "physical_resource_id": "physical:pump-01",
+        "time_index": 0,
+        "lower": 6,
+        "upper": 8,
+        "unit": "t",
+        "status": "synthetic_admitted",
+        "valid_interval": "[0,1)"
+      },
+      {
+        "evidence_id": "pump-capacity-window-1",
+        "physical_resource_id": "physical:pump-01",
+        "time_index": 1,
+        "lower": 3,
+        "upper": 8,
+        "unit": "t",
+        "status": "synthetic_admitted",
+        "valid_interval": "[1,2)"
+      }
+    ],
+    "service_obligations": [
+      {
+        "obligation_id": "beneficiary-service-window-1",
+        "node_id": "service-t1",
+        "time_index": 1,
+        "required_lower": 6,
+        "unit": "t",
+        "interval": "[1,2)"
+      },
+      {
+        "obligation_id": "beneficiary-service-window-2",
+        "node_id": "service-t2",
+        "time_index": 2,
+        "required_lower": 6,
+        "unit": "t",
+        "interval": "[2,3)"
+      }
+    ],
+    "route_transit": [
+      {
+        "route_id": "route-a",
+        "transit_intervals": 1,
+        "physical_resources": [
+          "physical:pump-01"
+        ]
+      },
+      {
+        "route_id": "route-b",
+        "transit_intervals": 1,
+        "physical_resources": [
+          "physical:pump-01"
+        ]
+      }
+    ],
+    "adversarial_mutations": [
+      "duplicate-the-pump-capacity-arc-per-logical-route",
+      "relabel-route-b-to-a-different-physical-pump-without-independent-evidence",
+      "move-second-window-capacity-into-first-window",
+      "allow-window-2-delivery-to-satisfy-window-1-floor",
+      "double-consume-terminal-inventory-across-time",
+      "use-upper-bound-as-guaranteed-lower-bound",
+      "accept-capacity-evidence-expired-before-operation-window",
+      "change-commodity-unit-without-qualified-conversion",
+      "replay-the-certificate-after-capacity-revision"
+    ]
+  },
+  "certificate": {
+    "certificate_version": "safrb-time-expanded-single-commodity-certificate-v0.1",
+    "scenario_sha256": "edfd1c2a5a3eb52a0026a0e63abb38ab2ca8109c4de3d96fbff1215ad78f0308",
+    "model_class": "single_commodity_time_expanded_directed_capacity_network",
+    "lower_bound_max_flow": 9,
+    "lower_bound_min_cut_capacity": 9,
+    "lower_bound_service_deficit": 3,
+    "per_window": {
+      "window_1": {
+        "required": 6,
+        "lower_bound_delivered": 6,
+        "upper_bound_delivered": 6,
+        "verdict": "guaranteed_within_synthetic_fixture"
+      },
+      "window_2": {
+        "required": 6,
+        "lower_bound_delivered": 3,
+        "upper_bound_delivered": 6,
+        "verdict": "indeterminate_not_guaranteed"
+      }
+    },
+    "flow_witness": {
+      "supply-a": 9,
+      "supply-b": 0,
+      "pump-feed-a-t0": 6,
+      "pump-feed-b-t0": 0,
+      "storage-a-t0-t1": 3,
+      "storage-b-t0-t1": 0,
+      "pump-feed-a-t1": 3,
+      "pump-feed-b-t1": 0,
+      "pump-physical-t0": 6,
+      "pump-physical-t1": 3,
+      "pump-t0-route-a": 6,
+      "pump-t0-route-b": 0,
+      "route-a-t1-service": 6,
+      "route-b-t1-service": 0,
+      "service-obligation-t1": 6,
+      "pump-t1-route-a": 3,
+      "pump-t1-route-b": 0,
+      "route-a-t2-service": 3,
+      "route-b-t2-service": 0,
+      "service-obligation-t2": 3
+    },
+    "source_side_nodes": [
+      "inventory-a-t0",
+      "inventory-a-t1",
+      "inventory-b-t0",
+      "inventory-b-t1",
+      "pump-in-t0",
+      "pump-in-t1",
+      "source"
+    ],
+    "cut_edge_ids": [
+      "pump-physical-t0",
+      "pump-physical-t1"
+    ],
+    "upper_bound_max_flow": 12,
+    "upper_bound_min_cut_capacity": 12,
+    "lower_bound_verdict": "indeterminate_not_guaranteed",
+    "interpretation": "Opening stock is sufficient in aggregate, and the optimistic horizon can satisfy both windows. The conservative time-expanded lower-bound flow is 9 t of 12 t: window 1 meets its floor but window 2 has only 3 t against 6 t. Later delivery cannot repair the window-1 outcome, and upper-bound capacity is not a guarantee."
+  }
+}
