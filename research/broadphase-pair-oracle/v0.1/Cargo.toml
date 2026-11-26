@@ -1,0 +1,12 @@
+[package]
+name = "broadphase-pair-oracle"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Identity-stable brute-force oracle scorecard for broadphase candidate pairs"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
