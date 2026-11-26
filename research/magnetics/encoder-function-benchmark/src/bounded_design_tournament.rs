@@ -4,6 +4,8 @@
 //! It propagates supplied simultaneous deterministic bounds; it does not infer
 //! distributions, manufacturing yield, or physical truth.
 
+use std::collections::HashSet;
+
 use super::{
     DesignTournamentError, EncoderRequirements, FieldTrace, MagneticDesignCandidate,
     MagneticDesignCandidateMetrics, MagneticDesignTournament, evaluate_trace,
@@ -80,6 +82,7 @@ pub struct BoundedMagneticDesignTournament {
 pub enum BoundedDesignTournamentError {
     BaseTournament(DesignTournamentError),
     UncertaintyScenarioCountMismatch { candidate_index: usize },
+    DuplicateUncertaintyRecordId,
     InvalidUncertaintyMetadata { candidate_index: usize, scenario_index: usize },
     UncertaintyTraceIdentityMismatch { candidate_index: usize, scenario_index: usize },
     UncertaintyFrameIdentityMismatch { candidate_index: usize, scenario_index: usize },
@@ -452,6 +455,7 @@ pub fn rank_bounded_magnetic_designs(
 
     let mut bounded_candidates = Vec::with_capacity(candidates.len());
     let mut uncertainty_record_count = 0_usize;
+    let mut uncertainty_record_ids = HashSet::new();
 
     for (candidate_index, candidate) in candidates.iter().enumerate() {
         if candidate.scenario_uncertainty.len() != candidate.design.scenarios.len() {
@@ -476,6 +480,9 @@ pub fn rank_bounded_magnetic_designs(
                 candidate_index,
                 scenario_index,
             )?;
+            if !uncertainty_record_ids.insert(uncertainty.uncertainty_record_id.as_str()) {
+                return Err(BoundedDesignTournamentError::DuplicateUncertaintyRecordId);
+            }
             let metrics = bounded_scenario_metrics(
                 trace,
                 uncertainty,
@@ -531,14 +538,20 @@ pub fn rank_bounded_magnetic_designs(
         });
     }
 
-    for index in 0..bounded_candidates.len() {
-        if !bounded_candidates[index].robustly_accepted {
-            continue;
-        }
-        let is_dominated = bounded_candidates.iter().enumerate().any(|(other_index, other)| {
-            other_index != index && other.robustly_accepted && dominates(other, &bounded_candidates[index])
-        });
-        bounded_candidates[index].is_pareto_optimal = !is_dominated;
+    let pareto_flags = bounded_candidates
+        .iter()
+        .enumerate()
+        .map(|(index, candidate)| {
+            candidate.robustly_accepted
+                && !bounded_candidates.iter().enumerate().any(|(other_index, other)| {
+                    other_index != index
+                        && other.robustly_accepted
+                        && dominates(other, candidate)
+                })
+        })
+        .collect::<Vec<_>>();
+    for (candidate, is_pareto_optimal) in bounded_candidates.iter_mut().zip(pareto_flags) {
+        candidate.is_pareto_optimal = is_pareto_optimal;
     }
 
     let robustly_accepted_candidate_count = bounded_candidates
@@ -719,6 +732,37 @@ mod tests {
         assert!(
             high_result.candidates[0].worst_peak_phase_error_upper_bound_rad
                 > low_result.candidates[0].worst_peak_phase_error_upper_bound_rad
+        );
+    }
+
+
+    #[test]
+    fn field_direction_error_uses_exact_asin_disk_bound() {
+        let candidate = bounded_candidate("asin-control", 1.0, 0.0, 0.05, 0.0, 0.0);
+        let result =
+            rank_bounded_magnetic_designs("asin-control-tournament", &[candidate], &requirements())
+                .unwrap();
+        let expected = (0.05_f64 / 0.9_f64).asin();
+        assert_close(
+            result.candidates[0].worst_peak_phase_error_upper_bound_rad,
+            expected,
+        );
+    }
+
+    #[test]
+    fn uncertainty_record_ids_must_be_unique_across_the_tournament() {
+        let first = bounded_candidate("uncertainty-owner-a", 1.0, 0.0, 0.01, 0.0, 0.0);
+        let mut second = bounded_candidate("uncertainty-owner-b", 1.2, 0.0, 0.01, 0.0, 0.0);
+        second.scenario_uncertainty[0].uncertainty_record_id =
+            first.scenario_uncertainty[0].uncertainty_record_id.clone();
+        assert_eq!(
+            rank_bounded_magnetic_designs(
+                "duplicate-uncertainty-record",
+                &[first, second],
+                &requirements(),
+            )
+            .expect_err("record IDs must not be reused"),
+            BoundedDesignTournamentError::DuplicateUncertaintyRecordId
         );
     }
 
