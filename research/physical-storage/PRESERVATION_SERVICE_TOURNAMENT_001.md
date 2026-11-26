@@ -168,3 +168,14 @@ The synthetic receipt KAT corpus and schema are:
 - [preservation_service_receipts_v0_1.schema.json](preservation_service_receipts_v0_1.schema.json)
 
 The ten receipt cases currently encode one positive pass, hard-failure negative controls, honest incomplete outcomes and a no-run case. A separate JavaScript semantic oracle matched all ten fixture dispositions. The Rust unit tests are authored but not executed here: Cargo, rustc and rustfmt are unavailable. Full Draft 2020-12 validation, a second independently implemented production scorer and measured service runs remain pending. This is contract/reference evidence only, not an end-to-end physical storage result.
+
+
+## 13. Industry benchmark interoperability
+
+The tournament now has a dedicated [SPECstorage / SNIA Emerald interoperability mapping](PRESERVATION_BENCHMARK_INTEROP_001.md).
+
+Use official SPECstorage Solution 2020 workload runs for application-style storage throughput/response comparisons, comparing only the same workload/version. Use the applicable SNIA Emerald taxonomy and measurement procedure for storage-subsystem active/idle power claims. Preserve their official results separately from the preservation overlay.
+
+The preservation overlay adds independently accepted bytes, exact-object/digest/provenance status, reader-independence and migration fidelity. Whole-service joules per independently accepted TiB must be separately measured across the declared end-to-end boundary; do not relabel a device-level Emerald result as whole-service energy or a SPEC workload throughput as archive recovery throughput.
+
+The reference scorer also requires time-to-first-accepted-byte when any payload bytes are accepted, and rejects any stage observation whose duration exceeds the total end-to-end wall-clock interval. Stages may overlap, so their individual durations must not simply be summed.
