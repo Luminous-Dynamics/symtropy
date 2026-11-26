@@ -930,8 +930,11 @@ fn evaluate_temporal_closure(
     if inventories.iter().any(|(_, complete, _, _)| !complete) {
         return unresolved("HOLDER_INVENTORY_INCOMPLETE");
     }
-    let expected_holders: BTreeSet<&str> =
-        claim.expected_holder_ids.iter().map(String::as_str).collect();
+    let expected_holders: BTreeSet<&str> = claim
+        .expected_holder_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
     let expected_edges: BTreeSet<&str> =
         claim.expected_edge_ids.iter().map(String::as_str).collect();
     let inventories_match = inventories.iter().all(|(_, _, holders, edges)| {
