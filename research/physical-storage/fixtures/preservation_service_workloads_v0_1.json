@@ -1,0 +1,419 @@
+{
+  "schema_version": "preservation-service-workloads-v0.1",
+  "corpus_id": "PRESERVATION-SERVICE-WORKLOADS-V0.1",
+  "evidence_class": "synthetic_fixture",
+  "source_contract_ref": "https://github.com/Luminous-Dynamics/symtropy/issues/7582",
+  "workloads": [
+    {
+      "workload_id": "PSW-COLD-FULL-RESTORE-001",
+      "workload_family": "cold_full_restore",
+      "title": "1 PB cold sequential restore with ten-day service objective",
+      "payload": {
+        "logical_bytes": 1000000000000000,
+        "object_count": 10000000,
+        "object_size_profile": "mixed_enterprise",
+        "entropy_profile": "mixed_entropy",
+        "compression_policy": "identical_across_candidates",
+        "encryption_policy": "identical_across_candidates",
+        "manifest_required": true
+      },
+      "request": {
+        "request_mode": "full_restore",
+        "access_pattern": "sequential",
+        "requested_fraction_percent": 100,
+        "deadline_seconds": 864000,
+        "concurrency": 1,
+        "offline_required": false,
+        "vendor_runtime_withheld": false,
+        "network_policy": "bounded"
+      },
+      "medium_path": {
+        "comparison_scope": "single_medium",
+        "source_medium": "candidate_under_test",
+        "destination_medium": null
+      },
+      "resource_budget": {
+        "reader_count": 3,
+        "network_limit_mbps": 10000,
+        "compute_limit_seconds": 864000,
+        "metering_required": true,
+        "energy_meter_boundary": "whole_service"
+      },
+      "fault_schedule": [
+        {
+          "fault_id": "NO-FAULT",
+          "fault_type": "no_fault",
+          "at_elapsed_seconds": 0,
+          "target_scope": "none",
+          "visible_to_candidate": true,
+          "failure_domain_ref": null
+        }
+      ],
+      "acceptance": {
+        "exact_bytes_required": true,
+        "independent_digest_required": true,
+        "manifest_validation_required": true,
+        "provenance_required": true,
+        "deadline_required": true,
+        "no_false_acceptance": true,
+        "expected_disposition": "accept_if_exact"
+      },
+      "evaluation_split": {
+        "split": "development",
+        "grouping_axes": [
+          "workload_trace",
+          "medium_family"
+        ],
+        "synthetic_only": true
+      },
+      "notes": "Arithmetic workload anchor only. The 1 PB payload is not backed by a measured archive or a storage-system run."
+    },
+    {
+      "workload_id": "PSW-SELECTIVE-OBJECT-RESTORE-001",
+      "workload_family": "selective_restore",
+      "title": "High-concurrency selective retrieval from a small-object-heavy archive",
+      "payload": {
+        "logical_bytes": 100000000000000,
+        "object_count": 50000000,
+        "object_size_profile": "small_object_heavy",
+        "entropy_profile": "mixed_entropy",
+        "compression_policy": "identical_across_candidates",
+        "encryption_policy": "identical_across_candidates",
+        "manifest_required": true
+      },
+      "request": {
+        "request_mode": "selective_restore",
+        "access_pattern": "random_small_object",
+        "requested_fraction_percent": 0.1,
+        "deadline_seconds": 600,
+        "concurrency": 64,
+        "offline_required": false,
+        "vendor_runtime_withheld": false,
+        "network_policy": "bounded"
+      },
+      "medium_path": {
+        "comparison_scope": "single_medium",
+        "source_medium": "candidate_under_test",
+        "destination_medium": null
+      },
+      "resource_budget": {
+        "reader_count": 2,
+        "network_limit_mbps": 10000,
+        "compute_limit_seconds": 600,
+        "metering_required": true,
+        "energy_meter_boundary": "whole_service"
+      },
+      "fault_schedule": [
+        {
+          "fault_id": "NO-FAULT",
+          "fault_type": "no_fault",
+          "at_elapsed_seconds": 0,
+          "target_scope": "none",
+          "visible_to_candidate": true,
+          "failure_domain_ref": null
+        }
+      ],
+      "acceptance": {
+        "exact_bytes_required": true,
+        "independent_digest_required": true,
+        "manifest_validation_required": true,
+        "provenance_required": true,
+        "deadline_required": true,
+        "no_false_acceptance": true,
+        "expected_disposition": "accept_if_exact"
+      },
+      "evaluation_split": {
+        "split": "development",
+        "grouping_axes": [
+          "workload_trace",
+          "medium_family"
+        ],
+        "synthetic_only": true
+      },
+      "notes": "Separates random-access tail latency from sequential restore throughput; request-rate and object-size distributions must remain fixed across arms."
+    },
+    {
+      "workload_id": "PSW-INTEGRITY-REPAIR-001",
+      "workload_family": "integrity_scan_repair",
+      "title": "Full integrity scan with an unannounced payload corruption and calibration staleness",
+      "payload": {
+        "logical_bytes": 10000000000000,
+        "object_count": 1000000,
+        "object_size_profile": "mixed_enterprise",
+        "entropy_profile": "mixed_entropy",
+        "compression_policy": "identical_across_candidates",
+        "encryption_policy": "identical_across_candidates",
+        "manifest_required": true
+      },
+      "request": {
+        "request_mode": "integrity_scan_repair",
+        "access_pattern": "full_scan",
+        "requested_fraction_percent": 100,
+        "deadline_seconds": 14400,
+        "concurrency": 4,
+        "offline_required": false,
+        "vendor_runtime_withheld": false,
+        "network_policy": "bounded"
+      },
+      "medium_path": {
+        "comparison_scope": "single_medium",
+        "source_medium": "candidate_under_test",
+        "destination_medium": null
+      },
+      "resource_budget": {
+        "reader_count": 2,
+        "network_limit_mbps": 5000,
+        "compute_limit_seconds": 14400,
+        "metering_required": true,
+        "energy_meter_boundary": "whole_service"
+      },
+      "fault_schedule": [
+        {
+          "fault_id": "CORRUPT-OBJECT-0001",
+          "fault_type": "payload_corruption",
+          "at_elapsed_seconds": 300,
+          "target_scope": "object:0001",
+          "visible_to_candidate": false,
+          "failure_domain_ref": null
+        },
+        {
+          "fault_id": "STALE-READER-CALIBRATION",
+          "fault_type": "stale_calibration",
+          "at_elapsed_seconds": 300,
+          "target_scope": "reader:primary",
+          "visible_to_candidate": true,
+          "failure_domain_ref": "reader-calibration-chain-A"
+        }
+      ],
+      "acceptance": {
+        "exact_bytes_required": true,
+        "independent_digest_required": true,
+        "manifest_validation_required": true,
+        "provenance_required": true,
+        "deadline_required": true,
+        "no_false_acceptance": true,
+        "expected_disposition": "recover_or_abstain"
+      },
+      "evaluation_split": {
+        "split": "development",
+        "grouping_axes": [
+          "workload_trace",
+          "reader",
+          "medium_family"
+        ],
+        "synthetic_only": true
+      },
+      "notes": "The fault schedule is a deterministic contract fixture, not a physical corruption distribution. Correct abstention is preferable to accepting an incorrect reconstruction."
+    },
+    {
+      "workload_id": "PSW-OFFLINE-READER-REPLACEMENT-001",
+      "workload_family": "offline_reader_replacement",
+      "title": "Offline reader replacement with original vendor runtime withheld",
+      "payload": {
+        "logical_bytes": 57,
+        "object_count": 1,
+        "object_size_profile": "known_answer_tiny",
+        "entropy_profile": "high_entropy",
+        "compression_policy": "disabled",
+        "encryption_policy": "disabled_fixture_only",
+        "manifest_required": true
+      },
+      "request": {
+        "request_mode": "reader_replacement",
+        "access_pattern": "sequential",
+        "requested_fraction_percent": 100,
+        "deadline_seconds": 3600,
+        "concurrency": 1,
+        "offline_required": true,
+        "vendor_runtime_withheld": true,
+        "network_policy": "offline"
+      },
+      "medium_path": {
+        "comparison_scope": "single_medium",
+        "source_medium": "candidate_under_test",
+        "destination_medium": null
+      },
+      "resource_budget": {
+        "reader_count": 1,
+        "network_limit_mbps": 0,
+        "compute_limit_seconds": 3600,
+        "metering_required": false,
+        "energy_meter_boundary": "not_applicable_synthetic"
+      },
+      "fault_schedule": [
+        {
+          "fault_id": "ORIGINAL-READER-WITHHELD",
+          "fault_type": "reader_unavailable",
+          "at_elapsed_seconds": 0,
+          "target_scope": "original-vendor-reader-runtime",
+          "visible_to_candidate": true,
+          "failure_domain_ref": "vendor-reader-stack-A"
+        }
+      ],
+      "acceptance": {
+        "exact_bytes_required": true,
+        "independent_digest_required": true,
+        "manifest_validation_required": true,
+        "provenance_required": true,
+        "deadline_required": true,
+        "no_false_acceptance": true,
+        "expected_disposition": "recover_or_abstain"
+      },
+      "evaluation_split": {
+        "split": "development",
+        "grouping_axes": [
+          "workload_trace",
+          "reader"
+        ],
+        "synthetic_only": true
+      },
+      "notes": "The 57-byte payload is only a known-answer package fixture. This workload does not qualify a physical reader or decoder independence."
+    },
+    {
+      "workload_id": "PSW-CROSS-MEDIUM-MIGRATION-001",
+      "workload_family": "cross_medium_migration",
+      "title": "Tape-to-glass migration with payload and preservation-lineage verification",
+      "payload": {
+        "logical_bytes": 1000000000000,
+        "object_count": 10000,
+        "object_size_profile": "large_object_stream",
+        "entropy_profile": "mixed_entropy",
+        "compression_policy": "identical_across_candidates",
+        "encryption_policy": "identical_across_candidates",
+        "manifest_required": true
+      },
+      "request": {
+        "request_mode": "cross_medium_migration",
+        "access_pattern": "migration",
+        "requested_fraction_percent": 100,
+        "deadline_seconds": 172800,
+        "concurrency": 2,
+        "offline_required": false,
+        "vendor_runtime_withheld": false,
+        "network_policy": "bounded"
+      },
+      "medium_path": {
+        "comparison_scope": "migration",
+        "source_medium": "magnetic_tape",
+        "destination_medium": "glass_optical"
+      },
+      "resource_budget": {
+        "reader_count": 2,
+        "network_limit_mbps": 5000,
+        "compute_limit_seconds": 172800,
+        "metering_required": true,
+        "energy_meter_boundary": "whole_service"
+      },
+      "fault_schedule": [
+        {
+          "fault_id": "NO-FAULT",
+          "fault_type": "no_fault",
+          "at_elapsed_seconds": 0,
+          "target_scope": "none",
+          "visible_to_candidate": true,
+          "failure_domain_ref": null
+        }
+      ],
+      "acceptance": {
+        "exact_bytes_required": true,
+        "independent_digest_required": true,
+        "manifest_validation_required": true,
+        "provenance_required": true,
+        "deadline_required": true,
+        "no_false_acceptance": true,
+        "expected_disposition": "migrate_then_accept"
+      },
+      "evaluation_split": {
+        "split": "development",
+        "grouping_axes": [
+          "workload_trace",
+          "media_lot",
+          "reader"
+        ],
+        "synthetic_only": true
+      },
+      "notes": "Medium labels define a research workload only. No tape-to-glass migration, medium capability, throughput or lifecycle economics have been measured."
+    },
+    {
+      "workload_id": "PSW-COMPOUND-OUTAGE-001",
+      "workload_family": "compound_outage",
+      "title": "Compound site-power and reader outage with unresolved key dependency",
+      "payload": {
+        "logical_bytes": 100000000000000,
+        "object_count": 1000000,
+        "object_size_profile": "mixed_enterprise",
+        "entropy_profile": "mixed_entropy",
+        "compression_policy": "identical_across_candidates",
+        "encryption_policy": "fixed_authenticated_profile",
+        "manifest_required": true
+      },
+      "request": {
+        "request_mode": "compound_outage",
+        "access_pattern": "mixed",
+        "requested_fraction_percent": 100,
+        "deadline_seconds": 86400,
+        "concurrency": 4,
+        "offline_required": false,
+        "vendor_runtime_withheld": false,
+        "network_policy": "bounded"
+      },
+      "medium_path": {
+        "comparison_scope": "hybrid_restore",
+        "source_medium": "hybrid",
+        "destination_medium": null
+      },
+      "resource_budget": {
+        "reader_count": 4,
+        "network_limit_mbps": 10000,
+        "compute_limit_seconds": 86400,
+        "metering_required": true,
+        "energy_meter_boundary": "whole_service"
+      },
+      "fault_schedule": [
+        {
+          "fault_id": "SITE-POWER-LOSS",
+          "fault_type": "site_power_loss",
+          "at_elapsed_seconds": 60,
+          "target_scope": "site:west-1",
+          "visible_to_candidate": true,
+          "failure_domain_ref": "power-domain-west-1"
+        },
+        {
+          "fault_id": "READER-LOSS-SAME-SITE",
+          "fault_type": "reader_unavailable",
+          "at_elapsed_seconds": 60,
+          "target_scope": "reader:west-1-A",
+          "visible_to_candidate": true,
+          "failure_domain_ref": "power-domain-west-1"
+        },
+        {
+          "fault_id": "KEY-SERVICE-UNKNOWN",
+          "fault_type": "key_unavailable",
+          "at_elapsed_seconds": 60,
+          "target_scope": "key-service:archive-A",
+          "visible_to_candidate": false,
+          "failure_domain_ref": "unknown"
+        }
+      ],
+      "acceptance": {
+        "exact_bytes_required": true,
+        "independent_digest_required": true,
+        "manifest_validation_required": true,
+        "provenance_required": true,
+        "deadline_required": true,
+        "no_false_acceptance": true,
+        "expected_disposition": "fail_closed_on_dependency"
+      },
+      "evaluation_split": {
+        "split": "development",
+        "grouping_axes": [
+          "workload_trace",
+          "site",
+          "reader"
+        ],
+        "synthetic_only": true
+      },
+      "notes": "The reader and site outage intentionally share a declared dependency. The key-service dependency is unresolved; it must not be assumed independent or available."
+    }
+  ]
+}
