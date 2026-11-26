@@ -4,6 +4,7 @@
 //! integer reservations by (resource, time slot), rejects capacity violations,
 //! and reports the full feasible set plus the Pareto frontier.
 
+pub mod continuous;
 pub mod sync;
 
 use std::collections::{BTreeMap, BTreeSet};
