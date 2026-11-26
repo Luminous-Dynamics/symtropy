@@ -37,11 +37,12 @@ jobs:
           set -euo pipefail
           ROOT="research/mobility-rrvr-aerb-v0.1"
           jq -e '
-            .benchmark == "AERB"
-            and .decision_cut_sequence == .ledger_frontier_sequence
-            and all(.observations[]; .ingest_sequence <= .decision_cut_sequence)
-            and ([.observations[].observation_id] | length == (unique | length))
-            and ([.permitted_probes[].probe_id] | length == (unique | length))
+            . as $episode
+            | $episode.benchmark == "AERB"
+            and $episode.decision_cut_sequence == $episode.ledger_frontier_sequence
+            and all($episode.observations[]; .ingest_sequence <= $episode.decision_cut_sequence)
+            and ([$episode.observations[].observation_id] | length == (unique | length))
+            and ([$episode.permitted_probes[].probe_id] | length == (unique | length))
             and (has("hidden_truth_world_id") | not)
           ' "$ROOT/fixtures/candidate_episode_synthetic_v0_1.json"
 
