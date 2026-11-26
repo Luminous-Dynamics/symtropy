@@ -208,7 +208,11 @@ impl CoulombCone {
     }
 
     /// Evaluate the exact reduced local-law conditions for a supplied impulse
-    /// and pre/post contact velocities. The post velocity is u = Wp + q.
+    /// and pre/post contact velocities. The caller MUST supply
+    /// post_velocity = free_velocity + W * impulse for the same symmetric
+    /// positive-semidefinite Delassus operator used by the solver. This module
+    /// checks the resulting local law; it cannot independently verify that
+    /// operator-response identity because W is not an input here.
     ///
     /// The De Saxce/Feng augmented velocity is
     /// u_tilde = (u_n + mu*||u_t||, u_t). Qualification requires:
