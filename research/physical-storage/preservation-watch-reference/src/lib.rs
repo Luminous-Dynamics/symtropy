@@ -461,14 +461,65 @@ pub fn evaluate_watch(
         if policy.required_signals.contains(signal) {
             continue;
         }
-        if let Some(latest) = history.iter().max_by_key(|observation| observation.sequence) {
-            if latest.valid_until_unix >= evaluated_at_unix
-                && latest.provenance == EvidenceProvenance::Verified
-                && latest.state == ObservationState::Alert
+        let mut ordered = history.clone();
+        ordered.sort_by_key(|observation| (observation.sequence, observation.observed_at_unix));
+        for pair in ordered.windows(2) {
+            if pair[0].sequence == pair[1].sequence {
+                return Err(WatchContractError::DuplicateSignalSequence);
+            }
+            if pair[0].observed_at_unix > pair[1].observed_at_unix {
+                return Err(WatchContractError::NonMonotonicSignalHistory);
+            }
+        }
+        let mut last_alert: Option<&WatchObservation> = None;
+        for observation in &ordered {
+            if observation.state == ObservationState::Alert {
+                last_alert = Some(observation);
+            } else if observation.state == ObservationState::Healthy {
+                if let Some(alert) = last_alert {
+                    if observation.supersedes_observation_id.as_deref()
+                        != Some(alert.observation_id.as_str())
+                        || observation.provenance != EvidenceProvenance::Verified
+                        || observation.valid_until_unix < evaluated_at_unix
+                    {
+                        return Err(WatchContractError::UnsubstantiatedClear);
+                    }
+                    last_alert = None;
+                }
+            }
+        }
+        if let Some(latest) = ordered.last().copied() {
+            let state = if latest.provenance == EvidenceProvenance::Invalid {
+                ObservationState::Alert
+            } else if latest.valid_until_unix < evaluated_at_unix
+                || latest.provenance == EvidenceProvenance::Unverified
             {
-                let (disposition, actions, requirements) = action_plan(*signal);
-                dispositions.push(disposition);
-                proposals.extend(make_proposals(target_id, latest, &actions, &requirements));
+                ObservationState::Unknown
+            } else {
+                latest.state
+            };
+            match state {
+                ObservationState::Alert if latest.provenance == EvidenceProvenance::Invalid => {
+                    dispositions.push(WatchDisposition::Blocked);
+                    proposals.extend(make_proposals(
+                        target_id,
+                        latest,
+                        &[ProposedAction::IsolateSuspectCopy, ProposedAction::HumanReview],
+                        &["invalid evidence provenance", "independent investigation"],
+                    ));
+                }
+                ObservationState::Alert => {
+                    let (disposition, actions, requirements) = action_plan(*signal);
+                    dispositions.push(disposition);
+                    proposals.extend(make_proposals(target_id, latest, &actions, &requirements));
+                }
+                ObservationState::Unknown => {
+                    dispositions.push(WatchDisposition::Unknown);
+                    let (_, mut actions, requirements) = action_plan(*signal);
+                    actions.push(ProposedAction::GatherFreshEvidence);
+                    proposals.extend(make_proposals(target_id, latest, &actions, &requirements));
+                }
+                ObservationState::Healthy => {}
             }
         }
     }
