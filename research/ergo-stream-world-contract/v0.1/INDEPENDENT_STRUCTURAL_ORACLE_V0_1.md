@@ -4,6 +4,12 @@
 **Owner:** Symtropy / ErgoStream structural qualification.
 **Composes with:** #7149, #7152, #7171, #7193, #7230 and Symthaea #13401 / #11171.
 
+## Full-witness ambiguity extension — validation state
+
+The extension now reports full semantic witness classes separately from total node-map count. It enumerates relation-kind assignments and participant transforms, quotients ID permutations of duplicate incidence records, and returns `BoundedUnknown` rather than claiming uniqueness after the 65,536-class cap.
+
+New integration fixtures cover unique node map / ambiguous relation-kind assignment, directed preserve-versus-reverse ambiguity, duplicate-instance quotienting, mixed-orientation rejection, repeated hyperedge participant multiplicity and budget exhaustion. The formatting diff from the first attempt has been applied; exact-head tests and strict Clippy remain pending. The base #7432 oracle has now passed its own Rust 1.96 format/tests/Clippy workflow.
+
 ## Why this exists
 
 The current Transfer Atlas needs an evaluator-side answer to a narrow question that is independent of the candidate validator and the heuristic matcher:
