@@ -177,12 +177,24 @@ impl core::fmt::Display for RobustParetoError {
         let message = match self {
             Self::EmptyUniverse => "portfolio, scenario and objective universes must be nonempty",
             Self::UniverseTooLarge => "finite Pareto campaign exceeds a configured universe bound",
-            Self::ZeroIdentity => "a frozen portfolio, scenario, objective or unit identity is zero",
-            Self::DuplicateIdentity => "a frozen portfolio, scenario or objective identity is duplicated",
-            Self::UnexpectedAssessment => "assessment references an undeclared portfolio or scenario",
-            Self::InvalidObjectiveProduct => "assessment does not contain the exact frozen objective product",
-            Self::IncompleteAssessmentProduct => "assessment product lacks exactly one row per portfolio and scenario",
-            Self::InvalidFeasibilityReason => "infeasible or unresolved assessment lacks a reason digest",
+            Self::ZeroIdentity => {
+                "a frozen portfolio, scenario, objective or unit identity is zero"
+            }
+            Self::DuplicateIdentity => {
+                "a frozen portfolio, scenario or objective identity is duplicated"
+            }
+            Self::UnexpectedAssessment => {
+                "assessment references an undeclared portfolio or scenario"
+            }
+            Self::InvalidObjectiveProduct => {
+                "assessment does not contain the exact frozen objective product"
+            }
+            Self::IncompleteAssessmentProduct => {
+                "assessment product lacks exactly one row per portfolio and scenario"
+            }
+            Self::InvalidFeasibilityReason => {
+                "infeasible or unresolved assessment lacks a reason digest"
+            }
         };
         formatter.write_str(message)
     }
@@ -223,7 +235,9 @@ pub fn evaluate_robust_pareto(
 
     config.portfolio_ids.sort_unstable();
     config.scenario_ids.sort_unstable();
-    config.objectives.sort_unstable_by_key(|objective| objective.objective_id);
+    config
+        .objectives
+        .sort_unstable_by_key(|objective| objective.objective_id);
 
     validate_unique_nonzero(&config.portfolio_ids)?;
     validate_unique_nonzero(&config.scenario_ids)?;
@@ -253,7 +267,11 @@ pub fn evaluate_robust_pareto(
         return Err(RobustParetoError::IncompleteAssessmentProduct);
     }
 
-    let portfolio_set = config.portfolio_ids.iter().copied().collect::<BTreeSet<_>>();
+    let portfolio_set = config
+        .portfolio_ids
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>();
     let scenario_set = config.scenario_ids.iter().copied().collect::<BTreeSet<_>>();
     let mut rows = BTreeMap::new();
     for mut assessment in config.assessments {
@@ -282,7 +300,10 @@ pub fn evaluate_robust_pareto(
             return Err(RobustParetoError::InvalidObjectiveProduct);
         }
         if rows
-            .insert((assessment.portfolio_id, assessment.scenario_id), assessment)
+            .insert(
+                (assessment.portfolio_id, assessment.scenario_id),
+                assessment,
+            )
             .is_some()
         {
             return Err(RobustParetoError::IncompleteAssessmentProduct);
@@ -303,8 +324,7 @@ pub fn evaluate_robust_pareto(
                     .then_some((*portfolio_id, row.objective_values.clone()))
             })
             .collect::<Vec<_>>();
-        let (frontier_portfolio_ids, dominance) =
-            calculate_frontier(&feasible, &config.objectives);
+        let (frontier_portfolio_ids, dominance) = calculate_frontier(&feasible, &config.objectives);
         scenario_frontiers.push(ScenarioParetoFrontier {
             scenario_id: *scenario_id,
             feasible_portfolio_ids: feasible.iter().map(|(id, _)| *id).collect(),
@@ -322,12 +342,12 @@ pub fn evaluate_robust_pareto(
             .iter()
             .filter_map(|scenario_id| rows.get(&(*portfolio_id, *scenario_id)))
             .collect::<Vec<_>>();
-        let known_infeasible = assessments.iter().any(|row| {
-            matches!(row.feasibility, ScenarioFeasibility::Infeasible { .. })
-        });
-        let unresolved = assessments.iter().any(|row| {
-            matches!(row.feasibility, ScenarioFeasibility::Unresolved { .. })
-        });
+        let known_infeasible = assessments
+            .iter()
+            .any(|row| matches!(row.feasibility, ScenarioFeasibility::Infeasible { .. }));
+        let unresolved = assessments
+            .iter()
+            .any(|row| matches!(row.feasibility, ScenarioFeasibility::Unresolved { .. }));
         if known_infeasible {
             infeasible_portfolio_ids.push(*portfolio_id);
         } else if unresolved {
@@ -358,12 +378,14 @@ pub fn evaluate_robust_pareto(
                 })
                 .collect::<Result<Vec<_>, _>>()?;
             let worst_case = match objective.direction {
-                ObjectiveDirection::Minimize => *values.iter().max().ok_or(
-                    RobustParetoError::IncompleteAssessmentProduct,
-                )?,
-                ObjectiveDirection::Maximize => *values.iter().min().ok_or(
-                    RobustParetoError::IncompleteAssessmentProduct,
-                )?,
+                ObjectiveDirection::Minimize => *values
+                    .iter()
+                    .max()
+                    .ok_or(RobustParetoError::IncompleteAssessmentProduct)?,
+                ObjectiveDirection::Maximize => *values
+                    .iter()
+                    .min()
+                    .ok_or(RobustParetoError::IncompleteAssessmentProduct)?,
             };
             worst_case_objectives.push(ParetoObjectiveValue {
                 objective_id: objective.objective_id,
@@ -385,11 +407,13 @@ pub fn evaluate_robust_pareto(
         .collect::<BTreeMap<_, _>>();
     let robust_portfolio_summaries = robust_summaries
         .into_iter()
-        .map(|(portfolio_id, worst_case_objectives)| RobustPortfolioObjectiveSummary {
-            portfolio_id,
-            worst_case_objectives,
-            dominated_by: dominated_by.get(&portfolio_id).cloned().unwrap_or_default(),
-        })
+        .map(
+            |(portfolio_id, worst_case_objectives)| RobustPortfolioObjectiveSummary {
+                portfolio_id,
+                worst_case_objectives,
+                dominated_by: dominated_by.get(&portfolio_id).cloned().unwrap_or_default(),
+            },
+        )
         .collect();
 
     Ok(RobustParetoReport {
@@ -399,9 +423,9 @@ pub fn evaluate_robust_pareto(
         infeasible_portfolio_ids,
         robust_portfolio_summaries,
         robust_frontier_portfolio_ids,
-        has_unresolved_feasibility: !rows.values().all(|row| {
-            !matches!(row.feasibility, ScenarioFeasibility::Unresolved { .. })
-        }),
+        has_unresolved_feasibility: !rows
+            .values()
+            .all(|row| !matches!(row.feasibility, ScenarioFeasibility::Unresolved { .. })),
     })
 }
 
@@ -461,7 +485,10 @@ fn dominates(
 }
 
 fn validate_unique_nonzero(values: &[[u8; 32]]) -> Result<(), RobustParetoError> {
-    if values.iter().any(|value| value.iter().all(|byte| *byte == 0)) {
+    if values
+        .iter()
+        .any(|value| value.iter().all(|byte| *byte == 0))
+    {
         return Err(RobustParetoError::ZeroIdentity);
     }
     if values.windows(2).any(|pair| pair[0] == pair[1]) {
@@ -539,14 +566,23 @@ mod tests {
             report.robust_frontier_portfolio_ids,
             vec![[10; 32], [20; 32]]
         );
-        assert_eq!(report.robust_feasible_portfolio_ids, vec![[10; 32], [20; 32], [30; 32]]);
+        assert_eq!(
+            report.robust_feasible_portfolio_ids,
+            vec![[10; 32], [20; 32], [30; 32]]
+        );
         let a = &report.robust_portfolio_summaries[0];
         assert_eq!(a.portfolio_id, [10; 32]);
         assert_eq!(
             a.worst_case_objectives,
             vec![
-                ParetoObjectiveValue { objective_id: [1; 32], value_ticks: 1 },
-                ParetoObjectiveValue { objective_id: [2; 32], value_ticks: 4 },
+                ParetoObjectiveValue {
+                    objective_id: [1; 32],
+                    value_ticks: 1
+                },
+                ParetoObjectiveValue {
+                    objective_id: [2; 32],
+                    value_ticks: 4
+                },
             ]
         );
         assert!(a.dominated_by.is_empty());
@@ -562,13 +598,22 @@ mod tests {
         for assessment in &mut config.assessments {
             if assessment.portfolio_id == [20; 32] {
                 assessment.objective_values = vec![
-                    ParetoObjectiveValue { objective_id: [1; 32], value_ticks: 1 },
-                    ParetoObjectiveValue { objective_id: [2; 32], value_ticks: 3 },
+                    ParetoObjectiveValue {
+                        objective_id: [1; 32],
+                        value_ticks: 1,
+                    },
+                    ParetoObjectiveValue {
+                        objective_id: [2; 32],
+                        value_ticks: 3,
+                    },
                 ];
             }
         }
         let report = evaluate_robust_pareto(config).unwrap();
-        assert_eq!(report.scenario_frontiers[0].frontier_portfolio_ids, vec![[10; 32], [20; 32]]);
+        assert_eq!(
+            report.scenario_frontiers[0].frontier_portfolio_ids,
+            vec![[10; 32], [20; 32]]
+        );
     }
 
     #[test]
@@ -635,7 +680,10 @@ mod tests {
             ],
         };
         let report = evaluate_robust_pareto(config).unwrap();
-        assert_eq!(report.robust_frontier_portfolio_ids, vec![[10; 32], [20; 32]]);
+        assert_eq!(
+            report.robust_frontier_portfolio_ids,
+            vec![[10; 32], [20; 32]]
+        );
     }
 
     #[test]
@@ -652,9 +700,18 @@ mod tests {
             ],
         };
         let report = evaluate_robust_pareto(config).unwrap();
-        assert_eq!(report.scenario_frontiers[0].frontier_portfolio_ids, vec![[10; 32]]);
-        assert_eq!(report.scenario_frontiers[1].frontier_portfolio_ids, vec![[20; 32]]);
-        assert_eq!(report.robust_frontier_portfolio_ids, vec![[10; 32], [20; 32]]);
+        assert_eq!(
+            report.scenario_frontiers[0].frontier_portfolio_ids,
+            vec![[10; 32]]
+        );
+        assert_eq!(
+            report.scenario_frontiers[1].frontier_portfolio_ids,
+            vec![[20; 32]]
+        );
+        assert_eq!(
+            report.robust_frontier_portfolio_ids,
+            vec![[10; 32], [20; 32]]
+        );
         assert_eq!(
             report.robust_portfolio_summaries[0].worst_case_objectives[0].value_ticks,
             5
