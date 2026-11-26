@@ -9,6 +9,9 @@ import itertools
 from pathlib import Path
 
 
+TOLERANCE = 1e-6
+
+
 def fmt(value: float) -> str:
     if abs(value) < 0.0000005:
         value = 0.0
@@ -449,7 +452,8 @@ def main() -> int:
         low = evaluate_plan(tasks, plan_routes, 0.25, qc_weight, agv_weight)
         middle = evaluate_plan(tasks, plan_routes, 0.5, qc_weight, agv_weight)
         high = evaluate_plan(tasks, plan_routes, 1.0, qc_weight, agv_weight)
-        if low["worst"] > middle["worst"] + TOL or middle["worst"] > high["worst"] + TOL:
+        if (low["worst_cost"] > middle["worst_cost"] + TOLERANCE or
+                middle["worst_cost"] > high["worst_cost"] + TOLERANCE):
             raise AssertionError(f"{plan_id}: worst-case cost is not monotone in Gamma")
 
     expected = build_receipt(instance_id, gamma, qc_weight, agv_weight, tasks, plans)
