@@ -99,9 +99,9 @@ impl<const D: usize> Aabb<D> {
         let mut sum = 0.0;
         for excluded_axis in 0..D {
             let mut product = 1.0;
-            for axis in 0..D {
+            for (axis, width) in widths.iter().enumerate() {
                 if axis != excluded_axis {
-                    product *= widths[axis];
+                    product *= width;
                 }
             }
             sum += 2.0 * product;
