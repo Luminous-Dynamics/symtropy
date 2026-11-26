@@ -303,6 +303,14 @@ impl EvidenceGapPacketV1 {
             {
                 errors.push("CHANGE_IMPACT_RECEIPT_INVALID".to_owned());
             }
+            match self
+                .source_evidence
+                .iter()
+                .find(|source| source.id == change.receipt_ref)
+            {
+                Some(source) if source.state == "ADMITTED" => {}
+                _ => errors.push("CHANGE_IMPACT_RECEIPT_NOT_ADMITTED".to_owned()),
+            }
             let required = change
                 .required_requalification_claims
                 .iter()
@@ -401,6 +409,18 @@ mod tests {
         from_str(PACKET).expect("synthetic AERO evidence-gap packet parses")
     }
 
+    fn attach_change_impact_receipt(packet: &mut EvidenceGapPacketV1) {
+        packet.source_evidence.push(super::SourceEvidenceV1 {
+            id: "SYNTHETIC::CHANGE-RECEIPT".to_owned(),
+            kind: "change_impact_receipt".to_owned(),
+            state: "ADMITTED".to_owned(),
+            sha256: Some(
+                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                    .to_owned(),
+            ),
+        });
+    }
+
     #[test]
     fn checked_in_packet_projects_without_losing_context_or_dependency_groups() {
         let packet = packet();
@@ -478,6 +498,7 @@ mod tests {
     #[test]
     fn incomplete_change_frontier_cannot_declare_unaffected_claims() {
         let mut packet = packet();
+        attach_change_impact_receipt(&mut packet);
         packet.change_impact = Some(super::ChangeImpactV1 {
             source_owner: "mycelix:6219".to_owned(),
             receipt_ref: "SYNTHETIC::CHANGE-RECEIPT".to_owned(),
@@ -494,6 +515,7 @@ mod tests {
     #[test]
     fn incomplete_change_impact_is_preserved_not_promoted() {
         let mut packet = packet();
+        attach_change_impact_receipt(&mut packet);
         packet.change_impact = Some(super::ChangeImpactV1 {
             source_owner: "mycelix:6219".to_owned(),
             receipt_ref: "SYNTHETIC::CHANGE-RECEIPT".to_owned(),
