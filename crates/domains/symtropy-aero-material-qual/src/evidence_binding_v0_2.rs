@@ -1433,10 +1433,7 @@ mod tests {
         }]);
         let report = evaluate_binding_case(&case);
         assert!(has_violation(&report, "TIME_BOUNDS_PAIR_INCOMPLETE"));
-        assert!(has_blocker(
-            &report,
-            "CALIBRATION_EVENT_HISTORY_UNRESOLVED"
-        ));
+        assert!(has_blocker(&report, "CALIBRATION_EVENT_HISTORY_UNRESOLVED"));
     }
 
     #[test]
