@@ -1273,7 +1273,8 @@ mod tests {
         claim.decision_cutoff_ingest_sequence = 2;
         let bundle = bundle_with(vec![receipt, observation], vec![claim]);
         let serialized = serde_json::to_string(&bundle).expect("bundle serialization");
-        let report = evaluate_json(&serialized).expect("independent delivery evidence should qualify");
+        let report =
+            evaluate_json(&serialized).expect("independent delivery evidence should qualify");
         assert_eq!(report.qualified_n, 1);
     }
 
