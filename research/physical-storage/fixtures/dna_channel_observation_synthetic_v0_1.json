@@ -1,0 +1,162 @@
+{
+  "schema_version": "physical-storage-dna-channel-observations-v0.1",
+  "dataset_id": "SYNTHETIC-DNA-CHANNEL-DEMO-001",
+  "evidence_class": "synthetic_fixture",
+  "partition": {
+    "role": "held_out",
+    "grouping": "oligo_library",
+    "group_id": "synthetic-library-a",
+    "split_manifest_ref": null
+  },
+  "molecular_material": {
+    "material_id": "synthetic-dna-placeholder",
+    "carrier_type": "synthetic_dna_oligo",
+    "organism_or_synthetic_origin": "synthetic placeholder sequences",
+    "supplier": null,
+    "batch_id": null,
+    "encapsulation": null
+  },
+  "synthesis": {
+    "process_id": null,
+    "platform": null,
+    "chemistry": null,
+    "length_nt_min": 20,
+    "length_nt_max": 20,
+    "synthesis_method": "unknown",
+    "yield_measurement_ref": null
+  },
+  "storage": {
+    "storage_run_id": null,
+    "temperature_celsius": null,
+    "relative_humidity_percent": null,
+    "duration_value": null,
+    "duration_unit": "unknown",
+    "environment_record_ref": null
+  },
+  "sequencing": {
+    "run_id": null,
+    "platform": "synthetic sequence fixture",
+    "chemistry": null,
+    "basecaller": null,
+    "basecaller_version": null,
+    "quality_calibration_status": "synthetic_only",
+    "calibration_ref": null
+  },
+  "sequence_constraints": {
+    "alphabet": "ACGT",
+    "gc_fraction_min": 0.4,
+    "gc_fraction_max": 0.6,
+    "maximum_homopolymer_run": 3,
+    "excluded_motifs_ref": null,
+    "constraint_profile_ref": null
+  },
+  "records": [
+    {
+      "record_id": "synthetic-record-1",
+      "oligo_id": "synthetic-oligo-1",
+      "index_or_primer_group": "primer-set-a",
+      "read_status": "reads_present",
+      "reads": [
+        {
+          "read_id": "synthetic-read-1a",
+          "sequence": "ATGCGTACGATCTAGCTAGC",
+          "phred_quality": [
+            30,
+            30,
+            30,
+            30,
+            30,
+            30,
+            30,
+            30,
+            30,
+            30,
+            30,
+            30,
+            30,
+            30,
+            30,
+            30,
+            30,
+            30,
+            30,
+            30
+          ],
+          "read_count": 1
+        },
+        {
+          "read_id": "synthetic-read-1b",
+          "sequence": "ATGCGTACGATCTAGTTAGC",
+          "phred_quality": [
+            25,
+            25,
+            25,
+            25,
+            25,
+            25,
+            25,
+            25,
+            25,
+            25,
+            25,
+            25,
+            25,
+            25,
+            25,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "read_count": 1
+        },
+        {
+          "read_id": "synthetic-read-1c",
+          "sequence": "ATGCGTACGATCTAGCAGC",
+          "phred_quality": [
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20
+          ],
+          "read_count": 1
+        }
+      ]
+    },
+    {
+      "record_id": "synthetic-record-2",
+      "oligo_id": "synthetic-oligo-2",
+      "index_or_primer_group": "primer-set-a",
+      "read_status": "no_reads_detected",
+      "reads": []
+    }
+  ],
+  "evaluation_labels": {
+    "visibility": "synthetic_inline_only",
+    "expected_library_ref": null,
+    "error_annotation_ref": null
+  },
+  "provenance": {
+    "acquisition_timestamp": null,
+    "source_reference": null,
+    "raw_bundle_digest_sha256": null,
+    "instrument_log_ref": null,
+    "notes": "Synthetic sequence example only. No DNA synthesis, storage, PCR or sequencing experiment is represented. The sequence edits are illustrative, not estimates of physical error frequency."
+  }
+}
