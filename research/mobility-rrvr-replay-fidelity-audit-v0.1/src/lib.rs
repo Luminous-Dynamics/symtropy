@@ -995,10 +995,8 @@ mod tests {
 
     fn temp_dir() -> PathBuf {
         let suffix = NEXT_DIR.fetch_add(1, Ordering::Relaxed);
-        let path = std::env::temp_dir().join(format!(
-            "rrvr-replay-audit-{}-{suffix}",
-            std::process::id()
-        ));
+        let path =
+            std::env::temp_dir().join(format!("rrvr-replay-audit-{}-{suffix}", std::process::id()));
         fs::create_dir_all(&path).expect("test directory");
         path
     }
