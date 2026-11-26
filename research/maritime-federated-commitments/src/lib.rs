@@ -178,7 +178,9 @@ pub fn project_commitment(
                 offer,
                 ..
             } => {
-                let current = current_offer.as_ref().ok_or(CommitmentError::EmptyHistory)?;
+                let current = current_offer
+                    .as_ref()
+                    .ok_or(CommitmentError::EmptyHistory)?;
                 let current_state = state.ok_or(CommitmentError::EmptyHistory)?;
                 if recorded_at >= current.expires_at {
                     return Err(CommitmentError::OfferExpired);
@@ -213,7 +215,9 @@ pub fn project_commitment(
                 actor_id,
                 ..
             } => {
-                let current = current_offer.as_ref().ok_or(CommitmentError::EmptyHistory)?;
+                let current = current_offer
+                    .as_ref()
+                    .ok_or(CommitmentError::EmptyHistory)?;
                 if commitment_id != &current.commitment_id {
                     return Err(CommitmentError::CommitmentIdentityMismatch);
                 }
@@ -238,7 +242,9 @@ pub fn project_commitment(
                 actor_id,
                 ..
             } => {
-                let current = current_offer.as_ref().ok_or(CommitmentError::EmptyHistory)?;
+                let current = current_offer
+                    .as_ref()
+                    .ok_or(CommitmentError::EmptyHistory)?;
                 if commitment_id != &current.commitment_id {
                     return Err(CommitmentError::CommitmentIdentityMismatch);
                 }
@@ -263,7 +269,9 @@ pub fn project_commitment(
                 effective_at,
                 ..
             } => {
-                let current = current_offer.as_ref().ok_or(CommitmentError::EmptyHistory)?;
+                let current = current_offer
+                    .as_ref()
+                    .ok_or(CommitmentError::EmptyHistory)?;
                 if commitment_id != &current.commitment_id {
                     return Err(CommitmentError::CommitmentIdentityMismatch);
                 }
