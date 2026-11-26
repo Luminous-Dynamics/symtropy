@@ -90,6 +90,10 @@ pub struct ArmResult {
     pub original_command_id: String,
     pub accepted_epoch: u64,
     pub queue_generation: u64,
+    pub accepted_high_water: u64,
+    pub retired_high_water: u64,
+    pub outstanding_n: u32,
+    pub in_flight_n: u32,
     pub actual_effect_count: u32,
     pub reported_disposition: Disposition,
     pub fresh_attempt_admitted: bool,
@@ -175,6 +179,10 @@ struct Endpoint {
     queue_generation: u64,
     deduplicated_commands: BTreeSet<String>,
     effect_count: u32,
+    accepted_high_water: u64,
+    retired_high_water: u64,
+    outstanding_n: u32,
+    in_flight_n: u32,
     fenced: bool,
 }
 
@@ -185,6 +193,10 @@ impl Endpoint {
             queue_generation: ORIGINAL_QUEUE_GENERATION,
             deduplicated_commands: BTreeSet::new(),
             effect_count: 0,
+            accepted_high_water: 0,
+            retired_high_water: 0,
+            outstanding_n: 0,
+            in_flight_n: 0,
             fenced: false,
         }
     }
@@ -209,7 +221,11 @@ impl Endpoint {
             return false;
         }
         self.deduplicated_commands.insert(command_id.to_owned());
+        self.accepted_high_water += 1;
+        self.in_flight_n = 1;
         self.effect_count += 1;
+        self.in_flight_n = 0;
+        self.retired_high_water = self.accepted_high_water;
         trace_detail.push(format!("effect_applied:{command_id}"));
         true
     }
@@ -551,6 +567,10 @@ impl<'a> Simulation<'a> {
             original_command_id: self.original_command_id.clone(),
             accepted_epoch: self.endpoint.accepted_epoch,
             queue_generation: self.endpoint.queue_generation,
+            accepted_high_water: self.endpoint.accepted_high_water,
+            retired_high_water: self.endpoint.retired_high_water,
+            outstanding_n: self.endpoint.outstanding_n,
+            in_flight_n: self.endpoint.in_flight_n,
             actual_effect_count: self.endpoint.effect_count,
             reported_disposition: self.reported_disposition,
             fresh_attempt_admitted: self.fresh_attempt_admitted,
@@ -710,11 +730,15 @@ fn arm_json(result: &ArmResult) -> String {
         .collect::<Vec<_>>()
         .join(",");
     format!(
-        "{{\"arm\":\"{}\",\"original_command_id\":\"{}\",\"accepted_epoch\":{},\"queue_generation\":{},\"actual_effect_count\":{},\"reported_disposition\":\"{}\",\"fresh_attempt_admitted\":{},\"unsafe_admission\":{},\"false_no_effect\":{},\"false_applied\":{},\"false_hold\":{},\"endpoint_fenced\":{},\"temporal_closure_issued\":{},\"temporal_closure_valid\":{},\"stale_effect_after_fence\":{},\"duplicate_one_shot_effect\":{},\"unresolved_outcome\":{},\"trace\":[{}]}}",
+        "{{\"arm\":\"{}\",\"original_command_id\":\"{}\",\"accepted_epoch\":{},\"queue_generation\":{},\"accepted_high_water\":{},\"retired_high_water\":{},\"outstanding_n\":{},\"in_flight_n\":{},\"actual_effect_count\":{},\"reported_disposition\":\"{}\",\"fresh_attempt_admitted\":{},\"unsafe_admission\":{},\"false_no_effect\":{},\"false_applied\":{},\"false_hold\":{},\"endpoint_fenced\":{},\"temporal_closure_issued\":{},\"temporal_closure_valid\":{},\"stale_effect_after_fence\":{},\"duplicate_one_shot_effect\":{},\"unresolved_outcome\":{},\"trace\":[{}]}}",
         result.arm.as_str(),
         json_escape(&result.original_command_id),
         result.accepted_epoch,
         result.queue_generation,
+        result.accepted_high_water,
+        result.retired_high_water,
+        result.outstanding_n,
+        result.in_flight_n,
         result.actual_effect_count,
         result.reported_disposition.as_str(),
         result.fresh_attempt_admitted,
