@@ -1,0 +1,12 @@
+[package]
+name = "directional-motion-envelopes"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Replayable outward-rounded anisotropic motion envelopes for broadphase proxies"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
