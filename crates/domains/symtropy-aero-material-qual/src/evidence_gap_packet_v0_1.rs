@@ -343,7 +343,11 @@ impl EvidenceGapPacketV1 {
         if errors.is_empty() {
             Ok(())
         } else {
-            Err(errors.into_iter().collect::<BTreeSet<_>>().into_iter().collect())
+            Err(errors
+                .into_iter()
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect())
         }
     }
 
@@ -423,8 +427,7 @@ mod tests {
             kind: "change_impact_receipt".to_owned(),
             state: "ADMITTED".to_owned(),
             sha256: Some(
-                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-                    .to_owned(),
+                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned(),
             ),
         });
     }
@@ -517,7 +520,7 @@ mod tests {
             event_frontier_ref: "SYNTHETIC::EVENT-FRONTIER".to_owned(),
             completeness: "INCOMPLETE".to_owned(),
             required_requalification_claims: vec![
-                "SYNTHETIC::CALIBRATION-BINDING-CLAIM".to_owned()
+                "SYNTHETIC::CALIBRATION-BINDING-CLAIM".to_owned(),
             ],
             unaffected_claims: vec!["SYNTHETIC::NDE-OBSERVABILITY-CLAIM".to_owned()],
         });
@@ -533,7 +536,9 @@ mod tests {
             receipt_ref: "SYNTHETIC::CHANGE-RECEIPT".to_owned(),
             event_frontier_ref: "SYNTHETIC::EVENT-FRONTIER".to_owned(),
             completeness: "INCOMPLETE".to_owned(),
-            required_requalification_claims: vec!["SYNTHETIC::CALIBRATION-BINDING-CLAIM".to_owned()],
+            required_requalification_claims: vec![
+                "SYNTHETIC::CALIBRATION-BINDING-CLAIM".to_owned(),
+            ],
             unaffected_claims: Vec::new(),
         });
         let projection = packet
