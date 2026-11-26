@@ -1,0 +1,18 @@
+[package]
+name = "mobility-rrvr-aerb-scope-closure"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Scope-closure receipt verifier adapter over RRVR Evidence Capsules"
+
+[dependencies]
+mobility-rrvr-evidence-capsule = { path = "../mobility-rrvr-evidence-capsules-v0.1" }
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.150"
+sha2 = "=0.10.9"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
