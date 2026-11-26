@@ -15,7 +15,7 @@ The two tree variants use the same pinned `incremental-aabb-tree-reference` impl
 
 The deterministic generator includes sparse coherent motion, dense clusters, static-heavy scenes, high-churn populations, anisotropic/high-aspect bounds and teleport sequences. Each can run in 2D, 3D and 4D.
 
-The seed, body count and frame count are explicit. Scene generation is outside the timed backend region. The same scene sequence is supplied to all four backends.
+The seed, declared proxy count and frame count are explicit and included in every CSV row, so a result can be tied back to its exact deterministic sequence. Scene generation is outside the timed backend region. The same scene sequence is supplied to all four backends.
 
 ## Measurement contract
 
