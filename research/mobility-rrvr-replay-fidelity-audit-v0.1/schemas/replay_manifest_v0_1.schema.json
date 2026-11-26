@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/replay-fidelity-manifest-v0.1.schema.json",
+  "title": "RRVR Replay Fidelity Manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "benchmark", "profile_id", "campaign_id", "split_manifest_sha256", "data_license_and_provenance", "candidates"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "benchmark": { "const": "RRVR-REPLAY-FIDELITY" },
+    "profile_id": { "const": "RoboRecoverReplayV1" },
+    "campaign_id": { "type": "string", "minLength": 1 },
+    "split_manifest_sha256": { "$ref": "#/$defs/sha256" },
+    "data_license_and_provenance": { "type": "string", "minLength": 1 },
+    "candidates": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/candidate" } }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "position_mm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coordinate_frame_id", "x_mm", "y_mm", "z_mm"],
+      "properties": {
+        "coordinate_frame_id": { "type": "string", "minLength": 1 },
+        "x_mm": { "type": "number" },
+        "y_mm": { "type": "number" },
+        "z_mm": { "type": "number" }
+      }
+    },
+    "pose_comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["original", "replayed"],
+      "properties": {
+        "original": { "$ref": "#/$defs/position_mm" },
+        "replayed": { "$ref": "#/$defs/position_mm" }
+      }
+    },
+    "difficulty_trial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy_id", "trial_index", "success"],
+      "properties": {
+        "policy_id": { "type": "string", "minLength": 1 },
+        "trial_index": { "type": "integer", "minimum": 0, "maximum": 4 },
+        "success": { "type": "boolean" }
+      }
+    },
+    "frame_pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frame_index", "original_path", "original_sha256", "replay_path", "replay_sha256"],
+      "properties": {
+        "frame_index": { "type": "integer", "minimum": 0, "maximum": 4 },
+        "original_path": { "type": "string", "minLength": 1 },
+        "original_sha256": { "$ref": "#/$defs/sha256" },
+        "replay_path": { "type": "string", "minLength": 1 },
+        "replay_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id", "platform", "split", "source_episode_sha256",
+        "source_trajectory_id", "trajectory_cluster_id", "instruction_sha256",
+        "action_prefix_sha256", "split_leakage_keys_sha256", "simulator_profile_sha256",
+        "robot_model_profile_sha256", "controller_profile_sha256", "rendering_profile_sha256",
+        "reset_receipt_sha256", "action_prefix_receipt_sha256", "difficulty_screen",
+        "spot_check", "end_effector", "object_pose", "final_frame_pairs"
+      ],
+      "properties": {
+        "scenario_id": { "type": "string", "minLength": 1 },
+        "platform": { "enum": ["robo_twin", "libero"] },
+        "split": { "enum": ["train", "test"] },
+        "source_episode_sha256": { "$ref": "#/$defs/sha256" },
+        "source_trajectory_id": { "type": "string", "minLength": 1 },
+        "trajectory_cluster_id": { "type": "string", "minLength": 1 },
+        "instruction_sha256": { "$ref": "#/$defs/sha256" },
+        "action_prefix_sha256": { "$ref": "#/$defs/sha256" },
+        "split_leakage_keys_sha256": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/sha256" } },
+        "simulator_profile_sha256": { "$ref": "#/$defs/sha256" },
+        "robot_model_profile_sha256": { "$ref": "#/$defs/sha256" },
+        "controller_profile_sha256": { "$ref": "#/$defs/sha256" },
+        "rendering_profile_sha256": { "$ref": "#/$defs/sha256" },
+        "reset_receipt_sha256": { "$ref": "#/$defs/sha256" },
+        "action_prefix_receipt_sha256": { "$ref": "#/$defs/sha256" },
+        "difficulty_screen": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["trials"],
+          "properties": {
+            "trials": { "type": "array", "minItems": 20, "maxItems": 20, "items": { "$ref": "#/$defs/difficulty_trial" } }
+          }
+        },
+        "spot_check": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["seed", "selected_attempt_ids", "manifest_sha256"],
+          "properties": {
+            "seed": { "const": 42 },
+            "selected_attempt_ids": { "type": "array", "minItems": 3, "maxItems": 3, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+            "manifest_sha256": { "$ref": "#/$defs/sha256" }
+          }
+        },
+        "end_effector": { "$ref": "#/$defs/pose_comparison" },
+        "object_pose": { "$ref": "#/$defs/pose_comparison" },
+        "final_frame_pairs": { "type": "array", "minItems": 5, "maxItems": 5, "items": { "$ref": "#/$defs/frame_pair" } }
+      }
+    }
+  }
+}
