@@ -44,3 +44,5 @@ The authoring environment has no Cargo, rustc or rustfmt; tests are authored but
 - Each stage duration must be no greater than total end-to-end elapsed time. Stages may overlap, so individual durations are not summed.
 
 Energy passes now require a pinned workload meter boundary plus a non-empty meter ID, calibration reference, raw meter-evidence SHA-256 digest and positive sampling interval. The measured boundary must match the frozen workload contract. A number without a reproducible meter/evidence record cannot pass.
+
+Migration workload contracts now require an explicit migration_required flag. When true, the scorer requires source physical read/fixity, migration write, destination readback/verification and provenance stages, plus separate source-digest, destination-digest and migration-lineage statuses. The dedicated six-case migration KAT is in ../fixtures/preservation_migration_receipts_v0_1.json with schema ../preservation_migration_receipts_v0_1.schema.json.
