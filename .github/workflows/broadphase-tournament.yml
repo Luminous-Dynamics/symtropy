@@ -5,6 +5,7 @@ on:
     branches: [research/stateful-tree-broadphase-v0.1]
     paths:
       - "research/broadphase-tournament/v0.1/**"
+      - "research/incremental-aabb-tree-reference/v0.1/**"
       - ".github/workflows/broadphase-tournament.yml"
   push:
     branches: [research/broadphase-tournament-v0.1]
