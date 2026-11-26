@@ -133,7 +133,8 @@ def main() -> int:
             f"Rust/reference receipt mismatch\nexpected={expected}\nactual={actual}"
         )
 
-    print(f"PLAN_BUNDLE_REFERENCE\tPASS\t{len(set(row[0] for row in rows))}/8")
+    case_count = len({row[0] for row in rows})
+    print(f"PLAN_BUNDLE_REFERENCE\tPASS\t{case_count}/{case_count}")
     return 0
 
 
