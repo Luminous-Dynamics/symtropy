@@ -1,0 +1,13 @@
+[package]
+name = "symtropy-magnetic-point-dipole-reference"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Dependency-free analytic point-dipole reference oracle"
+
+[lib]
+path = "src/lib.rs"
+
+# Isolated research oracle; not a production workspace member.
+[workspace]
