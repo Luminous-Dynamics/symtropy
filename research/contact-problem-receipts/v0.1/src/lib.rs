@@ -25,11 +25,10 @@ impl Digest {
         if value.len() != SHA256_HEX_CHARS {
             return Err(ReceiptError::InvalidDigest);
         }
-        let bytes = value.as_bytes();
         let mut output = [0_u8; SHA256_BYTES];
-        for index in 0..SHA256_BYTES {
-            let high = decode_lower_hex(bytes[index * 2])?;
-            let low = decode_lower_hex(bytes[index * 2 + 1])?;
+        for (index, pair) in value.as_bytes().chunks_exact(2).enumerate() {
+            let high = decode_lower_hex(pair[0])?;
+            let low = decode_lower_hex(pair[1])?;
             output[index] = (high << 4) | low;
         }
         Ok(Self(output))
@@ -646,7 +645,7 @@ pub fn compare_full_pipeline(
     if left.panel != BenchmarkPanel::FullEnginePipeline
         || right.panel != BenchmarkPanel::FullEnginePipeline
     {
-        return Err(ReceiptError::MissingFrontendForFullPipeline);
+        return Err(ReceiptError::WrongBenchmarkPanel);
     }
 
     let mut mismatches = Vec::new();
