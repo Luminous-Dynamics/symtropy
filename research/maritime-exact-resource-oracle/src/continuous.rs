@@ -930,6 +930,29 @@ mod tests {
         }
     }
 
+
+    #[test]
+    fn worst_case_cost_is_monotone_in_the_uncertainty_budget() {
+        let low = evaluate_continuous_tournament(&instance(0.25)).unwrap();
+        let middle = evaluate_continuous_tournament(&instance(0.5)).unwrap();
+        let high = evaluate_continuous_tournament(&instance(1.0)).unwrap();
+
+        for low_plan in &low.plans {
+            let middle_plan = middle
+                .plans
+                .iter()
+                .find(|plan| plan.plan_id == low_plan.plan_id)
+                .unwrap();
+            let high_plan = high
+                .plans
+                .iter()
+                .find(|plan| plan.plan_id == low_plan.plan_id)
+                .unwrap();
+            assert!(low_plan.worst_case_cost <= middle_plan.worst_case_cost + COST_TOLERANCE);
+            assert!(middle_plan.worst_case_cost <= high_plan.worst_case_cost + COST_TOLERANCE);
+        }
+    }
+
     #[test]
     fn direction_dependent_loading_and_unloading_release_is_explicit() {
         let result = evaluate_continuous_tournament(&instance(1.0)).unwrap();
