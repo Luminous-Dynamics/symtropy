@@ -53,6 +53,7 @@ pub struct WorkloadContract {
     pub manifest_required: bool,
     pub provenance_required: bool,
     pub energy_metering_required: bool,
+    pub independent_reader_paths_required: bool,
     /// Frozen by the benchmark protocol, not supplied by the candidate.
     pub required_stages: Vec<Stage>,
 }
@@ -82,6 +83,9 @@ pub struct ServiceReceipt {
     pub expected_digest_status: EvidenceStatus,
     pub manifest_status: EvidenceStatus,
     pub provenance_status: EvidenceStatus,
+    pub reader_path_ids: Vec<String>,
+    pub reader_independence_status: EvidenceStatus,
+    pub reader_agreement_status: EvidenceStatus,
     pub energy_meter_status: EvidenceStatus,
     pub energy_millijoules: Option<u128>,
     pub candidate_claimed_full_success: bool,
@@ -114,6 +118,8 @@ pub enum ContractError {
     AcceptedBytesExceedRequested,
     AcceptedObjectsExceedRequested,
     TimeToFirstByteAfterCompletion,
+    EmptyReaderPathId,
+    DuplicateReaderPathId,
     EnergyValueWithoutMeterPass,
     MeterPassWithoutEnergyValue,
 }
@@ -160,6 +166,14 @@ pub fn score(
     }
     if contract.required_stages.is_empty() {
         return Err(ContractError::NoRequiredStages);
+    }
+    for (index, reader_id) in receipt.reader_path_ids.iter().enumerate() {
+        if reader_id.trim().is_empty() {
+            return Err(ContractError::EmptyReaderPathId);
+        }
+        if receipt.reader_path_ids[..index].iter().any(|seen| seen == reader_id) {
+            return Err(ContractError::DuplicateReaderPathId);
+        }
     }
     if contains_duplicate_stages(&contract.required_stages) {
         return Err(ContractError::RequiredStageDuplicated);
@@ -229,6 +243,9 @@ pub fn score(
     let hard_evidence_failure = receipt.expected_digest_status == EvidenceStatus::Fail
         || (contract.manifest_required && receipt.manifest_status == EvidenceStatus::Fail)
         || (contract.provenance_required && receipt.provenance_status == EvidenceStatus::Fail)
+        || (contract.independent_reader_paths_required
+            && (receipt.reader_independence_status == EvidenceStatus::Fail
+                || receipt.reader_agreement_status == EvidenceStatus::Fail))
         || (contract.energy_metering_required
             && receipt.energy_meter_status == EvidenceStatus::Fail);
 
@@ -251,6 +268,9 @@ pub fn score(
             || receipt.manifest_status == EvidenceStatus::NotEvaluated)
         && (!contract.provenance_required
             || receipt.provenance_status == EvidenceStatus::NotEvaluated)
+        && (!contract.independent_reader_paths_required
+            || (receipt.reader_independence_status == EvidenceStatus::NotEvaluated
+                && receipt.reader_agreement_status == EvidenceStatus::NotEvaluated))
         && (!contract.energy_metering_required
             || receipt.energy_meter_status == EvidenceStatus::NotEvaluated)
         && receipt.stage_observations.is_empty()
@@ -271,6 +291,10 @@ pub fn score(
             || receipt.expected_digest_status != EvidenceStatus::Pass
             || (contract.manifest_required && receipt.manifest_status != EvidenceStatus::Pass)
             || (contract.provenance_required && receipt.provenance_status != EvidenceStatus::Pass)
+            || (contract.independent_reader_paths_required
+                && (receipt.reader_path_ids.len() < 2
+                    || receipt.reader_independence_status != EvidenceStatus::Pass
+                    || receipt.reader_agreement_status != EvidenceStatus::Pass))
             || (contract.energy_metering_required
                 && receipt.energy_meter_status != EvidenceStatus::Pass)
             || !missing_required_stages.is_empty())
@@ -286,6 +310,10 @@ pub fn score(
     let required_evidence_incomplete = receipt.expected_digest_status != EvidenceStatus::Pass
         || (contract.manifest_required && receipt.manifest_status != EvidenceStatus::Pass)
         || (contract.provenance_required && receipt.provenance_status != EvidenceStatus::Pass)
+        || (contract.independent_reader_paths_required
+            && (receipt.reader_path_ids.len() < 2
+                || receipt.reader_independence_status != EvidenceStatus::Pass
+                || receipt.reader_agreement_status != EvidenceStatus::Pass))
         || (contract.energy_metering_required
             && receipt.energy_meter_status != EvidenceStatus::Pass)
         || !missing_required_stages.is_empty();
@@ -323,6 +351,7 @@ mod tests {
             manifest_required: true,
             provenance_required: true,
             energy_metering_required: true,
+            independent_reader_paths_required: true,
             required_stages: vec![
                 Stage::RequestAdmission,
                 Stage::MediaMount,
@@ -352,6 +381,9 @@ mod tests {
             expected_digest_status: EvidenceStatus::Pass,
             manifest_status: EvidenceStatus::Pass,
             provenance_status: EvidenceStatus::Pass,
+            reader_path_ids: vec!["reader-path-a".into(), "reader-path-b".into()],
+            reader_independence_status: EvidenceStatus::Pass,
+            reader_agreement_status: EvidenceStatus::Pass,
             energy_meter_status: EvidenceStatus::Pass,
             energy_millijoules: Some(12_345),
             candidate_claimed_full_success: true,
@@ -453,6 +485,9 @@ mod tests {
         receipt.expected_digest_status = EvidenceStatus::NotEvaluated;
         receipt.manifest_status = EvidenceStatus::NotEvaluated;
         receipt.provenance_status = EvidenceStatus::NotEvaluated;
+        receipt.reader_independence_status = EvidenceStatus::NotEvaluated;
+        receipt.reader_agreement_status = EvidenceStatus::NotEvaluated;
+        receipt.reader_path_ids.clear();
         receipt.energy_meter_status = EvidenceStatus::NotEvaluated;
         receipt.energy_millijoules = None;
         receipt.stage_observations.clear();
