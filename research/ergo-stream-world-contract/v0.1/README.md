@@ -1,6 +1,6 @@
 # ErgoStream World Contract v0.1
 
-**Date:** 2026-11-23  ·  **Status:** research contract only; no generator/evaluator implementation or run is claimed
+**Date:** 2026-11-23  ·  **Status:** research contract with initial finite executable components; exact-head qualification pending
 **Tracking:** [ERGO-STREAM-WORLD-001 #7149](https://github.com/Luminous-Dynamics/symtropy/issues/7149)
 **Learner contract:** [Symthaea #13401](https://github.com/Luminous-Dynamics/symthaea/issues/13401)
 
@@ -145,9 +145,30 @@ Any dropped frame, overflow, missing response, process failure or incomplete rec
 6. Process separation, OS sandbox isolation, deterministic replay, authenticity and physical validity are claimed separately.
 7. No SOTA claim until strongest compatible baselines run under matched observation, compute, latency and memory budgets.
 
+### Current finite multimodal slice — implementation staged, execution pending
+
+The initial two-modality categorical microcosm is implemented in `src/multimodal.rs` on the stacked research branch for #7442. It is deliberately narrower than the full protocol:
+
+- Separate modality-local observation IDs, sensor timestamps and arrival ticks.
+- Independent affine clock models with offset, rate, jitter and bounded arrival delay.
+- Missing observations with fixed per-modality marginal-preserving generation.
+- Aligned positive and marginal-matched shuffled negative regimes. Independent PRNG substreams preserve each modality's event-symbol and timestamp marginals across those two regimes, including the declared dropout masks.
+- A periodic non-identifiable event regime with four admissible phase correspondences; shared clock-anchor presence is an independent control.
+- A separate evaluator-side exact correspondence pass reconstructed from private event-identity labels, plus independent clock-map residual scoring.
+- Unique / alternatives / unresolved claim dispositions; an unjustified singleton is explicitly scored as false-unique when the evaluator retains multiple admissible correspondences.
+- Causal policy views filter by arrival tick and order by arrival, never by sensor timestamp.
+
+The first version uses explicit shared calibration pulses as an optional independent clock-identifiability factor. It is not a general blind clock-estimation algorithm. Periodic event ambiguity can be tested both with anchors (identifiable clock, ambiguous correspondence) and without anchors (both unresolved). No semantic or causal labels are serialized to the policy view.
+
+Eight focused tests cover aligned positives, exact matched marginals under dropout, shuffled negative correspondence, periodic ambiguity with and without shared clock anchors, clock/semantic score separation, causal arrival prefixes, explicit out-of-order sensor-time delivery, and invalid configuration. The exact evaluator routine is separate from the candidate claim validator; hidden identity labels never enter the public view. The existing `ErgoStream microcosm` workflow is the execution authority; no test, doctest, Clippy or benchmark result is claimed until it passes on the exact branch head.
+
+### Inherited compile repair — tracked at the owning base
+
+The first semantic compile attempt on this stack exposed two existing #7432-base defects: the oracle tests used `NodeV0` without importing it, and the calibration error enum omitted `InvalidCalibrationReceiptIdentity` / `CalibrationReceiptMismatch` even though the same file already matched and used those variants. Both are now fixed on `research/ergo-stream-independent-oracle-v0.1` in commits `08ab9af8…` and `8cbe68a7…`. The next child PR run must re-check against that exact updated base; no compile/test pass is inferred from these source fixes.
+
 ## 11. First executable milestone
 
-Extend the existing SIM-REL blind episode contract with a typed adapter for one discrete motif-stream world. Add one independent exact evaluator and one minimal child policy. Before adding large modalities, prove hidden-state non-exposure, exact replay, denominator conservation and held-out composition scoring.
+The current slice supplies the evaluator-side categorical world and exact correspondence scorer only. The minimal child policy / process adapter remains a follow-on under the existing blind episode contract. Before adding large modalities, prove hidden-state non-exposure, exact replay, denominator conservation and held-out composition scoring.
 
 ## 12. Non-claims
 
