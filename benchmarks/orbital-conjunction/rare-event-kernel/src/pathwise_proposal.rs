@@ -117,16 +117,28 @@ impl core::fmt::Display for PathwiseProposalError {
             Self::InvalidEventDefinitionIdentity => "pathwise event definition identity is invalid",
             Self::EmptyTrajectorySupport => "finite pathwise trajectory support is empty",
             Self::InvalidSupportManifest => "finite pathwise support manifest is invalid",
-            Self::SupportManifestMismatch => "observed pathwise trajectory atoms differ from the support manifest",
-            Self::TooManyTrajectoryAtoms => "finite pathwise support exceeds the ticket-space limit",
+            Self::SupportManifestMismatch => {
+                "observed pathwise trajectory atoms differ from the support manifest"
+            }
+            Self::TooManyTrajectoryAtoms => {
+                "finite pathwise support exceeds the ticket-space limit"
+            }
             Self::InvalidAtomIdentity => "pathwise trajectory atom identity is invalid",
             Self::DuplicateAtomIdentity => "pathwise trajectory atom identity is duplicated",
-            Self::DuplicateTrajectoryRealization => "trajectory realization is represented more than once",
+            Self::DuplicateTrajectoryRealization => {
+                "trajectory realization is represented more than once"
+            }
             Self::InvalidPathwiseClassification => "pathwise horizon classification is invalid",
-            Self::AmbiguousPathwiseOutcome => "ambiguous pathwise outcome cannot be a Boolean proposal atom",
+            Self::AmbiguousPathwiseOutcome => {
+                "ambiguous pathwise outcome cannot be a Boolean proposal atom"
+            }
             Self::EventDigestMismatch => "pathwise support and proposal event digests differ",
-            Self::ProposalAtomSemanticsMismatch => "proposal atom IDs or event flags differ from pathwise support",
-            Self::InvalidProposalConfiguration => "finite defensive proposal configuration is invalid",
+            Self::ProposalAtomSemanticsMismatch => {
+                "proposal atom IDs or event flags differ from pathwise support"
+            }
+            Self::InvalidProposalConfiguration => {
+                "finite defensive proposal configuration is invalid"
+            }
         };
         formatter.write_str(message)
     }
@@ -155,12 +167,17 @@ pub fn derive_finite_pathwise_proposal_support(
     if trajectories.is_empty() {
         return Err(PathwiseProposalError::EmptyTrajectorySupport);
     }
+    // Diagnose an observed zero atom as an atom-identity defect, rather than
+    // misclassifying the derived expected-ID list as a malformed manifest.
+    if trajectories
+        .iter()
+        .any(|trajectory| is_zero_digest(&trajectory.atom_id))
+    {
+        return Err(PathwiseProposalError::InvalidAtomIdentity);
+    }
     if is_zero_digest(&manifest.manifest_digest)
         || manifest.expected_atom_ids.is_empty()
-        || manifest
-            .expected_atom_ids
-            .iter()
-            .any(is_zero_digest)
+        || manifest.expected_atom_ids.iter().any(is_zero_digest)
         || manifest
             .expected_atom_ids
             .windows(2)
@@ -291,7 +308,11 @@ mod tests {
         .unwrap()
     }
 
-    fn outcome(realization: &str, window_id: &str, disposition: PathWindowDisposition) -> PathWindowOutcome {
+    fn outcome(
+        realization: &str,
+        window_id: &str,
+        disposition: PathWindowDisposition,
+    ) -> PathWindowOutcome {
         PathWindowOutcome {
             realization_id: realization.to_owned(),
             window_id: window_id.to_owned(),
@@ -351,7 +372,6 @@ mod tests {
             residual_after_event_ticks: masses,
         }
     }
-
 
     fn derive_from_observed(
         event_digest: [u8; 32],
@@ -437,8 +457,14 @@ mod tests {
         assert_eq!(
             support.atoms,
             vec![
-                FiniteProposalAtom { atom_id: [21; 32], is_event: true },
-                FiniteProposalAtom { atom_id: [22; 32], is_event: false },
+                FiniteProposalAtom {
+                    atom_id: [21; 32],
+                    is_event: true
+                },
+                FiniteProposalAtom {
+                    atom_id: [22; 32],
+                    is_event: false
+                },
             ]
         );
         assert_eq!(support.any_contact_atom_count, 1);
@@ -482,7 +508,10 @@ mod tests {
         )
         .unwrap();
         assert!(support.atoms[0].is_event);
-        assert_eq!(support.horizon_outcomes[0].first_contact_time_bounds_seconds, None);
+        assert_eq!(
+            support.horizon_outcomes[0].first_contact_time_bounds_seconds,
+            None
+        );
     }
 
     #[test]
@@ -550,11 +579,7 @@ mod tests {
             },
         ];
         assert_eq!(
-            derive_from_observed(
-                EVENT_DIGEST,
-                &definition,
-                &duplicate_realization
-            ),
+            derive_from_observed(EVENT_DIGEST, &definition, &duplicate_realization),
             Err(PathwiseProposalError::DuplicateTrajectoryRealization)
         );
     }
@@ -642,7 +667,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn frozen_support_manifest_detects_omitted_atoms_and_canonicalizes_input_order() {
         let definition = definition(
@@ -687,8 +711,14 @@ mod tests {
         assert_eq!(
             support.atoms,
             vec![
-                FiniteProposalAtom { atom_id: [40; 32], is_event: false },
-                FiniteProposalAtom { atom_id: [41; 32], is_event: true },
+                FiniteProposalAtom {
+                    atom_id: [40; 32],
+                    is_event: false
+                },
+                FiniteProposalAtom {
+                    atom_id: [41; 32],
+                    is_event: true
+                },
             ]
         );
         assert_eq!(support.support_manifest_digest, [201; 32]);
@@ -726,13 +756,15 @@ mod tests {
                 EVENT_DIGEST,
                 &definition,
                 &unsorted,
-                &[trajectory[0].clone(), FinitePathwiseTrajectoryAtom {
-                    atom_id: [43; 32],
-                    window_outcomes: vec![no_contact("trajectory-43", "a")],
-                }]
+                &[
+                    trajectory[0].clone(),
+                    FinitePathwiseTrajectoryAtom {
+                        atom_id: [43; 32],
+                        window_outcomes: vec![no_contact("trajectory-43", "a")],
+                    }
+                ]
             ),
             Err(PathwiseProposalError::InvalidSupportManifest)
         );
     }
-
 }
