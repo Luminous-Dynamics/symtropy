@@ -172,3 +172,38 @@ These are research targets, not Symthaea results.
 3. Implement one common candidate-visible map projection; keep evaluator joins private.
 4. Run at least one general video backbone, one explicit geometry/topology pipeline and one HDC/hybrid arm on the same projections.
 5. Publish per-axis failures before changing training, retrieval or production memory policy.
+
+
+## 11. Constraint-carrying spatial state hypothesis
+
+A single best-estimate global map can hide ambiguity, identity swaps, transform drift and unsupported topology. The preferred representation hypothesis is a **versioned set of spatial constraints and admissible map alternatives**, rather than an early collapse to one map.
+
+Candidate outputs may include:
+- relative camera/landmark transforms with uncertainty and calibration revision;
+- observed traversals and inferred connectivity as different relation types;
+- competing entity/landmark identity hypotheses;
+- temporal pose/trajectory constraints;
+- visibility, occlusion, support and containment relations;
+- loop-closure proposals with supporting observation references;
+- contradiction/supersession links and residual unresolved alternatives.
+
+### Required invariants
+
+1. **Frame correctness:** image coordinates do not become world coordinates without an admitted transform and uncertainty envelope.
+2. **Cycle consistency:** a transform composition around a closed pose-graph cycle must agree with identity within a preregistered residual/uncertainty bound. A failed closure is retained as rejected or alternative, not silently optimized away.
+3. **Topological validity:** adjacency requires direct observation or an explicitly typed inference rule; sequential visits alone do not prove a connection.
+4. **Identity consistency:** loop closure cannot merge landmarks on appearance alone when route/geometry constraints conflict.
+5. **Temporal consistency:** late evidence revises current map state but preserves what was known at earlier query times.
+6. **Decision sufficiency:** resolve only distinctions that change the current DecisionNeed's action; unresolved constraints remain reopenable.
+
+### Additional scorecard dimensions
+
+- pose-graph cycle residual and uncertainty coverage;
+- false loop-closure rate and accepted/rejected closure counts;
+- topological edge support class and false adjacency;
+- number and size of admissible map hypotheses retained;
+- contradiction localization and minimum affected-subgraph revision;
+- consistency under viewpoint change and camera/world frame perturbation;
+- cost to reopen a distinction after a DecisionNeed change.
+
+This is a testable architecture hypothesis, not a commitment to make a factor graph or SLAM package authoritative by default. Dense models and HDC may propose evidence/relations; explicit geometry/topology constraints can expose inconsistencies; the independent evaluator determines admissible truth and decision sufficiency.
