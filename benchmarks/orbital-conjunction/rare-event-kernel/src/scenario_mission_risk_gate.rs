@@ -42,6 +42,10 @@ pub struct PortfolioScenarioRiskContract {
     pub density_space_digest: [u8; 32],
     /// Post-action mission event-inventory digest for this portfolio.
     pub event_inventory_digest: [u8; 32],
+    /// Digest of the approving-agent post-action screening horizon.
+    pub post_action_horizon_digest: [u8; 32],
+    /// Digest of the collision-risk budget policy / approval context.
+    pub risk_policy_digest: [u8; 32],
     /// Digest of the complete canonical MissionRiskEnvelope contents.
     pub risk_envelope_digest: [u8; 32],
     /// Exact total integer mass expected for the finite target support.
@@ -68,6 +72,10 @@ pub struct PortfolioScenarioRiskCheck {
     pub scenario_id: [u8; 32],
     /// Portfolio identity.
     pub portfolio_id: [u8; 32],
+    /// Digest of the approving-agent post-action screening horizon.
+    pub post_action_horizon_digest: [u8; 32],
+    /// Digest of the collision-risk budget policy / approval context.
+    pub risk_policy_digest: [u8; 32],
     /// Exact pathwise mission union mass.
     pub mission_union_mass: ExactMass,
     /// Exact frozen mission-risk budget.
@@ -264,6 +272,8 @@ impl ScenarioMissionRiskGate {
                 || contract.target_measure_digest.iter().all(|b| *b == 0)
                 || contract.density_space_digest.iter().all(|b| *b == 0)
                 || contract.event_inventory_digest.iter().all(|b| *b == 0)
+                || contract.post_action_horizon_digest.iter().all(|b| *b == 0)
+                || contract.risk_policy_digest.iter().all(|b| *b == 0)
                 || contract.risk_envelope_digest.iter().all(|b| *b == 0)
                 || contract.total_mass_ticks == 0
                 || !valid_probability_mass(contract.risk_budget)
@@ -289,6 +299,8 @@ impl ScenarioMissionRiskGate {
                     .ok_or(ScenarioMissionRiskGateError::InvalidRiskContractMatrix)?;
                 if contract.target_measure_digest != first.target_measure_digest
                     || contract.density_space_digest != first.density_space_digest
+                    || contract.post_action_horizon_digest != first.post_action_horizon_digest
+                    || contract.risk_policy_digest != first.risk_policy_digest
                     || compare_exact_mass(contract.risk_budget, first.risk_budget)?
                         != Ordering::Equal
                 {
@@ -388,6 +400,8 @@ impl ScenarioMissionRiskGate {
                 risk_checks.push(PortfolioScenarioRiskCheck {
                     scenario_id: *scenario_id,
                     portfolio_id: *portfolio_id,
+                    post_action_horizon_digest: contract.post_action_horizon_digest,
+                    risk_policy_digest: contract.risk_policy_digest,
                     mission_union_mass: envelope.pathwise_union_mass,
                     mission_risk_budget: envelope.risk_budget,
                     within_declared_finite_support_budget: within_budget,
@@ -688,12 +702,16 @@ fn hash_exact_mass(hasher: &mut Sha256, mass: ExactMass) {
 pub fn portfolio_scenario_risk_envelope_digest(
     scenario_id: [u8; 32],
     portfolio_id: [u8; 32],
+    post_action_horizon_digest: [u8; 32],
+    risk_policy_digest: [u8; 32],
     envelope: &MissionRiskEnvelope,
 ) -> [u8; 32] {
     let mut hasher = Sha256::new();
     hasher.update(b"luminous.orbital.portfolio-scenario-risk-envelope.v0.1\0");
     hasher.update(scenario_id);
     hasher.update(portfolio_id);
+    hasher.update(post_action_horizon_digest);
+    hasher.update(risk_policy_digest);
     hasher.update(mission_risk_envelope_digest(envelope));
     hasher.finalize().into()
 }
@@ -713,6 +731,8 @@ fn validate_envelope(
     if portfolio_scenario_risk_envelope_digest(
         contract.scenario_id,
         contract.portfolio_id,
+        contract.post_action_horizon_digest,
+        contract.risk_policy_digest,
         envelope,
     ) != contract.risk_envelope_digest
     {
@@ -1000,6 +1020,8 @@ mod tests {
                 };
                 let manifest_digest = [base + offset; 32];
                 let event_inventory_digest = [base + 10 + offset; 32];
+                let post_action_horizon_digest = [base + 20; 32];
+                let risk_policy_digest = [base + 30; 32];
                 let risk = envelope(
                     manifest_digest[0],
                     target,
@@ -1014,9 +1036,13 @@ mod tests {
                     target_measure_digest: target,
                     density_space_digest: density,
                     event_inventory_digest,
+                    post_action_horizon_digest,
+                    risk_policy_digest,
                     risk_envelope_digest: portfolio_scenario_risk_envelope_digest(
                         scenario_id,
                         portfolio_id,
+                        post_action_horizon_digest,
+                        risk_policy_digest,
                         &risk,
                     ),
                     total_mass_ticks: 100,
@@ -1142,6 +1168,8 @@ mod tests {
             contract.risk_envelope_digest = portfolio_scenario_risk_envelope_digest(
                 contract.scenario_id,
                 contract.portfolio_id,
+                contract.post_action_horizon_digest,
+                contract.risk_policy_digest,
                 &row.envelope,
             );
         }
@@ -1319,6 +1347,44 @@ mod tests {
         assert_eq!(
             gate().evaluate(&rows, &consequence_reports()),
             Err(ScenarioMissionRiskGateError::RiskEnvelopeDigestMismatch)
+        );
+    }
+
+    #[test]
+    fn post_action_horizon_and_policy_must_be_shared_within_a_scenario() {
+        let mut rows = contracts();
+        rows.iter_mut()
+            .find(|row| row.scenario_id == SCENARIO_A && row.portfolio_id == PORTFOLIO_C)
+            .unwrap()
+            .post_action_horizon_digest = [99; 32];
+
+        assert_eq!(
+            ScenarioMissionRiskGate::new(
+                0.05,
+                vec![SCENARIO_A, SCENARIO_B],
+                vec![PORTFOLIO_A, PORTFOLIO_B, PORTFOLIO_C],
+                CONSEQUENCE_UNIT,
+                rows,
+            )
+            .unwrap_err(),
+            ScenarioMissionRiskGateError::ScenarioContractMismatch
+        );
+
+        let mut rows = contracts();
+        rows.iter_mut()
+            .find(|row| row.scenario_id == SCENARIO_B && row.portfolio_id == PORTFOLIO_B)
+            .unwrap()
+            .risk_policy_digest = [98; 32];
+        assert_eq!(
+            ScenarioMissionRiskGate::new(
+                0.05,
+                vec![SCENARIO_A, SCENARIO_B],
+                vec![PORTFOLIO_A, PORTFOLIO_B, PORTFOLIO_C],
+                CONSEQUENCE_UNIT,
+                rows,
+            )
+            .unwrap_err(),
+            ScenarioMissionRiskGateError::ScenarioContractMismatch
         );
     }
 
