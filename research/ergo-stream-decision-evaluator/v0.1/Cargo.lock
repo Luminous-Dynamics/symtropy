@@ -1,0 +1,12 @@
+version = 4
+
+[[package]]
+name = "ergo-stream-decision-evaluator"
+version = "0.1.0"
+dependencies = [
+ "ergo-stream-microcosm",
+]
+
+[[package]]
+name = "ergo-stream-microcosm"
+version = "0.1.0"
