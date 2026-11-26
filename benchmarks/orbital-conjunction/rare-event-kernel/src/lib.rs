@@ -52,6 +52,8 @@ pub mod pop_convergence;
 /// Simultaneous anytime-valid comparisons across paired portfolio arms.
 /// Defensive proposal mixtures across a frozen portfolio event-mode universe.
 pub mod portfolio_proposal;
+/// Deterministic execution-conformance for continuous Gaussian proposal draws.
+pub mod gaussian_sampler_conformance;
 pub mod portfolio_selection;
 pub mod predictable_empirical_bernstein;
 pub mod proposal_execution_conformance;
@@ -140,9 +142,14 @@ pub use pop_convergence::{
     decide_peak_overlap_convergence,
 };
 pub use portfolio_proposal::{
-    DefensiveProposalComponent, DefensiveProposalEvaluation, MAX_PORTFOLIO_PROPOSAL_COMPONENTS,
-    MAX_PORTFOLIO_PROPOSAL_MODES, PortfolioDefensiveGaussianMixture, PortfolioEventModeKey,
-    PortfolioProposalError,
+    DefensiveGaussianSampleTransform, DefensiveProposalComponent, DefensiveProposalEvaluation,
+    MAX_PORTFOLIO_PROPOSAL_COMPONENTS, MAX_PORTFOLIO_PROPOSAL_MODES,
+    PortfolioDefensiveGaussianMixture, PortfolioEventModeKey, PortfolioProposalError,
+};
+pub use gaussian_sampler_conformance::{
+    GaussianProposalExecutionReceipt, GaussianProposalExecutionVerifier,
+    GaussianProposalSamplerContract, GaussianSamplerConformanceError,
+    VerifiedGaussianProposalDraw,
 };
 pub use portfolio_selection::{
     MAX_SIMULTANEOUS_PORTFOLIO_DRAWS, PortfolioConsequenceBound, PortfolioConsequenceObservation,

@@ -88,6 +88,10 @@ pub enum PortfolioProposalError {
     ComponentWeightsNotNormalized,
     /// A normalized contrast observation is not finite and in [0, 1].
     InvalidNormalizedContrast,
+    /// Component-selection ticket must be finite and lie in [0, 1).
+    InvalidComponentTicket,
+    /// Standard-normal vector dimension differs from the proposal dimension.
+    InvalidStandardNormalVector,
     /// The supplied likelihood ratio exceeds the defensive 1/epsilon bound.
     LikelihoodRatioExceedsDefensiveBound,
     /// The computed defensive contribution exceeds one; no clipping was applied.
@@ -133,6 +137,8 @@ impl core::fmt::Display for PortfolioProposalError {
             }
             Self::ComponentWeightsNotNormalized => "proposal allocation weights do not sum to one",
             Self::InvalidNormalizedContrast => "normalized portfolio contrast must lie in [0, 1]",
+            Self::InvalidComponentTicket => "component-selection ticket must lie in [0, 1)",
+            Self::InvalidStandardNormalVector => "standard-normal vector is invalid or has the wrong dimension",
             Self::LikelihoodRatioExceedsDefensiveBound => {
                 "importance ratio exceeds the defensive 1/epsilon bound"
             }
@@ -181,6 +187,21 @@ pub struct DefensiveProposalEvaluation {
     pub defensive_contribution: f64,
 }
 
+/// Deterministic result of replaying one Gaussian-mixture sampling transform.
+#[derive(Debug, Clone, PartialEq)]
+pub struct DefensiveGaussianSampleTransform {
+    /// Index in the canonical flattened defensive mixture.
+    pub selected_component_index: usize,
+    /// Stable identity of the selected full-mixture component.
+    pub selected_component_id: [u8; 32],
+    /// True when the target distribution's defensive component generated the point.
+    pub defensive_target_component_selected: bool,
+    /// Mode key when a residual proposal component generated the point.
+    pub selected_proposal_mode_key: Option<PortfolioEventModeKey>,
+    /// Point reconstructed as mean + L * z using the stored lower Cholesky factor.
+    pub sampled_point: Vec<f64>,
+}
+
 /// Frozen defensive Gaussian proposal mixture for one epistemic scenario.
 ///
 /// The proposal is q(u) = epsilon * p_s(u) + (1-epsilon) * sum_j alpha_j q_j(u).
@@ -198,6 +219,9 @@ pub struct PortfolioDefensiveGaussianMixture {
     defensive_fraction: f64,
     expected_modes: Vec<PortfolioEventModeKey>,
     component_ids: Vec<[u8; 32]>,
+    full_component_ids: Vec<[u8; 32]>,
+    full_component_modes: Vec<Option<PortfolioEventModeKey>>,
+    full_component_is_defensive: Vec<bool>,
     configuration_digest: [u8; 32],
 }
 
@@ -370,6 +394,27 @@ impl PortfolioDefensiveGaussianMixture {
             return Err(PortfolioProposalError::NumericalFailure);
         }
 
+        let mut full_component_ids = Vec::with_capacity(full_proposal.component_count());
+        let mut full_component_modes = Vec::with_capacity(full_proposal.component_count());
+        let mut full_component_is_defensive = Vec::with_capacity(full_proposal.component_count());
+        for (index, component) in canonical_target.components().iter().enumerate() {
+            full_component_ids.push(target_component_identity(
+                index,
+                component.weight(),
+                component.distribution(),
+            )?);
+            full_component_modes.push(None);
+            full_component_is_defensive.push(true);
+        }
+        for component in &proposal_components {
+            full_component_ids.push(residual_component_identity(component.component_id));
+            full_component_modes.push(Some(component.mode_key));
+            full_component_is_defensive.push(false);
+        }
+        if full_component_ids.len() != full_proposal.component_count() {
+            return Err(PortfolioProposalError::NumericalFailure);
+        }
+
         let configuration_digest = configuration_digest(
             target_measure_id,
             density_space_id,
@@ -392,6 +437,9 @@ impl PortfolioDefensiveGaussianMixture {
             defensive_fraction: effective_defensive_fraction,
             expected_modes,
             component_ids,
+            full_component_ids,
+            full_component_modes,
+            full_component_is_defensive,
             configuration_digest,
         })
     }
@@ -437,6 +485,76 @@ impl PortfolioDefensiveGaussianMixture {
     /// Return the full defensive proposal log density at one point.
     pub fn log_full_proposal_density(&self, point: &[f64]) -> Result<f64, PortfolioProposalError> {
         Ok(self.full_proposal.log_pdf(point)?)
+    }
+
+    /// Replay the deterministic Gaussian-mixture sampling transform.
+    ///
+    /// The component ticket must be in [0,1). Components are selected by
+    /// canonical cumulative weight using the strict rule ticket < cumulative;
+    /// a ticket exactly on a boundary selects the next component. The point is
+    /// reconstructed in row order as mean[row] + sum_{column<=row} L[row,column] * z[column].
+    ///
+    /// This verifies the transform only. It does not prove the ticket is uniform,
+    /// the vector is standard normal, or that an external RNG followed its claim.
+    pub fn replay_sample_transform(
+        &self,
+        component_ticket: f64,
+        standard_normal: &[f64],
+    ) -> Result<DefensiveGaussianSampleTransform, PortfolioProposalError> {
+        if !component_ticket.is_finite() || !(0.0..1.0).contains(&component_ticket) {
+            return Err(PortfolioProposalError::InvalidComponentTicket);
+        }
+        if standard_normal.len() != self.full_proposal.dimension()
+            || standard_normal.iter().any(|value| !value.is_finite())
+        {
+            return Err(PortfolioProposalError::InvalidStandardNormalVector);
+        }
+
+        let mut cumulative_weight = 0.0;
+        let mut selected_index = None;
+        for (index, component) in self.full_proposal.components().iter().enumerate() {
+            cumulative_weight += component.weight();
+            if !cumulative_weight.is_finite() {
+                return Err(PortfolioProposalError::NumericalFailure);
+            }
+            if component_ticket < cumulative_weight {
+                selected_index = Some(index);
+                break;
+            }
+        }
+        let selected_index = selected_index.ok_or(PortfolioProposalError::NumericalFailure)?;
+        let component = &self.full_proposal.components()[selected_index];
+        let gaussian = component.distribution();
+        let dimension = gaussian.dimension();
+        let factor = gaussian.lower_cholesky_values();
+        let mut sampled_point = vec![0.0; dimension];
+        for row in 0..dimension {
+            let mut value = gaussian.mean()[row];
+            for column in 0..=row {
+                value += factor[row * dimension + column] * standard_normal[column];
+            }
+            if !value.is_finite() {
+                return Err(PortfolioProposalError::NumericalFailure);
+            }
+            sampled_point[row] = value;
+        }
+
+        Ok(DefensiveGaussianSampleTransform {
+            selected_component_index: selected_index,
+            selected_component_id: *self
+                .full_component_ids
+                .get(selected_index)
+                .ok_or(PortfolioProposalError::NumericalFailure)?,
+            defensive_target_component_selected: *self
+                .full_component_is_defensive
+                .get(selected_index)
+                .ok_or(PortfolioProposalError::NumericalFailure)?,
+            selected_proposal_mode_key: *self
+                .full_component_modes
+                .get(selected_index)
+                .ok_or(PortfolioProposalError::NumericalFailure)?,
+            sampled_point,
+        })
     }
 
     /// Evaluate one normalized portfolio-contrast contribution under the full
@@ -507,6 +625,26 @@ impl PortfolioDefensiveGaussianMixture {
             defensive_contribution,
         })
     }
+}
+
+fn target_component_identity(
+    index: usize,
+    weight: f64,
+    gaussian: &Gaussian,
+) -> Result<[u8; 32], PortfolioProposalError> {
+    let mut hasher = Sha256::new();
+    hasher.update(b"luminous.orbital-defensive-target-component.v0.1\0");
+    hasher.update((index as u64).to_be_bytes());
+    hash_f64(&mut hasher, weight);
+    hash_gaussian(&mut hasher, gaussian);
+    Ok(hasher.finalize().into())
+}
+
+fn residual_component_identity(component_id: [u8; 32]) -> [u8; 32] {
+    let mut hasher = Sha256::new();
+    hasher.update(b"luminous.orbital-defensive-residual-component.v0.1\0");
+    hasher.update(component_id);
+    hasher.finalize().into()
 }
 
 fn defensive_fraction_times(left: f64, right: f64) -> Result<f64, PortfolioProposalError> {
@@ -670,6 +808,56 @@ mod tests {
         assert!((mixture.defensive_fraction() - 0.2).abs() < 1.0e-15);
         assert!((observed - expected).abs() < 1.0e-13);
         assert_ne!(observed, proposal_left.log_pdf(&point).unwrap());
+    }
+
+    #[test]
+    fn deterministic_sample_transform_selects_defensive_and_residual_components() {
+        let mixture = fixture();
+        let defensive_zero = mixture.replay_sample_transform(0.0, &[0.0]).unwrap();
+        let defensive_one = mixture.replay_sample_transform(0.0, &[1.0]).unwrap();
+        assert_eq!(defensive_zero.selected_component_index, 0);
+        assert!(defensive_zero.defensive_target_component_selected);
+        assert_eq!(defensive_zero.selected_proposal_mode_key, None);
+        assert_eq!(
+            defensive_one.sampled_point[0] - defensive_zero.sampled_point[0],
+            1.0
+        );
+
+        let left_residual = mixture.replay_sample_transform(0.3, &[0.5]).unwrap();
+        assert!(!left_residual.defensive_target_component_selected);
+        assert_eq!(left_residual.selected_proposal_mode_key, Some(key(10, 1, 1)));
+        assert_eq!(left_residual.sampled_point, vec![-4.5]);
+
+        let right_boundary = mixture
+            .full_proposal
+            .components()
+            .iter()
+            .take(3)
+            .map(GaussianComponent::weight)
+            .sum::<f64>();
+        let right = mixture.replay_sample_transform(right_boundary, &[0.0]).unwrap();
+        assert_eq!(right.selected_component_index, 3);
+        assert_eq!(right.selected_proposal_mode_key, Some(key(20, 1, 2)));
+        assert_eq!(right.sampled_point, vec![5.0]);
+    }
+
+    #[test]
+    fn deterministic_sample_transform_rejects_invalid_tickets_and_normal_vectors() {
+        let mixture = fixture();
+        for ticket in [-f64::EPSILON, 1.0, f64::NAN, f64::INFINITY] {
+            assert_eq!(
+                mixture.replay_sample_transform(ticket, &[0.0]),
+                Err(PortfolioProposalError::InvalidComponentTicket)
+            );
+        }
+        assert_eq!(
+            mixture.replay_sample_transform(0.5, &[]),
+            Err(PortfolioProposalError::InvalidStandardNormalVector)
+        );
+        assert_eq!(
+            mixture.replay_sample_transform(0.5, &[f64::NAN]),
+            Err(PortfolioProposalError::InvalidStandardNormalVector)
+        );
     }
 
     #[test]
