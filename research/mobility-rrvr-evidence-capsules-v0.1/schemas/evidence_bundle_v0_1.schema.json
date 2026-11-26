@@ -96,12 +96,14 @@
         },
         {
           "type": "object", "additionalProperties": false,
-          "required": ["kind", "edge_id", "source_holder_id", "target_holder_id", "old_epoch_enqueue_closed"],
+          "required": ["kind", "edge_id", "source_holder_id", "target_holder_id", "authority_epoch", "queue_generation", "old_epoch_enqueue_closed"],
           "properties": {
             "kind": { "const": "edge_closure_receipt" },
             "edge_id": { "type": "string", "minLength": 1 },
             "source_holder_id": { "type": "string", "minLength": 1 },
             "target_holder_id": { "type": "string", "minLength": 1 },
+            "authority_epoch": { "type": "integer", "minimum": 0 },
+            "queue_generation": { "type": "integer", "minimum": 0 },
             "old_epoch_enqueue_closed": { "type": "boolean" }
           }
         },
