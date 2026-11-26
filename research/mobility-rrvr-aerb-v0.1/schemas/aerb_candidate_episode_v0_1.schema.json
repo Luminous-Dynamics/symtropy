@@ -11,6 +11,7 @@
     "scenario_id",
     "attempt_id",
     "trajectory_cluster_id",
+    "world_vocabulary_version",
     "evidence_domain",
     "decision_cut_sequence",
     "ledger_frontier_sequence",
@@ -87,6 +88,9 @@
       "items": {
         "$ref": "#/$defs/probe"
       }
+    },
+    "world_vocabulary_version": {
+      "const": "aerb-ambiguous-command-history-v0.1"
     }
   },
   "$defs": {
