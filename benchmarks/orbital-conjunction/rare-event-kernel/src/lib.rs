@@ -114,9 +114,10 @@ pub use finite_adaptive_portfolio_selection::{
     FinitePortfolioAtomOutcome, FinitePortfolioEventFlag,
 };
 pub use scenario_mission_risk_gate::{
-    mission_risk_envelope_digest, EligiblePortfolioRegretInterval, PortfolioScenarioRiskCheck,
-    PortfolioScenarioRiskContract, PortfolioScenarioRiskEvidence, ScenarioMissionRiskGate,
-    ScenarioMissionRiskGateError, ScenarioMissionRiskGateReport,
+    mission_risk_envelope_digest, portfolio_scenario_risk_envelope_digest,
+    EligiblePortfolioRegretInterval, PortfolioScenarioRiskCheck, PortfolioScenarioRiskContract,
+    PortfolioScenarioRiskEvidence, ScenarioMissionRiskGate, ScenarioMissionRiskGateError,
+    ScenarioMissionRiskGateReport,
 };
 pub use finite_adaptive_portfolio_selection::{
     FiniteAdaptivePortfolioDrawReceipt, FiniteAdaptivePortfolioError,
