@@ -441,7 +441,9 @@ fn validate_payload(capsule: &EvidenceCapsule) -> Result<(), String> {
             }
         }
         EvidencePayload::HolderInventory {
-            holder_ids, edge_ids, ..
+            holder_ids,
+            edge_ids,
+            ..
         } => {
             if !matches!(
                 capsule.source.role,
