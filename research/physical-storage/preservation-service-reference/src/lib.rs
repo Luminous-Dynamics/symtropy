@@ -36,6 +36,13 @@ pub enum Stage {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EnergyBoundary {
+    WholeService,
+    StorageSubsystem,
+    ReaderAndCompute,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ServiceDisposition {
     Pass,
     Fail,
@@ -53,6 +60,8 @@ pub struct WorkloadContract {
     pub manifest_required: bool,
     pub provenance_required: bool,
     pub energy_metering_required: bool,
+    /// Frozen energy boundary; None is valid only when energy is not required.
+    pub required_energy_boundary: Option<EnergyBoundary>,
     pub independent_reader_paths_required: bool,
     /// Frozen by the benchmark protocol, not supplied by the candidate.
     pub required_stages: Vec<Stage>,
@@ -88,6 +97,10 @@ pub struct ServiceReceipt {
     pub reader_agreement_status: EvidenceStatus,
     pub energy_meter_status: EvidenceStatus,
     pub energy_millijoules: Option<u128>,
+    pub energy_meter_id: Option<String>,
+    pub energy_calibration_ref: Option<String>,
+    pub energy_boundary: Option<EnergyBoundary>,
+    pub energy_sample_interval_ms: Option<u64>,
     pub candidate_claimed_full_success: bool,
     pub stage_observations: Vec<StageObservation>,
 }
@@ -123,6 +136,10 @@ pub enum ContractError {
     DuplicateReaderPathId,
     EnergyValueWithoutMeterPass,
     MeterPassWithoutEnergyValue,
+    MissingEnergyBoundaryContract,
+    MissingEnergyMeterMetadata,
+    EnergyMeterBoundaryMismatch,
+    ZeroEnergySampleInterval,
 }
 
 fn contains_duplicate_stages(stages: &[Stage]) -> bool {
@@ -167,6 +184,9 @@ pub fn score(
     }
     if contract.required_stages.is_empty() {
         return Err(ContractError::NoRequiredStages);
+    }
+    if contract.energy_metering_required && contract.required_energy_boundary.is_none() {
+        return Err(ContractError::MissingEnergyBoundaryContract);
     }
     for (index, reader_id) in receipt.reader_path_ids.iter().enumerate() {
         if reader_id.trim().is_empty() {
@@ -222,6 +242,21 @@ pub fn score(
         && receipt.energy_millijoules.is_none()
     {
         return Err(ContractError::MeterPassWithoutEnergyValue);
+    }
+    if receipt.energy_meter_status == EvidenceStatus::Pass {
+        if receipt.energy_meter_id.as_deref().is_none_or(str::is_empty)
+            || receipt.energy_calibration_ref.as_deref().is_none_or(str::is_empty)
+            || receipt.energy_boundary.is_none()
+            || receipt.energy_sample_interval_ms.is_none()
+        {
+            return Err(ContractError::MissingEnergyMeterMetadata);
+        }
+        if receipt.energy_boundary != contract.required_energy_boundary {
+            return Err(ContractError::EnergyMeterBoundaryMismatch);
+        }
+        if receipt.energy_sample_interval_ms == Some(0) {
+            return Err(ContractError::ZeroEnergySampleInterval);
+        }
     }
 
     let missing_required_stages: Vec<Stage> = contract
@@ -360,6 +395,7 @@ mod tests {
             manifest_required: true,
             provenance_required: true,
             energy_metering_required: true,
+            required_energy_boundary: Some(EnergyBoundary::WholeService),
             independent_reader_paths_required: true,
             required_stages: vec![
                 Stage::RequestAdmission,
@@ -395,6 +431,10 @@ mod tests {
             reader_agreement_status: EvidenceStatus::Pass,
             energy_meter_status: EvidenceStatus::Pass,
             energy_millijoules: Some(12_345),
+            energy_meter_id: Some("meter-whole-service-A".into()),
+            energy_calibration_ref: Some("calibration-record-2026-01".into()),
+            energy_boundary: Some(EnergyBoundary::WholeService),
+            energy_sample_interval_ms: Some(1_000),
             candidate_claimed_full_success: true,
             stage_observations: contract().required_stages.into_iter().map(|stage| {
                 StageObservation { stage, elapsed_ms: 100, evidence_present: true }
@@ -481,6 +521,37 @@ mod tests {
     }
 
     #[test]
+    fn energy_pass_requires_meter_calibration_boundary_and_interval() {
+        let mut missing_meter = passing_receipt();
+        missing_meter.energy_meter_id = None;
+        assert_eq!(
+            score(&contract(), &missing_meter),
+            Err(ContractError::MissingEnergyMeterMetadata)
+        );
+
+        let mut wrong_boundary = passing_receipt();
+        wrong_boundary.energy_boundary = Some(EnergyBoundary::StorageSubsystem);
+        assert_eq!(
+            score(&contract(), &wrong_boundary),
+            Err(ContractError::EnergyMeterBoundaryMismatch)
+        );
+
+        let mut zero_interval = passing_receipt();
+        zero_interval.energy_sample_interval_ms = Some(0);
+        assert_eq!(
+            score(&contract(), &zero_interval),
+            Err(ContractError::ZeroEnergySampleInterval)
+        );
+
+        let mut uncalibrated = passing_receipt();
+        uncalibrated.energy_calibration_ref = Some("".into());
+        assert_eq!(
+            score(&contract(), &uncalibrated),
+            Err(ContractError::MissingEnergyMeterMetadata)
+        );
+    }
+
+    #[test]
     fn missing_energy_measurement_is_incomplete() {
         let mut receipt = passing_receipt();
         receipt.energy_meter_status = EvidenceStatus::Incomplete;
@@ -528,6 +599,10 @@ mod tests {
         receipt.reader_path_ids.clear();
         receipt.energy_meter_status = EvidenceStatus::NotEvaluated;
         receipt.energy_millijoules = None;
+        receipt.energy_meter_id = None;
+        receipt.energy_calibration_ref = None;
+        receipt.energy_boundary = None;
+        receipt.energy_sample_interval_ms = None;
         receipt.stage_observations.clear();
         receipt.reconstructed_bytes = 0;
         receipt.delivered_bytes = 0;
