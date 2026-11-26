@@ -465,6 +465,16 @@ fn validate_difficulty_screen(screen: &DifficultyScreen) -> Result<usize, Vec<St
     if screen.trials.len() != SCREENING_TRIAL_N {
         reasons.push("DIFFICULTY_TRIAL_COUNT_NOT_20".to_owned());
     }
+    let attempt_ids: BTreeSet<&str> = screen
+        .trials
+        .iter()
+        .map(|trial| trial.attempt_id.as_str())
+        .collect();
+    if screen.trials.iter().any(|trial| trial.attempt_id.trim().is_empty())
+        || attempt_ids.len() != screen.trials.len()
+    {
+        reasons.push("DIFFICULTY_ATTEMPT_IDENTITIES_INVALID".to_owned());
+    }
     let policies: BTreeSet<&str> = screen
         .trials
         .iter()
