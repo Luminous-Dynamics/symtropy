@@ -22,10 +22,7 @@
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
-use crate::mission_risk_aggregation::{
-    ExactMass, FrechetUnionBounds, JointEventSignatureMass, MissionRiskBudgetStatus,
-    MissionRiskEnvelope,
-};
+use crate::mission_risk_aggregation::{ExactMass, MissionRiskBudgetStatus, MissionRiskEnvelope};
 use crate::simultaneous_defensive_selection::SimultaneousDefensivePortfolioReport;
 
 /// Frozen source and policy contract for one scenario × portfolio mission envelope.
@@ -192,12 +189,6 @@ impl core::fmt::Display for ScenarioMissionRiskGateError {
 }
 
 impl std::error::Error for ScenarioMissionRiskGateError {}
-
-#[derive(Debug, Clone, PartialEq)]
-struct ScenarioPortfolioContractKey {
-    scenario_id: [u8; 32],
-    portfolio_id: [u8; 32],
-}
 
 /// Frozen cross-scenario mission-risk gate and consequence family.
 #[derive(Debug, Clone, PartialEq)]
@@ -630,6 +621,7 @@ fn validate_envelope(
         return Err(ScenarioMissionRiskGateError::UnexpectedAuthorityGrant);
     }
     if envelope.event_count == 0
+        || envelope.event_count > 32
         || envelope.trajectory_atom_count == 0
         || envelope.event_marginals.len() != envelope.event_count
         || envelope.pairwise_intersections.len()
@@ -652,35 +644,105 @@ fn validate_envelope(
             return Err(ScenarioMissionRiskGateError::InvalidExactMass);
         }
     }
-    if !exact_masses_sum_to_one(envelope.pathwise_union_mass, envelope.no_event_mass) {
+
+    // Every event-derived mass must be an exact reduction of the same finite
+    // support denominator. Convert it back to integer ticks to independently
+    // reconcile the summary rather than adding unrelated reduced fractions.
+    let union_ticks = exact_mass_ticks(envelope.pathwise_union_mass, envelope.total_mass_ticks)?;
+    let no_event_ticks = exact_mass_ticks(envelope.no_event_mass, envelope.total_mass_ticks)?;
+    let frechet_lower_ticks =
+        exact_mass_ticks(envelope.frechet_union_bounds.lower_bound, envelope.total_mass_ticks)?;
+    let frechet_upper_ticks =
+        exact_mass_ticks(envelope.frechet_union_bounds.upper_bound, envelope.total_mass_ticks)?;
+    if union_ticks.checked_add(no_event_ticks) != Some(envelope.total_mass_ticks) {
         return Err(ScenarioMissionRiskGateError::UnionComplementMismatch);
     }
-    if compare_exact_mass(envelope.frechet_union_bounds.lower_bound, envelope.pathwise_union_mass)?
-            == Ordering::Greater
-        || compare_exact_mass(envelope.pathwise_union_mass, envelope.frechet_union_bounds.upper_bound)?
-            == Ordering::Greater
-    {
-        return Err(ScenarioMissionRiskGateError::FrechetBoundsMismatch);
-    }
 
-    let mut signature_mass = ExactMass { numerator: 0, denominator: 1 };
-    let mut seen_signatures = BTreeMap::<Vec<String>, ()>::new();
-    for signature in &envelope.joint_signatures {
-        if !valid_probability_mass(signature.mass)
-            || signature
-                .contacting_event_ids
-                .windows(2)
-                .any(|w| w[0] >= w[1])
-            || seen_signatures
-                .insert(signature.contacting_event_ids.clone(), ())
-                .is_some()
+    let mut event_ids = Vec::with_capacity(envelope.event_count);
+    let mut event_ticks = Vec::with_capacity(envelope.event_count);
+    let mut marginal_sum = 0_u128;
+    for marginal in &envelope.event_marginals {
+        if marginal.event_id.trim().is_empty()
+            || event_ids
+                .last()
+                .is_some_and(|previous: &String| previous >= &marginal.event_id)
         {
             return Err(ScenarioMissionRiskGateError::InvalidRiskEnvelopeShape);
         }
-        signature_mass = add_exact_mass(signature_mass, signature.mass)?;
+        let ticks = exact_mass_ticks(marginal.mass, envelope.total_mass_ticks)?;
+        marginal_sum = marginal_sum
+            .checked_add(u128::from(ticks))
+            .ok_or(ScenarioMissionRiskGateError::NumericalFailure)?;
+        event_ids.push(marginal.event_id.clone());
+        event_ticks.push(ticks);
     }
-    if compare_exact_mass(signature_mass, ExactMass { numerator: 1, denominator: 1 })?
-        != Ordering::Equal
+    if marginal_sum != envelope.marginal_sum_ticks {
+        return Err(ScenarioMissionRiskGateError::InvalidRiskEnvelopeShape);
+    }
+
+    let expected_lower = *event_ticks.iter().max().unwrap_or(&0);
+    let expected_upper = marginal_sum.min(u128::from(envelope.total_mass_ticks)) as u64;
+    if frechet_lower_ticks != expected_lower || frechet_upper_ticks != expected_upper {
+        return Err(ScenarioMissionRiskGateError::FrechetBoundsMismatch);
+    }
+    if union_ticks < frechet_lower_ticks || union_ticks > frechet_upper_ticks {
+        return Err(ScenarioMissionRiskGateError::FrechetBoundsMismatch);
+    }
+
+    let mut pair_index = 0;
+    for left in 0..event_ids.len() {
+        for right in (left + 1)..event_ids.len() {
+            let pair = &envelope.pairwise_intersections[pair_index];
+            if pair.left_event_id != event_ids[left]
+                || pair.right_event_id != event_ids[right]
+            {
+                return Err(ScenarioMissionRiskGateError::InvalidRiskEnvelopeShape);
+            }
+            let pair_ticks = exact_mass_ticks(pair.mass, envelope.total_mass_ticks)?;
+            if pair_ticks > event_ticks[left] || pair_ticks > event_ticks[right] {
+                return Err(ScenarioMissionRiskGateError::InvalidRiskEnvelopeShape);
+            }
+            pair_index += 1;
+        }
+    }
+
+    let mut signature_total = 0_u64;
+    let mut signature_union = 0_u64;
+    let mut signature_no_event = None;
+    let mut previous_signature: Option<&[String]> = None;
+    for signature in &envelope.joint_signatures {
+        if signature
+            .contacting_event_ids
+            .windows(2)
+            .any(|window| window[0] >= window[1])
+            || signature
+                .contacting_event_ids
+                .iter()
+                .any(|event_id| event_ids.binary_search(event_id).is_err())
+            || previous_signature.is_some_and(|previous| {
+                previous >= signature.contacting_event_ids.as_slice()
+            })
+        {
+            return Err(ScenarioMissionRiskGateError::InvalidRiskEnvelopeShape);
+        }
+        let ticks = exact_mass_ticks(signature.mass, envelope.total_mass_ticks)?;
+        signature_total = signature_total
+            .checked_add(ticks)
+            .ok_or(ScenarioMissionRiskGateError::NumericalFailure)?;
+        if signature.contacting_event_ids.is_empty() {
+            if signature_no_event.replace(ticks).is_some() {
+                return Err(ScenarioMissionRiskGateError::InvalidRiskEnvelopeShape);
+            }
+        } else {
+            signature_union = signature_union
+                .checked_add(ticks)
+                .ok_or(ScenarioMissionRiskGateError::NumericalFailure)?;
+        }
+        previous_signature = Some(&signature.contacting_event_ids);
+    }
+    if signature_total != envelope.total_mass_ticks
+        || signature_union != union_ticks
+        || signature_no_event != Some(no_event_ticks)
     {
         return Err(ScenarioMissionRiskGateError::InvalidRiskEnvelopeShape);
     }
@@ -698,6 +760,26 @@ fn validate_envelope(
         return Err(ScenarioMissionRiskGateError::RiskBudgetStatusMismatch);
     }
     Ok(within_budget)
+}
+
+fn exact_mass_ticks(
+    mass: ExactMass,
+    total_mass_ticks: u64,
+) -> Result<u64, ScenarioMissionRiskGateError> {
+    if !valid_probability_mass(mass)
+        || total_mass_ticks == 0
+        || total_mass_ticks % mass.denominator != 0
+    {
+        return Err(ScenarioMissionRiskGateError::InvalidExactMass);
+    }
+    let ticks = mass
+        .numerator
+        .checked_mul(total_mass_ticks / mass.denominator)
+        .ok_or(ScenarioMissionRiskGateError::NumericalFailure)?;
+    if ticks > total_mass_ticks {
+        return Err(ScenarioMissionRiskGateError::InvalidExactMass);
+    }
+    Ok(ticks)
 }
 
 fn valid_probability_mass(mass: ExactMass) -> bool {
