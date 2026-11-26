@@ -407,12 +407,12 @@ pub fn plan_decision_directed_scan(
         }
 
         let mut result = candidate_metrics(candidate, index, policy.allow_revisit)?;
-        if let Some(priority) = result.priority_rad_per_s {
-            if priority >= policy.minimum_priority_rad_per_s {
-                ranked.push(index);
-                result.disposition =
-                    CandidateDisposition::NotSelected(ExclusionReason::BelowPriorityFloor);
-            }
+        if let Some(priority) = result.priority_rad_per_s
+            && priority >= policy.minimum_priority_rad_per_s
+        {
+            ranked.push(index);
+            result.disposition =
+                CandidateDisposition::NotSelected(ExclusionReason::BelowPriorityFloor);
         }
         metrics.push(result);
     }
