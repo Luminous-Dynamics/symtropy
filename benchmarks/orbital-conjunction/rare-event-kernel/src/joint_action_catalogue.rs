@@ -108,7 +108,7 @@ pub enum JointActionSelectionDisposition {
     AbstainIncompleteEvidence,
 }
 
-/// Summary of exact joint-action catalogue enumeration and selection.
+/// Internal ranking key for one qualified safe coalition.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct RankedJointAction {
     action_ids: Vec<[u8; 32]>,
@@ -117,6 +117,7 @@ struct RankedJointAction {
     consequence_avoided_ticks: i64,
 }
 
+/// Summary of exact joint-action catalogue enumeration and selection.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JointActionCatalogueReport {
     /// Final policy disposition.
