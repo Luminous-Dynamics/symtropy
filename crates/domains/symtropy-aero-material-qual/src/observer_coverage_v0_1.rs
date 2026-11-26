@@ -139,7 +139,10 @@ fn reason_for_field(key: &str) -> &'static str {
     }
 }
 
-fn assessment(status: CoverageStatus, reasons: impl IntoIterator<Item = String>) -> CoverageAssessment {
+fn assessment(
+    status: CoverageStatus,
+    reasons: impl IntoIterator<Item = String>,
+) -> CoverageAssessment {
     CoverageAssessment {
         status,
         replay_consequence: consequence(status),
@@ -269,7 +272,10 @@ mod tests {
         );
         let actual = evaluate_coverage_fixture(&fixture);
         assert_eq!(actual.status, CoverageStatus::Unverified);
-        assert_eq!(actual.replay_consequence, ReplayConsequence::TrustUnresolved);
+        assert_eq!(
+            actual.replay_consequence,
+            ReplayConsequence::TrustUnresolved
+        );
     }
 
     #[test]
