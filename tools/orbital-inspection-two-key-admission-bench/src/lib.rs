@@ -700,6 +700,77 @@ mod tests {
     }
 
     #[test]
+    fn exhaustive_gate_product_admits_only_the_all_pass_complete_tuple() {
+        let base = corpus()
+            .cases
+            .into_iter()
+            .find(|case| case.case_id == "TK-001-BOTH-PASS")
+            .unwrap();
+        let states = [
+            GateState::Pass,
+            GateState::Fail,
+            GateState::Unknown,
+            GateState::Stale,
+        ];
+
+        for safety in states {
+            for portfolio in states {
+                for acquisition in states {
+                    for scope in states {
+                        for event_set_complete in [false, true] {
+                            let mut candidate = base.clone();
+                            candidate.candidate.physical_safety.as_mut().unwrap().state = safety;
+                            let portfolio_binding =
+                                candidate.candidate.post_action_portfolio.as_mut().unwrap();
+                            portfolio_binding.state = portfolio;
+                            portfolio_binding.event_set_complete = event_set_complete;
+                            let measurement = candidate.candidate.measurement.as_mut().unwrap();
+                            measurement.acquisition_state = acquisition;
+                            measurement.scope_coherence_state = scope;
+
+                            let disposition = evaluate_case(&candidate).disposition;
+                            let should_admit = safety == GateState::Pass
+                                && portfolio == GateState::Pass
+                                && acquisition == GateState::Pass
+                                && scope == GateState::Pass
+                                && event_set_complete;
+                            assert_eq!(
+                                disposition == Disposition::EligibleInspection,
+                                should_admit,
+                                "gate tuple safety={safety:?}, portfolio={portfolio:?}, acquisition={acquisition:?}, scope={scope:?}, complete={event_set_complete}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn resource_and_utility_changes_never_change_hard_gate_disposition() {
+        let mut candidate = corpus()
+            .cases
+            .into_iter()
+            .find(|case| case.case_id == "TK-001-BOTH-PASS")
+            .unwrap();
+        let baseline = evaluate_case(&candidate).disposition;
+
+        for (delta_v, duration, compute, utility) in [
+            (0, 0, 0, 0),
+            (MAX_COST, 0, 0, MAX_COST),
+            (0, MAX_COST, 0, MAX_COST),
+            (0, 0, MAX_COST, MAX_COST),
+            (MAX_COST, MAX_COST, MAX_COST, MAX_COST),
+        ] {
+            candidate.candidate.delta_v_milli_m_s = delta_v;
+            candidate.candidate.duration_ms = duration;
+            candidate.candidate.compute_us = compute;
+            candidate.candidate.decision_value_milli = utility;
+            assert_eq!(evaluate_case(&candidate).disposition, baseline);
+        }
+    }
+
+    #[test]
     fn action_order_and_utility_do_not_change_hard_gate_disposition() {
         let input = corpus();
         let original =
