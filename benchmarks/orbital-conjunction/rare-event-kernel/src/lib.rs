@@ -55,6 +55,8 @@ pub mod pop_convergence;
 /// Defensive proposal mixtures across a frozen portfolio event-mode universe.
 pub mod portfolio_proposal;
 pub mod portfolio_selection;
+/// Atomic simultaneous selection across portfolios under a defensive proposal.
+pub mod simultaneous_defensive_selection;
 pub mod predictable_empirical_bernstein;
 pub mod proposal_execution_conformance;
 pub mod refinement_scheduler;
@@ -155,6 +157,12 @@ pub use portfolio_selection::{
     MAX_SIMULTANEOUS_PORTFOLIO_DRAWS, PortfolioConsequenceBound, PortfolioConsequenceObservation,
     PortfolioContrastConfidenceInterval, PortfolioSelectionError, SimultaneousPortfolioComparison,
     SimultaneousPortfolioDraw, SimultaneousPortfolioSelectionReport,
+};
+pub use simultaneous_defensive_selection::{
+    MAX_SIMULTANEOUS_DEFENSIVE_DRAWS, DefensivePortfolioDraw,
+    DefensivePortfolioDrawReceipt, DefensivePortfolioPairInterval,
+    DefensivePortfolioPairObservation, SimultaneousDefensivePortfolioReport,
+    SimultaneousDefensivePortfolioSelection, SimultaneousDefensiveSelectionError,
 };
 pub use predictable_empirical_bernstein::{
     AdaptiveImportanceSamplingPrPlEbSequence, DEFAULT_BET_FRACTION_CAP, PrPlEbConfidenceSequence,
