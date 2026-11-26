@@ -84,15 +84,6 @@ pub struct InferenceManifest {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct McNemarResult {
-    pub control_only_adverse_n: usize,
-    pub treatment_only_adverse_n: usize,
-    pub discordant_pair_n: usize,
-    pub exact_two_sided_p: f64,
-    pub independent_pair_assumption_satisfied: bool,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct BootstrapInterval {
     pub lower: f64,
     pub upper: f64,
@@ -101,6 +92,7 @@ pub struct BootstrapInterval {
     pub alpha: f64,
     pub cluster_n: usize,
     pub profile_id: String,
+    pub interpretation: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -109,8 +101,9 @@ pub struct EndpointReport {
     pub direction: EndpointDirection,
     pub pair_n: usize,
     pub cluster_n: usize,
-    pub control_event_n: usize,
-    pub treatment_event_n: usize,
+    /// Count of the literal Event enum state. For maximize_success endpoints this is a success count.
+    pub control_event_state_n: usize,
+    pub treatment_event_state_n: usize,
     pub control_unknown_n: usize,
     pub treatment_unknown_n: usize,
     pub control_disputed_n: usize,
@@ -128,6 +121,9 @@ pub struct EndpointReport {
     pub bootstrap_interval: Option<BootstrapInterval>,
     pub mcnemar: Option<McNemarResult>,
     pub treatment_zero_adverse_cluster_upper_bound: Option<f64>,
+    pub bootstrap_interval_interpretation: String,
+    pub cluster_independence_status: String,
+    pub zero_event_bound_assumption: String,
     pub status: String,
     pub reason_codes: Vec<String>,
 }
@@ -195,27 +191,6 @@ fn endpoint_seed(base_seed: u64, endpoint_id: &str) -> u64 {
     base_seed ^ hash
 }
 
-fn log_choose(n: usize, k: usize) -> f64 {
-    let k = k.min(n - k);
-    (0..k)
-        .map(|i| ((n - i) as f64).ln() - ((i + 1) as f64).ln())
-        .sum()
-}
-
-fn exact_mcnemar_two_sided(control_only_n: usize, treatment_only_n: usize) -> f64 {
-    let discordant = control_only_n + treatment_only_n;
-    if discordant == 0 {
-        return 1.0;
-    }
-    let limit = control_only_n.min(treatment_only_n);
-    let log_terms: Vec<f64> = (0..=limit)
-        .map(|k| log_choose(discordant, k) - discordant as f64 * std::f64::consts::LN_2)
-        .collect();
-    let max_log = log_terms.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-    let tail = max_log + log_terms.iter().map(|value| (value - max_log).exp()).sum::<f64>().ln();
-    (2.0 * tail.exp()).min(1.0)
-}
-
 fn percentile(sorted: &[f64], probability: f64) -> Option<f64> {
     if sorted.is_empty() {
         return None;
@@ -255,6 +230,7 @@ fn cluster_bootstrap(
         alpha,
         cluster_n,
         profile_id: BOOTSTRAP_PROFILE.to_owned(),
+        interpretation: "exploratory_descriptive_only".to_owned(),
     })
 }
 
@@ -394,8 +370,8 @@ fn endpoint_report(
         })
         .collect();
 
-    let mut control_event_n = 0;
-    let mut treatment_event_n = 0;
+    let mut control_event_state_n = 0;
+    let mut treatment_event_state_n = 0;
     let mut control_unknown_n = 0;
     let mut treatment_unknown_n = 0;
     let mut control_disputed_n = 0;
@@ -407,10 +383,10 @@ fn endpoint_report(
     for pair in &manifest.pairs {
         let outcome = outcome_by_pair[pair.pair_id.as_str()];
         if outcome.control == OutcomeState::Event {
-            control_event_n += 1;
+            control_event_state_n += 1;
         }
         if outcome.treatment == OutcomeState::Event {
-            treatment_event_n += 1;
+            treatment_event_state_n += 1;
         }
         if outcome.control == OutcomeState::Unknown {
             control_unknown_n += 1;
@@ -488,38 +464,38 @@ fn endpoint_report(
         endpoint_seed,
         manifest.preregistration.alpha,
     );
-    let mcnemar = if cluster_unit_n == pair_n {
-        Some(McNemarResult {
-            control_only_adverse_n: control_only_adverse_pair_n,
-            treatment_only_adverse_n,
-            discordant_pair_n: control_only_adverse_pair_n + treatment_only_adverse_pair_n,
-            exact_two_sided_p: exact_mcnemar_two_sided(
-                control_only_adverse_pair_n,
-                treatment_only_adverse_pair_n,
-            ),
-            independent_pair_assumption_satisfied: true,
-        })
-    } else {
-        None
-    };
+    // Unique declared cluster IDs do not establish statistical independence.
+    // v0.1 deliberately withholds McNemar until an independent campaign
+    // attestation and its assumptions are validated upstream.
+    let mcnemar = None;
     let treatment_zero_adverse_cluster_upper_bound = (treatment_adverse_cluster_n == 0)
         .then(|| 1.0 - manifest.preregistration.alpha.powf(1.0 / cluster_unit_n as f64));
 
-    let mut reason_codes = Vec::new();
-    let status = if bootstrap_interval.is_none() {
+    let mut reason_codes = vec![
+        "CLUSTER_INDEPENDENCE_NOT_INDEPENDENTLY_VERIFIED".to_owned(),
+        "MCNEMAR_WITHHELD_NO_INDEPENDENCE_ATTESTATION".to_owned(),
+        "BOOTSTRAP_COVERAGE_NOT_VALIDATED_FOR_CONFIRMATORY_INFERENCE".to_owned(),
+    ];
+    if bootstrap_interval.is_none() {
         reason_codes.push("INSUFFICIENT_CLUSTERS_FOR_BOOTSTRAP_INTERVAL".to_owned());
-        "descriptive_only"
-    } else {
-        "inference_available"
-    };
+    }
+    if treatment_zero_adverse_cluster_upper_bound.is_some() {
+        reason_codes.push(
+            "ZERO_EVENT_BOUND_CONDITIONAL_ON_IID_INDEPENDENT_CLUSTERS".to_owned(),
+        );
+    }
+    // Percentile cluster-bootstrap output remains visible as an exploratory
+    // description. The current software has no simulation-validated minimum
+    // cluster count or coverage guarantee, so it never labels this inferential.
+    let status = "descriptive_only";
 
     EndpointReport {
         endpoint_id: spec.endpoint_id.clone(),
         direction: spec.direction,
         pair_n,
         cluster_n: cluster_unit_n,
-        control_event_n,
-        treatment_event_n,
+        control_event_state_n,
+        treatment_event_state_n,
         control_unknown_n,
         treatment_unknown_n,
         control_disputed_n,
@@ -539,6 +515,9 @@ fn endpoint_report(
         bootstrap_interval,
         mcnemar,
         treatment_zero_adverse_cluster_upper_bound,
+        bootstrap_interval_interpretation: "exploratory_descriptive_only".to_owned(),
+        cluster_independence_status: "not_independently_verified".to_owned(),
+        zero_event_bound_assumption: "conditional_on_iid_independent_clusters_not_verified".to_owned(),
         status: status.to_owned(),
         reason_codes,
     }
@@ -571,7 +550,7 @@ pub fn evaluate_manifest(manifest: &InferenceManifest) -> Result<InferenceReport
         excluded_pair_n: manifest.excluded_pair_ids.len(),
         cluster_n,
         endpoint_reports,
-        claim_ceiling: "Preregistered synthetic paired inference only; no robot campaign result or safety claim.".to_owned(),
+        claim_ceiling: "Synthetic descriptive paired estimates only. Bootstrap intervals are exploratory; cluster independence and zero-event-bound assumptions are not independently verified. No robot campaign, causal or safety claim.".to_owned(),
     })
 }
 
@@ -666,7 +645,11 @@ mod tests {
         assert_eq!(false_safe.control_only_adverse_pair_n, 1);
         assert_eq!(false_safe.treatment_only_adverse_pair_n, 1);
         assert_eq!(false_safe.episode_weighted_risk_difference, 0.0);
-        assert!(false_safe.mcnemar.is_some());
+        assert!(false_safe.mcnemar.is_none());
+        assert_eq!(false_safe.status, "descriptive_only");
+        assert_eq!(false_safe.cluster_independence_status, "not_independently_verified");
+        assert_eq!(false_safe.bootstrap_interval_interpretation, "exploratory_descriptive_only");
+        assert!(false_safe.reason_codes.iter().any(|code| code == "CLUSTER_INDEPENDENCE_NOT_INDEPENDENTLY_VERIFIED"));
     }
 
     #[test]
@@ -694,6 +677,11 @@ mod tests {
         assert_eq!(safety.cluster_n, 2);
         assert!(safety.mcnemar.is_none());
         assert!(safety.bootstrap_interval.is_some());
+        assert_eq!(safety.status, "descriptive_only");
+        assert_eq!(
+            safety.bootstrap_interval.as_ref().unwrap().interpretation,
+            "exploratory_descriptive_only"
+        );
         assert_eq!(safety.cluster_weighted_risk_difference, 0.5);
         assert!((safety.episode_weighted_risk_difference - (2.0 / 3.0)).abs() < 1e-12);
     }
@@ -727,6 +715,13 @@ mod tests {
         let report = evaluate_manifest(&manifest).expect("zero adverse clusters");
         let safety = &report.endpoint_reports[0];
         assert_eq!(safety.treatment_adverse_cluster_n, 0);
+        assert_eq!(
+            safety.zero_event_bound_assumption,
+            "conditional_on_iid_independent_clusters_not_verified"
+        );
+        assert!(safety.reason_codes.iter().any(|code| {
+            code == "ZERO_EVENT_BOUND_CONDITIONAL_ON_IID_INDEPENDENT_CLUSTERS"
+        }));
         assert_eq!(
             safety.treatment_zero_adverse_cluster_upper_bound,
             Some(1.0 - 0.05_f64.powf(1.0 / 2.0))
