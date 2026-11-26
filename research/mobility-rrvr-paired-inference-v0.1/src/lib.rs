@@ -119,7 +119,7 @@ pub struct EndpointReport {
     pub control_only_adverse_pair_n: usize,
     pub treatment_only_adverse_pair_n: usize,
     pub bootstrap_interval: Option<BootstrapInterval>,
-    pub mcnemar: Option<McNemarResult>,
+    pub mcnemar: Option<serde_json::Value>,
     pub treatment_zero_adverse_cluster_upper_bound: Option<f64>,
     pub bootstrap_interval_interpretation: String,
     pub cluster_independence_status: String,
