@@ -702,7 +702,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn distinguishes_two_physical_measurements_from_measurement_prediction() {
         let mut first = face_charge_run();
