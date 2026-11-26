@@ -35,7 +35,7 @@ Complete frame displacement must be integrated **directly** over [-E/2, T+E/2]:
 - I1frame = (E^2 + (2*T+E)^2)/8.
 - I2frame = ((2*T+E)^3 + E^3)/24.
 
-Do not replace the direct complete-window integral with Drow + Dexp. The TV-016 frozen counterexample shows that this shortcut can under-bound when T < E/2. All terms use checked integer arithmetic and ceiling division. Pixel bounds apply the same minimum-depth perspective derivative used by #7399.
+Do not replace the direct complete-window integral with Drow + Dexp. The TV-016 frozen counterexample shows that this shortcut can under-bound when T < E/2. Path-length terms are retained in integer nanometres through projection; the spatial support and kinematic inputs remain in micrometre-based SI units. Pixel bounds apply the same minimum-depth perspective derivative used by #7399, with one outward ceiling only at the final micro-pixel boundary.
 
 ## Reproduce
 
