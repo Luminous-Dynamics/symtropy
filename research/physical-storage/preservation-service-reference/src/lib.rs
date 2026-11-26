@@ -555,6 +555,17 @@ mod tests {
     }
 
     #[test]
+    fn malformed_reader_paths_and_empty_stage_contract_are_rejected() {
+        let mut duplicate_paths = passing_receipt();
+        duplicate_paths.reader_path_ids[1] = duplicate_paths.reader_path_ids[0].clone();
+        assert_eq!(score(&contract(), &duplicate_paths), Err(ContractError::DuplicateReaderPathId));
+
+        let mut empty_stages = contract();
+        empty_stages.required_stages.clear();
+        assert_eq!(score(&empty_stages, &passing_receipt()), Err(ContractError::NoRequiredStages));
+    }
+
+    #[test]
     fn stage_and_time_receipts_must_be_well_formed() {
         let mut first_byte = passing_receipt();
         first_byte.time_to_first_accepted_byte_ms = Some(5_001);
