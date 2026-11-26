@@ -24,7 +24,9 @@ pub struct FlowError {
 
 impl FlowError {
     fn new(message: impl Into<String>) -> Self {
-        Self { message: message.into() }
+        Self {
+            message: message.into(),
+        }
     }
 }
 
@@ -342,13 +344,17 @@ impl FlowGraph {
         let canonical = self.canonical_bytes()?;
         let expected_digest = format!("sha256:{}", hex_lower(&Sha256::digest(canonical)));
         if result.graph_sha256 != expected_digest {
-            return Err(FlowError::new("graph SHA-256 does not match the supplied graph"));
+            return Err(FlowError::new(
+                "graph SHA-256 does not match the supplied graph",
+            ));
         }
         if result.commodity_ref != self.commodity_ref
             || result.capacity_unit_ref != self.capacity_unit_ref
             || result.quantity_boundary_ref != self.quantity_boundary_ref
         {
-            return Err(FlowError::new("quantity contract does not match the supplied graph"));
+            return Err(FlowError::new(
+                "quantity contract does not match the supplied graph",
+            ));
         }
         if result.kernel_version != KERNEL_VERSION
             || result.supported_model_class != SUPPORTED_MODEL_CLASS
@@ -356,7 +362,9 @@ impl FlowGraph {
             return Err(FlowError::new("unsupported kernel version or model class"));
         }
         if result.source != self.source || result.sink != self.sink {
-            return Err(FlowError::new("certificate source/sink does not match the graph"));
+            return Err(FlowError::new(
+                "certificate source/sink does not match the graph",
+            ));
         }
 
         let edge_by_id = self
@@ -365,7 +373,9 @@ impl FlowGraph {
             .map(|edge| (edge.id.as_str(), edge))
             .collect::<BTreeMap<_, _>>();
         if result.edge_flows.len() != self.edges.len() {
-            return Err(FlowError::new("certificate edge-flow count does not match graph"));
+            return Err(FlowError::new(
+                "certificate edge-flow count does not match graph",
+            ));
         }
 
         let mut flow_by_id = BTreeMap::new();
@@ -401,7 +411,9 @@ impl FlowGraph {
                 i128::from(witness.flow);
         }
         if flow_by_id.len() != edge_by_id.len() {
-            return Err(FlowError::new("certificate omits one or more original edges"));
+            return Err(FlowError::new(
+                "certificate omits one or more original edges",
+            ));
         }
 
         for (node_id, net_outflow) in &balance {
@@ -441,7 +453,9 @@ impl FlowGraph {
         // witness. The reported source-side set is specifically the set
         // reachable from source in this residual graph, not an arbitrary
         // equal-capacity minimum-cut partition.
-        let mut residual_adjacency = self.nodes.iter()
+        let mut residual_adjacency = self
+            .nodes
+            .iter()
             .map(|node| (node.id.clone(), Vec::<String>::new()))
             .collect::<BTreeMap<_, _>>();
         for witness in &result.edge_flows {
@@ -471,11 +485,14 @@ impl FlowGraph {
                 }
             }
         }
-        let mut sorted_node_ids = self.nodes.iter()
+        let mut sorted_node_ids = self
+            .nodes
+            .iter()
             .map(|node| node.id.clone())
             .collect::<Vec<_>>();
         sorted_node_ids.sort();
-        let expected_source_side = sorted_node_ids.into_iter()
+        let expected_source_side = sorted_node_ids
+            .into_iter()
             .filter(|node_id| residual_reachable.contains(node_id))
             .collect::<Vec<_>>();
         if result.source_side_nodes != expected_source_side {
@@ -489,9 +506,7 @@ impl FlowGraph {
         let mut sorted_edges = self.edges.iter().collect::<Vec<_>>();
         sorted_edges.sort_by(|a, b| a.id.cmp(&b.id));
         for edge in sorted_edges {
-            if source_side.contains(edge.from.as_str())
-                && !source_side.contains(edge.to.as_str())
-            {
+            if source_side.contains(edge.from.as_str()) && !source_side.contains(edge.to.as_str()) {
                 expected_cut_capacity = expected_cut_capacity
                     .checked_add(edge.capacity)
                     .ok_or_else(|| FlowError::new("verified cut capacity overflowed u64"))?;
@@ -505,12 +520,16 @@ impl FlowGraph {
             }
         }
         if result.min_cut.edges != expected_cut {
-            return Err(FlowError::new("minimum-cut edge set does not match source partition"));
+            return Err(FlowError::new(
+                "minimum-cut edge set does not match source partition",
+            ));
         }
         if result.min_cut.capacity != expected_cut_capacity
             || result.min_cut.capacity != result.max_flow
         {
-            return Err(FlowError::new("minimum-cut capacity does not equal maximum flow"));
+            return Err(FlowError::new(
+                "minimum-cut capacity does not equal maximum flow",
+            ));
         }
         Ok(())
     }
@@ -738,7 +757,11 @@ mod tests {
     /// Independent exhaustive s/t cut enumerator; deliberately does not use
     /// the residual network or Dinic implementation.
     fn exhaustive_min_cut(graph: &FlowGraph) -> u64 {
-        let node_ids = graph.nodes.iter().map(|node| node.id.as_str()).collect::<Vec<_>>();
+        let node_ids = graph
+            .nodes
+            .iter()
+            .map(|node| node.id.as_str())
+            .collect::<Vec<_>>();
         let source = node_ids.iter().position(|id| *id == graph.source).unwrap();
         let sink = node_ids.iter().position(|id| *id == graph.sink).unwrap();
         let mut best = u64::MAX;
@@ -872,12 +895,17 @@ mod tests {
         assert_eq!(result.min_cut.capacity, 2);
         candidate.verify_result(&result).unwrap();
 
-        let flows = result.edge_flows.iter()
+        let flows = result
+            .edge_flows
+            .iter()
             .map(|edge| (edge.id.as_str(), edge.flow))
             .collect::<BTreeMap<_, _>>();
         assert_eq!(flows["00-s-a"], 1);
         assert_eq!(flows["01-s-b"], 1);
-        assert_eq!(flows["02-a-x"], 0, "the first augmentation must be cancelled through a reverse residual arc");
+        assert_eq!(
+            flows["02-a-x"], 0,
+            "the first augmentation must be cancelled through a reverse residual arc"
+        );
         assert_eq!(flows["03-a-y"], 1);
         assert_eq!(flows["04-b-x"], 1);
         assert_eq!(flows["05-x-t"], 1);
@@ -999,7 +1027,9 @@ mod tests {
         assert!(candidate.solve().is_err());
 
         let mut candidate = graph(3, &[(0, 1, 1)]);
-        candidate.edges.push(FlowEdge::new("dangling", "n1", "missing", 1, None));
+        candidate
+            .edges
+            .push(FlowEdge::new("dangling", "n1", "missing", 1, None));
         assert!(candidate.solve().is_err());
     }
 
@@ -1009,7 +1039,10 @@ mod tests {
         let result = candidate.solve().unwrap();
         assert_eq!(result.max_flow, 4);
         assert_eq!(result.min_cut.capacity, 4);
-        assert_eq!(result.edge_flows.iter().map(|edge| edge.flow).sum::<u64>(), 8);
+        assert_eq!(
+            result.edge_flows.iter().map(|edge| edge.flow).sum::<u64>(),
+            8
+        );
         candidate.verify_result(&result).unwrap();
     }
 }
