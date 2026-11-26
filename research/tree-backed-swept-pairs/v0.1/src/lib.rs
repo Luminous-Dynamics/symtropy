@@ -1,19 +1,23 @@
-//! Tree-backed qualification adapter for replayable swept motion envelopes.
+//! Tree-backed qualification and stateful broadphase references for
+//! replayable swept motion envelopes.
 //!
-//! The adapter builds an incremental-AABB-tree reference from conservative
-//! motion envelopes, queries the tree for supported-supported pairs, and adds
-//! all fail-closed fallback pairs from the O(n²) swept-pair oracle.
+//! The one-shot adapter reconstructs a deterministic tree for a single frame.
+//! The stateful adapter preserves the tree across frames and applies
+//! insert/update/remove operations while comparing each frame against the
+//! independent O(n²) swept-pair oracle.
 //!
-//! This first version intentionally rebuilds a reference tree per call. Its
-//! purpose is to cross-check tree output and preserve a reproducible receipt;
-//! it is not yet an incremental runtime broadphase or a performance claim.
+//! Both are qualification/reference paths, not engine integrations or measured
+//! performance claims. The stateful receipt retains full frame history and a
+//! SHA-256 history commitment so replay inputs are tamper-evident. The
+//! commitment is not a signature; an external trusted root is needed for
+//! authenticity against coordinated receipt replacement.
 //!
 //! The tree implementation is pinned to the exact #7524 revision so the
 //! balancing policy and its behavior are part of the qualification contract.
 
 use directional_motion_envelopes::{
     Aabb as MotionAabb, ColliderIdentity, EnvelopeContext, EnvelopeReceipt,
-    IntegrationParticipation, IntegratorEnvelopeReceipt, MotionKind, SemiImplicitEulerMotion,
+    IntegrationParticipation, IntegratorEnvelopeReceipt, MotionKind,
 };
 use sha2::{Digest as Sha2Digest, Sha256};
 use incremental_aabb_tree_reference::{
@@ -755,18 +759,22 @@ impl<const D: usize> TreeBackedBroadphase<D> {
         let pair_query = self.tree.query_pairs();
         let mut tree_candidates = Vec::with_capacity(pair_query.pairs.len());
         for pair in &pair_query.pairs {
-            let (left, left_group, left_mask) = metadata
-                .get(&pair.0)
-                .ok_or(TreePairSetError::MissingProxyIdentity)?;
-            let (right, right_group, right_mask) = metadata
-                .get(&pair.1)
-                .ok_or(TreePairSetError::MissingProxyIdentity)?;
-            let left_bounds = desired_bounds
-                .get(&pair.0)
-                .ok_or(TreePairSetError::MissingProxyIdentity)?;
-            let right_bounds = desired_bounds
-                .get(&pair.1)
-                .ok_or(TreePairSetError::MissingProxyIdentity)?;
+            let Some((left, left_group, left_mask)) = metadata.get(&pair.0) else {
+                self.poisoned = true;
+                return Err(TreePairSetError::MissingProxyIdentity);
+            };
+            let Some((right, right_group, right_mask)) = metadata.get(&pair.1) else {
+                self.poisoned = true;
+                return Err(TreePairSetError::MissingProxyIdentity);
+            };
+            let Some(left_bounds) = desired_bounds.get(&pair.0) else {
+                self.poisoned = true;
+                return Err(TreePairSetError::MissingProxyIdentity);
+            };
+            let Some(right_bounds) = desired_bounds.get(&pair.1) else {
+                self.poisoned = true;
+                return Err(TreePairSetError::MissingProxyIdentity);
+            };
 
             // The tree may retain an older, larger leaf when a new envelope
             // remains inside it. Refine against the current verified envelopes
