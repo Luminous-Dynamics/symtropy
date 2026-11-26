@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 //! Small analytical and independent-reference VVUQ seed for `symtropy-physics`.
 //!
 //! The suite is intentionally narrower than the engine's public API:
@@ -174,15 +175,9 @@ fn transformed_obb_gjk_matches_seeded_independent_sat_reference() {
 
         if observed && !expected {
             false_positives += 1;
-            panic!(
-                "false-positive transformed GJK case {case_id}: angles=({angle_a},{angle_b}), center_b={center_b:?}"
-            );
         }
         if !observed && expected {
             false_negatives += 1;
-            panic!(
-                "false-negative transformed GJK case {case_id}: angles=({angle_a},{angle_b}), center_b={center_b:?}"
-            );
         }
 
         // Negative control: deliberately drop both rotations. The corpus must
@@ -201,8 +196,14 @@ fn transformed_obb_gjk_matches_seeded_independent_sat_reference() {
         }
     }
 
-    assert_eq!(false_positives, 0);
-    assert_eq!(false_negatives, 0);
+    assert_eq!(
+        false_positives, 0,
+        "transformed GJK false positives across {CASES} cases"
+    );
+    assert_eq!(
+        false_negatives, 0,
+        "transformed GJK false negatives across {CASES} cases"
+    );
     assert!(
         translation_only_disagreements > CASES / 10,
         "negative control was too weak: only {translation_only_disagreements}/{CASES} translation-only cases disagreed"
