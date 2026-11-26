@@ -68,6 +68,10 @@ The candidate cannot dispatch, retry, fence an endpoint, append evidence, adjudi
 
 A candidate may conservatively retain every possible world. This should preserve support coverage but often leads to high worst-case decision loss. A narrow support may reduce worst-case loss but is penalized when it excludes evaluator truth. This creates a real calibration/utility trade-off rather than rewarding confident guessing.
 
+### Evidence refinement invariant (required for sequential extensions)
+
+Across successive decisions in one attempt, admitted evidence may narrow the candidate's possible-world support only when the evidence is valid, decision-cut-bounded, scope-matched and its outcome support excludes the removed worlds. Stale, missing, unknown, disputed, correlated-but-unmodelled or wrong-scope observations must never shrink the support set; they preserve uncertainty or force abstention. Contradictory evidence must expand the support or produce a typed conflict/abstention rather than silently overwrite the prior history. The v0.1 artifact schema is one immutable decision snapshot; a sequential v0.2 trace will bind predecessor report digests and test this monotonicity rule explicitly.
+
 ### Scope-closure receipt and the open-world residual
 
 The separate schema schemas/aerb_scope_closure_receipt_v0_1.schema.json defines a receipt for a claimed complete inventory of effect-producing components, command holders and forwarding edges within one declared execution scope. The receipt is admissible for narrowing open_world_residual only when:
@@ -165,8 +169,9 @@ Do not aggregate these into one score:
 
 **Epistemic integrity**
 - hidden truth retained in the candidate's possible-world support;
-- unsupported world elimination;
-- abstention precision/recall and coverage;
+- support-set size and world-support precision/recall by regime;
+- unsupported world elimination and invalid evidence-driven support shrinkage;
+- abstention precision/recall and risk-versus-coverage;
 - decision-cut/future leakage;
 - clock-domain and source-role confusion.
 
