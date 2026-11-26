@@ -91,7 +91,10 @@ pub struct Action {
 pub struct KernelProfile {
     pub profile_id: String,
     pub profile_revision: String,
+    pub receipt_sha256: String,
+    pub source_state: SourceState,
     pub allowed_outcomes: Vec<String>,
+    pub required_owners: Vec<OwnerKind>,
     pub missingness_semantics_declared: bool,
     pub action_realization_required: bool,
 }
@@ -317,9 +320,17 @@ fn validate_case_shape(case: &Case) -> Result<(), String> {
     }
     if !valid_text(&case.kernel.profile_id)
         || !valid_text(&case.kernel.profile_revision)
+        || !valid_sha256(&case.kernel.receipt_sha256)
         || case.kernel.allowed_outcomes.is_empty()
+        || case.kernel.required_owners.is_empty()
     {
         return Err("KERNEL_PROFILE_INVALID".to_owned());
+    }
+    let mut kernel_required_owners = BTreeSet::new();
+    for owner in &case.kernel.required_owners {
+        if !kernel_required_owners.insert(*owner) {
+            return Err("KERNEL_REQUIRED_OWNER_DUPLICATE".to_owned());
+        }
     }
     if !valid_text(&case.outcome.kind) || !valid_sha256(&case.outcome.outcome_record_sha256) {
         return Err("OUTCOME_RECORD_INVALID".to_owned());
@@ -375,17 +386,18 @@ fn validate_case_shape(case: &Case) -> Result<(), String> {
         if !valid_sha256(&binding.receipt_sha256) {
             return Err("OWNER_RECEIPT_DIGEST_INVALID".to_owned());
         }
-        if binding.source_state != SourceState::Current {
-            continue;
+        let profile_requires_owner = kernel_required_owners.contains(&binding.owner);
+        if binding.required != profile_requires_owner {
+            return Err("OWNER_REQUIRED_FLAG_DOES_NOT_MATCH_KERNEL_PROFILE".to_owned());
         }
-        if binding.required && binding.state == GateState::NotRequired {
+        if profile_requires_owner && binding.state == GateState::NotRequired {
             return Err("REQUIRED_OWNER_MARKED_NOT_REQUIRED".to_owned());
         }
-        if !binding.required && binding.state != GateState::NotRequired {
+        if !profile_requires_owner && binding.state != GateState::NotRequired {
             return Err("OPTIONAL_OWNER_HAS_GATE_STATE".to_owned());
         }
     }
-    for owner in required_owner_kinds() {
+    for owner in &kernel_required_owners {
         if !owners.contains(owner) {
             return Err(format!("OWNER_BINDING_MISSING:{owner:?}").to_ascii_uppercase());
         }
@@ -423,6 +435,9 @@ fn evaluate_case(case: &Case) -> CaseResult {
     }
 
     let owners = owner_results(case);
+    if case.kernel.source_state != SourceState::Current {
+        return abstain_case(case, "KERNEL_PROFILE_SOURCE_NOT_CURRENT", owners);
+    }
     if case.scope_disposition == ScopeDisposition::InvalidInput {
         return invalid_case(case, "SCOPE_RECEIPT_INVALID");
     }
