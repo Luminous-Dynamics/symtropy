@@ -97,6 +97,16 @@ An event whose effective-time interval is definitely later than every possible a
 
 The interval comparator is owned by `effectivity_interval_v0_1.rs` and is now consumed directly by the v0.2 specimen/calibration evaluator. The interval primitive is not a second clock, receipt ledger or event store. The positive disposition ceiling remains `METROLOGY_BINDING_CONSISTENT_ONLY`, never physical qualification.
 
+#### 2.3.2 Output and disposition semantics
+
+Each measurement disposition separates blocking reasons from events that were observed in the supplied event history but do not apply to the subject-time acquisition:
+
+- `reasons` contains blocking/qualification reasons. An ambiguous boundary or contradictory retroactivity claim appears here and prevents a positive binding disposition.
+- `non_applicable_event_ids` is a sorted, deterministic list of event identities that are known within the selected source-recorded snapshot but are definitely future at that snapshot or definitely later than the observation's full acquisition interval. These events are not applied to the historical observation, but are not silently discarded from the report.
+- An event with `recorded_at_unix_ms` later than the evaluation snapshot is not allowed to affect that AS-KNOWN source-recorded view. This evaluator does not claim that `recorded_at_unix_ms` proves receiver knowledge; the future receiver-first-seen adapter remains outside this profile.
+
+A non-applicable event does not, by itself, change `METROLOGY_BINDING_CONSISTENT_ONLY` to a blocked state. It is a chronology fact, not a positive finding about the calibration. A missing event source, incomplete event history or ambiguous effective-time interval must remain separately represented as unresolved; callers must not infer event-history completeness from an empty `non_applicable_event_ids` list.
+
 ### 2.4 Append-only calibration events
 
 The calibration_events collection preserves revoked, suspended, corrected and superseded events, with:
