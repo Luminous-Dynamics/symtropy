@@ -1,0 +1,13 @@
+[package]
+name = "magnetic-active-metrology"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "MIT"
+publish = false
+description = "Deterministic decision-directed scan planning for magnetic field metrology"
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
