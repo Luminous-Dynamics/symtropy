@@ -45,11 +45,17 @@ pub struct DerivativeReferenceIdentity {
     pub implementation_id: String,
     pub source_revision: String,
     pub artifact_sha256: String,
+    pub input_sha256: String,
+    pub direction_sha256: String,
     pub method: ReferenceMethod,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct CentralDifferenceObservation {
+    pub plus_observation_id: String,
+    pub minus_observation_id: String,
+    pub plus_input_sha256: String,
+    pub minus_input_sha256: String,
     pub step_size: f64,
     pub plus_objective_value: f64,
     pub minus_objective_value: f64,
@@ -59,8 +65,10 @@ pub struct CentralDifferenceObservation {
 pub struct DirectionalDerivativeTrial {
     pub trial_id: String,
     pub input_sha256: String,
+    pub base_observation_id: String,
     /// Unit vector in the exact parameterization named by KernelProvenance.
     pub direction: Vec<f64>,
+    pub direction_sha256: String,
     pub base_objective_value: f64,
     pub autodiff_directional_derivative: f64,
     pub reference_directional_derivative: f64,
@@ -132,6 +140,9 @@ pub enum QualificationError {
     InvalidTrialInputDigest,
     InvalidReferenceIdentity,
     ReferenceImplementationNotIndependent,
+    ReferenceInputIdentityMismatch,
+    DuplicateObservationId,
+    PerturbationInputIdentityMismatch,
     DirectionDimensionMismatch,
     NonFiniteTrialValue,
     InvalidDirection,
