@@ -1135,4 +1135,172 @@ mod tests {
 
         assert_eq!(worlds_checked, 729);
     }
+
+    /// Exhaustively extend the differential oracle to three possible outcomes.
+    /// There are 3^3 decision-label assignments and 7^3 non-empty support
+    /// subsets over three outcomes for each of three witnesses.
+    #[test]
+    fn exhaustive_three_witness_three_outcome_oracle_agreement() {
+        fn pair_conflicts(classes: &[u32]) -> u128 {
+            let mut conflicts = 0_u128;
+            for left in 0..classes.len() {
+                for right in (left + 1)..classes.len() {
+                    if classes[left] != classes[right] {
+                        conflicts += 1;
+                    }
+                }
+            }
+            conflicts
+        }
+
+        fn brute_force_worst_conflicts(classes: &[u32], support_masks: &[u8]) -> u128 {
+            [1_u8, 2_u8, 3_u8]
+                .into_iter()
+                .map(|outcome_id| {
+                    let outcome_bit = 1_u8 << (outcome_id - 1);
+                    let surviving = classes
+                        .iter()
+                        .zip(support_masks)
+                        .filter_map(|(class_id, mask)| {
+                            (mask & outcome_bit != 0).then_some(*class_id)
+                        })
+                        .collect::<Vec<_>>();
+                    pair_conflicts(&surviving)
+                })
+                .max()
+                .unwrap_or(0)
+        }
+
+        let mut worlds_checked = 0_usize;
+        for partition_code in 0_u32..27 {
+            let mut encoded_partition = partition_code;
+            let classes = (0..3)
+                .map(|_| {
+                    let class_id = encoded_partition % 3;
+                    encoded_partition /= 3;
+                    class_id
+                })
+                .collect::<Vec<_>>();
+            let baseline_conflicts = pair_conflicts(&classes);
+
+            for support_code in 0_u32..343 {
+                let mut encoded_supports = support_code;
+                // Each mask is 1..=7: every non-empty subset of three outcomes.
+                let support_masks = (0..3)
+                    .map(|_| {
+                        let mask = (encoded_supports % 7 + 1) as u8;
+                        encoded_supports /= 7;
+                        mask
+                    })
+                    .collect::<Vec<_>>();
+                let hypotheses = (0..3)
+                    .map(|index| DecisionHypothesisProjectionV0 {
+                        hypothesis_id: index as u32 + 1,
+                        decision_class_id: classes[index],
+                    })
+                    .collect::<Vec<_>>();
+                let mut outcome_supports = Vec::new();
+                let mut truth_outcome_supports = Vec::new();
+                let mut admissible_hypotheses = Vec::new();
+                let bindings = (0..3)
+                    .map(|index| CandidateWitnessBindingV0 {
+                        candidate_hypothesis_id: index as u32 + 1,
+                        witness_key: Some(100 + index as u64),
+                    })
+                    .collect::<Vec<_>>();
+
+                for index in 0..3 {
+                    let witness_key = 100 + index as u64;
+                    admissible_hypotheses.push(GroundTruthHypothesisV0 {
+                        witness_key,
+                        decision_class_id: classes[index],
+                    });
+                    for (outcome_index, outcome_bit) in [1_u8, 2_u8, 4_u8].into_iter().enumerate() {
+                        if support_masks[index] & outcome_bit != 0 {
+                            let outcome_id = outcome_index as u32 + 1;
+                            outcome_supports.push(DecisionProbeOutcomeSupportV0 {
+                                probe_id: 7,
+                                hypothesis_id: index as u32 + 1,
+                                possible_outcome_id: outcome_id,
+                            });
+                            truth_outcome_supports.push(GroundTruthProbeOutcomeSupportV0 {
+                                probe_id: 7,
+                                witness_key,
+                                possible_outcome_id: outcome_id,
+                            });
+                        }
+                    }
+                }
+
+                let problem = DecisionDisambiguationProblemV0 {
+                    hypotheses,
+                    probes: vec![DecisionProbeOptionV0 {
+                        probe_id: 7,
+                        cost_units: 1,
+                        latency_ticks: 1,
+                    }],
+                    outcome_supports,
+                    remaining_cost_units: 1,
+                    remaining_latency_ticks: 1,
+                };
+                let ground_truth = DecisionDisambiguationGroundTruthV0 {
+                    admissible_hypotheses,
+                    probe_outcome_supports: truth_outcome_supports,
+                };
+                let selected = select_decision_sufficient_probe_v0(&problem).unwrap();
+                let report = evaluate_decision_disambiguation_claim_v0(
+                    &problem,
+                    &selected,
+                    &bindings,
+                    &ground_truth,
+                )
+                .unwrap();
+
+                let actual_worst = brute_force_worst_conflicts(&classes, &support_masks);
+                assert!(report.candidate_policy_result_matches_problem);
+                assert_eq!(report.correctly_bound_hypotheses, 3);
+                assert_eq!(report.false_excluded_hypotheses, 0);
+                assert_eq!(report.false_included_hypotheses, 0);
+                assert_eq!(report.false_decision_equivalence_pairs, 0);
+                assert_eq!(report.false_decision_split_pairs, 0);
+                assert_eq!(report.missed_probe_outcome_supports, 0);
+                assert_eq!(report.spurious_probe_outcome_supports, 0);
+                assert_eq!(report.actual_baseline_conflicting_pairs, baseline_conflicts);
+
+                match selected {
+                    DecisionDisambiguationResultV0::DecisionSufficient { .. } => {
+                        assert_eq!(baseline_conflicts, 0);
+                        assert!(report.decision_sufficiency_is_valid);
+                        assert!(!report.false_decision_sufficiency_claim);
+                    }
+                    DecisionDisambiguationResultV0::ProbeSelected {
+                        worst_case_conflicting_pairs,
+                        ..
+                    } => {
+                        assert!(baseline_conflicts > 0);
+                        assert_eq!(actual_worst, worst_case_conflicting_pairs);
+                        assert_eq!(
+                            report.actual_worst_case_conflicting_pairs,
+                            Some(actual_worst)
+                        );
+                        assert_eq!(
+                            report.claimed_probe_is_decision_reducing,
+                            Some(actual_worst < baseline_conflicts)
+                        );
+                        assert!(!report.claimed_probe_overstates_improvement);
+                        assert!(!report.unnecessary_abstention);
+                    }
+                    DecisionDisambiguationResultV0::Unresolved { .. } => {
+                        assert!(baseline_conflicts > 0);
+                        assert!(actual_worst >= baseline_conflicts);
+                        assert!(!report.unnecessary_abstention);
+                        assert!(!report.false_decision_sufficiency_claim);
+                    }
+                }
+                worlds_checked += 1;
+            }
+        }
+
+        assert_eq!(worlds_checked, 9_261);
+    }
 }
