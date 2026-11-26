@@ -802,6 +802,34 @@ mod tests {
         }
     }
 
+    fn reseal_action_receipt(
+        root: &Path,
+        replay_json: &str,
+        provenance_json: &str,
+        mutate: impl FnOnce(&mut serde_json::Value),
+    ) -> (String, String) {
+        let mut replay: serde_json::Value = serde_json::from_str(replay_json).expect("replay json");
+        let mut provenance: serde_json::Value =
+            serde_json::from_str(provenance_json).expect("provenance json");
+        let receipt_path = root.join("receipts/action-prefix.json");
+        let mut receipt: serde_json::Value =
+            serde_json::from_slice(&fs::read(&receipt_path).expect("read receipt"))
+                .expect("receipt json");
+        mutate(&mut receipt);
+        let receipt_bytes = serde_json::to_vec(&receipt).expect("receipt bytes");
+        fs::write(&receipt_path, &receipt_bytes).expect("write receipt");
+        let receipt_sha = sha256_hex(&receipt_bytes);
+        provenance["candidates"][0]["action_prefix_receipt_bundle"]["sha256"] =
+            serde_json::json!(receipt_sha);
+        replay["candidates"][0]["action_prefix_receipt_sha256"] =
+            serde_json::json!(receipt_sha);
+        let replay_json = serde_json::to_string(&replay).expect("replay json");
+        provenance["replay_manifest_sha256"] =
+            serde_json::json!(sha256_hex(replay_json.as_bytes()));
+        let provenance_json = serde_json::to_string(&provenance).expect("provenance json");
+        (replay_json, provenance_json)
+    }
+
     fn fixture() -> (PathBuf, String, String) {
         let root = temp_root();
         let instruction = write_bytes(&root, "source/instruction.txt", b"Pick up the red block.");
@@ -987,15 +1015,43 @@ mod tests {
     }
 
     #[test]
-    fn action_receipt_wrong_policy_is_rejected() {
+    fn action_receipt_wrong_policy_is_rejected_after_raw_digest_is_resealed() {
         let (root, replay, provenance) = fixture();
-        let path = root.join("receipts/action-prefix.json");
-        let mut value: serde_json::Value = serde_json::from_slice(&fs::read(&path).expect("read")).expect("json");
-        value["attempts"][1]["policy_id"] = serde_json::json!("policy-3");
-        fs::write(path, serde_json::to_vec(&value).expect("json bytes")).expect("replace");
+        let (replay, provenance) = reseal_action_receipt(
+            &root,
+            &replay,
+            &provenance,
+            |receipt| receipt["attempts"][1]["policy_id"] = serde_json::json!("policy-3"),
+        );
         let report = validate_provenance_json(&replay, &provenance, &root).expect("report");
         assert_eq!(report.invalid_n, 1);
-        assert!(report.candidate_reports[0].reason_codes[0].contains("RAW_DIGEST_MISMATCH"));
+        assert_eq!(
+            report.candidate_reports[0].reason_codes[0],
+            "ACTION_PREFIX_RECEIPT_POLICY_ID_MISMATCH"
+        );
+    }
+
+    #[test]
+    fn policy_roster_wrong_policy_is_rejected_after_raw_digest_is_resealed() {
+        let (root, replay, provenance) = fixture();
+        let roster_path = root.join("profiles/policy-roster.json");
+        let mut roster: serde_json::Value =
+            serde_json::from_slice(&fs::read(&roster_path).expect("read roster"))
+                .expect("roster json");
+        roster["policy_ids"][3] = serde_json::json!("unlisted-policy");
+        let roster_bytes = serde_json::to_vec(&roster).expect("roster bytes");
+        fs::write(&roster_path, &roster_bytes).expect("write roster");
+        let mut sidecar: serde_json::Value =
+            serde_json::from_str(&provenance).expect("provenance json");
+        sidecar["candidates"][0]["policy_roster"]["sha256"] =
+            serde_json::json!(sha256_hex(&roster_bytes));
+        let sidecar = serde_json::to_string(&sidecar).expect("sidecar json");
+        let report = validate_provenance_json(&replay, &sidecar, &root).expect("report");
+        assert_eq!(report.invalid_n, 1);
+        assert_eq!(
+            report.candidate_reports[0].reason_codes[0],
+            "POLICY_ROSTER_DOES_NOT_MATCH_DIFFICULTY_SCREEN"
+        );
     }
 
     #[test]
