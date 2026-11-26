@@ -591,7 +591,6 @@ pub fn plan_refinement(
         ));
     }
 
-    let half_widths = evidence.bounds.half_widths_m();
     let mut selected_axis: Option<Axis> = None;
     let mut selected_contribution = 0.0;
     let mut any_axis_wide_enough = false;
