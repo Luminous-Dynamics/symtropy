@@ -307,7 +307,7 @@ pub fn canonical_post_action_event_inventory_digest(
     }
 
     let mut hasher = Sha256::new();
-    hasher.update(b"luminous.orbital-post-action-event-inventory.v0.1\\0");
+    hasher.update(b"luminous.orbital-post-action-event-inventory.v0.1\0");
     hasher.update((ordered.len() as u64).to_be_bytes());
     for event in ordered {
         hasher.update(event.event_id);
@@ -705,6 +705,100 @@ mod tests {
             probability_threshold: rational(1, 10_000),
             resource_capacity: capacity,
         }
+    }
+
+    #[test]
+    fn post_action_event_inventory_digest_is_order_invariant_and_content_bound() {
+        let first = event(10, (1, 2_000_000), (2, 2_000_000));
+        let second = event(11, (1, 3_000_000), (1, 3_000_000));
+        let forward = canonical_post_action_event_inventory_digest(&[
+            first.clone(),
+            second.clone(),
+        ])
+        .unwrap();
+        let reverse =
+            canonical_post_action_event_inventory_digest(&[second, first]).unwrap();
+        let single = canonical_post_action_event_inventory_digest(&[event(
+            10,
+            (1, 2_000_000),
+            (2, 2_000_000),
+        )])
+        .unwrap();
+        let empty = canonical_post_action_event_inventory_digest(&[]).unwrap();
+
+        assert_eq!(forward, reverse);
+        assert_ne!(forward, single);
+        assert_ne!(single, empty);
+        assert_ne!(empty, [0; 32]);
+    }
+
+    #[test]
+    fn post_action_event_inventory_digest_rejects_duplicate_event_identity() {
+        let duplicate = event(10, (1, 2_000_000), (1, 2_000_000));
+        assert_eq!(
+            canonical_post_action_event_inventory_digest(&[
+                duplicate.clone(),
+                duplicate,
+            ]),
+            Err(JointActionCatalogueError::InvalidPortfolioEvidence)
+        );
+    }
+
+    #[test]
+    fn catalogue_emits_one_evidence_record_for_every_selectable_coalition() {
+        let a = [10; 32];
+        let b = [11; 32];
+        let report = evaluate_joint_action_catalogue(config(
+            vec![
+                candidate(11, 1, OPERATOR_A),
+                candidate(10, 1, OPERATOR_A),
+            ],
+            vec![
+                JointActionOutcomeRecord {
+                    action_ids: vec![b],
+                    action_set_digest: canonical_joint_action_set_digest(&[b]).unwrap(),
+                    state: JointActionOutcomeState::Unresolved {
+                        reason_digest: [77; 32],
+                    },
+                },
+                qualified(vec![], 1, vec![], 0),
+                qualified(
+                    vec![a],
+                    2,
+                    vec![event(10, (1, 2_000_000), (1, 2_000_000))],
+                    5,
+                ),
+            ],
+            1,
+        ))
+        .unwrap();
+
+        assert_eq!(report.expected_coalition_count, 3);
+        assert_eq!(report.portfolio_evidence.len(), 3);
+        assert_eq!(report.portfolio_evidence[0].action_ids, Vec::<[u8; 32]>::new());
+        assert_eq!(report.portfolio_evidence[1].action_ids, vec![a]);
+        assert_eq!(report.portfolio_evidence[2].action_ids, vec![b]);
+        assert!(report.portfolio_evidence[0].reconciliation.is_some());
+        assert!(report.portfolio_evidence[1].reconciliation.is_some());
+        assert_ne!(
+            report.portfolio_evidence[1]
+                .post_action_event_inventory_digest
+                .unwrap(),
+            [0; 32]
+        );
+        assert!(report.portfolio_evidence[2].reconciliation.is_none());
+        assert_eq!(
+            report.portfolio_evidence[2].post_action_event_inventory_digest,
+            None
+        );
+        assert!(matches!(
+            report.portfolio_evidence[2].outcome_state,
+            JointActionOutcomeState::Unresolved { reason_digest } if reason_digest == [77; 32]
+        ));
+        assert_eq!(
+            report.disposition,
+            JointActionSelectionDisposition::AbstainIncompleteEvidence
+        );
     }
 
     #[test]
