@@ -1,10 +1,7 @@
 use ergo_stream_microcosm::oracle::{
-    exhaustive_isomorphism_oracle, StructuralWitnessAmbiguityV0,
-    MAX_ORACLE_WITNESS_CLASSES_V0,
+    MAX_ORACLE_WITNESS_CLASSES_V0, StructuralWitnessAmbiguityV0, exhaustive_isomorphism_oracle,
 };
-use ergo_stream_microcosm::transfer::{
-    NodeV0, RelationOrientationV0, RelationV0, StructureV0,
-};
+use ergo_stream_microcosm::transfer::{NodeV0, RelationOrientationV0, RelationV0, StructureV0};
 
 fn edge(
     id: u32,
