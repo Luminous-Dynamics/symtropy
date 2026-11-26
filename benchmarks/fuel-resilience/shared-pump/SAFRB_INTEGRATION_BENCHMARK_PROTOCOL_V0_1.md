@@ -31,6 +31,27 @@ Sources:
 - Siemens Gridscale X: https://www.siemens.com/en-us/products/gridscale-x/
 - NIST SI for Manufacturing / TIDAL: https://www.nist.gov/programs-projects/super-intelligence-si-manufacturing
 - NIST IR 8536: https://csrc.nist.gov/pubs/ir/8536/final 
+### 2.2 Graph-kernel matched solver baselines
+
+The graph algorithm itself is not a novel contribution claim. The v0 kernel uses deterministic integer-capacity Dinic. It must be benchmarked against mature, independently implemented solvers on the *same canonical graph instances*:
+
+| Baseline | Algorithms | Why include it | Comparability constraint |
+|---|---|---|---|
+| Google OR-Tools `SimpleMaxFlow` | OR-Tools' max-flow implementation | Independent established solver; returns per-arc flow and exposes source/sink minimum-cut partitions | Pin exact release/build; use the same integer capacities and explicit node/arc mapping |
+| NetworkX 3.7 `preflow_push` | Highest-label preflow-push | Different algorithmic family and current documented default for `maximum_flow` | Pin exact NetworkX release and explicitly name `flow_func`; do not rely on a changing default |
+| NetworkX 3.7 `dinitz` | Dinitz blocking-flow implementation | Independent implementation of the same broad algorithm family | Pin release; compare value, per-arc flow feasibility and cut equality, not identical witness allocation |
+| NetworkX 3.7 `edmonds_karp` | Edmonds-Karp | Slower but useful as a transparent small-graph cross-check | Use on the exhaustive/small corpus, not as the scale performance target |
+
+Official references: OR-Tools maximum-flow API, including per-arc flow and min-cut access: https://developers.google.com/optimization/flow/maxflow. NetworkX flow algorithms and the `maximum_flow` default/selection semantics: https://networkx.org/documentation/stable/reference/algorithms/flow.html and https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.flow.maximum_flow.html.
+
+**Graph equivalence is a benchmark precondition.** NetworkX documents that `MultiDiGraph` inputs are not supported by its maximum-flow functions. For parallel edges, either use a separately tested capacity-preserving node-splitting transformation with explicit reverse mapping, or exclude those cases from that comparator; never silently coalesce arc identities and then compare an identity-sensitive certificate. OR-Tools and the in-house kernel should retain distinct arc identities. Restrict cross-solver comparisons to the common exact integer range; exercise u64 overflow behavior separately in the Rust kernel's own tests.
+
+**Corpus.** Include (a) all small directed topologies through four nodes, (b) sparse and dense seeded graphs, (c) layered/time-expanded DAGs, (d) shared physical-resource capacity gates, (e) parallel and antiparallel arcs, (f) zero-capacity and disconnected cases, (g) high-capacity/skewed distributions, (h) long paths, and (i) adversarial alias/bypass mutations. Publish the seed, canonical graph digest, graph size, degree distribution, capacity distribution and model class for every case.
+
+**Measurements.** Report solver value, feasible edge-flow witness, independently reconstructed cut capacity, independent certificate verification result, input normalization time, solver time, witness construction time, verifier time, peak memory and p50/p95/p99 over repeated runs. Compare end-to-end adapter+solver+verification separately from the bare algorithm. Report graph sizes and hardware/software versions; no aggregate score may hide a correctness failure.
+
+**Decision rule.** The acceptance target is exact agreement on flow value and cut value over every supported graph, 100% certificate acceptance for valid outputs, and 100% rejection for mutated certificates. Performance goals are workload-specific p95 budgets, not a blanket claim to outrun OR-Tools or NetworkX. If another mature solver is faster for a supported case, use it as the engine behind the same independently verified certificate contract. The intended differentiation is the evidence-bound resource-to-beneficiary service assurance layer, not a new claim to have invented or universally improved max-flow.
+
 ### 2.1 NIST TIDAL: methodology comparator, not a claimed invention
 
 NIST's current SI for Manufacturing programme describes a shared operation test bench spanning discrete, additive and continuous processes, using real equipment and simulators. Its planned benchmark tasks include production planning, scheduling, process monitoring and root-cause analysis. Its integration thread is comparing information architectures including unified namespace over MQTT with knowledge graphs/type models and I3X/OPC UA profiles. The programme names accuracy, latency, cost and grounding as benchmark dimensions, and its fault-diagnosis study prioritizes detection recall ahead of precision. SAFRB should adopt the measurement discipline and context-ablation approach, but must not imply that a SAFRB fixture has been tested on this bench or that its cross-owner service-assurance question replaces NIST's manufacturing scope.
