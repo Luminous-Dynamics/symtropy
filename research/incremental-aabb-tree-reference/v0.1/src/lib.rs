@@ -648,7 +648,7 @@ impl<const D: usize> GeneratedWorkload<D> {
                 ^ frame_index.wrapping_mul(0xd1b5_4a32_d192_ed03);
             let mut random = SplitMix64::new(frame_seed);
             let teleported = random.next_u64() % 10_000 < u64::from(teleport_basis_points);
-            let displacement = if teleported {
+            let displacement: [f64; D] = if teleported {
                 std::array::from_fn(|_| {
                     if random.next_u64() & 1 == 0 {
                         max_displacement * 32.0
