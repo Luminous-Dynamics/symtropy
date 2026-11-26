@@ -740,7 +740,7 @@ fn best_pair_metrics(proposal: &[EventPairV0], truths: &[Vec<EventPairV0>]) -> P
     truths
         .iter()
         .map(|truth| pair_metrics(proposal, truth))
-.max_by(|left, right| left.f1.unwrap_or(0.0).total_cmp(&right.f1.unwrap_or(0.0)))
+        .max_by(|left, right| left.f1.unwrap_or(0.0).total_cmp(&right.f1.unwrap_or(0.0)))
         .unwrap_or(PairMetricsV0 {
             true_positive: 0,
             false_positive: proposal.len(),
@@ -877,8 +877,7 @@ mod tests {
                 .observations
                 .iter()
                 .filter(|observation| {
-                    observation.modality == modality
-                        && observation.kind == ObservationKindV0::Event
+                    observation.modality == modality && observation.kind == ObservationKindV0::Event
                 })
                 .map(|observation| observation.symbol)
                 .collect::<Vec<_>>();
@@ -890,8 +889,7 @@ mod tests {
                 .observations
                 .iter()
                 .filter(|observation| {
-                    observation.modality == modality
-                        && observation.kind == ObservationKindV0::Event
+                    observation.modality == modality && observation.kind == ObservationKindV0::Event
                 })
                 .map(|observation| observation.local_timestamp)
                 .collect::<Vec<_>>();
@@ -899,8 +897,7 @@ mod tests {
                 .observations
                 .iter()
                 .filter(|observation| {
-                    observation.modality == modality
-                        && observation.kind == ObservationKindV0::Event
+                    observation.modality == modality && observation.kind == ObservationKindV0::Event
                 })
                 .map(|observation| observation.local_timestamp)
                 .collect::<Vec<_>>();
