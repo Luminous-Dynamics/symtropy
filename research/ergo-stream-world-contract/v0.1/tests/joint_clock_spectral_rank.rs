@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use ergo_stream_microcosm::joint_clock::{
-    analyze_joint_clock_design_v0, JointClockProblemV0, SensorEventObservationV0,
-    JOINT_CLOCK_RANK_TOLERANCE_V0,
+    JOINT_CLOCK_RANK_TOLERANCE_V0, JointClockProblemV0, SensorEventObservationV0,
+    analyze_joint_clock_design_v0,
 };
 
 fn two_stream_problem(mask: u32) -> JointClockProblemV0 {
@@ -11,8 +11,11 @@ fn two_stream_problem(mask: u32) -> JointClockProblemV0 {
     let local_times = [[0_i64, 10, 30], [5_i64, 10, 20]];
     let mut observations = Vec::new();
 
-    for (stream_index, (stream_id, times)) in
-        stream_ids.iter().copied().zip(local_times.iter()).enumerate()
+    for (stream_index, (stream_id, times)) in stream_ids
+        .iter()
+        .copied()
+        .zip(local_times.iter())
+        .enumerate()
     {
         for (event_index, (event_id, local_timestamp)) in
             event_ids.iter().copied().zip(times.iter()).enumerate()
@@ -66,9 +69,7 @@ fn multistream_problem() -> JointClockProblemV0 {
 
 /// Rebuild the gauge-fixed design from the public problem contract rather than
 /// reading the production module's private design matrix.
-fn independently_build_column_scaled_design(
-    problem: &JointClockProblemV0,
-) -> Vec<Vec<f64>> {
+fn independently_build_column_scaled_design(problem: &JointClockProblemV0) -> Vec<Vec<f64>> {
     let mut stream_ids = problem.stream_ids.clone();
     stream_ids.sort_unstable();
     let mut event_ids = problem.event_ids.clone();
@@ -242,9 +243,8 @@ fn independent_svd_rank(matrix: &[Vec<f64>]) -> usize {
 fn qr_rank_matches_independent_svd_for_every_two_stream_anchor_subset() {
     for mask in 1_u32..(1_u32 << 6) {
         let problem = two_stream_problem(mask);
-        let report =
-            analyze_joint_clock_design_v0(&problem, JOINT_CLOCK_RANK_TOLERANCE_V0)
-                .expect("non-empty anchor subset should produce a design report");
+        let report = analyze_joint_clock_design_v0(&problem, JOINT_CLOCK_RANK_TOLERANCE_V0)
+            .expect("non-empty anchor subset should produce a design report");
         let independent_design = independently_build_column_scaled_design(&problem);
         let svd_rank = independent_svd_rank(&independent_design);
 
@@ -263,9 +263,8 @@ fn qr_rank_matches_independent_svd_for_every_two_stream_anchor_subset() {
 #[test]
 fn full_multistream_design_matches_independent_svd() {
     let problem = multistream_problem();
-    let report =
-        analyze_joint_clock_design_v0(&problem, JOINT_CLOCK_RANK_TOLERANCE_V0)
-            .expect("complete multi-stream design should be analyzable");
+    let report = analyze_joint_clock_design_v0(&problem, JOINT_CLOCK_RANK_TOLERANCE_V0)
+        .expect("complete multi-stream design should be analyzable");
     let independent_design = independently_build_column_scaled_design(&problem);
     let singular_values = singular_values_one_sided_jacobi(&independent_design);
 
@@ -286,9 +285,8 @@ fn single_shared_event_remains_rank_deficient_in_both_auditors() {
     // One paired event supplies two observations but cannot identify the
     // event-time vector plus both inverse-clock parameters.
     let problem = two_stream_problem((1_u32 << 0) | (1_u32 << 3));
-    let report =
-        analyze_joint_clock_design_v0(&problem, JOINT_CLOCK_RANK_TOLERANCE_V0)
-            .expect("the deficient design still has a report");
+    let report = analyze_joint_clock_design_v0(&problem, JOINT_CLOCK_RANK_TOLERANCE_V0)
+        .expect("the deficient design still has a report");
     let independent_design = independently_build_column_scaled_design(&problem);
 
     assert!(report.rank < report.parameter_count);
