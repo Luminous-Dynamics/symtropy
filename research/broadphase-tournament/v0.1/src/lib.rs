@@ -166,6 +166,7 @@ pub struct TournamentRow {
     pub declared_proxy_count: usize,
     pub scene_frames: usize,
     pub backend: &'static str,
+    pub oracle_method: &'static str,
     /// Full-set backends time complete candidate production; the pair cache
     /// times only pair-delta production and reports full-set materialization separately.
     pub output_contract: &'static str,
@@ -457,6 +458,41 @@ fn oracle_pairs<const D: usize>(
         for right_index in (left_index + 1)..frame.len() {
             if overlaps(&frame[left_index].bounds, &frame[right_index].bounds) {
                 let pair = ProxyPair::new(frame[left_index].id, frame[right_index].id)
+                    .ok_or(TournamentError::DuplicateProxyId)?;
+                pairs.insert(pair);
+            }
+        }
+    }
+    Ok(pairs)
+}
+
+/// Exact fixed-axis sweep oracle for scale lanes where O(N^2) all-pairs
+/// enumeration is not practical. Sorting by min-X and stopping once the next
+/// min-X exceeds the current max-X cannot omit a true AABB overlap. Full
+/// D-dimensional overlap is still checked for every X-interval candidate.
+/// This oracle is intentionally independent of the timed SAP backend's
+/// data structures and adaptive axis heuristic; small fixtures cross-check it
+/// against the brute-force oracle.
+fn oracle_pairs_sweep<const D: usize>(
+    frame: &[ProxyFrame<D>],
+) -> Result<BTreeSet<ProxyPair>, TournamentError> {
+    validate_frame(frame)?;
+    let mut ordered: Vec<_> = frame.iter().collect();
+    ordered.sort_by(|left, right| {
+        left.bounds
+            .min()[0]
+            .total_cmp(&right.bounds.min()[0])
+            .then_with(|| left.id.cmp(&right.id))
+    });
+
+    let mut pairs = BTreeSet::new();
+    for left_index in 0..ordered.len() {
+        for right_index in (left_index + 1)..ordered.len() {
+            if ordered[right_index].bounds.min()[0] > ordered[left_index].bounds.max()[0] {
+                break;
+            }
+            if overlaps(&ordered[left_index].bounds, &ordered[right_index].bounds) {
+                let pair = ProxyPair::new(ordered[left_index].id, ordered[right_index].id)
                     .ok_or(TournamentError::DuplicateProxyId)?;
                 pairs.insert(pair);
             }
@@ -1186,6 +1222,7 @@ fn run_backend<const D: usize>(
     scene: &TemporalScene<D>,
     oracle: &[BTreeSet<ProxyPair>],
     backend: BackendKind,
+    oracle_method: &'static str,
     repetitions: u32,
 ) -> Result<TournamentRow, TournamentError> {
     let campaign_start = Instant::now();
@@ -1499,6 +1536,7 @@ fn run_backend<const D: usize>(
         declared_proxy_count: scene.declared_proxy_count,
         scene_frames: scene.frames.len(),
         backend: backend.name(),
+        oracle_method,
         output_contract: if matches!(
             backend,
             BackendKind::PairDeltaCache | BackendKind::IndexedPairDeltaCache
@@ -1549,26 +1587,80 @@ pub fn run_tournament<const D: usize>(
 
     BackendKind::ALL
         .into_iter()
-        .map(|backend| run_backend(scene, &oracle, backend, config.repetitions))
+        .map(|backend| {
+            run_backend(
+                scene,
+                &oracle,
+                backend,
+                "brute_force_all_pairs",
+                config.repetitions,
+            )
+        })
+        .collect()
+}
+
+/// Scale-oriented temporal tournament. It uses an exact independent fixed-X
+/// sweep oracle so large sparse and sleeping-heavy populations can be checked
+/// without materializing every possible pair. The small-scene campaign remains
+/// brute-force-oracled; no backend is scored by an incomplete candidate list.
+pub fn run_scale_tournament<const D: usize>(
+    scene: &TemporalScene<D>,
+    config: TournamentConfig,
+) -> Result<Vec<TournamentRow>, TournamentError> {
+    if config.repetitions == 0 {
+        return Err(TournamentError::InvalidRepetitions);
+    }
+    if scene.frames.is_empty() {
+        return Err(TournamentError::EmptyScene);
+    }
+
+    let oracle = scene
+        .frames
+        .iter()
+        .map(|frame| oracle_pairs_sweep(frame))
+        .collect::<Result<Vec<_>, _>>()?;
+    let backends = [
+        BackendKind::SweepAndPrune,
+        BackendKind::TreePerLeafUnbalanced,
+        BackendKind::TreeSelfPairUnbalanced,
+        BackendKind::TreePerLeafBalanced,
+        BackendKind::TreeSelfPairBalanced,
+        BackendKind::PairDeltaCache,
+        BackendKind::IndexedPairDeltaCache,
+        BackendKind::MortonLbvhAabbAdapter,
+    ];
+
+    backends
+        .into_iter()
+        .map(|backend| {
+            run_backend(
+                scene,
+                &oracle,
+                backend,
+                "fixed_x_exact_sweep",
+                config.repetitions,
+            )
+        })
         .collect()
 }
 
 impl TournamentRow {
     #[must_use]
     pub fn csv_header() -> &'static str {
-        "family,dimension,seed,declared_proxy_count,scene_frames,backend,output_contract,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,event_mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,p50_pair_materialize_ns,p95_pair_materialize_ns,p99_pair_materialize_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,tree_rotations,pair_cache_dirty_proxies,pair_cache_overlap_tests,pair_events_added,pair_events_removed,pair_cache_peak_pairs,lbvh_builds,lbvh_internal_nodes,lbvh_bruteforce_fallback_frames,max_tree_height,max_tree_nodes,max_active_proxies,pair_revalidations,dirty_snapshot_entries_visited,frontier_proxy_visits,frontier_pair_candidates,frontier_unique_pairs,frontier_node_visits,frontier_leaf_tests,frontier_aabb_tests,frontier_index_mutations,frontier_index_reinsertions"
+        "family,dimension,seed,declared_proxy_count,scene_frames,backend,oracle_method,output_contract,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,event_mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,p50_pair_materialize_ns,p95_pair_materialize_ns,p99_pair_materialize_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,tree_rotations,pair_cache_dirty_proxies,pair_cache_overlap_tests,pair_events_added,pair_events_removed,pair_cache_peak_pairs,lbvh_builds,lbvh_internal_nodes,lbvh_bruteforce_fallback_frames,max_tree_height,max_tree_nodes,max_active_proxies,pair_revalidations,dirty_snapshot_entries_visited,frontier_proxy_visits,frontier_pair_candidates,frontier_unique_pairs,frontier_node_visits,frontier_leaf_tests,frontier_aabb_tests,frontier_index_mutations,frontier_index_reinsertions"
     }
 
     #[must_use]
     pub fn to_csv(&self) -> String {
         format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             self.family,
             self.dimension,
             self.seed,
             self.declared_proxy_count,
             self.scene_frames,
             self.backend,
+            self.oracle_method,
             self.output_contract,
             self.repetitions,
             self.frame_samples,
