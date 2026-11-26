@@ -91,7 +91,43 @@ No hash, retrieval date, byte count or data revision may be invented or copied f
 
 Keep raw input files outside Git. Benchmark receipts should refer to content-addressed local artifacts or an access-controlled object store, not embed bulk data.
 
-## 5. Staged implementation plan
+## 5. Standards and parser-profile control
+
+The benchmark's March 2026 user guide predates the September 2026 consolidated CCSDS 502.0-B-3 edition. Pin the exact profile used by each run; do not label a parser merely "OCM-compatible".
+
+Relevant published baselines:
+- TraCSS OCM Specification 002, Release 2.1, dated August 6, 2025: [official PDF](https://space.commerce.gov/wp-content/uploads/2026/01/TraCSS_SE_SPEC_002_v2.1.pdf).
+- CCSDS 502.0-B-3, Orbit Data Messages, April 2023, with Technical Corrigendum 1 issued June 2026 and published September/October 2026: [consolidated current Blue Book](https://ccsds.org/wp-content/uploads/gravity_forms/5-448e85c647331d9cbaf66c096458bdd5/2026/10/502x0b3e2tc11.pdf?gv-iframe=true).
+
+The CCSDS Corrigendum 1 changes relevant to a trustworthy OCM parser include:
+
+1. **Multiple trajectory/covariance histories.** `TRAJ_ID` is conditional in trajectory state time histories when covariance histories are supplied and multiple trajectory histories occur in one OCM. `TRAJ_ID` is also conditional in covariance histories and is required when multiple trajectory and/or covariance blocks occur. It pairs covariance with the corresponding trajectory history. A parser must not join blocks by order or nearest timestamp when the declared IDs are missing or ambiguous.
+2. **Time- versus event-based covariance.** `CARTPV` is a 6×6 position/velocity covariance for data tagged to a specific time. `TCARTPV` is a 7×7 covariance that includes time uncertainty before position and velocity uncertainty, useful for event-driven uncertainty. Reject a matrix whose dimension or semantics do not match `COV_TYPE`; do not drop the time component or coerce it into a 6×6 covariance.
+3. **User-defined sequences.** Where an accompanying ICD defines and enables them, `USER_DEFINED_COMPOSITION_YYY` introduces ordered data lines. The schema is ICD-defined; entries must be monotonically increasing (e.g. by time, event or sample number) and the sequence ends at another user-defined keyword or `USER_STOP`. Without the associated ICD, the sequence cannot be interpreted as a standardized physical quantity.
+4. **Covariance quality.** Record covariance ordering, units, reference frame and frame epoch. The Blue Book warns that inadequate precision or inappropriate component-wise covariance interpolation can produce non-PSD covariances; report such conditions explicitly rather than silently repairing them.
+
+The TraCSS OCM Release 2.1 profile and consolidated CCSDS profile are not interchangeable:
+- Implement the TraCSS subset and restrictions specified for this benchmark data.
+- Maintain a separately versioned CCSDS 502.0-B-3 + Corrigendum 1 compatibility path.
+- Do not infer that publication of a specification proves a live TraCSS service has deployed or accepts every new feature. The parser's standards conformance, dataset compatibility and any live endpoint's acceptance profile must be separately identified.
+
+### Additional corrigendum-specific adversarial controls
+
+- multiple `TRAJ_START` blocks with missing `TRAJ_ID` while covariance data are present;
+- multiple trajectory bases with missing trajectory IDs;
+- multiple `COV_START` blocks and missing covariance `TRAJ_ID`;
+- covariance `TRAJ_ID` referring to no trajectory block or to more than one block;
+- valid multiple blocks with correctly paired IDs but differing time tags;
+- a 6×6 matrix declared as `TCARTPV` or a 7×7 matrix declared as `CARTPV`;
+- time uncertainty accidentally dropped from `TCARTPV`;
+- covariance ordering mismatch (LTM, UTM, FULL, LTMWCC, UTMWCC);
+- user-defined event/time sequence without an ICD;
+- non-monotonic sequence, malformed composition row or missing `USER_STOP`;
+- sequence termination by another `USER_DEFINED_[…]` keyword;
+- valid `USER_STOP` followed by unrelated metadata;
+- parser silently accepting a feature from CCSDS Corrigendum 1 when running in a frozen pre-corrigendum profile, or rejecting it when the selected profile explicitly allows it.
+
+## 6. Staged implementation plan
 
 ### Stage A — source and configuration preflight
 
@@ -157,7 +193,7 @@ Use a second implementation to challenge:
 
 The receipt must bind exact Symtropy commit, dataset artifact digests, user-guide digest, parser version, configuration, answer-key digest, benchmark environment, output digest and challenger version.
 
-## 6. Adversarial known-answer corpus
+## 7. Adversarial known-answer corpus
 
 At minimum, test:
 - candidate OCM screened against the nominal OCM for the same designator;
@@ -183,7 +219,7 @@ At minimum, test:
 - dataset size/version discrepancy not reconciled;
 - an answer-key omission incorrectly treated as proof of real-world universe completeness.
 
-## 7. Acceptance criteria
+## 8. Acceptance criteria
 
 Prospective targets for this finite diagnostic corpus:
 - deterministic parse and normalized output for identical bytes/configuration;
@@ -198,7 +234,7 @@ Prospective targets for this finite diagnostic corpus:
 
 These targets do not convert the answer key into exhaustive ground truth or qualify operational collision avoidance.
 
-## 8. Relationship to Symtropy research
+## 9. Relationship to Symtropy research
 
 This is an external screening/reference corpus for:
 - [#7503 — mission-level encounter risk](https://github.com/Luminous-Dynamics/symtropy/pull/7503);
