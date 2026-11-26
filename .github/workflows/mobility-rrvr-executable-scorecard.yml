@@ -1,0 +1,59 @@
+name: RRVR Executable Scorecard v0.1
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-executable-scorecard-v0-1
+    paths:
+      - "research/mobility-rrvr-benchmark-v0.2/evaluator/**"
+      - ".github/workflows/mobility-rrvr-executable-scorecard.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-benchmark-v0.2/evaluator/**"
+      - ".github/workflows/mobility-rrvr-executable-scorecard.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  executable-scorecard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Validate JSON syntax and fixture invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-benchmark-v0.2/evaluator"
+          jq empty "$ROOT/schemas/rrvr_results_v0_1.schema.json"
+          jq empty "$ROOT/fixtures/rrvr_results_v0_1.json"
+          jq -e '
+            .schema_version == "0.1"
+            and .benchmark == "RRVR-EXECUTABLE-RESULTS"
+            and (.claim_ceiling | length >= 40)
+            and (.episodes | length == 4)
+            and ([.episodes[].episode_id] | unique | length == 4)
+            and ([.episodes[].pair_id] | unique | length == 2)
+            and all(.episodes[]; .native_benchmark_preserved == true)
+            and all(.episodes[]; (.matching.policy_sha256 | test("^[a-fA-F0-9]{64}$")))
+            and all(.episodes[]; (.matching.scene_sha256 | test("^[a-fA-F0-9]{64}$")))
+            and all(.episodes[]; (.clusters.hardware_profile_sha256 | test("^[a-fA-F0-9]{64}$")))
+          ' "$ROOT/fixtures/rrvr_results_v0_1.json"
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path research/mobility-rrvr-benchmark-v0.2/evaluator/Cargo.toml -- --check
+
+      - name: Execute raw-record scorecard known-answer fixture
+        run: cargo run --locked --manifest-path research/mobility-rrvr-benchmark-v0.2/evaluator/Cargo.toml --bin rrvr_benchmark_evaluate -- research/mobility-rrvr-benchmark-v0.2/evaluator/fixtures/rrvr_results_v0_1.json
+
+      - name: Run evaluator tests
+        run: cargo test --locked --manifest-path research/mobility-rrvr-benchmark-v0.2/evaluator/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/mobility-rrvr-benchmark-v0.2/evaluator/Cargo.toml --all-targets -- -D warnings

@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/results-v0.1.schema.json",
+  "title": "RRVR Raw Episode Results v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "benchmark", "campaign_id", "claim_ceiling", "oracle_revision", "episodes"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "benchmark": { "const": "RRVR-EXECUTABLE-RESULTS" },
+    "campaign_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "claim_ceiling": { "type": "string", "minLength": 40 },
+    "oracle_revision": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "episodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/episode" }
+    }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+    "text": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+    "disposition": { "enum": ["applied", "no_effect", "partial", "unknown", "disputed", "not_applicable"] },
+    "optionalBoolean": { "type": ["boolean", "null"] },
+    "latency": { "type": ["number", "null"], "minimum": 0 },
+    "episode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["episode_id", "pair_id", "arm_id", "qualification_tier", "native_benchmark_preserved", "matching", "clusters", "fault", "outcome", "assurance", "latencies_ms"],
+      "properties": {
+        "episode_id": { "$ref": "#/$defs/text" },
+        "pair_id": { "$ref": "#/$defs/text" },
+        "arm_id": { "enum": ["native", "east_validity", "roborecover_deviation", "restart_retry", "journal_only", "journal_injector", "endpoint_fenced", "graph_temporal_closure", "full_rrvr"] },
+        "qualification_tier": { "$ref": "#/$defs/text" },
+        "native_benchmark_preserved": { "const": true },
+        "matching": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["task_id", "policy_sha256", "scene_sha256", "initial_state_sha256", "action_prefix_sha256", "seed", "simulator_profile_sha256", "fault_schedule_sha256", "observer_profile_sha256", "expected_disposition"],
+          "properties": {
+            "task_id": { "$ref": "#/$defs/text" },
+            "policy_sha256": { "$ref": "#/$defs/digest" },
+            "scene_sha256": { "$ref": "#/$defs/digest" },
+            "initial_state_sha256": { "$ref": "#/$defs/digest" },
+            "action_prefix_sha256": { "$ref": "#/$defs/digest" },
+            "seed": { "type": "integer", "minimum": 0 },
+            "simulator_profile_sha256": { "$ref": "#/$defs/digest" },
+            "fault_schedule_sha256": { "$ref": "#/$defs/digest" },
+            "observer_profile_sha256": { "$ref": "#/$defs/digest" },
+            "expected_disposition": { "$ref": "#/$defs/disposition" }
+          }
+        },
+        "clusters": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["world_id", "robot_asset_sha256", "hardware_profile_sha256", "firmware_profile_sha256"],
+          "properties": {
+            "world_id": { "$ref": "#/$defs/text" },
+            "robot_asset_sha256": { "$ref": "#/$defs/digest" },
+            "hardware_profile_sha256": { "$ref": "#/$defs/digest" },
+            "firmware_profile_sha256": { "$ref": "#/$defs/digest" }
+          }
+        },
+        "fault": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["requested", "accepted_by_injector", "execution_receipt", "independent_delivery_observation"],
+          "properties": {
+            "requested": { "type": "boolean" },
+            "accepted_by_injector": { "$ref": "#/$defs/optionalBoolean" },
+            "execution_receipt": { "$ref": "#/$defs/optionalBoolean" },
+            "independent_delivery_observation": { "$ref": "#/$defs/optionalBoolean" }
+          }
+        },
+        "outcome": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["oracle_disposition", "reported_disposition", "task_success", "episode_safe", "recovery_success", "attempted_effect"],
+          "properties": {
+            "oracle_disposition": { "$ref": "#/$defs/disposition" },
+            "reported_disposition": { "$ref": "#/$defs/disposition" },
+            "task_success": { "type": "boolean" },
+            "episode_safe": { "type": "boolean" },
+            "recovery_success": { "$ref": "#/$defs/optionalBoolean" },
+            "attempted_effect": { "type": "boolean" }
+          }
+        },
+        "assurance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["one_shot_eligible", "physical_effect_count", "closure_certificate_issued", "closure_invalidated_by_old_effect", "endpoint_fence_accepted", "old_epoch_effect_after_fence", "fresh_attempt_decision", "fresh_attempt_admitted", "admission_preconditions_satisfied", "positive_control_opportunity", "evidence_eligible", "evidence_bundle_reconstructable", "evidence_scope_valid", "evidence_independently_checkable"],
+          "properties": {
+            "one_shot_eligible": { "type": "boolean" },
+            "physical_effect_count": { "type": ["integer", "null"], "minimum": 0 },
+            "closure_certificate_issued": { "type": "boolean" },
+            "closure_invalidated_by_old_effect": { "$ref": "#/$defs/optionalBoolean" },
+            "endpoint_fence_accepted": { "type": "boolean" },
+            "old_epoch_effect_after_fence": { "$ref": "#/$defs/optionalBoolean" },
+            "fresh_attempt_decision": { "type": "boolean" },
+            "fresh_attempt_admitted": { "type": "boolean" },
+            "admission_preconditions_satisfied": { "type": "boolean" },
+            "positive_control_opportunity": { "type": "boolean" },
+            "evidence_eligible": { "type": "boolean" },
+            "evidence_bundle_reconstructable": { "type": "boolean" },
+            "evidence_scope_valid": { "type": "boolean" },
+            "evidence_independently_checkable": { "type": "boolean" }
+          }
+        },
+        "latencies_ms": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["append_sync", "owner_reservation", "reset_replay", "endpoint_fence", "temporal_closure", "independent_observation", "native_authority_admission"],
+          "properties": {
+            "append_sync": { "$ref": "#/$defs/latency" },
+            "owner_reservation": { "$ref": "#/$defs/latency" },
+            "reset_replay": { "$ref": "#/$defs/latency" },
+            "endpoint_fence": { "$ref": "#/$defs/latency" },
+            "temporal_closure": { "$ref": "#/$defs/latency" },
+            "independent_observation": { "$ref": "#/$defs/latency" },
+            "native_authority_admission": { "$ref": "#/$defs/latency" }
+          }
+        }
+      }
+    }
+  }
+}
