@@ -133,3 +133,8 @@ The current candidate map hypothesis is a **constraint-carrying, revisable set o
 ## Classical geometry validation
 
 The spatial-state protocol now adds separate TUM RGB-D, EuRoC MAV, KITTI Odometry and OpenLORIS-Scene lanes. These validate geometric pose/trajectory, sensor calibration and long-term map maintenance under each dataset's native metrics; they are not pooled with OVO-S semantic question accuracy. See [section 13 of the protocol](./spatial-state-construction-protocol-v0.md#13-classical-geometric-validation-lane) and VIS-012 #13855.
+
+
+## Geometric validation fixtures
+
+The [geometric-validation matrix](./scenario-matrix-geometric-validation-v0.tsv) adds 20 metadata-only cases (10 paired controls/mutations) for transform direction, pose-graph cycles, calibration drift/revision, monocular scale ambiguity, false loop closure, dynamic scenes, map correction/retraction, camera–IMU clock alignment, ground-truth common-cause provenance and lifelong relocalization. It complements the 22 spatial decision-sufficiency cases; neither matrix yet represents rendered or replayed sensor data.
