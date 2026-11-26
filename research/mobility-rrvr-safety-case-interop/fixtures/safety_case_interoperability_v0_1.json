@@ -1,0 +1,175 @@
+{
+  "schema_version": "0.1",
+  "checked_on": "2026-11-25",
+  "claim_ceiling": "RRVR supplies supporting execution and recovery evidence only; it does not establish standards compliance, a safety function, PL, SIL, safe state, certification or physical robot safety.",
+  "standards": [
+    {
+      "id": "ISO 12100:2010",
+      "status": "published_current_reviewed_2022_successor_iso_dis_12100_3_edition_2_stage_40_60_voting_closed_2026_09_15",
+      "kind": "type_a_risk_assessment",
+      "scope": "Machinery hazard identification, risk estimation/evaluation and risk reduction.",
+      "rrvr_relevance": "Failure-mode scoping, system boundary and operating assumptions.",
+      "claim_limit": "RRVR does not perform or replace the deployment risk assessment.",
+      "url": "https://www.iso.org/standard/51528.html",
+      "monitor_url": "https://www.iso.org/standard/88578.html"
+    },
+    {
+      "id": "ISO 10218-1:2025",
+      "status": "published_2025_02",
+      "kind": "industrial_robot_manufacturer",
+      "scope": "Industrial robot as an incomplete machine; inherent safe design and information for use.",
+      "rrvr_relevance": "Robot/endpoint identity, design assumptions and operating envelope.",
+      "claim_limit": "Industrial robot scope only; not a universal service/mobile robot standard.",
+      "url": "https://www.iso.org/standard/73933.html"
+    },
+    {
+      "id": "ISO 10218-2:2025",
+      "status": "published_2025_02",
+      "kind": "industrial_robot_application_cell",
+      "scope": "Industrial robot application/cell integration, commissioning, operation, maintenance and decommissioning.",
+      "rrvr_relevance": "Integrator-level lifecycle, configuration and recovery evidence.",
+      "claim_limit": "Part 2 does not cover hazards related to mobility when robots/manipulators are integrated with driverless industrial trucks or mobile platforms and excludes specified applications including public-access service robots. This is not a blanket exclusion of every industrial manipulator mounted on a mobile platform; check the exact application and other applicable standards.",
+      "url": "https://www.iso.org/standard/73934.html"
+    },
+    {
+      "id": "ISO 13849-1:2023",
+      "status": "published_2023_04",
+      "kind": "safety_related_control_systems",
+      "scope": "Design and integration methodology for safety-related parts of control systems, including software, in high-demand/continuous modes.",
+      "rrvr_relevance": "Evidence lineage can support review of control-system verification artefacts.",
+      "claim_limit": "RRVR does not calculate or establish PL, category, PFHd, MTTFd or DC.",
+      "url": "https://www.iso.org/standard/73481.html"
+    },
+    {
+      "id": "IEC 62061:2021+AMD1:2024+AMD2:2026",
+      "status": "consolidated_published_2026_03_20",
+      "kind": "machinery_functional_safety",
+      "scope": "Design, integration and validation of machinery safety-related control systems.",
+      "rrvr_relevance": "Link RRVR execution/recovery claims to the actual safety-related control-system lifecycle.",
+      "claim_limit": "Does not replace risk assessment or security-specific controls.",
+      "url": "https://webstore.iec.ch/en/publication/112847"
+    },
+    {
+      "id": "IEC 61508-1:2026 PRV",
+      "status": "pre_release_fdis_under_development_after_2026_11_13_voting_close_forecast_publication_2027_01_22",
+      "kind": "generic_eepe_functional_safety",
+      "scope": "Functional safety of electrical/electronic/programmable electronic safety-related systems.",
+      "rrvr_relevance": "Monitor edition changes affecting lifecycle, AI, security and independence expectations.",
+      "claim_limit": "Do not treat the PRV as final published edition; IEC lifecycle currently forecasts 2027-01-22 publication, so verify status before formal use.",
+      "url": "https://webstore.iec.ch/en/publication/117296"
+    },
+    {
+      "id": "ISO 3691-4:2023",
+      "status": "published_2023_06_successor_draft_under_development",
+      "kind": "driverless_industrial_trucks_amr",
+      "scope": "Safety requirements and verification for driverless industrial trucks and their systems, including specified AGV/AMR categories.",
+      "rrvr_relevance": "AMR execution, safety and system-level integration evidence within the standard scope.",
+      "claim_limit": "Use published 2023 edition until ISO/DIS 3691-4 is published; check operating environment exclusions.",
+      "url": "https://www.iso.org/standard/83545.html",
+      "successor_url": "https://www.iso.org/standard/88615.html"
+    },
+    {
+      "id": "IEC 62443-4-2:2019",
+      "status": "published",
+      "kind": "iacs_component_cybersecurity",
+      "scope": "Technical security requirements for industrial automation/control-system components.",
+      "rrvr_relevance": "Device identity, system integrity, restricted data flow, timely response and availability threat coverage.",
+      "claim_limit": "Component capability requirements do not establish deployment target/achieved security level.",
+      "url": "https://webstore.iec.ch/en/publication/34421"
+    },
+    {
+      "id": "IEC TR 63074:2019",
+      "status": "replaced_status_successor_to_identify",
+      "kind": "security_functional_safety_guidance",
+      "scope": "Historical guidance on security threats/vulnerabilities that can undermine functional safety of machinery control systems.",
+      "rrvr_relevance": "Threat-model structure for cyber-to-safety interactions.",
+      "claim_limit": "IEC catalogue marks it replaced; identify applicable successor before formal use.",
+      "url": "https://webstore.iec.ch/en/publication/31572"
+    },
+    {
+      "id": "ROS 2 Control Lyrical",
+      "status": "current_implementation_documentation_not_safety_standard",
+      "kind": "robotics_middleware_hardware_lifecycle",
+      "scope": "Hardware/controller lifecycle and command interface behavior for the Lyrical release.",
+      "rrvr_relevance": "Exact plugin/driver-specific stale-command and lifecycle assay.",
+      "claim_limit": "Not a functional-safety standard; previously received command-value handling is implementation-dependent.",
+      "url": "https://control.ros.org/lyrical/doc/ros2_control/hardware_interface/doc/lifecycle_of_a_hardware_component.html"
+    }
+  ],
+  "evidence_owners": [
+    {
+      "owner": "coordinator_crash_cut",
+      "references": [
+        "symtropy#7403"
+      ],
+      "evidence_tier": "bounded_formal_model",
+      "supports": "Intent-before-mutation and restart safety properties in the checked abstraction.",
+      "does_not_support": "Storage/power-loss durability or physical effect truth."
+    },
+    {
+      "owner": "injector_owner_linearizability",
+      "references": [
+        "symtropy#7404"
+      ],
+      "evidence_tier": "bounded_formal_model",
+      "supports": "Reservation and replay properties in the checked concurrent ledger abstraction.",
+      "does_not_support": "Atomicity between a real remote ledger and physical actuator."
+    },
+    {
+      "owner": "endpoint_effect_fence",
+      "references": [
+        "symtropy#7405"
+      ],
+      "evidence_tier": "bounded_formal_model_pending_exact_head_qualification",
+      "supports": "One-shot token and authority-epoch model properties.",
+      "does_not_support": "Firmware implementation, NVM anti-rollback or physical effect cardinality."
+    },
+    {
+      "owner": "journaled_gazebo_adapter",
+      "references": [
+        "symtropy#7409"
+      ],
+      "evidence_tier": "software_integration_exact_head_compile_requalification_pending",
+      "supports": "Intent-before-mutator ordering and restart suppression in the adapter.",
+      "does_not_support": "Live ROS/Gazebo, remote injector, HIL or physical behavior."
+    },
+    {
+      "owner": "downstream_command_graph",
+      "references": [
+        "symtropy#6817",
+        "symtropy#6866"
+      ],
+      "evidence_tier": "reference_contract_and_synthetic_corpus",
+      "supports": "Structural consistency of declared command graph and supplied per-layer receipts.",
+      "does_not_support": "Inventory completeness or hardware quiescence without platform receipts."
+    },
+    {
+      "owner": "observer_fault_assurance",
+      "references": [
+        "symtropy#6877"
+      ],
+      "evidence_tier": "declared_fault_model_reference_contract",
+      "supports": "Observer dependency analysis relative to declared fault models.",
+      "does_not_support": "Universal independence or physical truth."
+    },
+    {
+      "owner": "temporal_closure",
+      "references": [
+        "symtropy#7433",
+        "symtropy#7435"
+      ],
+      "evidence_tier": "rust_reference_and_bounded_tla_model_qualification_pending",
+      "supports": "Scoped closed-cut decision under supplied graph/bounds and formal abstraction.",
+      "does_not_support": "Real transport bounds, endpoint expiry, physical NoEffect or certification."
+    },
+    {
+      "owner": "native_recovery_authority",
+      "references": [
+        "symtropy#6874"
+      ],
+      "evidence_tier": "owner_composition_contract",
+      "supports": "Fresh attempt admission remains with existing authority owner.",
+      "does_not_support": "Safety function adequacy or device behavior."
+    }
+  ]
+}
