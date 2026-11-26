@@ -21,7 +21,8 @@
       "fixity_and_manifest",
       "provenance_acceptance"
     ],
-    "independent_reader_paths_required": true
+    "independent_reader_paths_required": true,
+    "required_energy_boundary": "WholeService"
   },
   "case_count": 10,
   "cases": [
@@ -89,7 +90,11 @@
           "reader-path-b"
         ],
         "reader_independence_status": "Pass",
-        "reader_agreement_status": "Pass"
+        "reader_agreement_status": "Pass",
+        "energy_meter_id": "meter-whole-service-A",
+        "energy_calibration_ref": "calibration-record-2026-01",
+        "energy_boundary": "WholeService",
+        "energy_sample_interval_ms": 1000
       },
       "expected_disposition": "Pass"
     },
@@ -157,7 +162,11 @@
           "reader-path-b"
         ],
         "reader_independence_status": "Pass",
-        "reader_agreement_status": "Pass"
+        "reader_agreement_status": "Pass",
+        "energy_meter_id": "meter-whole-service-A",
+        "energy_calibration_ref": "calibration-record-2026-01",
+        "energy_boundary": "WholeService",
+        "energy_sample_interval_ms": 1000
       },
       "expected_disposition": "Incomplete"
     },
@@ -225,7 +234,11 @@
           "reader-path-b"
         ],
         "reader_independence_status": "Pass",
-        "reader_agreement_status": "Pass"
+        "reader_agreement_status": "Pass",
+        "energy_meter_id": "meter-whole-service-A",
+        "energy_calibration_ref": "calibration-record-2026-01",
+        "energy_boundary": "WholeService",
+        "energy_sample_interval_ms": 1000
       },
       "expected_disposition": "Fail"
     },
@@ -293,7 +306,11 @@
           "reader-path-b"
         ],
         "reader_independence_status": "Pass",
-        "reader_agreement_status": "Pass"
+        "reader_agreement_status": "Pass",
+        "energy_meter_id": "meter-whole-service-A",
+        "energy_calibration_ref": "calibration-record-2026-01",
+        "energy_boundary": "WholeService",
+        "energy_sample_interval_ms": 1000
       },
       "expected_disposition": "Fail"
     },
@@ -356,7 +373,11 @@
           "reader-path-b"
         ],
         "reader_independence_status": "Pass",
-        "reader_agreement_status": "Pass"
+        "reader_agreement_status": "Pass",
+        "energy_meter_id": "meter-whole-service-A",
+        "energy_calibration_ref": "calibration-record-2026-01",
+        "energy_boundary": "WholeService",
+        "energy_sample_interval_ms": 1000
       },
       "expected_disposition": "Incomplete"
     },
@@ -424,7 +445,11 @@
           "reader-path-b"
         ],
         "reader_independence_status": "Pass",
-        "reader_agreement_status": "Pass"
+        "reader_agreement_status": "Pass",
+        "energy_meter_id": "meter-whole-service-A",
+        "energy_calibration_ref": "calibration-record-2026-01",
+        "energy_boundary": "WholeService",
+        "energy_sample_interval_ms": 1000
       },
       "expected_disposition": "Fail"
     },
@@ -492,7 +517,11 @@
           "reader-path-b"
         ],
         "reader_independence_status": "Pass",
-        "reader_agreement_status": "Pass"
+        "reader_agreement_status": "Pass",
+        "energy_meter_id": "meter-whole-service-A",
+        "energy_calibration_ref": "calibration-record-2026-01",
+        "energy_boundary": "WholeService",
+        "energy_sample_interval_ms": 1000
       },
       "expected_disposition": "Fail"
     },
@@ -560,7 +589,11 @@
           "reader-path-b"
         ],
         "reader_independence_status": "Pass",
-        "reader_agreement_status": "Pass"
+        "reader_agreement_status": "Pass",
+        "energy_meter_id": "meter-whole-service-A",
+        "energy_calibration_ref": "calibration-record-2026-01",
+        "energy_boundary": "WholeService",
+        "energy_sample_interval_ms": 1000
       },
       "expected_disposition": "Incomplete"
     },
@@ -628,7 +661,11 @@
           "reader-path-b"
         ],
         "reader_independence_status": "Pass",
-        "reader_agreement_status": "Pass"
+        "reader_agreement_status": "Pass",
+        "energy_meter_id": null,
+        "energy_calibration_ref": null,
+        "energy_boundary": null,
+        "energy_sample_interval_ms": null
       },
       "expected_disposition": "Incomplete"
     },
@@ -657,7 +694,11 @@
         "stage_observations": [],
         "reader_path_ids": [],
         "reader_independence_status": "NotEvaluated",
-        "reader_agreement_status": "NotEvaluated"
+        "reader_agreement_status": "NotEvaluated",
+        "energy_meter_id": null,
+        "energy_calibration_ref": null,
+        "energy_boundary": null,
+        "energy_sample_interval_ms": null
       },
       "expected_disposition": "NotEvaluated"
     }
