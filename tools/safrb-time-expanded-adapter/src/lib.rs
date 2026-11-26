@@ -622,16 +622,6 @@ fn build_graph(
 }
 
 
-fn solve(
-    parsed: &Parsed,
-    upper: bool,
-    only_obligation_edge: Option<&str>,
-) -> Result<FlowResult, String> {
-    build_graph(parsed, upper, only_obligation_edge)?
-        .solve()
-        .map_err(|error| error.to_string())
-}
-
 fn solve_bundle(
     parsed: &Parsed,
     upper: bool,
@@ -947,9 +937,15 @@ mod tests {
             hypothetical: false,
         };
 
-        let joint = solve(&parsed, false, None).unwrap();
-        let individual_a = solve(&parsed, false, Some("obligation-a")).unwrap();
-        let individual_b = solve(&parsed, false, Some("obligation-b")).unwrap();
+        let joint = build_graph(&parsed, false, None).unwrap().solve().unwrap();
+        let individual_a = build_graph(&parsed, false, Some("obligation-a"))
+            .unwrap()
+            .solve()
+            .unwrap();
+        let individual_b = build_graph(&parsed, false, Some("obligation-b"))
+            .unwrap()
+            .solve()
+            .unwrap();
 
         assert_eq!(joint.max_flow, 8);
         assert_eq!(individual_a.max_flow, 5);
