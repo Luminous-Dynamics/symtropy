@@ -107,3 +107,6 @@ It binds the candidate disposition to the exact DecisionNeed digest, utility/act
 This is a **candidate assertion envelope**, not an evaluator receipt. It contains no canonical evaluator witness IDs, hidden world IDs, true decision classes, evaluator outcome supports or gold labels. #7577's evaluator-owned receipt remains separate. The schema was checked with JSON Schema Draft 2020-12 validation and the example passed. Negative examples were rejected for missing residual index/source evidence, conflicting dispositions, malformed SHA-256 digest, missing DecisionNeed digest and an injected evaluator-truth field. This is offline schema validation only; a dedicated repository workflow and runtime adapter have not yet been implemented.
 
 The schema can enforce shape and basic conditional presence, but cross-field semantics remain owner-validated: the decision-sufficiency result must be recomputed; probe cost/latency must fit the frozen budget; a proposed probe must reduce worst-case disagreement under evaluator truth; and stale DecisionNeed/policy/evidence/catalogue context must invalidate the old certificate.
+
+
+Digest encoding follows `WorldManifestV1`'s existing SHA-256 convention: 64 lowercase hexadecimal characters without a textual prefix. The schema and example were revalidated after this alignment; a prefixed digest is rejected.
