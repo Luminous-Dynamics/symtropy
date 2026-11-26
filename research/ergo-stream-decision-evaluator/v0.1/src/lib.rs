@@ -1303,4 +1303,145 @@ mod tests {
 
         assert_eq!(worlds_checked, 9_261);
     }
+
+    #[test]
+    fn evaluator_is_invariant_to_identifier_renaming_and_row_order() {
+        let original_problem = problem();
+        let original_bindings = bindings();
+        let original_truth = truth();
+        let original_result =
+            select_decision_sufficient_probe_v0(&original_problem).unwrap();
+        let original = evaluate_decision_disambiguation_claim_v0(
+            &original_problem,
+            &original_result,
+            &original_bindings,
+            &original_truth,
+        )
+        .unwrap();
+
+        let mut renamed_problem = original_problem;
+        for hypothesis in &mut renamed_problem.hypotheses {
+            hypothesis.hypothesis_id += 100;
+            hypothesis.decision_class_id = match hypothesis.decision_class_id {
+                10 => 900,
+                20 => 800,
+                other => other + 700,
+            };
+        }
+        for probe in &mut renamed_problem.probes {
+            probe.probe_id += 40;
+        }
+        for support in &mut renamed_problem.outcome_supports {
+            support.hypothesis_id += 100;
+            support.probe_id += 40;
+            support.possible_outcome_id += 1_000;
+        }
+        renamed_problem.hypotheses.reverse();
+        renamed_problem.probes.reverse();
+        renamed_problem.outcome_supports.reverse();
+
+        let renamed_bindings = original_bindings
+            .into_iter()
+            .map(|mut binding| {
+                binding.candidate_hypothesis_id += 100;
+                binding.witness_key = binding.witness_key.map(|key| key + 1_000);
+                binding
+            })
+            .rev()
+            .collect::<Vec<_>>();
+
+        let mut renamed_truth = original_truth;
+        for hypothesis in &mut renamed_truth.admissible_hypotheses {
+            hypothesis.witness_key += 1_000;
+            hypothesis.decision_class_id = match hypothesis.decision_class_id {
+                7 => 600,
+                9 => 500,
+                other => other + 400,
+            };
+        }
+        for support in &mut renamed_truth.probe_outcome_supports {
+            support.witness_key += 1_000;
+            support.probe_id += 40;
+            support.possible_outcome_id += 1_000;
+        }
+        renamed_truth.admissible_hypotheses.reverse();
+        renamed_truth.probe_outcome_supports.reverse();
+
+        let renamed_result =
+            select_decision_sufficient_probe_v0(&renamed_problem).unwrap();
+        let renamed = evaluate_decision_disambiguation_claim_v0(
+            &renamed_problem,
+            &renamed_result,
+            &renamed_bindings,
+            &renamed_truth,
+        )
+        .unwrap();
+
+        assert!(renamed.candidate_policy_result_matches_problem);
+        assert_eq!(
+            renamed.correctly_bound_hypotheses,
+            original.correctly_bound_hypotheses
+        );
+        assert_eq!(
+            renamed.false_excluded_hypotheses,
+            original.false_excluded_hypotheses
+        );
+        assert_eq!(
+            renamed.false_included_hypotheses,
+            original.false_included_hypotheses
+        );
+        assert_eq!(
+            renamed.decision_pairs_compared,
+            original.decision_pairs_compared
+        );
+        assert_eq!(
+            renamed.false_decision_equivalence_pairs,
+            original.false_decision_equivalence_pairs
+        );
+        assert_eq!(
+            renamed.false_decision_split_pairs,
+            original.false_decision_split_pairs
+        );
+        assert_eq!(
+            renamed.missed_probe_outcome_supports,
+            original.missed_probe_outcome_supports
+        );
+        assert_eq!(
+            renamed.spurious_probe_outcome_supports,
+            original.spurious_probe_outcome_supports
+        );
+        assert_eq!(
+            renamed.actual_baseline_conflicting_pairs,
+            original.actual_baseline_conflicting_pairs
+        );
+        assert_eq!(
+            renamed.actual_worst_case_conflicting_pairs,
+            original.actual_worst_case_conflicting_pairs
+        );
+        assert_eq!(
+            renamed.claimed_decision_sufficient,
+            original.claimed_decision_sufficient
+        );
+        assert_eq!(
+            renamed.decision_sufficiency_receipt_matches_truth,
+            original.decision_sufficiency_receipt_matches_truth
+        );
+        assert_eq!(
+            renamed.decision_sufficiency_is_valid,
+            original.decision_sufficiency_is_valid
+        );
+        assert_eq!(
+            renamed.false_decision_sufficiency_claim,
+            original.false_decision_sufficiency_claim
+        );
+        assert_eq!(
+            renamed.claimed_probe_is_decision_reducing,
+            original.claimed_probe_is_decision_reducing
+        );
+        assert_eq!(
+            renamed.claimed_probe_overstates_improvement,
+            original.claimed_probe_overstates_improvement
+        );
+        assert_eq!(renamed.unnecessary_abstention, original.unnecessary_abstention);
+    }
 }
