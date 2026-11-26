@@ -357,7 +357,9 @@ fn validate_bundle(bundle: &ResultsBundle) -> Result<(), String> {
         for row in &rows {
             if &row.matching != reference_key {
                 let field = first_match_difference(reference_key, &row.matching);
-                return Err(format!("PAIR_MATCH_KEY_MISMATCH: pair={pair_id} field={field}"));
+                return Err(format!(
+                    "PAIR_MATCH_KEY_MISMATCH: pair={pair_id} field={field}"
+                ));
             }
             // Realized physical outcomes are per-arm results, not pair-match inputs.
             if !arms.insert(row.arm_id) {
