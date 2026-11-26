@@ -1,0 +1,10 @@
+[package]
+name = "single-commodity-flow-kernel"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Deterministic integer max-flow/min-cut kernel for validated single-commodity directed networks"
+
+[dependencies]
+sha2 = "0.10"
