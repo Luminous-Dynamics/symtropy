@@ -133,6 +133,7 @@ pub struct WorkCounters {
     pub pair_cache_overlap_tests: u64,
     pub pair_events_added: u64,
     pub pair_events_removed: u64,
+    pub pair_revalidations: u64,
     pub pair_cache_peak_pairs: usize,
     pub lbvh_builds: u64,
     pub lbvh_internal_nodes: u64,
@@ -347,6 +348,32 @@ pub fn generate_scene<const D: usize>(
     })
 }
 
+fn changed_proxy_ids<const D: usize>(
+    previous: &[ProxyFrame<D>],
+    current: &[ProxyFrame<D>],
+) -> BTreeSet<ProxyId> {
+    let previous_bounds = previous
+        .iter()
+        .map(|proxy| (proxy.id, proxy.bounds))
+        .collect::<BTreeMap<_, _>>();
+    let current_bounds = current
+        .iter()
+        .map(|proxy| (proxy.id, proxy.bounds))
+        .collect::<BTreeMap<_, _>>();
+    let mut dirty = BTreeSet::new();
+    for (id, bounds) in &previous_bounds {
+        if current_bounds.get(id) != Some(bounds) {
+            dirty.insert(*id);
+        }
+    }
+    for id in current_bounds.keys() {
+        if !previous_bounds.contains_key(id) {
+            dirty.insert(*id);
+        }
+    }
+    dirty
+}
+
 fn validate_proxy_sequence<const D: usize>(frame: &[ProxyFrame<D>]) -> Result<(), TournamentError> {
     let mut previous = None;
     for proxy in frame {
@@ -406,15 +433,17 @@ fn brute_force_candidates<const D: usize>(frame: &[ProxyFrame<D>]) -> Vec<ProxyP
     pairs
 }
 
-/// Pair-relation changes emitted by the sleep-aware cache for one frame.
+/// Pair-relation and contact-refresh changes emitted by the cache for one frame.
 ///
-/// The active pair relation persists in the cache. Consumers update their
-/// contact/pair state from these additions and removals; they do not need a
+/// The active pair relation persists in the cache. Additions and removals
+/// change membership; revalidated pairs remain active but have a dirty endpoint
+/// and must refresh narrowphase/contact state. Consumers do not need a
 /// regenerated full pair list on every frame.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct PairDeltaFrame {
     pub added: Vec<ProxyPair>,
     pub removed: Vec<ProxyPair>,
+    pub revalidated: Vec<ProxyPair>,
     pub dirty_proxies: usize,
     pub overlap_tests: u64,
     pub active_pairs: usize,
@@ -616,6 +645,7 @@ impl<const D: usize> PairDeltaCache<D> {
         // partially applied frame.
         let mut added = Vec::new();
         let mut removed = Vec::new();
+        let mut revalidated = Vec::new();
         let mut overlap_tests = 0_u64;
 
         for pair in affected_pairs {
@@ -653,7 +683,8 @@ impl<const D: usize> PairDeltaCache<D> {
             match (was_active, is_active) {
                 (false, true) => added.push(pair),
                 (true, false) => removed.push(pair),
-                (true, true) | (false, false) => {}
+                (true, true) => revalidated.push(pair),
+                (false, false) => {}
             }
         }
 
@@ -700,6 +731,7 @@ impl<const D: usize> PairDeltaCache<D> {
         Ok(PairDeltaFrame {
             added,
             removed,
+            revalidated,
             dirty_proxies: dirty.len(),
             overlap_tests,
             active_pairs: self.active_pair_count,
@@ -1251,6 +1283,7 @@ fn run_backend<const D: usize>(
                     .ok_or(TournamentError::CounterOverflow)?;
                 checked_add(&mut counters.pair_events_added, delta.added.len())?;
                 checked_add(&mut counters.pair_events_removed, delta.removed.len())?;
+                checked_add(&mut counters.pair_revalidations, delta.revalidated.len())?;
                 counters.pair_cache_peak_pairs =
                     counters.pair_cache_peak_pairs.max(delta.active_pairs);
 
@@ -1269,12 +1302,27 @@ fn run_backend<const D: usize>(
                     .difference(expected_current)
                     .copied()
                     .collect();
+                let previous_frame = if frame_index == 0 {
+                    &[][..]
+                } else {
+                    scene.frames[frame_index - 1].as_slice()
+                };
+                let dirty_ids = changed_proxy_ids(previous_frame, frame);
+                let expected_revalidated: BTreeSet<_> = expected_current
+                    .intersection(expected_previous)
+                    .filter(|pair| dirty_ids.contains(&pair.0) || dirty_ids.contains(&pair.1))
+                    .copied()
+                    .collect();
                 let actual_added: BTreeSet<_> = delta.added.iter().copied().collect();
                 let actual_removed: BTreeSet<_> = delta.removed.iter().copied().collect();
+                let actual_revalidated: BTreeSet<_> =
+                    delta.revalidated.iter().copied().collect();
                 if actual_added != expected_added
                     || actual_removed != expected_removed
+                    || actual_revalidated != expected_revalidated
                     || actual_added.len() != delta.added.len()
                     || actual_removed.len() != delta.removed.len()
+                    || actual_revalidated.len() != delta.revalidated.len()
                 {
                     event_mismatch_frames = event_mismatch_frames.saturating_add(1);
                 }
@@ -1366,13 +1414,13 @@ pub fn run_tournament<const D: usize>(
 impl TournamentRow {
     #[must_use]
     pub fn csv_header() -> &'static str {
-        "family,dimension,seed,declared_proxy_count,scene_frames,backend,output_contract,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,event_mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,p50_pair_materialize_ns,p95_pair_materialize_ns,p99_pair_materialize_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,tree_rotations,pair_cache_dirty_proxies,pair_cache_overlap_tests,pair_events_added,pair_events_removed,pair_cache_peak_pairs,lbvh_builds,lbvh_internal_nodes,lbvh_bruteforce_fallback_frames,max_tree_height,max_tree_nodes,max_active_proxies"
+        "family,dimension,seed,declared_proxy_count,scene_frames,backend,output_contract,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,event_mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,p50_pair_materialize_ns,p95_pair_materialize_ns,p99_pair_materialize_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,tree_rotations,pair_cache_dirty_proxies,pair_cache_overlap_tests,pair_events_added,pair_events_removed,pair_cache_peak_pairs,lbvh_builds,lbvh_internal_nodes,lbvh_bruteforce_fallback_frames,max_tree_height,max_tree_nodes,max_active_proxies,pair_revalidations"
     }
 
     #[must_use]
     pub fn to_csv(&self) -> String {
         format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             self.family,
             self.dimension,
             self.seed,
@@ -1420,7 +1468,8 @@ impl TournamentRow {
             self.counters.lbvh_bruteforce_fallback_frames,
             self.counters.max_tree_height,
             self.counters.max_tree_nodes,
-            self.counters.max_active_proxies
+            self.counters.max_active_proxies,
+            self.counters.pair_revalidations
         )
     }
 }
@@ -1472,6 +1521,7 @@ mod tests {
         let unchanged = cache.step(&first).unwrap();
         assert!(unchanged.added.is_empty());
         assert!(unchanged.removed.is_empty());
+        assert!(unchanged.revalidated.is_empty());
         assert_eq!(unchanged.dirty_proxies, 0);
         assert_eq!(unchanged.overlap_tests, 0);
         assert_eq!(unchanged.active_pairs, 1);
@@ -1484,6 +1534,7 @@ mod tests {
         let removal = cache.step(&separated).unwrap();
         assert!(removal.added.is_empty());
         assert_eq!(removal.removed, vec![pair]);
+        assert!(removal.revalidated.is_empty());
         assert_eq!(removal.active_pairs, 0);
         assert!(cache.active_pairs().is_empty());
     }
@@ -1532,6 +1583,7 @@ mod tests {
         assert_eq!(moved.overlap_tests, 1);
         assert!(moved.added.is_empty());
         assert!(moved.removed.is_empty());
+        assert_eq!(moved.revalidated, vec![ProxyPair::new(ProxyId(1), ProxyId(2)).unwrap()]);
         assert_eq!(moved.active_pairs, 1);
     }
 
@@ -1553,11 +1605,13 @@ mod tests {
         let add = cache.step(&inserted).unwrap();
         assert_eq!(add.added.len(), 2);
         assert!(add.removed.is_empty());
+        assert!(add.revalidated.is_empty());
         assert_eq!(cache.active_pair_count(), 3);
 
         let removed = [inserted[0], inserted[2]];
         let remove = cache.step(&removed).unwrap();
         assert_eq!(remove.removed.len(), 2);
+        assert!(remove.revalidated.is_empty());
         assert_eq!(
             cache.active_pairs(),
             vec![ProxyPair::new(ProxyId(1), ProxyId(3)).unwrap()]
@@ -1569,6 +1623,10 @@ mod tests {
         assert_eq!(revalidate.overlap_tests, 1);
         assert!(revalidate.added.is_empty());
         assert!(revalidate.removed.is_empty());
+        assert_eq!(
+            revalidate.revalidated,
+            vec![ProxyPair::new(ProxyId(1), ProxyId(2)).unwrap()]
+        );
     }
 
     #[test]
@@ -1650,6 +1708,17 @@ mod tests {
                 oracle[frame_index].difference(&previous).copied().collect();
             let expected_removed: BTreeSet<_> =
                 previous.difference(&oracle[frame_index]).copied().collect();
+            let previous_frame = if frame_index == 0 {
+                &[][..]
+            } else {
+                scene.frames[frame_index - 1].as_slice()
+            };
+            let dirty_ids = changed_proxy_ids(previous_frame, frame);
+            let expected_revalidated: BTreeSet<_> = oracle[frame_index]
+                .intersection(&previous)
+                .filter(|pair| dirty_ids.contains(&pair.0) || dirty_ids.contains(&pair.1))
+                .copied()
+                .collect();
             assert_eq!(
                 delta.added.iter().copied().collect::<BTreeSet<_>>(),
                 expected_added
@@ -1657,6 +1726,10 @@ mod tests {
             assert_eq!(
                 delta.removed.iter().copied().collect::<BTreeSet<_>>(),
                 expected_removed
+            );
+            assert_eq!(
+                delta.revalidated.iter().copied().collect::<BTreeSet<_>>(),
+                expected_revalidated
             );
             assert_eq!(
                 cache.active_pairs().into_iter().collect::<BTreeSet<_>>(),
