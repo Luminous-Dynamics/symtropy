@@ -60,3 +60,14 @@ cargo clippy --locked --manifest-path research/maritime-federated-commitments/Ca
 - Passing tests do not establish participant consent, real resource availability or field performance.
 
 The first future adapter should consume a typed resource-plan proposal from #7519, verify that every required participant has an accepted, unexpired, unrevoked commitment, then pass typed commitment receipts to #7488. No automatic operation is authorized here.
+
+
+## Contract correction: accepted offers are immutable
+
+A counteroffer is allowed only while the current offer remains open. Once accepted, its terms are committed; changing resource, slot, quantity or conditions requires a separate amendment/revocation protocol rather than silently mutating the accepted revision.
+
+The tests distinguish:
+- counteroffer before acceptance → new revision → fresh acceptance of that revision;
+- counteroffer after acceptance → rejected as `OfferNotOpen`.
+
+This prevents the event reducer from rewriting an already accepted obligation.
