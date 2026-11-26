@@ -338,8 +338,12 @@ fn analyze_channel(
     // are allowed to vary because the corresponding angular interval is reported.
     let mut in_transition_window = vec![false; values.len()];
     for window in &windows {
-        for index in window.earliest_sample_index..=window.latest_sample_index {
-            in_transition_window[index] = true;
+        for sample_is_in_transition in in_transition_window
+            .iter_mut()
+            .take(window.latest_sample_index + 1)
+            .skip(window.earliest_sample_index)
+        {
+            *sample_is_in_transition = true;
         }
     }
 
@@ -1001,9 +1005,9 @@ pub fn synthesize_with_sensor_parameter_bounds(
         .filter(|result| result.synthesis.robustly_accepted)
         .count();
 
-    let first = scenarios.first().ok_or_else(|| {
-        ParameterAwareSynthesisError::BaseSynthesis(SynthesisError::EmptyScenarioSet)
-    })?;
+    let first = scenarios.first().ok_or(
+        ParameterAwareSynthesisError::BaseSynthesis(SynthesisError::EmptyScenarioSet),
+    )?;
     Ok(ParameterAwareSynthesisResult {
         set_id: set_id.to_owned(),
         evidence_kind: first.trace.evidence_kind,
@@ -1187,7 +1191,7 @@ mod tests {
     fn empty_and_duplicate_candidates_are_rejected() {
         let input = scenario("trace-candidates", "nominal", 0.01);
         assert_eq!(
-            synthesize_robust_configurations("set-006", &[input.clone()], &[], requirements())
+            synthesize_robust_configurations("set-006", std::slice::from_ref(&input), &[], requirements())
                 .expect_err("empty candidate list is invalid"),
             SynthesisError::EmptyCandidateSet
         );
@@ -1230,7 +1234,7 @@ mod tests {
         let config = config("candidate-zero-parameter", 0.25, -0.25);
         let baseline = synthesize_robust_configurations(
             "set-zero-parameter",
-            &[input.clone()],
+            std::slice::from_ref(&input),
             std::slice::from_ref(&config),
             requirements(),
         )
@@ -1340,7 +1344,7 @@ mod tests {
         assert_eq!(
             synthesize_with_sensor_parameter_bounds(
                 "set-invalid-axis",
-                &[input.clone()],
+                std::slice::from_ref(&input),
                 &[invalid_axis],
                 requirements(),
             )
