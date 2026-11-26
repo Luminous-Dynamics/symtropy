@@ -1010,6 +1010,65 @@ mod tests {
     }
 
     #[test]
+    fn required_evidence_manifest_must_match_the_exact_input_reference_set() {
+        let mut evidence = all_admitted();
+        let mut context = context_for_evidence(&evidence);
+        context.required_evidence_manifest_sha256 = "9".repeat(64);
+        let digest = context_digest(&context);
+        for item in &mut evidence {
+            item.decision_context_sha256 = digest.clone();
+        }
+        let coverage_result = coverage(CoverageStatus::QualifiedCompleteForScope);
+        let cut_result = cut(CutStatus::Closed);
+        let bindings = bindings_for(
+            &coverage_result,
+            &cut_result,
+            EffectivityRelation::DefinitelyEffective,
+            &context,
+        );
+        let result = evaluate_claim_gate(ClaimGateInput {
+            claim_id: "claim-wing-panel-001",
+            decision_context: &context,
+            bindings: &bindings,
+            coverage: &coverage_result,
+            causal_cut: &cut_result,
+            effectivity: EffectivityRelation::DefinitelyEffective,
+            required_evidence: &evidence,
+        });
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(
+            result
+                .reason_codes
+                .contains(&"REQUIRED_EVIDENCE_MANIFEST_MISMATCH".to_owned())
+        );
+    }
+
+    #[test]
+    fn context_change_invalidates_previously_bound_component_reports() {
+        let evidence = all_admitted();
+        let mut context = context_for_evidence(&evidence);
+        context.trust_policy_sha256 = "9".repeat(64);
+        let bindings = positive_bindings();
+        let coverage_result = coverage(CoverageStatus::QualifiedCompleteForScope);
+        let cut_result = cut(CutStatus::Closed);
+        let result = evaluate_claim_gate(ClaimGateInput {
+            claim_id: "claim-wing-panel-001",
+            decision_context: &context,
+            bindings: &bindings,
+            coverage: &coverage_result,
+            causal_cut: &cut_result,
+            effectivity: EffectivityRelation::DefinitelyEffective,
+            required_evidence: &evidence,
+        });
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(
+            result
+                .reason_codes
+                .contains(&"COMPONENT_DECISION_CONTEXT_MISMATCH".to_owned())
+        );
+    }
+
+    #[test]
     fn component_digest_binds_the_actual_typed_assessment_payload() {
         let component_bindings = positive_bindings();
         let result = evaluate_with_bindings(
