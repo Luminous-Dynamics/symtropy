@@ -992,9 +992,11 @@ mod tests {
         candidate.end_effector.replayed.x_mm = 2.0;
         let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
         assert_eq!(report.invalid_n, 1);
-        assert!(report.candidate_audits[0]
-            .reason_codes
-            .contains(&"END_EFFECTOR_POSE_ERROR_NOT_BELOW_2MM".to_owned()));
+        assert!(
+            report.candidate_audits[0]
+                .reason_codes
+                .contains(&"END_EFFECTOR_POSE_ERROR_NOT_BELOW_2MM".to_owned())
+        );
     }
 
     #[test]
@@ -1011,7 +1013,7 @@ mod tests {
         assert!(
             report.candidate_audits[0]
                 .reason_codes
-                .contains(&"FRAME_SSIM_NOT_ABOVE_0_99".to_owned())
+                .contains(&"MEAN_FINAL_FIVE_FRAME_SSIM_NOT_ABOVE_0_99".to_owned())
         );
     }
 
