@@ -4,6 +4,9 @@ A small branch-and-bound reference that uses interval forward-mode AD from the a
 
 ## Scope
 
+The dedicated magnetic-research workflow is present on this PR's base branch and runs isolated format, Clippy and test gates on Linux, macOS and Windows for any PR base.
+
+
 The objective and compliance expression have separate provenance IDs. The objective expression ID is bound to the root parameter-domain record; the compliance expression ID is an explicit policy input and is copied into every margin evaluation and report.
 
 This v0.1 crate solves a deliberately narrow problem:
