@@ -180,13 +180,21 @@ impl core::fmt::Display for SimultaneousDefensiveSelectionError {
             Self::TooManyPortfolios => "portfolio universe exceeds the bounded comparison limit",
             Self::InvalidPortfolioIdentity => "portfolio identity is zero or duplicated",
             Self::InvalidConsequenceBound => "portfolio consequence bound is invalid",
-            Self::IncompleteProposalPortfolioCoverage => "proposal mode universe omits a frozen portfolio",
+            Self::IncompleteProposalPortfolioCoverage => {
+                "proposal mode universe omits a frozen portfolio"
+            }
             Self::ContrastCountOverflow => "pairwise contrast count overflowed",
             Self::InvalidDrawIndex => "draw index is not the next consecutive sequence index",
             Self::InvalidOrDuplicateDrawIdentity => "draw identity is zero or duplicated",
-            Self::IncompletePortfolioDraw => "draw does not contain the complete portfolio universe",
-            Self::InvalidDrawPortfolioIdentity => "draw portfolio identity is zero, duplicated or substituted",
-            Self::ConsequenceOutsideFrozenBounds => "portfolio consequence lies outside its frozen bound",
+            Self::IncompletePortfolioDraw => {
+                "draw does not contain the complete portfolio universe"
+            }
+            Self::InvalidDrawPortfolioIdentity => {
+                "draw portfolio identity is zero, duplicated or substituted"
+            }
+            Self::ConsequenceOutsideFrozenBounds => {
+                "portfolio consequence lies outside its frozen bound"
+            }
             Self::ProposalEvaluationFailure => "shared defensive proposal evaluation failed",
             Self::ConfidenceSequenceFailure => "one pairwise confidence update failed",
             Self::NumericalFailure => "simultaneous defensive portfolio report failed numerically",
@@ -331,12 +339,11 @@ impl SimultaneousDefensivePortfolioSelection {
             .draw_count
             .checked_add(1)
             .ok_or(SimultaneousDefensiveSelectionError::InvalidDrawIndex)?;
-        if draw.draw_index != expected_index
-            || draw.draw_index > MAX_SIMULTANEOUS_DEFENSIVE_DRAWS
-        {
+        if draw.draw_index != expected_index || draw.draw_index > MAX_SIMULTANEOUS_DEFENSIVE_DRAWS {
             return Err(SimultaneousDefensiveSelectionError::InvalidDrawIndex);
         }
-        if draw.draw_id.iter().all(|byte| *byte == 0) || self.seen_draw_ids.contains(&draw.draw_id) {
+        if draw.draw_id.iter().all(|byte| *byte == 0) || self.seen_draw_ids.contains(&draw.draw_id)
+        {
             return Err(SimultaneousDefensiveSelectionError::InvalidOrDuplicateDrawIdentity);
         }
         if draw.portfolio_consequences.len() != self.portfolio_bounds.len() {
@@ -373,7 +380,9 @@ impl SimultaneousDefensivePortfolioSelection {
         // Evaluate q and p once. A unit normalized contrast validates the common
         // likelihood ratio bound; pair-specific contributions are derived from
         // the same log ratio without re-evaluating the Gaussian mixture.
-        let common_evaluation = self.proposal.evaluate_draw(draw.mode_key, &draw.point, 1.0)?;
+        let common_evaluation = self
+            .proposal
+            .evaluate_draw(draw.mode_key, &draw.point, 1.0)?;
         let epsilon = self.proposal.defensive_fraction();
         let log_epsilon = epsilon.ln();
 
@@ -425,9 +434,7 @@ impl SimultaneousDefensivePortfolioSelection {
             {
                 f64::NEG_INFINITY
             } else {
-                log_epsilon
-                    + normalized.ln()
-                    + common_evaluation.log_importance_weight
+                log_epsilon + normalized.ln() + common_evaluation.log_importance_weight
             };
             if log_contribution.is_nan()
                 || log_contribution == f64::INFINITY
@@ -440,8 +447,7 @@ impl SimultaneousDefensivePortfolioSelection {
             } else {
                 log_contribution.exp()
             };
-            if !defensive_contribution.is_finite()
-                || !(0.0..=1.0).contains(&defensive_contribution)
+            if !defensive_contribution.is_finite() || !(0.0..=1.0).contains(&defensive_contribution)
             {
                 return Err(SimultaneousDefensiveSelectionError::NumericalFailure);
             }
@@ -844,11 +850,7 @@ mod tests {
                 .unwrap();
         for index in 1..=2_000 {
             process
-                .observe(&draw(
-                    index,
-                    index,
-                    &[(10, 0), (20, 10), (30, 20)],
-                ))
+                .observe(&draw(index, index, &[(10, 0), (20, 10), (30, 20)]))
                 .unwrap();
             let report = process.report().unwrap();
             if report.unique_best_portfolio_id.is_some() {
@@ -895,7 +897,13 @@ mod tests {
         .unwrap();
         let process = SimultaneousDefensivePortfolioSelection::new(0.05, fixed, proposal).unwrap();
         let report = process.report().unwrap();
-        assert_eq!(report.pairwise_intervals[0].lower_expected_difference_ticks, 3.0);
-        assert_eq!(report.pairwise_intervals[0].upper_expected_difference_ticks, 3.0);
+        assert_eq!(
+            report.pairwise_intervals[0].lower_expected_difference_ticks,
+            3.0
+        );
+        assert_eq!(
+            report.pairwise_intervals[0].upper_expected_difference_ticks,
+            3.0
+        );
     }
 }
