@@ -457,8 +457,6 @@ pub fn aggregate_finite_mission_risk(
     let mut observed_mass = 0_u64;
     let mut union_mass = 0_u64;
     let mut no_event_mass = 0_u64;
-    let mut independence_log_survival = 0.0_f64;
-
     for atom in by_atom_id.values() {
         observed_mass = observed_mass
             .checked_add(atom.mass_ticks)
