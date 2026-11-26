@@ -40,6 +40,8 @@ pub mod defensive_contrast_sequence;
 pub mod epistemic_minimax_regret;
 /// Exact finite-support adaptive defensive portfolio counterfactuals.
 pub mod finite_adaptive_portfolio_selection;
+/// Exact finite-support adaptive defensive portfolio counterfactuals.
+pub mod finite_adaptive_portfolio_selection;
 pub mod hedged_capital_sequence;
 pub mod lebedev;
 /// Exact dependence-aware aggregation across a finite mission encounter set.
@@ -103,6 +105,11 @@ pub use defensive_contrast_sequence::{
 pub use epistemic_minimax_regret::{
     EpistemicMinimaxRegret, EpistemicMinimaxRegretError, EpistemicMinimaxRegretReport,
     EpistemicScenarioEvidence, PortfolioWorstCaseRegretInterval,
+};
+pub use finite_adaptive_portfolio_selection::{
+    FiniteAdaptivePortfolioDrawReceipt, FiniteAdaptivePortfolioError,
+    FiniteAdaptivePortfolioPairObservation, FiniteAdaptivePortfolioSelection,
+    FinitePortfolioAtomOutcome, FinitePortfolioEventFlag,
 };
 pub use finite_adaptive_portfolio_selection::{
     FiniteAdaptivePortfolioDrawReceipt, FiniteAdaptivePortfolioError,
