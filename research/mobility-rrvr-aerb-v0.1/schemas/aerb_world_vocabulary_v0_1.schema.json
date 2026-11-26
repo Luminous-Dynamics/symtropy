@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/aerb-world-vocabulary-v0.1.schema.json",
+  "title": "AERB Public Possible-History Vocabulary v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "vocabulary_id",
+    "worlds"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "vocabulary_id": {
+      "const": "aerb-ambiguous-command-history-v0.1"
+    },
+    "worlds": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "world_id",
+          "description",
+          "dispatch_state",
+          "effect_state",
+          "authority_relation",
+          "acknowledgement_state"
+        ],
+        "properties": {
+          "world_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dispatch_state": {
+            "enum": [
+              "not_dispatched",
+              "dispatched",
+              "unknown"
+            ]
+          },
+          "effect_state": {
+            "enum": [
+              "none",
+              "once",
+              "partial",
+              "duplicate",
+              "stale_epoch",
+              "unknown"
+            ]
+          },
+          "authority_relation": {
+            "enum": [
+              "current_epoch",
+              "stale_epoch",
+              "unresolved_holder",
+              "not_applicable"
+            ]
+          },
+          "acknowledgement_state": {
+            "enum": [
+              "received",
+              "lost",
+              "delayed",
+              "unknown"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
