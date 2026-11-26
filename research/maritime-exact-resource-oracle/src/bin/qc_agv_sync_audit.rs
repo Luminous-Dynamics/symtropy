@@ -42,16 +42,17 @@ fn main() -> Result<(), Box<dyn Error>> {
                 qc_wait_weight = Some(u64::from(parse_u32(fields[3], "qc_wait_weight")?));
                 agv_wait_weight = Some(u64::from(parse_u32(fields[4], "agv_wait_weight")?));
             }
-            Some("TASK") if fields.len() == 6 => {
+            Some("TASK") if fields.len() == 7 => {
                 tasks.push(SyncTask {
                     task_id: fields[1].to_owned(),
                     qc_id: fields[2].to_owned(),
-                    nominal_service: parse_u32(fields[3], "nominal_service")?,
-                    service_deviation: parse_u32(fields[4], "service_deviation")?,
-                    qc_predecessor: if fields[5] == "-" {
+                    qc_release_at: parse_u32(fields[3], "qc_release_at")?,
+                    nominal_service: parse_u32(fields[4], "nominal_service")?,
+                    service_deviation: parse_u32(fields[5], "service_deviation")?,
+                    qc_predecessor: if fields[6] == "-" {
                         None
                     } else {
-                        Some(fields[5].to_owned())
+                        Some(fields[6].to_owned())
                     },
                 });
             }
