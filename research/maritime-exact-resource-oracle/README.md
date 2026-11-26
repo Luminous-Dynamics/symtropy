@@ -159,10 +159,12 @@ The oracle now contains a separate `sync` module and a deterministic `qc-agv-syn
 
 For each task it reports QC waiting, AGV queue waiting, service finish and propagated completion. AGV route candidates are fixed before the service-time scenario; service-time deviations affect event timing, not route selection. A finite L1 uncertainty budget `Gamma` is enumerated exactly over `u_i ∈ {-1, 0, +1}` with `sum |u_i| <= Gamma`. The scenario vector is keyed by sorted task identity, so the same realization means the same task deviation across different candidate routes.
 
-The frozen QC–AGV scenario demonstrates a nominal/robust route switch:
-- nominal route AB costs 5; nominal route BA costs 4, so BA is preferred nominally;
-- under `Gamma=1`, route BA has worst-case cost 7, with witness `[A:0, B:+1]`;
-- route AB remains worst-case cost 5, so the robust choice switches to AB;
+The frozen QC–AGV scenario demonstrates a nominal/robust route switch with explicit QC availability and asymmetric waiting weights:
+- task A is QC-ready at time 0; task B is QC-ready at time 4;
+- QC idle waiting is weighted 5 and AGV queue waiting is weighted 1;
+- nominal route AB costs 45; nominal route BA costs 44, so BA is preferred nominally;
+- under `Gamma=1`, route AB has worst-case cost 50 (witness `[A:+1, B:0]`);
+- route BA has worst-case cost 59 (witness `[A:0, B:+1]`), so robust selection switches to AB;
 - the nominal route's cost is lower, while robust selection protects the bounded worst-case waiting objective.
 
 This is an intentionally tiny, fixed-order, two-QC/two-task mechanism test—not a reproduction of Song et al.'s continuous-budget model or S6-B. The uncertainty set is discrete and finite, not a continuous-budget guarantee. No general improvement is claimed.
