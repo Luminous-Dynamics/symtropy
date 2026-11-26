@@ -449,7 +449,9 @@ fn maintenance_delta(previous: MaintenanceStats, current: MaintenanceStats) -> M
             .proxy_reinsertions
             .saturating_sub(previous.proxy_reinsertions),
         full_rebuilds: current.full_rebuilds.saturating_sub(previous.full_rebuilds),
-        tree_rotations: current.tree_rotations.saturating_sub(previous.tree_rotations),
+        tree_rotations: current
+            .tree_rotations
+            .saturating_sub(previous.tree_rotations),
     }
 }
 
