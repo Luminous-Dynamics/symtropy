@@ -684,12 +684,63 @@ pub fn validate_leaf_partition(
         }
     }
 
-    let tolerance = domain_volume.max(summed_volume)
-        * f64::EPSILON
-        * 32.0
-        * leaves.len() as f64;
-    if (domain_volume - summed_volume).abs() > tolerance {
-        return Err(CertificationError::PartitionVolumeMismatch);
+    // Prove exact coverage with a coordinate-plane sweep. A volume sum within
+    // tolerance can hide a small gap; here every atomic x/y slab must have z
+    // intervals that tile the complete root z range with exact shared edges.
+    let mut x_planes = Vec::with_capacity(leaves.len() * 2 + 2);
+    let mut y_planes = Vec::with_capacity(leaves.len() * 2 + 2);
+    x_planes.extend([root.minimum_m[0], root.maximum_m[0]]);
+    y_planes.extend([root.minimum_m[1], root.maximum_m[1]]);
+    for leaf in leaves {
+        x_planes.extend([leaf.minimum_m[0], leaf.maximum_m[0]]);
+        y_planes.extend([leaf.minimum_m[1], leaf.maximum_m[1]]);
+    }
+    x_planes.sort_by(f64::total_cmp);
+    y_planes.sort_by(f64::total_cmp);
+    x_planes.dedup_by(|left, right| *left == *right);
+    y_planes.dedup_by(|left, right| *left == *right);
+
+    for x_window in x_planes.windows(2) {
+        let [x_min, x_max] = [x_window[0], x_window[1]];
+        if x_min < root.minimum_m[0] || x_max > root.maximum_m[0] || x_min >= x_max {
+            continue;
+        }
+        for y_window in y_planes.windows(2) {
+            let [y_min, y_max] = [y_window[0], y_window[1]];
+            if y_min < root.minimum_m[1]
+                || y_max > root.maximum_m[1]
+                || y_min >= y_max
+            {
+                continue;
+            }
+
+            let mut z_intervals = leaves
+                .iter()
+                .filter(|leaf| {
+                    leaf.minimum_m[0] <= x_min
+                        && leaf.maximum_m[0] >= x_max
+                        && leaf.minimum_m[1] <= y_min
+                        && leaf.maximum_m[1] >= y_max
+                })
+                .map(|leaf| (leaf.minimum_m[2], leaf.maximum_m[2]))
+                .collect::<Vec<_>>();
+            z_intervals.sort_by(|left, right| {
+                left.0
+                    .total_cmp(&right.0)
+                    .then_with(|| left.1.total_cmp(&right.1))
+            });
+
+            let mut z_cursor = root.minimum_m[2];
+            for (z_min, z_max) in z_intervals {
+                if z_min != z_cursor || z_max <= z_min || z_max > root.maximum_m[2] {
+                    return Err(CertificationError::PartitionVolumeMismatch);
+                }
+                z_cursor = z_max;
+            }
+            if z_cursor != root.maximum_m[2] {
+                return Err(CertificationError::PartitionVolumeMismatch);
+            }
+        }
     }
 
     Ok(PartitionMetrics {
