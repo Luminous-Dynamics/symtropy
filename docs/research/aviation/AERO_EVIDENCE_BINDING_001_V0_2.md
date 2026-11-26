@@ -139,9 +139,17 @@ This is a narrow binding result. It is not measurement truth, uncertainty suffic
 - certificate revoked after acquisition but before evaluation;
 - duplicate certificate IDs and replayed event IDs;
 - missing correction target and competing corrections to one event;
-- deterministic output under record-order permutations.
+- deterministic output under record-order permutations;
+- backward-compatible exact-point acquisition and event-effective timestamps;
+- hard acquisition bounds wholly inside, outside or crossing the certificate's half-open validity boundary;
+- acquisition intervals that are future or ambiguous at the requested evaluation snapshot;
+- event-effective hard bounds definitely before, after or overlapping acquisition time;
+- event-effective bounds definitely future or ambiguous at the evaluation snapshot;
+- non-applicable post-acquisition event IDs preserved without retroactively invalidating historical binding;
+- contradictory `retroactive=true` flags rejected when the asserted effective interval is definitely later than acquisition;
+- incomplete, reversed, wrong-typed or nominal-point-outside-bounds pairs rejected.
 
-The 31-case frozen mutation corpus is executed by the Rust tests with exact violation and blocker sets. The expanded chronology cases cover as-of evaluation-time handling, retroactive revocation, cross-certificate correction rejection, duplicate event identity, strict correction chronology, invalid intervals and unknown references/events. The evaluator also tests calibration-event permutation invariance with a non-empty competing-correction history. This is synthetic software testing only; expected dispositions remain NOT_INDEPENDENTLY_REVIEWED and are not a physical or metrology oracle. Independent review and a rights-cleared external corpus remain required before any external performance claim.
+The 31-case frozen mutation corpus is executed by the Rust tests with exact violation and blocker sets. Additional hard-bound integration tests cover point-degenerate backward compatibility, certificate and evaluation boundaries, interval effectivity at both subject and snapshot time, chronology/retroactivity contradictions, incomplete pairs and non-applicable event retention. The expanded chronology cases also cover as-of evaluation-time handling, retroactive revocation, cross-certificate correction rejection, duplicate event identity, strict correction chronology, invalid intervals and unknown references/events. The evaluator also tests calibration-event permutation invariance with a non-empty competing-correction history. These synthetic tests are not an independently authored semantic oracle, are not a physical or metrology oracle, and do not validate source clock bounds. Independent review and a rights-cleared external corpus remain required before any external performance claim.
 
 ## 4. Paradigm shifts beyond a better optimizer
 
