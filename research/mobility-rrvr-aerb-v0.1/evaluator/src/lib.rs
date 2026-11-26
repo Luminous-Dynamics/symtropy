@@ -470,6 +470,15 @@ fn validate_submission(
     {
         return Err(EvaluatorError::InvalidSubmission("explanation cites unknown observation".to_owned()));
     }
+    let has_unqualified_observation = episode.observations.iter().any(|observation| {
+        observation.quality != ObservationQuality::Admitted
+    });
+    if has_unqualified_observation && submission.disposition != Disposition::Abstain {
+        return Err(EvaluatorError::InvalidSubmission(
+            "stale, unknown or disputed observations require abstention".to_owned()
+        ));
+    }
+
     match submission.disposition {
         Disposition::RequestObservation if submission.requested_probe_id.is_none() => {
             return Err(EvaluatorError::InvalidSubmission("request_observation requires a probe ID".to_owned()));
@@ -877,6 +886,32 @@ mod tests {
         ).expect("score");
         assert!(!report.hidden_truth_in_candidate_support);
         assert!(!serde_json::to_string(&report).unwrap().contains("applied_once_ack_lost"));
+    }
+
+    #[test]
+    fn stale_or_unknown_observation_requires_abstention() {
+        let (mut episode, mut submission, worldpack) = values();
+        episode["observations"][1]["quality"] = serde_json::json!("stale");
+        reseal_candidate_snapshot(&episode, &mut submission);
+        assert!(matches!(
+            evaluate_json(
+                &serde_json::to_string(&episode).unwrap(),
+                &serde_json::to_string(&submission).unwrap(),
+                &serde_json::to_string(&worldpack).unwrap()
+            ),
+            Err(EvaluatorError::InvalidSubmission(_))
+        ));
+        submission["disposition"] = serde_json::json!("abstain");
+        submission["requested_probe_id"] = Value::Null;
+        reseal_candidate_snapshot(&episode, &mut submission);
+        let report = evaluate_json(
+            &serde_json::to_string(&episode).unwrap(),
+            &serde_json::to_string(&submission).unwrap(),
+            &serde_json::to_string(&worldpack).unwrap()
+        ).expect("abstention remains scoreable");
+        assert!(report.candidate_contract_valid);
+        assert_eq!(report.disputed_observation_n, 0);
+        assert_eq!(report.stale_observation_n, 1);
     }
 
     #[test]
