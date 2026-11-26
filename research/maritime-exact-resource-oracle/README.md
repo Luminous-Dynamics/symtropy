@@ -70,3 +70,15 @@ For larger instances, use a solver-provided valid bound and publish timeouts / i
 - The fixture is synthetic; a passing result is not real-port performance, global generalization or a SOTA win.
 
 Next increment: add a second topology family with bridge/tide windows and then compare typed candidate outputs from the optimizer families against exact feasible sets and Pareto fronts. Keep physical/authority qualification with the existing #7231/#7357 owners and decision-time evidence with #7505.
+
+
+## Receipt completeness
+
+The deterministic receipt now emits the canonicalized scenario manifest before the feasible set:
+- sorted vessel identities;
+- every time-indexed resource capacity, including zero-capacity tide closures;
+- every candidate ID, vessel binding and objective vector;
+- every candidate reservation by resource and slot;
+- complete feasible combination set and Pareto frontier.
+
+The independent Python reference reconstructs the same canonical manifest directly from the fixture, exhaustively enumerates the candidate Cartesian product, computes the Pareto set independently, and compares the entire byte-level receipt. This makes a solver result auditable against the exact capacity and reservation inputs rather than reporting only plan IDs and objective values.
