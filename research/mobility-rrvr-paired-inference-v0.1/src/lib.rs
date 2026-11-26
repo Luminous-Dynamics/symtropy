@@ -458,8 +458,8 @@ fn endpoint_report(
             .map(|(_, treatment)| u8::from(*treatment) as f64)
             .sum::<f64>()
             / outcomes.len() as f64;
-        control_adverse_cluster_n += usize::from(control_mean > 0.0);
-        treatment_adverse_cluster_n += usize::from(treatment_mean > 0.0);
+        control_adverse_cluster_n += if control_mean > 0.0 { 1 } else { 0 };
+        treatment_adverse_cluster_n += if treatment_mean > 0.0 { 1 } else { 0 };
         cluster_control_means.push(control_mean);
         cluster_treatment_means.push(treatment_mean);
         cluster_effects.push(treatment_mean - control_mean);
@@ -687,6 +687,8 @@ mod tests {
         assert_eq!(safety.cluster_n, 2);
         assert!(safety.mcnemar.is_none());
         assert!(safety.bootstrap_interval.is_some());
+        assert_eq!(safety.cluster_weighted_risk_difference, 0.5);
+        assert!((safety.episode_weighted_risk_difference - (2.0 / 3.0)).abs() < 1e-12);
     }
 
     #[test]
