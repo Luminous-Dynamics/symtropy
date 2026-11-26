@@ -144,7 +144,19 @@ The following are candidate adapters, not universal mandatory requirements. Impl
 
 Standards status must be explicit: published standard, technical specification, recommendation, industry profile, draft, proposal, withdrawn or superseded. A draft is not silently upgraded to a mandatory standard. A URL that resolves to a moving "latest" page is not an immutable standards pin.
 
-### 6.1 Key semantic warnings
+### 6.1 Adjacent research frameworks and deployment baselines
+
+The SAFRB profile should align with adjacent public work rather than imply that it originates the whole trustworthy-industrial-intelligence or supply-chain-interoperability field.
+
+- **NIST SI for Manufacturing / TIDAL (ongoing research initiative, page updated 2026-11-10):** addresses trustworthy manufacturing intelligence, human-machine teaming, contextualized OT/MOM data, digital-twin VVUQ and an integration test bench with benchmark studies. Its stated benchmark tasks include production planning, scheduling, monitoring and root-cause analysis, with accuracy, latency, cost and grounding metrics. SAFRB should reuse the measurement-science and benchmark discipline. Its distinctive target is narrower and cross-organizational: qualified resource-to-beneficiary service claims across separately governed infrastructure owners and jurisdictions. TIDAL is a research framework, not a certification or a SAFRB implementation dependency.
+- **NIST IR 8536 (final, 2026-09-09), Supply Chain Traceability Principles: A Manufacturing Meta-Framework:** align Mycelix adapters with its industry-neutral secure traceability and selective information-sharing principles. It is an NIST internal report/framework, not a replacement for EPCIS, a legal-recognition engine, a physical-capacity verifier or a beneficiary-service certificate.
+- **NIST IR 8356 (final, 2025-02-14), Security and Trust Considerations for Digital Twin Technology:** use as a cybersecurity/trust design reference for monitoring, simulation and command/control boundaries. It does not confer authority to control an asset or prove the validity of a particular twin.
+- **IEC TS 62898-3-5:2026:** use for the relevant microgrid monitoring/control/energy-management system test lifecycle—HIL, commissioning and periodic testing—where that domain profile applies. It is not a generic qualification rule for fuel logistics or all infrastructure.
+- **OGC JSON-FG 1.0.0:** use for typed geospatial features and richer CRS/geometry semantics; do not silently assume the GeoJSON WGS 84 longitude/latitude model when another declared CRS is required.
+
+These alignments are not claims of compliance, certification, endorsement or superiority. Each implementation must state whether a reference is a formal standard, technical specification, research framework or guidance document, and must pin the edition and test scope.
+
+### 6.2 Key semantic warnings
 
 - W3C VC 2.0 is useful for portable claims, but issuer trust and purpose-specific recognition remain outside its data model. Mycelix must keep recognition and authorization explicit.
 - GS1 EPCIS can exchange event visibility and aggregated sensor summaries. Raw measurements should remain available through permissioned references where appropriate; a sensor summary is not a calibrated measurement certificate.
@@ -296,6 +308,10 @@ A successful conformance result means only that the declared adapter and claim s
 - IEC 61850 overview: https://iec61850.dvl.iec.ch/
 - IEC 61970-301 CIM base: https://webstore.iec.ch/en/publication/62698
 - IEC TS 62898-3-5:2026: https://webstore.iec.ch/en/publication/84175
+- NIST SI for Manufacturing / TIDAL: https://www.nist.gov/programs-projects/super-intelligence-si-manufacturing
+- NIST IR 8536, Supply Chain Traceability Principles: https://csrc.nist.gov/News/2026/nccoe-releases-nist-ir-8536
+- NIST IR 8356, Security and Trust Considerations for Digital Twin Technology: https://csrc.nist.gov/pubs/ir/8356/final
+- OGC JSON-FG 1.0.0: https://www.ogc.org/standards/json-fg/
 - IANA Time Zone Database: https://www.iana.org/time-zones
 - IETF BCP 47 / RFC 5646: https://datatracker.ietf.org/doc/rfc5646/
 
