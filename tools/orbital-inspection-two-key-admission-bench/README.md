@@ -28,6 +28,6 @@ The independent Python challenger uses the standard library only.
 
 ## Benchmark boundary
 
-The 23 fixtures test independent hard-gate composition, missing/stale/failed receipts, scope mismatches, incomplete post-action event inventory, recovery semantics, invalid digest shape, and the fact that utility/cost never changes admissibility.
+The 24 fixtures test independent hard-gate composition, missing/stale/failed receipts, scope mismatches, incomplete post-action event inventory, recovery semantics, invalid digest shape, and the fact that utility/cost never changes admissibility.
 
 SHA-256 fields are references only: source bytes and issuers are not authenticated. The receipt hard-codes physical_validation=NOT_ASSESSED and authority_granted=false. No operational spacecraft command, collision-avoidance guarantee, mission readiness or measurement acceptance is claimed.
