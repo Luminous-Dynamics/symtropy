@@ -74,7 +74,9 @@ impl fmt::Display for JointClockErrorV0 {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyStreams => formatter.write_str("at least one sensor stream is required"),
-            Self::EmptyEvents => formatter.write_str("at least one synchronization event is required"),
+            Self::EmptyEvents => {
+                formatter.write_str("at least one synchronization event is required")
+            },
             Self::EmptyObservations => {
                 formatter.write_str("at least one sensor/event timestamp is required")
             }
@@ -85,7 +87,10 @@ impl fmt::Display for JointClockErrorV0 {
                 write!(formatter, "event count {found} exceeds v0 limit {maximum}")
             }
             Self::TooManyObservations { found, maximum } => {
-                write!(formatter, "observation count {found} exceeds v0 limit {maximum}")
+                write!(
+                    formatter,
+                    "observation count {found} exceeds v0 limit {maximum}"
+                )
             }
             Self::DuplicateStreamId { stream_id } => {
                 write!(formatter, "duplicate stream ID {stream_id}")
@@ -97,12 +102,21 @@ impl fmt::Display for JointClockErrorV0 {
                 write!(formatter, "reference stream {stream_id} is not declared")
             }
             Self::UnknownObservationStream { stream_id } => {
-                write!(formatter, "observation references undeclared stream {stream_id}")
+                write!(
+                    formatter,
+                    "observation references undeclared stream {stream_id}"
+                )
             }
             Self::UnknownObservationEvent { event_id } => {
-                write!(formatter, "observation references undeclared event {event_id}")
+                write!(
+                    formatter,
+                    "observation references undeclared event {event_id}"
+                )
             }
-            Self::DuplicateStreamEventObservation { stream_id, event_id } => {
+            Self::DuplicateStreamEventObservation {
+                stream_id,
+                event_id,
+            } => {
                 write!(
                     formatter,
                     "duplicate observation for stream {stream_id}, event {event_id}"
@@ -117,10 +131,17 @@ impl fmt::Display for JointClockErrorV0 {
                     "joint clock design is not identifiable: rank {rank} for {parameters} parameters"
                 )
             }
-            Self::NonFiniteInput => formatter.write_str("joint clock design contains a non-finite value"),
-            Self::NonFiniteEstimate => formatter.write_str("joint clock fit produced a non-finite estimate"),
+            Self::NonFiniteInput => {
+                formatter.write_str("joint clock design contains a non-finite value")
+            },
+            Self::NonFiniteEstimate => {
+                formatter.write_str("joint clock fit produced a non-finite estimate")
+            },
             Self::NonPositiveInverseRate { stream_id } => {
-                write!(formatter, "estimated inverse clock rate for stream {stream_id} is not positive")
+                write!(
+                    formatter,
+                    "estimated inverse clock rate for stream {stream_id} is not positive"
+                )
             }
             Self::InvalidRobustConfiguration => {
                 formatter.write_str("Huber configuration is outside the fixed v0 protocol")
@@ -313,10 +334,8 @@ fn build_joint_design_v0(
         if observation.stream_id == problem.reference_stream_id {
             target.push(observation.local_timestamp as f64);
         } else {
-            let inverse_rate_column =
-                parameter_columns[&(0, Some(observation.stream_id))];
-            let inverse_offset_column =
-                parameter_columns[&(1, Some(observation.stream_id))];
+            let inverse_rate_column = parameter_columns[&(0, Some(observation.stream_id))];
+            let inverse_offset_column = parameter_columns[&(1, Some(observation.stream_id))];
             row[inverse_rate_column] = -(observation.local_timestamp as f64);
             row[inverse_offset_column] = -1.0;
             target.push(0.0);
@@ -345,7 +364,11 @@ fn weighted_rank_revealing_qr_v0(
     }
     let row_count = matrix.len();
     let column_count = matrix.first().map_or(0, Vec::len);
-    if row_count == 0 || column_count == 0 || target.len() != row_count || weights.len() != row_count {
+    if row_count == 0
+        || column_count == 0
+        || target.len() != row_count
+        || weights.len() != row_count
+    {
         return Err(JointClockErrorV0::EmptyObservations);
     }
     if matrix.iter().any(|row| row.len() != column_count) {
@@ -399,9 +422,7 @@ fn weighted_rank_revealing_qr_v0(
         let mut best_norm_squared = -1.0_f64;
         for column_index in pivot_index..column_count {
             let norm_squared = (pivot_index..row_count)
-                .map(|row_index| {
-                    a[row_index][column_index] * a[row_index][column_index]
-                })
+                .map(|row_index| a[row_index][column_index] * a[row_index][column_index])
                 .sum::<f64>();
             if norm_squared > best_norm_squared {
                 best_norm_squared = norm_squared;
@@ -435,10 +456,7 @@ fn weighted_rank_revealing_qr_v0(
             .map(|row_index| a[row_index][pivot_index])
             .collect::<Vec<_>>();
         householder[0] -= alpha;
-        let vector_norm_squared = householder
-            .iter()
-            .map(|value| value * value)
-            .sum::<f64>();
+        let vector_norm_squared = householder.iter().map(|value| value * value).sum::<f64>();
         if !vector_norm_squared.is_finite() || vector_norm_squared <= f64::MIN_POSITIVE {
             return Err(JointClockErrorV0::NumericalBreakdown);
         }
@@ -448,9 +466,7 @@ fn weighted_rank_revealing_qr_v0(
             let dot = householder
                 .iter()
                 .enumerate()
-                .map(|(offset, value)| {
-                    value * a[pivot_index + offset][column_index]
-                })
+                .map(|(offset, value)| value * a[pivot_index + offset][column_index])
                 .sum::<f64>();
             let multiplier = factor * dot;
             for (offset, value) in householder.iter().enumerate() {
@@ -575,14 +591,15 @@ fn finish_fit_v0(
     design_report: JointClockDesignReportV0,
 ) -> Result<JointClockFitV0, JointClockErrorV0> {
     let residuals = residuals_v0(&design.matrix, &design.target, &coefficients);
-    let absolute = residuals.iter().map(|residual| residual.abs()).collect::<Vec<_>>();
-    let residual_rms = (
-        residuals
-            .iter()
-            .map(|residual| residual * residual)
-            .sum::<f64>()
-            / residuals.len() as f64
-    )
+    let absolute = residuals
+        .iter()
+        .map(|residual| residual.abs())
+        .collect::<Vec<_>>();
+    let residual_rms = (residuals
+        .iter()
+        .map(|residual| residual * residual)
+        .sum::<f64>()
+        / residuals.len() as f64)
         .sqrt();
     let median_absolute_residual =
         median_v0(&absolute).ok_or(JointClockErrorV0::NonFiniteEstimate)?;
@@ -657,12 +674,8 @@ pub fn analyze_joint_clock_design_v0(
 ) -> Result<JointClockDesignReportV0, JointClockErrorV0> {
     let design = build_joint_design_v0(problem)?;
     let weights = vec![1.0_f64; design.matrix.len()];
-    let solved = weighted_rank_revealing_qr_v0(
-        &design.matrix,
-        &design.target,
-        &weights,
-        rank_tolerance,
-    )?;
+    let solved =
+        weighted_rank_revealing_qr_v0(&design.matrix, &design.target, &weights, rank_tolerance)?;
     Ok(make_design_report_v0(
         &design,
         rank_tolerance,
@@ -729,8 +742,7 @@ pub fn fit_joint_clock_huber_v0(
 
     for iteration in 1..=JOINT_CLOCK_HUBER_MAX_ITERATIONS_V0 {
         let residuals = residuals_v0(&design.matrix, &design.target, &coefficients);
-        let residual_median =
-            median_v0(&residuals).ok_or(JointClockErrorV0::NonFiniteEstimate)?;
+        let residual_median = median_v0(&residuals).ok_or(JointClockErrorV0::NonFiniteEstimate)?;
         let deviations = residuals
             .iter()
             .map(|residual| (residual - residual_median).abs())
@@ -892,11 +904,8 @@ mod tests {
     #[test]
     fn rank_condition_rejects_one_shared_event_for_two_stream_affine_fit() {
         let problem = two_stream_problem(1);
-        let report = analyze_joint_clock_design_v0(
-            &problem,
-            JOINT_CLOCK_RANK_TOLERANCE_V0,
-        )
-        .unwrap();
+        let report =
+            analyze_joint_clock_design_v0(&problem, JOINT_CLOCK_RANK_TOLERANCE_V0).unwrap();
         assert_eq!(report.parameter_count, 3);
         assert_eq!(report.rank, 2);
         assert!(!report.full_column_rank);
@@ -954,8 +963,16 @@ mod tests {
         };
         let fit = fit_joint_clock_ols_v0(&problem).unwrap();
         assert_eq!(fit.design.rank, fit.design.parameter_count);
-        let stream_one = fit.inverse_clocks.iter().find(|clock| clock.stream_id == 1).unwrap();
-        let stream_two = fit.inverse_clocks.iter().find(|clock| clock.stream_id == 2).unwrap();
+        let stream_one = fit
+            .inverse_clocks
+            .iter()
+            .find(|clock| clock.stream_id == 1)
+            .unwrap();
+        let stream_two = fit
+            .inverse_clocks
+            .iter()
+            .find(|clock| clock.stream_id == 2)
+            .unwrap();
         assert!((stream_one.inverse_rate - 0.5).abs() < 1.0e-10);
         assert!((stream_one.inverse_offset + 50.0).abs() < 1.0e-8);
         assert!((stream_two.inverse_rate - 0.25).abs() < 1.0e-10);
@@ -995,7 +1012,11 @@ mod tests {
     fn reference_stream_is_gauge_fixed_to_identity() {
         let problem = two_stream_problem(3);
         let fit = fit_joint_clock_ols_v0(&problem).unwrap();
-        let reference = fit.inverse_clocks.iter().find(|clock| clock.stream_id == 0).unwrap();
+        let reference = fit
+            .inverse_clocks
+            .iter()
+            .find(|clock| clock.stream_id == 0)
+            .unwrap();
         assert_eq!(reference.inverse_rate, 1.0);
         assert_eq!(reference.inverse_offset, 0.0);
     }
