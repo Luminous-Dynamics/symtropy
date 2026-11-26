@@ -387,8 +387,11 @@ fn bounded_scenario_metrics(
         .iter()
         .copied()
         .fold(0.0_f64, f64::max);
-    let mean_in_plane_field_lower_bound_t =
-        lower_in_plane_magnitudes.iter().sum::<f64>() / lower_in_plane_magnitudes.len() as f64;
+    let sample_count = lower_in_plane_magnitudes.len() as f64;
+    let mean_in_plane_field_lower_bound_t = lower_in_plane_magnitudes
+        .iter()
+        .map(|value| value / sample_count)
+        .sum::<f64>();
 
     let amplitude_ripple_upper_bound_fraction = if mean_in_plane_field_lower_bound_t > 0.0 {
         Some(
