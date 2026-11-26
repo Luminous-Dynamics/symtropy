@@ -203,6 +203,28 @@ pub struct PartitionMetrics {
     pub leaf_count: usize,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct DomainCertificate {
+    pub domain_id: String,
+    pub coordinate_frame_id: String,
+    pub operating_condition_id: String,
+    pub probe_calibration_id: String,
+    pub model_set_id: String,
+    pub solver_run_id: String,
+    pub geometry_sha256: String,
+    pub material_sha256: String,
+    pub requirement_id: String,
+    pub margin_unit: String,
+    pub derivative_unit: String,
+    pub evidence_role: EvidenceRole,
+    pub partition: PartitionMetrics,
+    pub certified_safe_cell_count: usize,
+    pub certified_failing_cell_count: usize,
+    pub unresolved_cell_count: usize,
+    pub all_domain_safe: bool,
+    pub cells: Vec<CellCertificate>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CertificationError {
     InvalidIdentity,
@@ -224,6 +246,8 @@ pub enum CertificationError {
     OverlappingPartitionCells,
     InvalidPartitionVolume,
     PartitionVolumeMismatch,
+    MixedPartitionEvidence,
+    DuplicateCellId,
 }
 
 fn nonempty(value: &str) -> bool {
@@ -614,6 +638,83 @@ pub fn validate_leaf_partition(
         domain_volume_m3: domain_volume,
         summed_leaf_volume_m3: summed_volume,
         leaf_count: leaves.len(),
+    })
+}
+
+/// Certify every leaf in a complete spatial partition under one shared
+/// physical/model/evidence scope. The domain is certified safe only when every
+/// cell enclosure is strictly positive and the leaves cover the root volume.
+pub fn certify_domain(
+    root: AxisAlignedBox3,
+    evidence: &[CellMarginEvidence],
+) -> Result<DomainCertificate, CertificationError> {
+    if evidence.is_empty() {
+        return Err(CertificationError::EmptyPartition);
+    }
+
+    let first = &evidence[0];
+    let mut cell_ids = std::collections::HashSet::with_capacity(evidence.len());
+    let mut cell_certificates = Vec::with_capacity(evidence.len());
+
+    for cell in evidence {
+        if !cell_ids.insert(cell.cell_id.as_str()) {
+            return Err(CertificationError::DuplicateCellId);
+        }
+        if cell.domain_id != first.domain_id
+            || cell.coordinate_frame_id != first.coordinate_frame_id
+            || cell.operating_condition_id != first.operating_condition_id
+            || cell.probe_calibration_id != first.probe_calibration_id
+            || cell.model_set_id != first.model_set_id
+            || cell.solver_run_id != first.solver_run_id
+            || cell.geometry_sha256 != first.geometry_sha256
+            || cell.material_sha256 != first.material_sha256
+            || cell.requirement_id != first.requirement_id
+            || cell.margin_unit != first.margin_unit
+            || cell.derivative_unit != first.derivative_unit
+            || cell.evidence_role != first.evidence_role
+        {
+            return Err(CertificationError::MixedPartitionEvidence);
+        }
+        cell_certificates.push(certify_cell(cell)?);
+    }
+
+    let leaves = evidence
+        .iter()
+        .map(|cell| cell.bounds)
+        .collect::<Vec<_>>();
+    let partition = validate_leaf_partition(root, &leaves)?;
+    let certified_safe_cell_count = cell_certificates
+        .iter()
+        .filter(|cell| cell.classification == CellClassification::CertifiedSafe)
+        .count();
+    let certified_failing_cell_count = cell_certificates
+        .iter()
+        .filter(|cell| cell.classification == CellClassification::CertifiedFailing)
+        .count();
+    let unresolved_cell_count = cell_certificates
+        .iter()
+        .filter(|cell| cell.classification == CellClassification::Unresolved)
+        .count();
+
+    Ok(DomainCertificate {
+        domain_id: first.domain_id.clone(),
+        coordinate_frame_id: first.coordinate_frame_id.clone(),
+        operating_condition_id: first.operating_condition_id.clone(),
+        probe_calibration_id: first.probe_calibration_id.clone(),
+        model_set_id: first.model_set_id.clone(),
+        solver_run_id: first.solver_run_id.clone(),
+        geometry_sha256: first.geometry_sha256.clone(),
+        material_sha256: first.material_sha256.clone(),
+        requirement_id: first.requirement_id.clone(),
+        margin_unit: first.margin_unit.clone(),
+        derivative_unit: first.derivative_unit.clone(),
+        evidence_role: first.evidence_role,
+        partition,
+        certified_safe_cell_count,
+        certified_failing_cell_count,
+        unresolved_cell_count,
+        all_domain_safe: certified_safe_cell_count == evidence.len(),
+        cells: cell_certificates,
     })
 }
 
