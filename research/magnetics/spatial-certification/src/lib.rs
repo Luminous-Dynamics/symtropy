@@ -693,8 +693,9 @@ mod tests {
     #[test]
     fn touching_the_zero_boundary_is_unresolved() {
         let mut input = evidence();
-        input.centre_margin_lower_bound = 0.7;
+        input.centre_margin_lower_bound = 0.75;
         input.centre_margin_upper_bound = 0.9;
+        input.derivative_abs_upper_by_axis_per_m = [0.125, 0.25, 0.375];
         let result = certify_cell(&input).expect("valid boundary interval");
         assert_eq!(result.margin_lower_enclosure, 0.0);
         assert_eq!(result.classification, CellClassification::Unresolved);
@@ -702,7 +703,9 @@ mod tests {
 
     #[test]
     fn refinement_splits_the_axis_with_the_largest_bound_contribution() {
-        let input = evidence();
+        let mut input = evidence();
+        input.centre_margin_lower_bound = 0.5;
+        input.centre_margin_upper_bound = 0.8;
         let result = plan_refinement(&input, 0, 1, policy()).expect("valid refinement");
         assert_eq!(result.disposition, RefinementDisposition::Split);
         let split = result.split.expect("unresolved cell is split");
@@ -778,7 +781,9 @@ mod tests {
 
     #[test]
     fn exhausted_budget_keeps_the_cell_unresolved() {
-        let input = evidence();
+        let mut input = evidence();
+        input.centre_margin_lower_bound = 0.5;
+        input.centre_margin_upper_bound = 0.8;
         let mut bounded = policy();
         bounded.maximum_leaf_count = 1;
         let result = plan_refinement(&input, 0, 1, bounded).expect("valid budget");
