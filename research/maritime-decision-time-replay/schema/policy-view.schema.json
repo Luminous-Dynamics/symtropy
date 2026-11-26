@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/maritime-decision-time-replay/schema/policy-view.schema.json",
+  "title": "MDTR Policy View v0.1",
+  "description": "The only serialized episode data permitted as direct policy input. Evaluator truth is intentionally excluded.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["case_id", "decision_cutoff_epoch_s", "subject_id", "visible_events"],
+  "properties": {
+    "case_id": {"type": "string", "minLength": 1},
+    "decision_cutoff_epoch_s": {"type": "integer"},
+    "subject_id": {"type": "string", "minLength": 1},
+    "visible_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_id", "event_id", "event_time_epoch_s"],
+        "properties": {
+          "source_id": {"type": "string", "minLength": 1},
+          "event_id": {"type": "string", "minLength": 1},
+          "event_time_epoch_s": {"type": "integer"}
+        }
+      }
+    }
+  }
+}
