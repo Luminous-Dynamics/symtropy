@@ -1242,8 +1242,10 @@ mod tests {
                 finding: ObservationFinding::FaultPresent,
                 coverage: None,
                 coverage_complete: false,
-                raw_data_sha256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned(),
-                calibration_sha256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned(),
+                raw_data_sha256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                    .to_owned(),
+                calibration_sha256:
+                    "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned(),
             },
         );
         let mut claim = claim_for(
