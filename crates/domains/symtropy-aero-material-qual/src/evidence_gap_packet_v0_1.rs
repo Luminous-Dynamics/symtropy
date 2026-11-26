@@ -318,10 +318,13 @@ impl EvidenceGapPacketV1 {
                 || required
                     .iter()
                     .chain(unaffected.iter())
-                    .any(|id| !nonempty(id))
+                    .any(|id| !nonempty(id) || !claim_ids.contains(id))
                 || !required.is_disjoint(&unaffected)
             {
                 errors.push("CHANGE_IMPACT_CLAIM_SETS_INVALID".to_owned());
+            }
+            if change.completeness == "INCOMPLETE" && !unaffected.is_empty() {
+                errors.push("INCOMPLETE_CHANGE_FRONTIER_CANNOT_ASSERT_UNAFFECTED".to_owned());
             }
         }
 
@@ -473,6 +476,22 @@ mod tests {
     }
 
     #[test]
+    fn incomplete_change_frontier_cannot_declare_unaffected_claims() {
+        let mut packet = packet();
+        packet.change_impact = Some(super::ChangeImpactV1 {
+            source_owner: "mycelix:6219".to_owned(),
+            receipt_ref: "SYNTHETIC::CHANGE-RECEIPT".to_owned(),
+            event_frontier_ref: "SYNTHETIC::EVENT-FRONTIER".to_owned(),
+            completeness: "INCOMPLETE".to_owned(),
+            required_requalification_claims: vec![
+                "SYNTHETIC::CALIBRATION-BINDING-CLAIM".to_owned()
+            ],
+            unaffected_claims: vec!["SYNTHETIC::NDE-OBSERVABILITY-CLAIM".to_owned()],
+        });
+        assert!(packet.validate().is_err());
+    }
+
+    #[test]
     fn incomplete_change_impact_is_preserved_not_promoted() {
         let mut packet = packet();
         packet.change_impact = Some(super::ChangeImpactV1 {
@@ -481,7 +500,7 @@ mod tests {
             event_frontier_ref: "SYNTHETIC::EVENT-FRONTIER".to_owned(),
             completeness: "INCOMPLETE".to_owned(),
             required_requalification_claims: vec!["claim-A".to_owned()],
-            unaffected_claims: vec!["claim-B".to_owned()],
+            unaffected_claims: Vec::new(),
         });
         let projection = packet
             .selector_projection()
