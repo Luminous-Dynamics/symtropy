@@ -525,6 +525,12 @@ mod tests {
 
     #[test]
     fn every_candidate_uses_the_same_ordered_operating_condition_set() {
+        let baseline = candidate(
+            "condition-baseline",
+            1.0,
+            0.01,
+            EvidenceKind::SyntheticScenario,
+        );
         let mut changed_condition = candidate(
             "changed-condition",
             1.0,
@@ -535,7 +541,7 @@ mod tests {
         assert_eq!(
             rank_magnetic_designs(
                 "tournament-condition-set",
-                &[changed_condition],
+                &[baseline.clone(), changed_condition],
                 &requirements()
             )
             .expect_err("condition set must be matched"),
@@ -552,7 +558,7 @@ mod tests {
         assert_eq!(
             rank_magnetic_designs(
                 "tournament-condition-count",
-                &[missing_condition],
+                &[baseline, missing_condition],
                 &requirements()
             )
             .expect_err("missing operating corner must fail"),
