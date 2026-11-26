@@ -84,5 +84,17 @@ jobs:
       if: ${{ hashFiles('tools/airborne-energy-observability-validator/Cargo.toml') != '' }}
       run: cargo test --locked -p airborne-energy-observability-validator
 
+    - name: Check Magnetic Spatial Certification Formatting
+      if: ${{ hashFiles('research/magnetics/spatial-certification/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path research/magnetics/spatial-certification/Cargo.toml -- --check
+
+    - name: Run Clippy (Magnetic Spatial Certification)
+      if: ${{ hashFiles('research/magnetics/spatial-certification/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path research/magnetics/spatial-certification/Cargo.toml --all-targets -- -D warnings
+
+    - name: Run Tests (Magnetic Spatial Certification)
+      if: ${{ hashFiles('research/magnetics/spatial-certification/Cargo.toml') != '' }}
+      run: cargo test --manifest-path research/magnetics/spatial-certification/Cargo.toml
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
