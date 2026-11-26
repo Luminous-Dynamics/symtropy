@@ -684,6 +684,20 @@ fn hash_exact_mass(hasher: &mut Sha256, mass: ExactMass) {
     hasher.update(mass.denominator.to_be_bytes());
 }
 
+/// Bind a complete mission-risk envelope to one frozen scenario/portfolio cell.
+pub fn portfolio_scenario_risk_envelope_digest(
+    scenario_id: [u8; 32],
+    portfolio_id: [u8; 32],
+    envelope: &MissionRiskEnvelope,
+) -> [u8; 32] {
+    let mut hasher = Sha256::new();
+    hasher.update(b"luminous.orbital.portfolio-scenario-risk-envelope.v0.1\\0");
+    hasher.update(scenario_id);
+    hasher.update(portfolio_id);
+    hasher.update(mission_risk_envelope_digest(envelope));
+    hasher.finalize().into()
+}
+
 
 fn validate_envelope(
     contract: &PortfolioScenarioRiskContract,
@@ -696,7 +710,12 @@ fn validate_envelope(
     {
         return Err(ScenarioMissionRiskGateError::RiskEnvelopeIdentityMismatch);
     }
-    if mission_risk_envelope_digest(envelope) != contract.risk_envelope_digest {
+    if portfolio_scenario_risk_envelope_digest(
+        contract.scenario_id,
+        contract.portfolio_id,
+        envelope,
+    ) != contract.risk_envelope_digest
+    {
         return Err(ScenarioMissionRiskGateError::RiskEnvelopeDigestMismatch);
     }
     if envelope.authority_granted {
@@ -995,7 +1014,11 @@ mod tests {
                     target_measure_digest: target,
                     density_space_digest: density,
                     event_inventory_digest,
-                    risk_envelope_digest: mission_risk_envelope_digest(&risk),
+                    risk_envelope_digest: portfolio_scenario_risk_envelope_digest(
+                        scenario_id,
+                        portfolio_id,
+                        &risk,
+                    ),
                     total_mass_ticks: 100,
                     risk_budget: budget,
                 });
@@ -1116,7 +1139,11 @@ mod tests {
                         && row.portfolio_id == contract.portfolio_id
                 })
                 .unwrap();
-            contract.risk_envelope_digest = mission_risk_envelope_digest(&row.envelope);
+            contract.risk_envelope_digest = portfolio_scenario_risk_envelope_digest(
+                contract.scenario_id,
+                contract.portfolio_id,
+                &row.envelope,
+            );
         }
         contract_rows
     }
