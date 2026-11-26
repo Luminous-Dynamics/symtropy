@@ -1,0 +1,16 @@
+[package]
+name = "maritime-exact-resource-oracle"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "resource-oracle-audit"
+path = "src/bin/resource_oracle_audit.rs"
+
+[dependencies]
+
+[workspace]
