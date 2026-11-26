@@ -9,7 +9,7 @@
 
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
-use single_commodity_flow_kernel::{FlowEdge, FlowGraph, FlowNode, MAX_EDGES, MAX_NODES};
+use single_commodity_flow_kernel::{FlowEdge, FlowGraph, FlowNode, FlowResult, MAX_EDGES, MAX_NODES};
 
 const MAX_INTERVALS: u64 = 256;
 const MAX_SEGMENT_SLOTS: usize = 4096;
@@ -416,6 +416,9 @@ pub struct ReceiverAllocation {
     pub individual_max_deliverable_mwh: Option<u64>,
     pub individual_max_min_cut_capacity_mwh: Option<u64>,
     pub individual_max_graph_sha256: Option<String>,
+    /// Full primal/dual result for independent verification of the isolated
+    /// receiver maximum. Absent when diagnostics are not computed.
+    pub individual_max_certificate: Option<FlowResult>,
     pub individual_floor_feasible: Option<bool>,
 }
 
@@ -724,6 +727,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
             individual_max_graph_sha256: individual_result
                 .as_ref()
                 .map(|result| result.graph_sha256.clone()),
+            individual_max_certificate: individual_result.clone(),
             individual_floor_feasible,
         });
     }
@@ -933,9 +937,17 @@ mod tests {
                 .sum::<u64>(),
             10
         );
-        assert!(report.receiver_allocations.iter()
-            .all(|row| row.individual_max_graph_sha256.as_deref()
-                .is_some_and(|digest| digest.starts_with("sha256:"))));
+        assert!(report.receiver_allocations.iter().all(|row| {
+            row.individual_max_graph_sha256.as_deref()
+                .is_some_and(|digest| digest.starts_with("sha256:"))
+                && row.individual_max_certificate.as_ref().is_some_and(|certificate| {
+                    Some(certificate.graph_sha256.as_str())
+                        == row.individual_max_graph_sha256.as_deref()
+                        && Some(certificate.max_flow)
+                            == row.individual_max_deliverable_mwh
+                        && certificate.max_flow == certificate.min_cut.capacity
+                })
+        }));
     }
 
     #[test]
@@ -1000,6 +1012,7 @@ mod tests {
             row.individual_max_deliverable_mwh.is_none()
                 && row.individual_max_min_cut_capacity_mwh.is_none()
                 && row.individual_max_graph_sha256.is_none()
+                && row.individual_max_certificate.is_none()
                 && row.individual_floor_feasible.is_none()
         }));
     }
