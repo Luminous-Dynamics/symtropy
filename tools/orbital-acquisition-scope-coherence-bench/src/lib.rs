@@ -220,17 +220,17 @@ fn claims_to_map(claims: &[ScopeClaim]) -> Result<BTreeMap<String, String>, Stri
         if !CANONICAL_SCOPE_FIELDS.contains(&claim.field.as_str()) {
             return Err(format!("SCOPE_FIELD_UNSUPPORTED:{}", claim.field));
         }
-        if values.insert(claim.field.clone(), claim.value.clone()).is_some() {
+        if values
+            .insert(claim.field.clone(), claim.value.clone())
+            .is_some()
+        {
             return Err(format!("SCOPE_FIELD_DUPLICATE:{}", claim.field));
         }
     }
     Ok(values)
 }
 
-fn validate_interval(
-    interval: &TimeInterval,
-    allow_point: bool,
-) -> Result<(), String> {
+fn validate_interval(interval: &TimeInterval, allow_point: bool) -> Result<(), String> {
     if !valid_text(&interval.time_basis_id)
         || interval.start_tai_ns > interval.end_tai_ns
         || (!allow_point && interval.start_tai_ns == interval.end_tai_ns)
@@ -355,10 +355,12 @@ fn evaluate_binding(
     }
 
     if binding.source_state != SourceState::Current {
-        reason_codes.insert(format!("SOURCE_NOT_CURRENT:{:?}", binding.source_state).to_ascii_uppercase());
+        reason_codes
+            .insert(format!("SOURCE_NOT_CURRENT:{:?}", binding.source_state).to_ascii_uppercase());
     }
 
-    let disposition = if !missing_fields.is_empty() && mismatched_fields.is_empty()
+    let disposition = if !missing_fields.is_empty()
+        && mismatched_fields.is_empty()
         && binding.source_state == SourceState::Current
     {
         Disposition::Indeterminate
@@ -439,9 +441,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
     let mut binding_results: Vec<BindingResult> = case
         .evidence
         .iter()
-        .map(|binding| {
-            evaluate_binding(binding, &case.acquisition_interval, &acquisition_scope)
-        })
+        .map(|binding| evaluate_binding(binding, &case.acquisition_interval, &acquisition_scope))
         .collect();
     binding_results.sort_by(|left, right| left.evidence_id.cmp(&right.evidence_id));
 
@@ -470,7 +470,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
         Disposition::InvalidInput
     } else if has_out_of_scope {
         Disposition::OutOfScope
-    } else if has_indeterminate || !acquisition_missing.is_empty() || !missing_evidence_kinds.is_empty() {
+    } else if has_indeterminate
+        || !acquisition_missing.is_empty()
+        || !missing_evidence_kinds.is_empty()
+    {
         Disposition::Indeterminate
     } else {
         Disposition::ScopeCoherent
@@ -545,7 +548,9 @@ mod tests {
     use super::*;
 
     fn corpus_bytes() -> &'static [u8] {
-        include_bytes!("../../../docs/research/orbital-truss/fixtures/acquisition-scope-coherence-v0_1.json")
+        include_bytes!(
+            "../../../docs/research/orbital-truss/fixtures/acquisition-scope-coherence-v0_1.json"
+        )
     }
 
     fn corpus() -> Corpus {
@@ -554,11 +559,8 @@ mod tests {
 
     #[test]
     fn frozen_scope_corpus_matches_all_expected_dispositions() {
-        let receipt = audit_corpus(
-            corpus_bytes(),
-            "0123456789abcdef0123456789abcdef01234567",
-        )
-        .expect("scope corpus audits");
+        let receipt = audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567")
+            .expect("scope corpus audits");
         assert_eq!(receipt.case_count, 28);
         assert_eq!(receipt.expected_disposition_matches, 28);
         assert_eq!(receipt.expected_disposition_mismatches, 0);
@@ -603,7 +605,11 @@ mod tests {
             .unwrap();
         let result = evaluate_case(case);
         assert_eq!(result.disposition, Disposition::OutOfScope);
-        assert!(result.reason_codes.contains(&"SCOPE_MISMATCH:camera_id".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"SCOPE_MISMATCH:camera_id".to_owned())
+        );
     }
 
     #[test]
@@ -616,8 +622,14 @@ mod tests {
             .unwrap();
         let result = evaluate_case(case);
         assert_eq!(result.disposition, Disposition::OutOfScope);
-        assert!(result.reason_codes.contains(&"SCOPE_MISMATCH:clock_map_id".to_owned())
-            || result.reason_codes.contains(&"TIME_BASIS_MISMATCH".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"SCOPE_MISMATCH:clock_map_id".to_owned())
+                || result
+                    .reason_codes
+                    .contains(&"TIME_BASIS_MISMATCH".to_owned())
+        );
     }
 
     #[test]
@@ -630,7 +642,11 @@ mod tests {
             let case = input.cases.iter().find(|case| case.case_id == id).unwrap();
             let result = evaluate_case(case);
             assert_eq!(result.disposition, Disposition::Indeterminate);
-            assert!(result.reason_codes.contains(&"EVIDENCE_VALIDITY_BOUNDARY_OVERLAP".to_owned()));
+            assert!(
+                result
+                    .reason_codes
+                    .contains(&"EVIDENCE_VALIDITY_BOUNDARY_OVERLAP".to_owned())
+            );
         }
     }
 
@@ -665,17 +681,18 @@ mod tests {
             let case = input.cases.iter().find(|case| case.case_id == id).unwrap();
             let result = evaluate_case(case);
             assert_eq!(result.disposition, Disposition::OutOfScope);
-            assert!(result.reason_codes.contains(&"EVIDENCE_VALIDITY_DISJOINT".to_owned()));
+            assert!(
+                result
+                    .reason_codes
+                    .contains(&"EVIDENCE_VALIDITY_DISJOINT".to_owned())
+            );
         }
     }
 
     #[test]
     fn missing_scope_or_unknown_source_is_indeterminate() {
         let input = corpus();
-        for id in [
-            "SC-017-MISSING-SCOPE",
-            "SC-021-REVOKED-SOURCE",
-        ] {
+        for id in ["SC-017-MISSING-SCOPE", "SC-021-REVOKED-SOURCE"] {
             let case = input.cases.iter().find(|case| case.case_id == id).unwrap();
             assert_eq!(evaluate_case(case).disposition, Disposition::Indeterminate);
         }
@@ -728,9 +745,14 @@ mod tests {
     #[test]
     fn digest_shape_is_not_authentication_or_authority() {
         let input = corpus();
-        let case = input.cases.iter().find(|case| case.case_id == "SC-022-DIGEST-NOT-AUTH").unwrap();
+        let case = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "SC-022-DIGEST-NOT-AUTH")
+            .unwrap();
         assert_eq!(evaluate_case(case).disposition, Disposition::ScopeCoherent);
-        let receipt = audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567").unwrap();
+        let receipt =
+            audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567").unwrap();
         assert!(!receipt.source_bytes_authenticated);
         assert!(!receipt.authority_granted);
     }
