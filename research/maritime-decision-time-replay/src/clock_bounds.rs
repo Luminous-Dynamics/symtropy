@@ -137,10 +137,7 @@ fn record_lte(
 ///
 /// A policy-facing selector must admit only DefinitelyAdmissible. Uncertainty
 /// is an abstention/query/reconciliation condition; definite violations reject.
-pub fn qualify_clock_bounds(
-    evidence: &ClockEvidence,
-    cutoffs: ClockCutoffs,
-) -> ClockQualification {
+pub fn qualify_clock_bounds(evidence: &ClockEvidence, cutoffs: ClockCutoffs) -> ClockQualification {
     let mut reasons = Vec::new();
     let mut uncertain = false;
     let mut inadmissible = false;
@@ -316,10 +313,7 @@ mod tests {
         evidence.valid_from = interval(98, 102);
         let result = qualify_clock_bounds(&evidence, cutoffs(100, 100));
         assert_eq!(result.admission, ClockAdmission::TemporallyUncertain);
-        assert_eq!(
-            result.reasons,
-            vec!["PHYSICAL_VALID_FROM_ORDER_UNCERTAIN"]
-        );
+        assert_eq!(result.reasons, vec!["PHYSICAL_VALID_FROM_ORDER_UNCERTAIN"]);
     }
 
     #[test]
@@ -340,10 +334,7 @@ mod tests {
         assert_eq!(result.admission, ClockAdmission::DefinitelyInadmissible);
         assert_eq!(
             result.reasons,
-            vec![
-                "PUBLICATION_ORDER_UNCERTAIN",
-                "RETRIEVED_AFTER_DECISION"
-            ]
+            vec!["PUBLICATION_ORDER_UNCERTAIN", "RETRIEVED_AFTER_DECISION"]
         );
     }
 
