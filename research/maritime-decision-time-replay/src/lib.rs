@@ -4,6 +4,8 @@
 //! evaluator after the policy has produced an action; it is never embedded
 //! in PolicyInput.
 
+pub mod temporal;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum GateState {
     Pass,
