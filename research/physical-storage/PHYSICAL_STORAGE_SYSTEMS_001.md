@@ -252,3 +252,12 @@ These are data-contract artifacts only. They distinguish substitutions, insertio
 The 2026 review identifies the potential of DNA's density and biochemical stability while also documenting synthesis cost, sequencing errors, access latency and process-efficiency barriers. DNA remains unrankable for production storage until net recoverable bits, synthesis/sequencing cost, storage stability, retrieval performance, sample yield and exact end-to-end restoration are measured on a declared platform and protocol.
 
 Source: Öztürk et al., “DNA Data Storage: A Critical Review of Bio-Algorithmic Integration, Performance-Cost Tradeoffs, and Future Directions for Scalable Architectures,” 3 June 2026: https://link.springer.com/article/10.1007/s11831-026-10651-2.
+
+
+## 12. DNA codec benchmark evidence update
+
+The DNA research row now links two current coding studies:
+- Gimpel et al., Nature Communications 17, 3963 (14 March 2026), compare six codecs (DNA-Aeon, DNA Fountain, DNA-RS, Goldman, HEDGES, Yin–Yang) under standardized in-silico/in-vitro settings, using read clustering and DT4DDS. The study reports 43 EB/g for material-deposition synthesis and 13 EB/g for electrochemical synthesis in separate in-vitro demonstrations; it reports up to 117 EB/g feasibility under its realistic-workflow in-silico analysis. https://doi.org/10.1038/s41467-026-70548-3
+- Ding et al., Bioinformatics 42(8), btag563 (3 August 2026), present Polus/SeqFormer. Its 38.9% DNA Fountain coverage reduction and approximate 80% effective-density uplift are in-silico, scenario-specific results. It also evaluates platform-dependent soft erasures and adaptive resequencing. https://doi.org/10.1093/bioinformatics/btag563
+
+The first comparison provides the in-vitro anchor and archived DT4DDS/ENA materials; the second provides the soft-decision challenge target. Keep the evidence classes separate. Neither result qualifies a commercial DNA archive or resolves system-level synthesis, access, storage lifetime and exact restore economics.
