@@ -911,8 +911,14 @@ mod tests {
                 "reset_receipt_sha256":reset.sha256,
                 "action_prefix_receipt_sha256":action_receipt.sha256,
                 "difficulty_screen":{"trials":(0..20).map(|i|{
+                    let attempt_id = match i {
+                        0 => "attempt-0".to_owned(),
+                        6 => "attempt-1".to_owned(),
+                        12 => "attempt-2".to_owned(),
+                        _ => format!("screen-{i}"),
+                    };
                     serde_json::json!({
-                        "attempt_id":format!("screen-{i}"),
+                        "attempt_id":attempt_id,
                         "policy_id":format!("policy-{}",i/5),
                         "trial_index":i%5,
                         "success":i<2
