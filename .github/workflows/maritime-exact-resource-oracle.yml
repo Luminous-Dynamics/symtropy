@@ -1,0 +1,43 @@
+name: maritime-exact-resource-oracle
+
+on:
+  push:
+    paths:
+      - "research/maritime-exact-resource-oracle/**"
+      - ".github/workflows/maritime-exact-resource-oracle.yml"
+  pull_request:
+    paths:
+      - "research/maritime-exact-resource-oracle/**"
+      - ".github/workflows/maritime-exact-resource-oracle.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Formatting
+        run: cargo fmt --manifest-path research/maritime-exact-resource-oracle/Cargo.toml -- --check
+      - name: Tests
+        run: cargo test --locked --manifest-path research/maritime-exact-resource-oracle/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/maritime-exact-resource-oracle/Cargo.toml --all-targets -- -D warnings
+      - name: Emit exhaustive resource receipt
+        run: cargo run --locked --manifest-path research/maritime-exact-resource-oracle/Cargo.toml --bin resource-oracle-audit > resource-oracle-receipt.tsv
+      - name: Independent exact reference
+        run: python3 research/maritime-exact-resource-oracle/scripts/independent_reference.py --receipt resource-oracle-receipt.tsv
+      - name: Upload deterministic receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-exact-resource-oracle-receipt
+          path: resource-oracle-receipt.tsv
+          if-no-files-found: error
+          retention-days: 30
