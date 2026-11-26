@@ -11,6 +11,10 @@ path = "src/lib.rs"
 name = "resource-oracle-audit"
 path = "src/bin/resource_oracle_audit.rs"
 
+[[bin]]
+name = "dgt-recovery-audit"
+path = "src/bin/dgt_recovery_audit.rs"
+
 [dependencies]
 
 [workspace]
