@@ -126,6 +126,14 @@ pub enum OracleError {
     ObjectiveOverflow,
 }
 
+impl std::fmt::Display for OracleError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "{self:?}")
+    }
+}
+
+impl std::error::Error for OracleError {}
+
 fn reservation_totals(
     reservations: &[Reservation],
 ) -> Result<BTreeMap<ResourceKey, u32>, OracleError> {
