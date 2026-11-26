@@ -170,11 +170,11 @@ pub use residual::{
     affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
 };
 pub use robust_pareto::{
-    MAX_PARETO_ASSESSMENT_ROWS, MAX_PARETO_OBJECTIVES, MAX_PARETO_PORTFOLIOS, MAX_PARETO_SCENARIOS,
-    ObjectiveDirection, ParetoDominance, ParetoObjectiveDefinition, ParetoObjectiveValue,
-    PortfolioScenarioAssessment, RobustParetoConfig, RobustParetoError, RobustParetoReport,
-    RobustPortfolioObjectiveSummary, ScenarioFeasibility, ScenarioParetoFrontier,
-    evaluate_robust_pareto,
+    MAX_PARETO_ASSESSMENT_ROWS, MAX_PARETO_DOMINANCE_CHECKS, MAX_PARETO_OBJECTIVES,
+    MAX_PARETO_PORTFOLIOS, MAX_PARETO_SCENARIOS, ObjectiveDirection, ParetoDominance,
+    ParetoObjectiveDefinition, ParetoObjectiveValue, PortfolioScenarioAssessment,
+    RobustParetoConfig, RobustParetoError, RobustParetoReport, RobustPortfolioObjectiveSummary,
+    ScenarioFeasibility, ScenarioParetoFrontier, evaluate_robust_pareto,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
 pub use space_time_partition::{
