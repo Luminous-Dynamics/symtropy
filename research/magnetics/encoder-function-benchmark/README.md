@@ -87,3 +87,20 @@ Among fully accepted candidates, the tournament preserves a Pareto frontier over
 The tournament only ranks supplied solver outputs. It does not generate a magnetization pattern, solve a field, authenticate the source digests, prove global optimality, infer manufacturing yield or qualify a physical device.
 
 The current design-tournament module contains ten authored unit tests. Authored tests are not a test pass; consult the exact-head CI checks.
+
+
+## Distribution-free bounded design tournament
+
+The crate also exposes `bounded_design_tournament::rank_bounded_magnetic_designs`. It composes with the nominal response-aware design tournament and binds each uncertainty record to the exact field trace, frame, operating condition, grid, field-archive digest, solver-run ID and independent phase-zero calibration.
+
+Each sample carries:
+- a simultaneous Euclidean 3D field-vector error radius, tesla;
+- a simultaneous absolute mechanical-reference-angle error bound, radians.
+
+The same field-error radius conservatively bounds its in-plane projection and out-of-plane component. For nominal in-plane magnitude `m` and radius `r < m`, the maximum field-direction error is `asin(r/m)`. The total sample phase-error bound adds `pole_pairs * mechanical_angle_error_bound` and the independent absolute phase-zero error bound. If `r >= m`, zero in-plane field is admissible, so phase is unbounded and the scenario fails closed.
+
+The module reports nominal results and robust upper/lower bounds separately. It computes conservative peak/RMS/nearest-rank-p95 phase errors, minimum field lower bound, amplitude-ripple upper bound and RMS cross-axis-ratio upper bound. The latter two use adverse numerator/denominator bounds. Accepted robust designs are Pareto-ranked on these separate worst-case metrics; no weighted score or probability is inferred.
+
+The error radii must be simultaneous deterministic bounds. Standard deviations, typical datasheet curves and finite-scenario variation are not silently converted into hard bounds. The source IDs are identity links, not cryptographic authentication.
+
+The bounded module currently contains eight authored unit tests. Authored tests are not a test pass; the stacked PR's exact-head checks must establish formatting, Clippy and test results.
