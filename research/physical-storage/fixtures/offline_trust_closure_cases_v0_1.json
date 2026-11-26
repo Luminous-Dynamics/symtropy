@@ -1,0 +1,398 @@
+{
+  "schema_version": "offline-trust-closure-cases-v0.1",
+  "corpus_id": "OCSTC-001-CASES-V0.1",
+  "evidence_class": "synthetic_semantic_fixture",
+  "qualification_status": "not_run",
+  "scorer_contract": "offline-trust-closure-reference v0.1",
+  "case_count": 13,
+  "cases": [
+    {
+      "scenario_id": "OCSTC-001-TRUSTED-COLD-START",
+      "description": "Clean offline recovery with scorer-held digest, out-of-band trust root, two independent readers and all Preservation Objectives satisfied.",
+      "fault_injection": {
+        "type": "none",
+        "network": "deny_all",
+        "package_caches": "empty",
+        "vendor_runtime": "withheld"
+      },
+      "receipt": {
+        "scenario_id": "OCSTC-001-TRUSTED-COLD-START",
+        "bitstream_integrity": "Pass",
+        "authenticity": "Pass",
+        "interpretability": "Pass",
+        "operational_closure": "Pass",
+        "expected_digest_source": "out_of_band",
+        "signature_trust_root_source": "out_of_band",
+        "reader_ids": [
+          "reader-independent-a",
+          "reader-independent-b"
+        ],
+        "reader_independence": "Pass",
+        "reader_agreement": "Pass",
+        "preservation_objectives_required": 2,
+        "preservation_objectives_passed": 2,
+        "undeclared_runtime_dependencies": 0,
+        "attempted_network_calls": 0,
+        "sandbox_violations": 0
+      },
+      "expected_disposition": "pass",
+      "rationale": "Every independently measured axis passes with no undeclared dependency, network attempt or sandbox violation."
+    },
+    {
+      "scenario_id": "OCSTC-002-MISSING-TRUST-ROOT",
+      "description": "Payload fixity is verified, but the separate trust-root material is unavailable and authenticity cannot be established.",
+      "fault_injection": {
+        "type": "trust_anchor_absent",
+        "network": "deny_all"
+      },
+      "receipt": {
+        "scenario_id": "OCSTC-002-MISSING-TRUST-ROOT",
+        "bitstream_integrity": "Pass",
+        "authenticity": "Incomplete",
+        "interpretability": "Pass",
+        "operational_closure": "Pass",
+        "expected_digest_source": "out_of_band",
+        "signature_trust_root_source": "missing",
+        "reader_ids": [
+          "reader-independent-a",
+          "reader-independent-b"
+        ],
+        "reader_independence": "Pass",
+        "reader_agreement": "Pass",
+        "preservation_objectives_required": 2,
+        "preservation_objectives_passed": 2,
+        "undeclared_runtime_dependencies": 0,
+        "attempted_network_calls": 0,
+        "sandbox_violations": 0
+      },
+      "expected_disposition": "incomplete",
+      "rationale": "Byte integrity does not substitute for authenticity; missing trust material is incomplete."
+    },
+    {
+      "scenario_id": "OCSTC-003-ARCHIVE-SELF-AUTHORIZATION",
+      "description": "Candidate archive carries a self-signed key and claims the signature chain is trusted, but no out-of-band root exists.",
+      "fault_injection": {
+        "type": "archive_only_trust_anchor",
+        "network": "deny_all"
+      },
+      "receipt": {
+        "scenario_id": "OCSTC-003-ARCHIVE-SELF-AUTHORIZATION",
+        "bitstream_integrity": "Pass",
+        "authenticity": "Pass",
+        "interpretability": "Pass",
+        "operational_closure": "Pass",
+        "expected_digest_source": "out_of_band",
+        "signature_trust_root_source": "archive_only",
+        "reader_ids": [
+          "reader-independent-a",
+          "reader-independent-b"
+        ],
+        "reader_independence": "Pass",
+        "reader_agreement": "Pass",
+        "preservation_objectives_required": 2,
+        "preservation_objectives_passed": 2,
+        "undeclared_runtime_dependencies": 0,
+        "attempted_network_calls": 0,
+        "sandbox_violations": 0
+      },
+      "expected_disposition": "fail",
+      "rationale": "An archive-only key cannot self-authorize the archive even when the candidate reports authenticity pass."
+    },
+    {
+      "scenario_id": "OCSTC-004-PAYLOAD-MANIFEST-REPLACEMENT",
+      "description": "An attacker replaces payload, manifest and the archive-contained key together; the independent digest/signature check detects substitution.",
+      "fault_injection": {
+        "type": "replace_payload_manifest_and_embedded_key",
+        "network": "deny_all"
+      },
+      "receipt": {
+        "scenario_id": "OCSTC-004-PAYLOAD-MANIFEST-REPLACEMENT",
+        "bitstream_integrity": "Fail",
+        "authenticity": "Fail",
+        "interpretability": "Pass",
+        "operational_closure": "Pass",
+        "expected_digest_source": "out_of_band",
+        "signature_trust_root_source": "out_of_band",
+        "reader_ids": [
+          "reader-independent-a",
+          "reader-independent-b"
+        ],
+        "reader_independence": "Pass",
+        "reader_agreement": "Pass",
+        "preservation_objectives_required": 2,
+        "preservation_objectives_passed": 2,
+        "undeclared_runtime_dependencies": 0,
+        "attempted_network_calls": 0,
+        "sandbox_violations": 0
+      },
+      "expected_disposition": "fail",
+      "rationale": "Matching an attacker-replaced in-package manifest does not satisfy the scorer-held digest or external trust policy."
+    },
+    {
+      "scenario_id": "OCSTC-005-HIDDEN-RUNTIME-DEPENDENCY",
+      "description": "The reader requires an undeclared shared library or runtime resource that was removed from the clean environment.",
+      "fault_injection": {
+        "type": "remove_undeclared_runtime_dependency",
+        "network": "deny_all"
+      },
+      "receipt": {
+        "scenario_id": "OCSTC-005-HIDDEN-RUNTIME-DEPENDENCY",
+        "bitstream_integrity": "Pass",
+        "authenticity": "Pass",
+        "interpretability": "Pass",
+        "operational_closure": "Pass",
+        "expected_digest_source": "out_of_band",
+        "signature_trust_root_source": "out_of_band",
+        "reader_ids": [
+          "reader-independent-a",
+          "reader-independent-b"
+        ],
+        "reader_independence": "Pass",
+        "reader_agreement": "Pass",
+        "preservation_objectives_required": 2,
+        "preservation_objectives_passed": 2,
+        "undeclared_runtime_dependencies": 1,
+        "attempted_network_calls": 0,
+        "sandbox_violations": 0
+      },
+      "expected_disposition": "fail",
+      "rationale": "Operational closure fails even if output bytes happen to be recoverable."
+    },
+    {
+      "scenario_id": "OCSTC-006-NETWORK-FALLBACK",
+      "description": "The reader attempts to contact a registry, remote KMS, CDN, DNS or telemetry endpoint during a network-denied trial.",
+      "fault_injection": {
+        "type": "attempt_network_fallback",
+        "network": "deny_all"
+      },
+      "receipt": {
+        "scenario_id": "OCSTC-006-NETWORK-FALLBACK",
+        "bitstream_integrity": "Pass",
+        "authenticity": "Pass",
+        "interpretability": "Pass",
+        "operational_closure": "Pass",
+        "expected_digest_source": "out_of_band",
+        "signature_trust_root_source": "out_of_band",
+        "reader_ids": [
+          "reader-independent-a",
+          "reader-independent-b"
+        ],
+        "reader_independence": "Pass",
+        "reader_agreement": "Pass",
+        "preservation_objectives_required": 2,
+        "preservation_objectives_passed": 2,
+        "undeclared_runtime_dependencies": 0,
+        "attempted_network_calls": 1,
+        "sandbox_violations": 0
+      },
+      "expected_disposition": "fail",
+      "rationale": "An attempted undeclared network dependency is recorded as failure, not masked by successful cache fallback."
+    },
+    {
+      "scenario_id": "OCSTC-007-READER-DIVERGENCE",
+      "description": "Two nominally independent readers produce different decoded bytes, schema interpretations or semantic outputs.",
+      "fault_injection": {
+        "type": "divergent_reader_outputs",
+        "network": "deny_all"
+      },
+      "receipt": {
+        "scenario_id": "OCSTC-007-READER-DIVERGENCE",
+        "bitstream_integrity": "Pass",
+        "authenticity": "Pass",
+        "interpretability": "Pass",
+        "operational_closure": "Pass",
+        "expected_digest_source": "out_of_band",
+        "signature_trust_root_source": "out_of_band",
+        "reader_ids": [
+          "reader-independent-a",
+          "reader-independent-b"
+        ],
+        "reader_independence": "Pass",
+        "reader_agreement": "Fail",
+        "preservation_objectives_required": 2,
+        "preservation_objectives_passed": 2,
+        "undeclared_runtime_dependencies": 0,
+        "attempted_network_calls": 0,
+        "sandbox_violations": 0
+      },
+      "expected_disposition": "fail",
+      "rationale": "Reader disagreement blocks full archive acceptance."
+    },
+    {
+      "scenario_id": "OCSTC-008-REPRESENTATION-INFORMATION-LOSS",
+      "description": "Payload bytes match the scorer digest, but a required schema or units definition is absent and only one of two Preservation Objectives can be checked.",
+      "fault_injection": {
+        "type": "remove_representation_information",
+        "network": "deny_all"
+      },
+      "receipt": {
+        "scenario_id": "OCSTC-008-REPRESENTATION-INFORMATION-LOSS",
+        "bitstream_integrity": "Pass",
+        "authenticity": "Pass",
+        "interpretability": "Incomplete",
+        "operational_closure": "Pass",
+        "expected_digest_source": "out_of_band",
+        "signature_trust_root_source": "out_of_band",
+        "reader_ids": [
+          "reader-independent-a",
+          "reader-independent-b"
+        ],
+        "reader_independence": "Pass",
+        "reader_agreement": "Pass",
+        "preservation_objectives_required": 2,
+        "preservation_objectives_passed": 1,
+        "undeclared_runtime_dependencies": 0,
+        "attempted_network_calls": 0,
+        "sandbox_violations": 0
+      },
+      "expected_disposition": "incomplete",
+      "rationale": "Bitstream fixity can pass while independent understandability remains incomplete."
+    },
+    {
+      "scenario_id": "OCSTC-009-REVOCATION-FRESHNESS-UNKNOWN",
+      "description": "Historical signature validation material exists, but no sufficiently fresh offline revocation evidence is available to determine current trust status.",
+      "fault_injection": {
+        "type": "stale_or_missing_revocation_snapshot",
+        "network": "deny_all"
+      },
+      "receipt": {
+        "scenario_id": "OCSTC-009-REVOCATION-FRESHNESS-UNKNOWN",
+        "bitstream_integrity": "Pass",
+        "authenticity": "Incomplete",
+        "interpretability": "Pass",
+        "operational_closure": "Pass",
+        "expected_digest_source": "out_of_band",
+        "signature_trust_root_source": "out_of_band",
+        "reader_ids": [
+          "reader-independent-a",
+          "reader-independent-b"
+        ],
+        "reader_independence": "Pass",
+        "reader_agreement": "Pass",
+        "preservation_objectives_required": 2,
+        "preservation_objectives_passed": 2,
+        "undeclared_runtime_dependencies": 0,
+        "attempted_network_calls": 0,
+        "sandbox_violations": 0
+      },
+      "expected_disposition": "incomplete",
+      "rationale": "Historical validity and current trust status are separate claims; unknown freshness must not be promoted to pass."
+    },
+    {
+      "scenario_id": "OCSTC-010-SANDBOX-BOUNDARY-VIOLATION",
+      "description": "The reader attempts an operation outside its declared sandbox boundary, such as host secret access or an unauthorized write.",
+      "fault_injection": {
+        "type": "attempt_sandbox_escape",
+        "network": "deny_all"
+      },
+      "receipt": {
+        "scenario_id": "OCSTC-010-SANDBOX-BOUNDARY-VIOLATION",
+        "bitstream_integrity": "Pass",
+        "authenticity": "Pass",
+        "interpretability": "Pass",
+        "operational_closure": "Pass",
+        "expected_digest_source": "out_of_band",
+        "signature_trust_root_source": "out_of_band",
+        "reader_ids": [
+          "reader-independent-a",
+          "reader-independent-b"
+        ],
+        "reader_independence": "Pass",
+        "reader_agreement": "Pass",
+        "preservation_objectives_required": 2,
+        "preservation_objectives_passed": 2,
+        "undeclared_runtime_dependencies": 0,
+        "attempted_network_calls": 0,
+        "sandbox_violations": 1
+      },
+      "expected_disposition": "fail",
+      "rationale": "Any observed sandbox violation is a hard failure."
+    },
+    {
+      "scenario_id": "OCSTC-011-WRONG-BUT-VALID-REPRESENTATION",
+      "description": "A syntactically valid descriptor uses a different but valid schema version, unit system, coordinate map or code profile than the scorer expects.",
+      "fault_injection": {
+        "type": "substitute_valid_but_wrong_representation_information",
+        "network": "deny_all"
+      },
+      "receipt": {
+        "scenario_id": "OCSTC-011-WRONG-BUT-VALID-REPRESENTATION",
+        "bitstream_integrity": "Pass",
+        "authenticity": "Pass",
+        "interpretability": "Fail",
+        "operational_closure": "Pass",
+        "expected_digest_source": "out_of_band",
+        "signature_trust_root_source": "out_of_band",
+        "reader_ids": [
+          "reader-independent-a",
+          "reader-independent-b"
+        ],
+        "reader_independence": "Pass",
+        "reader_agreement": "Pass",
+        "preservation_objectives_required": 2,
+        "preservation_objectives_passed": 0,
+        "undeclared_runtime_dependencies": 0,
+        "attempted_network_calls": 0,
+        "sandbox_violations": 0
+      },
+      "expected_disposition": "fail",
+      "rationale": "Syntactic validity and internal checksums do not establish semantic equivalence."
+    },
+    {
+      "scenario_id": "OCSTC-012-SINGLE-READER-ONLY",
+      "description": "Only one reader implementation is available; independence and cross-reader agreement are not established.",
+      "fault_injection": {
+        "type": "withhold_second_reader",
+        "network": "deny_all"
+      },
+      "receipt": {
+        "scenario_id": "OCSTC-012-SINGLE-READER-ONLY",
+        "bitstream_integrity": "Pass",
+        "authenticity": "Pass",
+        "interpretability": "Pass",
+        "operational_closure": "Pass",
+        "expected_digest_source": "out_of_band",
+        "signature_trust_root_source": "out_of_band",
+        "reader_ids": [
+          "reader-independent-a"
+        ],
+        "reader_independence": "Incomplete",
+        "reader_agreement": "Incomplete",
+        "preservation_objectives_required": 2,
+        "preservation_objectives_passed": 2,
+        "undeclared_runtime_dependencies": 0,
+        "attempted_network_calls": 0,
+        "sandbox_violations": 0
+      },
+      "expected_disposition": "incomplete",
+      "rationale": "One successful path is insufficient evidence for independent reader replacement."
+    },
+    {
+      "scenario_id": "OCSTC-013-NOT-EVALUATED",
+      "description": "No qualification step has run; all evidence dimensions remain unassessed.",
+      "fault_injection": {
+        "type": "no_trial_executed",
+        "network": "not_configured"
+      },
+      "receipt": {
+        "scenario_id": "OCSTC-013-NOT-EVALUATED",
+        "bitstream_integrity": "NotEvaluated",
+        "authenticity": "NotEvaluated",
+        "interpretability": "NotEvaluated",
+        "operational_closure": "NotEvaluated",
+        "expected_digest_source": "unknown",
+        "signature_trust_root_source": "unknown",
+        "reader_ids": [],
+        "reader_independence": "NotEvaluated",
+        "reader_agreement": "NotEvaluated",
+        "preservation_objectives_required": 0,
+        "preservation_objectives_passed": 0,
+        "undeclared_runtime_dependencies": 0,
+        "attempted_network_calls": 0,
+        "sandbox_violations": 0
+      },
+      "expected_disposition": "not_evaluated",
+      "rationale": "No execution evidence exists; absence of observed faults is not success."
+    }
+  ]
+}
