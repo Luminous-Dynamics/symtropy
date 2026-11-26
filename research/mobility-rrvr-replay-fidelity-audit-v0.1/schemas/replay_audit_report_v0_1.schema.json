@@ -69,9 +69,11 @@
     "spot_check_audit": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["attempt_id", "status", "end_effector", "object_pose", "frame_checks", "mean_final_five_ssim", "mean_ssim_threshold", "mean_ssim_passed", "reason_codes"],
+      "required": ["attempt_id", "original_state_sha256", "replay_state_sha256", "status", "end_effector", "object_pose", "frame_checks", "mean_final_five_ssim", "mean_ssim_threshold", "mean_ssim_passed", "reason_codes"],
       "properties": {
         "attempt_id": { "type": "string", "minLength": 1 },
+        "original_state_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "replay_state_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
         "status": { "enum": ["valid", "invalid", "unresolved"] },
         "end_effector": { "$ref": "#/$defs/pose_check" },
         "object_pose": { "$ref": "#/$defs/pose_check" },
