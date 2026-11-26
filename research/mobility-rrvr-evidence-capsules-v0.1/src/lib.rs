@@ -1396,4 +1396,53 @@ mod tests {
         let report = evaluate_json(&incomplete).expect("missing holder evidence is unresolved");
         assert_eq!(report.unresolved_n, 1);
     }
+
+    #[test]
+    fn endpoint_fence_requires_exact_queue_generation() {
+        let endpoint = base_capsule(
+            "endpoint-receipt",
+            SourceRole::Endpoint,
+            "endpoint-domain",
+            1,
+            EvidencePayload::EndpointFenceReceipt {
+                holder_id: "actuator".to_owned(),
+                accepted_epoch: 7,
+                queue_generation: 4,
+                accepted_high_water: 12,
+                retired_high_water: 12,
+                outstanding_n: 0,
+                in_flight_n: 0,
+                terminal_actuator_fenced: true,
+            },
+        );
+        let mut claim = claim_for(
+            "endpoint-fenced",
+            ClaimType::EndpointFenced,
+            "actuator",
+            true,
+            vec!["endpoint-receipt".to_owned()],
+        );
+        claim.required_epoch = Some(7);
+        claim.required_queue_generation = Some(3);
+        claim.decision_cutoff_ingest_sequence = 1;
+        let bundle = bundle_with(vec![endpoint], vec![claim]);
+        let serialized = serde_json::to_string(&bundle).expect("bundle serialization");
+        let report = evaluate_json(&serialized).expect("wrong generation is a valid negative result");
+        assert_eq!(report.contradicted_n, 1);
+        assert_eq!(
+            report.claim_assessments[0].reason_codes[0],
+            "ENDPOINT_FENCE_STATE_REFUTED"
+        );
+    }
+
+    #[test]
+    fn cross_clock_event_observation_order_is_rejected_without_transform() {
+        let mut bundle = parsed_fixture();
+        bundle.evidence[0].observation_time.clock_id = "camera-clock".to_owned();
+        reseal_bundle(&mut bundle);
+        let serialized = serde_json::to_string(&bundle).expect("bundle serialization");
+        let error = evaluate_json(&serialized).expect_err("unmapped clock domains must reject");
+        assert!(error.starts_with("CLOCK_DOMAIN_MISMATCH"));
+    }
+
 }
