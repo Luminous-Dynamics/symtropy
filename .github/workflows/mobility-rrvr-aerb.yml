@@ -74,7 +74,7 @@ jobs:
           ' "$ROOT/fixtures/candidate_submission_synthetic_v0_1.json"
 
           EXPECTED_DIGEST="$(jq -r '.candidate_snapshot_sha256' "$ROOT/fixtures/candidate_submission_synthetic_v0_1.json")"
-          ACTUAL_DIGEST="$(jq -S -c . "$ROOT/fixtures/candidate_episode_synthetic_v0_1.json" | sha256sum | cut -d ' ' -f 1)"
+          ACTUAL_DIGEST="$(jq -S -c . "$ROOT/fixtures/candidate_episode_synthetic_v0_1.json" | tr -d '\\n' | sha256sum | cut -d ' ' -f 1)"
           test "$EXPECTED_DIGEST" = "$ACTUAL_DIGEST"
 
       - name: Validate evaluator-only truth and probe-support completeness
