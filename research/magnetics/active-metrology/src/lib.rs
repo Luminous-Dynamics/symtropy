@@ -15,7 +15,8 @@ pub enum MeasurementRole {
 #[derive(Clone, Debug, PartialEq)]
 pub struct FunctionalSensitivityInterval {
     pub record_id: String,
-    /// Signed interval enclosing the functional-margin derivative over the full disagreement segment.
+    /// Signed interval enclosing the functional-margin derivative over the full
+    /// model-disagreement segment and declared operating condition.
     pub derivative_lower_rad_per_t: f64,
     pub derivative_upper_rad_per_t: f64,
 }
@@ -33,7 +34,8 @@ pub struct ScanCandidate {
     pub y_m: f64,
     pub z_m: f64,
     pub standoff_m: f64,
-    /// Lower bound on the separation between at least two qualified model-prediction intervals, tesla.
+    /// Lower bound on the gap between at least two qualified model-prediction
+    /// intervals, in tesla.
     pub model_disagreement_lower_bound_t: Option<f64>,
     pub model_disagreement_record_id: Option<String>,
     /// Signed derivative interval over the full model-disagreement segment and declared condition.
@@ -73,8 +75,6 @@ pub enum NotRankableReason {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ExclusionReason {
-    ProtectedEvidenceRole,
-    AlreadyMeasured,
     BelowPriorityFloor,
     InsufficientRemainingBudget,
     MinimumSeparationConflict,
