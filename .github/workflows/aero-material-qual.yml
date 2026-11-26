@@ -2,7 +2,7 @@ name: AERO Material Qualification Contract
 
 on:
   push:
-    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1"]
+    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1"]
     paths:
       - "crates/domains/symtropy-aero-material-qual/**"
       - "docs/research/aviation/AERO_EVIDENCE_BINDING_001_V0_2.md"
@@ -18,6 +18,9 @@ on:
       - "docs/research/aviation/examples/aero_temporal_replay_corpus_v0_1.json"
       - "docs/research/aviation/examples/aero_shm_dataset_manifest_v0_1.json"
       - "docs/research/aviation/schemas/aero_shm_dataset_manifest_v0_1.schema.json"
+      - "docs/research/aviation/AERO_OBSERVER_COVERAGE_QUALIFICATION_V0_1.md"
+      - "docs/research/aviation/examples/aero_observer_coverage_corpus_v0_1.json"
+      - "docs/research/aviation/schemas/aero_observer_coverage_corpus_v0_1.schema.json"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
     branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1"]
@@ -39,6 +42,9 @@ on:
       - "docs/research/aviation/AERO_DFI_SHM_CO_DESIGN_BENCHMARK_V0_1.md"
       - "docs/research/aviation/examples/aero_shm_dataset_manifest_v0_1.json"
       - "docs/research/aviation/schemas/aero_shm_dataset_manifest_v0_1.schema.json"
+      - "docs/research/aviation/AERO_OBSERVER_COVERAGE_QUALIFICATION_V0_1.md"
+      - "docs/research/aviation/examples/aero_observer_coverage_corpus_v0_1.json"
+      - "docs/research/aviation/schemas/aero_observer_coverage_corpus_v0_1.schema.json"
       - ".github/workflows/aero-material-qual.yml"
   workflow_dispatch:
 
@@ -370,6 +376,66 @@ jobs:
           if conflict["expected"]["as_known_at"]["disposition"] != "ABSTAIN":
               raise SystemExit("conflicting payloads under one source-scoped ID must abstain")
           print(f"Temporal replay corpus structure passed: {len(cases)} cases; semantic oracle review still required.")
+          PY
+
+      - name: Validate observer coverage corpus schema and frozen dispositions
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema = json.loads((root / "docs/research/aviation/schemas/aero_observer_coverage_corpus_v0_1.schema.json").read_text())
+          corpus = json.loads((root / "docs/research/aviation/examples/aero_observer_coverage_corpus_v0_1.json").read_text())
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("observer coverage schema must declare Draft 2020-12")
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(corpus), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
+              raise SystemExit(f"observer coverage corpus failed schema validation ({len(errors)} errors)")
+          cases = corpus["cases"]
+          ids = [case["case_id"] for case in cases]
+          if len(ids) != len(set(ids)):
+              raise SystemExit("observer coverage case IDs must be unique")
+          if len(cases) != 24:
+              raise SystemExit(f"observer coverage corpus must contain exactly 24 frozen cases; found {len(cases)}")
+          if corpus.get("oracle_review_status") != "NOT_INDEPENDENTLY_REVIEWED":
+              raise SystemExit("observer coverage oracle status must remain explicit until independent review")
+          required_statuses = {"QUALIFIED_COMPLETE_FOR_SCOPE", "INCOMPLETE", "UNVERIFIED", "INVALID", "OUT_OF_SCOPE"}
+          if set(corpus["status_semantics"]) != required_statuses:
+              raise SystemExit("observer coverage status semantics are incomplete or contain unknown statuses")
+          seen_statuses = {case["coverage_status"] for case in cases}
+          if seen_statuses != required_statuses:
+              raise SystemExit(f"observer coverage corpus must include every disposition: {sorted(required_statuses)}")
+          allowed_pairs = {
+              "QUALIFIED_COMPLETE_FOR_SCOPE": {"ALLOW_SCOPED_ABSENCE_INFERENCE"},
+              "INCOMPLETE": {"ABSTAIN"},
+              "UNVERIFIED": {"TRUST_UNRESOLVED"},
+              "INVALID": {"REJECT"},
+              "OUT_OF_SCOPE": {"ABSTAIN", "TRUST_UNRESOLVED"},
+          }
+          for case in cases:
+              if case["replay_consequence"] not in allowed_pairs[case["coverage_status"]]:
+                  raise SystemExit(f"{case['case_id']}: unsafe coverage status/consequence pairing")
+              fixture = case["fixture"]
+              if not case["fault_codes"] and case["coverage_status"] != "QUALIFIED_COMPLETE_FOR_SCOPE":
+                  raise SystemExit(f"{case['case_id']}: non-positive control must identify its fault")
+              if case["coverage_status"] == "QUALIFIED_COMPLETE_FOR_SCOPE":
+                  required_true = (
+                      "scope_closed", "scope_manifest_digest_valid", "checkpoint_digest_valid",
+                      "receipt_present", "receipt_digest_valid", "independently_qualified",
+                      "source_roster_reconciled", "required_obligations_complete",
+                      "critical_channels_complete", "time_interval_complete",
+                      "stream_continuity_valid", "retention_available", "checkpoint_binding_valid",
+                  )
+                  if any(fixture[name] is not True for name in required_true):
+                      raise SystemExit(f"{case['case_id']}: complete-for-scope control has an unresolved obligation")
+          print(f"Observer coverage corpus structure passed: {len(cases)} synthetic cases; oracle review still required.")
           PY
 
       - name: Validate SHM dataset manifest schema and rights gates
