@@ -880,14 +880,8 @@ mod tests {
             dt: 0.1,
             deterministic_net_q16_16: false,
         };
-        let result = build_semi_implicit_euler_envelope(
-            identity(),
-            context(),
-            box2(),
-            motion,
-            0.0,
-        )
-        .unwrap();
+        let result =
+            build_semi_implicit_euler_envelope(identity(), context(), box2(), motion, 0.0).unwrap();
         assert_eq!(result.status, EnvelopeStatus::UnsupportedIntegratorState);
         assert!(result.envelope.is_none());
         assert!(result.receipt.is_none());
