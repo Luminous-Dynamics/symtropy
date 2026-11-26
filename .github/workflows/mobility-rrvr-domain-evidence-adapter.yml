@@ -1,0 +1,87 @@
+name: RRVR Domain-Qualified Evidence Adapter v0.1
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-domain-evidence-adapter-v0-1
+    paths:
+      - "research/mobility-rrvr-domain-evidence-adapter-v0.1/**"
+      - "research/mobility-rrvr-evidence-capsules-v0.1/**"
+      - "research/mobility-rrvr-fault-harness-v0.1/**"
+      - ".github/workflows/mobility-rrvr-domain-evidence-adapter.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-domain-evidence-adapter-v0.1/**"
+      - "research/mobility-rrvr-evidence-capsules-v0.1/**"
+      - "research/mobility-rrvr-fault-harness-v0.1/**"
+      - ".github/workflows/mobility-rrvr-domain-evidence-adapter.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  domain-qualified-adapter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Validate adapter and nested evidence schemas
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq empty research/mobility-rrvr-domain-evidence-adapter-v0.1/schemas/process_model_campaign_v0_1.schema.json
+          jq empty research/mobility-rrvr-evidence-capsules-v0.1/schemas/evidence_bundle_v0_1.schema.json
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path research/mobility-rrvr-domain-evidence-adapter-v0.1/Cargo.toml -- --check
+
+      - name: Execute harness to evidence adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-domain-evidence-adapter-v0.1"
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_domain_evidence_adapter > "$RUNNER_TEMP/rrvr-domain-evidence.json"
+          jq -e '
+            .schema_version == "0.1"
+            and .evidence_domain == "process_model"
+            and (.arms | length == 12)
+            and all(.arms[];
+              .outcome.arm_id == "native_retry" or .outcome.arm_id == "rrvr"
+            )
+            and all(.arms[];
+              .evidence_bundle.evidence_domain == "process_model"
+              and (.evidence_bundle.claims | length == 2)
+              and all(.evidence_bundle.claims[];
+                .claim_type == "endpoint_fenced" or .claim_type == "temporal_closure"
+              )
+              and all(.evidence_bundle.evidence[];
+                .source.role == "model_oracle"
+                and .source.independence_group == "single-correlated-process-model"
+              )
+              and .evidence_report.evidence_domain == "process_model"
+              and (.trace | length >= 12)
+            )
+            and any(.arms[];
+              .outcome.pair_id == "effect_then_lost_ack"
+              and .outcome.arm_id == "rrvr"
+              and .outcome.reported_disposition == "applied"
+              and .outcome.actual_effect_count == 1
+            )
+            and any(.arms[];
+              .outcome.pair_id == "incomplete_command_graph"
+              and .outcome.arm_id == "rrvr"
+              and .evidence_report.unresolved_n >= 1
+            )
+            and (.artifact_sha256 | test("^[a-f0-9]{64}$"))
+          ' "$RUNNER_TEMP/rrvr-domain-evidence.json"
+
+      - name: Run adapter tests
+        run: cargo test --locked --manifest-path research/mobility-rrvr-domain-evidence-adapter-v0.1/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/mobility-rrvr-domain-evidence-adapter-v0.1/Cargo.toml --all-targets -- -D warnings

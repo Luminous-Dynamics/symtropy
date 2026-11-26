@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/process-model-campaign-v0.1.schema.json",
+  "title": "RRVR Process-Model Evidence Campaign v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_domain",
+    "campaign_id",
+    "model_profile_id",
+    "model_profile_sha256",
+    "claim_ceiling",
+    "arms",
+    "artifact_sha256"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "evidence_domain": { "const": "process_model" },
+    "campaign_id": { "type": "string", "minLength": 1 },
+    "model_profile_id": { "const": "rrvr-process-fault-harness-v0.1" },
+    "model_profile_sha256": { "$ref": "#/$defs/sha256" },
+    "claim_ceiling": { "type": "string", "minLength": 40 },
+    "arms": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "$ref": "#/$defs/arm" }
+    },
+    "artifact_sha256": { "$ref": "#/$defs/sha256" }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "trace_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tick", "sequence", "event", "detail"],
+      "properties": {
+        "tick": { "type": "integer", "minimum": 0 },
+        "sequence": { "type": "integer", "minimum": 0 },
+        "event": { "type": "string", "minLength": 1 },
+        "detail": { "type": "string" }
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pair_id", "arm_id", "frozen_input_id", "original_command_id",
+        "accepted_epoch", "queue_generation", "accepted_high_water",
+        "retired_high_water", "outstanding_n", "in_flight_n",
+        "actual_effect_count", "reported_disposition", "fresh_attempt_admitted",
+        "unsafe_admission", "false_no_effect", "false_applied", "false_hold",
+        "endpoint_fenced", "temporal_closure_issued", "temporal_closure_valid",
+        "stale_effect_after_fence", "duplicate_one_shot_effect", "unresolved_outcome"
+      ],
+      "properties": {
+        "pair_id": { "type": "string", "minLength": 1 },
+        "arm_id": { "enum": ["native_retry", "rrvr"] },
+        "frozen_input_id": { "type": "string", "minLength": 1 },
+        "original_command_id": { "type": "string", "minLength": 1 },
+        "accepted_epoch": { "type": "integer", "minimum": 0 },
+        "queue_generation": { "type": "integer", "minimum": 0 },
+        "accepted_high_water": { "type": "integer", "minimum": 0 },
+        "retired_high_water": { "type": "integer", "minimum": 0 },
+        "outstanding_n": { "type": "integer", "minimum": 0 },
+        "in_flight_n": { "type": "integer", "minimum": 0 },
+        "actual_effect_count": { "type": "integer", "minimum": 0 },
+        "reported_disposition": { "enum": ["applied", "no_effect", "unknown"] },
+        "fresh_attempt_admitted": { "type": "boolean" },
+        "unsafe_admission": { "type": "boolean" },
+        "false_no_effect": { "type": "boolean" },
+        "false_applied": { "type": "boolean" },
+        "false_hold": { "type": "boolean" },
+        "endpoint_fenced": { "type": "boolean" },
+        "temporal_closure_issued": { "type": "boolean" },
+        "temporal_closure_valid": { "type": "boolean" },
+        "stale_effect_after_fence": { "type": "boolean" },
+        "duplicate_one_shot_effect": { "type": "boolean" },
+        "unresolved_outcome": { "type": "boolean" }
+      }
+    },
+    "arm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome", "trace_sha256", "trace", "evidence_bundle", "evidence_report"],
+      "properties": {
+        "outcome": { "$ref": "#/$defs/outcome" },
+        "trace_sha256": { "$ref": "#/$defs/sha256" },
+        "trace": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/trace_entry" } },
+        "evidence_bundle": {
+          "$ref": "https://luminousdynamics.io/schemas/rrvr-evidence-bundle-v0.1.schema.json"
+        },
+        "evidence_report": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["schema_version", "benchmark", "campaign_id", "evidence_domain", "evidence_n", "claim_n", "qualified_n", "contradicted_n", "unresolved_n", "disputed_n", "claim_assessments", "claim_ceiling"],
+          "properties": {
+            "schema_version": { "type": "string", "const": "0.1" },
+            "benchmark": { "type": "string", "const": "RRVR-EVIDENCE-CAPSULES" },
+            "campaign_id": { "type": "string", "minLength": 1 },
+            "evidence_domain": { "const": "process_model" },
+            "evidence_n": { "type": "integer", "minimum": 0 },
+            "claim_n": { "const": 2 },
+            "qualified_n": { "type": "integer", "minimum": 0 },
+            "contradicted_n": { "type": "integer", "minimum": 0 },
+            "unresolved_n": { "type": "integer", "minimum": 0 },
+            "disputed_n": { "type": "integer", "minimum": 0 },
+            "claim_assessments": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["claim_id", "claim_type", "status", "reason_codes", "late_evidence_excluded_n"],
+                "properties": {
+                  "claim_id": { "type": "string", "minLength": 1 },
+                  "claim_type": { "enum": ["fault_delivered", "effect_applied", "no_effect", "endpoint_fenced", "temporal_closure"] },
+                  "status": { "enum": ["qualified", "contradicted", "unresolved", "disputed"] },
+                  "reason_codes": { "type": "array", "items": { "type": "string" } },
+                  "late_evidence_excluded_n": { "type": "integer", "minimum": 0 }
+                }
+              }
+            },
+            "claim_ceiling": { "type": "string", "minLength": 40 }
+          }
+        }
+      }
+    }
+  }
+}

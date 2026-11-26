@@ -10,6 +10,7 @@
     "benchmark": { "const": "RRVR-EVIDENCE-CAPSULES" },
     "campaign_id": { "type": "string", "minLength": 1 },
     "claim_ceiling": { "type": "string", "minLength": 40 },
+    "evidence_domain": { "enum": ["process_model"] },
     "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence_capsule" } },
     "claims": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/claim" } }
   },
@@ -30,7 +31,7 @@
       "properties": {
         "source_id": { "type": "string", "minLength": 1 },
         "principal_id": { "type": "string", "minLength": 1 },
-        "role": { "enum": ["fault_injector", "physical_observer", "independent_adjudicator", "endpoint", "network_monitor"] },
+        "role": { "enum": ["fault_injector", "physical_observer", "independent_adjudicator", "endpoint", "network_monitor", "model_oracle"] },
         "independence_group": { "type": "string", "minLength": 1 },
         "profile_sha256": { "$ref": "#/$defs/sha256" }
       }
