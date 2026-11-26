@@ -660,7 +660,11 @@ mod tests {
         assert!(result.all_trials_accepted);
         assert_eq!(result.accepted_trial_count, 1);
         assert_eq!(result.trials[0].stable_step_count, 3);
-        assert!(result.trials[0].finite_difference_plateau_estimate.is_some());
+        assert!(
+            result.trials[0]
+                .finite_difference_plateau_estimate
+                .is_some()
+        );
     }
 
     #[test]
@@ -670,9 +674,11 @@ mod tests {
         let result = qualify_directional_derivatives(&kernel(), &[input], policy())
             .expect("numerically wrong data is still structurally valid");
         assert!(!result.all_trials_accepted);
-        assert!(result.trials[0].failure_reasons.contains(
-            &TrialFailureReason::AutodiffDisagreesWithReference
-        ));
+        assert!(
+            result.trials[0]
+                .failure_reasons
+                .contains(&TrialFailureReason::AutodiffDisagreesWithReference)
+        );
     }
 
     #[test]
@@ -690,9 +696,11 @@ mod tests {
         let result = qualify_directional_derivatives(&kernel(), &[input], policy())
             .expect("step instability is a reported qualification failure");
         assert!(!result.trials[0].accepted);
-        assert!(result.trials[0].failure_reasons.contains(
-            &TrialFailureReason::NoStableFiniteDifferencePlateau
-        ));
+        assert!(
+            result.trials[0]
+                .failure_reasons
+                .contains(&TrialFailureReason::NoStableFiniteDifferencePlateau)
+        );
         assert_eq!(result.trials[0].finite_difference_plateau_estimate, None);
     }
 
@@ -707,9 +715,11 @@ mod tests {
         let result = qualify_directional_derivatives(&kernel(), &[input], policy())
             .expect("well-formed finite-difference records");
         assert!(!result.trials[0].accepted);
-        assert!(result.trials[0].failure_reasons.contains(
-            &TrialFailureReason::FiniteDifferenceDisagreesWithReference
-        ));
+        assert!(
+            result.trials[0]
+                .failure_reasons
+                .contains(&TrialFailureReason::FiniteDifferenceDisagreesWithReference)
+        );
     }
 
     #[test]
@@ -775,12 +785,8 @@ mod tests {
     fn duplicate_trials_are_rejected() {
         let input = trial("case-duplicate");
         assert_eq!(
-            qualify_directional_derivatives(
-                &kernel(),
-                &[input.clone(), input],
-                policy(),
-            )
-            .expect_err("duplicate trial IDs"),
+            qualify_directional_derivatives(&kernel(), &[input.clone(), input], policy(),)
+                .expect_err("duplicate trial IDs"),
             QualificationError::DuplicateTrialId
         );
     }
@@ -844,5 +850,4 @@ mod tests {
             QualificationError::DuplicateObservationId
         );
     }
-
 }
