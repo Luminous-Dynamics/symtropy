@@ -198,3 +198,38 @@ The handoff preserves four evidence classes (synthetic fixture, published reprod
 The Draft 2020-12 schema includes conditional checks: synthetic-only batches cannot label their soft information calibrated; calibrated symbol vectors require a calibration reference; and a reader declared current/traceably calibrated must carry calibration identity, a record reference and uncertainty. A semantic validator is still required for unique observation IDs, alphabet membership, likelihood-vector cardinality and normalization, calibration compatibility, coordinate bounds and split non-overlap. JSON Schema does not prove instrument calibration or probability quality.
 
 The example fixture is explicitly synthetic and makes no BOROFLOAT 33/K10 measurement claim. Symthaea's decoder and optimizer may consume these records only with their evidence class, provenance and partition identity preserved. No confidence score may silently become a physical error probability.
+
+
+## 9. Preservation and industry-comparison standards
+
+The compiler's service contract should be assessed against the wider repository-preservation obligation, not only device endurance. Use the current references as complementary layers:
+
+- **OAIS / ISO 14721:2025:** an archival information-system reference model covering ingest, archival storage, data management, access, dissemination, information representation and media/software migration. This informs the service contract and preservation lifecycle: https://www.iso.org/standard/87471.html
+- **ISO 16363:2025:** audit and certification criteria for trustworthy digital repositories. Use this as an assurance target for repository process, evidence and organizational trustworthiness, not as a media physics test: https://www.iso.org/standard/87472.html
+- **NDSA Levels of Digital Preservation v2.1 (March 2026):** operational assessment framework with explicit environmental-sustainability considerations. Use it to ensure the compiler's lifecycle decision includes sustainability rather than only capacity and endurance: https://www.ndsa.org/publications/levels-of-digital-preservation/
+- **SNIA SSS PTS v2.0.2:** device-level SSD performance test methodology for repeatable enterprise/client comparison. It is not a 1 PB archive restore benchmark: https://www.snia.org/tech_activities/standards/curr_standards/pts
+
+### Comparison snapshots — evidence classes must remain separate
+
+| Technology | Public anchor | What it establishes | What it does not establish |
+|---|---|---|---|
+| Glass, fused silica | Silica paper: 4.8 TB usable per 120 × 120 × 2 mm platter, 301 layers, 1.59 Gbit/mm³, 25.6 Mbit/s per write beam | Published end-to-end laboratory demonstrator | Commercial production availability, full library restore or independent-reader service qualification |
+| Glass, borosilicate | 2.02 TB per platter; four-beam 65.9 Mbit/s write result | Published lower-cost glass regime and demonstrated parallel writing | 16+ beam production; that remains a thermal-model projection |
+| HAMR HDD | Seagate Mozaic 4+ up to 44 TB, qualified and in production with two hyperscale cloud providers (3 March 2026) | Production-scale high-capacity HDD platform | A century-scale archive guarantee or full archive restore in the compiler's service boundary |
+| LTO-10 tape | 40 TB native; up to 400 MB/s native per drive/cartridge stream (Fujifilm, 2 April 2026) | Current commercial tape capacity and device transfer ceiling | Multi-drive library restore after mounts, retries, ECC, verification and network transfer |
+| Micron 6600 ION SSD | 245.76 TB model; up to 13,700 MB/s sequential read and 3,000 MB/s sequential write in the specified 30 W power state | High-density enterprise SSD device-level performance | Long-term archival retention, formatted usable capacity at every SKU, or end-to-end archive restore |
+
+The glass figures are from the published Silica system paper: https://www.nature.com/articles/s41586-025-10042-w. The commercial HAMR status is from Seagate's 3 March 2026 production announcement: https://www.seagate.com/stories/articles/seagate-delivers-industrys-highest-capacity-hard-drives-with-next-generation-mozaic-4/. LTO-10 values are from Fujifilm's 40 TB product specification: https://newsroom-us.fujifilm.com/press-releases/press-release-details/2026/FUJIFILM-North-America-Corporation-Announces-U-S--Availability-of-FUJIFILM-LTO-Ultrium-Generation-10-40TB-Data-Cartridges-04-02-2026/default.aspx. Micron's 245.76 TB rates are device-test results at a declared power state and workload: https://www.micron.com/content/dam/micron/global/public/products/storage/ssds/data-center/6600/6600-ion-ssd-technical-product-specification.pdf.
+
+### Fair-comparison rule
+
+Do not compare glass write throughput to HDD/SSD read throughput; do not compare a drive's sequential rate to an archive's verified restore rate; do not compare nominal raw capacity to net exact-recoverable payload; do not treat manufacturer retention statements, model extrapolations and direct ageing observations as equivalent.
+
+The compiler must normalize the service boundary and report:
+- net usable payload after coding, controls, calibration, spares and copy diversity;
+- full end-to-end ingest, read and restore throughput with digest verification;
+- energy and cost per successful verified restore and per verified TB-year;
+- reader replacement, decoder portability, migration and environmental obligations;
+- evidence tier, sample counts, uncertainty and missing values.
+
+For the illustrative 1 PB / 10-day restore, the 1.157 GB/s payload floor is a lower bound before all overhead. Three LTO-10 streams at 400 MB/s each only provide 1.2 GB/s on an ideal continuous-rate sum, so this is not a service qualification. The actual library must pass an end-to-end restore drill.
