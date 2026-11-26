@@ -218,6 +218,29 @@ Use frozen input datasets, versioned interfaces, published scoring code and inde
 
 NASA Aviary is a real conceptual aircraft sizing, mission analysis and gradient-based optimization baseline; it is not a high-fidelity structural solver. The NASA/AIAA aeroelastic benchmark exists specifically because design variables, baselines, objectives and constraints must be consistent for meaningful method comparisons. NIST CM4QC Phase II is developing aviation additive-manufacturing pathfinder work with AM-Bench; its programme must not be misrepresented as an existing public composite-laminate allowable database.
 
+### 5.1 Temporal-boundary benchmark
+
+The new interval-aware evaluator must be compared against the same exact-point baseline and the same frozen event stream. Use five arms:
+
+1. **Latest-row negative control:** discard event history and use the latest available record.
+2. **Scalar bitemporal baseline:** use nominal `acquired_at`, `effective_at`, `recorded_at` and evaluation time only.
+3. **Optimistic interval negative control:** select the favorable interval endpoint when effective/acquisition bounds overlap.
+4. **Hard-bound interval evaluator:** require universal ordering; overlap abstains; retain non-applicable event identity.
+5. **Owner-evidence target:** interval evaluator plus independently authenticated event receipts, receiver-first-seen watermarks, trusted timestamp evidence and pinned trust-policy snapshots. This is a future integration target, not implemented here.
+
+Freeze identical raw event bytes, source identity, observation subject, nominal points, clock-bound method, bounds and evaluation snapshots for each arm. Blind the confirmatory cases and obtain expected dispositions from an independent chronology oracle before running the implementations.
+
+Report:
+- **False historical application:** number of events whose earliest effective time is later than the latest possible acquisition, but which are applied to that acquisition. Target: 0.
+- **Ambiguous-boundary escape:** number of acquisition/certificate or event/acquisition/snapshot overlaps accepted as unambiguous. Target: 0.
+- **Future-knowledge leakage:** number of events with recorded/receiver-first-seen evidence after the selected as-known cutoff that affect the earlier report. Target: 0; this needs receiver-native receipts for the full claim.
+- **Legacy exact-point parity:** fraction of old v0.2 point-only cases whose outputs remain identical. Target: 100%.
+- **Non-applicable-event retention:** fraction of definitely future or post-acquisition events that remain addressable in the report without being applied to subject-time state. Target: 100%.
+- **Oracle agreement and abstention quality:** exact dispositions and abstention/rejection rates per fault family; do not optimize only for low abstention.
+- **Runtime cost:** p50/p95/p99, allocations, memory and throughput by events × observations × certificates, with the same machine, toolchain and input digests.
+
+The optimistic-endpoint arm is intentionally unsafe and exists to quantify the failure prevented by universal interval ordering; it is not a production competitor. The latest-row arm measures the specific loss of historical event semantics. The owner-evidence arm is required before AERO can claim knowledge-time authenticity; a source's own `recorded_at` field cannot stand in for receiver first-seen proof.
+
 ## 6. Prospective benchmark targets
 
 These are research targets, not current results, certification criteria or regulatory limits.
@@ -227,8 +250,8 @@ These are research targets, not current results, certification criteria or regul
 | Bounded semantic corpus | 100% exact agreement with independently authored expected dispositions before external claims |
 | False acceptance | Zero false passes on the bounded adversarial controls, including wrong-lot and out-of-interval calibration |
 | Identity closure | 100% of specimens linked to independent source and intended-configuration assertions, or explicit abstention |
-| Metrology binding | 100% of admitted observations carry unambiguous UTC acquisition time and matching in-interval instrument/method certificate |
-| Change-event integrity | No replayed IDs or contradictory correction histories accepted |
+| Metrology binding | 100% of admitted observations have acquisition intervals wholly within the certificate validity interval; ambiguous boundaries abstain, and legacy point-only outputs remain exactly unchanged |
+| Change-event integrity | No replayed IDs or contradictory correction histories accepted; 0 definitely post-acquisition events applied to an earlier subject-time claim |
 | Determinism | Identical reports for semantically equivalent record-order permutations |
 | Applicability | No promotion outside the validated material/process/environment/configuration domain |
 | Uncertainty | For nominal 95% intervals, assess 93–97% empirical coverage only on adequately sized, independent physical holdouts; report interval width and subgroup coverage as well |
