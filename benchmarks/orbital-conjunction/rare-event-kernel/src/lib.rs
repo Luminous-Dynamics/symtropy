@@ -33,6 +33,8 @@ pub mod adaptive_importance_sampling;
 pub mod conditional_velocity;
 /// Descriptive held-out residual and covariance-realism diagnostics.
 pub mod covariance_realism;
+/// Cluster-level split-conformal calibration for covariance ellipsoids.
+pub mod cluster_conformal_covariance;
 pub mod coverage;
 pub mod decision_gate;
 /// Anytime-valid paired contrast sequence under a frozen defensive proposal.
@@ -87,6 +89,12 @@ pub use covariance_realism::{
     NOMINAL_ELLIPSOID_COVERAGE_PERMILLE, CovarianceRealismError, CovarianceRealismGroupSummary,
     CovarianceRealismReport, CovarianceResidualObservation, EllipsoidCoveragePoint,
     NisQuantileSummary, WhitenedComponentSummary, audit_covariance_realism,
+};
+pub use cluster_conformal_covariance::{
+    MAX_CLUSTER_CONFORMAL_CALIBRATION_OBSERVATIONS, ClusterConformalCalibrationConfig,
+    ClusterConformalCalibrationError, ClusterConformalEllipsoidCalibration,
+    ClusterConformalResidualObservation, ClusterMaximumNis,
+    calibrate_cluster_conformal_ellipsoid,
 };
 pub use conditional_velocity::{
     ConditionalDirectionReport, ConditionalVelocityConfig, ConditionalVelocityDiagnostics,
