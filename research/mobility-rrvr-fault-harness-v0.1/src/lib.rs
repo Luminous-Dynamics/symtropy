@@ -362,7 +362,10 @@ impl<'a> Simulation<'a> {
                 }
                 Event::EndpointRestart => {
                     if self.scenario.endpoint_restarts {
-                        self.endpoint.restart(self.scenario.nvm_dedupe_loss);
+                        self.endpoint.restart(false);
+                    }
+                    if self.scenario.nvm_dedupe_loss {
+                        self.endpoint.deduplicated_commands.clear();
                     }
                     self.push_trace(
                         scheduled.tick,
@@ -653,6 +656,19 @@ pub fn known_scenarios() -> Vec<Scenario> {
             edge_inventory_complete: true,
             delayed_original_message: true,
         },
+        Scenario {
+            scenario_id: "dedupe_loss_without_queue_rollover",
+            seed: 16,
+            effect_before_ack: true,
+            acknowledgement_lost: true,
+            endpoint_restarts: false,
+            nvm_dedupe_loss: true,
+            observer_available: true,
+            observation_window_complete: true,
+            holder_inventory_complete: true,
+            edge_inventory_complete: true,
+            delayed_original_message: true,
+        },
     ]
 }
 
@@ -800,6 +816,7 @@ mod tests {
         assert!(pair.rrvr.fresh_attempt_admitted);
         assert!(!pair.rrvr.unsafe_admission);
         assert_eq!(pair.rrvr.actual_effect_count, 1);
+        assert!(!pair.rrvr.false_no_effect);
     }
 
     #[test]
@@ -819,12 +836,12 @@ mod tests {
     }
 
     #[test]
-    fn nvm_loss_allows_native_old_command_replay_but_fence_blocks_rrvr() {
+    fn dedupe_state_loss_allows_native_old_command_replay_but_fence_blocks_rrvr() {
         let mut input = scenario("nvm-loss", true, true, true, true);
-        input.endpoint_restarts = true;
         input.nvm_dedupe_loss = true;
         let pair = run_pair(&input);
         assert!(pair.native.duplicate_one_shot_effect);
+        assert_eq!(pair.native.actual_effect_count, 3);
         assert!(!pair.rrvr.stale_effect_after_fence);
         assert_eq!(pair.rrvr.actual_effect_count, 1);
     }
