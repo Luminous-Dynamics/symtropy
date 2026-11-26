@@ -412,7 +412,11 @@ mod tests {
         CutStatus, EvidenceCut, PartitionWatermark, compare_watermark_progress,
         validate_causal_cut,
     };
-    use serde_json::from_value;
+    use serde_json::{from_str, from_value};
+
+    const FIXTURE: &str = include_str!(
+        "../../../../docs/research/aviation/examples/aero_vector_evidence_cut_v0_1.json"
+    );
 
     const DIGEST: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
@@ -594,6 +598,28 @@ mod tests {
         let current = [watermark("sensor-A", "0", "epoch-2", 1, 5)];
         assert_eq!(
             compare_watermark_progress(&previous, &current).status,
+            CutStatus::Unverified
+        );
+    }
+
+    #[test]
+    fn checked_in_vector_cut_fixture_is_causally_closed() {
+        let evidence = from_str::<EvidenceCut>(FIXTURE).expect("vector cut fixture parses");
+        let report = validate_causal_cut(&evidence);
+        assert_eq!(report.status, CutStatus::Closed);
+        assert_eq!(report.watermark_count, 2);
+        assert_eq!(report.event_count, 3);
+        assert_eq!(report.dependency_count, 2);
+    }
+
+    #[test]
+    fn empty_watermark_vector_is_unverified() {
+        let evidence = EvidenceCut {
+            watermarks: Vec::new(),
+            events: Vec::new(),
+        };
+        assert_eq!(
+            validate_causal_cut(&evidence).status,
             CutStatus::Unverified
         );
     }
