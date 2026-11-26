@@ -138,10 +138,9 @@ pub use pop_convergence::{
     decide_peak_overlap_convergence,
 };
 pub use portfolio_selection::{
-    MAX_SIMULTANEOUS_PORTFOLIO_DRAWS, PortfolioConsequenceBound,
-    PortfolioConsequenceObservation, PortfolioContrastConfidenceInterval,
-    PortfolioSelectionError, SimultaneousPortfolioComparison, SimultaneousPortfolioDraw,
-    SimultaneousPortfolioSelectionReport,
+    MAX_SIMULTANEOUS_PORTFOLIO_DRAWS, PortfolioConsequenceBound, PortfolioConsequenceObservation,
+    PortfolioContrastConfidenceInterval, PortfolioSelectionError, SimultaneousPortfolioComparison,
+    SimultaneousPortfolioDraw, SimultaneousPortfolioSelectionReport,
 };
 pub use predictable_empirical_bernstein::{
     AdaptiveImportanceSamplingPrPlEbSequence, DEFAULT_BET_FRACTION_CAP, PrPlEbConfidenceSequence,
