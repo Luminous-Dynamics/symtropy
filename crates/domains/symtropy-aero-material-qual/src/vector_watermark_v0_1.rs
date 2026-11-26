@@ -155,16 +155,6 @@ pub fn validate_causal_cut(cut: &EvidenceCut) -> CutAssessment {
         .map(|event| event.dependencies.len())
         .sum::<usize>();
 
-    if cut.watermarks.is_empty() {
-        return CutAssessment::new(
-            CutStatus::Unverified,
-            ["EVIDENCE_WATERMARK_VECTOR_EMPTY".to_owned()],
-            0,
-            cut.events.len(),
-            dependency_count,
-        );
-    }
-
     let mut invalid = Vec::new();
     let mut unverified = Vec::new();
     let mut incomplete = Vec::new();
@@ -296,28 +286,9 @@ pub fn validate_causal_cut(cut: &EvidenceCut) -> CutAssessment {
         return invalid_assessment(cut, invalid, dependency_count);
     }
 
-    if !unverified.is_empty() {
-        return CutAssessment::new(
-            CutStatus::Unverified,
-            unverified,
-            cut.watermarks.len(),
-            cut.events.len(),
-            dependency_count,
-        );
-    }
-
-    if !incomplete.is_empty() {
-        return CutAssessment::new(
-            CutStatus::Incomplete,
-            incomplete,
-            cut.watermarks.len(),
-            cut.events.len(),
-            dependency_count,
-        );
-    }
-
     // Kahn's algorithm detects cycles without recursion or input-order
-    // dependence. The graph is small enough to keep an explicit adjacency map.
+    // dependence. Check the known graph before returning missing-evidence
+    // statuses so a known integrity contradiction retains invalid precedence.
     let mut ready = VecDeque::new();
     for (event_ref, degree) in &indegree {
         if *degree == 0 {
@@ -344,6 +315,30 @@ pub fn validate_causal_cut(cut: &EvidenceCut) -> CutAssessment {
         return invalid_assessment(
             cut,
             vec!["CAUSAL_DEPENDENCY_CYCLE".to_owned()],
+            dependency_count,
+        );
+    }
+
+    if cut.watermarks.is_empty() {
+        unverified.push("EVIDENCE_WATERMARK_VECTOR_EMPTY".to_owned());
+    }
+
+    if !unverified.is_empty() {
+        return CutAssessment::new(
+            CutStatus::Unverified,
+            unverified,
+            cut.watermarks.len(),
+            cut.events.len(),
+            dependency_count,
+        );
+    }
+
+    if !incomplete.is_empty() {
+        return CutAssessment::new(
+            CutStatus::Incomplete,
+            incomplete,
+            cut.watermarks.len(),
+            cut.events.len(),
             dependency_count,
         );
     }
