@@ -217,9 +217,7 @@ fn validate_plan_receipt(receipt: &ResourcePlanReceipt) -> Result<(), BundleErro
     Ok(())
 }
 
-fn validate_requirements(
-    requirements: &[CommitmentRequirement],
-) -> Result<(), BundleError> {
+fn validate_requirements(requirements: &[CommitmentRequirement]) -> Result<(), BundleError> {
     let mut identities = BTreeSet::new();
     for requirement in requirements {
         if requirement.reservation_id.is_empty()
@@ -328,7 +326,10 @@ fn check_requirement<P: CommitmentProjectionProvider>(
 
     match projection.state {
         CommitmentState::Accepted => {
-            if projection.accepted_at.is_none_or(|accepted_at| accepted_at > knowledge_cutoff) {
+            if projection
+                .accepted_at
+                .is_none_or(|accepted_at| accepted_at > knowledge_cutoff)
+            {
                 RequirementResult {
                     reservation_id: reservation.reservation_id.clone(),
                     commitment_id,
@@ -414,12 +415,9 @@ pub fn evaluate_bundle<P: CommitmentProjectionProvider>(
 
         let result = match matching {
             [] => check_requirement(reservation, None, knowledge_cutoff, provider),
-            [requirement] => check_requirement(
-                reservation,
-                Some(requirement),
-                knowledge_cutoff,
-                provider,
-            ),
+            [requirement] => {
+                check_requirement(reservation, Some(requirement), knowledge_cutoff, provider)
+            }
             _ => RequirementResult {
                 reservation_id: reservation.reservation_id.clone(),
                 commitment_id: None,
@@ -446,8 +444,8 @@ pub fn evaluate_bundle<P: CommitmentProjectionProvider>(
     }
 
     let all_satisfied = results
-            .iter()
-            .all(|result| result.disposition == RequirementDisposition::Satisfied);
+        .iter()
+        .all(|result| result.disposition == RequirementDisposition::Satisfied);
 
     Ok(BundleReport {
         plan_id: receipt.plan_id.clone(),
@@ -489,7 +487,13 @@ mod tests {
         }
     }
 
-    fn reservation(id: &str, resource: &str, slot: u32, quantity: u64, unit: &str) -> PlannedReservation {
+    fn reservation(
+        id: &str,
+        resource: &str,
+        slot: u32,
+        quantity: u64,
+        unit: &str,
+    ) -> PlannedReservation {
         PlannedReservation {
             reservation_id: id.to_owned(),
             resource_id: resource.to_owned(),
@@ -598,14 +602,7 @@ mod tests {
     fn requirements() -> Vec<CommitmentRequirement> {
         vec![
             requirement("R-BERTH", "C-BERTH", "BERTH-2", 4, 12, "container"),
-            requirement(
-                "R-RAIL",
-                "C-RAIL",
-                "RAIL-TRACK-A",
-                5,
-                12,
-                "container",
-            ),
+            requirement("R-RAIL", "C-RAIL", "RAIL-TRACK-A", 5, 12, "container"),
         ]
     }
 
@@ -763,7 +760,6 @@ mod tests {
         assert!(report.results.is_empty());
     }
 
-
     #[test]
     fn missing_requirement_is_visible_per_reservation() {
         let report = evaluate_bundle(&plan(), &requirements()[..1], 120, &provider()).unwrap();
@@ -850,7 +846,9 @@ mod tests {
         reqs[1].revision = reqs[0].revision;
         assert_eq!(
             evaluate_bundle(&plan(), &reqs, 120, &provider()),
-            Err(BundleError::DuplicateCommitmentIdentity("C-BERTH".to_owned()))
+            Err(BundleError::DuplicateCommitmentIdentity(
+                "C-BERTH".to_owned()
+            ))
         );
     }
 
