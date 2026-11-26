@@ -27,6 +27,19 @@ pub const MAX_ROBUST_EPISTEMIC_SCENARIOS: usize = 64;
 /// Maximum number of cross-scenario batches in one robust campaign.
 pub const MAX_ROBUST_SCENARIO_BATCHES: u64 = 1_000_000;
 
+/// One scenario proposal bound to a physical/loss-model source manifest.
+///
+/// The manifest digest should commit to the scenario's propagator/model versions,
+/// covariance and environment assumptions, event-universe source inventory and
+/// scenario configuration. It is a content identity, not issuer authentication.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ScenarioDefensiveProposal {
+    /// Nonzero digest of the frozen physical-world/loss-model scenario manifest.
+    pub scenario_manifest_digest: [u8; 32],
+    /// Fixed-target defensive proposal and one-scenario event-mode universe.
+    pub proposal: PortfolioDefensiveGaussianMixture,
+}
+
 /// One complete batch containing one state draw for every frozen scenario.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ScenarioDefensiveDrawBatch {
@@ -45,8 +58,21 @@ pub struct ScenarioDefensiveBatchReceipt {
     pub batch_index: u64,
     /// Unique caller-supplied batch identity.
     pub batch_id: [u8; 32],
+    /// Frozen scalar consequence contract shared by every scenario.
+    pub consequence_contract_id: [u8; 32],
     /// One scenario-specific draw receipt for every frozen scenario.
-    pub scenario_receipts: Vec<DefensivePortfolioDrawReceipt>,
+    pub scenario_receipts: Vec<ScenarioDefensiveScenarioReceipt>,
+}
+
+/// One scenario's draw receipt plus its physical/loss-model manifest identity.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ScenarioDefensiveScenarioReceipt {
+    /// Scenario identity.
+    pub scenario_id: [u8; 32],
+    /// Scenario physical/loss-model manifest digest.
+    pub scenario_manifest_digest: [u8; 32],
+    /// Full proposal and trajectory-draw receipt.
+    pub draw_receipt: DefensivePortfolioDrawReceipt,
 }
 
 /// Confidence evidence for one epistemic scenario.
@@ -54,6 +80,10 @@ pub struct ScenarioDefensiveBatchReceipt {
 pub struct ScenarioPortfolioSnapshot {
     /// Stable epistemic scenario identity.
     pub scenario_id: [u8; 32],
+    /// Scenario physical/loss-model manifest digest.
+    pub scenario_manifest_digest: [u8; 32],
+    /// Shared consequence semantics, units, direction and horizon contract.
+    pub consequence_contract_id: [u8; 32],
     /// Scenario-specific simultaneous portfolio report.
     pub report: SimultaneousDefensivePortfolioReport,
 }
@@ -63,6 +93,8 @@ pub struct ScenarioPortfolioSnapshot {
 pub struct ScenarioRobustPortfolioReport {
     /// Family-wise error budget across every scenario/pair interval.
     pub family_alpha: f64,
+    /// Frozen consequence semantics, unit, direction and horizon identity.
+    pub consequence_contract_id: [u8; 32],
     /// Number of separately evaluated epistemic scenarios.
     pub scenario_count: usize,
     /// Number of frozen portfolio arms.
@@ -95,6 +127,12 @@ pub enum ScenarioRobustSelectionError {
     TooManyScenarios,
     /// Scenario identity is zero or duplicated.
     InvalidOrDuplicateScenarioIdentity,
+    /// The scalar consequence contract identity is zero.
+    InvalidConsequenceContractIdentity,
+    /// A scenario's physical/loss-model manifest digest is zero.
+    InvalidScenarioManifestDigest,
+    /// Two scenarios in one batch reuse the same draw identity.
+    DuplicateScenarioDrawIdentity,
     /// Different scenario proposal instances use inconsistent portfolio sets.
     InconsistentPortfolioUniverse,
     /// Portfolio count exceeds the configured limit.
@@ -122,6 +160,9 @@ impl core::fmt::Display for ScenarioRobustSelectionError {
             Self::EmptyScenarioSet => "at least one epistemic scenario is required",
             Self::TooManyScenarios => "epistemic scenario set exceeds its configured limit",
             Self::InvalidOrDuplicateScenarioIdentity => "scenario identity is zero or duplicated",
+            Self::InvalidConsequenceContractIdentity => "consequence semantics contract identity is zero",
+            Self::InvalidScenarioManifestDigest => "scenario physical/loss-model manifest digest is zero",
+            Self::DuplicateScenarioDrawIdentity => "scenario draws in one batch reuse a draw identity",
             Self::InconsistentPortfolioUniverse => {
                 "scenario entries use inconsistent portfolio universes"
             }
@@ -154,6 +195,7 @@ impl From<SimultaneousDefensiveSelectionError> for ScenarioRobustSelectionError 
 #[derive(Debug, Clone, PartialEq)]
 struct ScenarioEntry {
     scenario_id: [u8; 32],
+    scenario_manifest_digest: [u8; 32],
     manager: SimultaneousDefensivePortfolioSelection,
 }
 
@@ -162,6 +204,7 @@ struct ScenarioEntry {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ScenarioRobustPortfolioSelection {
     family_alpha: f64,
+    consequence_contract_id: [u8; 32],
     per_scenario_alpha: f64,
     portfolio_bounds: Vec<PortfolioConsequenceBound>,
     entries: Vec<ScenarioEntry>,
@@ -178,11 +221,15 @@ impl ScenarioRobustPortfolioSelection {
     /// Scenarios are kept separate; no scenario weights or averaging occur.
     pub fn new(
         family_alpha: f64,
+        consequence_contract_id: [u8; 32],
         mut portfolio_bounds: Vec<PortfolioConsequenceBound>,
-        mut proposals: Vec<PortfolioDefensiveGaussianMixture>,
+        mut proposals: Vec<ScenarioDefensiveProposal>,
     ) -> Result<Self, ScenarioRobustSelectionError> {
         if !family_alpha.is_finite() || family_alpha <= 0.0 || family_alpha >= 1.0 {
             return Err(ScenarioRobustSelectionError::InvalidFamilyAlpha);
+        }
+        if consequence_contract_id.iter().all(|byte| *byte == 0) {
+            return Err(ScenarioRobustSelectionError::InvalidConsequenceContractIdentity);
         }
         if proposals.is_empty() {
             return Err(ScenarioRobustSelectionError::EmptyScenarioSet);
@@ -199,11 +246,15 @@ impl ScenarioRobustPortfolioSelection {
             return Err(ScenarioRobustSelectionError::InconsistentPortfolioUniverse);
         }
 
-        proposals.sort_unstable_by_key(|proposal| proposal.scenario_id());
-        for (index, proposal) in proposals.iter().enumerate() {
-            let scenario_id = proposal.scenario_id();
+        proposals.sort_unstable_by_key(|scenario| scenario.proposal.scenario_id());
+        for (index, scenario in proposals.iter().enumerate() {
+            if scenario.scenario_manifest_digest.iter().all(|byte| *byte == 0) {
+                return Err(ScenarioRobustSelectionError::InvalidScenarioManifestDigest);
+            }
+            let scenario_id = scenario.proposal.scenario_id();
             if scenario_id.iter().all(|byte| *byte == 0)
-                || (index > 0 && proposals[index - 1].scenario_id() == scenario_id)
+                || (index > 0
+                    && proposals[index - 1].proposal.scenario_id() == scenario_id)
             {
                 return Err(ScenarioRobustSelectionError::InvalidOrDuplicateScenarioIdentity);
             }
@@ -231,21 +282,23 @@ impl ScenarioRobustPortfolioSelection {
         }
 
         let mut entries = Vec::with_capacity(proposals.len());
-        for proposal in proposals {
-            let scenario_id = proposal.scenario_id();
+        for scenario in proposals {
+            let scenario_id = scenario.proposal.scenario_id();
             let manager = SimultaneousDefensivePortfolioSelection::new(
                 per_scenario_alpha,
                 portfolio_bounds.clone(),
-                proposal,
+                scenario.proposal,
             )?;
             entries.push(ScenarioEntry {
                 scenario_id,
+                scenario_manifest_digest: scenario.scenario_manifest_digest,
                 manager,
             });
         }
 
         Ok(Self {
             family_alpha,
+            consequence_contract_id,
             per_scenario_alpha,
             portfolio_bounds,
             entries,
@@ -280,8 +333,12 @@ impl ScenarioRobustPortfolioSelection {
         }
 
         let mut draws_by_scenario = BTreeMap::new();
+        let mut draw_ids = BTreeSet::new();
         for draw in &batch.scenario_draws {
             let scenario_id = draw.mode_key.scenario_id;
+            if draw.draw_id.iter().all(|byte| *byte == 0) || !draw_ids.insert(draw.draw_id) {
+                return Err(ScenarioRobustSelectionError::DuplicateScenarioDrawIdentity);
+            }
             if draws_by_scenario.insert(scenario_id, draw).is_some() {
                 return Err(ScenarioRobustSelectionError::InvalidScenarioDrawIdentity);
             }
@@ -307,7 +364,11 @@ impl ScenarioRobustPortfolioSelection {
                 return Err(ScenarioRobustSelectionError::InvalidScenarioDrawIdentity);
             }
             let receipt = entry.manager.observe(draw)?;
-            scenario_receipts.push(receipt);
+            scenario_receipts.push(ScenarioDefensiveScenarioReceipt {
+                scenario_id: entry.scenario_id,
+                scenario_manifest_digest: entry.scenario_manifest_digest,
+                draw_receipt: receipt,
+            });
         }
 
         self.entries = next_entries;
@@ -317,6 +378,7 @@ impl ScenarioRobustPortfolioSelection {
         Ok(ScenarioDefensiveBatchReceipt {
             batch_index: batch.batch_index,
             batch_id: batch.batch_id,
+            consequence_contract_id: self.consequence_contract_id,
             scenario_receipts,
         })
     }
@@ -338,6 +400,8 @@ impl ScenarioRobustPortfolioSelection {
                     .map_err(|_| ScenarioRobustSelectionError::NumericalFailure)?;
                 Ok(ScenarioPortfolioSnapshot {
                     scenario_id: entry.scenario_id,
+                    scenario_manifest_digest: entry.scenario_manifest_digest,
+                    consequence_contract_id: self.consequence_contract_id,
                     report,
                 })
             })
@@ -408,6 +472,7 @@ impl ScenarioRobustPortfolioSelection {
 
         Ok(ScenarioRobustPortfolioReport {
             family_alpha: self.family_alpha,
+            consequence_contract_id: self.consequence_contract_id,
             scenario_count: self.entries.len(),
             portfolio_count: self.portfolio_bounds.len(),
             pairwise_contrasts_per_scenario,
