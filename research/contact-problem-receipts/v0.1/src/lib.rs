@@ -80,6 +80,8 @@ pub enum ReceiptError {
     InvalidDigest,
     InvalidIdentifier,
     InvalidProblemCounts,
+    WrongBenchmarkPanel,
+    FrontendPresentForFixedProblem,
     InvalidPairCounts,
     PairCountOverflow,
     InvalidQueryCounts,
@@ -138,10 +140,7 @@ pub struct FixedProblemFingerprint {
 
 impl FixedProblemFingerprint {
     pub fn validate(&self) -> Result<(), ReceiptError> {
-        if self.body_count == 0
-            || self.contact_count == 0
-            || self.solver_row_count == 0
-        {
+        if self.body_count == 0 {
             return Err(ReceiptError::InvalidProblemCounts);
         }
         Ok(())
@@ -249,6 +248,18 @@ impl SolverInputAudit {
     #[must_use]
     pub fn complete(&self) -> bool {
         self.dropped_rows == 0 && !self.overflow_reported
+    }
+
+    /// Compare the admitted mathematical rows, excluding capacity settings:
+    /// two different capacities are comparable when both admitted the exact
+    /// same complete row set without truncation.
+    #[must_use]
+    pub fn same_admitted_rows(&self, other: &Self) -> bool {
+        self.expected_rows == other.expected_rows
+            && self.emitted_rows == other.emitted_rows
+            && self.dropped_rows == other.dropped_rows
+            && self.solver_rows_digest == other.solver_rows_digest
+            && self.contact_identities_digest == other.contact_identities_digest
     }
 }
 
@@ -468,6 +479,16 @@ impl TimingEvidence {
         }
         Ok(())
     }
+
+    #[must_use]
+    pub fn is_performance_usable(&self) -> bool {
+        let (Some(total), Some(solver), Some(resolution)) =
+            (self.total_ns, self.solver_ns, self.timer_resolution_ns)
+        else {
+            return false;
+        };
+        total > 0 && solver > 0 && total >= resolution && solver >= resolution
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -527,7 +548,12 @@ impl RunReceipt {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FixedProblemComparison {
+    /// Same complete mathematical input and same admitted solver rows.
     pub eligible: bool,
+    /// Comparable wall-clock evidence additionally requires matching run
+    /// environment digests and timings above the declared timer resolution.
+    pub performance_comparable: bool,
+    pub environment_matched: bool,
     pub mismatched_fields: Vec<&'static str>,
     pub left_run_id: String,
     pub right_run_id: String,
@@ -544,15 +570,20 @@ pub fn compare_fixed_problem(
     if left.panel != BenchmarkPanel::FixedProblemSolver
         || right.panel != BenchmarkPanel::FixedProblemSolver
     {
-        return Err(ReceiptError::FrontendPresentForFixedProblem);
+        return Err(ReceiptError::WrongBenchmarkPanel);
     }
 
     let mismatched_fields = left.problem.mismatched_fields(&right.problem);
-    let solver_input_matches = left.solver_input == right.solver_input;
+    let solver_input_matches = left.solver_input.same_admitted_rows(&right.solver_input);
     let eligible = mismatched_fields.is_empty()
         && solver_input_matches
         && left.solver_input_qualifies()
         && right.solver_input_qualifies();
+    let environment_matched = left.environment == right.environment;
+    let performance_comparable = eligible
+        && environment_matched
+        && left.timing.is_performance_usable()
+        && right.timing.is_performance_usable();
 
     let mut fields = mismatched_fields;
     if !solver_input_matches {
@@ -561,6 +592,8 @@ pub fn compare_fixed_problem(
 
     Ok(FixedProblemComparison {
         eligible,
+        performance_comparable,
+        environment_matched,
         mismatched_fields: fields,
         left_run_id: left.run_id.clone(),
         right_run_id: right.run_id.clone(),
@@ -573,6 +606,8 @@ pub fn compare_fixed_problem(
 pub struct FullPipelineComparison {
     pub eligible_for_scene_comparison: bool,
     pub constitutive_law_matched: bool,
+    pub environment_matched: bool,
+    pub performance_comparable: bool,
     pub left_frontend_qualified: bool,
     pub right_frontend_qualified: bool,
     pub scene_mismatches: Vec<&'static str>,
@@ -618,12 +653,20 @@ pub fn compare_full_pipeline(
     let left_frontend_qualified = left.frontend_qualifies();
     let right_frontend_qualified = right.frontend_qualifies();
     let constitutive_law_matched = left.problem.model_law == right.problem.model_law;
+    let environment_matched = left.environment == right.environment;
+    let eligible_for_scene_comparison =
+        mismatches.is_empty() && left_frontend_qualified && right_frontend_qualified;
+    let performance_comparable = eligible_for_scene_comparison
+        && constitutive_law_matched
+        && environment_matched
+        && left.timing.is_performance_usable()
+        && right.timing.is_performance_usable();
 
     Ok(FullPipelineComparison {
-        eligible_for_scene_comparison: mismatches.is_empty()
-            && left_frontend_qualified
-            && right_frontend_qualified,
+        eligible_for_scene_comparison,
         constitutive_law_matched,
+        environment_matched,
+        performance_comparable,
         left_frontend_qualified,
         right_frontend_qualified,
         scene_mismatches: mismatches,
@@ -781,11 +824,19 @@ mod tests {
         right.outcome = SolverOutcome::IterationLimit;
         let comparison = compare_fixed_problem(&left, &right).unwrap();
         assert!(comparison.eligible);
+        assert!(comparison.performance_comparable);
+        assert!(comparison.environment_matched);
         assert!(comparison.mismatched_fields.is_empty());
         assert_eq!(comparison.left_outcome, SolverOutcome::Converged);
         assert_eq!(comparison.right_outcome, SolverOutcome::IterationLimit);
         left.solver_input.capacity_rows = Some(6);
         assert!(compare_fixed_problem(&left, &right).unwrap().eligible);
+
+        left.environment = digest('7');
+        let environment_mismatch = compare_fixed_problem(&left, &right).unwrap();
+        assert!(environment_mismatch.eligible);
+        assert!(!environment_mismatch.performance_comparable);
+        assert!(!environment_mismatch.environment_matched);
     }
 
     #[test]
@@ -891,6 +942,7 @@ mod tests {
         let comparison = compare_full_pipeline(&left, &right).unwrap();
         assert!(comparison.eligible_for_scene_comparison);
         assert!(!comparison.constitutive_law_matched);
+        assert!(!comparison.performance_comparable);
     }
 
     #[test]
@@ -919,6 +971,16 @@ mod tests {
         right.frontend = Some(audit);
         let comparison = compare_full_pipeline(&left, &right).unwrap();
         assert!(!comparison.eligible_for_scene_comparison);
+    }
+
+    #[test]
+    fn same_fixed_problem_with_unusable_timings_is_not_a_speed_comparison() {
+        let mut left = receipt(BenchmarkPanel::FixedProblemSolver, "left");
+        let right = receipt(BenchmarkPanel::FixedProblemSolver, "right");
+        left.timing.timer_resolution_ns = None;
+        let comparison = compare_fixed_problem(&left, &right).unwrap();
+        assert!(comparison.eligible);
+        assert!(!comparison.performance_comparable);
     }
 
     #[test]
