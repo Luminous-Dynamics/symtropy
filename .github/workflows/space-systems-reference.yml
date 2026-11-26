@@ -42,6 +42,7 @@ jobs:
 
       - name: Execute frozen screening cases
         run: |
-          cargo run --manifest-path tools/space-systems-reference/Cargo.toml --release | tee space-systems-reference.json
+          cargo run --manifest-path tools/space-systems-reference/Cargo.toml --release > space-systems-reference.json
+          python3 -m json.tool space-systems-reference.json > /dev/null
           grep -q '"evidence_class": "synthetic_analytical_screening"' space-systems-reference.json
           grep -q '"claim_ceiling":' space-systems-reference.json
