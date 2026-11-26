@@ -464,9 +464,7 @@
         "kind": "CALIBRATION_INVALID",
         "outcome_record_sha256": "000000000000000000000000000000000000000000000000000000000000053c",
         "payload_sha256": null,
-        "channel_ids": [
-          "CAMERA-IMAGE"
-        ],
+        "channel_ids": [],
         "missing_channel_ids": [
           "CAMERA-IMAGE"
         ]
@@ -599,9 +597,7 @@
         "kind": "TRIGGER_OR_FRAME_UNASSOCIATED",
         "outcome_record_sha256": "00000000000000000000000000000000000000000000000000000000000005a0",
         "payload_sha256": null,
-        "channel_ids": [
-          "CAMERA-IMAGE"
-        ],
+        "channel_ids": [],
         "missing_channel_ids": [
           "CAMERA-IMAGE"
         ]
@@ -734,9 +730,7 @@
         "kind": "OCCLUDED",
         "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000604",
         "payload_sha256": null,
-        "channel_ids": [
-          "CAMERA-IMAGE"
-        ],
+        "channel_ids": [],
         "missing_channel_ids": [
           "CAMERA-IMAGE"
         ]
@@ -869,9 +863,7 @@
         "kind": "MOTION_BUDGET_EXCEEDED",
         "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000668",
         "payload_sha256": null,
-        "channel_ids": [
-          "CAMERA-IMAGE"
-        ],
+        "channel_ids": [],
         "missing_channel_ids": [
           "CAMERA-IMAGE"
         ]
@@ -1004,9 +996,7 @@
         "kind": "CAPTURE_DROPPED",
         "outcome_record_sha256": "00000000000000000000000000000000000000000000000000000000000006cc",
         "payload_sha256": null,
-        "channel_ids": [
-          "CAMERA-IMAGE"
-        ],
+        "channel_ids": [],
         "missing_channel_ids": [
           "CAMERA-IMAGE"
         ]
@@ -1126,9 +1116,7 @@
         "kind": "OCCLUDED",
         "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000730",
         "payload_sha256": null,
-        "channel_ids": [
-          "CAMERA-IMAGE"
-        ],
+        "channel_ids": [],
         "missing_channel_ids": [
           "CAMERA-IMAGE"
         ]
@@ -1261,9 +1249,7 @@
         "kind": "PHOTOMETRY_OUT_OF_PROFILE",
         "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000794",
         "payload_sha256": null,
-        "channel_ids": [
-          "CAMERA-IMAGE"
-        ],
+        "channel_ids": [],
         "missing_channel_ids": [
           "CAMERA-IMAGE"
         ]
@@ -1396,9 +1382,7 @@
         "kind": "SENSOR_SATURATED",
         "outcome_record_sha256": "00000000000000000000000000000000000000000000000000000000000007f8",
         "payload_sha256": null,
-        "channel_ids": [
-          "CAMERA-IMAGE"
-        ],
+        "channel_ids": [],
         "missing_channel_ids": [
           "CAMERA-IMAGE"
         ]
@@ -1531,9 +1515,7 @@
         "kind": "FEATURE_NOT_IDENTIFIABLE",
         "outcome_record_sha256": "000000000000000000000000000000000000000000000000000000000000085c",
         "payload_sha256": null,
-        "channel_ids": [
-          "CAMERA-IMAGE"
-        ],
+        "channel_ids": [],
         "missing_channel_ids": [
           "CAMERA-IMAGE"
         ]
@@ -1799,9 +1781,7 @@
         "kind": "ACTION_NOT_REALIZED",
         "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000924",
         "payload_sha256": null,
-        "channel_ids": [
-          "CAMERA-IMAGE"
-        ],
+        "channel_ids": [],
         "missing_channel_ids": [
           "CAMERA-IMAGE"
         ]
@@ -2334,12 +2314,12 @@
         "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000ab4",
         "payload_sha256": null,
         "channel_ids": [
-          "CAMERA-IMAGE",
           "PROJECTOR-RETURN"
         ],
         "missing_channel_ids": [
           "DEPTH-MAP",
-          "TRIGGER-ACK"
+          "TRIGGER-ACK",
+          "CAMERA-IMAGE"
         ]
       },
       "owner_bindings": [
@@ -3522,9 +3502,7 @@
         "kind": "OTHER_DECLARED_FAILURE",
         "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000e38",
         "payload_sha256": null,
-        "channel_ids": [
-          "CAMERA-IMAGE"
-        ],
+        "channel_ids": [],
         "missing_channel_ids": [
           "CAMERA-IMAGE"
         ]
@@ -4056,9 +4034,7 @@
         "kind": "OCCLUDED",
         "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000fc8",
         "payload_sha256": null,
-        "channel_ids": [
-          "CAMERA-IMAGE"
-        ],
+        "channel_ids": [],
         "missing_channel_ids": [
           "CAMERA-IMAGE"
         ]
