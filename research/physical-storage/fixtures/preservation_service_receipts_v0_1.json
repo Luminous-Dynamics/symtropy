@@ -22,7 +22,8 @@
       "provenance_acceptance"
     ],
     "independent_reader_paths_required": true,
-    "required_energy_boundary": "WholeService"
+    "required_energy_boundary": "WholeService",
+    "migration_required": false
   },
   "case_count": 10,
   "cases": [
@@ -95,7 +96,10 @@
         "energy_calibration_ref": "calibration-record-2026-01",
         "energy_boundary": "WholeService",
         "energy_sample_interval_ms": 1000,
-        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
       },
       "expected_disposition": "Pass"
     },
@@ -168,7 +172,10 @@
         "energy_calibration_ref": "calibration-record-2026-01",
         "energy_boundary": "WholeService",
         "energy_sample_interval_ms": 1000,
-        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
       },
       "expected_disposition": "Incomplete"
     },
@@ -241,7 +248,10 @@
         "energy_calibration_ref": "calibration-record-2026-01",
         "energy_boundary": "WholeService",
         "energy_sample_interval_ms": 1000,
-        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
       },
       "expected_disposition": "Fail"
     },
@@ -314,7 +324,10 @@
         "energy_calibration_ref": "calibration-record-2026-01",
         "energy_boundary": "WholeService",
         "energy_sample_interval_ms": 1000,
-        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
       },
       "expected_disposition": "Fail"
     },
@@ -382,7 +395,10 @@
         "energy_calibration_ref": "calibration-record-2026-01",
         "energy_boundary": "WholeService",
         "energy_sample_interval_ms": 1000,
-        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
       },
       "expected_disposition": "Incomplete"
     },
@@ -455,7 +471,10 @@
         "energy_calibration_ref": "calibration-record-2026-01",
         "energy_boundary": "WholeService",
         "energy_sample_interval_ms": 1000,
-        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
       },
       "expected_disposition": "Fail"
     },
@@ -528,7 +547,10 @@
         "energy_calibration_ref": "calibration-record-2026-01",
         "energy_boundary": "WholeService",
         "energy_sample_interval_ms": 1000,
-        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
       },
       "expected_disposition": "Fail"
     },
@@ -601,7 +623,10 @@
         "energy_calibration_ref": "calibration-record-2026-01",
         "energy_boundary": "WholeService",
         "energy_sample_interval_ms": 1000,
-        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
       },
       "expected_disposition": "Incomplete"
     },
@@ -674,7 +699,10 @@
         "energy_calibration_ref": null,
         "energy_boundary": null,
         "energy_sample_interval_ms": null,
-        "energy_evidence_sha256": null
+        "energy_evidence_sha256": null,
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
       },
       "expected_disposition": "Incomplete"
     },
@@ -708,7 +736,10 @@
         "energy_calibration_ref": null,
         "energy_boundary": null,
         "energy_sample_interval_ms": null,
-        "energy_evidence_sha256": null
+        "energy_evidence_sha256": null,
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
       },
       "expected_disposition": "NotEvaluated"
     }
