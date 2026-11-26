@@ -31,7 +31,7 @@ Example:
 cargo run --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml --locked --bin aerb_generate -- 42 128 /tmp/aerb-candidate /tmp/aerb-evaluator
 ```
 
-The candidate directory receives only episode and submission files plus a candidate manifest. The evaluator directory receives world packs and a separate truth manifest. The generator rejects output directories that are equal or nested. Do not mount the evaluator directory into the candidate process.
+The candidate directory receives only episode and submission files plus a candidate manifest. The seed and hidden truth mapping are not written to candidate-visible artifacts; they appear only in the evaluator-side manifest. The evaluator directory receives world packs and the separate truth manifest. The generator rejects output directories that are equal or nested. Do not mount the evaluator directory into the candidate process.
 
 
 ## Run
