@@ -474,27 +474,27 @@ fn required_wpt_flow(
 /// The shared kernel proves only the supplied single-commodity directed graph.
 pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
     let scenario = parse_scenario(value)?;
-    let mut nodes = vec![FlowNode::new("source")];
+    let mut nodes = vec![FlowNode::new("00-source")];
     let mut segment_node_ids = BTreeMap::new();
     let mut receiver_slot_node_ids = BTreeMap::new();
     let mut receiver_demand_node_ids = BTreeMap::new();
 
     for (index, key) in scenario.segment_slots.keys().enumerate() {
-        let node_id = format!("segment-slot-{index:06}");
+        let node_id = format!("10-segment-slot-{index:06}");
         nodes.push(FlowNode::new(node_id.clone()));
         segment_node_ids.insert(key.clone(), node_id);
     }
     for (index, key) in scenario.receiver_slots.keys().enumerate() {
-        let node_id = format!("receiver-slot-{index:06}");
+        let node_id = format!("20-receiver-slot-{index:06}");
         nodes.push(FlowNode::new(node_id.clone()));
         receiver_slot_node_ids.insert(key.clone(), node_id);
     }
     for (index, receiver_id) in scenario.receivers.keys().enumerate() {
-        let node_id = format!("receiver-demand-{index:06}");
+        let node_id = format!("30-receiver-demand-{index:06}");
         nodes.push(FlowNode::new(node_id.clone()));
         receiver_demand_node_ids.insert(receiver_id.clone(), node_id);
     }
-    nodes.push(FlowNode::new("sink"));
+    nodes.push(FlowNode::new("99-sink"));
 
     let mut edges = Vec::new();
     let mut edge_metadata = BTreeMap::new();
@@ -504,7 +504,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
     let mut demand_edge_ids = BTreeMap::new();
 
     for (index, (key, slot)) in scenario.segment_slots.iter().enumerate() {
-        let edge_id = format!("segment-supply-{index:06}");
+        let edge_id = format!("10-segment-supply-{index:06}");
         let node_id = segment_node_ids
             .get(key)
             .ok_or_else(|| "missing mapped WPT segment node".to_string())?
@@ -513,7 +513,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
             &mut edges,
             &mut edge_metadata,
             edge_id.clone(),
-            "source".to_string(),
+            "00-source".to_string(),
             node_id,
             slot.available_deliverable_energy_mwh,
             "segment_supply",
@@ -533,7 +533,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
             .get(&receiver_key)
             .ok_or_else(|| format!("missing mapped receiver node for {}", link.link_id))?
             .clone();
-        let edge_id = format!("transfer-{}", link.link_id);
+        let edge_id = format!("20-transfer-{}", link.link_id);
         push_wpt_edge(
             &mut edges,
             &mut edge_metadata,
@@ -548,7 +548,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
     }
 
     for (index, (key, slot)) in scenario.receiver_slots.iter().enumerate() {
-        let edge_id = format!("receiver-acceptance-{index:06}");
+        let edge_id = format!("30-receiver-acceptance-{index:06}");
         let from = receiver_slot_node_ids
             .get(key)
             .ok_or_else(|| "missing mapped WPT receiver-slot node".to_string())?
@@ -571,7 +571,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
     }
 
     for (index, (receiver_id, receiver)) in scenario.receivers.iter().enumerate() {
-        let edge_id = format!("receiver-obligation-{index:06}");
+        let edge_id = format!("40-receiver-obligation-{index:06}");
         let from = receiver_demand_node_ids
             .get(receiver_id)
             .ok_or_else(|| format!("missing mapped receiver demand node for {receiver_id}"))?
@@ -581,7 +581,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
             &mut edge_metadata,
             edge_id.clone(),
             from,
-            "sink".to_string(),
+            "99-sink".to_string(),
             receiver.minimum_service_mwh,
             "receiver_obligation",
             receiver_id.clone(),
@@ -592,8 +592,8 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
     let graph = FlowGraph {
         nodes,
         edges,
-        source: "source".to_string(),
-        sink: "sink".to_string(),
+        source: "00-source".to_string(),
+        sink: "99-sink".to_string(),
     };
     let flow_result = graph.solve().map_err(|error| error.to_string())?;
     let edge_flows = flow_result
@@ -674,6 +674,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
             })
         })
         .collect::<Result<Vec<_>, String>>()?;
+    minimum_cut_edges.sort_by_key(|edge| (edge.kind.clone(), edge.label.clone()));
 
     let feasible = flow_result.max_flow == scenario.total_minimum_service_mwh;
     let total_shortfall_mwh = scenario.total_minimum_service_mwh - flow_result.max_flow;
