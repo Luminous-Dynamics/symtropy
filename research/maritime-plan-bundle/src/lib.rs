@@ -95,6 +95,7 @@ pub trait CommitmentProjectionProvider {
 pub enum RequirementDisposition {
     Satisfied,
     MissingRequirement,
+    OrphanRequirement,
     DuplicateRequirement,
     CommitmentMissing,
     CommitmentUnavailable,
@@ -110,6 +111,7 @@ impl RequirementDisposition {
         match self {
             Self::Satisfied => "SATISFIED",
             Self::MissingRequirement => "MISSING_REQUIREMENT",
+            Self::OrphanRequirement => "ORPHAN_REQUIREMENT",
             Self::DuplicateRequirement => "DUPLICATE_REQUIREMENT",
             Self::CommitmentMissing => "COMMITMENT_MISSING",
             Self::CommitmentUnavailable => "COMMITMENT_UNAVAILABLE",
@@ -133,7 +135,8 @@ pub struct RequirementResult {
 pub enum BundleDisposition {
     Complete,
     Incomplete,
-    InvalidPhysicalReceipt,
+    PhysicalPlanInfeasible,
+    PhysicalPlanUnknown,
     InvalidPlanReceipt,
 }
 
@@ -142,7 +145,8 @@ impl BundleDisposition {
         match self {
             Self::Complete => "COMPLETE",
             Self::Incomplete => "INCOMPLETE",
-            Self::InvalidPhysicalReceipt => "INVALID_PHYSICAL_RECEIPT",
+            Self::PhysicalPlanInfeasible => "PHYSICAL_PLAN_INFEASIBLE",
+            Self::PhysicalPlanUnknown => "PHYSICAL_PLAN_UNKNOWN",
             Self::InvalidPlanReceipt => "INVALID_PLAN_RECEIPT",
         }
     }
@@ -182,7 +186,7 @@ impl std::fmt::Display for BundleError {
 impl std::error::Error for BundleError {}
 
 fn validate_plan_receipt(receipt: &ResourcePlanReceipt) -> Result<(), BundleError> {
-    if receipt.schema_version.is_empty()
+    if receipt.schema_version != "maritime-resource-plan/0.1"
         || receipt.plan_id.is_empty()
         || receipt.scenario_digest.is_empty()
         || receipt.plan_digest.is_empty()
@@ -377,11 +381,16 @@ pub fn evaluate_bundle<P: CommitmentProjectionProvider>(
 
     let mut results = Vec::new();
     if receipt.physical_disposition != PhysicalDisposition::Feasible {
+        let disposition = match receipt.physical_disposition {
+            PhysicalDisposition::Feasible => unreachable!(),
+            PhysicalDisposition::Infeasible => BundleDisposition::PhysicalPlanInfeasible,
+            PhysicalDisposition::Unknown => BundleDisposition::PhysicalPlanUnknown,
+        };
         return Ok(BundleReport {
             plan_id: receipt.plan_id.clone(),
             plan_digest: receipt.plan_digest.clone(),
             knowledge_cutoff,
-            disposition: BundleDisposition::InvalidPhysicalReceipt,
+            disposition,
             results,
         });
     }
@@ -422,13 +431,18 @@ pub fn evaluate_bundle<P: CommitmentProjectionProvider>(
         .iter()
         .map(|reservation| reservation.reservation_id.as_str())
         .collect();
-    let orphan_requirements = grouped
+    for reservation_id in grouped
         .keys()
         .filter(|reservation_id| !reservation_ids.contains(**reservation_id))
-        .count();
+    {
+        results.push(RequirementResult {
+            reservation_id: (*reservation_id).to_owned(),
+            commitment_id: None,
+            disposition: RequirementDisposition::OrphanRequirement,
+        });
+    }
 
-    let all_satisfied = orphan_requirements == 0
-        && results
+    let all_satisfied = results
             .iter()
             .all(|result| result.disposition == RequirementDisposition::Satisfied);
 
@@ -742,7 +756,7 @@ mod tests {
         let mut receipt = plan();
         receipt.physical_disposition = PhysicalDisposition::Unknown;
         let report = evaluate_bundle(&receipt, &requirements(), 120, &provider()).unwrap();
-        assert_eq!(report.disposition, BundleDisposition::InvalidPhysicalReceipt);
+        assert_eq!(report.disposition, BundleDisposition::PhysicalPlanUnknown);
         assert!(report.results.is_empty());
     }
 
