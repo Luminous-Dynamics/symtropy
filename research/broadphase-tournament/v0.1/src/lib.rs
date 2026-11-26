@@ -21,6 +21,7 @@ pub enum SceneFamily {
     HighChurn,
     Anisotropic,
     TeleportChurn,
+    SleepingWakeups,
 }
 
 impl SceneFamily {
@@ -31,6 +32,7 @@ impl SceneFamily {
         Self::HighChurn,
         Self::Anisotropic,
         Self::TeleportChurn,
+        Self::SleepingWakeups,
     ];
 
     #[must_use]
@@ -42,6 +44,7 @@ impl SceneFamily {
             Self::HighChurn => "high_churn",
             Self::Anisotropic => "anisotropic",
             Self::TeleportChurn => "teleport_churn",
+            Self::SleepingWakeups => "sleeping_wakeups",
         }
     }
 }
@@ -68,6 +71,7 @@ pub enum BackendKind {
     TreeSelfPairUnbalanced,
     TreePerLeafBalanced,
     TreeSelfPairBalanced,
+    PairDeltaCache,
 }
 
 impl BackendKind {
@@ -78,6 +82,7 @@ impl BackendKind {
         Self::TreeSelfPairUnbalanced,
         Self::TreePerLeafBalanced,
         Self::TreeSelfPairBalanced,
+        Self::PairDeltaCache,
     ];
 
     #[must_use]
@@ -89,6 +94,7 @@ impl BackendKind {
             Self::TreeSelfPairUnbalanced => "tree_self_pair_unbalanced",
             Self::TreePerLeafBalanced => "tree_per_leaf_balanced",
             Self::TreeSelfPairBalanced => "tree_self_pair_balanced",
+            Self::PairDeltaCache => "pair_delta_cache",
         }
     }
 }
@@ -216,6 +222,14 @@ pub fn generate_scene<const D: usize>(
                 SceneFamily::HighChurn => next_between(&mut state, -30.0, 30.0),
                 SceneFamily::Anisotropic => next_between(&mut state, -24.0, 24.0),
                 SceneFamily::TeleportChurn => next_between(&mut state, -30.0, 30.0),
+                SceneFamily::SleepingWakeups => {
+                    let mut divisor = 1_usize;
+                    for _ in 0..axis {
+                        divisor = divisor.saturating_mul(4);
+                    }
+                    ((slot / divisor) % 4) as f64 * 0.85
+                        + next_between(&mut state, -0.01, 0.01)
+                },
             };
 
             extent[axis] = match family {
@@ -233,6 +247,7 @@ pub fn generate_scene<const D: usize>(
                     }
                 }
                 SceneFamily::TeleportChurn => next_between(&mut state, 0.25, 0.65),
+                SceneFamily::SleepingWakeups => next_between(&mut state, 0.45, 0.55),
             };
 
             velocity[axis] = match family {
@@ -254,6 +269,13 @@ pub fn generate_scene<const D: usize>(
                     }
                 }
                 SceneFamily::TeleportChurn => next_between(&mut state, -0.02, 0.02),
+                SceneFamily::SleepingWakeups => {
+                    if slot % 64 == 0 {
+                        0.025 * (axis as f64 + 1.0)
+                    } else {
+                        0.0
+                    }
+                },
             };
         }
 
