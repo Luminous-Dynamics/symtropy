@@ -15,6 +15,7 @@ pub mod clock_estimators;
 pub mod decision_value;
 pub mod dynamics;
 pub mod matching;
+pub mod joint_clock;
 pub mod multimodal;
 pub mod oracle;
 pub mod quotient;
