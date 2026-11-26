@@ -87,9 +87,9 @@ function evalCase(c){
  for(const w of c.worlds)for(const r of reqs)if(r.tag===null||w.profile_tags.includes(r.tag))expectedPairs.add(pairId(w.world_id,r.id));
  const applicability=new Map();let unwitnessed=0;
  for(const row of c.applicability){
-  if(!worlds.has(row.world_id)||!validId(row.model_id))return invalid(c,"unknown or malformed applicability identity");
+  if(!worlds.has(row.world_id)||!validId(row.model_id))return invalid(c,"unknown or duplicate applicability identity");
   const key=row.world_id+"\u0000"+row.model_id;
-  if(applicability.has(key))return invalid(c,"duplicate applicability identity");
+  if(applicability.has(key))return invalid(c,"unknown or duplicate applicability identity");
   applicability.set(key,row);
   if(!reqById.has(row.model_id))findings.push(mkFinding("UNEXPECTED_APPLICABILITY",row.model_id,pairId(row.world_id,row.model_id),"applicability references an unknown model"));
  }
@@ -98,7 +98,7 @@ function evalCase(c){
   const key=w.world_id+"\u0000"+req.id,pair=pairId(w.world_id,req.id);
   const applies=req.tag===null||w.profile_tags.includes(req.tag),row=applicability.get(key);
   if(!row){
-   if(applies)findings.push(mkFinding("MISSING_WORLD_MODEL_PAIR",req.id,pair,"required applicability row is absent from manifest"));
+   if(applies)findings.push(mkFinding("MISSING_WORLD_MODEL_PAIR",req.id,pair,"required applicability row is absent from the manifest"));
    else {unwitnessed++;findings.push(mkFinding("UNWITNESSED_MODEL_EXCLUSION",req.id,pair,"non-applicable model has no explicit witnessed exclusion row"));}
    continue;
   }
@@ -112,7 +112,7 @@ function evalCase(c){
  const declaredPairs=new Set(c.applicability.filter(a=>a.declared_applicable).map(a=>pairId(a.world_id,a.model_id)));
  const actualPairs=new Set();
  for(const p of c.joint_pairs){
-  if(!validId(p.scenario_id)||!worlds.has(p.world_id)||!validId(p.model_id))return invalid(c,"malformed joint scenario pair");
+  if(!validId(p.scenario_id)||!worlds.has(p.world_id)||!validId(p.model_id))return invalid(c,"malformed or duplicate joint scenario pair");
   const key=pairId(p.world_id,p.model_id);
   if(actualPairs.has(key))return invalid(c,"malformed or duplicate joint scenario pair");
   actualPairs.add(key);
