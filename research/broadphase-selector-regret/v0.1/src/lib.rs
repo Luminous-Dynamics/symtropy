@@ -926,6 +926,8 @@ pub fn evaluate_campaign(inputs: &[SequenceInput]) -> Result<CampaignSummary, Se
             .ok_or(SelectorError::CostOverflow)
     })?;
 
+    let sequence_count = sequences.len() as u64;
+
     Ok(CampaignSummary {
         sequences,
         families,
@@ -935,9 +937,9 @@ pub fn evaluate_campaign(inputs: &[SequenceInput]) -> Result<CampaignSummary, Se
         fixed_baseline_qualified_sequence_count,
         fixed_baseline_unavailable_sequence_count,
         regret_available_sequence_count,
-        regret_unavailable_sequence_count: sequences.len() as u64 - regret_available_sequence_count,
+        regret_unavailable_sequence_count: sequence_count - regret_available_sequence_count,
         overhead_ratio_available_sequence_count,
-        overhead_ratio_unavailable_sequence_count: sequences.len() as u64
+        overhead_ratio_unavailable_sequence_count: sequence_count
             - overhead_ratio_available_sequence_count,
         median_selector_and_switch_overhead_basis_points: nearest_rank_u128(&mut overheads, 50),
         p95_selector_and_switch_overhead_basis_points: nearest_rank_u128(&mut overheads, 95),
