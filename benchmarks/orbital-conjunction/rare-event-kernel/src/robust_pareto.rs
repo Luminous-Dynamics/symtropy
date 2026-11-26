@@ -27,6 +27,9 @@ pub const MAX_PARETO_OBJECTIVES: usize = 32;
 /// Maximum complete portfolio × scenario assessment rows in one campaign.
 pub const MAX_PARETO_ASSESSMENT_ROWS: usize = 65_536;
 
+/// Maximum directed dominance comparisons across all scenario and robust frontiers.
+pub const MAX_PARETO_DOMINANCE_CHECKS: usize = 4_000_000;
+
 /// Direction of preference for one frozen objective.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ObjectiveDirection {
@@ -164,6 +167,8 @@ pub enum RobustParetoError {
     EmptyUniverse,
     /// A frozen universe exceeds its configured finite bound.
     UniverseTooLarge,
+    /// Exact pairwise dominance work exceeds the configured comparison budget.
+    DominanceComparisonBudgetExceeded,
     /// A required stable identity is zero.
     ZeroIdentity,
     /// A frozen identity is duplicated.
@@ -183,6 +188,9 @@ impl core::fmt::Display for RobustParetoError {
         let message = match self {
             Self::EmptyUniverse => "portfolio, scenario and objective universes must be nonempty",
             Self::UniverseTooLarge => "finite Pareto campaign exceeds a configured universe bound",
+            Self::DominanceComparisonBudgetExceeded => {
+                "exact Pareto dominance comparisons exceed the configured work budget"
+            }
             Self::ZeroIdentity => {
                 "a frozen portfolio, scenario, objective or unit identity is zero"
             }
@@ -266,6 +274,17 @@ pub fn evaluate_robust_pareto(
         .len()
         .checked_mul(config.scenario_ids.len())
         .ok_or(RobustParetoError::UniverseTooLarge)?;
+    let directed_comparisons_per_frontier = config
+        .portfolio_ids
+        .len()
+        .checked_mul(config.portfolio_ids.len().saturating_sub(1))
+        .ok_or(RobustParetoError::UniverseTooLarge)?;
+    let total_dominance_checks = directed_comparisons_per_frontier
+        .checked_mul(config.scenario_ids.len().saturating_add(1))
+        .ok_or(RobustParetoError::UniverseTooLarge)?;
+    if total_dominance_checks > MAX_PARETO_DOMINANCE_CHECKS {
+        return Err(RobustParetoError::DominanceComparisonBudgetExceeded);
+    }
     if expected_rows > MAX_PARETO_ASSESSMENT_ROWS {
         return Err(RobustParetoError::UniverseTooLarge);
     }
@@ -835,6 +854,20 @@ mod tests {
         assert_eq!(
             evaluate_robust_pareto(wrong_objectives),
             Err(RobustParetoError::InvalidObjectiveProduct)
+        );
+    }
+
+    #[test]
+    fn exact_dominance_work_budget_is_checked_before_assessment_processing() {
+        let config = RobustParetoConfig {
+            portfolio_ids: (1_u16..=512).map(|id| [id as u8; 32]).collect(),
+            scenario_ids: (1_u16..=17).map(|id| [id as u8; 32]).collect(),
+            objectives: vec![objective(1, 11, ObjectiveDirection::Minimize)],
+            assessments: Vec::new(),
+        };
+        assert_eq!(
+            evaluate_robust_pareto(config),
+            Err(RobustParetoError::DominanceComparisonBudgetExceeded)
         );
     }
 
