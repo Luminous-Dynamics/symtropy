@@ -431,4 +431,20 @@ python3 research/maritime-decision-time-replay/scripts/clock_reference.py --rece
 
 The supplied bounds are not proof that a source clock is correctly synchronized. The evidence envelope must preserve clock source, timezone/offset provenance, timestamp precision, calibration and derivation of earliest/latest bounds. This module assumes the intervals have already been normalized onto one declared time scale; it does not itself authenticate clocks or infer timezones.
 
-Exact-head qualification of this v0.3 increment is pending; the earlier v0.2 qualification must not be treated as a pass for the new clock code.
+The interval-clock v0.3 increment subsequently passed exact-head qualification; see the exact-head result below.
+
+
+## Exact-head qualification record — v0.3 interval clocks
+
+The dedicated `mdtr-exact-head` workflow passed on commit `029686724a07870d50051e07211735a50afa1472`:
+- Formatting: pass
+- Rust tests: 34 passed, 0 failed (12 base + 10 tri-temporal + 12 interval-clock)
+- Strict Clippy: pass
+- Decision receipt and independent reference: 14/14
+- Tri-temporal receipt and independent reference: 13/13
+- Interval-clock receipt and independent reference: 12/12
+- All three deterministic receipts uploaded
+
+The general repository CI matrix was still in progress at the time of this inspection; it is not represented as part of the dedicated research workflow pass.
+
+The clock extension establishes only conservative ordering relative to the supplied intervals. It does not validate source-clock authenticity, timezone provenance, calibration or synchronization. The v0.3 claim is bounded to the synthetic interval corpus and implementation contract.
