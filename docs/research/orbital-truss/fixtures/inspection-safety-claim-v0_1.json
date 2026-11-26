@@ -2732,7 +2732,7 @@
           },
           "validity": {
             "time_basis_id": "TAI-NS-EPOCH-2026A",
-            "start_tai_ns": 2000,
+            "start_tai_ns": 1900,
             "end_tai_ns": 2000
           },
           "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000000c",
