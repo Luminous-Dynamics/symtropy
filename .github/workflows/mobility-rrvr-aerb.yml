@@ -40,6 +40,9 @@ jobs:
             . as $episode
             | $episode.benchmark == "AERB"
             and $episode.decision_cut_sequence == $episode.ledger_frontier_sequence
+            and ($episode.command_context.execution_scope_id | length > 0)
+            and ($episode.command_context.system_boundary_manifest_sha256 | test("^[a-f0-9]{64}$"))
+            and ($episode.command_context.effect_producing_inventory_profile_sha256 | test("^[a-f0-9]{64}$"))
             and all($episode.observations[]; .ingest_sequence <= $episode.decision_cut_sequence)
             and ([$episode.observations[].observation_id] | length == (unique | length))
             and ([$episode.permitted_probes[].probe_id] | length == (unique | length))
