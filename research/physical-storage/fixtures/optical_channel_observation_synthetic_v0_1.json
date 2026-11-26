@@ -1,0 +1,164 @@
+{
+  "schema_version": "physical-storage-optical-channel-observations-v0.1",
+  "dataset_id": "SYNTHETIC-OPTICAL-CHANNEL-DEMO-001",
+  "evidence_class": "synthetic_fixture",
+  "partition": {
+    "role": "held_out",
+    "grouping": "specimen",
+    "group_id": "synthetic-specimen-a",
+    "split_manifest_ref": null
+  },
+  "specimen": {
+    "specimen_id": "synthetic-specimen-a",
+    "material_id": "synthetic-borosilicate-placeholder",
+    "material_name": "Synthetic borosilicate-like fixture (not a measured specimen)",
+    "supplier": null,
+    "grade": null,
+    "batch_id": null,
+    "dimensions_mm": {
+      "x": 1,
+      "y": 1,
+      "z": 0.2
+    }
+  },
+  "write_process": {
+    "process_run_id": null,
+    "writer_id": null,
+    "wavelength_nm": null,
+    "pulse_duration_fs": null,
+    "pulse_energy_nj": null,
+    "repetition_rate_hz": null,
+    "scan_speed_um_s": null,
+    "voxel_pitch_um": {
+      "x": null,
+      "y": null
+    },
+    "layer_spacing_um": null,
+    "process_record_ref": null
+  },
+  "reader": {
+    "reader_id": null,
+    "instrument_model": null,
+    "detector_configuration": "synthetic feature generator",
+    "illumination_wavelength_nm": null,
+    "objective_na": null,
+    "calibration_status": "synthetic_only",
+    "calibration_id": null,
+    "calibration_record_ref": null,
+    "calibration_uncertainty": null
+  },
+  "coordinate_frame": {
+    "frame_id": "synthetic-specimen-a-xyz",
+    "length_unit": "um",
+    "axis_order": "xyz",
+    "registration_id": null,
+    "registration_uncertainty_um": null,
+    "transform_4x4": [
+      [
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        1
+      ]
+    ]
+  },
+  "symbol_alphabet": [
+    "0",
+    "1",
+    "2",
+    "3"
+  ],
+  "observations": [
+    {
+      "observation_id": "synthetic-voxel-0001",
+      "layer_index": 0,
+      "coordinate_um": {
+        "x": 100,
+        "y": 150,
+        "z": 10
+      },
+      "read_status": "readable",
+      "raw_signal": {
+        "channel_id": "synthetic-phase-features",
+        "values": [
+          0.81,
+          0.14,
+          0.04,
+          0.01
+        ],
+        "units": "illustrative_relative_feature"
+      },
+      "hard_symbol": "0",
+      "soft_information": {
+        "status": "illustrative_only",
+        "method": "synthetic_normalized_feature_vector_not_a_calibrated_probability_model",
+        "symbol_probabilities": [
+          {
+            "symbol": "0",
+            "probability": 0.81
+          },
+          {
+            "symbol": "1",
+            "probability": 0.14
+          },
+          {
+            "symbol": "2",
+            "probability": 0.04
+          },
+          {
+            "symbol": "3",
+            "probability": 0.01
+          }
+        ],
+        "calibration_ref": null
+      }
+    },
+    {
+      "observation_id": "synthetic-voxel-0002",
+      "layer_index": 0,
+      "coordinate_um": {
+        "x": 101,
+        "y": 150,
+        "z": 10
+      },
+      "read_status": "missing",
+      "raw_signal": null,
+      "hard_symbol": null,
+      "soft_information": {
+        "status": "unavailable",
+        "method": null,
+        "symbol_probabilities": [],
+        "calibration_ref": null
+      }
+    }
+  ],
+  "evaluation_labels": {
+    "visibility": "synthetic_inline_only",
+    "label_corpus_ref": null
+  },
+  "provenance": {
+    "measurement_timestamp": null,
+    "source_reference": null,
+    "raw_data_bundle_digest_sha256": null,
+    "instrument_log_ref": null,
+    "notes": "Synthetic schema fixture only. No physical specimen, writer, reader, calibration or measured symbol probability is represented."
+  }
+}
