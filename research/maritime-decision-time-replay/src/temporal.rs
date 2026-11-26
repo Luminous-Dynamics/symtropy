@@ -189,11 +189,11 @@ pub fn project_temporal_revision(
 /// published or retrieved later are excluded, even if they are known to the
 /// auditor today. Conflicting payloads under one visible (event, revision)
 /// identity fail closed. This policy projection never reads adjudication state.
-pub fn select_decision_revisions(
-    records: &[TemporalEvidenceRevision],
+pub fn select_decision_revisions<'a>(
+    records: &'a [TemporalEvidenceRevision],
     expected_subject_id: &str,
     cutoffs: TemporalCutoffs,
-) -> Result<Vec<&TemporalEvidenceRevision>, TemporalError> {
+) -> Result<Vec<&'a TemporalEvidenceRevision>, TemporalError> {
     let mut selected: BTreeMap<(&str, &str), &TemporalEvidenceRevision> = BTreeMap::new();
     let mut visible_identities: BTreeMap<((&str, &str), u32), &str> = BTreeMap::new();
 
