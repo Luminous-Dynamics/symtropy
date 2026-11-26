@@ -84,7 +84,11 @@ fn generate_cut(event_count: usize) -> EvidenceCut {
         }
     }
 
-    EvidenceCut { watermarks, events }
+    EvidenceCut {
+        cut_id: format!("synthetic-vector-cut-{event_count}"),
+        watermarks,
+        events,
+    }
 }
 
 fn percentile(values: &[Duration], percentile: usize) -> Duration {
