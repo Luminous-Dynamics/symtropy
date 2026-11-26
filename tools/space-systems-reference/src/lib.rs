@@ -81,10 +81,8 @@ pub fn evaluate_sunshade(input: SunshadeInput) -> Result<SunshadeEstimate, &'sta
     let equivalent_aperture_area_m2 = input.target_flux_reduction_fraction
         * earth_projected_area_m2
         / input.aperture_effectiveness;
-    let installed_mass_kg =
-        equivalent_aperture_area_m2 * input.installed_areal_density_kg_m2;
-    let locally_sourced_mass_kg =
-        installed_mass_kg * input.locally_sourced_material_fraction;
+    let installed_mass_kg = equivalent_aperture_area_m2 * input.installed_areal_density_kg_m2;
+    let locally_sourced_mass_kg = installed_mass_kg * input.locally_sourced_material_fraction;
     let earth_supplied_mass_kg = installed_mass_kg - locally_sourced_mass_kg;
     let intercepted_power_reduction_w = input.solar_irradiance_w_m2
         * input.target_flux_reduction_fraction
@@ -221,18 +219,15 @@ pub fn evaluate_qdrive(input: QDriveInput) -> Result<QDriveEstimate, &'static st
     let net_axial_force_n = ideal_thrust_n - harvesting_drag_n - parasitic_drag_n;
     let net_acceleration_m_s2 = net_axial_force_n / input.vehicle_mass_kg;
     let break_even_exhaust_velocity_m_s = if harvesting_drag_n > 0.0 {
-        2.0
-            * input.power_conversion_efficiency
+        2.0 * input.power_conversion_efficiency
             * input.thruster_efficiency
             * input.relative_speed_m_s
             / (1.0 + input.parasitic_drag_ratio)
     } else {
         0.0
     };
-    let jet_power_identity_residual_w = 0.5
-        * propellant_mass_flow_kg_s
-        * input.exhaust_velocity_m_s.powi(2)
-        - jet_power_w;
+    let jet_power_identity_residual_w =
+        0.5 * propellant_mass_flow_kg_s * input.exhaust_velocity_m_s.powi(2) - jet_power_w;
 
     let outputs = [
         beta,
@@ -329,8 +324,16 @@ mod tests {
     #[test]
     fn shade_fixture_matches_independent_geometric_oracle() {
         let result = evaluate_sunshade(illustrative_sunshade_case()).unwrap();
-        close(result.earth_projected_area_m2, 1.275_161_179_774_470_6e14, 1.0);
-        close(result.equivalent_aperture_area_m2, 1.416_845_755_304_967_5e12, 1.0);
+        close(
+            result.earth_projected_area_m2,
+            1.275_161_179_774_470_6e14,
+            1.0,
+        );
+        close(
+            result.equivalent_aperture_area_m2,
+            1.416_845_755_304_967_5e12,
+            1.0,
+        );
         close(result.installed_mass_kg, 1.416_845_755_304_967_5e10, 0.01);
         close(
             result.intercepted_power_reduction_w,
@@ -353,8 +356,16 @@ mod tests {
             ..input
         })
         .unwrap();
-        close(doubled.equivalent_aperture_area_m2, 2.0 * base.equivalent_aperture_area_m2, 1e-3);
-        close(doubled.installed_mass_kg, 2.0 * base.installed_mass_kg, 1e-2);
+        close(
+            doubled.equivalent_aperture_area_m2,
+            2.0 * base.equivalent_aperture_area_m2,
+            1e-3,
+        );
+        close(
+            doubled.installed_mass_kg,
+            2.0 * base.installed_mass_kg,
+            1e-2,
+        );
     }
 
     #[test]
@@ -376,17 +387,27 @@ mod tests {
     #[test]
     fn shade_rejects_invalid_optics_mass_and_non_finite_values() {
         let input = illustrative_sunshade_case();
-        assert!(evaluate_sunshade(SunshadeInput { aperture_effectiveness: 0.0, ..input }).is_err());
-        assert!(evaluate_sunshade(SunshadeInput {
-            locally_sourced_material_fraction: 1.1,
-            ..input
-        })
-        .is_err());
-        assert!(evaluate_sunshade(SunshadeInput {
-            installed_areal_density_kg_m2: f64::NAN,
-            ..input
-        })
-        .is_err());
+        assert!(
+            evaluate_sunshade(SunshadeInput {
+                aperture_effectiveness: 0.0,
+                ..input
+            })
+            .is_err()
+        );
+        assert!(
+            evaluate_sunshade(SunshadeInput {
+                locally_sourced_material_fraction: 1.1,
+                ..input
+            })
+            .is_err()
+        );
+        assert!(
+            evaluate_sunshade(SunshadeInput {
+                installed_areal_density_kg_m2: f64::NAN,
+                ..input
+            })
+            .is_err()
+        );
     }
 
     #[test]
@@ -394,16 +415,36 @@ mod tests {
         let result = evaluate_qdrive(illustrative_qdrive_case()).unwrap();
         close(result.dynamic_pressure_pa, 1.123_443_973_421_022e-6, 1e-18);
         close(result.harvesting_drag_n, 112.344_397_342_102_2, 1e-9);
-        close(result.harvested_mechanical_power_w, 1.684_000_151_085_874_3e9, 1e-3);
+        close(
+            result.harvested_mechanical_power_w,
+            1.684_000_151_085_874_3e9,
+            1e-3,
+        );
         close(result.bus_power_w, 1.347_200_120_868_699_6e9, 1e-3);
-        close(result.power_conversion_loss_w, 3.368_000_302_171_747_7e8, 1e-3);
+        close(
+            result.power_conversion_loss_w,
+            3.368_000_302_171_747_7e8,
+            1e-3,
+        );
         close(result.jet_power_w, 8.083_200_725_212_197e8, 1e-3);
-        close(result.thruster_conversion_loss_w, 5.388_800_483_474_798e8, 1e-3);
+        close(
+            result.thruster_conversion_loss_w,
+            5.388_800_483_474_798e8,
+            1e-3,
+        );
         close(result.energy_chain_residual_w, 0.0, 1e-6);
         close(result.ideal_thrust_n, 125.407_699_358_625_73, 1e-9);
-        close(result.propellant_mass_flow_kg_s, 9.728_257_155_219_04e-6, 1e-14);
+        close(
+            result.propellant_mass_flow_kg_s,
+            9.728_257_155_219_04e-6,
+            1e-14,
+        );
         close(result.net_axial_force_n, 1.828_862_282_313_309_6, 1e-9);
-        close(result.net_acceleration_m_s2, 1.828_862_282_313_309_6e-6, 1e-15);
+        close(
+            result.net_acceleration_m_s2,
+            1.828_862_282_313_309_6e-6,
+            1e-15,
+        );
         close(result.jet_power_identity_residual_w, 0.0, 1e-6);
     }
 
@@ -411,8 +452,14 @@ mod tests {
     fn qdrive_zero_density_and_zero_speed_have_no_harvested_power() {
         let input = illustrative_qdrive_case();
         for changed in [
-            QDriveInput { plasma_mass_density_kg_m3: 0.0, ..input },
-            QDriveInput { relative_speed_m_s: 0.0, ..input },
+            QDriveInput {
+                plasma_mass_density_kg_m3: 0.0,
+                ..input
+            },
+            QDriveInput {
+                relative_speed_m_s: 0.0,
+                ..input
+            },
         ] {
             let result = evaluate_qdrive(changed).unwrap();
             assert_eq!(result.harvested_mechanical_power_w, 0.0);
@@ -457,29 +504,55 @@ mod tests {
             ..input
         })
         .unwrap();
-        close(doubled.harvested_mechanical_power_w, 2.0 * base.harvested_mechanical_power_w, 1e-3);
-        close(doubled.harvesting_drag_n, 2.0 * base.harvesting_drag_n, 1e-9);
+        close(
+            doubled.harvested_mechanical_power_w,
+            2.0 * base.harvested_mechanical_power_w,
+            1e-3,
+        );
+        close(
+            doubled.harvesting_drag_n,
+            2.0 * base.harvesting_drag_n,
+            1e-9,
+        );
     }
 
     #[test]
     fn qdrive_rejects_relativistic_extrapolation_and_invalid_parameters() {
         let input = illustrative_qdrive_case();
-        assert!(evaluate_qdrive(QDriveInput {
-            relative_speed_m_s: 0.051 * SPEED_OF_LIGHT_M_S,
-            ..input
-        })
-        .is_err());
-        assert!(evaluate_qdrive(QDriveInput {
-            exhaust_velocity_m_s: 0.051 * SPEED_OF_LIGHT_M_S,
-            ..input
-        })
-        .is_err());
-        assert!(evaluate_qdrive(QDriveInput {
-            power_conversion_efficiency: 1.01,
-            ..input
-        })
-        .is_err());
-        assert!(evaluate_qdrive(QDriveInput { plasma_mass_density_kg_m3: -1.0, ..input }).is_err());
-        assert!(evaluate_qdrive(QDriveInput { exhaust_velocity_m_s: 0.0, ..input }).is_err());
+        assert!(
+            evaluate_qdrive(QDriveInput {
+                relative_speed_m_s: 0.051 * SPEED_OF_LIGHT_M_S,
+                ..input
+            })
+            .is_err()
+        );
+        assert!(
+            evaluate_qdrive(QDriveInput {
+                exhaust_velocity_m_s: 0.051 * SPEED_OF_LIGHT_M_S,
+                ..input
+            })
+            .is_err()
+        );
+        assert!(
+            evaluate_qdrive(QDriveInput {
+                power_conversion_efficiency: 1.01,
+                ..input
+            })
+            .is_err()
+        );
+        assert!(
+            evaluate_qdrive(QDriveInput {
+                plasma_mass_density_kg_m3: -1.0,
+                ..input
+            })
+            .is_err()
+        );
+        assert!(
+            evaluate_qdrive(QDriveInput {
+                exhaust_velocity_m_s: 0.0,
+                ..input
+            })
+            .is_err()
+        );
     }
 }
