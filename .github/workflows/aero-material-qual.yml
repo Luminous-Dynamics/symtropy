@@ -21,6 +21,9 @@ on:
       - "docs/research/aviation/AERO_OBSERVER_COVERAGE_QUALIFICATION_V0_1.md"
       - "docs/research/aviation/examples/aero_observer_coverage_corpus_v0_1.json"
       - "docs/research/aviation/schemas/aero_observer_coverage_corpus_v0_1.schema.json"
+      - "docs/research/aviation/AERO_CAUSAL_EVIDENCE_CUT_BENCHMARK_V0_1.md"
+      - "docs/research/aviation/examples/aero_vector_evidence_cut_v0_1.json"
+      - "docs/research/aviation/schemas/aero_vector_evidence_cut_v0_1.schema.json"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
     branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1"]
@@ -45,6 +48,9 @@ on:
       - "docs/research/aviation/AERO_OBSERVER_COVERAGE_QUALIFICATION_V0_1.md"
       - "docs/research/aviation/examples/aero_observer_coverage_corpus_v0_1.json"
       - "docs/research/aviation/schemas/aero_observer_coverage_corpus_v0_1.schema.json"
+      - "docs/research/aviation/AERO_CAUSAL_EVIDENCE_CUT_BENCHMARK_V0_1.md"
+      - "docs/research/aviation/examples/aero_vector_evidence_cut_v0_1.json"
+      - "docs/research/aviation/schemas/aero_vector_evidence_cut_v0_1.schema.json"
       - ".github/workflows/aero-material-qual.yml"
   workflow_dispatch:
 
@@ -437,6 +443,37 @@ jobs:
                   if any(fixture[name] is not True for name in required_true):
                       raise SystemExit(f"{case['case_id']}: complete-for-scope control has an unresolved obligation")
           print(f"Observer coverage corpus structure passed: {len(cases)} synthetic cases; oracle review still required.")
+          PY
+
+      - name: Validate vector evidence cut schema and positive causal fixture
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema = json.loads((root / "docs/research/aviation/schemas/aero_vector_evidence_cut_v0_1.schema.json").read_text())
+          fixture = json.loads((root / "docs/research/aviation/examples/aero_vector_evidence_cut_v0_1.json").read_text())
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("vector evidence cut schema must declare Draft 2020-12")
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(fixture), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
+              raise SystemExit(f"vector evidence cut fixture failed schema validation ({len(errors)} errors)")
+          keys = [(item["source_id"], item["partition_id"]) for item in fixture["watermarks"]]
+          if len(keys) != len(set(keys)):
+              raise SystemExit("vector watermark fixture has duplicate source/partition keys")
+          event_refs = [event["event_ref"] for event in fixture["events"]]
+          if len(event_refs) != len(set(event_refs)):
+              raise SystemExit("vector evidence cut fixture has duplicate event references")
+          if len(fixture["watermarks"]) < 2 or not any(event["dependencies"] for event in fixture["events"]):
+              raise SystemExit("positive vector fixture must include independent partitions and causal dependencies")
+          print("Vector evidence cut schema and positive fixture validation passed.")
           PY
 
       - name: Validate SHM dataset manifest schema and rights gates
