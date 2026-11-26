@@ -140,7 +140,10 @@ pub struct QDriveEstimate {
     pub parasitic_drag_n: f64,
     pub harvested_mechanical_power_w: f64,
     pub bus_power_w: f64,
+    pub power_conversion_loss_w: f64,
     pub jet_power_w: f64,
+    pub thruster_conversion_loss_w: f64,
+    pub energy_chain_residual_w: f64,
     pub ideal_thrust_n: f64,
     pub propellant_mass_flow_kg_s: f64,
     pub net_axial_force_n: f64,
@@ -206,7 +209,13 @@ pub fn evaluate_qdrive(input: QDriveInput) -> Result<QDriveEstimate, &'static st
     let parasitic_drag_n = harvesting_drag_n * input.parasitic_drag_ratio;
     let harvested_mechanical_power_w = harvesting_drag_n * input.relative_speed_m_s;
     let bus_power_w = harvested_mechanical_power_w * input.power_conversion_efficiency;
+    let power_conversion_loss_w = harvested_mechanical_power_w - bus_power_w;
     let jet_power_w = bus_power_w * input.thruster_efficiency;
+    let thruster_conversion_loss_w = bus_power_w - jet_power_w;
+    let energy_chain_residual_w = harvested_mechanical_power_w
+        - power_conversion_loss_w
+        - thruster_conversion_loss_w
+        - jet_power_w;
     let ideal_thrust_n = 2.0 * jet_power_w / input.exhaust_velocity_m_s;
     let propellant_mass_flow_kg_s = ideal_thrust_n / input.exhaust_velocity_m_s;
     let net_axial_force_n = ideal_thrust_n - harvesting_drag_n - parasitic_drag_n;
@@ -232,7 +241,10 @@ pub fn evaluate_qdrive(input: QDriveInput) -> Result<QDriveEstimate, &'static st
         parasitic_drag_n,
         harvested_mechanical_power_w,
         bus_power_w,
+        power_conversion_loss_w,
         jet_power_w,
+        thruster_conversion_loss_w,
+        energy_chain_residual_w,
         ideal_thrust_n,
         propellant_mass_flow_kg_s,
         net_axial_force_n,
@@ -251,7 +263,10 @@ pub fn evaluate_qdrive(input: QDriveInput) -> Result<QDriveEstimate, &'static st
         parasitic_drag_n,
         harvested_mechanical_power_w,
         bus_power_w,
+        power_conversion_loss_w,
         jet_power_w,
+        thruster_conversion_loss_w,
+        energy_chain_residual_w,
         ideal_thrust_n,
         propellant_mass_flow_kg_s,
         net_axial_force_n,
@@ -381,7 +396,10 @@ mod tests {
         close(result.harvesting_drag_n, 112.344_397_342_102_2, 1e-9);
         close(result.harvested_mechanical_power_w, 1.684_000_151_085_874_3e9, 1e-3);
         close(result.bus_power_w, 1.347_200_120_868_699_6e9, 1e-3);
+        close(result.power_conversion_loss_w, 3.368_000_302_171_747_7e8, 1e-3);
         close(result.jet_power_w, 8.083_200_725_212_197e8, 1e-3);
+        close(result.thruster_conversion_loss_w, 5.388_800_483_474_798e8, 1e-3);
+        close(result.energy_chain_residual_w, 0.0, 1e-6);
         close(result.ideal_thrust_n, 125.407_699_358_625_73, 1e-9);
         close(result.propellant_mass_flow_kg_s, 9.728_257_155_219_04e-6, 1e-14);
         close(result.net_axial_force_n, 1.828_862_282_313_309_6, 1e-9);
