@@ -65,7 +65,6 @@ pub enum RequirementViolation {
     InPlaneSignalUnavailable,
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct FieldCovariance2d {
     /// Variance of Bx, in tesla squared.
@@ -125,7 +124,6 @@ pub struct PhaseUncertaintyMetrics {
     pub maximum_phase_error_over_total_std: Option<f64>,
     pub zero_uncertainty_nonzero_residual_sample_count: usize,
 }
-
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct OperatingConditionScenarioSetMetrics {
@@ -500,8 +498,6 @@ pub fn evaluate_trace_set(
     })
 }
 
-
-
 /// Evaluate multiple operating-condition traces under one fixed encoder
 /// requirement set. Operating-condition IDs may differ, but evidence class,
 /// coordinate frame, grid identity, sample count and bit-identical angle
@@ -538,8 +534,7 @@ pub fn evaluate_operating_condition_scenarios(
                 .iter()
                 .zip(first.samples.iter())
                 .any(|(left, right)| {
-                    left.mechanical_angle_rad.to_bits()
-                        != right.mechanical_angle_rad.to_bits()
+                    left.mechanical_angle_rad.to_bits() != right.mechanical_angle_rad.to_bits()
                 })
         {
             return Err(EvaluationError::ScenarioGridCoordinatesMismatch);
@@ -576,7 +571,9 @@ pub fn evaluate_operating_condition_scenarios(
             .map(|metric| metric.minimum_in_plane_field_t)
             .fold(f64::INFINITY, f64::min),
         worst_amplitude_ripple_fraction: maximum_optional(
-            metrics.iter().map(|metric| metric.amplitude_ripple_fraction),
+            metrics
+                .iter()
+                .map(|metric| metric.amplitude_ripple_fraction),
         ),
         worst_rms_cross_axis_ratio: maximum_optional(
             metrics.iter().map(|metric| metric.rms_cross_axis_ratio),
@@ -695,8 +692,7 @@ pub fn propagate_phase_uncertainty(
         .zip(covariance_trace.samples.iter())
         .enumerate()
     {
-        if sample.mechanical_angle_rad.to_bits()
-            != covariance_sample.mechanical_angle_rad.to_bits()
+        if sample.mechanical_angle_rad.to_bits() != covariance_sample.mechanical_angle_rad.to_bits()
         {
             return Err(EvaluationError::CoordinateGridMismatch);
         }
@@ -756,12 +752,9 @@ pub fn propagate_phase_uncertainty(
 
     let rms_measurement_std = rms(&measurement_stds);
     let rms_total_std = rms(&total_stds);
-    let rms_normalized_residual = (!normalized_residuals.is_empty())
-        .then(|| rms(&normalized_residuals));
-    let maximum_normalized_residual = normalized_residuals
-        .iter()
-        .copied()
-        .reduce(f64::max);
+    let rms_normalized_residual =
+        (!normalized_residuals.is_empty()).then(|| rms(&normalized_residuals));
+    let maximum_normalized_residual = normalized_residuals.iter().copied().reduce(f64::max);
 
     Ok(PhaseUncertaintyMetrics {
         trace_id: trace.trace_id.clone(),
@@ -850,11 +843,7 @@ mod tests {
         1.0
     }
 
-
-    fn covariance_trace(
-        trace: &FieldTrace,
-        covariance: FieldCovariance2d,
-    ) -> FieldCovarianceTrace {
+    fn covariance_trace(trace: &FieldTrace, covariance: FieldCovariance2d) -> FieldCovarianceTrace {
         FieldCovarianceTrace {
             trace_id: trace.trace_id.clone(),
             frame_id: trace.frame_id.clone(),
@@ -882,7 +871,6 @@ mod tests {
             mechanical_angle_std_rad,
         }
     }
-
 
     #[test]
     fn propagates_diagonal_field_covariance_and_reference_uncertainty() {
@@ -1159,7 +1147,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn refuses_zero_field_as_undefined_phase() {
         let trace = make_trace(
@@ -1247,7 +1234,6 @@ mod tests {
         );
         assert_eq!(metrics.rms_phase_error_over_total_std, None);
     }
-
 
     #[test]
     fn mechanical_reference_uncertainty_scales_with_pole_pairs() {
