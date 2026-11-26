@@ -1003,7 +1003,18 @@ mod tests {
     #[test]
     fn combined_qc_and_vehicle_precedence_cycles_are_rejected() {
         let mut invalid = instance(1.0);
-        invalid.tasks[0].qc_predecessor = Some("C".to_owned());
+        invalid.plans[0].vehicle_routes = vec![
+            VehicleRoute {
+                vehicle_id: "AGV-1".to_owned(),
+                task_order: vec!["C".to_owned(), "A".to_owned()],
+                travel_before: vec![0.0, 0.0],
+            },
+            VehicleRoute {
+                vehicle_id: "AGV-2".to_owned(),
+                task_order: vec!["B".to_owned()],
+                travel_before: vec![0.0],
+            },
+        ];
         assert_eq!(
             evaluate_continuous_tournament(&invalid),
             Err(ContinuousError::PrecedenceCycle)
