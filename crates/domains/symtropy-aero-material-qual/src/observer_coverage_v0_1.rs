@@ -259,11 +259,12 @@ mod tests {
 
     #[test]
     fn missing_coverage_fact_never_promotes_to_complete() {
-        let mut fixture = case_fixture(&corpus()["cases"][0]).clone();
-        fixture
+        let mut fixture = case_fixture(&corpus()["cases"][0]).to_owned();
+        assert!(fixture
             .as_object_mut()
             .expect("fixture object")
-            .remove("source_roster_reconciled");
+            .remove("source_roster_reconciled")
+            .is_some());
         let actual = evaluate_coverage_fixture(&fixture);
         assert_eq!(actual.status, CoverageStatus::Unverified);
         assert_eq!(actual.replay_consequence, ReplayConsequence::TrustUnresolved);
@@ -271,7 +272,7 @@ mod tests {
 
     #[test]
     fn critical_channel_failure_is_non_compensatory() {
-        let mut fixture = case_fixture(&corpus()["cases"][0]).clone();
+        let mut fixture = case_fixture(&corpus()["cases"][0]).to_owned();
         fixture["critical_channels_complete"] = Value::Bool(false);
         let actual = evaluate_coverage_fixture(&fixture);
         assert_eq!(actual.status, CoverageStatus::Incomplete);
@@ -280,12 +281,13 @@ mod tests {
 
     #[test]
     fn invalid_checkpoint_binding_rejects_even_when_other_facts_are_missing() {
-        let mut fixture = case_fixture(&corpus()["cases"][0]).clone();
+        let mut fixture = case_fixture(&corpus()["cases"][0]).to_owned();
         fixture["checkpoint_binding_valid"] = Value::Bool(false);
-        fixture
+        assert!(fixture
             .as_object_mut()
             .expect("fixture object")
-            .remove("scope_closed");
+            .remove("scope_closed")
+            .is_some());
         let actual = evaluate_coverage_fixture(&fixture);
         assert_eq!(actual.status, CoverageStatus::Invalid);
         assert_eq!(actual.replay_consequence, ReplayConsequence::Reject);
@@ -293,7 +295,7 @@ mod tests {
 
     #[test]
     fn open_world_scope_cannot_support_negative_inference() {
-        let mut fixture = case_fixture(&corpus()["cases"][0]).clone();
+        let mut fixture = case_fixture(&corpus()["cases"][0]).to_owned();
         fixture["scope_closed"] = Value::Bool(false);
         let actual = evaluate_coverage_fixture(&fixture);
         assert_eq!(actual.status, CoverageStatus::Unverified);
@@ -301,7 +303,7 @@ mod tests {
 
     #[test]
     fn out_of_scope_claim_abstains_without_marking_the_observer_invalid() {
-        let mut fixture = case_fixture(&corpus()["cases"][0]).clone();
+        let mut fixture = case_fixture(&corpus()["cases"][0]).to_owned();
         fixture["requested_claim_in_scope"] = Value::Bool(false);
         let actual = evaluate_coverage_fixture(&fixture);
         assert_eq!(actual.status, CoverageStatus::OutOfScope);
