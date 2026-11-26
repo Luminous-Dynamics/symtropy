@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   paired-inference:
@@ -34,24 +34,6 @@ jobs:
           jq empty "$ROOT/schemas/paired_inference_manifest_v0_1.schema.json"
           jq empty "$ROOT/schemas/paired_inference_report_v0_1.schema.json"
           jq empty "$ROOT/fixtures/paired_manifest_v0_1.json"
-
-      # Formatting-only commits are allowed on branch push events; PR runs remain read-only.
-      - name: Format isolated crate
-        if: github.event_name == 'push'
-        run: cargo fmt --manifest-path research/mobility-rrvr-paired-inference-v0.1/Cargo.toml
-
-      - name: Commit formatting-only changes
-        if: github.event_name == 'push'
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add research/mobility-rrvr-paired-inference-v0.1
-          if ! git diff --cached --quiet; then
-            git commit -m "style(rrvr): format isolated paired inference crate"
-            git push origin "HEAD:$GITHUB_REF_NAME"
-          fi
 
       - name: Check Rust formatting
         run: cargo fmt --manifest-path research/mobility-rrvr-paired-inference-v0.1/Cargo.toml -- --check
