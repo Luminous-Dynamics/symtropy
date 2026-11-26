@@ -21,7 +21,7 @@ pub enum WindowDisposition {
 pub enum ServiceDisposition {
     GuaranteedWithinDeclaredLowerEnvelope,
     IndeterminateNotGuaranteed,
-    InfeasibleEvenAtDeclaredUpperEnvelope,
+    NotFeasibleWithinDeclaredUpperEnvelope,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -628,7 +628,7 @@ fn evaluate_internal(value: &Value, allow_hypothetical: bool) -> Result<SafrbCer
     } else if upper.max_flow == total_required {
         ServiceDisposition::IndeterminateNotGuaranteed
     } else {
-        ServiceDisposition::InfeasibleEvenAtDeclaredUpperEnvelope
+        ServiceDisposition::NotFeasibleWithinDeclaredUpperEnvelope
     };
 
     Ok(SafrbCertificate {
@@ -717,6 +717,87 @@ mod tests {
     use super::*;
 
     fn scenario() -> Value { bundled_fixture().unwrap()["scenario"].clone() }
+
+    #[test]
+    fn individual_window_maxima_do_not_masquerade_as_joint_feasibility() {
+        let node_rows = [
+            ("source", "source"),
+            ("shared-in", "resource_input"),
+            ("shared-out", "resource_output"),
+            ("service-a", "beneficiary_service"),
+            ("service-b", "beneficiary_service"),
+            ("sink", "sink"),
+        ];
+        let nodes = node_rows.iter().map(|(id, kind)| (
+            (*id).to_string(),
+            Node { id: (*id).to_string(), kind: (*kind).to_string(), time: 0 },
+        )).collect::<BTreeMap<_, _>>();
+
+        let edge = |id: &str, from: &str, to: &str, cap: u64| Edge {
+            id: id.to_string(),
+            from: from.to_string(),
+            to: to.to_string(),
+            lower: cap,
+            upper: cap,
+            resource: id.to_string(),
+            time: 0,
+        };
+        let edges = vec![
+            edge("supply", "source", "shared-in", 8),
+            edge("shared-resource-gate", "shared-in", "shared-out", 8),
+            edge("branch-a", "shared-out", "service-a", 5),
+            edge("branch-b", "shared-out", "service-b", 5),
+            edge("obligation-a", "service-a", "sink", 5),
+            edge("obligation-b", "service-b", "sink", 5),
+        ];
+        let parsed = Parsed {
+            case_id: "joint-vs-individual-test".to_string(),
+            scope: "FUEL-DELIVERABILITY".to_string(),
+            commodity: "synthetic-commodity".to_string(),
+            unit: "t".to_string(),
+            boundary: "test-boundary".to_string(),
+            source: "source".to_string(),
+            sink: "sink".to_string(),
+            nodes,
+            edges,
+            obligations: vec![
+                Obligation {
+                    id: "window-a".to_string(),
+                    time: 0,
+                    interval: "[0,1)".to_string(),
+                    required: 5,
+                    edge_id: "obligation-a".to_string(),
+                },
+                Obligation {
+                    id: "window-b".to_string(),
+                    time: 0,
+                    interval: "[0,1)".to_string(),
+                    required: 5,
+                    edge_id: "obligation-b".to_string(),
+                },
+            ],
+            gate_ids: BTreeSet::from(["shared-resource-gate".to_string()]),
+            scenario_sha256: "sha256:test".to_string(),
+            hypothetical: false,
+        };
+
+        let joint = solve(&parsed, false, None).unwrap();
+        let individual_a = solve(&parsed, false, Some("obligation-a")).unwrap();
+        let individual_b = solve(&parsed, false, Some("obligation-b")).unwrap();
+
+        assert_eq!(joint.max_flow, 8);
+        assert_eq!(individual_a.max_flow, 5);
+        assert_eq!(individual_b.max_flow, 5);
+        assert_eq!(
+            individual_a.max_flow + individual_b.max_flow,
+            10,
+            "individual maxima are not additive when obligations share capacity"
+        );
+        assert!(
+            joint.max_flow < 10,
+            "the combined 10t requirement is not jointly feasible"
+        );
+    }
 
     #[test]
     fn frozen_two_window_case_has_9t_lower_and_12t_upper() {
