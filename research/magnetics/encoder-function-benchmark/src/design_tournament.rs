@@ -274,6 +274,7 @@ pub fn rank_magnetic_designs(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::FieldSample;
     use std::f64::consts::TAU;
 
     const DIGEST_A: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
