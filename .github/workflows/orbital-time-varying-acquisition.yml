@@ -78,7 +78,7 @@ jobs:
           assert cases["TV-016-FRAME-WINDOW-TRAP"]["bounds"]["constant_speed_excess_nm_upper"] == 17000
           for case in cases.values():
               if case["bounds"] is not None:
-                  assert case["bounds"]["constant_max_speed_frame"]["total_um"] >= case["bounds"]["combined_frame"]["total_um"]
+                  assert case["bounds"]["constant_max_speed_frame"]["total_nm"] >= case["bounds"]["combined_frame"]["total_nm"]
           assert cases["TV-014-EXACT-BOUNDARY"]["status"] == "WITHIN_DECLARED_BUDGET"
           assert cases["TV-017-FAILED-CALIBRATION"]["status"] == "BLOCKED"
           assert cases["TV-012-PROJECTION-OVERFLOW"]["status"] == "INVALID_INPUT"
