@@ -323,7 +323,7 @@ fn evaluate_claim(claim: &SafetyClaim, action: &ActionScope) -> ClaimResult {
         ClaimComponent::SafeContinuation => {
             if claim.terminal_epoch_tai_ns != Some(action.action_end_tai_ns)
                 || claim.validity.start_tai_ns > action.action_end_tai_ns
-                || claim.validity.end_tai_ns < action.action_end_tai_ns
+                || claim.validity.end_tai_ns <= action.action_end_tai_ns
             {
                 return result(
                     Disposition::OutOfScope,
