@@ -214,12 +214,9 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
                 continue;
             };
             let query = self.tree.query(frame[index].bounds)?;
-            frontier_proxy_visits = frontier_proxy_visits
-                .checked_add(
-                    u64::try_from(query.proxies.len())
-                        .map_err(|_| TournamentError::CounterOverflow)?,
-                )
-                .ok_or(TournamentError::CounterOverflow)?;
+            // No full-population proxy scan occurs on the indexed path.
+            // Returned candidates are counted below; tree node/leaf visits
+            // describe index traversal work separately.
             frontier_node_visits = frontier_node_visits
                 .checked_add(
                     u64::try_from(query.stats.node_visits)
