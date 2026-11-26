@@ -246,16 +246,19 @@ pub fn build_envelope<const D: usize>(
 
     let mut min = [0.0; D];
     let mut max = [0.0; D];
-    for axis in 0..D {
-        let translated_min =
-            outward_min(checked_add(tight_bounds.min[axis], displacement.min[axis])?)?;
-        let translated_max =
-            outward_max(checked_add(tight_bounds.max[axis], displacement.max[axis])?)?;
+    for (((out_min, out_max), (tight_min, tight_max)), (motion_min, motion_max)) in min
+        .iter_mut()
+        .zip(max.iter_mut())
+        .zip(tight_bounds.min.iter().zip(tight_bounds.max.iter()))
+        .zip(displacement.min.iter().zip(displacement.max.iter()))
+    {
+        let translated_min = outward_min(checked_add(*tight_min, *motion_min)?)?;
+        let translated_max = outward_max(checked_add(*tight_max, *motion_max)?)?;
 
-        let swept_min = tight_bounds.min[axis].min(translated_min);
-        let swept_max = tight_bounds.max[axis].max(translated_max);
-        min[axis] = outward_min(checked_sub(swept_min, guard)?)?;
-        max[axis] = outward_max(checked_add(swept_max, guard)?)?;
+        let swept_min = tight_min.min(&translated_min);
+        let swept_max = tight_max.max(&translated_max);
+        *out_min = outward_min(checked_sub(*swept_min, guard)?)?;
+        *out_max = outward_max(checked_add(*swept_max, guard)?)?;
     }
 
     let envelope = Aabb::new(min, max)?;
@@ -363,12 +366,17 @@ pub fn build_semi_implicit_euler_envelope<const D: usize>(
         min: [0.0; D],
         max: [0.0; D],
     };
-    for axis in 0..D {
-        let endpoint = checked_mul(motion.post_linear_velocity[axis], motion.dt)?;
+    for ((displacement_min, displacement_max), velocity) in displacement
+        .min
+        .iter_mut()
+        .zip(displacement.max.iter_mut())
+        .zip(motion.post_linear_velocity.iter())
+    {
+        let endpoint = checked_mul(*velocity, motion.dt)?;
         let lower = outward_min(endpoint)?;
         let upper = outward_max(endpoint)?;
-        displacement.min[axis] = 0.0_f64.min(lower);
-        displacement.max[axis] = 0.0_f64.max(upper);
+        *displacement_min = 0.0_f64.min(lower);
+        *displacement_max = 0.0_f64.max(upper);
     }
 
     let quantization_guard = if motion.deterministic_net_q16_16 {
