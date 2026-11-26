@@ -7,9 +7,11 @@
 use std::collections::HashSet;
 
 use super::{
-    DesignTournamentError, EncoderRequirements, FieldTrace, MagneticDesignCandidate,
-    MagneticDesignCandidateMetrics, MagneticDesignTournament, evaluate_trace,
-    rank_magnetic_designs,
+    EncoderRequirements, FieldTrace, evaluate_trace,
+};
+use super::design_tournament::{
+    DesignTournamentError, MagneticDesignCandidate, MagneticDesignCandidateMetrics,
+    MagneticDesignTournament, rank_magnetic_designs,
 };
 
 #[derive(Clone, Debug, PartialEq)]
