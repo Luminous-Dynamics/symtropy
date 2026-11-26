@@ -691,7 +691,7 @@ pub fn portfolio_scenario_risk_envelope_digest(
     envelope: &MissionRiskEnvelope,
 ) -> [u8; 32] {
     let mut hasher = Sha256::new();
-    hasher.update(b"luminous.orbital.portfolio-scenario-risk-envelope.v0.1\\0");
+    hasher.update(b"luminous.orbital.portfolio-scenario-risk-envelope.v0.1\0");
     hasher.update(scenario_id);
     hasher.update(portfolio_id);
     hasher.update(mission_risk_envelope_digest(envelope));
