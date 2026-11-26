@@ -212,3 +212,45 @@ This is a testable architecture hypothesis, not a commitment to make a factor gr
 ## 12. VIS-012 research owner
 
 This protocol implements the benchmark-facing contract for [Symthaea VIS-012](https://github.com/Luminous-Dynamics/symthaea/issues/13855). The candidate representation hypothesis is a versioned set of source-grounded spatial constraints and admissible map alternatives—not necessarily one prematurely collapsed best-estimate map. Geometry/topology constraints, uncertainty, frame identity, source intervals and revisions are scored independently; the current DecisionNeed consumes only the decision partition it requires.
+
+
+## 13. Classical geometric validation lane
+
+OVO-S native streaming question accuracy is not geometric SLAM qualification. Pair the semantic state-construction protocol with separate public geometric benchmarks, each evaluated with its native modality/input and metric contract.
+
+| Dataset | Native role | Core measurements | Caveats |
+|---|---|---|---|
+| TUM RGB-D | RGB-D visual odometry/SLAM | ATE/RPE under official trajectory alignment; depth/geometry consistency | Original benchmark: 39 sequences, Kinect color/depth 640×480 at 30 Hz, motion-capture trajectory at 100 Hz. Ground-truth association/calibration and alignment must follow the official evaluation tooling. |
+| EuRoC MAV | Stereo-inertial VIO/SLAM | trajectory/pose error, scale consistency, camera–IMU timing and extrinsics | Stereo images 2×20 FPS, IMU 200 Hz, Vicon/Leica ground truth and calibration; Vicon/Leica are distinct GT sources, and the dataset documents synchronization limitations. |
+| KITTI Odometry | Monocular/stereo visual odometry; separate LiDAR/multimodal tracks | official subsequence translation error (%) and rotation error (deg/m) | sequences 00–10 provide training GT; 11–21 are hidden test; compare only within the same input modality/method class. The server notes a restore of backup state dated 7 August 2026, so resubmission/history must be checked. |
+| OpenLORIS-Scene | Lifelong and multi-session SLAM | repeated-trajectory consistency, relocalization, map-change handling, drift and false map updates | multiple trajectories per scene with day/night/human-change; office GT is motion capture, other scenes use offline LiDAR-SLAM GT. GT independence/provenance differs by scene. |
+
+Primary dataset/evaluation sources:
+- TUM RGB-D benchmark paper and data: https://cvg.cit.tum.de/_media/spezial/bib/sturm12iros.pdf and https://vision.in.tum.de/data/datasets/rgbd-dataset
+- EuRoC MAV: https://projects.asl.ethz.ch/datasets/euroc-mav/
+- KITTI odometry: https://www.cvlibs.net/datasets/kitti/eval_odometry.php
+- OpenLORIS-Scene: https://lifelong-robotic-vision.github.io/dataset/scene
+
+### Metric discipline
+
+- Report ATE only with the benchmark's documented alignment (state SE(3) vs Sim(3)); never hide scale ambiguity in monocular systems.
+- Report RPE with frozen time/distance intervals.
+- KITTI translation/rotation errors must use the official subsequence evaluator; they are not ATE.
+- Report pose-graph cycle residuals, loop-closure precision/recall, map/landmark reprojection or point-cloud errors only where the emitted representation and calibration support them.
+- Report uncertainty coverage, drift by distance/time, tracking-loss recovery, and OpenLORIS long-term map-change quality separately.
+- Include modality, frame/IMU rate, calibration, runtime, memory and hardware budget for every run.
+- Do not pool TUM, EuRoC, KITTI and OpenLORIS into one leaderboard scalar.
+
+### Matched controls
+
+Run RGB-only, RGB-D, stereo and stereo+IMU arms only where the dataset supports them. Add controlled extrinsic perturbations, timestamp offsets/drift/resets, wrong transform direction, dynamic-object motion, loop-closure aliasing, stale/missing depth, IMU gaps and shuffled trajectories. Unsupported absolute scale or unobservable geometry must yield an explicit unknown/not-evaluated status, not a fabricated metric answer.
+
+### Relationship to OVO-S and Symtropy
+
+- OVO-S remains the semantic/allocentric question benchmark.
+- TUM/EuRoC/KITTI form metric geometry/trajectory validation lanes.
+- OpenLORIS tests lifelong map maintenance.
+- Symtropy #6184 supplies controlled hidden-world counterfactuals that expose false adjacency, wrong transforms, false loop closure and DecisionNeed-specific state errors.
+- Symthaea VIS-012 #13855 owns the candidate spatial-state protocol and adapter; existing Vision Mind and HDC/dense comparison owners retain their subsystems.
+
+A model can answer OVO-S questions well yet produce a geometrically inconsistent map, or produce accurate trajectories but fail semantic long-horizon questions. Report both, separately. The intended research gain is a Pareto frontier over semantic spatial reasoning, geometric accuracy, topology, map revision, uncertainty and resource cost—not a pooled score.
