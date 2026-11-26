@@ -101,7 +101,10 @@
               "stream_continuity_valid",
               "retention_available",
               "checkpoint_binding_valid",
-              "scope_note"
+              "scope_note",
+              "requested_claim_in_scope",
+              "source_identity_binding_valid",
+              "stream_epoch_binding_verified"
             ],
             "properties": {
               "scope_closed": {
@@ -146,6 +149,18 @@
               "scope_note": {
                 "type": "string",
                 "minLength": 1
+              },
+              "requested_claim_in_scope": {
+                "type": "boolean",
+                "description": "Whether the requested engineering claim lies inside the declared observer-coverage scope."
+              },
+              "source_identity_binding_valid": {
+                "type": "boolean",
+                "description": "Whether every required source identity and namespace binding is verified."
+              },
+              "stream_epoch_binding_verified": {
+                "type": "boolean",
+                "description": "Whether stream epoch transitions are authenticated and bound to the coverage receipt."
               }
             }
           },
