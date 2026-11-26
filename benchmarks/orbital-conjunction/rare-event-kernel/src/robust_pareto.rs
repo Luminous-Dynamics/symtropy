@@ -24,6 +24,9 @@ pub const MAX_PARETO_SCENARIOS: usize = 256;
 /// Maximum number of objective dimensions in one exact finite Pareto campaign.
 pub const MAX_PARETO_OBJECTIVES: usize = 32;
 
+/// Maximum complete portfolio × scenario assessment rows in one campaign.
+pub const MAX_PARETO_ASSESSMENT_ROWS: usize = 65_536;
+
 /// Direction of preference for one frozen objective.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ObjectiveDirection {
@@ -224,24 +227,28 @@ pub fn evaluate_robust_pareto(
 
     validate_unique_nonzero(&config.portfolio_ids)?;
     validate_unique_nonzero(&config.scenario_ids)?;
-    validate_unique_nonzero(
-        &config
-            .objectives
-            .iter()
-            .flat_map(|objective| [objective.objective_id, objective.unit_id])
-            .collect::<Vec<_>>(),
-    )?;
-
     let objective_ids = config
         .objectives
         .iter()
         .map(|objective| objective.objective_id)
         .collect::<Vec<_>>();
+    validate_unique_nonzero(&objective_ids)?;
+    if config
+        .objectives
+        .iter()
+        .any(|objective| objective.unit_id.iter().all(|byte| *byte == 0))
+    {
+        return Err(RobustParetoError::ZeroIdentity);
+    }
+
     let expected_rows = config
         .portfolio_ids
         .len()
         .checked_mul(config.scenario_ids.len())
         .ok_or(RobustParetoError::UniverseTooLarge)?;
+    if expected_rows > MAX_PARETO_ASSESSMENT_ROWS {
+        return Err(RobustParetoError::UniverseTooLarge);
+    }
     if config.assessments.len() != expected_rows {
         return Err(RobustParetoError::IncompleteAssessmentProduct);
     }
@@ -399,7 +406,7 @@ pub fn evaluate_robust_pareto(
 }
 
 fn calculate_frontier(
-    portfolios: &[( [u8; 32], Vec<ParetoObjectiveValue> )],
+    portfolios: &[([u8; 32], Vec<ParetoObjectiveValue>)],
     objectives: &[ParetoObjectiveDefinition],
 ) -> (Vec<[u8; 32]>, Vec<ParetoDominance>) {
     let mut frontier = Vec::new();
@@ -610,6 +617,51 @@ mod tests {
         assert_eq!(
             report.robust_frontier_portfolio_ids,
             vec![[10; 32], [20; 32]]
+        );
+    }
+
+    #[test]
+    fn objectives_may_share_a_unit_identity() {
+        let config = RobustParetoConfig {
+            portfolio_ids: vec![[10; 32], [20; 32]],
+            scenario_ids: vec![[1; 32]],
+            objectives: vec![
+                objective(1, 11, ObjectiveDirection::Minimize),
+                objective(2, 11, ObjectiveDirection::Minimize),
+            ],
+            assessments: vec![
+                row(10, 1, ScenarioFeasibility::Feasible, &[(1, 1), (2, 3)]),
+                row(20, 1, ScenarioFeasibility::Feasible, &[(1, 2), (2, 2)]),
+            ],
+        };
+        let report = evaluate_robust_pareto(config).unwrap();
+        assert_eq!(report.robust_frontier_portfolio_ids, vec![[10; 32], [20; 32]]);
+    }
+
+    #[test]
+    fn conflicting_scenario_preferences_remain_separate_and_both_robustly_nondominated() {
+        let config = RobustParetoConfig {
+            portfolio_ids: vec![[10; 32], [20; 32]],
+            scenario_ids: vec![[1; 32], [2; 32]],
+            objectives: vec![objective(1, 11, ObjectiveDirection::Minimize)],
+            assessments: vec![
+                row(10, 1, ScenarioFeasibility::Feasible, &[(1, 1)]),
+                row(20, 1, ScenarioFeasibility::Feasible, &[(1, 5)]),
+                row(10, 2, ScenarioFeasibility::Feasible, &[(1, 5)]),
+                row(20, 2, ScenarioFeasibility::Feasible, &[(1, 1)]),
+            ],
+        };
+        let report = evaluate_robust_pareto(config).unwrap();
+        assert_eq!(report.scenario_frontiers[0].frontier_portfolio_ids, vec![[10; 32]]);
+        assert_eq!(report.scenario_frontiers[1].frontier_portfolio_ids, vec![[20; 32]]);
+        assert_eq!(report.robust_frontier_portfolio_ids, vec![[10; 32], [20; 32]]);
+        assert_eq!(
+            report.robust_portfolio_summaries[0].worst_case_objectives[0].value_ticks,
+            5
+        );
+        assert_eq!(
+            report.robust_portfolio_summaries[1].worst_case_objectives[0].value_ticks,
+            5
         );
     }
 
