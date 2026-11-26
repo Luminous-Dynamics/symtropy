@@ -122,6 +122,10 @@ pub enum ServiceError {
         cohort_id: String,
         unit: String,
     },
+    FloorWithoutScheduledUnits {
+        cohort_id: String,
+        unit: String,
+    },
     InvalidFloor {
         cohort_id: String,
         unit: String,
@@ -386,6 +390,15 @@ pub fn evaluate_receiver_service(
         let key = (record.cohort_id.clone(), record.unit.clone());
         let accumulator = groups.entry(key).or_default();
         classify(record, horizon_at, accumulator)?;
+    }
+
+    for (cohort_id, unit) in floor_map.keys() {
+        if !groups.contains_key(&(cohort_id.clone(), unit.clone())) {
+            return Err(ServiceError::FloorWithoutScheduledUnits {
+                cohort_id: cohort_id.clone(),
+                unit: unit.clone(),
+            });
+        }
     }
 
     let cohorts = groups
@@ -802,6 +815,27 @@ mod tests {
             evaluate_receiver_service(&records, &floors, 120),
             Err(ServiceError::DuplicateFloor {
                 cohort_id: "general".to_owned(),
+                unit: "container".to_owned(),
+            })
+        );
+    }
+
+
+    #[test]
+    fn protected_floor_without_scheduled_units_is_rejected() {
+        let records = vec![unit(
+            "C1",
+            "general",
+            1,
+            "container",
+            100,
+            OutcomeEvidence::Disputed,
+        )];
+        let floors = vec![floor("essential", "container", 5_000)];
+        assert_eq!(
+            evaluate_receiver_service(&records, &floors, 120),
+            Err(ServiceError::FloorWithoutScheduledUnits {
+                cohort_id: "essential".to_owned(),
                 unit: "container".to_owned(),
             })
         );
