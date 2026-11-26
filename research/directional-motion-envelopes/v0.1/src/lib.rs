@@ -97,9 +97,7 @@ impl<const D: usize> Aabb<D> {
 
     #[must_use]
     pub fn contains(&self, other: &Self) -> bool {
-        (0..D).all(|axis| {
-            self.min[axis] <= other.min[axis] && self.max[axis] >= other.max[axis]
-        })
+        (0..D).all(|axis| self.min[axis] <= other.min[axis] && self.max[axis] >= other.max[axis])
     }
 
     #[must_use]
@@ -247,14 +245,10 @@ pub fn build_envelope<const D: usize>(
     let mut min = [0.0; D];
     let mut max = [0.0; D];
     for axis in 0..D {
-        let translated_min = outward_min(checked_add(
-            tight_bounds.min[axis],
-            displacement.min[axis],
-        )?)?;
-        let translated_max = outward_max(checked_add(
-            tight_bounds.max[axis],
-            displacement.max[axis],
-        )?)?;
+        let translated_min =
+            outward_min(checked_add(tight_bounds.min[axis], displacement.min[axis])?)?;
+        let translated_max =
+            outward_max(checked_add(tight_bounds.max[axis], displacement.max[axis])?)?;
 
         let swept_min = tight_bounds.min[axis].min(translated_min);
         let swept_max = tight_bounds.max[axis].max(translated_max);
@@ -367,7 +361,10 @@ mod tests {
             0.0,
         )
         .unwrap();
-        assert_eq!(result.status, EnvelopeStatus::CertifiedFixedOrientationTranslation);
+        assert_eq!(
+            result.status,
+            EnvelopeStatus::CertifiedFixedOrientationTranslation
+        );
         let envelope = result.envelope.unwrap();
         assert!(envelope.min()[0] < -1.0);
         assert!(envelope.max()[0] > 4.0);
@@ -391,11 +388,7 @@ mod tests {
 
         for dx in [interval2().min[0], interval2().max[0]] {
             for dy in [interval2().min[1], interval2().max[1]] {
-                let translated = Aabb::new(
-                    [1.0 + dx, 2.0 + dy],
-                    [3.0 + dx, 4.0 + dy],
-                )
-                .unwrap();
+                let translated = Aabb::new([1.0 + dx, 2.0 + dy], [3.0 + dx, 4.0 + dy]).unwrap();
                 assert!(envelope.contains(&translated));
             }
         }
@@ -501,29 +494,16 @@ mod tests {
         )
         .unwrap();
         let receipt = result.receipt.unwrap();
-        assert!(verify_envelope(
-            &receipt,
-            &identity(),
-            context(),
-            box2(),
-            interval2(),
-            0.25,
-        )
-        .is_ok());
+        assert!(
+            verify_envelope(&receipt, &identity(), context(), box2(), interval2(), 0.25,).is_ok()
+        );
 
         let changed = DisplacementInterval {
             min: [-2.1, -0.5],
             max: [1.0, 3.0],
         };
         assert_eq!(
-            verify_envelope(
-                &receipt,
-                &identity(),
-                context(),
-                box2(),
-                changed,
-                0.25,
-            ),
+            verify_envelope(&receipt, &identity(), context(), box2(), changed, 0.25,),
             Err(EnvelopeError::ReplayMismatch)
         );
     }
@@ -544,28 +524,56 @@ mod tests {
         let mut changed_identity = identity();
         changed_identity.body_generation += 1;
         assert_eq!(
-            verify_envelope(&receipt, &changed_identity, context(), box2(), interval2(), 0.25),
+            verify_envelope(
+                &receipt,
+                &changed_identity,
+                context(),
+                box2(),
+                interval2(),
+                0.25
+            ),
             Err(EnvelopeError::ReplayMismatch)
         );
 
         let mut changed_context = context();
         changed_context.world_revision += 1;
         assert_eq!(
-            verify_envelope(&receipt, &identity(), changed_context, box2(), interval2(), 0.25),
+            verify_envelope(
+                &receipt,
+                &identity(),
+                changed_context,
+                box2(),
+                interval2(),
+                0.25
+            ),
             Err(EnvelopeError::ReplayMismatch)
         );
 
         let mut changed_context = context();
         changed_context.horizon_steps += 1;
         assert_eq!(
-            verify_envelope(&receipt, &identity(), changed_context, box2(), interval2(), 0.25),
+            verify_envelope(
+                &receipt,
+                &identity(),
+                changed_context,
+                box2(),
+                interval2(),
+                0.25
+            ),
             Err(EnvelopeError::ReplayMismatch)
         );
 
         let mut changed_context = context();
         changed_context.arithmetic_profile = digest(9);
         assert_eq!(
-            verify_envelope(&receipt, &identity(), changed_context, box2(), interval2(), 0.25),
+            verify_envelope(
+                &receipt,
+                &identity(),
+                changed_context,
+                box2(),
+                interval2(),
+                0.25
+            ),
             Err(EnvelopeError::ReplayMismatch)
         );
     }
