@@ -158,18 +158,14 @@ fn audit_group(rows: &[FixtureRow]) -> Result<(String, String, String), Box<dyn 
             record.source_id, record.event_id, record.source_revision
         );
         selected_values.push(key.clone());
-        audit_values.push(format!(
-            "{}={}@{}",
-            key,
-            state_label(projection.adjudication_as_of),
-            projection.adjudication_revision_as_of.unwrap_or(0)
-        ));
-    }
-
-    // Avoid an artificial "@0" for NOT_YET: revision zero is not an adjudication.
-    for value in &mut audit_values {
-        if value.ends_with("=NOT_YET@0") {
-            *value = value.trim_end_matches("@0").to_owned();
+        match projection.adjudication_revision_as_of {
+            Some(revision) => audit_values.push(format!(
+                "{}={}@{}",
+                key,
+                state_label(projection.adjudication_as_of),
+                revision
+            )),
+            None => audit_values.push(format!("{}=NOT_YET", key)),
         }
     }
     Ok((
