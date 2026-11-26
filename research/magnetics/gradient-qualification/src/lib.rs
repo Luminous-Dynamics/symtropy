@@ -571,6 +571,7 @@ mod tests {
     const DIGEST_A: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const DIGEST_B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
     const DIGEST_C: &str = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+    const DIGEST_D: &str = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
 
     fn kernel() -> KernelProvenance {
         KernelProvenance {
@@ -610,10 +611,17 @@ mod tests {
         let center = 2.0;
         let central_difference = [1.0e-1, 1.0e-2, 1.0e-3, 1.0e-4]
             .into_iter()
-            .map(|step_size| {
+            .enumerate()
+            .map(|(index, step_size)| {
                 let derivative = reference_value + 0.01 * step_size * step_size;
                 let delta = derivative * step_size;
+                let plus_digit = char::from_digit(index as u32 + 1, 16).expect("hex digit");
+                let minus_digit = char::from_digit(index as u32 + 5, 16).expect("hex digit");
                 CentralDifferenceObservation {
+                    plus_observation_id: format!("plus-{trial_id}-{index}"),
+                    minus_observation_id: format!("minus-{trial_id}-{index}"),
+                    plus_input_sha256: plus_digit.to_string().repeat(64),
+                    minus_input_sha256: minus_digit.to_string().repeat(64),
                     step_size,
                     plus_objective_value: center + delta,
                     minus_objective_value: center - delta,
@@ -624,7 +632,9 @@ mod tests {
         DirectionalDerivativeTrial {
             trial_id: trial_id.to_owned(),
             input_sha256: DIGEST_C.to_owned(),
+            base_observation_id: format!("base-{trial_id}"),
             direction: vec![1.0, 0.0],
+            direction_sha256: DIGEST_D.to_owned(),
             base_objective_value: center,
             autodiff_directional_derivative: reference_value,
             reference_directional_derivative: reference_value,
@@ -633,6 +643,8 @@ mod tests {
                 implementation_id: "independent-analytic-oracle".to_owned(),
                 source_revision: "analytic-oracle-v1".to_owned(),
                 artifact_sha256: DIGEST_B.to_owned(),
+                input_sha256: DIGEST_C.to_owned(),
+                direction_sha256: DIGEST_D.to_owned(),
                 method: ReferenceMethod::Analytic,
             },
             forward_value_evaluator_id: "pinned-forward-kernel".to_owned(),
