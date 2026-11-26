@@ -1,0 +1,94 @@
+name: RRVR AERB Schema and World-Support Conformance v0.1
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-aerb-v0-1
+    paths:
+      - "research/mobility-rrvr-aerb-v0.1/**"
+      - ".github/workflows/mobility-rrvr-aerb.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-aerb-v0.1/**"
+      - ".github/workflows/mobility-rrvr-aerb.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  aerb-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate JSON syntax for all AERB schemas and fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-aerb-v0.1"
+          find "$ROOT" -name '*.json' -print0 | while IFS= read -r -d '' file; do
+            jq empty "$file"
+          done
+
+      - name: Validate candidate episode decision cut and identity invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-aerb-v0.1"
+          jq -e '
+            .benchmark == "AERB"
+            and .decision_cut_sequence == .ledger_frontier_sequence
+            and all(.observations[]; .ingest_sequence <= .decision_cut_sequence)
+            and ([.observations[].observation_id] | length == (unique | length))
+            and ([.permitted_probes[].probe_id] | length == (unique | length))
+            and (has("hidden_truth_world_id") | not)
+          ' "$ROOT/fixtures/candidate_episode_synthetic_v0_1.json"
+
+      - name: Validate public world vocabulary and candidate submission
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-aerb-v0.1"
+          jq -e '
+            .vocabulary_id == "aerb-ambiguous-command-history-v0.1"
+            and (.worlds | length == 7)
+            and ([.worlds[].world_id] | length == (unique | length))
+          ' "$ROOT/world_vocabulary/aerb_ambiguous_command_history_v0_1.json"
+
+          jq -e --slurpfile vocab "$ROOT/world_vocabulary/aerb_ambiguous_command_history_v0_1.json" --slurpfile episode "$ROOT/fixtures/candidate_episode_synthetic_v0_1.json" '
+            .benchmark == "AERB"
+            and all(.possible_world_support_ids[];
+              . as $world_id | any($vocab[0].worlds[]; .world_id == $world_id)
+            )
+            and (
+              .requested_probe_id == null
+              or any($episode[0].permitted_probes[]; .probe_id == .requested_probe_id)
+            )
+          ' "$ROOT/fixtures/candidate_submission_synthetic_v0_1.json"
+
+      - name: Validate evaluator-only truth and probe-support completeness
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-aerb-v0.1"
+          PACK="$ROOT/fixtures/evaluator_only/world_pack_synthetic_v0_1.json"
+          jq -e '
+            . as $pack
+            | ($pack.worlds | map(.world_id)) as $world_ids
+            | ($pack.hidden_truth_world_id as $truth | ($world_ids | index($truth)) != null)
+            and ($world_ids | length == ($world_ids | unique | length))
+            and all($pack.probe_outcome_supports[];
+              . as $probe
+              | ($probe.outcomes | map(.possible_world_ids[]) | unique) as $covered
+              | all($world_ids[]; . as $world_id | ($covered | index($world_id)) != null)
+            )
+            and (
+              ["hold_reconcile","request_observation","abstain","recommend_fresh_attempt"] as $dispositions
+              | all($world_ids[]; . as $world_id
+                | all($dispositions[]; . as $disposition
+                  | any($pack.decision_losses[]; .world_id == $world_id and .disposition == $disposition)
+                )
+              )
+            )
+          ' "$PACK"
