@@ -495,6 +495,38 @@ mod tests {
     }
 
     #[test]
+    fn qdrive_exact_break_even_exhaust_velocity_has_zero_net_force() {
+        let input = illustrative_qdrive_case();
+        let base = evaluate_qdrive(input).unwrap();
+        let at_break_even = evaluate_qdrive(QDriveInput {
+            exhaust_velocity_m_s: base.break_even_exhaust_velocity_m_s,
+            ..input
+        })
+        .unwrap();
+
+        close(at_break_even.net_axial_force_n, 0.0, 1.0e-12);
+        close(at_break_even.net_acceleration_m_s2, 0.0, 1.0e-18);
+    }
+
+    #[test]
+    fn qdrive_break_even_ratio_is_independent_of_area_and_density() {
+        let input = illustrative_qdrive_case();
+        let base = evaluate_qdrive(input).unwrap();
+        let rescaled = evaluate_qdrive(QDriveInput {
+            plasma_mass_density_kg_m3: input.plasma_mass_density_kg_m3 * 17.0,
+            effective_interaction_area_m2: input.effective_interaction_area_m2 * 31.0,
+            ..input
+        })
+        .unwrap();
+
+        close(
+            rescaled.break_even_exhaust_velocity_m_s,
+            base.break_even_exhaust_velocity_m_s,
+            1.0e-9,
+        );
+    }
+
+    #[test]
     fn qdrive_positive_net_acceleration_requires_exhaust_below_break_even() {
         let input = illustrative_qdrive_case();
         let base = evaluate_qdrive(input).unwrap();
