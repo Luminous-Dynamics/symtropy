@@ -12,3 +12,5 @@ name = "composition-audit"
 path = "src/bin/composition_audit.rs"
 
 [dependencies]
+
+[workspace]
