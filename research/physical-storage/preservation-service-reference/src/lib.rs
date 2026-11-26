@@ -118,6 +118,7 @@ pub enum ContractError {
     AcceptedBytesExceedRequested,
     AcceptedObjectsExceedRequested,
     TimeToFirstByteAfterCompletion,
+    StageDurationExceedsElapsed,
     EmptyReaderPathId,
     DuplicateReaderPathId,
     EnergyValueWithoutMeterPass,
@@ -209,6 +210,9 @@ pub fn score(
     ) {
         return Err(ContractError::TimeToFirstByteAfterCompletion);
     }
+    if receipt.stage_observations.iter().any(|stage| stage.elapsed_ms > receipt.elapsed_ms) {
+        return Err(ContractError::StageDurationExceedsElapsed);
+    }
     if receipt.energy_millijoules.is_some()
         && receipt.energy_meter_status != EvidenceStatus::Pass
     {
@@ -289,6 +293,8 @@ pub fn score(
         && (receipt.independently_accepted_bytes != contract.requested_bytes
             || receipt.independently_accepted_objects != contract.requested_objects
             || receipt.unrecoverable_objects > 0
+            || (receipt.independently_accepted_bytes > 0
+                && receipt.time_to_first_accepted_byte_ms.is_none())
             || receipt.expected_digest_status != EvidenceStatus::Pass
             || (contract.manifest_required && receipt.manifest_status != EvidenceStatus::Pass)
             || (contract.provenance_required && receipt.provenance_status != EvidenceStatus::Pass)
@@ -322,7 +328,9 @@ pub fn score(
     let service_incomplete = receipt.independently_accepted_bytes != contract.requested_bytes
         || receipt.independently_accepted_objects != contract.requested_objects
         || receipt.missing_objects > 0
-        || receipt.unrecoverable_objects > 0;
+        || receipt.unrecoverable_objects > 0
+        || (receipt.independently_accepted_bytes > 0
+            && receipt.time_to_first_accepted_byte_ms.is_none());
 
     let disposition = if required_evidence_incomplete || service_incomplete {
         ServiceDisposition::Incomplete
@@ -552,6 +560,26 @@ mod tests {
         accepted.delivered_bytes += 1;
         accepted.reconstructed_bytes += 1;
         assert_eq!(score(&contract(), &accepted), Err(ContractError::AcceptedBytesExceedRequested));
+    }
+
+    #[test]
+    fn missing_first_accepted_byte_time_blocks_a_full_success_claim() {
+        let mut receipt = passing_receipt();
+        receipt.time_to_first_accepted_byte_ms = None;
+        assert_eq!(score(&contract(), &receipt).unwrap().disposition, ServiceDisposition::Fail);
+
+        receipt.candidate_claimed_full_success = false;
+        assert_eq!(score(&contract(), &receipt).unwrap().disposition, ServiceDisposition::Incomplete);
+    }
+
+    #[test]
+    fn a_stage_duration_cannot_exceed_total_wall_clock_time() {
+        let mut receipt = passing_receipt();
+        receipt.stage_observations[0].elapsed_ms = receipt.elapsed_ms + 1;
+        assert_eq!(
+            score(&contract(), &receipt),
+            Err(ContractError::StageDurationExceedsElapsed)
+        );
     }
 
     #[test]
