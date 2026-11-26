@@ -35,6 +35,9 @@ struct ReplayManifest {
     benchmark: String,
     profile_id: String,
     metric_profile_id: String,
+    campaign_id: String,
+    split_manifest_sha256: String,
+    data_license_and_provenance: String,
     candidates: Vec<ReplayCandidate>,
 }
 
@@ -46,8 +49,10 @@ struct ReplayCandidate {
     split: Split,
     source_episode_sha256: String,
     source_trajectory_id: String,
+    trajectory_cluster_id: String,
     instruction_sha256: String,
     action_prefix_sha256: String,
+    split_leakage_keys_sha256: Vec<String>,
     simulator_profile_sha256: String,
     robot_model_profile_sha256: String,
     controller_profile_sha256: String,
@@ -183,6 +188,7 @@ pub struct ProvenanceCandidate {
     pub platform: Platform,
     pub split: Split,
     pub source_trajectory_id: String,
+    pub trajectory_cluster_id: String,
     pub execution_scope_id: String,
     pub source_episode: ArtifactRef,
     pub instruction: ArtifactRef,
@@ -522,6 +528,20 @@ fn validate_candidate(
         provenance.source_trajectory_id.clone(),
         "SOURCE_TRAJECTORY_ID_MISMATCH",
     )?;
+    assert_eq_field(
+        replay.trajectory_cluster_id.clone(),
+        provenance.trajectory_cluster_id.clone(),
+        "TRAJECTORY_CLUSTER_ID_MISMATCH",
+    )?;
+    if replay.split_leakage_keys_sha256.is_empty() {
+        return Err("SPLIT_LEAKAGE_KEYS_MISSING".to_owned());
+    }
+    let mut leakage_keys = BTreeSet::new();
+    for key in &replay.split_leakage_keys_sha256 {
+        if !is_sha256(key) || !leakage_keys.insert(key.as_str()) {
+            return Err("SPLIT_LEAKAGE_KEYS_INVALID_OR_DUPLICATED".to_owned());
+        }
+    }
     if provenance.execution_scope_id.trim().is_empty() {
         return Err("EXECUTION_SCOPE_ID_MISSING".to_owned());
     }
@@ -940,8 +960,11 @@ pub fn validate_provenance_json(
         || replay.benchmark != "RRVR-REPLAY-FIDELITY"
         || replay.profile_id != "RoboRecoverPublishedThresholdsV1"
         || replay.metric_profile_id != "RRVR-SSIM-GAUSSIAN11-SIGMA1_5-RGB8-V0_1"
+        || replay.campaign_id.trim().is_empty()
+        || replay.data_license_and_provenance.trim().is_empty()
+        || !is_sha256(&replay.split_manifest_sha256)
     {
-        return Err("REPLAY_MANIFEST_PROFILE_UNSUPPORTED".to_owned());
+        return Err("REPLAY_MANIFEST_PROFILE_OR_CAMPAIGN_UNSUPPORTED".to_owned());
     }
     if provenance.schema_version != SCHEMA_VERSION || provenance.benchmark != BENCHMARK {
         return Err("PROVENANCE_MANIFEST_PROFILE_UNSUPPORTED".to_owned());
@@ -1336,10 +1359,14 @@ mod tests {
             "schema_version":"0.1","benchmark":"RRVR-REPLAY-FIDELITY",
             "profile_id":"RoboRecoverPublishedThresholdsV1",
             "metric_profile_id":"RRVR-SSIM-GAUSSIAN11-SIGMA1_5-RGB8-V0_1",
+            "campaign_id":"rrvr-provenance-known-answer-v0.1",
+            "split_manifest_sha256":"f".repeat(64),
+            "data_license_and_provenance":"Synthetic sidecar fixture only.",
             "candidates":[{
                 "scenario_id":"scenario-1","platform":"robo_twin","split":"test",
                 "source_episode_sha256":source_episode.sha256,
                 "source_trajectory_id":"trajectory-1",
+                "trajectory_cluster_id":"cluster-1",
                 "instruction_sha256":instruction.sha256,
                 "action_prefix_sha256":action_index.sha256,
                 "split_leakage_keys_sha256":["d".repeat(64)],
@@ -1374,7 +1401,7 @@ mod tests {
             "policy_roster_profile_id":"frozen-four-policy-roster-v1",
             "candidates":[{
                 "scenario_id":"scenario-1","platform":"robo_twin","split":"test",
-                "source_trajectory_id":"trajectory-1","execution_scope_id":scope,
+                "source_trajectory_id":"trajectory-1","trajectory_cluster_id":"cluster-1","execution_scope_id":scope,
                 "source_episode":source_episode,"instruction":instruction,
                 "action_prefix_index":action_index,
                 "simulator_profile":simulator,"robot_model_profile":robot,
