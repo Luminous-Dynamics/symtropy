@@ -53,7 +53,7 @@ Contains the one true world for each episode, the possible-world catalog, the wo
 
 The JSON schemas in schemas/ define these separate contracts. Synthetic public fixtures exist only for unit tests and conformance; they are not a secret evaluation set. The candidate command context binds an execution_scope_id, system_boundary_manifest_sha256 and effect_producing_inventory_profile_sha256 so all closure evidence is assessed against a declared boundary.
 
-## 3. Evaluator-side Rust package
+## 4. Evaluator-side Rust package
 
 The first evaluator-side executable is in `evaluator/`. It consumes three separate files after candidate inference: the candidate-visible episode, the candidate submission, and the evaluator-only world pack. The evaluator validates digest binding, candidate support membership, open-world residual retention, probe menu/budget/deadline admission, evaluator matrix completeness and the selected disposition's worst-case loss against the frozen hard-risk ceiling. It returns only post-run score fields and never serializes the hidden truth world ID.
 
