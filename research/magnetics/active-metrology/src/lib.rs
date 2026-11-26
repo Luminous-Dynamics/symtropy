@@ -747,12 +747,9 @@ mod tests {
             metrics.functional_sensitivity_minimum_absolute_rad_per_t,
             Some(2.0)
         );
+        assert!((metrics.decision_impact_lower_bound_rad.unwrap() - 0.04).abs() < 1.0e-12);
         assert!(
-            (metrics.decision_impact_lower_bound_rad.unwrap() - 0.04).abs() < 1.0e-12
-        );
-        assert!(
-            (metrics.resolvable_decision_impact_lower_bound_rad.unwrap() - 0.036).abs()
-                < 1.0e-12
+            (metrics.resolvable_decision_impact_lower_bound_rad.unwrap() - 0.036).abs() < 1.0e-12
         );
     }
 
