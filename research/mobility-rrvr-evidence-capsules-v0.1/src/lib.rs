@@ -320,7 +320,10 @@ fn validate_bundle(bundle: &EvidenceBundle) -> Result<(), String> {
         require_text("claim.attempt_id", &claim.attempt_id)?;
         require_text("claim.command_id", &claim.command_id)?;
         require_text("claim.subject_id", &claim.subject_id)?;
-        require_digest("claim.evidence_snapshot_sha256", &claim.evidence_snapshot_sha256)?;
+        require_digest(
+            "claim.evidence_snapshot_sha256",
+            &claim.evidence_snapshot_sha256,
+        )?;
         if !claim_ids.insert(claim.claim_id.as_str()) {
             return Err(format!("DUPLICATE_CLAIM_ID: {}", claim.claim_id));
         }
