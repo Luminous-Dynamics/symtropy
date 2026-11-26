@@ -18,7 +18,7 @@ It selects a finite-difference plateau using only adjacent-step stability—not 
 
 The kernel record binds package/version, source revision, artifact digest, implementation identity, backend/version, device, precision, model class, parameterization, objective and units, and environment digest.
 
-Each directional trial binds the exact design-input digest, unit direction, forward-value evaluator and record, autodiff result, reference derivative, independent reference implementation/revision/artifact/record, and every plus/minus objective sample.
+Each directional trial binds the exact base design-input digest, a direction-vector digest, a base-value observation ID, the forward-value evaluator and record, autodiff result, and a reference derivative explicitly bound to the same base-input and direction digests. Every central-difference plus/minus evaluation has its own unique observation ID and exact perturbed-parameter-vector digest, along with its step size and objective value.
 
 Reference and kernel implementation identities must differ. Record IDs and digests are provenance links, not cryptographic authentication of the underlying tool or physical model.
 
@@ -28,12 +28,15 @@ For direction vector v with unit norm and step h > 0, the recorded central-diffe
 
     d_h = (f(x + h v) - f(x - h v)) / (2 h)
 
-The step sweep must be finite, unique, strictly descending, and entirely inside the policy's preregistered step interval. A plateau is the longest contiguous run of adjacent estimates satisfying:
+The step sweep must be finite, unique, strictly descending, and entirely inside the policy's preregistered step interval. A plateau is the longest contiguous run for which adjacent estimates are stable and the entire run agrees with its own median:
 
     |d_i - d_(i+1)| <= abs_stability_tol
                              + rel_stability_tol * max(|d_i|, |d_(i+1)|)
 
-The plateau is selected without consulting the reference or autodiff values. Ties are resolved deterministically in favor of the earliest (largest-step) run. A minimum number of estimates is required.
+    |d_i - median(run)| <= abs_stability_tol
+                             + rel_stability_tol * max(|d_i|, |median(run)|)
+
+The global-span condition prevents a slowly drifting sequence from passing merely because each adjacent pair differs by a small amount. Plateau selection uses only finite-difference estimates, not the autodiff or reference answer. Ties are resolved deterministically in favor of the earliest (largest-step) run. A minimum number of estimates is required.
 
 For two estimates a and b, normalized error is:
 
