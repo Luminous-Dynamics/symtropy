@@ -176,6 +176,7 @@ pub enum TournamentError {
     InvalidBounds,
     Tree(TreeError),
     CounterOverflow,
+    PairCacheInvariant,
 }
 
 impl From<TreeError> for TournamentError {
@@ -478,25 +479,47 @@ impl<const D: usize> PairDeltaCache<D> {
     ) -> Result<PairDeltaFrame, TournamentError> {
         validate_frame(frame)?;
 
-        let current_bounds = frame
-            .iter()
-            .map(|proxy| (proxy.id, proxy.bounds))
-            .collect::<BTreeMap<_, _>>();
-
+        // Both the cached bounds and frame proxies are ordered by ProxyId.
+        // A merge identifies inserts, removals and geometry changes in O(n)
+        // without rebuilding a second ordered map for every frame.
         let mut dirty = BTreeSet::<ProxyId>::new();
-        for old_id in self.previous_bounds.keys() {
-            if !current_bounds.contains_key(old_id) {
-                dirty.insert(*old_id);
-            }
-        }
-        for (id, bounds) in &current_bounds {
-            if self.previous_bounds.get(id).is_none_or(|old| old != bounds) {
-                dirty.insert(*id);
+        let mut old_iter = self.previous_bounds.iter().peekable();
+        let mut new_iter = frame.iter().peekable();
+        loop {
+            match (old_iter.peek(), new_iter.peek()) {
+                (Some((old_id, old_bounds)), Some(new_proxy)) => {
+                    match old_id.cmp(&new_proxy.id) {
+                        std::cmp::Ordering::Less => {
+                            dirty.insert(**old_id);
+                            old_iter.next();
+                        }
+                        std::cmp::Ordering::Greater => {
+                            dirty.insert(new_proxy.id);
+                            new_iter.next();
+                        }
+                        std::cmp::Ordering::Equal => {
+                            if **old_bounds != new_proxy.bounds {
+                                dirty.insert(**old_id);
+                            }
+                            old_iter.next();
+                            new_iter.next();
+                        }
+                    }
+                }
+                (Some((old_id, _)), None) => {
+                    dirty.insert(**old_id);
+                    old_iter.next();
+                }
+                (None, Some(new_proxy)) => {
+                    dirty.insert(new_proxy.id);
+                    new_iter.next();
+                }
+                (None, None) => break,
             }
         }
         if self.force_dirty {
             dirty.extend(self.previous_bounds.keys().copied());
-            dirty.extend(current_bounds.keys().copied());
+            dirty.extend(frame.iter().map(|proxy| proxy.id));
         }
 
         let mut affected_pairs = BTreeSet::<ProxyPair>::new();
@@ -508,25 +531,48 @@ impl<const D: usize> PairDeltaCache<D> {
                     }
                 }
             }
-            if current_bounds.contains_key(dirty_id) {
-                for other_id in current_bounds.keys() {
-                    if let Some(pair) = ProxyPair::new(*dirty_id, *other_id) {
+            if frame
+                .binary_search_by_key(dirty_id, |proxy| proxy.id)
+                .is_ok()
+            {
+                for other in frame {
+                    if let Some(pair) = ProxyPair::new(*dirty_id, other.id) {
                         affected_pairs.insert(pair);
                     }
                 }
             }
         }
 
+        // Build and validate the complete transition set before mutating the
+        // cache. This prevents a late inconsistency or overflow from leaving a
+        // partially applied frame.
         let mut added = Vec::new();
         let mut removed = Vec::new();
         let mut overlap_tests = 0_u64;
 
         for pair in affected_pairs {
-            let was_active = self
+            let left_active = self
                 .neighbors
                 .get(&pair.0)
                 .is_some_and(|neighbors| neighbors.contains(&pair.1));
-            let is_active = match (current_bounds.get(&pair.0), current_bounds.get(&pair.1)) {
+            let right_active = self
+                .neighbors
+                .get(&pair.1)
+                .is_some_and(|neighbors| neighbors.contains(&pair.0));
+            if left_active != right_active {
+                return Err(TournamentError::PairCacheInvariant);
+            }
+            let was_active = left_active;
+
+            let left = frame
+                .binary_search_by_key(&pair.0, |proxy| proxy.id)
+                .ok()
+                .map(|index| &frame[index].bounds);
+            let right = frame
+                .binary_search_by_key(&pair.1, |proxy| proxy.id)
+                .ok()
+                .map(|index| &frame[index].bounds);
+            let is_active = match (left, right) {
                 (Some(left), Some(right)) => {
                     overlap_tests = overlap_tests
                         .checked_add(1)
@@ -537,44 +583,55 @@ impl<const D: usize> PairDeltaCache<D> {
             };
 
             match (was_active, is_active) {
-                (false, true) => {
-                    self.neighbors.entry(pair.0).or_default().insert(pair.1);
-                    self.neighbors.entry(pair.1).or_default().insert(pair.0);
-                    self.active_pair_count = self
-                        .active_pair_count
-                        .checked_add(1)
-                        .ok_or(TournamentError::CounterOverflow)?;
-                    added.push(pair);
-                }
-                (true, false) => {
-                    let left_removed = self
-                        .neighbors
-                        .get_mut(&pair.0)
-                        .is_some_and(|neighbors| neighbors.remove(&pair.1));
-                    let right_removed = self
-                        .neighbors
-                        .get_mut(&pair.1)
-                        .is_some_and(|neighbors| neighbors.remove(&pair.0));
-                    if !left_removed || !right_removed {
-                        return Err(TournamentError::CounterOverflow);
-                    }
-                    self.active_pair_count = self
-                        .active_pair_count
-                        .checked_sub(1)
-                        .ok_or(TournamentError::CounterOverflow)?;
-                    removed.push(pair);
-                }
+                (false, true) => added.push(pair),
+                (true, false) => removed.push(pair),
                 (true, true) | (false, false) => {}
             }
         }
 
-        self.neighbors
-            .retain(|proxy_id, _| current_bounds.contains_key(proxy_id));
-        for proxy_id in current_bounds.keys() {
-            self.neighbors.entry(*proxy_id).or_default();
+        let next_pair_count = self
+            .active_pair_count
+            .checked_sub(removed.len())
+            .and_then(|count| count.checked_add(added.len()))
+            .ok_or(TournamentError::CounterOverflow)?;
+
+        // All possible validation and arithmetic failures are above this
+        // point. Apply the transitions symmetrically.
+        for pair in &removed {
+            self.neighbors
+                .get_mut(&pair.0)
+                .expect("validated pair endpoint exists")
+                .remove(&pair.1);
+            self.neighbors
+                .get_mut(&pair.1)
+                .expect("validated pair endpoint exists")
+                .remove(&pair.0);
+        }
+        for pair in &added {
+            self.neighbors.entry(pair.0).or_default().insert(pair.1);
+            self.neighbors.entry(pair.1).or_default().insert(pair.0);
         }
 
-        self.previous_bounds = current_bounds;
+        // Retain tombstone-free active adjacency, then update bounds only for
+        // dirty identities. Unchanged identities incur no ordered-map writes.
+        self.neighbors
+            .retain(|proxy_id, _| frame.binary_search_by_key(proxy_id, |proxy| proxy.id).is_ok());
+        for proxy in frame {
+            self.neighbors.entry(proxy.id).or_default();
+        }
+        for dirty_id in &dirty {
+            match frame.binary_search_by_key(dirty_id, |proxy| proxy.id) {
+                Ok(index) => {
+                    self.previous_bounds
+                        .insert(*dirty_id, frame[index].bounds);
+                }
+                Err(_) => {
+                    self.previous_bounds.remove(dirty_id);
+                }
+            }
+        }
+
+        self.active_pair_count = next_pair_count;
         self.force_dirty = false;
 
         Ok(PairDeltaFrame {
