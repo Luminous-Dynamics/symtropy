@@ -207,3 +207,8 @@ Candidate outputs may include:
 - cost to reopen a distinction after a DecisionNeed change.
 
 This is a testable architecture hypothesis, not a commitment to make a factor graph or SLAM package authoritative by default. Dense models and HDC may propose evidence/relations; explicit geometry/topology constraints can expose inconsistencies; the independent evaluator determines admissible truth and decision sufficiency.
+
+
+## 12. VIS-012 research owner
+
+This protocol implements the benchmark-facing contract for [Symthaea VIS-012](https://github.com/Luminous-Dynamics/symthaea/issues/13855). The candidate representation hypothesis is a versioned set of source-grounded spatial constraints and admissible map alternatives—not necessarily one prematurely collapsed best-estimate map. Geometry/topology constraints, uncertainty, frame identity, source intervals and revisions are scored independently; the current DecisionNeed consumes only the decision partition it requires.
