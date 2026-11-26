@@ -498,6 +498,8 @@ mod tests {
         let report = process.report().unwrap();
         assert_eq!(report.lower_expected_difference_ticks, 4.0);
         assert_eq!(report.upper_expected_difference_ticks, 4.0);
+        assert_eq!(report.lower_normalized_expected_difference, 0.0);
+        assert_eq!(report.upper_normalized_expected_difference, 0.0);
     }
 
     #[test]
