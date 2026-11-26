@@ -46,6 +46,7 @@ pub struct DecisionDisambiguationEvaluationV0 {
     pub actual_baseline_conflicting_pairs: u128,
     pub actual_worst_case_conflicting_pairs: Option<u128>,
     pub claimed_decision_sufficient: bool,
+    pub decision_sufficiency_receipt_matches_truth: Option<bool>,
     pub decision_sufficiency_is_valid: bool,
     pub false_decision_sufficiency_claim: bool,
     pub claimed_probe_id: Option<u32>,
@@ -235,12 +236,10 @@ fn actual_worst_case_conflicts(
         .try_fold(0_u128, |worst, value| Ok(worst.max(value?)))
 }
 
-fn all_truth_decisions_equivalent(truth: &ValidatedTruthV0) -> bool {
+fn unique_truth_decision_class(truth: &ValidatedTruthV0) -> Option<u32> {
     let mut classes = truth.decision_by_witness.values().copied();
-    let Some(first) = classes.next() else {
-        return false;
-    };
-    classes.all(|class_id| class_id == first)
+    let first = classes.next()?;
+    classes.all(|class_id| class_id == first).then_some(first)
 }
 
 /// Score a frozen candidate result against evaluator-held admissible witnesses
@@ -338,9 +337,19 @@ pub fn evaluate_decision_disambiguation_claim_v0(
     );
     let complete_witness_coverage =
         false_excluded_hypotheses == 0 && false_included_hypotheses == 0;
+    let decision_sufficiency_receipt_matches_truth = match claimed_result {
+        DecisionDisambiguationResultV0::DecisionSufficient {
+            decision_class_id,
+            live_hypotheses,
+        } => Some(
+            unique_truth_decision_class(&truth) == Some(*decision_class_id)
+                && *live_hypotheses == problem.hypotheses.len(),
+        ),
+        _ => None,
+    };
     let decision_sufficiency_is_valid = claimed_decision_sufficient
         && complete_witness_coverage
-        && all_truth_decisions_equivalent(&truth)
+        && decision_sufficiency_receipt_matches_truth == Some(true)
         && false_decision_equivalence_pairs == 0
         && false_decision_split_pairs == 0;
     let false_decision_sufficiency_claim =
@@ -408,6 +417,7 @@ pub fn evaluate_decision_disambiguation_claim_v0(
         actual_baseline_conflicting_pairs,
         actual_worst_case_conflicting_pairs,
         claimed_decision_sufficient,
+        decision_sufficiency_receipt_matches_truth,
         decision_sufficiency_is_valid,
         false_decision_sufficiency_claim,
         claimed_probe_id,
