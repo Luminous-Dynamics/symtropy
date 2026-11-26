@@ -379,7 +379,7 @@ pub fn build_semi_implicit_euler_envelope<const D: usize>(
     } else {
         0.0
     };
-    let total_guard = checked_add(caller_guard, quantization_guard)?;
+    let total_guard = outward_max(checked_add(caller_guard, quantization_guard)?)?;
     let base_result = build_envelope(
         identity,
         context,
@@ -432,7 +432,7 @@ pub fn verify_semi_implicit_euler_envelope<const D: usize>(
         context,
         tight_bounds,
         receipt.base.displacement,
-        checked_add(caller_guard, receipt.quantization_guard)?,
+        outward_max(checked_add(caller_guard, receipt.quantization_guard)?)?,
     )
 }
 
