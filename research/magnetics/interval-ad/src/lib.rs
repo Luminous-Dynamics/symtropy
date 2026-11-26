@@ -721,6 +721,120 @@ where
     Ok(result)
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct SpatialDerivativeSupremumEvidence {
+    pub source_record_id: String,
+    pub cell_id: String,
+    pub axis_parameter_ids: [String; 3],
+    pub axis_bounds_m: [Interval; 3],
+    pub derivative_abs_supremum_by_axis: [f64; 3],
+    pub output_unit: String,
+    pub derivative_unit: String,
+    pub coordinate_frame_id: String,
+    pub operating_condition_id: String,
+    pub model_set_id: String,
+    pub solver_run_id: String,
+    pub geometry_sha256: String,
+    pub material_sha256: String,
+    pub requirement_id: String,
+    pub arithmetic_contract: String,
+    pub value_enclosure_method: ValueEnclosureMethod,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SpatialMappingError {
+    InvalidExpectedIdentity,
+    CellIdentityMismatch,
+    RequirementIdentityMismatch,
+    DuplicateSpatialAxisId,
+    MissingSpatialAxisParameter { axis: usize },
+    SpatialAxisUnitMismatch { axis: usize },
+    UnboundedSpatialDerivative { axis: usize },
+}
+
+/// Map a validated scalar functional-margin expression to the spatial
+/// certifier's XYZ derivative-supremum contract.
+///
+/// The record's parameter order may differ from XYZ; axes are explicitly
+/// selected by parameter ID. This adapter does not create a centre margin
+/// observation: the spatial certifier still requires an independent sample
+/// and uncertainty interval at the exact cell centre. The value enclosure
+/// is never converted to a centre-margin interval.
+pub fn map_spatial_derivative_suprema<const N: usize>(
+    record: &ValidatedDerivativeEnclosure<N>,
+    expected_cell_id: &str,
+    expected_requirement_id: &str,
+    spatial_axis_parameter_ids: [&str; 3],
+    length_unit: &str,
+) -> Result<SpatialDerivativeSupremumEvidence, SpatialMappingError> {
+    if expected_cell_id.trim().is_empty()
+        || expected_requirement_id.trim().is_empty()
+        || length_unit.trim().is_empty()
+        || record.output_unit.trim().is_empty()
+    {
+        return Err(SpatialMappingError::InvalidExpectedIdentity);
+    }
+    if record.cell_id != expected_cell_id {
+        return Err(SpatialMappingError::CellIdentityMismatch);
+    }
+    if record.requirement_id != expected_requirement_id {
+        return Err(SpatialMappingError::RequirementIdentityMismatch);
+    }
+    if spatial_axis_parameter_ids
+        .iter()
+        .any(|parameter_id| parameter_id.trim().is_empty())
+        || spatial_axis_parameter_ids[0] == spatial_axis_parameter_ids[1]
+        || spatial_axis_parameter_ids[0] == spatial_axis_parameter_ids[2]
+        || spatial_axis_parameter_ids[1] == spatial_axis_parameter_ids[2]
+    {
+        return Err(SpatialMappingError::DuplicateSpatialAxisId);
+    }
+
+    let mut axis_bounds_m = [Interval::ZERO; 3];
+    let mut derivative_abs_supremum_by_axis = [0.0; 3];
+    let mut axis_ids = std::array::from_fn(|axis| spatial_axis_parameter_ids[axis].to_owned());
+
+    for axis in 0..3 {
+        let parameter_id = spatial_axis_parameter_ids[axis];
+        let Some(parameter_index) = record
+            .parameter_ids
+            .iter()
+            .position(|candidate| candidate == parameter_id)
+        else {
+            return Err(SpatialMappingError::MissingSpatialAxisParameter { axis });
+        };
+        if record.parameter_units[parameter_index] != length_unit {
+            return Err(SpatialMappingError::SpatialAxisUnitMismatch { axis });
+        }
+        let supremum = record.derivative_abs_supremum[parameter_index];
+        if !supremum.is_finite() || supremum < 0.0 {
+            return Err(SpatialMappingError::UnboundedSpatialDerivative { axis });
+        }
+        axis_bounds_m[axis] = record.parameter_bounds[parameter_index];
+        derivative_abs_supremum_by_axis[axis] = supremum;
+        axis_ids[axis] = parameter_id.to_owned();
+    }
+
+    Ok(SpatialDerivativeSupremumEvidence {
+        source_record_id: record.record_id.clone(),
+        cell_id: record.cell_id.clone(),
+        axis_parameter_ids: axis_ids,
+        axis_bounds_m,
+        derivative_abs_supremum_by_axis,
+        output_unit: record.output_unit.clone(),
+        derivative_unit: format!("{}/{}", record.output_unit, length_unit),
+        coordinate_frame_id: record.coordinate_frame_id.clone(),
+        operating_condition_id: record.operating_condition_id.clone(),
+        model_set_id: record.model_set_id.clone(),
+        solver_run_id: record.solver_run_id.clone(),
+        geometry_sha256: record.geometry_sha256.clone(),
+        material_sha256: record.material_sha256.clone(),
+        requirement_id: record.requirement_id.clone(),
+        arithmetic_contract: record.arithmetic_contract.clone(),
+        value_enclosure_method: record.value_enclosure_method,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
