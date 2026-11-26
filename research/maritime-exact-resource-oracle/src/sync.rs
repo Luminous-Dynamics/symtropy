@@ -84,17 +84,44 @@ pub enum SyncError {
     EmptyTasks,
     EmptyRoutes,
     TooManyTasksForExactEnumeration(usize),
-    InvalidGamma { gamma: usize, task_count: usize },
+    InvalidGamma {
+        gamma: usize,
+        task_count: usize,
+    },
     DuplicateTask(String),
     DuplicateRoute(String),
-    InvalidServiceBand { task_id: String },
-    UnknownTask { route_id: String, task_id: String },
-    DuplicateTaskInRoute { route_id: String, task_id: String },
-    RouteTaskSetMismatch { route_id: String },
-    TravelVectorLength { route_id: String, expected: usize, actual: usize },
-    UnknownQcPredecessor { task_id: String, predecessor_id: String },
-    QcPredecessorMismatch { task_id: String, predecessor_id: String },
-    PrecedenceNotAvailable { route_id: String, task_id: String, predecessor_id: String },
+    InvalidServiceBand {
+        task_id: String,
+    },
+    UnknownTask {
+        route_id: String,
+        task_id: String,
+    },
+    DuplicateTaskInRoute {
+        route_id: String,
+        task_id: String,
+    },
+    RouteTaskSetMismatch {
+        route_id: String,
+    },
+    TravelVectorLength {
+        route_id: String,
+        expected: usize,
+        actual: usize,
+    },
+    UnknownQcPredecessor {
+        task_id: String,
+        predecessor_id: String,
+    },
+    QcPredecessorMismatch {
+        task_id: String,
+        predecessor_id: String,
+    },
+    PrecedenceNotAvailable {
+        route_id: String,
+        task_id: String,
+        predecessor_id: String,
+    },
     ArithmeticOverflow,
 }
 
@@ -106,9 +133,7 @@ impl std::fmt::Display for SyncError {
 
 impl std::error::Error for SyncError {}
 
-fn validate_instance(
-    instance: &SyncInstance,
-) -> Result<BTreeMap<String, SyncTask>, SyncError> {
+fn validate_instance(instance: &SyncInstance) -> Result<BTreeMap<String, SyncTask>, SyncError> {
     if instance.instance_id.is_empty() {
         return Err(SyncError::EmptyIdentifier);
     }
@@ -136,7 +161,10 @@ fn validate_instance(
             return Err(SyncError::EmptyIdentifier);
         }
         if task.nominal_service <= task.service_deviation
-            || task.nominal_service.checked_add(task.service_deviation).is_none()
+            || task
+                .nominal_service
+                .checked_add(task.service_deviation)
+                .is_none()
         {
             return Err(SyncError::InvalidServiceBand {
                 task_id: task.task_id.clone(),
@@ -159,12 +187,13 @@ fn validate_instance(
 
     for task in tasks.values() {
         if let Some(predecessor_id) = &task.qc_predecessor {
-            let predecessor = tasks.get(predecessor_id).ok_or_else(|| {
-                SyncError::UnknownQcPredecessor {
-                    task_id: task.task_id.clone(),
-                    predecessor_id: predecessor_id.clone(),
-                }
-            })?;
+            let predecessor =
+                tasks
+                    .get(predecessor_id)
+                    .ok_or_else(|| SyncError::UnknownQcPredecessor {
+                        task_id: task.task_id.clone(),
+                        predecessor_id: predecessor_id.clone(),
+                    })?;
             if predecessor.qc_id != task.qc_id {
                 return Err(SyncError::QcPredecessorMismatch {
                     task_id: task.task_id.clone(),
@@ -177,10 +206,7 @@ fn validate_instance(
     Ok(tasks)
 }
 
-fn validate_route(
-    route: &SyncRoute,
-    tasks: &BTreeMap<String, SyncTask>,
-) -> Result<(), SyncError> {
+fn validate_route(route: &SyncRoute, tasks: &BTreeMap<String, SyncTask>) -> Result<(), SyncError> {
     let expected_travel = route.task_order.len().saturating_sub(1);
     if route.inter_task_travel.len() != expected_travel {
         return Err(SyncError::TravelVectorLength {
@@ -231,14 +257,7 @@ fn uncertainty_vectors(task_count: usize, gamma: usize) -> Vec<Vec<i8>> {
             let next_budget = used_budget + usize::from(value.unsigned_abs());
             if next_budget <= gamma {
                 current.push(value);
-                recurse(
-                    index + 1,
-                    next_budget,
-                    task_count,
-                    gamma,
-                    current,
-                    output,
-                );
+                recurse(index + 1, next_budget, task_count, gamma, current, output);
                 current.pop();
             }
         }
@@ -284,14 +303,16 @@ fn simulate(
         })?;
 
         let qc_ready = match &task.qc_predecessor {
-            Some(predecessor_id) => timings
-                .get(predecessor_id)
-                .ok_or_else(|| SyncError::PrecedenceNotAvailable {
-                    route_id: route.route_id.clone(),
-                    task_id: task_id.clone(),
-                    predecessor_id: predecessor_id.clone(),
-                })?
-                .service_finish,
+            Some(predecessor_id) => {
+                timings
+                    .get(predecessor_id)
+                    .ok_or_else(|| SyncError::PrecedenceNotAvailable {
+                        route_id: route.route_id.clone(),
+                        task_id: task_id.clone(),
+                        predecessor_id: predecessor_id.clone(),
+                    })?
+                    .service_finish
+            }
             None => 0,
         };
 
@@ -299,12 +320,13 @@ fn simulate(
             u64::from(route.initial_travel)
         } else {
             let predecessor_id = &route.task_order[index - 1];
-            let predecessor = timings.get(predecessor_id).ok_or_else(|| {
-                SyncError::UnknownTask {
-                    route_id: route.route_id.clone(),
-                    task_id: predecessor_id.clone(),
-                }
-            })?;
+            let predecessor =
+                timings
+                    .get(predecessor_id)
+                    .ok_or_else(|| SyncError::UnknownTask {
+                        route_id: route.route_id.clone(),
+                        task_id: predecessor_id.clone(),
+                    })?;
             checked_add(
                 predecessor.service_finish,
                 u64::from(route.inter_task_travel[index - 1]),
@@ -321,7 +343,9 @@ fn simulate(
                 route_id: route.route_id.clone(),
                 task_id: task_id.clone(),
             })?;
-        let deviation = *scenario.get(deviation_index).ok_or(SyncError::ArithmeticOverflow)?;
+        let deviation = *scenario
+            .get(deviation_index)
+            .ok_or(SyncError::ArithmeticOverflow)?;
         let service_time = if deviation < 0 {
             task.nominal_service - task.service_deviation
         } else if deviation > 0 {
@@ -389,13 +413,7 @@ fn evaluate_route(
 
     let mut worst_case: Option<ScenarioEvaluation> = None;
     for scenario in scenarios {
-        let evaluation = simulate(
-            tasks,
-            route,
-            scenario,
-            qc_wait_weight,
-            agv_wait_weight,
-        )?;
+        let evaluation = simulate(tasks, route, scenario, qc_wait_weight, agv_wait_weight)?;
         let should_replace = match &worst_case {
             None => true,
             Some(current) => {
@@ -521,7 +539,11 @@ mod tests {
     #[test]
     fn handoff_start_is_max_of_qc_and_agv_readiness() {
         let result = evaluate_sync_tournament(&tiny_instance(0)).unwrap();
-        let route = result.routes.iter().find(|item| item.route_id == "AB").unwrap();
+        let route = result
+            .routes
+            .iter()
+            .find(|item| item.route_id == "AB")
+            .unwrap();
         assert_eq!(route.nominal.task_timings[0].qc_ready, 0);
         assert_eq!(route.nominal.task_timings[0].agv_ready, 5);
         assert_eq!(route.nominal.task_timings[0].service_start, 5);
@@ -539,7 +561,11 @@ mod tests {
     #[test]
     fn worst_case_receipt_contains_the_service_time_witness() {
         let result = evaluate_sync_tournament(&tiny_instance(1)).unwrap();
-        let route = result.routes.iter().find(|item| item.route_id == "BA").unwrap();
+        let route = result
+            .routes
+            .iter()
+            .find(|item| item.route_id == "BA")
+            .unwrap();
         assert_eq!(route.nominal.weighted_wait_cost, 4);
         assert_eq!(route.worst_case.weighted_wait_cost, 7);
         assert_eq!(route.worst_case.scenario, vec![0, 1]);
@@ -573,8 +599,17 @@ mod tests {
             route.inter_task_travel.push(0);
         }
         let result = evaluate_sync_tournament(&instance).unwrap();
-        let route = result.routes.iter().find(|item| item.route_id == "AB").unwrap();
-        let c = route.nominal.task_timings.iter().find(|timing| timing.task_id == "C").unwrap();
+        let route = result
+            .routes
+            .iter()
+            .find(|item| item.route_id == "AB")
+            .unwrap();
+        let c = route
+            .nominal
+            .task_timings
+            .iter()
+            .find(|timing| timing.task_id == "C")
+            .unwrap();
         assert!(c.qc_ready >= 8);
     }
 
