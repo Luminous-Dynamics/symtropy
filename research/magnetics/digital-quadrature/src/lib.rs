@@ -6,7 +6,7 @@
 
 pub mod robust_synthesis;
 
-use std::f64::consts::{PI, TAU};
+use std::f64::consts::TAU;
 
 const ANGLE_TOLERANCE_RAD: f64 = 1.0e-9;
 
@@ -323,14 +323,13 @@ fn validate_config(config: &QuadratureConfig) -> Result<(), EvaluationError> {
     }
     validate_latch(config.channel_a)?;
     validate_latch(config.channel_b)?;
-    if let Some(policy) = config.edge_rate_policy {
-        if !policy.rotational_speed_rpm.is_finite()
+    if let Some(policy) = config.edge_rate_policy
+        && (!policy.rotational_speed_rpm.is_finite()
             || policy.rotational_speed_rpm < 0.0
             || !policy.maximum_transition_rate_hz.is_finite()
-            || policy.maximum_transition_rate_hz <= 0.0
-        {
-            return Err(EvaluationError::InvalidTimingPolicy);
-        }
+            || policy.maximum_transition_rate_hz <= 0.0)
+    {
+        return Err(EvaluationError::InvalidTimingPolicy);
     }
     Ok(())
 }
@@ -824,10 +823,9 @@ pub fn evaluate_trace(
         }
         if let (Some(previous_time), Some(current_time)) =
             (previous.timestamp_ns, sample.timestamp_ns)
+            && current_time <= previous_time
         {
-            if current_time <= previous_time {
-                return Err(EvaluationError::NonMonotonicTimestamp { index });
-            }
+            return Err(EvaluationError::NonMonotonicTimestamp { index });
         }
 
         if config.architecture == SensorArchitecture::IntegratedTwoAxisLatch
