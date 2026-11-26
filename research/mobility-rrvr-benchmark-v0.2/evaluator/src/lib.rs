@@ -343,7 +343,10 @@ fn validate_bundle(bundle: &ResultsBundle) -> Result<(), String> {
             }
         }
 
-        pairs.entry(episode.pair_id.as_str()).or_default().push(episode);
+        pairs
+            .entry(episode.pair_id.as_str())
+            .or_default()
+            .push(episode);
     }
 
     for (pair_id, rows) in pairs {
