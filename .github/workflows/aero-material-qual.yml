@@ -32,9 +32,15 @@ on:
       - "docs/research/aviation/AERO_DECISION_CONTEXT_ENVELOPE_V0_1.md"
       - "docs/research/aviation/schemas/aero_decision_context_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_decision_context_v0_1.json"
+      - "docs/research/aviation/AERO_DECISION_CONTEXT_ENVELOPE_V0_1.md"
+      - "docs/research/aviation/schemas/aero_decision_context_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_decision_context_v0_1.json"
+      - "docs/research/aviation/AERO_DECISION_CONTEXT_ENVELOPE_V0_1.md"
+      - "docs/research/aviation/schemas/aero_decision_context_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_decision_context_v0_1.json"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
-    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1"]
+    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1"]
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
