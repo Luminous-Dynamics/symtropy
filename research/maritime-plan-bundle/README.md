@@ -1,6 +1,6 @@
 # Maritime Plan Bundle v0.1
 
-**Status:** synthetic composition prototype; exact-head qualification pending.
+**Status:** synthetic composition prototype; dedicated exact-head workflow passed.
 **Tracking:** [#7544 — MARITIME-PLAN-BUNDLE-001](https://github.com/Luminous-Dynamics/symtropy/issues/7544).
 **Related:** #3683, #7488, #7504, #7512, #7519, #7528.
 
@@ -69,3 +69,15 @@ python3 research/maritime-plan-bundle/scripts/independent_reference.py --receipt
 - The synthetic corpus does not demonstrate a real port's service improvement or a SOTA win.
 
 The next adapter must consume actual versioned receipts from the physical and commitment owners, preserve their provenance/cutoffs, and hand their typed outputs to #7488. It must not create duplicate ownership of capacity, participant permissions, source history or custody.
+
+## Exact-head qualification record
+
+The dedicated `maritime-plan-bundle` workflow passed on commit `ae924f193f3b0745a31b5ee5f836e3625f761071`:
+- Formatting: pass
+- Rust tests: 16 passed, 0 failed
+- Strict Clippy: pass
+- Deterministic bundle receipt: pass
+- Independent multi-party history reference: 9/9
+- Receipt artifact uploaded
+
+This qualifies only the frozen synthetic commitment-coverage contract. The static provider remains a fixture adapter; no production receipt authentication or external mutation is connected.
