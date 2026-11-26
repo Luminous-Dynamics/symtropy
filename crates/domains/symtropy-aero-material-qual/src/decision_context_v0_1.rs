@@ -211,6 +211,23 @@ mod tests {
     }
 
     #[test]
+    fn rust_digest_matches_the_frozen_cross_language_context_vector() {
+        let refs = vec![
+            "receipt:inspection-01".to_owned(),
+            "receipt:calibration-02".to_owned(),
+        ];
+        let context = context(&refs);
+        assert_eq!(
+            context.required_evidence_manifest_sha256,
+            "17656ee262a7455dfc652ba667379f8696160c7a567a559a5d8fb7bbced45032"
+        );
+        assert_eq!(
+            context.compute_sha256().expect("valid context"),
+            "b413084d0f543cc90a15e14cdff3fa92e6cf934b9e57773182017dfa2001768e"
+        );
+    }
+
+    #[test]
     fn identical_typed_contexts_have_identical_commitments() {
         let refs = vec!["receipt:inspection-01".to_owned()];
         assert_eq!(context(&refs).compute_sha256(), context(&refs).compute_sha256());
