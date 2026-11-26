@@ -65,6 +65,38 @@ Thus acquisition exactly at valid_from_unix_ms is inside the interval; acquisiti
 
 The evaluator requires the certificate instrument to match the campaign instrument and the certificate method revision to match the campaign protocol revision.
 
+#### 2.3.1 Hard-bounded acquisition and event effectivity (additive v0.2 extension)
+
+The profile now permits two optional fields on an observation:
+
+- `acquisition_time_earliest_unix_ms`
+- `acquisition_time_latest_unix_ms`
+
+and two optional fields on a calibration event:
+
+- `effective_time_earliest_unix_ms`
+- `effective_time_latest_unix_ms`
+
+Each pair is all-or-nothing. Both endpoints must be valid unsigned integer UTC epoch milliseconds, ordered, and must contain the required nominal point field (`acquired_at_unix_ms` or `effective_at_unix_ms`). One endpoint alone, reversed bounds, an invalid type, or a nominal point outside the declared interval blocks the affected measurement. Existing records with neither optional field retain backward-compatible exact-point semantics: the nominal timestamp is interpreted as a degenerate interval [t,t].
+
+These bounds are **hard enclosures under the declared source/method assumptions**. A 95% confidence interval, standard uncertainty or empirical quantile is not automatically a hard bound. Such probabilistic/measurement uncertainty must retain its own method, coverage level, assumptions and provenance rather than being silently promoted to deterministic chronology.
+
+For the certificate validity interval [V_start,V_end), positive binding requires the entire acquisition interval [A_earliest,A_latest] to lie within it:
+
+`A_earliest >= V_start` and `A_latest < V_end`.
+
+If the acquisition interval is wholly before or wholly after certificate validity, the observation is outside the interval. If it crosses either boundary, the result is `CALIBRATION_VALIDITY_BOUNDARY_AMBIGUOUS` and blocks; the evaluator must not select the favorable endpoint.
+
+Calibration event effectivity is compared twice:
+1. against the evaluation snapshot T, represented as [T,T], to decide whether an event is definitely effective, definitely future, or ambiguous at that snapshot;
+2. against the acquisition interval, to decide whether the event applies to that physical observation.
+
+An event whose effective-time interval is definitely later than every possible acquisition time is not applied to that historical observation, even if it is known by a later evaluation snapshot. An overlap between event effective time and acquisition time blocks as ambiguous. An event whose effective-time interval overlaps the evaluation snapshot also blocks as ambiguous. This prevents a later revocation from being silently treated as retroactive merely because the report is generated later. An explicit owner-authorized retroactive event still requires the applicable authority/effectivity evidence; the local interval comparator does not decide whether retroactivity is legally or technically valid.
+
+`recorded_at_unix_ms` remains the issuer/source assertion used by this synthetic profile. It is not receiver-first-seen evidence, a trusted timestamp token, or proof that an event was in fact received by the selected evaluator. The three-axis replay and owner-native receipt work remains tracked in [#7455](https://github.com/Luminous-Dynamics/symtropy/issues/7455).
+
+The interval comparator is owned by `effectivity_interval_v0_1.rs` and is now consumed directly by the v0.2 specimen/calibration evaluator. The interval primitive is not a second clock, receipt ledger or event store. The positive disposition ceiling remains `METROLOGY_BINDING_CONSISTENT_ONLY`, never physical qualification.
+
 ### 2.4 Append-only calibration events
 
 The calibration_events collection preserves revoked, suspended, corrected and superseded events, with:
