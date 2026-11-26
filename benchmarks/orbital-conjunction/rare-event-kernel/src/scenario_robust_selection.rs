@@ -275,7 +275,10 @@ impl ScenarioRobustPortfolioSelection {
             }
         }
 
-        let per_scenario_alpha = family_alpha / proposals.len() as f64;
+        // Round the allocated error probability down so the represented
+        // scenario family cannot exceed the declared family-wise budget due
+        // to IEEE-754 round-to-nearest division.
+        let per_scenario_alpha = next_down_probability(family_alpha / proposals.len() as f64);
         if !per_scenario_alpha.is_finite() || per_scenario_alpha <= 0.0 || per_scenario_alpha >= 1.0
         {
             return Err(ScenarioRobustSelectionError::NumericalFailure);
@@ -490,6 +493,14 @@ impl ScenarioRobustPortfolioSelection {
     }
 }
 
+/// Return the immediately smaller positive representable probability.
+fn next_down_probability(value: f64) -> f64 {
+    if !value.is_finite() || value <= 0.0 {
+        return value;
+    }
+    f64::from_bits(value.to_bits() - 1)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -629,7 +640,15 @@ mod tests {
         assert_eq!(report.portfolio_count, 3);
         assert_eq!(report.pairwise_contrasts_per_scenario, 3);
         assert_eq!(report.total_scenario_pair_intervals, 6);
-        assert_eq!(report.per_scenario_alpha, 0.025);
+        assert!(report.per_scenario_alpha <= 0.05_f64 / 2.0);
+        assert_eq!(
+            report.scenario_reports[0].report.contrast_alpha,
+            report.scenario_reports[1].report.contrast_alpha
+        );
+        assert!(
+            report.scenario_reports[0].report.contrast_alpha
+                <= report.per_scenario_alpha / 3.0
+        );
         assert_eq!(report.consequence_contract_id, CONSEQUENCE_CONTRACT_ID);
         assert_eq!(report.scenario_reports[0].scenario_id, [1; 32]);
         assert_eq!(report.scenario_reports[0].scenario_manifest_digest, [101; 32]);
