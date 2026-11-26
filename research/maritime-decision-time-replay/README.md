@@ -266,7 +266,7 @@ The module exposes `TemporalCutoffs`, `TemporalEvidenceRevision`, `project_tempo
 
 Important separation: the decision-revision selector does not inspect adjudication state. Later audit conflicts or later acceptance cannot change the source revision that was admissible to the historical policy. Audit projection separately selects the latest adjudication revision known by the audit cutoff and rejects conflicting same-revision adjudication records.
 
-The temporal module currently has seven focused unit tests covering:
+The temporal module currently has eight focused unit tests covering:
 - later source correction vs historical decision cutoff;
 - independent publication and receiver retrieval times;
 - future plans known before their physical validity;
