@@ -78,6 +78,8 @@ pub struct DefensivePortfolioDrawReceipt {
     pub log_full_proposal_density: f64,
     /// Log target/proposal likelihood ratio evaluated once for the common draw.
     pub log_importance_weight: f64,
+    /// Complete direct portfolio outcomes in canonical portfolio-ID order.
+    pub portfolio_consequences: Vec<crate::portfolio_selection::PortfolioConsequenceObservation>,
     /// All direct pairwise contrasts and defensive contributions.
     pub pair_observations: Vec<DefensivePortfolioPairObservation>,
 }
@@ -459,6 +461,14 @@ impl SimultaneousDefensivePortfolioSelection {
             log_target_density: common_evaluation.log_target_density,
             log_full_proposal_density: common_evaluation.log_full_proposal_density,
             log_importance_weight: common_evaluation.log_importance_weight,
+            portfolio_consequences: self
+                .portfolio_bounds
+                .iter()
+                .map(|bound| crate::portfolio_selection::PortfolioConsequenceObservation {
+                    portfolio_id: bound.portfolio_id,
+                    consequence_ticks: *observed.get(&bound.portfolio_id).unwrap_or(&0),
+                })
+                .collect(),
             pair_observations,
         })
     }
@@ -652,9 +662,9 @@ mod tests {
             0.2,
             vec![key(10), key(20), key(30)],
             vec![
-                proposal_component(1, 10, 1.0 / 3.0, -5.0),
+                proposal_component(1, 10, 1.0 / 3.0, 0.0),
                 proposal_component(2, 20, 1.0 / 3.0, 0.0),
-                proposal_component(3, 30, 1.0 / 3.0, 5.0),
+                proposal_component(3, 30, 1.0 / 3.0, 0.0),
             ],
         )
         .unwrap()
@@ -680,10 +690,12 @@ mod tests {
         ]
     }
 
-    fn draw(index: u64, draw_id: u8, outcomes: &[(u8, i32)]) -> DefensivePortfolioDraw {
+    fn draw(index: u64, draw_id: u64, outcomes: &[(u8, i32)]) -> DefensivePortfolioDraw {
+        let mut identity = [0_u8; 32];
+        identity[..8].copy_from_slice(&draw_id.to_be_bytes());
         DefensivePortfolioDraw {
             draw_index: index,
-            draw_id: [draw_id; 32],
+            draw_id: identity,
             mode_key: key(10),
             point: vec![0.0],
             portfolio_consequences: outcomes
@@ -725,7 +737,10 @@ mod tests {
             .unwrap();
 
         assert_eq!(receipt.draw_index, 1);
-        assert_eq!(receipt.draw_id, [1; 32]);
+        let mut expected_id = [0_u8; 32];
+        expected_id[..8].copy_from_slice(&1_u64.to_be_bytes());
+        assert_eq!(receipt.draw_id, expected_id);
+        assert_eq!(receipt.portfolio_consequences.len(), 3);
         assert_eq!(receipt.pair_observations.len(), 3);
         assert!(receipt.log_target_density.is_finite());
         assert!(receipt.log_full_proposal_density.is_finite());
@@ -785,7 +800,6 @@ mod tests {
 
     #[test]
     fn omitted_proposal_portfolio_is_rejected_at_construction() {
-        let all = proposal_three_modes();
         let one_target = GaussianMixture::new(vec![
             GaussianComponent::new(1.0, gaussian(0.0, 1.0)).unwrap(),
         ])
@@ -802,7 +816,6 @@ mod tests {
             ],
         )
         .unwrap();
-        let _ = all;
         assert_eq!(
             SimultaneousDefensivePortfolioSelection::new(0.05, bounds(), restricted).unwrap_err(),
             SimultaneousDefensiveSelectionError::IncompleteProposalPortfolioCoverage
@@ -818,7 +831,7 @@ mod tests {
             process
                 .observe(&draw(
                     index,
-                    (index % 250 + 1) as u8,
+                    index,
                     &[(10, 0), (20, 10), (30, 20)],
                 ))
                 .unwrap();
