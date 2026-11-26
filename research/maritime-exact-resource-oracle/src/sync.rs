@@ -12,6 +12,8 @@ use std::collections::{BTreeMap, BTreeSet};
 pub struct SyncTask {
     pub task_id: String,
     pub qc_id: String,
+    /// Initial availability time when there is no QC predecessor.
+    pub qc_release_at: u32,
     pub nominal_service: u32,
     pub service_deviation: u32,
     pub qc_predecessor: Option<String>,
@@ -313,7 +315,7 @@ fn simulate(
                     })?
                     .service_finish
             }
-            None => 0,
+            None => u64::from(task.qc_release_at),
         };
 
         let agv_ready = if index == 0 {
@@ -504,6 +506,7 @@ mod tests {
                 SyncTask {
                     task_id: "A".to_owned(),
                     qc_id: "QC-A".to_owned(),
+                    qc_release_at: 0,
                     nominal_service: 3,
                     service_deviation: 1,
                     qc_predecessor: None,
@@ -511,6 +514,7 @@ mod tests {
                 SyncTask {
                     task_id: "B".to_owned(),
                     qc_id: "QC-B".to_owned(),
+                    qc_release_at: 4,
                     nominal_service: 4,
                     service_deviation: 3,
                     qc_predecessor: None,
@@ -530,7 +534,7 @@ mod tests {
                     inter_task_travel: vec![0],
                 },
             ],
-            qc_wait_weight: 1,
+            qc_wait_weight: 5,
             agv_wait_weight: 1,
             gamma,
         }
@@ -549,6 +553,9 @@ mod tests {
         assert_eq!(route.nominal.task_timings[0].service_start, 5);
         assert_eq!(route.nominal.task_timings[0].qc_wait, 5);
         assert_eq!(route.nominal.task_timings[0].agv_wait, 0);
+        assert_eq!(route.nominal.task_timings[1].qc_ready, 4);
+        assert_eq!(route.nominal.task_timings[1].agv_ready, 8);
+        assert_eq!(route.nominal.task_timings[1].qc_wait, 4);
     }
 
     #[test]
@@ -566,8 +573,10 @@ mod tests {
             .iter()
             .find(|item| item.route_id == "BA")
             .unwrap();
-        assert_eq!(route.nominal.weighted_wait_cost, 4);
-        assert_eq!(route.worst_case.weighted_wait_cost, 7);
+        assert_eq!(route.nominal.weighted_wait_cost, 44);
+        assert_eq!(route.worst_case.weighted_wait_cost, 59);
+        assert_eq!(route.worst_case.total_qc_wait, 11);
+        assert_eq!(route.worst_case.total_agv_wait, 4);
         assert_eq!(route.worst_case.scenario, vec![0, 1]);
     }
 
