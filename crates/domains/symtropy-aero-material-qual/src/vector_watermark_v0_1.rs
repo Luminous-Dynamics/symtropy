@@ -160,6 +160,10 @@ pub fn validate_causal_cut(cut: &EvidenceCut) -> CutAssessment {
     let mut unverified = Vec::new();
     let mut incomplete = Vec::new();
 
+    if !nonempty(&cut.cut_id) {
+        invalid.push("CUT_ID_MISSING_OR_NONCANONICAL".to_owned());
+    }
+
     let mut watermarks = BTreeMap::new();
     for watermark in &cut.watermarks {
         if !nonempty(&watermark.source_id)
@@ -619,6 +623,29 @@ mod tests {
         assert_eq!(report.watermark_count, 2);
         assert_eq!(report.event_count, 3);
         assert_eq!(report.dependency_count, 2);
+    }
+
+    #[test]
+    fn cut_identity_must_be_nonempty_and_canonical() {
+        let evidence = EvidenceCut {
+            cut_id: " invalid-cut-id ".to_owned(),
+            watermarks: Vec::new(),
+            events: Vec::new(),
+        };
+        assert_eq!(validate_causal_cut(&evidence).status, CutStatus::Invalid);
+    }
+
+    #[test]
+    fn permutation_of_events_and_watermarks_preserves_cut_disposition() {
+        let original = from_str::<EvidenceCut>(FIXTURE).expect("vector cut fixture parses");
+        let expected = validate_causal_cut(&original);
+        let mut permuted = original.clone();
+        permuted.watermarks.reverse();
+        permuted.events.reverse();
+        for event in &mut permuted.events {
+            event.dependencies.reverse();
+        }
+        assert_eq!(validate_causal_cut(&permuted), expected);
     }
 
     #[test]
