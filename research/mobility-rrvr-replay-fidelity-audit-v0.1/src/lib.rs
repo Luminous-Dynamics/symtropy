@@ -391,6 +391,14 @@ fn compute_ssim(original: &RgbImage, replay: &RgbImage) -> Result<f64, String> {
     Ok(total / count as f64)
 }
 
+fn mean_final_five_ssim(scores: &[Option<f64>]) -> Option<f64> {
+    if scores.len() != FRAME_PAIR_N {
+        return None;
+    }
+    let values: Option<Vec<f64>> = scores.iter().copied().collect();
+    values.map(|values| values.iter().sum::<f64>() / FRAME_PAIR_N as f64)
+}
+
 fn pose_error_mm(original: &PositionMm, replayed: &PositionMm) -> Result<f64, String> {
     if original.coordinate_frame_id.trim().is_empty()
         || replayed.coordinate_frame_id.trim().is_empty()
@@ -645,22 +653,14 @@ fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> Candida
         push_status(&mut status, AuditStatus::Invalid);
     }
     frame_checks.sort_by_key(|check| check.frame_index);
-    let mean_scores: Option<Vec<f64>> = frame_checks
-        .iter()
-        .map(|check| check.ssim)
-        .collect();
-    let (mean_final_five_ssim, mean_ssim_passed) = match mean_scores {
-        Some(scores) if scores.len() == FRAME_PAIR_N => {
-            let mean = scores.iter().sum::<f64>() / FRAME_PAIR_N as f64;
-            let passed = mean > SSIM_THRESHOLD;
-            if !passed {
-                reason_codes.push("MEAN_FINAL_FIVE_FRAME_SSIM_NOT_ABOVE_0_99".to_owned());
-                push_status(&mut status, AuditStatus::Invalid);
-            }
-            (Some(mean), Some(passed))
-        }
-        _ => (None, None),
-    };
+    let frame_scores: Vec<Option<f64>> =
+        frame_checks.iter().map(|check| check.ssim).collect();
+    let mean_final_five_ssim = mean_final_five_ssim(&frame_scores);
+    let mean_ssim_passed = mean_final_five_ssim.map(|mean| mean > SSIM_THRESHOLD);
+    if mean_ssim_passed == Some(false) {
+        reason_codes.push("MEAN_FINAL_FIVE_FRAME_SSIM_NOT_ABOVE_0_99".to_owned());
+        push_status(&mut status, AuditStatus::Invalid);
+    }
 
     CandidateAudit {
         scenario_id: candidate.scenario_id.clone(),
@@ -957,6 +957,32 @@ mod tests {
             .frame_checks
             .iter()
             .all(|frame| frame.ssim == Some(1.0)));
+    }
+
+    #[test]
+    fn five_frame_ssim_uses_the_published_mean_not_a_per_frame_minimum() {
+        let passing_mean = mean_final_five_ssim(&[
+            Some(0.98),
+            Some(1.0),
+            Some(1.0),
+            Some(1.0),
+            Some(1.0),
+        ])
+        .expect("five frame scores");
+        assert!((passing_mean - 0.996).abs() < 1e-12);
+        assert!(passing_mean > SSIM_THRESHOLD);
+
+        let failing_mean = mean_final_five_ssim(&[
+            Some(0.94),
+            Some(1.0),
+            Some(1.0),
+            Some(1.0),
+            Some(1.0),
+        ])
+        .expect("five frame scores");
+        assert!(failing_mean <= SSIM_THRESHOLD);
+        assert!(mean_final_five_ssim(&[Some(1.0); 4]).is_none());
+        assert!(mean_final_five_ssim(&[Some(1.0), None, Some(1.0), Some(1.0), Some(1.0)]).is_none());
     }
 
     #[test]
