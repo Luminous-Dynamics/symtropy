@@ -128,7 +128,7 @@ The following are candidate adapters, not universal mandatory requirements. Impl
 | Domain | Candidate standard / profile | Appropriate role | Important limitation |
 |---|---|---|---|
 | Issuer claims | W3C Verifiable Credentials Data Model 2.0 (Recommendation, 2025-05-15) | Portable issuer/holder/verifier claim envelope where suitable | Does not decide whom a verifier should trust or establish physical truth |
-| Supply-chain events | GS1 EPCIS 2.0.1 (published 2025-07-01) and CBV | Cross-enterprise visibility and traceability events; selected sensor summaries | Does not replace owner-native inventory accounting, metrology or source qualification |
+| Supply-chain events | GS1 EPCIS 2.0.1 (published 2025-07-01) paired with CBV 2.0.0 (published 2022-06-22) | Cross-enterprise visibility and traceability events; selected sensor summaries | Does not replace owner-native inventory accounting, metrology or source qualification |
 | Trade/transport locations | UNECE UN/LOCODE Recommendation 16 and pinned code-list release | Port, airport, inland terminal and trade-location references | A location code is not a tank, berth, pump, route section or asset identity |
 | Units | UCUM 2.2 | Machine-readable quantity/unit interchange and dimensional validation | Domain admissibility and physical conversion rules remain profile-owned |
 | Geospatial features | OGC API - Features | Web feature access using interoperable API building blocks | A feature geometry does not establish asset identity, condition or authority |
@@ -287,6 +287,7 @@ A successful conformance result means only that the declared adapter and claim s
 - W3C PROV-O: https://www.w3.org/TR/prov-o/
 - GS1 EPCIS 2.0.1 archive/version page: https://ref.gs1.org/standards/epcis/archive
 - GS1 EPCIS 2.0.1: https://ref.gs1.org/standards/epcis/2.0.1/
+- GS1 CBV 2.0.0: https://ref.gs1.org/standards/cbv/2.0.0/
 - UNECE UN/LOCODE Recommendation 16: https://unlocode.unece.org/recommendation16/
 - UCUM 2.2: https://ucum.org/ucum
 - OGC API - Features: https://www.ogc.org/standards/ogcapi-features/
