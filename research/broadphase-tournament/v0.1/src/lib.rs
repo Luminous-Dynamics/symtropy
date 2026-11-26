@@ -13,6 +13,9 @@ use incremental_aabb_tree_reference::{
 use std::collections::{BTreeMap, BTreeSet};
 use std::time::Instant;
 
+mod indexed_pair_cache;
+use indexed_pair_cache::IndexedPairDeltaCache;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SceneFamily {
     SparseCoherent,
@@ -72,6 +75,7 @@ pub enum BackendKind {
     TreePerLeafBalanced,
     TreeSelfPairBalanced,
     PairDeltaCache,
+    IndexedPairDeltaCache,
     MortonLbvhAabbAdapter,
 }
 
@@ -84,6 +88,7 @@ impl BackendKind {
         Self::TreePerLeafBalanced,
         Self::TreeSelfPairBalanced,
         Self::PairDeltaCache,
+        Self::IndexedPairDeltaCache,
         Self::MortonLbvhAabbAdapter,
     ];
 
@@ -97,6 +102,7 @@ impl BackendKind {
             Self::TreePerLeafBalanced => "tree_per_leaf_balanced",
             Self::TreeSelfPairBalanced => "tree_self_pair_balanced",
             Self::PairDeltaCache => "pair_delta_cache",
+            Self::IndexedPairDeltaCache => "indexed_pair_delta_cache",
             Self::MortonLbvhAabbAdapter => "symtropy_morton_lbvh_aabb_adapter",
         }
     }
@@ -135,6 +141,14 @@ pub struct WorkCounters {
     pub pair_events_removed: u64,
     pub pair_revalidations: u64,
     pub pair_cache_peak_pairs: usize,
+    pub frontier_proxy_visits: u64,
+    pub frontier_pair_candidates: u64,
+    pub frontier_unique_pairs: u64,
+    pub frontier_node_visits: u64,
+    pub frontier_leaf_tests: u64,
+    pub frontier_aabb_tests: u64,
+    pub frontier_index_mutations: u64,
+    pub frontier_index_reinsertions: u64,
     pub lbvh_builds: u64,
     pub lbvh_internal_nodes: u64,
     pub lbvh_bruteforce_fallback_frames: u64,
@@ -447,6 +461,14 @@ pub struct PairDeltaFrame {
     pub dirty_proxies: usize,
     pub overlap_tests: u64,
     pub active_pairs: usize,
+    pub frontier_proxy_visits: u64,
+    pub frontier_pair_candidates: u64,
+    pub frontier_unique_pairs: u64,
+    pub frontier_node_visits: u64,
+    pub frontier_leaf_tests: u64,
+    pub frontier_aabb_tests: u64,
+    pub frontier_index_mutations: u64,
+    pub frontier_index_reinsertions: u64,
 }
 
 /// Persistent symmetric adjacency cache over the exact current-frame AABB
@@ -620,9 +642,14 @@ impl<const D: usize> PairDeltaCache<D> {
         let dirty = dirty_ids.iter().copied().collect::<BTreeSet<_>>();
 
         let mut affected_pairs = BTreeSet::<ProxyPair>::new();
+        let mut frontier_proxy_visits = 0_u64;
+        let mut frontier_pair_candidates = 0_u64;
         for dirty_id in &dirty {
             if let Some(old_neighbors) = self.neighbors.get(dirty_id) {
                 for neighbor in old_neighbors {
+                    frontier_pair_candidates = frontier_pair_candidates
+                        .checked_add(1)
+                        .ok_or(TournamentError::CounterOverflow)?;
                     if let Some(pair) = ProxyPair::new(*dirty_id, *neighbor) {
                         affected_pairs.insert(pair);
                     }
@@ -633,6 +660,12 @@ impl<const D: usize> PairDeltaCache<D> {
                 .is_ok()
             {
                 for other in frame {
+                    frontier_proxy_visits = frontier_proxy_visits
+                        .checked_add(1)
+                        .ok_or(TournamentError::CounterOverflow)?;
+                    frontier_pair_candidates = frontier_pair_candidates
+                        .checked_add(1)
+                        .ok_or(TournamentError::CounterOverflow)?;
                     if let Some(pair) = ProxyPair::new(*dirty_id, other.id) {
                         affected_pairs.insert(pair);
                     }
@@ -735,6 +768,15 @@ impl<const D: usize> PairDeltaCache<D> {
             dirty_proxies: dirty.len(),
             overlap_tests,
             active_pairs: self.active_pair_count,
+            frontier_proxy_visits,
+            frontier_pair_candidates,
+            frontier_unique_pairs: u64::try_from(affected_pairs.len())
+                .map_err(|_| TournamentError::CounterOverflow)?,
+            frontier_node_visits: 0,
+            frontier_leaf_tests: 0,
+            frontier_aabb_tests: 0,
+            frontier_index_mutations: 0,
+            frontier_index_reinsertions: 0,
         })
     }
 }
@@ -1119,10 +1161,16 @@ fn run_backend<const D: usize>(
             BackendKind::BruteForce
             | BackendKind::SweepAndPrune
             | BackendKind::PairDeltaCache
+            | BackendKind::IndexedPairDeltaCache
             | BackendKind::MortonLbvhAabbAdapter => None,
         };
         let mut pair_cache =
             (backend == BackendKind::PairDeltaCache).then(PairDeltaCache::<D>::new);
+        let mut indexed_pair_cache = if backend == BackendKind::IndexedPairDeltaCache {
+            Some(IndexedPairDeltaCache::<D>::new(0.5, BalancePolicy::HeightRotations)?)
+        } else {
+            None
+        };
         let mut previous_bounds = BTreeMap::<ProxyId, Aabb<D>>::new();
         let mut previous_maintenance = MaintenanceStats::default();
 
@@ -1186,6 +1234,7 @@ fn run_backend<const D: usize>(
                         BackendKind::BruteForce
                         | BackendKind::SweepAndPrune
                         | BackendKind::PairDeltaCache
+                        | BackendKind::IndexedPairDeltaCache
                         | BackendKind::MortonLbvhAabbAdapter => {
                             unreachable!("non-tree backend entered tree query arm")
                         }
@@ -1227,6 +1276,12 @@ fn run_backend<const D: usize>(
                     let cache = pair_cache
                         .as_mut()
                         .expect("pair-delta backend initializes a pair cache");
+                    pair_delta = Some(cache.step(frame)?);
+                }
+                BackendKind::IndexedPairDeltaCache => {
+                    let cache = indexed_pair_cache
+                        .as_mut()
+                        .expect("indexed pair-delta backend initializes a cache");
                     pair_delta = Some(cache.step(frame)?);
                 }
                 BackendKind::MortonLbvhAabbAdapter => {
@@ -1284,6 +1339,30 @@ fn run_backend<const D: usize>(
                 checked_add(&mut counters.pair_events_added, delta.added.len())?;
                 checked_add(&mut counters.pair_events_removed, delta.removed.len())?;
                 checked_add(&mut counters.pair_revalidations, delta.revalidated.len())?;
+                counters.frontier_proxy_visits = counters.frontier_proxy_visits
+                    .checked_add(delta.frontier_proxy_visits)
+                    .ok_or(TournamentError::CounterOverflow)?;
+                counters.frontier_pair_candidates = counters.frontier_pair_candidates
+                    .checked_add(delta.frontier_pair_candidates)
+                    .ok_or(TournamentError::CounterOverflow)?;
+                counters.frontier_unique_pairs = counters.frontier_unique_pairs
+                    .checked_add(delta.frontier_unique_pairs)
+                    .ok_or(TournamentError::CounterOverflow)?;
+                counters.frontier_node_visits = counters.frontier_node_visits
+                    .checked_add(delta.frontier_node_visits)
+                    .ok_or(TournamentError::CounterOverflow)?;
+                counters.frontier_leaf_tests = counters.frontier_leaf_tests
+                    .checked_add(delta.frontier_leaf_tests)
+                    .ok_or(TournamentError::CounterOverflow)?;
+                counters.frontier_aabb_tests = counters.frontier_aabb_tests
+                    .checked_add(delta.frontier_aabb_tests)
+                    .ok_or(TournamentError::CounterOverflow)?;
+                counters.frontier_index_mutations = counters.frontier_index_mutations
+                    .checked_add(delta.frontier_index_mutations)
+                    .ok_or(TournamentError::CounterOverflow)?;
+                counters.frontier_index_reinsertions = counters.frontier_index_reinsertions
+                    .checked_add(delta.frontier_index_reinsertions)
+                    .ok_or(TournamentError::CounterOverflow)?;
                 counters.pair_cache_peak_pairs =
                     counters.pair_cache_peak_pairs.max(delta.active_pairs);
 
@@ -1328,10 +1407,14 @@ fn run_backend<const D: usize>(
                 }
 
                 let materialize_start = Instant::now();
-                actual = pair_cache
-                    .as_ref()
-                    .expect("pair cache remains initialized")
-                    .active_pairs();
+                actual = if let Some(cache) = pair_cache.as_ref() {
+                    cache.active_pairs()
+                } else {
+                    indexed_pair_cache
+                        .as_ref()
+                        .expect("indexed pair cache remains initialized")
+                        .active_pairs()
+                };
                 pair_materialize_samples.push(materialize_start.elapsed().as_nanos());
             }
 
@@ -1360,7 +1443,10 @@ fn run_backend<const D: usize>(
         declared_proxy_count: scene.declared_proxy_count,
         scene_frames: scene.frames.len(),
         backend: backend.name(),
-        output_contract: if backend == BackendKind::PairDeltaCache {
+        output_contract: if matches!(
+            backend,
+            BackendKind::PairDeltaCache | BackendKind::IndexedPairDeltaCache
+        ) {
             "pair_delta_events"
         } else {
             "full_candidate_set"
@@ -1414,13 +1500,13 @@ pub fn run_tournament<const D: usize>(
 impl TournamentRow {
     #[must_use]
     pub fn csv_header() -> &'static str {
-        "family,dimension,seed,declared_proxy_count,scene_frames,backend,output_contract,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,event_mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,p50_pair_materialize_ns,p95_pair_materialize_ns,p99_pair_materialize_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,tree_rotations,pair_cache_dirty_proxies,pair_cache_overlap_tests,pair_events_added,pair_events_removed,pair_cache_peak_pairs,lbvh_builds,lbvh_internal_nodes,lbvh_bruteforce_fallback_frames,max_tree_height,max_tree_nodes,max_active_proxies,pair_revalidations"
+        "family,dimension,seed,declared_proxy_count,scene_frames,backend,output_contract,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,event_mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,p50_pair_materialize_ns,p95_pair_materialize_ns,p99_pair_materialize_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,tree_rotations,pair_cache_dirty_proxies,pair_cache_overlap_tests,pair_events_added,pair_events_removed,pair_cache_peak_pairs,lbvh_builds,lbvh_internal_nodes,lbvh_bruteforce_fallback_frames,max_tree_height,max_tree_nodes,max_active_proxies,pair_revalidations,frontier_proxy_visits,frontier_pair_candidates,frontier_unique_pairs,frontier_node_visits,frontier_leaf_tests,frontier_aabb_tests,frontier_index_mutations,frontier_index_reinsertions"
     }
 
     #[must_use]
     pub fn to_csv(&self) -> String {
         format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}{},{},{},{},{},{},{},{},"
             self.family,
             self.dimension,
             self.seed,
@@ -1469,7 +1555,15 @@ impl TournamentRow {
             self.counters.max_tree_height,
             self.counters.max_tree_nodes,
             self.counters.max_active_proxies,
-            self.counters.pair_revalidations
+            self.counters.pair_revalidations,
+            self.counters.frontier_proxy_visits,
+            self.counters.frontier_pair_candidates,
+            self.counters.frontier_unique_pairs,
+            self.counters.frontier_node_visits,
+            self.counters.frontier_leaf_tests,
+            self.counters.frontier_aabb_tests,
+            self.counters.frontier_index_mutations,
+            self.counters.frontier_index_reinsertions
         )
     }
 }
