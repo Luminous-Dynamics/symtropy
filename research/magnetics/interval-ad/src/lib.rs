@@ -458,6 +458,12 @@ pub struct ParameterDomain<const N: usize> {
     pub requirement_id: String,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ValueEnclosureMethod {
+    NaturalIntervalExtension,
+    NaturalAndMeanValueIntersection,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct ValidatedDerivativeEnclosure<const N: usize> {
     pub record_id: String,
@@ -471,7 +477,9 @@ pub struct ValidatedDerivativeEnclosure<const N: usize> {
     pub parameter_ids: [String; N],
     pub parameter_units: [String; N],
     pub parameter_bounds: [Interval; N],
+    pub natural_value_enclosure: Interval,
     pub value_enclosure: Interval,
+    pub value_enclosure_method: ValueEnclosureMethod,
     pub output_unit: String,
     pub derivative_intervals: [Interval; N],
     pub derivative_abs_supremum: [f64; N],
@@ -496,6 +504,7 @@ pub enum IntervalAdError {
     UnboundedDerivativeEnclosure { index: usize },
     SquareRootOutsideRealDomain,
     InvalidIntervalOperation,
+    InconsistentValueEnclosures,
 }
 
 impl From<IntervalError> for IntervalAdError {
@@ -629,7 +638,9 @@ where
         parameter_ids: domain.parameter_ids.clone(),
         parameter_units: domain.parameter_units.clone(),
         parameter_bounds: domain.parameter_bounds,
+        natural_value_enclosure: output.value,
         value_enclosure: output.value,
+        value_enclosure_method: ValueEnclosureMethod::NaturalIntervalExtension,
         output_unit: domain.output_unit.clone(),
         derivative_intervals,
         derivative_abs_supremum: finite_suprema,
@@ -642,6 +653,71 @@ where
         requirement_id: domain.requirement_id.clone(),
         arithmetic_contract: "binary64-nearest-plus-one-ulp-outward-v0.1".to_owned(),
     })
+}
+
+fn interval_midpoint(value: Interval) -> Result<f64, IntervalAdError> {
+    let lower = value.lower();
+    let upper = value.upper();
+    let midpoint = if lower.is_sign_negative() == upper.is_sign_negative() {
+        lower + (upper - lower) * 0.5
+    } else {
+        lower * 0.5 + upper * 0.5
+    };
+    if !midpoint.is_finite() || midpoint < lower || midpoint > upper {
+        return Err(IntervalAdError::NonFiniteParameterBound { index: 0 });
+    }
+    Ok(midpoint)
+}
+
+/// Tighten a natural interval extension with the multivariate mean-value form.
+///
+/// For every point x in the declared convex box X, the integral mean-value
+/// theorem gives f(x) in f(c) + sum_i D_i(X) * (X_i-c_i), where c is the
+/// representable box centre and D_i(X) encloses the complete partial
+/// derivative over X. Intersecting this with the natural extension preserves
+/// enclosure validity while reducing dependency overestimation when possible.
+pub fn certify_expression_centered<const N: usize, F>(
+    domain: &ParameterDomain<N>,
+    evaluate: F,
+) -> Result<ValidatedDerivativeEnclosure<N>, IntervalAdError>
+where
+    F: Fn([IntervalDual<N>; N]) -> Result<IntervalDual<N>, IntervalAdError>,
+{
+    let mut result = certify_expression(domain, &evaluate)?;
+    let centres = std::array::try_from_fn(|index| {
+        interval_midpoint(domain.parameter_bounds[index])
+    })?;
+    let centre_variables = std::array::from_fn(|index| {
+        IntervalDual::constant(
+            Interval::point(centres[index]).expect("finite representable centre"),
+        )
+    });
+    let centre_value = evaluate(centre_variables)?.value();
+    if !centre_value.is_finite() {
+        return Err(IntervalAdError::UnboundedValueEnclosure);
+    }
+
+    let mut mean_value_enclosure = centre_value;
+    for index in 0..N {
+        let centre_interval = Interval::point(centres[index])
+            .map_err(IntervalAdError::from)?;
+        let displacement = domain.parameter_bounds[index] - centre_interval;
+        mean_value_enclosure = mean_value_enclosure
+            + result.derivative_intervals[index] * displacement;
+    }
+    if !mean_value_enclosure.is_finite() {
+        return Err(IntervalAdError::UnboundedValueEnclosure);
+    }
+
+    let intersection = Interval::new(
+        result.natural_value_enclosure.lower().max(mean_value_enclosure.lower()),
+        result.natural_value_enclosure.upper().min(mean_value_enclosure.upper()),
+    )
+    .map_err(|_| IntervalAdError::InconsistentValueEnclosures)?;
+
+    result.value_enclosure = intersection;
+    result.value_enclosure_method = ValueEnclosureMethod::NaturalAndMeanValueIntersection;
+    Ok(result)
 }
 
 #[cfg(test)]
