@@ -1390,6 +1390,72 @@ mod tests {
     }
 
     #[test]
+    fn exhaustive_small_event_and_acquisition_bounds_match_interval_oracle() {
+        let base = 1_795_514_400_000u64;
+        for event_earliest in 0..=3 {
+            for event_latest in event_earliest..=3 {
+                for acquisition_earliest in 0..=3 {
+                    for acquisition_latest in acquisition_earliest..=3 {
+                        let mut case = fixture();
+                        let acquisition_point =
+                            base + (acquisition_earliest + acquisition_latest) / 2;
+                        let event_point = base + (event_earliest + event_latest) / 2;
+                        case["evaluated_at_unix_ms"] = Value::from(base + 10);
+                        case["observations"][0]["acquired_at_unix_ms"] =
+                            Value::from(acquisition_point);
+                        case["observations"][0]["acquisition_time_earliest_unix_ms"] =
+                            Value::from(base + acquisition_earliest);
+                        case["observations"][0]["acquisition_time_latest_unix_ms"] =
+                            Value::from(base + acquisition_latest);
+                        case["calibration_events"] = serde_json::json!([{
+                            "id": "EVENT-EXHAUSTIVE",
+                            "certificate_id": "CAL-A",
+                            "event_type": "revoked",
+                            "effective_at_unix_ms": event_point,
+                            "effective_time_earliest_unix_ms": base + event_earliest,
+                            "effective_time_latest_unix_ms": base + event_latest,
+                            "recorded_at_unix_ms": base + 5,
+                            "retroactive": false
+                        }]);
+
+                        let report = evaluate_binding_case(&case);
+                        let definitely_effective = event_latest <= acquisition_earliest;
+                        let definitely_not_yet_effective = event_earliest > acquisition_latest;
+                        if definitely_effective {
+                            assert!(has_blocker(
+                                &report,
+                                "CALIBRATION_REVOKED_PENDING_DISPOSITION"
+                            ));
+                            assert!(!has_blocker(
+                                &report,
+                                "CALIBRATION_EVENT_EFFECTIVITY_BOUNDARY_AMBIGUOUS_AT_ACQUISITION"
+                            ));
+                        } else if definitely_not_yet_effective {
+                            assert!(!has_blocker(
+                                &report,
+                                "CALIBRATION_REVOKED_PENDING_DISPOSITION"
+                            ));
+                            assert_eq!(
+                                report.measurement_dispositions[0].non_applicable_event_ids,
+                                vec!["EVENT-EXHAUSTIVE".to_owned()]
+                            );
+                        } else {
+                            assert!(has_blocker(
+                                &report,
+                                "CALIBRATION_EVENT_EFFECTIVITY_BOUNDARY_AMBIGUOUS_AT_ACQUISITION"
+                            ));
+                            assert!(!has_blocker(
+                                &report,
+                                "CALIBRATION_REVOKED_PENDING_DISPOSITION"
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
     fn incomplete_or_malformed_time_bounds_fail_closed() {
         let mut incomplete = fixture();
         incomplete["observations"][0]["acquisition_time_earliest_unix_ms"] =
