@@ -149,3 +149,27 @@ The dedicated `maritime-exact-resource-oracle` workflow passed on commit `5c9474
 - Both deterministic receipts uploaded
 
 The DGT fixture is a discrete synthetic translation of the public intervention pattern. It is not a Transnet schedule reconstruction or an independently measured capacity / performance claim. The sea–rail and tidal mooring/bridge additions remain unit-level regressions, while the primary and DGT fixtures have independent serialized receipt references.
+
+
+## QC–AGV event synchronization under service-time uncertainty
+
+The oracle now contains a separate `sync` module and a deterministic `qc-agv-sync-audit` receipt. It models the handoff event as:
+
+`service_start = max(QC_ready, AGV_ready)`
+
+For each task it reports QC waiting, AGV queue waiting, service finish and propagated completion. AGV route candidates are fixed before the service-time scenario; service-time deviations affect event timing, not route selection. A finite L1 uncertainty budget `Gamma` is enumerated exactly over `u_i ∈ {-1, 0, +1}` with `sum |u_i| <= Gamma`. The scenario vector is keyed by sorted task identity, so the same realization means the same task deviation across different candidate routes.
+
+The frozen QC–AGV scenario demonstrates a nominal/robust route switch:
+- nominal route AB costs 5; nominal route BA costs 4, so BA is preferred nominally;
+- under `Gamma=1`, route BA has worst-case cost 7, with witness `[A:0, B:+1]`;
+- route AB remains worst-case cost 5, so the robust choice switches to AB;
+- the nominal route's cost is lower, while robust selection protects the bounded worst-case waiting objective.
+
+This is an intentionally tiny, fixed-order, two-QC/two-task mechanism test—not a reproduction of Song et al.'s continuous-budget model or S6-B. The uncertainty set is discrete and finite, not a continuous-budget guarantee. No general improvement is claimed.
+
+The exact-head workflow now checks three receipts:
+1. primary resource microinstance (4 feasible / 3 Pareto);
+2. DGT recovery case (2 feasible / 2 Pareto);
+3. QC–AGV synchronization (nominal best BA, robust best AB; five Gamma=1 scenarios).
+
+Each receipt is recomputed by a separate standard-library Python reference. The sync reference reconstructs event readiness and waiting independently; this does not authenticate real QC service-time bounds or measure terminal receiver service.
