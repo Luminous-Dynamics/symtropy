@@ -141,6 +141,7 @@ pub struct WorkCounters {
     pub pair_events_removed: u64,
     pub pair_revalidations: u64,
     pub pair_cache_peak_pairs: usize,
+    pub dirty_snapshot_entries_visited: u64,
     pub frontier_proxy_visits: u64,
     pub frontier_pair_candidates: u64,
     pub frontier_unique_pairs: u64,
@@ -461,6 +462,7 @@ pub struct PairDeltaFrame {
     pub dirty_proxies: usize,
     pub overlap_tests: u64,
     pub active_pairs: usize,
+    pub dirty_snapshot_entries_visited: u64,
     pub frontier_proxy_visits: u64,
     pub frontier_pair_candidates: u64,
     pub frontier_unique_pairs: u64,
@@ -597,7 +599,19 @@ impl<const D: usize> PairDeltaCache<D> {
     /// Safe default: detect changed identities from the complete snapshots.
     pub fn step(&mut self, frame: &[ProxyFrame<D>]) -> Result<PairDeltaFrame, TournamentError> {
         let dirty_ids = self.derive_dirty_proxy_ids(frame)?;
-        self.apply_dirty_ids(frame, &dirty_ids, true)
+        let snapshot_entries_visited = u64::try_from(self.previous_bounds.len())
+            .ok()
+            .and_then(|previous| {
+                u64::try_from(frame.len())
+                    .ok()
+                    .and_then(|current| {
+                        current
+                            .checked_mul(2)
+                            .and_then(|current| previous.checked_add(current))
+                    })
+            })
+            .ok_or(TournamentError::CounterOverflow)?;
+        self.apply_dirty_ids(frame, &dirty_ids, true, true, snapshot_entries_visited)
     }
 
     /// Apply a frame using a caller-provided, strictly increasing dirty-ID
@@ -612,7 +626,7 @@ impl<const D: usize> PairDeltaCache<D> {
         frame: &[ProxyFrame<D>],
         dirty_ids: &[ProxyId],
     ) -> Result<PairDeltaFrame, TournamentError> {
-        self.apply_dirty_ids(frame, dirty_ids, false)
+        self.apply_dirty_ids(frame, dirty_ids, false, false, 0)
     }
 
     fn apply_dirty_ids(
@@ -620,8 +634,12 @@ impl<const D: usize> PairDeltaCache<D> {
         frame: &[ProxyFrame<D>],
         dirty_ids: &[ProxyId],
         allow_full_invalidation: bool,
+        frame_prevalidated: bool,
+        dirty_snapshot_entries_visited: u64,
     ) -> Result<PairDeltaFrame, TournamentError> {
-        validate_proxy_sequence(frame)?;
+        if !frame_prevalidated {
+            validate_proxy_sequence(frame)?;
+        }
         if self.force_dirty && !allow_full_invalidation {
             return Err(TournamentError::DirtyJournalCannotApplyFullInvalidation);
         }
@@ -770,6 +788,7 @@ impl<const D: usize> PairDeltaCache<D> {
             dirty_proxies: dirty.len(),
             overlap_tests,
             active_pairs: self.active_pair_count,
+            dirty_snapshot_entries_visited,
             frontier_proxy_visits,
             frontier_pair_candidates,
             frontier_unique_pairs: u64::try_from(affected_pairs.len())
@@ -1341,6 +1360,10 @@ fn run_backend<const D: usize>(
                 checked_add(&mut counters.pair_events_added, delta.added.len())?;
                 checked_add(&mut counters.pair_events_removed, delta.removed.len())?;
                 checked_add(&mut counters.pair_revalidations, delta.revalidated.len())?;
+                counters.dirty_snapshot_entries_visited = counters
+                    .dirty_snapshot_entries_visited
+                    .checked_add(delta.dirty_snapshot_entries_visited)
+                    .ok_or(TournamentError::CounterOverflow)?;
                 counters.frontier_proxy_visits = counters.frontier_proxy_visits
                     .checked_add(delta.frontier_proxy_visits)
                     .ok_or(TournamentError::CounterOverflow)?;
@@ -1502,13 +1525,13 @@ pub fn run_tournament<const D: usize>(
 impl TournamentRow {
     #[must_use]
     pub fn csv_header() -> &'static str {
-        "family,dimension,seed,declared_proxy_count,scene_frames,backend,output_contract,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,event_mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,p50_pair_materialize_ns,p95_pair_materialize_ns,p99_pair_materialize_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,tree_rotations,pair_cache_dirty_proxies,pair_cache_overlap_tests,pair_events_added,pair_events_removed,pair_cache_peak_pairs,lbvh_builds,lbvh_internal_nodes,lbvh_bruteforce_fallback_frames,max_tree_height,max_tree_nodes,max_active_proxies,pair_revalidations,frontier_proxy_visits,frontier_pair_candidates,frontier_unique_pairs,frontier_node_visits,frontier_leaf_tests,frontier_aabb_tests,frontier_index_mutations,frontier_index_reinsertions"
+        "family,dimension,seed,declared_proxy_count,scene_frames,backend,output_contract,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,event_mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,p50_pair_materialize_ns,p95_pair_materialize_ns,p99_pair_materialize_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,tree_rotations,pair_cache_dirty_proxies,pair_cache_overlap_tests,pair_events_added,pair_events_removed,pair_cache_peak_pairs,lbvh_builds,lbvh_internal_nodes,lbvh_bruteforce_fallback_frames,max_tree_height,max_tree_nodes,max_active_proxies,pair_revalidations,dirty_snapshot_entries_visited,frontier_proxy_visits,frontier_pair_candidates,frontier_unique_pairs,frontier_node_visits,frontier_leaf_tests,frontier_aabb_tests,frontier_index_mutations,frontier_index_reinsertions"
     }
 
     #[must_use]
     pub fn to_csv(&self) -> String {
         format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             self.family,
             self.dimension,
             self.seed,
@@ -1558,6 +1581,7 @@ impl TournamentRow {
             self.counters.max_tree_nodes,
             self.counters.max_active_proxies,
             self.counters.pair_revalidations,
+            self.counters.dirty_snapshot_entries_visited,
             self.counters.frontier_proxy_visits,
             self.counters.frontier_pair_candidates,
             self.counters.frontier_unique_pairs,
