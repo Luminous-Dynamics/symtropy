@@ -540,7 +540,7 @@ impl<const D: usize> PairDeltaCache<D> {
         frame: &[ProxyFrame<D>],
     ) -> Result<PairDeltaFrame, TournamentError> {
         let dirty_ids = self.derive_dirty_proxy_ids(frame)?;
-        self.step_with_dirty_ids(frame, &dirty_ids)
+        self.apply_dirty_ids(frame, &dirty_ids, true)
     }
 
     /// Apply a frame using a caller-provided, strictly increasing dirty-ID
@@ -555,8 +555,17 @@ impl<const D: usize> PairDeltaCache<D> {
         frame: &[ProxyFrame<D>],
         dirty_ids: &[ProxyId],
     ) -> Result<PairDeltaFrame, TournamentError> {
+        self.apply_dirty_ids(frame, dirty_ids, false)
+    }
+
+    fn apply_dirty_ids(
+        &mut self,
+        frame: &[ProxyFrame<D>],
+        dirty_ids: &[ProxyId],
+        allow_full_invalidation: bool,
+    ) -> Result<PairDeltaFrame, TournamentError> {
         validate_frame(frame)?;
-        if self.force_dirty {
+        if self.force_dirty && !allow_full_invalidation {
             return Err(TournamentError::DirtyJournalCannotApplyFullInvalidation);
         }
         let mut previous_dirty = None;
