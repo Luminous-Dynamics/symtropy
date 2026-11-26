@@ -581,6 +581,7 @@ pub fn envelope_json(envelope: &CampaignEnvelope) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mobility_rrvr_evidence_capsule::AssessmentStatus;
 
     fn envelope() -> CampaignEnvelope {
         adapt_known_campaign().expect("known process-model campaign must adapt")
