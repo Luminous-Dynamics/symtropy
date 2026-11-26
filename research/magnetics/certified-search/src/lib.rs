@@ -315,13 +315,14 @@ where
         }
     }
 
-    let mut queue = VecDeque::from([WorkNode {
+    let mut queue = VecDeque::new();
+    queue.push_back(WorkNode {
         node_id: "root".to_owned(),
         parent_node_id: None,
         depth: 0,
         design_bounds: root_design_bounds,
         inherited_objective_lower_bound: None,
-    }]);
+    });
     let mut records = Vec::new();
     let mut incumbent: Option<FeasibleIncumbent> = None;
     let mut explored_node_count = 0usize;
@@ -802,6 +803,15 @@ mod tests {
         assert!(incumbent.robust_margin_lower_bound >= 0.0);
         assert!(result.robust_infeasible_count > 0);
         assert!(result.nodes.iter().any(|node| node.disposition == BoxDisposition::Split));
+        let certified_lower = result
+            .global_objective_lower_bound
+            .expect("all terminal regions have finite objective lower bounds");
+        let incumbent_upper = result
+            .global_objective_upper_bound
+            .expect("robust feasible incumbent has objective upper bound");
+        assert!(certified_lower <= 0.2714 + 1.0e-12);
+        assert!(incumbent_upper >= 0.2714 - 1.0e-12);
+        assert!(certified_lower <= incumbent_upper);
     }
 
     #[test]
