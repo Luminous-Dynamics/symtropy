@@ -323,6 +323,39 @@
           ]
         }
       ]
+    },
+    {
+      "probe_id": "reconcile_effect_and_scope",
+      "outcomes": [
+        {
+          "outcome_id": "complete_no_effect",
+          "possible_world_ids": [
+            "not_dispatched",
+            "dispatched_no_effect"
+          ]
+        },
+        {
+          "outcome_id": "complete_applied_once",
+          "possible_world_ids": [
+            "applied_once_ack_lost"
+          ]
+        },
+        {
+          "outcome_id": "partial_duplicate_or_stale",
+          "possible_world_ids": [
+            "partial_effect",
+            "duplicate_effect",
+            "stale_authority_effect"
+          ]
+        },
+        {
+          "outcome_id": "scope_incomplete_or_unmodelled",
+          "possible_world_ids": [
+            "unresolved_command_holder",
+            "open_world_residual"
+          ]
+        }
+      ]
     }
   ],
   "maximum_worst_case_loss": 0.45
