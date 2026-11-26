@@ -187,6 +187,9 @@ pub fn evaluate_qdrive(input: QDriveInput) -> Result<QDriveEstimate, &'static st
     if !finite_positive(input.exhaust_velocity_m_s) {
         return Err("exhaust_velocity_m_s must be finite and positive");
     }
+    if input.exhaust_velocity_m_s / SPEED_OF_LIGHT_M_S > MAX_NEWTONIAN_BETA {
+        return Err("exhaust velocity exceeds the v0 Newtonian screening limit of 0.05c");
+    }
     if !finite_positive(input.vehicle_mass_kg) {
         return Err("vehicle_mass_kg must be finite and positive");
     }
@@ -278,8 +281,8 @@ pub fn illustrative_qdrive_case() -> QDriveInput {
         effective_interaction_area_m2: 1.0e8,
         effective_drag_coefficient: 1.0,
         power_conversion_efficiency: 0.80,
-        thruster_efficiency: 0.70,
-        exhaust_velocity_m_s: 0.05 * SPEED_OF_LIGHT_M_S,
+        thruster_efficiency: 0.60,
+        exhaust_velocity_m_s: 0.043 * SPEED_OF_LIGHT_M_S,
         vehicle_mass_kg: 1.0e6,
         parasitic_drag_ratio: 0.10,
     }
@@ -378,11 +381,11 @@ mod tests {
         close(result.harvesting_drag_n, 112.344_397_342_102_2, 1e-9);
         close(result.harvested_mechanical_power_w, 1.684_000_151_085_874_3e9, 1e-3);
         close(result.bus_power_w, 1.347_200_120_868_699_6e9, 1e-3);
-        close(result.jet_power_w, 9.430_400_846_080_896e8, 1e-3);
-        close(result.ideal_thrust_n, 125.825_725_023_154_46, 1e-9);
-        close(result.propellant_mass_flow_kg_s, 8.394_188_824e-6, 1e-14);
-        close(result.net_axial_force_n, 2.246_887_946_842_044, 1e-9);
-        close(result.net_acceleration_m_s2, 2.246_887_946_842_044e-6, 1e-15);
+        close(result.jet_power_w, 8.083_200_725_212_197e8, 1e-3);
+        close(result.ideal_thrust_n, 125.407_699_358_625_73, 1e-9);
+        close(result.propellant_mass_flow_kg_s, 9.728_257_155_219_04e-6, 1e-14);
+        close(result.net_axial_force_n, 1.828_862_282_313_309_6, 1e-9);
+        close(result.net_acceleration_m_s2, 1.828_862_282_313_309_6e-6, 1e-15);
         close(result.jet_power_identity_residual_w, 0.0, 1e-6);
     }
 
@@ -445,6 +448,11 @@ mod tests {
         let input = illustrative_qdrive_case();
         assert!(evaluate_qdrive(QDriveInput {
             relative_speed_m_s: 0.051 * SPEED_OF_LIGHT_M_S,
+            ..input
+        })
+        .is_err());
+        assert!(evaluate_qdrive(QDriveInput {
+            exhaust_velocity_m_s: 0.051 * SPEED_OF_LIGHT_M_S,
             ..input
         })
         .is_err());
