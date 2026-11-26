@@ -109,8 +109,11 @@ pub use normal_positive_part::{
     GaussianPositivePartBranch, GaussianPositivePartReport, gaussian_negative_part_expectation,
 };
 pub use paired_counterfactual::{
-    MAX_PAIRED_COUNTERFACTUAL_ATOMS, PairedCounterfactualAtom, PairedCounterfactualError,
-    PairedCounterfactualReport, PairingEffect, SignedRational,
+    MAX_PAIRED_COUNTERFACTUAL_ATOMS, MAX_PAIRED_COUNTERFACTUAL_PORTFOLIOS,
+    MultiPortfolioPairedAtom, MultiPortfolioPairedReport, PairedCounterfactualAtom,
+    PairedCounterfactualError, PairedCounterfactualReport, PairingEffect,
+    PortfolioConsequence, PortfolioCounterfactualSummary, PortfolioPairComparison,
+    SignedRational, compare_multi_portfolio_paired_support,
     compare_paired_counterfactual_support,
 };
 pub use pathwise_event::{
