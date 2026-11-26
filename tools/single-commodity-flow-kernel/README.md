@@ -18,6 +18,18 @@ This crate provides a deterministic integer-capacity max-flow/min-cut kernel for
 
 The canonical graph digest binds commodity, capacity unit, quantity boundary, source/sink IDs, node IDs, edge IDs, endpoints, capacities and opaque metadata references. Input permutation does not change the digest.
 
+## DIMACS interoperability
+
+A research/benchmark importer is available as the `dimacs_max` example:
+
+```sh
+cargo run --locked --manifest-path tools/single-commodity-flow-kernel/Cargo.toml --example dimacs_max -- instance.max > flow-certificate.json
+```
+
+It accepts DIMACS `.max` files, retains stable per-line arc identities (including parallel arcs), solves the graph and emits a verified portable bundle. The importer follows the DIMACS 2026 format's positive integer capacity limit of (2^{31}-1), but the current kernel graph ceiling remains 4,096 nodes / 65,536 edges. Inputs above those limits are rejected explicitly. This is a conformance path for small/medium challenge cases, not a claim of support for the largest 2026–2027 instances. See [the importer](examples/dimacs_max.rs) and the [small fixture](conformance/fixtures/two-paths.dimacs.max).
+
+The current official 13th DIMACS Challenge includes max-flow families from vision, road, bisection and polygon aggregation; its reference list includes HIPR4, pseudoflow and EIBFS. The SAFRB benchmark protocol maps these to separate matched solver families. Do not compare only the small generated corpus or infer algorithmic SOTA from the exploratory NetworkX timings.
+
 ## Deliberate non-goals
 
 The kernel does not infer units, time chronology, storage carry-over, route delay, process conversion, physical resource identity, alias equivalence, evidence freshness, calibration, source dependence, title, custody, contract access, legal authority or dispatch permission.
@@ -32,7 +44,7 @@ AGPL-3.0-or-later. The package is added as an explicitly AGPL-licensed extractio
 
 ## Validation
 
-The unit suite exhaustively enumerates all simple directed graph topologies through four nodes and compares against an independent source/sink cut enumerator. A second deterministic differential corpus checks 1,120 generated graphs across 2–8 nodes against the independent cut oracle and runs the certificate verifier on every result. It also tests parallel and antiparallel arcs, cycles, zero capacity, reverse-residual rerouting, `u64::MAX`, disconnected graphs, malformed identities/endpoints, overflow, permutation invariance, forged equal-capacity cuts, strict portable serialization and graph/certificate substitution.
+The unit suite exhaustively enumerates all simple directed graph topologies through four nodes and compares against an independent source/sink cut enumerator. The DIMACS example adds parser tests for declared counts, node/arc ordering, parallel-arc identity, capacity range and kernel size bounds. A second deterministic differential corpus checks 1,120 generated graphs across 2–8 nodes against the independent cut oracle and runs the certificate verifier on every result. It also tests parallel and antiparallel arcs, cycles, zero capacity, reverse-residual rerouting, `u64::MAX`, disconnected graphs, malformed identities/endpoints, overflow, permutation invariance, forged equal-capacity cuts, strict portable serialization and graph/certificate substitution.
 
 See [FLOW_CERTIFICATE_V1.md](FLOW_CERTIFICATE_V1.md) for the portable bundle contract and [the JSON Schema](schemas/flow-certificate-v1.schema.json) for the wire shape. An independent standard-library Python verifier and adversarial cross-language tests are provided under [conformance/](conformance/); these are research/test tools only, not a production Python dependency. The frozen golden vector includes the exact canonical graph digest, a valid primal flow and min-cut.
 
