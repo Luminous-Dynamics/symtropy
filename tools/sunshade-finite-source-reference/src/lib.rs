@@ -372,6 +372,20 @@ mod tests {
     }
 
     #[test]
+    fn normalized_circle_overlap_handles_large_finite_dimensions() {
+        let area = circle_overlap_area(1.0e154, 1.0e154, 1.0e154).unwrap();
+        let scaled_area = area / 1.0e308;
+        close(scaled_area, 1.228_369_698_608_756_8, 1e-14);
+    }
+
+    #[test]
+    fn normalized_circle_overlap_handles_small_finite_dimensions() {
+        let area = circle_overlap_area(1.0e-150, 1.0e-150, 1.0e-150).unwrap();
+        let scaled_area = area / 1.0e-300;
+        close(scaled_area, 1.228_369_698_608_756_8, 1e-14);
+    }
+
+    #[test]
     fn invalid_geometry_and_non_finite_values_are_rejected() {
         assert!(evaluate_circular_shade(CircularShadeInput {
             sun_to_shade_distance_m: 0.0,
