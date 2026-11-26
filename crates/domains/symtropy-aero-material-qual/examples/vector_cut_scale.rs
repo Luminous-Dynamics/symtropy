@@ -14,8 +14,7 @@ use std::time::Duration;
 use std::time::Instant;
 
 use symtropy_aero_material_qual::vector_watermark_v0_1::{
-    CutAssessment, CutEvent, EvidenceCut, EventDependency, PartitionWatermark,
-    validate_causal_cut,
+    CutAssessment, CutEvent, EventDependency, EvidenceCut, PartitionWatermark, validate_causal_cut,
 };
 
 const DIGEST: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
