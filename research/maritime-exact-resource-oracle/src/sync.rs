@@ -599,6 +599,7 @@ mod tests {
         instance.tasks.push(SyncTask {
             task_id: "C".to_owned(),
             qc_id: "QC-A".to_owned(),
+            qc_release_at: 0,
             nominal_service: 2,
             service_deviation: 1,
             qc_predecessor: Some("A".to_owned()),
@@ -650,6 +651,7 @@ mod tests {
         instance.tasks.push(SyncTask {
             task_id: "C".to_owned(),
             qc_id: "QC-A".to_owned(),
+            qc_release_at: 0,
             nominal_service: 2,
             service_deviation: 1,
             qc_predecessor: Some("A".to_owned()),
