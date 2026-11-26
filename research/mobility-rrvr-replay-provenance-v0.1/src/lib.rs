@@ -177,6 +177,7 @@ pub struct ProvenanceManifest {
     pub schema_version: String,
     pub benchmark: String,
     pub replay_manifest_sha256: String,
+    pub split_manifest: ArtifactRef,
     pub policy_roster_profile_id: String,
     pub candidates: Vec<ProvenanceCandidate>,
 }
@@ -512,6 +513,75 @@ fn policy_map(candidate: &ReplayCandidate) -> Result<BTreeMap<String, String>, S
         }
     }
     Ok(attempts)
+}
+
+fn validate_replay_candidate_set(candidates: &[ReplayCandidate]) -> Result<(), String> {
+    if candidates.is_empty() {
+        return Err("NO_REPLAY_CANDIDATES".to_owned());
+    }
+
+    let mut scenario_ids = BTreeSet::new();
+    let mut keys_by_platform_and_split: BTreeMap<(&'static str, &'static str), BTreeSet<&str>> =
+        BTreeMap::new();
+
+    for candidate in candidates {
+        if candidate.scenario_id.trim().is_empty()
+            || candidate.source_trajectory_id.trim().is_empty()
+            || candidate.trajectory_cluster_id.trim().is_empty()
+        {
+            return Err("CANDIDATE_IDENTITY_INCOMPLETE".to_owned());
+        }
+        let platform_id = match candidate.platform {
+            Platform::RoboTwin => "robo_twin",
+            Platform::Libero => "libero",
+        };
+        if !scenario_ids.insert((platform_id, candidate.scenario_id.as_str())) {
+            return Err(format!("DUPLICATE_SCENARIO_ID: {}", candidate.scenario_id));
+        }
+
+        let digest_fields = [
+            candidate.source_episode_sha256.as_str(),
+            candidate.instruction_sha256.as_str(),
+            candidate.action_prefix_sha256.as_str(),
+            candidate.simulator_profile_sha256.as_str(),
+            candidate.robot_model_profile_sha256.as_str(),
+            candidate.controller_profile_sha256.as_str(),
+            candidate.rendering_profile_sha256.as_str(),
+            candidate.reset_receipt_sha256.as_str(),
+            candidate.action_prefix_receipt_sha256.as_str(),
+        ];
+        if digest_fields.iter().any(|digest| !is_sha256(digest)) {
+            return Err(format!("CANDIDATE_DIGEST_INVALID: {}", candidate.scenario_id));
+        }
+
+        if candidate.split_leakage_keys_sha256.is_empty() {
+            return Err(format!("SPLIT_LEAKAGE_KEYS_MISSING: {}", candidate.scenario_id));
+        }
+        let mut local_keys = BTreeSet::new();
+        for key in &candidate.split_leakage_keys_sha256 {
+            if !is_sha256(key) || !local_keys.insert(key.as_str()) {
+                return Err(format!("SPLIT_LEAKAGE_KEYS_INVALID_OR_DUPLICATED: {}", candidate.scenario_id));
+            }
+            let split_id = match candidate.split {
+                Split::Train => "train",
+                Split::Test => "test",
+            };
+            keys_by_platform_and_split
+                .entry((platform_id, split_id))
+                .or_default()
+                .insert(key.as_str());
+        }
+    }
+
+    for ((platform_id, split_id), keys) in &keys_by_platform_and_split {
+        let opposite_id = if *split_id == "train" { "test" } else { "train" };
+        if let Some(opposite) = keys_by_platform_and_split.get(&(*platform_id, opposite_id)) {
+            if let Some(overlap) = keys.intersection(opposite).next() {
+                return Err(format!("TRAIN_TEST_LEAKAGE_KEY_OVERLAP: {overlap}"));
+            }
+        }
+    }
+    Ok(())
 }
 
 fn validate_candidate(
@@ -969,6 +1039,19 @@ pub fn validate_provenance_json(
     if provenance.schema_version != SCHEMA_VERSION || provenance.benchmark != BENCHMARK {
         return Err("PROVENANCE_MANIFEST_PROFILE_UNSUPPORTED".to_owned());
     }
+    if replay.campaign_id.trim().is_empty() || replay.data_license_and_provenance.trim().is_empty()
+        || !is_sha256(&replay.split_manifest_sha256)
+    {
+        return Err("REPLAY_CAMPAIGN_OR_SPLIT_MANIFEST_METADATA_INVALID".to_owned());
+    }
+    let split_manifest_bytes =
+        read_artifact(artifact_root, &provenance.split_manifest, "SPLIT_MANIFEST")?;
+    if provenance.split_manifest.sha256 != replay.split_manifest_sha256
+        || sha256_hex(&split_manifest_bytes) != replay.split_manifest_sha256
+    {
+        return Err("SPLIT_MANIFEST_REPLAY_DIGEST_MISMATCH".to_owned());
+    }
+    validate_replay_candidate_set(&replay.candidates)?;
     let replay_digest = sha256_hex(replay_manifest_json.as_bytes());
     if !is_sha256(&provenance.replay_manifest_sha256)
         || provenance.replay_manifest_sha256 != replay_digest
