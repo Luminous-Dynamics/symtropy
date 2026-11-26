@@ -159,13 +159,12 @@ pub fn project_temporal_revision(
         && cutoffs.decision_at <= record.rights_valid_until;
     let decision_admissible = decision_admissible(record, cutoffs);
 
-    let (adjudication_as_of, adjudication_revision_as_of) =
-        latest_adjudication_as_of(
-            &record.source_id,
-            &record.event_id,
-            &record.adjudications,
-            cutoffs.audit_at,
-        )?;
+    let (adjudication_as_of, adjudication_revision_as_of) = latest_adjudication_as_of(
+        &record.source_id,
+        &record.event_id,
+        &record.adjudications,
+        cutoffs.audit_at,
+    )?;
 
     Ok(TemporalProjection {
         source_id: record.source_id.clone(),
@@ -361,8 +360,9 @@ mod tests {
     fn conflicting_visible_payloads_for_same_source_revision_fail_closed() {
         let first = record(1, "digest-a", 90, 95);
         let conflicting = record(1, "digest-b", 91, 96);
-        let error = select_decision_revisions(&[first, conflicting], "BOX-1", cutoffs(100, 100, 200))
-            .unwrap_err();
+        let error =
+            select_decision_revisions(&[first, conflicting], "BOX-1", cutoffs(100, 100, 200))
+                .unwrap_err();
 
         assert_eq!(
             error,
@@ -381,12 +381,14 @@ mod tests {
         second.source_id = "SOURCE-B".to_owned();
 
         let selected =
-            select_decision_revisions(&[first, second], "BOX-1", cutoffs(100, 100, 200))
-                .unwrap();
+            select_decision_revisions(&[first, second], "BOX-1", cutoffs(100, 100, 200)).unwrap();
         assert_eq!(selected.len(), 2);
         assert!(selected.iter().any(|item| item.source_id == "SOURCE-A"));
         assert!(selected.iter().any(|item| item.source_id == "SOURCE-B"));
-        assert_eq!(selected[0].dependency_cluster, selected[1].dependency_cluster);
+        assert_eq!(
+            selected[0].dependency_cluster,
+            selected[1].dependency_cluster
+        );
     }
 
     #[test]
@@ -394,8 +396,8 @@ mod tests {
         let mut value = record(1, "digest-v1", 90, 95);
         value.subject_id = "BOX-OTHER".to_owned();
 
-        let error = select_decision_revisions(&[value], "BOX-1", cutoffs(100, 100, 200))
-            .unwrap_err();
+        let error =
+            select_decision_revisions(&[value], "BOX-1", cutoffs(100, 100, 200)).unwrap_err();
         assert_eq!(
             error,
             TemporalError::SubjectBindingMismatch {
@@ -423,7 +425,8 @@ mod tests {
             },
         ];
 
-        let selected = select_decision_revisions(&[value], "BOX-1", cutoffs(100, 100, 200)).unwrap();
+        let selected =
+            select_decision_revisions(&[value], "BOX-1", cutoffs(100, 100, 200)).unwrap();
         assert_eq!(selected.len(), 1);
         assert_eq!(selected[0].source_revision, 1);
     }
