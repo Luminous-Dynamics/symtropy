@@ -7,7 +7,7 @@
 use std::collections::HashSet;
 
 use super::{
-    EncoderRequirements, EvidenceKind, EvaluationError, FieldTrace,
+    EncoderRequirements, EvaluationError, EvidenceKind, FieldTrace,
     OperatingConditionScenarioSetMetrics, evaluate_operating_condition_scenarios,
 };
 
@@ -89,7 +89,10 @@ fn validate_candidate(
     for (field, digest) in [
         ("geometry_sha256", candidate.geometry_sha256.as_str()),
         ("material_sha256", candidate.material_sha256.as_str()),
-        ("field_archive_sha256", candidate.field_archive_sha256.as_str()),
+        (
+            "field_archive_sha256",
+            candidate.field_archive_sha256.as_str(),
+        ),
     ] {
         if !valid_sha256(digest) {
             return Err(DesignTournamentError::InvalidSha256 { index, field });
@@ -213,9 +216,12 @@ pub fn rank_magnetic_designs(
             }
         }
 
-        let scenario_metrics =
-            evaluate_operating_condition_scenarios(&candidate.candidate_id, &candidate.scenarios, requirements)
-                .map_err(DesignTournamentError::ScenarioEvaluation)?;
+        let scenario_metrics = evaluate_operating_condition_scenarios(
+            &candidate.candidate_id,
+            &candidate.scenarios,
+            requirements,
+        )
+        .map_err(DesignTournamentError::ScenarioEvaluation)?;
         let accepted_all_scenarios = scenario_metrics.all_scenarios_accepted;
 
         results.push(MagneticDesignCandidateMetrics {
@@ -237,10 +243,7 @@ pub fn rank_magnetic_designs(
         let dominated = results.iter().enumerate().any(|(other_index, other)| {
             other_index != index
                 && other.accepted_all_scenarios
-                && dominates(
-                    &other.scenario_metrics,
-                    &results[index].scenario_metrics,
-                )
+                && dominates(&other.scenario_metrics, &results[index].scenario_metrics)
         });
         results[index].is_pareto_optimal = !dominated;
     }
@@ -387,11 +390,22 @@ mod tests {
             candidate("low-phase", 1.0, 0.0, EvidenceKind::SyntheticScenario),
             candidate("dominated", 0.8, 0.03, EvidenceKind::SyntheticScenario),
         ];
-        let result =
-            rank_magnetic_designs("tournament-003", &candidates, &requirements()).unwrap();
-        assert!(result.pareto_candidate_ids.contains(&"high-margin".to_owned()));
-        assert!(result.pareto_candidate_ids.contains(&"low-phase".to_owned()));
-        assert!(!result.pareto_candidate_ids.contains(&"dominated".to_owned()));
+        let result = rank_magnetic_designs("tournament-003", &candidates, &requirements()).unwrap();
+        assert!(
+            result
+                .pareto_candidate_ids
+                .contains(&"high-margin".to_owned())
+        );
+        assert!(
+            result
+                .pareto_candidate_ids
+                .contains(&"low-phase".to_owned())
+        );
+        assert!(
+            !result
+                .pareto_candidate_ids
+                .contains(&"dominated".to_owned())
+        );
     }
 
     #[test]
@@ -409,8 +423,7 @@ mod tests {
 
     #[test]
     fn frame_and_grid_mismatches_are_rejected() {
-        let mut wrong_frame =
-            candidate("wrong-frame", 1.0, 0.01, EvidenceKind::SyntheticScenario);
+        let mut wrong_frame = candidate("wrong-frame", 1.0, 0.01, EvidenceKind::SyntheticScenario);
         wrong_frame.scenarios[0].frame_id = "different-frame".to_owned();
         assert_eq!(
             rank_magnetic_designs("tournament-005", &[wrong_frame], &requirements())
@@ -418,8 +431,7 @@ mod tests {
             DesignTournamentError::FrameIdentityMismatch
         );
 
-        let mut wrong_grid =
-            candidate("wrong-grid", 1.0, 0.01, EvidenceKind::SyntheticScenario);
+        let mut wrong_grid = candidate("wrong-grid", 1.0, 0.01, EvidenceKind::SyntheticScenario);
         wrong_grid.scenarios[0].samples[10].mechanical_angle_rad += 1.0e-6;
         assert_eq!(
             rank_magnetic_designs("tournament-006", &[wrong_grid], &requirements())
@@ -440,8 +452,12 @@ mod tests {
             DesignTournamentError::DuplicateCandidateId
         );
 
-        let mut duplicate_trace =
-            candidate("duplicate-trace", 1.0, 0.01, EvidenceKind::SyntheticScenario);
+        let mut duplicate_trace = candidate(
+            "duplicate-trace",
+            1.0,
+            0.01,
+            EvidenceKind::SyntheticScenario,
+        );
         duplicate_trace.scenarios[1].trace_id = duplicate_trace.scenarios[0].trace_id.clone();
         assert_eq!(
             rank_magnetic_designs("tournament-008", &[duplicate_trace], &requirements())
@@ -451,7 +467,9 @@ mod tests {
 
         let mut duplicate_run =
             candidate("duplicate-run", 1.0, 0.01, EvidenceKind::SyntheticScenario);
-        duplicate_run.solver_run_ids.push(duplicate_run.solver_run_ids[0].clone());
+        duplicate_run
+            .solver_run_ids
+            .push(duplicate_run.solver_run_ids[0].clone());
         assert_eq!(
             rank_magnetic_designs("tournament-009", &[duplicate_run], &requirements())
                 .expect_err("duplicate solver run"),
@@ -473,8 +491,7 @@ mod tests {
             }
         );
 
-        let mut no_solver =
-            candidate("no-solver", 1.0, 0.01, EvidenceKind::SyntheticScenario);
+        let mut no_solver = candidate("no-solver", 1.0, 0.01, EvidenceKind::SyntheticScenario);
         no_solver.solver_run_ids.clear();
         assert_eq!(
             rank_magnetic_designs("tournament-011", &[no_solver], &requirements())
@@ -486,8 +503,7 @@ mod tests {
     #[test]
     fn tournament_requires_nonempty_identity_and_candidates() {
         assert_eq!(
-            rank_magnetic_designs("", &[], &requirements())
-                .expect_err("missing tournament ID"),
+            rank_magnetic_designs("", &[], &requirements()).expect_err("missing tournament ID"),
             DesignTournamentError::InvalidTournamentId
         );
         assert_eq!(
