@@ -186,53 +186,16 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
             }
         }
 
-        // Apply every dirty-index mutation before querying any dirty proxy.
-        // This ensures two simultaneously moving endpoints see each other's
-        // new bounds, independent of dirty-ID iteration order.
-        for dirty_id in &dirty {
-            let current = frame
-                .binary_search_by_key(dirty_id, |proxy| proxy.id)
-                .ok()
-                .map(|index| frame[index].bounds);
-            match (self.previous_bounds.get(dirty_id), current) {
-                (Some(previous), Some(next)) if *previous != next => {
-                    if self.tree.update(*dirty_id, next)? {
-                        frontier_index_reinsertions = frontier_index_reinsertions
-                            .checked_add(1)
-                            .ok_or(TournamentError::CounterOverflow)?;
-                    }
-                    frontier_index_mutations = frontier_index_mutations
-                        .checked_add(1)
-                        .ok_or(TournamentError::CounterOverflow)?;
-                }
-                (None, Some(next)) => {
-                    self.tree.insert(*dirty_id, next)?;
-                    frontier_index_mutations = frontier_index_mutations
-                        .checked_add(1)
-                        .ok_or(TournamentError::CounterOverflow)?;
-                }
-                (Some(_), None) => {
-                    self.tree.remove(*dirty_id)?;
-                    frontier_index_mutations = frontier_index_mutations
-                        .checked_add(1)
-                        .ok_or(TournamentError::CounterOverflow)?;
-                }
-                (Some(_), Some(_)) | (None, None) => {}
-            }
-        }
-
-        // Discover current neighbours by querying the updated persistent tree.
-        // Query results are conservative because the tree may retain fat AABBs;
-        // exact current-frame overlap is checked below before events are emitted.
+        // Query the old conservative index before mutating it. Every
+        // unchanged proxy's old fat AABB still contains its current tight AABB,
+        // so a current overlap with an unchanged proxy must be returned here.
+        // Changed/changed relationships are handled explicitly below.
         for dirty_id in &dirty {
             let Some(index) = frame.binary_search_by_key(dirty_id, |proxy| proxy.id).ok()
             else {
                 continue;
             };
             let query = self.tree.query(frame[index].bounds)?;
-            // No full-population proxy scan occurs on the indexed path.
-            // Returned candidates are counted below; tree node/leaf visits
-            // describe index traversal work separately.
             frontier_node_visits = frontier_node_visits
                 .checked_add(
                     u64::try_from(query.stats.node_visits)
@@ -252,13 +215,33 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
                 )
                 .ok_or(TournamentError::CounterOverflow)?;
             for candidate in query.proxies {
-                if candidate == *dirty_id {
+                if candidate == *dirty_id || dirty.contains(&candidate) {
                     continue;
                 }
                 frontier_pair_candidates = frontier_pair_candidates
                     .checked_add(1)
                     .ok_or(TournamentError::CounterOverflow)?;
                 if let Some(pair) = ProxyPair::new(*dirty_id, candidate) {
+                    affected_pairs.insert(pair);
+                }
+            }
+        }
+
+        // Two changed endpoints may have moved together so their old tree
+        // leaves do not overlap. Enumerate dirty/dirty pairs explicitly.
+        let current_dirty = dirty
+            .iter()
+            .filter(|id| frame.binary_search_by_key(id, |proxy| proxy.id).is_ok())
+            .copied()
+            .collect::<Vec<_>>();
+        for left_index in 0..current_dirty.len() {
+            for right_index in (left_index + 1)..current_dirty.len() {
+                frontier_pair_candidates = frontier_pair_candidates
+                    .checked_add(1)
+                    .ok_or(TournamentError::CounterOverflow)?;
+                if let Some(pair) =
+                    ProxyPair::new(current_dirty[left_index], current_dirty[right_index])
+                {
                     affected_pairs.insert(pair);
                 }
             }
@@ -310,6 +293,40 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
             .checked_sub(removed.len())
             .and_then(|count| count.checked_add(added.len()))
             .ok_or(TournamentError::CounterOverflow)?;
+
+        // Apply the staged spatial-index mutations only after all pair
+        // transitions and pair-count arithmetic have been validated.
+        for dirty_id in &dirty {
+            let current = frame
+                .binary_search_by_key(dirty_id, |proxy| proxy.id)
+                .ok()
+                .map(|index| frame[index].bounds);
+            match (self.previous_bounds.get(dirty_id), current) {
+                (Some(previous), Some(next)) if *previous != next => {
+                    if self.tree.update(*dirty_id, next)? {
+                        frontier_index_reinsertions = frontier_index_reinsertions
+                            .checked_add(1)
+                            .ok_or(TournamentError::CounterOverflow)?;
+                    }
+                    frontier_index_mutations = frontier_index_mutations
+                        .checked_add(1)
+                        .ok_or(TournamentError::CounterOverflow)?;
+                }
+                (None, Some(next)) => {
+                    self.tree.insert(*dirty_id, next)?;
+                    frontier_index_mutations = frontier_index_mutations
+                        .checked_add(1)
+                        .ok_or(TournamentError::CounterOverflow)?;
+                }
+                (Some(_), None) => {
+                    self.tree.remove(*dirty_id)?;
+                    frontier_index_mutations = frontier_index_mutations
+                        .checked_add(1)
+                        .ok_or(TournamentError::CounterOverflow)?;
+                }
+                (Some(_), Some(_)) | (None, None) => {}
+            }
+        }
 
         // Commit symmetric adjacency only after the transition is validated.
         for pair in &removed {
