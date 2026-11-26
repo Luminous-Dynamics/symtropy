@@ -232,7 +232,7 @@ pub fn certify_physical_field_discrepancy(
     let mut residual_field_over_cell_t = [Interval::ZERO; 3];
     let mut physical_field_over_cell_t = [Interval::ZERO; 3];
 
-    let half_widths = std::array::from_fn(|axis| {
+    let half_widths: [f64; 3] = std::array::from_fn(|axis| {
         let centre = Interval::point(input.centre_position_m[axis])
             .expect("validated finite centre");
         (input.cell_bounds_m[axis] - centre)
