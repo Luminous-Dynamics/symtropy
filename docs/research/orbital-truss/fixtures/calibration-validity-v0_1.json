@@ -1,0 +1,2161 @@
+{
+  "schema": "luminous.orbital-cal-validity.corpus.v0.1",
+  "benchmark_id": "ORBITAL-CAL-VALIDITY-001",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_calibration_scope_and_acquisition_state_validity_only",
+  "cases": [
+    {
+      "case_id": "CAL-001-MULTI-SCOPE-VALID",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics",
+        "camera-to-robot"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        },
+        {
+          "scope_id": "camera-to-robot",
+          "calibration_id": "CAL-CAMERA-TO-ROBOT",
+          "calibration_revision": "r7",
+          "component_id": "ROBOT-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": false,
+          "check_state": "NOT_REQUIRED",
+          "last_check_time_ns": null,
+          "max_check_age_ns": null,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": null,
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "payload_g": {
+              "unit": "g",
+              "minimum_q": 0,
+              "maximum_q": 10000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "VALID_WITHIN_SCOPE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-002-ACQUISITION-AFTER-EXPIRY",
+      "acquisition_time_ns": 1000,
+      "acquisition_uncertainty_ns": 0,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "EXPIRED",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-003-TIME-BOUNDARY-OVERLAP",
+      "acquisition_time_ns": 999,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 900,
+          "max_check_age_ns": 200,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-004-LENS-IDENTITY-MISMATCH",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-2",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "IDENTITY_MISMATCH",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-005-REVOKED-CERTIFICATE",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "REVOKED",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "REVOKED",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-006-REFERENCE-CHECK-HOLD",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "HOLD",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "DRIFT_SUSPECTED",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-007-STALE-REFERENCE-CHECK",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 300,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "EXPIRED",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-008-PRIOR-INVALIDATING-EVENT",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-TOOL-EXCHANGE",
+          "effective_time_ns": 400,
+          "time_uncertainty_ns": 1,
+          "affected_scope_ids": [
+            "camera-intrinsics"
+          ],
+          "impact": "INVALIDATES",
+          "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "expected_status": "INVALIDATED",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-009-EVENT-TIME-OVERLAPS-ACQUISITION",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-MOUNT-SHOCK",
+          "effective_time_ns": 501,
+          "time_uncertainty_ns": 4,
+          "affected_scope_ids": [
+            "camera-intrinsics"
+          ],
+          "impact": "INVALIDATES",
+          "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-010-INCOMPLETE-EVENT-INVENTORY",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": false,
+      "required_scope_ids": [
+        "camera-intrinsics",
+        "camera-to-robot"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        },
+        {
+          "scope_id": "camera-to-robot",
+          "calibration_id": "CAL-CAMERA-TO-ROBOT",
+          "calibration_revision": "r7",
+          "component_id": "ROBOT-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": false,
+          "check_state": "NOT_REQUIRED",
+          "last_check_time_ns": null,
+          "max_check_age_ns": null,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": null,
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "payload_g": {
+              "unit": "g",
+              "minimum_q": 0,
+              "maximum_q": 10000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-011-MISSING-CONFIGURATION-FIELD",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-012-EVENT-AFTER-ACQUISITION",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-LATER-MAINTENANCE",
+          "effective_time_ns": 600,
+          "time_uncertainty_ns": 1,
+          "affected_scope_ids": [
+            "camera-intrinsics"
+          ],
+          "impact": "INVALIDATES",
+          "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "expected_status": "VALID_WITHIN_SCOPE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-013-NONINVALIDATING-EVENT",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-PAPERWORK",
+          "effective_time_ns": 400,
+          "time_uncertainty_ns": 1,
+          "affected_scope_ids": [
+            "camera-intrinsics"
+          ],
+          "impact": "NO_CALIBRATION_IMPACT",
+          "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "expected_status": "VALID_WITHIN_SCOPE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-014-UNKNOWN-EVENT-IMPACT",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-UNKNOWN",
+          "effective_time_ns": 400,
+          "time_uncertainty_ns": 1,
+          "affected_scope_ids": [
+            "camera-intrinsics"
+          ],
+          "impact": "UNKNOWN_IMPACT",
+          "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-015-EVENT-BEFORE-CALIBRATION-EPOCH",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-PRE-EPOCH",
+          "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "effective_time_ns": 80,
+          "time_uncertainty_ns": 1,
+          "affected_scope_ids": [
+            "camera-intrinsics"
+          ],
+          "impact": "INVALIDATES"
+        }
+      ],
+      "expected_status": "VALID_WITHIN_SCOPE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-016-EVENT-OVERLAPS-CALIBRATION-EPOCH",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-PRE-EPOCH",
+          "event_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "effective_time_ns": 100,
+          "time_uncertainty_ns": 2,
+          "affected_scope_ids": [
+            "camera-intrinsics"
+          ],
+          "impact": "INVALIDATES"
+        }
+      ],
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-017-REFERENCE-CHECK-AGE-BOUNDARY-OVERLAP",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 10,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 400,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-018-REFERENCE-CHECK-AT-ACQUISITION",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 0,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 500,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-019-TEMPERATURE-DEFINITIVELY-OUT-OF-SCOPE",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "OUT_OF_SCOPE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 40000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-020-TEMPERATURE-UNCERTAINTY-CROSSES-LIMIT",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 35100,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-021-TEMPERATURE-MEASUREMENT-MISSING",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-022-TEMPERATURE-UNIT-MISMATCH",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 10000
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "IDENTITY_MISMATCH",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-023-TEMPERATURE-MEASUREMENT-STALE",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 100
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "EXPIRED",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 100,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-024-TEMPERATURE-MEASUREMENT-AGE-BOUNDARY",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 100
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "INDETERMINATE",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 22000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 390,
+          "time_uncertainty_ns": 10,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "case_id": "CAL-025-STALE-OUT-OF-RANGE-CONDITION",
+      "acquisition_time_ns": 500,
+      "acquisition_uncertainty_ns": 2,
+      "event_inventory_complete": true,
+      "required_scope_ids": [
+        "camera-intrinsics"
+      ],
+      "components": [
+        {
+          "component_id": "CAM-01",
+          "configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          }
+        },
+        {
+          "component_id": "ROBOT-01",
+          "configuration": {
+            "tool": "SCAN-HEAD-A",
+            "handeye_revision": "HX-4",
+            "robot_serial": "ROBOT-01"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "scope_id": "camera-intrinsics",
+          "calibration_id": "CAL-CAMERA-INTRINSICS",
+          "calibration_revision": "r7",
+          "component_id": "CAM-01",
+          "valid_from_ns": 100,
+          "valid_until_ns": 1000,
+          "required_configuration": {
+            "lens": "L-1",
+            "resolution": "1920x1080",
+            "sensor_mode": "global",
+            "sensor_serial": "SENSOR-01"
+          },
+          "certificate_state": "VALID",
+          "check_required": true,
+          "check_state": "PASS",
+          "last_check_time_ns": 450,
+          "max_check_age_ns": 100,
+          "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "check_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_epoch_ns": 100,
+          "required_conditions": {
+            "temperature_milli_c": {
+              "unit": "milli_degC",
+              "minimum_q": 10000,
+              "maximum_q": 35000,
+              "maximum_age_ns": 100
+            }
+          }
+        }
+      ],
+      "events": [],
+      "expected_status": "EXPIRED",
+      "actual_conditions": {
+        "temperature_milli_c": {
+          "unit": "milli_degC",
+          "value_q": 40000,
+          "uncertainty_q": 500,
+          "observed_time_ns": 100,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload_g": {
+          "unit": "g",
+          "value_q": 2200,
+          "uncertainty_q": 100,
+          "observed_time_ns": 480,
+          "time_uncertainty_ns": 1,
+          "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      },
+      "event_inventory_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    }
+  ]
+}

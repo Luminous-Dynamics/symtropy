@@ -1,0 +1,353 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-cal-validity-corpus-v0.1.schema.json",
+  "title": "Orbital Calibration Validity Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-cal-validity.corpus.v0.1"
+    },
+    "benchmark_id": {
+      "const": "ORBITAL-CAL-VALIDITY-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_calibration_scope_and_acquisition_state_validity_only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/Case"
+      }
+    }
+  },
+  "$defs": {
+    "Configuration": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "ComponentState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "component_id",
+        "configuration"
+      ],
+      "properties": {
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration": {
+          "$ref": "#/$defs/Configuration"
+        }
+      }
+    },
+    "CalibrationScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope_id",
+        "calibration_id",
+        "calibration_revision",
+        "certificate_sha256",
+        "check_receipt_sha256",
+        "component_id",
+        "calibration_epoch_ns",
+        "valid_from_ns",
+        "valid_until_ns",
+        "required_configuration",
+        "required_conditions",
+        "certificate_state",
+        "check_required",
+        "check_state",
+        "last_check_time_ns",
+        "max_check_age_ns"
+      ],
+      "properties": {
+        "scope_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "valid_from_ns": {
+          "type": "integer"
+        },
+        "valid_until_ns": {
+          "type": "integer"
+        },
+        "required_configuration": {
+          "$ref": "#/$defs/Configuration",
+          "minProperties": 1
+        },
+        "certificate_state": {
+          "enum": [
+            "VALID",
+            "REVOKED"
+          ]
+        },
+        "check_required": {
+          "type": "boolean"
+        },
+        "check_state": {
+          "enum": [
+            "PASS",
+            "HOLD",
+            "UNKNOWN",
+            "NOT_REQUIRED"
+          ]
+        },
+        "last_check_time_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "max_check_age_ns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "certificate_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
+        "check_receipt_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
+        "calibration_epoch_ns": {
+          "type": "integer"
+        },
+        "required_conditions": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/ConditionEnvelope"
+          },
+          "minProperties": 1
+        }
+      }
+    },
+    "ChangeEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "event_receipt_sha256",
+        "effective_time_ns",
+        "time_uncertainty_ns",
+        "affected_scope_ids",
+        "impact"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "effective_time_ns": {
+          "type": "integer"
+        },
+        "time_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "affected_scope_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "impact": {
+          "enum": [
+            "INVALIDATES",
+            "NO_CALIBRATION_IMPACT",
+            "UNKNOWN_IMPACT"
+          ]
+        },
+        "event_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        }
+      }
+    },
+    "Case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "acquisition_time_ns",
+        "acquisition_uncertainty_ns",
+        "event_inventory_complete",
+        "event_inventory_receipt_sha256",
+        "required_scope_ids",
+        "components",
+        "actual_conditions",
+        "scopes",
+        "events",
+        "expected_status"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acquisition_time_ns": {
+          "type": "integer"
+        },
+        "acquisition_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "event_inventory_complete": {
+          "type": "boolean"
+        },
+        "required_scope_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ComponentState"
+          }
+        },
+        "scopes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/CalibrationScope"
+          }
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ChangeEvent"
+          }
+        },
+        "expected_status": {
+          "enum": [
+            "VALID_WITHIN_SCOPE",
+            "EXPIRED",
+            "OUT_OF_SCOPE",
+            "DRIFT_SUSPECTED",
+            "IDENTITY_MISMATCH",
+            "INDETERMINATE",
+            "INVALIDATED",
+            "REVOKED",
+            "INVALID_INPUT"
+          ]
+        },
+        "actual_conditions": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/ConditionMeasurement"
+          }
+        },
+        "event_inventory_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        }
+      }
+    },
+    "ConditionEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "minimum_q",
+        "maximum_q",
+        "maximum_age_ns"
+      ],
+      "properties": {
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minimum_q": {
+          "type": "integer"
+        },
+        "maximum_q": {
+          "type": "integer"
+        },
+        "maximum_age_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "ConditionMeasurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "value_q",
+        "uncertainty_q",
+        "observed_time_ns",
+        "time_uncertainty_ns",
+        "receipt_sha256"
+      ],
+      "properties": {
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value_q": {
+          "type": "integer"
+        },
+        "uncertainty_q": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observed_time_ns": {
+          "type": "integer"
+        },
+        "time_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        }
+      }
+    }
+  }
+}
