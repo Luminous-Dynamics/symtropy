@@ -405,6 +405,36 @@ impl<const D: usize> IncrementalAabbTree<D> {
         Ok(result)
     }
 
+    /// Benchmark control preserving the original one-query-per-leaf pair
+    /// enumeration. Use this to compare traversal strategies on the same tree
+    /// topology; production callers should prefer query_pairs().
+    pub fn query_pairs_per_leaf_reference(&self) -> PairQueryResult {
+        let mut result = PairQueryResult {
+            pairs: Vec::new(),
+            stats: PairQueryStats::default(),
+        };
+        for (&proxy, &leaf) in &self.leaves {
+            let query = self
+                .query(self.node(leaf).aabb)
+                .expect("stored bounds are valid");
+            result.stats.queries += 1;
+            result.stats.node_visits += query.stats.node_visits;
+            result.stats.leaf_tests += query.stats.leaf_tests;
+            result.stats.aabb_tests += query.stats.aabb_tests;
+            for candidate in query.proxies {
+                if candidate > proxy {
+                    result
+                        .pairs
+                        .push(ProxyPair::new(proxy, candidate).expect("distinct proxy IDs"));
+                }
+            }
+        }
+        result.pairs.sort_unstable();
+        result.pairs.dedup();
+        result.stats.emitted_pairs = result.pairs.len();
+        result
+    }
+
     /// Emit each overlapping fat-proxy pair exactly once using a
     /// self-pair traversal of the hierarchy.
     ///
@@ -1182,6 +1212,34 @@ mod tests {
         assert_eq!(result.stats.queries, 1);
         assert!(result.stats.aabb_tests > 0);
         assert!(tree.stats().height > 0);
+    }
+
+    #[test]
+    fn self_pair_traversal_matches_per_leaf_reference_with_less_sparse_work() {
+        let mut tree =
+            IncrementalAabbTree::<3>::new_with_balance_policy(0.0, BalancePolicy::HeightRotations)
+                .unwrap();
+        for index in 0..256_u64 {
+            let x = index as f64 * 10.0;
+            tree.insert(
+                ProxyId(index + 1),
+                aabb([x, 0.0, 0.0], [x + 1.0, 1.0, 1.0]),
+            )
+            .unwrap();
+        }
+
+        let reference = tree.query_pairs_per_leaf_reference();
+        let optimized = tree.query_pairs();
+        assert_eq!(optimized.pairs, reference.pairs);
+        assert_eq!(optimized.stats.emitted_pairs, reference.stats.emitted_pairs);
+        assert_eq!(reference.stats.queries, 256);
+        assert_eq!(optimized.stats.queries, 1);
+        assert!(
+            optimized.stats.aabb_tests < reference.stats.aabb_tests,
+            "optimized={} reference={}",
+            optimized.stats.aabb_tests,
+            reference.stats.aabb_tests
+        );
     }
 
     #[test]
