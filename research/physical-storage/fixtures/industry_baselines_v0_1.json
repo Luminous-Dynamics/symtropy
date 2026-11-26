@@ -156,6 +156,60 @@
       "status_note": "The 2026 review identifies DNA as a high-density, chemically stable research direction but discusses synthesis cost, sequencing errors, efficiency and experimental complexity as scaling constraints. It covers device-aware encoding, error correction, PCR/CRISPR access and biochemical noise. This is a review-level research candidate, not a qualified commercial medium. Do not compare theoretical bits per nucleotide to net usable bits/mm3 without a complete process and redundancy boundary.",
       "source": "https://link.springer.com/article/10.1007/s11831-026-10651-2",
       "secondary_source": "https://www.sciencedirect.com/science/article/pii/S0168165626000702"
+    },
+    {
+      "id": "dna_codec_comparison_2026_nature_communications",
+      "medium": "synthetic DNA oligonucleotides",
+      "use_case": "experimental and in-silico codec benchmark",
+      "status": "published_research_benchmark_not_commercially_qualified",
+      "source_date": "2026-03-14",
+      "reported": {
+        "codec_families_compared": 6,
+        "maximum_isolated_scenario_error_rate_tolerated": 0.14,
+        "maximum_isolated_scenario_sequence_loss_tolerated": 0.65,
+        "in_silico_realistic_workflow_feasibility_eb_per_g": 117,
+        "in_vitro_material_deposition_synthesis_eb_per_g": 43,
+        "in_vitro_electrochemical_synthesis_eb_per_g": 13
+      },
+      "codec_families": [
+        "DNA-Aeon",
+        "DNA Fountain",
+        "DNA-RS",
+        "Goldman",
+        "HEDGES",
+        "Yin-Yang"
+      ],
+      "datasets": {
+        "sequencing_data_accession": "ENA PRJEB90546",
+        "benchmark_code": "https://github.com/fml-ethz/dt4dds-benchmark",
+        "benchmark_code_commit_observed": "0928fd7f26709ce63fd4d0765c50db1be8af0f7d",
+        "archived_code_doi": "https://doi.org/10.5281/zenodo.17391326",
+        "notebooks": "https://github.com/fml-ethz/dt4dds-benchmark_notebooks",
+        "notebooks_doi": "https://doi.org/10.5281/zenodo.17391328"
+      },
+      "status_note": "This is a published 2026 in-silico/in-vitro codec benchmark, not a commercial DNA archive product. The isolated-code error and strand-loss maxima are scenario-specific. The 117 EB/g figure is a realistic-workflow feasibility result reported by the study; the 43 and 13 EB/g figures are separate in-vitro demonstrations using different synthesis methods. Do not compare these numbers to net glass bits/mm3 or to deployed cost per verified TB-year without matching physical and service boundaries.",
+      "source": "https://doi.org/10.1038/s41467-026-70548-3"
+    },
+    {
+      "id": "dna_polus_soft_decoding_2026",
+      "medium": "synthetic DNA oligonucleotides",
+      "use_case": "quality-aware consensus and codec-agnostic soft-decision enhancement",
+      "status": "published_in_silico_benchmark_not_physical_storage_qualification",
+      "source_date": "2026-08-03",
+      "reported": {
+        "dna_fountain_coverage_reduction_fraction_in_evaluated_setup": 0.389,
+        "effective_physical_density_relative_increase_fraction_in_evaluated_setup": 0.8,
+        "targeted_resequencing_overhead_reduction_claim_fraction": 0.999
+      },
+      "source_code": {
+        "polus_repository": "https://github.com/dinglulu/Polus",
+        "polus_commit_observed": "656b58008e196dbad42c9b09f8ec1bf350ee8614",
+        "seqformer_repository": "https://github.com/dinglulu/SeqFormer",
+        "seqformer_commit_status": "not pinned during this intake; must pin before reproduction"
+      },
+      "status_note": "The paper reports in-silico results using platform-specific read/quality profiles. The 38.9% coverage and ~80% effective-density improvements are relative to the study's hard-decision comparison and are not general physical measurements. Cross-platform calibration and held-out-library generalization must be tested independently.",
+      "source": "https://doi.org/10.1093/bioinformatics/btag563",
+      "related_source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13452053/"
     }
   ]
 }
