@@ -14,6 +14,9 @@ fn parse_f64(value: &str, field: &str) -> Result<f64, Box<dyn Error>> {
 }
 
 fn number(value: f64) -> String {
+    if value.abs() < 0.0000005 {
+        return "0.000000".to_owned();
+    }
     format!("{value:.6}")
 }
 
@@ -186,7 +189,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             "PLAN_ENUMERATION\t{}\t{}\t{}",
             plan.plan_id,
             plan.active_set_combinations_examined,
-            plan.feasible_region_vertices
+            plan.feasible_active_set_bases
         );
         for event in &plan.worst_case_events {
             println!(
