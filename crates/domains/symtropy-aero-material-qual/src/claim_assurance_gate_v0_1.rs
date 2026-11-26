@@ -12,6 +12,8 @@
 use super::effectivity_interval_v0_1::EffectivityRelation;
 use super::observer_coverage_v0_1::{CoverageAssessment, CoverageStatus};
 use super::vector_watermark_v0_1::{CutAssessment, CutStatus};
+use serde::Serialize;
+use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
 /// Owner-supplied admission disposition for one required evidence reference.
@@ -56,9 +58,8 @@ pub struct RequiredEvidenceAdmission {
 
 /// Immutable identity binding for one independently evaluated component report.
 ///
-/// The hashes and identity fields are carried into the composite output. This
-/// gate checks their shape and agreement; it does not recompute the report
-/// digest or authenticate the external report/receipt.
+/// The report digest is recomputed over the typed assessment and this exact
+/// envelope. It is not an external signature or owner-receipt verification.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AssessmentBinding {
     /// Claim identity the component report evaluates.
@@ -164,25 +165,65 @@ fn valid_sha256(value: &str) -> bool {
             .all(|byte| matches!(byte, b'0'..=b'9' | b'a'..=b'f'))
 }
 
-/// Validate that the three component reports refer to exactly the same claim,
-/// physical subject and canonical decision context. Returns that shared digest
-/// when the binding set is internally consistent.
+#[derive(Serialize)]
+struct BoundComponentReport<'a, T: Serialize> {
+    schema: &'static str,
+    component_kind: &'static str,
+    claim_id: &'a str,
+    subject_ref: &'a str,
+    decision_context_sha256: &'a str,
+    evaluator_profile: &'a str,
+    assessment: &'a T,
+}
+
+/// Compute the deterministic digest of one typed assessment and its exact
+/// claim/subject/context envelope.
+///
+/// Struct field order is fixed by this versioned Rust type; assessment
+/// collections are already canonically ordered by their evaluators. This is a
+/// versioned Rust/Serde JSON profile, not a general RFC 8785 implementation.
+pub fn compute_component_report_sha256<T: Serialize>(
+    component_kind: &'static str,
+    binding: &AssessmentBinding,
+    assessment: &T,
+) -> Result<String, String> {
+    let envelope = BoundComponentReport {
+        schema: "AeroClaimComponentReportV1",
+        component_kind,
+        claim_id: &binding.claim_id,
+        subject_ref: &binding.subject_ref,
+        decision_context_sha256: &binding.decision_context_sha256,
+        evaluator_profile: &binding.evaluator_profile,
+        assessment,
+    };
+    let bytes = serde_json::to_vec(&envelope)
+        .map_err(|_| "COMPONENT_REPORT_SERIALIZATION_FAILED".to_owned())?;
+    let digest = Sha256::digest(bytes);
+    Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect())
+}
+
+/// Validate that the three typed component results refer to exactly the same
+/// claim, physical subject and canonical decision context. Each supplied
+/// report digest must match a fresh digest of its actual typed assessment.
 fn validate_component_bindings(
     claim_id: &str,
     bindings: &ClaimComponentBindings,
+    coverage: &CoverageAssessment,
+    causal_cut: &CutAssessment,
+    effectivity: &EffectivityRelation,
     reasons: &mut BTreeSet<String>,
 ) -> Option<String> {
     let components = [
-        ("COVERAGE", &bindings.coverage),
-        ("CAUSAL_CUT", &bindings.causal_cut),
-        ("EFFECTIVITY", &bindings.effectivity),
+        ("COVERAGE", "OBSERVER_COVERAGE", &bindings.coverage),
+        ("CAUSAL_CUT", "CAUSAL_CUT", &bindings.causal_cut),
+        ("EFFECTIVITY", "EFFECTIVITY", &bindings.effectivity),
     ];
     let mut shared_subject: Option<&str> = None;
     let mut shared_context: Option<&str> = None;
     let mut report_digests = BTreeSet::new();
     let mut valid = true;
 
-    for (kind, binding) in components {
+    for (kind, component_kind, binding) in components {
         if binding.claim_id != claim_id {
             valid = false;
             reasons.insert(format!("{kind}_CLAIM_ID_MISMATCH"));
@@ -216,6 +257,23 @@ fn validate_component_bindings(
         if !valid_sha256(&binding.report_sha256) {
             valid = false;
             reasons.insert(format!("{kind}_REPORT_DIGEST_INVALID"));
+        }
+        let recomputed_digest = match kind {
+            "COVERAGE" => compute_component_report_sha256(component_kind, binding, coverage),
+            "CAUSAL_CUT" => compute_component_report_sha256(component_kind, binding, causal_cut),
+            "EFFECTIVITY" => compute_component_report_sha256(component_kind, binding, effectivity),
+            _ => unreachable!("closed component set"),
+        };
+        match recomputed_digest {
+            Ok(expected) if expected == binding.report_sha256 => {}
+            Ok(_) => {
+                valid = false;
+                reasons.insert(format!("{kind}_REPORT_DIGEST_MISMATCH"));
+            }
+            Err(reason) => {
+                valid = false;
+                reasons.insert(reason);
+            }
         }
         if !report_digests.insert(binding.report_sha256.as_str()) {
             valid = false;
@@ -263,8 +321,14 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
         reasons.insert("CLAIM_ID_MISSING_OR_NONCANONICAL".to_owned());
     }
 
-    let decision_context_sha256 =
-        validate_component_bindings(input.claim_id, input.bindings, &mut reasons)
+    let decision_context_sha256 = validate_component_bindings(
+        input.claim_id,
+        input.bindings,
+        input.coverage,
+        input.causal_cut,
+        &input.effectivity,
+        &mut reasons,
+    )
             .unwrap_or_else(|| {
                 invalid = true;
                 input.bindings.coverage.decision_context_sha256.clone()
@@ -389,8 +453,8 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
 #[cfg(test)]
 mod tests {
     use super::{
-        AssessmentBinding, ClaimComponentBindings, ClaimGateInput, ClaimGateStatus,
-        EvidenceAdmissionState, RequiredEvidenceAdmission, evaluate_claim_gate,
+        compute_component_report_sha256, AssessmentBinding, ClaimComponentBindings, ClaimGateInput,
+        ClaimGateStatus, EvidenceAdmissionState, RequiredEvidenceAdmission, evaluate_claim_gate,
     };
     use crate::effectivity_interval_v0_1::EffectivityRelation;
     use crate::observer_coverage_v0_1::{
@@ -451,23 +515,47 @@ mod tests {
         }
     }
 
-    fn component_binding(profile: &str, report_digest_char: char) -> AssessmentBinding {
+    fn component_binding(profile: &str) -> AssessmentBinding {
         AssessmentBinding {
             claim_id: "claim-wing-panel-001".to_owned(),
             subject_ref: "part:wing-panel-001".to_owned(),
             decision_context_sha256:
                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
-            report_sha256: report_digest_char.to_string().repeat(64),
+            report_sha256: String::new(),
             evaluator_profile: profile.to_owned(),
         }
     }
 
-    fn bindings() -> ClaimComponentBindings {
-        ClaimComponentBindings {
-            coverage: component_binding("basalt-coverage-v0.1", 'b'),
-            causal_cut: component_binding("aero-causal-cut-v0.1", 'c'),
-            effectivity: component_binding("aero-effectivity-v0.1", 'd'),
-        }
+    fn bindings_for(
+        coverage: &CoverageAssessment,
+        causal_cut: &CutAssessment,
+        effectivity: EffectivityRelation,
+    ) -> ClaimComponentBindings {
+        let mut result = ClaimComponentBindings {
+            coverage: component_binding("basalt-coverage-v0.1"),
+            causal_cut: component_binding("aero-causal-cut-v0.1"),
+            effectivity: component_binding("aero-effectivity-v0.1"),
+        };
+        result.coverage.report_sha256 =
+            compute_component_report_sha256("OBSERVER_COVERAGE", &result.coverage, coverage)
+                .expect("coverage component serializes");
+        result.causal_cut.report_sha256 =
+            compute_component_report_sha256("CAUSAL_CUT", &result.causal_cut, causal_cut)
+                .expect("causal-cut component serializes");
+        result.effectivity.report_sha256 =
+            compute_component_report_sha256("EFFECTIVITY", &result.effectivity, &effectivity)
+                .expect("effectivity component serializes");
+        result
+    }
+
+    fn positive_bindings() -> ClaimComponentBindings {
+        let coverage = coverage(CoverageStatus::QualifiedCompleteForScope);
+        let causal_cut = cut(CutStatus::Closed);
+        bindings_for(
+            &coverage,
+            &causal_cut,
+            EffectivityRelation::DefinitelyEffective,
+        )
     }
 
     fn evaluate_with_bindings(
@@ -495,12 +583,15 @@ mod tests {
         effectivity: EffectivityRelation,
         evidence: &[RequiredEvidenceAdmission],
     ) -> super::ClaimAssuranceAssessment {
+        let coverage_result = coverage(coverage_status);
+        let cut_result = cut(cut_status);
+        let component_bindings = bindings_for(&coverage_result, &cut_result, effectivity);
         evaluate_with_bindings(
             coverage_status,
             cut_status,
             effectivity,
             evidence,
-            &bindings(),
+            &component_bindings,
         )
     }
 
@@ -737,7 +828,7 @@ mod tests {
 
     #[test]
     fn component_claim_identity_mismatch_rejects_composition() {
-        let mut component_bindings = bindings();
+        let mut component_bindings = positive_bindings();
         component_bindings.causal_cut.claim_id = "claim-different-wing".to_owned();
         let result = evaluate_with_bindings(
             CoverageStatus::QualifiedCompleteForScope,
@@ -752,7 +843,7 @@ mod tests {
 
     #[test]
     fn component_subject_mismatch_rejects_composition() {
-        let mut component_bindings = bindings();
+        let mut component_bindings = positive_bindings();
         component_bindings.effectivity.subject_ref = "part:other-wing".to_owned();
         let result = evaluate_with_bindings(
             CoverageStatus::QualifiedCompleteForScope,
@@ -767,7 +858,7 @@ mod tests {
 
     #[test]
     fn component_decision_context_mismatch_rejects_composition() {
-        let mut component_bindings = bindings();
+        let mut component_bindings = positive_bindings();
         component_bindings.coverage.decision_context_sha256 = "e".to_string().repeat(64);
         let result = evaluate_with_bindings(
             CoverageStatus::QualifiedCompleteForScope,
@@ -782,7 +873,7 @@ mod tests {
 
     #[test]
     fn malformed_or_reused_component_report_digest_rejects_composition() {
-        let mut malformed = bindings();
+        let mut malformed = positive_bindings();
         malformed.coverage.report_sha256 = "not-a-sha256".to_owned();
         let result = evaluate_with_bindings(
             CoverageStatus::QualifiedCompleteForScope,
@@ -794,7 +885,7 @@ mod tests {
         assert_eq!(result.status, ClaimGateStatus::Rejected);
         assert!(result.reason_codes.contains(&"COVERAGE_REPORT_DIGEST_INVALID".to_owned()));
 
-        let mut reused = bindings();
+        let mut reused = positive_bindings();
         reused.effectivity.report_sha256 = reused.coverage.report_sha256.clone();
         let result = evaluate_with_bindings(
             CoverageStatus::QualifiedCompleteForScope,
@@ -819,6 +910,20 @@ mod tests {
         );
         assert_eq!(result.status, ClaimGateStatus::Rejected);
         assert!(result.reason_codes.contains(&"REQUIRED_EVIDENCE_CONTEXT_MISMATCH".to_owned()));
+    }
+
+    #[test]
+    fn component_digest_binds_the_actual_typed_assessment_payload() {
+        let component_bindings = positive_bindings();
+        let result = evaluate_with_bindings(
+            CoverageStatus::Incomplete,
+            CutStatus::Closed,
+            EffectivityRelation::DefinitelyEffective,
+            &all_admitted(),
+            &component_bindings,
+        );
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(result.reason_codes.contains(&"COVERAGE_REPORT_DIGEST_MISMATCH".to_owned()));
     }
 
     #[test]
