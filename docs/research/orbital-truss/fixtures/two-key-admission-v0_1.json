@@ -19,12 +19,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "PASS",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007d0",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007d1"
         },
         "post_action_portfolio": {
           "state": "PASS",
@@ -73,12 +76,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "FAIL",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000066"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000066",
+          "claim_disposition": "SAFETY_CLAIM_FAILED",
+          "proof_verification_state": "FAIL",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007d2",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007d3"
         },
         "post_action_portfolio": {
           "state": "PASS",
@@ -127,12 +133,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "UNKNOWN",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000067"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000067",
+          "claim_disposition": "INDETERMINATE",
+          "proof_verification_state": "UNKNOWN",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007d4",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007d5"
         },
         "post_action_portfolio": {
           "state": "PASS",
@@ -181,12 +190,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "PASS",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007d6",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007d7"
         },
         "post_action_portfolio": {
           "state": "PASS",
@@ -235,12 +247,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "PASS",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007d8",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007d9"
         },
         "post_action_portfolio": {
           "state": "PASS",
@@ -289,12 +304,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "PASS",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007da",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007db"
         },
         "post_action_portfolio": {
           "state": "PASS",
@@ -343,12 +361,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "PASS",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007dc",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007dd"
         },
         "post_action_portfolio": {
           "state": "PASS",
@@ -397,12 +418,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "PASS",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007de",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007df"
         },
         "post_action_portfolio": {
           "state": "PASS",
@@ -451,12 +475,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "PASS",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-OLD",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000006d"
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000006d",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007e0",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007e1"
         },
         "post_action_portfolio": {
           "state": "PASS",
@@ -505,12 +532,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "PASS",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007e2",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007e3"
         },
         "post_action_portfolio": {
           "state": "PASS",
@@ -559,12 +589,15 @@
           "feature_id": null
         },
         "physical_safety": {
-          "state": "PASS",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000006f"
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000006f",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007e4",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007e5"
         },
         "post_action_portfolio": null,
         "measurement": null,
@@ -591,12 +624,15 @@
           "feature_id": null
         },
         "physical_safety": {
-          "state": "UNKNOWN",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000070"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000070",
+          "claim_disposition": "INDETERMINATE",
+          "proof_verification_state": "UNKNOWN",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007e6",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007e7"
         },
         "post_action_portfolio": null,
         "measurement": null,
@@ -623,12 +659,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "FAIL",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000071"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000071",
+          "claim_disposition": "SAFETY_CLAIM_FAILED",
+          "proof_verification_state": "FAIL",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007e8",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007e9"
         },
         "post_action_portfolio": {
           "state": "PASS",
@@ -677,12 +716,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "PASS",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007ea",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007eb"
         },
         "post_action_portfolio": {
           "state": "PASS",
@@ -778,12 +820,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "PASS",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007ec",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007ed"
         },
         "post_action_portfolio": null,
         "measurement": {
@@ -823,12 +868,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "PASS",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007ee",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007ef"
         },
         "post_action_portfolio": {
           "state": "PASS",
@@ -864,12 +912,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "PASS",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "not-a-sha256"
+          "receipt_sha256": "not-a-sha256",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007f0",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007f1"
         },
         "post_action_portfolio": {
           "state": "PASS",
@@ -918,12 +969,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "PASS",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007f2",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007f3"
         },
         "post_action_portfolio": {
           "state": "FAIL",
@@ -972,12 +1026,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "PASS",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007f4",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007f5"
         },
         "post_action_portfolio": {
           "state": "PASS",
@@ -1026,12 +1083,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "PASS",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007f6",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007f7"
         },
         "post_action_portfolio": {
           "state": "PASS",
@@ -1080,12 +1140,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "PASS",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007f8",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007f9"
         },
         "post_action_portfolio": {
           "state": "PASS",
@@ -1134,12 +1197,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "PASS",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007fa",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007fb"
         },
         "post_action_portfolio": {
           "state": "PASS",
@@ -1188,12 +1254,15 @@
           "feature_id": "FEATURE-JOINT-17"
         },
         "physical_safety": {
-          "state": "PASS",
           "action_id": "ACTION-001",
           "vehicle_id": "SERVICER-01",
           "trajectory_revision": "TRAJ-REV-7",
           "horizon_id": "HORIZON-T0-T4",
-          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007fc",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007fd"
         },
         "post_action_portfolio": {
           "state": "PASS",
@@ -1226,6 +1295,348 @@
         "decision_value_basis": "OBSERVED"
       },
       "expected_disposition": "ELIGIBLE_INSPECTION"
+    },
+    {
+      "case_id": "TK-025-COMPLETE-STRUCTURE-VERIFIER-UNKNOWN",
+      "candidate": {
+        "class": "INSPECTION",
+        "scope": {
+          "action_id": "ACTION-TK-025-COMPLETE-STRUCTURE-VERIFIER-UNKNOWN",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17"
+        },
+        "physical_safety": {
+          "action_id": "ACTION-TK-025-COMPLETE-STRUCTURE-VERIFIER-UNKNOWN",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "UNKNOWN",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007d0",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007d1"
+        },
+        "post_action_portfolio": {
+          "state": "PASS",
+          "event_set_complete": true,
+          "action_id": "ACTION-TK-025-COMPLETE-STRUCTURE-VERIFIER-UNKNOWN",
+          "horizon_id": "HORIZON-T0-T4",
+          "event_set_revision": "EVENT-SET-REV-3",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
+        },
+        "measurement": {
+          "acquisition_state": "PASS",
+          "scope_coherence_state": "PASS",
+          "action_id": "ACTION-TK-025-COMPLETE-STRUCTURE-VERIFIER-UNKNOWN",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17",
+          "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
+        },
+        "delta_v_milli_m_s": 300,
+        "duration_ms": 120000,
+        "compute_us": 2000,
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
+      },
+      "expected_disposition": "INDETERMINATE"
+    },
+    {
+      "case_id": "TK-026-RISK-ONLY-NEVER-SHIELD",
+      "candidate": {
+        "class": "INSPECTION",
+        "scope": {
+          "action_id": "ACTION-TK-026-RISK-ONLY-NEVER-SHIELD",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17"
+        },
+        "physical_safety": {
+          "action_id": "ACTION-TK-026-RISK-ONLY-NEVER-SHIELD",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "RISK_ONLY",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": null,
+          "safe_continuation_claim_sha256": null
+        },
+        "post_action_portfolio": {
+          "state": "PASS",
+          "event_set_complete": true,
+          "action_id": "ACTION-TK-026-RISK-ONLY-NEVER-SHIELD",
+          "horizon_id": "HORIZON-T0-T4",
+          "event_set_revision": "EVENT-SET-REV-3",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
+        },
+        "measurement": {
+          "acquisition_state": "PASS",
+          "scope_coherence_state": "PASS",
+          "action_id": "ACTION-TK-026-RISK-ONLY-NEVER-SHIELD",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17",
+          "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
+        },
+        "delta_v_milli_m_s": 300,
+        "duration_ms": 120000,
+        "compute_us": 2000,
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
+      },
+      "expected_disposition": "INDETERMINATE"
+    },
+    {
+      "case_id": "TK-027-FINITE-ONLY-NEVER-SHIELD",
+      "candidate": {
+        "class": "INSPECTION",
+        "scope": {
+          "action_id": "ACTION-TK-027-FINITE-ONLY-NEVER-SHIELD",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17"
+        },
+        "physical_safety": {
+          "action_id": "ACTION-TK-027-FINITE-ONLY-NEVER-SHIELD",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIM_INCOMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007d0",
+          "safe_continuation_claim_sha256": null
+        },
+        "post_action_portfolio": {
+          "state": "PASS",
+          "event_set_complete": true,
+          "action_id": "ACTION-TK-027-FINITE-ONLY-NEVER-SHIELD",
+          "horizon_id": "HORIZON-T0-T4",
+          "event_set_revision": "EVENT-SET-REV-3",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
+        },
+        "measurement": {
+          "acquisition_state": "PASS",
+          "scope_coherence_state": "PASS",
+          "action_id": "ACTION-TK-027-FINITE-ONLY-NEVER-SHIELD",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17",
+          "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
+        },
+        "delta_v_milli_m_s": 300,
+        "duration_ms": 120000,
+        "compute_us": 2000,
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
+      },
+      "expected_disposition": "INDETERMINATE"
+    },
+    {
+      "case_id": "TK-028-COMPLETE-MISSING-TERMINAL-REF",
+      "candidate": {
+        "class": "INSPECTION",
+        "scope": {
+          "action_id": "ACTION-TK-028-COMPLETE-MISSING-TERMINAL-REF",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17"
+        },
+        "physical_safety": {
+          "action_id": "ACTION-TK-028-COMPLETE-MISSING-TERMINAL-REF",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007d0",
+          "safe_continuation_claim_sha256": null
+        },
+        "post_action_portfolio": {
+          "state": "PASS",
+          "event_set_complete": true,
+          "action_id": "ACTION-TK-028-COMPLETE-MISSING-TERMINAL-REF",
+          "horizon_id": "HORIZON-T0-T4",
+          "event_set_revision": "EVENT-SET-REV-3",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
+        },
+        "measurement": {
+          "acquisition_state": "PASS",
+          "scope_coherence_state": "PASS",
+          "action_id": "ACTION-TK-028-COMPLETE-MISSING-TERMINAL-REF",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17",
+          "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
+        },
+        "delta_v_milli_m_s": 300,
+        "duration_ms": 120000,
+        "compute_us": 2000,
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
+      },
+      "expected_disposition": "INVALID_INPUT"
+    },
+    {
+      "case_id": "TK-029-COMPLETE-MALFORMED-FINITE-REF",
+      "candidate": {
+        "class": "INSPECTION",
+        "scope": {
+          "action_id": "ACTION-TK-029-COMPLETE-MALFORMED-FINITE-REF",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17"
+        },
+        "physical_safety": {
+          "action_id": "ACTION-TK-029-COMPLETE-MALFORMED-FINITE-REF",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "PASS",
+          "finite_horizon_claim_sha256": "bad-digest",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007d1"
+        },
+        "post_action_portfolio": {
+          "state": "PASS",
+          "event_set_complete": true,
+          "action_id": "ACTION-TK-029-COMPLETE-MALFORMED-FINITE-REF",
+          "horizon_id": "HORIZON-T0-T4",
+          "event_set_revision": "EVENT-SET-REV-3",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
+        },
+        "measurement": {
+          "acquisition_state": "PASS",
+          "scope_coherence_state": "PASS",
+          "action_id": "ACTION-TK-029-COMPLETE-MALFORMED-FINITE-REF",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17",
+          "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
+        },
+        "delta_v_milli_m_s": 300,
+        "duration_ms": 120000,
+        "compute_us": 2000,
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
+      },
+      "expected_disposition": "INVALID_INPUT"
+    },
+    {
+      "case_id": "TK-030-COMPLETE-VERIFIER-STALE",
+      "candidate": {
+        "class": "INSPECTION",
+        "scope": {
+          "action_id": "ACTION-TK-030-COMPLETE-VERIFIER-STALE",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17"
+        },
+        "physical_safety": {
+          "action_id": "ACTION-TK-030-COMPLETE-VERIFIER-STALE",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064",
+          "claim_disposition": "SAFETY_CLAIMS_COMPLETE",
+          "proof_verification_state": "STALE",
+          "finite_horizon_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007d0",
+          "safe_continuation_claim_sha256": "00000000000000000000000000000000000000000000000000000000000007d1"
+        },
+        "post_action_portfolio": {
+          "state": "PASS",
+          "event_set_complete": true,
+          "action_id": "ACTION-TK-030-COMPLETE-VERIFIER-STALE",
+          "horizon_id": "HORIZON-T0-T4",
+          "event_set_revision": "EVENT-SET-REV-3",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
+        },
+        "measurement": {
+          "acquisition_state": "PASS",
+          "scope_coherence_state": "PASS",
+          "action_id": "ACTION-TK-030-COMPLETE-VERIFIER-STALE",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17",
+          "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
+        },
+        "delta_v_milli_m_s": 300,
+        "duration_ms": 120000,
+        "compute_us": 2000,
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
+      },
+      "expected_disposition": "INDETERMINATE"
     }
   ]
 }
