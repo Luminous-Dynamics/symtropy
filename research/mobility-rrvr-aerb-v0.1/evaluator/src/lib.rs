@@ -515,6 +515,54 @@ fn build_loss_table(
     Ok(table)
 }
 
+fn validate_world_semantics(world: &EvaluatorWorld) -> Result<(), EvaluatorError> {
+    let effect_count_valid = match world.effect_state {
+        EffectState::None | EffectState::Unknown => world.effect_count == 0,
+        EffectState::Once | EffectState::Partial | EffectState::StaleEpoch => world.effect_count == 1,
+        EffectState::Duplicate => world.effect_count >= 2,
+    };
+    if !effect_count_valid {
+        return Err(EvaluatorError::InvalidWorldPack(format!(
+            "world effect count contradicts effect state: {}",
+            world.world_id
+        )));
+    }
+
+    if world.dispatch_state == DispatchState::NotDispatched
+        && world.effect_state != EffectState::None
+    {
+        return Err(EvaluatorError::InvalidWorldPack(format!(
+            "not-dispatched world cannot contain an effect: {}",
+            world.world_id
+        )));
+    }
+    if world.dispatch_state == DispatchState::Unknown
+        && world.effect_state != EffectState::Unknown
+    {
+        return Err(EvaluatorError::InvalidWorldPack(format!(
+            "unknown dispatch state requires unknown effect state: {}",
+            world.world_id
+        )));
+    }
+    if world.authority_relation == AuthorityRelation::StaleEpoch
+        && world.effect_state != EffectState::StaleEpoch
+    {
+        return Err(EvaluatorError::InvalidWorldPack(format!(
+            "stale authority relation requires stale-epoch effect: {}",
+            world.world_id
+        )));
+    }
+    if world.effect_state == EffectState::StaleEpoch
+        && world.authority_relation != AuthorityRelation::StaleEpoch
+    {
+        return Err(EvaluatorError::InvalidWorldPack(format!(
+            "stale-epoch effect requires stale authority relation: {}",
+            world.world_id
+        )));
+    }
+    Ok(())
+}
+
 fn validate_world_pack<'a>(
     pack: &'a EvaluatorWorldPack,
     episode: &CandidateEpisode,
@@ -541,6 +589,7 @@ fn validate_world_pack<'a>(
         if !nonempty(&world.world_id) || worlds.insert(world.world_id.as_str(), world).is_some() {
             return Err(EvaluatorError::InvalidWorldPack("world ID empty or duplicated".to_owned()));
         }
+        validate_world_semantics(world)?;
     }
     if !worlds.contains_key(pack.hidden_truth_world_id.as_str()) {
         return Err(EvaluatorError::InvalidWorldPack("hidden truth not in world catalog".to_owned()));
@@ -946,6 +995,25 @@ mod tests {
                 &serde_json::to_string(&worldpack).unwrap()
             ),
             Err(EvaluatorError::InvalidSubmission(_))
+        ));
+    }
+
+    #[test]
+    fn contradictory_evaluator_world_record_is_rejected() {
+        let (episode, submission, mut worldpack) = values();
+        let index = worldpack["worlds"]
+            .as_array().unwrap()
+            .iter()
+            .position(|world| world["world_id"] == "applied_once_ack_lost")
+            .unwrap();
+        worldpack["worlds"][index]["effect_count"] = serde_json::json!(0);
+        assert!(matches!(
+            evaluate_json(
+                &serde_json::to_string(&episode).unwrap(),
+                &serde_json::to_string(&submission).unwrap(),
+                &serde_json::to_string(&worldpack).unwrap()
+            ),
+            Err(EvaluatorError::InvalidWorldPack(_))
         ));
     }
 
