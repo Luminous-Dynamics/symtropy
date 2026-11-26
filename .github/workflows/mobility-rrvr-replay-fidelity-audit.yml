@@ -60,7 +60,8 @@ jobs:
             and .candidate_audits[0].status == "valid"
             and .candidate_audits[0].difficulty_success_n == 2
             and (.candidate_audits[0].frame_checks | length == 5)
-            and all(.candidate_audits[0].frame_checks[]; .ssim == 1 and .passed)
+            and .candidate_audits[0].mean_final_five_ssim == 1
+            and .candidate_audits[0].mean_ssim_passed
           ' "$RUNNER_TEMP/rrvr-replay-audit.json"
 
       - name: Run replay-fidelity tests
