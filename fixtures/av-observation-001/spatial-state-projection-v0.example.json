@@ -1,0 +1,141 @@
+{
+  "schema_version": "spatial-state-projection-v0",
+  "projection_id": "projection:episode-0007:revision-3",
+  "evidence_prefix_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "producer_revision_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "map_revision": 3,
+  "known_at_ns": 9000000000,
+  "observation_refs": [
+    {
+      "observation_id": "obs-frame-41",
+      "modality": "video_frame",
+      "artifact_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "clock_domain_id": "camera-clock-0",
+      "clock_generation": 0,
+      "capture_start_ns": 4100000000,
+      "capture_end_ns": 4133000000,
+      "known_at_ns": 4160000000
+    },
+    {
+      "observation_id": "obs-frame-57",
+      "modality": "video_frame",
+      "artifact_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "clock_domain_id": "camera-clock-0",
+      "clock_generation": 0,
+      "capture_start_ns": 5700000000,
+      "capture_end_ns": 5733000000,
+      "known_at_ns": 5760000000
+    }
+  ],
+  "coordinate_frames": [
+    {
+      "frame_id": "camera-frame-0",
+      "frame_kind": "camera",
+      "units": "meters",
+      "candidate_only": true
+    },
+    {
+      "frame_id": "candidate-world-0",
+      "frame_kind": "candidate_world",
+      "units": "meters",
+      "candidate_only": true
+    }
+  ],
+  "transforms": [
+    {
+      "transform_id": "transform-camera-world-r3",
+      "source_frame_id": "camera-frame-0",
+      "target_frame_id": "candidate-world-0",
+      "translation": [
+        1.2,
+        0,
+        0.4
+      ],
+      "rotation_xyzw": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "translation_stddev": 0.08,
+      "rotation_stddev_rad": 0.04,
+      "calibration_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "source_observation_refs": [
+        "obs-frame-41",
+        "obs-frame-57"
+      ],
+      "transform_revision": 3,
+      "epistemic_origin": "inferred"
+    }
+  ],
+  "entity_hypotheses": [
+    {
+      "entity_hypothesis_id": "landmark-hypothesis-a",
+      "candidate_label": "doorway-like landmark",
+      "state": "hypothesis",
+      "epistemic_origin": "inferred",
+      "frame_id": "candidate-world-0",
+      "position_m": [
+        3.4,
+        0,
+        1.1
+      ],
+      "position_stddev_m": 0.18,
+      "source_observation_refs": [
+        "obs-frame-41",
+        "obs-frame-57"
+      ]
+    },
+    {
+      "entity_hypothesis_id": "room-hypothesis-b",
+      "candidate_label": "room region",
+      "state": "active",
+      "epistemic_origin": "inferred",
+      "source_observation_refs": [
+        "obs-frame-41"
+      ]
+    }
+  ],
+  "relation_claims": [
+    {
+      "relation_claim_id": "relation-traversal-01",
+      "subject_hypothesis_id": "room-hypothesis-b",
+      "object_hypothesis_id": "landmark-hypothesis-a",
+      "predicate": "observed_traversal",
+      "epistemic_origin": "observed",
+      "claim_state": "active",
+      "source_observation_refs": [
+        "obs-frame-41",
+        "obs-frame-57"
+      ]
+    },
+    {
+      "relation_claim_id": "relation-adjacency-01",
+      "subject_hypothesis_id": "room-hypothesis-b",
+      "object_hypothesis_id": "landmark-hypothesis-a",
+      "predicate": "direct_adjacency",
+      "epistemic_origin": "inferred",
+      "claim_state": "proposed",
+      "derivation_rule_id": "candidate-topology-rule-02",
+      "source_observation_refs": [
+        "obs-frame-41",
+        "obs-frame-57"
+      ]
+    }
+  ],
+  "unresolved_constraints": [
+    {
+      "constraint_id": "landmark-identity-constraint-01",
+      "constraint_type": "identity",
+      "candidate_alternatives": [
+        "landmark-hypothesis-a",
+        "landmark-hypothesis-a-alt"
+      ],
+      "source_observation_refs": [
+        "obs-frame-41",
+        "obs-frame-57"
+      ],
+      "reopen_hint": "Resolve only if a future DecisionNeed depends on landmark identity"
+    }
+  ]
+}
