@@ -569,6 +569,54 @@ mod tests {
     }
 
     #[test]
+    fn set_valued_outcomes_are_scored_by_the_worst_possible_partition() {
+        let mut problem = base_problem();
+        problem.probes = vec![DecisionProbeOptionV0 {
+            probe_id: 9,
+            cost_units: 2,
+            latency_ticks: 1,
+        }];
+        problem.outcome_supports = vec![
+            DecisionProbeOutcomeSupportV0 {
+                probe_id: 9,
+                hypothesis_id: 1,
+                possible_outcome_id: 900,
+            },
+            DecisionProbeOutcomeSupportV0 {
+                probe_id: 9,
+                hypothesis_id: 1,
+                possible_outcome_id: 901,
+            },
+            DecisionProbeOutcomeSupportV0 {
+                probe_id: 9,
+                hypothesis_id: 2,
+                possible_outcome_id: 900,
+            },
+            DecisionProbeOutcomeSupportV0 {
+                probe_id: 9,
+                hypothesis_id: 3,
+                possible_outcome_id: 900,
+            },
+            DecisionProbeOutcomeSupportV0 {
+                probe_id: 9,
+                hypothesis_id: 4,
+                possible_outcome_id: 901,
+            },
+        ];
+
+        assert_eq!(
+            select_decision_sufficient_probe_v0(&problem).unwrap(),
+            DecisionDisambiguationResultV0::ProbeSelected {
+                probe_id: 9,
+                baseline_conflicting_pairs: 4,
+                worst_case_conflicting_pairs: 2,
+                cost_units: 2,
+                latency_ticks: 1,
+            }
+        );
+    }
+
+    #[test]
     fn incomplete_probe_prediction_support_is_rejected() {
         let mut problem = base_problem();
         problem.outcome_supports.pop();
