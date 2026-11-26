@@ -68,8 +68,8 @@ pub enum JointActionOutcomeState {
 
 /// One outcome row for one canonical action set.
 ///
-/// Action IDs must be strictly increasing. The action-set digest is an opaque
-/// caller-supplied identity and is not recomputed by this policy verifier.
+/// Action IDs must be strictly increasing. The action-set digest is
+/// independently recomputed from the canonical action-ID sequence.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JointActionOutcomeRecord {
     /// Canonically sorted action identities; the empty set is the no-action baseline.
@@ -115,7 +115,7 @@ pub struct JointActionCatalogueReport {
     pub disposition: JointActionSelectionDisposition,
     /// Selected action identities, present only when the global optimum is qualified.
     pub selected_action_ids: Option<Vec<[u8; 32]>>,
-    /// Opaque action-set digest of the selected portfolio.
+    /// Independently recomputed canonical action-set digest of the selected portfolio.
     pub selected_action_set_digest: Option<[u8; 32]>,
     /// Resource units consumed by the selected portfolio.
     pub selected_resource_cost: Option<u64>,
