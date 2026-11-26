@@ -218,7 +218,7 @@ fn validate_plan_receipt(receipt: &ResourcePlanReceipt) -> Result<(), BundleErro
 }
 
 fn validate_requirements(requirements: &[CommitmentRequirement]) -> Result<(), BundleError> {
-    let mut identities = BTreeSet::new();
+    let mut identities: BTreeMap<(String, u32), String> = BTreeMap::new();
     for requirement in requirements {
         if requirement.reservation_id.is_empty()
             || requirement.commitment_id.is_empty()
@@ -236,10 +236,16 @@ fn validate_requirements(requirements: &[CommitmentRequirement]) -> Result<(), B
             return Err(BundleError::ZeroQuantity);
         }
         let identity = (requirement.commitment_id.clone(), requirement.revision);
-        if !identities.insert(identity) {
-            return Err(BundleError::DuplicateCommitmentIdentity(
-                requirement.commitment_id.clone(),
-            ));
+        match identities.get(&identity) {
+            Some(existing_reservation) if existing_reservation != &requirement.reservation_id => {
+                return Err(BundleError::DuplicateCommitmentIdentity(
+                    requirement.commitment_id.clone(),
+                ));
+            }
+            Some(_) => {}
+            None => {
+                identities.insert(identity, requirement.reservation_id.clone());
+            }
         }
     }
     Ok(())
