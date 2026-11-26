@@ -39,13 +39,13 @@ A_eq = f * pi * R_E^2 / epsilon_a
 
 M = A_eq * sigma_installed
 
-where f is target flux-reduction fraction, epsilon_a is an abstract aperture-effectiveness input and sigma_installed is installed areal density.
+where f is target flux-reduction fraction and epsilon_a is an abstract target-plane attenuation-effectiveness input. Multiplying this equivalent target-plane area by a scenario areal mass density creates a mass proxy only.
 
-The equation is not an L1 sail footprint. A proper design needs finite-Sun umbra/penumbra propagation, optical diffraction and scattering, sail attitude and orbit dynamics, halo-orbit families, solar-radiation pressure, station-keeping, collision avoidance, degradation, repair and end-of-life. A first-order aperture/mass result must never be converted directly into a global temperature or wet-bulb change.
+The equation is not a physical aperture, L1 sail footprint, installed mass estimate or guaranteed lower bound. The equivalent target-plane attenuation area is a bookkeeping quantity. A physical L1 mass estimate needs finite-Sun optical transfer (umbra/penumbra), diffraction, scattering, module arrangement, sail attitude and orbit dynamics, halo-orbit families, solar-radiation pressure, station-keeping, collision avoidance, degradation, repair and end-of-life. A target-plane area or equivalent-area mass proxy must never be converted directly into a global temperature or wet-bulb change.
 
 ### First sensitivity result
 
-For the illustrative 1%/0.90 aperture case, the equivalent aperture is 1.4168 million km². At assumed installed areal densities of 1, 10, 100 and 1,000 g/m², the corresponding arithmetic masses are approximately 1.42 million, 14.17 million, 141.68 million and 1,416.85 million metric tonnes. These are sensitivity values, not designs: membrane-only density is not installed system density, and all structural, power, control, communications, spares, transfer and repair masses must be included. The calculation demonstrates how strongly the programme depends on a genuinely low-mass, durable, manufacturable optical structure.
+For the illustrative 1%/0.90 case, the equivalent target-plane attenuation area is 1.4168 million km². Applying scenario areal mass densities of 1, 10, 100 and 1,000 g/m² produces equivalent-area mass proxies of approximately 1.42 million, 14.17 million, 141.68 million and 1,416.85 million metric tonnes. These are sensitivity values only—not physical L1 membrane areas, installed mass estimates, or guaranteed lower bounds. The finite-distance optical transfer must be established before any density can be mapped to physical membrane mass; all structural, power, control, communications, spares, transfer and repair mass then needs to be accounted separately.
 
 ## 3. Q-drive: published concept and open engineering terms
 
