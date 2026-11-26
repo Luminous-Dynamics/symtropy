@@ -631,11 +631,31 @@ fn cluster_counts(rows: &[&EpisodeRecord]) -> ClusterCounts {
     let unique = |values: Vec<String>| values.into_iter().collect::<BTreeSet<_>>().len();
     ClusterCounts {
         pair_n: unique(rows.iter().map(|row| row.pair_id.clone()).collect()),
-        task_n: unique(rows.iter().map(|row| row.matching.task_id.clone()).collect()),
-        policy_n: unique(rows.iter().map(|row| row.matching.policy_sha256.clone()).collect()),
-        scene_n: unique(rows.iter().map(|row| row.matching.scene_sha256.clone()).collect()),
-        seed_n: rows.iter().map(|row| row.matching.seed).collect::<BTreeSet<_>>().len(),
-        world_n: unique(rows.iter().map(|row| row.clusters.world_id.clone()).collect()),
+        task_n: unique(
+            rows.iter()
+                .map(|row| row.matching.task_id.clone())
+                .collect(),
+        ),
+        policy_n: unique(
+            rows.iter()
+                .map(|row| row.matching.policy_sha256.clone())
+                .collect(),
+        ),
+        scene_n: unique(
+            rows.iter()
+                .map(|row| row.matching.scene_sha256.clone())
+                .collect(),
+        ),
+        seed_n: rows
+            .iter()
+            .map(|row| row.matching.seed)
+            .collect::<BTreeSet<_>>()
+            .len(),
+        world_n: unique(
+            rows.iter()
+                .map(|row| row.clusters.world_id.clone())
+                .collect(),
+        ),
         robot_asset_n: unique(
             rows.iter()
                 .map(|row| row.clusters.robot_asset_sha256.clone())
@@ -687,18 +707,27 @@ fn duration_percentiles(samples: &[f64]) -> DurationPercentiles {
 fn latency_scorecard(rows: &[&EpisodeRecord]) -> BTreeMap<String, DurationPercentiles> {
     let metrics: [(&str, fn(&EpisodeRecord) -> Option<f64>); 7] = [
         ("append_sync", |row| row.latencies_ms.append_sync),
-        ("owner_reservation", |row| row.latencies_ms.owner_reservation),
+        ("owner_reservation", |row| {
+            row.latencies_ms.owner_reservation
+        }),
         ("reset_replay", |row| row.latencies_ms.reset_replay),
         ("endpoint_fence", |row| row.latencies_ms.endpoint_fence),
         ("temporal_closure", |row| row.latencies_ms.temporal_closure),
-        ("independent_observation", |row| row.latencies_ms.independent_observation),
-        ("native_authority_admission", |row| row.latencies_ms.native_authority_admission),
+        ("independent_observation", |row| {
+            row.latencies_ms.independent_observation
+        }),
+        ("native_authority_admission", |row| {
+            row.latencies_ms.native_authority_admission
+        }),
     ];
 
     metrics
         .into_iter()
         .map(|(name, select)| {
-            let samples = rows.iter().filter_map(|row| select(row)).collect::<Vec<_>>();
+            let samples = rows
+                .iter()
+                .filter_map(|row| select(row))
+                .collect::<Vec<_>>();
             (name.to_owned(), duration_percentiles(&samples))
         })
         .collect()
@@ -875,17 +904,13 @@ mod tests {
         assert_eq!(native.false_no_effect.rate, None);
     }
 
-
     #[test]
     fn matched_arms_may_have_different_adjudicated_outcomes() {
         let mut bundle: ResultsBundle =
             serde_json::from_str(FIXTURE).expect("fixture should parse");
         bundle.episodes[1].outcome.oracle_disposition = Disposition::NoEffect;
         let changed = serde_json::to_string(&bundle).expect("bundle should serialize");
-        let report =
-            evaluate_json(&changed).expect("different per-arm outcomes remain comparable");
+        let report = evaluate_json(&changed).expect("different per-arm outcomes remain comparable");
         assert_eq!(report.pair_n, 2);
     }
-
-
 }
