@@ -1032,7 +1032,8 @@ mod tests {
     #[test]
     fn joint_scenario_signed_deltas_preserve_adverse_interactions() {
         let result = result();
-        let case = fixture();
+        let corpus = fixture();
+        let case = &corpus.cases[0];
         let action_a = case
             .candidate_actions
             .iter()
@@ -1082,7 +1083,8 @@ mod tests {
             Some("REOPTIMIZATION_WARRANTED")
         );
         assert_eq!(result.bridge_worst_case_improvement, Some(5));
-        let case = fixture();
+        let corpus = fixture();
+        let case = &corpus.cases[0];
         let a = case.candidate_actions[0].action_id.clone();
         let b = case.candidate_actions[1].action_id.clone();
         assert_eq!(metric(&result, &[a]).worst_scenario_regret_ticks, Some(5));
