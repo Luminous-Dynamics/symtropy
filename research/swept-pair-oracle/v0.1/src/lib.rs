@@ -603,6 +603,48 @@ mod tests {
     }
 
     #[test]
+    fn touching_at_the_final_time_remains_a_candidate() {
+        let motions = [
+            linear(1, [0.0], [1.0], [1.0]),
+            linear(2, [2.0], [3.0], [0.0]),
+        ];
+        let oracle = temporal_oracle_pairs(&motions).unwrap();
+        let proxies: Vec<_> = motions.iter().map(proxy_for).collect();
+        let receipt = build_swept_pair_set(&proxies).unwrap();
+        assert_eq!(oracle.len(), 1);
+        assert_eq!(receipt.candidate_pairs, oracle);
+        assert!(receipt.omissions.is_empty());
+    }
+
+    #[test]
+    fn proven_separation_emits_a_strict_omission_witness() {
+        let motions = [
+            linear(1, [0.0], [1.0], [0.0]),
+            linear(2, [3.0], [4.0], [-0.5]),
+        ];
+        assert!(temporal_oracle_pairs(&motions).unwrap().is_empty());
+        let proxies: Vec<_> = motions.iter().map(proxy_for).collect();
+        let receipt = build_swept_pair_set(&proxies).unwrap();
+        assert!(receipt.candidate_pairs.is_empty());
+        assert_eq!(receipt.stats.omitted_pairs, 1);
+        let witness = &receipt.omissions[0];
+        assert!(
+            witness.left_envelope.max()[0] < witness.right_envelope.min()[0]
+                || witness.right_envelope.max()[0] < witness.left_envelope.min()[0]
+        );
+    }
+
+    #[test]
+    fn non_finite_temporal_motion_is_rejected() {
+        let mut motion = linear(1, [0.0], [1.0], [0.0]);
+        motion.displacement[0] = f64::NAN;
+        assert_eq!(
+            temporal_oracle_pairs(&[motion]),
+            Err(PairSetError::InvalidTemporalMotion)
+        );
+    }
+
+    #[test]
     fn duplicate_proxy_identities_are_rejected() {
         let motion = linear(1, [0.0], [1.0], [0.0]);
         let proxy = proxy_for(&motion);
