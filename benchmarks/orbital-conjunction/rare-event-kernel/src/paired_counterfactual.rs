@@ -14,7 +14,7 @@
 //! propagate an orbit, attach importance weights, construct confidence
 //! sequences, or qualify a real-world decision.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use crate::space_time_partition::{Rational, SpaceTimePartitionError};
 
@@ -655,6 +655,158 @@ fn gcd(mut left: u128, mut right: u128) -> u128 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn portfolio(id: u8, consequence: i32) -> PortfolioConsequence {
+        PortfolioConsequence {
+            portfolio_id: [id; 32],
+            consequence_ticks: consequence,
+        }
+    }
+
+    fn campaign_atom(
+        id: u8,
+        baseline: i32,
+        arms: &[(u8, i32)],
+    ) -> MultiPortfolioPairedAtom {
+        MultiPortfolioPairedAtom {
+            atom_id: [id; 32],
+            baseline_consequence_ticks: baseline,
+            portfolio_consequences: arms
+                .iter()
+                .map(|(portfolio_id, consequence_ticks)| portfolio(*portfolio_id, *consequence_ticks))
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn multi_portfolio_campaign_reports_every_baseline_and_pairwise_comparison() {
+        let report = compare_multi_portfolio_paired_support(&[
+            campaign_atom(1, 0, &[(10, 1), (20, 0), (30, 3)]),
+            campaign_atom(2, 1, &[(10, 2), (20, 1), (30, 2)]),
+            campaign_atom(3, 2, &[(10, 3), (20, 1), (30, 1)]),
+            campaign_atom(4, 3, &[(10, 4), (20, 0), (30, 0)]),
+        ])
+        .unwrap();
+
+        assert_eq!(report.atom_count, 4);
+        assert_eq!(report.portfolio_summaries.len(), 3);
+        assert_eq!(report.pairwise_comparisons.len(), 3);
+        assert_eq!(
+            report
+                .portfolio_summaries
+                .iter()
+                .map(|summary| summary.portfolio_id[0])
+                .collect::<Vec<_>>(),
+            vec![10, 20, 30]
+        );
+
+        let a = report.portfolio_summaries[0];
+        assert_eq!(a.mean_consequence_avoided_ticks, SignedRational { numerator: -1, denominator: 1 });
+        assert_eq!(a.paired_difference_population_variance, Rational::from_integer(0));
+        assert_eq!(a.independent_arm_difference_population_variance, Rational::new(5, 2).unwrap());
+        assert_eq!(a.pairing_effect, PairingEffect::VarianceReduction);
+
+        let b = report.portfolio_summaries[1];
+        assert_eq!(b.mean_consequence_avoided_ticks, SignedRational { numerator: 1, denominator: 1 });
+        assert_eq!(b.paired_difference_population_variance, Rational::new(3, 2).unwrap());
+        assert_eq!(b.independent_arm_difference_population_variance, Rational::new(3, 2).unwrap());
+        assert_eq!(b.pairing_effect, PairingEffect::NoVarianceChange);
+
+        let c = report.portfolio_summaries[2];
+        assert_eq!(c.mean_consequence_avoided_ticks, SignedRational { numerator: 0, denominator: 1 });
+        assert_eq!(c.paired_difference_population_variance, Rational::from_integer(5));
+        assert_eq!(c.independent_arm_difference_population_variance, Rational::new(5, 2).unwrap());
+        assert_eq!(c.pairing_effect, PairingEffect::VarianceInflation);
+
+        let a_vs_b = report.pairwise_comparisons[0];
+        assert_eq!(a_vs_b.left_portfolio_id, [10; 32]);
+        assert_eq!(a_vs_b.right_portfolio_id, [20; 32]);
+        assert_eq!(
+            a_vs_b.mean_left_minus_right_consequence_ticks,
+            SignedRational { numerator: 2, denominator: 1 }
+        );
+        assert_eq!(a_vs_b.paired_difference_population_variance, Rational::new(3, 2).unwrap());
+        assert_eq!(a_vs_b.independent_arm_difference_population_variance, Rational::new(3, 2).unwrap());
+
+        let a_vs_c = report.pairwise_comparisons[1];
+        assert_eq!(a_vs_c.portfolio_covariance, SignedRational { numerator: -5, denominator: 4 });
+        assert_eq!(a_vs_c.paired_difference_population_variance, Rational::from_integer(5));
+        assert_eq!(a_vs_c.independent_arm_difference_population_variance, Rational::new(5, 2).unwrap());
+        assert_eq!(a_vs_c.pairing_effect, PairingEffect::VarianceInflation);
+
+        let b_vs_c = report.pairwise_comparisons[2];
+        assert_eq!(b_vs_c.paired_difference_population_variance, Rational::new(3, 2).unwrap());
+        assert_eq!(b_vs_c.independent_arm_difference_population_variance, Rational::new(3, 2).unwrap());
+    }
+
+    #[test]
+    fn multi_portfolio_report_is_invariant_to_atom_and_arm_order() {
+        let forward = [
+            campaign_atom(1, 0, &[(10, 1), (20, 0), (30, 3)]),
+            campaign_atom(2, 1, &[(10, 2), (20, 1), (30, 2)]),
+            campaign_atom(3, 2, &[(10, 3), (20, 1), (30, 1)]),
+            campaign_atom(4, 3, &[(10, 4), (20, 0), (30, 0)]),
+        ];
+        let reverse = [
+            campaign_atom(4, 3, &[(30, 0), (20, 0), (10, 4)]),
+            campaign_atom(3, 2, &[(30, 1), (20, 1), (10, 3)]),
+            campaign_atom(2, 1, &[(30, 2), (20, 1), (10, 2)]),
+            campaign_atom(1, 0, &[(30, 3), (20, 0), (10, 1)]),
+        ];
+        assert_eq!(
+            compare_multi_portfolio_paired_support(&forward),
+            compare_multi_portfolio_paired_support(&reverse)
+        );
+    }
+
+    #[test]
+    fn multi_portfolio_campaign_rejects_missing_extra_duplicate_and_zero_identities() {
+        let missing = [
+            campaign_atom(1, 0, &[(10, 1), (20, 2)]),
+            campaign_atom(2, 1, &[(10, 2)]),
+        ];
+        assert_eq!(
+            compare_multi_portfolio_paired_support(&missing),
+            Err(PairedCounterfactualError::InconsistentPortfolioUniverse)
+        );
+
+        let duplicate = [campaign_atom(1, 0, &[(10, 1), (10, 2)])];
+        assert_eq!(
+            compare_multi_portfolio_paired_support(&duplicate),
+            Err(PairedCounterfactualError::InvalidOrDuplicatePortfolioIdentity)
+        );
+
+        let zero = [campaign_atom(1, 0, &[(10, 1), (0, 2)])];
+        assert_eq!(
+            compare_multi_portfolio_paired_support(&zero),
+            Err(PairedCounterfactualError::InvalidOrDuplicatePortfolioIdentity)
+        );
+    }
+
+    #[test]
+    fn multi_portfolio_campaign_rejects_empty_and_excessive_universes() {
+        let empty = [campaign_atom(1, 0, &[])];
+        assert_eq!(
+            compare_multi_portfolio_paired_support(&empty),
+            Err(PairedCounterfactualError::EmptyPortfolioUniverse)
+        );
+
+        let too_many = (1_u16..=(MAX_PAIRED_COUNTERFACTUAL_PORTFOLIOS as u16 + 1))
+            .map(|id| PortfolioConsequence {
+                portfolio_id: [id as u8; 32],
+                consequence_ticks: 0,
+            })
+            .collect();
+        let oversized = [MultiPortfolioPairedAtom {
+            atom_id: [1; 32],
+            baseline_consequence_ticks: 0,
+            portfolio_consequences: too_many,
+        }];
+        assert_eq!(
+            compare_multi_portfolio_paired_support(&oversized),
+            Err(PairedCounterfactualError::TooManyPortfolios)
+        );
+    }
 
     fn atom(id: u8, baseline: i32, portfolio: i32) -> PairedCounterfactualAtom {
         PairedCounterfactualAtom {
