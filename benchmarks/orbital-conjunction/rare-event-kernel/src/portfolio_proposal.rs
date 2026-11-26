@@ -54,6 +54,10 @@ pub struct DefensiveProposalComponent {
 pub enum PortfolioProposalError {
     /// Defensive fraction epsilon must be finite and strictly between zero and one.
     InvalidDefensiveFraction,
+    /// Stable target probability-measure identity is zero.
+    InvalidTargetMeasureIdentity,
+    /// Density-space identity (coordinates, frame, units and epoch semantics) is zero.
+    InvalidDensitySpaceIdentity,
     /// The frozen target mixture has no components.
     EmptyTargetMixture,
     /// Target or proposal dimensions differ.
@@ -98,6 +102,8 @@ impl core::fmt::Display for PortfolioProposalError {
             Self::InvalidDefensiveFraction => {
                 "defensive mixture fraction must lie strictly in (0, 1)"
             }
+            Self::InvalidTargetMeasureIdentity => "target measure identity is zero",
+            Self::InvalidDensitySpaceIdentity => "density-space identity is zero",
             Self::EmptyTargetMixture => "target Gaussian mixture is empty",
             Self::DimensionMismatch => "target and proposal Gaussian dimensions differ",
             Self::EmptyModeUniverse => "portfolio event-mode universe is empty",
@@ -171,6 +177,8 @@ pub struct DefensiveProposalEvaluation {
 /// canonical Gaussian mixture. This type does not contain an RNG or a sampler.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PortfolioDefensiveGaussianMixture {
+    target_measure_id: [u8; 32],
+    density_space_id: [u8; 32],
     target: GaussianMixture,
     full_proposal: GaussianMixture,
     defensive_fraction: f64,
@@ -186,11 +194,19 @@ impl PortfolioDefensiveGaussianMixture {
     /// Proposal allocations are normalized only for accepted residual floating
     /// point roundoff within 1e-12. Every declared mode must be covered.
     pub fn new(
+        target_measure_id: [u8; 32],
+        density_space_id: [u8; 32],
         target: GaussianMixture,
         defensive_fraction: f64,
         mut expected_modes: Vec<PortfolioEventModeKey>,
         mut proposal_components: Vec<DefensiveProposalComponent>,
     ) -> Result<Self, PortfolioProposalError> {
+        if target_measure_id.iter().all(|byte| *byte == 0) {
+            return Err(PortfolioProposalError::InvalidTargetMeasureIdentity);
+        }
+        if density_space_id.iter().all(|byte| *byte == 0) {
+            return Err(PortfolioProposalError::InvalidDensitySpaceIdentity);
+        }
         if !defensive_fraction.is_finite() || defensive_fraction <= 0.0 || defensive_fraction >= 1.0
         {
             return Err(PortfolioProposalError::InvalidDefensiveFraction);
@@ -328,6 +344,8 @@ impl PortfolioDefensiveGaussianMixture {
         }
 
         let configuration_digest = configuration_digest(
+            target_measure_id,
+            density_space_id,
             defensive_fraction,
             effective_defensive_fraction,
             &canonical_target,
@@ -340,6 +358,8 @@ impl PortfolioDefensiveGaussianMixture {
             .collect();
 
         Ok(Self {
+            target_measure_id,
+            density_space_id,
             target: canonical_target,
             full_proposal,
             defensive_fraction: effective_defensive_fraction,
@@ -347,6 +367,16 @@ impl PortfolioDefensiveGaussianMixture {
             component_ids,
             configuration_digest,
         })
+    }
+
+    /// Return the source-declared identity of the target probability measure.
+    pub fn target_measure_id(&self) -> [u8; 32] {
+        self.target_measure_id
+    }
+
+    /// Return the density-space identity covering coordinates, frame, units and epoch semantics.
+    pub fn density_space_id(&self) -> [u8; 32] {
+        self.density_space_id
     }
 
     /// Return the defensive target-mixture fraction epsilon.
@@ -482,6 +512,8 @@ fn gaussian_digest(gaussian: &Gaussian) -> Result<[u8; 32], PortfolioProposalErr
 }
 
 fn configuration_digest(
+    target_measure_id: [u8; 32],
+    density_space_id: [u8; 32],
     declared_defensive_fraction: f64,
     effective_defensive_fraction: f64,
     target: &GaussianMixture,
@@ -490,6 +522,8 @@ fn configuration_digest(
 ) -> Result<[u8; 32], PortfolioProposalError> {
     let mut hasher = Sha256::new();
     hasher.update(b"luminous.orbital-defensive-portfolio-mixture.v0.1\0");
+    hasher.update(target_measure_id);
+    hasher.update(density_space_id);
     hash_f64(&mut hasher, declared_defensive_fraction);
     hash_f64(&mut hasher, effective_defensive_fraction);
     hasher.update((target.component_count() as u64).to_be_bytes());
@@ -521,6 +555,9 @@ fn configuration_digest(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const TARGET_MEASURE_ID: [u8; 32] = [90; 32];
+    const DENSITY_SPACE_ID: [u8; 32] = [91; 32];
 
     fn gaussian(mean: f64, variance: f64) -> Gaussian {
         Gaussian::new(vec![mean], vec![variance]).unwrap()
@@ -555,6 +592,8 @@ mod tests {
         ])
         .unwrap();
         PortfolioDefensiveGaussianMixture::new(
+                TARGET_MEASURE_ID,
+                DENSITY_SPACE_ID,
             target,
             0.2,
             vec![key(10, 1, 1), key(20, 1, 2)],
@@ -623,6 +662,38 @@ mod tests {
     }
 
     #[test]
+    fn target_measure_and_density_space_identities_are_required() {
+        let target = GaussianMixture::new(vec![
+            GaussianComponent::new(1.0, gaussian(0.0, 1.0)).unwrap(),
+        ])
+        .unwrap();
+        assert_eq!(
+            PortfolioDefensiveGaussianMixture::new(
+                [0; 32],
+                DENSITY_SPACE_ID,
+                target.clone(),
+                0.1,
+                vec![key(10, 1, 1)],
+                vec![proposal(1, key(10, 1, 1), 1.0, 0.0)],
+            )
+            .unwrap_err(),
+            PortfolioProposalError::InvalidTargetMeasureIdentity
+        );
+        assert_eq!(
+            PortfolioDefensiveGaussianMixture::new(
+                TARGET_MEASURE_ID,
+                [0; 32],
+                target,
+                0.1,
+                vec![key(10, 1, 1)],
+                vec![proposal(1, key(10, 1, 1), 1.0, 0.0)],
+            )
+            .unwrap_err(),
+            PortfolioProposalError::InvalidDensitySpaceIdentity
+        );
+    }
+
+    #[test]
     fn omitted_declared_mode_fails_closed() {
         let target = GaussianMixture::new(vec![
             GaussianComponent::new(1.0, gaussian(0.0, 1.0)).unwrap(),
@@ -630,6 +701,8 @@ mod tests {
         .unwrap();
         assert_eq!(
             PortfolioDefensiveGaussianMixture::new(
+                TARGET_MEASURE_ID,
+                DENSITY_SPACE_ID,
                 target,
                 0.1,
                 vec![key(10, 1, 1), key(20, 1, 2)],
@@ -648,6 +721,8 @@ mod tests {
         .unwrap();
         assert_eq!(
             PortfolioDefensiveGaussianMixture::new(
+                TARGET_MEASURE_ID,
+                DENSITY_SPACE_ID,
                 target,
                 0.1,
                 vec![key(10, 1, 1)],
@@ -666,6 +741,8 @@ mod tests {
         .unwrap();
         assert_eq!(
             PortfolioDefensiveGaussianMixture::new(
+                TARGET_MEASURE_ID,
+                DENSITY_SPACE_ID,
                 target.clone(),
                 0.1,
                 vec![key(10, 1, 1), key(10, 1, 1)],
@@ -676,6 +753,8 @@ mod tests {
         );
         assert_eq!(
             PortfolioDefensiveGaussianMixture::new(
+                TARGET_MEASURE_ID,
+                DENSITY_SPACE_ID,
                 target.clone(),
                 0.1,
                 vec![key(10, 1, 1)],
@@ -689,6 +768,8 @@ mod tests {
         );
         assert_eq!(
             PortfolioDefensiveGaussianMixture::new(
+                TARGET_MEASURE_ID,
+                DENSITY_SPACE_ID,
                 target,
                 0.1,
                 vec![key(10, 1, 1)],
@@ -711,6 +792,8 @@ mod tests {
         for epsilon in [0.0, 1.0, f64::NAN, f64::INFINITY] {
             assert_eq!(
                 PortfolioDefensiveGaussianMixture::new(
+                TARGET_MEASURE_ID,
+                DENSITY_SPACE_ID,
                     target.clone(),
                     epsilon,
                     vec![key(10, 1, 1)],
@@ -722,6 +805,8 @@ mod tests {
         }
         assert_eq!(
             PortfolioDefensiveGaussianMixture::new(
+                TARGET_MEASURE_ID,
+                DENSITY_SPACE_ID,
                 target.clone(),
                 0.1,
                 vec![key(10, 1, 1)],
@@ -735,6 +820,8 @@ mod tests {
         );
         assert_eq!(
             PortfolioDefensiveGaussianMixture::new(
+                TARGET_MEASURE_ID,
+                DENSITY_SPACE_ID,
                 target,
                 0.1,
                 vec![key(10, 1, 1)],
@@ -775,6 +862,8 @@ mod tests {
         ])
         .unwrap();
         let a = PortfolioDefensiveGaussianMixture::new(
+                TARGET_MEASURE_ID,
+                DENSITY_SPACE_ID,
             target_a,
             0.2,
             vec![key(10, 1, 1), key(20, 1, 2)],
@@ -785,6 +874,8 @@ mod tests {
         )
         .unwrap();
         let b = PortfolioDefensiveGaussianMixture::new(
+                TARGET_MEASURE_ID,
+                DENSITY_SPACE_ID,
             target_b,
             0.2,
             vec![key(20, 1, 2), key(10, 1, 1)],
@@ -809,6 +900,8 @@ mod tests {
         ])
         .unwrap();
         let a = PortfolioDefensiveGaussianMixture::new(
+                TARGET_MEASURE_ID,
+                DENSITY_SPACE_ID,
             target.clone(),
             0.2,
             vec![key(10, 1, 1)],
@@ -816,6 +909,8 @@ mod tests {
         )
         .unwrap();
         let b = PortfolioDefensiveGaussianMixture::new(
+                TARGET_MEASURE_ID,
+                DENSITY_SPACE_ID,
             target.clone(),
             0.3,
             vec![key(10, 1, 1)],
@@ -823,6 +918,8 @@ mod tests {
         )
         .unwrap();
         let c = PortfolioDefensiveGaussianMixture::new(
+                TARGET_MEASURE_ID,
+                DENSITY_SPACE_ID,
             target,
             0.2,
             vec![key(10, 1, 1)],
