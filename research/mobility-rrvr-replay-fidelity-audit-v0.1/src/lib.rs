@@ -814,24 +814,88 @@ fn audit_frame_sequence(
     (status, frame_checks, mean_ssim, mean_ssim_passed, reasons)
 }
 
-fn audit_spot_check_attempt(attempt: &SpotCheckAttempt, artifact_root: &Path) -> SpotCheckAudit {
-    let (ee_status, end_effector, mut reason_codes) =
-        audit_pose(&attempt.end_effector, "END_EFFECTOR");
-    let (object_status, object_pose, object_reasons) =
-        audit_pose(&attempt.object_pose, "OBJECT");
-    reason_codes.extend(object_reasons);
+fn audit_spot_check_attempt(
+    scenario_id: &str,
+    simulator_profile_sha256: &str,
+    attempt: &SpotCheckAttempt,
+    artifact_root: &Path,
+) -> SpotCheckAudit {
+    let mut status = AuditStatus::Valid;
+    let mut reason_codes = Vec::new();
+    let mut end_effector = PoseCheck {
+        observed_error_mm: None,
+        threshold_mm: POSE_THRESHOLD_MM,
+        passed: None,
+    };
+    let mut object_pose = PoseCheck {
+        observed_error_mm: None,
+        threshold_mm: POSE_THRESHOLD_MM,
+        passed: None,
+    };
+
+    let original_state = read_state_snapshot(
+        artifact_root,
+        &attempt.original_state_path,
+        &attempt.original_state_sha256,
+        scenario_id,
+        &attempt.attempt_id,
+        simulator_profile_sha256,
+    );
+    let replay_state = read_state_snapshot(
+        artifact_root,
+        &attempt.replay_state_path,
+        &attempt.replay_state_sha256,
+        scenario_id,
+        &attempt.attempt_id,
+        simulator_profile_sha256,
+    );
+
+    match (original_state, replay_state) {
+        (Ok(original), Ok(replayed)) => {
+            let (ee_status, ee_check, ee_reasons) = audit_pose(
+                &original.end_effector_position,
+                &replayed.end_effector_position,
+                "END_EFFECTOR",
+            );
+            end_effector = ee_check;
+            reason_codes.extend(ee_reasons);
+
+            let (object_status, object_check, object_reasons) = audit_pose(
+                &original.object_position,
+                &replayed.object_position,
+                "OBJECT",
+            );
+            object_pose = object_check;
+            reason_codes.extend(object_reasons);
+
+            push_status(&mut status, ee_status);
+            push_status(&mut status, object_status);
+        }
+        (Err((original_status, original_reason)), Err((replay_status, replay_reason))) => {
+            reason_codes.push(format!("ORIGINAL_{original_reason}"));
+            reason_codes.push(format!("REPLAY_{replay_reason}"));
+            push_status(&mut status, original_status);
+            push_status(&mut status, replay_status);
+        }
+        (Err((state_status, reason)), _) => {
+            reason_codes.push(format!("ORIGINAL_{reason}"));
+            push_status(&mut status, state_status);
+        }
+        (_, Err((state_status, reason))) => {
+            reason_codes.push(format!("REPLAY_{reason}"));
+            push_status(&mut status, state_status);
+        }
+    }
 
     let (frame_status, frame_checks, mean_final_five_ssim, mean_ssim_passed, frame_reasons) =
         audit_frame_sequence(&attempt.final_frame_pairs, artifact_root);
     reason_codes.extend(frame_reasons);
-
-    let mut status = AuditStatus::Valid;
-    push_status(&mut status, ee_status);
-    push_status(&mut status, object_status);
     push_status(&mut status, frame_status);
 
     SpotCheckAudit {
         attempt_id: attempt.attempt_id.clone(),
+        original_state_sha256: attempt.original_state_sha256.clone(),
+        replay_state_sha256: attempt.replay_state_sha256.clone(),
         status,
         end_effector,
         object_pose,
@@ -869,7 +933,14 @@ fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> Candida
         .spot_check
         .attempts
         .iter()
-        .map(|attempt| audit_spot_check_attempt(attempt, artifact_root))
+        .map(|attempt| {
+            audit_spot_check_attempt(
+                &candidate.scenario_id,
+                &candidate.simulator_profile_sha256,
+                attempt,
+                artifact_root,
+            )
+        })
         .collect();
     for attempt_audit in &spot_checks {
         push_status(&mut status, attempt_audit.status);
