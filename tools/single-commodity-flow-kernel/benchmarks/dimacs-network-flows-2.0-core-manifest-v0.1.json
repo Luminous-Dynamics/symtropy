@@ -287,5 +287,7 @@
     "importer_fixture": "small DIMACS-compatible fixture added; Rust test authored but not yet toolchain-qualified",
     "official_instances": "not yet acquired or run",
     "formal_reference_comparison": "not yet run"
-  }
+  },
+  "per_instance_receipt_schema": "tools/single-commodity-flow-kernel/benchmarks/dimacs-benchmark-receipt-v1.schema.json",
+  "per_instance_receipt_template": "tools/single-commodity-flow-kernel/benchmarks/dimacs-benchmark-receipt-template-v1.json"
 }
