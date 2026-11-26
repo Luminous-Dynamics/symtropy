@@ -142,7 +142,7 @@ def build_report(case_id: str, case: dict):
             floor_text = str(floor)
 
         lines.append(
-            "COHORT\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(
+            "COHORT\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(
                 case_id,
                 cohort,
                 unit_name,
