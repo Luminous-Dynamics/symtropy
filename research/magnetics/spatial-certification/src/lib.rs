@@ -952,4 +952,103 @@ mod tests {
         assert_eq!(shifted.margin_lower_enclosure, original.margin_lower_enclosure);
         assert_eq!(shifted.margin_upper_enclosure, original.margin_upper_enclosure);
     }
+
+    #[test]
+    fn domain_certificate_requires_complete_safe_cells_under_one_scope() {
+        let root = box3();
+        let parent = evidence();
+        let split = build_split(&parent.cell_id, root, Axis::Y).expect("valid split");
+        let mut left = parent.clone();
+        left.cell_id = split.left_child_id.clone();
+        left.bounds = split.left_bounds;
+        left.centre_sample_id = "left-centre".to_owned();
+        left.centre_sample_position_m = left.bounds.centre_m();
+        left.centre_sample_sha256 = DIGEST_A.to_owned();
+        left.derivative_bound_cell_id = left.cell_id.clone();
+        left.derivative_bound_record_ids = [
+            "left-bound-x".to_owned(),
+            "left-bound-y".to_owned(),
+            "left-bound-z".to_owned(),
+        ];
+        let mut right = parent;
+        right.cell_id = split.right_child_id.clone();
+        right.bounds = split.right_bounds;
+        right.centre_sample_id = "right-centre".to_owned();
+        right.centre_sample_position_m = right.bounds.centre_m();
+        right.centre_sample_sha256 = DIGEST_C.to_owned();
+        right.derivative_bound_cell_id = right.cell_id.clone();
+        right.derivative_bound_record_ids = [
+            "right-bound-x".to_owned(),
+            "right-bound-y".to_owned(),
+            "right-bound-z".to_owned(),
+        ];
+
+        let result = certify_domain(root, &[left, right]).expect("complete evidence partition");
+        assert!(result.all_domain_safe);
+        assert_eq!(result.certified_safe_cell_count, 2);
+        assert_eq!(result.certified_failing_cell_count, 0);
+        assert_eq!(result.unresolved_cell_count, 0);
+        assert_eq!(result.partition.leaf_count, 2);
+    }
+
+    #[test]
+    fn domain_certificate_rejects_mixed_coordinate_frames() {
+        let root = box3();
+        let parent = evidence();
+        let split = build_split(&parent.cell_id, root, Axis::Y).expect("valid split");
+        let mut left = parent.clone();
+        left.cell_id = split.left_child_id;
+        left.bounds = split.left_bounds;
+        left.centre_sample_position_m = left.bounds.centre_m();
+        left.derivative_bound_cell_id = left.cell_id.clone();
+        let mut right = parent;
+        right.cell_id = split.right_child_id;
+        right.bounds = split.right_bounds;
+        right.centre_sample_position_m = right.bounds.centre_m();
+        right.derivative_bound_cell_id = right.cell_id.clone();
+        right.coordinate_frame_id = "different-frame".to_owned();
+
+        assert_eq!(
+            certify_domain(root, &[left, right])
+                .expect_err("mixed frames cannot form one certificate"),
+            CertificationError::MixedPartitionEvidence
+        );
+    }
+
+    #[test]
+    fn domain_certificate_rejects_duplicate_cell_ids() {
+        let cell = evidence();
+        assert_eq!(
+            certify_domain(box3(), &[cell.clone(), cell])
+                .expect_err("duplicate cell id"),
+            CertificationError::DuplicateCellId
+        );
+    }
+
+    #[test]
+    fn domain_certificate_is_not_safe_when_any_cell_is_unresolved() {
+        let root = box3();
+        let parent = evidence();
+        let split = build_split(&parent.cell_id, root, Axis::Y).expect("valid split");
+        let mut left = parent.clone();
+        left.cell_id = split.left_child_id;
+        left.bounds = split.left_bounds;
+        left.centre_sample_id = "left-centre".to_owned();
+        left.centre_sample_position_m = left.bounds.centre_m();
+        left.derivative_bound_cell_id = left.cell_id.clone();
+        let mut right = parent;
+        right.cell_id = split.right_child_id;
+        right.bounds = split.right_bounds;
+        right.centre_sample_id = "right-centre".to_owned();
+        right.centre_sample_position_m = right.bounds.centre_m();
+        right.centre_margin_lower_bound = -0.1;
+        right.centre_margin_upper_bound = 0.1;
+        right.derivative_bound_cell_id = right.cell_id.clone();
+
+        let result = certify_domain(root, &[left, right]).expect("valid but unresolved domain");
+        assert!(!result.all_domain_safe);
+        assert_eq!(result.certified_safe_cell_count, 1);
+        assert_eq!(result.unresolved_cell_count, 1);
+    }
+
 }
