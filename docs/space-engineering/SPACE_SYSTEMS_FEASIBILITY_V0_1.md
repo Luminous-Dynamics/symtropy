@@ -29,6 +29,8 @@ Relevant demonstrated and technology baselines:
 
 These are separate capability baselines. They do not demonstrate lunar field manufacturing of high-performance membranes, fully autonomous L1 assembly, or a million-node sunshade swarm.
 
+NASA's 2026 small-spacecraft propulsion survey also provides a procurement baseline for the Q-drive's electric-thruster stage: JPL MaSMi is listed at 55 mN / 1,920 s / 1,000 W / 3.4 kg and Orbion Aurora at 15.6 mN / 1,280 s / 300 W / 1.5 kg. The report cautions that its small-spacecraft tables do not capture the full technology envelope and that public subsystem performance/maturity data can be incomplete or inconsistent. These are not direct Q-drive rivals; the external-energy harvesting stage, medium drag, high exhaust velocity and mission regime are different. Use them to anchor the onboard electric-thruster part of the architecture only.
+
 ### V0 calculation boundary
 
 The first-order idealized relation is:
