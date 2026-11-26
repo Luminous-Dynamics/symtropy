@@ -4,6 +4,8 @@
 //! field crossings, model an ASIC's analog transfer function, or authenticate
 //! any vendor-specific threshold / bandwidth specification.
 
+pub mod robust_synthesis;
+
 use std::f64::consts::{PI, TAU};
 
 const ANGLE_TOLERANCE_RAD: f64 = 1.0e-9;
