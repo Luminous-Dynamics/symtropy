@@ -1,0 +1,405 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital_inspection_safety_claim_corpus_v0_1.schema.json",
+  "title": "Orbital Inspection Safety Claim Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-inspection-safety-claim.corpus.v0.1"
+    },
+    "benchmark_id": {
+      "const": "ORBITAL-INSPECTION-SAFETY-CLAIM-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_safety_claim_scope_and_component_composition_only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "action_scope",
+          "claims",
+          "expected_disposition"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action_scope": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "action_id",
+              "action_revision",
+              "vehicle_id",
+              "vehicle_config_revision",
+              "trajectory_revision",
+              "horizon_id",
+              "protected_object_id",
+              "protected_object_revision",
+              "keepout_profile_id",
+              "keepout_geometry_revision",
+              "reference_frame_id",
+              "frame_revision",
+              "transform_convention",
+              "dynamics_revision",
+              "initial_state_revision",
+              "uncertainty_set_revision",
+              "time_basis_id",
+              "action_start_tai_ns",
+              "action_end_tai_ns",
+              "required_clearance_um"
+            ],
+            "properties": {
+              "action_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "action_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "vehicle_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "vehicle_config_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "trajectory_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "horizon_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "protected_object_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "protected_object_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "keepout_profile_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "keepout_geometry_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reference_frame_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "frame_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "transform_convention": {
+                "type": "string",
+                "minLength": 1
+              },
+              "dynamics_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "initial_state_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uncertainty_set_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "time_basis_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "action_start_tai_ns": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "action_end_tai_ns": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "required_clearance_um": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "claims": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "evidence_id",
+                "component",
+                "assurance_class",
+                "state",
+                "scope",
+                "validity",
+                "receipt_sha256",
+                "temporal_enclosure_complete",
+                "minimum_clearance_lower_um",
+                "required_clearance_um",
+                "terminal_set_id",
+                "terminal_set_revision",
+                "terminal_epoch_tai_ns",
+                "terminal_invariant_proof_sha256",
+                "risk_measure"
+              ],
+              "properties": {
+                "evidence_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "component": {
+                  "enum": [
+                    "FINITE_HORIZON_KEEP_OUT",
+                    "SAFE_CONTINUATION",
+                    "STATISTICAL_RISK"
+                  ]
+                },
+                "assurance_class": {
+                  "enum": [
+                    "ROBUST_TRAJECTORY_ENCLOSURE",
+                    "PASSIVE_INVARIANT_SET",
+                    "ABORT_REACHABLE_SET",
+                    "PROBABILISTIC_RISK_BOUND"
+                  ]
+                },
+                "state": {
+                  "enum": [
+                    "PASS",
+                    "FAIL",
+                    "UNKNOWN",
+                    "STALE",
+                    "REVOKED"
+                  ]
+                },
+                "scope": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "action_id",
+                    "action_revision",
+                    "vehicle_id",
+                    "vehicle_config_revision",
+                    "trajectory_revision",
+                    "horizon_id",
+                    "protected_object_id",
+                    "protected_object_revision",
+                    "keepout_profile_id",
+                    "keepout_geometry_revision",
+                    "reference_frame_id",
+                    "frame_revision",
+                    "transform_convention",
+                    "dynamics_revision",
+                    "initial_state_revision",
+                    "uncertainty_set_revision",
+                    "time_basis_id",
+                    "action_start_tai_ns",
+                    "action_end_tai_ns",
+                    "required_clearance_um"
+                  ],
+                  "properties": {
+                    "action_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "action_revision": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "vehicle_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "vehicle_config_revision": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "trajectory_revision": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "horizon_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "protected_object_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "protected_object_revision": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "keepout_profile_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "keepout_geometry_revision": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "reference_frame_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "frame_revision": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "transform_convention": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "dynamics_revision": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "initial_state_revision": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "uncertainty_set_revision": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "time_basis_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "action_start_tai_ns": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "action_end_tai_ns": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "required_clearance_um": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                },
+                "validity": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "time_basis_id",
+                    "start_tai_ns",
+                    "end_tai_ns"
+                  ],
+                  "properties": {
+                    "time_basis_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "start_tai_ns": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "end_tai_ns": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                },
+                "receipt_sha256": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "temporal_enclosure_complete": {
+                  "type": "boolean"
+                },
+                "minimum_clearance_lower_um": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "required_clearance_um": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "terminal_set_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "terminal_set_revision": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "terminal_epoch_tai_ns": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "terminal_invariant_proof_sha256": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "risk_measure": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "expected_disposition": {
+            "enum": [
+              "SAFETY_CLAIMS_COMPLETE",
+              "SAFETY_CLAIM_FAILED",
+              "SAFETY_CLAIM_INCOMPLETE",
+              "RISK_ONLY",
+              "OUT_OF_SCOPE",
+              "INDETERMINATE",
+              "INVALID_INPUT"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
