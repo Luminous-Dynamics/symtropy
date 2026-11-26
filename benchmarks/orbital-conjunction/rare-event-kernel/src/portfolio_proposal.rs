@@ -95,19 +95,31 @@ pub enum PortfolioProposalError {
 impl core::fmt::Display for PortfolioProposalError {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let message = match self {
-            Self::InvalidDefensiveFraction => "defensive mixture fraction must lie strictly in (0, 1)",
+            Self::InvalidDefensiveFraction => {
+                "defensive mixture fraction must lie strictly in (0, 1)"
+            }
             Self::EmptyTargetMixture => "target Gaussian mixture is empty",
             Self::DimensionMismatch => "target and proposal Gaussian dimensions differ",
             Self::EmptyModeUniverse => "portfolio event-mode universe is empty",
             Self::TooManyModes => "portfolio event-mode universe exceeds its configured bound",
             Self::EmptyProposalComponents => "defensive proposal component list is empty",
-            Self::TooManyProposalComponents => "defensive proposal component list exceeds its configured bound",
+            Self::TooManyProposalComponents => {
+                "defensive proposal component list exceeds its configured bound"
+            }
             Self::InvalidModeIdentity => "portfolio, scenario or event-mode identity is zero",
             Self::DuplicateModeIdentity => "portfolio event-mode identity is duplicated",
-            Self::InvalidOrDuplicateComponentIdentity => "proposal component identity is zero or duplicated",
-            Self::UnexpectedProposalMode => "proposal component references an undeclared event mode",
-            Self::IncompleteModeCoverage => "at least one declared portfolio event mode has no proposal component",
-            Self::InvalidComponentWeight => "proposal allocation weight must be finite and strictly positive",
+            Self::InvalidOrDuplicateComponentIdentity => {
+                "proposal component identity is zero or duplicated"
+            }
+            Self::UnexpectedProposalMode => {
+                "proposal component references an undeclared event mode"
+            }
+            Self::IncompleteModeCoverage => {
+                "at least one declared portfolio event mode has no proposal component"
+            }
+            Self::InvalidComponentWeight => {
+                "proposal allocation weight must be finite and strictly positive"
+            }
             Self::ComponentWeightsNotNormalized => "proposal allocation weights do not sum to one",
             Self::InvalidNormalizedContrast => "normalized portfolio contrast must lie in [0, 1]",
             Self::LikelihoodRatioExceedsDefensiveBound => "importance ratio exceeds the defensive 1/epsilon bound",
@@ -171,9 +183,7 @@ impl PortfolioDefensiveGaussianMixture {
         mut expected_modes: Vec<PortfolioEventModeKey>,
         mut proposal_components: Vec<DefensiveProposalComponent>,
     ) -> Result<Self, PortfolioProposalError> {
-        if !defensive_fraction.is_finite()
-            || defensive_fraction <= 0.0
-            || defensive_fraction >= 1.0
+        if !defensive_fraction.is_finite() || defensive_fraction <= 0.0 || defensive_fraction >= 1.0
         {
             return Err(PortfolioProposalError::InvalidDefensiveFraction);
         }
@@ -245,7 +255,10 @@ impl PortfolioDefensiveGaussianMixture {
             .iter()
             .map(|component| component.mode_key)
             .collect::<BTreeSet<_>>();
-        if expected_modes.iter().any(|mode| !covered_modes.contains(mode)) {
+        if expected_modes
+            .iter()
+            .any(|mode| !covered_modes.contains(mode))
+        {
             return Err(PortfolioProposalError::IncompleteModeCoverage);
         }
 
@@ -271,9 +284,8 @@ impl PortfolioDefensiveGaussianMixture {
             .collect::<Result<Vec<_>, _>>()?;
         let canonical_target = GaussianMixture::new(canonical_target_components)?;
 
-        let mut flattened = Vec::with_capacity(
-            canonical_target.component_count() + proposal_components.len(),
-        );
+        let mut flattened =
+            Vec::with_capacity(canonical_target.component_count() + proposal_components.len());
         for component in canonical_target.components() {
             let weight = defensive_fraction_times(defensive_fraction, component.weight())?;
             flattened.push(GaussianComponent::new(
@@ -282,11 +294,12 @@ impl PortfolioDefensiveGaussianMixture {
             )?);
         }
         for component in &proposal_components {
-            let weight = defensive_fraction_times(
-                1.0 - defensive_fraction,
-                component.allocation_weight,
-            )?;
-            flattened.push(GaussianComponent::new(weight, component.distribution.clone())?);
+            let weight =
+                defensive_fraction_times(1.0 - defensive_fraction, component.allocation_weight)?;
+            flattened.push(GaussianComponent::new(
+                weight,
+                component.distribution.clone(),
+            )?);
         }
         let full_proposal = GaussianMixture::new(flattened)?;
         // GaussianMixture normalizes the flattened weights to remove residual
@@ -352,10 +365,7 @@ impl PortfolioDefensiveGaussianMixture {
     }
 
     /// Return the full defensive proposal log density at one point.
-    pub fn log_full_proposal_density(
-        &self,
-        point: &[f64],
-    ) -> Result<f64, PortfolioProposalError> {
+    pub fn log_full_proposal_density(&self, point: &[f64]) -> Result<f64, PortfolioProposalError> {
         Ok(self.full_proposal.log_pdf(point)?)
     }
 
@@ -389,19 +399,17 @@ impl PortfolioDefensiveGaussianMixture {
 
         let log_bound = -self.defensive_fraction.ln();
         let bound_tolerance = 64.0 * f64::EPSILON * (1.0 + log_bound.abs());
-        if log_importance_weight.is_finite()
-            && log_importance_weight > log_bound + bound_tolerance
+        if log_importance_weight.is_finite() && log_importance_weight > log_bound + bound_tolerance
         {
             return Err(PortfolioProposalError::LikelihoodRatioExceedsDefensiveBound);
         }
 
-        let log_defensive_contribution = if normalized_contrast == 0.0
-            || log_importance_weight == f64::NEG_INFINITY
-        {
-            f64::NEG_INFINITY
-        } else {
-            self.defensive_fraction.ln() + normalized_contrast.ln() + log_importance_weight
-        };
+        let log_defensive_contribution =
+            if normalized_contrast == 0.0 || log_importance_weight == f64::NEG_INFINITY {
+                f64::NEG_INFINITY
+            } else {
+                self.defensive_fraction.ln() + normalized_contrast.ln() + log_importance_weight
+            };
         if log_defensive_contribution.is_nan()
             || log_defensive_contribution == f64::INFINITY
             || log_defensive_contribution > 0.0
@@ -413,9 +421,7 @@ impl PortfolioDefensiveGaussianMixture {
         } else {
             log_defensive_contribution.exp()
         };
-        if !defensive_contribution.is_finite()
-            || !(0.0..=1.0).contains(&defensive_contribution)
-        {
+        if !defensive_contribution.is_finite() || !(0.0..=1.0).contains(&defensive_contribution) {
             return Err(PortfolioProposalError::DefensiveContributionExceedsOne);
         }
 
@@ -554,7 +560,12 @@ mod tests {
 
     fn log_sum_exp(values: &[f64]) -> f64 {
         let maximum = values.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-        maximum + values.iter().map(|value| (value - maximum).exp()).sum::<f64>().ln()
+        maximum
+            + values
+                .iter()
+                .map(|value| (value - maximum).exp())
+                .sum::<f64>()
+                .ln()
     }
 
     #[test]
@@ -586,8 +597,7 @@ mod tests {
             for mode in [key(10, 1, 1), key(20, 1, 2)] {
                 let result = mixture.evaluate_draw(mode, &[point], 1.0).unwrap();
                 assert!(
-                    result.log_importance_weight
-                        <= -mixture.defensive_fraction().ln() + 1.0e-12
+                    result.log_importance_weight <= -mixture.defensive_fraction().ln() + 1.0e-12
                 );
                 assert!((0.0..=1.0).contains(&result.defensive_contribution));
                 assert!(result.log_defensive_contribution <= 0.0);
