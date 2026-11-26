@@ -240,11 +240,7 @@ fn divide_intervals(numerator: Interval, denominator: Interval) -> Interval {
     if denominator.contains_zero() {
         return Interval::ENTIRE;
     }
-    let reciprocal = denominator.reciprocal();
-    Interval {
-        lower: (numerator * reciprocal).lower,
-        upper: (numerator * reciprocal).upper,
-    }
+    numerator * denominator.reciprocal()
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
