@@ -96,6 +96,8 @@ pub enum EvidencePayload {
         edge_id: String,
         source_holder_id: String,
         target_holder_id: String,
+        authority_epoch: u64,
+        queue_generation: u64,
         old_epoch_enqueue_closed: bool,
     },
     HolderInventory {
@@ -969,12 +971,16 @@ fn evaluate_temporal_closure(
             .filter_map(|capsule| match &capsule.payload {
                 EvidencePayload::EdgeClosureReceipt {
                     edge_id: observed_id,
-                    old_epoch_enqueue_closed,
                     source_holder_id,
                     target_holder_id,
+                    authority_epoch,
+                    queue_generation,
+                    old_epoch_enqueue_closed,
                 } if observed_id == edge_id
                     && claim.expected_holder_ids.contains(source_holder_id)
                     && claim.expected_holder_ids.contains(target_holder_id)
+                    && *authority_epoch >= required_epoch
+                    && *queue_generation == required_queue_generation
                     && matches!(
                         capsule.source.role,
                         SourceRole::NetworkMonitor | SourceRole::Endpoint
@@ -1354,6 +1360,8 @@ mod tests {
                 edge_id: "edge-1".to_owned(),
                 source_holder_id: "controller".to_owned(),
                 target_holder_id: "actuator".to_owned(),
+                authority_epoch: 7,
+                queue_generation: 3,
                 old_epoch_enqueue_closed: true,
             },
         );
