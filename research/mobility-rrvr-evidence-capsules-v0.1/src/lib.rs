@@ -1444,5 +1444,4 @@ mod tests {
         let error = evaluate_json(&serialized).expect_err("unmapped clock domains must reject");
         assert!(error.starts_with("CLOCK_DOMAIN_MISMATCH"));
     }
-
 }
