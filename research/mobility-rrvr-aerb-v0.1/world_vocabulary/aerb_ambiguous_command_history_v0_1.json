@@ -1,0 +1,70 @@
+{
+  "schema_version": "0.1",
+  "vocabulary_id": "aerb-ambiguous-command-history-v0.1",
+  "worlds": [
+    {
+      "world_id": "not_dispatched",
+      "description": "The command was not dispatched to the endpoint.",
+      "dispatch_state": "not_dispatched",
+      "effect_state": "none",
+      "authority_relation": "not_applicable",
+      "acknowledgement_state": "unknown"
+    },
+    {
+      "world_id": "dispatched_no_effect",
+      "description": "The command was dispatched but caused no physical effect.",
+      "dispatch_state": "dispatched",
+      "effect_state": "none",
+      "authority_relation": "current_epoch",
+      "acknowledgement_state": "lost"
+    },
+    {
+      "world_id": "applied_once_ack_lost",
+      "description": "The intended physical effect occurred once but its acknowledgement was lost.",
+      "dispatch_state": "dispatched",
+      "effect_state": "once",
+      "authority_relation": "current_epoch",
+      "acknowledgement_state": "lost"
+    },
+    {
+      "world_id": "partial_effect",
+      "description": "Only part of the intended physical effect occurred.",
+      "dispatch_state": "dispatched",
+      "effect_state": "partial",
+      "authority_relation": "current_epoch",
+      "acknowledgement_state": "lost"
+    },
+    {
+      "world_id": "duplicate_effect",
+      "description": "The one-shot physical effect occurred more than once.",
+      "dispatch_state": "dispatched",
+      "effect_state": "duplicate",
+      "authority_relation": "current_epoch",
+      "acknowledgement_state": "lost"
+    },
+    {
+      "world_id": "stale_authority_effect",
+      "description": "A physical effect occurred under a superseded authority epoch or queue generation.",
+      "dispatch_state": "dispatched",
+      "effect_state": "stale_epoch",
+      "authority_relation": "stale_epoch",
+      "acknowledgement_state": "unknown"
+    },
+    {
+      "world_id": "unresolved_command_holder",
+      "description": "An unaccounted holder or forwarder may still cause an effect; the effect status is unresolved.",
+      "dispatch_state": "unknown",
+      "effect_state": "unknown",
+      "authority_relation": "unresolved_holder",
+      "acknowledgement_state": "unknown"
+    },
+    {
+      "world_id": "open_world_residual",
+      "description": "An unmodelled effect-producing path or system-boundary mismatch remains possible; the known execution-history taxonomy cannot yet be treated as exhaustive.",
+      "dispatch_state": "unknown",
+      "effect_state": "unknown",
+      "authority_relation": "unresolved_holder",
+      "acknowledgement_state": "unknown"
+    }
+  ]
+}

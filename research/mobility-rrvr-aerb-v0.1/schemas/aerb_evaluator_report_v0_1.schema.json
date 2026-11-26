@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/aerb-evaluator-report-v0.1.schema.json",
+  "title": "AERB Evaluator Report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark",
+    "episode_id",
+    "candidate_snapshot_sha256",
+    "evaluator_profile_sha256",
+    "candidate_contract_valid",
+    "candidate_reason_codes",
+    "scheduled_observation_n",
+    "admitted_observation_n",
+    "stale_observation_n",
+    "unknown_observation_n",
+    "disputed_observation_n",
+    "possible_world_support_n",
+    "evaluator_world_n",
+    "hidden_truth_in_candidate_support",
+    "open_world_residual_retained",
+    "selected_disposition",
+    "selected_disposition_worst_case_loss",
+    "selected_disposition_admissible",
+    "evaluator_truth_disposition_loss",
+    "requested_probe_id",
+    "probe_admission",
+    "probe_acquisition_cost_units",
+    "probe_result_delay_steps",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "benchmark": {
+      "const": "AERB"
+    },
+    "episode_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidate_snapshot_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "evaluator_profile_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "candidate_contract_valid": {
+      "type": "boolean"
+    },
+    "candidate_reason_codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "scheduled_observation_n": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "admitted_observation_n": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_observation_n": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unknown_observation_n": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "disputed_observation_n": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "possible_world_support_n": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "evaluator_world_n": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "hidden_truth_in_candidate_support": {
+      "type": "boolean"
+    },
+    "open_world_residual_retained": {
+      "type": "boolean"
+    },
+    "selected_disposition": {
+      "enum": [
+        "hold_reconcile",
+        "request_observation",
+        "abstain",
+        "recommend_fresh_attempt"
+      ]
+    },
+    "selected_disposition_worst_case_loss": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1
+    },
+    "selected_disposition_admissible": {
+      "type": "boolean"
+    },
+    "evaluator_truth_disposition_loss": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "requested_probe_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "probe_admission": {
+      "enum": [
+        "not_requested",
+        "eligible",
+        "not_permitted",
+        "over_budget",
+        "misses_deadline",
+        "request_missing"
+      ]
+    },
+    "probe_acquisition_cost_units": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "probe_result_delay_steps": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}

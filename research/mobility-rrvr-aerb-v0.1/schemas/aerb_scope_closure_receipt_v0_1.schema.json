@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/aerb-scope-closure-receipt-v0.1.schema.json",
+  "title": "AERB Scope Closure Receipt v0.1",
+  "description": "A receipt schema for an independently verified claim that all effect-producing components, command holders and forwarding edges have been inventoried within one declared execution boundary. A JSON document matching this schema is not, by itself, authenticated or proof of completeness; the upstream evidence adapter must verify its attestation and source evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_type",
+    "receipt_id",
+    "execution_scope_id",
+    "system_boundary_manifest_sha256",
+    "effect_producing_inventory_profile_sha256",
+    "effect_producing_components_manifest_sha256",
+    "command_holder_graph_sha256",
+    "forwarding_edge_graph_sha256",
+    "decision_cut_sequence",
+    "coverage_claim",
+    "verification"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "receipt_type": {
+      "const": "AERB_SCOPE_CLOSURE"
+    },
+    "receipt_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "execution_scope_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "system_boundary_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "effect_producing_inventory_profile_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "effect_producing_components_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "command_holder_graph_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "forwarding_edge_graph_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "decision_cut_sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "coverage_claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope_disposition",
+        "effect_producing_components_complete",
+        "command_holders_complete",
+        "forwarding_edges_complete",
+        "unresolved_holder_n",
+        "unresolved_forwarding_edge_n",
+        "unaccounted_effect_producer_n"
+      ],
+      "properties": {
+        "scope_disposition": {
+          "enum": [
+            "closed_within_declared_scope",
+            "incomplete",
+            "disputed"
+          ]
+        },
+        "effect_producing_components_complete": {
+          "type": "boolean"
+        },
+        "command_holders_complete": {
+          "type": "boolean"
+        },
+        "forwarding_edges_complete": {
+          "type": "boolean"
+        },
+        "unresolved_holder_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unresolved_forwarding_edge_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unaccounted_effect_producer_n": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verification_status",
+        "verifier_id",
+        "verification_profile_sha256",
+        "verification_receipt_sha256",
+        "signature_envelope_sha256"
+      ],
+      "properties": {
+        "verification_status": {
+          "enum": [
+            "verified",
+            "unverified",
+            "rejected",
+            "disputed"
+          ]
+        },
+        "verifier_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verification_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "verification_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "signature_envelope_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}

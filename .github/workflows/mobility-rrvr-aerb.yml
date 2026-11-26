@@ -1,0 +1,138 @@
+name: RRVR AERB Schema and World-Support Conformance v0.1
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-aerb-v0-1
+    paths:
+      - "research/mobility-rrvr-aerb-v0.1/**"
+      - ".github/workflows/mobility-rrvr-aerb.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-aerb-v0.1/**"
+      - ".github/workflows/mobility-rrvr-aerb.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  aerb-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate JSON syntax for all AERB schemas and fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-aerb-v0.1"
+          find "$ROOT" -name '*.json' -print0 | while IFS= read -r -d '' file; do
+            jq empty "$file"
+          done
+
+      - name: Validate candidate episode decision cut and scope identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-aerb-v0.1"
+          jq -e '
+            . as $episode
+            | $episode.benchmark == "AERB"
+            and $episode.decision_cut_sequence == $episode.ledger_frontier_sequence
+            and ($episode.command_context.execution_scope_id | length > 0)
+            and ($episode.command_context.system_boundary_manifest_sha256 | test("^[a-f0-9]{64}$"))
+            and ($episode.command_context.effect_producing_inventory_profile_sha256 | test("^[a-f0-9]{64}$"))
+            and all($episode.observations[]; .ingest_sequence <= $episode.decision_cut_sequence)
+            and ([$episode.observations[].observation_id] | length == (unique | length))
+            and ([$episode.permitted_probes[].probe_id] | length == (unique | length))
+            and (has("hidden_truth_world_id") | not)
+          ' "$ROOT/fixtures/candidate_episode_synthetic_v0_1.json"
+
+      - name: Validate public world vocabulary and candidate submission
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-aerb-v0.1"
+
+          jq -e '
+            .vocabulary_id == "aerb-ambiguous-command-history-v0.1"
+            and (.worlds | length == 8)
+            and ([.worlds[].world_id] | length == (unique | length))
+          ' "$ROOT/world_vocabulary/aerb_ambiguous_command_history_v0_1.json"
+
+          jq -e --slurpfile vocab "$ROOT/world_vocabulary/aerb_ambiguous_command_history_v0_1.json" --slurpfile episode "$ROOT/fixtures/candidate_episode_synthetic_v0_1.json" '
+            . as $submission
+            | $submission.benchmark == "AERB"
+            and all($submission.possible_world_support_ids[];
+              . as $world_id | any($vocab[0].worlds[]; .world_id == $world_id)
+            )
+            and ($submission.possible_world_support_ids | index("open_world_residual") != null)
+            and (
+              $submission.requested_probe_id == null
+              or any($episode[0].permitted_probes[]; .probe_id == $submission.requested_probe_id)
+            )
+          ' "$ROOT/fixtures/candidate_submission_synthetic_v0_1.json"
+
+          EXPECTED_DIGEST="$(jq -r '.candidate_snapshot_sha256' "$ROOT/fixtures/candidate_submission_synthetic_v0_1.json")"
+          ACTUAL_DIGEST="$(jq -S -c . "$ROOT/fixtures/candidate_episode_synthetic_v0_1.json" | tr -d '\n' | sha256sum | cut -d ' ' -f 1)"
+          test "$EXPECTED_DIGEST" = "$ACTUAL_DIGEST"
+
+      - name: Validate evaluator-only truth and probe-support completeness
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-aerb-v0.1"
+          PACK="$ROOT/fixtures/evaluator_only/world_pack_synthetic_v0_1.json"
+          EPISODE="$ROOT/fixtures/candidate_episode_synthetic_v0_1.json"
+
+          jq -e --slurpfile episode "$EPISODE" '
+            . as $pack
+            | ($pack.worlds | map(.world_id)) as $world_ids
+            | ($episode[0].permitted_probes | map(.probe_id) | sort) as $permitted_probe_ids
+            | ($pack.probe_outcome_supports | map(.probe_id) | sort) as $supported_probe_ids
+            | ($permitted_probe_ids == $supported_probe_ids)
+            and ($pack.maximum_worst_case_loss == 0.45)
+            and ($pack.maximum_worst_case_loss >= 0 and $pack.maximum_worst_case_loss <= 1)
+            and (($pack.worlds | map(.world_id) | length) == ($world_ids | unique | length))
+            and (($pack.hidden_truth_world_id as $truth | ($world_ids | index($truth)) != null))
+            and all($pack.probe_outcome_supports[];
+              . as $probe
+              | all($probe.outcomes[];
+                  . as $outcome
+                  | all($outcome.possible_world_ids[];
+                      . as $state_id | ($world_ids | index($state_id)) != null
+                    )
+                )
+            )
+            and all($pack.probe_outcome_supports[];
+              . as $probe
+              | ($probe.outcomes | map(.possible_world_ids[]) | unique) as $covered
+              | all($world_ids[];
+                  . as $world_id | ($covered | index($world_id)) != null
+                )
+            )
+            and all($pack.probe_outcome_supports[];
+              . as $probe
+              | if $probe.probe_id == "reconcile_effect_and_scope" then
+                  (any($probe.outcomes[]; any(.possible_world_ids[]; . == "open_world_residual"))
+                   and any($probe.outcomes[]; all(.possible_world_ids[]; . != "open_world_residual")))
+                else
+                  all($probe.outcomes[];
+                    any(.possible_world_ids[]; . == "open_world_residual")
+                  )
+                end
+            )
+            and (
+              ["hold_reconcile","request_observation","abstain","recommend_fresh_attempt"] as $dispositions
+              | all($world_ids[];
+                  . as $world_id
+                  | all($dispositions[];
+                      . as $disposition
+                      | any($pack.decision_losses[];
+                          .world_id == $world_id and .disposition == $disposition
+                        )
+                    )
+                )
+            )
+          ' "$PACK"

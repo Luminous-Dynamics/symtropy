@@ -1,0 +1,90 @@
+{
+  "schema_version": "0.1",
+  "benchmark": "AERB",
+  "episode_id": "aerb-synthetic-0001",
+  "scenario_id": "effect-before-ack-loss",
+  "attempt_id": "attempt-0001",
+  "trajectory_cluster_id": "cluster-synthetic-01",
+  "evidence_domain": "process_model",
+  "decision_cut_sequence": 4,
+  "ledger_frontier_sequence": 4,
+  "current_step": 40,
+  "decision_deadline_step": 55,
+  "remaining_probe_budget_units": 4,
+  "command_context": {
+    "command_id": "command-0001",
+    "operation_id": "transfer-0001",
+    "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "action_prefix_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "endpoint_id": "manipulator-endpoint-01",
+    "endpoint_profile_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "authority_epoch": 7,
+    "queue_generation": 3,
+    "execution_scope_id": "robot-cell-01",
+    "system_boundary_manifest_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+    "effect_producing_inventory_profile_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+  },
+  "observations": [
+    {
+      "observation_id": "obs-001",
+      "source_id": "coordinator-0",
+      "source_role": "coordinator_log",
+      "quality": "admitted",
+      "ingest_sequence": 2,
+      "event_time": {
+        "clock_domain_id": "coordinator-clock",
+        "ticks_ns": 100000,
+        "uncertainty_ns": 100
+      },
+      "acquired_time": {
+        "clock_domain_id": "coordinator-clock",
+        "ticks_ns": 100100,
+        "uncertainty_ns": 100
+      },
+      "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "observation_kind": "command_dispatch_record"
+    },
+    {
+      "observation_id": "obs-002",
+      "source_id": "endpoint-journal-0",
+      "source_role": "endpoint_journal",
+      "quality": "admitted",
+      "ingest_sequence": 4,
+      "event_time": {
+        "clock_domain_id": "endpoint-clock",
+        "ticks_ns": 80000,
+        "uncertainty_ns": 500
+      },
+      "acquired_time": {
+        "clock_domain_id": "host-clock",
+        "ticks_ns": 200000,
+        "uncertainty_ns": 1000
+      },
+      "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "observation_kind": "dedupe_journal_unavailable"
+    }
+  ],
+  "permitted_probes": [
+    {
+      "probe_id": "read_endpoint_journal",
+      "acquisition_cost_units": 1,
+      "result_delay_steps": 2
+    },
+    {
+      "probe_id": "independent_pose_observation",
+      "acquisition_cost_units": 2,
+      "result_delay_steps": 5
+    },
+    {
+      "probe_id": "inventory_command_holders",
+      "acquisition_cost_units": 1,
+      "result_delay_steps": 3
+    },
+    {
+      "probe_id": "reconcile_effect_and_scope",
+      "acquisition_cost_units": 2,
+      "result_delay_steps": 5
+    }
+  ],
+  "world_vocabulary_version": "aerb-ambiguous-command-history-v0.1"
+}

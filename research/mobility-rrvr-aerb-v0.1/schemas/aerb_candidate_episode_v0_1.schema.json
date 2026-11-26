@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/aerb-candidate-episode-v0.1.schema.json",
+  "title": "AERB Candidate-Visible Episode v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark",
+    "episode_id",
+    "scenario_id",
+    "attempt_id",
+    "trajectory_cluster_id",
+    "world_vocabulary_version",
+    "evidence_domain",
+    "decision_cut_sequence",
+    "ledger_frontier_sequence",
+    "current_step",
+    "decision_deadline_step",
+    "remaining_probe_budget_units",
+    "command_context",
+    "observations",
+    "permitted_probes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "benchmark": {
+      "const": "AERB"
+    },
+    "episode_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scenario_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attempt_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trajectory_cluster_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_domain": {
+      "enum": [
+        "formal_model",
+        "process_model",
+        "simulator",
+        "hil",
+        "physical"
+      ]
+    },
+    "decision_cut_sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "ledger_frontier_sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "current_step": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "decision_deadline_step": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "remaining_probe_budget_units": {
+      "type": "number",
+      "minimum": 0
+    },
+    "command_context": {
+      "$ref": "#/$defs/command_context"
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/observation"
+      }
+    },
+    "permitted_probes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/probe"
+      }
+    },
+    "world_vocabulary_version": {
+      "const": "aerb-ambiguous-command-history-v0.1"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "clock_stamp": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clock_domain_id",
+        "ticks_ns",
+        "uncertainty_ns"
+      ],
+      "properties": {
+        "clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ticks_ns": {
+          "type": "integer"
+        },
+        "uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "command_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command_id",
+        "operation_id",
+        "payload_sha256",
+        "action_prefix_sha256",
+        "endpoint_id",
+        "endpoint_profile_sha256",
+        "authority_epoch",
+        "queue_generation",
+        "execution_scope_id",
+        "system_boundary_manifest_sha256",
+        "effect_producing_inventory_profile_sha256"
+      ],
+      "properties": {
+        "command_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payload_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "action_prefix_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "endpoint_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "endpoint_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "authority_epoch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "queue_generation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "execution_scope_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "system_boundary_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "effect_producing_inventory_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_id",
+        "source_id",
+        "source_role",
+        "quality",
+        "ingest_sequence",
+        "event_time",
+        "acquired_time",
+        "artifact_sha256",
+        "observation_kind"
+      ],
+      "properties": {
+        "observation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_role": {
+          "enum": [
+            "endpoint_journal",
+            "controller_telemetry",
+            "independent_sensor",
+            "model_oracle",
+            "operator",
+            "coordinator_log",
+            "command_holder_inventory",
+            "independent_inventory_adjudicator"
+          ]
+        },
+        "quality": {
+          "enum": [
+            "admitted",
+            "stale",
+            "unknown",
+            "disputed"
+          ]
+        },
+        "ingest_sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "event_time": {
+          "$ref": "#/$defs/clock_stamp"
+        },
+        "acquired_time": {
+          "$ref": "#/$defs/clock_stamp"
+        },
+        "artifact_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "observation_kind": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "probe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "probe_id",
+        "acquisition_cost_units",
+        "result_delay_steps"
+      ],
+      "properties": {
+        "probe_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acquisition_cost_units": {
+          "type": "number",
+          "minimum": 0
+        },
+        "result_delay_steps": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
