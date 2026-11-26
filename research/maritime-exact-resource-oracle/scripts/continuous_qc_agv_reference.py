@@ -268,7 +268,7 @@ def evaluate_plan(tasks, plan_routes, gamma, qc_weight, agv_weight):
     n = len(tasks)
     best = None
     combinations_examined = 0
-    feasible_vertices = 0
+    feasible_active_set_bases = 0
 
     for sign_mask in range(1 << n):
         signs = [1.0 if not (sign_mask & (1 << i)) else -1.0 for i in range(n)]
@@ -305,7 +305,7 @@ def evaluate_plan(tasks, plan_routes, gamma, qc_weight, agv_weight):
                     for coefficients, bound in constraints
                 ):
                     continue
-                feasible_vertices += 1
+                feasible_active_set_bases += 1
                 cost = objective[0] + sum(
                     a * x for a, x in zip(objective_coeffs, point)
                 )
@@ -337,7 +337,7 @@ def evaluate_plan(tasks, plan_routes, gamma, qc_weight, agv_weight):
         "makespan": replay_result[3],
         "events": replay_result[4],
         "combinations": combinations_examined,
-        "active_bases": feasible_vertices,
+        "active_set_bases": feasible_active_set_bases,
     }
 
 
