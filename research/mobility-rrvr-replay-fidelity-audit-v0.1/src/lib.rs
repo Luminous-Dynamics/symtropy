@@ -1566,6 +1566,22 @@ mod tests {
     }
 
     #[test]
+    fn original_state_artifact_digest_tampering_invalidates_pose_evidence() {
+        let root = temp_dir();
+        let candidate = passing_candidate(&root, "scenario-state-tamper", Split::Test, &"a".repeat(64));
+        let original_path = root.join(&candidate.spot_check.attempts[0].original_state_path);
+        fs::write(&original_path, br#"{"schema_version":"0.1"}"#)
+            .expect("tamper original state artifact");
+        let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
+        assert_eq!(report.invalid_n, 1);
+        assert!(
+            report.candidate_audits[0].spot_checks[0]
+                .reason_codes
+                .contains(&"ORIGINAL_STATE_ARTIFACT_DIGEST_MISMATCH".to_owned())
+        );
+    }
+
+    #[test]
     fn selection_receipt_tampering_invalidates_spot_check() {
         let root = temp_dir();
         let candidate = passing_candidate(&root, "scenario-9", Split::Test, &"a".repeat(64));
