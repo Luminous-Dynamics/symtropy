@@ -720,6 +720,8 @@ fn run_backend<const D: usize>(
     let mut false_positives = 0_u64;
     let mut false_negatives = 0_u64;
     let mut mismatch_frames = 0_u64;
+    let mut event_mismatch_frames = 0_u64;
+    let mut pair_materialize_samples = Vec::<u128>::new();
 
     for _ in 0..repetitions {
         let mut tree = match backend {
@@ -732,14 +734,17 @@ fn run_backend<const D: usize>(
                     BalancePolicy::HeightRotations,
                 )?)
             }
-            BackendKind::BruteForce | BackendKind::SweepAndPrune => None,
+            BackendKind::BruteForce | BackendKind::SweepAndPrune | BackendKind::PairDeltaCache => None,
         };
+        let mut pair_cache = (backend == BackendKind::PairDeltaCache)
+            .then(PairDeltaCache::<D>::new);
         let mut previous_bounds = BTreeMap::<ProxyId, Aabb<D>>::new();
         let mut previous_maintenance = MaintenanceStats::default();
 
         for (frame_index, frame) in scene.frames.iter().enumerate() {
             let start = Instant::now();
             let mut actual = Vec::<ProxyPair>::new();
+            let mut pair_delta = None;
 
             match backend {
                 BackendKind::BruteForce => {
@@ -793,7 +798,9 @@ fn run_backend<const D: usize>(
                         BackendKind::TreeSelfPairUnbalanced | BackendKind::TreeSelfPairBalanced => {
                             tree.query_pairs()
                         }
-                        BackendKind::BruteForce | BackendKind::SweepAndPrune => {
+                        BackendKind::BruteForce
+                        | BackendKind::SweepAndPrune
+                        | BackendKind::PairDeltaCache => {
                             unreachable!("non-tree backend entered tree query arm")
                         }
                     };
@@ -830,10 +837,65 @@ fn run_backend<const D: usize>(
                     counters.max_tree_height = counters.max_tree_height.max(stats.height);
                     counters.max_tree_nodes = counters.max_tree_nodes.max(stats.node_count);
                 }
+                BackendKind::PairDeltaCache => {
+                    let cache = pair_cache
+                        .as_mut()
+                        .expect("pair-delta backend initializes a pair cache");
+                    pair_delta = Some(cache.step(frame)?);
+                }
             }
 
             let elapsed = start.elapsed().as_nanos();
             frame_samples.push(elapsed);
+
+            // Pair-cache materialization and independent checks are outside
+            // its timed pair-delta update interval.
+            if let Some(delta) = pair_delta {
+                checked_add(
+                    &mut counters.pair_cache_dirty_proxies,
+                    delta.dirty_proxies,
+                )?;
+                counters.pair_cache_overlap_tests = counters
+                    .pair_cache_overlap_tests
+                    .checked_add(delta.overlap_tests)
+                    .ok_or(TournamentError::CounterOverflow)?;
+                checked_add(&mut counters.pair_events_added, delta.added.len())?;
+                checked_add(&mut counters.pair_events_removed, delta.removed.len())?;
+                counters.pair_cache_peak_pairs =
+                    counters.pair_cache_peak_pairs.max(delta.active_pairs);
+
+                let expected_current = &oracle[frame_index];
+                let empty_previous = BTreeSet::new();
+                let expected_previous = if frame_index == 0 {
+                    &empty_previous
+                } else {
+                    &oracle[frame_index - 1]
+                };
+                let expected_added: BTreeSet<_> = expected_current
+                    .difference(expected_previous)
+                    .copied()
+                    .collect();
+                let expected_removed: BTreeSet<_> = expected_previous
+                    .difference(expected_current)
+                    .copied()
+                    .collect();
+                let actual_added: BTreeSet<_> = delta.added.iter().copied().collect();
+                let actual_removed: BTreeSet<_> = delta.removed.iter().copied().collect();
+                if actual_added != expected_added
+                    || actual_removed != expected_removed
+                    || actual_added.len() != delta.added.len()
+                    || actual_removed.len() != delta.removed.len()
+                {
+                    event_mismatch_frames = event_mismatch_frames.saturating_add(1);
+                }
+
+                let materialize_start = Instant::now();
+                actual = pair_cache
+                    .as_ref()
+                    .expect("pair cache remains initialized")
+                    .active_pairs();
+                pair_materialize_samples.push(materialize_start.elapsed().as_nanos());
+            }
 
             // Correctness comparison is deliberately outside the timed region.
             let expected = &oracle[frame_index];
@@ -860,6 +922,11 @@ fn run_backend<const D: usize>(
         declared_proxy_count: scene.declared_proxy_count,
         scene_frames: scene.frames.len(),
         backend: backend.name(),
+        output_contract: if backend == BackendKind::PairDeltaCache {
+            "pair_delta_events"
+        } else {
+            "full_candidate_set"
+        },
         repetitions,
         frame_samples: frame_samples.len(),
         proxy_observations,
@@ -868,9 +935,13 @@ fn run_backend<const D: usize>(
         false_positives,
         false_negatives,
         mismatch_frames,
+        event_mismatch_frames,
         p50_frame_ns: percentile(&frame_samples, 50),
         p95_frame_ns: percentile(&frame_samples, 95),
         p99_frame_ns: percentile(&frame_samples, 99),
+        p50_pair_materialize_ns: percentile(&pair_materialize_samples, 50),
+        p95_pair_materialize_ns: percentile(&pair_materialize_samples, 95),
+        p99_pair_materialize_ns: percentile(&pair_materialize_samples, 99),
         sum_frame_ns,
         campaign_wall_ns: campaign_start.elapsed().as_nanos(),
         counters,
