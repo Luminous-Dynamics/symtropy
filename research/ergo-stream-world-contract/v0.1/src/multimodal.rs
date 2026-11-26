@@ -609,7 +609,7 @@ impl MultimodalWorldV0 {
         let accepted_valid = match claim {
             AlignmentClaimV0::Unique(_) => matching_alternatives == 1,
             AlignmentClaimV0::Alternatives(_) => {
-                truth.len() > 0 && false_alternatives == 0 && missed_alternatives == 0
+                !truth.is_empty() && false_alternatives == 0 && missed_alternatives == 0
             }
             AlignmentClaimV0::Unresolved => false,
         };
