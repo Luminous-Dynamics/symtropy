@@ -12,6 +12,7 @@ pub const SCHEMA_VERSION: &str = "0.1";
 pub const BENCHMARK: &str = "AERB";
 pub const WORLD_VOCABULARY_VERSION: &str = "aerb-ambiguous-command-history-v0.1";
 pub const OPEN_WORLD_RESIDUAL: &str = "open_world_residual";
+pub const SCOPE_CLOSURE_PROBE_ID: &str = "reconcile_effect_and_scope";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -589,6 +590,28 @@ fn validate_world_pack<'a>(
         if covered_worlds != world_ids {
             return Err(EvaluatorError::InvalidWorldPack("probe outcome supports do not cover world catalog".to_owned()));
         }
+
+        if probe.probe_id != SCOPE_CLOSURE_PROBE_ID {
+            if probe.outcomes.iter().any(|outcome| {
+                !outcome.possible_world_ids.iter().any(|world_id| world_id == OPEN_WORLD_RESIDUAL)
+            }) {
+                return Err(EvaluatorError::InvalidWorldPack(
+                    "ordinary observation probe attempts to eliminate open-world residual".to_owned()
+                ));
+            }
+        } else {
+            let has_unresolved_scope_outcome = probe.outcomes.iter().any(|outcome| {
+                outcome.possible_world_ids.iter().any(|world_id| world_id == OPEN_WORLD_RESIDUAL)
+            });
+            let has_scope_closed_outcome = probe.outcomes.iter().any(|outcome| {
+                !outcome.possible_world_ids.iter().any(|world_id| world_id == OPEN_WORLD_RESIDUAL)
+            });
+            if !has_unresolved_scope_outcome || !has_scope_closed_outcome {
+                return Err(EvaluatorError::InvalidWorldPack(
+                    "scope-closure probe must distinguish closed and unresolved scope outcomes".to_owned()
+                ));
+            }
+        }
     }
     if pack_probe_ids != candidate_probe_ids {
         return Err(EvaluatorError::InvalidWorldPack("probe support menu differs from candidate permitted probes".to_owned()));
@@ -832,6 +855,41 @@ mod tests {
         ).expect("score invalid candidate");
         assert_eq!(report.probe_admission, ProbeAdmission::NotPermitted);
         assert!(!report.candidate_contract_valid);
+    }
+
+    #[test]
+    fn ordinary_probe_cannot_eliminate_open_world_residual() {
+        let (episode, submission, mut worldpack) = values();
+        worldpack["probe_outcome_supports"][0]["outcomes"][0]["possible_world_ids"] =
+            serde_json::json!(["not_dispatched", "dispatched_no_effect"]);
+        assert!(matches!(
+            evaluate_json(
+                &serde_json::to_string(&episode).unwrap(),
+                &serde_json::to_string(&submission).unwrap(),
+                &serde_json::to_string(&worldpack).unwrap()
+            ),
+            Err(EvaluatorError::InvalidWorldPack(_))
+        ));
+    }
+
+    #[test]
+    fn scope_closure_probe_must_preserve_an_unresolved_outcome_and_a_closed_outcome() {
+        let (episode, submission, mut worldpack) = values();
+        let index = worldpack["probe_outcome_supports"]
+            .as_array().unwrap()
+            .iter()
+            .position(|probe| probe["probe_id"] == SCOPE_CLOSURE_PROBE_ID)
+            .unwrap();
+        worldpack["probe_outcome_supports"][index]["outcomes"][3]["possible_world_ids"] =
+            serde_json::json!(["unresolved_command_holder"]);
+        assert!(matches!(
+            evaluate_json(
+                &serde_json::to_string(&episode).unwrap(),
+                &serde_json::to_string(&submission).unwrap(),
+                &serde_json::to_string(&worldpack).unwrap()
+            ),
+            Err(EvaluatorError::InvalidWorldPack(_))
+        ));
     }
 
     #[test]
