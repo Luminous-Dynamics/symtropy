@@ -48,7 +48,7 @@ pub struct MagneticDesignTournament {
     pub candidates: Vec<MagneticDesignCandidateMetrics>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum DesignTournamentError {
     InvalidTournamentId,
     EmptyCandidateSet,
@@ -302,7 +302,7 @@ mod tests {
             .map(|index| {
                 let mechanical = TAU * index as f64 / 256.0;
                 let electrical = 4.0 * mechanical + phase_bias_rad;
-                FieldTraceSample {
+                FieldSample {
                     mechanical_angle_rad: mechanical,
                     bx_t: amplitude_t * electrical.cos(),
                     by_t: amplitude_t * electrical.sin(),
