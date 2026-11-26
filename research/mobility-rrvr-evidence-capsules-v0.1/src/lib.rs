@@ -702,11 +702,10 @@ fn evaluate_fault_delivered(
     let receipts: Vec<(&EvidenceCapsule, bool)> = evidence
         .iter()
         .filter_map(|capsule| match &capsule.payload {
-            EvidencePayload::FaultExecutionReceipt { fault_id, delivered }
-                if fault_id == &claim.subject_id =>
-            {
-                Some((*capsule, *delivered))
-            }
+            EvidencePayload::FaultExecutionReceipt {
+                fault_id,
+                delivered,
+            } if fault_id == &claim.subject_id => Some((*capsule, *delivered)),
             _ => None,
         })
         .collect();
