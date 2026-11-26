@@ -87,6 +87,9 @@ pub struct ArmResult {
     pub pair_id: String,
     pub frozen_input_id: String,
     pub arm: Arm,
+    pub original_command_id: String,
+    pub accepted_epoch: u64,
+    pub queue_generation: u64,
     pub actual_effect_count: u32,
     pub reported_disposition: Disposition,
     pub fresh_attempt_admitted: bool,
@@ -545,6 +548,9 @@ impl<'a> Simulation<'a> {
             pair_id: self.scenario.scenario_id.to_owned(),
             frozen_input_id: self.scenario.frozen_input_id(),
             arm: self.arm,
+            original_command_id: self.original_command_id.clone(),
+            accepted_epoch: self.endpoint.accepted_epoch,
+            queue_generation: self.endpoint.queue_generation,
             actual_effect_count: self.endpoint.effect_count,
             reported_disposition: self.reported_disposition,
             fresh_attempt_admitted: self.fresh_attempt_admitted,
@@ -704,8 +710,11 @@ fn arm_json(result: &ArmResult) -> String {
         .collect::<Vec<_>>()
         .join(",");
     format!(
-        "{{\"arm\":\"{}\",\"actual_effect_count\":{},\"reported_disposition\":\"{}\",\"fresh_attempt_admitted\":{},\"unsafe_admission\":{},\"false_no_effect\":{},\"false_applied\":{},\"false_hold\":{},\"endpoint_fenced\":{},\"temporal_closure_issued\":{},\"temporal_closure_valid\":{},\"stale_effect_after_fence\":{},\"duplicate_one_shot_effect\":{},\"unresolved_outcome\":{},\"trace\":[{}]}}",
+        "{{\"arm\":\"{}\",\"original_command_id\":\"{}\",\"accepted_epoch\":{},\"queue_generation\":{},\"actual_effect_count\":{},\"reported_disposition\":\"{}\",\"fresh_attempt_admitted\":{},\"unsafe_admission\":{},\"false_no_effect\":{},\"false_applied\":{},\"false_hold\":{},\"endpoint_fenced\":{},\"temporal_closure_issued\":{},\"temporal_closure_valid\":{},\"stale_effect_after_fence\":{},\"duplicate_one_shot_effect\":{},\"unresolved_outcome\":{},\"trace\":[{}]}}",
         result.arm.as_str(),
+        json_escape(&result.original_command_id),
+        result.accepted_epoch,
+        result.queue_generation,
         result.actual_effect_count,
         result.reported_disposition.as_str(),
         result.fresh_attempt_admitted,
