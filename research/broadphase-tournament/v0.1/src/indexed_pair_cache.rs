@@ -248,8 +248,7 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
             .collect::<BTreeMap<_, _>>();
         let index_mutations =
             u64::try_from(frame.len()).map_err(|_| TournamentError::CounterOverflow)?;
-        let dirty_proxies =
-            usize::try_from(dirty.len()).map_err(|_| TournamentError::CounterOverflow)?;
+        let dirty_proxies = dirty.len();
 
         // Commit the replacement tree and relation only after oracle candidates,
         // exact pair refinement, event sets and all accounting conversions pass.
