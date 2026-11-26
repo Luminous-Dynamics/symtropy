@@ -468,6 +468,8 @@ mod tests {
             .unwrap();
         let report = process.report().unwrap();
 
+        assert_eq!(report.left_portfolio_id, [10; 32]);
+        assert_eq!(report.right_portfolio_id, [20; 32]);
         assert_eq!(report.draw_count, 0);
         assert_eq!(report.alpha, 0.01);
         assert_eq!(report.lower_expected_difference_ticks, -10.0);
@@ -481,7 +483,7 @@ mod tests {
     #[test]
     fn observed_contribution_is_bounded_and_receipt_binds_the_full_proposal() {
         let mut process =
-            DefensiveContrastConfidenceSequence::new(fixture(), 0.01, -10, 10).unwrap();
+            DefensiveContrastConfidenceSequence::new(fixture(), [10; 32], [20; 32], 0.01, -10, 10).unwrap();
         let observation = process.observe(&draw(1, 1, 0, key(10, 1, 1))).unwrap();
 
         assert_eq!(observation.draw_index, 1);
@@ -496,7 +498,7 @@ mod tests {
     #[test]
     fn out_of_bound_consequence_and_bad_mode_do_not_mutate_the_sequence() {
         let mut process =
-            DefensiveContrastConfidenceSequence::new(fixture(), 0.01, -10, 10).unwrap();
+            DefensiveContrastConfidenceSequence::new(fixture(), [10; 32], [20; 32], 0.01, -10, 10).unwrap();
 
         assert_eq!(
             process.observe(&draw(1, 1, 11, key(10, 1, 1))),
@@ -515,7 +517,7 @@ mod tests {
     #[test]
     fn duplicate_draw_ids_and_reordered_indices_are_rejected() {
         let mut process =
-            DefensiveContrastConfidenceSequence::new(fixture(), 0.01, -10, 10).unwrap();
+            DefensiveContrastConfidenceSequence::new(fixture(), [10; 32], [20; 32], 0.01, -10, 10).unwrap();
         process.observe(&draw(1, 7, 0, key(10, 1, 1))).unwrap();
 
         assert_eq!(
@@ -556,6 +558,8 @@ mod tests {
     fn full_i64_consequence_range_does_not_overflow_normalization() {
         let mut process = DefensiveContrastConfidenceSequence::new(
             fixture(),
+            [10; 32],
+            [20; 32],
             0.01,
             i64::MIN,
             i64::MAX,
@@ -630,7 +634,7 @@ mod tests {
     #[test]
     fn transformed_interval_stays_inside_the_declared_target_support() {
         let mut process =
-            DefensiveContrastConfidenceSequence::new(fixture(), 0.01, -10, 10).unwrap();
+            DefensiveContrastConfidenceSequence::new(fixture(), [10; 32], [20; 32], 0.01, -10, 10).unwrap();
         for index in 1..=250 {
             process
                 .observe(&draw(index, (index % 250 + 1) as u8, 10, key(10, 1, 1)))
