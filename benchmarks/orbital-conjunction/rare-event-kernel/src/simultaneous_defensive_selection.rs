@@ -384,6 +384,20 @@ impl SimultaneousDefensivePortfolioSelection {
             .collect::<Vec<_>>();
         let mut pair_observations = Vec::with_capacity(self.pair_processes.len());
 
+        let mut portfolio_consequence_receipts = Vec::with_capacity(self.portfolio_bounds.len());
+        for bound in &self.portfolio_bounds {
+            let value = observed
+                .get(&bound.portfolio_id)
+                .copied()
+                .ok_or(SimultaneousDefensiveSelectionError::IncompletePortfolioDraw)?;
+            portfolio_consequence_receipts.push(
+                crate::portfolio_selection::PortfolioConsequenceObservation {
+                    portfolio_id: bound.portfolio_id,
+                    consequence_ticks: value,
+                },
+            );
+        }
+
         for (index, pair) in self.pair_processes.iter().enumerate() {
             let left = i64::from(
                 *observed
@@ -461,14 +475,7 @@ impl SimultaneousDefensivePortfolioSelection {
             log_target_density: common_evaluation.log_target_density,
             log_full_proposal_density: common_evaluation.log_full_proposal_density,
             log_importance_weight: common_evaluation.log_importance_weight,
-            portfolio_consequences: self
-                .portfolio_bounds
-                .iter()
-                .map(|bound| crate::portfolio_selection::PortfolioConsequenceObservation {
-                    portfolio_id: bound.portfolio_id,
-                    consequence_ticks: *observed.get(&bound.portfolio_id).unwrap_or(&0),
-                })
-                .collect(),
+            portfolio_consequences: portfolio_consequence_receipts,
             pair_observations,
         })
     }
@@ -741,6 +748,14 @@ mod tests {
         expected_id[..8].copy_from_slice(&1_u64.to_be_bytes());
         assert_eq!(receipt.draw_id, expected_id);
         assert_eq!(receipt.portfolio_consequences.len(), 3);
+        assert_eq!(
+            receipt
+                .portfolio_consequences
+                .iter()
+                .map(|item| (item.portfolio_id[0], item.consequence_ticks))
+                .collect::<Vec<_>>(),
+            vec![(10, 2), (20, 7), (30, 12)]
+        );
         assert_eq!(receipt.pair_observations.len(), 3);
         assert!(receipt.log_target_density.is_finite());
         assert!(receipt.log_full_proposal_density.is_finite());
