@@ -59,6 +59,7 @@ pub enum AdjudicationAsOf {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TemporalProjection {
+    pub source_id: String,
     pub event_id: String,
     pub subject_id: String,
     pub source_revision: u32,
