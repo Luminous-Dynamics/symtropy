@@ -531,7 +531,7 @@ pub fn minimum_capacity_counterfactual(value: &Value, edge_id: &str) -> Result<O
 }
 
 pub fn bundled_fixture() -> Result<Value, String> {
-    serde_json::from_str(include_str!("../../../benchmarks/fuel-resilience/shared-pump/SAFRB_TWO_WINDOW_SHARED_PUMP_V0_1.json"))
+    serde_json::from_str(include_str!("../tests/fixtures/SAFRB_TWO_WINDOW_SHARED_PUMP_V0_1.json"))
         .map_err(|e| format!("shared-pump fixture JSON: {e}"))
 }
 
