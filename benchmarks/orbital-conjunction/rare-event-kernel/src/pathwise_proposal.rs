@@ -167,6 +167,14 @@ pub fn derive_finite_pathwise_proposal_support(
     if trajectories.is_empty() {
         return Err(PathwiseProposalError::EmptyTrajectorySupport);
     }
+    // Diagnose an observed zero atom as an atom-identity defect, rather than
+    // misclassifying the derived expected-ID list as a malformed manifest.
+    if trajectories
+        .iter()
+        .any(|trajectory| is_zero_digest(&trajectory.atom_id))
+    {
+        return Err(PathwiseProposalError::InvalidAtomIdentity);
+    }
     if is_zero_digest(&manifest.manifest_digest)
         || manifest.expected_atom_ids.is_empty()
         || manifest.expected_atom_ids.iter().any(is_zero_digest)
