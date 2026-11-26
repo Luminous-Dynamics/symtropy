@@ -14,7 +14,11 @@ A different contact count is not the only mismatch. Equal counts with different 
 
 Each engine may construct contacts differently, but each receipt must account for the same frozen scene, eligible broadphase pairs, narrowphase queries, contact set and solver rows. The pair, query and actual contact denominators remain distinct.
 
-If an independent contact oracle is unavailable, contact completeness is unavailable. Equal generated/oracle counts do not substitute for canonical contact-set digest equality. A different constitutive-law digest is surfaced explicitly: task outcomes may be compared, but solver-law equivalence is not claimed.
+If an independent contact oracle is unavailable, contact completeness is unavailable. A fully accounted scene/task report may still be emitted, but it is not a contact-qualified solver comparison. Equal generated/oracle counts do not substitute for canonical contact-set digest equality. A different constitutive-law digest is surfaced explicitly: task outcomes may be compared, but solver-law equivalence is not claimed.
+
+A fixed-problem receipt distinguishes input eligibility from performance eligibility. Different solver builds and solver configurations are expected; different complete mathematical inputs are not. Capacity settings may differ when both runs admit the same complete row set. Wall-clock comparisons additionally require matching environment digests and timing observations at or above timer resolution.
+
+A full-pipeline scene/task comparison requires complete pair/query accounting and no dropped/overflowed solver rows. A *performance-comparable* full-pipeline pair additionally requires identical independent pair-oracle population digests, identical independently qualified contact-set digests, the same constitutive-law digest, matching environment and usable timings. Until there is a separately qualified contact-equivalence mapper, differing contact sets remain task-only comparisons.
 
 ## Trust boundary
 
