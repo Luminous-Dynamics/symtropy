@@ -89,7 +89,11 @@ impl CutAssessment {
     ) -> Self {
         Self {
             status,
-            reason_codes: reasons.into_iter().collect::<BTreeSet<_>>().into_iter().collect(),
+            reason_codes: reasons
+                .into_iter()
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect(),
             watermark_count,
             event_count,
             dependency_count,
@@ -123,7 +127,11 @@ fn event_coordinate_matches(
         && event.sequence == dependency.sequence
 }
 
-fn invalid_assessment(cut: &EvidenceCut, reasons: Vec<String>, dependencies: usize) -> CutAssessment {
+fn invalid_assessment(
+    cut: &EvidenceCut,
+    reasons: Vec<String>,
+    dependencies: usize,
+) -> CutAssessment {
     CutAssessment::new(
         CutStatus::Invalid,
         reasons,
@@ -197,7 +205,10 @@ pub fn validate_causal_cut(cut: &EvidenceCut) -> CutAssessment {
             continue;
         }
 
-        if events_by_ref.insert(event.event_ref.clone(), event).is_some() {
+        if events_by_ref
+            .insert(event.event_ref.clone(), event)
+            .is_some()
+        {
             invalid.push("DUPLICATE_EVENT_REFERENCE".to_owned());
             continue;
         }
@@ -208,7 +219,10 @@ pub fn validate_causal_cut(cut: &EvidenceCut) -> CutAssessment {
             event.stream_epoch.clone(),
             event.sequence,
         );
-        if sequence_owners.insert(key, event.event_ref.clone()).is_some() {
+        if sequence_owners
+            .insert(key, event.event_ref.clone())
+            .is_some()
+        {
             invalid.push("SOURCE_SEQUENCE_FORK".to_owned());
         }
     }
@@ -409,8 +423,7 @@ pub fn compare_watermark_progress(
 #[cfg(test)]
 mod tests {
     use super::{
-        CutStatus, EvidenceCut, PartitionWatermark, compare_watermark_progress,
-        validate_causal_cut,
+        CutStatus, EvidenceCut, PartitionWatermark, compare_watermark_progress, validate_causal_cut,
     };
     use serde_json::{from_str, from_value};
 
@@ -485,10 +498,7 @@ mod tests {
                 }]
             }]
         }));
-        assert_eq!(
-            validate_causal_cut(&evidence).status,
-            CutStatus::Incomplete
-        );
+        assert_eq!(validate_causal_cut(&evidence).status, CutStatus::Incomplete);
     }
 
     #[test]
@@ -505,10 +515,7 @@ mod tests {
                 "dependencies": []
             }]
         }));
-        assert_eq!(
-            validate_causal_cut(&evidence).status,
-            CutStatus::Unverified
-        );
+        assert_eq!(validate_causal_cut(&evidence).status, CutStatus::Unverified);
     }
 
     #[test]
