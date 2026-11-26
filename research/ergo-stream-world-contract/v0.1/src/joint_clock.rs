@@ -76,7 +76,7 @@ impl fmt::Display for JointClockErrorV0 {
             Self::EmptyStreams => formatter.write_str("at least one sensor stream is required"),
             Self::EmptyEvents => {
                 formatter.write_str("at least one synchronization event is required")
-            },
+            }
             Self::EmptyObservations => {
                 formatter.write_str("at least one sensor/event timestamp is required")
             }
@@ -133,10 +133,10 @@ impl fmt::Display for JointClockErrorV0 {
             }
             Self::NonFiniteInput => {
                 formatter.write_str("joint clock design contains a non-finite value")
-            },
+            }
             Self::NonFiniteEstimate => {
                 formatter.write_str("joint clock fit produced a non-finite estimate")
-            },
+            }
             Self::NonPositiveInverseRate { stream_id } => {
                 write!(
                     formatter,
