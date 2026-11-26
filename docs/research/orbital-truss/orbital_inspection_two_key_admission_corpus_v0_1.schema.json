@@ -174,7 +174,7 @@
                       },
                       "receipt_sha256": {
                         "type": "string",
-                        "pattern": "^[0-9a-fA-F]{64}$"
+                        "minLength": 1
                       }
                     }
                   },
@@ -224,7 +224,7 @@
                       },
                       "receipt_sha256": {
                         "type": "string",
-                        "pattern": "^[0-9a-fA-F]{64}$"
+                        "minLength": 1
                       },
                       "vehicle_id": {
                         "type": "string",
@@ -299,11 +299,11 @@
                       },
                       "measurement_receipt_sha256": {
                         "type": "string",
-                        "pattern": "^[0-9a-fA-F]{64}$"
+                        "minLength": 1
                       },
                       "scope_receipt_sha256": {
                         "type": "string",
-                        "pattern": "^[0-9a-fA-F]{64}$"
+                        "minLength": 1
                       },
                       "vehicle_id": {
                         "type": "string",
