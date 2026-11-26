@@ -48,8 +48,39 @@ impl EvidenceAdmissionState {
 pub struct RequiredEvidenceAdmission {
     /// Stable owner-native evidence reference; not a display-only label.
     pub evidence_ref: String,
+    /// Decision-context digest this evidence reference is asserted to support.
+    pub decision_context_sha256: String,
     /// Upstream evidence admission state.
     pub state: EvidenceAdmissionState,
+}
+
+/// Immutable identity binding for one independently evaluated component report.
+///
+/// The hashes and identity fields are carried into the composite output. This
+/// gate checks their shape and agreement; it does not recompute the report
+/// digest or authenticate the external report/receipt.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AssessmentBinding {
+    /// Claim identity the component report evaluates.
+    pub claim_id: String,
+    /// Exact physical article/subject reference.
+    pub subject_ref: String,
+    /// Digest of the canonical decision context shared by all components.
+    pub decision_context_sha256: String,
+    /// Digest of the exact component report.
+    pub report_sha256: String,
+    /// Exact evaluator profile identifier/version.
+    pub evaluator_profile: String,
+}
+
+/// Three component reports that must be bound to one claim and decision context.
+pub struct ClaimComponentBindings {
+    /// Observer coverage assessment binding.
+    pub coverage: AssessmentBinding,
+    /// Causal-cut assessment binding.
+    pub causal_cut: AssessmentBinding,
+    /// Effectivity assessment binding.
+    pub effectivity: AssessmentBinding,
 }
 
 /// Non-compensatory disposition for one engineering claim.
@@ -87,6 +118,8 @@ impl ClaimGateStatus {
 pub struct ClaimGateInput<'a> {
     /// Stable claim identity.
     pub claim_id: &'a str,
+    /// Exact identity/context/report bindings for all three component reports.
+    pub bindings: &'a ClaimComponentBindings,
     /// Result of the separately-owned observer-coverage evaluator.
     pub coverage: &'a CoverageAssessment,
     /// Result of the declared source/partition causal-cut evaluator.
@@ -102,6 +135,12 @@ pub struct ClaimGateInput<'a> {
 pub struct ClaimAssuranceAssessment {
     /// Stable claim identity.
     pub claim_id: String,
+    /// Shared digest of the exact physical subject and decision context.
+    pub decision_context_sha256: String,
+    /// Component report digests in coverage, causal-cut, effectivity order.
+    pub component_report_sha256: [String; 3],
+    /// Sorted mandatory evidence references included in this assessment.
+    pub required_evidence_refs: Vec<String>,
     /// Non-compensatory claim disposition.
     pub status: ClaimGateStatus,
     /// Stable, sorted, unique reason codes from all supplied components.
@@ -116,6 +155,85 @@ pub struct ClaimAssuranceAssessment {
     pub physical_qualification_status: &'static str,
     /// This profile never infers universal absence from this composition.
     pub absence_inference_granted: bool,
+}
+
+fn valid_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| matches!(byte, b'0'..=b'9' | b'a'..=b'f'))
+}
+
+/// Validate that the three component reports refer to exactly the same claim,
+/// physical subject and canonical decision context. Returns that shared digest
+/// when the binding set is internally consistent.
+fn validate_component_bindings(
+    claim_id: &str,
+    bindings: &ClaimComponentBindings,
+    reasons: &mut BTreeSet<String>,
+) -> Option<String> {
+    let components = [
+        ("COVERAGE", &bindings.coverage),
+        ("CAUSAL_CUT", &bindings.causal_cut),
+        ("EFFECTIVITY", &bindings.effectivity),
+    ];
+    let mut shared_subject: Option<&str> = None;
+    let mut shared_context: Option<&str> = None;
+    let mut report_digests = BTreeSet::new();
+    let mut valid = true;
+
+    for (kind, binding) in components {
+        if binding.claim_id != claim_id {
+            valid = false;
+            reasons.insert(format!("{kind}_CLAIM_ID_MISMATCH"));
+        }
+        if binding.subject_ref.trim().is_empty()
+            || binding.subject_ref != binding.subject_ref.trim()
+        {
+            valid = false;
+            reasons.insert(format!("{kind}_SUBJECT_REF_INVALID"));
+        }
+        if let Some(subject) = shared_subject {
+            if binding.subject_ref != subject {
+                valid = false;
+                reasons.insert("COMPONENT_SUBJECT_BINDING_MISMATCH".to_owned());
+            }
+        } else {
+            shared_subject = Some(&binding.subject_ref);
+        }
+        if !valid_sha256(&binding.decision_context_sha256) {
+            valid = false;
+            reasons.insert(format!("{kind}_DECISION_CONTEXT_DIGEST_INVALID"));
+        }
+        if let Some(context) = shared_context {
+            if binding.decision_context_sha256 != context {
+                valid = false;
+                reasons.insert("COMPONENT_DECISION_CONTEXT_MISMATCH".to_owned());
+            }
+        } else {
+            shared_context = Some(&binding.decision_context_sha256);
+        }
+        if !valid_sha256(&binding.report_sha256) {
+            valid = false;
+            reasons.insert(format!("{kind}_REPORT_DIGEST_INVALID"));
+        }
+        if !report_digests.insert(binding.report_sha256.as_str()) {
+            valid = false;
+            reasons.insert("COMPONENT_REPORT_DIGEST_REUSED".to_owned());
+        }
+        if binding.evaluator_profile.trim().is_empty()
+            || binding.evaluator_profile != binding.evaluator_profile.trim()
+        {
+            valid = false;
+            reasons.insert(format!("{kind}_EVALUATOR_PROFILE_INVALID"));
+        }
+    }
+
+    if valid {
+        shared_context.map(str::to_owned)
+    } else {
+        None
+    }
 }
 
 fn component_reasons(prefix: &str, reasons: &[String], target: &mut BTreeSet<String>) {
@@ -145,6 +263,13 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
         reasons.insert("CLAIM_ID_MISSING_OR_NONCANONICAL".to_owned());
     }
 
+    let decision_context_sha256 =
+        validate_component_bindings(input.claim_id, input.bindings, &mut reasons)
+            .unwrap_or_else(|| {
+                invalid = true;
+                input.bindings.coverage.decision_context_sha256.clone()
+            });
+
     component_reasons("COVERAGE", &input.coverage.reason_codes, &mut reasons);
     component_reasons("CAUSAL_CUT", &input.causal_cut.reason_codes, &mut reasons);
 
@@ -164,8 +289,13 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
     }
 
     match input.effectivity {
-        EffectivityRelation::DefinitelyEffective => {}
-        EffectivityRelation::DefinitelyNotYetEffective => not_yet_effective = true,
+        EffectivityRelation::DefinitelyEffective => {
+            reasons.insert("EFFECTIVE_FOR_ALL_ACQUISITION_TIMES".to_owned());
+        }
+        EffectivityRelation::DefinitelyNotYetEffective => {
+            not_yet_effective = true;
+            reasons.insert("EVENT_NOT_YET_EFFECTIVE_AT_ACQUISITION".to_owned());
+        }
         EffectivityRelation::BoundaryAmbiguous => {
             incomplete = true;
             reasons.insert("EFFECTIVITY_BOUNDARY_AMBIGUOUS".to_owned());
@@ -190,6 +320,13 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
             invalid = true;
             reasons.insert("DUPLICATE_REQUIRED_EVIDENCE_REF".to_owned());
             continue;
+        }
+        if !valid_sha256(&evidence.decision_context_sha256) {
+            invalid = true;
+            reasons.insert("REQUIRED_EVIDENCE_CONTEXT_DIGEST_INVALID".to_owned());
+        } else if evidence.decision_context_sha256 != decision_context_sha256 {
+            invalid = true;
+            reasons.insert("REQUIRED_EVIDENCE_CONTEXT_MISMATCH".to_owned());
         }
 
         match evidence.state {
@@ -229,8 +366,16 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
         ClaimGateStatus::ReviewableForIndependentDecision
     };
 
+    let required_evidence_refs = seen_refs.into_iter().map(str::to_owned).collect();
     ClaimAssuranceAssessment {
         claim_id: input.claim_id.to_owned(),
+        decision_context_sha256,
+        component_report_sha256: [
+            input.bindings.coverage.report_sha256.clone(),
+            input.bindings.causal_cut.report_sha256.clone(),
+            input.bindings.effectivity.report_sha256.clone(),
+        ],
+        required_evidence_refs,
         status,
         reason_codes: reasons.into_iter().collect(),
         admitted_required_evidence_count: admitted_count,
@@ -244,8 +389,8 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
 #[cfg(test)]
 mod tests {
     use super::{
-        ClaimGateInput, ClaimGateStatus, EvidenceAdmissionState, RequiredEvidenceAdmission,
-        evaluate_claim_gate,
+        AssessmentBinding, ClaimComponentBindings, ClaimGateInput, ClaimGateStatus,
+        EvidenceAdmissionState, RequiredEvidenceAdmission, evaluate_claim_gate,
     };
     use crate::effectivity_interval_v0_1::EffectivityRelation;
     use crate::observer_coverage_v0_1::{
@@ -301,8 +446,47 @@ mod tests {
     fn evidence(state: EvidenceAdmissionState, evidence_ref: &str) -> RequiredEvidenceAdmission {
         RequiredEvidenceAdmission {
             evidence_ref: evidence_ref.to_owned(),
+            decision_context_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
             state,
         }
+    }
+
+    fn component_binding(profile: &str, report_digest_char: char) -> AssessmentBinding {
+        AssessmentBinding {
+            claim_id: "claim-wing-panel-001".to_owned(),
+            subject_ref: "part:wing-panel-001".to_owned(),
+            decision_context_sha256:
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+            report_sha256: report_digest_char.to_string().repeat(64),
+            evaluator_profile: profile.to_owned(),
+        }
+    }
+
+    fn bindings() -> ClaimComponentBindings {
+        ClaimComponentBindings {
+            coverage: component_binding("basalt-coverage-v0.1", 'b'),
+            causal_cut: component_binding("aero-causal-cut-v0.1", 'c'),
+            effectivity: component_binding("aero-effectivity-v0.1", 'd'),
+        }
+    }
+
+    fn evaluate_with_bindings(
+        coverage_status: CoverageStatus,
+        cut_status: CutStatus,
+        effectivity: EffectivityRelation,
+        evidence: &[RequiredEvidenceAdmission],
+        component_bindings: &ClaimComponentBindings,
+    ) -> super::ClaimAssuranceAssessment {
+        let coverage = coverage(coverage_status);
+        let cut = cut(cut_status);
+        evaluate_claim_gate(ClaimGateInput {
+            claim_id: "claim-wing-panel-001",
+            bindings: component_bindings,
+            coverage: &coverage,
+            causal_cut: &cut,
+            effectivity,
+            required_evidence: evidence,
+        })
     }
 
     fn evaluate(
@@ -311,15 +495,13 @@ mod tests {
         effectivity: EffectivityRelation,
         evidence: &[RequiredEvidenceAdmission],
     ) -> super::ClaimAssuranceAssessment {
-        let coverage = coverage(coverage_status);
-        let cut = cut(cut_status);
-        evaluate_claim_gate(ClaimGateInput {
-            claim_id: "claim-wing-panel-001",
-            coverage: &coverage,
-            causal_cut: &cut,
+        evaluate_with_bindings(
+            coverage_status,
+            cut_status,
             effectivity,
-            required_evidence: evidence,
-        })
+            evidence,
+            &bindings(),
+        )
     }
 
     fn all_admitted() -> Vec<RequiredEvidenceAdmission> {
@@ -551,6 +733,104 @@ mod tests {
             &reversed,
         );
         assert_eq!(left, right);
+    }
+
+    #[test]
+    fn component_claim_identity_mismatch_rejects_composition() {
+        let mut component_bindings = bindings();
+        component_bindings.causal_cut.claim_id = "claim-different-wing".to_owned();
+        let result = evaluate_with_bindings(
+            CoverageStatus::QualifiedCompleteForScope,
+            CutStatus::Closed,
+            EffectivityRelation::DefinitelyEffective,
+            &all_admitted(),
+            &component_bindings,
+        );
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(result.reason_codes.contains(&"CAUSAL_CUT_CLAIM_ID_MISMATCH".to_owned()));
+    }
+
+    #[test]
+    fn component_subject_mismatch_rejects_composition() {
+        let mut component_bindings = bindings();
+        component_bindings.effectivity.subject_ref = "part:other-wing".to_owned();
+        let result = evaluate_with_bindings(
+            CoverageStatus::QualifiedCompleteForScope,
+            CutStatus::Closed,
+            EffectivityRelation::DefinitelyEffective,
+            &all_admitted(),
+            &component_bindings,
+        );
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(result.reason_codes.contains(&"COMPONENT_SUBJECT_BINDING_MISMATCH".to_owned()));
+    }
+
+    #[test]
+    fn component_decision_context_mismatch_rejects_composition() {
+        let mut component_bindings = bindings();
+        component_bindings.coverage.decision_context_sha256 = "e".to_string().repeat(64);
+        let result = evaluate_with_bindings(
+            CoverageStatus::QualifiedCompleteForScope,
+            CutStatus::Closed,
+            EffectivityRelation::DefinitelyEffective,
+            &all_admitted(),
+            &component_bindings,
+        );
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(result.reason_codes.contains(&"COMPONENT_DECISION_CONTEXT_MISMATCH".to_owned()));
+    }
+
+    #[test]
+    fn malformed_or_reused_component_report_digest_rejects_composition() {
+        let mut malformed = bindings();
+        malformed.coverage.report_sha256 = "not-a-sha256".to_owned();
+        let result = evaluate_with_bindings(
+            CoverageStatus::QualifiedCompleteForScope,
+            CutStatus::Closed,
+            EffectivityRelation::DefinitelyEffective,
+            &all_admitted(),
+            &malformed,
+        );
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(result.reason_codes.contains(&"COVERAGE_REPORT_DIGEST_INVALID".to_owned()));
+
+        let mut reused = bindings();
+        reused.effectivity.report_sha256 = reused.coverage.report_sha256.clone();
+        let result = evaluate_with_bindings(
+            CoverageStatus::QualifiedCompleteForScope,
+            CutStatus::Closed,
+            EffectivityRelation::DefinitelyEffective,
+            &all_admitted(),
+            &reused,
+        );
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(result.reason_codes.contains(&"COMPONENT_REPORT_DIGEST_REUSED".to_owned()));
+    }
+
+    #[test]
+    fn mandatory_evidence_must_bind_to_the_same_decision_context() {
+        let mut wrong_context = all_admitted();
+        wrong_context[0].decision_context_sha256 = "f".to_string().repeat(64);
+        let result = evaluate(
+            CoverageStatus::QualifiedCompleteForScope,
+            CutStatus::Closed,
+            EffectivityRelation::DefinitelyEffective,
+            &wrong_context,
+        );
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(result.reason_codes.contains(&"REQUIRED_EVIDENCE_CONTEXT_MISMATCH".to_owned()));
+    }
+
+    #[test]
+    fn definitely_late_event_has_explicit_non_application_reason() {
+        let result = evaluate(
+            CoverageStatus::QualifiedCompleteForScope,
+            CutStatus::Closed,
+            EffectivityRelation::DefinitelyNotYetEffective,
+            &all_admitted(),
+        );
+        assert_eq!(result.status, ClaimGateStatus::NotEffectiveAtSubjectTime);
+        assert!(result.reason_codes.contains(&"EVENT_NOT_YET_EFFECTIVE_AT_ACQUISITION".to_owned()));
     }
 
     #[test]
