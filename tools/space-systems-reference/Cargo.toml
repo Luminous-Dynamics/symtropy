@@ -1,0 +1,10 @@
+[package]
+name = "space-systems-reference"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Bounded analytical screening oracles for planetary shade and q-drive energy closure"
+
+[workspace]
+members = []
