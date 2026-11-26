@@ -1372,14 +1372,11 @@ mod tests {
         );
     }
 
-
     #[test]
     fn axis_projection_chord_bound_covers_exact_rotated_projection() {
         for angle_bound in [0.0_f64, 0.01, 0.2, 0.9, std::f64::consts::PI] {
             let upper = 2.0 * (angle_bound / 2.0).sin();
-            for field_angle in (0..720).map(|index| {
-                std::f64::consts::TAU * index as f64 / 720.0
-            }) {
+            for field_angle in (0..720).map(|index| std::f64::consts::TAU * index as f64 / 720.0) {
                 let nominal = field_angle.cos();
                 let perturbed = (field_angle - angle_bound).cos();
                 assert!((perturbed - nominal).abs() <= upper + 1.0e-12);
