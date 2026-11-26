@@ -313,15 +313,16 @@ fn evaluate_case(case: &Case) -> CaseResult {
     }
     let req_by_id = reqs.iter().map(|r| (r.id, r)).collect::<BTreeMap<_, _>>();
     for (model_id, model) in &models {
-        if let Some(requirement) = req_by_id.get(model_id) {
-            if model.family != requirement.family {
-                findings.push(finding(
-                    "MODEL_FAMILY_MISMATCH",
-                    Some(model_id),
-                    None,
-                    "producer model family differs from the independently registered model family",
-                ));
-            }
+        if req_by_id
+            .get(model_id)
+            .is_some_and(|requirement| model.family != requirement.family)
+        {
+            findings.push(finding(
+                "MODEL_FAMILY_MISMATCH",
+                Some(model_id),
+                None,
+                "producer model family differs from the independently registered model family",
+            ));
         }
     }
     let expected_models = reqs
