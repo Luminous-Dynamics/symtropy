@@ -126,13 +126,15 @@
       "status": "commercial_product",
       "source_date": "2026-11-25",
       "reported": {
-        "capacity_tb_unformatted": 245.76,
+        "capacity_tb_product_page_labelled_usable": 245.76,
+        "capacity_tb_spec_labelled_unformatted": 245.76,
+        "capacity_tb_raw": 256,
         "interface": "PCIe Gen5",
         "sequential_read_max_mb_per_s_at_ps0": 13700,
         "sequential_write_max_mb_per_s_at_ps0": 3000
       },
       "source": "https://tw.micron.com/content/dam/micron/global/public/products/storage/ssds/data-center/6600/6600-ion-ssd-technical-product-specification.pdf",
-      "capacity_note": "The Micron September 2026 Rev A technical specification labels the 245.76 TB SKU capacity as unformatted. Do not describe this value as formatted usable payload capacity. Performance values are power-state and test-condition dependent.",
+      "capacity_note": "Micron's product page describes 245.76 TB as usable capacity and 256 TB as raw capacity; its September 2026 Rev A technical specification lists 245.76 TB under the heading capacity (unformatted). Preserve both source-specific labels. Do not infer array-usable user payload, which additionally depends on namespace configuration, formatting, filesystem and redundancy.",
       "product_page": "https://www.micron.com/products/storage/ssd/data-center-ssd/6600-ion"
     },
     {
