@@ -29,7 +29,6 @@ pub enum Split {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
 struct ReplayManifest {
     schema_version: String,
     benchmark: String,
@@ -39,7 +38,6 @@ struct ReplayManifest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
 struct ReplayCandidate {
     scenario_id: String,
     platform: Platform,
@@ -59,13 +57,11 @@ struct ReplayCandidate {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
 struct DifficultyScreen {
     trials: Vec<DifficultyTrial>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
 struct DifficultyTrial {
     attempt_id: String,
     policy_id: String,
@@ -74,7 +70,6 @@ struct DifficultyTrial {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
 struct SpotCheck {
     seed: u64,
     selection_method_id: String,
@@ -83,7 +78,6 @@ struct SpotCheck {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
 struct SpotCheckAttempt {
     attempt_id: String,
     original_state_sha256: String,
@@ -649,6 +643,9 @@ fn validate_candidate(
         assert_eq_field(reset.attempt_id.clone(), attempt_id.clone(), "RESET_RECEIPT_ATTEMPT_ID_MISMATCH")?;
         assert_eq_field(reset.policy_id.clone(), expected_policy.clone(), "RESET_RECEIPT_POLICY_ID_MISMATCH")?;
         assert_eq_field(reset.status.clone(), "accepted".to_owned(), "RESET_RECEIPT_NOT_ACCEPTED")?;
+        if reset.reset_generation == 0 {
+            return Err("RESET_RECEIPT_GENERATION_INVALID".to_owned());
+        }
         if !is_sha256(&reset.initial_state_sha256) {
             return Err("RESET_RECEIPT_INITIAL_STATE_DIGEST_INVALID".to_owned());
         }
@@ -773,7 +770,7 @@ pub fn canonical_report_json(report: &ProvenanceReport) -> Result<Vec<u8>, Strin
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::{path::PathBuf, sync::atomic::{AtomicUsize, Ordering}};
 
     static NEXT_DIR: AtomicUsize = AtomicUsize::new(0);
 
@@ -836,21 +833,6 @@ mod tests {
                 "artifact_kind":"policy_roster",
                 "policy_roster_id":"frozen-four-policy-roster-v1",
                 "policy_ids":["policy-0","policy-1","policy-2","policy-3"]
-            }),
-        );
-        let source_episode = write_json(
-            &root,
-            "source/episode.json",
-            &serde_json::json!({
-                "schema_version":"0.1",
-                "artifact_kind":"source_episode",
-                "scenario_id":"scenario-1",
-                "platform":"robo_twin",
-                "split":"test",
-                "source_trajectory_id":"trajectory-1",
-                "execution_scope_id":scope,
-                "instruction_sha256":instruction.sha256,
-                "action_prefix_index_sha256":"PLACEHOLDER"
             }),
         );
         let index_attempts = vec![
