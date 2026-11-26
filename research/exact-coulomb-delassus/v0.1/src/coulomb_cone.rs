@@ -56,9 +56,7 @@ pub struct ContactLawResiduals {
 impl ContactLawResiduals {
     #[must_use]
     pub fn qualifies(&self, tolerance: f64) -> bool {
-        tolerance.is_finite()
-            && tolerance > 0.0
-            && self.max_normalized_residual <= tolerance
+        tolerance.is_finite() && tolerance > 0.0 && self.max_normalized_residual <= tolerance
     }
 }
 
@@ -103,10 +101,7 @@ impl CoulombCone {
 
     /// Project onto K_mu = {(n,t): n >= 0, ||t|| <= mu*n} in the ordinary
     /// Euclidean metric. The formula is the exact circular-cone projection.
-    pub fn project(
-        self,
-        input: ContactImpulse3,
-    ) -> Result<ConeProjection, CoulombConeError> {
+    pub fn project(self, input: ContactImpulse3) -> Result<ConeProjection, CoulombConeError> {
         if !finite_impulse(input) {
             return Err(CoulombConeError::NonFiniteInput);
         }
@@ -176,8 +171,7 @@ impl CoulombCone {
             let inverse_mu = 1.0 / mu;
             let inverse_squared = inverse_mu * inverse_mu;
             let denominator = 1.0 + inverse_squared;
-            input.normal * (inverse_squared / denominator)
-                + radius * (inverse_mu / denominator)
+            input.normal * (inverse_squared / denominator) + radius * (inverse_mu / denominator)
         };
 
         let projected_radius = if mu <= 1.0 {
@@ -261,14 +255,11 @@ impl CoulombCone {
 
         let scaled_augmented_normal = augmented_normal / velocity_scale;
         let scaled_tangent_velocity = tangent_velocity_norm / velocity_scale;
-        let dual_cone_violation =
-            (mu * scaled_tangent_velocity - scaled_augmented_normal).max(0.0);
+        let dual_cone_violation = (mu * scaled_tangent_velocity - scaled_augmented_normal).max(0.0);
 
         let complementarity = (scaled_normal_impulse * scaled_augmented_normal
-            + (impulse.tangent[0] / impulse_scale)
-                * (post_velocity.tangent[0] / velocity_scale)
-            + (impulse.tangent[1] / impulse_scale)
-                * (post_velocity.tangent[1] / velocity_scale))
+            + (impulse.tangent[0] / impulse_scale) * (post_velocity.tangent[0] / velocity_scale)
+            + (impulse.tangent[1] / impulse_scale) * (post_velocity.tangent[1] / velocity_scale))
             .abs();
 
         // Delta K = 1/2 p^T(q + u), with u = q + Wp and symmetric W.
@@ -282,9 +273,7 @@ impl CoulombCone {
                 + impulse.tangent[0] * post_velocity.tangent[0]
                 + impulse.tangent[1] * post_velocity.tangent[1]);
         let kinetic_energy_delta = half_pre_work + half_post_work;
-        let energy_scale = 1.0_f64
-            .max(half_pre_work.abs())
-            .max(half_post_work.abs());
+        let energy_scale = 1.0_f64.max(half_pre_work.abs()).max(half_post_work.abs());
         if !kinetic_energy_delta.is_finite() || !energy_scale.is_finite() {
             return Err(CoulombConeError::NonFiniteResult);
         }
@@ -447,7 +436,10 @@ mod tests {
             .project(impulse(point.normal, rotate(point.tangent)))
             .unwrap()
             .point;
-        let expected = impulse(original_projection.normal, rotate(original_projection.tangent));
+        let expected = impulse(
+            original_projection.normal,
+            rotate(original_projection.tangent),
+        );
         close(distance(rotated_projection, expected), 0.0, 1.0e-12);
     }
 

@@ -23,7 +23,9 @@ pub struct Mat3 {
 }
 
 impl Mat3 {
-    pub const ZERO: Self = Self { rows: [[0.0; 3]; 3] };
+    pub const ZERO: Self = Self {
+        rows: [[0.0; 3]; 3],
+    };
     pub const IDENTITY: Self = Self {
         rows: [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
     };
@@ -37,25 +39,24 @@ impl Mat3 {
         if self.rows.iter().flatten().any(|value| !value.is_finite()) {
             return Err(DelassusError::InvalidInverseInertia);
         }
-        let scale = self.rows.iter().flatten()
+        let scale = self
+            .rows
+            .iter()
+            .flatten()
             .fold(1.0_f64, |largest, value| largest.max(value.abs()));
         let tolerance = PSD_TOLERANCE * scale;
         let [a, b, c] = self.rows[0];
         let [d, e, f] = self.rows[1];
         let [g, h, i] = self.rows[2];
 
-        if (b - d).abs() > tolerance
-            || (c - g).abs() > tolerance
-            || (f - h).abs() > tolerance
-        {
+        if (b - d).abs() > tolerance || (c - g).abs() > tolerance || (f - h).abs() > tolerance {
             return Err(DelassusError::InvalidInverseInertia);
         }
 
         let diagonal_ok = [a, e, i].iter().all(|value| *value >= -tolerance);
         let minors = [a * e - b * d, a * i - c * g, e * i - f * h];
         let minor_tolerance = PSD_TOLERANCE * scale * scale;
-        let determinant = a * (e * i - f * h) - b * (d * i - f * g)
-            + c * (d * h - e * g);
+        let determinant = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
         let determinant_tolerance = PSD_TOLERANCE * scale * scale * scale;
         if minors.iter().any(|value| !value.is_finite())
             || !minor_tolerance.is_finite()
@@ -93,7 +94,11 @@ impl BodyMassProperties {
             return Err(DelassusError::InvalidInverseMass);
         }
         inverse_inertia_world.validate_symmetric_psd()?;
-        Ok(Self { id, inverse_mass, inverse_inertia_world })
+        Ok(Self {
+            id,
+            inverse_mass,
+            inverse_inertia_world,
+        })
     }
 }
 
@@ -110,7 +115,11 @@ impl ContactFrame {
         tangent_1: [f64; 3],
         tangent_2: [f64; 3],
     ) -> Result<Self, DelassusError> {
-        let frame = Self { normal, tangent_1, tangent_2 };
+        let frame = Self {
+            normal,
+            tangent_1,
+            tangent_2,
+        };
         frame.validate()?;
         Ok(frame)
     }
@@ -120,16 +129,16 @@ impl ContactFrame {
         if axes.iter().flatten().any(|value| !value.is_finite()) {
             return Err(DelassusError::InvalidContactFrame);
         }
-        if axes.iter().any(|axis| (dot(*axis, *axis) - 1.0).abs() > FRAME_TOLERANCE)
+        if axes
+            .iter()
+            .any(|axis| (dot(*axis, *axis) - 1.0).abs() > FRAME_TOLERANCE)
             || dot(self.normal, self.tangent_1).abs() > FRAME_TOLERANCE
             || dot(self.normal, self.tangent_2).abs() > FRAME_TOLERANCE
             || dot(self.tangent_1, self.tangent_2).abs() > FRAME_TOLERANCE
         {
             return Err(DelassusError::InvalidContactFrame);
         }
-        if (dot(cross(self.normal, self.tangent_1), self.tangent_2) - 1.0).abs()
-            > FRAME_TOLERANCE
-        {
+        if (dot(cross(self.normal, self.tangent_1), self.tangent_2) - 1.0).abs() > FRAME_TOLERANCE {
             return Err(DelassusError::InvalidContactFrame);
         }
         Ok(())
@@ -161,11 +170,21 @@ impl ContactBlock {
         if body_a == body_b {
             return Err(DelassusError::SameBodyContact);
         }
-        if lever_arm_a.iter().chain(lever_arm_b.iter()).any(|value| !value.is_finite()) {
+        if lever_arm_a
+            .iter()
+            .chain(lever_arm_b.iter())
+            .any(|value| !value.is_finite())
+        {
             return Err(DelassusError::InvalidLeverArm);
         }
         frame.validate()?;
-        Ok(Self { body_a, body_b, lever_arm_a, lever_arm_b, frame })
+        Ok(Self {
+            body_a,
+            body_b,
+            lever_arm_a,
+            lever_arm_b,
+            frame,
+        })
     }
 }
 
@@ -241,7 +260,9 @@ impl DelassusOperator {
             }
         }
 
-        let dimension = contacts.len().checked_mul(AXES_PER_CONTACT)
+        let dimension = contacts
+            .len()
+            .checked_mul(AXES_PER_CONTACT)
             .ok_or(DelassusError::DimensionOverflow)?;
         for contact in &contacts {
             if contact.body_a == contact.body_b {
@@ -253,7 +274,10 @@ impl DelassusOperator {
             if !body_map.contains_key(&contact.body_b) {
                 return Err(DelassusError::UnknownBodyId(contact.body_b));
             }
-            if contact.lever_arm_a.iter().chain(contact.lever_arm_b.iter())
+            if contact
+                .lever_arm_a
+                .iter()
+                .chain(contact.lever_arm_b.iter())
                 .any(|value| !value.is_finite())
             {
                 return Err(DelassusError::InvalidLeverArm);
@@ -261,7 +285,11 @@ impl DelassusOperator {
             contact.frame.validate()?;
         }
 
-        Ok(Self { bodies: body_map, contacts, dimension })
+        Ok(Self {
+            bodies: body_map,
+            contacts,
+            dimension,
+        })
     }
 
     #[must_use]
@@ -286,7 +314,9 @@ impl DelassusOperator {
             return Err(DelassusError::NonFiniteImpulse);
         }
 
-        let mut body_impulses = self.bodies.keys()
+        let mut body_impulses = self
+            .bodies
+            .keys()
             .map(|id| (*id, GeneralizedImpulse::default()))
             .collect::<BTreeMap<_, _>>();
 
@@ -295,26 +325,34 @@ impl DelassusOperator {
                 let value = lambda[contact_index * AXES_PER_CONTACT + axis_index];
                 let torque_a = cross(contact.lever_arm_a, *axis);
                 let torque_b = cross(contact.lever_arm_b, *axis);
-                body_impulses.get_mut(&contact.body_a).expect("validated body A")
+                body_impulses
+                    .get_mut(&contact.body_a)
+                    .expect("validated body A")
                     .add_scaled(*axis, torque_a, -value);
-                body_impulses.get_mut(&contact.body_b).expect("validated body B")
+                body_impulses
+                    .get_mut(&contact.body_b)
+                    .expect("validated body B")
                     .add_scaled(*axis, torque_b, value);
             }
         }
 
-        if body_impulses.values().any(|impulse| {
-            !is_finite_vector(impulse.linear) || !is_finite_vector(impulse.angular)
-        }) {
+        if body_impulses
+            .values()
+            .any(|impulse| !is_finite_vector(impulse.linear) || !is_finite_vector(impulse.angular))
+        {
             return Err(DelassusError::NonFiniteResult);
         }
 
         let mut delta_velocity = BTreeMap::new();
         for (id, body) in &self.bodies {
             let impulse = body_impulses.get(id).expect("impulse initialized");
-            delta_velocity.insert(*id, GeneralizedVelocity {
-                linear: scaled(impulse.linear, body.inverse_mass),
-                angular: body.inverse_inertia_world.mul_vec(impulse.angular),
-            });
+            delta_velocity.insert(
+                *id,
+                GeneralizedVelocity {
+                    linear: scaled(impulse.linear, body.inverse_mass),
+                    angular: body.inverse_inertia_world.mul_vec(impulse.angular),
+                },
+            );
         }
 
         if delta_velocity.values().any(|velocity| {
@@ -325,10 +363,20 @@ impl DelassusOperator {
 
         let mut result = vec![0.0; self.dimension];
         for (contact_index, contact) in self.contacts.iter().enumerate() {
-            let velocity_a = delta_velocity.get(&contact.body_a).expect("validated body A");
-            let velocity_b = delta_velocity.get(&contact.body_b).expect("validated body B");
-            let point_a = add(velocity_a.linear, cross(velocity_a.angular, contact.lever_arm_a));
-            let point_b = add(velocity_b.linear, cross(velocity_b.angular, contact.lever_arm_b));
+            let velocity_a = delta_velocity
+                .get(&contact.body_a)
+                .expect("validated body A");
+            let velocity_b = delta_velocity
+                .get(&contact.body_b)
+                .expect("validated body B");
+            let point_a = add(
+                velocity_a.linear,
+                cross(velocity_a.angular, contact.lever_arm_a),
+            );
+            let point_b = add(
+                velocity_b.linear,
+                cross(velocity_b.angular, contact.lever_arm_b),
+            );
             let relative = subtract(point_b, point_a);
             for (axis_index, axis) in contact.frame.axes().iter().enumerate() {
                 result[contact_index * AXES_PER_CONTACT + axis_index] = dot(*axis, relative);
@@ -373,8 +421,7 @@ impl DelassusOperator {
                 for (body_id, left_block) in left_row {
                     if let Some(right_block) = right_row.get(body_id) {
                         let body = self.bodies.get(body_id).expect("validated body");
-                        value += body.inverse_mass
-                            * dot(left_block.linear, right_block.linear);
+                        value += body.inverse_mass * dot(left_block.linear, right_block.linear);
                         value += dot(
                             left_block.angular,
                             body.inverse_inertia_world.mul_vec(right_block.angular),
@@ -424,12 +471,7 @@ mod tests {
     }
 
     fn frame() -> ContactFrame {
-        ContactFrame::new(
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0],
-        )
-        .unwrap()
+        ContactFrame::new([1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]).unwrap()
     }
 
     fn contact(a: u64, b: u64, ra: [f64; 3], rb: [f64; 3]) -> ContactBlock {
@@ -437,8 +479,10 @@ mod tests {
     }
 
     fn close(actual: f64, expected: f64, tolerance: f64) {
-        assert!((actual - expected).abs() <= tolerance,
-            "actual={actual:.16e} expected={expected:.16e} tolerance={tolerance:.3e}");
+        assert!(
+            (actual - expected).abs() <= tolerance,
+            "actual={actual:.16e} expected={expected:.16e} tolerance={tolerance:.3e}"
+        );
     }
 
     #[test]
@@ -446,7 +490,8 @@ mod tests {
         let op = DelassusOperator::new(
             [body(1, 0.5, Mat3::ZERO), body(2, 0.25, Mat3::ZERO)],
             vec![contact(1, 2, [0.0; 3], [0.0; 3])],
-        ).unwrap();
+        )
+        .unwrap();
         let lambda = [3.0, -4.0, 5.0];
         let result = op.apply(&lambda).unwrap();
         for (actual, input) in result.iter().zip(lambda) {
@@ -459,24 +504,35 @@ mod tests {
         let op = DelassusOperator::new(
             [body(1, 0.0, Mat3::ZERO), body(2, 0.5, Mat3::IDENTITY)],
             vec![contact(1, 2, [0.0; 3], [0.0; 3])],
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(op.apply(&[2.0, 4.0, 6.0]).unwrap(), vec![1.0, 2.0, 3.0]);
     }
 
     #[test]
     fn matrix_free_action_matches_dense_reference_for_coupled_contacts() {
-        let ia = Mat3 { rows: [[0.5, 0.0, 0.0], [0.0, 0.25, 0.0], [0.0, 0.0, 0.125]] };
-        let ib = Mat3 { rows: [[0.2, 0.01, 0.0], [0.01, 0.3, 0.0], [0.0, 0.0, 0.4]] };
+        let ia = Mat3 {
+            rows: [[0.5, 0.0, 0.0], [0.0, 0.25, 0.0], [0.0, 0.0, 0.125]],
+        };
+        let ib = Mat3 {
+            rows: [[0.2, 0.01, 0.0], [0.01, 0.3, 0.0], [0.0, 0.0, 0.4]],
+        };
         let op = DelassusOperator::new(
-            [body(10, 0.25, ia), body(20, 0.5, ib), body(30, 0.75, Mat3::IDENTITY)],
+            [
+                body(10, 0.25, ia),
+                body(20, 0.5, ib),
+                body(30, 0.75, Mat3::IDENTITY),
+            ],
             vec![
                 contact(10, 20, [0.1, 0.0, 0.0], [-0.1, 0.0, 0.0]),
                 contact(10, 30, [0.0, 0.2, 0.0], [0.0, -0.2, 0.0]),
             ],
-        ).unwrap();
+        )
+        .unwrap();
         let lambda = [0.3, -0.2, 0.4, -0.1, 0.8, -0.6];
         let matrix = op.materialize_dense().unwrap();
-        let dense = matrix.iter()
+        let dense = matrix
+            .iter()
             .map(|row| row.iter().zip(&lambda).map(|(a, b)| a * b).sum::<f64>())
             .collect::<Vec<_>>();
         let matrix_free = op.apply(&lambda).unwrap();
@@ -503,11 +559,15 @@ mod tests {
                 contact(2, 3, [0.1, 0.2, 0.0], [0.0, -0.2, 0.1]),
                 contact(3, 1, [-0.1, 0.0, 0.2], [0.2, 0.1, 0.0]),
             ],
-        ).unwrap();
+        )
+        .unwrap();
         let lambda = [0.1, -0.2, 0.3, -0.4, 0.5, -0.6, 0.7, -0.8, 0.9];
         let product = op.apply(&lambda).unwrap();
-        let quadratic = lambda.iter().zip(&product)
-            .map(|(a, b)| *a * *b).sum::<f64>();
+        let quadratic = lambda
+            .iter()
+            .zip(&product)
+            .map(|(a, b)| *a * *b)
+            .sum::<f64>();
         assert!(quadratic >= -1.0e-12);
     }
 
@@ -517,13 +577,17 @@ mod tests {
         let first = DelassusOperator::new(
             [body(1, 0.5, Mat3::IDENTITY), body(2, 0.25, Mat3::IDENTITY)],
             contacts.clone(),
-        ).unwrap();
+        )
+        .unwrap();
         let second = DelassusOperator::new(
             [body(2, 0.25, Mat3::IDENTITY), body(1, 0.5, Mat3::IDENTITY)],
             contacts,
-        ).unwrap();
-        assert_eq!(first.apply(&[0.5, 1.5, -2.0]).unwrap(),
-            second.apply(&[0.5, 1.5, -2.0]).unwrap());
+        )
+        .unwrap();
+        assert_eq!(
+            first.apply(&[0.5, 1.5, -2.0]).unwrap(),
+            second.apply(&[0.5, 1.5, -2.0]).unwrap()
+        );
     }
 
     #[test]
@@ -532,14 +596,16 @@ mod tests {
             DelassusOperator::new(
                 [body(1, 1.0, Mat3::IDENTITY), body(1, 1.0, Mat3::IDENTITY)],
                 Vec::new(),
-            ).err(),
+            )
+            .err(),
             Some(DelassusError::DuplicateBodyId)
         );
         assert_eq!(
             DelassusOperator::new(
                 [body(1, 1.0, Mat3::IDENTITY)],
                 vec![contact(1, 2, [0.0; 3], [0.0; 3])],
-            ).err(),
+            )
+            .err(),
             Some(DelassusError::UnknownBodyId(BodyId(2)))
         );
         assert_eq!(
@@ -560,16 +626,24 @@ mod tests {
         );
         assert_eq!(
             BodyMassProperties::new(
-                BodyId(1), 1.0,
-                Mat3 { rows: [[1.0, 0.5, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]] },
-            ).err(),
+                BodyId(1),
+                1.0,
+                Mat3 {
+                    rows: [[1.0, 0.5, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+                },
+            )
+            .err(),
             Some(DelassusError::InvalidInverseInertia)
         );
         assert_eq!(
             BodyMassProperties::new(
-                BodyId(1), 1.0,
-                Mat3 { rows: [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0]] },
-            ).err(),
+                BodyId(1),
+                1.0,
+                Mat3 {
+                    rows: [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0]]
+                },
+            )
+            .err(),
             Some(DelassusError::InvalidInverseInertia)
         );
     }
@@ -586,8 +660,13 @@ mod tests {
         );
         assert_eq!(
             ContactBlock::new(
-                BodyId(1), BodyId(2), [f64::INFINITY, 0.0, 0.0], [0.0; 3], frame(),
-            ).err(),
+                BodyId(1),
+                BodyId(2),
+                [f64::INFINITY, 0.0, 0.0],
+                [0.0; 3],
+                frame(),
+            )
+            .err(),
             Some(DelassusError::InvalidLeverArm)
         );
     }
@@ -597,10 +676,14 @@ mod tests {
         let op = DelassusOperator::new(
             [body(1, 0.5, Mat3::IDENTITY), body(2, 0.5, Mat3::IDENTITY)],
             vec![contact(1, 2, [0.0; 3], [0.0; 3])],
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(
             op.apply(&[1.0, 2.0]).err(),
-            Some(DelassusError::WrongImpulseDimension { expected: 3, actual: 2 })
+            Some(DelassusError::WrongImpulseDimension {
+                expected: 3,
+                actual: 2
+            })
         );
         assert_eq!(
             op.apply(&[1.0, f64::NAN, 3.0]).err(),
@@ -611,12 +694,10 @@ mod tests {
     #[test]
     fn rejects_nonfinite_delassus_output_after_arithmetic_overflow() {
         let op = DelassusOperator::new(
-            [
-                body(1, f64::MAX, Mat3::ZERO),
-                body(2, f64::MAX, Mat3::ZERO),
-            ],
+            [body(1, f64::MAX, Mat3::ZERO), body(2, f64::MAX, Mat3::ZERO)],
             vec![contact(1, 2, [0.0; 3], [0.0; 3])],
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(
             op.apply(&[f64::MAX, 0.0, 0.0]).err(),
             Some(DelassusError::NonFiniteResult)
