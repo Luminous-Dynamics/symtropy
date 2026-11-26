@@ -363,8 +363,7 @@ pub struct ContactSetAudit {
 impl ContactSetAudit {
     pub fn validate(&self) -> Result<(), ReceiptError> {
         match (self.oracle_contact_count, self.oracle_contact_digest) {
-            (Some(count), Some(_)) if count == self.generated_contact_count => Ok(()),
-            (None, None) => Ok(()),
+            (Some(_), Some(_)) | (None, None) => Ok(()),
             _ => Err(ReceiptError::InvalidContactSetCounts),
         }
     }
@@ -375,13 +374,18 @@ impl ContactSetAudit {
     }
 
     #[must_use]
-    pub fn qualifies(&self) -> bool {
+    pub fn accounted(&self) -> bool {
         self.receipt_valid
+            && self.unsupported_contacts == 0
+            && self.dropped_contacts == 0
+    }
+
+    #[must_use]
+    pub fn qualifies(&self) -> bool {
+        self.accounted()
             && self.oracle_available()
             && self.oracle_contact_count == Some(self.generated_contact_count)
             && self.oracle_contact_digest == Some(self.generated_contact_digest)
-            && self.unsupported_contacts == 0
-            && self.dropped_contacts == 0
     }
 }
 
@@ -406,17 +410,24 @@ impl FrontendAudit {
         Ok(())
     }
 
-    /// Full frontend coverage requires all three distinct denominators. A
-    /// contact oracle is mandatory for a contact-completeness claim; if it is
-    /// unavailable, the result remains unqualified rather than inferred from
-    /// matching counts or pair recall.
+    /// Accounting is usable for a scene/task panel when broadphase and query
+    /// denominators are complete and every generated/dropped contact is
+    /// explicitly accounted. This does not prove that the generated contact
+    /// set is complete without an independent contact oracle.
     #[must_use]
-    pub fn fully_qualifies(&self) -> bool {
+    pub fn accounted(&self) -> bool {
         self.pair_set.is_some_and(|audit| audit.qualifies())
             && self
                 .narrowphase_queries
                 .is_some_and(|audit| audit.complete_and_supported())
-            && self.contact_set.is_some_and(|audit| audit.qualifies())
+            && self.contact_set.is_some_and(|audit| audit.accounted())
+    }
+
+    /// Full frontend coverage requires exact contact-set agreement with an
+    /// independent contact oracle. Matching counts alone never suffice.
+    #[must_use]
+    pub fn fully_qualifies(&self) -> bool {
+        self.accounted() && self.contact_set.is_some_and(|audit| audit.qualifies())
     }
 }
 
@@ -541,6 +552,12 @@ impl RunReceipt {
     }
 
     #[must_use]
+    pub fn frontend_accounted(&self) -> bool {
+        self.solver_input.complete()
+            && self.frontend.is_some_and(|frontend| frontend.accounted())
+    }
+
+    #[must_use]
     pub fn frontend_qualifies(&self) -> bool {
         self.solver_input.complete()
             && self.frontend.is_some_and(|frontend| frontend.fully_qualifies())
@@ -611,6 +628,8 @@ pub struct FullPipelineComparison {
     pub pair_oracle_matched: bool,
     pub contact_sets_matched: bool,
     pub performance_comparable: bool,
+    pub left_frontend_accounted: bool,
+    pub right_frontend_accounted: bool,
     pub left_frontend_qualified: bool,
     pub right_frontend_qualified: bool,
     pub scene_mismatches: Vec<&'static str>,
@@ -653,12 +672,14 @@ pub fn compare_full_pipeline(
         mismatches.push("environment");
     }
 
+    let left_frontend_accounted = left.frontend_accounted();
+    let right_frontend_accounted = right.frontend_accounted();
     let left_frontend_qualified = left.frontend_qualifies();
     let right_frontend_qualified = right.frontend_qualifies();
     let constitutive_law_matched = left.problem.model_law == right.problem.model_law;
     let environment_matched = left.environment == right.environment;
     let eligible_for_scene_comparison =
-        mismatches.is_empty() && left_frontend_qualified && right_frontend_qualified;
+        mismatches.is_empty() && left_frontend_accounted && right_frontend_accounted;
 
     let left_frontend = left.frontend.expect("validated full pipeline frontend");
     let right_frontend = right.frontend.expect("validated full pipeline frontend");
@@ -698,6 +719,8 @@ pub fn compare_full_pipeline(
         pair_oracle_matched,
         contact_sets_matched,
         performance_comparable,
+        left_frontend_accounted,
+        right_frontend_accounted,
         left_frontend_qualified,
         right_frontend_qualified,
         scene_mismatches: mismatches,
@@ -973,6 +996,8 @@ mod tests {
         right.problem.model_law = digest('7');
         let comparison = compare_full_pipeline(&left, &right).unwrap();
         assert!(comparison.eligible_for_scene_comparison);
+        assert!(comparison.left_frontend_accounted);
+        assert!(comparison.left_frontend_qualified);
         assert!(comparison.pair_oracle_matched);
         assert!(comparison.contact_sets_matched);
         assert!(!comparison.constitutive_law_matched);
@@ -990,7 +1015,9 @@ mod tests {
         right.frontend = Some(audit);
         let comparison = compare_full_pipeline(&left, &right).unwrap();
         assert!(!comparison.eligible_for_scene_comparison);
+        assert!(comparison.left_frontend_accounted);
         assert!(comparison.left_frontend_qualified);
+        assert!(!comparison.right_frontend_accounted);
         assert!(!comparison.right_frontend_qualified);
     }
 
@@ -1015,6 +1042,33 @@ mod tests {
         let comparison = compare_fixed_problem(&left, &right).unwrap();
         assert!(comparison.eligible);
         assert!(!comparison.performance_comparable);
+    }
+
+    #[test]
+    fn missing_contact_oracle_allows_accounted_scene_report_but_not_speed_claim() {
+        let mut left = receipt(BenchmarkPanel::FullEnginePipeline, "left");
+        let right = receipt(BenchmarkPanel::FullEnginePipeline, "right");
+        let mut audit = left.frontend.unwrap();
+        let mut contacts = audit.contact_set.unwrap();
+        contacts.oracle_contact_count = None;
+        contacts.oracle_contact_digest = None;
+        audit.contact_set = Some(contacts);
+        left.frontend = Some(audit);
+
+        let comparison = compare_full_pipeline(&left, &right).unwrap();
+        assert!(comparison.eligible_for_scene_comparison);
+        assert!(comparison.left_frontend_accounted);
+        assert!(!comparison.left_frontend_qualified);
+        assert!(comparison.right_frontend_qualified);
+        assert!(!comparison.performance_comparable);
+    }
+
+    #[test]
+    fn contact_count_mismatch_is_a_qualification_failure_not_parse_failure() {
+        let mut value = contact_audit();
+        value.generated_contact_count = 1;
+        assert!(value.validate().is_ok());
+        assert!(!value.qualifies());
     }
 
     #[test]
