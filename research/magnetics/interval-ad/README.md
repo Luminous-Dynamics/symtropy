@@ -55,6 +55,20 @@ The bridge is valid only when the derivative expression is the derivative of the
 
 If the IAD result is unbounded, outside the supported expression domain, has an identity mismatch, or cannot establish the required units, the spatial cell remains unresolved.
 
+## Centred mean-value enclosure
+
+`certify_expression_centered` adds a second, independently valid enclosure of the same expression over the same box:
+
+    f(X) ⊆ f(c) + Σ_i D_i(X) · (X_i - c_i)
+
+where c is the representable box centre and D_i(X) are the interval partial derivatives already evaluated over the complete box. The implementation intersects this enclosure with the natural interval extension:
+
+    F_tight(X) = F_natural(X) ∩ F_mean_value(X)
+
+If either enclosure is invalid, non-finite or the intersection is empty, certification fails closed. The natural enclosure is retained separately in the result, and the reported enclosure method is explicit. The intersection cannot be wider than either valid enclosure.
+
+This can reduce dependency overestimation for repeated-variable expressions (for example x-x over a wide interval), but it does not solve every dependency problem. The derivative intervals may themselves be wide, and the method requires a differentiable expression over the complete convex box. Singular or nonsmooth boundaries remain unresolved.
+
 ## Dependency overestimation
 
 Plain interval AD can be conservative. Repeated appearances of the same variable lose dependency information (the classic interval dependency problem). v0.1 favours sound enclosure over tightness. Follow-on work should compare:
