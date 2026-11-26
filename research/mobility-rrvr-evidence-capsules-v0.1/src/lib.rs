@@ -501,11 +501,11 @@ fn validate_payload(
             require_text("edge.edge_id", edge_id)?;
             require_text("edge.source_holder_id", source_holder_id)?;
             require_text("edge.target_holder_id", target_holder_id)?;
-            if !matches!(
+            if !(matches!(
                 capsule.source.role,
                 SourceRole::NetworkMonitor | SourceRole::Endpoint
-            ) && !(evidence_domain == Some(EvidenceDomain::ProcessModel)
-                && capsule.source.role == SourceRole::ModelOracle)
+            ) || (evidence_domain == Some(EvidenceDomain::ProcessModel)
+                && capsule.source.role == SourceRole::ModelOracle))
             {
                 return Err(format!(
                     "EDGE_RECEIPT_SOURCE_ROLE_INVALID: {}",
@@ -518,11 +518,11 @@ fn validate_payload(
             edge_ids,
             ..
         } => {
-            if !matches!(
+            if !(matches!(
                 capsule.source.role,
                 SourceRole::NetworkMonitor | SourceRole::IndependentAdjudicator
-            ) && !(evidence_domain == Some(EvidenceDomain::ProcessModel)
-                && capsule.source.role == SourceRole::ModelOracle)
+            ) || (evidence_domain == Some(EvidenceDomain::ProcessModel)
+                && capsule.source.role == SourceRole::ModelOracle))
             {
                 return Err(format!(
                     "INVENTORY_SOURCE_ROLE_INVALID: {}",
