@@ -440,11 +440,7 @@ pub fn compare_multi_portfolio_paired_support(
             return Err(PairedCounterfactualError::InconsistentPortfolioUniverse);
         }
 
-        let mut arms = atom
-            .portfolio_consequences
-            .iter()
-            .copied()
-            .collect::<Vec<_>>();
+        let mut arms = atom.portfolio_consequences.to_vec();
         arms.sort_unstable_by_key(|arm| arm.portfolio_id);
         if arms
             .iter()
