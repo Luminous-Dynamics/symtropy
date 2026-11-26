@@ -42,3 +42,5 @@ The authoring environment has no Cargo, rustc or rustfmt; tests are authored but
 
 - A positive accepted-byte result must include time-to-first-accepted-byte; omission leaves a non-claim incomplete and makes an unsupported full-success claim fail.
 - Each stage duration must be no greater than total end-to-end elapsed time. Stages may overlap, so individual durations are not summed.
+
+Energy passes now require a pinned workload meter boundary plus a non-empty meter ID, calibration reference, raw meter-evidence SHA-256 digest and positive sampling interval. The measured boundary must match the frozen workload contract. A number without a reproducible meter/evidence record cannot pass.
