@@ -1,0 +1,53 @@
+name: RRVR Deterministic Fault Harness v0.1
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-fault-harness-v0-1
+    paths:
+      - "research/mobility-rrvr-fault-harness-v0.1/**"
+      - ".github/workflows/mobility-rrvr-fault-harness.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-fault-harness-v0.1/**"
+      - ".github/workflows/mobility-rrvr-fault-harness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-fault-harness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path research/mobility-rrvr-fault-harness-v0.1/Cargo.toml -- --check
+
+      - name: Execute deterministic crash-replay campaign
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-fault-harness-v0.1"
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_fault_harness -- --known-campaign > "$RUNNER_TEMP/rrvr-harness.json"
+          jq -e '
+            .campaign_id == "rrvr-crash-replay-known-cases-v0.1"
+            and .pair_n == 5
+            and (.pairs | length == 5)
+            and all(.pairs[];
+              .native.frozen_input_id == .rrvr.frozen_input_id
+              and .native.arm == "native_retry"
+              and .rrvr.arm == "rrvr"
+            )
+          ' "$RUNNER_TEMP/rrvr-harness.json"
+
+      - name: Run deterministic fault-harness tests
+        run: cargo test --locked --manifest-path research/mobility-rrvr-fault-harness-v0.1/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/mobility-rrvr-fault-harness-v0.1/Cargo.toml --all-targets -- -D warnings
