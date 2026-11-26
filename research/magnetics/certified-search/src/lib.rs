@@ -254,13 +254,6 @@ fn normalized_gap(upper: f64, lower: f64) -> Result<(f64, f64), SearchError> {
     Ok((absolute, relative))
 }
 
-fn gap_satisfied(policy: SearchPolicy, upper: f64, lower: f64) -> bool {
-    let (absolute, _) = normalized_gap(upper, lower);
-    absolute
-        <= policy.absolute_optimality_gap
-            + policy.relative_optimality_gap * upper.abs().max(lower.abs())
-}
-
 
 fn objective_lower_bound<const N: usize>(
     root: &ParameterDomain<N>,
@@ -802,7 +795,7 @@ mod tests {
     #[test]
     fn search_discovers_a_robust_feasible_candidate_after_subdivision() {
         let result =
-            branch_and_bound(&root_domain(), 1, policy(0.02), objective::<2>, margin)
+            branch_and_bound(&root_domain(), 1, policy(0.02), objective, margin)
                 .expect("valid search");
         let incumbent = result.incumbent.expect("feasible candidate discovered");
         assert!(incumbent.design_point[0] >= 0.52);
@@ -816,7 +809,7 @@ mod tests {
         let mut domain = root_domain();
         domain.parameter_bounds[0] = interval(-1.0, 0.0);
         let result =
-            branch_and_bound(&domain, 1, policy(0.01), objective::<2>, margin::<2>)
+            branch_and_bound(&domain, 1, policy(0.01), objective, margin)
                 .expect("valid infeasible search");
         assert_eq!(result.robust_infeasible_count, 1);
         assert!(result.incumbent.is_none());
@@ -828,7 +821,7 @@ mod tests {
         let mut bounded_policy = policy(1.0e-12);
         bounded_policy.maximum_nodes = 1;
         let result =
-            branch_and_bound(&root_domain(), 1, bounded_policy, objective::<2>, margin::<2>)
+            branch_and_bound(&root_domain(), 1, bounded_policy, objective, margin)
                 .expect("valid bounded search");
         assert!(!result.certified_within_gap);
         assert_eq!(result.termination, SearchTermination::NodeBudgetExhausted);
@@ -842,7 +835,7 @@ mod tests {
         let mut bounded_policy = policy(1.0e-12);
         bounded_policy.maximum_depth = 0;
         let result =
-            branch_and_bound(&root_domain(), 1, bounded_policy, objective::<2>, margin::<2>)
+            branch_and_bound(&root_domain(), 1, bounded_policy, objective, margin)
                 .expect("valid depth-limited search");
         assert!(!result.certified_within_gap);
         assert_eq!(result.termination, SearchTermination::UnresolvedBoxesRemain);
@@ -852,10 +845,10 @@ mod tests {
     #[test]
     fn deterministic_input_replay_produces_identical_report() {
         let first =
-            branch_and_bound(&root_domain(), 1, policy(0.02), objective::<2>, margin::<2>)
+            branch_and_bound(&root_domain(), 1, policy(0.02), objective, margin)
                 .expect("first search");
         let second =
-            branch_and_bound(&root_domain(), 1, policy(0.02), objective::<2>, margin::<2>)
+            branch_and_bound(&root_domain(), 1, policy(0.02), objective, margin)
                 .expect("replay");
         assert_eq!(first, second);
     }
