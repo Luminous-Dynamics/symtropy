@@ -30,7 +30,13 @@ Sources:
 - Schneider Electric EcoStruxure Microgrid Advisor: https://www.se.com/us/en/product-range/65896-ecostruxure-microgrid-advisor/
 - Siemens Gridscale X: https://www.siemens.com/en-us/products/gridscale-x/
 - NIST SI for Manufacturing / TIDAL: https://www.nist.gov/programs-projects/super-intelligence-si-manufacturing
-- NIST IR 8536: https://csrc.nist.gov/pubs/ir/8536/final
+- NIST IR 8536: https://csrc.nist.gov/pubs/ir/8536/final 
+### 2.1 NIST TIDAL: methodology comparator, not a claimed invention
+
+NIST's current SI for Manufacturing programme describes a shared operation test bench spanning discrete, additive and continuous processes, using real equipment and simulators. Its planned benchmark tasks include production planning, scheduling, process monitoring and root-cause analysis. Its integration thread is comparing information architectures including unified namespace over MQTT with knowledge graphs/type models and I3X/OPC UA profiles. The programme names accuracy, latency, cost and grounding as benchmark dimensions, and its fault-diagnosis study prioritizes detection recall ahead of precision. SAFRB should adopt the measurement discipline and context-ablation approach, but must not imply that a SAFRB fixture has been tested on this bench or that its cross-owner service-assurance question replaces NIST's manufacturing scope.
+
+For SAFRB, add an explicit *grounding* audit per decision: every claimed resource, capacity, time window, authority and service boundary must resolve to the exact admissible source artifact and profile version that was available at decision time. Report grounding as its own metric; do not merge it into general accuracy. For fault detection/diagnosis arms, report recall and precision separately, and preregister the consequence-weighting for missed faults. Do not import NIST's fault-recall weighting as a universal ranking rule for allocation, investment or service scheduling.
+
 
 ## 3. Matched experimental arms
 
