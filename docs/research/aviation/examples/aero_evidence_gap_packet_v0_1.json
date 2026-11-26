@@ -78,5 +78,11 @@
   "change_impact": null,
   "claim_ceiling": "evidence_gap_packet_only",
   "no_actuation": true,
-  "authority_granted": false
+  "authority_granted": false,
+  "evidence_dependency_groups": {
+    "SYNTHETIC::SHARED-CAPTURE-PATH-001": [
+      "SYNTHETIC::AERO-TEMPORAL-REPORT-001",
+      "SYNTHETIC::AERO-COVERAGE-RECEIPT-UNVERIFIED"
+    ]
+  }
 }
