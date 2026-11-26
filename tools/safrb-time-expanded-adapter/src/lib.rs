@@ -2,7 +2,7 @@
 
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use single_commodity_flow_kernel::{FlowEdge, FlowGraph, FlowNode, FlowResult};
+use single_commodity_flow_kernel::{FlowCertificateBundle, FlowEdge, FlowGraph, FlowNode, FlowResult};
 use std::collections::{BTreeMap, BTreeSet};
 
 const SCHEMA: &str = "safrb-time-expanded-network-v0.1";
@@ -49,8 +49,8 @@ pub struct WindowResult {
     pub upper_individual_max_deliverable: Option<u64>,
     /// Full primal/dual certificates for each isolated maximum. Absent when
     /// these diagnostics are not needed or deliberately omitted.
-    pub lower_individual_certificate: Option<FlowResult>,
-    pub upper_individual_certificate: Option<FlowResult>,
+    pub lower_individual_certificate: Option<FlowCertificateBundle>,
+    pub upper_individual_certificate: Option<FlowCertificateBundle>,
     pub disposition: Option<WindowDisposition>,
 }
 
@@ -64,6 +64,9 @@ pub struct SafrbCertificate {
     pub quantity_boundary_ref: String,
     pub lower: FlowResult,
     pub upper: FlowResult,
+    /// Portable graph-bound certificates for simultaneous lower/upper service.
+    pub lower_bundle: FlowCertificateBundle,
+    pub upper_bundle: FlowCertificateBundle,
     pub windows: Vec<WindowResult>,
     pub individual_maxima_status: IndividualMaximaStatus,
     pub disposition: ServiceDisposition,
@@ -83,6 +86,9 @@ pub struct RestorationThreshold {
     pub lower_cut: u64,
     pub lower_certificate: FlowResult,
     pub upper_certificate: FlowResult,
+    /// Portable graph-bound hypothetical certificates; never admitted as evidence.
+    pub lower_bundle: FlowCertificateBundle,
+    pub upper_bundle: FlowCertificateBundle,
     pub windows: Vec<WindowResult>,
     pub individual_maxima_status: IndividualMaximaStatus,
     pub evidence_status: &'static str,
@@ -563,11 +569,11 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
     Ok(parsed)
 }
 
-fn solve(
+fn build_graph(
     parsed: &Parsed,
     upper: bool,
     only_obligation_edge: Option<&str>,
-) -> Result<FlowResult, String> {
+) -> Result<FlowGraph, String> {
     let nodes = parsed.nodes.values().map(|n| FlowNode::new(n.id.clone())).collect::<Vec<_>>();
     let obligation_edges = parsed.obligations.iter()
         .map(|obligation| obligation.edge_id.as_str())
@@ -612,7 +618,29 @@ fn solve(
         source: parsed.source.clone(),
         sink: parsed.sink.clone(),
     };
-    graph.solve().map_err(|e| e.to_string())
+    Ok(graph)
+}
+
+
+fn solve(
+    parsed: &Parsed,
+    upper: bool,
+    only_obligation_edge: Option<&str>,
+) -> Result<FlowResult, String> {
+    build_graph(parsed, upper, only_obligation_edge)?
+        .solve()
+        .map_err(|error| error.to_string())
+}
+
+fn solve_bundle(
+    parsed: &Parsed,
+    upper: bool,
+    only_obligation_edge: Option<&str>,
+) -> Result<FlowCertificateBundle, String> {
+    let graph = build_graph(parsed, upper, only_obligation_edge)?;
+    let result = graph.solve().map_err(|error| error.to_string())?;
+    FlowCertificateBundle::new(graph, result)
+        .map_err(|error| error.to_string())
 }
 
 fn edge_flow(result: &FlowResult) -> BTreeMap<String, u64> {
