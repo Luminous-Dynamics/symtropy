@@ -41,6 +41,10 @@ where f is target flux-reduction fraction, epsilon_a is an abstract aperture-eff
 
 The equation is not an L1 sail footprint. A proper design needs finite-Sun umbra/penumbra propagation, optical diffraction and scattering, sail attitude and orbit dynamics, halo-orbit families, solar-radiation pressure, station-keeping, collision avoidance, degradation, repair and end-of-life. A first-order aperture/mass result must never be converted directly into a global temperature or wet-bulb change.
 
+### First sensitivity result
+
+For the illustrative 1%/0.90 aperture case, the equivalent aperture is 1.4168 million km². At assumed installed areal densities of 1, 10, 100 and 1,000 g/m², the corresponding arithmetic masses are approximately 1.42 million, 14.17 million, 141.68 million and 1,416.85 million metric tonnes. These are sensitivity values, not designs: membrane-only density is not installed system density, and all structural, power, control, communications, spares, transfer and repair masses must be included. The calculation demonstrates how strongly the programme depends on a genuinely low-mass, durable, manufacturable optical structure.
+
 ## 3. Q-drive: published concept and open engineering terms
 
 Greason (2019), *A Reaction Drive Powered by External Dynamic Pressure*, JBIS 72(5), pp. 146–152, describes harvesting energy from relative motion through a surrounding medium and using that energy to expel onboard reaction mass: https://tauzero.aero/a-reaction-drive/
