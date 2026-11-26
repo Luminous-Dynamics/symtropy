@@ -86,7 +86,7 @@ pub struct ConvergenceRecord {
     pub refinements: Vec<RefinementObservation>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ConvergencePolicy {
     pub policy_id: String,
     pub minimum_refinement_levels: usize,
