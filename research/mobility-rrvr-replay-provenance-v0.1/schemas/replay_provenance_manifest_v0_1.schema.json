@@ -8,6 +8,7 @@
     "schema_version",
     "benchmark",
     "replay_manifest_sha256",
+    "split_manifest",
     "policy_roster_profile_id",
     "candidates"
   ],
@@ -31,6 +32,9 @@
       "items": {
         "$ref": "#/$defs/candidate"
       }
+    },
+    "split_manifest": {
+      "$ref": "#/$defs/artifact_ref"
     }
   },
   "$defs": {
@@ -64,6 +68,7 @@
         "platform",
         "split",
         "source_trajectory_id",
+        "trajectory_cluster_id",
         "execution_scope_id",
         "source_episode",
         "instruction",
@@ -130,6 +135,10 @@
         },
         "action_prefix_receipt_bundle": {
           "$ref": "#/$defs/artifact_ref"
+        },
+        "trajectory_cluster_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }
