@@ -323,6 +323,7 @@ pub enum ContactLifecycleError {
     ConflictingPairEvents,
     UnexpectedStampForNewPair(ProxyPair),
     MissingEndpointRevision(ProxyId),
+    UnexplainedRevalidation(ProxyPair),
     Freshness(ContactFreshnessError),
 }
 
@@ -420,7 +421,13 @@ pub fn plan_contact_lifecycle(
         }
 
         let decision = match previous_stamps.get(pair) {
-            Some(stamp) => stamp.assess(current_global, left, right)?,
+            Some(stamp) => {
+                let decision = stamp.assess(current_global, left, right)?;
+                if decision.reasons.is_empty() {
+                    return Err(ContactLifecycleError::UnexplainedRevalidation(*pair));
+                }
+                decision
+            }
             None => ContactReuseDecision {
                 geometry: ReuseDisposition::RefreshRequired,
                 warm_start: ReuseDisposition::RefreshRequired,
@@ -818,6 +825,22 @@ mod tests {
         assert_eq!(
             plan_contact_lifecycle(&delta, &BTreeMap::new(), global(), &endpoints),
             Err(ContactLifecycleError::MissingEndpointRevision(ProxyId(2)))
+        );
+    }
+
+
+
+    #[test]
+    fn revalidation_without_revision_reason_fails_closed() {
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("distinct IDs");
+        let mut delta = PairDeltaFrame::default();
+        delta.revalidated.push(pair);
+        let mut stamps = BTreeMap::new();
+        stamps.insert(pair, stamp());
+        let endpoints = BTreeMap::from([(ProxyId(1), endpoint(1)), (ProxyId(2), endpoint(2))]);
+        assert_eq!(
+            plan_contact_lifecycle(&delta, &stamps, next_global(), &endpoints),
+            Err(ContactLifecycleError::UnexplainedRevalidation(pair))
         );
     }
 
