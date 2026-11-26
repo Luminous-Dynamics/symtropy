@@ -128,12 +128,13 @@ The following are candidate adapters, not universal mandatory requirements. Impl
 | Domain | Candidate standard / profile | Appropriate role | Important limitation |
 |---|---|---|---|
 | Issuer claims | W3C Verifiable Credentials Data Model 2.0 (Recommendation, 2025-05-15) | Portable issuer/holder/verifier claim envelope where suitable | Does not decide whom a verifier should trust or establish physical truth |
-| Supply-chain events | GS1 EPCIS 2.0.1 (published 2025-07-01) paired with CBV 2.0.0 (published 2022-06-22) | Cross-enterprise visibility and traceability events; selected sensor summaries | Does not replace owner-native inventory accounting, metrology or source qualification |
+| Supply-chain events | GS1 EPCIS 2.0.1 (versioned archive says published 2025-07-01) paired with CBV 2.0.0 (published 2022-06-22) | Cross-enterprise visibility and traceability events; selected sensor summaries | The versioned EPCIS archive lists 2.0.1 as latest, while the main GS1 standards index still lists 2.0.0; pin the immutable version URI and preserve this source discrepancy in the audit record. Does not replace owner-native inventory accounting, metrology or source qualification |
 | Trade/transport locations | UNECE UN/LOCODE Recommendation 16 and pinned code-list release | Port, airport, inland terminal and trade-location references | A location code is not a tank, berth, pump, route section or asset identity |
 | Units | UCUM 2.2 | Machine-readable quantity/unit interchange and dimensional validation | Domain admissibility and physical conversion rules remain profile-owned |
-| Geospatial features | OGC API - Features Part 1: Core 1.0.1 (read-only core; corrigendum) | Web feature access using interoperable API building blocks | A feature geometry does not establish asset identity, condition or authority |
+| Geospatial features | OGC API - Features Part 1: Core 1.0 (OGC Doc 17-069r3) | Web feature access using interoperable API building blocks | The base Core specification; the corrigendum is separately identified below. A feature geometry does not establish asset identity, condition or authority |
+| Geospatial features corrigendum | OGC API - Features Part 1: Core corrigendum 1.0.1 (OGC Doc 17-069r4) | Apply the published corrigendum to the Part 1 Core 1.0 specification | It is a corrigendum to the 1.0 Core, not JSON-FG and not a new OGC API Features part; test the applicable base/corrected behavior explicitly |
 | Geospatial discovery | OGC API - Records Part 1: Core 1.0.0 | Discovery of source/asset metadata records | A catalogue record does not establish rights, freshness or truth |
-| Geospatial exchange | OGC Features and Geometries JSON (JSON-FG) Part 1: Core 1.0.0 | GeoJSON-compatible feature exchange with richer geometry/CRS semantics | Must preserve the exact CRS, datum, transformation and source lineage |
+| Geospatial exchange | OGC Features and Geometries JSON (JSON-FG) Part 1: Core 1.0.0 (OGC Doc 21-045r1) | Separate GeoJSON-compatible feature exchange standard with richer geometry/CRS semantics | JSON-FG is distinct from OGC API - Features Part 1 Core and its corrigendum; preserve exact CRS, datum, transformation and source lineage |
 | Provenance | W3C PROV-O / PROV-JSON | Exchange mapping for entities, activities and agents | Provenance presence is not proof of claim truth or causal independence |
 | Electricity networks | IEC CIM (IEC 61970 / IEC 61968 profiles) | Utility asset/network semantics and system integration | Requires exact profile, version and mapping validation |
 | Substation automation | IEC 61850 series; applicable IEC 62351 security profiles | Electrical automation data models, SCL and communications | Not a generic fuel/logistics protocol or a substitute for OT security qualification |
@@ -142,7 +143,15 @@ The following are candidate adapters, not universal mandatory requirements. Impl
 | Civil time | IANA Time Zone Database, version-pinned | Local civil-time and UTC-offset interpretation | Historical and future rules can change; pin version for reproducibility |
 | Jurisdiction identifiers | ISO 3166 family and national subdivision profiles | Jurisdiction context and crosswalks | Country/subdivision identifiers do not determine legal authority |
 
-Standards status must be explicit: published standard, technical specification, recommendation, industry profile, draft, proposal, withdrawn or superseded. A draft is not silently upgraded to a mandatory standard. A URL that resolves to a moving "latest" page is not an immutable standards pin.
+Standards status must be explicit: published standard, technical specification, corrigendum, recommendation, industry profile, draft, proposal, withdrawn or superseded. A draft is not silently upgraded to a mandatory standard. A URL that resolves to a moving "latest" page is not an immutable standards pin.
+
+#### 6.0.1 Source conflicts and edition relationships (verified 2026-11-26)
+
+- **GS1 EPCIS:** The official versioned archive explicitly labels 2.0.1 as the latest EPCIS version and records publication on 1 July 2025. The main GS1 standards index nevertheless still displays 2.0.0, with a last-modified date of 22 June 2022. The profile therefore retains the immutable EPCIS 2.0.1 version URI, pairs it with CBV 2.0.0 as shown by the archive, and records the index/archive mismatch as an unresolved source-catalogue discrepancy. Do not silently downgrade the pinned version or claim the two GS1 pages agree. Recheck before each conformance release.
+- **OGC API - Features:** Part 1 Core 1.0 (17-069r3) and its Part 1 Core corrigendum 1.0.1 (17-069r4) are related specification artifacts. The profile records the base edition and corrigendum separately so implementation tests can state whether they target the base text or corrected requirements.
+- **OGC JSON-FG:** Part 1 Core 1.0.0 (21-045r1) is a separate OGC standard for feature/geometry JSON extensions. It must have its own schema, parser and conformance tests; an OGC API Features test does not establish JSON-FG conformance.
+
+This is a concrete semantic-fidelity rule: a standards label is a sourced assertion with edition/status lineage, not a free-form compatibility string.
 
 ### 6.1 Adjacent research frameworks and deployment baselines
 
@@ -297,7 +306,8 @@ A successful conformance result means only that the declared adapter and claim s
 
 - W3C Verifiable Credentials Data Model 2.0, Recommendation 15 May 2025: https://www.w3.org/TR/vc-data-model/
 - W3C PROV-O: https://www.w3.org/TR/prov-o/
-- GS1 EPCIS 2.0.1 archive/version page: https://ref.gs1.org/standards/epcis/archive
+- GS1 standards repository index: https://ref.gs1.org/standards/
+- GS1 EPCIS 2.0.1 official archive/version page: https://ref.gs1.org/standards/epcis/archive
 - GS1 EPCIS 2.0.1: https://ref.gs1.org/standards/epcis/2.0.1/
 - GS1 CBV 2.0.0: https://ref.gs1.org/standards/cbv/2.0.0/
 - UNECE UN/LOCODE Recommendation 16: https://unlocode.unece.org/recommendation16/
