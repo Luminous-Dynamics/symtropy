@@ -739,6 +739,11 @@ mod tests {
     const WORLDPACK: &str =
         include_str!("../../fixtures/evaluator_only/world_pack_synthetic_v0_1.json");
 
+    fn reseal_candidate_snapshot(snapshot: &Value, submission: &mut Value) {
+        let bytes = serde_json::to_vec(snapshot).expect("canonical candidate snapshot bytes");
+        submission["candidate_snapshot_sha256"] = serde_json::json!(sha256_hex(&bytes));
+    }
+
     fn values() -> (Value, Value, Value) {
         (
             serde_json::from_str(EPISODE).expect("episode"),
@@ -845,10 +850,10 @@ mod tests {
 
     #[test]
     fn late_probe_is_rejected_by_deadline() {
-        let (episode, mut submission, worldpack) = values();
+        let (mut episode, mut submission, worldpack) = values();
         submission["requested_probe_id"] = serde_json::json!("independent_pose_observation");
-        let mut episode = episode;
         episode["current_step"] = serde_json::json!(53);
+        reseal_candidate_snapshot(&episode, &mut submission);
         let report = evaluate_json(
             &serde_json::to_string(&episode).unwrap(),
             &serde_json::to_string(&submission).unwrap(),
@@ -860,10 +865,10 @@ mod tests {
 
     #[test]
     fn over_budget_probe_is_rejected() {
-        let (episode, mut submission, worldpack) = values();
+        let (mut episode, mut submission, worldpack) = values();
         submission["requested_probe_id"] = serde_json::json!("independent_pose_observation");
-        let mut episode = episode;
         episode["remaining_probe_budget_units"] = serde_json::json!(1.0);
+        reseal_candidate_snapshot(&episode, &mut submission);
         let report = evaluate_json(
             &serde_json::to_string(&episode).unwrap(),
             &serde_json::to_string(&submission).unwrap(),
