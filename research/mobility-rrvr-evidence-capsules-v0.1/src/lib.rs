@@ -508,13 +508,13 @@ fn validate_claim_shape(claim: &Claim) -> Result<(), String> {
             validate_sorted_ids("expected_edge_ids", &claim.expected_edge_ids)?;
         }
     }
-    if let Some(window) = &claim.observation_window {
-        if window.clock_id.trim().is_empty() || window.start_ns >= window.end_ns {
-            return Err(format!(
-                "CLAIM_OBSERVATION_WINDOW_INVALID: {}",
-                claim.claim_id
-            ));
-        }
+    if let Some(window) = &claim.observation_window
+        && (window.clock_id.trim().is_empty() || window.start_ns >= window.end_ns)
+    {
+        return Err(format!(
+            "CLAIM_OBSERVATION_WINDOW_INVALID: {}",
+            claim.claim_id
+        ));
     }
     if claim.claim_type != ClaimType::TemporalClosure
         && (!claim.expected_holder_ids.is_empty() || !claim.expected_edge_ids.is_empty())
