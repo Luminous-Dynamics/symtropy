@@ -59,6 +59,7 @@ Evaluate the full stack as H plus the Power Fabric service-claim adapter. The ad
 5. **Active investigation:** actions with different ability to resolve a proof obligation, cost, delay, downtime, safety prerequisite, source dependence, refusal and inconclusive outcomes.
 6. **Geospatial and temporal projection:** coordinate uncertainty, different CRS/datum, non-whole-hour offsets, daylight-saving folds/gaps, stale positions, offline updates, duplicated assets and cross-layer confusion.
 7. **Beneficiary service and equity:** critical service floors, priority classes, rural/remote cohorts, affordability, recovery time and unserved demand. Keep service minima non-compensatory.
+8. **Counterfactual service restoration:** pump-capacity uplift, genuinely independent alternate resource, source/stock replenishment, delivery rescheduling where the beneficiary contract permits it, demand-side alternatives and restoration time. Each candidate intervention must state its required evidence, authority, lead time, cost basis, failure-domain dependencies and which per-window proof obligations it changes. A mathematical threshold is not an asset rating, price or authorization.
 
 ## 5. Non-compensatory gates
 
@@ -89,6 +90,8 @@ A run that rejects everything is not useful: supported positive controls and uns
 
 **Beneficiary outcomes:** critical service-hours delivered, worst-cohort shortfall, unserved demand, affordability, recovery time, environmental impact and local operator participation.
 
+**Counterfactual restoration:** minimum additional *qualified lower-bound* capacity by resource and time window; alternative independent-resource requirement; earliest evidence/authorization deadline; time-to-restore; intervention Pareto frontier across capital/operating cost, downtime, emissions, service reliability, privacy and operator burden. Report unsupported options and evidence debt explicitly. Do not interpret max-flow cut values or LP dual variables as market prices.
+
 **System overhead:** end-to-end assurance latency as a fraction of the actual decision budget; compute, data transfer, human review and integration cost.
 
 ## 7. Prospective targets (not achieved results)
@@ -104,6 +107,7 @@ A run that rejects everything is not useful: supported positive controls and uns
 | Assurance overhead | P95 <=10% of available decision time budget | Include evidence acquisition delay separately from compute latency |
 | Conformance breadth | 10 jurisdiction overlays, 5 languages/scripts, 4 connectivity modes | Synthetic conformance first; no claim of actual jurisdictional approval |
 | Outcome distribution | No breach of declared critical floor in any protected cohort | No average score may compensate for a cohort floor breach |
+| Counterfactual frontier integrity | 100% of emitted options bind to exact per-window proof obligations, input digests and owner/authority prerequisites | Mathematical threshold must remain separate from market price, asset capability and operational recommendation |
 
 For rare-event gates, publish exact binomial bounds and dependence assumptions. Zero errors in 3,000 independent negative cases supports an approximate one-sided 95% upper bound near 0.1%; correlated test variants do not count as independent trials.
 
@@ -116,6 +120,7 @@ For rare-event gates, publish exact binomial bounds and dependence assumptions. 
 - Run ablations by removing exactly one component at a time. Attribute improvements only to the component whose contribution survives the ablation.
 - Require independent implementations for certificate verification and the small-instance optimal-policy oracle. Do not share the candidate algorithm's core helper with its verifier.
 - Publish all failures, abstentions, counterexamples, denominators, confidence intervals, commit SHAs and source digests.
+- For intervention frontiers, compute small-instance minima by exhaustive enumeration; for larger models, use a solver only when its model class and proof/optimality certificate are independently verifiable. Report feasible incumbents, optimality gaps, unproven minima and unsupported options separately.
 - Keep synthetic, replay, SIL, HIL, commissioning and field evidence as separate claim classes.
 
 ## 9. SOTA claim rule
