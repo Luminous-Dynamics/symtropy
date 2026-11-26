@@ -820,7 +820,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn protected_floor_without_scheduled_units_is_rejected() {
         let records = vec![unit(
