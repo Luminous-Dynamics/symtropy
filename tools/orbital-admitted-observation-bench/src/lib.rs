@@ -126,6 +126,7 @@ pub struct Case {
     pub campaign_id: String,
     pub attempt_id: String,
     pub sequence_no: u64,
+    pub campaign_attempt_count: u64,
     pub scope_disposition: ScopeDisposition,
     pub scope_receipt_sha256: String,
     pub cutoff: Cutoff,
@@ -299,6 +300,8 @@ fn validate_case_shape(case: &Case) -> Result<(), String> {
         || !valid_text(&case.campaign_id)
         || !valid_text(&case.attempt_id)
         || case.sequence_no == 0
+        || case.campaign_attempt_count == 0
+        || case.sequence_no > case.campaign_attempt_count
     {
         return Err("ATTEMPT_IDENTITY_INVALID".to_owned());
     }
@@ -596,6 +599,8 @@ pub fn audit_corpus(bytes: &[u8], source_commit: &str) -> Result<Receipt, String
 
     let mut case_ids = BTreeSet::new();
     let mut attempt_ids = BTreeSet::new();
+    let mut campaign_counts = BTreeMap::<String, u64>::new();
+    let mut campaign_sequences = BTreeMap::<String, BTreeSet<u64>>::new();
     let mut cases = Vec::new();
     let mut expected_disposition_matches = 0_usize;
     for case in &corpus.cases {
@@ -605,11 +610,36 @@ pub fn audit_corpus(bytes: &[u8], source_commit: &str) -> Result<Receipt, String
         if !attempt_ids.insert((&case.campaign_id, &case.attempt_id)) {
             return Err("ATTEMPT_ID_DUPLICATE_WITHIN_CAMPAIGN".to_owned());
         }
+        if campaign_counts
+            .insert(case.campaign_id.clone(), case.campaign_attempt_count)
+            .is_some_and(|count| count != case.campaign_attempt_count)
+        {
+            return Err("CAMPAIGN_ATTEMPT_COUNT_CONFLICT".to_owned());
+        }
+        if !campaign_sequences
+            .entry(case.campaign_id.clone())
+            .or_default()
+            .insert(case.sequence_no)
+        {
+            return Err("CAMPAIGN_SEQUENCE_DUPLICATE".to_owned());
+        }
         let result = evaluate_case(case);
         if result.disposition == case.expected_disposition {
             expected_disposition_matches += 1;
         }
         cases.push(result);
+    }
+    for (campaign_id, expected_count) in &campaign_counts {
+        let sequences = campaign_sequences
+            .get(campaign_id)
+            .ok_or_else(|| "CAMPAIGN_SEQUENCE_INVENTORY_MISSING".to_owned())?;
+        if u64::try_from(sequences.len()).ok() != Some(*expected_count)
+            || sequences.iter().copied().enumerate().any(|(index, sequence)| {
+                u64::try_from(index).ok().and_then(|value| value.checked_add(1)) != Some(sequence)
+            })
+        {
+            return Err("CAMPAIGN_ATTEMPT_SEQUENCE_GAP".to_owned());
+        }
     }
     cases.sort_by(|left, right| left.case_id.cmp(&right.case_id));
 
