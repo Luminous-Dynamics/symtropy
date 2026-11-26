@@ -266,3 +266,19 @@ The metadata-only [geometric validation matrix](./scenario-matrix-geometric-vali
 The candidate-visible map projection is now specified in [spatial-state-projection-v0.schema.json](./spatial-state-projection-v0.schema.json), with a [candidate-only example](./spatial-state-projection-v0.example.json). It carries source observation intervals, clock generations, candidate-only coordinate frames, transform revisions/uncertainty, entity hypotheses, relation claims and unresolved constraints with source references. It does not carry evaluator witness IDs, hidden map coordinates or verified truth.
 
 The example passed a local structural check against the schema's core keywords. Five negative mutations were rejected: evaluator-truth injection, malformed/prefixed digest, missing candidate-only frame marker, source-free inferred entity and malformed quaternion arity. This is not a full Draft 2020-12 conformance suite or a runtime validator. Cross-reference resolution, capture_start < capture_end, frame graph acyclicity/transform composition, quaternion normalization and map-edge admissibility still require runtime validation.
+
+
+## 16. KITTI modality-specific current references
+
+The official KITTI odometry leaderboard currently lists:
+- **SOFT2 (stereo):** 0.53% translation error and 0.0009 deg/m rotation error.
+- **V-LOAM (LiDAR):** 0.54% and 0.0013 deg/m.
+- **LOAM (LiDAR):** 0.55% and 0.0013 deg/m.
+
+These are modality-specific entries, not a pooled comparison. SOFT2 is the stereo reproduction reference; V-LOAM/LOAM are separate LiDAR references. Do not state that 0.53 is the best across all sensing modalities or infer that the 0.54 LiDAR system is inferior in a like-for-like sense.
+
+The official KITTI evaluation contract is 22 stereo sequences (00–10 train with public GT; 11–21 hidden test), automatic method, one parameter set across test sequences, and translation/rotation error over 100–800 m subsequences. The benchmark says submissions must represent significant novel work leading to a peer-reviewed paper; stale anonymous/unpublished entries may be removed after six months. The site also notes restoration on 7 September 2026 to the backup from 7 August 2026; submission records during that window may need resubmission.
+
+Source: https://www.cvlibs.net/datasets/kitti/eval_odometry.php
+
+For Symthaea, first reproduce the stereo reference on the training/dev split and compare matched modality, hardware and parameters. Do not make an official test leaderboard claim from the training sequences. A prospective stereo target should be below 0.53% / 0.0009 deg/m on the official hidden-test protocol, with paired per-sequence reporting and identical input limits; treat it as a research target, not a current Symthaea result.
