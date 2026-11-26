@@ -1600,6 +1600,106 @@ mod tests {
     }
 
     #[test]
+    fn indexed_pair_delta_cache_matches_membership_and_revalidation_oracles() {
+        assert_indexed_pair_delta_matches_oracle::<2>();
+        assert_indexed_pair_delta_matches_oracle::<3>();
+        assert_indexed_pair_delta_matches_oracle::<4>();
+    }
+
+    fn assert_indexed_pair_delta_matches_oracle<const D: usize>() {
+        let scene =
+            generate_scene::<D>(SceneFamily::SleepingWakeups, 128, 32, 0x1ade_2026).unwrap();
+        let oracle = scene
+            .frames
+            .iter()
+            .map(|frame| oracle_pairs(frame).unwrap())
+            .collect::<Vec<_>>();
+        let mut cache =
+            IndexedPairDeltaCache::<D>::new(0.5, BalancePolicy::HeightRotations).unwrap();
+
+        for (frame_index, frame) in scene.frames.iter().enumerate() {
+            let delta = cache.step(frame).unwrap();
+            let previous = if frame_index == 0 {
+                BTreeSet::new()
+            } else {
+                oracle[frame_index - 1].clone()
+            };
+            let expected_current = &oracle[frame_index];
+            let expected_added: BTreeSet<_> =
+                expected_current.difference(&previous).copied().collect();
+            let expected_removed: BTreeSet<_> =
+                previous.difference(expected_current).copied().collect();
+            let previous_frame = if frame_index == 0 {
+                &[][..]
+            } else {
+                scene.frames[frame_index - 1].as_slice()
+            };
+            let dirty_ids = changed_proxy_ids(previous_frame, frame);
+            let expected_revalidated: BTreeSet<_> = expected_current
+                .intersection(&previous)
+                .filter(|pair| dirty_ids.contains(&pair.0) || dirty_ids.contains(&pair.1))
+                .copied()
+                .collect();
+
+            assert_eq!(
+                delta.added.iter().copied().collect::<BTreeSet<_>>(),
+                expected_added
+            );
+            assert_eq!(
+                delta.removed.iter().copied().collect::<BTreeSet<_>>(),
+                expected_removed
+            );
+            assert_eq!(
+                delta.revalidated.iter().copied().collect::<BTreeSet<_>>(),
+                expected_revalidated
+            );
+            assert_eq!(
+                cache.active_pairs().into_iter().collect::<BTreeSet<_>>(),
+                *expected_current
+            );
+            assert_eq!(delta.frontier_proxy_visits, 0);
+            if frame_index > 0 {
+                assert!(delta.frontier_node_visits > 0 || delta.frontier_leaf_tests > 0);
+            }
+        }
+    }
+
+    #[test]
+    fn indexed_pair_delta_cache_audits_dirty_journal_and_rejects_full_invalidation_fast_path() {
+        let mut cache =
+            IndexedPairDeltaCache::<2>::new(0.25, BalancePolicy::HeightRotations).unwrap();
+        let first = [
+            test_proxy(1, [0.0, 0.0], [1.0, 1.0]),
+            test_proxy(2, [0.5, 0.5], [1.5, 1.5]),
+            test_proxy(3, [5.0, 5.0], [6.0, 6.0]),
+        ];
+        cache.step(&first).unwrap();
+
+        let next = [
+            test_proxy(1, [2.0, 0.0], [3.0, 1.0]),
+            test_proxy(2, [2.5, 0.5], [3.5, 1.5]),
+            test_proxy(3, [5.0, 5.0], [6.0, 6.0]),
+        ];
+        let dirty = cache.derive_dirty_proxy_ids(&next).unwrap();
+        assert_eq!(dirty, vec![ProxyId(1), ProxyId(2)]);
+        assert!(cache.verify_dirty_proxy_ids(&next, &dirty).unwrap());
+        assert!(!cache.verify_dirty_proxy_ids(&next, &[ProxyId(1)]).unwrap());
+        let moved = cache.step_with_dirty_ids(&next, &dirty).unwrap();
+        assert_eq!(moved.revalidated.len(), 1);
+        assert_eq!(moved.frontier_proxy_visits, 0);
+
+        cache.invalidate_all();
+        let full_dirty = cache.derive_dirty_proxy_ids(&next).unwrap();
+        assert_eq!(
+            cache.step_with_dirty_ids(&next, &full_dirty),
+            Err(TournamentError::DirtyJournalCannotApplyFullInvalidation)
+        );
+        let rebuilt = cache.step(&next).unwrap();
+        assert_eq!(rebuilt.dirty_proxies, 3);
+        assert_eq!(rebuilt.active_pairs, 1);
+    }
+
+    #[test]
     fn pair_delta_cache_emits_only_pair_births_and_deaths() {
         let mut cache = PairDeltaCache::<2>::new();
         let first = [
