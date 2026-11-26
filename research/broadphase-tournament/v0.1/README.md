@@ -10,7 +10,7 @@ A reproducible, CPU-only temporal AABB tournament for Symtropy's broadphase port
 - Self-pair incremental AABB tree query, balancing disabled.
 - Per-leaf incremental AABB tree query, height-rotation balanced.
 - Self-pair incremental AABB tree query, height-rotation balanced.
-- Persistent pair-delta cache: keep the symmetric active-pair relation and emit only additions/removals for changed proxies.
+- Persistent pair-delta cache: keep the symmetric active-pair relation and emit additions, removals, and revalidation events for changed proxies.
 - Symtropy Morton/LBVH AABB adapter: production Morton quantization, longest-common-prefix split construction, per-leaf traversal and the live 50-body brute-force fallback threshold.
 
 The four tree variants use the same pinned `incremental-aabb-tree-reference` implementation from PR #7524. Each per-leaf/self-pair comparison uses the same balancing policy, tree mutation sequence, proxy identities, AABB population and temporal frames. This makes traversal strategy comparable without confounding it with a different topology.
@@ -27,18 +27,18 @@ The added sleeping-wakeup family keeps most proxies stationary and moves only tw
 
 1. The independent brute-force AABB pair oracle is computed before timed backend execution.
 2. Full-set backends time their own frame work: brute-force candidate production; SAP axis selection, sorting and sweep; or persistent-tree insert/update/remove, query and current-envelope refinement.
-3. The pair-delta backend times only dirty-frontier discovery, affected-pair reevaluation and pair birth/death event production. Its output contract is explicitly labelled `pair_delta_events`; it does not claim to regenerate the full set each frame.
+3. The pair-delta backend times only dirty-frontier discovery, affected-pair reevaluation and pair birth/death/revalidation event production. Its output contract is explicitly labelled `pair_delta_events`; it does not claim to regenerate the full set each frame.
 4. Pair-cache full-set materialization is timed and reported separately. Production consumers should normally keep their own persistent contact/pair state and apply the delta stream; a consumer that needs a full list must include the separately reported materialization cost.
-5. The timer stops before independent candidate and event comparisons with the oracle. For the pair-delta backend, emitted additions/removals must equal the exact set differences between adjacent brute-force oracle frames. The active pair cache must also equal the complete current oracle set.
+5. The timer stops before independent candidate and event comparisons with the oracle. For the pair-delta backend, emitted additions/removals must equal the exact set differences between adjacent brute-force oracle frames. Revalidated pairs must equal the intersection of adjacent oracle relations that touch a changed proxy. The active pair cache must also equal the complete current oracle set.
 6. Every false positive, false negative, candidate mismatch, event mismatch and duplicate event remains in the result. The tests require exact candidate parity for all declared fixtures.
 7. Tree leaves may remain conservative and larger after a fat-contained update. The benchmark filters raw tree hits against current-frame AABBs and reports stale hits removed.
-8. p50/p95/p99 frame latency, pair-cache materialization latency, summed frame time, campaign wall time, pair tests, dirty-frontier size, pair events, tree traversal, proxy maintenance, tree height and node counts are reported.
+8. p50/p95/p99 frame latency, pair-cache materialization latency, summed frame time, campaign wall time, pair tests, dirty-frontier size, additions/removals/revalidations, tree traversal, proxy maintenance, tree height and node counts are reported.
 
 The Morton/LBVH adapter rebuilds its hierarchy each frame and times construction plus per-leaf query. At fewer than 50 proxies it follows the production brute-force fallback. It operates on already-computed AABBs and omits RigidBody shape transformation, static/kinematic cache, and body collision filters, so it is an algorithm-level adapter rather than a full production integration.
 
 The tree backend uses zero extra fat margin because the tournament inputs are already authoritative AABBs. Candidate parity is exact for current-frame AABB overlap; it is not a shape-level or continuous time-of-impact proof.
 
-The pair-delta output is a different API contract from full candidate-set output. Do not compare its event-generation p95 directly to full-set p95 without accounting for the consumer's persistent-pair integration and the separately reported materialization cost.
+The pair-delta output is a different API contract from full candidate-set output. `added` and `removed` change pair membership. `revalidated` contains pairs that remain active but touch a dirty endpoint; consumers must refresh narrowphase/contact state for these pairs even though their membership did not change. Do not compare its event-generation p95 directly to full-set p95 without accounting for the consumer's persistent-pair integration and the separately reported materialization cost.
 
 The cache exposes two input paths:
 - `step` safely derives changed identities by diffing the prior/current AABB snapshots. This is the path used by the current tournament row.
