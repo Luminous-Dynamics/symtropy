@@ -77,7 +77,7 @@ Malformed data dominates; known mismatch dominates unresolved state; explicit co
 
 ## Frozen adversarial corpus
 
-The 24 cases cover:
+The 26 cases cover:
 1. composite finite-horizon + passive continuation pass;
 2. finite-only and continuation-only inputs;
 3. incomplete finite-horizon intervals (start late / end early);
@@ -88,7 +88,9 @@ The 24 cases cover:
 8. terminal epoch mismatch;
 9. wrong assurance class;
 10. malformed digest and missing terminal proof;
-11. a complete abort-reachable terminal-set alternative.
+11. a complete abort-reachable terminal-set alternative;
+12. finite-horizon validity ending exactly at the half-open action end;
+13. terminal proof validity ending at the terminal epoch, which must be OUT_OF_SCOPE.
 
 The independent Python oracle and Rust implementation must match complete receipts. The claim order and case order are canonicalized.
 
