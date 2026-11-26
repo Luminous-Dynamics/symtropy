@@ -430,10 +430,10 @@ impl<'a> Simulation<'a> {
                 }
                 Event::CloseGraph => {
                     if self.arm == Arm::Rrvr {
-                        self.closure_issued = self.endpoint.fenced;
-                        self.closure_valid = self.endpoint.fenced
+                        self.closure_issued = self.endpoint.fenced
                             && self.scenario.holder_inventory_complete
                             && self.scenario.edge_inventory_complete;
+                        self.closure_valid = self.closure_issued;
                     }
                     self.push_trace(
                         scheduled.tick,
@@ -536,10 +536,13 @@ impl<'a> Simulation<'a> {
             );
         }
 
+        // The oracle disposition is scoped to the original attempt at reconciliation time.
+        // A later authorised retry may legitimately create an effect and must not retroactively
+        // turn the original NoEffect observation into a false verdict.
         let false_no_effect =
-            self.reported_disposition == Disposition::NoEffect && self.endpoint.effect_count > 0;
+            self.reported_disposition == Disposition::NoEffect && self.original_effect_happened;
         let false_applied =
-            self.reported_disposition == Disposition::Applied && self.endpoint.effect_count == 0;
+            self.reported_disposition == Disposition::Applied && !self.original_effect_happened;
         let duplicate_one_shot_effect = self.endpoint.effect_count > 1;
         let unresolved_outcome = self.reported_disposition == Disposition::Unknown;
 
