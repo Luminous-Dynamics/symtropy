@@ -12,6 +12,11 @@
 
 use serde::{Deserialize, Serialize};
 
+#[cfg(test)]
+const CASES: &str = include_str!(
+    "../../../../docs/research/aviation/examples/aero_effectivity_interval_cases_v0_1.json"
+);
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct TimeInterval {
@@ -93,13 +98,55 @@ pub fn compare_effectivity_intervals(
 #[cfg(test)]
 mod tests {
     use super::{
-        EffectivityRelation, TimeInterval, compare_effectivity_intervals,
+        CASES, EffectivityRelation, TimeInterval, compare_effectivity_intervals,
     };
+    use serde_json::Value;
 
     fn interval(earliest: u64, latest: u64) -> TimeInterval {
         TimeInterval {
             earliest_unix_ms: earliest,
             latest_unix_ms: latest,
+        }
+    }
+
+    #[test]
+    fn frozen_effectivity_interval_corpus_matches_reference_comparator() {
+        let corpus: Value = serde_json::from_str(CASES).expect("effectivity corpus parses");
+        assert_eq!(
+            corpus.get("oracle_review_status").and_then(Value::as_str),
+            Some("NOT_INDEPENDENTLY_REVIEWED")
+        );
+        let cases = corpus
+            .get("cases")
+            .and_then(Value::as_array)
+            .expect("effectivity cases");
+        assert_eq!(cases.len(), 8);
+
+        for case in cases {
+            let case_id = case
+                .get("case_id")
+                .and_then(Value::as_str)
+                .expect("case ID");
+            let read_interval = |key: &str| {
+                let interval = &case[key];
+                TimeInterval {
+                    earliest_unix_ms: interval["earliest_unix_ms"]
+                        .as_u64()
+                        .expect("earliest time"),
+                    latest_unix_ms: interval["latest_unix_ms"]
+                        .as_u64()
+                        .expect("latest time"),
+                }
+            };
+            let actual = compare_effectivity_intervals(
+                read_interval("event_effective"),
+                read_interval("acquisition"),
+            );
+            assert_eq!(
+                actual.relation.as_str(),
+                case["expected"].as_str().expect("expected relation"),
+                "{case_id}"
+            );
         }
     }
 
