@@ -39,3 +39,6 @@ The authoring environment has no Cargo, rustc or rustfmt; tests are authored but
 - ../fixtures/preservation_service_workloads_v0_1.json — six synthetic workloads.
 - ../preservation_service_receipts_v0_1.schema.json — receipt KAT schema.
 - ../fixtures/preservation_service_receipts_v0_1.json — scorer positive, negative and incomplete cases.
+
+- A positive accepted-byte result must include time-to-first-accepted-byte; omission leaves a non-claim incomplete and makes an unsupported full-success claim fail.
+- Each stage duration must be no greater than total end-to-end elapsed time. Stages may overlap, so individual durations are not summed.
