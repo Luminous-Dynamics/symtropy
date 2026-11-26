@@ -255,7 +255,7 @@ impl<const N: usize> IntervalDual<N> {
         }
     }
 
-    pub fn variable(value: Interval, dimension: usize) -> Self {
+    fn variable(value: Interval, dimension: usize) -> Self {
         Self {
             value,
             gradient: std::array::from_fn(|index| {
@@ -425,7 +425,22 @@ pub enum IntervalAdError {
     UnboundedValueEnclosure,
     UnboundedDerivativeEnclosure { index: usize },
     SquareRootOutsideRealDomain,
+    InvalidIntervalOperation,
 }
+
+impl From<IntervalError> for IntervalAdError {
+    fn from(error: IntervalError) -> Self {
+        match error {
+            IntervalError::SquareRootOutsideRealDomain => {
+                Self::SquareRootOutsideRealDomain
+            }
+            IntervalError::NaNEndpoint | IntervalError::ReversedEndpoints => {
+                Self::InvalidIntervalOperation
+            }
+        }
+    }
+}
+
 
 fn nonempty(value: &str) -> bool {
     !value.trim().is_empty()
@@ -751,7 +766,10 @@ mod tests {
         assert!(result.derivative_abs_supremum.iter().all(|value| value.is_finite()));
         assert!(result.derivative_abs_supremum.iter().all(|value| *value > 0.0));
         assert_eq!(result.cell_id, "cell-001");
-        assert_eq!(result.parameter_ids, ["x", "y", "z"]);
+        assert_eq!(
+            result.parameter_ids,
+            ["x".to_owned(), "y".to_owned(), "z".to_owned()]
+        );
     }
 
     #[test]
