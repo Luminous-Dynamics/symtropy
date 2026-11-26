@@ -208,6 +208,8 @@ pub enum TransferCalibrationErrorV0 {
     DuplicateIndependentUnitId,
     InvalidClaimScopeDigest,
     InvalidCalibrationIdentityDigest,
+    InvalidCalibrationReceiptIdentity,
+    CalibrationReceiptMismatch,
     ClaimIdentityMismatch,
 }
 
