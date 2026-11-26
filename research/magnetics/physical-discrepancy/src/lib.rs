@@ -47,6 +47,7 @@ pub struct CellDiscrepancyInput {
     pub operating_condition_id: String,
     pub geometry_sha256: String,
     pub material_sha256: String,
+    pub requirement_id: String,
     pub solver_run_id: String,
     pub field_unit: String,
     pub evidence_role: EvidenceRole,
