@@ -10,6 +10,7 @@
     "episode_id",
     "hidden_truth_world_id",
     "worlds",
+    "maximum_worst_case_loss",
     "decision_losses",
     "probe_outcome_supports",
     "evaluator_profile_sha256"
@@ -51,6 +52,12 @@
       "items": {
         "$ref": "#/$defs/probe_support"
       }
+    },
+    "maximum_worst_case_loss": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Non-compensatory hard admissibility ceiling for robust worst-case loss. Frozen by the evaluator, never candidate-selected."
     }
   },
   "$defs": {
