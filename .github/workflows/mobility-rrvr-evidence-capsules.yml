@@ -43,6 +43,13 @@ jobs:
             and (.claims[0].evidence_snapshot_sha256 | test("^[a-f0-9]{64}$"))
           ' "$ROOT/fixtures/evidence_bundle_v0_1.json"
 
+      - name: Resolve isolated crate lockfile (temporary bootstrap)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo generate-lockfile --manifest-path research/mobility-rrvr-evidence-capsules-v0.1/Cargo.toml
+          cat research/mobility-rrvr-evidence-capsules-v0.1/Cargo.lock
+
       - name: Check Rust formatting
         run: cargo fmt --manifest-path research/mobility-rrvr-evidence-capsules-v0.1/Cargo.toml -- --check
 
