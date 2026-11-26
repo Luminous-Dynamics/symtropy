@@ -474,10 +474,10 @@ pub struct TimingEvidence {
 
 impl TimingEvidence {
     pub fn validate(&self) -> Result<(), ReceiptError> {
-        if let (Some(total), Some(solver)) = (self.total_ns, self.solver_ns) {
-            if solver > total {
-                return Err(ReceiptError::InvalidTiming);
-            }
+        if let (Some(total), Some(solver)) = (self.total_ns, self.solver_ns)
+            && solver > total
+        {
+            return Err(ReceiptError::InvalidTiming);
         }
         if self.timer_resolution_ns == Some(0) {
             return Err(ReceiptError::InvalidTiming);
