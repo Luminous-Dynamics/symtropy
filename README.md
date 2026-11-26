@@ -8,25 +8,25 @@ Symtropy is both a reusable engine codebase and a collection of applications and
 
 | Layer | Main components | Status and boundary |
 |---|---|---|
-| Geometry and physics | \`symtropy-math\`, \`symtropy-physics\` | Reusable N-dimensional math and rigid-body physics crates |
-| Bevy integration | \`symtropy-bevy-core\`, \`symtropy-bevy\`, render and Rapier bridges | Engine integration and adapters; feature-gated where appropriate |
+| Geometry and physics | `symtropy-math`, `symtropy-physics` | Reusable N-dimensional math and rigid-body physics crates |
+| Bevy integration | `symtropy-bevy-core`, `symtropy-bevy`, render and Rapier bridges | Engine integration and adapters; feature-gated where appropriate |
 | Applications | CLI, validation scenes, robotics and simulation demos, web gallery | Executable examples and application surfaces; not all are production products |
 | Research domains | Metric/Φ coupling, HDC physics, colony/lifesim, terrain, networking | Experimental modules; validate each domain independently before deployment |
-| Launcher | Root \`symtropy-launcher\` package | Bevy application that composes selected experiences and optional features |
+| Launcher | Root `symtropy-launcher` package | Bevy application that composes selected experiences and optional features |
 
-The root package is named \`symtropy-launcher\` and is not published as a library. The workspace also contains separately licensed crates. **Read [LICENSING.md](LICENSING.md) before copying or redistributing code**; the core math/physics packages include Apache-2.0 OR MIT licensing, while other components may be AGPL-3.0-or-later.
+The root package is named `symtropy-launcher` and is not published as a library. The workspace also contains separately licensed crates. **Read [LICENSING.md](LICENSING.md) before copying or redistributing code**; the core math/physics packages include Apache-2.0 OR MIT licensing, while other components may be AGPL-3.0-or-later.
 
 ## Core physics capabilities
 
-The \`symtropy-math\` crate exposes const-generic geometric types such as \`Point<D>\`, \`Bivector<D>\`, \`Rotor<D>\`, \`Transform<D>\`, and shape primitives.
+The `symtropy-math` crate exposes const-generic geometric types such as `Point<D>`, `Bivector<D>`, `Rotor<D>`, `Transform<D>`, and shape primitives.
 
-The \`symtropy-physics\` crate provides a dimension-parameterized rigid-body simulation API, including:
+The `symtropy-physics` crate provides a dimension-parameterized rigid-body simulation API, including:
 
 - GJK intersection and EPA contact support;
 - broadphase, contact manifolds, and collision diagnostics;
 - continuous collision detection (CCD);
 - raycasting and articulated/jointed bodies;
-- a \`PhysicsCallback\` interface for application-defined coupling;
+- a `PhysicsCallback` interface for application-defined coupling;
 - replay-oriented world commands and snapshots.
 
 The package documentation and tests are the appropriate source of truth for the behavior supported by a particular crate version. A feature listed in a domain crate or roadmap is not automatically part of the default launcher build.
@@ -41,9 +41,9 @@ Similarly, robotics, digital-twin, and physical-system integrations are not safe
 
 ## Build and validation
 
-The repository pins Rust in \`rust-toolchain.toml\` and provides a Nix development shell.
+The repository pins Rust in `rust-toolchain.toml` and provides a Nix development shell.
 
-\`\`\`sh
+```sh
 nix develop
 
 # Fast compilation check
@@ -54,17 +54,17 @@ just verify-core
 
 # Full workspace test suite (may include application and platform dependencies)
 just test
-\`\`\`
+```
 
-The \`verify-core\` recipe is the recommended starting point for the headless engine surface. It includes the repository's license and formatting checks, Clippy checks for selected core crates, selected build/test targets, asset-foundry tests, and a headless governance scenario. It is not a substitute for hardware-in-the-loop validation or an independent safety audit.
+The `verify-core` recipe is the recommended starting point for the headless engine surface. It includes the repository's license and formatting checks, Clippy checks for selected core crates, selected build/test targets, asset-foundry tests, and a headless governance scenario. It is not a substitute for hardware-in-the-loop validation or an independent safety audit.
 
 For narrower checks, use Cargo directly:
 
-\`\`\`sh
+```sh
 cargo check -p symtropy-math -p symtropy-physics
 cargo test -p symtropy-math -p symtropy-physics --lib
 cargo clippy -p symtropy-math -p symtropy-physics -- -D warnings
-\`\`\`
+```
 
 The root README does not publish fixed test totals or microbenchmark figures because they vary by revision, toolchain, hardware, feature set, and benchmark harness. Use the checked-out commit's Criterion benches and CI results for reproducible comparisons.
 
