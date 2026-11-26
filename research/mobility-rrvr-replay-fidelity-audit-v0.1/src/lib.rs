@@ -15,7 +15,8 @@ use sha2::{Digest, Sha256};
 
 pub const SCHEMA_VERSION: &str = "0.1";
 pub const BENCHMARK: &str = "RRVR-REPLAY-FIDELITY";
-pub const PROFILE_ID: &str = "RoboRecoverReplayV1";
+pub const PROFILE_ID: &str = "RoboRecoverPublishedThresholdsV1";
+pub const METRIC_PROFILE_ID: &str = "RRVR-SSIM-GAUSSIAN11-SIGMA1_5-RGB8-V0_1";
 pub const POSE_THRESHOLD_MM: f64 = 2.0;
 pub const SSIM_THRESHOLD: f64 = 0.99;
 pub const FRAME_PAIR_N: usize = 5;
@@ -162,6 +163,7 @@ pub struct ReplayManifest {
     pub schema_version: String,
     pub benchmark: String,
     pub profile_id: String,
+    pub metric_profile_id: String,
     pub campaign_id: String,
     pub split_manifest_sha256: String,
     pub data_license_and_provenance: String,
@@ -210,6 +212,7 @@ pub struct CandidateAudit {
     pub status: AuditStatus,
     pub difficulty_success_n: usize,
     pub difficulty_trial_n: usize,
+    pub selection_method_id: String,
     pub spot_check_attempt_ids: Vec<String>,
     pub spot_checks: Vec<SpotCheckAudit>,
     pub reason_codes: Vec<String>,
@@ -220,6 +223,7 @@ pub struct ReplayAuditReport {
     pub schema_version: String,
     pub benchmark: String,
     pub profile_id: String,
+    pub metric_profile_id: String,
     pub campaign_id: String,
     pub split_manifest_sha256: String,
     pub candidate_n: usize,
@@ -838,6 +842,7 @@ fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> Candida
         status,
         difficulty_success_n: successes,
         difficulty_trial_n: candidate.difficulty_screen.trials.len(),
+        selection_method_id: candidate.spot_check.selection_method_id.clone(),
         spot_check_attempt_ids: candidate.spot_check.selected_attempt_ids.clone(),
         spot_checks,
         reason_codes,
@@ -892,7 +897,10 @@ pub fn audit_manifest(
         return Err("BENCHMARK_ID_MISMATCH".to_owned());
     }
     if manifest.profile_id != PROFILE_ID {
-        return Err("REPLAY_PROFILE_UNSUPPORTED".to_owned());
+        return Err("REPLAY_THRESHOLD_PROFILE_UNSUPPORTED".to_owned());
+    }
+    if manifest.metric_profile_id != METRIC_PROFILE_ID {
+        return Err("REPLAY_METRIC_PROFILE_UNSUPPORTED".to_owned());
     }
     if manifest.campaign_id.trim().is_empty() || manifest.data_license_and_provenance.trim().is_empty() {
         return Err("CAMPAIGN_OR_DATA_PROVENANCE_MISSING".to_owned());
@@ -956,6 +964,7 @@ pub fn audit_manifest(
         schema_version: SCHEMA_VERSION.to_owned(),
         benchmark: BENCHMARK.to_owned(),
         profile_id: PROFILE_ID.to_owned(),
+        metric_profile_id: METRIC_PROFILE_ID.to_owned(),
         campaign_id: manifest.campaign_id.clone(),
         split_manifest_sha256: manifest.split_manifest_sha256.clone(),
         candidate_n: audits.len(),
@@ -1163,6 +1172,7 @@ mod tests {
             schema_version: SCHEMA_VERSION.to_owned(),
             benchmark: BENCHMARK.to_owned(),
             profile_id: PROFILE_ID.to_owned(),
+            metric_profile_id: METRIC_PROFILE_ID.to_owned(),
             campaign_id: "test-campaign".to_owned(),
             split_manifest_sha256: "5".repeat(64),
             data_license_and_provenance: "Synthetic test fixture; no dataset redistribution.".to_owned(),
