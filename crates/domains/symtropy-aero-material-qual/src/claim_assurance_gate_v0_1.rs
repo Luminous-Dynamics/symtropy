@@ -9,6 +9,9 @@
 //! establish airworthiness. Its strongest result is reviewability by an
 //! independent decision-maker under the supplied evidence contract.
 
+use super::decision_context_v0_1::{
+    DecisionContextV0_1, compute_required_evidence_manifest_sha256,
+};
 use super::effectivity_interval_v0_1::EffectivityRelation;
 use super::observer_coverage_v0_1::{CoverageAssessment, CoverageStatus};
 use super::vector_watermark_v0_1::{CutAssessment, CutStatus};
@@ -119,6 +122,8 @@ impl ClaimGateStatus {
 pub struct ClaimGateInput<'a> {
     /// Stable claim identity.
     pub claim_id: &'a str,
+    /// Typed decision context; the gate derives its own commitment from these fields.
+    pub decision_context: &'a DecisionContextV0_1,
     /// Exact identity/context/report bindings for all three component reports.
     pub bindings: &'a ClaimComponentBindings,
     /// Result of the separately-owned observer-coverage evaluator.
@@ -212,6 +217,8 @@ pub fn compute_component_report_sha256<T: Serialize>(
 /// report digest must match a fresh digest of its actual typed assessment.
 fn validate_component_bindings(
     claim_id: &str,
+    subject_ref: &str,
+    expected_context_sha256: &str,
     bindings: &ClaimComponentBindings,
     coverage: &CoverageAssessment,
     causal_cut: &CutAssessment,
@@ -223,8 +230,6 @@ fn validate_component_bindings(
         ("CAUSAL_CUT", "CAUSAL_CUT", &bindings.causal_cut),
         ("EFFECTIVITY", "EFFECTIVITY", &bindings.effectivity),
     ];
-    let mut shared_subject: Option<&str> = None;
-    let mut shared_context: Option<&str> = None;
     let mut report_digests = BTreeSet::new();
     let mut valid = true;
 
@@ -239,25 +244,17 @@ fn validate_component_bindings(
             valid = false;
             reasons.insert(format!("{kind}_SUBJECT_REF_INVALID"));
         }
-        if let Some(subject) = shared_subject {
-            if binding.subject_ref != subject {
-                valid = false;
-                reasons.insert("COMPONENT_SUBJECT_BINDING_MISMATCH".to_owned());
-            }
-        } else {
-            shared_subject = Some(&binding.subject_ref);
+        if binding.subject_ref != subject_ref {
+            valid = false;
+            reasons.insert("COMPONENT_SUBJECT_BINDING_MISMATCH".to_owned());
         }
         if !valid_sha256(&binding.decision_context_sha256) {
             valid = false;
             reasons.insert(format!("{kind}_DECISION_CONTEXT_DIGEST_INVALID"));
         }
-        if let Some(context) = shared_context {
-            if binding.decision_context_sha256 != context {
-                valid = false;
-                reasons.insert("COMPONENT_DECISION_CONTEXT_MISMATCH".to_owned());
-            }
-        } else {
-            shared_context = Some(&binding.decision_context_sha256);
+        if binding.decision_context_sha256 != expected_context_sha256 {
+            valid = false;
+            reasons.insert("COMPONENT_DECISION_CONTEXT_MISMATCH".to_owned());
         }
         if !valid_sha256(&binding.report_sha256) {
             valid = false;
@@ -292,11 +289,7 @@ fn validate_component_bindings(
         }
     }
 
-    if valid {
-        shared_context.map(str::to_owned)
-    } else {
-        None
-    }
+    valid
 }
 
 fn component_reasons(prefix: &str, reasons: &[String], target: &mut BTreeSet<String>) {
@@ -326,18 +319,48 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
         reasons.insert("CLAIM_ID_MISSING_OR_NONCANONICAL".to_owned());
     }
 
-    let decision_context_sha256 = validate_component_bindings(
+    let decision_context_sha256 = match input.decision_context.compute_sha256() {
+        Ok(digest) => digest,
+        Err(context_errors) => {
+            invalid = true;
+            reasons.extend(context_errors);
+            String::new()
+        }
+    };
+    if input.decision_context.claim_id != input.claim_id {
+        invalid = true;
+        reasons.insert("DECISION_CONTEXT_CLAIM_ID_MISMATCH".to_owned());
+    }
+    if !validate_component_bindings(
         input.claim_id,
+        &input.decision_context.subject_ref,
+        &decision_context_sha256,
         input.bindings,
         input.coverage,
         input.causal_cut,
         &input.effectivity,
         &mut reasons,
-    )
-    .unwrap_or_else(|| {
+    ) {
         invalid = true;
-        input.bindings.coverage.decision_context_sha256.clone()
-    });
+    }
+
+    let evidence_refs_for_manifest = input
+        .required_evidence
+        .iter()
+        .map(|evidence| evidence.evidence_ref.clone())
+        .collect::<Vec<_>>();
+    match compute_required_evidence_manifest_sha256(&evidence_refs_for_manifest) {
+        Ok(actual_manifest) => {
+            if actual_manifest != input.decision_context.required_evidence_manifest_sha256 {
+                invalid = true;
+                reasons.insert("REQUIRED_EVIDENCE_MANIFEST_MISMATCH".to_owned());
+            }
+        }
+        Err(reason) => {
+            invalid = true;
+            reasons.insert(reason);
+        }
+    }
 
     component_reasons("COVERAGE", &input.coverage.reason_codes, &mut reasons);
     component_reasons("CAUSAL_CUT", &input.causal_cut.reason_codes, &mut reasons);
