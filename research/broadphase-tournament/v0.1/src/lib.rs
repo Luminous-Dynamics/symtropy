@@ -382,6 +382,199 @@ fn brute_force_candidates<const D: usize>(frame: &[ProxyFrame<D>]) -> Vec<ProxyP
     pairs
 }
 
+/// Pair-relation changes emitted by the sleep-aware cache for one frame.
+///
+/// The active pair relation persists in the cache. Consumers update their
+/// contact/pair state from these additions and removals; they do not need a
+/// regenerated full pair list on every frame.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct PairDeltaFrame {
+    pub added: Vec<ProxyPair>,
+    pub removed: Vec<ProxyPair>,
+    pub dirty_proxies: usize,
+    pub overlap_tests: u64,
+    pub active_pairs: usize,
+}
+
+/// Persistent symmetric adjacency cache over the exact current-frame AABB
+/// overlap relation. Only pairs touching inserted, removed or changed proxies
+/// are reconsidered. Unchanged pairs remain resident and generate no event.
+#[derive(Clone, Debug)]
+pub struct PairDeltaCache<const D: usize> {
+    previous_bounds: BTreeMap<ProxyId, Aabb<D>>,
+    neighbors: BTreeMap<ProxyId, BTreeSet<ProxyId>>,
+    active_pair_count: usize,
+    force_dirty: bool,
+}
+
+impl<const D: usize> Default for PairDeltaCache<D> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<const D: usize> PairDeltaCache<D> {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            previous_bounds: BTreeMap::new(),
+            neighbors: BTreeMap::new(),
+            active_pair_count: 0,
+            force_dirty: false,
+        }
+    }
+
+    /// Invalidate all pair relations on the next step. Call this when
+    /// collision filters, layer rules or other non-geometric eligibility
+    /// inputs change; this AABB-only benchmark has no filter mutation.
+    pub fn invalidate_all(&mut self) {
+        self.force_dirty = true;
+    }
+
+    #[must_use]
+    pub fn active_pair_count(&self) -> usize {
+        self.active_pair_count
+    }
+
+    /// Materialize the complete current pair relation. This is intentionally
+    /// separate from step: production consumers should normally consume the
+    /// pair event stream and persistent cache, not rebuild this vector.
+    #[must_use]
+    pub fn active_pairs(&self) -> Vec<ProxyPair> {
+        let mut pairs = Vec::with_capacity(self.active_pair_count);
+        for (left, neighbors) in &self.neighbors {
+            for right in neighbors {
+                if left < right {
+                    if let Some(pair) = ProxyPair::new(*left, *right) {
+                        pairs.push(pair);
+                    }
+                }
+            }
+        }
+        pairs.sort_unstable();
+        pairs
+    }
+
+    /// Update the cached overlap relation and emit only pair births/deaths.
+    ///
+    /// The affected frontier includes old neighbors of every dirty identity
+    /// and all current proxies for every inserted/changed identity. A pair
+    /// involving two dirty proxies is evaluated once via the canonical set.
+    pub fn step(
+        &mut self,
+        frame: &[ProxyFrame<D>],
+    ) -> Result<PairDeltaFrame, TournamentError> {
+        validate_frame(frame)?;
+
+        let current_bounds = frame
+            .iter()
+            .map(|proxy| (proxy.id, proxy.bounds))
+            .collect::<BTreeMap<_, _>>();
+
+        let mut dirty = BTreeSet::<ProxyId>::new();
+        for old_id in self.previous_bounds.keys() {
+            if !current_bounds.contains_key(old_id) {
+                dirty.insert(*old_id);
+            }
+        }
+        for (id, bounds) in &current_bounds {
+            if self.previous_bounds.get(id).is_none_or(|old| old != bounds) {
+                dirty.insert(*id);
+            }
+        }
+        if self.force_dirty {
+            dirty.extend(self.previous_bounds.keys().copied());
+            dirty.extend(current_bounds.keys().copied());
+        }
+
+        let mut affected_pairs = BTreeSet::<ProxyPair>::new();
+        for dirty_id in &dirty {
+            if let Some(old_neighbors) = self.neighbors.get(dirty_id) {
+                for neighbor in old_neighbors {
+                    if let Some(pair) = ProxyPair::new(*dirty_id, *neighbor) {
+                        affected_pairs.insert(pair);
+                    }
+                }
+            }
+            if current_bounds.contains_key(dirty_id) {
+                for other_id in current_bounds.keys() {
+                    if let Some(pair) = ProxyPair::new(*dirty_id, *other_id) {
+                        affected_pairs.insert(pair);
+                    }
+                }
+            }
+        }
+
+        let mut added = Vec::new();
+        let mut removed = Vec::new();
+        let mut overlap_tests = 0_u64;
+
+        for pair in affected_pairs {
+            let was_active = self
+                .neighbors
+                .get(&pair.0)
+                .is_some_and(|neighbors| neighbors.contains(&pair.1));
+            let is_active = match (current_bounds.get(&pair.0), current_bounds.get(&pair.1)) {
+                (Some(left), Some(right)) => {
+                    overlap_tests = overlap_tests
+                        .checked_add(1)
+                        .ok_or(TournamentError::CounterOverflow)?;
+                    overlaps(left, right)
+                }
+                _ => false,
+            };
+
+            match (was_active, is_active) {
+                (false, true) => {
+                    self.neighbors.entry(pair.0).or_default().insert(pair.1);
+                    self.neighbors.entry(pair.1).or_default().insert(pair.0);
+                    self.active_pair_count = self
+                        .active_pair_count
+                        .checked_add(1)
+                        .ok_or(TournamentError::CounterOverflow)?;
+                    added.push(pair);
+                }
+                (true, false) => {
+                    let left_removed = self
+                        .neighbors
+                        .get_mut(&pair.0)
+                        .is_some_and(|neighbors| neighbors.remove(&pair.1));
+                    let right_removed = self
+                        .neighbors
+                        .get_mut(&pair.1)
+                        .is_some_and(|neighbors| neighbors.remove(&pair.0));
+                    if !left_removed || !right_removed {
+                        return Err(TournamentError::CounterOverflow);
+                    }
+                    self.active_pair_count = self
+                        .active_pair_count
+                        .checked_sub(1)
+                        .ok_or(TournamentError::CounterOverflow)?;
+                    removed.push(pair);
+                }
+                (true, true) | (false, false) => {}
+            }
+        }
+
+        self.neighbors
+            .retain(|proxy_id, _| current_bounds.contains_key(proxy_id));
+        for proxy_id in current_bounds.keys() {
+            self.neighbors.entry(*proxy_id).or_default();
+        }
+
+        self.previous_bounds = current_bounds;
+        self.force_dirty = false;
+
+        Ok(PairDeltaFrame {
+            added,
+            removed,
+            dirty_proxies: dirty.len(),
+            overlap_tests,
+            active_pairs: self.active_pair_count,
+        })
+    }
+}
+
 fn choose_sweep_axis<const D: usize>(frame: &[ProxyFrame<D>]) -> usize {
     let mut best_axis = 0;
     let mut best_score = f64::NEG_INFINITY;
