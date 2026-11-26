@@ -80,10 +80,10 @@ The crate also exposes `design_tournament::rank_magnetic_designs`. It accepts a 
 - one or more exact solver-run IDs;
 - a family of field traces covering its preregistered operating conditions.
 
-All candidates must share the same evidence class, coordinate frame, angular-grid identity and bit-identical mechanical-angle coordinates. Conditions within each candidate may differ (for example, nominal air gap, gap extremes, eccentricity, tilt or temperature), but one failing condition rejects the candidate. The same hard encoder requirements and independently sourced phase-zero calibration are used for every design. No candidate is allowed to fit its own phase zero.
+All candidates must share the same ordered operating-condition IDs, evidence class, coordinate frame, angular-grid identity and bit-identical mechanical-angle coordinates. Solver-run IDs cannot be reused to identify two different candidate designs. Conditions within each candidate may differ (for example, nominal air gap, gap extremes, eccentricity, tilt or temperature), but one failing condition rejects the candidate. The same hard encoder requirements and independently sourced phase-zero calibration are used for every design. No candidate is allowed to fit its own phase zero.
 
 Among fully accepted candidates, the tournament preserves a Pareto frontier over minimum in-plane field (maximize), worst peak and RMS phase error (minimize), worst amplitude ripple (minimize), and worst out-of-plane/in-plane ratio (minimize). It does not create a weighted scalar score or declare a single winner when designs trade off objectives.
 
 The tournament only ranks supplied solver outputs. It does not generate a magnetization pattern, solve a field, authenticate the source digests, prove global optimality, infer manufacturing yield or qualify a physical device.
 
-The current design-tournament module contains eight authored unit tests. Authored tests are not a test pass; consult the exact-head CI checks.
+The current design-tournament module contains ten authored unit tests. Authored tests are not a test pass; consult the exact-head CI checks.
