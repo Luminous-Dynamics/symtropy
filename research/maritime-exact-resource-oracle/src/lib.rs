@@ -509,6 +509,127 @@ mod tests {
         assert_eq!(result.pareto_front.len(), 3);
     }
 
+
+    #[test]
+    fn sea_rail_transfer_tracks_are_shared_time_indexed_resources() {
+        let candidate = |candidate_id: &str,
+                         vessel_id: &str,
+                         rail_track: &str,
+                         objective: ObjectiveVector| CandidateAction {
+            candidate_id: candidate_id.to_owned(),
+            vessel_id: vessel_id.to_owned(),
+            reservations: vec![
+                Reservation {
+                    resource_id: rail_track.to_owned(),
+                    slot: 3,
+                    units: 1,
+                },
+                Reservation {
+                    resource_id: "RMGC-POOL".to_owned(),
+                    slot: 3,
+                    units: 1,
+                },
+                Reservation {
+                    resource_id: "RECEIVER-RAIL-GATE".to_owned(),
+                    slot: 4,
+                    units: 1,
+                },
+            ],
+            objective,
+        };
+
+        let scenario = Scenario {
+            vessel_ids: vec!["V1".to_owned(), "V2".to_owned()],
+            capacities: vec![
+                ResourceCapacity {
+                    resource_id: "RAIL-TRACK-A".to_owned(),
+                    slot: 3,
+                    capacity: 1,
+                },
+                ResourceCapacity {
+                    resource_id: "RAIL-TRACK-B".to_owned(),
+                    slot: 3,
+                    capacity: 1,
+                },
+                ResourceCapacity {
+                    resource_id: "RMGC-POOL".to_owned(),
+                    slot: 3,
+                    capacity: 2,
+                },
+                ResourceCapacity {
+                    resource_id: "RECEIVER-RAIL-GATE".to_owned(),
+                    slot: 4,
+                    capacity: 2,
+                },
+            ],
+            candidates: vec![
+                candidate(
+                    "V1_TRACK_A",
+                    "V1",
+                    "RAIL-TRACK-A",
+                    ObjectiveVector {
+                        vessel_wait: 1,
+                        receiver_delay: 2,
+                        energy_cost: 4,
+                        emissions: 2,
+                        missed_connections: 0,
+                    },
+                ),
+                candidate(
+                    "V1_TRACK_B",
+                    "V1",
+                    "RAIL-TRACK-B",
+                    ObjectiveVector {
+                        vessel_wait: 2,
+                        receiver_delay: 3,
+                        energy_cost: 2,
+                        emissions: 3,
+                        missed_connections: 0,
+                    },
+                ),
+                candidate(
+                    "V2_TRACK_A",
+                    "V2",
+                    "RAIL-TRACK-A",
+                    ObjectiveVector {
+                        vessel_wait: 1,
+                        receiver_delay: 1,
+                        energy_cost: 5,
+                        emissions: 1,
+                        missed_connections: 0,
+                    },
+                ),
+                candidate(
+                    "V2_TRACK_B",
+                    "V2",
+                    "RAIL-TRACK-B",
+                    ObjectiveVector {
+                        vessel_wait: 2,
+                        receiver_delay: 2,
+                        energy_cost: 1,
+                        emissions: 4,
+                        missed_connections: 0,
+                    },
+                ),
+            ],
+        };
+
+        let result = enumerate(&scenario).unwrap();
+        assert_eq!(result.feasible_plans.len(), 2);
+        assert_eq!(result.pareto_front.len(), 2);
+        assert_eq!(
+            result
+                .feasible_plans
+                .iter()
+                .map(|plan| plan.candidate_ids.clone())
+                .collect::<Vec<_>>(),
+            vec![
+                vec!["V1_TRACK_A".to_owned(), "V2_TRACK_B".to_owned()],
+                vec!["V1_TRACK_B".to_owned(), "V2_TRACK_A".to_owned()],
+            ]
+        );
+    }
+
     #[test]
     fn duplicate_vessel_selection_cannot_be_constructed_by_enumerator() {
         let mut scenario = base_scenario();
