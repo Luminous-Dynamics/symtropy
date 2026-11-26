@@ -284,13 +284,8 @@ fn enumerate_node_bijections(
             .map(|mapping| (mapping.source_node_id, mapping.target_node_id))
             .collect::<BTreeMap<_, _>>();
         let witnesses_before = report.valid_witness_class_count;
-        let complete = enumerate_kind_mapping_classes(
-            source,
-            target,
-            &node_map,
-            current_nodes,
-            report,
-        );
+        let complete =
+            enumerate_kind_mapping_classes(source, target, &node_map, current_nodes, report);
         if report.valid_witness_class_count > witnesses_before {
             report.valid_node_mapping_count += 1;
         }
@@ -345,13 +340,9 @@ fn enumerate_kind_mapping_classes(
     for source_kind in &source_kinds {
         let mut candidates = Vec::new();
         for target_kind in &target_kinds {
-            for transform in compatible_kind_transforms(
-                source,
-                target,
-                *source_kind,
-                *target_kind,
-                node_map,
-            ) {
+            for transform in
+                compatible_kind_transforms(source, target, *source_kind, *target_kind, node_map)
+            {
                 candidates.push((*target_kind, transform));
             }
         }
@@ -513,13 +504,9 @@ fn choose_kind_mapping_classes(
     report: &mut IsomorphismOracleReportV0,
 ) -> bool {
     if index == source_kinds.len() {
-        if let Some(correspondence) = build_correspondence(
-            source,
-            target,
-            node_map,
-            node_correspondence,
-            chosen,
-        ) {
+        if let Some(correspondence) =
+            build_correspondence(source, target, node_map, node_correspondence, chosen)
+        {
             if report.valid_witness_class_count >= MAX_ORACLE_WITNESS_CLASSES_V0 {
                 report.witness_count_complete = false;
                 return false;
