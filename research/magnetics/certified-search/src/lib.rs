@@ -75,12 +75,30 @@ pub struct FeasibleIncumbent {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CertifiedSearchReport<const N: usize> {
+    pub root_record_id: String,
+    pub root_cell_id: String,
+    pub input_sha256: String,
+    pub source_revision: String,
+    pub implementation_id: String,
+    pub artifact_sha256: String,
+    pub environment_sha256: String,
     pub expression_id: String,
     pub objective_id: String,
     pub compliance_expression_id: String,
     pub compliance_requirement_id: String,
     pub design_dimension: usize,
     pub total_parameter_ids: [String; N],
+    pub parameter_units: [String; N],
+    pub root_parameter_bounds: [Interval; N],
+    pub output_unit: String,
+    pub coordinate_frame_id: String,
+    pub operating_condition_id: String,
+    pub model_set_id: String,
+    pub solver_run_id: String,
+    pub geometry_sha256: String,
+    pub material_sha256: String,
+    pub policy: SearchPolicy,
+    pub arithmetic_contract: String,
     pub design_parameter_ids: Vec<String>,
     pub nuisance_parameter_ids: Vec<String>,
     pub explored_node_count: usize,
@@ -720,12 +738,30 @@ where
     };
 
     Ok(CertifiedSearchReport {
+        root_record_id: root.record_id.clone(),
+        root_cell_id: root.cell_id.clone(),
+        input_sha256: root.input_sha256.clone(),
+        source_revision: root.source_revision.clone(),
+        implementation_id: root.implementation_id.clone(),
+        artifact_sha256: root.artifact_sha256.clone(),
+        environment_sha256: root.environment_sha256.clone(),
         expression_id: root.expression_id.clone(),
         objective_id: root.expression_id.clone(),
         compliance_expression_id: policy.compliance_expression_id.clone(),
         compliance_requirement_id: root.requirement_id.clone(),
         design_dimension,
         total_parameter_ids: root.parameter_ids.clone(),
+        parameter_units: root.parameter_units.clone(),
+        root_parameter_bounds: root.parameter_bounds,
+        output_unit: root.output_unit.clone(),
+        coordinate_frame_id: root.coordinate_frame_id.clone(),
+        operating_condition_id: root.operating_condition_id.clone(),
+        model_set_id: root.model_set_id.clone(),
+        solver_run_id: root.solver_run_id.clone(),
+        geometry_sha256: root.geometry_sha256.clone(),
+        material_sha256: root.material_sha256.clone(),
+        policy: policy.clone(),
+        arithmetic_contract: "binary64-nearest-plus-one-ulp-outward-v0.1".to_owned(),
         design_parameter_ids: root.parameter_ids[..design_dimension].to_vec(),
         nuisance_parameter_ids: root.parameter_ids[design_dimension..].to_vec(),
         explored_node_count,
@@ -822,6 +858,15 @@ mod tests {
             result.compliance_expression_id,
             "robust-margin-expression-v1"
         );
+        assert_eq!(result.root_record_id, "global-search-001");
+        assert_eq!(result.root_parameter_bounds, domain.parameter_bounds);
+        assert_eq!(result.parameter_units, domain.parameter_units);
+        assert_eq!(result.coordinate_frame_id, "design-frame-v1");
+        assert_eq!(result.operating_condition_id, "full-tolerance-box-v1");
+        assert_eq!(result.model_set_id, "analytic-test-model");
+        assert_eq!(result.geometry_sha256, DIGEST_A);
+        assert_eq!(result.material_sha256, DIGEST_B);
+        assert_eq!(result.policy, policy(0.002));
         assert_eq!(result.termination, SearchTermination::OptimalityGapSatisfied);
         assert!(result.global_objective_lower_bound.is_some());
         assert!(result.global_objective_upper_bound.is_some());
