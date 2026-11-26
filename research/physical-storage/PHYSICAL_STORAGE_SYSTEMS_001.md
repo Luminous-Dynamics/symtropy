@@ -187,3 +187,14 @@ This document and the baseline register are research specifications. They do not
 - LTO-10 technology and specifications: https://www.lto.org/lto-10/
 - Micron 6600 ION product specifications: https://www.micron.com/products/storage/ssd/data-center-ssd/6600-ion
 - Skyrmion racetrack noise model, *Physical Review B* 113, L180407 (18 May 2026): https://journals.aps.org/prb/abstract/10.1103/73z4-ymkp
+
+
+## 8. Instrument-bound optical channel observations
+
+The follow-on observation contract is tracked in [OPTICAL-CHANNEL-OBSERVATION-001 #7534](https://github.com/Luminous-Dynamics/symtropy/issues/7534), with its schema, synthetic fixture and protocol on the [optical-channel-observations branch](https://github.com/Luminous-Dynamics/symtropy/tree/research/optical-channel-observations-001/research/physical-storage).
+
+The handoff preserves four evidence classes (synthetic fixture, published reproduction, physical measurement and model-derived) and binds every observation batch to a specimen/material, writer/process record, reader/calibration, coordinate frame and provenance digest. Raw detector observations, hard symbols and optional soft information remain distinct. Ground-truth labels are separately referenced and held-out splits are grouped by specimen/batch/reader to avoid neighbouring-voxel leakage.
+
+The Draft 2020-12 schema includes conditional checks: synthetic-only batches cannot label their soft information calibrated; calibrated symbol vectors require a calibration reference; and a reader declared current/traceably calibrated must carry calibration identity, a record reference and uncertainty. A semantic validator is still required for unique observation IDs, alphabet membership, likelihood-vector cardinality and normalization, calibration compatibility, coordinate bounds and split non-overlap. JSON Schema does not prove instrument calibration or probability quality.
+
+The example fixture is explicitly synthetic and makes no BOROFLOAT 33/K10 measurement claim. Symthaea's decoder and optimizer may consume these records only with their evidence class, provenance and partition identity preserved. No confidence score may silently become a physical error probability.
