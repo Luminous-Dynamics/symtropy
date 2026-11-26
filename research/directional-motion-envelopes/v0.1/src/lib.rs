@@ -148,6 +148,8 @@ pub enum EnvelopeError {
     InvalidBounds,
     InvalidDisplacementInterval,
     InvalidGuard,
+    InvalidTimeStep,
+    InvalidAngularMotionState,
     NonFiniteArithmetic,
     UnsupportedStatus,
     MissingReceipt,
@@ -275,6 +277,172 @@ pub fn build_envelope<const D: usize>(
         envelope: Some(envelope),
         receipt: Some(receipt),
     })
+}
+
+/// The angular-velocity threshold matches the integrator's rotation update:
+/// rotation is applied only when post-integration angular speed squared is
+/// greater than 1e-24.
+pub const SEMI_IMPLICIT_ROTATION_THRESHOLD_SQUARED: f64 = 1.0e-24;
+
+/// Half of one Q16.16 quantization interval (1 / 2^17).
+pub const Q16_16_HALF_STEP: f64 = 1.0 / 131_072.0;
+
+/// Linear/angular state observed after the actual semi-implicit integrator.
+/// post_linear_velocity is expected to include acceleration, damping, speed
+/// clamp and any deterministic-net velocity quantization performed by the
+/// caller. The position update itself used the pre-quantized velocity, so the
+/// deterministic-net guard accounts for half a velocity quantum multiplied
+/// by dt as well as half a position quantum.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SemiImplicitEulerMotion<const D: usize> {
+    pub post_linear_velocity: [f64; D],
+    pub post_angular_velocity_norm_squared: f64,
+    pub dt: f64,
+    pub deterministic_net_q16_16: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct IntegratorEnvelopeReceipt<const D: usize> {
+    pub base: EnvelopeReceipt<D>,
+    pub motion: SemiImplicitEulerMotion<D>,
+    pub caller_guard: f64,
+    pub quantization_guard: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct IntegratorEnvelopeResult<const D: usize> {
+    pub status: EnvelopeStatus,
+    pub envelope: Option<Aabb<D>>,
+    pub receipt: Option<IntegratorEnvelopeReceipt<D>>,
+}
+
+/// Produce a one-step conservative translation envelope matching Symtropy's
+/// semi-implicit Euler pipeline. The supplied velocity is the post-integrator
+/// value after damping and speed clamping. In deterministic-net mode it is also
+/// the Q16.16-quantized velocity used by the CCD sweep. Position quantization
+/// and the difference between pre/post-quantized velocity are included in the
+/// guard. Changed orientation produces no translation certificate.
+pub fn build_semi_implicit_euler_envelope<const D: usize>(
+    identity: ColliderIdentity,
+    context: EnvelopeContext,
+    tight_bounds: Aabb<D>,
+    motion: SemiImplicitEulerMotion<D>,
+    caller_guard: f64,
+) -> Result<IntegratorEnvelopeResult<D>, EnvelopeError> {
+    identity.validate()?;
+    context.validate()?;
+    if !tight_bounds.is_valid() {
+        return Err(EnvelopeError::InvalidBounds);
+    }
+    if !motion.dt.is_finite() || motion.dt <= 0.0 {
+        return Err(EnvelopeError::InvalidTimeStep);
+    }
+    if !motion.post_angular_velocity_norm_squared.is_finite()
+        || motion.post_angular_velocity_norm_squared < 0.0
+    {
+        return Err(EnvelopeError::InvalidAngularMotionState);
+    }
+    if motion.post_linear_velocity.iter().any(|value| !value.is_finite()) {
+        return Err(EnvelopeError::NonFiniteArithmetic);
+    }
+    if !caller_guard.is_finite() || caller_guard < 0.0 {
+        return Err(EnvelopeError::InvalidGuard);
+    }
+
+    if motion.post_angular_velocity_norm_squared
+        > SEMI_IMPLICIT_ROTATION_THRESHOLD_SQUARED
+    {
+        return Ok(IntegratorEnvelopeResult {
+            status: EnvelopeStatus::UnsupportedRotation,
+            envelope: None,
+            receipt: None,
+        });
+    }
+
+    let mut displacement = DisplacementInterval {
+        min: [0.0; D],
+        max: [0.0; D],
+    };
+    for axis in 0..D {
+        let endpoint = checked_mul(motion.post_linear_velocity[axis], motion.dt)?;
+        let lower = outward_min(endpoint)?;
+        let upper = outward_max(endpoint)?;
+        displacement.min[axis] = 0.0_f64.min(lower);
+        displacement.max[axis] = 0.0_f64.max(upper);
+    }
+
+    let quantization_guard = if motion.deterministic_net_q16_16 {
+        // The integrator advances position with pre-quantized velocity, while
+        // the subsequent CCD sweep uses the post-quantized velocity. The
+        // per-axis discrepancy is bounded by dt*half_step + half_step.
+        outward_max(checked_mul(Q16_16_HALF_STEP, motion.dt + 1.0)?)?
+    } else {
+        0.0
+    };
+    let total_guard = checked_add(caller_guard, quantization_guard)?;
+    let base_result = build_envelope(
+        identity,
+        context,
+        MotionKind::FixedOrientationTranslation,
+        tight_bounds,
+        displacement,
+        total_guard,
+    )?;
+    let envelope = base_result.envelope.ok_or(EnvelopeError::UnsupportedStatus)?;
+    let base = base_result.receipt.ok_or(EnvelopeError::MissingReceipt)?;
+
+    Ok(IntegratorEnvelopeResult {
+        status: EnvelopeStatus::CertifiedFixedOrientationTranslation,
+        envelope: Some(envelope),
+        receipt: Some(IntegratorEnvelopeReceipt {
+            base,
+            motion,
+            caller_guard,
+            quantization_guard,
+        }),
+    })
+}
+
+/// Replay an integrator-bound envelope against the current post-integration
+/// state, dt, determinism profile and geometry. Changed source state invalidates.
+pub fn verify_semi_implicit_euler_envelope<const D: usize>(
+    receipt: &IntegratorEnvelopeReceipt<D>,
+    identity: &ColliderIdentity,
+    context: EnvelopeContext,
+    tight_bounds: Aabb<D>,
+    motion: SemiImplicitEulerMotion<D>,
+    caller_guard: f64,
+) -> Result<(), EnvelopeError> {
+    if receipt.motion != motion || receipt.caller_guard != caller_guard {
+        return Err(EnvelopeError::ReplayMismatch);
+    }
+    let replay = build_semi_implicit_euler_envelope(
+        identity.clone(),
+        context,
+        tight_bounds,
+        motion,
+        caller_guard,
+    )?;
+    if replay.receipt.as_ref() != Some(receipt) {
+        return Err(EnvelopeError::ReplayMismatch);
+    }
+    verify_envelope(
+        &receipt.base,
+        identity,
+        context,
+        tight_bounds,
+        receipt.base.displacement,
+        checked_add(caller_guard, receipt.quantization_guard)?,
+    )
+}
+
+fn checked_mul(left: f64, right: f64) -> Result<f64, EnvelopeError> {
+    let value = left * right;
+    if value.is_finite() {
+        Ok(value)
+    } else {
+        Err(EnvelopeError::NonFiniteArithmetic)
+    }
 }
 
 /// Replay a certified envelope against the current identity, context, geometry,
@@ -575,6 +743,168 @@ mod tests {
                 0.25
             ),
             Err(EnvelopeError::ReplayMismatch)
+        );
+    }
+
+    #[test]
+    fn semi_implicit_producer_sweeps_using_post_integrator_velocity() {
+        let tight = Aabb::new([1.0, 2.0], [3.0, 4.0]).unwrap();
+        let motion = SemiImplicitEulerMotion {
+            post_linear_velocity: [4.0, -2.0],
+            post_angular_velocity_norm_squared: 0.0,
+            dt: 0.25,
+            deterministic_net_q16_16: false,
+        };
+        let result = build_semi_implicit_euler_envelope(
+            identity(),
+            context(),
+            tight,
+            motion,
+            0.0,
+        )
+        .unwrap();
+        assert_eq!(
+            result.status,
+            EnvelopeStatus::CertifiedFixedOrientationTranslation
+        );
+        let envelope = result.envelope.unwrap();
+        let endpoint = Aabb::new([2.0, 1.5], [4.0, 3.5]).unwrap();
+        assert!(envelope.contains(&tight));
+        assert!(envelope.contains(&endpoint));
+    }
+
+    #[test]
+    fn deterministic_net_guard_covers_position_and_velocity_quantization() {
+        let tight = Aabb::new([0.0, 0.0], [1.0, 1.0]).unwrap();
+        let motion = SemiImplicitEulerMotion {
+            post_linear_velocity: [10.0, 0.0],
+            post_angular_velocity_norm_squared: 0.0,
+            dt: 0.5,
+            deterministic_net_q16_16: true,
+        };
+        let result = build_semi_implicit_euler_envelope(
+            identity(),
+            context(),
+            tight,
+            motion,
+            0.0,
+        )
+        .unwrap();
+        let receipt = result.receipt.unwrap();
+        let expected_guard = Q16_16_HALF_STEP * (motion.dt + 1.0);
+        assert!(receipt.quantization_guard >= expected_guard);
+        assert!(result.envelope.unwrap().contains(&tight));
+    }
+
+    #[test]
+    fn post_integrator_rotation_forces_unsupported_fallback() {
+        let motion = SemiImplicitEulerMotion {
+            post_linear_velocity: [1.0, 0.0],
+            post_angular_velocity_norm_squared:
+                SEMI_IMPLICIT_ROTATION_THRESHOLD_SQUARED * 2.0,
+            dt: 0.1,
+            deterministic_net_q16_16: false,
+        };
+        let result = build_semi_implicit_euler_envelope(
+            identity(),
+            context(),
+            box2(),
+            motion,
+            0.0,
+        )
+        .unwrap();
+        assert_eq!(result.status, EnvelopeStatus::UnsupportedRotation);
+        assert!(result.envelope.is_none());
+        assert!(result.receipt.is_none());
+    }
+
+    #[test]
+    fn semi_implicit_receipt_replay_binds_velocity_dt_and_quantization() {
+        let motion = SemiImplicitEulerMotion {
+            post_linear_velocity: [1.5, -0.25],
+            post_angular_velocity_norm_squared: 0.0,
+            dt: 0.01,
+            deterministic_net_q16_16: true,
+        };
+        let result = build_semi_implicit_euler_envelope(
+            identity(),
+            context(),
+            box2(),
+            motion,
+            0.001,
+        )
+        .unwrap();
+        let receipt = result.receipt.unwrap();
+        assert!(verify_semi_implicit_euler_envelope(
+            &receipt,
+            &identity(),
+            context(),
+            box2(),
+            motion,
+            0.001,
+        )
+        .is_ok());
+
+        let changed_velocity = SemiImplicitEulerMotion {
+            post_linear_velocity: [1.6, -0.25],
+            ..motion
+        };
+        assert_eq!(
+            verify_semi_implicit_euler_envelope(
+                &receipt,
+                &identity(),
+                context(),
+                box2(),
+                changed_velocity,
+                0.001,
+            ),
+            Err(EnvelopeError::ReplayMismatch)
+        );
+    }
+
+    #[test]
+    fn semi_implicit_invalid_timestep_angular_state_and_velocity_fail_closed() {
+        let mut motion = SemiImplicitEulerMotion {
+            post_linear_velocity: [1.0, 0.0],
+            post_angular_velocity_norm_squared: 0.0,
+            dt: 0.0,
+            deterministic_net_q16_16: false,
+        };
+        assert_eq!(
+            build_semi_implicit_euler_envelope(
+                identity(),
+                context(),
+                box2(),
+                motion,
+                0.0,
+            ),
+            Err(EnvelopeError::InvalidTimeStep)
+        );
+
+        motion.dt = 0.1;
+        motion.post_angular_velocity_norm_squared = f64::NAN;
+        assert_eq!(
+            build_semi_implicit_euler_envelope(
+                identity(),
+                context(),
+                box2(),
+                motion,
+                0.0,
+            ),
+            Err(EnvelopeError::InvalidAngularMotionState)
+        );
+
+        motion.post_angular_velocity_norm_squared = 0.0;
+        motion.post_linear_velocity = [f64::INFINITY, 0.0];
+        assert_eq!(
+            build_semi_implicit_euler_envelope(
+                identity(),
+                context(),
+                box2(),
+                motion,
+                0.0,
+            ),
+            Err(EnvelopeError::NonFiniteArithmetic)
         );
     }
 
