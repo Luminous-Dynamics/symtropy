@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/preservation-watch-intervention-001/research/physical-storage/preservation_watch_cases_v0_1.schema.json",
+  "title": "Preservation Watch and Intervention Cases v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "evidence_class",
+    "qualification_status",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "preservation-watch-cases-v0.1"
+    },
+    "corpus_id": {
+      "const": "PW-IQ-001-CASES-V0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_semantic_fixture"
+    },
+    "qualification_status": {
+      "const": "not_run"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 14,
+      "maxItems": 14,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "target_id",
+          "evaluated_at_unix",
+          "policy",
+          "observations",
+          "expected_disposition",
+          "expected_contract_error",
+          "expected_actions",
+          "rationale"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evaluated_at_unix": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "policy": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "required_signals",
+              "minimum_independent_copies"
+            ],
+            "properties": {
+              "required_signals": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "Fixity",
+                    "MediaRead",
+                    "Calibration",
+                    "ReaderAvailability",
+                    "ReaderIndependence",
+                    "TrustAnchor",
+                    "SignatureValidity",
+                    "RevocationFreshness",
+                    "PreservationObjective",
+                    "RepresentationInformation",
+                    "IndependentCopies",
+                    "CommonCause",
+                    "TechnologySupport",
+                    "EnvironmentEnvelope",
+                    "ReadMargin",
+                    "DependencyPolicy",
+                    "SandboxPolicy"
+                  ]
+                }
+              },
+              "minimum_independent_copies": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "observations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "observation_id",
+                "target_id",
+                "signal",
+                "sequence",
+                "state",
+                "observed_at_unix",
+                "valid_until_unix",
+                "evidence_sha256",
+                "observer_id",
+                "provenance",
+                "supersedes_observation_id",
+                "observed_independent_copies"
+              ],
+              "properties": {
+                "observation_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "target_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "signal": {
+                  "enum": [
+                    "Fixity",
+                    "MediaRead",
+                    "Calibration",
+                    "ReaderAvailability",
+                    "ReaderIndependence",
+                    "TrustAnchor",
+                    "SignatureValidity",
+                    "RevocationFreshness",
+                    "PreservationObjective",
+                    "RepresentationInformation",
+                    "IndependentCopies",
+                    "CommonCause",
+                    "TechnologySupport",
+                    "EnvironmentEnvelope",
+                    "ReadMargin",
+                    "DependencyPolicy",
+                    "SandboxPolicy"
+                  ]
+                },
+                "sequence": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "state": {
+                  "enum": [
+                    "Alert",
+                    "Healthy",
+                    "Unknown"
+                  ]
+                },
+                "observed_at_unix": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "valid_until_unix": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "evidence_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{64}$"
+                },
+                "observer_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "provenance": {
+                  "enum": [
+                    "Verified",
+                    "Unverified",
+                    "Invalid"
+                  ]
+                },
+                "supersedes_observation_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "observed_independent_copies": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "expected_disposition": {
+            "enum": [
+              "Stable",
+              "Watch",
+              "InterventionRequired",
+              "Blocked",
+              "Unknown",
+              null
+            ]
+          },
+          "expected_contract_error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expected_actions": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "VerifyFixity",
+                "IsolateSuspectCopy",
+                "RecoverFromIndependentCopy",
+                "RecalibrateReader",
+                "ReplaceReader",
+                "ObtainTrustAnchor",
+                "RefreshRevocationEvidence",
+                "RestoreRepresentationInformation",
+                "RunPreservationObjective",
+                "AssessFailureDomains",
+                "CreateIndependentCopy",
+                "InspectMedia",
+                "RunControlledReadTrial",
+                "PlanMigration",
+                "VerifyRuntimeDependencies",
+                "HumanReview",
+                "GatherFreshEvidence"
+              ]
+            }
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
