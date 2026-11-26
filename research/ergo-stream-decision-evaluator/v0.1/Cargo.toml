@@ -5,6 +5,6 @@ edition = "2024"
 publish = false
 
 [dependencies]
-ergo-stream-microcosm = { path = "../../../ergo-stream-world-contract/v0.1" }
+ergo-stream-microcosm = { path = "../../ergo-stream-world-contract/v0.1" }
 
 [workspace]
