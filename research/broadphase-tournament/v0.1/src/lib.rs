@@ -496,12 +496,9 @@ fn run_backend<const D: usize>(
 
     for _ in 0..repetitions {
         let mut tree = match backend {
-            BackendKind::TreePerLeafUnbalanced | BackendKind::TreeSelfPairUnbalanced => {
-                Some(IncrementalAabbTree::<D>::new_with_balance_policy(
-                    0.0,
-                    BalancePolicy::Disabled,
-                )?)
-            }
+            BackendKind::TreePerLeafUnbalanced | BackendKind::TreeSelfPairUnbalanced => Some(
+                IncrementalAabbTree::<D>::new_with_balance_policy(0.0, BalancePolicy::Disabled)?,
+            ),
             BackendKind::TreePerLeafBalanced | BackendKind::TreeSelfPairBalanced => {
                 Some(IncrementalAabbTree::<D>::new_with_balance_policy(
                     0.0,
