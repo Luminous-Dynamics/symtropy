@@ -125,3 +125,6 @@ The candidate-visible, DecisionNeed-scoped claim format is specified in [decisio
 See [spatial-state-construction-protocol-v0.md](./spatial-state-construction-protocol-v0.md) for the matched L0–L3 evidence-access experiment that isolates retrieval from allocentric map construction. It specifies candidate arms, map-state projection, grounding/geometry/topology scorecards, false-loop/false-adjacency controls and the native-vs-oracle evidence separation.
 
 This update follows the current official OVO-S analysis: evidence recall has near-zero correlation with correctness for tested memory systems, and oracle evidence selection / doubled frame budgets add at most +0.3 over uniform 128 frames. The intended research pivot is from more retrieval to grounded entity/coordinate/topology state construction, while long-horizon memory remains separately evaluated with 4DMemoryBench and EgoMemReason.
+
+
+The current candidate map hypothesis is a **constraint-carrying, revisable set of map alternatives**, not necessarily one best-estimate global map. See VIS-012 #13855 and the final protocol section for frame correctness, cycle consistency, topological validity, identity consistency and DecisionNeed-scoped stopping.
