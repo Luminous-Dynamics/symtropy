@@ -260,11 +260,13 @@ mod tests {
     #[test]
     fn missing_coverage_fact_never_promotes_to_complete() {
         let mut fixture = case_fixture(&corpus()["cases"][0]).to_owned();
-        assert!(fixture
-            .as_object_mut()
-            .expect("fixture object")
-            .remove("source_roster_reconciled")
-            .is_some());
+        assert!(
+            fixture
+                .as_object_mut()
+                .expect("fixture object")
+                .remove("source_roster_reconciled")
+                .is_some()
+        );
         let actual = evaluate_coverage_fixture(&fixture);
         assert_eq!(actual.status, CoverageStatus::Unverified);
         assert_eq!(actual.replay_consequence, ReplayConsequence::TrustUnresolved);
@@ -283,11 +285,13 @@ mod tests {
     fn invalid_checkpoint_binding_rejects_even_when_other_facts_are_missing() {
         let mut fixture = case_fixture(&corpus()["cases"][0]).to_owned();
         fixture["checkpoint_binding_valid"] = Value::Bool(false);
-        assert!(fixture
-            .as_object_mut()
-            .expect("fixture object")
-            .remove("scope_closed")
-            .is_some());
+        assert!(
+            fixture
+                .as_object_mut()
+                .expect("fixture object")
+                .remove("scope_closed")
+                .is_some()
+        );
         let actual = evaluate_coverage_fixture(&fixture);
         assert_eq!(actual.status, CoverageStatus::Invalid);
         assert_eq!(actual.replay_consequence, ReplayConsequence::Reject);
