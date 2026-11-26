@@ -30,7 +30,7 @@ This uses the complete nuisance envelope in every evaluation. Because v0.1 does 
 - deterministic binary split of one design variable at a time;
 - split axis is chosen by the largest normalized contribution from objective or compliance-margin derivative supremum multiplied by design width;
 - fixed ID-order tie-break;
-- maximum node count, maximum depth and minimum design width;
+- maximum node count, maximum depth and per-design-variable minimum width;
 - absolute-plus-relative global gap target;
 - exact node IDs and parent/child path identities.
 
@@ -38,11 +38,13 @@ If no incumbent exists, the report says so. If budget/width limits stop the sear
 
 ## Global lower bound and gap
 
-The global lower bound is the minimum of:
-- the incumbent design's objective lower enclosure; and
-- objective lower bounds for unresolved design leaves.
+The global lower bound is the minimum objective lower bound across the **terminal design partition**:
+- objective-dominated leaves (their lower bounds are at least the incumbent upper bound);
+- unresolved leaves, including those retained at maximum depth, minimum width, unbounded-expression subdivision limits or node-budget exhaustion.
 
-Infeasible leaves are excluded. Objective-dominated leaves have lower bounds no better than the incumbent upper bound and cannot reduce the global bound. The incumbent upper bound is a robust upper enclosure for one point design over the entire nuisance domain.
+Split parent boxes are excluded because their children replace them. Robust-infeasible leaves are excluded because they contain no robust-feasible design. The feasible incumbent supplies an upper bound only; its objective lower enclosure is not substituted for the global lower bound. If any terminal non-infeasible leaf has no valid objective lower bound, the global lower bound is absent and no optimality gap is claimed.
+
+Every split child inherits its parent's valid objective lower bound until a tighter child enclosure is obtained. This keeps node-budget exhaustion conservative: queued boxes remain unresolved but still contribute an inherited lower bound when one is available.
 
 A certified gap is reported only when an incumbent exists and:
 
