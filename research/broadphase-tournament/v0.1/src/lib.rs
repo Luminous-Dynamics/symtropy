@@ -64,16 +64,20 @@ pub struct TemporalScene<const D: usize> {
 pub enum BackendKind {
     BruteForce,
     SweepAndPrune,
-    TreeUnbalanced,
-    TreeBalanced,
+    TreePerLeafUnbalanced,
+    TreeSelfPairUnbalanced,
+    TreePerLeafBalanced,
+    TreeSelfPairBalanced,
 }
 
 impl BackendKind {
-    pub const ALL: [Self; 4] = [
+    pub const ALL: [Self; 6] = [
         Self::BruteForce,
         Self::SweepAndPrune,
-        Self::TreeUnbalanced,
-        Self::TreeBalanced,
+        Self::TreePerLeafUnbalanced,
+        Self::TreeSelfPairUnbalanced,
+        Self::TreePerLeafBalanced,
+        Self::TreeSelfPairBalanced,
     ];
 
     #[must_use]
@@ -81,8 +85,10 @@ impl BackendKind {
         match self {
             Self::BruteForce => "brute_force",
             Self::SweepAndPrune => "sweep_and_prune",
-            Self::TreeUnbalanced => "tree_unbalanced",
-            Self::TreeBalanced => "tree_balanced",
+            Self::TreePerLeafUnbalanced => "tree_per_leaf_unbalanced",
+            Self::TreeSelfPairUnbalanced => "tree_self_pair_unbalanced",
+            Self::TreePerLeafBalanced => "tree_per_leaf_balanced",
+            Self::TreeSelfPairBalanced => "tree_self_pair_balanced",
         }
     }
 }
@@ -490,14 +496,18 @@ fn run_backend<const D: usize>(
 
     for _ in 0..repetitions {
         let mut tree = match backend {
-            BackendKind::TreeUnbalanced => Some(IncrementalAabbTree::<D>::new_with_balance_policy(
-                0.0,
-                BalancePolicy::Disabled,
-            )?),
-            BackendKind::TreeBalanced => Some(IncrementalAabbTree::<D>::new_with_balance_policy(
-                0.0,
-                BalancePolicy::HeightRotations,
-            )?),
+            BackendKind::TreePerLeafUnbalanced | BackendKind::TreeSelfPairUnbalanced => {
+                Some(IncrementalAabbTree::<D>::new_with_balance_policy(
+                    0.0,
+                    BalancePolicy::Disabled,
+                )?)
+            }
+            BackendKind::TreePerLeafBalanced | BackendKind::TreeSelfPairBalanced => {
+                Some(IncrementalAabbTree::<D>::new_with_balance_policy(
+                    0.0,
+                    BalancePolicy::HeightRotations,
+                )?)
+            }
             BackendKind::BruteForce | BackendKind::SweepAndPrune => None,
         };
         let mut previous_bounds = BTreeMap::<ProxyId, Aabb<D>>::new();
@@ -519,7 +529,10 @@ fn run_backend<const D: usize>(
                     counters.pair_tests = counters.pair_tests.saturating_add(pair_tests);
                     actual = pairs;
                 }
-                BackendKind::TreeUnbalanced | BackendKind::TreeBalanced => {
+                BackendKind::TreePerLeafUnbalanced
+                | BackendKind::TreeSelfPairUnbalanced
+                | BackendKind::TreePerLeafBalanced
+                | BackendKind::TreeSelfPairBalanced => {
                     let tree = tree.as_mut().expect("tree backends initialize a tree");
                     let current_bounds = frame
                         .iter()
@@ -549,7 +562,17 @@ fn run_backend<const D: usize>(
                         previous_bounds.insert(proxy.id, proxy.bounds);
                     }
 
-                    let query = tree.query_pairs();
+                    let query = match backend {
+                        BackendKind::TreePerLeafUnbalanced | BackendKind::TreePerLeafBalanced => {
+                            tree.query_pairs_per_leaf_reference()
+                        }
+                        BackendKind::TreeSelfPairUnbalanced | BackendKind::TreeSelfPairBalanced => {
+                            tree.query_pairs()
+                        }
+                        BackendKind::BruteForce | BackendKind::SweepAndPrune => {
+                            unreachable!("non-tree backend entered tree query arm")
+                        }
+                    };
                     checked_add(&mut counters.raw_tree_pairs, query.pairs.len())?;
                     checked_add(&mut counters.node_visits, query.stats.node_visits)?;
                     checked_add(&mut counters.leaf_tests, query.stats.leaf_tests)?;
