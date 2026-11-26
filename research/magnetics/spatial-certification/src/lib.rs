@@ -1179,7 +1179,6 @@ mod tests {
         assert_eq!(result.unresolved_cell_count, 1);
     }
 
-
     #[test]
     fn sub_tolerance_gap_is_rejected_by_exact_partition_sweep() {
         let root = box3();
@@ -1193,3 +1192,4 @@ mod tests {
             CertificationError::PartitionVolumeMismatch
         );
     }
+}
