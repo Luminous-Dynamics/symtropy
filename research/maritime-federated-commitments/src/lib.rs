@@ -512,7 +512,33 @@ mod tests {
     }
 
     #[test]
-    fn counteroffer_supersedes_terms_and_resets_acceptance() {
+    fn counteroffer_supersedes_terms_and_requires_fresh_acceptance() {
+        let events = vec![
+            CommitmentEvent::Offered {
+                offer: offer(1, 200, 4, "terms-v1"),
+                recorded_at: 80,
+            },
+            CommitmentEvent::Counteroffered {
+                parent_revision: 1,
+                offer: offer(2, 250, 5, "terms-v2"),
+                recorded_at: 90,
+            },
+            CommitmentEvent::Accepted {
+                commitment_id: "COMMIT-1".to_owned(),
+                revision: 2,
+                actor_id: "CARRIER-B".to_owned(),
+                recorded_at: 110,
+            },
+        ];
+        let projection = project_commitment(&events, 120).unwrap();
+        assert_eq!(projection.offer.revision, 2);
+        assert_eq!(projection.offer.slot, 5);
+        assert_eq!(projection.state, CommitmentState::Accepted);
+        assert!(projection.is_eligible());
+    }
+
+    #[test]
+    fn accepted_commitment_cannot_be_mutated_by_late_counteroffer() {
         let events = vec![
             CommitmentEvent::Offered {
                 offer: offer(1, 200, 4, "terms-v1"),
@@ -530,11 +556,10 @@ mod tests {
                 recorded_at: 110,
             },
         ];
-        let projection = project_commitment(&events, 120).unwrap();
-        assert_eq!(projection.offer.revision, 2);
-        assert_eq!(projection.offer.slot, 5);
-        assert_eq!(projection.state, CommitmentState::Offered);
-        assert!(!projection.is_eligible());
+        assert_eq!(
+            project_commitment(&events, 120),
+            Err(CommitmentError::OfferNotOpen)
+        );
     }
 
     #[test]
