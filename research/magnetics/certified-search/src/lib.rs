@@ -14,10 +14,11 @@ use magnetic_interval_ad::{
     ValidatedDerivativeEnclosure,
 };
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SearchPolicy {
     pub maximum_nodes: usize,
     pub maximum_depth: u32,
+    pub minimum_design_widths: Vec<f64>,
     pub absolute_optimality_gap: f64,
     pub relative_optimality_gap: f64,
     /// Objective and margin scales make derivative contributions dimensionless.
@@ -100,6 +101,7 @@ pub enum SearchError {
     InvalidPolicy,
     InvalidDesignWidth { index: usize },
     InvalidRootIdentity,
+    InconsistentObjectiveBounds,
     IntervalAd(IntervalAdError),
 }
 
@@ -115,6 +117,7 @@ struct WorkNode {
     parent_node_id: Option<String>,
     depth: u32,
     design_bounds: Vec<Interval>,
+    inherited_objective_lower_bound: Option<f64>,
 }
 
 fn nonempty(value: &str) -> bool {
@@ -130,8 +133,16 @@ fn stable_midpoint(lower: f64, upper: f64) -> Option<f64> {
     (midpoint.is_finite() && midpoint > lower && midpoint < upper).then_some(midpoint)
 }
 
-fn validate_policy(policy: SearchPolicy) -> Result<(), SearchError> {
+fn validate_policy(
+    policy: &SearchPolicy,
+    design_dimension: usize,
+) -> Result<(), SearchError> {
     if policy.maximum_nodes == 0
+        || policy.minimum_design_widths.len() != design_dimension
+        || policy
+            .minimum_design_widths
+            .iter()
+            .any(|width| !width.is_finite() || *width <= 0.0)
         || !policy.absolute_optimality_gap.is_finite()
         || policy.absolute_optimality_gap < 0.0
         || !policy.relative_optimality_gap.is_finite()
@@ -236,40 +247,6 @@ fn gap_satisfied(policy: SearchPolicy, upper: f64, lower: f64) -> bool {
             + policy.relative_optimality_gap * upper.abs().max(lower.abs())
 }
 
-fn choose_split_axis<const N: usize>(
-    node: &WorkNode,
-    root: &ParameterDomain<N>,
-    design_dimension: usize,
-    objective: &ValidatedDerivativeEnclosure<N>,
-    margin: &ValidatedDerivativeEnclosure<N>,
-    policy: SearchPolicy,
-) -> Option<usize> {
-    let mut best_axis = None;
-    let mut best_score = 0.0;
-
-    for index in 0..design_dimension {
-        let width = node.design_bounds[index].upper() - node.design_bounds[index].lower();
-        if !width.is_finite() || width <= 0.0 {
-            continue;
-        }
-        let objective_score = objective.derivative_abs_supremum[index]
-            * width
-            / policy.objective_sensitivity_scale;
-        let margin_score = margin.derivative_abs_supremum[index]
-            * width
-            / policy.margin_sensitivity_scale;
-        let score = objective_score.max(margin_score);
-        if score > best_score {
-            best_score = score;
-            best_axis = Some(index);
-        }
-    }
-
-    // The root is retained only to make the axis-order dependency explicit:
-    // parameter IDs, not memory/layout artefacts, are the tie-break contract.
-    let _ = root;
-    best_axis
-}
 
 fn objective_lower_bound<const N: usize>(
     root: &ParameterDomain<N>,
@@ -322,7 +299,7 @@ where
     G: Fn([IntervalDual<N>; N]) -> Result<IntervalDual<N>, IntervalAdError>,
 {
     validate_root(root, design_dimension)?;
-    validate_policy(policy)?;
+    validate_policy(&policy, design_dimension)?;
 
     let root_design_bounds = root.parameter_bounds[..design_dimension].to_vec();
     for (index, bounds) in root_design_bounds.iter().enumerate() {
@@ -336,6 +313,7 @@ where
         parent_node_id: None,
         depth: 0,
         design_bounds: root_design_bounds,
+        inherited_objective_lower_bound: None,
     }]);
     let mut records = Vec::new();
     let mut incumbent: Option<FeasibleIncumbent> = None;
