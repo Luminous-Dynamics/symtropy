@@ -49,6 +49,8 @@ pub mod pathwise_proposal;
 pub mod pop_col_adjustment;
 pub mod pop_col_energy;
 pub mod pop_convergence;
+/// Simultaneous anytime-valid comparisons across paired portfolio arms.
+pub mod portfolio_selection;
 pub mod predictable_empirical_bernstein;
 pub mod proposal_execution_conformance;
 pub mod refinement_scheduler;
@@ -134,6 +136,12 @@ pub use pop_convergence::{
     PeakOverlapConvergenceConfig, PeakOverlapConvergenceDecision,
     PeakOverlapConvergenceObservation, PeakOverlapConvergenceReason, PeakOverlapConvergenceStatus,
     decide_peak_overlap_convergence,
+};
+pub use portfolio_selection::{
+    MAX_SIMULTANEOUS_PORTFOLIO_DRAWS, PortfolioConsequenceBound,
+    PortfolioConsequenceObservation, PortfolioContrastConfidenceInterval,
+    PortfolioSelectionError, SimultaneousPortfolioComparison, SimultaneousPortfolioDraw,
+    SimultaneousPortfolioSelectionReport,
 };
 pub use predictable_empirical_bernstein::{
     AdaptiveImportanceSamplingPrPlEbSequence, DEFAULT_BET_FRACTION_CAP, PrPlEbConfidenceSequence,
