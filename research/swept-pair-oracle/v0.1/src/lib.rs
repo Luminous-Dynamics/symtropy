@@ -398,7 +398,8 @@ pub fn temporal_oracle_pairs<const D: usize>(
 mod tests {
     use super::*;
     use directional_motion_envelopes::{
-        Digest, DisplacementInterval, MotionKind, build_envelope,
+        Digest, DisplacementInterval, IntegrationParticipation, MotionKind,
+        SemiImplicitEulerMotion, build_envelope, build_semi_implicit_euler_envelope,
     };
 
     fn identity(slot: u32) -> ColliderIdentity {
@@ -486,6 +487,38 @@ mod tests {
     }
 
     #[test]
+    fn semi_implicit_integrator_receipt_is_accepted_for_pair_qualification() {
+        let static_motion = linear(1, [0.0], [1.0], [0.0]);
+        let bounds = Aabb::new([10.0], [11.0]).unwrap();
+        let motion = SemiImplicitEulerMotion {
+            participation: IntegrationParticipation::AwakeDynamicBodyIntegrated,
+            post_linear_velocity: [0.0],
+            post_angular_velocity_norm_squared: 0.0,
+            dt: 0.1,
+            deterministic_net_q16_16: false,
+        };
+        let envelope = build_semi_implicit_euler_envelope(
+            identity(2),
+            context(),
+            bounds,
+            motion,
+            0.0,
+        )
+        .unwrap();
+        let moving_proxy = Proxy {
+            identity: identity(2),
+            motion: MotionEvidence::SemiImplicitEuler(envelope.receipt.unwrap()),
+            collision_group: 1,
+            collision_mask: u32::MAX,
+        };
+        let static_proxy = proxy_for(&static_motion);
+        let receipt = build_swept_pair_set(&[static_proxy, moving_proxy]).unwrap();
+        assert_eq!(receipt.stats.omitted_pairs, 1);
+        assert!(receipt.candidate_pairs.is_empty());
+        assert!(verify_swept_pair_set(&receipt.proxies, &receipt).is_ok());
+    }
+
+    #[test]
     fn unsupported_motion_is_always_retained_as_fallback() {
         let motions = vec![
             linear(1, [0.0, 0.0], [1.0, 1.0], [0.0, 0.0]),
@@ -509,7 +542,10 @@ mod tests {
         motions[1].identity.body_slot = 1;
         motions[1].identity.collider_id += 100;
         motions[1].identity.subshape_path = vec![7];
-        motions[2].collision_mask = 0;
+        motions[1].collision_group = 2;
+        motions[1].collision_mask = 2;
+        motions[2].collision_group = 1;
+        motions[2].collision_mask = 1;
         let proxies: Vec<_> = motions.iter().map(proxy_for).collect();
         let receipt = build_swept_pair_set(&proxies).unwrap();
         assert_eq!(receipt.stats.possible_pairs, 3);
