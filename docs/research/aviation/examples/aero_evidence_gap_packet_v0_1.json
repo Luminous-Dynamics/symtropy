@@ -1,0 +1,82 @@
+{
+  "schema": "AeroEvidenceGapPacketV1",
+  "record_kind": "EVIDENCE_GAP_PACKET",
+  "packet_id": "SYNTHETIC::AERO-EVIDENCE-GAP-001",
+  "producer_profile": "SYNTHETIC::aero-temporal-evidence-assurance-v0.1",
+  "assessment": {
+    "assessment_ref": "SYNTHETIC::AERO-REPORT-001",
+    "report_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "replay_coordinate_digest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "disposition": "TRUST_UNRESOLVED",
+    "verifier_profile_id": "SYNTHETIC::aero-temporal-replay-reference-v0.1"
+  },
+  "decision_context": {
+    "profile_ref": "SYNTHETIC::AERO-STRUCTURAL-PROFILE-001",
+    "article_subject_ref": "SYNTHETIC::SERIAL-ARTICLE-001",
+    "configuration_id": "SYNTHETIC::CONFIG-001",
+    "icd_revision": "SYNTHETIC::ICD-REV-001"
+  },
+  "claims": [
+    {
+      "claim_id": "SYNTHETIC::CALIBRATION-BINDING-CLAIM",
+      "disposition": "TRUST_UNRESOLVED",
+      "reason_codes": [
+        "OBSERVER_COVERAGE_UNQUALIFIED",
+        "SOURCE_ROSTER_NOT_RECONCILED"
+      ],
+      "criticality": "CRITICAL",
+      "evidence_requirements": [
+        {
+          "requirement_id": "SYNTHETIC::SOURCE-COVERAGE-RECONCILIATION",
+          "semantic_type": "qualified_observer_coverage_receipt",
+          "owner_ref": "symthaea:BASALT",
+          "output_contract_ref": "symthaea:#9239",
+          "mandatory": true,
+          "independent_evidence_required": true
+        },
+        {
+          "requirement_id": "SYNTHETIC::RECEIVER-CHECKPOINT-VERIFICATION",
+          "semantic_type": "owner_native_receiver_checkpoint",
+          "owner_ref": "mycelix:AeroCommons",
+          "output_contract_ref": "mycelix:#6345",
+          "mandatory": true,
+          "independent_evidence_required": true
+        }
+      ]
+    },
+    {
+      "claim_id": "SYNTHETIC::NDE-OBSERVABILITY-CLAIM",
+      "disposition": "ABSTAIN",
+      "reason_codes": [
+        "PHYSICAL_POD_EVIDENCE_NOT_ESTABLISHED"
+      ],
+      "criticality": "CRITICAL",
+      "evidence_requirements": [
+        {
+          "requirement_id": "SYNTHETIC::NDE-VALIDATION-EVIDENCE",
+          "semantic_type": "procedure_specific_nde_pod_evidence",
+          "owner_ref": "symtropy:AERO-NDE",
+          "output_contract_ref": "symtropy:#4165",
+          "mandatory": true,
+          "independent_evidence_required": true
+        }
+      ]
+    }
+  ],
+  "source_evidence": [
+    {
+      "id": "SYNTHETIC::AERO-TEMPORAL-REPORT-001",
+      "kind": "temporal_replay_report",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "id": "SYNTHETIC::AERO-COVERAGE-RECEIPT-UNVERIFIED",
+      "kind": "observer_coverage_receipt",
+      "sha256": null
+    }
+  ],
+  "change_impact": null,
+  "claim_ceiling": "evidence_gap_packet_only",
+  "no_actuation": true,
+  "authority_granted": false
+}
