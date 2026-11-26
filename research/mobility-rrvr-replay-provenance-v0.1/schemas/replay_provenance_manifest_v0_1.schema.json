@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/replay-provenance-manifest-v0.1.schema.json",
+  "title": "RRVR Replay Provenance Manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark",
+    "replay_manifest_sha256",
+    "policy_roster_profile_id",
+    "candidates"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "benchmark": {
+      "const": "RRVR-REPLAY-PROVENANCE"
+    },
+    "replay_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "policy_roster_profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/candidate"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "artifact_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relative_path",
+        "sha256"
+      ],
+      "properties": {
+        "relative_path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*(^|/)\\.\\.?(/|$)).+$"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "platform",
+        "split",
+        "source_trajectory_id",
+        "execution_scope_id",
+        "source_episode",
+        "instruction",
+        "action_prefix_index",
+        "simulator_profile",
+        "robot_model_profile",
+        "controller_profile",
+        "rendering_profile",
+        "policy_roster",
+        "reset_receipt_bundle",
+        "action_prefix_receipt_bundle"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "platform": {
+          "enum": [
+            "robo_twin",
+            "libero"
+          ]
+        },
+        "split": {
+          "enum": [
+            "train",
+            "test"
+          ]
+        },
+        "source_trajectory_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution_scope_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_episode": {
+          "$ref": "#/$defs/artifact_ref"
+        },
+        "instruction": {
+          "$ref": "#/$defs/artifact_ref"
+        },
+        "action_prefix_index": {
+          "$ref": "#/$defs/artifact_ref"
+        },
+        "simulator_profile": {
+          "$ref": "#/$defs/artifact_ref"
+        },
+        "robot_model_profile": {
+          "$ref": "#/$defs/artifact_ref"
+        },
+        "controller_profile": {
+          "$ref": "#/$defs/artifact_ref"
+        },
+        "rendering_profile": {
+          "$ref": "#/$defs/artifact_ref"
+        },
+        "policy_roster": {
+          "$ref": "#/$defs/artifact_ref"
+        },
+        "reset_receipt_bundle": {
+          "$ref": "#/$defs/artifact_ref"
+        },
+        "action_prefix_receipt_bundle": {
+          "$ref": "#/$defs/artifact_ref"
+        }
+      }
+    }
+  }
+}
