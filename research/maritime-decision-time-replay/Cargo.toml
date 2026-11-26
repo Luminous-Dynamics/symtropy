@@ -15,6 +15,10 @@ path = "src/bin/mdtr_audit.rs"
 name = "temporal-audit"
 path = "src/bin/temporal_audit.rs"
 
+[[bin]]
+name = "clock-bounds-audit"
+path = "src/bin/clock_bounds_audit.rs"
+
 [dependencies]
 
 [workspace]
