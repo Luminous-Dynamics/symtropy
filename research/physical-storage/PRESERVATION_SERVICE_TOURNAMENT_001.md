@@ -182,3 +182,22 @@ The reference scorer also requires time-to-first-accepted-byte when any payload 
 
 
 Energy evidence is not just a numeric joule value. If energy metering is required and reported as passing, the receipt must bind it to the workload's frozen meter boundary, non-empty meter ID, calibration reference, positive sample interval and SHA-256 digest of the retained raw meter trace. Missing or mismatched meter provenance blocks an energy pass. Device-subsystem and whole-service energy remain distinct boundaries.
+
+
+## 14. Migration acceptance is a separate contract
+
+A cross-medium migration workload must set `migration_required=true` in the frozen workload contract. The Rust scorer then requires:
+- source physical read and fixity/manifest evidence;
+- migration write;
+- destination readback;
+- destination verification;
+- preservation provenance/event acceptance;
+- separate source digest, destination digest and migration-lineage statuses.
+
+Any known source or destination digest failure or invalid migration lineage fails the trial. Missing/incomplete lineage or readback evidence cannot pass. A destination checksum alone is not migration qualification.
+
+The dedicated source/destination migration receipt corpus is:
+- [preservation_migration_receipts_v0_1.json](fixtures/preservation_migration_receipts_v0_1.json)
+- [preservation_migration_receipts_v0_1.schema.json](preservation_migration_receipts_v0_1.schema.json)
+
+The six synthetic cases include exact migration, source digest failure, destination digest failure, incomplete lineage, omitted destination readback stage and disabled provenance. The normal ten-case receipt corpus keeps migration_required=false; the six-case corpus exercises migration-specific gates directly.
