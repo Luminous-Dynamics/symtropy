@@ -35,6 +35,7 @@ pub struct DecisionDisambiguationGroundTruthV0 {
 pub struct DecisionDisambiguationEvaluationV0 {
     pub candidate_hypothesis_count: usize,
     pub admissible_hypothesis_count: usize,
+    pub candidate_policy_result_matches_problem: bool,
     pub correctly_bound_hypotheses: usize,
     pub false_excluded_hypotheses: usize,
     pub false_included_hypotheses: usize,
@@ -251,8 +252,9 @@ pub fn evaluate_decision_disambiguation_claim_v0(
     bindings: &[CandidateWitnessBindingV0],
     ground_truth: &DecisionDisambiguationGroundTruthV0,
 ) -> Result<DecisionDisambiguationEvaluationV0, DecisionEvaluatorErrorV0> {
-    select_decision_sufficient_probe_v0(problem)
+    let expected_candidate_result = select_decision_sufficient_probe_v0(problem)
         .map_err(|_| DecisionEvaluatorErrorV0::InvalidCandidateProblem)?;
+    let candidate_policy_result_matches_problem = expected_candidate_result == *claimed_result;
     let (binding_by_candidate, truth) = validate_truth(problem, bindings, ground_truth)?;
 
     let truth_keys = truth
@@ -348,6 +350,7 @@ pub fn evaluate_decision_disambiguation_claim_v0(
         _ => None,
     };
     let decision_sufficiency_is_valid = claimed_decision_sufficient
+        && candidate_policy_result_matches_problem
         && complete_witness_coverage
         && decision_sufficiency_receipt_matches_truth == Some(true)
         && false_decision_equivalence_pairs == 0
@@ -406,6 +409,7 @@ pub fn evaluate_decision_disambiguation_claim_v0(
     Ok(DecisionDisambiguationEvaluationV0 {
         candidate_hypothesis_count: problem.hypotheses.len(),
         admissible_hypothesis_count: truth.decision_by_witness.len(),
+        candidate_policy_result_matches_problem,
         correctly_bound_hypotheses,
         false_excluded_hypotheses,
         false_included_hypotheses,
