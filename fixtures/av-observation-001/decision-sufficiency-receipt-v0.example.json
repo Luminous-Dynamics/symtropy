@@ -4,12 +4,12 @@
   "issued_at": "2026-11-26T20:50:00Z",
   "decision_need": {
     "id": "route-to-safe-exit",
-    "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   },
-  "utility_contract_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-  "evidence_prefix_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-  "candidate_policy_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-  "probe_catalogue_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "utility_contract_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "evidence_prefix_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "candidate_policy_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "probe_catalogue_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
   "budget": {
     "remaining_cost_units": 3,
     "remaining_latency_ticks": 2,
@@ -22,11 +22,11 @@
   },
   "residuals": {
     "unresolved_candidate_hypothesis_count": 2,
-    "residual_index_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "residual_index_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     "source_evidence_refs": [
       "observation:frame-seq-41",
       "observation:frame-seq-57"
     ],
-    "retention_contract_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+    "retention_contract_digest": "9999999999999999999999999999999999999999999999999999999999999999"
   }
 }
