@@ -252,3 +252,27 @@ This is a claim-semantics negative control, not an assertion that the reported d
 Passing this synthetic prototype establishes only that the specified replay cases and reference evaluator agree. It does not authenticate real sources, prove physical oracle independence, establish statistical guarantees, demonstrate terminal performance, or authorize operational decisions.
 
 Any field evaluation begins read-only, rights-cleared and independently adjudicated. Any later operational mutation requires a separate authority path, reconciliation and safety case. This crate does not authorize berth booking, dispatch, TOS mutation, custody transfer or payment.
+
+
+## Tri-temporal replay extension (v0.2 research increment)
+
+The `src/temporal.rs` module adds a separate projection over three axes:
+
+1. **Physical valid time:** does the source claim apply at the physical instant being evaluated?
+2. **Receiver knowledge time:** had the source published the revision and had this receiving system actually retrieved it by the decision cutoff, with rights valid at that cutoff?
+3. **Independent adjudication time:** which adjudication revision had been recorded by the auditor's explicit audit cutoff?
+
+The module exposes `TemporalCutoffs`, `TemporalEvidenceRevision`, `project_temporal_revision` and `select_decision_revisions`.
+
+Important separation: the decision-revision selector does not inspect adjudication state. Later audit conflicts or later acceptance cannot change the source revision that was admissible to the historical policy. Audit projection separately selects the latest adjudication revision known by the audit cutoff and rejects conflicting same-revision adjudication records.
+
+The temporal module currently has seven focused unit tests covering:
+- later source correction vs historical decision cutoff;
+- independent publication and receiver retrieval times;
+- future plans known before their physical validity;
+- later independent adjudication;
+- physical validity and rights intervals;
+- conflicting visible payloads under one source revision;
+- decision projection independence from later audit conflicts.
+
+This remains a synthetic contract module. It is not yet a full ingestion adapter, cryptographic digest implementation, clock-uncertainty solver, or replacement for #7363's artifact/revision owner. See [#7512 — tri-temporal replay](https://github.com/Luminous-Dynamics/symtropy/issues/7512).
