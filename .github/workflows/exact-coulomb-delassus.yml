@@ -7,7 +7,7 @@ on:
       - "research/exact-coulomb-delassus/v0.1/**"
       - ".github/workflows/exact-coulomb-delassus.yml"
   push:
-    branches: [main, "research/exact-coulomb-delassus-v0.1"]
+    branches: [main, "research/exact-coulomb-delassus-v0.1", "research/exact-coulomb-contact-law-v0.1"]
     paths:
       - "research/exact-coulomb-delassus/v0.1/**"
       - ".github/workflows/exact-coulomb-delassus.yml"
