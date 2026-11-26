@@ -31,6 +31,8 @@ pub mod adaptive_importance_comparison;
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod adaptive_importance_sampling;
 pub mod conditional_velocity;
+/// Descriptive held-out residual and covariance-realism diagnostics.
+pub mod covariance_realism;
 pub mod coverage;
 pub mod decision_gate;
 /// Anytime-valid paired contrast sequence under a frozen defensive proposal.
@@ -79,6 +81,12 @@ pub use adaptive_importance_sampling::{
     AdaptiveImportanceDraw, AdaptiveImportanceSamplingConfidenceSequence,
     AdaptiveImportanceSamplingError, AdaptiveImportanceSamplingSummary, BoundedMeanBettingSequence,
     BoundedMeanConfidenceSequence,
+};
+pub use covariance_realism::{
+    MAX_COVARIANCE_REALISM_DIMENSION, MAX_COVARIANCE_REALISM_OBSERVATIONS,
+    NOMINAL_ELLIPSOID_COVERAGE_PERMILLE, CovarianceRealismError, CovarianceRealismGroupSummary,
+    CovarianceRealismReport, CovarianceResidualObservation, EllipsoidCoveragePoint,
+    NisQuantileSummary, WhitenedComponentSummary, audit_covariance_realism,
 };
 pub use conditional_velocity::{
     ConditionalDirectionReport, ConditionalVelocityConfig, ConditionalVelocityDiagnostics,
