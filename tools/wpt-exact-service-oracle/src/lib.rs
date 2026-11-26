@@ -873,6 +873,10 @@ mod tests {
         assert_eq!(report.minimum_cut_capacity_mwh, 16);
         report.joint_certificate.verify().unwrap();
         assert_eq!(report.joint_certificate.result.max_flow, 16);
+        let encoded_joint = serde_json::to_vec(&report.joint_certificate).unwrap();
+        let decoded_joint: FlowCertificateBundle =
+            serde_json::from_slice(&encoded_joint).unwrap();
+        decoded_joint.verify().unwrap();
         assert!(
             report
                 .receiver_allocations
@@ -996,6 +1000,29 @@ mod tests {
                             && bundle.result.max_flow == bundle.result.min_cut.capacity
                     })
         }));
+    }
+
+    #[test]
+    fn exported_joint_and_individual_bundles_retain_their_own_graphs() {
+        let mut scenario = fixture();
+        scenario["receivers"][0]["minimum_service_mwh"] = Value::from(8);
+        scenario["receivers"][1]["minimum_service_mwh"] = Value::from(5);
+        let report = evaluate_scenario(&scenario).unwrap();
+        assert!(!report.feasible);
+        report.joint_certificate.verify().unwrap();
+
+        for receiver in &report.receiver_allocations {
+            let bundle = receiver.individual_max_certificate.as_ref().unwrap();
+            bundle.verify().unwrap();
+            let encoded = serde_json::to_vec(bundle).unwrap();
+            let decoded: FlowCertificateBundle = serde_json::from_slice(&encoded).unwrap();
+            decoded.verify().unwrap();
+            assert_ne!(
+                decoded.graph,
+                report.joint_certificate.graph,
+                "isolated receiver graph must exclude other receiver sink obligations"
+            );
+        }
     }
 
     #[test]
