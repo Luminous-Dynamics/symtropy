@@ -1,0 +1,35 @@
+name: Static Broadphase Query LBVH
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "crates/core/symtropy-physics/src/broadphase.rs"
+      - "crates/core/symtropy-physics/Cargo.toml"
+      - ".github/workflows/static-broadphase-query-lbvh.yml"
+  push:
+    branches: [main, "research/static-broadphase-query-lbvh-v0.1"]
+    paths:
+      - "crates/core/symtropy-physics/src/broadphase.rs"
+      - "crates/core/symtropy-physics/Cargo.toml"
+      - ".github/workflows/static-broadphase-query-lbvh.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Rust 1.96 static broadphase differential checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run broadphase differential tests
+        run: cargo test -p symtropy-physics broadphase::tests --lib
+      - name: Run strict physics Clippy
+        run: cargo clippy -p symtropy-physics --all-targets --all-features -- -D warnings

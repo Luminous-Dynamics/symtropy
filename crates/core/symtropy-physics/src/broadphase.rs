@@ -132,52 +132,11 @@ pub struct Lbvh<const D: usize> {
 
 impl<const D: usize> Lbvh<D> {
     pub fn build(bodies: &[RigidBody<D>]) -> Self {
-        let n = bodies.len();
-        let mut aabbs = Vec::with_capacity(n);
-        let mut world_min = SVector::<f64, D>::from_element(f64::MAX);
-        let mut world_max = SVector::<f64, D>::from_element(f64::MIN);
-        for body in bodies {
-            let aabb = Aabb::from_body(body);
-            for i in 0..D {
-                if aabb.min[i] < world_min[i] {
-                    world_min[i] = aabb.min[i];
-                }
-                if aabb.max[i] > world_max[i] {
-                    world_max[i] = aabb.max[i];
-                }
-            }
-            aabbs.push(aabb);
-        }
-        for i in 0..D {
-            if world_max[i] - world_min[i] < 1e-6 {
-                world_min[i] -= 1.0;
-                world_max[i] += 1.0;
-            }
-        }
-        let morton_codes: Vec<u64> = aabbs
-            .iter()
-            .map(|a| {
-                let c = (a.min + a.max) * 0.5;
-                morton_encode::<D>(&c, &world_min, &world_max)
-            })
-            .collect();
-        let mut sorted_indices: Vec<usize> = (0..n).collect();
-        sorted_indices.sort_by_key(|&i| morton_codes[i]);
-        let sorted_aabbs: Vec<Aabb<D>> = sorted_indices.iter().map(|&i| aabbs[i].clone()).collect();
-        let nodes = if n <= 1 {
-            Vec::new()
-        } else {
-            Self::build_nodes(
-                &sorted_indices
-                    .iter()
-                    .map(|&i| morton_codes[i])
-                    .collect::<Vec<_>>(),
-                &sorted_aabbs,
-            )
-        };
+        let aabbs = bodies.iter().map(Aabb::from_body).collect::<Vec<_>>();
+        let (sorted_indices, leaf_aabbs, nodes) = build_morton_index(&aabbs);
         Self {
             sorted_indices,
-            leaf_aabbs: sorted_aabbs,
+            leaf_aabbs,
             nodes,
         }
     }
@@ -293,6 +252,57 @@ impl<const D: usize> Lbvh<D> {
     }
 }
 
+/// Build a deterministic Morton-sorted AABB hierarchy for an arbitrary
+/// leaf population. The returned sorted indices refer to the caller's AABB
+/// slice; the tree's leaf AABBs are stored in Morton order.
+fn build_morton_index<const D: usize>(
+    aabbs: &[Aabb<D>],
+) -> (Vec<usize>, Vec<Aabb<D>>, Vec<BvhNode<D>>) {
+    let n = aabbs.len();
+    let mut sorted_indices = (0..n).collect::<Vec<_>>();
+    if n <= 1 {
+        return (
+            sorted_indices,
+            aabbs.to_vec(),
+            Vec::new(),
+        );
+    }
+
+    let mut world_min = SVector::<f64, D>::from_element(f64::MAX);
+    let mut world_max = SVector::<f64, D>::from_element(f64::MIN);
+    for aabb in aabbs {
+        for axis in 0..D {
+            world_min[axis] = world_min[axis].min(aabb.min[axis]);
+            world_max[axis] = world_max[axis].max(aabb.max[axis]);
+        }
+    }
+    for axis in 0..D {
+        if world_max[axis] - world_min[axis] < 1e-6 {
+            world_min[axis] -= 1.0;
+            world_max[axis] += 1.0;
+        }
+    }
+
+    let morton_codes = aabbs
+        .iter()
+        .map(|aabb| {
+            let center = (aabb.min + aabb.max) * 0.5;
+            morton_encode::<D>(&center, &world_min, &world_max)
+        })
+        .collect::<Vec<_>>();
+    sorted_indices.sort_by_key(|&index| morton_codes[index]);
+    let sorted_aabbs = sorted_indices
+        .iter()
+        .map(|&index| aabbs[index].clone())
+        .collect::<Vec<_>>();
+    let sorted_codes = sorted_indices
+        .iter()
+        .map(|&index| morton_codes[index])
+        .collect::<Vec<_>>();
+    let nodes = Lbvh::<D>::build_nodes(&sorted_codes, &sorted_aabbs);
+    (sorted_indices, sorted_aabbs, nodes)
+}
+
 /// Check if two bodies should collide based on collision group/mask filters.
 /// Both bodies must accept each other: `(a.group & b.mask != 0) && (b.group & a.mask != 0)`.
 #[inline]
@@ -357,24 +367,52 @@ impl<const D: usize> BpEntry<D> {
 /// this typically halves or better the broadphase cost.
 pub struct StaticBroadphase<const D: usize> {
     entries: Vec<BpEntry<D>>,
+    sorted_indices: Vec<usize>,
+    leaf_aabbs: Vec<Aabb<D>>,
+    nodes: Vec<BvhNode<D>>,
+}
+
+/// Small static populations use a direct scan to avoid tree traversal overhead.
+/// Larger populations use the cached Morton hierarchy.
+const STATIC_LINEAR_THRESHOLD: usize = 16;
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct StaticQueryStats {
+    node_visits: usize,
+    leaf_tests: usize,
+    linear_queries: usize,
 }
 
 impl<const D: usize> StaticBroadphase<D> {
     pub fn new() -> Self {
         Self {
             entries: Vec::new(),
+            sorted_indices: Vec::new(),
+            leaf_aabbs: Vec::new(),
+            nodes: Vec::new(),
         }
     }
 
-    /// Rebuild the cache from all bodies in the world.
+    /// Rebuild cached static/kinematic bounds and their Morton hierarchy.
     ///
     /// Call this when `static_tree_dirty` is set on `PhysicsWorld`.
     pub fn rebuild(&mut self, bodies: &[RigidBody<D>]) {
         self.entries = bodies
             .iter()
-            .filter(|b| b.body_type == BodyType::Static || b.body_type == BodyType::Kinematic)
+            .filter(|body| {
+                body.body_type == BodyType::Static || body.body_type == BodyType::Kinematic
+            })
             .map(BpEntry::from_body)
             .collect();
+        let aabbs = self
+            .entries
+            .iter()
+            .map(|entry| entry.aabb.clone())
+            .collect::<Vec<_>>();
+        let (sorted_indices, leaf_aabbs, nodes) = build_morton_index(&aabbs);
+        self.sorted_indices = sorted_indices;
+        self.leaf_aabbs = leaf_aabbs;
+        self.nodes = nodes;
     }
 
     pub fn is_empty(&self) -> bool {
@@ -385,27 +423,66 @@ impl<const D: usize> StaticBroadphase<D> {
         self.entries.len()
     }
 
-    /// Enumerate pairs between a dynamic entry and all cached static entries.
+    /// Query the cached static population against one dynamic AABB.
     ///
-    /// Uses orientation-aware AABB overlap.
-    fn query_against<'a>(
-        &'a self,
-        dyn_entry: &'a BpEntry<D>,
-    ) -> impl Iterator<Item = BroadphasePair> + 'a {
-        self.entries.iter().filter_map(move |s| {
-            let group_ok = (dyn_entry.collision_group & s.collision_mask != 0)
-                && (s.collision_group & dyn_entry.collision_mask != 0);
-            if group_ok && dyn_entry.aabb.overlaps(&s.aabb) {
-                let (ha, hb) = (dyn_entry.handle, s.handle);
-                let pair = if ha < hb {
-                    BroadphasePair(ha, hb)
-                } else {
-                    BroadphasePair(hb, ha)
-                };
-                return Some(pair);
+    /// Returns canonical pairs and narrow instrumentation counters. The
+    /// counters are intentionally query-local so benchmark adapters can
+    /// measure tree pruning without relying on wall-clock timing alone.
+    fn query_against(
+        &self,
+        dyn_entry: &BpEntry<D>,
+    ) -> (Vec<BroadphasePair>, StaticQueryStats) {
+        let mut pairs = Vec::new();
+        let mut stats = StaticQueryStats::default();
+
+        if self.entries.len() <= STATIC_LINEAR_THRESHOLD || self.nodes.is_empty() {
+            stats.linear_queries = 1;
+            for entry in &self.entries {
+                stats.leaf_tests += 1;
+                append_static_pair(dyn_entry, entry, &mut pairs);
             }
-            None
-        })
+            return (pairs, stats);
+        }
+
+        let root = (self.nodes.len() - 1) as u32;
+        let mut stack = Vec::with_capacity(64);
+        stack.push(root);
+        while let Some(node_index) = stack.pop() {
+            if is_leaf(node_index) {
+                let leaf_index = leaf_index(node_index);
+                stats.leaf_tests += 1;
+                let entry = &self.entries[self.sorted_indices[leaf_index]];
+                if dyn_entry.aabb.overlaps(&self.leaf_aabbs[leaf_index]) {
+                    append_static_pair(dyn_entry, entry, &mut pairs);
+                }
+                continue;
+            }
+
+            stats.node_visits += 1;
+            let node = &self.nodes[node_index as usize];
+            if dyn_entry.aabb.overlaps(&node.aabb) {
+                stack.push(node.right);
+                stack.push(node.left);
+            }
+        }
+        (pairs, stats)
+    }
+}
+
+fn append_static_pair<const D: usize>(
+    dynamic: &BpEntry<D>,
+    static_entry: &BpEntry<D>,
+    pairs: &mut Vec<BroadphasePair>,
+) {
+    let group_ok = (dynamic.collision_group & static_entry.collision_mask != 0)
+        && (static_entry.collision_group & dynamic.collision_mask != 0);
+    if group_ok && dynamic.aabb.overlaps(&static_entry.aabb) {
+        let (first, second) = (dynamic.handle, static_entry.handle);
+        pairs.push(if first < second {
+            BroadphasePair(first, second)
+        } else {
+            BroadphasePair(second, first)
+        });
     }
 }
 
@@ -415,72 +492,106 @@ impl<const D: usize> Default for StaticBroadphase<D> {
     }
 }
 
+/// Instrumentation for the incremental broadphase. These structural counts
+/// allow deterministic algorithm comparisons without depending on timer noise.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct IncrementalBroadphaseStats {
+    pub dynamic_entries: usize,
+    pub static_entries: usize,
+    pub dynamic_pair_tests: usize,
+    pub static_bvh_node_visits: usize,
+    pub static_leaf_tests: usize,
+    pub static_linear_queries: usize,
+    pub candidate_pairs: usize,
+    pub used_full_lbvh_fallback: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct IncrementalBroadphaseResult {
+    pub pairs: Vec<BroadphasePair>,
+    pub stats: IncrementalBroadphaseStats,
+}
+
 /// Find all potentially colliding pairs using the incremental static cache.
 ///
-/// Separates the body list into dynamic and non-dynamic entries:
-/// - Dynamic–dynamic: brute-force O(n_dyn²), acceptable for typical games
-///   where the number of actively moving bodies is small.
-/// - Dynamic–static: linear scan against the prebuilt `StaticBroadphase`.
-///   For large static geometry this avoids re-packing static bodies into the
-///   LBVH every frame.
-///
-/// For very large dynamic counts (≥ BRUTE_FORCE_THRESHOLD) the existing
-/// `find_pairs` (full LBVH over all bodies) is called instead, since it is
-/// superior at scale.
+/// Dynamic-dynamic pairs remain brute force while the dynamic population is
+/// below `BRUTE_FORCE_THRESHOLD`; larger dynamic populations use the full
+/// LBVH. Dynamic-static queries use a cached Morton BVH above
+/// `STATIC_LINEAR_THRESHOLD`, otherwise a direct scan for small caches.
 pub fn find_pairs_incremental<const D: usize>(
     bodies: &[RigidBody<D>],
     static_bp: &StaticBroadphase<D>,
 ) -> Vec<BroadphasePair> {
-    // Fast paths
+    find_pairs_incremental_with_stats(bodies, static_bp).pairs
+}
+
+/// Instrumented variant of `find_pairs_incremental`.
+pub fn find_pairs_incremental_with_stats<const D: usize>(
+    bodies: &[RigidBody<D>],
+    static_bp: &StaticBroadphase<D>,
+) -> IncrementalBroadphaseResult {
+    let mut stats = IncrementalBroadphaseStats {
+        static_entries: static_bp.len(),
+        ..IncrementalBroadphaseStats::default()
+    };
     if bodies.is_empty() {
-        return Vec::new();
+        return IncrementalBroadphaseResult {
+            pairs: Vec::new(),
+            stats,
+        };
     }
     if static_bp.is_empty() {
-        // No static cache: identical to the standard path.
-        return find_pairs(bodies);
+        let pairs = find_pairs(bodies);
+        stats.candidate_pairs = pairs.len();
+        stats.used_full_lbvh_fallback = bodies.len() >= BRUTE_FORCE_THRESHOLD;
+        return IncrementalBroadphaseResult { pairs, stats };
     }
 
-    // Compute AABB entries for dynamic bodies only
-    let dynamic: Vec<BpEntry<D>> = bodies
+    let dynamic = bodies
         .iter()
-        .filter(|b| b.body_type == BodyType::Dynamic)
+        .filter(|body| body.body_type == BodyType::Dynamic)
         .map(BpEntry::from_body)
-        .collect();
+        .collect::<Vec<_>>();
+    stats.dynamic_entries = dynamic.len();
 
-    // For large dynamic counts fall back to the full LBVH path which is more
-    // efficient at scale. The static cache saves rebuilding the full tree.
     if dynamic.len() >= BRUTE_FORCE_THRESHOLD {
-        return find_pairs(bodies);
+        let pairs = find_pairs(bodies);
+        stats.candidate_pairs = pairs.len();
+        stats.used_full_lbvh_fallback = true;
+        return IncrementalBroadphaseResult { pairs, stats };
     }
 
     let mut pairs = Vec::new();
-
-    // Dynamic–dynamic pairs (brute force, orientation-aware AABB overlap)
-    for i in 0..dynamic.len() {
-        for j in (i + 1)..dynamic.len() {
-            let a = &dynamic[i];
-            let b = &dynamic[j];
+    for first in 0..dynamic.len() {
+        for second in (first + 1)..dynamic.len() {
+            stats.dynamic_pair_tests += 1;
+            let a = &dynamic[first];
+            let b = &dynamic[second];
             let group_ok = (a.collision_group & b.collision_mask != 0)
                 && (b.collision_group & a.collision_mask != 0);
             if group_ok && a.aabb.overlaps(&b.aabb) {
-                let (ha, hb) = (a.handle, b.handle);
-                if ha < hb {
-                    pairs.push(BroadphasePair(ha, hb));
+                let (left, right) = (a.handle, b.handle);
+                pairs.push(if left < right {
+                    BroadphasePair(left, right)
                 } else {
-                    pairs.push(BroadphasePair(hb, ha));
-                }
+                    BroadphasePair(right, left)
+                });
             }
         }
     }
 
-    // Dynamic–static pairs (linear scan against cached static AABB entries)
-    for dyn_entry in &dynamic {
-        pairs.extend(static_bp.query_against(dyn_entry));
+    for dynamic_entry in &dynamic {
+        let (static_pairs, query_stats) = static_bp.query_against(dynamic_entry);
+        stats.static_bvh_node_visits += query_stats.node_visits;
+        stats.static_leaf_tests += query_stats.leaf_tests;
+        stats.static_linear_queries += query_stats.linear_queries;
+        pairs.extend(static_pairs);
     }
 
-    pairs.sort_unstable_by_key(|p| (p.0, p.1));
+    pairs.sort_unstable_by_key(|pair| (pair.0, pair.1));
     pairs.dedup();
-    pairs
+    stats.candidate_pairs = pairs.len();
+    IncrementalBroadphaseResult { pairs, stats }
 }
 
 fn find_pairs_brute<const D: usize>(bodies: &[RigidBody<D>]) -> Vec<BroadphasePair> {
@@ -711,6 +822,136 @@ mod tests {
 
         static_bp.rebuild(&bodies);
         assert_eq!(static_bp.len(), 1, "should cache the one static body");
+    }
+
+    #[test]
+    fn static_morton_tree_matches_brute_force_and_prunes_leaf_tests() {
+        let mut bodies = Vec::new();
+        for index in 0..256 {
+            bodies.push(RigidBody::<3>::static_body(
+                BodyHandle(index),
+                Point::new([index as f64 * 4.0, 0.0, 0.0]),
+                Box::new(Sphere::unit()),
+            ));
+        }
+        for (offset, x) in [0.0, 200.0, 500.0, 800.0].into_iter().enumerate() {
+            bodies.push(RigidBody::<3>::dynamic_sphere(
+                BodyHandle(1_000 + offset),
+                Point::new([x, 0.0, 0.0]),
+                1.0,
+                1.0,
+            ));
+        }
+
+        let mut static_bp = StaticBroadphase::new();
+        static_bp.rebuild(&bodies);
+        let result = find_pairs_incremental_with_stats(&bodies, &static_bp);
+        let oracle = find_pairs_brute(&bodies);
+
+        assert_eq!(result.pairs, oracle);
+        assert_eq!(result.stats.dynamic_entries, 4);
+        assert_eq!(result.stats.static_entries, 256);
+        assert!(result.stats.static_bvh_node_visits > 0);
+        assert!(
+            result.stats.static_leaf_tests < result.stats.dynamic_entries * result.stats.static_entries,
+            "tree should test fewer leaves than the linear scan"
+        );
+        assert_eq!(result.stats.candidate_pairs, oracle.len());
+        assert_eq!(result.stats.static_linear_queries, 0);
+    }
+
+    #[test]
+    fn static_morton_tree_preserves_bidirectional_collision_filters() {
+        let mut static_body = RigidBody::<3>::static_body(
+            BodyHandle(1),
+            Point::origin(),
+            Box::new(Sphere::unit()),
+        );
+        static_body.collision_group = 0b0001;
+        static_body.collision_mask = 0b0010;
+
+        let mut dynamic_body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(2),
+            Point::new([1.0, 0.0, 0.0]),
+            1.0,
+            1.0,
+        );
+        dynamic_body.collision_group = 0b0010;
+        dynamic_body.collision_mask = 0b0001;
+
+        let mut bodies = vec![static_body, dynamic_body];
+        for index in 0..32 {
+            bodies.push(RigidBody::<3>::static_body(
+                BodyHandle(10 + index),
+                Point::new([100.0 + index as f64 * 4.0, 0.0, 0.0]),
+                Box::new(Sphere::unit()),
+            ));
+        }
+
+        let mut static_bp = StaticBroadphase::new();
+        static_bp.rebuild(&bodies);
+        let result = find_pairs_incremental_with_stats(&bodies, &static_bp);
+        assert_eq!(result.pairs, find_pairs_brute(&bodies));
+        assert_eq!(result.pairs, vec![BroadphasePair(BodyHandle(1), BodyHandle(2))]);
+
+        // If either side rejects the other, the overlapping AABBs must not
+        // produce a candidate.
+        bodies[1].collision_mask = 0;
+        static_bp.rebuild(&bodies);
+        let filtered = find_pairs_incremental_with_stats(&bodies, &static_bp);
+        assert!(filtered.pairs.is_empty());
+    }
+
+    #[test]
+    fn small_static_population_keeps_the_linear_fast_path() {
+        let mut bodies = Vec::new();
+        for index in 0..8 {
+            bodies.push(RigidBody::<3>::static_body(
+                BodyHandle(index),
+                Point::new([index as f64 * 4.0, 0.0, 0.0]),
+                Box::new(Sphere::unit()),
+            ));
+        }
+        bodies.push(RigidBody::<3>::dynamic_sphere(
+            BodyHandle(100),
+            Point::origin(),
+            1.0,
+            1.0,
+        ));
+
+        let mut static_bp = StaticBroadphase::new();
+        static_bp.rebuild(&bodies);
+        let result = find_pairs_incremental_with_stats(&bodies, &static_bp);
+        assert_eq!(result.pairs, find_pairs_brute(&bodies));
+        assert_eq!(result.stats.static_linear_queries, 1);
+        assert_eq!(result.stats.static_bvh_node_visits, 0);
+        assert_eq!(result.stats.static_leaf_tests, 8);
+    }
+
+    #[test]
+    fn high_dynamic_population_keeps_the_full_lbvh_fallback() {
+        let mut bodies = Vec::new();
+        for index in 0..64 {
+            bodies.push(RigidBody::<3>::static_body(
+                BodyHandle(index),
+                Point::new([index as f64 * 10.0, 0.0, 0.0]),
+                Box::new(Sphere::unit()),
+            ));
+        }
+        for index in 0..BRUTE_FORCE_THRESHOLD {
+            bodies.push(RigidBody::<3>::dynamic_sphere(
+                BodyHandle(1_000 + index),
+                Point::new([index as f64 * 3.0, 0.0, 0.0]),
+                1.0,
+                1.0,
+            ));
+        }
+
+        let mut static_bp = StaticBroadphase::new();
+        static_bp.rebuild(&bodies);
+        let result = find_pairs_incremental_with_stats(&bodies, &static_bp);
+        assert!(result.stats.used_full_lbvh_fallback);
+        assert_eq!(result.pairs, find_pairs(&bodies));
     }
 
     #[test]

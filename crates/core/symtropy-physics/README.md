@@ -39,6 +39,7 @@ for _ in 0..100 {
 - **GJK** intersection test — 102ns for sphere×sphere (benchmarked)
 - **EPA** penetration depth — transform-aware contact normals for 2D and 3D
 - **Oriented collision geometry** — full rigid transforms in support maps, broadphase bounds, primitive contacts, mesh callbacks, and ray queries
+- **Incremental static broadphase** — cached static/kinematic AABBs indexed by a Morton BVH; small caches retain a direct-scan fast path, and large dynamic populations retain the full-LBVH fallback
 - **Dedicated OBB SAT** — 2D/3D face axes plus 3D edge-cross-edge axes
 - **Coulomb friction** — tangential impulse clamped by μ×j_n
 - **Body sleeping** — deactivate near-stationary bodies, wake on collision
@@ -50,6 +51,8 @@ for _ in 0..100 {
 - **WASM compatible**
 
 ## Benchmarks
+
+The incremental broadphase also exposes deterministic structural counters via `find_pairs_incremental_with_stats`: dynamic-pair tests, static-BVH node visits, static leaf tests, linear queries, candidate count, and whether the full-LBVH fallback was used. These are suitable for algorithmic comparisons independent of timer noise. Performance claims still require matched workload, correctness-oracle and end-to-end timing evidence.
 
 | Operation | Time |
 |-----------|------|
