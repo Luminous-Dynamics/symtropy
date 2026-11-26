@@ -260,13 +260,13 @@ fn undo(totals: &BTreeMap<ResourceKey, u32>, used: &mut BTreeMap<ResourceKey, u3
     }
 }
 
-fn enumerate_recursive(
+fn enumerate_recursive<'a>(
     vessel_index: usize,
     vessel_ids: &[String],
     capacities: &CapacityIndex,
-    candidates_by_vessel: &CandidateIndex<'_>,
+    candidates_by_vessel: &CandidateIndex<'a>,
     used: &mut BTreeMap<ResourceKey, u32>,
-    chosen: &mut Vec<&CandidateAction>,
+    chosen: &mut Vec<&'a CandidateAction>,
     output: &mut Vec<Plan>,
 ) -> Result<(), OracleError> {
     if vessel_index == vessel_ids.len() {
