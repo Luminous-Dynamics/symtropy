@@ -1383,7 +1383,10 @@ mod tests {
     fn one_failed_attempt_invalidates_the_scenario() {
         let root = temp_dir();
         let mut candidate = passing_candidate(&root, "scenario-2", Split::Test, &"a".repeat(64));
-        candidate.spot_check.attempts[1].end_effector = pose_comparison(2.0);
+        let attempt_id = candidate.spot_check.attempts[1].attempt_id.clone();
+        let replay_snapshot =
+            make_state_snapshot("scenario-2", &attempt_id, "world", "world", 2.0, 1.0);
+        update_attempt_replay_state(&root, &mut candidate, 1, &replay_snapshot);
         let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
         assert_eq!(report.invalid_n, 1);
         assert_eq!(
@@ -1423,7 +1426,10 @@ mod tests {
     fn exactly_two_millimetres_is_not_below_strict_threshold() {
         let root = temp_dir();
         let mut candidate = passing_candidate(&root, "scenario-3", Split::Test, &"a".repeat(64));
-        candidate.spot_check.attempts[0].object_pose = pose_comparison(2.0);
+        let attempt_id = candidate.spot_check.attempts[0].attempt_id.clone();
+        let replay_snapshot =
+            make_state_snapshot("scenario-3", &attempt_id, "world", "world", 1.0, 2.0);
+        update_attempt_replay_state(&root, &mut candidate, 0, &replay_snapshot);
         let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
         assert_eq!(report.invalid_n, 1);
         assert_eq!(
@@ -1520,10 +1526,10 @@ mod tests {
     fn unknown_coordinate_frame_remains_unresolved_for_attempt() {
         let root = temp_dir();
         let mut candidate = passing_candidate(&root, "scenario-8", Split::Test, &"a".repeat(64));
-        candidate.spot_check.attempts[0]
-            .end_effector
-            .replayed
-            .coordinate_frame_id = "camera".to_owned();
+        let attempt_id = candidate.spot_check.attempts[0].attempt_id.clone();
+        let replay_snapshot =
+            make_state_snapshot("scenario-8", &attempt_id, "camera", "world", 1.0, 1.0);
+        update_attempt_replay_state(&root, &mut candidate, 0, &replay_snapshot);
         let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
         assert_eq!(report.unresolved_n, 1);
         assert!(
