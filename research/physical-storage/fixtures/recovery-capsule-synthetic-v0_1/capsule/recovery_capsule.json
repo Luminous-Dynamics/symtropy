@@ -1,0 +1,152 @@
+{
+  "schema_version": "physical-recovery-capsule-v0.1",
+  "capsule_id": "SYNTHETIC-RECOVERY-CAPSULE-001",
+  "evidence_class": "synthetic_fixture",
+  "qualification_status": "fixture_only",
+  "package_profiles": {
+    "bagit_version": "1.0",
+    "bagit_payload_manifests": [
+      "sha256"
+    ],
+    "ocfl_version": "1.1.1",
+    "premis_version": "3.0",
+    "eark_csip_version": "2.2.0"
+  },
+  "payload_manifest": {
+    "algorithm": "sha256",
+    "path": "manifest-sha256.txt",
+    "payload_file_count": 1,
+    "fixity_verified": true
+  },
+  "representation_information": {
+    "format_specification_path": "capsule/format_spec.json",
+    "preservation_metadata_path": "capsule/preservation_event.json",
+    "recovery_procedure_path": "capsule/recovery_procedure.md",
+    "human_readable_format_description": "Opaque byte payload; no physical medium or decoder operation is represented."
+  },
+  "physical_format": {
+    "medium_family": "synthetic_none",
+    "format_id": "synthetic-byte-payload",
+    "format_version": "0.1",
+    "physical_layout_ref": null,
+    "calibration_profile_refs": [],
+    "raw_observation_contract_ref": null
+  },
+  "reader_contract": {
+    "physical_reader_required": false,
+    "reader_input_contract_ref": null,
+    "minimum_reader_implementations": 2,
+    "vendor_runtime_required": false,
+    "network_required": false
+  },
+  "decoder_implementations": [
+    {
+      "implementation_id": "decoder-reference-a",
+      "implementation_role": "reference_decoder",
+      "source_ref": "capsule/decoder-a/README.md",
+      "source_digest_sha256": "2d4255a51077d6de53a3d7fe3ac552843c971d09fa8ee5cff03d6a2fff0c191e",
+      "license": "not-applicable-documentation-fixture",
+      "language": "Markdown declaration only",
+      "version_or_commit": "fixture-only",
+      "build_recipe_ref": null,
+      "dependency_lock_ref": null,
+      "execution_mode": "documentation_fixture",
+      "known_answer_test_ref": "capsule/known_answer.json"
+    },
+    {
+      "implementation_id": "decoder-reference-b",
+      "implementation_role": "independent_decoder",
+      "source_ref": "capsule/decoder-b/README.md",
+      "source_digest_sha256": "7f985dc89c921b4f035603b2ecb3b188634f44be3ac8222391817e3dbf473e9f",
+      "license": "not-applicable-documentation-fixture",
+      "language": "Markdown declaration only",
+      "version_or_commit": "fixture-only",
+      "build_recipe_ref": null,
+      "dependency_lock_ref": null,
+      "execution_mode": "documentation_fixture",
+      "known_answer_test_ref": "capsule/known_answer.json"
+    }
+  ],
+  "independence_assessment": {
+    "status": "unassessed",
+    "assessor_ref": null,
+    "shared_dependencies": [],
+    "common_code_reviewed": false,
+    "independent_builds_verified": false
+  },
+  "known_answer_sets": [
+    {
+      "case_id": "KAT-001",
+      "payload_path": "data/payload/hello.txt",
+      "expected_byte_length": 57,
+      "expected_digest_algorithm": "sha256",
+      "expected_digest": "83c2524b06326495b0a1df40f1556295c1f19802230343b5c9a4216edd85b5b3",
+      "fault_scenarios": [
+        {
+          "scenario_id": "pristine",
+          "expected_outcome": "exact_recovery",
+          "fault_mask_ref": null
+        },
+        {
+          "scenario_id": "payload-bit-flip",
+          "expected_outcome": "reject_digest_mismatch",
+          "fault_mask_ref": null
+        },
+        {
+          "scenario_id": "decoder-disagreement",
+          "expected_outcome": "fail_closed",
+          "fault_mask_ref": null
+        }
+      ]
+    }
+  ],
+  "recovery_procedure": {
+    "procedure_ref": "capsule/recovery_procedure.md",
+    "offline_capable": true,
+    "network_required": false,
+    "human_authorization_required": true,
+    "bootstrap_dependencies": [
+      "RFC 8493-compatible BagIt validator",
+      "SHA-256 implementation"
+    ]
+  },
+  "preservation_metadata": {
+    "premis_ref": "capsule/preservation_event.json",
+    "format_registry_refs": [],
+    "rights_ref": null,
+    "migration_lineage_ref": null
+  },
+  "integrity": {
+    "payload_fixity_algorithms": [
+      "sha256"
+    ],
+    "tag_fixity_algorithms": [
+      "sha256"
+    ],
+    "manifest_self_check": true,
+    "independent_payload_digest_required": true
+  },
+  "authenticity": {
+    "status": "not_applicable_synthetic",
+    "fixity_is_authenticity": false,
+    "signature_evidence": []
+  },
+  "reader_replacement": {
+    "status": "not_performed",
+    "independent_team": null,
+    "original_vendor_reader_withheld": false,
+    "network_disabled": true,
+    "exact_payload_match": null
+  },
+  "dependency_profile": {
+    "status": "unavailable",
+    "profile_ref": null
+  },
+  "provenance": {
+    "created_at": "2026-11-26T14:57:00+02:00",
+    "source_commit": null,
+    "creator_ref": null,
+    "capsule_descriptor_digest_sha256": null,
+    "notes": "Synthetic BagIt fixture only. Decoder records are documentation placeholders; no independent builds, physical readout or reader replacement test occurred."
+  }
+}
