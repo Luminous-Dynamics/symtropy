@@ -264,10 +264,7 @@ fn same_body(left: &ColliderIdentity, right: &ColliderIdentity) -> bool {
     left.body_slot == right.body_slot && left.body_generation == right.body_generation
 }
 
-fn motion_bounds_overlap<const D: usize>(
-    left: &MotionAabb<D>,
-    right: &MotionAabb<D>,
-) -> bool {
+fn motion_bounds_overlap<const D: usize>(left: &MotionAabb<D>, right: &MotionAabb<D>) -> bool {
     (0..D).all(|axis| {
         left.max()[axis] >= right.min()[axis] && right.max()[axis] >= left.min()[axis]
     })
@@ -424,7 +421,6 @@ pub fn verify_tree_swept_pair_set<const D: usize>(
     }
 }
 
-
 /// Per-frame deltas from the persistent tree's cumulative maintenance
 /// counters. These distinguish real tree updates from unchanged-proxy frames.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -440,7 +436,9 @@ pub struct TreeMaintenanceDelta {
 impl TreeMaintenanceDelta {
     fn between(before: MaintenanceStats, after: MaintenanceStats) -> Self {
         Self {
-            inserts: after.insert_operations.saturating_sub(before.insert_operations),
+            inserts: after
+                .insert_operations
+                .saturating_sub(before.insert_operations),
             removes: after.remove_operations.saturating_sub(before.remove_operations),
             updates: after.update_operations.saturating_sub(before.update_operations),
             fat_contained_updates: after
@@ -523,10 +521,7 @@ impl<const D: usize> TreeBackedBroadphase<D> {
     /// If an impossible tree/oracle disagreement or tree mutation error occurs,
     /// the instance is marked poisoned and must be discarded. The current
     /// frame receipt is committed only after exact candidate parity succeeds.
-    pub fn step(
-        &mut self,
-        proxies: &[Proxy<D>],
-    ) -> Result<TreeFrameReceipt<D>, TreePairSetError> {
+    pub fn step(&mut self, proxies: &[Proxy<D>]) -> Result<TreeFrameReceipt<D>, TreePairSetError> {
         if self.poisoned {
             return Err(TreePairSetError::Poisoned);
         }
@@ -664,8 +659,8 @@ impl<const D: usize> TreeBackedBroadphase<D> {
             final_candidate_pairs: candidate_pairs.len(),
         };
 
-        let frame_index =
-            u64::try_from(self.input_history.len()).map_err(|_| TreePairSetError::HistoryTooLong)?;
+        let frame_index = u64::try_from(self.input_history.len())
+            .map_err(|_| TreePairSetError::HistoryTooLong)?;
         self.active_bounds = desired_bounds;
         self.registry = working_registry;
         self.input_history.push(reference.proxies.clone());
@@ -888,8 +883,7 @@ mod tests {
 
     #[test]
     fn stateful_tree_inserts_reinserts_and_removes_across_frames() {
-        let mut broadphase =
-            TreeBackedBroadphase::<1>::new(TreeBuildConfig::default()).unwrap();
+        let mut broadphase = TreeBackedBroadphase::<1>::new(TreeBuildConfig::default()).unwrap();
         let frame_one = [
             proxy(1, [0.0], [1.0], [0.0]),
             proxy(2, [5.0], [6.0], [0.0]),
@@ -899,10 +893,7 @@ mod tests {
         assert_eq!(first.tree_stats.proxy_count, 2);
         assert!(first.candidate_pairs.is_empty());
 
-        let frame_two = [
-            proxy(1, [4.5], [5.5], [0.0]),
-            proxy(2, [5.0], [6.0], [0.0]),
-        ];
+        let frame_two = [proxy(1, [4.5], [5.5], [0.0]), proxy(2, [5.0], [6.0], [0.0])];
         let second = broadphase.step(&frame_two).unwrap();
         assert_eq!(second.candidate_pairs.len(), 1);
         assert_eq!(second.maintenance_delta.updates, 1);
@@ -919,8 +910,7 @@ mod tests {
 
     #[test]
     fn stateful_fat_contained_leaf_is_refined_against_current_envelope() {
-        let mut broadphase =
-            TreeBackedBroadphase::<1>::new(TreeBuildConfig::default()).unwrap();
+        let mut broadphase = TreeBackedBroadphase::<1>::new(TreeBuildConfig::default()).unwrap();
         let first = [
             proxy(1, [0.0], [10.0], [0.0]),
             proxy(2, [7.0], [8.0], [0.0]),
@@ -928,10 +918,7 @@ mod tests {
         let initial = broadphase.step(&first).unwrap();
         assert_eq!(initial.candidate_pairs.len(), 1);
 
-        let second = [
-            proxy(1, [0.0], [1.0], [0.0]),
-            proxy(2, [7.0], [8.0], [0.0]),
-        ];
+        let second = [proxy(1, [0.0], [1.0], [0.0]), proxy(2, [7.0], [8.0], [0.0])];
         let updated = broadphase.step(&second).unwrap();
         assert_eq!(updated.maintenance_delta.fat_contained_updates, 1);
         assert_eq!(updated.stats.raw_tree_pairs, 1);
@@ -943,8 +930,7 @@ mod tests {
 
     #[test]
     fn stateful_tree_records_fat_contained_updates_without_reinsertion() {
-        let mut broadphase =
-            TreeBackedBroadphase::<1>::new(TreeBuildConfig::default()).unwrap();
+        let mut broadphase = TreeBackedBroadphase::<1>::new(TreeBuildConfig::default()).unwrap();
         let first = [
             proxy(1, [0.0], [10.0], [0.0]),
             proxy(2, [20.0], [21.0], [0.0]),
@@ -965,8 +951,7 @@ mod tests {
 
     #[test]
     fn stateful_unsupported_transition_removes_tree_proxy_and_adds_fallback() {
-        let mut broadphase =
-            TreeBackedBroadphase::<1>::new(TreeBuildConfig::default()).unwrap();
+        let mut broadphase = TreeBackedBroadphase::<1>::new(TreeBuildConfig::default()).unwrap();
         let frame_one = [
             proxy(1, [0.0], [1.0], [0.0]),
             proxy(2, [100.0], [101.0], [0.0]),
@@ -977,8 +962,7 @@ mod tests {
             proxy(1, [0.0], [1.0], [0.0]),
             proxy(2, [100.0], [101.0], [0.0]),
         ];
-        frame_two[1].motion =
-            MotionEvidence::Unsupported(UnsupportedReason::Rotation);
+        frame_two[1].motion = MotionEvidence::Unsupported(UnsupportedReason::Rotation);
         let receipt = broadphase.step(&frame_two).unwrap();
 
         assert_eq!(receipt.stats.supported_proxies, 1);
@@ -992,8 +976,7 @@ mod tests {
 
     #[test]
     fn stateful_registry_tombstones_preserve_identity_across_remove_and_readd() {
-        let mut broadphase =
-            TreeBackedBroadphase::<1>::new(TreeBuildConfig::default()).unwrap();
+        let mut broadphase = TreeBackedBroadphase::<1>::new(TreeBuildConfig::default()).unwrap();
         let first = [proxy(20, [0.0], [1.0], [0.0])];
         let receipt_one = broadphase.step(&first).unwrap();
         let original = receipt_one
@@ -1022,15 +1005,13 @@ mod tests {
 
     #[test]
     fn stateful_sequence_receipt_rejects_tampered_history_or_counters() {
-        let mut broadphase =
-            TreeBackedBroadphase::<1>::new(TreeBuildConfig::default()).unwrap();
+        let mut broadphase = TreeBackedBroadphase::<1>::new(TreeBuildConfig::default()).unwrap();
         broadphase.step(&[proxy(1, [0.0], [1.0], [0.0])]).unwrap();
         let receipt = broadphase.step(&[proxy(1, [2.0], [3.0], [0.0])]).unwrap();
         assert!(verify_tree_frame_receipt(&receipt).is_ok());
 
         let mut tampered_history = receipt.clone();
-        tampered_history.input_history[0][0] =
-            proxy(1, [-10.0], [-9.0], [0.0]);
+        tampered_history.input_history[0][0] = proxy(1, [-10.0], [-9.0], [0.0]);
         assert!(verify_tree_frame_receipt(&tampered_history).is_err());
 
         let mut tampered_counts = receipt.clone();
