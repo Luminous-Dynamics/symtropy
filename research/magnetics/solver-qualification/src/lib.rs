@@ -542,7 +542,6 @@ mod tests {
         assert_eq!(pair.shared_dependency_ids, vec!["magpylib", "numpy"]);
     }
 
-
     #[test]
     fn shared_dependencies_are_reported_across_distinct_software_ids() {
         let left = face_charge_run();
