@@ -135,6 +135,10 @@ pub enum BoundedDesignTournamentError {
         candidate_index: usize,
         scenario_index: usize,
     },
+    InvalidSensorFrameRotationBound {
+        candidate_index: usize,
+        scenario_index: usize,
+    },
     NumericOverflow {
         candidate_index: usize,
         scenario_index: usize,
@@ -232,12 +236,16 @@ fn validate_uncertainty_record(
             },
         );
     }
-    if !bounds.phase_zero_error_bound_rad.is_finite()
-        || bounds.phase_zero_error_bound_rad < 0.0
-        || !bounds.sensor_frame_rotation_error_bound_rad.is_finite()
+    if !bounds.phase_zero_error_bound_rad.is_finite() || bounds.phase_zero_error_bound_rad < 0.0 {
+        return Err(BoundedDesignTournamentError::InvalidPhaseZeroBound {
+            candidate_index,
+            scenario_index,
+        });
+    }
+    if !bounds.sensor_frame_rotation_error_bound_rad.is_finite()
         || bounds.sensor_frame_rotation_error_bound_rad < 0.0
     {
-        return Err(BoundedDesignTournamentError::InvalidPhaseZeroBound {
+        return Err(BoundedDesignTournamentError::InvalidSensorFrameRotationBound {
             candidate_index,
             scenario_index,
         });
@@ -937,6 +945,46 @@ mod tests {
                 .all(|scenario| { scenario.sensor_frame_rotation_error_bound_rad == 0.003 })
         );
     }
+
+
+    #[test]
+    fn sensor_frame_rotation_bound_must_be_finite_and_nonnegative() {
+        let mut candidate =
+            bounded_candidate("invalid-sensor-frame", 1.0, 0.0, 0.0, 0.0, 0.0);
+        candidate.scenario_uncertainty[0].sensor_frame_rotation_error_bound_rad = f64::NAN;
+        assert_eq!(
+            rank_bounded_magnetic_designs(
+                "invalid-sensor-frame-tournament",
+                &[candidate],
+                &requirements(),
+            )
+            .expect_err("sensor frame rotation bound must be finite"),
+            BoundedDesignTournamentError::InvalidSensorFrameRotationBound {
+                candidate_index: 0,
+                scenario_index: 0,
+            }
+        );
+    }
+
+    #[test]
+    fn large_finite_field_maps_do_not_overflow_the_mean_lower_bound() {
+        let candidate =
+            bounded_candidate("large-finite-field", 1.0e306, 0.01, 0.0, 0.0, 0.0);
+        let result = rank_bounded_magnetic_designs(
+            "large-field-mean-tournament",
+            &[candidate],
+            &requirements(),
+        )
+        .expect("finite high-magnitude field maps remain numerically bounded");
+        assert_eq!(result.robustly_accepted_candidate_count, 1);
+        assert!(result.candidates[0]
+            .worst_amplitude_ripple_upper_bound_fraction
+            .is_some_and(f64::is_finite));
+        assert!(result.candidates[0]
+            .minimum_in_plane_field_lower_bound_t
+            .is_finite());
+    }
+
 
     #[test]
     fn uncertainty_records_must_match_the_source_archive_and_calibration() {
