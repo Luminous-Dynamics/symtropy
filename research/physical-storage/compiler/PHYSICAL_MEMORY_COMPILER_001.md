@@ -223,3 +223,12 @@ The DNA channel is not a glass or magnetic erasure channel. It spans constrained
 The compiler must not rank DNA as production-qualified or infer a storage density, cost, throughput or lifetime from theoretical bits per nucleotide. Evaluate net recoverable bits only after GC/homopolymer/primer constraints, indexes, parity, dropout redundancy and the full biochemical process are counted.
 
 Source: Öztürk et al., “DNA Data Storage: A Critical Review of Bio-Algorithmic Integration, Performance-Cost Tradeoffs, and Future Directions for Scalable Architectures,” 3 June 2026: https://link.springer.com/article/10.1007/s11831-026-10651-2.
+
+
+### 2026 DNA codec and soft-decision baselines
+
+Two further 2026 studies make the DNA lane substantially more actionable:
+- Gimpel et al., Nature Communications (14 March 2026), compare six sequence codecs in silico and in vitro and publish the DT4DDS benchmark workflow, ENA PRJEB90546 data and archived code DOI 10.5281/zenodo.17391326. The study reports separate in-vitro demonstrations at 43 EB/g for material-deposition synthesis and 13 EB/g for electrochemical synthesis. These are experimental research results, not commercial archive specifications. https://doi.org/10.1038/s41467-026-70548-3
+- Ding et al., Bioinformatics (3 August 2026), introduce Polus/SeqFormer quality-aware soft-decision decoding. The reported 38.9% DNA Fountain coverage reduction and ~80% effective-density improvement are in silico, setup-specific results, not physical system qualifications. https://doi.org/10.1093/bioinformatics/btag563
+
+The compiler should treat these as coding/reconstruction baselines. They do not create a commercial DNA medium candidate. The optimizer's service comparison still needs synthesis yield, physical strand mass, read coverage, random access, retention, measured cost and exact end-to-end restore evidence.
