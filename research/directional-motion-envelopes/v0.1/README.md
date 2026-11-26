@@ -8,6 +8,14 @@ Given a tight AABB B and a supplied conservative signed displacement interval [d
 
 The receipt binds stable collider identity (including body generation), world revision, frame, horizon, integrator digest, motion-bound producer digest, arithmetic profile, exact tight bounds, displacement interval, guard and output envelope. Replay recomputes the result and rejects any changed input.
 
+## Symtropy semi-implicit Euler adapter
+
+The crate also provides a one-step adapter that accepts the post-integrator linear velocity and timestep used by the current CCD path. The integrator first updates velocity, applies exponential damping and a speed clamp, then advances position using the resulting velocity. If post-angular-velocity squared exceeds the integrator's 1e-24 rotation threshold, the adapter returns UnsupportedRotation and no translation certificate.
+
+With deterministic-net Q16.16 enabled, the world quantizes the post-integrator velocity and position before its CCD pass. The adapter includes an outward-rounded guard of half a position quantum plus dt times half a velocity quantum, accounting for the difference between the pre-quantized velocity used by integration and the post-quantized velocity used by CCD.
+
+This adapter is bound to a supplied post-integrator state; it does not independently prove that the integrator inputs, force callback or velocity were produced correctly. Its trust boundary is the exact code path identified by the integrator digest plus the caller's state snapshot.
+
 Rotational and unknown/unbounded motion produce typed unsupported statuses and no certificate. Non-finite arithmetic fails closed.
 
 ## Important trust boundary
@@ -27,6 +35,7 @@ cargo clippy --manifest-path research/directional-motion-envelopes/v0.1/Cargo.to
 - Mixed-sign 2D displacement intervals and directional rather than symmetric padding.
 - Endpoint-box containment, stationary bounds and explicit guard expansion.
 - 4D reference use.
+- Semi-implicit Euler post-velocity sweep, endpoint enclosure, Q16.16 deterministic-net guard, rotation fallback, and receipt replay over velocity/timestep/quantization inputs.
 - Unsupported rotation/unbounded motion returns no certificate.
 - Replay rejection for changed identity, revision, horizon, arithmetic profile or displacement.
 - Invalid identities, intervals, guards, bounds and arithmetic overflow.
