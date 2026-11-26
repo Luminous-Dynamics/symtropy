@@ -192,8 +192,12 @@ impl Sub for Interval {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        self + (-rhs)
+        subtract_intervals(self, rhs)
     }
+}
+
+fn subtract_intervals(left: Interval, right: Interval) -> Interval {
+    left + (-right)
 }
 
 impl Mul for Interval {
@@ -343,8 +347,15 @@ impl<const N: usize> Sub for IntervalDual<N> {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        self + (-rhs)
+        subtract_duals(self, rhs)
     }
+}
+
+fn subtract_duals<const N: usize>(
+    left: IntervalDual<N>,
+    right: IntervalDual<N>,
+) -> IntervalDual<N> {
+    left + (-right)
 }
 
 impl<const N: usize> Mul for IntervalDual<N> {
