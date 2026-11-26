@@ -181,10 +181,10 @@ fn half_open(value: &str, path: &str, index: u64) -> Result<(), String> {
     Ok(())
 }
 
-fn path_exists_without_gates(
+fn path_exists_excluding(
     parsed_nodes: &BTreeMap<String, Node>,
     parsed_edges: &[Edge],
-    gate_ids: &BTreeSet<String>,
+    excluded_edges: &BTreeSet<String>,
     start: &str,
     target: &str,
 ) -> bool {
@@ -201,7 +201,7 @@ fn path_exists_without_gates(
         for edge in parsed_edges.iter().filter(|edge| {
             edge.from == node_id
                 && edge.upper > 0
-                && !gate_ids.contains(&edge.id)
+                && !excluded_edges.contains(&edge.id)
         }) {
             if parsed_nodes.contains_key(&edge.to) && seen.insert(edge.to.clone()) {
                 queue.push(edge.to.clone());
@@ -215,7 +215,9 @@ fn verify_physical_gate_dominance(parsed: &Parsed) -> Result<(), String> {
     if parsed.gate_ids.is_empty() {
         return Err(err("$.resource_aliases", "no physical capacity gates were declared"));
     }
-    if path_exists_without_gates(
+    // No positive-capacity source-to-service path may avoid every declared
+    // physical-resource gate.
+    if path_exists_excluding(
         &parsed.nodes,
         &parsed.edges,
         &parsed.gate_ids,
@@ -224,13 +226,19 @@ fn verify_physical_gate_dominance(parsed: &Parsed) -> Result<(), String> {
     ) {
         return Err(err("$.edges", "a positive-capacity source-to-service path bypasses all declared physical-resource gates"));
     }
+    // Each declared gate must participate in at least one feasible path. Other
+    // gates remain available here, so legitimate serial infrastructure works.
     for gate_id in &parsed.gate_ids {
         let gate = parsed.edges.iter().find(|edge| &edge.id == gate_id)
             .ok_or_else(|| err("$.resource_aliases", "declared physical gate edge is missing"))?;
-        if !path_exists_without_gates(
-            &parsed.nodes, &parsed.edges, &parsed.gate_ids, &parsed.source, &gate.from
-        ) || !path_exists_without_gates(
-            &parsed.nodes, &parsed.edges, &parsed.gate_ids, &gate.to, &parsed.sink
+        if gate.upper == 0 {
+            return Err(err("$.resource_aliases", "declared physical gate has no positive upper capacity"));
+        }
+        let excluded_gate = BTreeSet::from([gate_id.clone()]);
+        if !path_exists_excluding(
+            &parsed.nodes, &parsed.edges, &excluded_gate, &parsed.source, &gate.from
+        ) || !path_exists_excluding(
+            &parsed.nodes, &parsed.edges, &excluded_gate, &gate.to, &parsed.sink
         ) {
             return Err(err("$.resource_aliases", "declared physical capacity gate does not lie on a source-to-service path"));
         }
