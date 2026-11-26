@@ -1,0 +1,69 @@
+name: Physics VVUQ Reference Seed
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "crates/core/symtropy-physics/**"
+      - "docs/research/SYMTROPY_PHYSICS_VVUQ_BENCHMARK_V0_1.md"
+      - ".github/workflows/physics-vvuq-reference.yml"
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/**"
+      - "docs/research/SYMTROPY_PHYSICS_VVUQ_BENCHMARK_V0_1.md"
+      - ".github/workflows/physics-vvuq-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physics-vvuq-reference-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  reference-seed:
+    name: Analytical convergence and independent OBB reference
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact triggering revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt
+
+      - name: Format physics package
+        run: cargo fmt --manifest-path crates/core/symtropy-physics/Cargo.toml -- --check
+
+      - name: Run analytical and independent-reference tests
+        env:
+          SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/physics-vvuq"
+          {
+            echo "source_head=$SOURCE_HEAD"
+            echo "rustc=$(rustc --version)"
+            echo "cargo=$(cargo --version)"
+            echo "seed=0x4551435656553031"
+            echo "obb_cases=4096"
+            echo "free_fall_dt=1/30,1/60,1/120,1/240"
+          } | tee "$RUNNER_TEMP/physics-vvuq/run-metadata.txt"
+
+          cargo test --locked -p symtropy-physics --test vvuq_reference -- --nocapture \
+            2>&1 | tee "$RUNNER_TEMP/physics-vvuq/test.log"
+
+      - name: Preserve exact-head evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: physics-vvuq-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/physics-vvuq/
+          if-no-files-found: error
+          retention-days: 90
