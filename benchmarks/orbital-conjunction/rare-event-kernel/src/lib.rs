@@ -55,8 +55,6 @@ pub mod pop_convergence;
 /// Defensive proposal mixtures across a frozen portfolio event-mode universe.
 pub mod portfolio_proposal;
 pub mod portfolio_selection;
-/// Atomic simultaneous selection across portfolios under a defensive proposal.
-pub mod simultaneous_defensive_selection;
 /// Robust portfolio dominance across separately qualified epistemic scenarios.
 pub mod scenario_robust_selection;
 pub mod predictable_empirical_bernstein;
@@ -64,6 +62,8 @@ pub mod proposal_execution_conformance;
 pub mod refinement_scheduler;
 pub mod residual;
 pub mod sequential;
+/// Atomic simultaneous selection across portfolios under a defensive proposal.
+pub mod simultaneous_defensive_selection;
 pub mod space_time_partition;
 pub mod stats;
 pub mod trajectory;
