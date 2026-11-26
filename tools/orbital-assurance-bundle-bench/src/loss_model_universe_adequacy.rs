@@ -659,6 +659,11 @@ pub fn evaluate(corpus: &Corpus) -> Result<Evaluation, String> {
     })
 }
 
+/// Evaluate one model-universe case using the same independent grammar as the frozen corpus.
+pub fn evaluate_single_case(case: &Case) -> CaseResult {
+    evaluate_case(case)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -745,7 +750,3 @@ mod tests {
     }
 }
 
-/// Evaluate one model-universe case using the same independent grammar as the frozen corpus.
-pub fn evaluate_single_case(case: &Case) -> CaseResult {
-    evaluate_case(case)
-}
