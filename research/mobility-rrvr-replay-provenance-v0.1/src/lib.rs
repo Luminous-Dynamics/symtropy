@@ -348,17 +348,16 @@ fn is_sha256(value: &str) -> bool {
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }
 
-fn read_artifact(
-    root: &Path,
-    reference: &ArtifactRef,
-    label: &str,
-) -> Result<Vec<u8>, String> {
+fn read_artifact(root: &Path, reference: &ArtifactRef, label: &str) -> Result<Vec<u8>, String> {
     if !is_sha256(&reference.sha256) {
         return Err(format!("{label}_DIGEST_SYNTAX_INVALID"));
     }
     let relative = Path::new(&reference.relative_path);
-    if reference.relative_path.trim().is_empty() || relative.is_absolute()
-        || relative.components().any(|part| !matches!(part, Component::Normal(_)))
+    if reference.relative_path.trim().is_empty()
+        || relative.is_absolute()
+        || relative
+            .components()
+            .any(|part| !matches!(part, Component::Normal(_)))
     {
         return Err(format!("{label}_PATH_UNSAFE"));
     }
@@ -372,8 +371,8 @@ fn read_artifact(
     if !canonical_path.starts_with(&canonical_root) {
         return Err(format!("{label}_PATH_ESCAPES_ROOT"));
     }
-    let bytes = fs::read(canonical_path)
-        .map_err(|e| format!("{label}_ARTIFACT_READ_FAILED: {e}"))?;
+    let bytes =
+        fs::read(canonical_path).map_err(|e| format!("{label}_ARTIFACT_READ_FAILED: {e}"))?;
     if sha256_hex(&bytes) != reference.sha256 {
         return Err(format!("{label}_RAW_DIGEST_MISMATCH"));
     }
@@ -414,8 +413,7 @@ fn validate_state_snapshot_artifact(
         relative_path: relative_path.to_owned(),
         sha256: expected_sha256.to_owned(),
     };
-    let snapshot: ReplayStateSnapshotArtifact =
-        parse_artifact(root, &reference, label)?;
+    let snapshot: ReplayStateSnapshotArtifact = parse_artifact(root, &reference, label)?;
     assert_eq_field(
         snapshot.schema_version,
         SCHEMA_VERSION.to_owned(),
@@ -445,13 +443,9 @@ fn validate_state_snapshot_artifact(
         return Err("STATE_ARTIFACT_COORDINATE_FRAME_INVALID".to_owned());
     }
     for position in [&snapshot.end_effector_position, &snapshot.object_position] {
-        if ![
-            position.x_mm,
-            position.y_mm,
-            position.z_mm,
-        ]
-        .iter()
-        .all(|value| value.is_finite())
+        if ![position.x_mm, position.y_mm, position.z_mm]
+            .iter()
+            .all(|value| value.is_finite())
         {
             return Err("STATE_ARTIFACT_POSITION_INVALID".to_owned());
         }
@@ -466,12 +460,24 @@ fn validate_profile(
     scope_id: &str,
 ) -> Result<(), String> {
     let profile: ProfileArtifact = parse_artifact(root, reference, expected_kind)?;
-    assert_eq_field(profile.schema_version, SCHEMA_VERSION.to_owned(), "PROFILE_SCHEMA_VERSION_MISMATCH")?;
-    assert_eq_field(profile.artifact_kind, expected_kind.to_owned(), "PROFILE_KIND_MISMATCH")?;
+    assert_eq_field(
+        profile.schema_version,
+        SCHEMA_VERSION.to_owned(),
+        "PROFILE_SCHEMA_VERSION_MISMATCH",
+    )?;
+    assert_eq_field(
+        profile.artifact_kind,
+        expected_kind.to_owned(),
+        "PROFILE_KIND_MISMATCH",
+    )?;
     if profile.profile_id.trim().is_empty() {
         return Err("PROFILE_ID_MISSING".to_owned());
     }
-    assert_eq_field(profile.execution_scope_id, scope_id.to_owned(), "PROFILE_SCOPE_MISMATCH")
+    assert_eq_field(
+        profile.execution_scope_id,
+        scope_id.to_owned(),
+        "PROFILE_SCOPE_MISMATCH",
+    )
 }
 
 fn policy_map(candidate: &ReplayCandidate) -> Result<BTreeMap<String, String>, String> {
@@ -480,14 +486,25 @@ fn policy_map(candidate: &ReplayCandidate) -> Result<BTreeMap<String, String>, S
     }
     let mut attempts = BTreeMap::new();
     for trial in &candidate.difficulty_screen.trials {
-        if trial.attempt_id.trim().is_empty() || trial.policy_id.trim().is_empty() || trial.trial_index > 4 {
+        if trial.attempt_id.trim().is_empty()
+            || trial.policy_id.trim().is_empty()
+            || trial.trial_index > 4
+        {
             return Err("DIFFICULTY_TRIAL_IDENTITY_INVALID".to_owned());
         }
-        if attempts.insert(trial.attempt_id.clone(), trial.policy_id.clone()).is_some() {
+        if attempts
+            .insert(trial.attempt_id.clone(), trial.policy_id.clone())
+            .is_some()
+        {
             return Err("DIFFICULTY_ATTEMPT_ID_DUPLICATED".to_owned());
         }
     }
-    let success_n = candidate.difficulty_screen.trials.iter().filter(|row| row.success).count();
+    let success_n = candidate
+        .difficulty_screen
+        .trials
+        .iter()
+        .filter(|row| row.success)
+        .count();
     if !(2..=18).contains(&success_n) {
         return Err("DIFFICULTY_SCREEN_SUCCESS_COUNT_OUT_OF_RANGE".to_owned());
     }
@@ -551,16 +568,25 @@ fn validate_replay_candidate_set(candidates: &[ReplayCandidate]) -> Result<(), S
             candidate.action_prefix_receipt_sha256.as_str(),
         ];
         if digest_fields.iter().any(|digest| !is_sha256(digest)) {
-            return Err(format!("CANDIDATE_DIGEST_INVALID: {}", candidate.scenario_id));
+            return Err(format!(
+                "CANDIDATE_DIGEST_INVALID: {}",
+                candidate.scenario_id
+            ));
         }
 
         if candidate.split_leakage_keys_sha256.is_empty() {
-            return Err(format!("SPLIT_LEAKAGE_KEYS_MISSING: {}", candidate.scenario_id));
+            return Err(format!(
+                "SPLIT_LEAKAGE_KEYS_MISSING: {}",
+                candidate.scenario_id
+            ));
         }
         let mut local_keys = BTreeSet::new();
         for key in &candidate.split_leakage_keys_sha256 {
             if !is_sha256(key) || !local_keys.insert(key.as_str()) {
-                return Err(format!("SPLIT_LEAKAGE_KEYS_INVALID_OR_DUPLICATED: {}", candidate.scenario_id));
+                return Err(format!(
+                    "SPLIT_LEAKAGE_KEYS_INVALID_OR_DUPLICATED: {}",
+                    candidate.scenario_id
+                ));
             }
             let split_id = match candidate.split {
                 Split::Train => "train",
@@ -595,7 +621,11 @@ fn validate_replay_candidate_set(candidates: &[ReplayCandidate]) -> Result<(), S
     }
 
     for ((platform_id, split_id), keys) in &keys_by_platform_and_split {
-        let opposite_id = if *split_id == "train" { "test" } else { "train" };
+        let opposite_id = if *split_id == "train" {
+            "test"
+        } else {
+            "train"
+        };
         if let Some(opposite) = keys_by_platform_and_split.get(&(*platform_id, opposite_id)) {
             if let Some(overlap) = keys.intersection(opposite).next() {
                 return Err(format!("TRAIN_TEST_LEAKAGE_KEY_OVERLAP: {overlap}"));
@@ -611,7 +641,11 @@ fn validate_candidate(
     policy_roster_profile_id: &str,
     root: &Path,
 ) -> Result<usize, String> {
-    assert_eq_field(replay.scenario_id.clone(), provenance.scenario_id.clone(), "SCENARIO_ID_MISMATCH")?;
+    assert_eq_field(
+        replay.scenario_id.clone(),
+        provenance.scenario_id.clone(),
+        "SCENARIO_ID_MISMATCH",
+    )?;
     assert_eq_field(replay.platform, provenance.platform, "PLATFORM_MISMATCH")?;
     assert_eq_field(replay.split, provenance.split, "SPLIT_MISMATCH")?;
     assert_eq_field(
@@ -645,10 +679,26 @@ fn validate_candidate(
     )?;
     let source: SourceEpisodeArtifact = serde_json::from_slice(&source_episode_bytes)
         .map_err(|e| format!("SOURCE_EPISODE_JSON_INVALID: {e}"))?;
-    assert_eq_field(source.schema_version, SCHEMA_VERSION.to_owned(), "SOURCE_EPISODE_SCHEMA_VERSION_MISMATCH")?;
-    assert_eq_field(source.artifact_kind, "source_episode".to_owned(), "SOURCE_EPISODE_KIND_MISMATCH")?;
-    assert_eq_field(source.scenario_id, replay.scenario_id.clone(), "SOURCE_EPISODE_SCENARIO_MISMATCH")?;
-    assert_eq_field(source.platform, replay.platform, "SOURCE_EPISODE_PLATFORM_MISMATCH")?;
+    assert_eq_field(
+        source.schema_version,
+        SCHEMA_VERSION.to_owned(),
+        "SOURCE_EPISODE_SCHEMA_VERSION_MISMATCH",
+    )?;
+    assert_eq_field(
+        source.artifact_kind,
+        "source_episode".to_owned(),
+        "SOURCE_EPISODE_KIND_MISMATCH",
+    )?;
+    assert_eq_field(
+        source.scenario_id,
+        replay.scenario_id.clone(),
+        "SOURCE_EPISODE_SCENARIO_MISMATCH",
+    )?;
+    assert_eq_field(
+        source.platform,
+        replay.platform,
+        "SOURCE_EPISODE_PLATFORM_MISMATCH",
+    )?;
     assert_eq_field(source.split, replay.split, "SOURCE_EPISODE_SPLIT_MISMATCH")?;
     assert_eq_field(
         source.source_trajectory_id,
@@ -673,7 +723,8 @@ fn validate_candidate(
         "SOURCE_EPISODE_INSTRUCTION_DIGEST_MISMATCH",
     )?;
 
-    let action_index_bytes = read_artifact(root, &provenance.action_prefix_index, "ACTION_PREFIX_INDEX")?;
+    let action_index_bytes =
+        read_artifact(root, &provenance.action_prefix_index, "ACTION_PREFIX_INDEX")?;
     assert_eq_field(
         sha256_hex(&action_index_bytes),
         replay.action_prefix_sha256.clone(),
@@ -686,43 +737,84 @@ fn validate_candidate(
     )?;
     let action_index: ActionPrefixIndexArtifact = serde_json::from_slice(&action_index_bytes)
         .map_err(|e| format!("ACTION_PREFIX_INDEX_JSON_INVALID: {e}"))?;
-    assert_eq_field(action_index.schema_version, SCHEMA_VERSION.to_owned(), "ACTION_PREFIX_INDEX_SCHEMA_VERSION_MISMATCH")?;
-    assert_eq_field(action_index.artifact_kind, "action_prefix_index".to_owned(), "ACTION_PREFIX_INDEX_KIND_MISMATCH")?;
-    assert_eq_field(action_index.scenario_id, replay.scenario_id.clone(), "ACTION_PREFIX_INDEX_SCENARIO_MISMATCH")?;
+    assert_eq_field(
+        action_index.schema_version,
+        SCHEMA_VERSION.to_owned(),
+        "ACTION_PREFIX_INDEX_SCHEMA_VERSION_MISMATCH",
+    )?;
+    assert_eq_field(
+        action_index.artifact_kind,
+        "action_prefix_index".to_owned(),
+        "ACTION_PREFIX_INDEX_KIND_MISMATCH",
+    )?;
+    assert_eq_field(
+        action_index.scenario_id,
+        replay.scenario_id.clone(),
+        "ACTION_PREFIX_INDEX_SCENARIO_MISMATCH",
+    )?;
     assert_eq_field(
         action_index.execution_scope_id,
         provenance.execution_scope_id.clone(),
         "ACTION_PREFIX_INDEX_SCOPE_MISMATCH",
     )?;
 
-    validate_profile(root, &provenance.simulator_profile, "simulator_profile", &provenance.execution_scope_id)?;
+    validate_profile(
+        root,
+        &provenance.simulator_profile,
+        "simulator_profile",
+        &provenance.execution_scope_id,
+    )?;
     assert_eq_field(
         provenance.simulator_profile.sha256.clone(),
         replay.simulator_profile_sha256.clone(),
         "SIMULATOR_PROFILE_REPLAY_MANIFEST_DIGEST_MISMATCH",
     )?;
-    validate_profile(root, &provenance.robot_model_profile, "robot_model_profile", &provenance.execution_scope_id)?;
+    validate_profile(
+        root,
+        &provenance.robot_model_profile,
+        "robot_model_profile",
+        &provenance.execution_scope_id,
+    )?;
     assert_eq_field(
         provenance.robot_model_profile.sha256.clone(),
         replay.robot_model_profile_sha256.clone(),
         "ROBOT_MODEL_PROFILE_REPLAY_MANIFEST_DIGEST_MISMATCH",
     )?;
-    validate_profile(root, &provenance.controller_profile, "controller_profile", &provenance.execution_scope_id)?;
+    validate_profile(
+        root,
+        &provenance.controller_profile,
+        "controller_profile",
+        &provenance.execution_scope_id,
+    )?;
     assert_eq_field(
         provenance.controller_profile.sha256.clone(),
         replay.controller_profile_sha256.clone(),
         "CONTROLLER_PROFILE_REPLAY_MANIFEST_DIGEST_MISMATCH",
     )?;
-    validate_profile(root, &provenance.rendering_profile, "rendering_profile", &provenance.execution_scope_id)?;
+    validate_profile(
+        root,
+        &provenance.rendering_profile,
+        "rendering_profile",
+        &provenance.execution_scope_id,
+    )?;
     assert_eq_field(
         provenance.rendering_profile.sha256.clone(),
         replay.rendering_profile_sha256.clone(),
         "RENDERING_PROFILE_REPLAY_MANIFEST_DIGEST_MISMATCH",
     )?;
 
-    let policy_roster: PolicyRosterArtifact = parse_artifact(root, &provenance.policy_roster, "POLICY_ROSTER")?;
-    assert_eq_field(policy_roster.schema_version, SCHEMA_VERSION.to_owned(), "POLICY_ROSTER_SCHEMA_VERSION_MISMATCH")?;
-    assert_eq_field(policy_roster.artifact_kind, "policy_roster".to_owned(), "POLICY_ROSTER_KIND_MISMATCH")?;
+    let policy_roster: PolicyRosterArtifact =
+        parse_artifact(root, &provenance.policy_roster, "POLICY_ROSTER")?;
+    assert_eq_field(
+        policy_roster.schema_version,
+        SCHEMA_VERSION.to_owned(),
+        "POLICY_ROSTER_SCHEMA_VERSION_MISMATCH",
+    )?;
+    assert_eq_field(
+        policy_roster.artifact_kind,
+        "policy_roster".to_owned(),
+        "POLICY_ROSTER_KIND_MISMATCH",
+    )?;
     if policy_roster.policy_roster_id.trim().is_empty() {
         return Err("POLICY_ROSTER_ID_MISSING".to_owned());
     }
@@ -734,14 +826,24 @@ fn validate_candidate(
     let screen_attempts = policy_map(replay)?;
     let expected_policies: BTreeSet<String> = screen_attempts.values().cloned().collect();
     let actual_policies: BTreeSet<String> = policy_roster.policy_ids.iter().cloned().collect();
-    if policy_roster.policy_ids.len() != actual_policies.len() || expected_policies != actual_policies {
+    if policy_roster.policy_ids.len() != actual_policies.len()
+        || expected_policies != actual_policies
+    {
         return Err("POLICY_ROSTER_DOES_NOT_MATCH_DIFFICULTY_SCREEN".to_owned());
     }
 
     let selected = &replay.spot_check.selected_attempt_ids;
     if replay.spot_check.selection_method_id.trim().is_empty()
-        || replay.spot_check.attempts.iter().any(|attempt| !is_sha256(&attempt.replay_state_sha256))
-        || replay.spot_check.attempts.iter().any(|attempt| !is_sha256(&attempt.original_state_sha256))
+        || replay
+            .spot_check
+            .attempts
+            .iter()
+            .any(|attempt| !is_sha256(&attempt.replay_state_sha256))
+        || replay
+            .spot_check
+            .attempts
+            .iter()
+            .any(|attempt| !is_sha256(&attempt.original_state_sha256))
     {
         return Err("SPOT_CHECK_SELECTION_OR_STATE_DIGEST_INVALID".to_owned());
     }
@@ -814,15 +916,31 @@ fn validate_candidate(
         })
         .collect::<Result<_, _>>()?;
 
-    let reset_bundle: ResetReceiptBundle = parse_artifact(root, &provenance.reset_receipt_bundle, "RESET_RECEIPT_BUNDLE")?;
+    let reset_bundle: ResetReceiptBundle = parse_artifact(
+        root,
+        &provenance.reset_receipt_bundle,
+        "RESET_RECEIPT_BUNDLE",
+    )?;
     assert_eq_field(
         provenance.reset_receipt_bundle.sha256.clone(),
         replay.reset_receipt_sha256.clone(),
         "RESET_RECEIPT_BUNDLE_REPLAY_MANIFEST_DIGEST_MISMATCH",
     )?;
-    assert_eq_field(reset_bundle.schema_version, SCHEMA_VERSION.to_owned(), "RESET_RECEIPT_SCHEMA_VERSION_MISMATCH")?;
-    assert_eq_field(reset_bundle.receipt_type, "reset_receipt_bundle".to_owned(), "RESET_RECEIPT_TYPE_MISMATCH")?;
-    assert_eq_field(reset_bundle.scenario_id, replay.scenario_id.clone(), "RESET_RECEIPT_SCENARIO_MISMATCH")?;
+    assert_eq_field(
+        reset_bundle.schema_version,
+        SCHEMA_VERSION.to_owned(),
+        "RESET_RECEIPT_SCHEMA_VERSION_MISMATCH",
+    )?;
+    assert_eq_field(
+        reset_bundle.receipt_type,
+        "reset_receipt_bundle".to_owned(),
+        "RESET_RECEIPT_TYPE_MISMATCH",
+    )?;
+    assert_eq_field(
+        reset_bundle.scenario_id,
+        replay.scenario_id.clone(),
+        "RESET_RECEIPT_SCENARIO_MISMATCH",
+    )?;
     assert_eq_field(
         reset_bundle.execution_scope_id,
         provenance.execution_scope_id.clone(),
@@ -847,8 +965,11 @@ fn validate_candidate(
         return Err("RESET_RECEIPT_ATTEMPT_COUNT_NOT_THREE".to_owned());
     }
 
-    let action_receipt: ActionPrefixReceiptBundle =
-        parse_artifact(root, &provenance.action_prefix_receipt_bundle, "ACTION_PREFIX_RECEIPT_BUNDLE")?;
+    let action_receipt: ActionPrefixReceiptBundle = parse_artifact(
+        root,
+        &provenance.action_prefix_receipt_bundle,
+        "ACTION_PREFIX_RECEIPT_BUNDLE",
+    )?;
     assert_eq_field(
         provenance.action_prefix_receipt_bundle.sha256.clone(),
         replay.action_prefix_receipt_sha256.clone(),
@@ -864,7 +985,11 @@ fn validate_candidate(
         "action_prefix_receipt_bundle".to_owned(),
         "ACTION_PREFIX_RECEIPT_TYPE_MISMATCH",
     )?;
-    assert_eq_field(action_receipt.scenario_id, replay.scenario_id.clone(), "ACTION_PREFIX_RECEIPT_SCENARIO_MISMATCH")?;
+    assert_eq_field(
+        action_receipt.scenario_id,
+        replay.scenario_id.clone(),
+        "ACTION_PREFIX_RECEIPT_SCENARIO_MISMATCH",
+    )?;
     assert_eq_field(
         action_receipt.execution_scope_id,
         provenance.execution_scope_id.clone(),
@@ -977,16 +1102,26 @@ fn validate_candidate(
                 relative_path: frame_pair.replay_path.clone(),
                 sha256: frame_pair.replay_sha256.clone(),
             };
-            let _original_bytes =
-                read_artifact(root, &original_frame_ref, "ORIGINAL_FRAME")?;
-            let _replay_bytes =
-                read_artifact(root, &replay_frame_ref, "REPLAY_FRAME")?;
+            let _original_bytes = read_artifact(root, &original_frame_ref, "ORIGINAL_FRAME")?;
+            let _replay_bytes = read_artifact(root, &replay_frame_ref, "REPLAY_FRAME")?;
             verified += 2;
         }
 
-        assert_eq_field(reset.attempt_id.clone(), attempt_id.clone(), "RESET_RECEIPT_ATTEMPT_ID_MISMATCH")?;
-        assert_eq_field(reset.policy_id.clone(), expected_policy.clone(), "RESET_RECEIPT_POLICY_ID_MISMATCH")?;
-        assert_eq_field(reset.status.clone(), "accepted".to_owned(), "RESET_RECEIPT_NOT_ACCEPTED")?;
+        assert_eq_field(
+            reset.attempt_id.clone(),
+            attempt_id.clone(),
+            "RESET_RECEIPT_ATTEMPT_ID_MISMATCH",
+        )?;
+        assert_eq_field(
+            reset.policy_id.clone(),
+            expected_policy.clone(),
+            "RESET_RECEIPT_POLICY_ID_MISMATCH",
+        )?;
+        assert_eq_field(
+            reset.status.clone(),
+            "accepted".to_owned(),
+            "RESET_RECEIPT_NOT_ACCEPTED",
+        )?;
         if reset.reset_generation == 0 {
             return Err("RESET_RECEIPT_GENERATION_INVALID".to_owned());
         }
@@ -999,18 +1134,35 @@ fn validate_candidate(
             "RESET_RECEIPT_INITIAL_STATE_MISMATCH",
         )?;
 
-        assert_eq_field(indexed_prefix.attempt_id.clone(), attempt_id.clone(), "ACTION_PREFIX_INDEX_ATTEMPT_ID_MISMATCH")?;
-        assert_eq_field(indexed_prefix.policy_id.clone(), expected_policy.clone(), "ACTION_PREFIX_INDEX_POLICY_ID_MISMATCH")?;
+        assert_eq_field(
+            indexed_prefix.attempt_id.clone(),
+            attempt_id.clone(),
+            "ACTION_PREFIX_INDEX_ATTEMPT_ID_MISMATCH",
+        )?;
+        assert_eq_field(
+            indexed_prefix.policy_id.clone(),
+            expected_policy.clone(),
+            "ACTION_PREFIX_INDEX_POLICY_ID_MISMATCH",
+        )?;
         if indexed_prefix.action_step_count == 0 {
             return Err("ACTION_PREFIX_STEP_COUNT_ZERO".to_owned());
         }
-        let prefix_bytes = read_artifact(root, &indexed_prefix.action_prefix, "ATTEMPT_ACTION_PREFIX")?;
+        let prefix_bytes =
+            read_artifact(root, &indexed_prefix.action_prefix, "ATTEMPT_ACTION_PREFIX")?;
         if sha256_hex(&prefix_bytes) != indexed_prefix.action_prefix.sha256 {
             return Err("ATTEMPT_ACTION_PREFIX_DIGEST_MISMATCH".to_owned());
         }
 
-        assert_eq_field(receipt.attempt_id.clone(), attempt_id.clone(), "ACTION_PREFIX_RECEIPT_ATTEMPT_ID_MISMATCH")?;
-        assert_eq_field(receipt.policy_id.clone(), expected_policy.clone(), "ACTION_PREFIX_RECEIPT_POLICY_ID_MISMATCH")?;
+        assert_eq_field(
+            receipt.attempt_id.clone(),
+            attempt_id.clone(),
+            "ACTION_PREFIX_RECEIPT_ATTEMPT_ID_MISMATCH",
+        )?;
+        assert_eq_field(
+            receipt.policy_id.clone(),
+            expected_policy.clone(),
+            "ACTION_PREFIX_RECEIPT_POLICY_ID_MISMATCH",
+        )?;
         assert_eq_field(
             receipt.action_prefix_sha256.clone(),
             indexed_prefix.action_prefix.sha256.clone(),
@@ -1024,13 +1176,29 @@ fn validate_candidate(
         if receipt.command_id.trim().is_empty() {
             return Err("ACTION_PREFIX_RECEIPT_COMMAND_ID_MISSING".to_owned());
         }
-        assert_eq_field(receipt.status.clone(), "accepted".to_owned(), "ACTION_PREFIX_RECEIPT_NOT_ACCEPTED")?;
+        assert_eq_field(
+            receipt.status.clone(),
+            "accepted".to_owned(),
+            "ACTION_PREFIX_RECEIPT_NOT_ACCEPTED",
+        )?;
         verified += 1;
     }
 
-    let index_ids: Vec<&str> = action_index.attempts.iter().map(|a| a.attempt_id.as_str()).collect();
-    let reset_ids: Vec<&str> = reset_bundle.attempts.iter().map(|a| a.attempt_id.as_str()).collect();
-    let receipt_ids: Vec<&str> = action_receipt.attempts.iter().map(|a| a.attempt_id.as_str()).collect();
+    let index_ids: Vec<&str> = action_index
+        .attempts
+        .iter()
+        .map(|a| a.attempt_id.as_str())
+        .collect();
+    let reset_ids: Vec<&str> = reset_bundle
+        .attempts
+        .iter()
+        .map(|a| a.attempt_id.as_str())
+        .collect();
+    let receipt_ids: Vec<&str> = action_receipt
+        .attempts
+        .iter()
+        .map(|a| a.attempt_id.as_str())
+        .collect();
     let selected_ids: Vec<&str> = selected.iter().map(String::as_str).collect();
     if index_ids != selected_ids || reset_ids != selected_ids || receipt_ids != selected_ids {
         return Err("PER_ATTEMPT_RECEIPT_SELECTION_ORDER_MISMATCH".to_owned());
@@ -1060,7 +1228,8 @@ pub fn validate_provenance_json(
     if provenance.schema_version != SCHEMA_VERSION || provenance.benchmark != BENCHMARK {
         return Err("PROVENANCE_MANIFEST_PROFILE_UNSUPPORTED".to_owned());
     }
-    if replay.campaign_id.trim().is_empty() || replay.data_license_and_provenance.trim().is_empty()
+    if replay.campaign_id.trim().is_empty()
+        || replay.data_license_and_provenance.trim().is_empty()
         || !is_sha256(&replay.split_manifest_sha256)
     {
         return Err("REPLAY_CAMPAIGN_OR_SPLIT_MANIFEST_METADATA_INVALID".to_owned());
@@ -1084,7 +1253,10 @@ pub fn validate_provenance_json(
     }
     let mut replay_candidates = BTreeMap::new();
     for candidate in &replay.candidates {
-        if replay_candidates.insert(candidate.scenario_id.as_str(), candidate).is_some() {
+        if replay_candidates
+            .insert(candidate.scenario_id.as_str(), candidate)
+            .is_some()
+        {
             return Err("REPLAY_SCENARIO_ID_DUPLICATED".to_owned());
         }
     }
@@ -1096,8 +1268,18 @@ pub fn validate_provenance_json(
         }
         let replay_candidate = replay_candidates
             .get(candidate.scenario_id.as_str())
-            .ok_or_else(|| format!("PROVENANCE_SCENARIO_NOT_IN_REPLAY_MANIFEST: {}", candidate.scenario_id))?;
-        match validate_candidate(replay_candidate, candidate, &provenance.policy_roster_profile_id, artifact_root) {
+            .ok_or_else(|| {
+                format!(
+                    "PROVENANCE_SCENARIO_NOT_IN_REPLAY_MANIFEST: {}",
+                    candidate.scenario_id
+                )
+            })?;
+        match validate_candidate(
+            replay_candidate,
+            candidate,
+            &provenance.policy_roster_profile_id,
+            artifact_root,
+        ) {
             Ok(verified_artifact_n) => reports.push(CandidateProvenanceReport {
                 scenario_id: candidate.scenario_id.clone(),
                 status: "valid".to_owned(),
@@ -1134,13 +1316,17 @@ pub fn canonical_report_json(report: &ProvenanceReport) -> Result<Vec<u8>, Strin
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{path::PathBuf, sync::atomic::{AtomicUsize, Ordering}};
+    use std::{
+        path::PathBuf,
+        sync::atomic::{AtomicUsize, Ordering},
+    };
 
     static NEXT_DIR: AtomicUsize = AtomicUsize::new(0);
 
     fn temp_root() -> PathBuf {
         let id = NEXT_DIR.fetch_add(1, Ordering::Relaxed);
-        let path = std::env::temp_dir().join(format!("rrvr-provenance-{}-{id}", std::process::id()));
+        let path =
+            std::env::temp_dir().join(format!("rrvr-provenance-{}-{id}", std::process::id()));
         fs::create_dir_all(&path).expect("temp root");
         path
     }
@@ -1185,8 +1371,7 @@ mod tests {
         let receipt_sha = sha256_hex(&receipt_bytes);
         provenance["candidates"][0]["action_prefix_receipt_bundle"]["sha256"] =
             serde_json::json!(receipt_sha);
-        replay["candidates"][0]["action_prefix_receipt_sha256"] =
-            serde_json::json!(receipt_sha);
+        replay["candidates"][0]["action_prefix_receipt_sha256"] = serde_json::json!(receipt_sha);
         let replay_json = serde_json::to_string(&replay).expect("replay json");
         provenance["replay_manifest_sha256"] =
             serde_json::json!(sha256_hex(replay_json.as_bytes()));
@@ -1217,8 +1402,7 @@ mod tests {
         provenance_json: &str,
         mutate: impl FnOnce(&mut serde_json::Value),
     ) -> (String, String) {
-        let mut replay: serde_json::Value =
-            serde_json::from_str(replay_json).expect("replay json");
+        let mut replay: serde_json::Value = serde_json::from_str(replay_json).expect("replay json");
         let provenance: serde_json::Value =
             serde_json::from_str(provenance_json).expect("provenance json");
         mutate(&mut replay["candidates"][0]["spot_check"]);
@@ -1231,8 +1415,7 @@ mod tests {
         provenance_json: &str,
         mutate: impl FnOnce(&mut serde_json::Value),
     ) -> (String, String) {
-        let mut replay: serde_json::Value =
-            serde_json::from_str(replay_json).expect("replay json");
+        let mut replay: serde_json::Value = serde_json::from_str(replay_json).expect("replay json");
         let provenance: serde_json::Value =
             serde_json::from_str(provenance_json).expect("provenance json");
         let selection_path = replay["candidates"][0]["spot_check"]["selection_record_path"]
@@ -1254,14 +1437,26 @@ mod tests {
     fn fixture() -> (PathBuf, String, String) {
         let root = temp_root();
         let instruction = write_bytes(&root, "source/instruction.txt", b"Pick up the red block.");
-        let action0 = write_bytes(&root, "actions/attempt-0.json", br#"[{"step":0,"joint":1}] "#);
+        let action0 = write_bytes(
+            &root,
+            "actions/attempt-0.json",
+            br#"[{"step":0,"joint":1}] "#,
+        );
         let split_manifest = write_bytes(
             &root,
             "splits/split-manifest.json",
             b"synthetic-split-manifest-v0.1:scenario-1=test:cluster-1",
         );
-        let action1 = write_bytes(&root, "actions/attempt-1.json", br#"[{"step":0,"joint":2}] "#);
-        let action2 = write_bytes(&root, "actions/attempt-2.json", br#"[{"step":0,"joint":3}] "#);
+        let action1 = write_bytes(
+            &root,
+            "actions/attempt-1.json",
+            br#"[{"step":0,"joint":2}] "#,
+        );
+        let action2 = write_bytes(
+            &root,
+            "actions/attempt-2.json",
+            br#"[{"step":0,"joint":3}] "#,
+        );
         let scope = "robot-cell-01";
         let profile = |root: &Path, path: &str, kind: &str, id: &str| {
             write_json(
@@ -1275,10 +1470,30 @@ mod tests {
                 }),
             )
         };
-        let simulator = profile(&root, "profiles/simulator.json", "simulator_profile", "sim-v1");
-        let robot = profile(&root, "profiles/robot.json", "robot_model_profile", "robot-v1");
-        let controller = profile(&root, "profiles/controller.json", "controller_profile", "controller-v1");
-        let rendering = profile(&root, "profiles/rendering.json", "rendering_profile", "render-v1");
+        let simulator = profile(
+            &root,
+            "profiles/simulator.json",
+            "simulator_profile",
+            "sim-v1",
+        );
+        let robot = profile(
+            &root,
+            "profiles/robot.json",
+            "robot_model_profile",
+            "robot-v1",
+        );
+        let controller = profile(
+            &root,
+            "profiles/controller.json",
+            "controller_profile",
+            "controller-v1",
+        );
+        let rendering = profile(
+            &root,
+            "profiles/rendering.json",
+            "rendering_profile",
+            "render-v1",
+        );
         let roster = write_json(
             &root,
             "profiles/policy-roster.json",
@@ -1397,7 +1612,8 @@ mod tests {
                 {"attempt_id":"attempt-2","policy_id":"policy-2","action_prefix_sha256":action2.sha256,"action_step_count":5,"command_id":"cmd-2","status":"accepted"}
             ]
         });
-        let action_receipt = write_json(&root, "receipts/action-prefix.json", &action_receipt_value);
+        let action_receipt =
+            write_json(&root, "receipts/action-prefix.json", &action_receipt_value);
 
         let selected_attempt_ids = vec![
             "attempt-0".to_owned(),
@@ -1423,18 +1639,12 @@ mod tests {
             let attempt_id = format!("attempt-{index}");
             let mut final_frame_pairs = Vec::new();
             for frame_index in 0..5 {
-                let original_path =
-                    format!("frames/original-{attempt_id}-{frame_index}.frame");
-                let replay_path =
-                    format!("frames/replay-{attempt_id}-{frame_index}.frame");
-                let original_bytes =
-                    format!("original-frame-bytes:{attempt_id}:{frame_index}");
-                let replay_bytes =
-                    format!("replay-frame-bytes:{attempt_id}:{frame_index}");
-                let original_frame =
-                    write_bytes(&root, &original_path, original_bytes.as_bytes());
-                let replay_frame =
-                    write_bytes(&root, &replay_path, replay_bytes.as_bytes());
+                let original_path = format!("frames/original-{attempt_id}-{frame_index}.frame");
+                let replay_path = format!("frames/replay-{attempt_id}-{frame_index}.frame");
+                let original_bytes = format!("original-frame-bytes:{attempt_id}:{frame_index}");
+                let replay_bytes = format!("replay-frame-bytes:{attempt_id}:{frame_index}");
+                let original_frame = write_bytes(&root, &original_path, original_bytes.as_bytes());
+                let replay_frame = write_bytes(&root, &replay_path, replay_bytes.as_bytes());
                 final_frame_pairs.push(FramePairAsset {
                     frame_index: frame_index as u8,
                     original_path: original_frame.relative_path,
@@ -1527,7 +1737,8 @@ mod tests {
     #[test]
     fn known_answer_verifies_all_artifacts_and_selected_attempt_receipts() {
         let (root, replay, provenance) = fixture();
-        let report = validate_provenance_json(&replay, &provenance, &root).expect("valid provenance");
+        let report =
+            validate_provenance_json(&replay, &provenance, &root).expect("valid provenance");
         assert_eq!(report.candidate_n, 1);
         assert_eq!(report.valid_n, 1);
         assert_eq!(report.invalid_n, 0);
@@ -1538,8 +1749,7 @@ mod tests {
     #[test]
     fn raw_selection_record_tampering_is_rejected() {
         let (root, replay, provenance) = fixture();
-        let replay_value: serde_json::Value =
-            serde_json::from_str(&replay).expect("replay json");
+        let replay_value: serde_json::Value = serde_json::from_str(&replay).expect("replay json");
         let relative = replay_value["candidates"][0]["spot_check"]["selection_record_path"]
             .as_str()
             .expect("selection record path");
@@ -1555,14 +1765,9 @@ mod tests {
     #[test]
     fn correctly_resealed_but_mismatched_selection_record_is_rejected() {
         let (root, replay, provenance) = fixture();
-        let (replay, provenance) = reseal_selection_record(
-            &root,
-            &replay,
-            &provenance,
-            |record| {
-                record["selected_attempt_ids"][1] = serde_json::json!("attempt-0");
-            },
-        );
+        let (replay, provenance) = reseal_selection_record(&root, &replay, &provenance, |record| {
+            record["selected_attempt_ids"][1] = serde_json::json!("attempt-0");
+        });
         let report = validate_provenance_json(&replay, &provenance, &root).expect("report");
         assert_eq!(report.invalid_n, 1);
         assert_eq!(
@@ -1574,14 +1779,9 @@ mod tests {
     #[test]
     fn duplicate_frame_index_is_rejected_after_manifest_reseal() {
         let (root, replay, provenance) = fixture();
-        let (replay, provenance) = reseal_spot_check(
-            &replay,
-            &provenance,
-            |spot| {
-                spot["attempts"][0]["final_frame_pairs"][1]["frame_index"] =
-                    serde_json::json!(0);
-            },
-        );
+        let (replay, provenance) = reseal_spot_check(&replay, &provenance, |spot| {
+            spot["attempts"][0]["final_frame_pairs"][1]["frame_index"] = serde_json::json!(0);
+        });
         let report = validate_provenance_json(&replay, &provenance, &root).expect("report");
         assert_eq!(report.invalid_n, 1);
         assert_eq!(
@@ -1593,17 +1793,13 @@ mod tests {
     #[test]
     fn duplicated_raw_frame_path_is_rejected_after_manifest_reseal() {
         let (root, replay, provenance) = fixture();
-        let (replay, provenance) = reseal_spot_check(
-            &replay,
-            &provenance,
-            |spot| {
-                let first = spot["attempts"][0]["final_frame_pairs"][0].clone();
-                spot["attempts"][0]["final_frame_pairs"][1]["original_path"] =
-                    first["original_path"].clone();
-                spot["attempts"][0]["final_frame_pairs"][1]["original_sha256"] =
-                    first["original_sha256"].clone();
-            },
-        );
+        let (replay, provenance) = reseal_spot_check(&replay, &provenance, |spot| {
+            let first = spot["attempts"][0]["final_frame_pairs"][0].clone();
+            spot["attempts"][0]["final_frame_pairs"][1]["original_path"] =
+                first["original_path"].clone();
+            spot["attempts"][0]["final_frame_pairs"][1]["original_sha256"] =
+                first["original_sha256"].clone();
+        });
         let report = validate_provenance_json(&replay, &provenance, &root).expect("report");
         assert_eq!(report.invalid_n, 1);
         assert_eq!(
@@ -1615,8 +1811,7 @@ mod tests {
     #[test]
     fn raw_frame_asset_tampering_is_rejected() {
         let (root, replay, provenance) = fixture();
-        let replay_value: serde_json::Value =
-            serde_json::from_str(&replay).expect("replay json");
+        let replay_value: serde_json::Value = serde_json::from_str(&replay).expect("replay json");
         let relative = replay_value["candidates"][0]["spot_check"]["attempts"][1]
             ["final_frame_pairs"][3]["original_path"]
             .as_str()
@@ -1659,8 +1854,7 @@ mod tests {
     #[test]
     fn identical_hashed_leakage_key_across_train_and_test_is_rejected() {
         let (_root, replay, _provenance) = fixture();
-        let mut manifest: ReplayManifest =
-            serde_json::from_str(&replay).expect("replay manifest");
+        let mut manifest: ReplayManifest = serde_json::from_str(&replay).expect("replay manifest");
         let mut second = manifest.candidates[0].clone();
         second.scenario_id = "scenario-2".to_owned();
         second.split = Split::Train;
@@ -1675,16 +1869,17 @@ mod tests {
     #[test]
     fn same_trajectory_cluster_cannot_cross_train_test_split() {
         let (_root, replay, _provenance) = fixture();
-        let mut manifest: ReplayManifest =
-            serde_json::from_str(&replay).expect("replay manifest");
+        let mut manifest: ReplayManifest = serde_json::from_str(&replay).expect("replay manifest");
         let mut second = manifest.candidates[0].clone();
         second.scenario_id = "scenario-2".to_owned();
         second.split = Split::Train;
         second.split_leakage_keys_sha256 = vec!["e".repeat(64)];
         manifest.candidates.push(second);
-        assert!(validate_replay_candidate_set(&manifest.candidates)
-            .unwrap_err()
-            .starts_with("TRAJECTORY_CLUSTER_CROSSES_SPLITS"));
+        assert!(
+            validate_replay_candidate_set(&manifest.candidates)
+                .unwrap_err()
+                .starts_with("TRAJECTORY_CLUSTER_CROSSES_SPLITS")
+        );
     }
 
     #[test]
@@ -1693,7 +1888,10 @@ mod tests {
         fs::write(root.join("source/episode.json"), b"tampered").expect("tamper");
         let report = validate_provenance_json(&replay, &provenance, &root).expect("report");
         assert_eq!(report.invalid_n, 1);
-        assert_eq!(report.candidate_reports[0].reason_codes[0], "SOURCE_EPISODE_RAW_DIGEST_MISMATCH");
+        assert_eq!(
+            report.candidate_reports[0].reason_codes[0],
+            "SOURCE_EPISODE_RAW_DIGEST_MISMATCH"
+        );
     }
 
     #[test]
@@ -1702,7 +1900,10 @@ mod tests {
         fs::write(root.join("profiles/controller.json"), br#"{"schema_version":"0.1","artifact_kind":"controller_profile","profile_id":"controller-v1","execution_scope_id":"wrong-cell"}"#).expect("replace");
         let report = validate_provenance_json(&replay, &provenance, &root).expect("report");
         assert_eq!(report.invalid_n, 1);
-        assert_eq!(report.candidate_reports[0].reason_codes[0], "CONTROLLER_PROFILE_RAW_DIGEST_MISMATCH");
+        assert_eq!(
+            report.candidate_reports[0].reason_codes[0],
+            "CONTROLLER_PROFILE_RAW_DIGEST_MISMATCH"
+        );
     }
 
     #[test]
@@ -1722,8 +1923,7 @@ mod tests {
         let profile_sha = sha256_hex(&profile_bytes);
         sidecar_value["candidates"][0]["controller_profile"]["sha256"] =
             serde_json::json!(profile_sha);
-        replay_value["candidates"][0]["controller_profile_sha256"] =
-            serde_json::json!(profile_sha);
+        replay_value["candidates"][0]["controller_profile_sha256"] = serde_json::json!(profile_sha);
 
         let receipt_path = root.join("receipts/action-prefix.json");
         let mut receipt: serde_json::Value =
@@ -1739,8 +1939,7 @@ mod tests {
             serde_json::json!(receipt_sha);
 
         let replay = serde_json::to_string(&replay_value).expect("resealed replay");
-        sidecar_value["replay_manifest_sha256"] =
-            serde_json::json!(sha256_hex(replay.as_bytes()));
+        sidecar_value["replay_manifest_sha256"] = serde_json::json!(sha256_hex(replay.as_bytes()));
         let sidecar = serde_json::to_string(&sidecar_value).expect("resealed sidecar");
         let report = validate_provenance_json(&replay, &sidecar, &root).expect("report");
         assert_eq!(report.invalid_n, 1);
@@ -1753,12 +1952,9 @@ mod tests {
     #[test]
     fn action_receipt_wrong_policy_is_rejected_after_raw_digest_is_resealed() {
         let (root, replay, provenance) = fixture();
-        let (replay, provenance) = reseal_action_receipt(
-            &root,
-            &replay,
-            &provenance,
-            |receipt| receipt["attempts"][1]["policy_id"] = serde_json::json!("policy-3"),
-        );
+        let (replay, provenance) = reseal_action_receipt(&root, &replay, &provenance, |receipt| {
+            receipt["attempts"][1]["policy_id"] = serde_json::json!("policy-3")
+        });
         let report = validate_provenance_json(&replay, &provenance, &root).expect("report");
         assert_eq!(report.invalid_n, 1);
         assert_eq!(
@@ -1794,11 +1990,15 @@ mod tests {
     fn unsafe_artifact_paths_are_rejected() {
         let (root, replay, provenance) = fixture();
         let mut value: serde_json::Value = serde_json::from_str(&provenance).expect("json");
-        value["candidates"][0]["instruction"]["relative_path"] = serde_json::json!("../instruction.txt");
+        value["candidates"][0]["instruction"]["relative_path"] =
+            serde_json::json!("../instruction.txt");
         let mutated = serde_json::to_string(&value).expect("serialize");
         let report = validate_provenance_json(&replay, &mutated, &root).expect("report");
         assert_eq!(report.invalid_n, 1);
-        assert_eq!(report.candidate_reports[0].reason_codes[0], "INSTRUCTION_PATH_UNSAFE");
+        assert_eq!(
+            report.candidate_reports[0].reason_codes[0],
+            "INSTRUCTION_PATH_UNSAFE"
+        );
     }
 
     #[test]
@@ -1818,18 +2018,25 @@ mod tests {
         fs::write(path, br#"{"schema_version":"0.1","artifact_kind":"policy_roster","policy_roster_id":"bad","policy_ids":["policy-0","policy-1","policy-2","other"]}"#).expect("replace");
         let report = validate_provenance_json(&replay, &provenance, &root).expect("report");
         assert_eq!(report.invalid_n, 1);
-        assert_eq!(report.candidate_reports[0].reason_codes[0], "POLICY_ROSTER_RAW_DIGEST_MISMATCH");
+        assert_eq!(
+            report.candidate_reports[0].reason_codes[0],
+            "POLICY_ROSTER_RAW_DIGEST_MISMATCH"
+        );
     }
 
     #[test]
     fn missing_selected_reset_attempt_is_rejected() {
         let (root, replay, provenance) = fixture();
         let path = root.join("receipts/reset.json");
-        let mut value: serde_json::Value = serde_json::from_slice(&fs::read(&path).expect("read")).expect("json");
+        let mut value: serde_json::Value =
+            serde_json::from_slice(&fs::read(&path).expect("read")).expect("json");
         value["attempts"].as_array_mut().unwrap().pop();
         fs::write(path, serde_json::to_vec(&value).expect("json bytes")).expect("replace");
         let report = validate_provenance_json(&replay, &provenance, &root).expect("report");
         assert_eq!(report.invalid_n, 1);
-        assert!(report.candidate_reports[0].reason_codes[0].contains("RESET_RECEIPT_BUNDLE_RAW_DIGEST_MISMATCH"));
+        assert!(
+            report.candidate_reports[0].reason_codes[0]
+                .contains("RESET_RECEIPT_BUNDLE_RAW_DIGEST_MISMATCH")
+        );
     }
 }
