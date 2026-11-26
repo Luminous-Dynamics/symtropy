@@ -4,6 +4,8 @@
 //! integer reservations by (resource, time slot), rejects capacity violations,
 //! and reports the full feasible set plus the Pareto frontier.
 
+pub mod sync;
+
 use std::collections::{BTreeMap, BTreeSet};
 
 type ResourceKey = (String, u32);
