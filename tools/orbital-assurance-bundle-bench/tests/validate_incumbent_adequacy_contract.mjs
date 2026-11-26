@@ -149,9 +149,23 @@ for (const item of corpus.cases) {
     }
   }
 
-  if (scenarioIds.size !== modelSet.expected_scenario_ids.length
-    || modelSet.expected_scenario_ids.some(id => !scenarioIds.has(id))) {
-    throw new Error("observed joint scenarios differ from planned inventory in " + item.case_id);
+  const missingPlannedScenarios = modelSet.expected_scenario_ids.filter(id => !scenarioIds.has(id));
+  const unexpectedObservedScenarios = [...scenarioIds].filter(id => !modelSet.expected_scenario_ids.includes(id));
+  const scenarioInventoryComplete = missingPlannedScenarios.length === 0
+    && unexpectedObservedScenarios.length === 0
+    && scenarioIds.size === modelSet.expected_scenario_ids.length;
+  if (!scenarioInventoryComplete) {
+    const isExactOmissionControl = item.case_id === "joint_scenario_omission"
+      && item.expected?.disposition === "INVALID_INPUT"
+      && item.expected?.trigger_reason === "observed joint scenarios do not match planned loss-model inventory"
+      && missingPlannedScenarios.length === 1
+      && unexpectedObservedScenarios.length === 0
+      && scenarioIds.size + 1 === modelSet.expected_scenario_ids.length;
+    if (!isExactOmissionControl) {
+      throw new Error("observed joint scenarios differ from planned inventory in " + item.case_id);
+    }
+  } else if (item.case_id === "joint_scenario_omission") {
+    throw new Error("joint-scenario omission negative control is no longer incomplete");
   }
   if (worldIds.size !== item.expected_world_ids.length
     || item.expected_world_ids.some(id => !worldIds.has(id))) {
