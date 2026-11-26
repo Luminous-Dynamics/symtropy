@@ -109,6 +109,11 @@ This is a sensitivity warning, not an estimate of achievable Q-drive performance
 - NASA, [ACS3 mission results and lessons learned](https://ntrs.nasa.gov/citations/20260004973). NASA reports deployment of an 80 m² solar sail from a 12U CubeSat in August 2024. This is a useful deployed-sail baseline, not a large-area membrane manufacturing baseline.
 - ESA, [Proba-3 achieves precise formation flying](https://www.esa.int/Enabling_Support/Space_Engineering_Technology/Proba-3_achieves_precise_formation_flying). ESA reports millimetre-class alignment for two spacecraft approximately 150 m apart for several hours. It does not demonstrate autonomous control of thousands or millions of units near L1.
 - NASA, [Lunar Surface Technology](https://www.nasa.gov/lunar-surface-technology/) and [NASA TechPort ISRUPower-TP](https://techport.nasa.gov/projects/146991). These describe lunar-regolith-simulant processing and maturation of ISRU process technologies; they do not establish lunar field production of flight-ready shade membranes.
+- NASA, [2026 Small Spacecraft State-of-the-Art — In-Space Propulsion](https://www.nasa.gov/smallsat-institute/sst-soa/in-space_propulsion/). Its Hall-thruster table includes JPL MaSMi (55 mN, 1,920 s, 1,000 W, 3.4 kg) and Orbion Aurora (15.6 mN, 1,280 s, 300 W, 1.5 kg). NASA notes that small-spacecraft survey ranges do not cover all capabilities and that public performance/maturity data can be incomplete or conflicting.
+
+### Why the NASA Hall-thruster figures are not a direct Q-drive comparison
+
+For this synthetic q-drive case, the ideal thruster stage produces about 125.4 N from 808 MW of jet power (about 0.155 N/MW) at an assumed exhaust velocity of 0.043c. JPL MaSMi's listed 55 mN at 1 kW is about 55 N/MW, but its 1,920 s specific impulse corresponds to a radically lower exhaust speed. The Q-drive arithmetic case trades very high specific energy / low mass flow for extraordinarily high power and includes an external-medium drag penalty. These figures cannot establish relative superiority: a fair benchmark must match exhaust velocity, propellant mass, power source, complete system mass, environment, vehicle state, braking and mission time.
 
 ## Benchmark strategy
 
