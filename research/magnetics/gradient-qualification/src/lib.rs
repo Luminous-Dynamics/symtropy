@@ -209,6 +209,10 @@ fn validate_policy(policy: GradientQualificationPolicy) -> Result<(), Qualificat
         || policy.step_stability_absolute_tolerance
             + policy.step_stability_relative_tolerance
             == 0.0
+        || !(policy.absolute_error_tolerance + policy.relative_error_tolerance).is_finite()
+        || !(policy.step_stability_absolute_tolerance
+            + policy.step_stability_relative_tolerance)
+            .is_finite()
         || policy.minimum_stable_step_count < 2
         || !policy.minimum_step_size.is_finite()
         || !policy.maximum_step_size.is_finite()
@@ -238,22 +242,41 @@ fn validate_reference(
     validate_digest(&reference.artifact_sha256, "reference.artifact_sha256")
 }
 
+fn validate_reference_binding(
+    reference: &DerivativeReferenceIdentity,
+    input_sha256: &str,
+    direction_sha256: &str,
+) -> Result<(), QualificationError> {
+    validate_digest(&reference.input_sha256, "reference.input_sha256")?;
+    validate_digest(&reference.direction_sha256, "reference.direction_sha256")?;
+    if reference.input_sha256 != input_sha256
+        || reference.direction_sha256 != direction_sha256
+    {
+        return Err(QualificationError::ReferenceInputIdentityMismatch);
+    }
+    Ok(())
+}
+
 fn normalized_error(
     left: f64,
     right: f64,
     absolute_tolerance: f64,
     relative_tolerance: f64,
 ) -> f64 {
-    let difference = (left - right).abs();
-    let allowed = absolute_tolerance + relative_tolerance * left.abs().max(right.abs());
-    if allowed == 0.0 {
-        if difference == 0.0 {
+    let scale = left.abs().max(right.abs());
+    if scale == 0.0 {
+        return 0.0;
+    }
+    let normalized_difference = (left / scale - right / scale).abs();
+    let normalized_tolerance = absolute_tolerance / scale + relative_tolerance;
+    if normalized_tolerance == 0.0 {
+        if normalized_difference == 0.0 {
             0.0
         } else {
             f64::INFINITY
         }
     } else {
-        difference / allowed
+        normalized_difference / normalized_tolerance
     }
 }
 
@@ -262,43 +285,58 @@ fn adjacent_steps_are_stable(
     right: f64,
     policy: GradientQualificationPolicy,
 ) -> bool {
-    (left - right).abs()
-        <= policy.step_stability_absolute_tolerance
-            + policy.step_stability_relative_tolerance * left.abs().max(right.abs())
+    normalized_error(
+        left,
+        right,
+        policy.step_stability_absolute_tolerance,
+        policy.step_stability_relative_tolerance,
+    ) <= 1.0
 }
 
-/// Return the longest adjacent-stable run. Equal-length runs retain the earliest
-/// (largest-step) run, so selection cannot depend on the answer being qualified.
+fn entire_run_is_stable(
+    estimates: &[f64],
+    policy: GradientQualificationPolicy,
+) -> bool {
+    let center = median(estimates);
+    estimates.iter().all(|estimate| {
+        normalized_error(
+            *estimate,
+            center,
+            policy.step_stability_absolute_tolerance,
+            policy.step_stability_relative_tolerance,
+        ) <= 1.0
+    })
+}
+
+/// Return the longest contiguous run whose adjacent estimates are stable and
+/// whose entire span also agrees with its median. Equal-length runs retain the
+/// earliest (largest-step) interval. This prevents slow cumulative drift.
 fn longest_stable_run(
     estimates: &[f64],
     policy: GradientQualificationPolicy,
 ) -> Option<(usize, usize)> {
-    if estimates.is_empty() {
-        return None;
-    }
+    let mut best: Option<(usize, usize)> = None;
+    let mut best_count = 0usize;
 
-    let mut best = (0usize, 0usize);
-    let mut best_count = 1usize;
-    let mut run_start = 0usize;
-
-    for index in 1..estimates.len() {
-        if !adjacent_steps_are_stable(estimates[index - 1], estimates[index], policy) {
-            let run_count = index - run_start;
-            if run_count > best_count {
-                best = (run_start, index - 1);
-                best_count = run_count;
+    for start in 0..estimates.len() {
+        for end in start..estimates.len() {
+            if end > start && !adjacent_steps_are_stable(estimates[end - 1], estimates[end], policy) {
+                break;
             }
-            run_start = index;
+
+            let count = end - start + 1;
+            if count < policy.minimum_stable_step_count {
+                continue;
+            }
+
+            if entire_run_is_stable(&estimates[start..=end], policy) && count > best_count {
+                best = Some((start, end));
+                best_count = count;
+            }
         }
     }
 
-    let final_count = estimates.len() - run_start;
-    if final_count > best_count {
-        best = (run_start, estimates.len() - 1);
-        best_count = final_count;
-    }
-
-    (best_count >= policy.minimum_stable_step_count).then_some(best)
+    best
 }
 
 fn median(values: &[f64]) -> f64 {
