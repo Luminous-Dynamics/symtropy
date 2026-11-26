@@ -162,6 +162,10 @@ The first version uses explicit shared calibration pulses as an optional indepen
 
 Eight focused tests cover aligned positives, exact matched marginals under dropout, shuffled negative correspondence, periodic ambiguity with and without shared clock anchors, clock/semantic score separation, causal arrival prefixes, explicit out-of-order sensor-time delivery, and invalid configuration. The exact evaluator routine is separate from the candidate claim validator; hidden identity labels never enter the public view. The existing `ErgoStream microcosm` workflow is the execution authority; no test, doctest, Clippy or benchmark result is claimed until it passes on the exact branch head.
 
+### Inherited compile repair — tracked at the owning base
+
+The first semantic compile attempt on this stack exposed two existing #7432-base defects: the oracle tests used `NodeV0` without importing it, and the calibration error enum omitted `InvalidCalibrationReceiptIdentity` / `CalibrationReceiptMismatch` even though the same file already matched and used those variants. Both are now fixed on `research/ergo-stream-independent-oracle-v0.1` in commits `08ab9af8…` and `8cbe68a7…`. The next child PR run must re-check against that exact updated base; no compile/test pass is inferred from these source fixes.
+
 ## 11. First executable milestone
 
 The current slice supplies the evaluator-side categorical world and exact correspondence scorer only. The minimal child policy / process adapter remains a follow-on under the existing blind episode contract. Before adding large modalities, prove hidden-state non-exposure, exact replay, denominator conservation and held-out composition scoring.
