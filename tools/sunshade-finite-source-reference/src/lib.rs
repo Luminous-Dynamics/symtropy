@@ -168,6 +168,9 @@ pub fn evaluate_circular_shade(
 }
 
 /// Exact area of intersection of two circles in a common plane.
+///
+/// Lengths are normalized by the largest input before squaring. This avoids
+/// intermediate overflow for large but finite coordinates and radii.
 pub fn circle_overlap_area(
     first_radius_m: f64,
     second_radius_m: f64,
@@ -183,43 +186,36 @@ pub fn circle_overlap_area(
         return Ok(0.0);
     }
 
-    let radius_sum = first_radius_m + second_radius_m;
-    if !radius_sum.is_finite() {
-        return Err("circle radius sum overflowed its finite domain");
+    let scale = first_radius_m
+        .max(second_radius_m)
+        .max(centre_separation_m);
+    if !finite_positive(scale) {
+        return Err("circle geometry scale must be finite and positive");
     }
-    if centre_separation_m >= radius_sum {
+
+    let first_radius = first_radius_m / scale;
+    let second_radius = second_radius_m / scale;
+    let separation = centre_separation_m / scale;
+
+    if separation >= first_radius + second_radius {
         return Ok(0.0);
     }
 
-    let radius_difference = (first_radius_m - second_radius_m).abs();
-    if centre_separation_m <= radius_difference {
-        let smaller_radius = first_radius_m.min(second_radius_m);
-        let area = PI * smaller_radius.powi(2);
+    let radius_difference = (first_radius - second_radius).abs();
+    if separation <= radius_difference {
+        let smaller_radius = first_radius.min(second_radius);
+        let area = PI * smaller_radius.powi(2) * scale.powi(2);
         if !area.is_finite() {
             return Err("contained circle area overflowed its finite domain");
         }
         return Ok(area);
     }
 
-    let first_squared = first_radius_m.powi(2);
-    let second_squared = second_radius_m.powi(2);
-    let distance_squared = centre_separation_m.powi(2);
-    if !first_squared.is_finite()
-        || !second_squared.is_finite()
-        || !distance_squared.is_finite()
-    {
-        return Err("circle overlap intermediates overflowed their finite domain");
-    }
-
-    let denominator_first = 2.0 * centre_separation_m * first_radius_m;
-    let denominator_second = 2.0 * centre_separation_m * second_radius_m;
-    if !denominator_first.is_finite()
-        || !denominator_second.is_finite()
-        || denominator_first == 0.0
-        || denominator_second == 0.0
-    {
-        return Err("circle overlap denominator is outside the finite domain");
-    }
+    let first_squared = first_radius.powi(2);
+    let second_squared = second_radius.powi(2);
+    let distance_squared = separation.powi(2);
+    let denominator_first = 2.0 * separation * first_radius;
+    let denominator_second = 2.0 * separation * second_radius;
 
     let first_cosine = ((distance_squared + first_squared - second_squared)
         / denominator_first)
@@ -228,22 +224,19 @@ pub fn circle_overlap_area(
         / denominator_second)
         .clamp(-1.0, 1.0);
 
-    let radicand = (-centre_separation_m + first_radius_m + second_radius_m)
-        * (centre_separation_m + first_radius_m - second_radius_m)
-        * (centre_separation_m - first_radius_m + second_radius_m)
-        * (centre_separation_m + first_radius_m + second_radius_m);
-    if !radicand.is_finite() {
-        return Err("circle overlap radicand overflowed its finite domain");
-    }
-
-    let area = first_squared * first_cosine.acos()
+    let radicand = (-separation + first_radius + second_radius)
+        * (separation + first_radius - second_radius)
+        * (separation - first_radius + second_radius)
+        * (separation + first_radius + second_radius);
+    let unit_area = first_squared * first_cosine.acos()
         + second_squared * second_cosine.acos()
         - 0.5 * radicand.max(0.0).sqrt();
+    let area = unit_area.max(0.0) * scale.powi(2);
 
     if !area.is_finite() {
         return Err("circle overlap area overflowed its finite domain");
     }
-    Ok(area.max(0.0))
+    Ok(area)
 }
 
 fn finite_positive(value: f64) -> bool {
