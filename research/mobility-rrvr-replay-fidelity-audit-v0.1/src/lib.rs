@@ -1377,7 +1377,8 @@ mod tests {
         screen.trials.pop();
         let error = validate_difficulty_screen(&screen).expect_err("19 trials invalid");
         assert!(error.contains(&"DIFFICULTY_TRIAL_COUNT_NOT_20".to_owned()));
-        screen.trials.push(screen.trials[0].clone());
+        let duplicate_trial = screen.trials[0].clone();
+        screen.trials.push(duplicate_trial);
         let error = validate_difficulty_screen(&screen).expect_err("duplicate attempt invalid");
         assert!(error.contains(&"DIFFICULTY_ATTEMPT_IDENTITIES_INVALID".to_owned()));
     }
