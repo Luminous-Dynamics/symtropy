@@ -34,6 +34,7 @@ pub struct AdjudicationRevision {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TemporalEvidenceRevision {
+    pub source_id: String,
     pub event_id: String,
     pub subject_id: String,
     pub source_revision: u32,
@@ -74,11 +75,26 @@ pub struct TemporalProjection {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TemporalError {
-    ConflictingSourceRevision { event_id: String, revision: u32 },
-    ConflictingAdjudicationRevision { event_id: String, revision: u32 },
+    ConflictingSourceRevision {
+        source_id: String,
+        event_id: String,
+        revision: u32,
+    },
+    ConflictingAdjudicationRevision {
+        source_id: String,
+        event_id: String,
+        revision: u32,
+    },
+    SubjectBindingMismatch {
+        source_id: String,
+        event_id: String,
+        expected_subject: String,
+        observed_subject: String,
+    },
 }
 
 fn latest_adjudication_as_of(
+    source_id: &str,
     event_id: &str,
     adjudications: &[AdjudicationRevision],
     audit_at: i64,
@@ -97,6 +113,7 @@ fn latest_adjudication_as_of(
             Some(current) if candidate.revision == current.revision => {
                 if candidate != &current {
                     return Err(TemporalError::ConflictingAdjudicationRevision {
+                        source_id: source_id.to_owned(),
                         event_id: event_id.to_owned(),
                         revision: candidate.revision,
                     });
@@ -142,9 +159,15 @@ pub fn project_temporal_revision(
     let decision_admissible = decision_admissible(record, cutoffs);
 
     let (adjudication_as_of, adjudication_revision_as_of) =
-        latest_adjudication_as_of(&record.event_id, &record.adjudications, cutoffs.audit_at)?;
+        latest_adjudication_as_of(
+            &record.source_id,
+            &record.event_id,
+            &record.adjudications,
+            cutoffs.audit_at,
+        )?;
 
     Ok(TemporalProjection {
+        source_id: record.source_id.clone(),
         event_id: record.event_id.clone(),
         subject_id: record.subject_id.clone(),
         source_revision: record.source_revision,
@@ -165,22 +188,33 @@ pub fn project_temporal_revision(
 /// published or retrieved later are excluded, even if they are known to the
 /// auditor today. Conflicting payloads under one visible (event, revision)
 /// identity fail closed. This policy projection never reads adjudication state.
-pub fn select_decision_revisions<'a>(
-    records: &'a [TemporalEvidenceRevision],
+pub fn select_decision_revisions(
+    records: &[TemporalEvidenceRevision],
+    expected_subject_id: &str,
     cutoffs: TemporalCutoffs,
-) -> Result<Vec<&'a TemporalEvidenceRevision>, TemporalError> {
-    let mut selected: BTreeMap<&str, &'a TemporalEvidenceRevision> = BTreeMap::new();
-    let mut visible_identities: BTreeMap<(&str, u32), &str> = BTreeMap::new();
+) -> Result<Vec<&TemporalEvidenceRevision>, TemporalError> {
+    let mut selected: BTreeMap<(&str, &str), &TemporalEvidenceRevision> = BTreeMap::new();
+    let mut visible_identities: BTreeMap<((&str, &str), u32), &str> = BTreeMap::new();
 
     for record in records {
         if !decision_admissible(record, cutoffs) {
             continue;
         }
+        if record.subject_id != expected_subject_id {
+            return Err(TemporalError::SubjectBindingMismatch {
+                source_id: record.source_id.clone(),
+                event_id: record.event_id.clone(),
+                expected_subject: expected_subject_id.to_owned(),
+                observed_subject: record.subject_id.clone(),
+            });
+        }
 
-        let identity = (record.event_id.as_str(), record.source_revision);
+        let source_event = (record.source_id.as_str(), record.event_id.as_str());
+        let identity = (source_event, record.source_revision);
         match visible_identities.get(&identity) {
             Some(existing_digest) if *existing_digest != record.payload_digest => {
                 return Err(TemporalError::ConflictingSourceRevision {
+                    source_id: record.source_id.clone(),
                     event_id: record.event_id.clone(),
                     revision: record.source_revision,
                 });
@@ -191,10 +225,10 @@ pub fn select_decision_revisions<'a>(
             }
         }
 
-        match selected.get(record.event_id.as_str()) {
+        match selected.get(&source_event) {
             Some(current) if current.source_revision >= record.source_revision => {}
             _ => {
-                selected.insert(record.event_id.as_str(), record);
+                selected.insert(source_event, record);
             }
         }
     }
@@ -213,6 +247,7 @@ mod tests {
         retrieved: i64,
     ) -> TemporalEvidenceRevision {
         TemporalEvidenceRevision {
+            source_id: "SOURCE-A".to_owned(),
             event_id: "EV-1".to_owned(),
             subject_id: "BOX-1".to_owned(),
             source_revision: revision,
@@ -243,12 +278,12 @@ mod tests {
         let correction = record(2, "digest-v2", 120, 130);
         let history = vec![first, correction];
 
-        let then = select_decision_revisions(&history, cutoffs(100, 100, 200)).unwrap();
+        let then = select_decision_revisions(&history, "BOX-1", cutoffs(100, 100, 200)).unwrap();
         assert_eq!(then.len(), 1);
         assert_eq!(then[0].source_revision, 1);
         assert_eq!(then[0].payload_digest, "digest-v1");
 
-        let later = select_decision_revisions(&history, cutoffs(100, 150, 200)).unwrap();
+        let later = select_decision_revisions(&history, "BOX-1", cutoffs(100, 150, 200)).unwrap();
         assert_eq!(later.len(), 1);
         assert_eq!(later[0].source_revision, 2);
         assert_eq!(later[0].payload_digest, "digest-v2");
@@ -325,14 +360,48 @@ mod tests {
     fn conflicting_visible_payloads_for_same_source_revision_fail_closed() {
         let first = record(1, "digest-a", 90, 95);
         let conflicting = record(1, "digest-b", 91, 96);
-        let error = select_decision_revisions(&[first, conflicting], cutoffs(100, 100, 200))
+        let error = select_decision_revisions(&[first, conflicting], "BOX-1", cutoffs(100, 100, 200))
             .unwrap_err();
 
         assert_eq!(
             error,
             TemporalError::ConflictingSourceRevision {
+                source_id: "SOURCE-A".to_owned(),
                 event_id: "EV-1".to_owned(),
                 revision: 1,
+            }
+        );
+    }
+
+    #[test]
+    fn same_native_event_id_from_distinct_sources_remains_distinct() {
+        let first = record(1, "digest-a", 90, 95);
+        let mut second = record(1, "digest-b", 91, 96);
+        second.source_id = "SOURCE-B".to_owned();
+
+        let selected =
+            select_decision_revisions(&[first, second], "BOX-1", cutoffs(100, 100, 200))
+                .unwrap();
+        assert_eq!(selected.len(), 2);
+        assert!(selected.iter().any(|item| item.source_id == "SOURCE-A"));
+        assert!(selected.iter().any(|item| item.source_id == "SOURCE-B"));
+        assert_eq!(selected[0].dependency_cluster, selected[1].dependency_cluster);
+    }
+
+    #[test]
+    fn visible_source_record_with_wrong_subject_is_rejected() {
+        let mut value = record(1, "digest-v1", 90, 95);
+        value.subject_id = "BOX-OTHER".to_owned();
+
+        let error = select_decision_revisions(&[value], "BOX-1", cutoffs(100, 100, 200))
+            .unwrap_err();
+        assert_eq!(
+            error,
+            TemporalError::SubjectBindingMismatch {
+                source_id: "SOURCE-A".to_owned(),
+                event_id: "EV-1".to_owned(),
+                expected_subject: "BOX-1".to_owned(),
+                observed_subject: "BOX-OTHER".to_owned(),
             }
         );
     }
@@ -353,7 +422,7 @@ mod tests {
             },
         ];
 
-        let selected = select_decision_revisions(&[value], cutoffs(100, 100, 200)).unwrap();
+        let selected = select_decision_revisions(&[value], "BOX-1", cutoffs(100, 100, 200)).unwrap();
         assert_eq!(selected.len(), 1);
         assert_eq!(selected[0].source_revision, 1);
     }
@@ -378,6 +447,7 @@ mod tests {
         assert_eq!(
             error,
             TemporalError::ConflictingAdjudicationRevision {
+                source_id: "SOURCE-A".to_owned(),
                 event_id: "EV-1".to_owned(),
                 revision: 1,
             }
