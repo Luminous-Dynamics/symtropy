@@ -403,7 +403,7 @@ mod tests {
                     ObjectiveVector {
                         vessel_wait: 2,
                         receiver_delay: 3,
-                        energy_cost: 2,
+                        energy_cost: 0,
                         emissions: 3,
                         missed_connections: 0,
                     },
@@ -502,6 +502,34 @@ mod tests {
             enumerate(&scenario),
             Err(OracleError::UnknownVessel { .. })
         ));
+    }
+
+
+    #[test]
+    fn reservation_sum_overflow_is_rejected() {
+        let mut scenario = base_scenario();
+        scenario.candidates[0].reservations = vec![
+            Reservation {
+                resource_id: "BRIDGE".to_owned(),
+                slot: 0,
+                units: u32::MAX,
+            },
+            Reservation {
+                resource_id: "BRIDGE".to_owned(),
+                slot: 0,
+                units: 1,
+            },
+        ];
+        assert_eq!(enumerate(&scenario), Err(OracleError::ReservationOverflow));
+    }
+
+    #[test]
+    fn objective_sum_overflow_is_rejected() {
+        let mut scenario = base_scenario();
+        scenario.capacities[0].capacity = 2;
+        scenario.candidates[0].objective.vessel_wait = u64::MAX;
+        scenario.candidates[2].objective.vessel_wait = 1;
+        assert_eq!(enumerate(&scenario), Err(OracleError::ObjectiveOverflow));
     }
 
     #[test]
