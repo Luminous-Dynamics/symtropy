@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SAFRB shared-pump known-answer fixture v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scenario",
+    "certificate"
+  ],
+  "properties": {
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "case_id",
+        "evidence_maturity",
+        "claim_scope",
+        "time_window",
+        "commodity",
+        "source_node",
+        "sink_node",
+        "required_delivery",
+        "nodes",
+        "edges",
+        "resource_aliases",
+        "adversarial_mutations"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "safrb-shared-pump-network-v0.1"
+        },
+        "case_id": {
+          "const": "SAFRB-SHARED-PUMP-2ROUTE-001"
+        },
+        "evidence_maturity": {
+          "const": "synthetic_known_truth"
+        },
+        "claim_scope": {
+          "const": "FUEL-DELIVERABILITY"
+        },
+        "time_window": {
+          "type": "object",
+          "required": [
+            "start",
+            "duration_seconds",
+            "interval_semantics"
+          ]
+        },
+        "commodity": {
+          "type": "object",
+          "required": [
+            "product_id",
+            "quantity_unit",
+            "unit_basis"
+          ]
+        },
+        "source_node": {
+          "type": "string"
+        },
+        "sink_node": {
+          "type": "string"
+        },
+        "required_delivery": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "nodes": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "kind"
+            ]
+          }
+        },
+        "edges": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "from",
+              "to",
+              "capacity_lower",
+              "capacity_upper",
+              "unit",
+              "resource_id"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              },
+              "capacity_lower": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "capacity_upper": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "unit": {
+                "const": "t"
+              },
+              "resource_id": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "resource_aliases": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": [
+              "logical_edge_ref",
+              "physical_resource_id"
+            ]
+          }
+        },
+        "adversarial_mutations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "certificate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "certificate_version",
+        "scenario_sha256",
+        "model_class",
+        "lower_bound_max_flow",
+        "lower_bound_min_cut_capacity",
+        "lower_bound_service_deficit",
+        "flow_witness",
+        "source_side_nodes",
+        "cut_edge_ids",
+        "lower_bound_verdict",
+        "upper_bound_max_flow",
+        "interpretation"
+      ],
+      "properties": {
+        "certificate_version": {
+          "type": "string"
+        },
+        "scenario_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "model_class": {
+          "const": "single_commodity_directed_capacity_network"
+        },
+        "lower_bound_max_flow": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lower_bound_min_cut_capacity": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lower_bound_service_deficit": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "flow_witness": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "source_side_nodes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cut_edge_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "lower_bound_verdict": {
+          "const": "indeterminate"
+        },
+        "upper_bound_max_flow": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "interpretation": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
