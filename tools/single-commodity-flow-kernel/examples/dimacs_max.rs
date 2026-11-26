@@ -55,9 +55,6 @@ fn parse_dimacs_max(input: &str) -> Result<FlowGraph, String> {
             "n" => {
                 let (node_count, _) = problem
                     .ok_or_else(|| format!("line {line_number}: node line before problem line"))?;
-                if saw_arc {
-                    return Err(format!("line {line_number}: node lines must precede arc lines"));
-                }
                 if tokens.len() != 3 {
                     return Err(format!("line {line_number}: expected n <v> <s|t>"));
                 }
@@ -219,6 +216,13 @@ a 2 3 1
         graph.verify_result(&result).unwrap();
         let bundle = FlowCertificateBundle::new(graph, result).unwrap();
         bundle.verify().unwrap();
+    }
+
+    #[test]
+    fn accepts_node_declarations_after_arc_lines() {
+        let input = "p max 2 1\na 1 2 1\nn 1 s\nn 2 t\n";
+        let graph = parse_dimacs_max(input).unwrap();
+        assert_eq!(graph.solve().unwrap().max_flow, 1);
     }
 
     #[test]
