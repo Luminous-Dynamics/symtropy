@@ -1,6 +1,6 @@
 # Maritime Receiver Service v0.1
 
-**Status:** synthetic receiver-outcome evaluator; exact-head qualification pending.
+**Status:** synthetic receiver-outcome evaluator; dedicated exact-head qualification passed.
 **Tracking:** [#7554 — receiver outcomes and protected service floors](https://github.com/Luminous-Dynamics/symtropy/issues/7554).
 **Related:** #6662, #6578, #7436, #7488, #7505, #7519, #7528, #7544, #3683.
 
@@ -50,3 +50,15 @@ python3 research/maritime-receiver-service/scripts/independent_reference.py --re
 - The fixture is not evidence of actual DGT or any other port's performance.
 
 Keep three distinct scorecards: CPPI-compatible vessel time; terminal resource productivity; and unit-level receiver acceptance / protected service. A gain on one cannot be used as a proxy for another.
+
+## Exact-head qualification record
+
+The dedicated `maritime-receiver-service` workflow passed on commit `8628da80fffe7c02b570bdd9243884d3da2b8bd9`:
+- Formatting: pass
+- Rust tests: 15 passed, 0 failed
+- Strict Clippy: pass
+- Deterministic receiver-service receipt: pass
+- Independent Python reference: 10/10 frozen scenario cases
+- Receipt artifact uploaded
+
+This establishes only the declared synthetic outcome arithmetic and state contract. It does not establish live cargo delivery, causal benefit or source authenticity.
