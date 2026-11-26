@@ -97,9 +97,7 @@ pub fn compare_effectivity_intervals(
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        CASES, EffectivityRelation, TimeInterval, compare_effectivity_intervals,
-    };
+    use super::{CASES, EffectivityRelation, TimeInterval, compare_effectivity_intervals};
     use serde_json::Value;
 
     fn interval(earliest: u64, latest: u64) -> TimeInterval {
@@ -133,9 +131,7 @@ mod tests {
                     earliest_unix_ms: interval["earliest_unix_ms"]
                         .as_u64()
                         .expect("earliest time"),
-                    latest_unix_ms: interval["latest_unix_ms"]
-                        .as_u64()
-                        .expect("latest time"),
+                    latest_unix_ms: interval["latest_unix_ms"].as_u64().expect("latest time"),
                 }
             };
             let actual = compare_effectivity_intervals(
@@ -159,8 +155,7 @@ mod tests {
 
     #[test]
     fn event_definitely_not_yet_effective_after_every_acquisition_time() {
-        let result =
-            compare_effectivity_intervals(interval(111, 120), interval(100, 110));
+        let result = compare_effectivity_intervals(interval(111, 120), interval(100, 110));
         assert_eq!(
             result.relation,
             EffectivityRelation::DefinitelyNotYetEffective
@@ -169,29 +164,25 @@ mod tests {
 
     #[test]
     fn overlapping_intervals_abstain_instead_of_choosing_an_endpoint() {
-        let result =
-            compare_effectivity_intervals(interval(105, 115), interval(100, 110));
+        let result = compare_effectivity_intervals(interval(105, 115), interval(100, 110));
         assert_eq!(result.relation, EffectivityRelation::BoundaryAmbiguous);
     }
 
     #[test]
     fn exact_point_effectivity_at_exact_acquisition_is_inclusive() {
-        let result =
-            compare_effectivity_intervals(interval(100, 100), interval(100, 100));
+        let result = compare_effectivity_intervals(interval(100, 100), interval(100, 100));
         assert_eq!(result.relation, EffectivityRelation::DefinitelyEffective);
     }
 
     #[test]
     fn touching_uncertainty_bounds_without_universal_order_are_ambiguous() {
-        let result =
-            compare_effectivity_intervals(interval(110, 120), interval(100, 110));
+        let result = compare_effectivity_intervals(interval(110, 120), interval(100, 110));
         assert_eq!(result.relation, EffectivityRelation::BoundaryAmbiguous);
     }
 
     #[test]
     fn invalid_event_or_acquisition_interval_is_rejected() {
-        let event_invalid =
-            compare_effectivity_intervals(interval(120, 110), interval(100, 110));
+        let event_invalid = compare_effectivity_intervals(interval(120, 110), interval(100, 110));
         assert_eq!(event_invalid.relation, EffectivityRelation::InvalidInterval);
 
         let acquisition_invalid =
