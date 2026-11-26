@@ -657,13 +657,32 @@ impl<const D: usize> PairDeltaCache<D> {
     ///
     /// This performs the full snapshot diff and belongs in the audit path,
     /// not the timed fast path.
+    /// Verify that the supplied journal covers every geometrically changed,
+    /// inserted or removed identity. Additional known identities are accepted
+    /// for wake-only or other explicit lifecycle invalidations whose AABB has
+    /// not changed yet. This snapshot audit cannot prove the provenance of
+    /// those extra reasons; that must be bound by the physics-world journal.
     pub fn verify_dirty_proxy_ids(
         &self,
         frame: &[ProxyFrame<D>],
         supplied: &[ProxyId],
     ) -> Result<bool, TournamentError> {
         let expected = self.derive_dirty_proxy_ids(frame)?;
-        Ok(expected == supplied)
+        let mut previous = None;
+        for id in supplied {
+            if previous.is_some_and(|prior| prior >= *id) {
+                return Ok(false);
+            }
+            let existed_before = self.previous_bounds.contains_key(id);
+            let exists_now = frame.binary_search_by_key(id, |proxy| proxy.id).is_ok();
+            if !existed_before && !exists_now {
+                return Ok(false);
+            }
+            previous = Some(*id);
+        }
+        Ok(expected
+            .iter()
+            .all(|id| supplied.binary_search(id).is_ok()))
     }
 
     /// Safe default: detect changed identities from the complete snapshots.
@@ -2108,7 +2127,16 @@ mod tests {
         let dirty = cache.derive_dirty_proxy_ids(&next).unwrap();
         assert_eq!(dirty, vec![ProxyId(1), ProxyId(3)]);
         assert!(cache.verify_dirty_proxy_ids(&next, &dirty).unwrap());
+        assert!(cache
+            .verify_dirty_proxy_ids(&next, &[ProxyId(1), ProxyId(2), ProxyId(3)])
+            .unwrap());
         assert!(!cache.verify_dirty_proxy_ids(&next, &[ProxyId(1)]).unwrap());
+        assert!(!cache
+            .verify_dirty_proxy_ids(&next, &[ProxyId(1), ProxyId(3), ProxyId(99)])
+            .unwrap());
+        assert!(!cache
+            .verify_dirty_proxy_ids(&next, &[ProxyId(3), ProxyId(1)])
+            .unwrap());
 
         assert_eq!(
             cache.step_with_dirty_ids(&next, &[ProxyId(3), ProxyId(1)]),
