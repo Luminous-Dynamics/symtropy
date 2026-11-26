@@ -33,7 +33,7 @@
       "world_id": "partial_effect",
       "dispatch_state": "dispatched",
       "effect_state": "partial",
-      "effect_count": 0,
+      "effect_count": 1,
       "authority_relation": "current_epoch",
       "acknowledgement_state": "lost"
     },
