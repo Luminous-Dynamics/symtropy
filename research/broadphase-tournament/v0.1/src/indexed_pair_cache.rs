@@ -294,8 +294,30 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
             .and_then(|count| count.checked_add(added.len()))
             .ok_or(TournamentError::CounterOverflow)?;
 
+        // Preflight every index operation before mutation. The old-bounds
+        // map is the cache's expected leaf-membership ledger; reject divergence
+        // before any tree or adjacency state is changed. Also validate every
+        // new fat AABB so user-data errors cannot arise halfway through commit.
+        for dirty_id in &dirty {
+            let existed_before = self.previous_bounds.contains_key(dirty_id);
+            if self.tree.contains_proxy(*dirty_id) != existed_before {
+                return Err(TournamentError::PairCacheInvariant);
+            }
+            if let Some(index) = frame.binary_search_by_key(dirty_id, |proxy| proxy.id).ok() {
+                let next = frame[index].bounds;
+                if self
+                    .previous_bounds
+                    .get(dirty_id)
+                    .is_none_or(|previous| *previous != next)
+                {
+                    next.fatten(self.tree.fat_margin())?;
+                }
+            }
+        }
+
         // Apply the staged spatial-index mutations only after all pair
-        // transitions and pair-count arithmetic have been validated.
+        // transitions, pair-count arithmetic, membership checks and AABB
+        // fattening checks have been validated.
         for dirty_id in &dirty {
             let current = frame
                 .binary_search_by_key(dirty_id, |proxy| proxy.id)
