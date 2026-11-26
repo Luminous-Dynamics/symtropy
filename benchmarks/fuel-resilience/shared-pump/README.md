@@ -44,3 +44,17 @@ No operational, legal, safety, SOTA or global deployment claim follows from this
 ## Integrated comparison
 
 See [SAFRB_INTEGRATION_BENCHMARK_PROTOCOL_V0_1.md](SAFRB_INTEGRATION_BENCHMARK_PROTOCOL_V0_1.md) for the matched baselines, cross-project ablations, prospective metrics and SOTA claim rules.
+
+## Counterfactual service-restoration frontier
+
+The two-window verifier now enumerates the smallest conservative pump-capacity lower bound in window 2 that would satisfy both beneficiary floors, holding every other declared input fixed.
+
+- Baseline window-2 pump lower bound: 3 t.
+- Baseline conservative horizon delivery: 9 t / 12 t required.
+- At 5 t lower-bound pump capacity, horizon flow is 11 t; one tonne remains unserved.
+- At 6 t lower-bound pump capacity, horizon max-flow/min-cut is 12/12 t and both separate window service obligations are met.
+- The fixture therefore has a **synthetic mathematical threshold of +3 t of qualified lower-bound pump capacity in window 2**.
+
+This is a counterfactual sensitivity result for the declared graph, not a repair recommendation, procurement quantity, market price, asset rating, dispatch approval or proof that the physical pump can deliver 6 t. A real intervention requires owner authority, calibrated evidence valid over the operation window, independent dependency review and fresh qualification.
+
+The broader investment frontier should compare capacity uplift, genuinely independent redundancy, delivery rescheduling (only where the beneficiary contract permits it), demand-side alternatives and recovery time as a Pareto set. Do not collapse cost, reliability, rights, emissions and cohort outcomes into one arbitrary weighted score.
