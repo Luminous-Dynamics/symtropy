@@ -167,9 +167,23 @@ for (const item of corpus.cases) {
   } else if (item.case_id === "joint_scenario_omission") {
     throw new Error("joint-scenario omission negative control is no longer incomplete");
   }
-  if (worldIds.size !== item.expected_world_ids.length
-    || item.expected_world_ids.some(id => !worldIds.has(id))) {
-    throw new Error("joint scenarios do not cover exact physical-world inventory in " + item.case_id);
+  const missingPhysicalWorlds = item.expected_world_ids.filter(id => !worldIds.has(id));
+  const unexpectedPhysicalWorlds = [...worldIds].filter(id => !item.expected_world_ids.includes(id));
+  const physicalWorldInventoryComplete = missingPhysicalWorlds.length === 0
+    && unexpectedPhysicalWorlds.length === 0
+    && worldIds.size === item.expected_world_ids.length;
+  if (!physicalWorldInventoryComplete) {
+    const isExactPhysicalWorldOmissionControl = item.case_id === "physical_world_omission"
+      && item.expected?.disposition === "INVALID_INPUT"
+      && item.expected?.trigger_reason === "joint loss scenarios do not cover the exact surviving physical-world inventory"
+      && missingPhysicalWorlds.length === 1
+      && unexpectedPhysicalWorlds.length === 0
+      && worldIds.size + 1 === item.expected_world_ids.length;
+    if (!isExactPhysicalWorldOmissionControl) {
+      throw new Error("joint scenarios do not cover exact physical-world inventory in " + item.case_id);
+    }
+  } else if (item.case_id === "physical_world_omission") {
+    throw new Error("physical-world omission negative control is no longer incomplete");
   }
   if (projectedDigest(item.worlds) !== modelSet.projected_scenarios_sha256) {
     throw new Error("projected scenario digest mismatch in " + item.case_id);
