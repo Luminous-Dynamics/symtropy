@@ -39,6 +39,22 @@ The reference core assumes ordinary Rust binary64 arithmetic uses IEEE-754 round
 
 The implementation is a research reference, not an IEEE 1788 conformance claim, a proof-certified compiler, or a formally verified implementation. Its enclosure contract must be independently challenged before product qualification. The deterministic tests are necessary controls, not a proof of all possible floating-point behaviour.
 
+## Handoff to continuous spatial certification (#7639 / #7642)
+
+For a direct mapping into `CellMarginEvidence`, require all of the following:
+
+- IAD `cell_id` equals the spatial cell ID, and its parameter bounds are the exact same cell box.
+- IAD frame, operating condition, model set, solver run, geometry/material digests and requirement ID equal the spatial evidence scope.
+- Parameter order is explicitly mapped to spatial axes. For the current XYZ spatial contract use parameter IDs `x,y,z` with length units of metres, or provide a separately reviewed axis permutation mapping.
+- The IAD derivative suprema are in the same output-units-per-metre expected by the spatial margin contract. A unit mismatch is a hard rejection, not an implicit conversion.
+- The IAD record ID is retained as the source for the three derivative-bound record identities; the spatial record must preserve the exact derivative component association (X/Y/Z).
+
+**Do not use `value_enclosure` as the centre margin interval.** It encloses the expression over the complete parameter box. The spatial certifier requires an independent centre sample or separately qualified centre oracle, with its own sample ID, digest and measurement uncertainty, at the exact box centre. These are different mathematical objects.
+
+The bridge is valid only when the derivative expression is the derivative of the exact scalar functional margin required by the spatial certifier. Field-component derivatives or derivatives of an unrelated objective cannot be passed off as margin derivatives.
+
+If the IAD result is unbounded, outside the supported expression domain, has an identity mismatch, or cannot establish the required units, the spatial cell remains unresolved.
+
 ## Dependency overestimation
 
 Plain interval AD can be conservative. Repeated appearances of the same variable lose dependency information (the classic interval dependency problem). v0.1 favours sound enclosure over tightness. Follow-on work should compare:
