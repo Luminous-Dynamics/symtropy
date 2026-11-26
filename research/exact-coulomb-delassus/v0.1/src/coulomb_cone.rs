@@ -44,7 +44,9 @@ pub struct ContactLawResiduals {
     pub dual_cone_violation: f64,
     /// Complementarity residual normalized by impulse and velocity scales.
     pub complementarity: f64,
-    /// Signed kinetic-energy change for the supplied pre/post contact velocities.
+    /// Normalized residual of post_velocity = free_velocity + W * impulse.
+    pub delassus_response_consistency: f64,
+    /// Signed kinetic-energy change for the supplied free velocity and Wp.
     pub kinetic_energy_delta: f64,
     /// Normalized positive energy injection (zero for non-injecting states).
     pub energy_injection: f64,
@@ -201,35 +203,51 @@ impl CoulombCone {
         })
     }
 
-    /// Evaluate the exact reduced local-law conditions for a supplied impulse
-    /// and pre/post contact velocities. The caller MUST supply
-    /// post_velocity = free_velocity + W * impulse for the same symmetric
-    /// positive-semidefinite Delassus operator used by the solver. This module
-    /// checks the resulting local law; it cannot independently verify that
-    /// operator-response identity because W is not an input here.
+    /// Evaluate the exact reduced local-law conditions for a supplied impulse,
+    /// free velocity q, Delassus response Wp and post velocity u. The caller
+    /// supplies Wp from the same symmetric positive-semidefinite Delassus
+    /// operator used by the solver. This checker verifies u = q + Wp and
+    /// reports its normalized residual separately; it cannot independently
+    /// reconstruct W or prove that the supplied response is Wp.
     ///
     /// The De Saxce/Feng augmented velocity is
     /// u_tilde = (u_n + mu*||u_t||, u_t). Qualification requires:
-    /// p in K_mu, u_tilde in K_mu*, p dot u_tilde = 0, and no positive
-    /// kinetic-energy change beyond the declared normalized tolerance.
+    /// p in K_mu, u_tilde in K_mu*, p dot u_tilde = 0, response consistency,
+    /// and no positive kinetic-energy injection.
     pub fn evaluate_contact(
         self,
         impulse: ContactImpulse3,
         free_velocity: ContactVelocity3,
+        delassus_response: ContactVelocity3,
         post_velocity: ContactVelocity3,
     ) -> Result<ContactLawResiduals, CoulombConeError> {
         if !finite_impulse(impulse)
             || !finite_velocity(free_velocity)
+            || !finite_velocity(delassus_response)
             || !finite_velocity(post_velocity)
         {
             return Err(CoulombConeError::NonFiniteInput);
+        }
+
+        let predicted_post = ContactVelocity3 {
+            normal: free_velocity.normal + delassus_response.normal,
+            tangent: [
+                free_velocity.tangent[0] + delassus_response.tangent[0],
+                free_velocity.tangent[1] + delassus_response.tangent[1],
+            ],
+        };
+        if !finite_velocity(predicted_post) {
+            return Err(CoulombConeError::NonFiniteResult);
         }
 
         let mu = self.friction_coefficient;
         let tangent_impulse_norm = norm2(impulse.tangent);
         let tangent_velocity_norm = norm2(post_velocity.tangent);
         let augmented_normal = post_velocity.normal + mu * tangent_velocity_norm;
-        if !augmented_normal.is_finite() {
+        if !tangent_impulse_norm.is_finite()
+            || !tangent_velocity_norm.is_finite()
+            || !augmented_normal.is_finite()
+        {
             return Err(CoulombConeError::NonFiniteResult);
         }
 
@@ -237,11 +255,25 @@ impl CoulombCone {
             .max(impulse.normal.abs())
             .max(tangent_impulse_norm)
             .max(mu * impulse.normal.abs());
-        let velocity_scale = 1.0_f64
-            .max(post_velocity.normal.abs())
-            .max(tangent_velocity_norm)
-            .max(augmented_normal.abs())
-            .max(mu * tangent_velocity_norm);
+        let velocity_scale = [
+            free_velocity.normal.abs(),
+            free_velocity.tangent[0].abs(),
+            free_velocity.tangent[1].abs(),
+            delassus_response.normal.abs(),
+            delassus_response.tangent[0].abs(),
+            delassus_response.tangent[1].abs(),
+            post_velocity.normal.abs(),
+            post_velocity.tangent[0].abs(),
+            post_velocity.tangent[1].abs(),
+            predicted_post.normal.abs(),
+            predicted_post.tangent[0].abs(),
+            predicted_post.tangent[1].abs(),
+            tangent_velocity_norm,
+            augmented_normal.abs(),
+            (mu * tangent_velocity_norm).abs(),
+        ]
+        .into_iter()
+        .fold(1.0_f64, f64::max);
         if !impulse_scale.is_finite() || !velocity_scale.is_finite() {
             return Err(CoulombConeError::NonFiniteResult);
         }
@@ -255,25 +287,34 @@ impl CoulombCone {
 
         let scaled_augmented_normal = augmented_normal / velocity_scale;
         let scaled_tangent_velocity = tangent_velocity_norm / velocity_scale;
-        let dual_cone_violation = (mu * scaled_tangent_velocity - scaled_augmented_normal).max(0.0);
+        let dual_cone_violation =
+            (mu * scaled_tangent_velocity - scaled_augmented_normal).max(0.0);
 
         let complementarity = (scaled_normal_impulse * scaled_augmented_normal
             + (impulse.tangent[0] / impulse_scale) * (post_velocity.tangent[0] / velocity_scale)
             + (impulse.tangent[1] / impulse_scale) * (post_velocity.tangent[1] / velocity_scale))
             .abs();
+        let delassus_response_consistency = [
+            predicted_post.normal - post_velocity.normal,
+            predicted_post.tangent[0] - post_velocity.tangent[0],
+            predicted_post.tangent[1] - post_velocity.tangent[1],
+        ]
+        .into_iter()
+        .map(f64::abs)
+        .fold(0.0_f64, f64::max)
+            / velocity_scale;
 
-        // Delta K = 1/2 p^T(q + u), with u = q + Wp and symmetric W.
-        // This equals p^T q + 1/2 p^T Wp, without reconstructing W.
-        let half_pre_work = 0.5
-            * (impulse.normal * free_velocity.normal
-                + impulse.tangent[0] * free_velocity.tangent[0]
-                + impulse.tangent[1] * free_velocity.tangent[1]);
-        let half_post_work = 0.5
-            * (impulse.normal * post_velocity.normal
-                + impulse.tangent[0] * post_velocity.tangent[0]
-                + impulse.tangent[1] * post_velocity.tangent[1]);
-        let kinetic_energy_delta = half_pre_work + half_post_work;
-        let energy_scale = 1.0_f64.max(half_pre_work.abs()).max(half_post_work.abs());
+        // Delta K = p^T q + 1/2 p^T Wp for symmetric W. Wp is supplied
+        // separately so the response identity can be checked against u - q.
+        let pre_work = impulse.normal * free_velocity.normal
+            + impulse.tangent[0] * free_velocity.tangent[0]
+            + impulse.tangent[1] * free_velocity.tangent[1];
+        let half_response_work = 0.5
+            * (impulse.normal * delassus_response.normal
+                + impulse.tangent[0] * delassus_response.tangent[0]
+                + impulse.tangent[1] * delassus_response.tangent[1]);
+        let kinetic_energy_delta = pre_work + half_response_work;
+        let energy_scale = 1.0_f64.max(pre_work.abs()).max(half_response_work.abs());
         if !kinetic_energy_delta.is_finite() || !energy_scale.is_finite() {
             return Err(CoulombConeError::NonFiniteResult);
         }
@@ -286,12 +327,14 @@ impl CoulombCone {
         let max_normalized_residual = primal_cone_violation
             .max(dual_cone_violation)
             .max(complementarity)
+            .max(delassus_response_consistency)
             .max(energy_injection);
 
         Ok(ContactLawResiduals {
             primal_cone_violation,
             dual_cone_violation,
             complementarity,
+            delassus_response_consistency,
             kinetic_energy_delta,
             energy_injection,
             max_normalized_residual,
@@ -450,6 +493,7 @@ mod tests {
             .evaluate_contact(
                 impulse(0.0, [0.0, 0.0]),
                 velocity(1.0, [3.0, 4.0]),
+                velocity(0.0, [0.0, 0.0]),
                 velocity(1.0, [3.0, 4.0]),
             )
             .unwrap();
@@ -465,6 +509,7 @@ mod tests {
             .evaluate_contact(
                 impulse(2.0, [0.3, 0.4]),
                 velocity(-2.0, [-0.3, -0.4]),
+                velocity(2.0, [0.3, 0.4]),
                 velocity(0.0, [0.0, 0.0]),
             )
             .unwrap();
@@ -482,6 +527,7 @@ mod tests {
             .evaluate_contact(
                 impulse(2.0, [-0.6, -0.8]),
                 velocity(-2.0, [3.6, 4.8]),
+                velocity(2.0, [-0.6, -0.8]),
                 velocity(0.0, [3.0, 4.0]),
             )
             .unwrap();
@@ -498,6 +544,7 @@ mod tests {
             .evaluate_contact(
                 impulse(2.0, [0.6, 0.8]),
                 velocity(-2.0, [2.4, 3.2]),
+                velocity(2.0, [0.6, 0.8]),
                 velocity(0.0, [3.0, 4.0]),
             )
             .unwrap();
@@ -508,6 +555,7 @@ mod tests {
             .evaluate_contact(
                 impulse(-1.0, [0.0, 0.0]),
                 velocity(1.0, [0.0, 0.0]),
+                velocity(0.0, [0.0, 0.0]),
                 velocity(1.0, [0.0, 0.0]),
             )
             .unwrap();
@@ -516,11 +564,27 @@ mod tests {
     }
 
     #[test]
+    fn inconsistent_delassus_response_is_reported_and_rejected() {
+        let cone = CoulombCone::new(0.5).unwrap();
+        let report = cone
+            .evaluate_contact(
+                impulse(0.0, [0.0, 0.0]),
+                velocity(1.0, [0.0, 0.0]),
+                velocity(0.0, [0.5, 0.0]),
+                velocity(1.0, [0.0, 0.0]),
+            )
+            .unwrap();
+        assert!(report.delassus_response_consistency > 0.0);
+        assert!(!report.qualifies(DEFAULT_TOLERANCE));
+    }
+
+    #[test]
     fn friction_disk_violation_is_not_accepted() {
         let cone = CoulombCone::new(0.25).unwrap();
         let report = cone
             .evaluate_contact(
                 impulse(1.0, [1.0, 0.0]),
+                velocity(0.0, [0.0, 0.0]),
                 velocity(0.0, [0.0, 0.0]),
                 velocity(0.0, [0.0, 0.0]),
             )
