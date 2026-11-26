@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-acquisition-integrity-corpus-v0.1.schema.json",
+  "title": "Orbital Acquisition Integrity Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-acquisition-integrity.corpus.v0.1"
+    },
+    "benchmark_id": {
+      "const": "ORBITAL-ACQUISITION-INTEGRITY-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_constant_relative_image_plane_motion_exposure_and_readout_bounds_only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/Case"
+      }
+    }
+  },
+  "$defs": {
+    "ProjectorWindow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pattern_id",
+        "stable_start_ns",
+        "stable_end_ns",
+        "pattern_receipt_sha256"
+      ],
+      "properties": {
+        "pattern_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stable_start_ns": {
+          "type": "integer"
+        },
+        "stable_end_ns": {
+          "type": "integer"
+        },
+        "pattern_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        }
+      }
+    },
+    "Case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "camera_id",
+        "calibration_state",
+        "calibration_receipt_sha256",
+        "clock_map_state",
+        "clock_map_receipt_sha256",
+        "timestamp_reference",
+        "frame_timestamp_ns",
+        "timestamp_uncertainty_ns",
+        "trigger_jitter_ns",
+        "motion_model_id",
+        "motion_model_state",
+        "relative_velocity_x_um_per_s",
+        "relative_velocity_y_um_per_s",
+        "gsd_um_per_pixel",
+        "exposure_duration_ns",
+        "shutter_mode",
+        "image_height_px",
+        "readout_duration_ns",
+        "readout_uncertainty_ns",
+        "readout_direction",
+        "motion_budget_micro_px",
+        "requires_projector",
+        "projector_window",
+        "expected_status"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "camera_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_state": {
+          "enum": [
+            "VALID",
+            "INVALID",
+            "UNKNOWN"
+          ]
+        },
+        "calibration_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
+        "clock_map_state": {
+          "enum": [
+            "VALID",
+            "INVALID",
+            "UNKNOWN"
+          ]
+        },
+        "clock_map_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
+        "timestamp_reference": {
+          "enum": [
+            "CENTER_ROW_EXPOSURE_MIDPOINT",
+            "FIRST_ROW_EXPOSURE_START",
+            "HOST_ARRIVAL"
+          ]
+        },
+        "frame_timestamp_ns": {
+          "type": "integer"
+        },
+        "timestamp_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trigger_jitter_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "motion_model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "motion_model_state": {
+          "enum": [
+            "ADMITTED",
+            "OUT_OF_DOMAIN",
+            "UNKNOWN"
+          ]
+        },
+        "relative_velocity_x_um_per_s": {
+          "type": "integer"
+        },
+        "relative_velocity_y_um_per_s": {
+          "type": "integer"
+        },
+        "gsd_um_per_pixel": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "exposure_duration_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "shutter_mode": {
+          "enum": [
+            "GLOBAL_SHUTTER",
+            "ROLLING_SHUTTER"
+          ]
+        },
+        "image_height_px": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "readout_duration_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "readout_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "readout_direction": {
+          "enum": [
+            "TOP_TO_BOTTOM",
+            "BOTTOM_TO_TOP"
+          ]
+        },
+        "motion_budget_micro_px": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "requires_projector": {
+          "type": "boolean"
+        },
+        "projector_window": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ProjectorWindow"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expected_status": {
+          "enum": [
+            "ACQUISITION_VALID_WITHIN_BUDGET",
+            "CALIBRATION_NOT_VALID",
+            "PROJECTOR_PATTERN_MISMATCH",
+            "MOTION_MODEL_OUT_OF_DOMAIN",
+            "TIMING_UNCERTAINTY_EXCEEDED",
+            "MOTION_BLUR_BUDGET_EXCEEDED",
+            "ROLLING_SHUTTER_BUDGET_EXCEEDED",
+            "COMBINED_ACQUISITION_BUDGET_EXCEEDED",
+            "INDETERMINATE"
+          ]
+        }
+      }
+    }
+  }
+}
