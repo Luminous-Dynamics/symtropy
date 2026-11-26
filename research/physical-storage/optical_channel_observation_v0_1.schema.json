@@ -566,7 +566,52 @@
               }
             }
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "soft_information": {
+                  "properties": {
+                    "status": {
+                      "const": "calibrated"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                }
+              },
+              "required": [
+                "soft_information"
+              ]
+            },
+            "then": {
+              "properties": {
+                "soft_information": {
+                  "properties": {
+                    "method": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "symbol_probabilities": {
+                      "minItems": 2
+                    },
+                    "calibration_ref": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "method",
+                    "symbol_probabilities",
+                    "calibration_ref"
+                  ]
+                }
+              }
+            }
+          }
+        ]
       }
     },
     "evaluation_labels": {
@@ -682,6 +727,80 @@
                 ]
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence_class": {
+            "const": "synthetic_fixture"
+          }
+        },
+        "required": [
+          "evidence_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "observations": {
+            "items": {
+              "properties": {
+                "soft_information": {
+                  "properties": {
+                    "status": {
+                      "not": {
+                        "const": "calibrated"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reader": {
+            "properties": {
+              "calibration_status": {
+                "const": "current_traceable"
+              }
+            },
+            "required": [
+              "calibration_status"
+            ]
+          }
+        },
+        "required": [
+          "reader"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reader": {
+            "properties": {
+              "calibration_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "calibration_record_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "calibration_uncertainty": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "calibration_id",
+              "calibration_record_ref",
+              "calibration_uncertainty"
+            ]
           }
         }
       }
