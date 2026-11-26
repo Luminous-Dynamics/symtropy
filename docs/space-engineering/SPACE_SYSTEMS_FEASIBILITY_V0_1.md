@@ -68,7 +68,7 @@ It does not solve plasma-magnet electrodynamics, collisionless plasma response, 
 
 ### First sensitivity result
 
-The illustrative input gives 1.347 GW bus power and 125.83 N ideal thrust, but harvesting plus assumed parasitic drag total about 123.58 N. The nominal net force is only 2.25 N (about 1.82% of the opposing force), with the assumed 0.05c exhaust velocity close to the model's 0.0509c break-even value. This is a deliberately fragile synthetic case. The next Q-drive gate should require a positive lower confidence bound on net acceleration after uncertainty in medium density, interaction coupling, field direction, conversion, thruster efficiency, parasitic drag and full subsystem mass—not simply a nominal positive result.
+The illustrative input gives 1.347 GW bus power and 0.808 GW jet power, producing 125.41 N ideal thrust, but harvesting plus assumed parasitic drag total about 123.58 N. The nominal net force is only 1.83 N (about 1.48% of the opposing force), with the assumed 0.043c exhaust velocity close to the model's 0.04364c break-even value. This is a deliberately fragile synthetic case. The next Q-drive gate should require a positive lower confidence bound on net acceleration after uncertainty in medium density, interaction coupling, field direction, conversion, thruster efficiency, parasitic drag and full subsystem mass—not simply a nominal positive result.
 
 ## 4. Climate and human heat-risk boundary
 
