@@ -156,18 +156,34 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
         self.apply_dirty_ids(frame, &dirty, true, true, snapshot_entries_visited, 0)
     }
 
+    /// Trusted fast path. The caller must supply a sorted, unique, already
+    /// validated proxy frame and a complete journal from the authoritative
+    /// world mutation source. Only dirty current AABBs are revalidated here;
+    /// unchanged entries are trusted to be stable. Snapshot-based
+    /// verify_dirty_proxy_ids remains the independent audit path.
     pub(super) fn step_with_dirty_ids(
         &mut self,
         frame: &[ProxyFrame<D>],
         dirty_ids: &[ProxyId],
     ) -> Result<PairDeltaFrame, TournamentError> {
+        self.apply_dirty_ids(frame, dirty_ids, false, true, 0, 0)
+    }
+
+    /// Checked adapter for snapshots that have not earned the canonical-frame
+    /// trust contract. Its complete frame validation is exposed in the receipt.
+    pub(super) fn step_with_dirty_ids_checked(
+        &mut self,
+        frame: &[ProxyFrame<D>],
+        dirty_ids: &[ProxyId],
+    ) -> Result<PairDeltaFrame, TournamentError> {
+        validate_proxy_sequence(frame)?;
         let frame_validation_entries_visited =
             u64::try_from(frame.len()).map_err(|_| TournamentError::CounterOverflow)?;
         self.apply_dirty_ids(
             frame,
             dirty_ids,
             false,
-            false,
+            true,
             0,
             frame_validation_entries_visited,
         )
@@ -301,9 +317,14 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
                 return Err(TournamentError::InvalidDirtyJournal);
             }
             let existed_before = self.previous_bounds.contains_key(dirty_id);
-            let exists_now = frame.binary_search_by_key(dirty_id, |proxy| proxy.id).is_ok();
+            let current_index =
+                frame.binary_search_by_key(dirty_id, |proxy| proxy.id).ok();
+            let exists_now = current_index.is_some();
             if !existed_before && !exists_now {
                 return Err(TournamentError::InvalidDirtyJournal);
+            }
+            if current_index.is_some_and(|index| !frame[index].bounds.is_valid()) {
+                return Err(TournamentError::InvalidBounds);
             }
             previous_dirty = Some(*dirty_id);
         }
