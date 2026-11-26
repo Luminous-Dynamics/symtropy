@@ -1,0 +1,70 @@
+name: RRVR Replay Fidelity Audit v0.1
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-replay-fidelity-audit-v0-1
+    paths:
+      - "research/mobility-rrvr-replay-fidelity-audit-v0.1/**"
+      - ".github/workflows/mobility-rrvr-replay-fidelity-audit.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-replay-fidelity-audit-v0.1/**"
+      - ".github/workflows/mobility-rrvr-replay-fidelity-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay-fidelity-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Validate replay manifest and report schemas
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-replay-fidelity-audit-v0.1"
+          jq empty "$ROOT/schemas/replay_manifest_v0_1.schema.json"
+          jq empty "$ROOT/schemas/replay_audit_report_v0_1.schema.json"
+          jq empty "$ROOT/fixtures/replay_manifest_v0_1.json"
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path research/mobility-rrvr-replay-fidelity-audit-v0.1/Cargo.toml -- --check
+
+      - name: Execute raw PNG replay known-answer audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-replay-fidelity-audit-v0.1"
+          ARTIFACT_ROOT="$RUNNER_TEMP/replay-artifacts"
+          mkdir -p "$ARTIFACT_ROOT/frames"
+          for i in 0 1 2 3 4; do
+            base64 -d "$ROOT/fixtures/identical_rgb16x16.png.b64" > "$ARTIFACT_ROOT/frames/original-$i.png"
+            cp "$ARTIFACT_ROOT/frames/original-$i.png" "$ARTIFACT_ROOT/frames/replay-$i.png"
+          done
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_replay_audit -- "$ROOT/fixtures/replay_manifest_v0_1.json" "$ARTIFACT_ROOT" > "$RUNNER_TEMP/rrvr-replay-audit.json"
+          jq -e '
+            .benchmark == "RRVR-REPLAY-FIDELITY"
+            and .profile_id == "RoboRecoverReplayV1"
+            and .candidate_n == 1
+            and .valid_n == 1
+            and .invalid_n == 0
+            and .unresolved_n == 0
+            and .candidate_audits[0].status == "valid"
+            and .candidate_audits[0].difficulty_success_n == 2
+            and (.candidate_audits[0].frame_checks | length == 5)
+            and all(.candidate_audits[0].frame_checks[]; .ssim == 1 and .passed)
+          ' "$RUNNER_TEMP/rrvr-replay-audit.json"
+
+      - name: Run replay-fidelity tests
+        run: cargo test --locked --manifest-path research/mobility-rrvr-replay-fidelity-audit-v0.1/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/mobility-rrvr-replay-fidelity-audit-v0.1/Cargo.toml --all-targets -- -D warnings
