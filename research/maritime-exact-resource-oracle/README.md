@@ -82,3 +82,10 @@ The deterministic receipt now emits the canonicalized scenario manifest before t
 - complete feasible combination set and Pareto frontier.
 
 The independent Python reference reconstructs the same canonical manifest directly from the fixture, exhaustively enumerates the candidate Cartesian product, computes the Pareto set independently, and compares the entire byte-level receipt. This makes a solver result auditable against the exact capacity and reservation inputs rather than reporting only plan IDs and objective values.
+
+
+## Sea–rail topology regression
+
+The Rust unit suite now includes a second hand-authored topology family that reserves rail tracks, rail-mounted gantry-crane capacity and receiver-side rail-gate slots. Two vessel choices that each look feasible in isolation cannot both consume the same one-capacity track/time slot. The exact enumerator retains the two cross-track combinations, and both remain Pareto-undominated because they trade energy cost against emissions.
+
+This test is a resource-model regression, not a second independently serialized fixture yet. The primary 2-vessel berth/bridge/AGV/yard/OPS fixture remains the separately checked receipt (4 feasible / 3 Pareto); the sea–rail case is checked in Rust tests only.
