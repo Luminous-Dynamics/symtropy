@@ -1,0 +1,13 @@
+[package]
+name = "symtropy-magnetic-field-covariance"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Validated 3D magnetic field covariance and first-order position propagation"
+
+[lib]
+path = "src/lib.rs"
+
+# Isolated research oracle; not a production workspace member.
+[workspace]
