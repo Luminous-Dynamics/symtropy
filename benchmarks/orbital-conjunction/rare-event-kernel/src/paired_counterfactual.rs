@@ -811,6 +811,72 @@ mod tests {
     }
 
     #[test]
+    fn multi_portfolio_moments_match_every_single_pair_reference_path() {
+        let atoms = [
+            campaign_atom(1, 0, &[(10, 1), (20, 0), (30, 3)]),
+            campaign_atom(2, 1, &[(10, 2), (20, 1), (30, 2)]),
+            campaign_atom(3, 2, &[(10, 3), (20, 1), (30, 1)]),
+            campaign_atom(4, 3, &[(10, 4), (20, 0), (30, 0)]),
+        ];
+        let report = compare_multi_portfolio_paired_support(&atoms).unwrap();
+
+        for summary in &report.portfolio_summaries {
+            let single_atoms = atoms
+                .iter()
+                .map(|atom| {
+                    let arm = atom
+                        .portfolio_consequences
+                        .iter()
+                        .find(|arm| arm.portfolio_id == summary.portfolio_id)
+                        .unwrap();
+                    PairedCounterfactualAtom {
+                        atom_id: atom.atom_id,
+                        baseline_consequence_ticks: atom.baseline_consequence_ticks,
+                        portfolio_consequence_ticks: arm.consequence_ticks,
+                    }
+                })
+                .collect::<Vec<_>>();
+            let single = compare_paired_counterfactual_support(&single_atoms).unwrap();
+            assert_eq!(summary.mean_consequence_avoided_ticks, single.mean_consequence_avoided_ticks);
+            assert_eq!(summary.paired_difference_population_variance, single.paired_difference_population_variance);
+            assert_eq!(summary.independent_arm_difference_population_variance, single.independent_arm_difference_population_variance);
+            assert_eq!(summary.baseline_portfolio_covariance, single.baseline_portfolio_covariance);
+            assert_eq!(summary.paired_to_independent_variance_ratio, single.paired_to_independent_variance_ratio);
+            assert_eq!(summary.pairing_effect, single.pairing_effect);
+        }
+
+        for pair in &report.pairwise_comparisons {
+            let pair_atoms = atoms
+                .iter()
+                .map(|atom| {
+                    let left = atom
+                        .portfolio_consequences
+                        .iter()
+                        .find(|arm| arm.portfolio_id == pair.left_portfolio_id)
+                        .unwrap();
+                    let right = atom
+                        .portfolio_consequences
+                        .iter()
+                        .find(|arm| arm.portfolio_id == pair.right_portfolio_id)
+                        .unwrap();
+                    PairedCounterfactualAtom {
+                        atom_id: atom.atom_id,
+                        baseline_consequence_ticks: left.consequence_ticks,
+                        portfolio_consequence_ticks: right.consequence_ticks,
+                    }
+                })
+                .collect::<Vec<_>>();
+            let single = compare_paired_counterfactual_support(&pair_atoms).unwrap();
+            assert_eq!(pair.mean_left_minus_right_consequence_ticks, single.mean_consequence_avoided_ticks);
+            assert_eq!(pair.paired_difference_population_variance, single.paired_difference_population_variance);
+            assert_eq!(pair.independent_arm_difference_population_variance, single.independent_arm_difference_population_variance);
+            assert_eq!(pair.portfolio_covariance, single.baseline_portfolio_covariance);
+            assert_eq!(pair.paired_to_independent_variance_ratio, single.paired_to_independent_variance_ratio);
+            assert_eq!(pair.pairing_effect, single.pairing_effect);
+        }
+    }
+
+    #[test]
     fn multi_portfolio_report_is_invariant_to_atom_and_arm_order() {
         let forward = [
             campaign_atom(1, 0, &[(10, 1), (20, 0), (30, 3)]),
@@ -838,6 +904,15 @@ mod tests {
         ];
         assert_eq!(
             compare_multi_portfolio_paired_support(&missing),
+            Err(PairedCounterfactualError::InconsistentPortfolioUniverse)
+        );
+
+        let same_size_substitution = [
+            campaign_atom(1, 0, &[(10, 1), (20, 2)]),
+            campaign_atom(2, 1, &[(10, 2), (30, 3)]),
+        ];
+        assert_eq!(
+            compare_multi_portfolio_paired_support(&same_size_substitution),
             Err(PairedCounterfactualError::InconsistentPortfolioUniverse)
         );
 
