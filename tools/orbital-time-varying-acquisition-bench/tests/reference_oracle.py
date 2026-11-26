@@ -12,12 +12,12 @@ RECEIPT_SCHEMA = "luminous.orbital-time-varying-acquisition.receipt.v0.1"
 BENCHMARK_ID = "ORBITAL-TIME-VARYING-ACQUISITION-001"
 CLAIM_CEILING = "synthetic_acceleration_jerk_bounded_projective_path_envelopes_only"
 MAX_INPUT = 1_000_000_000_000
-MAX_TIME_NS = 1_000_000
-NS2 = 1_000_000_000_000_000
-NS3 = 1_000_000_000_000_000_000_000_000
+MAX_TIME_NS = 1_000_000_000
 MAX_JERK = 1_000_000_000
 MAX_U64 = (1 << 64) - 1
-NS = 1_000_000_000
+NS = 1_000_000
+NS2 = 1_000_000_000_000_000
+NS3 = 1_000_000_000_000_000_000_000_000
 
 
 def ceil_fraction(value):
