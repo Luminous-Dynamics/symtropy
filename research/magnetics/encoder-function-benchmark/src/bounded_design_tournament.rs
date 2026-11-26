@@ -6,17 +6,11 @@
 
 use std::collections::HashSet;
 
-
-
-
 use super::design_tournament::{
     DesignTournamentError, MagneticDesignCandidate, MagneticDesignCandidateMetrics,
     MagneticDesignTournament, rank_magnetic_designs,
 };
-use super::{
-    EncoderRequirements, FieldTrace, evaluate_trace,
-};
-
+use super::{EncoderRequirements, FieldTrace, evaluate_trace};
 #[derive(Clone, Debug, PartialEq)]
 pub struct FieldTraceUncertaintyBounds {
     pub trace_id: String,
