@@ -1360,5 +1360,4 @@ mod tests {
         let report = evaluate_json(&incomplete).expect("missing holder evidence is unresolved");
         assert_eq!(report.unresolved_n, 1);
     }
-
 }
