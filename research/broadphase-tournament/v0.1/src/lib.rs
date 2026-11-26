@@ -177,6 +177,8 @@ pub enum TournamentError {
     Tree(TreeError),
     CounterOverflow,
     PairCacheInvariant,
+    InvalidDirtyJournal,
+    DirtyJournalCannotApplyFullInvalidation,
 }
 
 impl From<TreeError> for TournamentError {
@@ -468,27 +470,21 @@ impl<const D: usize> PairDeltaCache<D> {
         pairs
     }
 
-    /// Update the cached overlap relation and emit only pair births/deaths.
-    ///
-    /// The affected frontier includes old neighbors of every dirty identity
-    /// and all current proxies for every inserted/changed identity. A pair
-    /// involving two dirty proxies is evaluated once via the canonical set.
-    pub fn step(
-        &mut self,
+    /// Derive the complete dirty identity set by diffing the prior AABB
+    /// snapshot against the canonical current frame. This is the safe default
+    /// when no authoritative physics-world change journal is available.
+    pub fn derive_dirty_proxy_ids(
+        &self,
         frame: &[ProxyFrame<D>],
-    ) -> Result<PairDeltaFrame, TournamentError> {
+    ) -> Result<Vec<ProxyId>, TournamentError> {
         validate_frame(frame)?;
-
-        // Both the cached bounds and frame proxies are ordered by ProxyId.
-        // A merge identifies inserts, removals and geometry changes in O(n)
-        // without rebuilding a second ordered map for every frame.
         let mut dirty = BTreeSet::<ProxyId>::new();
         let mut old_iter = self.previous_bounds.iter().peekable();
         let mut new_iter = frame.iter().peekable();
         loop {
             match (old_iter.peek(), new_iter.peek()) {
                 (Some((old_id, old_bounds)), Some(new_proxy)) => {
-                    match old_id.cmp(&new_proxy.id) {
+                    match (**old_id).cmp(&new_proxy.id) {
                         std::cmp::Ordering::Less => {
                             dirty.insert(**old_id);
                             old_iter.next();
@@ -521,6 +517,63 @@ impl<const D: usize> PairDeltaCache<D> {
             dirty.extend(self.previous_bounds.keys().copied());
             dirty.extend(frame.iter().map(|proxy| proxy.id));
         }
+        Ok(dirty.into_iter().collect())
+    }
+
+    /// Independently verify that a caller-supplied change journal contains
+    /// exactly the inserted, removed and changed AABB identities.
+    ///
+    /// This performs the full snapshot diff and belongs in the audit path,
+    /// not the timed fast path.
+    pub fn verify_dirty_proxy_ids(
+        &self,
+        frame: &[ProxyFrame<D>],
+        supplied: &[ProxyId],
+    ) -> Result<bool, TournamentError> {
+        let expected = self.derive_dirty_proxy_ids(frame)?;
+        Ok(expected == supplied)
+    }
+
+    /// Safe default: detect changed identities from the complete snapshots.
+    pub fn step(
+        &mut self,
+        frame: &[ProxyFrame<D>],
+    ) -> Result<PairDeltaFrame, TournamentError> {
+        let dirty_ids = self.derive_dirty_proxy_ids(frame)?;
+        self.step_with_dirty_ids(frame, &dirty_ids)
+    }
+
+    /// Apply a frame using a caller-provided, strictly increasing dirty-ID
+    /// journal. This is the fast path for a physics world that already tracks
+    /// inserted/removed/moved/woken colliders. Completeness is a caller
+    /// precondition; use verify_dirty_proxy_ids in the independent audit.
+    ///
+    /// A full invalidation (e.g. collision filter/layer policy change) must use
+    /// step, which derives all relevant identities from the snapshot.
+    pub fn step_with_dirty_ids(
+        &mut self,
+        frame: &[ProxyFrame<D>],
+        dirty_ids: &[ProxyId],
+    ) -> Result<PairDeltaFrame, TournamentError> {
+        validate_frame(frame)?;
+        if self.force_dirty {
+            return Err(TournamentError::DirtyJournalCannotApplyFullInvalidation);
+        }
+        let mut previous_dirty = None;
+        for dirty_id in dirty_ids {
+            if previous_dirty.is_some_and(|previous| previous >= *dirty_id) {
+                return Err(TournamentError::InvalidDirtyJournal);
+            }
+            let exists_before = self.previous_bounds.contains_key(dirty_id);
+            let exists_now = frame
+                .binary_search_by_key(dirty_id, |proxy| proxy.id)
+                .is_ok();
+            if !exists_before && !exists_now {
+                return Err(TournamentError::InvalidDirtyJournal);
+            }
+            previous_dirty = Some(*dirty_id);
+        }
+        let dirty = dirty_ids.iter().copied().collect::<BTreeSet<_>>();
 
         let mut affected_pairs = BTreeSet::<ProxyPair>::new();
         for dirty_id in &dirty {
