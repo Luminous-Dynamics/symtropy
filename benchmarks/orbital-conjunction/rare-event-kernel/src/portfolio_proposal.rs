@@ -122,10 +122,18 @@ impl core::fmt::Display for PortfolioProposalError {
             }
             Self::ComponentWeightsNotNormalized => "proposal allocation weights do not sum to one",
             Self::InvalidNormalizedContrast => "normalized portfolio contrast must lie in [0, 1]",
-            Self::LikelihoodRatioExceedsDefensiveBound => "importance ratio exceeds the defensive 1/epsilon bound",
-            Self::DefensiveContributionExceedsOne => "defensive contribution exceeds one and was not clipped",
-            Self::NumericalFailure => "defensive proposal density or contribution failed numerically",
-            Self::GaussianKernelFailure => "underlying Gaussian density kernel rejected an operation",
+            Self::LikelihoodRatioExceedsDefensiveBound => {
+                "importance ratio exceeds the defensive 1/epsilon bound"
+            }
+            Self::DefensiveContributionExceedsOne => {
+                "defensive contribution exceeds one and was not clipped"
+            }
+            Self::NumericalFailure => {
+                "defensive proposal density or contribution failed numerically"
+            }
+            Self::GaussianKernelFailure => {
+                "underlying Gaussian density kernel rejected an operation"
+            }
         };
         formatter.write_str(message)
     }
