@@ -727,6 +727,161 @@ mod tests {
             .all(|plan| !plan.candidate_ids.contains(&"V1_TIDE_CLOSED".to_owned())));
     }
 
+
+    #[test]
+    fn dgt_recovery_routes_direct_berth_102_or_ngqura_feeder_and_gauteng_rail() {
+        let direct = |candidate_id: &str, vessel_id: &str| CandidateAction {
+            candidate_id: candidate_id.to_owned(),
+            vessel_id: vessel_id.to_owned(),
+            reservations: vec![
+                Reservation {
+                    resource_id: "DGT-BERTH-102".to_owned(),
+                    slot: 1,
+                    units: 1,
+                },
+                Reservation {
+                    resource_id: "GEARED-DIRECT-DISCHARGE".to_owned(),
+                    slot: 1,
+                    units: 1,
+                },
+                Reservation {
+                    resource_id: "GAUTENG-RAIL".to_owned(),
+                    slot: 2,
+                    units: 1,
+                },
+            ],
+            objective: ObjectiveVector {
+                vessel_wait: 0,
+                receiver_delay: 2,
+                energy_cost: 5,
+                emissions: 4,
+                missed_connections: 0,
+            },
+        };
+        let diversion = |candidate_id: &str, vessel_id: &str| CandidateAction {
+            candidate_id: candidate_id.to_owned(),
+            vessel_id: vessel_id.to_owned(),
+            reservations: vec![
+                Reservation {
+                    resource_id: "NGQURA-BERTH".to_owned(),
+                    slot: 1,
+                    units: 1,
+                },
+                Reservation {
+                    resource_id: "NGQURA-QC".to_owned(),
+                    slot: 1,
+                    units: 1,
+                },
+                Reservation {
+                    resource_id: "FEEDER-TRANSFER".to_owned(),
+                    slot: 3,
+                    units: 1,
+                },
+                Reservation {
+                    resource_id: "DGT-BERTH-102".to_owned(),
+                    slot: 4,
+                    units: 1,
+                },
+                Reservation {
+                    resource_id: "GAUTENG-RAIL".to_owned(),
+                    slot: 5,
+                    units: 1,
+                },
+            ],
+            objective: ObjectiveVector {
+                vessel_wait: 1,
+                receiver_delay: 5,
+                energy_cost: 2,
+                emissions: 1,
+                missed_connections: 0,
+            },
+        };
+        let pier_two = |candidate_id: &str, vessel_id: &str| CandidateAction {
+            candidate_id: candidate_id.to_owned(),
+            vessel_id: vessel_id.to_owned(),
+            reservations: vec![Reservation {
+                resource_id: "DGT-PIER-2".to_owned(),
+                slot: 1,
+                units: 1,
+            }],
+            objective: ObjectiveVector::default(),
+        };
+
+        let scenario = Scenario {
+            vessel_ids: vec!["V-DGT-1".to_owned(), "V-DGT-2".to_owned()],
+            capacities: vec![
+                ResourceCapacity {
+                    resource_id: "DGT-PIER-2".to_owned(),
+                    slot: 1,
+                    capacity: 0,
+                },
+                ResourceCapacity {
+                    resource_id: "DGT-BERTH-102".to_owned(),
+                    slot: 1,
+                    capacity: 1,
+                },
+                ResourceCapacity {
+                    resource_id: "DGT-BERTH-102".to_owned(),
+                    slot: 4,
+                    capacity: 1,
+                },
+                ResourceCapacity {
+                    resource_id: "GEARED-DIRECT-DISCHARGE".to_owned(),
+                    slot: 1,
+                    capacity: 1,
+                },
+                ResourceCapacity {
+                    resource_id: "NGQURA-BERTH".to_owned(),
+                    slot: 1,
+                    capacity: 1,
+                },
+                ResourceCapacity {
+                    resource_id: "NGQURA-QC".to_owned(),
+                    slot: 1,
+                    capacity: 1,
+                },
+                ResourceCapacity {
+                    resource_id: "FEEDER-TRANSFER".to_owned(),
+                    slot: 3,
+                    capacity: 1,
+                },
+                ResourceCapacity {
+                    resource_id: "GAUTENG-RAIL".to_owned(),
+                    slot: 2,
+                    capacity: 1,
+                },
+                ResourceCapacity {
+                    resource_id: "GAUTENG-RAIL".to_owned(),
+                    slot: 5,
+                    capacity: 2,
+                },
+            ],
+            candidates: vec![
+                direct("V1_DGT_DIRECT", "V-DGT-1"),
+                diversion("V1_NGQURA_FEEDER", "V-DGT-1"),
+                pier_two("V1_PIER2_BLOCKED", "V-DGT-1"),
+                direct("V2_DGT_DIRECT", "V-DGT-2"),
+                diversion("V2_NGQURA_FEEDER", "V-DGT-2"),
+                pier_two("V2_PIER2_BLOCKED", "V-DGT-2"),
+            ],
+        };
+
+        let result = enumerate(&scenario).unwrap();
+        assert_eq!(result.feasible_plans.len(), 2);
+        assert_eq!(result.pareto_front.len(), 2);
+        assert_eq!(
+            result
+                .feasible_plans
+                .iter()
+                .map(|plan| plan.candidate_ids.clone())
+                .collect::<Vec<_>>(),
+            vec![
+                vec!["V1_DGT_DIRECT".to_owned(), "V2_NGQURA_FEEDER".to_owned()],
+                vec!["V1_NGQURA_FEEDER".to_owned(), "V2_DGT_DIRECT".to_owned()],
+            ]
+        );
+    }
+
     #[test]
     fn duplicate_vessel_selection_cannot_be_constructed_by_enumerator() {
         let mut scenario = base_scenario();
