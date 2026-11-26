@@ -601,7 +601,10 @@ fn snapshot_digest(
         let capsule = by_id
             .get(evidence_id.as_str())
             .ok_or_else(|| format!("CLAIM_EVIDENCE_MISSING: {evidence_id}"))?;
-        material.push((capsule.evidence_id.as_str(), capsule.content_sha256.as_str()));
+        material.push((
+            capsule.evidence_id.as_str(),
+            capsule.content_sha256.as_str(),
+        ));
     }
     let bytes = serde_json::to_vec(&material)
         .map_err(|error| format!("SNAPSHOT_CANONICALIZATION_FAILED: {error}"))?;
