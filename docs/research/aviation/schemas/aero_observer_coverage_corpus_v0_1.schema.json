@@ -55,7 +55,8 @@
           "challenge",
           "coverage_status",
           "replay_consequence",
-          "fixture"
+          "fixture",
+          "fault_codes"
         ],
         "properties": {
           "case_id": {
@@ -146,6 +147,14 @@
                 "type": "string",
                 "minLength": 1
               }
+            }
+          },
+          "fault_codes": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z0-9_]+$"
             }
           }
         }
