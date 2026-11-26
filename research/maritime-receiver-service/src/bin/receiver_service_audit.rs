@@ -126,7 +126,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         );
         for cohort in report.cohorts {
             println!(
-                "COHORT\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+                "COHORT\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
                 case_id,
                 cohort.cohort_id,
                 cohort.unit,
