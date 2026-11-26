@@ -1,0 +1,18 @@
+{
+  "schema_version": "0.1",
+  "scenario_id": "synthetic-replay-valid",
+  "attempt_id": "synthetic-replay-valid-screen-policy-0-trial-0",
+  "simulator_profile_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "end_effector_position": {
+    "coordinate_frame_id": "world",
+    "x_mm": 100.0,
+    "y_mm": 200.0,
+    "z_mm": 300.0
+  },
+  "object_position": {
+    "coordinate_frame_id": "world",
+    "x_mm": 400.0,
+    "y_mm": 500.0,
+    "z_mm": 600.0
+  }
+}
