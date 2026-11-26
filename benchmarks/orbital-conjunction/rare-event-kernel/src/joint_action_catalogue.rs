@@ -236,7 +236,7 @@ pub fn canonical_joint_action_set_digest(
     }
 
     let mut hasher = Sha256::new();
-    hasher.update(b"luminous.orbital-joint-action-set.v0.1\\0");
+    hasher.update(b"luminous.orbital-joint-action-set.v0.1\0");
     hasher.update((sorted.len() as u64).to_be_bytes());
     for action_id in sorted {
         hasher.update(action_id);
@@ -1012,7 +1012,7 @@ mod tests {
             qualified(vec![], 1, vec![], 0),
             JointActionOutcomeRecord {
                 action_ids: vec![a],
-                action_set_digest: [90; 32],
+                action_set_digest: canonical_joint_action_set_digest(&[a]).unwrap(),
                 state: JointActionOutcomeState::Infeasible {
                     reason_digest: [91; 32],
                 },
