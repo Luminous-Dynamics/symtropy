@@ -19,11 +19,11 @@ use directional_motion_envelopes::{
     Aabb as MotionAabb, ColliderIdentity, EnvelopeContext, EnvelopeReceipt,
     IntegrationParticipation, IntegratorEnvelopeReceipt, MotionKind,
 };
-use sha2::{Digest as Sha2Digest, Sha256};
 use incremental_aabb_tree_reference::{
     Aabb as TreeAabb, BalancePolicy, IncrementalAabbTree, MaintenanceStats, PairQueryStats,
     ProxyId, TreeError, TreeStats,
 };
+use sha2::{Digest as Sha2Digest, Sha256};
 use std::collections::BTreeMap;
 use swept_pair_oracle::{
     MotionEvidence, PairKey, PairSetError, PairSetReceipt, Proxy, UnsupportedReason,
@@ -508,10 +508,7 @@ fn commitment_context(hasher: &mut Sha256, context: EnvelopeContext) {
     hasher.update(context.arithmetic_profile.as_bytes());
 }
 
-fn commitment_envelope<const D: usize>(
-    hasher: &mut Sha256,
-    receipt: &EnvelopeReceipt<D>,
-) {
+fn commitment_envelope<const D: usize>(hasher: &mut Sha256, receipt: &EnvelopeReceipt<D>) {
     commitment_identity(hasher, &receipt.identity);
     commitment_context(hasher, receipt.context);
     commitment_u8(
@@ -550,10 +547,7 @@ fn commitment_integrator<const D: usize>(
     }
     commitment_f64(hasher, receipt.motion.post_angular_velocity_norm_squared);
     commitment_f64(hasher, receipt.motion.dt);
-    commitment_u8(
-        hasher,
-        u8::from(receipt.motion.deterministic_net_q16_16),
-    );
+    commitment_u8(hasher, u8::from(receipt.motion.deterministic_net_q16_16));
     commitment_f64(hasher, receipt.caller_guard);
     commitment_f64(hasher, receipt.quantization_guard);
 }
