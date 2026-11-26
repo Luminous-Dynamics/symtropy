@@ -1,0 +1,26 @@
+# Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+[package]
+name = "mobility-rrvr-domain-evidence-adapter"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Domain-qualified adapter from RRVR process-model traces to evidence capsules"
+
+[dependencies]
+mobility-rrvr-evidence-capsule = { path = "../mobility-rrvr-evidence-capsules-v0.1" }
+mobility-rrvr-fault-harness = { path = "../mobility-rrvr-fault-harness-v0.1" }
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.150"
+sha2 = "=0.10.9"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "rrvr_domain_evidence_adapter"
+path = "src/bin/rrvr_domain_evidence_adapter.rs"
+
+[workspace]
