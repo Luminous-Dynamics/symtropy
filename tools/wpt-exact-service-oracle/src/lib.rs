@@ -590,6 +590,9 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
     }
 
     let graph = FlowGraph {
+        commodity_ref: "electrical-energy".to_string(),
+        capacity_unit_ref: "mWh".to_string(),
+        quantity_boundary_ref: "wpt-common-deliverable-energy-boundary-v0".to_string(),
         nodes,
         edges,
         source: "00-source".to_string(),
