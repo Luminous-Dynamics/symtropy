@@ -44,8 +44,6 @@ pub struct PortfolioScenarioRiskContract {
     pub event_inventory_digest: [u8; 32],
     /// Digest of the complete canonical MissionRiskEnvelope contents.
     pub risk_envelope_digest: [u8; 32],
-    /// Digest of the complete canonical MissionRiskEnvelope contents.
-    pub risk_envelope_digest: [u8; 32],
     /// Exact total integer mass expected for the finite target support.
     pub total_mass_ticks: u64,
     /// Exact rational mission-wide collision-risk budget for this scenario.
