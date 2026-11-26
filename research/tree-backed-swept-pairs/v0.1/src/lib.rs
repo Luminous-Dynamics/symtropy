@@ -624,12 +624,8 @@ mod tests {
     fn assert_generated_tree_recall<const D: usize>() {
         let proxies = generated::<D>(64);
         let mut registry = ProxyIdRegistry::new();
-        let receipt = build_tree_swept_pair_set(
-            &proxies,
-            &mut registry,
-            TreeBuildConfig::default(),
-        )
-        .unwrap();
+        let receipt =
+            build_tree_swept_pair_set(&proxies, &mut registry, TreeBuildConfig::default()).unwrap();
         assert_eq!(receipt.candidate_pairs, receipt.reference.candidate_pairs);
         assert!(verify_tree_swept_pair_set(&proxies, &receipt).is_ok());
     }
