@@ -1,6 +1,6 @@
 # Independent exhaustive structural-isomorphism oracle v0.1
 
-**Status:** implementation staged on `research/ergo-stream-independent-oracle-v0.1`; Rust execution pending.
+**Status:** full-witness ambiguity extension staged on `research/ergo-stream-full-witness-ambiguity-v0.1`; exact-head Rust execution pending.
 **Owner:** Symtropy / ErgoStream structural qualification.
 **Composes with:** #7149, #7152, #7171, #7193, #7230 and Symthaea #13401 / #11171.
 
@@ -28,7 +28,7 @@ This is deliberately not a general graph engine. It is a tiny exact reference fo
    - a relation kind mixing directed and undirected instances cannot receive one consistent transform under the current v0 contract.
 6. Search for a one-to-one relation-kind assignment.
 7. Compare normalized relation-instance multisets and construct a deterministic relation-ID bijection.
-8. Return a witness proposal plus the number of complete node bijections examined.
+8. Count distinct full-witness equivalence classes, rather than stopping at the first compatible mapping; preserve one deterministic representative witness.
 
 The implementation does not invoke `validate_structural_correspondence`. One positive unit test passes its independently constructed witness to that validator as a separate cross-check.
 
@@ -36,6 +36,8 @@ The implementation does not invoke `validate_structural_correspondence`. One pos
 
 - Maximum 8 nodes, 64 relation instances and 8 relation kinds.
 - Worst-case node enumeration is bounded by (8! = 40{,}320); invariant signatures prune only mappings that cannot possibly be isomorphisms.
+- Full witness-class enumeration is separately bounded at 65,536 classes. Reaching the next valid class yields `BoundedUnknown`; the report must not claim uniqueness from a truncated count.
+- The report separates `valid_node_mapping_count` from `valid_witness_class_count`. A node map may admit multiple relation-kind assignments or participant transforms.
 - This is whole-structure isomorphism only. It does not decide induced/subgraph embedding, graph edit distance, homomorphism, quotienting, simulation, bisimulation, mechanism transfer or causal validity.
 - It does not validate observation provenance or learner/evaluator isolation.
 - The oracle is evaluator/reference code. Do not link it into an untrusted learner process or expose its result before the candidate artifact is frozen.
@@ -46,7 +48,12 @@ The implementation does not invoke `validate_structural_correspondence`. One pos
 - Negative: (K_{3,3}) versus the triangular prism. Both are 3-regular graphs with six nodes and nine edges, but they are not isomorphic. The oracle must examine all 720 node bijections because the simple incidence signature cannot distinguish their vertices.
 - Transfer Atlas cross-check: independently classifies all four existing structural fixture families, including the important case where observations are isomorphic but the mechanism is not transferable.
 - Five-node exhaustive differential check: enumerate all 1,023 non-empty labeled simple undirected graphs on five nodes, canonicalize each independently over all 120 vertex permutations, recover the 33 non-empty unlabeled isomorphism classes (the empty graph is excluded because the existing v0 structural-transfer contract requires at least one relation), then compare the oracle on all 1,089 ordered class pairs.
-- Symmetry / non-identifiability: an undirected six-cycle has 12 valid node bijections (six rotations and six reflections) among 720 explored bijections. The report retains one deterministic witness but exposes the full count of valid node bijections, so a downstream evaluator can distinguish a unique map from multiple valid maps. The count is per node mapping, not per possible relation-ID permutation.
+- Symmetry / non-identifiability: an undirected six-cycle has 12 valid node maps (six rotations and six reflections) among 720 explored bijections; its 12 full witness classes remain ambiguous.
+- Relation-kind ambiguity: two source kinds with identical incidence can be assigned to two target kinds in two distinct ways even when the node map is unique.
+- Participant-transform ambiguity: a symmetric directed relation multiset can admit both preserve-order and reverse-order transforms for one relation kind.
+- Duplicate-instance quotient: permutations of relation IDs among repeated identical incidence instances do not inflate semantic witness-class count; a deterministic ID pairing is returned.
+- Hyperedge multiplicity: repeated participant IDs remain significant in relation signatures.
+- Budget exhaustion: a symmetric eight-node/eight-kind fixture exceeds the 65,536 witness-class cap and returns `BoundedUnknown`, never false uniqueness.
 - Malformed input: duplicate node IDs and unknown relation participants.
 - Resource guard: nine nodes are rejected before enumeration.
 - Cardinality mismatch: rejected without searching.
@@ -56,7 +63,7 @@ The implementation does not invoke `validate_structural_correspondence`. One pos
 1. Run Rust 1.96 formatting, unit tests, doctests and strict Clippy on the exact branch head.
 2. Differentially compare oracle outcomes with a separately sourced VF2/Bliss/Nauty implementation on an expanded bounded corpus.
 3. Extend the current all-pairs differential check from the 33 non-empty five-node classes to six-node graph classes; preserve the generated corpus and mismatch cases, and keep the six-node computation behind an explicit test/time budget.
-4. Add adversarial fixtures with repeated relation instances, hyperedges, relation-kind collisions, mixed orientation within one kind, duplicate participants and empty relations.
+4. Continue adversarial differential testing for repeated relation instances, hyperedges, relation-kind collisions, mixed orientation within one kind, duplicate participants and empty relations. Initial relation-kind / transform / duplicate-instance / mixed-orientation / hyperedge / count-budget cases are now staged in integration tests.
 5. Use oracle outcomes as fixture-truth checks for the paired-world Atlas; keep the held-out causal/mechanism evaluator separate because structural isomorphism does not imply mechanism transfer.
 6. Add scoped induced/subgraph oracles only as separately named validators with separate contracts. Do not silently treat this whole-structure oracle as validating those claims.
 
@@ -64,6 +71,7 @@ The implementation does not invoke `validate_structural_correspondence`. One pos
 
 The oracle is not a learner baseline for the main leaderboard. It is a correctness oracle and a diagnostic upper bound on tiny worlds. Report:
 
+- exact full-witness ambiguity class count and completeness status;
 - candidate witness acceptance versus independent oracle truth;
 - false accepted isomorphisms and missed isomorphisms;
 - number of node bijections explored and runtime by graph size;
