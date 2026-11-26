@@ -1,6 +1,6 @@
 # Coordinates and errors use 1e-6 normalized keep-out units; acceleration uses 1e-6 units/s^2.
 # A CONSTANT bound on ||q''(t)|| over the full segment is required. dt is nanoseconds.
-# case_id,q0x,q0y,q0z,q1x,q1y,q1z,accel_bound_scaled_per_s2,duration_ns,endpoint_error_bound_scaled,expected
+case_id,q0x,q0y,q0z,q1x,q1y,q1z,accel_bound_scaled_per_s2,duration_ns,endpoint_error_bound_scaled,expected
 straight_far,2000000,0,0,2000000,0,0,0,1000000000,0,CONDITIONAL_CLEAR
 clear_chord,2000000,1000000,0,2000000,-1000000,0,0,1000000000,0,CONDITIONAL_CLEAR
 crossing_chord,-2000000,0,0,2000000,0,0,0,1000000000,0,NOT_PROVEN
