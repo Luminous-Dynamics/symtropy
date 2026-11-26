@@ -1,21 +1,12 @@
 use broadphase_tournament::{
-    generate_scene, run_tournament, SceneFamily, TournamentConfig, TournamentRow,
+    SceneFamily, TournamentConfig, TournamentRow, generate_scene, run_tournament,
 };
 
-fn run_dimension<const D: usize>(
-    proxy_count: usize,
-    frame_count: usize,
-    repetitions: u32,
-) {
+fn run_dimension<const D: usize>(proxy_count: usize, frame_count: usize, repetitions: u32) {
     let config = TournamentConfig::new(repetitions);
     for family in SceneFamily::ALL {
-        let scene = generate_scene::<D>(
-            family,
-            proxy_count,
-            frame_count,
-            0x2026_1126_0000_0001,
-        )
-        .expect("generate deterministic scene");
+        let scene = generate_scene::<D>(family, proxy_count, frame_count, 0x2026_1126_0000_0001)
+            .expect("generate deterministic scene");
         let rows = run_tournament(&scene, config).expect("run architecture tournament");
         for row in rows {
             println!("{}", row.to_csv());
