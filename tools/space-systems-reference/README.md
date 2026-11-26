@@ -45,6 +45,19 @@ The aperture is a **geometric-equivalent lower-bound abstraction**, not the phys
 
 The 50% local-material fraction and 10 g/m² installed areal density are scenario inputs, not demonstrated lunar manufacturing capability or a selected design.
 
+### Mass sensitivity — why the membrane system boundary matters
+
+For the same 1% target and abstract 0.90 aperture-effectiveness factor, the equivalent aperture remains about **1.4168 million km²**. Installed mass scales linearly with the *complete installed-system* areal density:
+
+| Assumed installed areal density | Implied installed mass | Metric tonnes |
+|---:|---:|---:|
+| 1 g/m² | 1.4168 × 10⁹ kg | 1.42 million t |
+| 10 g/m² | 1.4168 × 10¹⁰ kg | 14.17 million t |
+| 100 g/m² | 1.4168 × 10¹¹ kg | 141.68 million t |
+| 1 kg/m² | 1.4168 × 10¹² kg | 1.42 billion t |
+
+These are sensitivity calculations, not candidate designs. If the areal density is membrane-only, the resulting mass is a lower bound; supports, joins, power, attitude control, navigation, communications, spares, transfer and repair must be added. NASA ACS3's 80 m² deployed sail is a genuine component-demonstration baseline, but it is about ten orders of magnitude smaller in area than this illustrative 1% aperture. That scale gap is the central manufacturing and assembly problem.
+
 ## What the v0.1 q-drive calculation does
 
 It evaluates a one-dimensional Newtonian screening chain:
