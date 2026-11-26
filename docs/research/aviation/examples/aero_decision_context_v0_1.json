@@ -1,0 +1,16 @@
+{
+  "claim_id": "claim-wing-panel-001",
+  "subject_ref": "part:wing-panel-001",
+  "configuration_ref": "configuration:wing-r17",
+  "operating_envelope_ref": "envelope:transport-normal",
+  "acquisition_time_earliest_unix_ms": 1795514399900,
+  "acquisition_time_latest_unix_ms": 1795514400100,
+  "as_known_at_unix_ms": 1795516800000,
+  "source_scope_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "evidence_knowledge_cut_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "trust_policy_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "claim_specification_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "required_evidence_manifest_sha256": "17656ee262a7455dfc652ba667379f8696160c7a567a559a5d8fb7bbced45032",
+  "risk_classification_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "model_applicability_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+}
