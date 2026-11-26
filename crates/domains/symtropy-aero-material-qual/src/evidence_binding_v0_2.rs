@@ -875,7 +875,13 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
                 };
                 match compare_effectivity_intervals(event_interval, acquisition).relation {
                     EffectivityRelation::DefinitelyNotYetEffective => {
-                        non_applicable_event_ids.insert(event_id.to_owned());
+                        if event.get("retroactive").and_then(Value::as_bool) == Some(true) {
+                            reasons.insert(
+                                "CALIBRATION_RETROACTIVE_FLAG_CONTRADICTS_EFFECTIVITY".to_owned(),
+                            );
+                        } else {
+                            non_applicable_event_ids.insert(event_id.to_owned());
+                        }
                         continue;
                     }
                     EffectivityRelation::BoundaryAmbiguous => {
@@ -1322,6 +1328,25 @@ mod tests {
         assert!(has_blocker(
             &evaluate_binding_case(&case),
             "CALIBRATION_EVENT_EFFECTIVITY_BOUNDARY_AMBIGUOUS_AT_SNAPSHOT"
+        ));
+    }
+
+    #[test]
+    fn retroactive_flag_cannot_override_a_definitely_later_effective_interval() {
+        let mut case = fixture();
+        let acquired = 1_795_514_400_000u64;
+        case["evaluated_at_unix_ms"] = Value::from(acquired + 10_000);
+        case["calibration_events"] = serde_json::json!([{
+            "id": "EVENT-RETROACTIVE-CONTRADICTION",
+            "certificate_id": "CAL-A",
+            "event_type": "revoked",
+            "effective_at_unix_ms": acquired + 1_000,
+            "recorded_at_unix_ms": acquired + 2_000,
+            "retroactive": true
+        }]);
+        assert!(has_blocker(
+            &evaluate_binding_case(&case),
+            "CALIBRATION_RETROACTIVE_FLAG_CONTRADICTS_EFFECTIVITY"
         ));
     }
 
