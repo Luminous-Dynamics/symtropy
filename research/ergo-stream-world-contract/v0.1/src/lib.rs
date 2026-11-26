@@ -14,6 +14,7 @@ pub mod calibration;
 pub mod decision_value;
 pub mod dynamics;
 pub mod matching;
+pub mod oracle;
 pub mod quotient;
 pub mod scoped;
 
