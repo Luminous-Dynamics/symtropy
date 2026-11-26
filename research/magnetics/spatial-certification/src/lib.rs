@@ -1160,4 +1160,19 @@ mod tests {
         assert_eq!(result.unresolved_cell_count, 1);
     }
 
+
+    #[test]
+    fn sub_tolerance_gap_is_rejected_by_exact_partition_sweep() {
+        let root = box3();
+        let mut left = root;
+        let mut right = root;
+        left.maximum_m[0] = 0.0;
+        right.minimum_m[0] = 1.0e-15;
+        assert_eq!(
+            validate_leaf_partition(root, &[left, right])
+                .expect_err("even a tiny representable gap is not coverage"),
+            CertificationError::PartitionVolumeMismatch
+        );
+    }
+
 }
