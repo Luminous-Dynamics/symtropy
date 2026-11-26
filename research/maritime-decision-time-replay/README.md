@@ -278,3 +278,25 @@ The temporal module currently has ten focused unit tests covering:
 - visible wrong-subject records fail closed.
 
 This remains a synthetic contract module. It is not yet a full ingestion adapter, cryptographic digest implementation, clock-uncertainty solver, or replacement for #7363's artifact/revision owner. See [#7512 — tri-temporal replay](https://github.com/Luminous-Dynamics/symtropy/issues/7512).
+
+
+### Independent tri-temporal fixtures and receipt (v0.2)
+
+The temporal projection module now has its own grouped history fixture at `fixtures/temporal-cases.tsv` and deterministic executable `temporal-audit`. The corpus has 13 named temporal histories, including late publish/retrieval, physical validity, effective rights, future-known plans, audit cutoff, later source correction, native IDs from distinct sources, subject mismatch and conflicting source/adjudication revisions.
+
+The independent Python reference re-parses those histories without importing the Rust crate. It checks both the hand-authored expected projection and the complete Rust temporal receipt. The exact-head workflow now emits two artifacts in one run: the original MDTR policy receipt and a separate tri-temporal audit receipt. The expected Rust test count is 22 (12 base + 10 temporal) before any further cases are added.
+
+Run the complete check from the repository root:
+
+```sh
+cargo fmt --manifest-path research/maritime-decision-time-replay/Cargo.toml -- --check
+cargo test --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml
+cargo clippy --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml --all-targets -- -D warnings
+cargo run --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml --bin mdtr-audit > mdtr-receipt.tsv
+cargo run --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml --bin temporal-audit > mdtr-temporal-receipt.tsv
+python3 research/maritime-decision-time-replay/scripts/independent_reference.py --receipt mdtr-receipt.tsv --temporal-receipt mdtr-temporal-receipt.tsv
+```
+
+The temporal reference is a separate implementation and a separate receipt, not a second import or call into the Rust projection. Both the Rust selector and Python reference preserve source-local native event identity; a shared dependency-cluster label is retained as metadata but is not interpreted as statistical independence.
+
+The v0.2 head is not qualified until the exact commit's dedicated workflow is green. Do not infer a pass from the earlier v0.1 workflow result.
