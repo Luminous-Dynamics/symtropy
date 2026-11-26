@@ -655,7 +655,7 @@ where
     })
 }
 
-fn interval_midpoint(value: Interval) -> Result<f64, IntervalAdError> {
+fn interval_midpoint(value: Interval, index: usize) -> Result<f64, IntervalAdError> {
     let lower = value.lower();
     let upper = value.upper();
     let midpoint = if lower.is_sign_negative() == upper.is_sign_negative() {
@@ -664,7 +664,7 @@ fn interval_midpoint(value: Interval) -> Result<f64, IntervalAdError> {
         lower * 0.5 + upper * 0.5
     };
     if !midpoint.is_finite() || midpoint < lower || midpoint > upper {
-        return Err(IntervalAdError::NonFiniteParameterBound { index: 0 });
+        return Err(IntervalAdError::NonFiniteParameterBound { index });
     }
     Ok(midpoint)
 }
@@ -684,9 +684,10 @@ where
     F: Fn([IntervalDual<N>; N]) -> Result<IntervalDual<N>, IntervalAdError>,
 {
     let mut result = certify_expression(domain, &evaluate)?;
-    let centres = std::array::try_from_fn(|index| {
-        interval_midpoint(domain.parameter_bounds[index])
-    })?;
+    let mut centres = [0.0; N];
+    for (index, centre) in centres.iter_mut().enumerate() {
+        *centre = interval_midpoint(domain.parameter_bounds[index], index)?;
+    }
     let centre_variables = std::array::from_fn(|index| {
         IntervalDual::constant(
             Interval::point(centres[index]).expect("finite representable centre"),
@@ -757,6 +758,42 @@ mod tests {
             material_sha256: DIGEST_B.to_owned(),
             requirement_id: "functional-margin-001".to_owned(),
         }
+    }
+
+    #[test]
+    fn centered_form_tightens_a_repeated_variable_dependency() {
+        let scope = domain(["x"], [interval(-1.0, 1.0)]);
+        let natural = certify_expression(&scope, |[x]| Ok(x - x))
+            .expect("natural interval extension");
+        let centered = certify_expression_centered(&scope, |[x]| Ok(x - x))
+            .expect("centered mean-value enclosure");
+
+        let natural_width =
+            natural.value_enclosure.upper() - natural.value_enclosure.lower();
+        let centered_width =
+            centered.value_enclosure.upper() - centered.value_enclosure.lower();
+
+        assert!(natural.value_enclosure.lower() <= 0.0);
+        assert!(natural.value_enclosure.upper() >= 0.0);
+        assert!(centered.value_enclosure.lower() <= 0.0);
+        assert!(centered.value_enclosure.upper() >= 0.0);
+        assert!(centered_width < natural_width);
+        assert_eq!(
+            centered.value_enclosure_method,
+            ValueEnclosureMethod::NaturalAndMeanValueIntersection
+        );
+        assert_eq!(centered.natural_value_enclosure, natural.value_enclosure);
+    }
+
+    #[test]
+    fn centered_enclosure_never_exceeds_the_natural_extension() {
+        let scope = domain(["x"], [interval(0.5, 2.0)]);
+        let natural = certify_expression(&scope, |[x]| Ok(x.square() - x))
+            .expect("natural interval extension");
+        let centered = certify_expression_centered(&scope, |[x]| Ok(x.square() - x))
+            .expect("centered enclosure");
+        assert!(centered.value_enclosure.lower() >= natural.value_enclosure.lower());
+        assert!(centered.value_enclosure.upper() <= natural.value_enclosure.upper());
     }
 
     #[test]
