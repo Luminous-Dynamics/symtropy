@@ -250,9 +250,27 @@ pub fn adjudicate(
     let mut rejections = Vec::new();
     let mut abstentions = Vec::new();
 
-    record_gate(truth.physical, "PHYSICAL_INFEASIBLE", "PHYSICAL_UNKNOWN", &mut rejections, &mut abstentions);
-    record_gate(truth.authority, "AUTHORITY_DENIED", "AUTHORITY_UNKNOWN", &mut rejections, &mut abstentions);
-    record_gate(truth.participant_floor, "PARTICIPANT_FLOOR_VIOLATION", "PARTICIPANT_FLOOR_UNKNOWN", &mut rejections, &mut abstentions);
+    record_gate(
+        truth.physical,
+        "PHYSICAL_INFEASIBLE",
+        "PHYSICAL_UNKNOWN",
+        &mut rejections,
+        &mut abstentions,
+    );
+    record_gate(
+        truth.authority,
+        "AUTHORITY_DENIED",
+        "AUTHORITY_UNKNOWN",
+        &mut rejections,
+        &mut abstentions,
+    );
+    record_gate(
+        truth.participant_floor,
+        "PARTICIPANT_FLOOR_VIOLATION",
+        "PARTICIPANT_FLOOR_UNKNOWN",
+        &mut rejections,
+        &mut abstentions,
+    );
     record_cargo(&truth.cargo, &mut rejections, &mut abstentions);
 
     if !rejections.is_empty() {
@@ -471,10 +489,7 @@ mod tests {
             &case.evaluator_truth,
         );
         assert_eq!(result.disposition, Disposition::Reject);
-        assert_eq!(
-            result.reason_string(),
-            "POLICY_USED_INADMISSIBLE_EVIDENCE"
-        );
+        assert_eq!(result.reason_string(), "POLICY_USED_INADMISSIBLE_EVIDENCE");
     }
 
     #[test]
