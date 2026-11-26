@@ -410,6 +410,30 @@ mod tests {
                         + result.residual_field_over_cell_t[component].upper()
             );
         }
+
+        let centre_residual = [0.1_f64, 0.2_f64, 0.3_f64];
+        for x_sign in [-1.0_f64, 1.0] {
+            for y_sign in [-1.0_f64, 1.0] {
+                for z_sign in [-1.0_f64, 1.0] {
+                    let coordinates = [x_sign, 2.0 * y_sign, 0.5 * z_sign];
+                    let gradient = [
+                        [0.1_f64, 0.2_f64, 0.3_f64],
+                        [0.05_f64, 0.1_f64, 0.0_f64],
+                        [0.0_f64, 0.2_f64, 0.1_f64],
+                    ];
+                    for component in 0..3 {
+                        let residual = centre_residual[component]
+                            + (0..3)
+                                .map(|axis| gradient[component][axis] * coordinates[axis])
+                                .sum::<f64>();
+                        assert!(
+                            residual >= result.residual_field_over_cell_t[component].lower()
+                                && residual <= result.residual_field_over_cell_t[component].upper()
+                        );
+                    }
+                }
+            }
+        }
         assert_eq!(result.residual_jacobian_unit, "tesla/metre");
         assert_eq!(result.centre_measurement_id, "measurement-centre-001");
     }
@@ -575,6 +599,29 @@ mod tests {
                 field: "residual_jacobian_artifact_sha256"
             }
         );
+    }
+
+
+    #[test]
+    fn increasing_residual_jacobian_suprema_cannot_tighten_physical_field_bounds() {
+        let original = certify_physical_field_discrepancy(&input()).expect("original bounds");
+        let mut wider = input();
+        for component in 0..3 {
+            for axis in 0..3 {
+                wider.residual_jacobian_abs_supremum_t_per_m[component][axis] *= 2.0;
+            }
+        }
+        let result = certify_physical_field_discrepancy(&wider).expect("wider Jacobian bounds");
+        for component in 0..3 {
+            assert!(
+                result.physical_field_over_cell_t[component].lower()
+                    <= original.physical_field_over_cell_t[component].lower()
+            );
+            assert!(
+                result.physical_field_over_cell_t[component].upper()
+                    >= original.physical_field_over_cell_t[component].upper()
+            );
+        }
     }
 
 }
