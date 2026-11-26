@@ -1027,6 +1027,11 @@ pub fn evaluate(corpus: &Corpus) -> Result<Evaluation, String> {
     })
 }
 
+/// Evaluate one already source-pinned incumbent bridge case without weakening the corpus gate.
+pub fn evaluate_single_case(case: &Case) -> CaseResult {
+    evaluate_case(case)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1391,7 +1396,3 @@ mod tests {
     }
 }
 
-/// Evaluate one already source-pinned incumbent bridge case without weakening the corpus gate.
-pub fn evaluate_single_case(case: &Case) -> CaseResult {
-    evaluate_case(case)
-}
