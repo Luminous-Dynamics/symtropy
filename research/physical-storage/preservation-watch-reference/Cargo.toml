@@ -1,0 +1,12 @@
+[package]
+name = "preservation-watch-reference"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+description = "Fail-closed OAIS-inspired preservation watch and intervention proposal semantics"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
