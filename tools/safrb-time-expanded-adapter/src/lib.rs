@@ -275,6 +275,11 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
     if sfield(value, "evidence_maturity", "$")? != "synthetic_known_truth" {
         return Err(err("$.evidence_maturity", "v0.1 accepts synthetic known-truth fixtures only"));
     }
+    let adversarial_mutations = array(value, "adversarial_mutations", "$")?;
+    for (index, mutation) in adversarial_mutations.iter().enumerate() {
+        strv(mutation, &format!("$.adversarial_mutations[{index}]"))?;
+    }
+
     let case_id = sfield(value, "case_id", "$")?;
     let scope = sfield(value, "claim_scope", "$")?;
     if scope != "FUEL-DELIVERABILITY" {
@@ -509,6 +514,16 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
     }
     if obligations.is_empty() || edges.iter().filter(|e| e.to == sink).count() != obligations.len() {
         return Err(err("$.service_obligations", "sink edges and declared obligations must match exactly"));
+    }
+    let declared_service_nodes = obligations.iter()
+        .map(|obligation| obligation.node.clone())
+        .collect::<BTreeSet<_>>();
+    let actual_service_nodes = nodes.values()
+        .filter(|node| node.kind == "beneficiary_service")
+        .map(|node| node.id.clone())
+        .collect::<BTreeSet<_>>();
+    if declared_service_nodes != actual_service_nodes {
+        return Err(err("$.service_obligations", "every beneficiary_service node must have exactly one declared obligation"));
     }
     obligations.sort_by_key(|o| (o.time, o.id.clone()));
 
@@ -921,6 +936,17 @@ mod tests {
     fn opening_stock_alias_duplication_is_rejected() {
         let mut input = scenario();
         input["total_opening_stock"]["source_ids"][1] = Value::String("terminal-a-stock".into());
+        assert!(evaluate_scenario(&input).is_err());
+    }
+
+    #[test]
+    fn unlisted_beneficiary_service_nodes_are_rejected() {
+        let mut input = scenario();
+        input["nodes"].as_array_mut().unwrap().push(serde_json::json!({
+            "id": "undeclared-beneficiary-window",
+            "kind": "beneficiary_service",
+            "time_index": 2
+        }));
         assert!(evaluate_scenario(&input).is_err());
     }
 
