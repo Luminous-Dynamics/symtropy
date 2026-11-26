@@ -114,7 +114,7 @@ function evalCase(c){
  for(const p of c.joint_pairs){
   if(!validId(p.scenario_id)||!worlds.has(p.world_id)||!validId(p.model_id))return invalid(c,"malformed joint scenario pair");
   const key=pairId(p.world_id,p.model_id);
-  if(actualPairs.has(key))return invalid(c,"duplicate joint world-model pair");
+  if(actualPairs.has(key))return invalid(c,"malformed or duplicate joint scenario pair");
   actualPairs.add(key);
  }
  const missingPairs=new Set();
