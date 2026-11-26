@@ -330,3 +330,39 @@ For new ports, geography, tides, topology and standards vary. The benchmark shou
 6. **Field evaluation:** rights-cleared read-only terminal evidence, independent physical milestone adjudication, and unit-level receiver-side closure before any performance claim.
 
 The v0.2 Rust temporal module has not yet qualified clock-uncertainty or source-revision supersession semantics. The above are explicit future acceptance targets, not implemented claims.
+
+
+## Additional digital-twin, sea–rail and automation comparators (26 November 2026)
+
+The field has moved beyond the assumption that a digital twin is merely a passive simulator:
+
+- **Digital twin + expert-system integration review (published 1 April 2026):** a PRISMA-guided systematic review of 75 studies examines expert-system reasoning, adaptation, cross-domain coordination and sustainability optimization in container-terminal digital twins. Its central implication is that predictive reasoning and adaptive decision support are already active research directions. MDTR must therefore not claim novelty simply for "adding intelligence" to a digital twin. Its target is a separately testable assurance boundary: independent source/revision history, historical information availability, rights, hard-gate authority, dependence, and receiver-side outcomes. DOI: [10.1080/18366503.2026.2646718](https://doi.org/10.1080/18366503.2026.2646718).
+- **Sea–rail intermodal optimization (published 7 January 2026):** integrates berth allocation and quay-crane scheduling with container storage and train operation scheduling in a sea–rail terminal. This is a reminder that inland rail is a coupled resource and service constraint, not merely a reporting metric. DOI: [10.1049/itr2.70123](https://doi.org/10.1049/itr2.70123).
+- **Port equipment automation review (2026):** an equipment-level review of 47 qualitative-core papers and 124 review/conceptual papers highlights the interplay of cranes, AGVs, automated stacking equipment, digital twins, data protocols, energy management and cybersecurity. This supports a benchmark that tests interoperability and cyber-physical availability, not just solver optimality. DOI: [10.1186/s12544-026-00816-2](https://doi.org/10.1186/s12544-026-00816-2).
+- **DCSA documentation migration (15 October 2026):** DCSA moved standard documentation into its consolidated public reference, covering Port Call, Track & Trace and other releases. Use the active reference artifacts and conformance guidance as the interface baseline; a conformant payload still does not prove source truth, physical movement or receiver acceptance. References: [DCSA announcement](https://dcsa.org/newsroom/standard-documentation-moved-to-reference), [Port Call 2.0 implementation guide](https://reference.dcsa.org/content/standards/releases/port-call/v2/pc-v2-implementation-guide).
+
+### Revised paradigm
+
+The research target is not "a smarter digital twin". It is an **evidence-qualified cyber-physical decision plane** that can sit across multiple digital twins, terminal operating systems, voyage/berth-alignment services and inland operators.
+
+It should preserve and independently evaluate:
+- which source revision each twin or operator actually received;
+- whether a model state is observed, inferred, predicted or simulated;
+- the model's valid-time and calibration envelope;
+- source/common-cause dependencies and clock uncertainty;
+- physical feasibility and authority as separate receipts;
+- the receiver/cargo outcome after the intervention.
+
+A prediction from a digital twin is not an observation. A simulator result is not a physical measurement. Expert-system output is not execution authority. Each claim type must retain its origin and ceiling.
+
+### Global topology-transfer requirement
+
+The exact-resource micro-oracle should grow from one tiny scenario into held-out topology families:
+- tidal berth and approach-bridge corridors;
+- sea–rail intermodal yards and train departure windows;
+- one-way access routes and time-indexed turning/holding capacity;
+- equipment charging, maintenance and shared repair crews;
+- shore-power capable berths and grid/storage capacity;
+- inland gate and receiver appointment capacity.
+
+Measure train/test transfer across port topology and operating regime, not only random seeds from one geometry. Use public AIS only for vessel movement/call timing; unit-level cargo identity and receiver service require rights-cleared sources.
