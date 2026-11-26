@@ -864,6 +864,134 @@ mod tests {
         assert!(verify_tree_swept_pair_set(&proxies, &bad_revision).is_err());
     }
 
+    #[test]
+    fn stateful_tree_inserts_reinserts_and_removes_across_frames() {
+        let mut broadphase =
+            TreeBackedBroadphase::<1>::new(TreeBuildConfig::default()).unwrap();
+        let frame_one = [
+            proxy(1, [0.0], [1.0], [0.0]),
+            proxy(2, [5.0], [6.0], [0.0]),
+        ];
+        let first = broadphase.step(&frame_one).unwrap();
+        assert_eq!(first.maintenance_delta.inserts, 2);
+        assert_eq!(first.tree_stats.proxy_count, 2);
+        assert!(first.candidate_pairs.is_empty());
+
+        let frame_two = [
+            proxy(1, [4.5], [5.5], [0.0]),
+            proxy(2, [5.0], [6.0], [0.0]),
+        ];
+        let second = broadphase.step(&frame_two).unwrap();
+        assert_eq!(second.candidate_pairs.len(), 1);
+        assert_eq!(second.maintenance_delta.updates, 1);
+        assert_eq!(second.maintenance_delta.proxy_reinsertions, 1);
+
+        let frame_three = [proxy(2, [5.0], [6.0], [0.0])];
+        let third = broadphase.step(&frame_three).unwrap();
+        assert!(third.candidate_pairs.is_empty());
+        assert_eq!(third.maintenance_delta.removes, 1);
+        assert_eq!(third.tree_stats.proxy_count, 1);
+        assert_eq!(third.frame_index, 2);
+        assert!(verify_tree_frame_receipt(&third).is_ok());
+    }
+
+    #[test]
+    fn stateful_tree_records_fat_contained_updates_without_reinsertion() {
+        let mut broadphase =
+            TreeBackedBroadphase::<1>::new(TreeBuildConfig::default()).unwrap();
+        let first = [
+            proxy(1, [0.0], [10.0], [0.0]),
+            proxy(2, [20.0], [21.0], [0.0]),
+        ];
+        broadphase.step(&first).unwrap();
+
+        let second = [
+            proxy(1, [2.0], [3.0], [0.0]),
+            proxy(2, [20.0], [21.0], [0.0]),
+        ];
+        let receipt = broadphase.step(&second).unwrap();
+        assert_eq!(receipt.maintenance_delta.updates, 1);
+        assert_eq!(receipt.maintenance_delta.fat_contained_updates, 1);
+        assert_eq!(receipt.maintenance_delta.proxy_reinsertions, 0);
+        assert_eq!(receipt.tree_stats.proxy_count, 2);
+        assert!(verify_tree_frame_receipt(&receipt).is_ok());
+    }
+
+    #[test]
+    fn stateful_unsupported_transition_removes_tree_proxy_and_adds_fallback() {
+        let mut broadphase =
+            TreeBackedBroadphase::<1>::new(TreeBuildConfig::default()).unwrap();
+        let frame_one = [
+            proxy(1, [0.0], [1.0], [0.0]),
+            proxy(2, [100.0], [101.0], [0.0]),
+        ];
+        broadphase.step(&frame_one).unwrap();
+
+        let mut frame_two = [
+            proxy(1, [0.0], [1.0], [0.0]),
+            proxy(2, [100.0], [101.0], [0.0]),
+        ];
+        frame_two[1].motion =
+            MotionEvidence::Unsupported(UnsupportedReason::Rotation);
+        let receipt = broadphase.step(&frame_two).unwrap();
+
+        assert_eq!(receipt.stats.supported_proxies, 1);
+        assert_eq!(receipt.stats.unsupported_proxies, 1);
+        assert_eq!(receipt.maintenance_delta.removes, 1);
+        assert_eq!(receipt.stats.fallback_pairs, 1);
+        assert_eq!(receipt.candidate_pairs, receipt.reference.candidate_pairs);
+        assert_eq!(receipt.tree_stats.proxy_count, 1);
+        assert!(verify_tree_frame_receipt(&receipt).is_ok());
+    }
+
+    #[test]
+    fn stateful_registry_tombstones_preserve_identity_across_remove_and_readd() {
+        let mut broadphase =
+            TreeBackedBroadphase::<1>::new(TreeBuildConfig::default()).unwrap();
+        let first = [proxy(20, [0.0], [1.0], [0.0])];
+        let receipt_one = broadphase.step(&first).unwrap();
+        let original = receipt_one
+            .registry
+            .assignments
+            .iter()
+            .find(|entry| entry.identity == identity(20))
+            .unwrap()
+            .proxy_id;
+
+        broadphase.step(&[]).unwrap();
+        let readded = [proxy(20, [2.0], [3.0], [0.0])];
+        let receipt_three = broadphase.step(&readded).unwrap();
+        let restored = receipt_three
+            .registry
+            .assignments
+            .iter()
+            .find(|entry| entry.identity == identity(20))
+            .unwrap()
+            .proxy_id;
+
+        assert_eq!(original, restored);
+        assert_eq!(receipt_three.maintenance_delta.inserts, 1);
+        assert!(verify_tree_frame_receipt(&receipt_three).is_ok());
+    }
+
+    #[test]
+    fn stateful_sequence_receipt_rejects_tampered_history_or_counters() {
+        let mut broadphase =
+            TreeBackedBroadphase::<1>::new(TreeBuildConfig::default()).unwrap();
+        broadphase.step(&[proxy(1, [0.0], [1.0], [0.0])]).unwrap();
+        let receipt = broadphase.step(&[proxy(1, [2.0], [3.0], [0.0])]).unwrap();
+        assert!(verify_tree_frame_receipt(&receipt).is_ok());
+
+        let mut tampered_history = receipt.clone();
+        tampered_history.input_history[0][0] =
+            proxy(1, [-10.0], [-9.0], [0.0]);
+        assert!(verify_tree_frame_receipt(&tampered_history).is_err());
+
+        let mut tampered_counts = receipt.clone();
+        tampered_counts.maintenance_delta.proxy_reinsertions += 1;
+        assert!(verify_tree_frame_receipt(&tampered_counts).is_err());
+    }
+
     fn generated<const D: usize>(count: u32) -> Vec<Proxy<D>> {
         let mut state = 0x9137_4f21_8a2d_6c5b_u64;
         (0..count)
