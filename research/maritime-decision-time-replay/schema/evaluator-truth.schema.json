@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/maritime-decision-time-replay/schema/evaluator-truth.schema.json",
+  "title": "MDTR Evaluator Truth v0.1",
+  "description": "Evaluator-only realized state. Never serialize this object into a policy process or policy-view artifact.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["physical", "authority", "participant_floor", "cargo_ledger"],
+  "properties": {
+    "physical": {"$ref": "#/$defs/gate_state"},
+    "authority": {"$ref": "#/$defs/gate_state"},
+    "participant_floor": {"$ref": "#/$defs/gate_state"},
+    "cargo_ledger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit", "expected", "receiver_accepted", "in_transit", "outstanding", "unresolved", "duplicated"],
+      "properties": {
+        "unit": {"const": "container"},
+        "expected": {"type": "integer", "minimum": 0},
+        "receiver_accepted": {"type": "integer", "minimum": 0},
+        "in_transit": {"type": "integer", "minimum": 0},
+        "outstanding": {"type": "integer", "minimum": 0},
+        "unresolved": {"type": "integer", "minimum": 0},
+        "duplicated": {"type": "integer", "minimum": 0}
+      }
+    }
+  },
+  "$defs": {
+    "gate_state": {"enum": ["PASS", "FAIL", "UNKNOWN"]}
+  }
+}

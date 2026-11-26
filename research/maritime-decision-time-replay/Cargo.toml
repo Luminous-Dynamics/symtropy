@@ -1,0 +1,24 @@
+[package]
+name = "maritime-decision-time-replay"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "mdtr-audit"
+path = "src/bin/mdtr_audit.rs"
+
+[[bin]]
+name = "temporal-audit"
+path = "src/bin/temporal_audit.rs"
+
+[[bin]]
+name = "clock-bounds-audit"
+path = "src/bin/clock_bounds_audit.rs"
+
+[dependencies]
+
+[workspace]

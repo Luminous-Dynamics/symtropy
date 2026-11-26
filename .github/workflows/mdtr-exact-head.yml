@@ -1,0 +1,52 @@
+name: mdtr-exact-head
+
+on:
+  push:
+    paths:
+      - "research/maritime-decision-time-replay/**"
+      - ".github/workflows/mdtr-exact-head.yml"
+  pull_request:
+    paths:
+      - "research/maritime-decision-time-replay/**"
+      - ".github/workflows/mdtr-exact-head.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Formatting
+        run: cargo fmt --manifest-path research/maritime-decision-time-replay/Cargo.toml -- --check
+      - name: Tests
+        run: cargo test --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml --all-targets -- -D warnings
+      - name: Emit deterministic replay receipt
+        run: cargo run --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml --bin mdtr-audit > mdtr-receipt.tsv
+      - name: Emit deterministic tri-temporal receipt
+        run: cargo run --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml --bin temporal-audit > mdtr-temporal-receipt.tsv
+      - name: Emit interval clock uncertainty receipt
+        run: cargo run --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml --bin clock-bounds-audit > mdtr-clock-receipt.tsv
+      - name: Independent reference and frozen fixture parity
+        run: |
+          python3 research/maritime-decision-time-replay/scripts/independent_reference.py --receipt mdtr-receipt.tsv --temporal-receipt mdtr-temporal-receipt.tsv
+          python3 research/maritime-decision-time-replay/scripts/clock_reference.py --receipt mdtr-clock-receipt.tsv
+      - name: Upload deterministic replay receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mdtr-replay-receipts
+          path: |
+            mdtr-receipt.tsv
+            mdtr-temporal-receipt.tsv
+            mdtr-clock-receipt.tsv
+          if-no-files-found: error
+          retention-days: 30
