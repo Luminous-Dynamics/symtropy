@@ -165,9 +165,9 @@ fn validate_truth(
     }
     for option in &problem.probes {
         for witness_key in decision_by_witness.keys() {
-            if !outcomes_by_probe_witness
+            if outcomes_by_probe_witness
                 .get(&(option.probe_id, *witness_key))
-                .is_some_and(|set| !set.is_empty())
+                .is_none_or(|set| set.is_empty())
             {
                 return Err(DecisionEvaluatorErrorV0::MissingTruthProbeOutcomeSupport);
             }
@@ -389,7 +389,7 @@ pub fn evaluate_decision_disambiguation_claim_v0(
                 actual_worst_case_conflicting_pairs = Some(actual_worst);
                 claimed_probe_is_decision_reducing =
                     Some(actual_worst < actual_baseline_conflicting_pairs);
-                claimed_probe_overstates_improvement = u128::from(*predicted_worst) < actual_worst;
+                claimed_probe_overstates_improvement = *predicted_worst < actual_worst;
             }
         }
         DecisionDisambiguationResultV0::Unresolved { .. } => {
