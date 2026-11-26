@@ -17,10 +17,10 @@ pub struct ProjectedFieldErrorBounds {
     pub operating_condition_id: String,
     pub angular_grid_id: String,
     pub field_bound_record_id: String,
-    /// Simultaneous absolute error bounds on the projected channel-A field, tesla.
-    pub channel_a_error_bound_t: Vec<f64>,
-    /// Simultaneous absolute error bounds on the projected channel-B field, tesla.
-    pub channel_b_error_bound_t: Vec<f64>,
+    /// Simultaneous Euclidean in-plane field-vector error radius for channel A, tesla; projection error is bounded by this radius.
+    pub channel_a_vector_error_radius_t: Vec<f64>,
+    /// Simultaneous Euclidean in-plane field-vector error radius for channel B, tesla; projection error is bounded by this radius.
+    pub channel_b_vector_error_radius_t: Vec<f64>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -171,15 +171,15 @@ fn validate_scenarios(scenarios: &[BoundedQuadratureScenario]) -> Result<(), Syn
         if bounds.angular_grid_id != trace.angular_grid_id {
             return Err(SynthesisError::FieldBoundGridIdentityMismatch);
         }
-        if bounds.channel_a_error_bound_t.len() != trace.samples.len()
-            || bounds.channel_b_error_bound_t.len() != trace.samples.len()
+        if bounds.channel_a_vector_error_radius_t.len() != trace.samples.len()
+            || bounds.channel_b_vector_error_radius_t.len() != trace.samples.len()
         {
             return Err(SynthesisError::FieldBoundSampleCountMismatch);
         }
         for index in 0..trace.samples.len() {
             for (channel, value) in [
-                ('A', bounds.channel_a_error_bound_t[index]),
-                ('B', bounds.channel_b_error_bound_t[index]),
+                ('A', bounds.channel_a_vector_error_radius_t[index]),
+                ('B', bounds.channel_b_vector_error_radius_t[index]),
             ] {
                 if !value.is_finite() || value < 0.0 {
                     return Err(SynthesisError::NonFiniteOrNegativeFieldBound {
@@ -206,58 +206,103 @@ fn projected_values(
     )
 }
 
-fn channel_margins(
+#[derive(Clone, Copy, Debug)]
+struct TransitionWindow {
+    nominal_sample_after_index: usize,
+    earliest_sample_index: usize,
+    latest_sample_index: usize,
+    lower_angle_rad: f64,
+    upper_angle_rad: f64,
+    crossing_margin_t: f64,
+}
+
+#[derive(Clone, Debug)]
+struct ChannelAnalysis {
+    minimum_state_margin_t: f64,
+    minimum_transition_margin_t: Option<f64>,
+    failed_state_samples: usize,
+    failed_transition_crossings: usize,
+    windows: Vec<TransitionWindow>,
+}
+
+fn analyze_channel(
     values: &[f64],
-    error_bounds: &[f64],
+    vector_error_radii: &[f64],
+    angles: &[f64],
     states: &[bool],
     bop: f64,
     brp: f64,
-) -> ChannelMargins {
-    let mut minimum_state_margin = f64::INFINITY;
-    let mut minimum_transition_margin = f64::INFINITY;
-    let mut failed_state_samples = 0_usize;
-    let mut failed_transition_crossings = 0_usize;
-    let mut transition_count = 0_usize;
-
-    for index in 0..values.len() {
-        let margin = if states[index] {
-            values[index] - error_bounds[index] - brp
-        } else {
-            bop - (values[index] + error_bounds[index])
-        };
-        minimum_state_margin = minimum_state_margin.min(margin);
-        if !margin.is_finite() || margin <= 0.0 {
-            failed_state_samples += 1;
+) -> ChannelAnalysis {
+    let mut nominal_events = Vec::new();
+    for index in 1..states.len() {
+        if states[index - 1] != states[index] {
+            nominal_events.push(index);
         }
     }
 
-    for index in 1..values.len() {
-        let previous_state = states[index - 1];
-        let current_state = states[index];
-        if previous_state == current_state {
+    let mut windows = Vec::with_capacity(nominal_events.len());
+    let mut previous_latest = 0_usize;
+    let mut failed_transition_crossings = 0_usize;
+    let mut minimum_transition_margin = f64::INFINITY;
+
+    for (event_position, nominal_index) in nominal_events.iter().copied().enumerate() {
+        let search_end = nominal_events
+            .get(event_position + 1)
+            .copied()
+            .unwrap_or(values.len());
+        let rising = !states[nominal_index - 1] && states[nominal_index];
+
+        let possible_index = (previous_latest + 1..search_end).find(|index| {
+            let value = values[*index];
+            let error = vector_error_radii[*index];
+            if rising {
+                value + error >= bop
+            } else {
+                value - error <= brp
+            }
+        });
+
+        let Some(earliest_index) = possible_index else {
+            failed_transition_crossings += 1;
             continue;
-        }
-        transition_count += 1;
-
-        let previous_value = values[index - 1];
-        let current_value = values[index];
-        let previous_error = error_bounds[index - 1];
-        let current_error = error_bounds[index];
-
-        let (before_margin, after_margin) = if !previous_state && current_state {
-            (
-                bop - (previous_value + previous_error),
-                (current_value - current_error) - bop,
-            )
-        } else {
-            (
-                (previous_value - previous_error) - brp,
-                brp - (current_value + current_error),
-            )
         };
 
+        let guaranteed_index = (earliest_index..search_end).find(|index| {
+            let value = values[*index];
+            let error = vector_error_radii[*index];
+            if rising {
+                value - error >= bop
+            } else {
+                value + error <= brp
+            }
+        });
+
+        let Some(latest_index) = guaranteed_index else {
+            failed_transition_crossings += 1;
+            continue;
+        };
+
+        if !(earliest_index <= nominal_index && nominal_index <= latest_index)
+            || earliest_index == 0
+            || latest_index <= earliest_index.saturating_sub(1)
+        {
+            failed_transition_crossings += 1;
+            continue;
+        }
+
+        let before_index = earliest_index - 1;
+        let before_margin = if rising {
+            bop - (values[before_index] + vector_error_radii[before_index])
+        } else {
+            (values[before_index] - vector_error_radii[before_index]) - brp
+        };
+        let after_margin = if rising {
+            (values[latest_index] - vector_error_radii[latest_index]) - bop
+        } else {
+            brp - (values[latest_index] + vector_error_radii[latest_index])
+        };
         let crossing_margin = before_margin.min(after_margin);
-        minimum_transition_margin = minimum_transition_margin.min(crossing_margin);
+
         if !before_margin.is_finite()
             || !after_margin.is_finite()
             || before_margin <= 0.0
@@ -265,15 +310,68 @@ fn channel_margins(
         {
             failed_transition_crossings += 1;
         }
+        minimum_transition_margin = minimum_transition_margin.min(crossing_margin);
+
+        windows.push(TransitionWindow {
+            nominal_sample_after_index: nominal_index,
+            earliest_sample_index: earliest_index,
+            latest_sample_index: latest_index,
+            lower_angle_rad: angles[before_index],
+            upper_angle_rad: angles[latest_index],
+            crossing_margin_t: crossing_margin,
+        });
+        previous_latest = latest_index;
     }
 
-    ChannelMargins {
+    // Away from a transition's uncertainty window, the entire scalar interval
+    // must remain inside the active latch state. Samples in a transition window
+    // are allowed to vary because the corresponding angular interval is reported.
+    let mut in_transition_window = vec![false; values.len()];
+    for window in &windows {
+        for index in window.earliest_sample_index..=window.latest_sample_index {
+            in_transition_window[index] = true;
+        }
+    }
+
+    let mut minimum_state_margin = f64::INFINITY;
+    let mut failed_state_samples = 0_usize;
+    for index in 0..values.len() {
+        if in_transition_window[index] {
+            continue;
+        }
+        let margin = if states[index] {
+            values[index] - vector_error_radii[index] - brp
+        } else {
+            bop - (values[index] + vector_error_radii[index])
+        };
+        minimum_state_margin = minimum_state_margin.min(margin);
+        if !margin.is_finite() || margin <= 0.0 {
+            failed_state_samples += 1;
+        }
+    }
+
+    if !minimum_state_margin.is_finite() {
+        minimum_state_margin = f64::INFINITY;
+    }
+
+    ChannelAnalysis {
         minimum_state_margin_t: minimum_state_margin,
-        minimum_transition_margin_t: (transition_count > 0)
+        minimum_transition_margin_t: (minimum_transition_margin.is_finite())
             .then_some(minimum_transition_margin),
         failed_state_samples,
         failed_transition_crossings,
+        windows,
     }
+}
+
+fn interval_spacing_error_upper(
+    lower_spacing_rad: f64,
+    upper_spacing_rad: f64,
+    expected_spacing_rad: f64,
+) -> f64 {
+    (lower_spacing_rad - expected_spacing_rad)
+        .abs()
+        .max((upper_spacing_rad - expected_spacing_rad).abs())
 }
 
 fn scenario_metrics(
@@ -281,10 +379,15 @@ fn scenario_metrics(
     config: &QuadratureConfig,
     requirements: SynthesisRequirements,
 ) -> Result<ScenarioSynthesisMetrics, EvaluationError> {
-    let evaluation = evaluate_trace(&scenario.trace, config.clone());
-    let evaluation = evaluation?;
+    let evaluation = evaluate_trace(&scenario.trace, config.clone())?;
     let mut channel_a_values = Vec::with_capacity(scenario.trace.samples.len());
     let mut channel_b_values = Vec::with_capacity(scenario.trace.samples.len());
+    let angles = scenario
+        .trace
+        .samples
+        .iter()
+        .map(|sample| sample.mechanical_angle_rad)
+        .collect::<Vec<_>>();
 
     for index in 0..scenario.trace.samples.len() {
         let (a, b) = projected_values(&scenario.trace, config, index);
@@ -303,25 +406,67 @@ fn scenario_metrics(
         .map(|state| state.channel_b_high)
         .collect::<Vec<_>>();
 
-    let margin_a = channel_margins(
+    let analysis_a = analyze_channel(
         &channel_a_values,
-        &scenario.field_bounds.channel_a_error_bound_t,
+        &scenario.field_bounds.channel_a_vector_error_radius_t,
+        &angles,
         &states_a,
         config.channel_a.bop_threshold_t,
         config.channel_a.brp_threshold_t,
     );
-    let margin_b = channel_margins(
+    let analysis_b = analyze_channel(
         &channel_b_values,
-        &scenario.field_bounds.channel_b_error_bound_t,
+        &scenario.field_bounds.channel_b_vector_error_radius_t,
+        &angles,
         &states_b,
         config.channel_b.bop_threshold_t,
         config.channel_b.brp_threshold_t,
     );
 
-    let min_state_margin = margin_a.minimum_state_margin_t.min(margin_b.minimum_state_margin_t);
-    let min_transition_margin = match (
-        margin_a.minimum_transition_margin_t,
-        margin_b.minimum_transition_margin_t,
+    let mut ordered_windows = analysis_a.windows.clone();
+    ordered_windows.extend(analysis_b.windows.iter().copied());
+    ordered_windows.sort_by_key(|window| window.nominal_sample_after_index);
+
+    let mut failed_transition_crossings =
+        analysis_a.failed_transition_crossings + analysis_b.failed_transition_crossings;
+    let mut worst_spacing_error = 0.0_f64;
+    let mut maximum_bracket = 0.0_f64;
+
+    for window in &ordered_windows {
+        maximum_bracket = maximum_bracket.max(window.upper_angle_rad - window.lower_angle_rad);
+    }
+
+    let expected_spacing = std::f64::consts::TAU / evaluation.metrics.expected_transitions_per_revolution as f64;
+    for adjacent in ordered_windows.windows(2) {
+        let first = adjacent[0];
+        let second = adjacent[1];
+        if first.upper_angle_rad >= second.lower_angle_rad {
+            failed_transition_crossings += 1;
+        }
+        let lower = second.lower_angle_rad - first.upper_angle_rad;
+        let upper = second.upper_angle_rad - first.lower_angle_rad;
+        worst_spacing_error =
+            worst_spacing_error.max(interval_spacing_error_upper(lower, upper, expected_spacing));
+    }
+    if ordered_windows.len() >= 2 {
+        let first = ordered_windows[0];
+        let last = ordered_windows[ordered_windows.len() - 1];
+        if last.upper_angle_rad >= first.lower_angle_rad + std::f64::consts::TAU {
+            failed_transition_crossings += 1;
+        }
+        let lower = first.lower_angle_rad + std::f64::consts::TAU - last.upper_angle_rad;
+        let upper = first.upper_angle_rad + std::f64::consts::TAU - last.lower_angle_rad;
+        worst_spacing_error =
+            worst_spacing_error.max(interval_spacing_error_upper(lower, upper, expected_spacing));
+    } else {
+        failed_transition_crossings += 1;
+    }
+
+    let minimum_state_margin =
+        analysis_a.minimum_state_margin_t.min(analysis_b.minimum_state_margin_t);
+    let minimum_transition_margin = match (
+        analysis_a.minimum_transition_margin_t,
+        analysis_b.minimum_transition_margin_t,
     ) {
         (Some(a), Some(b)) => Some(a.min(b)),
         (Some(value), None) | (None, Some(value)) => Some(value),
@@ -329,30 +474,32 @@ fn scenario_metrics(
     };
 
     let sequence_valid = evaluation.metrics.quadrature_sequence_valid;
-    let spacing_upper = evaluation.metrics.maximum_spacing_error_upper_bound_rad;
-    let transition_bracket = evaluation.metrics.maximum_transition_bracket_rad;
+    let nominal_spacing_upper = evaluation.metrics.maximum_spacing_error_upper_bound_rad;
+    let nominal_bracket = evaluation.metrics.maximum_transition_bracket_rad;
+    let robust_spacing_upper =
+        (!ordered_windows.is_empty()).then_some(worst_spacing_error);
+    let robust_bracket = (!ordered_windows.is_empty()).then_some(maximum_bracket);
 
     let accepted_by_nominal_limits = sequence_valid
-        && evaluation
-            .metrics
-            .within_edge_rate_policy
-            .is_none_or(|within_limit| within_limit)
-        && spacing_upper.is_some_and(|value| value <= requirements.maximum_spacing_error_rad)
-        && transition_bracket
-            .is_some_and(|value| value <= requirements.maximum_transition_bracket_rad);
+        && evaluation.metrics.within_edge_rate_policy.is_none_or(|within_limit| within_limit)
+        && robust_spacing_upper
+            .is_some_and(|value| value <= requirements.maximum_spacing_error_rad)
+        && robust_bracket
+            .is_some_and(|value| value <= requirements.maximum_transition_bracket_rad)
+        && nominal_spacing_upper.is_some()
+        && nominal_bracket.is_some();
 
     Ok(ScenarioSynthesisMetrics {
         trace_id: scenario.trace.trace_id.clone(),
         operating_condition_id: scenario.trace.operating_condition_id.clone(),
         nominal_sequence_valid: sequence_valid,
         accepted_by_nominal_limits,
-        minimum_state_retention_margin_t: min_state_margin,
-        minimum_transition_crossing_margin_t: min_transition_margin,
-        failed_state_sample_count: margin_a.failed_state_samples + margin_b.failed_state_samples,
-        failed_transition_crossing_count: margin_a.failed_transition_crossings
-            + margin_b.failed_transition_crossings,
-        maximum_spacing_error_upper_bound_rad: spacing_upper,
-        maximum_transition_bracket_rad: transition_bracket,
+        minimum_state_retention_margin_t: minimum_state_margin,
+        minimum_transition_crossing_margin_t: minimum_transition_margin,
+        failed_state_sample_count: analysis_a.failed_state_samples + analysis_b.failed_state_samples,
+        failed_transition_crossing_count: failed_transition_crossings,
+        maximum_spacing_error_upper_bound_rad: robust_spacing_upper,
+        maximum_transition_bracket_rad: robust_bracket,
     })
 }
 
@@ -591,8 +738,8 @@ mod tests {
             operating_condition_id: trace.operating_condition_id.clone(),
             angular_grid_id: trace.angular_grid_id.clone(),
             field_bound_record_id: format!("bounds-{}", trace.trace_id),
-            channel_a_error_bound_t: vec![radius_t; trace.samples.len()],
-            channel_b_error_bound_t: vec![radius_t; trace.samples.len()],
+            channel_a_vector_error_radius_t: vec![radius_t; trace.samples.len()],
+            channel_b_vector_error_radius_t: vec![radius_t; trace.samples.len()],
         }
     }
 
@@ -706,7 +853,7 @@ mod tests {
     #[test]
     fn nonfinite_and_negative_field_bounds_are_rejected() {
         let mut input = scenario("trace-bad-bound", "nominal", 0.01);
-        input.field_bounds.channel_b_error_bound_t[7] = f64::NAN;
+        input.field_bounds.channel_b_vector_error_radius_t[7] = f64::NAN;
 
         assert_eq!(
             synthesize_robust_configurations(
