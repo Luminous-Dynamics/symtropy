@@ -173,31 +173,27 @@ fn validate_digest(value: &str, field: &'static str) -> Result<(), Qualification
 }
 
 fn method_supports_model(method: SolverMethod, model: MagneticModelClass) -> bool {
-    match (method, model) {
+    matches!(
+        (method, model),
         (
             SolverMethod::AnalyticalClosedForm | SolverMethod::IndependentSurfaceQuadrature,
             MagneticModelClass::UniformPrescribedMagnetization,
-        ) => true,
-        (
+        ) | (
             SolverMethod::SurfaceFaceCharge,
             MagneticModelClass::MagnetWithLinearIsotropicSoftMaterial,
-        ) => true,
-        (
+        ) | (
             SolverMethod::CellVolume,
             MagneticModelClass::MagnetWithLinearIsotropicSoftMaterial
-            | MagneticModelClass::MagnetWithAnisotropicSoftMaterial
-            | MagneticModelClass::MagnetWithNonlinearBhMaterial,
-        ) => true,
-        (
+                | MagneticModelClass::MagnetWithAnisotropicSoftMaterial
+                | MagneticModelClass::MagnetWithNonlinearBhMaterial,
+        ) | (
             SolverMethod::FiniteElement,
             MagneticModelClass::UniformPrescribedMagnetization
-            | MagneticModelClass::MagnetWithLinearIsotropicSoftMaterial
-            | MagneticModelClass::MagnetWithAnisotropicSoftMaterial
-            | MagneticModelClass::MagnetWithNonlinearBhMaterial,
-        ) => true,
-        (SolverMethod::PhysicalMetrology, _) => true,
-        _ => false,
-    }
+                | MagneticModelClass::MagnetWithLinearIsotropicSoftMaterial
+                | MagneticModelClass::MagnetWithAnisotropicSoftMaterial
+                | MagneticModelClass::MagnetWithNonlinearBhMaterial,
+        ) | (SolverMethod::PhysicalMetrology, _)
+    )
 }
 
 fn method_requires_convergence(method: SolverMethod) -> bool {
