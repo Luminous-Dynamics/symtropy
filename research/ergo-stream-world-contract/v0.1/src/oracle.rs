@@ -490,7 +490,6 @@ fn orientation_code(orientation: RelationOrientationV0) -> u8 {
 }
 
 #[allow(clippy::too_many_arguments)]
-#[allow(clippy::too_many_arguments)]
 fn choose_kind_mapping_classes(
     index: usize,
     source_kinds: &[u16],
