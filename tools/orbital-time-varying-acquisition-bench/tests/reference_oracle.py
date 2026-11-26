@@ -12,7 +12,9 @@ RECEIPT_SCHEMA = "luminous.orbital-time-varying-acquisition.receipt.v0.1"
 BENCHMARK_ID = "ORBITAL-TIME-VARYING-ACQUISITION-001"
 CLAIM_CEILING = "synthetic_acceleration_jerk_bounded_projective_path_envelopes_only"
 MAX_INPUT = 1_000_000_000_000
-MAX_TIME_NS = 1_000_000_000
+MAX_TIME_NS = 1_000_000
+NS2 = 1_000_000_000_000_000
+NS3 = 1_000_000_000_000_000_000_000_000
 MAX_JERK = 1_000_000_000
 MAX_U64 = (1 << 64) - 1
 NS = 1_000_000_000
@@ -91,16 +93,16 @@ def displacement_terms(speed, acceleration, jerk):
     if max(speed, acceleration, jerk, total) > MAX_U64:
         raise OverflowError("ARITHMETIC_OVERFLOW")
     return {
-        "speed_um": speed,
-        "acceleration_um": acceleration,
-        "jerk_um": jerk,
-        "total_um": total,
+        "speed_nm": speed,
+        "acceleration_nm": acceleration,
+        "jerk_nm": jerk,
+        "total_nm": total,
     }
 
 
 def projected_axis(focal, displacement, extent, min_depth):
     numerator = focal * displacement * (min_depth + extent)
-    denominator = min_depth * min_depth
+    denominator = min_depth * min_depth * 1_000
     value = ceil_fraction(Fraction(numerator, denominator))
     if value > MAX_U64:
         raise OverflowError("ARITHMETIC_OVERFLOW")
@@ -116,10 +118,10 @@ def calculate_bounds(model):
 
     row_speed = ceil_fraction(Fraction(speed * row_span, NS))
     row_acceleration = ceil_fraction(
-        Fraction(acceleration * row_span * row_span, 2 * (NS**2))
+        Fraction(acceleration * row_span * row_span, 2 * NS2)
     )
     row_jerk = ceil_fraction(
-        Fraction(jerk * row_span**3, 6 * (NS**3))
+        Fraction(jerk * row_span**3, 6 * NS3)
     )
     row = displacement_terms(row_speed, row_acceleration, row_jerk)
 
@@ -131,14 +133,14 @@ def calculate_bounds(model):
             exposure * exposure, 4
         )
     exposure_acceleration = ceil_fraction(
-        Fraction(acceleration, 1) * integral_abs_time / (NS**2)
+        Fraction(acceleration, 1) * integral_abs_time / NS2
     )
     integral_time_squared = (
         Fraction(exposure * row_span * row_span, 1)
         + Fraction(exposure**3, 12)
     )
     exposure_jerk = ceil_fraction(
-        Fraction(jerk, 2) * integral_time_squared / (NS**3)
+        Fraction(jerk, 2) * integral_time_squared / NS3
     )
     latest_exposure = displacement_terms(
         exposure_speed, exposure_acceleration, exposure_jerk
@@ -179,57 +181,57 @@ def calculate_bounds(model):
         constant_speed, constant_acceleration, constant_jerk
     )
     constant_speed_excess = (
-        constant_max_speed_frame["total_um"] - combined_frame["total_um"]
+        constant_max_speed_frame["total_nm"] - combined_frame["total_nm"]
     )
     if constant_speed_excess < 0:
         raise OverflowError("CONSTANT_SPEED_COMPARATOR_UNDER_BOUND")
 
     exposure_x = projected_axis(
         model["focal_x_micro_px"],
-        latest_exposure["total_um"],
+        latest_exposure["total_nm"],
         model["max_abs_x_um"],
         model["min_depth_um"],
     )
     exposure_y = projected_axis(
         model["focal_y_micro_px"],
-        latest_exposure["total_um"],
+        latest_exposure["total_nm"],
         model["max_abs_y_um"],
         model["min_depth_um"],
     )
     row_x = projected_axis(
         model["focal_x_micro_px"],
-        row["total_um"],
+        row["total_nm"],
         model["max_abs_x_um"],
         model["min_depth_um"],
     )
     row_y = projected_axis(
         model["focal_y_micro_px"],
-        row["total_um"],
+        row["total_nm"],
         model["max_abs_y_um"],
         model["min_depth_um"],
     )
     combined_x = projected_axis(
         model["focal_x_micro_px"],
-        combined_frame["total_um"],
+        combined_frame["total_nm"],
         model["max_abs_x_um"],
         model["min_depth_um"],
     )
     combined_y = projected_axis(
         model["focal_y_micro_px"],
-        combined_frame["total_um"],
+        combined_frame["total_nm"],
         model["max_abs_y_um"],
         model["min_depth_um"],
     )
 
     constant_speed_frame_x = projected_axis(
         model["focal_x_micro_px"],
-        constant_max_speed_frame["total_um"],
+        constant_max_speed_frame["total_nm"],
         model["max_abs_x_um"],
         model["min_depth_um"],
     )
     constant_speed_frame_y = projected_axis(
         model["focal_y_micro_px"],
-        constant_max_speed_frame["total_um"],
+        constant_max_speed_frame["total_nm"],
         model["max_abs_y_um"],
         model["min_depth_um"],
     )
@@ -239,7 +241,7 @@ def calculate_bounds(model):
         "latest_row_exposure": latest_exposure,
         "combined_frame": combined_frame,
         "constant_max_speed_frame": constant_max_speed_frame,
-        "constant_speed_excess_um_upper": constant_speed_excess,
+        "constant_speed_excess_nm_upper": constant_speed_excess,
         "constant_speed_frame_x_micro_px_upper": constant_speed_frame_x,
         "constant_speed_frame_y_micro_px_upper": constant_speed_frame_y,
         "exposure_x_micro_px_upper": exposure_x,
