@@ -1,0 +1,62 @@
+{
+  "schema_version": "0.1",
+  "benchmark": "RRVR-EVIDENCE-CAPSULES",
+  "campaign_id": "rrvr-evidence-fixture-001",
+  "claim_ceiling": "Synthetic known-answer fixture only; no physical robot result is claimed.",
+  "evidence": [
+    {
+      "evidence_id": "evidence-effect-1",
+      "episode_id": "episode-1",
+      "attempt_id": "attempt-1",
+      "command_id": "command-1",
+      "source": {
+        "source_id": "source-observer-1",
+        "principal_id": "principal-observer-1",
+        "role": "physical_observer",
+        "independence_group": "observer-cell-a",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "parent_evidence_ids": [],
+      "event_time": {
+        "clock_id": "robot-clock",
+        "earliest_ns": 100,
+        "latest_ns": 110
+      },
+      "observation_time": {
+        "clock_id": "robot-clock",
+        "earliest_ns": 120,
+        "latest_ns": 130
+      },
+      "ingest_sequence": 1,
+      "payload": {
+        "kind": "observation",
+        "subject_id": "effect-1",
+        "finding": "effect_present",
+        "coverage": null,
+        "coverage_complete": false,
+        "raw_data_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "content_sha256": "3128b1a1892cba39e4a6838a1ae3fb73c26ed470761566c50b1bfa6728b79328"
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "claim-effect-applied-1",
+      "episode_id": "episode-1",
+      "attempt_id": "attempt-1",
+      "command_id": "command-1",
+      "claim_type": "effect_applied",
+      "asserted_value": true,
+      "state": "asserted",
+      "subject_id": "effect-1",
+      "required_epoch": null,
+      "observation_window": null,
+      "expected_holder_ids": [],
+      "expected_edge_ids": [],
+      "decision_cutoff_ingest_sequence": 1,
+      "evidence_ids": ["evidence-effect-1"],
+      "evidence_snapshot_sha256": "e971336c23614c9c6adf81669a55299f4ce0e97023aa349e3d76a8ca3111cdd2"
+    }
+  ]
+}
