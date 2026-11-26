@@ -953,6 +953,14 @@ mod tests {
         assert_eq!(maximum.min_cut.capacity, u64::MAX);
         maximum_capacity.verify_result(&maximum).unwrap();
 
+        let maximum_bundle =
+            FlowCertificateBundle::new(maximum_capacity.clone(), maximum).unwrap();
+        let encoded = serde_json::to_vec(&maximum_bundle).unwrap();
+        assert!(String::from_utf8_lossy(&encoded).contains("18446744073709551615"));
+        let decoded: FlowCertificateBundle = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(decoded.result.max_flow, u64::MAX);
+        decoded.verify().unwrap();
+
         let disconnected = graph(2, &[]);
         let zero = disconnected.solve().unwrap();
         assert_eq!(zero.max_flow, 0);
