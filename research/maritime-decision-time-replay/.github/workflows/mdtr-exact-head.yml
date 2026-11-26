@@ -1,0 +1,32 @@
+name: mdtr-exact-head
+
+on:
+  push:
+    paths:
+      - "research/maritime-decision-time-replay/**"
+  pull_request:
+    paths:
+      - "research/maritime-decision-time-replay/**"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Formatting
+        run: cargo fmt --manifest-path research/maritime-decision-time-replay/Cargo.toml -- --check
+      - name: Tests
+        run: cargo test --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml --all-targets -- -D warnings
+      - name: Emit and verify deterministic replay receipt
+        run: cargo run --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml --bin mdtr-audit
