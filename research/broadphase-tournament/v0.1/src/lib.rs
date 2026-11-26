@@ -1315,8 +1315,7 @@ fn run_backend<const D: usize>(
                     .collect();
                 let actual_added: BTreeSet<_> = delta.added.iter().copied().collect();
                 let actual_removed: BTreeSet<_> = delta.removed.iter().copied().collect();
-                let actual_revalidated: BTreeSet<_> =
-                    delta.revalidated.iter().copied().collect();
+                let actual_revalidated: BTreeSet<_> = delta.revalidated.iter().copied().collect();
                 if actual_added != expected_added
                     || actual_removed != expected_removed
                     || actual_revalidated != expected_revalidated
@@ -1583,7 +1582,10 @@ mod tests {
         assert_eq!(moved.overlap_tests, 1);
         assert!(moved.added.is_empty());
         assert!(moved.removed.is_empty());
-        assert_eq!(moved.revalidated, vec![ProxyPair::new(ProxyId(1), ProxyId(2)).unwrap()]);
+        assert_eq!(
+            moved.revalidated,
+            vec![ProxyPair::new(ProxyId(1), ProxyId(2)).unwrap()]
+        );
         assert_eq!(moved.active_pairs, 1);
     }
 
