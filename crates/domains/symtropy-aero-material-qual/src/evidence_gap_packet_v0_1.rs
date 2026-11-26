@@ -21,7 +21,7 @@ pub struct DecisionContextV1 {
     pub icd_revision: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct AssessmentV1 {
     pub assessment_ref: String,
@@ -31,7 +31,7 @@ pub struct AssessmentV1 {
     pub verifier_profile_id: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct EvidenceRequirementV1 {
     pub requirement_id: String,
@@ -42,7 +42,7 @@ pub struct EvidenceRequirementV1 {
     pub independent_evidence_required: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ClaimGapV1 {
     pub claim_id: String,
@@ -52,7 +52,7 @@ pub struct ClaimGapV1 {
     pub evidence_requirements: Vec<EvidenceRequirementV1>,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct SourceEvidenceV1 {
     pub id: String,
@@ -93,7 +93,11 @@ pub struct EvidenceGapPacketV1 {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct SymthaeaEvidenceGapProjectionV1 {
+    pub packet_id: String,
+    pub assessment: AssessmentV1,
     pub decision_context: DecisionContextV1,
+    pub claims: Vec<ClaimGapV1>,
+    pub source_evidence: Vec<SourceEvidenceV1>,
     pub target_claim_ids: Vec<String>,
     pub current_evidence_refs: Vec<String>,
     pub unverified_evidence_refs: Vec<String>,
@@ -387,7 +391,11 @@ impl EvidenceGapPacketV1 {
         required_obligations.dedup();
 
         Ok(SymthaeaEvidenceGapProjectionV1 {
+            packet_id: self.packet_id.clone(),
+            assessment: self.assessment.clone(),
             decision_context: self.decision_context.clone(),
+            claims: self.claims.clone(),
+            source_evidence: self.source_evidence.clone(),
             target_claim_ids,
             current_evidence_refs,
             unverified_evidence_refs,
@@ -427,7 +435,11 @@ mod tests {
         let projection = packet
             .selector_projection()
             .expect("packet validates and projects");
+        assert_eq!(projection.packet_id, packet.packet_id);
+        assert_eq!(projection.assessment, packet.assessment);
         assert_eq!(projection.decision_context, packet.decision_context);
+        assert_eq!(projection.claims, packet.claims);
+        assert_eq!(projection.source_evidence, packet.source_evidence);
         assert_eq!(projection.target_claim_ids.len(), 2);
         assert_eq!(projection.current_evidence_refs.len(), 2);
         assert_eq!(projection.unverified_evidence_refs.len(), 1);
