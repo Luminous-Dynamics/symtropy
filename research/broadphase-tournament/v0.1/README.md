@@ -20,7 +20,7 @@ The four tree variants use the same pinned `incremental-aabb-tree-reference` imp
 
 The deterministic generator includes sparse coherent motion, dense clusters, static-heavy scenes, high-churn populations, anisotropic/high-aspect bounds and teleport sequences. Each can run in 2D, 3D and 4D.
 
-The seed, declared proxy count and frame count are explicit and included in every CSV row, so a result can be tied back to its exact deterministic sequence. Scene generation is outside the timed backend region. The same scene sequence is supplied to all nine backends.
+The seed, declared proxy count and frame count are explicit and included in every CSV row, so a result can be tied back to its exact deterministic sequence. Scene generation is outside the timed backend region. The same scene sequence is supplied to all nine backends. High-churn fixtures allocate a fresh monotonic ProxyId after a removal/reinsertion boundary; an identity remains stable only for one continuous residency.
 
 The added sleeping-wakeup family keeps most proxies stationary and moves only two of 128 proxies per frame after initialization. This models a common engine regime where most bodies are asleep and only a sparse wake frontier changes.
 
