@@ -12,7 +12,7 @@
 //! construction.
 
 use directional_motion_envelopes::{
-    Aabb, ColliderIdentity, EnvelopeContext, EnvelopeReceipt, IntegratorEnvelopeReceipt,
+    Aabb, ColliderIdentity, EnvelopeReceipt, IntegratorEnvelopeReceipt,
     verify_envelope, verify_semi_implicit_euler_envelope,
 };
 use std::cmp::Ordering;
@@ -396,7 +396,7 @@ pub fn temporal_oracle_pairs<const D: usize>(
 mod tests {
     use super::*;
     use directional_motion_envelopes::{
-        Digest, DisplacementInterval, IntegrationParticipation, MotionKind,
+        Digest, DisplacementInterval, EnvelopeContext, IntegrationParticipation, MotionKind,
         SemiImplicitEulerMotion, build_envelope, build_semi_implicit_euler_envelope,
     };
 
@@ -625,7 +625,8 @@ mod tests {
         (0..count)
             .map(|slot| {
                 let min = std::array::from_fn(|_| next_value(&mut state, -20.0, 20.0));
-                let extent = std::array::from_fn(|_| next_value(&mut state, 0.1, 2.0));
+                let extent: [f64; D] =
+                    std::array::from_fn(|_| next_value(&mut state, 0.1, 2.0));
                 let max = std::array::from_fn(|axis| min[axis] + extent[axis]);
                 let displacement = std::array::from_fn(|_| next_value(&mut state, -15.0, 15.0));
                 linear(slot + 1, min, max, displacement)
