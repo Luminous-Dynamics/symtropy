@@ -25,7 +25,7 @@ pub enum SceneFamily {
 }
 
 impl SceneFamily {
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 7] = [
         Self::SparseCoherent,
         Self::DenseClustered,
         Self::StaticHeavy,
@@ -75,7 +75,7 @@ pub enum BackendKind {
 }
 
 impl BackendKind {
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 7] = [
         Self::BruteForce,
         Self::SweepAndPrune,
         Self::TreePerLeafUnbalanced,
