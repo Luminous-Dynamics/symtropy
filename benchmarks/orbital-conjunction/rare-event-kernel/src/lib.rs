@@ -44,6 +44,8 @@ pub mod ncdot_temporal;
 pub mod normal_positive_part;
 pub mod pathwise_event;
 pub mod pathwise_proposal;
+/// Exact paired finite-support counterfactual consequence comparisons.
+pub mod paired_counterfactual;
 pub mod pop_col_adjustment;
 pub mod pop_col_energy;
 pub mod pop_convergence;
@@ -113,6 +115,10 @@ pub use pathwise_event::{
 pub use pathwise_proposal::{
     FinitePathwiseProposalSupport, FinitePathwiseSupportManifest, FinitePathwiseTrajectoryAtom,
     PathwiseProposalError, derive_finite_pathwise_proposal_support,
+};
+pub use paired_counterfactual::{
+    MAX_PAIRED_COUNTERFACTUAL_ATOMS, PairedCounterfactualAtom, PairedCounterfactualError,
+    PairedCounterfactualReport, PairingEffect, SignedRational, compare_paired_counterfactual_support,
 };
 pub use pop_col_adjustment::{
     PopColAdjustmentConfig, PopColAdjustmentInput, PopColAdjustmentReport, PopColAdjustmentStatus,
