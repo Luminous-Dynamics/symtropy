@@ -207,7 +207,7 @@ struct JointDesignV0 {
     parameter_order: Vec<JointClockParameterV0>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct QrSolveV0 {
     coefficients: Vec<f64>,
     rank: usize,
@@ -735,10 +735,11 @@ pub fn fit_joint_clock_huber_v0(
     }
 
     let mut coefficients = initial.coefficients;
+    let mut final_rank = initial.rank;
+    let mut final_pivot_ratio = initial.pivot_ratio;
     let mut robust_scale = JOINT_CLOCK_MAD_FLOOR_V0;
     let mut converged = false;
     let mut iterations = 0_usize;
-    let mut final_solve = initial;
 
     for iteration in 1..=JOINT_CLOCK_HUBER_MAX_ITERATIONS_V0 {
         let residuals = residuals_v0(&design.matrix, &design.target, &coefficients);
@@ -789,8 +790,9 @@ pub fn fit_joint_clock_huber_v0(
             .sqrt();
         let relative_update = delta_norm / old_norm.max(1.0);
         coefficients = next.coefficients;
+        final_rank = next.rank;
+        final_pivot_ratio = next.pivot_ratio;
         iterations = iteration;
-        final_solve = next;
 
         if relative_update <= JOINT_CLOCK_HUBER_RELATIVE_TOLERANCE_V0 {
             converged = true;
@@ -801,8 +803,8 @@ pub fn fit_joint_clock_huber_v0(
     let report = make_design_report_v0(
         &design,
         JOINT_CLOCK_RANK_TOLERANCE_V0,
-        final_solve.rank,
-        final_solve.pivot_ratio,
+        final_rank,
+        final_pivot_ratio,
     );
     finish_fit_v0(
         &design,
