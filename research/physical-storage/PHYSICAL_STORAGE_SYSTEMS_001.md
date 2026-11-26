@@ -217,7 +217,7 @@ The compiler's service contract should be assessed against the wider repository-
 | Glass, borosilicate | 2.02 TB per platter; four-beam 65.9 Mbit/s write result | Published lower-cost glass regime and demonstrated parallel writing | 16+ beam production; that remains a thermal-model projection |
 | HAMR HDD | Seagate Mozaic 4+ up to 44 TB, qualified and in production with two hyperscale cloud providers (3 March 2026) | Production-scale high-capacity HDD platform | A century-scale archive guarantee or full archive restore in the compiler's service boundary |
 | LTO-10 tape | 40 TB native; up to 400 MB/s native per drive/cartridge stream (Fujifilm, 2 April 2026) | Current commercial tape capacity and device transfer ceiling | Multi-drive library restore after mounts, retries, ECC, verification and network transfer |
-| Micron 6600 ION SSD | 245.76 TB model; up to 13,700 MB/s sequential read and 3,000 MB/s sequential write in the specified 30 W power state | High-density enterprise SSD device-level performance | Long-term archival retention, formatted usable capacity at every SKU, or end-to-end archive restore |
+| Micron 6600 ION SSD | 245.76 TB SKU; product page calls it usable, technical specification calls it unformatted; up to 13,700 MB/s sequential read and 3,000 MB/s sequential write in the 30 W power state | High-density enterprise SSD device-level performance | Century-scale retention, archive-array usable payload after formatting/redundancy, or end-to-end archive restore |
 
 The glass figures are from the published Silica system paper: https://www.nature.com/articles/s41586-025-10042-w. The commercial HAMR status is from Seagate's 3 March 2026 production announcement: https://www.seagate.com/stories/articles/seagate-delivers-industrys-highest-capacity-hard-drives-with-next-generation-mozaic-4/. LTO-10 values are from Fujifilm's 40 TB product specification: https://newsroom-us.fujifilm.com/press-releases/press-release-details/2026/FUJIFILM-North-America-Corporation-Announces-U-S--Availability-of-FUJIFILM-LTO-Ultrium-Generation-10-40TB-Data-Cartridges-04-02-2026/default.aspx. Micron's 245.76 TB rates are device-test results at a declared power state and workload: https://www.micron.com/content/dam/micron/global/public/products/storage/ssds/data-center/6600/6600-ion-ssd-technical-product-specification.pdf.
 
@@ -233,3 +233,21 @@ The compiler must normalize the service boundary and report:
 - evidence tier, sample counts, uncertainty and missing values.
 
 For the illustrative 1 PB / 10-day restore, the 1.157 GB/s payload floor is a lower bound before all overhead. Three LTO-10 streams at 400 MB/s each only provide 1.2 GB/s on an ideal continuous-rate sum, so this is not a service qualification. The actual library must pass an end-to-end restore drill.
+
+
+## 10. DNA molecular storage as a separate research medium
+
+The Physical Memory Compiler now recognizes dna_molecular in both its service-contract and candidate-decision schemas. A source-linked June 2026 review is included in the technology register as research-only, without fabricated vendor capacity, price, throughput or lifetime values.
+
+DNA should be modeled as a biochemical sequence channel, not as an ordinary tile-erasure channel. Its full path includes constrained sequence encoding, oligo synthesis, storage/encapsulation, primer-based access, PCR or other amplification, sequencing, basecalling, sequence alignment and exact payload reconstruction.
+
+The channel contract has its own v0.1 schema and synthetic fixture in this branch:
+- dna_channel_observation_v0_1.schema.json
+- fixtures/dna_channel_observation_synthetic_v0_1.json
+- MOLECULAR_MEMORY_CHANNEL_001.md
+
+These are data-contract artifacts only. They distinguish substitutions, insertions, deletions, oligo dropout, abundance bias, duplicate reads and sequence-constraint issues. Expected sequences and error annotations are not embedded in the raw observation record; they are separately referenced to prevent evaluation leakage.
+
+The 2026 review identifies the potential of DNA's density and biochemical stability while also documenting synthesis cost, sequencing errors, access latency and process-efficiency barriers. DNA remains unrankable for production storage until net recoverable bits, synthesis/sequencing cost, storage stability, retrieval performance, sample yield and exact end-to-end restoration are measured on a declared platform and protocol.
+
+Source: Öztürk et al., “DNA Data Storage: A Critical Review of Bio-Algorithmic Integration, Performance-Cost Tradeoffs, and Future Directions for Scalable Architectures,” 3 June 2026: https://link.springer.com/article/10.1007/s11831-026-10651-2.
