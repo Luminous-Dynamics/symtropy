@@ -220,8 +220,8 @@ fn probe_supports() -> Vec<ProbeSupport> {
     ]
 }
 
-fn build_episode(seed: u64, index: usize, profile_sha256: &str) -> CandidateEpisode {
-    let episode_id = format!("aerb-seed-{seed:016x}-case-{index:06}");
+fn build_episode(index: usize, profile_sha256: &str) -> CandidateEpisode {
+    let episode_id = format!("aerb-case-{index:06}");
     let event_ticks = 1_000_000_i64 + index as i64 * 10_000;
     let acquired_ticks = event_ticks + 100;
     let coordinator_digest = digest_label(&format!("{episode_id}:coordinator-record"));
@@ -387,7 +387,6 @@ struct CandidateCampaignManifest {
     benchmark: String,
     generator_profile_id: String,
     generator_profile_sha256: String,
-    seed: u64,
     scenario_count: usize,
     world_vocabulary_version: String,
     submission_baseline_id: String,
@@ -469,7 +468,7 @@ fn run() -> Result<(), String> {
         let cycle = index / WORLD_IDS.len();
         let position = index % WORLD_IDS.len();
         let hidden_truth = shuffled_world_cycle(seed, cycle)[position];
-        let episode = build_episode(seed, index, &generator_profile_sha256);
+        let episode = build_episode(index, &generator_profile_sha256);
         let submission = build_submission(&episode)?;
         let world_pack = build_world_pack(
             &episode.episode_id,
@@ -496,7 +495,6 @@ fn run() -> Result<(), String> {
         benchmark: "AERB".to_owned(),
         generator_profile_id: generator_profile_id.to_owned(),
         generator_profile_sha256: generator_profile_sha256.clone(),
-        seed,
         scenario_count,
         world_vocabulary_version: WORLD_VOCABULARY_VERSION.to_owned(),
         submission_baseline_id: "broad-support-scope-reconciliation-request-v0.1".to_owned(),
@@ -561,7 +559,7 @@ mod tests {
     fn generated_candidate_and_evaluator_artifacts_are_disjoint_and_valid() {
         let seed = 42;
         let profile = digest_label("test-generator-profile");
-        let episode = build_episode(seed, 3, &profile);
+        let episode = build_episode(3, &profile);
         let submission = build_submission(&episode).expect("candidate submission");
         let world_pack = build_world_pack(
             &episode.episode_id,
@@ -581,6 +579,8 @@ mod tests {
         assert!(episode_value.get("hidden_truth_world_id").is_none());
         assert!(submission_value.get("hidden_truth_world_id").is_none());
         assert!(world_pack_value.get("hidden_truth_world_id").is_some());
+        assert_eq!(episode_value["episode_id"], "aerb-case-000003");
+        assert!(!episode_value["episode_id"].as_str().unwrap().contains("seed"));
 
         let report = evaluate_json(&episode_json, &submission_json, &world_pack_json)
             .expect("generated candidate should satisfy evaluator contract");
