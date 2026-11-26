@@ -1,7 +1,7 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{env, fs, process::ExitCode};
+use std::{env, process::ExitCode};
 
 use mobility_rrvr_fault_harness::{report_json, run_campaign};
 
