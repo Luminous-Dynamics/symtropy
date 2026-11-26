@@ -610,6 +610,61 @@
                 }
               }
             }
+          },
+          {
+            "if": {
+              "properties": {
+                "read_status": {
+                  "const": "readable"
+                }
+              },
+              "required": [
+                "read_status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "raw_signal": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "read_status": {
+                  "const": "missing"
+                }
+              },
+              "required": [
+                "read_status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "raw_signal": {
+                  "type": "null"
+                },
+                "hard_symbol": {
+                  "type": "null"
+                },
+                "soft_information": {
+                  "properties": {
+                    "status": {
+                      "const": "unavailable"
+                    },
+                    "symbol_probabilities": {
+                      "maxItems": 0
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "symbol_probabilities"
+                  ]
+                }
+              }
+            }
           }
         ]
       }
@@ -801,6 +856,45 @@
               "calibration_record_ref",
               "calibration_uncertainty"
             ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "observations": {
+            "contains": {
+              "properties": {
+                "soft_information": {
+                  "properties": {
+                    "status": {
+                      "const": "calibrated"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                }
+              },
+              "required": [
+                "soft_information"
+              ]
+            }
+          }
+        },
+        "required": [
+          "observations"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reader": {
+            "properties": {
+              "calibration_status": {
+                "const": "current_traceable"
+              }
+            }
           }
         }
       }
