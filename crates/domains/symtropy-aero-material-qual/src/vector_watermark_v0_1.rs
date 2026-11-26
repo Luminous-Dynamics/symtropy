@@ -150,6 +150,16 @@ pub fn validate_causal_cut(cut: &EvidenceCut) -> CutAssessment {
         .map(|event| event.dependencies.len())
         .sum::<usize>();
 
+    if cut.watermarks.is_empty() {
+        return CutAssessment::new(
+            CutStatus::Unverified,
+            ["EVIDENCE_WATERMARK_VECTOR_EMPTY".to_owned()],
+            0,
+            cut.events.len(),
+            dependency_count,
+        );
+    }
+
     let mut invalid = Vec::new();
     let mut unverified = Vec::new();
     let mut incomplete = Vec::new();
