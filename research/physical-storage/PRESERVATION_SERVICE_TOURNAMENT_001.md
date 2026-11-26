@@ -155,3 +155,16 @@ The optimizer proposes; the independent scorer accepts; the physical owner quali
 - Polus/SeqFormer, Bioinformatics (3 August 2026): https://doi.org/10.1093/bioinformatics/btag563
 
 Published lab results, in-vitro results, vendor production statements, device specifications and prospective projections must remain separate in every generated report.
+
+
+## 12. Reference receipt evaluator — v0.1
+
+A dependency-free Rust scoring kernel now exists at [preservation-service-reference](preservation-service-reference/README.md). It scores independently produced receipts against a frozen WorkloadContract and distinguishes candidate reconstruction, delivery and independently accepted bytes. It includes hard gates for exact requested object/byte accounting, digest/manifest/provenance evidence, independent reader-path IDs and agreement, deadline, energy metering, required stage evidence, false acceptance, extras and duplicates.
+
+The scorer returns separate Pass, Fail, Incomplete and NotEvaluated dispositions. A candidate full-success claim that the independent evidence cannot support is a hard failure; an honest abstention or absent evidence remains incomplete. Accepted throughput is computed from independently accepted bytes divided by end-to-end elapsed time. Stage timings remain separately reported because parallel service stages may overlap.
+
+The synthetic receipt KAT corpus and schema are:
+- [preservation_service_receipts_v0_1.json](fixtures/preservation_service_receipts_v0_1.json)
+- [preservation_service_receipts_v0_1.schema.json](preservation_service_receipts_v0_1.schema.json)
+
+The ten receipt cases currently encode one positive pass, hard-failure negative controls, honest incomplete outcomes and a no-run case. A separate JavaScript semantic oracle matched all ten fixture dispositions. The Rust unit tests are authored but not executed here: Cargo, rustc and rustfmt are unavailable. Full Draft 2020-12 validation, a second independently implemented production scorer and measured service runs remain pending. This is contract/reference evidence only, not an end-to-end physical storage result.
