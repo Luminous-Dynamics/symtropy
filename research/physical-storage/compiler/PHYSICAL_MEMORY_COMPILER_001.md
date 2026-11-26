@@ -101,9 +101,12 @@ Examples:
 - Glass has strong density and accelerated voxel-ageing results, but is a published research demonstrator; full production cost, restore throughput, independent reader portability and whole-system lifetime are not demonstrated by the cited paper.
 - LTO-10 is a commercial archive format with known native capacity/transfer rate, but the example does not include a matched 1 PB library restore test or a substantiated 100-year guarantee.
 - Seagate Mozaic 4+ is customer-qualified production storage, but 44 TB capacity alone does not establish century-scale retention or the full archive restore SLA.
-- Micron 6600 ION is a high-capacity commercial QLC SSD, but package capacity and interface specifications do not establish century-scale archive retention or total-system service guarantees.
+- Micron 6600 ION is a high-capacity commercial QLC SSD. Its product page calls 245.76 TB usable (256 TB raw), while the September 2026 Rev A technical specification labels 245.76 TB as capacity (unformatted); preserve both source descriptions. Neither capacity nor interface specifications establish century-scale archive retention or total-system service guarantees.
 
 The compiler should not declare one medium the winner from those incomplete data.
+
+The candidate decision example now includes DNA as a research_review with assessment exploration_only, production_eligible=false and unknown service metrics. The evidence-status schema distinguishes a review-level research source from a published physical demonstrator or a commercial product.
+
 
 ### Restore-rate arithmetic for the illustrative 1 PB archive
 
