@@ -1,0 +1,64 @@
+{
+  "schema_version": "luminous-flow-certificate-v1",
+  "graph": {
+    "commodity_ref": "dimacs-single-commodity",
+    "capacity_unit_ref": "integer-capacity",
+    "quantity_boundary_ref": "u64-boundary",
+    "nodes": [
+      {
+        "id": "s"
+      },
+      {
+        "id": "t"
+      }
+    ],
+    "edges": [
+      {
+        "id": "arc-0000000000",
+        "from": "s",
+        "to": "t",
+        "capacity": 18446744073709552000,
+        "metadata_ref": null
+      }
+    ],
+    "source": "s",
+    "sink": "t"
+  },
+  "result": {
+    "certificate_schema": "luminous-flow-certificate-v1",
+    "graph_sha256": "sha256:d5dd2a8cee781896d801210ef820887c1589c5d5ec4ca4975a6fa28dd8b5900a",
+    "commodity_ref": "dimacs-single-commodity",
+    "capacity_unit_ref": "integer-capacity",
+    "quantity_boundary_ref": "u64-boundary",
+    "kernel_version": "single-commodity-directed-flow-v0.1.0",
+    "supported_model_class": "single_commodity_directed_integer_capacity",
+    "source": "s",
+    "sink": "t",
+    "max_flow": 18446744073709552000,
+    "edge_flows": [
+      {
+        "id": "arc-0000000000",
+        "from": "s",
+        "to": "t",
+        "capacity": 18446744073709552000,
+        "flow": 18446744073709552000,
+        "metadata_ref": null
+      }
+    ],
+    "source_side_nodes": [
+      "s"
+    ],
+    "min_cut": {
+      "capacity": 18446744073709552000,
+      "edges": [
+        {
+          "id": "arc-0000000000",
+          "from": "s",
+          "to": "t",
+          "capacity": 18446744073709552000,
+          "metadata_ref": null
+        }
+      ]
+    }
+  }
+}
