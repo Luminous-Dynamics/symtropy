@@ -517,7 +517,7 @@ fn run() -> Result<(), String> {
     write_json(&evaluator_dir.join("evaluator_manifest.json"), &evaluator_manifest)?;
 
     println!(
-        "Generated {scenario_count} AERB synthetic cases with seed {seed}; candidate and evaluator artifacts are in separate directories."
+        "Generated {scenario_count} AERB synthetic cases; candidate and evaluator artifacts are in separate directories."
     );
     println!("World schedule: deterministic seed-shuffled cycles over eight states; no real-world prior is implied.");
     Ok(())
