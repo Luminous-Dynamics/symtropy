@@ -6,18 +6,16 @@ import argparse
 import itertools
 from pathlib import Path
 
-EXPECTED = [
-    "RESOURCE_ORACLE_RECEIPT\t0.1.0",
-    "FEASIBLE_COUNT\t4",
-    "FEASIBLE\tV1_A_EARLY,V2_A_LATE\t3\t7\t15\t4\t0",
-    "FEASIBLE\tV1_A_EARLY,V2_B_LATE\t3\t8\t12\t8\t1",
-    "FEASIBLE\tV1_B_EARLY,V2_A_LATE\t3\t8\t12\t7\t0",
-    "FEASIBLE\tV1_B_EARLY,V2_B_LATE\t3\t9\t9\t11\t1",
-    "PARETO_COUNT\t3",
-    "PARETO\tV1_A_EARLY,V2_A_LATE\t3\t7\t15\t4\t0",
-    "PARETO\tV1_B_EARLY,V2_A_LATE\t3\t8\t12\t7\t0",
-    "PARETO\tV1_B_EARLY,V2_B_LATE\t3\t9\t9\t11\t1",
-    "SUMMARY\tPASS",
+EXPECTED_FEASIBLE = [
+    (("V1_A_EARLY", "V2_A_LATE"), (3, 7, 15, 4, 0)),
+    (("V1_A_EARLY", "V2_B_LATE"), (3, 8, 12, 8, 1)),
+    (("V1_B_EARLY", "V2_A_LATE"), (3, 8, 12, 7, 0)),
+    (("V1_B_EARLY", "V2_B_LATE"), (3, 9, 9, 11, 1)),
+]
+EXPECTED_PARETO = [
+    (("V1_A_EARLY", "V2_A_LATE"), (3, 7, 15, 4, 0)),
+    (("V1_B_EARLY", "V2_A_LATE"), (3, 8, 12, 7, 0)),
+    (("V1_B_EARLY", "V2_B_LATE"), (3, 9, 9, 11, 1)),
 ]
 
 
@@ -31,7 +29,7 @@ def parse_fixture(path: Path):
         line = raw_line.strip()
         if not line or line.startswith("#"):
             continue
-        fields = line.split("\t")
+        fields = line.split("\\t")
         kind = fields[0]
         if kind == "VESSEL" and len(fields) == 2:
             if fields[1] in vessels:
@@ -126,18 +124,38 @@ def exact_search(vessels, capacities, candidates, options):
     return feasible, frontier
 
 
-def receipt_lines(feasible, frontier) -> list[str]:
-    lines = ["RESOURCE_ORACLE_RECEIPT\t0.1.0", f"FEASIBLE_COUNT\t{len(feasible)}"]
+def objective_fields(objective: tuple[int, ...]) -> str:
+    return "\\t".join(map(str, objective))
+
+
+def receipt_lines(vessels, capacities, candidates, feasible, frontier) -> list[str]:
+    lines = ["RESOURCE_ORACLE_RECEIPT\\t0.1.0"]
+    for vessel_id in sorted(vessels):
+        lines.append(f"SCENARIO_VESSEL\\t{vessel_id}")
+    for (resource_id, slot), capacity in sorted(capacities.items()):
+        lines.append(f"SCENARIO_CAPACITY\\t{resource_id}\\t{slot}\\t{capacity}")
+    for candidate_id in sorted(candidates):
+        candidate = candidates[candidate_id]
+        lines.append(
+            f"SCENARIO_CANDIDATE\\t{candidate_id}\\t{candidate['vessel']}\\t"
+            f"{objective_fields(candidate['objective'])}"
+        )
+        for resource_id, slot, units in sorted(candidate["reservations"]):
+            lines.append(
+                f"SCENARIO_RESERVATION\\t{candidate_id}\\t{resource_id}\\t{slot}\\t{units}"
+            )
+
+    lines.append(f"FEASIBLE_COUNT\\t{len(feasible)}")
     for candidate_ids, objective in feasible:
         lines.append(
-            "FEASIBLE\t" + ",".join(candidate_ids) + "\t" + "\t".join(map(str, objective))
+            "FEASIBLE\\t" + ",".join(candidate_ids) + "\\t" + objective_fields(objective)
         )
-    lines.append(f"PARETO_COUNT\t{len(frontier)}")
+    lines.append(f"PARETO_COUNT\\t{len(frontier)}")
     for candidate_ids, objective in frontier:
         lines.append(
-            "PARETO\t" + ",".join(candidate_ids) + "\t" + "\t".join(map(str, objective))
+            "PARETO\\t" + ",".join(candidate_ids) + "\\t" + objective_fields(objective)
         )
-    lines.append("SUMMARY\tPASS")
+    lines.append("SUMMARY\\tPASS")
     return lines
 
 
@@ -153,20 +171,26 @@ def main() -> int:
 
     vessels, capacities, candidates, options = parse_fixture(args.fixture)
     feasible, frontier = exact_search(vessels, capacities, candidates, options)
-    expected_from_reference = receipt_lines(feasible, frontier)
-    if expected_from_reference != EXPECTED:
+    if feasible != EXPECTED_FEASIBLE:
         raise AssertionError(
-            "independent enumerator did not reproduce the frozen hand-authored expected receipt"
+            f"independent enumerator did not reproduce hand-authored feasible set: {feasible}"
+        )
+    if frontier != EXPECTED_PARETO:
+        raise AssertionError(
+            f"independent enumerator did not reproduce hand-authored Pareto set: {frontier}"
         )
 
+    expected_from_reference = receipt_lines(
+        vessels, capacities, candidates, feasible, frontier
+    )
     actual = args.receipt.read_text(encoding="utf-8").splitlines()
     if actual != expected_from_reference:
         raise AssertionError(
-            "Rust oracle / Python reference mismatch\n"
-            f"expected: {expected_from_reference}\nactual: {actual}"
+            "Rust oracle / Python reference mismatch\\n"
+            f"expected: {expected_from_reference}\\nactual: {actual}"
         )
 
-    print(f"RESOURCE_REFERENCE\tPASS\tfeasible={len(feasible)}\tpareto={len(frontier)}")
+    print(f"RESOURCE_REFERENCE\\tPASS\\tfeasible={len(feasible)}\\tpareto={len(frontier)}")
     return 0
 
 
