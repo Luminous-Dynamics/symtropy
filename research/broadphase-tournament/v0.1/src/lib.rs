@@ -1668,6 +1668,23 @@ mod tests {
     }
 
     #[test]
+    fn symtropy_morton_lbvh_handles_identical_morton_codes() {
+        let bounds = Aabb::new([0.0, 0.0, 0.0], [1.0, 1.0, 1.0]).unwrap();
+        let frame = (0..64)
+            .map(|index| ProxyFrame {
+                id: ProxyId(index + 1),
+                bounds,
+            })
+            .collect::<Vec<_>>();
+        let expected = oracle_pairs(&frame).unwrap();
+        let (actual, work) = symtropy_morton_lbvh_aabb(&frame);
+        let actual_set = actual.into_iter().collect::<BTreeSet<_>>();
+        assert_eq!(actual_set, expected);
+        assert_eq!(work.internal_nodes, 63);
+        assert!(!work.brute_force_fallback);
+    }
+
+    #[test]
     fn symtropy_morton_lbvh_uses_live_small_population_fallback_threshold() {
         let scene = generate_scene::<3>(SceneFamily::SparseCoherent, 48, 9, 0x50).unwrap();
         let rows = run_tournament(&scene, TournamentConfig::new(1)).unwrap();
