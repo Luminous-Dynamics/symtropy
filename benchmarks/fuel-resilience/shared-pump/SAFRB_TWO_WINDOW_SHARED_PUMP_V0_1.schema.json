@@ -1,0 +1,311 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SAFRB two-window time-expanded shared-pump known-answer v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scenario",
+    "certificate"
+  ],
+  "properties": {
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "case_id",
+        "evidence_maturity",
+        "claim_scope",
+        "timebase",
+        "commodity",
+        "source_node",
+        "sink_node",
+        "total_opening_stock",
+        "nodes",
+        "edges",
+        "resource_aliases",
+        "capacity_evidence",
+        "service_obligations",
+        "route_transit",
+        "adversarial_mutations"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "safrb-time-expanded-network-v0.1"
+        },
+        "case_id": {
+          "const": "SAFRB-TWO-WINDOW-SHARED-PUMP-001"
+        },
+        "evidence_maturity": {
+          "const": "synthetic_known_truth"
+        },
+        "claim_scope": {
+          "const": "FUEL-DELIVERABILITY"
+        },
+        "timebase": {
+          "type": "object",
+          "required": [
+            "kind",
+            "interval_seconds",
+            "interval_semantics",
+            "origin"
+          ]
+        },
+        "commodity": {
+          "type": "object",
+          "required": [
+            "product_id",
+            "quantity_unit",
+            "unit_basis"
+          ]
+        },
+        "source_node": {
+          "const": "source"
+        },
+        "sink_node": {
+          "const": "sink"
+        },
+        "total_opening_stock": {
+          "type": "object",
+          "required": [
+            "quantity",
+            "unit",
+            "source_ids"
+          ]
+        },
+        "nodes": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "kind",
+              "time_index"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "time_index": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2
+              }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "from",
+              "to",
+              "capacity_lower",
+              "capacity_upper",
+              "unit",
+              "resource_id",
+              "time_index"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              },
+              "capacity_lower": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "capacity_upper": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "unit": {
+                "const": "t"
+              },
+              "resource_id": {
+                "type": "string"
+              },
+              "time_index": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2
+              }
+            }
+          }
+        },
+        "resource_aliases": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "logical_route_id",
+              "physical_resource_id",
+              "capacity_gate_edge_ids"
+            ],
+            "properties": {
+              "logical_route_id": {
+                "type": "string"
+              },
+              "physical_resource_id": {
+                "type": "string"
+              },
+              "capacity_gate_edge_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "capacity_evidence": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": [
+              "evidence_id",
+              "physical_resource_id",
+              "time_index",
+              "lower",
+              "upper",
+              "unit",
+              "status",
+              "valid_interval"
+            ]
+          }
+        },
+        "service_obligations": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": [
+              "obligation_id",
+              "node_id",
+              "time_index",
+              "required_lower",
+              "unit",
+              "interval"
+            ]
+          }
+        },
+        "route_transit": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": [
+              "route_id",
+              "transit_intervals",
+              "physical_resources"
+            ]
+          }
+        },
+        "adversarial_mutations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "certificate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "certificate_version",
+        "scenario_sha256",
+        "model_class",
+        "lower_bound_max_flow",
+        "lower_bound_min_cut_capacity",
+        "lower_bound_service_deficit",
+        "per_window",
+        "flow_witness",
+        "source_side_nodes",
+        "cut_edge_ids",
+        "upper_bound_max_flow",
+        "upper_bound_min_cut_capacity",
+        "lower_bound_verdict",
+        "interpretation"
+      ],
+      "properties": {
+        "certificate_version": {
+          "type": "string"
+        },
+        "scenario_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "model_class": {
+          "const": "single_commodity_time_expanded_directed_capacity_network"
+        },
+        "lower_bound_max_flow": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lower_bound_min_cut_capacity": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lower_bound_service_deficit": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "per_window": {
+          "type": "object"
+        },
+        "flow_witness": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "source_side_nodes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cut_edge_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "upper_bound_max_flow": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "upper_bound_min_cut_capacity": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lower_bound_verdict": {
+          "const": "indeterminate_not_guaranteed"
+        },
+        "interpretation": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
