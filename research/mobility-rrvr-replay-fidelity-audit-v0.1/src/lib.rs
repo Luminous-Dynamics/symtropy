@@ -972,17 +972,18 @@ mod tests {
         assert!((passing_mean - 0.996).abs() < 1e-12);
         assert!(passing_mean > SSIM_THRESHOLD);
 
-        let failing_mean = mean_final_five_ssim(&[
-            Some(0.94),
-            Some(1.0),
-            Some(1.0),
-            Some(1.0),
-            Some(1.0),
-        ])
-        .expect("five frame scores");
+        let failing_mean =
+            mean_final_five_ssim(&[Some(0.94), Some(1.0), Some(1.0), Some(1.0), Some(1.0)])
+                .expect("five frame scores");
         assert!(failing_mean <= SSIM_THRESHOLD);
+        let exactly_at_threshold =
+            mean_final_five_ssim(&[Some(0.99); FRAME_PAIR_N]).expect("five exact threshold scores");
+        assert_eq!(exactly_at_threshold, SSIM_THRESHOLD);
+        assert!(exactly_at_threshold > SSIM_THRESHOLD == false);
         assert!(mean_final_five_ssim(&[Some(1.0); 4]).is_none());
-        assert!(mean_final_five_ssim(&[Some(1.0), None, Some(1.0), Some(1.0), Some(1.0)]).is_none());
+        assert!(
+            mean_final_five_ssim(&[Some(1.0), None, Some(1.0), Some(1.0), Some(1.0)]).is_none()
+        );
     }
 
     #[test]
