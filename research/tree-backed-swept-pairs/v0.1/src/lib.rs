@@ -11,14 +11,19 @@
 //! The tree implementation is pinned to the exact #7524 revision so the
 //! balancing policy and its behavior are part of the qualification contract.
 
-use directional_motion_envelopes::{Aabb as MotionAabb, ColliderIdentity};
+use directional_motion_envelopes::{
+    Aabb as MotionAabb, ColliderIdentity, EnvelopeContext, EnvelopeReceipt,
+    IntegrationParticipation, IntegratorEnvelopeReceipt, MotionKind, SemiImplicitEulerMotion,
+};
+use sha2::{Digest as Sha2Digest, Sha256};
 use incremental_aabb_tree_reference::{
     Aabb as TreeAabb, BalancePolicy, IncrementalAabbTree, MaintenanceStats, PairQueryStats,
     ProxyId, TreeError, TreeStats,
 };
 use std::collections::BTreeMap;
 use swept_pair_oracle::{
-    MotionEvidence, PairKey, PairSetError, PairSetReceipt, Proxy, build_swept_pair_set,
+    MotionEvidence, PairKey, PairSetError, PairSetReceipt, Proxy, UnsupportedReason,
+    build_swept_pair_set,
 };
 
 pub const TREE_REFERENCE_REVISION: &str = "fed9ba265485d495d9f6191f280ff826d255e648";
@@ -455,6 +460,149 @@ impl TreeMaintenanceDelta {
     }
 }
 
+fn commitment_u8(hasher: &mut Sha256, value: u8) {
+    hasher.update([value]);
+}
+
+fn commitment_u32(hasher: &mut Sha256, value: u32) {
+    hasher.update(value.to_le_bytes());
+}
+
+fn commitment_u64(hasher: &mut Sha256, value: u64) {
+    hasher.update(value.to_le_bytes());
+}
+
+fn commitment_f64(hasher: &mut Sha256, value: f64) {
+    hasher.update(value.to_bits().to_le_bytes());
+}
+
+fn commitment_identity(hasher: &mut Sha256, identity: &ColliderIdentity) {
+    commitment_u32(hasher, identity.body_slot);
+    commitment_u32(hasher, identity.body_generation);
+    commitment_u64(hasher, identity.collider_id);
+    commitment_u64(hasher, identity.subshape_path.len() as u64);
+    for part in &identity.subshape_path {
+        commitment_u32(hasher, *part);
+    }
+}
+
+fn commitment_aabb<const D: usize>(hasher: &mut Sha256, bounds: &MotionAabb<D>) {
+    for value in bounds.min() {
+        commitment_f64(hasher, *value);
+    }
+    for value in bounds.max() {
+        commitment_f64(hasher, *value);
+    }
+}
+
+fn commitment_context(hasher: &mut Sha256, context: EnvelopeContext) {
+    commitment_u64(hasher, context.world_revision);
+    commitment_u64(hasher, context.frame_index);
+    commitment_u32(hasher, context.horizon_steps);
+    hasher.update(context.integrator.as_bytes());
+    hasher.update(context.motion_bound_producer.as_bytes());
+    hasher.update(context.arithmetic_profile.as_bytes());
+}
+
+fn commitment_envelope<const D: usize>(
+    hasher: &mut Sha256,
+    receipt: &EnvelopeReceipt<D>,
+) {
+    commitment_identity(hasher, &receipt.identity);
+    commitment_context(hasher, receipt.context);
+    commitment_u8(
+        hasher,
+        match receipt.motion_kind {
+            MotionKind::FixedOrientationTranslation => 0,
+            MotionKind::Rotation => 1,
+            MotionKind::UnboundedOrUnknown => 2,
+        },
+    );
+    commitment_aabb(hasher, &receipt.tight_bounds);
+    for value in receipt.displacement.min {
+        commitment_f64(hasher, value);
+    }
+    for value in receipt.displacement.max {
+        commitment_f64(hasher, value);
+    }
+    commitment_f64(hasher, receipt.guard);
+    commitment_aabb(hasher, &receipt.envelope);
+}
+
+fn commitment_integrator<const D: usize>(
+    hasher: &mut Sha256,
+    receipt: &IntegratorEnvelopeReceipt<D>,
+) {
+    commitment_envelope(hasher, &receipt.base);
+    commitment_u8(
+        hasher,
+        match receipt.motion.participation {
+            IntegrationParticipation::AwakeDynamicBodyIntegrated => 0,
+            IntegrationParticipation::SleepingOrNonDynamicBodySkipped => 1,
+        },
+    );
+    for value in receipt.motion.post_linear_velocity {
+        commitment_f64(hasher, value);
+    }
+    commitment_f64(hasher, receipt.motion.post_angular_velocity_norm_squared);
+    commitment_f64(hasher, receipt.motion.dt);
+    commitment_u8(
+        hasher,
+        u8::from(receipt.motion.deterministic_net_q16_16),
+    );
+    commitment_f64(hasher, receipt.caller_guard);
+    commitment_f64(hasher, receipt.quantization_guard);
+}
+
+fn commitment_proxy<const D: usize>(hasher: &mut Sha256, proxy: &Proxy<D>) {
+    commitment_identity(hasher, &proxy.identity);
+    commitment_u32(hasher, proxy.collision_group);
+    commitment_u32(hasher, proxy.collision_mask);
+    match &proxy.motion {
+        MotionEvidence::Envelope(receipt) => {
+            commitment_u8(hasher, 0);
+            commitment_envelope(hasher, receipt);
+        }
+        MotionEvidence::SemiImplicitEuler(receipt) => {
+            commitment_u8(hasher, 1);
+            commitment_integrator(hasher, receipt);
+        }
+        MotionEvidence::Unsupported(reason) => {
+            commitment_u8(hasher, 2);
+            commitment_u8(
+                hasher,
+                match reason {
+                    UnsupportedReason::Rotation => 0,
+                    UnsupportedReason::UnknownMotion => 1,
+                    UnsupportedReason::SkippedIntegratorPath => 2,
+                    UnsupportedReason::MissingMotionBound => 3,
+                },
+            );
+        }
+    }
+}
+
+/// Deterministic SHA-256 commitment over the exact canonical frame inputs.
+/// This detects history mutation when the separately retained commitment is
+/// unchanged. It is not a signature: authenticity against an attacker able to
+/// rewrite both history and commitment requires an external signed/trusted root.
+fn frame_history_commitment<const D: usize>(history: &[Vec<Proxy<D>>]) -> [u8; 32] {
+    let mut hasher = Sha256::new();
+    hasher.update(b"symtropy.tree-frame-history.v0.1\0");
+    commitment_u64(&mut hasher, history.len() as u64);
+    for (frame_index, frame) in history.iter().enumerate() {
+        commitment_u64(&mut hasher, frame_index as u64);
+        commitment_u64(&mut hasher, frame.len() as u64);
+        for proxy in frame {
+            commitment_proxy(&mut hasher, proxy);
+        }
+    }
+    let digest = hasher.finalize();
+    let mut commitment = [0_u8; 32];
+    commitment.copy_from_slice(&digest);
+    commitment
+}
+
 /// A replay-complete receipt for one stateful broadphase frame. The complete
 /// canonical frame history is retained so the verifier can reconstruct the
 /// tree's exact insert/update/remove sequence and query counters.
@@ -464,6 +612,9 @@ pub struct TreeFrameReceipt<const D: usize> {
     pub tree_revision: String,
     pub frame_index: u64,
     pub input_history: Vec<Vec<Proxy<D>>>,
+    /// SHA-256 commitment to the canonical full input history. This binds the
+    /// stored history against accidental/partial edits; it is not a signature.
+    pub history_commitment: [u8; 32],
     pub registry: ProxyIdRegistrySnapshot,
     pub reference: PairSetReceipt<D>,
     pub candidate_pairs: Vec<PairKey>,
@@ -667,12 +818,14 @@ impl<const D: usize> TreeBackedBroadphase<D> {
         self.active_bounds = desired_bounds;
         self.registry = working_registry;
         self.input_history.push(reference.proxies.clone());
+        let history_commitment = frame_history_commitment(&self.input_history);
 
         Ok(TreeFrameReceipt {
             config: self.config,
             tree_revision: TREE_REFERENCE_REVISION.to_owned(),
             frame_index,
             input_history: self.input_history.clone(),
+            history_commitment,
             registry: self.registry.snapshot(),
             reference,
             candidate_pairs,
@@ -691,7 +844,9 @@ impl<const D: usize> TreeBackedBroadphase<D> {
 pub fn verify_tree_frame_receipt<const D: usize>(
     receipt: &TreeFrameReceipt<D>,
 ) -> Result<(), TreePairSetError> {
-    if receipt.tree_revision != TREE_REFERENCE_REVISION {
+    if receipt.tree_revision != TREE_REFERENCE_REVISION
+        || frame_history_commitment(&receipt.input_history) != receipt.history_commitment
+    {
         return Err(TreePairSetError::CandidateMismatch);
     }
     let mut broadphase = TreeBackedBroadphase::<D>::new(receipt.config)?;
