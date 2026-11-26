@@ -225,20 +225,6 @@ fn required_failure_owner(kind: &str) -> Option<(OwnerKind, GateState)> {
     }
 }
 
-fn required_owner_kinds() -> &'static [OwnerKind] {
-    &[
-        OwnerKind::Capture,
-        OwnerKind::Timing,
-        OwnerKind::Motion,
-        OwnerKind::Calibration,
-        OwnerKind::Geometry,
-        OwnerKind::Feature,
-        OwnerKind::Metrology,
-        OwnerKind::Photometry,
-        OwnerKind::Diversity,
-    ]
-}
-
 fn invalid_case(case: &Case, reason: &str) -> CaseResult {
     CaseResult {
         case_id: case.case_id.clone(),
@@ -677,8 +663,8 @@ mod tests {
     fn frozen_corpus_matches_all_expected_dispositions() {
         let receipt = audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567")
             .expect("corpus audits");
-        assert_eq!(receipt.case_count, 25);
-        assert_eq!(receipt.expected_disposition_matches, 25);
+        assert_eq!(receipt.case_count, 32);
+        assert_eq!(receipt.expected_disposition_matches, 32);
         assert_eq!(receipt.expected_disposition_mismatches, 0);
         assert!(!receipt.authority_granted);
         assert!(!receipt.statistical_update_performed);
@@ -794,6 +780,85 @@ mod tests {
         let result = evaluate_case(common);
         assert_eq!(result.disposition, Disposition::ModelledObservationProcessOutcome);
         assert_eq!(result.missing_channel_ids.len(), 2);
+    }
+
+    #[test]
+    fn kernel_profile_controls_required_owners_and_cannot_be_overridden_by_attempt() {
+        let input = corpus();
+        let case = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "AO-026-REQUIRED-OWNER-BYPASS")
+            .unwrap();
+        let result = evaluate_case(case);
+        assert_eq!(result.disposition, Disposition::InvalidInput);
+        assert!(
+            result
+                .reason_codes
+                .contains(&"OWNER_REQUIRED_FLAG_DOES_NOT_MATCH_KERNEL_PROFILE".to_owned())
+        );
+    }
+
+    #[test]
+    fn stale_kernel_profile_cannot_admit_an_observation() {
+        let input = corpus();
+        let case = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "AO-027-STALE-KERNEL-PROFILE")
+            .unwrap();
+        assert_eq!(
+            evaluate_case(case).disposition,
+            Disposition::AbstainUnmodelledOutcome
+        );
+    }
+
+    #[test]
+    fn campaign_attempt_sequence_must_be_complete_and_contiguous() {
+        let mut input = corpus();
+        input.cases[0].campaign_id = "SHARED-CAMPAIGN".to_owned();
+        input.cases[0].campaign_attempt_count = 2;
+        input.cases[0].sequence_no = 1;
+        input.cases[0].cutoff.sequence_watermark = 1;
+        input.cases[0].cutoff.history_max_sequence = 0;
+
+        input.cases[1].campaign_id = "SHARED-CAMPAIGN".to_owned();
+        input.cases[1].campaign_attempt_count = 2;
+        input.cases[1].sequence_no = 3;
+        input.cases[1].cutoff.sequence_watermark = 3;
+        input.cases[1].cutoff.history_max_sequence = 2;
+
+        let bytes = serde_json::to_vec(&input).unwrap();
+        let error = audit_corpus(&bytes, "0123456789abcdef0123456789abcdef01234567")
+            .unwrap_err();
+        assert_eq!(error, "CAMPAIGN_ATTEMPT_SEQUENCE_GAP");
+    }
+
+    #[test]
+    fn missingness_semantics_must_be_declared_for_failures() {
+        let input = corpus();
+        let case = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "AO-033-MISSINGNESS-NOT-DECLARED")
+            .unwrap();
+        assert_eq!(
+            evaluate_case(case).disposition,
+            Disposition::AbstainUnmodelledOutcome
+        );
+    }
+
+    #[test]
+    fn unknown_required_owner_gate_abstains_without_updating() {
+        let input = corpus();
+        let case = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "AO-031-UNKNOWN-MOTION-GATE")
+            .unwrap();
+        let result = evaluate_case(case);
+        assert_eq!(result.disposition, Disposition::AbstainUnmodelledOutcome);
+        assert!(!result.sequential_update_permitted);
     }
 
     #[test]
