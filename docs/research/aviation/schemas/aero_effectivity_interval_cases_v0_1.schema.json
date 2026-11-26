@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero_effectivity_interval_cases_v0_1.schema.json",
+  "title": "AERO Event Effectivity Interval Cases v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_id",
+    "version",
+    "evidence_class",
+    "oracle_review_status",
+    "interval_semantics",
+    "cases"
+  ],
+  "properties": {
+    "corpus_id": {
+      "const": "AERO-EFFECTIVITY-INTERVAL-CASES-0.1"
+    },
+    "version": {
+      "const": "0.1.0"
+    },
+    "evidence_class": {
+      "const": "SYNTHETIC_ONLY"
+    },
+    "oracle_review_status": {
+      "const": "NOT_INDEPENDENTLY_REVIEWED"
+    },
+    "interval_semantics": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "earliest_unix_ms",
+        "latest_unix_ms"
+      ],
+      "properties": {
+        "earliest_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "latest_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "event_effective",
+        "acquisition",
+        "expected"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]+$"
+        },
+        "event_effective": {
+          "$ref": "#/$defs/interval"
+        },
+        "acquisition": {
+          "$ref": "#/$defs/interval"
+        },
+        "expected": {
+          "enum": [
+            "DEFINITELY_EFFECTIVE",
+            "DEFINITELY_NOT_YET_EFFECTIVE",
+            "TIME_BOUNDARY_AMBIGUOUS",
+            "INVALID_TIME_INTERVAL"
+          ]
+        }
+      }
+    }
+  }
+}
