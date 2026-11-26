@@ -5,7 +5,8 @@ use std::collections::BTreeSet;
 pub const CORPUS_SCHEMA: &str = "luminous.orbital-time-varying-acquisition.corpus.v0.1";
 pub const RECEIPT_SCHEMA: &str = "luminous.orbital-time-varying-acquisition.receipt.v0.1";
 pub const BENCHMARK_ID: &str = "ORBITAL-TIME-VARYING-ACQUISITION-001";
-pub const CLAIM_CEILING: &str = "synthetic_acceleration_jerk_bounded_projective_path_envelopes_only";
+pub const CLAIM_CEILING: &str =
+    "synthetic_acceleration_jerk_bounded_projective_path_envelopes_only";
 
 const MAX_INPUT: u64 = 1_000_000_000_000;
 const MAX_TIME_NS: u64 = 1_000_000_000;
@@ -187,8 +188,12 @@ fn acceleration_row_term(acceleration_um_s2: u64, duration_ns: u64) -> Result<u6
 
 fn jerk_row_term(jerk_um_s3: u64, duration_ns: u64) -> Result<u64, String> {
     let t = u128::from(duration_ns);
-    let t2 = t.checked_mul(t).ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
-    let t3 = t2.checked_mul(t).ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let t2 = t
+        .checked_mul(t)
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let t3 = t2
+        .checked_mul(t)
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
     let numerator = u128::from(jerk_um_s3)
         .checked_mul(t3)
         .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
@@ -210,7 +215,10 @@ fn exposure_acceleration_term(
             .and_then(|value| value.checked_mul(4))
             .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
         four_t2
-            .checked_add(e.checked_mul(e).ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?)
+            .checked_add(
+                e.checked_mul(e)
+                    .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?,
+            )
             .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?
     };
     let numerator = u128::from(acceleration_um_s2)
@@ -219,17 +227,19 @@ fn exposure_acceleration_term(
     to_u64(ceil_div(numerator, 4 * NS2_PER_SECOND2)?)
 }
 
-fn exposure_jerk_term(
-    jerk_um_s3: u64,
-    row_span_ns: u64,
-    exposure_ns: u64,
-) -> Result<u64, String> {
+fn exposure_jerk_term(jerk_um_s3: u64, row_span_ns: u64, exposure_ns: u64) -> Result<u64, String> {
     let t = u128::from(row_span_ns);
     let e = u128::from(exposure_ns);
-    let t2 = t.checked_mul(t).ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
-    let e2 = e.checked_mul(e).ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let t2 = t
+        .checked_mul(t)
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let e2 = e
+        .checked_mul(e)
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
     let twelve_e_t2 = mul3(12, e, t2)?;
-    let e3 = e2.checked_mul(e).ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let e3 = e2
+        .checked_mul(e)
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
     let twelve_i2 = twelve_e_t2
         .checked_add(e3)
         .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
@@ -239,7 +249,11 @@ fn exposure_jerk_term(
     to_u64(ceil_div(numerator, 24 * NS3_PER_SECOND3)?)
 }
 
-fn sum_displacement_terms(speed: u64, acceleration: u64, jerk: u64) -> Result<DisplacementTerms, String> {
+fn sum_displacement_terms(
+    speed: u64,
+    acceleration: u64,
+    jerk: u64,
+) -> Result<DisplacementTerms, String> {
     let total = speed
         .checked_add(acceleration)
         .and_then(|value| value.checked_add(jerk))
@@ -265,7 +279,9 @@ fn acceleration_frame_term(
         .checked_mul(2)
         .and_then(|value| value.checked_add(e))
         .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
-    let e2 = e.checked_mul(e).ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let e2 = e
+        .checked_mul(e)
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
     let q2 = twice_t_plus_e
         .checked_mul(twice_t_plus_e)
         .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
@@ -278,11 +294,7 @@ fn acceleration_frame_term(
     to_u64(ceil_div(numerator, 8 * NS2_PER_SECOND2)?)
 }
 
-fn jerk_frame_term(
-    jerk_um_s3: u64,
-    row_span_ns: u64,
-    exposure_ns: u64,
-) -> Result<u64, String> {
+fn jerk_frame_term(jerk_um_s3: u64, row_span_ns: u64, exposure_ns: u64) -> Result<u64, String> {
     // Integral of t^2 over [-E/2, T+E/2] is
     // ((2T+E)^3 + E^3) / 24. The speed envelope contains J*t^2/2.
     let t = u128::from(row_span_ns);
@@ -297,8 +309,12 @@ fn jerk_frame_term(
     let q3 = q2
         .checked_mul(twice_t_plus_e)
         .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
-    let e2 = e.checked_mul(e).ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
-    let e3 = e2.checked_mul(e).ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let e2 = e
+        .checked_mul(e)
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
+    let e3 = e2
+        .checked_mul(e)
+        .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
     let twenty_four_i2 = q3
         .checked_add(e3)
         .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
@@ -410,10 +426,7 @@ fn constant_max_speed_frame_terms(
         twice_max_time_ns,
         duration_ns,
     )?;
-    let acceleration = to_u64(ceil_div(
-        acceleration_numerator,
-        2 * NS2_PER_SECOND2,
-    )?)?;
+    let acceleration = to_u64(ceil_div(acceleration_numerator, 2 * NS2_PER_SECOND2)?)?;
 
     let twice_max_time_squared = twice_max_time_ns
         .checked_mul(twice_max_time_ns)
