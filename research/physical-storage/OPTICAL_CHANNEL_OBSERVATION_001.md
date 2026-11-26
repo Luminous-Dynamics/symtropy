@@ -85,3 +85,12 @@ Do not infer extremely low archive failure probabilities from a small voxel data
 ## 9. Evidence boundary
 
 The accompanying JSON fixture is synthetic and illustrates structure only. It does not report a physical BOROFLOAT 33 or K10 experiment, measured confusion matrix, laser configuration, material yield, retention result or device performance. The contract creates an auditable path for future observations; it is not an optical simulator or laboratory instrument.
+
+
+## 10. Schema-enforced read-state and calibration conditions
+
+The schema now also rejects two classes of contradictory record:
+- a `readable` observation must carry a non-null raw-signal object;
+- a `missing` observation must have a null raw signal and hard symbol, and an unavailable empty soft-information vector.
+
+If any observation is marked `calibrated`, the batch reader must be marked `current_traceable`. Each such observation also requires a calibration reference. These checks prevent common metadata contradictions; semantic validation is still required to prove calibration compatibility, unique observation IDs, alphabet coverage and normalized probability mass.
