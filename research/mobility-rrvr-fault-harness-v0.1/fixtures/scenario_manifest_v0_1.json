@@ -1,0 +1,71 @@
+{
+  "campaign_id": "rrvr-crash-replay-known-cases-v0.1",
+  "claim_ceiling": "Deterministic process-fault reference model only; no simulator or physical campaign.",
+  "scenarios": [
+    {
+      "scenario_id": "effect_then_lost_ack",
+      "seed": 11,
+      "effect_before_ack": true,
+      "acknowledgement_lost": true,
+      "endpoint_restarts": false,
+      "nvm_dedupe_loss": false,
+      "observer_available": true,
+      "observation_window_complete": true,
+      "holder_inventory_complete": true,
+      "edge_inventory_complete": true,
+      "delayed_original_message": true
+    },
+    {
+      "scenario_id": "no_effect_then_lost_ack",
+      "seed": 12,
+      "effect_before_ack": false,
+      "acknowledgement_lost": true,
+      "endpoint_restarts": true,
+      "nvm_dedupe_loss": true,
+      "observer_available": true,
+      "observation_window_complete": true,
+      "holder_inventory_complete": true,
+      "edge_inventory_complete": true,
+      "delayed_original_message": true
+    },
+    {
+      "scenario_id": "observer_outage",
+      "seed": 13,
+      "effect_before_ack": true,
+      "acknowledgement_lost": true,
+      "endpoint_restarts": false,
+      "nvm_dedupe_loss": false,
+      "observer_available": false,
+      "observation_window_complete": false,
+      "holder_inventory_complete": true,
+      "edge_inventory_complete": true,
+      "delayed_original_message": true
+    },
+    {
+      "scenario_id": "incomplete_command_graph",
+      "seed": 14,
+      "effect_before_ack": false,
+      "acknowledgement_lost": true,
+      "endpoint_restarts": false,
+      "nvm_dedupe_loss": false,
+      "observer_available": true,
+      "observation_window_complete": true,
+      "holder_inventory_complete": true,
+      "edge_inventory_complete": false,
+      "delayed_original_message": true
+    },
+    {
+      "scenario_id": "restart_loses_endpoint_dedupe",
+      "seed": 15,
+      "effect_before_ack": true,
+      "acknowledgement_lost": true,
+      "endpoint_restarts": true,
+      "nvm_dedupe_loss": true,
+      "observer_available": true,
+      "observation_window_complete": true,
+      "holder_inventory_complete": true,
+      "edge_inventory_complete": true,
+      "delayed_original_message": true
+    }
+  ]
+}
