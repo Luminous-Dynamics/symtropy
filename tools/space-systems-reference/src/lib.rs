@@ -15,43 +15,47 @@ pub const EARTH_MEAN_RADIUS_M: f64 = 6_371_000.0;
 /// Illustrative total solar irradiance at 1 AU, W/m².
 pub const SOLAR_IRRADIANCE_1_AU_W_M2: f64 = 1_361.0;
 
-/// Idealized shade-aperture inputs.
+/// Idealized target-plane attenuation inputs.
 ///
-/// aperture_effectiveness is an abstract first-order ratio mapping projected
-/// aperture area to mean flux reduction over Earth's projected disk. It is
-/// NOT simply material reflectivity and is not a qualified optical property.
+/// attenuation_effectiveness is an abstract first-order ratio mapping a
+/// target-plane attenuation area to mean flux reduction over Earth's
+/// projected disk. It is NOT simply material reflectivity and is not a
+/// qualified optical or finite-distance geometric transfer property.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SunshadeInput {
     pub earth_radius_m: f64,
     pub solar_irradiance_w_m2: f64,
     pub target_flux_reduction_fraction: f64,
-    pub aperture_effectiveness: f64,
-    /// Installed system areal density, including support hardware when known.
-    pub installed_areal_density_kg_m2: f64,
+    pub attenuation_effectiveness: f64,
+        /// Scenario density applied to the equivalent area; not an installed-system
+    /// density unless a separate geometry model establishes that relationship.
+    pub scenario_areal_mass_density_kg_m2: f64,
     /// Scenario parameter only; not demonstrated lunar membrane capability.
     pub locally_sourced_material_fraction: f64,
 }
 
-/// First-order output of the shade-aperture lower-bound calculation.
+/// First-order equivalent target-plane attenuation and mass-proxy outputs.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SunshadeEstimate {
     pub earth_projected_area_m2: f64,
-    pub equivalent_aperture_area_m2: f64,
-    pub equivalent_aperture_area_km2: f64,
-    pub installed_mass_kg: f64,
-    pub locally_sourced_mass_kg: f64,
-    pub earth_supplied_mass_kg: f64,
+    pub equivalent_target_plane_attenuation_area_m2: f64,
+    pub equivalent_target_plane_attenuation_area_km2: f64,
+    /// Scenario mass proxy, not physical L1 membrane or installed system mass.
+    pub equivalent_area_mass_proxy_kg: f64,
+    pub locally_sourced_mass_proxy_kg: f64,
+    pub earth_supplied_mass_proxy_kg: f64,
     /// Intercepted-flux bookkeeping, not a climate forcing or temperature result.
     pub intercepted_power_reduction_w: f64,
 }
 
-/// Evaluate the idealized far-field aperture/mass relation.
+/// Evaluate an idealized target-plane attenuation-area and mass-proxy relation.
 ///
-/// A_aperture = f_reduction * pi * R_earth^2 / aperture_effectiveness.
+/// A_eq,target = f_reduction * pi * R_earth^2 / attenuation_effectiveness.
 ///
-/// This is a geometric-equivalent screening lower bound, not the physical
-/// membrane footprint at L1. Finite-Sun umbra/penumbra, diffraction, scattering,
-/// orbit family, attitude, sail dynamics and climate response are out of scope.
+/// This is an abstract target-plane bookkeeping quantity, not a physical
+/// aperture, L1 membrane footprint, installed mass, or guaranteed lower bound.
+/// Finite-Sun ray transfer, umbra/penumbra, diffraction, scattering, module
+/// arrangement, orbit family and attitude are out of scope.
 pub fn evaluate_sunshade(input: SunshadeInput) -> Result<SunshadeEstimate, &'static str> {
     if !finite_positive(input.earth_radius_m) {
         return Err("earth_radius_m must be finite and positive");
@@ -64,36 +68,36 @@ pub fn evaluate_sunshade(input: SunshadeInput) -> Result<SunshadeEstimate, &'sta
     {
         return Err("target_flux_reduction_fraction must be finite and in [0, 1)");
     }
-    if !input.aperture_effectiveness.is_finite()
-        || !(0.0..=1.0).contains(&input.aperture_effectiveness)
-        || input.aperture_effectiveness == 0.0
+    if !input.attenuation_effectiveness.is_finite()
+        || !(0.0..=1.0).contains(&input.attenuation_effectiveness)
+        || input.attenuation_effectiveness == 0.0
     {
-        return Err("aperture_effectiveness must be finite and in (0, 1]");
+        return Err("attenuation_effectiveness must be finite and in (0, 1]");
     }
-    if !finite_nonnegative(input.installed_areal_density_kg_m2) {
-        return Err("installed_areal_density_kg_m2 must be finite and non-negative");
+    if !finite_nonnegative(input.scenario_areal_mass_density_kg_m2) {
+        return Err("scenario_areal_mass_density_kg_m2 must be finite and non-negative");
     }
     if !unit_interval(input.locally_sourced_material_fraction) {
         return Err("locally_sourced_material_fraction must be finite and in [0, 1]");
     }
 
     let earth_projected_area_m2 = PI * input.earth_radius_m.powi(2);
-    let equivalent_aperture_area_m2 = input.target_flux_reduction_fraction
+    let equivalent_target_plane_attenuation_area_m2 = input.target_flux_reduction_fraction
         * earth_projected_area_m2
-        / input.aperture_effectiveness;
-    let installed_mass_kg = equivalent_aperture_area_m2 * input.installed_areal_density_kg_m2;
-    let locally_sourced_mass_kg = installed_mass_kg * input.locally_sourced_material_fraction;
-    let earth_supplied_mass_kg = installed_mass_kg - locally_sourced_mass_kg;
+        / input.attenuation_effectiveness;
+    let equivalent_area_mass_proxy_kg = equivalent_target_plane_attenuation_area_m2 * input.scenario_areal_mass_density_kg_m2;
+    let locally_sourced_mass_proxy_kg = equivalent_area_mass_proxy_kg * input.locally_sourced_material_fraction;
+    let earth_supplied_mass_proxy_kg = equivalent_area_mass_proxy_kg - locally_sourced_mass_proxy_kg;
     let intercepted_power_reduction_w = input.solar_irradiance_w_m2
         * input.target_flux_reduction_fraction
         * earth_projected_area_m2;
 
     let outputs = [
         earth_projected_area_m2,
-        equivalent_aperture_area_m2,
-        installed_mass_kg,
-        locally_sourced_mass_kg,
-        earth_supplied_mass_kg,
+        equivalent_target_plane_attenuation_area_m2,
+        equivalent_area_mass_proxy_kg,
+        locally_sourced_mass_proxy_kg,
+        earth_supplied_mass_proxy_kg,
         intercepted_power_reduction_w,
     ];
     if !outputs.into_iter().all(f64::is_finite) {
@@ -102,11 +106,11 @@ pub fn evaluate_sunshade(input: SunshadeInput) -> Result<SunshadeEstimate, &'sta
 
     Ok(SunshadeEstimate {
         earth_projected_area_m2,
-        equivalent_aperture_area_m2,
-        equivalent_aperture_area_km2: equivalent_aperture_area_m2 / 1.0e6,
-        installed_mass_kg,
-        locally_sourced_mass_kg,
-        earth_supplied_mass_kg,
+        equivalent_target_plane_attenuation_area_m2,
+        equivalent_target_plane_attenuation_area_km2: equivalent_target_plane_attenuation_area_m2 / 1.0e6,
+        equivalent_area_mass_proxy_kg,
+        locally_sourced_mass_proxy_kg,
+        earth_supplied_mass_proxy_kg,
         intercepted_power_reduction_w,
     })
 }
@@ -277,8 +281,8 @@ pub fn illustrative_sunshade_case() -> SunshadeInput {
         earth_radius_m: EARTH_MEAN_RADIUS_M,
         solar_irradiance_w_m2: SOLAR_IRRADIANCE_1_AU_W_M2,
         target_flux_reduction_fraction: 0.01,
-        aperture_effectiveness: 0.90,
-        installed_areal_density_kg_m2: 0.01,
+        attenuation_effectiveness: 0.90,
+        scenario_areal_mass_density_kg_m2: 0.01,
         locally_sourced_material_fraction: 0.50,
     }
 }
@@ -330,19 +334,19 @@ mod tests {
             1.0,
         );
         close(
-            result.equivalent_aperture_area_m2,
+            result.equivalent_target_plane_attenuation_area_m2,
             1.416_845_755_304_967_5e12,
             1.0,
         );
-        close(result.installed_mass_kg, 1.416_845_755_304_967_5e10, 0.01);
+        close(result.equivalent_area_mass_proxy_kg, 1.416_845_755_304_967_5e10, 0.01);
         close(
             result.intercepted_power_reduction_w,
             1.735_494_365_673_054_5e15,
             10_000.0,
         );
         close(
-            result.locally_sourced_mass_kg + result.earth_supplied_mass_kg,
-            result.installed_mass_kg,
+            result.locally_sourced_mass_proxy_kg + result.earth_supplied_mass_proxy_kg,
+            result.equivalent_area_mass_proxy_kg,
             0.001,
         );
     }
@@ -357,29 +361,29 @@ mod tests {
         })
         .unwrap();
         close(
-            doubled.equivalent_aperture_area_m2,
-            2.0 * base.equivalent_aperture_area_m2,
+            doubled.equivalent_target_plane_attenuation_area_m2,
+            2.0 * base.equivalent_target_plane_attenuation_area_m2,
             1e-3,
         );
         close(
-            doubled.installed_mass_kg,
-            2.0 * base.installed_mass_kg,
+            doubled.equivalent_area_mass_proxy_kg,
+            2.0 * base.equivalent_area_mass_proxy_kg,
             1e-2,
         );
     }
 
     #[test]
-    fn shade_area_scales_inversely_with_aperture_effectiveness() {
+    fn shade_area_scales_inversely_with_attenuation_effectiveness() {
         let input = illustrative_sunshade_case();
         let base = evaluate_sunshade(input).unwrap();
         let less_effective = evaluate_sunshade(SunshadeInput {
-            aperture_effectiveness: input.aperture_effectiveness * 0.5,
+            attenuation_effectiveness: input.attenuation_effectiveness * 0.5,
             ..input
         })
         .unwrap();
         close(
-            less_effective.equivalent_aperture_area_m2,
-            2.0 * base.equivalent_aperture_area_m2,
+            less_effective.equivalent_target_plane_attenuation_area_m2,
+            2.0 * base.equivalent_target_plane_attenuation_area_m2,
             1e-3,
         );
     }
@@ -389,7 +393,7 @@ mod tests {
         let input = illustrative_sunshade_case();
         assert!(
             evaluate_sunshade(SunshadeInput {
-                aperture_effectiveness: 0.0,
+                attenuation_effectiveness: 0.0,
                 ..input
             })
             .is_err()
@@ -403,7 +407,7 @@ mod tests {
         );
         assert!(
             evaluate_sunshade(SunshadeInput {
-                installed_areal_density_kg_m2: f64::NAN,
+                scenario_areal_mass_density_kg_m2: f64::NAN,
                 ..input
             })
             .is_err()
