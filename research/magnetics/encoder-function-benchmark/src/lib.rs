@@ -927,7 +927,7 @@ mod tests {
             1,
             0.0,
             0.0,
-            |angle| 2.0,
+            |_angle| 2.0,
             0.0,
         );
         let covariance = FieldCovariance2d {
@@ -1188,7 +1188,7 @@ mod tests {
             1,
             0.0,
             0.0,
-            |angle| 0.25,
+            |_angle| 0.25,
             0.0,
         );
         let covariance = FieldCovariance2d {
@@ -1437,7 +1437,7 @@ mod tests {
             1,
             0.0,
             0.0,
-            |angle| 0.25,
+            |_angle| 0.25,
             0.0,
         );
         let result = evaluate_operating_condition_scenarios(
