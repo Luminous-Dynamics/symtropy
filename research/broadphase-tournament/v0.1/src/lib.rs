@@ -1689,6 +1689,31 @@ mod tests {
     }
 
     #[test]
+    fn indexed_tournament_separates_snapshot_diff_from_spatial_frontier_work() {
+        let scene =
+            generate_scene::<3>(SceneFamily::SleepingWakeups, 128, 24, 0x1ade_2026).unwrap();
+        let rows = run_tournament(&scene, TournamentConfig::new(1)).unwrap();
+        let scan = rows
+            .iter()
+            .find(|row| row.backend == BackendKind::PairDeltaCache.name())
+            .unwrap();
+        let indexed = rows
+            .iter()
+            .find(|row| row.backend == BackendKind::IndexedPairDeltaCache.name())
+            .unwrap();
+        assert_eq!(scan.mismatch_frames, 0);
+        assert_eq!(indexed.mismatch_frames, 0);
+        assert_eq!(scan.event_mismatch_frames, 0);
+        assert_eq!(indexed.event_mismatch_frames, 0);
+        assert!(scan.counters.frontier_proxy_visits > 0);
+        assert_eq!(indexed.counters.frontier_proxy_visits, 0);
+        assert!(indexed.counters.frontier_node_visits > 0);
+        assert!(indexed.counters.frontier_leaf_tests > 0);
+        assert!(indexed.counters.dirty_snapshot_entries_visited > 0);
+        assert!(scan.counters.dirty_snapshot_entries_visited > 0);
+    }
+
+    #[test]
     fn indexed_pair_delta_cache_audits_dirty_journal_and_rejects_full_invalidation_fast_path() {
         let mut cache =
             IndexedPairDeltaCache::<2>::new(0.25, BalancePolicy::HeightRotations).unwrap();
@@ -1697,7 +1722,8 @@ mod tests {
             test_proxy(2, [0.5, 0.5], [1.5, 1.5]),
             test_proxy(3, [5.0, 5.0], [6.0, 6.0]),
         ];
-        cache.step(&first).unwrap();
+        let initial = cache.step(&first).unwrap();
+        assert_eq!(initial.dirty_snapshot_entries_visited, 2 * first.len());
 
         let next = [
             test_proxy(1, [2.0, 0.0], [3.0, 1.0]),
@@ -1711,6 +1737,7 @@ mod tests {
         let moved = cache.step_with_dirty_ids(&next, &dirty).unwrap();
         assert_eq!(moved.revalidated.len(), 1);
         assert_eq!(moved.frontier_proxy_visits, 0);
+        assert_eq!(moved.dirty_snapshot_entries_visited, 0);
 
         cache.invalidate_all();
         let full_dirty = cache.derive_dirty_proxy_ids(&next).unwrap();
