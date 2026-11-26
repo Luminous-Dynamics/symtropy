@@ -1,0 +1,19 @@
+[package]
+name = "broadphase-tournament"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Deterministic temporal broadphase architecture tournament"
+publish = false
+
+[dependencies]
+incremental-aabb-tree-reference = { path = "../../incremental-aabb-tree-reference/v0.1" }
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "broadphase-tournament"
+path = "src/main.rs"
+
+[workspace]

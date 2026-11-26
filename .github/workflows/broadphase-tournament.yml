@@ -1,0 +1,69 @@
+name: Broadphase Architecture Tournament
+
+on:
+  pull_request:
+    branches: [research/stateful-tree-broadphase-v0.1]
+    paths:
+      - "research/broadphase-tournament/v0.1/**"
+      - "research/incremental-aabb-tree-reference/v0.1/**"
+      - ".github/workflows/broadphase-tournament.yml"
+  push:
+    branches: [research/broadphase-tournament-v0.1]
+    paths:
+      - "research/broadphase-tournament/v0.1/**"
+      - ".github/workflows/broadphase-tournament.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Rust 1.96 broadphase tournament checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/broadphase-tournament/v0.1/Cargo.toml -- --check
+      - name: Run tests
+        run: cargo test --manifest-path research/broadphase-tournament/v0.1/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/broadphase-tournament/v0.1/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Run release benchmark campaign
+        env:
+          BENCHMARK_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          results_dir=research/broadphase-tournament/v0.1/benchmark-results
+          mkdir -p "$results_dir"
+          {
+            printf 'source_sha=%s\n' "$BENCHMARK_SOURCE_SHA"
+            printf 'workflow_run_id=%s\n' "$GITHUB_RUN_ID"
+            printf 'rustc='
+            rustc --version
+            printf 'cargo='
+            cargo --version
+            printf 'os='
+            uname -a
+            printf '\n[cpu]\n'
+            if command -v lscpu >/dev/null 2>&1; then
+              lscpu
+            else
+              printf 'lscpu unavailable\n'
+            fi
+            printf '\n[command]\n'
+            printf 'cargo run --release ... -- 128 40 2\n'
+          } > "$results_dir/manifest.txt"
+          cargo run --release --manifest-path research/broadphase-tournament/v0.1/Cargo.toml --bin broadphase-tournament -- 128 40 2 > "$results_dir/results.csv"
+          test "$(wc -l < "$results_dir/results.csv")" -eq 109
+          awk -F, 'NR > 1 && (NF != 35 || $12 != 0 || $13 != 0 || $14 != 0) { print "invalid benchmark row", NR, "columns", NF; failed = 1 } END { exit failed }' "$results_dir/results.csv"
+          printf 'validated_rows=%s\n' "$(($(wc -l < "$results_dir/results.csv") - 1))" >> "$results_dir/manifest.txt"
+      - name: Retain benchmark evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: broadphase-tournament-${{ github.run_id }}-${{ github.run_attempt }}
+          path: research/broadphase-tournament/v0.1/benchmark-results/
+          if-no-files-found: error
+          retention-days: 30
