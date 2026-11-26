@@ -1,9 +1,5 @@
-use ergo_stream_microcosm::oracle::{
-    exhaustive_isomorphism_oracle, StructuralWitnessAmbiguityV0,
-};
-use ergo_stream_microcosm::transfer::{
-    NodeV0, RelationOrientationV0, RelationV0, StructureV0,
-};
+use ergo_stream_microcosm::oracle::{StructuralWitnessAmbiguityV0, exhaustive_isomorphism_oracle};
+use ergo_stream_microcosm::transfer::{NodeV0, RelationOrientationV0, RelationV0, StructureV0};
 
 fn edge(
     id: u32,
@@ -12,7 +8,12 @@ fn edge(
     right: u32,
     orientation: RelationOrientationV0,
 ) -> RelationV0 {
-    RelationV0 { id, kind, orientation, participants: vec![left, right] }
+    RelationV0 {
+        id,
+        kind,
+        orientation,
+        participants: vec![left, right],
+    }
 }
 
 #[test]
@@ -36,7 +37,10 @@ fn counts_relation_kind_mapping_ambiguity_with_unique_node_map() {
     let report = exhaustive_isomorphism_oracle(&source, &target).unwrap();
     assert_eq!(report.valid_node_mapping_count, 1);
     assert_eq!(report.valid_witness_class_count, 2);
-    assert_eq!(report.ambiguity_status, StructuralWitnessAmbiguityV0::Ambiguous);
+    assert_eq!(
+        report.ambiguity_status,
+        StructuralWitnessAmbiguityV0::Ambiguous
+    );
 }
 
 #[test]
