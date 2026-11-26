@@ -10,9 +10,9 @@ pub const CLAIM_CEILING: &str =
 
 const MAX_INPUT: u64 = 1_000_000_000_000;
 const MAX_TIME_NS: u64 = 1_000_000_000;
-const NS_PER_SECOND: u128 = 1_000_000_000;
-const NS2_PER_SECOND2: u128 = 1_000_000_000_000_000_000;
-const NS3_PER_SECOND3: u128 = 1_000_000_000_000_000_000_000_000_000;
+const NS_PER_SECOND_TO_NM: u128 = 1_000_000;
+const NS2_PER_SECOND2_TO_NM: u128 = 1_000_000_000_000_000;
+const NS3_PER_SECOND3_TO_NM: u128 = 1_000_000_000_000_000_000_000_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -82,10 +82,10 @@ pub struct Corpus {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct DisplacementTerms {
-    pub speed_um: u64,
-    pub acceleration_um: u64,
-    pub jerk_um: u64,
-    pub total_um: u64,
+    pub speed_nm: u64,
+    pub acceleration_nm: u64,
+    pub jerk_nm: u64,
+    pub total_nm: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -94,7 +94,7 @@ pub struct ProjectionBounds {
     pub latest_row_exposure: DisplacementTerms,
     pub combined_frame: DisplacementTerms,
     pub constant_max_speed_frame: DisplacementTerms,
-    pub constant_speed_excess_um_upper: u64,
+    pub constant_speed_excess_nm_upper: u64,
     pub constant_speed_frame_x_micro_px_upper: u64,
     pub constant_speed_frame_y_micro_px_upper: u64,
     pub exposure_x_micro_px_upper: u64,
@@ -176,14 +176,14 @@ fn speed_term(speed_um_s: u64, duration_ns: u64) -> Result<u64, String> {
         u128::from(speed_um_s)
             .checked_mul(u128::from(duration_ns))
             .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?,
-        NS_PER_SECOND,
+        NS_PER_SECOND_TO_NM,
     )?)
 }
 
 fn acceleration_row_term(acceleration_um_s2: u64, duration_ns: u64) -> Result<u64, String> {
     let t = u128::from(duration_ns);
     let numerator = mul3(u128::from(acceleration_um_s2), t, t)?;
-    to_u64(ceil_div(numerator, 2 * NS2_PER_SECOND2)?)
+    to_u64(ceil_div(numerator, 2 * NS2_PER_SECOND2_TO_NM)?)
 }
 
 fn jerk_row_term(jerk_um_s3: u64, duration_ns: u64) -> Result<u64, String> {
@@ -197,7 +197,7 @@ fn jerk_row_term(jerk_um_s3: u64, duration_ns: u64) -> Result<u64, String> {
     let numerator = u128::from(jerk_um_s3)
         .checked_mul(t3)
         .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
-    to_u64(ceil_div(numerator, 6 * NS3_PER_SECOND3)?)
+    to_u64(ceil_div(numerator, 6 * NS3_PER_SECOND3_TO_NM)?)
 }
 
 fn exposure_acceleration_term(
@@ -224,7 +224,7 @@ fn exposure_acceleration_term(
     let numerator = u128::from(acceleration_um_s2)
         .checked_mul(four_i1)
         .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
-    to_u64(ceil_div(numerator, 4 * NS2_PER_SECOND2)?)
+    to_u64(ceil_div(numerator, 4 * NS2_PER_SECOND2_TO_NM)?)
 }
 
 fn exposure_jerk_term(jerk_um_s3: u64, row_span_ns: u64, exposure_ns: u64) -> Result<u64, String> {
@@ -246,7 +246,7 @@ fn exposure_jerk_term(jerk_um_s3: u64, row_span_ns: u64, exposure_ns: u64) -> Re
     let numerator = u128::from(jerk_um_s3)
         .checked_mul(twelve_i2)
         .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
-    to_u64(ceil_div(numerator, 24 * NS3_PER_SECOND3)?)
+    to_u64(ceil_div(numerator, 24 * NS3_PER_SECOND3_TO_NM)?)
 }
 
 fn sum_displacement_terms(
@@ -259,10 +259,10 @@ fn sum_displacement_terms(
         .and_then(|value| value.checked_add(jerk))
         .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
     Ok(DisplacementTerms {
-        speed_um: speed,
-        acceleration_um: acceleration,
-        jerk_um: jerk,
-        total_um: total,
+        speed_nm: speed,
+        acceleration_nm: acceleration,
+        jerk_nm: jerk,
+        total_nm: total,
     })
 }
 
@@ -291,7 +291,7 @@ fn acceleration_frame_term(
     let numerator = u128::from(acceleration_um_s2)
         .checked_mul(eight_i1)
         .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
-    to_u64(ceil_div(numerator, 8 * NS2_PER_SECOND2)?)
+    to_u64(ceil_div(numerator, 8 * NS2_PER_SECOND2_TO_NM)?)
 }
 
 fn jerk_frame_term(jerk_um_s3: u64, row_span_ns: u64, exposure_ns: u64) -> Result<u64, String> {
@@ -321,12 +321,12 @@ fn jerk_frame_term(jerk_um_s3: u64, row_span_ns: u64, exposure_ns: u64) -> Resul
     let numerator = u128::from(jerk_um_s3)
         .checked_mul(twenty_four_i2)
         .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
-    to_u64(ceil_div(numerator, 48 * NS3_PER_SECOND3)?)
+    to_u64(ceil_div(numerator, 48 * NS3_PER_SECOND3_TO_NM)?)
 }
 
 fn projected_axis_upper(
     focal_micro_px: u64,
-    displacement_um: u64,
+    displacement_nm: u64,
     coordinate_extent_um: u64,
     min_depth_um: u64,
 ) -> Result<u64, String> {
@@ -336,11 +336,12 @@ fn projected_axis_upper(
         .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
     let numerator = mul3(
         u128::from(focal_micro_px),
-        u128::from(displacement_um),
+        u128::from(displacement_nm),
         z_plus_extent,
     )?;
     let denominator = z
         .checked_mul(z)
+        .and_then(|value| value.checked_mul(1_000))
         .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
     to_u64(ceil_div(numerator, denominator)?)
 }
@@ -426,7 +427,7 @@ fn constant_max_speed_frame_terms(
         twice_max_time_ns,
         duration_ns,
     )?;
-    let acceleration = to_u64(ceil_div(acceleration_numerator, 2 * NS2_PER_SECOND2)?)?;
+    let acceleration = to_u64(ceil_div(acceleration_numerator, 2 * NS2_PER_SECOND2_TO_NM)?)?;
 
     let twice_max_time_squared = twice_max_time_ns
         .checked_mul(twice_max_time_ns)
@@ -435,7 +436,7 @@ fn constant_max_speed_frame_terms(
         .checked_mul(twice_max_time_squared)
         .and_then(|value| value.checked_mul(duration_ns))
         .ok_or_else(|| "ARITHMETIC_OVERFLOW".to_owned())?;
-    let jerk = to_u64(ceil_div(jerk_numerator, 8 * NS3_PER_SECOND3)?)?;
+    let jerk = to_u64(ceil_div(jerk_numerator, 8 * NS3_PER_SECOND3_TO_NM)?)?;
 
     sum_displacement_terms(speed, acceleration, jerk)
 }
@@ -478,56 +479,56 @@ fn calculate_bounds(model: &MotionModel) -> Result<ProjectionBounds, String> {
         jerk_frame_term(model.point_jerk_upper_um_s3, row_span_ns, exposure_ns)?,
     )?;
     let constant_max_speed_frame = constant_max_speed_frame_terms(model, full_frame_duration_ns)?;
-    let constant_speed_excess_um_upper = constant_max_speed_frame
-        .total_um
-        .checked_sub(combined_frame.total_um)
+    let constant_speed_excess_nm_upper = constant_max_speed_frame
+        .total_nm
+        .checked_sub(combined_frame.total_nm)
         .ok_or_else(|| "CONSTANT_SPEED_COMPARATOR_UNDER_BOUND".to_owned())?;
 
     let constant_speed_frame_x = projected_axis_upper(
         model.focal_x_micro_px,
-        constant_max_speed_frame.total_um,
+        constant_max_speed_frame.total_nm,
         model.max_abs_x_um,
         model.min_depth_um,
     )?;
     let constant_speed_frame_y = projected_axis_upper(
         model.focal_y_micro_px,
-        constant_max_speed_frame.total_um,
+        constant_max_speed_frame.total_nm,
         model.max_abs_y_um,
         model.min_depth_um,
     )?;
     let exposure_x = projected_axis_upper(
         model.focal_x_micro_px,
-        exposure.total_um,
+        exposure.total_nm,
         model.max_abs_x_um,
         model.min_depth_um,
     )?;
     let exposure_y = projected_axis_upper(
         model.focal_y_micro_px,
-        exposure.total_um,
+        exposure.total_nm,
         model.max_abs_y_um,
         model.min_depth_um,
     )?;
     let row_x = projected_axis_upper(
         model.focal_x_micro_px,
-        row.total_um,
+        row.total_nm,
         model.max_abs_x_um,
         model.min_depth_um,
     )?;
     let row_y = projected_axis_upper(
         model.focal_y_micro_px,
-        row.total_um,
+        row.total_nm,
         model.max_abs_y_um,
         model.min_depth_um,
     )?;
     let combined_x = projected_axis_upper(
         model.focal_x_micro_px,
-        combined_frame.total_um,
+        combined_frame.total_nm,
         model.max_abs_x_um,
         model.min_depth_um,
     )?;
     let combined_y = projected_axis_upper(
         model.focal_y_micro_px,
-        combined_frame.total_um,
+        combined_frame.total_nm,
         model.max_abs_y_um,
         model.min_depth_um,
     )?;
@@ -537,7 +538,7 @@ fn calculate_bounds(model: &MotionModel) -> Result<ProjectionBounds, String> {
         latest_row_exposure: exposure,
         combined_frame,
         constant_max_speed_frame,
-        constant_speed_excess_um_upper,
+        constant_speed_excess_nm_upper,
         constant_speed_frame_x_micro_px_upper: constant_speed_frame_x,
         constant_speed_frame_y_micro_px_upper: constant_speed_frame_y,
         exposure_x_micro_px_upper: exposure_x,
@@ -704,12 +705,12 @@ mod tests {
             .unwrap();
         let result = evaluate_case(case);
         let bounds = result.bounds.unwrap();
-        assert_eq!(bounds.row_time.speed_um, 1);
-        assert_eq!(bounds.row_time.acceleration_um, 0);
-        assert_eq!(bounds.row_time.jerk_um, 0);
-        assert_eq!(bounds.latest_row_exposure.speed_um, 1);
-        assert_eq!(bounds.latest_row_exposure.acceleration_um, 0);
-        assert_eq!(bounds.latest_row_exposure.jerk_um, 0);
+        assert_eq!(bounds.row_time.speed_nm, 1_000);
+        assert_eq!(bounds.row_time.acceleration_nm, 0);
+        assert_eq!(bounds.row_time.jerk_nm, 0);
+        assert_eq!(bounds.latest_row_exposure.speed_nm, 1_000);
+        assert_eq!(bounds.latest_row_exposure.acceleration_nm, 0);
+        assert_eq!(bounds.latest_row_exposure.jerk_nm, 0);
     }
 
     #[test]
@@ -727,10 +728,10 @@ mod tests {
             .unwrap();
         let accelerated_result = evaluate_case(accelerated).bounds.unwrap();
         let jerked_result = evaluate_case(jerked).bounds.unwrap();
-        assert!(accelerated_result.row_time.acceleration_um > 0);
-        assert!(accelerated_result.latest_row_exposure.acceleration_um > 0);
-        assert!(jerked_result.row_time.jerk_um > 0);
-        assert!(jerked_result.latest_row_exposure.jerk_um > 0);
+        assert!(accelerated_result.row_time.acceleration_nm > 0);
+        assert!(accelerated_result.latest_row_exposure.acceleration_nm > 0);
+        assert!(jerked_result.row_time.jerk_nm > 0);
+        assert!(jerked_result.latest_row_exposure.jerk_nm > 0);
     }
 
     #[test]
@@ -746,23 +747,23 @@ mod tests {
         let mut faster = source.model.clone();
         faster.reference_point_speed_um_s += 10_000;
         let faster_bounds = calculate_bounds(&faster).unwrap();
-        assert!(faster_bounds.combined_frame.total_um >= base.combined_frame.total_um);
+        assert!(faster_bounds.combined_frame.total_nm >= base.combined_frame.total_nm);
 
         let mut more_acceleration = source.model.clone();
         more_acceleration.reference_point_acceleration_um_s2 += 10_000;
         let acceleration_bounds = calculate_bounds(&more_acceleration).unwrap();
-        assert!(acceleration_bounds.combined_frame.total_um >= base.combined_frame.total_um);
+        assert!(acceleration_bounds.combined_frame.total_nm >= base.combined_frame.total_nm);
 
         let mut more_jerk = source.model.clone();
         more_jerk.point_jerk_upper_um_s3 += 10_000;
         let jerk_bounds = calculate_bounds(&more_jerk).unwrap();
-        assert!(jerk_bounds.combined_frame.total_um >= base.combined_frame.total_um);
+        assert!(jerk_bounds.combined_frame.total_nm >= base.combined_frame.total_nm);
 
         let mut longer = source.model.clone();
         longer.row_exposure_duration_ns += 100_000;
         longer.first_to_last_row_midpoint_span_ns += 100_000;
         let longer_bounds = calculate_bounds(&longer).unwrap();
-        assert!(longer_bounds.combined_frame.total_um >= base.combined_frame.total_um);
+        assert!(longer_bounds.combined_frame.total_nm >= base.combined_frame.total_nm);
     }
 
     #[test]
@@ -833,7 +834,7 @@ mod tests {
         )
         .unwrap();
         let latest = calculate_bounds(model).unwrap().latest_row_exposure;
-        assert!(latest.total_um > earliest.total_um);
+        assert!(latest.total_nm > earliest.total_nm);
     }
 
     #[test]
@@ -867,8 +868,8 @@ mod tests {
             .unwrap();
         let below_bounds = calculate_bounds(&below.model).unwrap();
         let boundary_bounds = calculate_bounds(&boundary.model).unwrap();
-        assert!(below_bounds.latest_row_exposure.acceleration_um > 0);
-        assert!(boundary_bounds.latest_row_exposure.acceleration_um > 0);
+        assert!(below_bounds.latest_row_exposure.acceleration_nm > 0);
+        assert!(boundary_bounds.latest_row_exposure.acceleration_nm > 0);
     }
 
     #[test]
@@ -882,9 +883,9 @@ mod tests {
         let result = evaluate_case(case);
         let bounds = result.bounds.unwrap();
 
-        assert_eq!(bounds.row_time.total_um, 1);
-        assert_eq!(bounds.latest_row_exposure.total_um, 10);
-        assert_eq!(bounds.combined_frame.total_um, 13);
+        assert_eq!(bounds.row_time.total_nm, 1_000);
+        assert_eq!(bounds.latest_row_exposure.total_nm, 10_000);
+        assert_eq!(bounds.combined_frame.total_nm, 13_000);
         assert_eq!(bounds.exposure_x_micro_px_upper, 120_000);
         assert_eq!(bounds.row_time_x_micro_px_upper, 12_000);
         assert_eq!(bounds.combined_frame_x_micro_px_upper, 156_000);
@@ -901,9 +902,9 @@ mod tests {
             .unwrap();
         let bounds = calculate_bounds(&case.model).unwrap();
 
-        assert_eq!(bounds.row_time.total_um, 0);
-        assert_eq!(bounds.latest_row_exposure.acceleration_um, 1);
-        assert_eq!(bounds.combined_frame.acceleration_um, 1);
+        assert_eq!(bounds.row_time.total_nm, 0);
+        assert_eq!(bounds.latest_row_exposure.acceleration_nm, 1_000);
+        assert_eq!(bounds.combined_frame.acceleration_nm, 1_000);
     }
 
     #[test]
@@ -912,9 +913,9 @@ mod tests {
         let at_boundary = exposure_acceleration_term(1_000_000_000, 500_000, 1_000_000).unwrap();
         let above = exposure_acceleration_term(1_000_000_000, 750_000, 1_000_000).unwrap();
 
-        assert_eq!(below, 313);
-        assert_eq!(at_boundary, 500);
-        assert_eq!(above, 750);
+        assert_eq!(below, 312_500);
+        assert_eq!(at_boundary, 500_000);
+        assert_eq!(above, 750_000);
     }
 
     #[test]
@@ -922,7 +923,7 @@ mod tests {
         let input = corpus();
         for case in &input.cases {
             if let Ok(bounds) = calculate_bounds(&case.model) {
-                assert!(bounds.constant_max_speed_frame.total_um >= bounds.combined_frame.total_um);
+                assert!(bounds.constant_max_speed_frame.total_nm >= bounds.combined_frame.total_nm);
                 assert!(
                     bounds.constant_speed_frame_x_micro_px_upper
                         >= bounds.combined_frame_x_micro_px_upper
@@ -944,8 +945,8 @@ mod tests {
             .find(|case| case.case_id == "TV-016-FRAME-WINDOW-TRAP")
             .unwrap();
         let bounds = calculate_bounds(&case.model).unwrap();
-        assert!(bounds.constant_speed_excess_um_upper > 0);
-        assert!(bounds.constant_max_speed_frame.total_um > bounds.combined_frame.total_um);
+        assert!(bounds.constant_speed_excess_nm_upper > 0);
+        assert!(bounds.constant_max_speed_frame.total_nm > bounds.combined_frame.total_nm);
     }
 
     #[test]
@@ -965,14 +966,14 @@ mod tests {
                 .unwrap(),
         )
         .unwrap();
-        assert_eq!(bounds.combined_frame.speed_um, expected);
-        assert_eq!(bounds.combined_frame.acceleration_um, 0);
-        assert_eq!(bounds.combined_frame.jerk_um, 0);
+        assert_eq!(bounds.combined_frame.speed_nm, expected);
+        assert_eq!(bounds.combined_frame.acceleration_nm, 0);
+        assert_eq!(bounds.combined_frame.jerk_nm, 0);
         assert_eq!(
-            bounds.constant_max_speed_frame.total_um,
-            bounds.combined_frame.total_um
+            bounds.constant_max_speed_frame.total_nm,
+            bounds.combined_frame.total_nm
         );
-        assert_eq!(bounds.constant_speed_excess_um_upper, 0);
+        assert_eq!(bounds.constant_speed_excess_nm_upper, 0);
     }
 
     #[test]
@@ -984,7 +985,7 @@ mod tests {
             .find(|case| case.case_id == "TV-005-GLOBAL-SHUTTER")
             .unwrap();
         let bounds = calculate_bounds(&case.model).unwrap();
-        assert_eq!(bounds.row_time.total_um, 0);
+        assert_eq!(bounds.row_time.total_nm, 0);
         assert_eq!(bounds.row_time_x_micro_px_upper, 0);
         assert_eq!(bounds.row_time_y_micro_px_upper, 0);
     }
