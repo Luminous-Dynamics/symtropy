@@ -46,7 +46,6 @@ pub struct FiniteMissionTrajectory {
     pub event_outcomes: Vec<EncounterEventOutcome>,
 }
 
-
 /// Window-level outcomes for one event on one shared mission trajectory.
 #[derive(Debug, Clone, PartialEq)]
 pub struct FiniteMissionEventWindowOutcomes {
@@ -268,7 +267,7 @@ impl core::fmt::Display for MissionRiskAggregationError {
             Self::InvalidTrajectoryAtomIdentity => "trajectory atom identity is invalid",
             Self::TrajectoryAtomInventoryMismatch => {
                 "observed trajectory atoms differ from manifest"
-            },
+            }
             Self::InvalidRiskBudget => "mission risk budget is invalid",
             Self::InvalidTrajectoryMass => "trajectory target-measure mass is invalid",
             Self::TotalMassMismatch => "observed trajectory mass differs from manifest",
@@ -289,7 +288,6 @@ impl core::fmt::Display for MissionRiskAggregationError {
 
 impl std::error::Error for MissionRiskAggregationError {}
 
-
 /// Reduce every mission event with the shared pathwise event reducer, then aggregate
 /// dependence across events. All event definitions and trajectory window groups must
 /// exactly match the frozen inventory and share one realization ID per trajectory.
@@ -303,11 +301,17 @@ pub fn aggregate_pathwise_mission_risk(
     }
     let mut definitions_by_id = BTreeMap::new();
     for definition in definitions {
-        if definitions_by_id.insert(definition.event_id(), definition).is_some() {
+        if definitions_by_id
+            .insert(definition.event_id(), definition)
+            .is_some()
+        {
             return Err(MissionRiskAggregationError::DuplicatePathwiseEventDefinition);
         }
     }
-    if manifest.event_ids.iter().any(|id| !definitions_by_id.contains_key(id.as_str()))
+    if manifest
+        .event_ids
+        .iter()
+        .any(|id| !definitions_by_id.contains_key(id.as_str()))
         || definitions_by_id.len() != manifest.event_ids.len()
     {
         return Err(MissionRiskAggregationError::PathwiseEventInventoryMismatch);
@@ -326,7 +330,10 @@ pub fn aggregate_pathwise_mission_risk(
                 return Err(MissionRiskAggregationError::PathwiseEventInventoryMismatch);
             }
         }
-        if manifest.event_ids.iter().any(|id| !rows_by_event.contains_key(id.as_str()))
+        if manifest
+            .event_ids
+            .iter()
+            .any(|id| !rows_by_event.contains_key(id.as_str()))
             || rows_by_event.len() != manifest.event_ids.len()
         {
             return Err(MissionRiskAggregationError::PathwiseEventInventoryMismatch);
@@ -399,10 +406,7 @@ pub fn aggregate_finite_mission_risk(
         return Err(MissionRiskAggregationError::InvalidEventInventorySize);
     }
     if manifest.event_ids.iter().any(|id| !valid_event_id(id))
-        || manifest
-            .event_ids
-            .windows(2)
-            .any(|pair| pair[0] >= pair[1])
+        || manifest.event_ids.windows(2).any(|pair| pair[0] >= pair[1])
     {
         return Err(MissionRiskAggregationError::InvalidEventIdentity);
     }
@@ -434,10 +438,7 @@ pub fn aggregate_finite_mission_risk(
         if trajectory.mass_ticks == 0 {
             return Err(MissionRiskAggregationError::InvalidTrajectoryMass);
         }
-        if by_atom_id
-            .insert(trajectory.atom_id, trajectory)
-            .is_some()
-        {
+        if by_atom_id.insert(trajectory.atom_id, trajectory).is_some() {
             return Err(MissionRiskAggregationError::InvalidTrajectoryAtomIdentity);
         }
     }
@@ -577,10 +578,8 @@ pub fn aggregate_finite_mission_risk(
         manifest.risk_budget_numerator,
         manifest.risk_budget_denominator,
     );
-    let within_budget = u128::from(union_mass)
-        * u128::from(manifest.risk_budget_denominator)
-        <= u128::from(manifest.risk_budget_numerator)
-            * u128::from(manifest.total_mass_ticks);
+    let within_budget = u128::from(union_mass) * u128::from(manifest.risk_budget_denominator)
+        <= u128::from(manifest.risk_budget_numerator) * u128::from(manifest.total_mass_ticks);
 
     Ok(MissionRiskEnvelope {
         manifest_digest: manifest.manifest_digest,
@@ -612,9 +611,9 @@ pub fn aggregate_finite_mission_risk(
 
 fn valid_event_id(value: &str) -> bool {
     !value.is_empty()
-        && value.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b':')
-        })
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b':'))
 }
 
 fn is_zero_digest(digest: &[u8; 32]) -> bool {
@@ -688,11 +687,8 @@ mod tests {
         aggregate_finite_mission_risk(manifest, atoms).expect("finite mission support evaluates")
     }
 
-
     fn pathwise_definition(event_id: &str) -> HorizonEventDefinition {
-        use crate::pathwise_event::{
-            EncounterWindow, HorizonEventConfig, WindowInventoryCoverage,
-        };
+        use crate::pathwise_event::{EncounterWindow, HorizonEventConfig, WindowInventoryCoverage};
         HorizonEventDefinition::new(HorizonEventConfig {
             event_id: event_id.to_owned(),
             revision: "r1".to_owned(),
@@ -744,21 +740,27 @@ mod tests {
         let definitions = [pathwise_definition("a"), pathwise_definition("b")];
         let trajectories = [
             FinitePathwiseMissionTrajectory {
-                atom_id: [1; 32], realization_id: "traj-1".to_owned(), mass_ticks: 40,
+                atom_id: [1; 32],
+                realization_id: "traj-1".to_owned(),
+                mass_ticks: 40,
                 event_outcomes: vec![
                     pathwise_event("a", "traj-1", true),
                     pathwise_event("b", "traj-1", false),
                 ],
             },
             FinitePathwiseMissionTrajectory {
-                atom_id: [2; 32], realization_id: "traj-2".to_owned(), mass_ticks: 40,
+                atom_id: [2; 32],
+                realization_id: "traj-2".to_owned(),
+                mass_ticks: 40,
                 event_outcomes: vec![
                     pathwise_event("a", "traj-2", false),
                     pathwise_event("b", "traj-2", true),
                 ],
             },
             FinitePathwiseMissionTrajectory {
-                atom_id: [3; 32], realization_id: "traj-3".to_owned(), mass_ticks: 20,
+                atom_id: [3; 32],
+                realization_id: "traj-3".to_owned(),
+                mass_ticks: 20,
                 event_outcomes: vec![
                     pathwise_event("a", "traj-3", false),
                     pathwise_event("b", "traj-3", false),
@@ -794,8 +796,14 @@ mod tests {
         assert_eq!(report.event_marginals[1].mass, ExactMass::new(1, 2));
         assert_eq!(report.pairwise_intersections[0].mass, ExactMass::new(1, 4));
         assert_eq!(report.pathwise_union_mass, ExactMass::new(3, 4));
-        assert_eq!(report.frechet_union_bounds.lower_bound, ExactMass::new(1, 2));
-        assert_eq!(report.frechet_union_bounds.upper_bound, ExactMass::new(1, 1));
+        assert_eq!(
+            report.frechet_union_bounds.lower_bound,
+            ExactMass::new(1, 2)
+        );
+        assert_eq!(
+            report.frechet_union_bounds.upper_bound,
+            ExactMass::new(1, 1)
+        );
         assert!((report.independence_union_approximation - 0.75).abs() < 1e-12);
         assert_eq!(
             report.budget_status,
@@ -835,8 +843,14 @@ mod tests {
         let report = evaluate(&manifest, &atoms);
         assert_eq!(report.pathwise_union_mass, ExactMass::new(4, 5));
         assert_eq!(report.pairwise_intersections[0].mass, ExactMass::new(0, 1));
-        assert_eq!(report.frechet_union_bounds.lower_bound, ExactMass::new(2, 5));
-        assert_eq!(report.frechet_union_bounds.upper_bound, ExactMass::new(4, 5));
+        assert_eq!(
+            report.frechet_union_bounds.lower_bound,
+            ExactMass::new(2, 5)
+        );
+        assert_eq!(
+            report.frechet_union_bounds.upper_bound,
+            ExactMass::new(4, 5)
+        );
         assert!((report.independence_union_approximation - 0.64).abs() < 1e-12);
         assert_eq!(
             report.budget_status,
@@ -853,101 +867,76 @@ mod tests {
                 1,
                 100,
                 &[
-                    ("e1",
-                    hit()),
-                    ("e2",
-                    miss()),
-                    ("e3",
-                    miss()),
-                    ("e4",
-                    miss()),
-                    ("e5",
-                    miss()),
+                    ("e1", hit()),
+                    ("e2", miss()),
+                    ("e3", miss()),
+                    ("e4", miss()),
+                    ("e5", miss()),
                 ],
             ),
             atom(
                 2,
                 100,
                 &[
-                    ("e1",
-                    miss()),
-                    ("e2",
-                    hit()),
-                    ("e3",
-                    miss()),
-                    ("e4",
-                    miss()),
-                    ("e5",
-                    miss()),
+                    ("e1", miss()),
+                    ("e2", hit()),
+                    ("e3", miss()),
+                    ("e4", miss()),
+                    ("e5", miss()),
                 ],
             ),
             atom(
                 3,
                 100,
                 &[
-                    ("e1",
-                    miss()),
-                    ("e2",
-                    miss()),
-                    ("e3",
-                    hit()),
-                    ("e4",
-                    miss()),
-                    ("e5",
-                    miss()),
+                    ("e1", miss()),
+                    ("e2", miss()),
+                    ("e3", hit()),
+                    ("e4", miss()),
+                    ("e5", miss()),
                 ],
             ),
             atom(
                 4,
                 100,
                 &[
-                    ("e1",
-                    miss()),
-                    ("e2",
-                    miss()),
-                    ("e3",
-                    miss()),
-                    ("e4",
-                    hit()),
-                    ("e5",
-                    miss()),
+                    ("e1", miss()),
+                    ("e2", miss()),
+                    ("e3", miss()),
+                    ("e4", hit()),
+                    ("e5", miss()),
                 ],
             ),
             atom(
                 5,
                 100,
                 &[
-                    ("e1",
-                    miss()),
-                    ("e2",
-                    miss()),
-                    ("e3",
-                    miss()),
-                    ("e4",
-                    miss()),
-                    ("e5",
-                    hit()),
+                    ("e1", miss()),
+                    ("e2", miss()),
+                    ("e3", miss()),
+                    ("e4", miss()),
+                    ("e5", hit()),
                 ],
             ),
             atom(
                 6,
                 9_500,
                 &[
-                    ("e1",
-                    miss()),
-                    ("e2",
-                    miss()),
-                    ("e3",
-                    miss()),
-                    ("e4",
-                    miss()),
-                    ("e5",
-                    miss()),
+                    ("e1", miss()),
+                    ("e2", miss()),
+                    ("e3", miss()),
+                    ("e4", miss()),
+                    ("e5", miss()),
                 ],
             ),
         ];
         let report = evaluate(&manifest, &atoms);
-        assert!(report.event_marginals.iter().all(|row| row.mass == ExactMass::new(1, 100)));
+        assert!(
+            report
+                .event_marginals
+                .iter()
+                .all(|row| row.mass == ExactMass::new(1, 100))
+        );
         assert_eq!(report.pathwise_union_mass, ExactMass::new(1, 20));
         assert_eq!(
             report.budget_status,
@@ -962,10 +951,7 @@ mod tests {
         let ambiguous = [atom(
             1,
             100,
-            &[
-                ("a", hit()),
-                ("b", EncounterEventDisposition::Ambiguous),
-            ],
+            &[("a", hit()), ("b", EncounterEventDisposition::Ambiguous)],
         )];
         assert_eq!(
             aggregate_finite_mission_risk(&manifest, &ambiguous),
@@ -1008,10 +994,7 @@ mod tests {
 
         let mut incomplete = manifest.clone();
         incomplete.event_inventory_complete = false;
-        let atoms = [
-            atom(1, 50, &[("a", miss())]),
-            atom(2, 50, &[("a", hit())]),
-        ];
+        let atoms = [atom(1, 50, &[("a", miss())]), atom(2, 50, &[("a", hit())])];
         assert_eq!(
             aggregate_finite_mission_risk(&incomplete, &atoms),
             Err(MissionRiskAggregationError::IncompleteEventInventory)
