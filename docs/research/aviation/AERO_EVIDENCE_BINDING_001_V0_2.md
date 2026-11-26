@@ -145,6 +145,7 @@ This is a narrow binding result. It is not measurement truth, uncertainty suffic
 - acquisition intervals that are future or ambiguous at the requested evaluation snapshot;
 - event-effective hard bounds definitely before, after or overlapping acquisition time;
 - event-effective bounds definitely future or ambiguous at the evaluation snapshot;
+- exhaustive small-domain cross-product of 10 valid event intervals × 10 valid acquisition intervals (100 orderings), checked against an independently written closed-form interval oracle;
 - non-applicable post-acquisition event IDs preserved without retroactively invalidating historical binding;
 - contradictory `retroactive=true` flags rejected when the asserted effective interval is definitely later than acquisition;
 - incomplete, reversed, wrong-typed or nominal-point-outside-bounds pairs rejected.
