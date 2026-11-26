@@ -37,7 +37,8 @@
         "manifest_required",
         "provenance_required",
         "energy_metering_required",
-        "required_stages"
+        "required_stages",
+        "independent_reader_paths_required"
       ],
       "properties": {
         "workload_id": {
@@ -75,14 +76,27 @@
           "items": {
             "enum": [
               "request_admission",
+              "operator_approval",
               "media_mount",
               "reader_bootstrap",
+              "queue_and_staging",
+              "key_and_trust_bootstrap",
+              "reader_calibration",
               "physical_read",
+              "retry_and_ecc",
               "decode_and_reconstruct",
+              "packaging_and_decrypt",
               "fixity_and_manifest",
+              "network_transfer",
+              "destination_verify",
+              "migration_write",
+              "migration_readback",
               "provenance_acceptance"
             ]
           }
+        },
+        "independent_reader_paths_required": {
+          "type": "boolean"
         }
       }
     },
@@ -133,7 +147,10 @@
               "energy_meter_status",
               "energy_millijoules",
               "candidate_claimed_full_success",
-              "stage_observations"
+              "stage_observations",
+              "reader_path_ids",
+              "reader_independence_status",
+              "reader_agreement_status"
             ],
             "properties": {
               "workload_id": {
@@ -248,11 +265,21 @@
                     "stage": {
                       "enum": [
                         "request_admission",
+                        "operator_approval",
                         "media_mount",
                         "reader_bootstrap",
+                        "queue_and_staging",
+                        "key_and_trust_bootstrap",
+                        "reader_calibration",
                         "physical_read",
+                        "retry_and_ecc",
                         "decode_and_reconstruct",
+                        "packaging_and_decrypt",
                         "fixity_and_manifest",
+                        "network_transfer",
+                        "destination_verify",
+                        "migration_write",
+                        "migration_readback",
                         "provenance_acceptance"
                       ]
                     },
@@ -265,6 +292,32 @@
                     }
                   }
                 }
+              },
+              "reader_path_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "reader_independence_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "reader_agreement_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
               }
             }
           },
