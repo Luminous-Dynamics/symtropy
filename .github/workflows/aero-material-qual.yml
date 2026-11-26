@@ -24,6 +24,9 @@ on:
       - "docs/research/aviation/AERO_CAUSAL_EVIDENCE_CUT_BENCHMARK_V0_1.md"
       - "docs/research/aviation/examples/aero_vector_evidence_cut_v0_1.json"
       - "docs/research/aviation/schemas/aero_vector_evidence_cut_v0_1.schema.json"
+      - "docs/research/aviation/AERO_SYMTHAEA_EVIDENCE_GAP_ADAPTER_V0_1.md"
+      - "docs/research/aviation/examples/aero_evidence_gap_packet_v0_1.json"
+      - "docs/research/aviation/schemas/aero_evidence_gap_packet_v0_1.schema.json"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
     branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1"]
@@ -51,6 +54,9 @@ on:
       - "docs/research/aviation/AERO_CAUSAL_EVIDENCE_CUT_BENCHMARK_V0_1.md"
       - "docs/research/aviation/examples/aero_vector_evidence_cut_v0_1.json"
       - "docs/research/aviation/schemas/aero_vector_evidence_cut_v0_1.schema.json"
+      - "docs/research/aviation/AERO_SYMTHAEA_EVIDENCE_GAP_ADAPTER_V0_1.md"
+      - "docs/research/aviation/examples/aero_evidence_gap_packet_v0_1.json"
+      - "docs/research/aviation/schemas/aero_evidence_gap_packet_v0_1.schema.json"
       - ".github/workflows/aero-material-qual.yml"
   workflow_dispatch:
 
@@ -474,6 +480,36 @@ jobs:
           if len(fixture["watermarks"]) < 2 or not any(event["dependencies"] for event in fixture["events"]):
               raise SystemExit("positive vector fixture must include independent partitions and causal dependencies")
           print("Vector evidence cut schema and positive fixture validation passed.")
+          PY
+
+      - name: Validate AERO evidence-gap packet schema and selector boundary
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema = json.loads((root / "docs/research/aviation/schemas/aero_evidence_gap_packet_v0_1.schema.json").read_text())
+          packet = json.loads((root / "docs/research/aviation/examples/aero_evidence_gap_packet_v0_1.json").read_text())
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("AERO evidence-gap schema must declare Draft 2020-12")
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(packet), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
+              raise SystemExit(f"AERO evidence-gap packet failed schema validation ({len(errors)} errors)")
+          if packet["claim_ceiling"] != "evidence_gap_packet_only" or packet["no_actuation"] is not True or packet["authority_granted"] is not False:
+              raise SystemExit("AERO evidence-gap packet exceeds its proposal-only authority boundary")
+          if packet["assessment"]["disposition"] != "TRUST_UNRESOLVED":
+              raise SystemExit("synthetic evidence-gap fixture must preserve its unresolved assessment")
+          for claim in packet["claims"]:
+              if not claim["claim_id"] or not claim["reason_codes"]:
+                  raise SystemExit("each synthetic claim must retain its identity and AERO reason codes")
+          print(f"AERO evidence-gap packet schema and authority boundary passed: {len(packet['claims'])} claims.")
           PY
 
       - name: Validate SHM dataset manifest schema and rights gates
