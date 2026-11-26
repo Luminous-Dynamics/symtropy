@@ -7,7 +7,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 const SCHEMA: &str = "safrb-time-expanded-network-v0.1";
 const HYPOTHETICAL: &str = "hypothetical_counterfactual_not_admitted";
-const MAX_COUNTERFACTUAL_STEPS: u64 = 1_000_000;
+const MAX_SERVICE_OBLIGATIONS: usize = 128;
 const CLAIM_CEILING: &str = "Synthetic mathematical feasibility for the declared single-commodity time-expanded graph only; no authenticated evidence, physical asset qualification, legal access, dispatch authority or actual beneficiary-service claim.";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -478,10 +478,14 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
         return Err(err("$.capacity_evidence", "unreferenced capacity evidence"));
     }
 
+    let obligation_rows = array(value, "service_obligations", "$")?;
+    if obligation_rows.is_empty() || obligation_rows.len() > MAX_SERVICE_OBLIGATIONS {
+        return Err(err("$.service_obligations", "obligation count outside 1..=128"));
+    }
     let mut obligations = Vec::new();
     let mut obligation_ids = BTreeSet::new();
     let mut obligation_times = BTreeSet::new();
-    for (i, row) in array(value, "service_obligations", "$")?.iter().enumerate() {
+    for (i, row) in obligation_rows.iter().enumerate() {
         let path = format!("$.service_obligations[{i}]");
         exact_keys(row, &["obligation_id", "node_id", "time_index", "required_lower", "unit", "interval"], &path)?;
         let id = sfield(row, "obligation_id", &path)?;
@@ -658,53 +662,83 @@ pub fn minimum_capacity_counterfactual(value: &Value, edge_id: &str) -> Result<O
     let base = parse(value, false)?;
     let target = base.edges.iter().find(|e| e.id == edge_id)
         .ok_or_else(|| err("$.edges", "unknown counterfactual edge"))?;
-    if !base.edges.iter().filter(|e| {
+    let is_gate = base.edges.iter().filter(|e| {
         base.nodes.get(&e.from).is_some_and(|n| n.kind == "resource_input")
             && base.nodes.get(&e.to).is_some_and(|n| n.kind == "resource_output")
-    }).any(|e| e.id == target.id) {
+    }).any(|e| e.id == target.id);
+    if !is_gate {
         return Err(err("$.edges", "counterfactual target is not a physical resource capacity gate"));
     }
+
     let base_digest = base.scenario_sha256.clone();
     let resource = target.resource.clone();
     let time = target.time;
     let base_lower = target.lower;
-    let max = target.upper;
-    if max - base_lower > MAX_COUNTERFACTUAL_STEPS {
-        return Err(err("$.edges", "counterfactual range exceeds configured search bound"));
-    }
-    for candidate in base_lower..=max {
+    let maximum = target.upper;
+
+    // Increasing a single lower-bound capacity only expands the feasible
+    // region, so simultaneous feasibility is monotone. Binary search avoids
+    // a linear number of full graph solves for large integer capacities.
+    let make_trial = |candidate: u64| -> Result<Value, String> {
         let mut trial = value.clone();
-        let edges = trial.get_mut("edges").and_then(Value::as_array_mut).ok_or_else(|| err("$.edges", "must be an array"))?;
-        let target_row = edges.iter_mut().find(|e| e.get("id").and_then(Value::as_str) == Some(edge_id))
+        let edges = trial.get_mut("edges").and_then(Value::as_array_mut)
+            .ok_or_else(|| err("$.edges", "must be an array"))?;
+        let target_row = edges.iter_mut()
+            .find(|edge| edge.get("id").and_then(Value::as_str) == Some(edge_id))
             .ok_or_else(|| err("$.edges", "counterfactual edge disappeared"))?;
         target_row["capacity_lower"] = Value::from(candidate);
+
         let evidence = trial.get_mut("capacity_evidence").and_then(Value::as_array_mut)
             .ok_or_else(|| err("$.capacity_evidence", "must be an array"))?;
-        let evidence_row = evidence.iter_mut().find(|e| {
-            e.get("physical_resource_id").and_then(Value::as_str) == Some(resource.as_str())
-                && e.get("time_index").and_then(Value::as_u64) == Some(time)
+        let evidence_row = evidence.iter_mut().find(|row| {
+            row.get("physical_resource_id").and_then(Value::as_str) == Some(resource.as_str())
+                && row.get("time_index").and_then(Value::as_u64) == Some(time)
         }).ok_or_else(|| err("$.capacity_evidence", "matching evidence row missing"))?;
         evidence_row["lower"] = Value::from(candidate);
         evidence_row["status"] = Value::String(HYPOTHETICAL.to_owned());
+        Ok(trial)
+    };
+
+    let maximum_trial = make_trial(maximum)?;
+    if evaluate_internal(&maximum_trial, true)?.disposition
+        != ServiceDisposition::GuaranteedWithinDeclaredLowerEnvelope
+    {
+        return Ok(None);
+    }
+
+    let mut low = base_lower;
+    let mut high = maximum;
+    while low < high {
+        let middle = low + (high - low) / 2;
+        let trial = make_trial(middle)?;
         let report = evaluate_internal(&trial, true)?;
         if report.disposition == ServiceDisposition::GuaranteedWithinDeclaredLowerEnvelope {
-            return Ok(Some(RestorationThreshold {
-                edge_id: edge_id.to_owned(),
-                physical_resource_id: resource,
-                time_index: time,
-                base_lower,
-                hypothetical_lower: candidate,
-                additional_capacity: candidate - base_lower,
-                lower_flow: report.lower.max_flow,
-                lower_cut: report.lower.min_cut.capacity,
-                windows: report.windows,
-                evidence_status: HYPOTHETICAL,
-                base_scenario_sha256: base_digest,
-                hypothetical_scenario_sha256: report.scenario_sha256,
-            }));
+            high = middle;
+        } else {
+            low = middle + 1;
         }
     }
-    Ok(None)
+
+    let final_trial = make_trial(low)?;
+    let report = evaluate_internal(&final_trial, true)?;
+    if report.disposition != ServiceDisposition::GuaranteedWithinDeclaredLowerEnvelope {
+        return Err(err("$.counterfactual", "binary-search threshold failed final joint-feasibility verification"));
+    }
+
+    Ok(Some(RestorationThreshold {
+        edge_id: edge_id.to_owned(),
+        physical_resource_id: resource,
+        time_index: time,
+        base_lower,
+        hypothetical_lower: low,
+        additional_capacity: low - base_lower,
+        lower_flow: report.lower.max_flow,
+        lower_cut: report.lower.min_cut.capacity,
+        windows: report.windows,
+        evidence_status: HYPOTHETICAL,
+        base_scenario_sha256: base_digest,
+        hypothetical_scenario_sha256: report.scenario_sha256,
+    }))
 }
 
 pub fn bundled_fixture() -> Result<Value, String> {
