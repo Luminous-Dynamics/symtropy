@@ -118,10 +118,22 @@ pub enum ServiceError {
     EmptyIdentifier,
     ZeroQuantity,
     DuplicateUnitId(String),
-    DuplicateFloor { cohort_id: String, unit: String },
-    InvalidFloor { cohort_id: String, unit: String, basis_points: u16 },
-    QuantityOverflow { cohort_id: String, unit: String },
-    EvidenceAfterHorizon { unit_id: String },
+    DuplicateFloor {
+        cohort_id: String,
+        unit: String,
+    },
+    InvalidFloor {
+        cohort_id: String,
+        unit: String,
+        basis_points: u16,
+    },
+    QuantityOverflow {
+        cohort_id: String,
+        unit: String,
+    },
+    EvidenceAfterHorizon {
+        unit_id: String,
+    }
 }
 
 impl std::fmt::Display for ServiceError {
@@ -186,19 +198,19 @@ fn classify(
                     unit: record.unit.clone(),
                 })?;
             if *accepted_at <= horizon_at && *accepted_at <= record.deadline_at {
-                accumulator
-                    .add("on_time", record.quantity)
-                    .map_err(|_| ServiceError::QuantityOverflow {
+                accumulator.add("on_time", record.quantity).map_err(|_| {
+                    ServiceError::QuantityOverflow {
                         cohort_id: record.cohort_id.clone(),
                         unit: record.unit.clone(),
-                    })?;
+                    }
+                })?;
             } else if *accepted_at <= horizon_at {
-                accumulator
-                    .add("late", record.quantity)
-                    .map_err(|_| ServiceError::QuantityOverflow {
+                accumulator.add("late", record.quantity).map_err(|_| {
+                    ServiceError::QuantityOverflow {
                         cohort_id: record.cohort_id.clone(),
                         unit: record.unit.clone(),
-                    })?;
+                    }
+                })?;
             } else {
                 // A verified acceptance after the measurement horizon means
                 // the cargo was not receiver-accepted by that horizon.
@@ -347,7 +359,10 @@ pub fn evaluate_receiver_service(
             });
         }
         let key = (floor.cohort_id.clone(), floor.unit.clone());
-        if floor_map.insert(key.clone(), floor.minimum_basis_points).is_some() {
+        if floor_map
+            .insert(key.clone(), floor.minimum_basis_points)
+            .is_some()
+        {
             return Err(ServiceError::DuplicateFloor {
                 cohort_id: key.0,
                 unit: key.1,
@@ -460,11 +475,14 @@ mod tests {
                 1,
                 "container",
                 100,
-                OutcomeEvidence::TerminalExitOnly { terminal_exit_at: 80 },
+                OutcomeEvidence::TerminalExitOnly {
+                    terminal_exit_at: 80,
+                },
             ),
         ];
-        let report = evaluate_receiver_service(&records, &[floor("priority", "container", 5_000)], 120)
-            .unwrap();
+        let report =
+            evaluate_receiver_service(&records, &[floor("priority", "container", 5_000)], 120)
+                .unwrap();
         let group = &report.cohorts[0];
         assert_eq!(group.on_time_quantity, 1);
         assert_eq!(group.scheduled_quantity, 2);
@@ -480,7 +498,9 @@ mod tests {
             1,
             "container",
             100,
-            OutcomeEvidence::TerminalExitOnly { terminal_exit_at: 80 },
+            OutcomeEvidence::TerminalExitOnly {
+                terminal_exit_at: 80,
+            },
         )];
         let report = evaluate_receiver_service(&records, &[], 120).unwrap();
         assert_eq!(report.cohorts[0].on_time_quantity, 0);
@@ -544,7 +564,9 @@ mod tests {
                 4,
                 "container",
                 100,
-                OutcomeEvidence::Censored { last_observed_at: 95 },
+                OutcomeEvidence::Censored {
+                    last_observed_at: 95,
+                },
             ),
         ];
         let report =
@@ -601,7 +623,10 @@ mod tests {
         let report =
             evaluate_receiver_service(&records, &[floor("essential", "container", 5_000)], 120)
                 .unwrap();
-        assert_eq!(report.cohorts[0].floor_disposition, FloorDisposition::Unknown);
+        assert_eq!(
+            report.cohorts[0].floor_disposition,
+            FloorDisposition::Unknown
+        );
     }
 
     #[test]
@@ -624,7 +649,9 @@ mod tests {
                 1,
                 "container",
                 100,
-                OutcomeEvidence::Censored { last_observed_at: 90 },
+                OutcomeEvidence::Censored {
+                    last_observed_at: 90,
+                },
             ),
         ];
         let report =
@@ -726,7 +753,9 @@ mod tests {
                 1,
                 "container",
                 100,
-                OutcomeEvidence::Censored { last_observed_at: 90 },
+                OutcomeEvidence::Censored {
+                    last_observed_at: 90,
+                },
             ),
         ];
         let report =
@@ -743,7 +772,9 @@ mod tests {
             1,
             "container",
             100,
-            OutcomeEvidence::Censored { last_observed_at: 130 },
+            OutcomeEvidence::Censored {
+                last_observed_at: 130,
+            },
         )];
         assert_eq!(
             evaluate_receiver_service(&records, &[], 120),
@@ -779,8 +810,22 @@ mod tests {
     #[test]
     fn quantity_overflow_is_rejected() {
         let records = vec![
-            unit("C1", "general", u64::MAX, "container", 100, OutcomeEvidence::Disputed),
-            unit("C2", "general", 1, "container", 100, OutcomeEvidence::Disputed),
+            unit(
+                "C1",
+                "general",
+                u64::MAX,
+                "container",
+                100,
+                OutcomeEvidence::Disputed,
+            ),
+            unit(
+                "C2",
+                "general",
+                1,
+                "container",
+                100,
+                OutcomeEvidence::Disputed,
+            ),
         ];
         assert!(matches!(
             evaluate_receiver_service(&records, &[], 120),
