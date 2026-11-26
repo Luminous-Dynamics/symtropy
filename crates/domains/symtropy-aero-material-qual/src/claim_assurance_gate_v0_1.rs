@@ -199,7 +199,12 @@ pub fn compute_component_report_sha256<T: Serialize>(
     let bytes = serde_json::to_vec(&envelope)
         .map_err(|_| "COMPONENT_REPORT_SERIALIZATION_FAILED".to_owned())?;
     let digest = Sha256::digest(bytes);
-    Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect())
+    let digest_hex = digest
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<Vec<_>>()
+        .join("");
+    Ok(digest_hex)
 }
 
 /// Validate that the three typed component results refer to exactly the same
