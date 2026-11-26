@@ -251,10 +251,11 @@ fn decode_png(bytes: &[u8]) -> Result<RgbImage, String> {
         return Err("PNG_OUTPUT_NOT_8_BIT".to_owned());
     }
     let bytes = &buffer[..info.buffer_size()];
-    let mut pixels = Vec::with_capacity((info.width * info.height) as usize);
+    let pixel_count = info.width as usize * info.height as usize;
+    let mut pixels = Vec::with_capacity(pixel_count);
     match info.color_type {
         png::ColorType::Rgb => {
-            if bytes.len() != pixels.capacity() * 3 {
+            if bytes.len() != pixel_count * 3 {
                 return Err("PNG_RGB_BUFFER_LENGTH_MISMATCH".to_owned());
             }
             for pixel in bytes.chunks_exact(3) {
@@ -262,7 +263,7 @@ fn decode_png(bytes: &[u8]) -> Result<RgbImage, String> {
             }
         }
         png::ColorType::Rgba => {
-            if bytes.len() != pixels.capacity() * 4 {
+            if bytes.len() != pixel_count * 4 {
                 return Err("PNG_RGBA_BUFFER_LENGTH_MISMATCH".to_owned());
             }
             for pixel in bytes.chunks_exact(4) {
@@ -275,7 +276,7 @@ fn decode_png(bytes: &[u8]) -> Result<RgbImage, String> {
             }
         }
         png::ColorType::Grayscale => {
-            if bytes.len() != pixels.capacity() {
+            if bytes.len() != pixel_count {
                 return Err("PNG_GRAYSCALE_BUFFER_LENGTH_MISMATCH".to_owned());
             }
             for value in bytes {
@@ -283,7 +284,7 @@ fn decode_png(bytes: &[u8]) -> Result<RgbImage, String> {
             }
         }
         png::ColorType::GrayscaleAlpha => {
-            if bytes.len() != pixels.capacity() * 2 {
+            if bytes.len() != pixel_count * 2 {
                 return Err("PNG_GRAYSCALE_ALPHA_BUFFER_LENGTH_MISMATCH".to_owned());
             }
             for pixel in bytes.chunks_exact(2) {
@@ -322,7 +323,7 @@ fn gaussian_kernel() -> [[f64; SSIM_WINDOW]; SSIM_WINDOW] {
     kernel
 }
 
-pub fn compute_ssim(original: &RgbImage, replay: &RgbImage) -> Result<f64, String> {
+fn compute_ssim(original: &RgbImage, replay: &RgbImage) -> Result<f64, String> {
     if original.width != replay.width || original.height != replay.height {
         return Err("FRAME_DIMENSIONS_MISMATCH".to_owned());
     }
@@ -433,7 +434,11 @@ fn validate_difficulty_screen(screen: &DifficultyScreen) -> Result<usize, Vec<St
             .or_default()
             .insert(trial.trial_index);
     }
-    if policy_trial_counts.values().any(|indices| indices.len() != 5) {
+    let expected_trial_indices: BTreeSet<u8> = (0..5).collect();
+    if policy_trial_counts
+        .values()
+        .any(|indices| *indices != expected_trial_indices)
+    {
         reasons.push("DIFFICULTY_POLICY_TRIAL_COUNT_NOT_5".to_owned());
     }
     let successes = screen.trials.iter().filter(|trial| trial.success).count();
@@ -524,7 +529,7 @@ fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> Candida
         push_status(&mut status, AuditStatus::Invalid);
     }
     let mut seen_frame_indices = BTreeSet::new();
-    for frame in &candidate.final_frame_pairs {
+    for (expected_index, frame) in candidate.final_frame_pairs.iter().enumerate() {
         let mut check = FrameCheck {
             frame_index: frame.frame_index,
             original_sha256: frame.original_sha256.clone(),
@@ -537,6 +542,10 @@ fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> Candida
             threshold: SSIM_THRESHOLD,
             passed: None,
         };
+        if frame.frame_index as usize != expected_index {
+            reason_codes.push("FRAME_INDEX_ORDER_INVALID".to_owned());
+            push_status(&mut status, AuditStatus::Invalid);
+        }
         if !seen_frame_indices.insert(frame.frame_index) {
             reason_codes.push("FRAME_INDEX_DUPLICATED".to_owned());
             push_status(&mut status, AuditStatus::Invalid);
