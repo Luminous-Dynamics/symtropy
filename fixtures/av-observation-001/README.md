@@ -107,3 +107,8 @@ The new cases are not a sealed benchmark and do not prove physical spatial under
 ### Structural sanity check
 
 At source review, the TSV contains 20 unique case IDs, 10 pair IDs with exactly one `control` and one `mutated` case each, and 10 fields per data row. This is a text-structure check, not a renderer/replay or Rust workflow result.
+
+
+## Decision-sufficiency adapter bridge
+
+See [decision-sufficiency-bridge-v0.md](./decision-sufficiency-bridge-v0.md) for the candidate/evaluator handoff from spatial map hypotheses into existing Symtropy #7558/#7577 types. It explicitly keeps #6675 as the sequential action/deadline owner and MACE #13284 as the memory cost–decision-regret evaluator. No new scheduler, map service, truth store or memory engine is introduced.
