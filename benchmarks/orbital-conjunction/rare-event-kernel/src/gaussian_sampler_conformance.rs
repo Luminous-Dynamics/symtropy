@@ -83,36 +83,60 @@ pub struct GaussianProposalExecutionReceipt {
 /// Independently reconstructed and density-checked Gaussian proposal draw.
 #[derive(Debug, Clone, PartialEq)]
 pub struct VerifiedGaussianProposalDraw {
+    sequence_index: u64,
+    sample_id: [u8; 32],
+    receipt_digest: [u8; 32],
+    selected_component_index: usize,
+    selected_component_id: [u8; 32],
+    defensive_target_component_selected: bool,
+    selected_proposal_mode_key: Option<PortfolioEventModeKey>,
+    outcome_mode_key: PortfolioEventModeKey,
+    sampled_point: Vec<f64>,
+    log_target_density: f64,
+    log_full_proposal_density: f64,
+    log_importance_weight: f64,
+    normalized_contrast: f64,
+    defensive_contribution: f64,
+    proposal_configuration_digest: [u8; 32],
+}
+
+impl VerifiedGaussianProposalDraw {
     /// One-based accepted sample index.
-    pub sequence_index: u64,
-    /// Sample identity from the execution receipt.
-    pub sample_id: [u8; 32],
+    pub fn sequence_index(&self) -> u64 { self.sequence_index }
+    /// Sample identity from the replayed execution receipt.
+    pub fn sample_id(&self) -> [u8; 32] { self.sample_id }
     /// Domain-separated SHA-256 digest of the complete receipt content.
-    pub receipt_digest: [u8; 32],
+    pub fn receipt_digest(&self) -> [u8; 32] { self.receipt_digest }
     /// Deterministically reconstructed component index.
-    pub selected_component_index: usize,
+    pub fn selected_component_index(&self) -> usize { self.selected_component_index }
     /// Deterministically reconstructed component identity.
-    pub selected_component_id: [u8; 32],
+    pub fn selected_component_id(&self) -> [u8; 32] { self.selected_component_id }
     /// True iff the defensive target component generated the sample.
-    pub defensive_target_component_selected: bool,
+    pub fn defensive_target_component_selected(&self) -> bool {
+        self.defensive_target_component_selected
+    }
     /// Residual proposal mode key, absent for a target-component draw.
-    pub selected_proposal_mode_key: Option<PortfolioEventModeKey>,
+    pub fn selected_proposal_mode_key(&self) -> Option<PortfolioEventModeKey> {
+        self.selected_proposal_mode_key
+    }
     /// Outcome mode key to which the direct contrast applies.
-    pub outcome_mode_key: PortfolioEventModeKey,
+    pub fn outcome_mode_key(&self) -> PortfolioEventModeKey { self.outcome_mode_key }
     /// Bit-exact replayed sample point.
-    pub sampled_point: Vec<f64>,
+    pub fn sampled_point(&self) -> &[f64] { &self.sampled_point }
     /// Log target density p(x).
-    pub log_target_density: f64,
+    pub fn log_target_density(&self) -> f64 { self.log_target_density }
     /// Log density of the complete defensive mixture q(x).
-    pub log_full_proposal_density: f64,
+    pub fn log_full_proposal_density(&self) -> f64 { self.log_full_proposal_density }
     /// Log target / full-proposal likelihood ratio.
-    pub log_importance_weight: f64,
+    pub fn log_importance_weight(&self) -> f64 { self.log_importance_weight }
     /// Normalized direct contrast in [0,1].
-    pub normalized_contrast: f64,
+    pub fn normalized_contrast(&self) -> f64 { self.normalized_contrast }
     /// Bounded defensive observation epsilon * g(x) * p(x)/q(x).
-    pub defensive_contribution: f64,
+    pub fn defensive_contribution(&self) -> f64 { self.defensive_contribution }
     /// Frozen proposal configuration digest.
-    pub proposal_configuration_digest: [u8; 32],
+    pub fn proposal_configuration_digest(&self) -> [u8; 32] {
+        self.proposal_configuration_digest
+    }
 }
 
 /// Fail-closed sampler receipt, identity or replay errors.
@@ -471,18 +495,18 @@ mod tests {
         let receipt = receipt(&proposal, 1, 1, 0.3, 0.5, key(10));
         let verified = verifier.verify_next(&receipt).unwrap();
 
-        assert_eq!(verified.sequence_index, 1);
-        assert_eq!(verified.sample_id, receipt.sample_id);
-        assert_eq!(verified.sampled_point, receipt.claimed_point);
-        assert!(!verified.defensive_target_component_selected);
-        assert_eq!(verified.selected_proposal_mode_key, Some(key(10)));
-        assert!(verified.log_target_density.is_finite());
-        assert!(verified.log_full_proposal_density.is_finite());
+        assert_eq!(verified.sequence_index(), 1);
+        assert_eq!(verified.sample_id(), receipt.sample_id);
+        assert_eq!(verified.sampled_point(), receipt.claimed_point);
+        assert!(!verified.defensive_target_component_selected());
+        assert_eq!(verified.selected_proposal_mode_key(), Some(key(10)));
+        assert!(verified.log_target_density().is_finite());
+        assert!(verified.log_full_proposal_density().is_finite());
         assert!(
-            verified.log_importance_weight
+            verified.log_importance_weight()
                 <= -proposal.defensive_fraction().ln() + 1.0e-12
         );
-        assert!((0.0..=1.0).contains(&verified.defensive_contribution));
+        assert!((0.0..=1.0).contains(&verified.defensive_contribution()));
         assert_ne!(verified.receipt_digest, [0; 32]);
         assert_eq!(verifier.sample_count(), 1);
     }
@@ -493,8 +517,8 @@ mod tests {
         let mut verifier = GaussianProposalExecutionVerifier::new(proposal.clone(), contract()).unwrap();
         let receipt = receipt(&proposal, 1, 2, 0.0, -0.25, key(20));
         let verified = verifier.verify_next(&receipt).unwrap();
-        assert!(verified.defensive_target_component_selected);
-        assert_eq!(verified.selected_proposal_mode_key, None);
+        assert!(verified.defensive_target_component_selected());
+        assert_eq!(verified.selected_proposal_mode_key(), None);
     }
 
     #[test]
