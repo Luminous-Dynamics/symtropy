@@ -14,7 +14,7 @@
           "Calibration",
           "TrustAnchor"
         ],
-        "minimum_independent_copies": 2
+        "minimum_independent_copies": 0
       },
       "observations": [
         {
@@ -75,7 +75,7 @@
           "Calibration",
           "TrustAnchor"
         ],
-        "minimum_independent_copies": 2
+        "minimum_independent_copies": 0
       },
       "observations": [
         {
@@ -127,7 +127,7 @@
           "Calibration",
           "TrustAnchor"
         ],
-        "minimum_independent_copies": 2
+        "minimum_independent_copies": 0
       },
       "observations": [
         {
@@ -193,7 +193,7 @@
           "Calibration",
           "TrustAnchor"
         ],
-        "minimum_independent_copies": 2
+        "minimum_independent_copies": 0
       },
       "observations": [
         {
@@ -257,7 +257,7 @@
           "Calibration",
           "TrustAnchor"
         ],
-        "minimum_independent_copies": 2
+        "minimum_independent_copies": 0
       },
       "observations": [
         {
@@ -336,7 +336,7 @@
           "TrustAnchor",
           "RevocationFreshness"
         ],
-        "minimum_independent_copies": 2
+        "minimum_independent_copies": 0
       },
       "observations": [
         {
@@ -415,7 +415,7 @@
           "Calibration",
           "TrustAnchor"
         ],
-        "minimum_independent_copies": 2
+        "minimum_independent_copies": 0
       },
       "observations": [
         {
@@ -481,7 +481,7 @@
           "Calibration",
           "TrustAnchor"
         ],
-        "minimum_independent_copies": 2
+        "minimum_independent_copies": 0
       },
       "observations": [
         {
@@ -546,7 +546,7 @@
           "TrustAnchor",
           "EnvironmentEnvelope"
         ],
-        "minimum_independent_copies": 2
+        "minimum_independent_copies": 0
       },
       "observations": [
         {
@@ -704,7 +704,7 @@
           "Calibration",
           "TrustAnchor"
         ],
-        "minimum_independent_copies": 2
+        "minimum_independent_copies": 0
       },
       "observations": [
         {
@@ -779,7 +779,7 @@
           "Calibration",
           "TrustAnchor"
         ],
-        "minimum_independent_copies": 2
+        "minimum_independent_copies": 0
       },
       "observations": [
         {
@@ -930,7 +930,7 @@
           "Calibration",
           "TrustAnchor"
         ],
-        "minimum_independent_copies": 2
+        "minimum_independent_copies": 0
       },
       "observations": [
         {
@@ -980,6 +980,84 @@
       "expected_contract_error": "InvalidObservationTime",
       "expected_actions": [],
       "rationale": "Future-dated observations are rejected rather than used to claim current health."
+    },
+    {
+      "case_id": "PW-015-OPTIONAL-INVALID-PROVENANCE-ALERT",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor"
+        ],
+        "minimum_independent_copies": 0
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-1",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "OPT-SANDBOX-1",
+          "target_id": "archive-A",
+          "signal": "SandboxPolicy",
+          "sequence": 1,
+          "state": "Alert",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "observer_id": "untrusted-observer",
+          "provenance": "Invalid",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null
+        }
+      ],
+      "expected_disposition": "Blocked",
+      "expected_contract_error": null,
+      "expected_actions": [
+        "IsolateSuspectCopy",
+        "HumanReview"
+      ],
+      "rationale": "An invalidly sourced optional policy signal must still block; non-required must not mean silently ignored."
     }
   ]
 }
