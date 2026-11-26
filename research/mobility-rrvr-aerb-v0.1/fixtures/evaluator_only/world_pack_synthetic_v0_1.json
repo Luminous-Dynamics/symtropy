@@ -312,7 +312,8 @@
             "applied_once_ack_lost",
             "partial_effect",
             "duplicate_effect",
-            "stale_authority_effect"
+            "stale_authority_effect",
+            "open_world_residual"
           ]
         },
         {
