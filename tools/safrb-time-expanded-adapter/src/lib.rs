@@ -555,16 +555,33 @@ fn solve(
     let obligation_edges = parsed.obligations.iter()
         .map(|obligation| obligation.edge_id.as_str())
         .collect::<BTreeSet<_>>();
+    // In an isolated-beneficiary solve, the sink arc must not remain capped
+    // at the service floor. Bound it by all source capacity so the result is
+    // the actual isolated maximum deliverable quantity within this graph.
+    let individual_source_capacity_bound = if only_obligation_edge.is_some() {
+        Some(parsed.edges.iter()
+            .filter(|edge| edge.from == parsed.source)
+            .try_fold(0_u64, |sum, edge| {
+                let capacity = if upper { edge.upper } else { edge.lower };
+                sum.checked_add(capacity)
+                    .ok_or_else(|| err("$", "isolated source-capacity bound overflowed u64"))
+            })?)
+    } else {
+        None
+    };
     let edges = parsed.edges.iter()
         .filter(|edge| {
             if !obligation_edges.contains(edge.id.as_str()) {
                 return true;
             }
             only_obligation_edge == Some(edge.id.as_str())
-                || (only_obligation_edge.is_none())
+                || only_obligation_edge.is_none()
         })
         .map(|e| {
-            let capacity = if upper { e.upper } else { e.lower };
+            let mut capacity = if upper { e.upper } else { e.lower };
+            if only_obligation_edge == Some(e.id.as_str()) {
+                capacity = individual_source_capacity_bound.unwrap_or(capacity);
+            }
             let metadata = format!("safrb-v0.1/{}/{}/t{}", parsed.scope, e.resource, e.time);
             FlowEdge::new(e.id.clone(), e.from.clone(), e.to.clone(), capacity, Some(metadata))
         })
@@ -862,11 +879,11 @@ mod tests {
         assert_eq!(result.windows.len(), 2);
         assert_eq!(
             (result.windows[0].lower_individual_max_deliverable, result.windows[0].upper_individual_max_deliverable),
-            (6, 6)
+            (6, 8)
         );
         assert_eq!(
             (result.windows[1].lower_individual_max_deliverable, result.windows[1].upper_individual_max_deliverable),
-            (3, 6)
+            (3, 8)
         );
         assert_eq!(
             (result.windows[0].lower_joint_witness_allocation, result.windows[1].lower_joint_witness_allocation),
@@ -887,6 +904,26 @@ mod tests {
         let actual_cut = result.lower.min_cut.edges.iter()
             .map(|edge| edge.id.clone()).collect::<BTreeSet<_>>();
         assert_eq!(actual_cut, expected_cut);
+    }
+
+    #[test]
+    fn individual_maximum_is_not_truncated_at_the_service_floor() {
+        let mut input = scenario();
+        input["service_obligations"][0]["required_lower"] = Value::from(5);
+        input["edges"].as_array_mut().unwrap()
+            .iter_mut()
+            .find(|edge| edge["id"] == "service-obligation-t1").unwrap()["capacity_lower"] = Value::from(5);
+        input["edges"].as_array_mut().unwrap()
+            .iter_mut()
+            .find(|edge| edge["id"] == "service-obligation-t1").unwrap()["capacity_upper"] = Value::from(5);
+
+        // The second obligation remains at 6 t; the joint network is infeasible
+        // under the conservative capacities. Window 1 can individually receive
+        // 6 t through the shared pump although its required floor is 5 t.
+        let result = evaluate_scenario(&input).unwrap();
+        assert_eq!(result.windows[0].required, 5);
+        assert_eq!(result.windows[0].lower_individual_max_deliverable, 6);
+        assert_eq!(result.windows[0].upper_individual_max_deliverable, 8);
     }
 
     #[test]
