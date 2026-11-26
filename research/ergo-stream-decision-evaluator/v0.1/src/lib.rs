@@ -710,6 +710,7 @@ mod tests {
         )
         .unwrap();
 
+        assert!(report.candidate_policy_result_matches_problem);
         assert_eq!(report.correctly_bound_hypotheses, 4);
         assert_eq!(report.false_excluded_hypotheses, 0);
         assert_eq!(report.false_included_hypotheses, 0);
