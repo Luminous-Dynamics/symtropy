@@ -1860,6 +1860,7 @@ mod tests {
             0.0,
         );
         let mut second = first.clone();
+        second.trace_id = "different-evidence-id".to_owned();
         second.evidence_kind = EvidenceKind::PhysicalBuild;
         assert_eq!(
             evaluate_trace_set(&[first.clone(), second], &requirements(1, 0.0)),
