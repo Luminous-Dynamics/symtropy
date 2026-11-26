@@ -522,24 +522,29 @@ mod tests {
         }
     }
 
-    fn proposal_for_scenario(scenario: u8) -> PortfolioDefensiveGaussianMixture {
+    const CONSEQUENCE_CONTRACT_ID: [u8; 32] = [92; 32];
+
+    fn proposal_for_scenario(scenario: u8) -> ScenarioDefensiveProposal {
         let target = GaussianMixture::new(vec![
             GaussianComponent::new(1.0, gaussian(0.0, 1.0)).unwrap(),
         ])
         .unwrap();
-        PortfolioDefensiveGaussianMixture::new(
-            TARGET_MEASURE_ID,
-            DENSITY_SPACE_ID,
-            target,
-            0.2,
-            vec![key(10, scenario), key(20, scenario), key(30, scenario)],
-            vec![
-                component(1, 10, scenario),
-                component(2, 20, scenario),
-                component(3, 30, scenario),
-            ],
-        )
-        .unwrap()
+        ScenarioDefensiveProposal {
+            scenario_manifest_digest: [100 + scenario; 32],
+            proposal: PortfolioDefensiveGaussianMixture::new(
+                TARGET_MEASURE_ID,
+                DENSITY_SPACE_ID,
+                target,
+                0.2,
+                vec![key(10, scenario), key(20, scenario), key(30, scenario)],
+                vec![
+                    component(1, 10, scenario),
+                    component(2, 20, scenario),
+                    component(3, 30, scenario),
+                ],
+            )
+            .unwrap(),
+        }
     }
 
     fn bounds() -> Vec<PortfolioConsequenceBound> {
@@ -608,6 +613,7 @@ mod tests {
     fn coordinator() -> ScenarioRobustPortfolioSelection {
         ScenarioRobustPortfolioSelection::new(
             0.05,
+            CONSEQUENCE_CONTRACT_ID,
             bounds(),
             vec![proposal_for_scenario(2), proposal_for_scenario(1)],
         )
@@ -624,8 +630,14 @@ mod tests {
         assert_eq!(report.pairwise_contrasts_per_scenario, 3);
         assert_eq!(report.total_scenario_pair_intervals, 6);
         assert_eq!(report.per_scenario_alpha, 0.025);
+        assert_eq!(report.consequence_contract_id, CONSEQUENCE_CONTRACT_ID);
         assert_eq!(report.scenario_reports[0].scenario_id, [1; 32]);
+        assert_eq!(report.scenario_reports[0].scenario_manifest_digest, [101; 32]);
         assert_eq!(report.scenario_reports[1].scenario_id, [2; 32]);
+        assert_eq!(report.scenario_reports[1].scenario_manifest_digest, [102; 32]);
+        assert!(report.scenario_reports.iter().all(|snapshot| {
+            snapshot.consequence_contract_id == CONSEQUENCE_CONTRACT_ID
+        }));
         assert_eq!(report.unique_robust_best_portfolio_id, None);
         assert_eq!(
             report.robustly_undominated_portfolio_ids,
@@ -778,10 +790,83 @@ mod tests {
     }
 
     #[test]
+    fn zero_consequence_contract_and_zero_scenario_manifest_fail_closed() {
+        assert_eq!(
+            ScenarioRobustPortfolioSelection::new(
+                0.05,
+                [0; 32],
+                bounds(),
+                vec![proposal_for_scenario(1)],
+            )
+            .unwrap_err(),
+            ScenarioRobustSelectionError::InvalidConsequenceContractIdentity
+        );
+
+        let mut invalid_manifest = proposal_for_scenario(1);
+        invalid_manifest.scenario_manifest_digest = [0; 32];
+        assert_eq!(
+            ScenarioRobustPortfolioSelection::new(
+                0.05,
+                CONSEQUENCE_CONTRACT_ID,
+                bounds(),
+                vec![invalid_manifest],
+            )
+            .unwrap_err(),
+            ScenarioRobustSelectionError::InvalidScenarioManifestDigest
+        );
+    }
+
+    #[test]
+    fn scenario_draw_ids_must_be_unique_across_a_complete_batch() {
+        let mut process = coordinator();
+        let mut duplicate = batch(
+            1,
+            1,
+            &[(10, 0), (20, 10), (30, 20)],
+            &[(10, 0), (20, 10), (30, 20)],
+        );
+        duplicate.scenario_draws[1].draw_id = duplicate.scenario_draws[0].draw_id;
+        assert_eq!(
+            process.observe(&duplicate),
+            Err(ScenarioRobustSelectionError::DuplicateScenarioDrawIdentity)
+        );
+        assert_eq!(process.batch_count(), 0);
+    }
+
+    #[test]
+    fn scenario_draw_input_order_does_not_change_canonical_report_or_receipts() {
+        let mut forward = coordinator();
+        let mut reverse = coordinator();
+        let first = batch(
+            1,
+            1,
+            &[(10, 0), (20, 10), (30, 20)],
+            &[(10, 2), (20, 7), (30, 12)],
+        );
+        let mut second = first.clone();
+        second.scenario_draws.reverse();
+
+        let forward_receipt = forward.observe(&first).unwrap();
+        let reverse_receipt = reverse.observe(&second).unwrap();
+
+        assert_eq!(
+            forward_receipt
+                .scenario_receipts
+                .iter()
+                .map(|receipt| receipt.scenario_id)
+                .collect::<Vec<_>>(),
+            vec![[1; 32], [2; 32]]
+        );
+        assert_eq!(forward_receipt, reverse_receipt);
+        assert_eq!(forward.report().unwrap(), reverse.report().unwrap());
+    }
+
+    #[test]
     fn duplicate_scenario_identity_is_rejected_at_construction() {
         assert_eq!(
             ScenarioRobustPortfolioSelection::new(
                 0.05,
+                CONSEQUENCE_CONTRACT_ID,
                 bounds(),
                 vec![proposal_for_scenario(1), proposal_for_scenario(1)],
             )
