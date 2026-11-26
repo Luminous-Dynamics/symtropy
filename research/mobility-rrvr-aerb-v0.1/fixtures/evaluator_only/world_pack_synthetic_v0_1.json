@@ -1,0 +1,292 @@
+{
+  "schema_version": "0.1",
+  "benchmark": "AERB",
+  "episode_id": "aerb-synthetic-0001",
+  "hidden_truth_world_id": "applied_once_ack_lost",
+  "evaluator_profile_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+  "worlds": [
+    {
+      "world_id": "not_dispatched",
+      "dispatch_state": "not_dispatched",
+      "effect_state": "none",
+      "effect_count": 0,
+      "authority_relation": "not_applicable",
+      "acknowledgement_state": "unknown"
+    },
+    {
+      "world_id": "dispatched_no_effect",
+      "dispatch_state": "dispatched",
+      "effect_state": "none",
+      "effect_count": 0,
+      "authority_relation": "current_epoch",
+      "acknowledgement_state": "lost"
+    },
+    {
+      "world_id": "applied_once_ack_lost",
+      "dispatch_state": "dispatched",
+      "effect_state": "once",
+      "effect_count": 1,
+      "authority_relation": "current_epoch",
+      "acknowledgement_state": "lost"
+    },
+    {
+      "world_id": "partial_effect",
+      "dispatch_state": "dispatched",
+      "effect_state": "partial",
+      "effect_count": 0,
+      "authority_relation": "current_epoch",
+      "acknowledgement_state": "lost"
+    },
+    {
+      "world_id": "duplicate_effect",
+      "dispatch_state": "dispatched",
+      "effect_state": "duplicate",
+      "effect_count": 2,
+      "authority_relation": "current_epoch",
+      "acknowledgement_state": "lost"
+    },
+    {
+      "world_id": "stale_authority_effect",
+      "dispatch_state": "dispatched",
+      "effect_state": "stale_epoch",
+      "effect_count": 1,
+      "authority_relation": "stale_epoch",
+      "acknowledgement_state": "unknown"
+    },
+    {
+      "world_id": "unresolved_command_holder",
+      "dispatch_state": "unknown",
+      "effect_state": "unknown",
+      "effect_count": 0,
+      "authority_relation": "unresolved_holder",
+      "acknowledgement_state": "unknown"
+    }
+  ],
+  "decision_losses": [
+    {
+      "disposition": "hold_reconcile",
+      "world_id": "not_dispatched",
+      "loss": 0.35
+    },
+    {
+      "disposition": "recommend_fresh_attempt",
+      "world_id": "not_dispatched",
+      "loss": 0
+    },
+    {
+      "disposition": "abstain",
+      "world_id": "not_dispatched",
+      "loss": 0.45
+    },
+    {
+      "disposition": "request_observation",
+      "world_id": "not_dispatched",
+      "loss": 0.3
+    },
+    {
+      "disposition": "hold_reconcile",
+      "world_id": "dispatched_no_effect",
+      "loss": 0.35
+    },
+    {
+      "disposition": "recommend_fresh_attempt",
+      "world_id": "dispatched_no_effect",
+      "loss": 0
+    },
+    {
+      "disposition": "abstain",
+      "world_id": "dispatched_no_effect",
+      "loss": 0.45
+    },
+    {
+      "disposition": "request_observation",
+      "world_id": "dispatched_no_effect",
+      "loss": 0.3
+    },
+    {
+      "disposition": "hold_reconcile",
+      "world_id": "applied_once_ack_lost",
+      "loss": 0.05
+    },
+    {
+      "disposition": "recommend_fresh_attempt",
+      "world_id": "applied_once_ack_lost",
+      "loss": 0.95
+    },
+    {
+      "disposition": "abstain",
+      "world_id": "applied_once_ack_lost",
+      "loss": 0.45
+    },
+    {
+      "disposition": "request_observation",
+      "world_id": "applied_once_ack_lost",
+      "loss": 0.3
+    },
+    {
+      "disposition": "hold_reconcile",
+      "world_id": "partial_effect",
+      "loss": 0.1
+    },
+    {
+      "disposition": "recommend_fresh_attempt",
+      "world_id": "partial_effect",
+      "loss": 0.95
+    },
+    {
+      "disposition": "abstain",
+      "world_id": "partial_effect",
+      "loss": 0.45
+    },
+    {
+      "disposition": "request_observation",
+      "world_id": "partial_effect",
+      "loss": 0.3
+    },
+    {
+      "disposition": "hold_reconcile",
+      "world_id": "duplicate_effect",
+      "loss": 0.15
+    },
+    {
+      "disposition": "recommend_fresh_attempt",
+      "world_id": "duplicate_effect",
+      "loss": 1
+    },
+    {
+      "disposition": "abstain",
+      "world_id": "duplicate_effect",
+      "loss": 0.45
+    },
+    {
+      "disposition": "request_observation",
+      "world_id": "duplicate_effect",
+      "loss": 0.3
+    },
+    {
+      "disposition": "hold_reconcile",
+      "world_id": "stale_authority_effect",
+      "loss": 0.25
+    },
+    {
+      "disposition": "recommend_fresh_attempt",
+      "world_id": "stale_authority_effect",
+      "loss": 1
+    },
+    {
+      "disposition": "abstain",
+      "world_id": "stale_authority_effect",
+      "loss": 0.45
+    },
+    {
+      "disposition": "request_observation",
+      "world_id": "stale_authority_effect",
+      "loss": 0.3
+    },
+    {
+      "disposition": "hold_reconcile",
+      "world_id": "unresolved_command_holder",
+      "loss": 0.25
+    },
+    {
+      "disposition": "recommend_fresh_attempt",
+      "world_id": "unresolved_command_holder",
+      "loss": 0.9
+    },
+    {
+      "disposition": "abstain",
+      "world_id": "unresolved_command_holder",
+      "loss": 0.45
+    },
+    {
+      "disposition": "request_observation",
+      "world_id": "unresolved_command_holder",
+      "loss": 0.3
+    }
+  ],
+  "probe_outcome_supports": [
+    {
+      "probe_id": "read_endpoint_journal",
+      "outcomes": [
+        {
+          "outcome_id": "journal_no_effect_complete",
+          "possible_world_ids": [
+            "not_dispatched",
+            "dispatched_no_effect"
+          ]
+        },
+        {
+          "outcome_id": "journal_applied_once_complete",
+          "possible_world_ids": [
+            "applied_once_ack_lost"
+          ]
+        },
+        {
+          "outcome_id": "journal_partial_duplicate_or_stale",
+          "possible_world_ids": [
+            "partial_effect",
+            "duplicate_effect",
+            "stale_authority_effect"
+          ]
+        },
+        {
+          "outcome_id": "journal_incomplete_or_holder_unresolved",
+          "possible_world_ids": [
+            "unresolved_command_holder"
+          ]
+        }
+      ]
+    },
+    {
+      "probe_id": "independent_pose_observation",
+      "outcomes": [
+        {
+          "outcome_id": "no_pose_change",
+          "possible_world_ids": [
+            "not_dispatched",
+            "dispatched_no_effect",
+            "unresolved_command_holder"
+          ]
+        },
+        {
+          "outcome_id": "target_pose_once",
+          "possible_world_ids": [
+            "applied_once_ack_lost",
+            "unresolved_command_holder"
+          ]
+        },
+        {
+          "outcome_id": "partial_or_multiple_pose_change",
+          "possible_world_ids": [
+            "partial_effect",
+            "duplicate_effect",
+            "stale_authority_effect",
+            "unresolved_command_holder"
+          ]
+        }
+      ]
+    },
+    {
+      "probe_id": "inventory_command_holders",
+      "outcomes": [
+        {
+          "outcome_id": "holder_inventory_closed",
+          "possible_world_ids": [
+            "not_dispatched",
+            "dispatched_no_effect",
+            "applied_once_ack_lost",
+            "partial_effect",
+            "duplicate_effect",
+            "stale_authority_effect"
+          ]
+        },
+        {
+          "outcome_id": "unresolved_holder_found",
+          "possible_world_ids": [
+            "unresolved_command_holder"
+          ]
+        }
+      ]
+    }
+  ]
+}
