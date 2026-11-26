@@ -607,7 +607,7 @@ mod tests {
             "SA-009-FRAME-MISMATCH",
             "SA-010-DYNAMICS-MISMATCH",
             "SA-011-INITIAL-STATE-MISMATCH",
-            "SA-012-UNCERTAINTY-SET-MISMATCH",
+            "SA-012-UNCERTAINTY-MISMATCH",
             "SA-013-TIME-BASIS-MISMATCH",
         ] {
             let case = input.cases.iter().find(|case| case.case_id == id).unwrap();
