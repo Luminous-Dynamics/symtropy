@@ -1317,9 +1317,7 @@ mod tests {
                 requirements(),
             )
             .expect_err("uncertainty can erase the hysteresis gap"),
-            ParameterAwareSynthesisError::RobustHysteresisGapCollapsed {
-                channel: 'A'
-            }
+            ParameterAwareSynthesisError::RobustHysteresisGapCollapsed { channel: 'A' }
         );
     }
 
