@@ -262,8 +262,8 @@ pub struct EvaluationReport {
 }
 
 pub fn evaluate_json(input: &str) -> Result<EvaluationReport, String> {
-    let bundle: ResultsBundle = serde_json::from_str(input)
-        .map_err(|error| format!("RESULTS_JSON_INVALID: {error}"))?;
+    let bundle: ResultsBundle =
+        serde_json::from_str(input).map_err(|error| format!("RESULTS_JSON_INVALID: {error}"))?;
     validate_bundle(&bundle)?;
     Ok(evaluate_bundle(&bundle))
 }
