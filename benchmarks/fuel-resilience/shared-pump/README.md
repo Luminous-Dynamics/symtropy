@@ -41,3 +41,6 @@ Classical max-flow/min-cut is valid only for this declared network model. Multi-
 The certificate binds the SHA-256 of the scenario object, serialized as UTF-8 JSON with recursively sorted object keys and compact separators. This fixture's digest is recorded in the certificate. This is a local fixture canonicalization rule, **not** a claim of RFC 8785 conformance.
 
 No operational, legal, safety, SOTA or global deployment claim follows from this synthetic case.
+## Integrated comparison
+
+See [SAFRB_INTEGRATION_BENCHMARK_PROTOCOL_V0_1.md](SAFRB_INTEGRATION_BENCHMARK_PROTOCOL_V0_1.md) for the matched baselines, cross-project ablations, prospective metrics and SOTA claim rules.
