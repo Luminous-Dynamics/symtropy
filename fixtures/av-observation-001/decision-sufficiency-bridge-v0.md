@@ -14,6 +14,19 @@ Connect the spatial decision-sufficiency cases in `scenario-matrix-spatial-decis
 
 The question is not whether the candidate reconstructs one uniquely correct map. It is whether the candidate preserves every map alternative that is admissible under the current public evidence prefix and correctly determines whether those alternatives imply the same downstream decision.
 
+## DecisionNeed-scoped sufficiency and retained residuals
+
+A decision-sufficiency certificate is scoped to the exact DecisionNeed, downstream action/utility contract, evidence-prefix digest, candidate policy revision and admissible action catalogue. It must not be reused merely because the map snapshot has not changed.
+
+This is essential for the paired `decision_need_shift` fixtures:
+
+- For the first query, multiple admissible maps may imply the same safe exit route. The candidate should stop current acquisition without claiming that the underlying map is unique.
+- A later query about a different destination can split those same map witnesses into different decision classes. The old sufficiency certificate is now inapplicable; the adapter must reopen the residual map alternatives and retrieve the source evidence needed for the new decision.
+
+The working representation may be a decision-sufficient quotient for the current query, but memory must retain a compact, source-linked residual index for distinctions that were not resolved. Do not destructively delete those alternatives or treat a prior stop decision as global map completeness. The source observations remain the authority; residual summaries/indexes only route retrieval.
+
+Evaluate this across **sequences of DecisionNeeds**, not isolated questions: cumulative decision regret, future-query sufficiency failures, source retrieval cost, memory bytes/sidecar cost and time-to-reopen a discarded distinction. This belongs with MACE #13284's multi-query cost–regret frontier; #7557 only qualifies the finite claim for the current decision.
+  
 ## Candidate-visible projection
 
 For each frozen evidence prefix and declared DecisionNeed, the candidate adapter projects only the candidate's own current map hypotheses and permitted probe catalogue into the existing Symtropy #7558 interchange types:
