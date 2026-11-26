@@ -262,17 +262,19 @@ The `src/temporal.rs` module adds a separate projection over three axes:
 2. **Receiver knowledge time:** had the source published the revision and had this receiving system actually retrieved it by the decision cutoff, with rights valid at that cutoff?
 3. **Independent adjudication time:** which adjudication revision had been recorded by the auditor's explicit audit cutoff?
 
-The module exposes `TemporalCutoffs`, `TemporalEvidenceRevision`, `project_temporal_revision` and `select_decision_revisions`.
+The module exposes `TemporalCutoffs`, `TemporalEvidenceRevision`, `project_temporal_revision` and `select_decision_revisions`. Source-native event identity is keyed by `(source_id, event_id, source_revision)` rather than assuming event IDs are globally unique; the expected subject is checked before selection.
 
 Important separation: the decision-revision selector does not inspect adjudication state. Later audit conflicts or later acceptance cannot change the source revision that was admissible to the historical policy. Audit projection separately selects the latest adjudication revision known by the audit cutoff and rejects conflicting same-revision adjudication records.
 
-The temporal module currently has eight focused unit tests covering:
+The temporal module currently has ten focused unit tests covering:
 - later source correction vs historical decision cutoff;
 - independent publication and receiver retrieval times;
 - future plans known before their physical validity;
 - later independent adjudication;
 - physical validity and rights intervals;
 - conflicting visible payloads under one source revision;
-- decision projection independence from later audit conflicts.
+- decision projection independence from later audit conflicts;
+- duplicate native event IDs from distinct sources remain distinct while shared dependency-cluster labels are preserved;
+- visible wrong-subject records fail closed.
 
 This remains a synthetic contract module. It is not yet a full ingestion adapter, cryptographic digest implementation, clock-uncertainty solver, or replacement for #7363's artifact/revision owner. See [#7512 — tri-temporal replay](https://github.com/Luminous-Dynamics/symtropy/issues/7512).
