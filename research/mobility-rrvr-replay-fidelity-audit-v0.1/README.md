@@ -23,8 +23,8 @@ The paper reports seed 42, but the selection algorithm/library details are not s
 
 ## Replay state and split integrity
 
-- Original and replayed positions are compared in a shared, explicitly named coordinate frame, with coordinates in millimetres.
-- Each of the three attempts has five ordered original/replayed PNG pairs. Raw bytes are SHA-256 checked before image decoding.
+- Each of the three attempts supplies separate original and replayed simulator-state JSON artifacts. Their raw bytes are SHA-256 checked; parsed records must match the scenario, attempt and simulator-profile identities in the manifest. Pose errors are calculated from the artifact coordinates in a shared, explicitly named coordinate frame, in millimetres.
+- Each attempt also has five ordered original/replayed PNG pairs. Raw bytes are SHA-256 checked before image decoding.
 - Train/test leakage keys are checked across scenarios within each platform.
 - Repeated trajectory-cluster IDs within a split are permitted and retained for cluster-aware analysis; cluster IDs are not scenario uniqueness keys.
 - All three selected attempts must pass. An absent, invalid or unresolved attempt is not silently replaced.
