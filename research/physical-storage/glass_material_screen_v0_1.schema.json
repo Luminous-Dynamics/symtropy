@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/physical-storage-systems-001/research/physical-storage/glass_material_screen_v0_1.schema.json",
+  "title": "Glass material screening register v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_date",
+    "scope_note",
+    "sources",
+    "materials"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "glass-material-screen-v0.1"
+    },
+    "snapshot_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "scope_note": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "title",
+          "publisher",
+          "date",
+          "url",
+          "evidence_class"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "publisher": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "evidence_class": {
+            "enum": [
+              "manufacturer_datasheet",
+              "peer_reviewed_research",
+              "research_dataset",
+              "other"
+            ]
+          }
+        }
+      }
+    },
+    "materials": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "material_id",
+          "name",
+          "supplier",
+          "evidence_status",
+          "material_class",
+          "property_records",
+          "storage_results",
+          "missing_or_unresolved"
+        ],
+        "properties": {
+          "material_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "supplier": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence_status": {
+            "enum": [
+              "commercial_material",
+              "research_specimen",
+              "material_family_unspecified",
+              "unknown"
+            ]
+          },
+          "material_class": {
+            "type": "string"
+          },
+          "property_records": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "property",
+                "value",
+                "unit",
+                "temperature_c",
+                "condition_note",
+                "source_id"
+              ],
+              "properties": {
+                "property": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "number"
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "temperature_c": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "condition_note": {
+                  "type": "string"
+                },
+                "source_id": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "storage_results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "metric",
+                "value",
+                "unit",
+                "conditions",
+                "source_id",
+                "comparability_note"
+              ],
+              "properties": {
+                "metric": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "number"
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "conditions": {
+                  "type": "string"
+                },
+                "source_id": {
+                  "type": "string"
+                },
+                "comparability_note": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "missing_or_unresolved": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}
