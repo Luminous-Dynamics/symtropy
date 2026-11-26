@@ -8,7 +8,8 @@
 //! those envelopes, optimize fairness, or authorize physical operation.
 
 use serde_json::Value;
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet};
+use single_commodity_flow_kernel::{FlowEdge, FlowGraph, FlowNode};
 
 const MAX_INTERVALS: u64 = 256;
 const MAX_SEGMENT_SLOTS: usize = 4096;
@@ -365,149 +366,6 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
     })
 }
 
-#[derive(Debug, Clone)]
-struct Edge {
-    to: usize,
-    reverse_index: usize,
-    residual_mwh: u64,
-}
-
-#[derive(Debug, Clone)]
-struct EdgeRecord {
-    from: usize,
-    to: usize,
-    capacity_mwh: u64,
-    kind: &'static str,
-    label: String,
-}
-
-fn add_edge(
-    graph: &mut [Vec<Edge>],
-    records: &mut Vec<EdgeRecord>,
-    from: usize,
-    to: usize,
-    capacity_mwh: u64,
-    kind: &'static str,
-    label: String,
-) {
-    let forward_index = graph[from].len();
-    let reverse_index = graph[to].len();
-    graph[from].push(Edge {
-        to,
-        reverse_index,
-        residual_mwh: capacity_mwh,
-    });
-    graph[to].push(Edge {
-        to: from,
-        reverse_index: forward_index,
-        residual_mwh: 0,
-    });
-    records.push(EdgeRecord {
-        from,
-        to,
-        capacity_mwh,
-        kind,
-        label,
-    });
-}
-
-fn build_level_graph(graph: &[Vec<Edge>], source: usize) -> Vec<i32> {
-    let mut levels = vec![-1; graph.len()];
-    let mut queue = VecDeque::new();
-    levels[source] = 0;
-    queue.push_back(source);
-    while let Some(node) = queue.pop_front() {
-        for edge in &graph[node] {
-            if edge.residual_mwh > 0 && levels[edge.to] == -1 {
-                levels[edge.to] = levels[node] + 1;
-                queue.push_back(edge.to);
-            }
-        }
-    }
-    levels
-}
-
-fn send_flow(
-    graph: &mut [Vec<Edge>],
-    levels: &[i32],
-    next_edge: &mut [usize],
-    node: usize,
-    sink: usize,
-    available_mwh: u64,
-) -> u64 {
-    if node == sink || available_mwh == 0 {
-        return available_mwh;
-    }
-
-    while next_edge[node] < graph[node].len() {
-        let edge_index = next_edge[node];
-        let to = graph[node][edge_index].to;
-        let residual = graph[node][edge_index].residual_mwh;
-        let reverse_index = graph[node][edge_index].reverse_index;
-        if residual > 0 && levels[to] == levels[node] + 1 {
-            let pushed = send_flow(
-                graph,
-                levels,
-                next_edge,
-                to,
-                sink,
-                available_mwh.min(residual),
-            );
-            if pushed > 0 {
-                graph[node][edge_index].residual_mwh -= pushed;
-                graph[to][reverse_index].residual_mwh += pushed;
-                return pushed;
-            }
-        }
-        next_edge[node] += 1;
-    }
-    0
-}
-
-fn max_flow(graph: &mut [Vec<Edge>], source: usize, sink: usize, flow_limit_mwh: u64) -> u64 {
-    let mut total_flow = 0_u64;
-    loop {
-        if total_flow == flow_limit_mwh {
-            return total_flow;
-        }
-        let levels = build_level_graph(graph, source);
-        if levels[sink] == -1 {
-            return total_flow;
-        }
-        let mut next_edge = vec![0_usize; graph.len()];
-        loop {
-            let pushed = send_flow(
-                graph,
-                &levels,
-                &mut next_edge,
-                source,
-                sink,
-                flow_limit_mwh - total_flow,
-            );
-            if pushed == 0 {
-                break;
-            }
-            total_flow += pushed;
-        }
-    }
-}
-
-fn residual_reachable(graph: &[Vec<Edge>], source: usize) -> Vec<bool> {
-    let mut reachable = vec![false; graph.len()];
-    let mut queue = VecDeque::new();
-    reachable[source] = true;
-    queue.push_back(source);
-    while let Some(node) = queue.pop_front() {
-        for edge in &graph[node] {
-            if edge.residual_mwh > 0 && !reachable[edge.to] {
-                reachable[edge.to] = true;
-                queue.push_back(edge.to);
-            }
-        }
-    }
-    reachable
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReceiverAllocation {
     pub receiver_id: String,
@@ -577,105 +435,179 @@ pub struct ServiceOracleReport {
 /// Capacities are integer milliwatt-hours at one common *deliverable-energy*
 /// boundary. The caller must supply conservative qualified bounds; this
 /// oracle does not infer conversion losses or authenticate measurements.
+fn push_wpt_edge(
+    edges: &mut Vec<FlowEdge>,
+    edge_metadata: &mut BTreeMap<String, (String, String)>,
+    id: String,
+    from: String,
+    to: String,
+    capacity: u64,
+    kind: &str,
+    label: String,
+) {
+    let metadata_ref = format!("wpt-exact-service-oracle-v0/{kind}/{label}");
+    edges.push(FlowEdge::new(
+        id.clone(),
+        from,
+        to,
+        capacity,
+        Some(metadata_ref),
+    ));
+    edge_metadata.insert(id, (kind.to_string(), label));
+}
+
+fn required_wpt_flow(
+    edge_flows: &BTreeMap<String, u64>,
+    edge_id: &str,
+) -> Result<u64, String> {
+    edge_flows
+        .get(edge_id)
+        .copied()
+        .ok_or_else(|| format!("flow kernel omitted required edge witness {edge_id}"))
+}
+
+/// Evaluate whether all minimum receiver-service obligations can be met.
+///
+/// Capacities are integer milliwatt-hours at one common *deliverable-energy*
+/// boundary. The caller must supply conservative qualified bounds; this
+/// adapter does not infer conversion losses or authenticate measurements.
+/// The shared kernel proves only the supplied single-commodity directed graph.
 pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
     let scenario = parse_scenario(value)?;
-    let source = 0_usize;
-    let mut graph = vec![Vec::<Edge>::new()];
-    let mut segment_nodes = BTreeMap::new();
-    let mut receiver_slot_nodes = BTreeMap::new();
-    let mut receiver_demand_nodes = BTreeMap::new();
+    let mut nodes = vec![FlowNode::new("source")];
+    let mut segment_node_ids = BTreeMap::new();
+    let mut receiver_slot_node_ids = BTreeMap::new();
+    let mut receiver_demand_node_ids = BTreeMap::new();
 
-    for key in scenario.segment_slots.keys() {
-        let node = graph.len();
-        graph.push(Vec::new());
-        segment_nodes.insert(key.clone(), node);
+    for (index, key) in scenario.segment_slots.keys().enumerate() {
+        let node_id = format!("segment-slot-{index:06}");
+        nodes.push(FlowNode::new(node_id.clone()));
+        segment_node_ids.insert(key.clone(), node_id);
     }
-    for key in scenario.receiver_slots.keys() {
-        let node = graph.len();
-        graph.push(Vec::new());
-        receiver_slot_nodes.insert(key.clone(), node);
+    for (index, key) in scenario.receiver_slots.keys().enumerate() {
+        let node_id = format!("receiver-slot-{index:06}");
+        nodes.push(FlowNode::new(node_id.clone()));
+        receiver_slot_node_ids.insert(key.clone(), node_id);
     }
-    for receiver_id in scenario.receivers.keys() {
-        let node = graph.len();
-        graph.push(Vec::new());
-        receiver_demand_nodes.insert(receiver_id.clone(), node);
+    for (index, receiver_id) in scenario.receivers.keys().enumerate() {
+        let node_id = format!("receiver-demand-{index:06}");
+        nodes.push(FlowNode::new(node_id.clone()));
+        receiver_demand_node_ids.insert(receiver_id.clone(), node_id);
     }
-    let sink = graph.len();
-    graph.push(Vec::new());
-    let mut records = Vec::new();
-    let mut segment_edge_records = BTreeMap::new();
-    let mut transfer_edge_records = BTreeMap::new();
-    let mut receiver_slot_edge_records = BTreeMap::new();
+    nodes.push(FlowNode::new("sink"));
 
-    for (key, slot) in &scenario.segment_slots {
-        let node = segment_nodes[key];
-        let edge_index = graph[source].len();
-        add_edge(
-            &mut graph,
-            &mut records,
-            source,
-            node,
+    let mut edges = Vec::new();
+    let mut edge_metadata = BTreeMap::new();
+    let mut segment_edge_ids = BTreeMap::new();
+    let mut transfer_edge_ids = BTreeMap::new();
+    let mut receiver_slot_edge_ids = BTreeMap::new();
+    let mut demand_edge_ids = BTreeMap::new();
+
+    for (index, (key, slot)) in scenario.segment_slots.iter().enumerate() {
+        let edge_id = format!("segment-supply-{index:06}");
+        let node_id = segment_node_ids
+            .get(key)
+            .ok_or_else(|| "missing mapped WPT segment node".to_string())?
+            .clone();
+        push_wpt_edge(
+            &mut edges,
+            &mut edge_metadata,
+            edge_id.clone(),
+            "source".to_string(),
+            node_id,
             slot.available_deliverable_energy_mwh,
             "segment_supply",
             format!("{}@{}", slot.segment_id, slot.interval_index),
         );
-        segment_edge_records.insert(key.clone(), (source, edge_index));
+        segment_edge_ids.insert(key.clone(), edge_id);
     }
 
     for link in &scenario.transfer_links {
         let segment_key = (link.segment_id.clone(), link.interval_index);
         let receiver_key = (link.receiver_id.clone(), link.interval_index);
-        let from = segment_nodes[&segment_key];
-        let edge_index = graph[from].len();
-        add_edge(
-            &mut graph,
-            &mut records,
+        let from = segment_node_ids
+            .get(&segment_key)
+            .ok_or_else(|| format!("missing mapped segment node for {}", link.link_id))?
+            .clone();
+        let to = receiver_slot_node_ids
+            .get(&receiver_key)
+            .ok_or_else(|| format!("missing mapped receiver node for {}", link.link_id))?
+            .clone();
+        let edge_id = format!("transfer-{}", link.link_id);
+        push_wpt_edge(
+            &mut edges,
+            &mut edge_metadata,
+            edge_id.clone(),
             from,
-            receiver_slot_nodes[&receiver_key],
+            to,
             link.max_deliverable_energy_mwh,
             "transfer_link",
             link.link_id.clone(),
         );
-        transfer_edge_records.insert(link.link_id.clone(), (from, edge_index));
+        transfer_edge_ids.insert(link.link_id.clone(), edge_id);
     }
 
-    for (key, slot) in &scenario.receiver_slots {
-        let from = receiver_slot_nodes[key];
-        let edge_index = graph[from].len();
-        add_edge(
-            &mut graph,
-            &mut records,
+    for (index, (key, slot)) in scenario.receiver_slots.iter().enumerate() {
+        let edge_id = format!("receiver-acceptance-{index:06}");
+        let from = receiver_slot_node_ids
+            .get(key)
+            .ok_or_else(|| "missing mapped WPT receiver-slot node".to_string())?
+            .clone();
+        let to = receiver_demand_node_ids
+            .get(&slot.receiver_id)
+            .ok_or_else(|| format!("missing mapped receiver demand node for {}", slot.receiver_id))?
+            .clone();
+        push_wpt_edge(
+            &mut edges,
+            &mut edge_metadata,
+            edge_id.clone(),
             from,
-            receiver_demand_nodes[&slot.receiver_id],
+            to,
             slot.max_acceptance_mwh,
             "receiver_acceptance",
             format!("{}@{}", slot.receiver_id, slot.interval_index),
         );
-        receiver_slot_edge_records.insert(key.clone(), (from, edge_index));
+        receiver_slot_edge_ids.insert(key.clone(), edge_id);
     }
 
-    let mut demand_edge_records = BTreeMap::new();
-    for (receiver_id, receiver) in &scenario.receivers {
-        let from = receiver_demand_nodes[receiver_id];
-        let edge_index = graph[from].len();
-        add_edge(
-            &mut graph,
-            &mut records,
+    for (index, (receiver_id, receiver)) in scenario.receivers.iter().enumerate() {
+        let edge_id = format!("receiver-obligation-{index:06}");
+        let from = receiver_demand_node_ids
+            .get(receiver_id)
+            .ok_or_else(|| format!("missing mapped receiver demand node for {receiver_id}"))?
+            .clone();
+        push_wpt_edge(
+            &mut edges,
+            &mut edge_metadata,
+            edge_id.clone(),
             from,
-            sink,
+            "sink".to_string(),
             receiver.minimum_service_mwh,
             "receiver_obligation",
             receiver_id.clone(),
         );
-        demand_edge_records.insert(receiver_id.clone(), (from, edge_index));
+        demand_edge_ids.insert(receiver_id.clone(), edge_id);
     }
 
-    let delivered = max_flow(&mut graph, source, sink, scenario.total_minimum_service_mwh);
+    let graph = FlowGraph {
+        nodes,
+        edges,
+        source: "source".to_string(),
+        sink: "sink".to_string(),
+    };
+    let flow_result = graph.solve().map_err(|error| error.to_string())?;
+    let edge_flows = flow_result
+        .edge_flows
+        .iter()
+        .map(|edge| (edge.id.clone(), edge.flow))
+        .collect::<BTreeMap<_, _>>();
+
     let mut receiver_allocations = Vec::with_capacity(scenario.receivers.len());
     for (receiver_id, receiver) in &scenario.receivers {
-        let (from, edge_index) = demand_edge_records[receiver_id];
-        let residual = graph[from][edge_index].residual_mwh;
-        let delivered_mwh = receiver.minimum_service_mwh - residual;
+        let edge_id = demand_edge_ids
+            .get(receiver_id)
+            .ok_or_else(|| format!("missing demand edge for {receiver_id}"))?;
+        let delivered_mwh = required_wpt_flow(&edge_flows, edge_id)?;
         receiver_allocations.push(ReceiverAllocation {
             receiver_id: receiver_id.clone(),
             minimum_service_mwh: receiver.minimum_service_mwh,
@@ -684,73 +616,67 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
         });
     }
 
-    let segment_allocations = scenario
-        .segment_slots
-        .iter()
-        .map(|(key, slot)| {
-            let (from, edge_index) = segment_edge_records[key];
-            SegmentSlotAllocation {
-                segment_id: slot.segment_id.clone(),
-                interval_index: slot.interval_index,
-                available_deliverable_energy_mwh: slot.available_deliverable_energy_mwh,
-                allocated_mwh: slot.available_deliverable_energy_mwh
-                    - graph[from][edge_index].residual_mwh,
-            }
-        })
-        .collect::<Vec<_>>();
-    let transfer_allocations = scenario
-        .transfer_links
-        .iter()
-        .map(|link| {
-            let (from, edge_index) = transfer_edge_records[&link.link_id];
-            TransferAllocation {
-                link_id: link.link_id.clone(),
-                segment_id: link.segment_id.clone(),
-                receiver_id: link.receiver_id.clone(),
-                interval_index: link.interval_index,
-                transfer_capacity_mwh: link.max_deliverable_energy_mwh,
-                allocated_mwh: link.max_deliverable_energy_mwh
-                    - graph[from][edge_index].residual_mwh,
-            }
-        })
-        .collect::<Vec<_>>();
-    let receiver_slot_allocations = scenario
-        .receiver_slots
-        .iter()
-        .map(|(key, slot)| {
-            let (from, edge_index) = receiver_slot_edge_records[key];
-            ReceiverSlotAllocation {
-                receiver_id: slot.receiver_id.clone(),
-                interval_index: slot.interval_index,
-                max_acceptance_mwh: slot.max_acceptance_mwh,
-                allocated_mwh: slot.max_acceptance_mwh - graph[from][edge_index].residual_mwh,
-            }
-        })
-        .collect::<Vec<_>>();
+    let mut segment_allocations = Vec::with_capacity(scenario.segment_slots.len());
+    for (key, slot) in &scenario.segment_slots {
+        let edge_id = segment_edge_ids
+            .get(key)
+            .ok_or_else(|| format!("missing segment supply edge for {}@{}", slot.segment_id, slot.interval_index))?;
+        segment_allocations.push(SegmentSlotAllocation {
+            segment_id: slot.segment_id.clone(),
+            interval_index: slot.interval_index,
+            available_deliverable_energy_mwh: slot.available_deliverable_energy_mwh,
+            allocated_mwh: required_wpt_flow(&edge_flows, edge_id)?,
+        });
+    }
 
-    let feasible = delivered == scenario.total_minimum_service_mwh;
-    let total_shortfall_mwh = scenario.total_minimum_service_mwh - delivered;
-    let reachable = residual_reachable(&graph, source);
-    let mut minimum_cut_edges = Vec::new();
-    let mut minimum_cut_capacity_mwh = 0_u64;
-    for record in &records {
-        if record.capacity_mwh > 0 && reachable[record.from] && !reachable[record.to] {
-            minimum_cut_capacity_mwh = minimum_cut_capacity_mwh
-                .checked_add(record.capacity_mwh)
-                .ok_or_else(|| "minimum-cut capacity overflowed u64".to_string())?;
-            minimum_cut_edges.push(MinCutEdge {
-                kind: record.kind.to_string(),
-                label: record.label.clone(),
-                capacity_mwh: record.capacity_mwh,
-            });
-        }
+    let mut transfer_allocations = Vec::with_capacity(scenario.transfer_links.len());
+    for link in &scenario.transfer_links {
+        let edge_id = transfer_edge_ids
+            .get(&link.link_id)
+            .ok_or_else(|| format!("missing transfer edge for {}", link.link_id))?;
+        transfer_allocations.push(TransferAllocation {
+            link_id: link.link_id.clone(),
+            segment_id: link.segment_id.clone(),
+            receiver_id: link.receiver_id.clone(),
+            interval_index: link.interval_index,
+            transfer_capacity_mwh: link.max_deliverable_energy_mwh,
+            allocated_mwh: required_wpt_flow(&edge_flows, edge_id)?,
+        });
     }
-    minimum_cut_edges.sort_by_key(|edge| (edge.kind.clone(), edge.label.clone()));
-    if minimum_cut_capacity_mwh != delivered {
-        return Err(format!(
-            "internal max-flow/min-cut invariant failed: flow {delivered} != cut {minimum_cut_capacity_mwh}"
-        ));
+
+    let mut receiver_slot_allocations = Vec::with_capacity(scenario.receiver_slots.len());
+    for (key, slot) in &scenario.receiver_slots {
+        let edge_id = receiver_slot_edge_ids
+            .get(key)
+            .ok_or_else(|| format!("missing receiver acceptance edge for {}@{}", slot.receiver_id, slot.interval_index))?;
+        receiver_slot_allocations.push(ReceiverSlotAllocation {
+            receiver_id: slot.receiver_id.clone(),
+            interval_index: slot.interval_index,
+            max_acceptance_mwh: slot.max_acceptance_mwh,
+            allocated_mwh: required_wpt_flow(&edge_flows, edge_id)?,
+        });
     }
+
+    let minimum_cut_edges = flow_result
+        .min_cut
+        .edges
+        .iter()
+        .filter(|edge| edge.capacity > 0)
+        .map(|edge| {
+            let (kind, label) = edge_metadata
+                .get(&edge.id)
+                .cloned()
+                .ok_or_else(|| format!("flow kernel cut contains unknown edge {}", edge.id))?;
+            Ok(MinCutEdge {
+                kind,
+                label,
+                capacity_mwh: edge.capacity,
+            })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+
+    let feasible = flow_result.max_flow == scenario.total_minimum_service_mwh;
+    let total_shortfall_mwh = scenario.total_minimum_service_mwh - flow_result.max_flow;
 
     Ok(ServiceOracleReport {
         scenario_id: scenario.scenario_id,
@@ -759,14 +685,14 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
         segment_slot_count: scenario.segment_slots.len(),
         transfer_link_count: scenario.transfer_links.len(),
         total_minimum_service_mwh: scenario.total_minimum_service_mwh,
-        maximum_deliverable_mwh: delivered,
+        maximum_deliverable_mwh: flow_result.max_flow,
         total_shortfall_mwh,
         feasible,
         receiver_allocations,
         segment_allocations,
         transfer_allocations,
         receiver_slot_allocations,
-        minimum_cut_capacity_mwh,
+        minimum_cut_capacity_mwh: flow_result.min_cut.capacity,
         minimum_cut_edges,
         claim_ceiling: "Synthetic exact feasibility oracle for supplied integer capacities only; no field accuracy, robust uncertainty, fairness optimum, safety, grid-code or energization claim.",
     })
