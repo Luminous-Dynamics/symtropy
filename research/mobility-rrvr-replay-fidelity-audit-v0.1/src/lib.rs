@@ -1013,7 +1013,10 @@ mod tests {
             encoder.set_color(png::ColorType::Rgb);
             encoder.set_depth(png::BitDepth::Eight);
             let mut writer = encoder.write_header().expect("PNG header");
-            let flattened: Vec<u8> = pixels.iter().flat_map(|pixel| pixel.iter().copied()).collect();
+            let flattened: Vec<u8> = pixels
+                .iter()
+                .flat_map(|pixel| pixel.iter().copied())
+                .collect();
             writer.write_image_data(&flattened).expect("PNG data");
         }
         fs::write(path, bytes).expect("PNG artifact");
