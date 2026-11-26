@@ -53,7 +53,7 @@ jobs:
           ROOT="research/mobility-rrvr-aerb-v0.1"
           jq -e '
             .vocabulary_id == "aerb-ambiguous-command-history-v0.1"
-            and (.worlds | length == 7)
+            and (.worlds | length == 8)
             and ([.worlds[].world_id] | length == (unique | length))
           ' "$ROOT/world_vocabulary/aerb_ambiguous_command_history_v0_1.json"
 
