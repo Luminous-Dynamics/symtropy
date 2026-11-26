@@ -481,8 +481,7 @@ pub fn evaluate_joint_action_catalogue(
         report.selected_action_ids = Some(best.action_ids);
         report.selected_action_set_digest = Some(best.action_set_digest);
         report.selected_resource_cost = Some(best.resource_cost);
-        report.selected_robust_consequence_avoided_ticks =
-            Some(best.consequence_avoided_ticks);
+        report.selected_robust_consequence_avoided_ticks = Some(best.consequence_avoided_ticks);
     }
     Ok(report)
 }
