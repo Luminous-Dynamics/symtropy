@@ -69,21 +69,70 @@ struct DifficultyTrial {
     success: bool,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 struct SpotCheck {
     seed: u64,
     selection_method_id: String,
+    selection_record_path: String,
+    selection_record_sha256: String,
     selected_attempt_ids: Vec<String>,
     attempts: Vec<SpotCheckAttempt>,
+    manifest_sha256: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 struct SpotCheckAttempt {
     attempt_id: String,
     original_state_path: String,
     original_state_sha256: String,
     replay_state_path: String,
     replay_state_sha256: String,
+    final_frame_pairs: Vec<FramePairAsset>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct FramePairAsset {
+    frame_index: u8,
+    original_path: String,
+    original_sha256: String,
+    replay_path: String,
+    replay_sha256: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SpotCheckSelectionRecord {
+    schema_version: String,
+    seed: u64,
+    selection_method_id: String,
+    selected_attempt_ids: Vec<String>,
+}
+
+#[derive(Serialize)]
+struct SpotCheckManifestMaterial<'a> {
+    seed: u64,
+    selection_method_id: &'a str,
+    selection_record_path: &'a str,
+    selection_record_sha256: &'a str,
+    selected_attempt_ids: &'a [String],
+    attempts: &'a [SpotCheckAttempt],
+}
+
+fn spot_check_manifest_digest(spot: &SpotCheck) -> Result<String, String> {
+    let material = SpotCheckManifestMaterial {
+        seed: spot.seed,
+        selection_method_id: &spot.selection_method_id,
+        selection_record_path: &spot.selection_record_path,
+        selection_record_sha256: &spot.selection_record_sha256,
+        selected_attempt_ids: &spot.selected_attempt_ids,
+        attempts: &spot.attempts,
+    };
+    let bytes = serde_json::to_vec(&material)
+        .map_err(|error| format!("SPOT_CHECK_MANIFEST_SERIALIZATION_FAILED: {error}"))?;
+    Ok(sha256_hex(&bytes))
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -588,6 +637,47 @@ fn validate_candidate(
     {
         return Err("SELECTED_ATTEMPT_SET_INVALID".to_owned());
     }
+    if !is_sha256(&replay.spot_check.selection_record_sha256)
+        || !is_sha256(&replay.spot_check.manifest_sha256)
+        || replay.spot_check.selection_record_path.trim().is_empty()
+    {
+        return Err("SPOT_CHECK_SELECTION_RECEIPT_METADATA_INVALID".to_owned());
+    }
+
+    let selection_reference = ArtifactRef {
+        relative_path: replay.spot_check.selection_record_path.clone(),
+        sha256: replay.spot_check.selection_record_sha256.clone(),
+    };
+    let selection_record: SpotCheckSelectionRecord =
+        parse_artifact(root, &selection_reference, "SPOT_CHECK_SELECTION_RECORD")?;
+    assert_eq_field(
+        selection_record.schema_version,
+        SCHEMA_VERSION.to_owned(),
+        "SPOT_CHECK_SELECTION_RECORD_SCHEMA_MISMATCH",
+    )?;
+    assert_eq_field(
+        selection_record.seed,
+        replay.spot_check.seed,
+        "SPOT_CHECK_SELECTION_RECORD_SEED_MISMATCH",
+    )?;
+    assert_eq_field(
+        selection_record.selection_method_id,
+        replay.spot_check.selection_method_id.clone(),
+        "SPOT_CHECK_SELECTION_RECORD_METHOD_MISMATCH",
+    )?;
+    assert_eq_field(
+        selection_record.selected_attempt_ids,
+        selected.clone(),
+        "SPOT_CHECK_SELECTION_RECORD_ATTEMPTS_MISMATCH",
+    )?;
+
+    let expected_spot_check_digest = spot_check_manifest_digest(&replay.spot_check)
+        .map_err(|error| format!("SPOT_CHECK_MANIFEST_DIGEST_COMPUTE_FAILED: {error}"))?;
+    assert_eq_field(
+        expected_spot_check_digest,
+        replay.spot_check.manifest_sha256.clone(),
+        "SPOT_CHECK_MANIFEST_DIGEST_MISMATCH",
+    )?;
     if selected
         != &replay
             .spot_check
@@ -745,6 +835,31 @@ fn validate_candidate(
             "STATE_ARTIFACT_COORDINATE_FRAME_MISMATCH",
         )?;
         verified += 2;
+
+        if replay_attempt.final_frame_pairs.len() != 5 {
+            return Err("SPOT_CHECK_FRAME_PAIR_COUNT_NOT_FIVE".to_owned());
+        }
+        for (expected_index, frame_pair) in replay_attempt.final_frame_pairs.iter().enumerate() {
+            if usize::from(frame_pair.frame_index) != expected_index
+                || !is_sha256(&frame_pair.original_sha256)
+                || !is_sha256(&frame_pair.replay_sha256)
+            {
+                return Err("SPOT_CHECK_FRAME_PAIR_IDENTITY_INVALID".to_owned());
+            }
+            let original_frame_ref = ArtifactRef {
+                relative_path: frame_pair.original_path.clone(),
+                sha256: frame_pair.original_sha256.clone(),
+            };
+            let replay_frame_ref = ArtifactRef {
+                relative_path: frame_pair.replay_path.clone(),
+                sha256: frame_pair.replay_sha256.clone(),
+            };
+            let _original_bytes =
+                read_artifact(root, &original_frame_ref, "ORIGINAL_FRAME")?;
+            let _replay_bytes =
+                read_artifact(root, &replay_frame_ref, "REPLAY_FRAME")?;
+            verified += 2;
+        }
 
         assert_eq_field(reset.attempt_id.clone(), attempt_id.clone(), "RESET_RECEIPT_ATTEMPT_ID_MISMATCH")?;
         assert_eq_field(reset.policy_id.clone(), expected_policy.clone(), "RESET_RECEIPT_POLICY_ID_MISMATCH")?;
