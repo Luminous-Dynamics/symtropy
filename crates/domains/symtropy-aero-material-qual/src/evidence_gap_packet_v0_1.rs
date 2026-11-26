@@ -58,6 +58,7 @@ pub struct ClaimGapV1 {
 pub struct SourceEvidenceV1 {
     pub id: String,
     pub kind: String,
+    pub state: String,
     pub sha256: Option<String>,
 }
 
@@ -96,6 +97,9 @@ pub struct SymthaeaEvidenceGapProjectionV1 {
     pub decision_context: DecisionContextV1,
     pub target_claim_ids: Vec<String>,
     pub current_evidence_refs: Vec<String>,
+    pub unverified_evidence_refs: Vec<String>,
+    pub rejected_evidence_refs: Vec<String>,
+    pub not_received_evidence_refs: Vec<String>,
     pub current_evidence_dependency_groups: BTreeMap<String, Vec<String>>,
     pub required_obligations: Vec<String>,
     pub change_impact: Option<ChangeImpactV1>,
@@ -141,8 +145,8 @@ impl EvidenceGapPacketV1 {
         if self.schema != "AeroEvidenceGapPacketV1"
             || self.record_kind != "EVIDENCE_GAP_PACKET"
             || self.claim_ceiling != "evidence_gap_packet_only"
-            || self.no_actuation
-            || !self.authority_granted == false
+            || !self.no_actuation
+            || self.authority_granted
         {
             // Kept as one explicit authority/profile gate; this packet is
             // evidence-gap data only and can never grant execution authority.
@@ -231,6 +235,7 @@ impl EvidenceGapPacketV1 {
         }
 
         let mut source_ids = BTreeSet::new();
+        let mut admitted_source_ids = BTreeSet::new();
         for source in &self.source_evidence {
             if !nonempty(&source.id) || !nonempty(&source.kind) {
                 errors.push("SOURCE_EVIDENCE_IDENTITY_MISSING".to_owned());
@@ -240,6 +245,16 @@ impl EvidenceGapPacketV1 {
             }
             if source.sha256.as_deref().is_some_and(|digest| !valid_sha256(digest)) {
                 errors.push("SOURCE_EVIDENCE_DIGEST_INVALID".to_owned());
+            }
+            match source.state.as_str() {
+                "ADMITTED" => {
+                    if source.sha256.as_deref().is_none_or(|digest| !valid_sha256(digest)) {
+                        errors.push("ADMITTED_SOURCE_EVIDENCE_REQUIRES_DIGEST".to_owned());
+                    }
+                    admitted_source_ids.insert(source.id.as_str());
+                }
+                "UNVERIFIED" | "REJECTED" | "NOT_RECEIVED" => {}
+                _ => errors.push("SOURCE_EVIDENCE_STATE_UNKNOWN".to_owned()),
             }
         }
 
@@ -252,6 +267,8 @@ impl EvidenceGapPacketV1 {
             for member in members {
                 if !nonempty(member) || !source_ids.contains(member.as_str()) {
                     errors.push("EVIDENCE_DEPENDENCY_MEMBER_UNRESOLVED".to_owned());
+                } else if !admitted_source_ids.contains(member.as_str()) {
+                    errors.push("EVIDENCE_DEPENDENCY_MEMBER_NOT_ADMITTED".to_owned());
                 }
                 if !group_members.insert(member.as_str()) {
                     errors.push("EVIDENCE_DEPENDENCY_MEMBER_DUPLICATED".to_owned());
@@ -308,6 +325,25 @@ impl EvidenceGapPacketV1 {
         let current_evidence_refs = self
             .source_evidence
             .iter()
+            .filter(|source| source.state == "ADMITTED")
+            .map(|source| source.id.clone())
+            .collect();
+        let unverified_evidence_refs = self
+            .source_evidence
+            .iter()
+            .filter(|source| source.state == "UNVERIFIED")
+            .map(|source| source.id.clone())
+            .collect();
+        let rejected_evidence_refs = self
+            .source_evidence
+            .iter()
+            .filter(|source| source.state == "REJECTED")
+            .map(|source| source.id.clone())
+            .collect();
+        let not_received_evidence_refs = self
+            .source_evidence
+            .iter()
+            .filter(|source| source.state == "NOT_RECEIVED")
             .map(|source| source.id.clone())
             .collect();
         let mut required_obligations = self
@@ -323,6 +359,9 @@ impl EvidenceGapPacketV1 {
             decision_context: self.decision_context.clone(),
             target_claim_ids,
             current_evidence_refs,
+            unverified_evidence_refs,
+            rejected_evidence_refs,
+            not_received_evidence_refs,
             current_evidence_dependency_groups: self.evidence_dependency_groups.clone(),
             required_obligations,
             change_impact: self.change_impact.clone(),
@@ -348,6 +387,9 @@ mod tests {
         assert_eq!(projection.decision_context, packet.decision_context);
         assert_eq!(projection.target_claim_ids.len(), 2);
         assert_eq!(projection.current_evidence_refs.len(), 2);
+        assert_eq!(projection.unverified_evidence_refs.len(), 1);
+        assert!(projection.rejected_evidence_refs.is_empty());
+        assert!(projection.not_received_evidence_refs.is_empty());
         assert_eq!(projection.current_evidence_dependency_groups.len(), 1);
         assert_eq!(projection.required_obligations.len(), 3);
         assert_eq!(
@@ -359,7 +401,8 @@ mod tests {
     #[test]
     fn duplicate_claim_ids_cannot_be_projected() {
         let mut value: Value = serde_json::from_str(PACKET).expect("packet JSON");
-        value["claims"][1]["claim_id"] = value["claims"][0]["claim_id"].clone();
+        let duplicate_id = value["claims"][0]["claim_id"].clone();
+        value["claims"][1]["claim_id"] = duplicate_id;
         let packet: EvidenceGapPacketV1 = from_value(value).expect("packet shape");
         assert!(packet.validate().is_err());
     }
@@ -369,6 +412,34 @@ mod tests {
         let mut value: Value = serde_json::from_str(PACKET).expect("packet JSON");
         value["evidence_dependency_groups"]["SYNTHETIC::UNKNOWN-GROUP"] =
             serde_json::json!(["SYNTHETIC::NOT-IN-SOURCE-EVIDENCE"]);
+        let packet: EvidenceGapPacketV1 = from_value(value).expect("packet shape");
+        assert!(packet.validate().is_err());
+    }
+
+    #[test]
+    fn unverified_evidence_is_not_projected_as_current_evidence() {
+        let projection = packet()
+            .selector_projection()
+            .expect("packet validates and projects");
+        assert!(
+            !projection
+                .current_evidence_refs
+                .iter()
+                .any(|reference| reference.contains("UNVERIFIED"))
+        );
+        assert!(
+            projection
+                .unverified_evidence_refs
+                .iter()
+                .any(|reference| reference.contains("UNVERIFIED"))
+        );
+    }
+
+    #[test]
+    fn dependency_groups_cannot_treat_unverified_sources_as_admitted() {
+        let mut value: Value = serde_json::from_str(PACKET).expect("packet JSON");
+        value["evidence_dependency_groups"]["SYNTHETIC::UNVERIFIED-GROUP"] =
+            serde_json::json!(["SYNTHETIC::OBSERVER-COVERAGE-RECEIPT-UNVERIFIED"]);
         let packet: EvidenceGapPacketV1 = from_value(value).expect("packet shape");
         assert!(packet.validate().is_err());
     }
