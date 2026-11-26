@@ -8,6 +8,7 @@ repository = "https://github.com/Luminous-Dynamics/symtropy"
 
 [dependencies]
 libm = "0.2"
+sha2 = "0.10"
 
 # Keep this benchmark crate independently buildable. It is intentionally not
 # coupled to the full Symtropy/Bevy workspace or the orbit propagator.

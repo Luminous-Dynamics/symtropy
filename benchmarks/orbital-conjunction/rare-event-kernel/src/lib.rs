@@ -50,6 +50,8 @@ pub mod pop_col_adjustment;
 pub mod pop_col_energy;
 pub mod pop_convergence;
 /// Simultaneous anytime-valid comparisons across paired portfolio arms.
+/// Defensive proposal mixtures across a frozen portfolio event-mode universe.
+pub mod portfolio_proposal;
 pub mod portfolio_selection;
 pub mod predictable_empirical_bernstein;
 pub mod proposal_execution_conformance;
@@ -136,6 +138,11 @@ pub use pop_convergence::{
     PeakOverlapConvergenceConfig, PeakOverlapConvergenceDecision,
     PeakOverlapConvergenceObservation, PeakOverlapConvergenceReason, PeakOverlapConvergenceStatus,
     decide_peak_overlap_convergence,
+};
+pub use portfolio_proposal::{
+    DefensiveProposalComponent, DefensiveProposalEvaluation, MAX_PORTFOLIO_PROPOSAL_COMPONENTS,
+    MAX_PORTFOLIO_PROPOSAL_MODES, PortfolioDefensiveGaussianMixture, PortfolioEventModeKey,
+    PortfolioProposalError,
 };
 pub use portfolio_selection::{
     MAX_SIMULTANEOUS_PORTFOLIO_DRAWS, PortfolioConsequenceBound, PortfolioConsequenceObservation,
@@ -487,6 +494,15 @@ impl Gaussian {
     /// Return the mean vector.
     pub fn mean(&self) -> &[f64] {
         &self.mean
+    }
+
+    /// Return the stored lower Cholesky factor in row-major order.
+    ///
+    /// This exposes the exact factor used by the density kernel so a
+    /// reproducibility receipt can bind the evaluated covariance content
+    /// without reconstructing it from a potentially lossy matrix inversion.
+    pub(crate) fn lower_cholesky_values(&self) -> &[f64] {
+        &self.lower_cholesky
     }
 
     /// Evaluate the multivariate Gaussian log density at a point.
