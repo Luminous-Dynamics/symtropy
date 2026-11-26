@@ -31,6 +31,14 @@ Sources:
 - Siemens Gridscale X: https://www.siemens.com/en-us/products/gridscale-x/
 - NIST SI for Manufacturing / TIDAL: https://www.nist.gov/programs-projects/super-intelligence-si-manufacturing
 - NIST IR 8536: https://csrc.nist.gov/pubs/ir/8536/final 
+### 2.1 NIST TIDAL: methodology comparator, not a claimed invention
+
+NIST's current SI for Manufacturing programme describes a shared operation test bench spanning discrete, additive and continuous processes, using real equipment and simulators. Its planned benchmark tasks include production planning, scheduling, process monitoring and root-cause analysis. Its integration thread is comparing information architectures including unified namespace over MQTT with knowledge graphs/type models and I3X/OPC UA profiles. The programme names accuracy, latency, cost and grounding as benchmark dimensions, and its fault-diagnosis study prioritizes detection recall ahead of precision. SAFRB should adopt the measurement discipline and context-ablation approach, but must not imply that a SAFRB fixture has been tested on this bench or that its cross-owner service-assurance question replaces NIST's manufacturing scope.
+
+For SAFRB, add an explicit *grounding* audit per decision: every claimed resource, capacity, time window, authority and service boundary must resolve to the exact admissible source artifact and profile version that was available at decision time. Report grounding as its own metric; do not merge it into general accuracy. For fault detection/diagnosis arms, report recall and precision separately, and preregister the consequence-weighting for missed faults. Do not import NIST's fault-recall weighting as a universal ranking rule for allocation, investment or service scheduling.
+
+
+
 ### 2.2 Graph-kernel matched solver baselines
 
 The graph algorithm itself is not a novel contribution claim. The v0 kernel uses deterministic integer-capacity Dinic. It must be benchmarked against mature, independently implemented solvers on the *same canonical graph instances*:
@@ -51,13 +59,6 @@ Official references: OR-Tools maximum-flow API, including per-arc flow and min-c
 **Measurements.** Report solver value, feasible edge-flow witness, independently reconstructed cut capacity, independent certificate verification result, input normalization time, solver time, witness construction time, verifier time, peak memory and p50/p95/p99 over repeated runs. Compare end-to-end adapter+solver+verification separately from the bare algorithm. Report graph sizes and hardware/software versions; no aggregate score may hide a correctness failure.
 
 **Decision rule.** The acceptance target is exact agreement on flow value and cut value over every supported graph, 100% certificate acceptance for valid outputs, and 100% rejection for mutated certificates. Performance goals are workload-specific p95 budgets, not a blanket claim to outrun OR-Tools or NetworkX. If another mature solver is faster for a supported case, use it as the engine behind the same independently verified certificate contract. The intended differentiation is the evidence-bound resource-to-beneficiary service assurance layer, not a new claim to have invented or universally improved max-flow.
-
-### 2.1 NIST TIDAL: methodology comparator, not a claimed invention
-
-NIST's current SI for Manufacturing programme describes a shared operation test bench spanning discrete, additive and continuous processes, using real equipment and simulators. Its planned benchmark tasks include production planning, scheduling, process monitoring and root-cause analysis. Its integration thread is comparing information architectures including unified namespace over MQTT with knowledge graphs/type models and I3X/OPC UA profiles. The programme names accuracy, latency, cost and grounding as benchmark dimensions, and its fault-diagnosis study prioritizes detection recall ahead of precision. SAFRB should adopt the measurement discipline and context-ablation approach, but must not imply that a SAFRB fixture has been tested on this bench or that its cross-owner service-assurance question replaces NIST's manufacturing scope.
-
-For SAFRB, add an explicit *grounding* audit per decision: every claimed resource, capacity, time window, authority and service boundary must resolve to the exact admissible source artifact and profile version that was available at decision time. Report grounding as its own metric; do not merge it into general accuracy. For fault detection/diagnosis arms, report recall and precision separately, and preregister the consequence-weighting for missed faults. Do not import NIST's fault-recall weighting as a universal ranking rule for allocation, investment or service scheduling.
-
 
 ### 2.3 Different optimization classes need different baselines
 
