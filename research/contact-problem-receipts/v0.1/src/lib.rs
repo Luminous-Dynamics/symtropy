@@ -95,7 +95,6 @@ pub enum ReceiptError {
     InvalidTiming,
     InvalidResidual,
     MissingFrontendForFullPipeline,
-    FrontendPresentForFixedProblem,
 }
 
 impl fmt::Display for ReceiptError {
@@ -267,6 +266,7 @@ impl SolverInputAudit {
 /// eligible canonical collider-pair set after the declared collision filter.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PairSetAudit {
+    pub oracle_pair_set_digest: Digest,
     pub eligible_pairs: u64,
     pub oracle_overlap_pairs: u64,
     pub emitted_pairs: u64,
@@ -542,7 +542,8 @@ impl RunReceipt {
 
     #[must_use]
     pub fn frontend_qualifies(&self) -> bool {
-        self.frontend.is_some_and(|frontend| frontend.fully_qualifies())
+        self.solver_input.complete()
+            && self.frontend.is_some_and(|frontend| frontend.fully_qualifies())
     }
 }
 
@@ -607,6 +608,8 @@ pub struct FullPipelineComparison {
     pub eligible_for_scene_comparison: bool,
     pub constitutive_law_matched: bool,
     pub environment_matched: bool,
+    pub pair_oracle_matched: bool,
+    pub contact_sets_matched: bool,
     pub performance_comparable: bool,
     pub left_frontend_qualified: bool,
     pub right_frontend_qualified: bool,
@@ -656,9 +659,35 @@ pub fn compare_full_pipeline(
     let environment_matched = left.environment == right.environment;
     let eligible_for_scene_comparison =
         mismatches.is_empty() && left_frontend_qualified && right_frontend_qualified;
+
+    let left_frontend = left.frontend.expect("validated full pipeline frontend");
+    let right_frontend = right.frontend.expect("validated full pipeline frontend");
+    let pair_oracle_matched = match (left_frontend.pair_set, right_frontend.pair_set) {
+        (Some(left_audit), Some(right_audit)) => {
+            left_audit.qualifies()
+                && right_audit.qualifies()
+                && left_audit.oracle_pair_set_digest == right_audit.oracle_pair_set_digest
+                && left_audit.eligible_pairs == right_audit.eligible_pairs
+                && left_audit.oracle_overlap_pairs == right_audit.oracle_overlap_pairs
+        }
+        _ => false,
+    };
+    let contact_sets_matched = match (left_frontend.contact_set, right_frontend.contact_set) {
+        (Some(left_audit), Some(right_audit)) => {
+            left_audit.qualifies()
+                && right_audit.qualifies()
+                && left_audit.oracle_contact_count == right_audit.oracle_contact_count
+                && left_audit.oracle_contact_digest == right_audit.oracle_contact_digest
+                && left_audit.generated_contact_count == right_audit.generated_contact_count
+                && left_audit.generated_contact_digest == right_audit.generated_contact_digest
+        }
+        _ => false,
+    };
     let performance_comparable = eligible_for_scene_comparison
         && constitutive_law_matched
         && environment_matched
+        && pair_oracle_matched
+        && contact_sets_matched
         && left.timing.is_performance_usable()
         && right.timing.is_performance_usable();
 
@@ -666,6 +695,8 @@ pub fn compare_full_pipeline(
         eligible_for_scene_comparison,
         constitutive_law_matched,
         environment_matched,
+        pair_oracle_matched,
+        contact_sets_matched,
         performance_comparable,
         left_frontend_qualified,
         right_frontend_qualified,
@@ -716,6 +747,7 @@ mod tests {
 
     fn pair_audit() -> PairSetAudit {
         PairSetAudit {
+            oracle_pair_set_digest: digest('5'),
             eligible_pairs: 10,
             oracle_overlap_pairs: 3,
             emitted_pairs: 4,
@@ -941,6 +973,8 @@ mod tests {
         right.problem.model_law = digest('7');
         let comparison = compare_full_pipeline(&left, &right).unwrap();
         assert!(comparison.eligible_for_scene_comparison);
+        assert!(comparison.pair_oracle_matched);
+        assert!(comparison.contact_sets_matched);
         assert!(!comparison.constitutive_law_matched);
         assert!(!comparison.performance_comparable);
     }
@@ -981,6 +1015,34 @@ mod tests {
         let comparison = compare_fixed_problem(&left, &right).unwrap();
         assert!(comparison.eligible);
         assert!(!comparison.performance_comparable);
+    }
+
+    #[test]
+    fn full_pipeline_speed_comparison_requires_matching_pair_and_contact_oracles() {
+        let left = receipt(BenchmarkPanel::FullEnginePipeline, "left");
+        let mut right = receipt(BenchmarkPanel::FullEnginePipeline, "right");
+        let mut audit = right.frontend.unwrap();
+        let mut pairs = audit.pair_set.unwrap();
+        pairs.oracle_pair_set_digest = digest('9');
+        audit.pair_set = Some(pairs);
+        right.frontend = Some(audit);
+        let comparison = compare_full_pipeline(&left, &right).unwrap();
+        assert!(comparison.eligible_for_scene_comparison);
+        assert!(!comparison.pair_oracle_matched);
+        assert!(comparison.contact_sets_matched);
+        assert!(!comparison.performance_comparable);
+    }
+
+    #[test]
+    fn full_pipeline_solver_row_drop_blocks_scene_qualification() {
+        let mut left = receipt(BenchmarkPanel::FullEnginePipeline, "left");
+        let right = receipt(BenchmarkPanel::FullEnginePipeline, "right");
+        left.solver_input.emitted_rows = 5;
+        left.solver_input.dropped_rows = 1;
+        assert_eq!(
+            compare_full_pipeline(&left, &right),
+            Err(ReceiptError::InvalidSolverRowCounts)
+        );
     }
 
     #[test]
