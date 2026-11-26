@@ -1,0 +1,230 @@
+# Orbital robotic inspection: competitive benchmark plan v0.1
+
+**Evidence cutoff:** 2026-11-25  
+**Purpose:** define a fair, falsifiable route from synthetic exact policy semantics to matched industrial and orbital-analogue evaluation.
+
+## Executive position
+
+The opportunity is not to claim that a new planner already beats industrial metrology or robotic inspection. Established industrial systems are strong at calibrated acquisition, repeatable robot programs, 3D measurement, and feature/surface workflows. Recent research also demonstrates substantial path and cycle-time reductions.
+
+The gap worth attacking is the full decision loop: **design for inspectability → plan → qualify the actual acquisition → measure with traceable uncertainty → decide whether another observation changes the engineering decision → re-plan under resource and evidence constraints → preserve independently replayable evidence**.
+
+The differentiator must be tested as a system property. A faster route is not better when it misses a feature; more images are not better when they add no decision value; a calibrated sensor is not enough when a change event invalidates its scope; a digital twin is not an independent measurement; and a digest is not proof that source bytes or issuers are authentic.
+
+## What current published work establishes
+
+### Autonomous industrial inspection
+
+The 2026 systematic review *Autonomous Industrial Inspection with Quadruped Robots* included 32 physically validated studies. Four studies let inspection data re-plan the mission; only two re-planned within the current run. Only one of those four compared mission replanning against a no-replanning baseline. The review also reports only three studies quantifying localization accuracy on hardware, 14 without repeated-run statistics, and 27 without public code or data. These are counts from this specific quadruped industrial-inspection review, not from all robotics research and not from orbital systems.
+
+Source: https://www.mdpi.com/2218-6581/15/10/204
+
+### Robotic surface-inspection trajectory planning
+
+Zou et al. (2026), *Human-Inspired Dexterity-Oriented Perception and Trajectory Optimization for Robotic Surface Inspection*, reports a physical experiment with 100% clarity coverage of the defined key surface areas, a 47.0% path-length reduction and a 37.5% solution-time reduction over its baseline. The article reports ten repeated physical runs and mean ± standard deviation. These are strong matched-baseline targets to reproduce on the same asset, geometry, sensor, candidate views and evaluation rules—not universal performance guarantees.
+
+Source: https://doi.org/10.3390/biomimetics11050296
+
+### Integrated discrete inspection planning
+
+Staderini's 2026 TU Wien dissertation, *Integrated Planning and Optimization Framework for Robotic Visual Inspection*, is a particularly relevant planning comparator. It combines CAD-derived viewpoint generation, Poisson-disc sampling, spatial-resolution-aware sampling density, photometric visibility using Blinn–Phong/Cook–Torrance BRDFs, Bayesian refinement of unreachable poses, and an SCGTSP integer-linear-program tour. Its abstract reports synthetic and real experiments with 3-, 6- and 8-DOF systems and reduced inspection time relative to sequential methods.
+
+This is materially broader than a plain coverage planner. The Symtropy programme must not claim novelty for integrating viewpoint geometry, photometric quality, kinematic feasibility and route ordering alone. Its additional testable proposition is that the executed acquisition itself is qualified over time, calibration state and provenance, and that subsequent inspection decisions are evidence-gated, sequentially valid and auditable. A fair comparison should reproduce the thesis' defined problem before adding those additional claims.
+
+Source: https://repositum.tuwien.at/bitstream/20.500.12708/226537/1/Staderini%20Vanessa%20-%202026%20-%20Integrated%20Planning%20and%20Optimization%20Framework%20for...pdf
+
+### Close-proximity spacecraft inspection: shielded RL versus PRM–MIQCQP
+
+Stephenson and Schaub (28 September 2026), *Two Approaches to Autonomous Spacecraft Inspection: Shielded Reinforcement Learning versus Probabilistic Roadmaps*, is the closest direct orbital-inspection comparator identified in this update. It studies an eccentric-LEO servicer inspecting an ellipsoidal resident space object under illumination and collision constraints, with a 5 m shield keep-out radius in its shield experiment.
+
+The paper reports:
+- the shielded RL policy was evaluated over 1,000 environment seeds; the shield removed collisions observed in the unshielded trials;
+- the shield added an average 0.12 orbits and 0.21 m/s fuel in those runs, intervening on 33.8% of actions with mean adjustment magnitude 0.04 m/s;
+- the PRM–MIQCQP fuel/time Pareto front generally dominated the RL front on the studied scenario;
+- PRM–MIQCQP took about 10 minutes on an Apple M2 Pro with 12 cores and Gurobi, making it an offline planning approach in the authors' framing;
+- the small 2×256 MLP RL policy took about 100 microseconds per decision and supports onboard closed-loop response.
+
+This is not a general ranking of PRM and RL. It is specific to the paper's modeled eccentric-LEO problem, impulsive servicer, assumed target attitude and constraints. It is a strong, direct benchmark that the Luminous programme should reproduce before claiming an orbital-planning advantage.
+
+Source: https://doi.org/10.1007/s40295-026-00631-w
+
+### Traceable robot metrology
+
+Chekh et al. (2026), *Traceable Metrological Digital Twin for Robot-Based 3D Inspection*, integrates robot kinematic calibration, optical-sensor characterization, sensor-to-robot referencing and machine-readable metrological state. It propagates calibrated-parameter uncertainty using a GUM-aligned Monte Carlo method and compares a complex part against references at 67 characteristics. Its current validation is limited to the experimental campaign's environmental conditions and short-term stability; thermal drift and long-term stability are explicitly outside its current model.
+
+Source: https://doi.org/10.3390/metrology6040088
+
+### Commercial metrology bar
+
+Manufacturer-published capabilities show why we must not reduce the comparison to a toy path-planning baseline:
+
+- ZEISS describes TALOS as a metrology robot with claimed measurement uncertainty below 100 µm at a 3.30 m reach, no external tracking or reference markers, and one sensor workflow for full-field geometry and feature measurement. These are manufacturer specifications, not an independent Symtropy-vs-ZEISS trial.
+  - https://www.zeiss.com/metrology/en/about-us/newsroom/2026/automated-inspection.html
+  - https://www.zeiss.com/metrology/en/systems/optical-3d/automated-solutions/talos.html
+- Creaform publishes MetraSCAN-R BLACK+ Elite accuracy of 0.025 mm and volumetric accuracy values of 0.064 mm over 9.1 m³ and 0.078 mm over 16.6 m³. Those figures are tied to the vendor's stated equipment and test conditions; they are not directly comparable with ZEISS's uncertainty claim or a different robot/sensor/workpiece.
+  - https://www.creaform3d.com/en/products/r-series-automated-quality-control-solutions/technical-specifications
+
+The comparison should therefore include the actual complete measurement chain, feature-dependent errors, calibration/reference procedure, uncertainty, environment, access, repeatability and traceability—not only the nominal sensor accuracy.
+
+### Orbital inspection and servicing
+
+NASA's VIPIR is described as a tele-operated visual inspection system using an articulating borescope to access spacecraft components beyond fixed-camera views. NASA's Robotic Servicing Arm has seven degrees of freedom and heritage in robotic servicing. These are relevant space-robotics capabilities, but neither source establishes a general autonomous evidence-qualified inspection campaign for a complex orbital truss.
+
+Sources:
+- https://technology.nasa.gov/advancing-commercial-space/autonomous_systems_robotics
+- https://www.nasa.gov/isam/robotic-servicing-arm/
+
+### Active visual perception and fair closed-loop evaluation
+
+Li et al. (15 October 2026), *Active Visual Perception: Opportunities and Challenges*, argues that active perception must be evaluated as a closed loop: specify missing task evidence, choose an action that can obtain it, estimate the value of the resulting observation, execute the action, then update the task state. It warns that a predicted useful view may be unreachable, and that task success alone does not prove the sensing policy caused the gain.
+
+The review's comparator recommendations are directly applicable here: fixed/passive, random, uniform, immediate-greedy, and a clearly labelled privileged/oracle upper bound. Keep the perception backbone, starting observation, candidate action set, sensing budget and task controller matched. Measure changes in the acquired evidence separately from downstream decision/task outcomes, plus view/path/action/time, compute, energy, reachability, collision and execution failures. Report premature stopping and unnecessary further observation separately; do not use a single weighted score.
+
+Source: https://www.mdpi.com/1424-8220/26/20/6544
+
+### Probability of detection and conformity
+
+NIST TN 2119 lays out confidence intervals and confidence bounds for probability of detection, probability of identification and false-alarm rates. POD is a physical, method-specific qualification question; synthetic policy fixtures cannot establish it.
+
+Source: https://doi.org/10.6028/NIST.TN.2119
+
+## Spacecraft-inspection baseline: shielded RL versus PRM–MIQCQP
+
+Stephenson and Schaub (2026), *Two Approaches to Autonomous Spacecraft Inspection: Shielded Reinforcement Learning versus Probabilistic Roadmaps*, is a direct orbital comparator rather than an adjacent industrial analogy. It models an eccentric-LEO servicer inspecting a Hill-frame-fixed resident object under range, pointing, illumination and collision constraints. The terminal task requires inspection of at least 90% of illuminated surface points, with a 5 m keep-out constraint in the shield experiment. The study compares:
+
+- an onboard PPO/MLP closed-loop policy with an optimization-based action shield;
+- an offline probabilistic roadmap plus mixed-integer quadratically-constrained quadratic program (PRM–MIQCQP) that searches a fuel/time trade space.
+
+Its reported results are useful engineering targets, not general guarantees:
+- the 2×256 MLP inference takes about 100 µs per decision;
+- the offline PRM–MIQCQP takes about 10 minutes on an Apple M2 Pro 12-core system with Gurobi 10.0.1;
+- over 1,000 shield comparison seeds, the shield eliminates the observed collisions, while adding an average 0.12 orbits and 0.21 m/s fuel;
+- the shield intervenes on 33.8% of actions, with mean adjustment about 0.04 m/s;
+- the PRM Pareto front generally dominates the studied RL fuel/time front in that simulator, but is an offline open-loop plan.
+
+Source: https://doi.org/10.1007/s40295-026-00631-w
+
+The paper states no dataset was generated or analyzed. A genuine reproduction may therefore require rebuilding the environment and equations from the paper; label that as an independent reimplementation, not an exact source-code replication. Freeze the environment, orbital elements, RSO geometry/attitude, target point set, illumination model, maneuver limits, keep-out radius, initial states, solver and seed set before comparing.
+
+### Orbital comparator tournament
+
+Use the paper's two original approaches as the baseline and add:
+1. **Offline PRM–MIQCQP** — fuel/time Pareto reference.
+2. **Shielded closed-loop RL** — onboard reactive and low-latency baseline.
+3. **Hybrid PRM + receding-horizon repair** — offline global route, onboard bounded local repair when the observed asset state or inspection evidence diverges.
+4. **Two-key admission** — every proposed inspection action must pass independently qualified physical safety and measurement evidence gates; recovery actions are a separate type.
+5. **Evidence-gated recourse** — only after the doubly admissible action set exists, use #7393/#7178 decision-value ranking and #6887/#7292 sequential evidence state.
+6. **Exact finite oracle** — evaluator-only comparison on tiny action graphs, not a runtime spacecraft planner.
+
+Run paired trials under identical dynamics, candidate action spaces, initial state, target points, illumination and propellant/time budgets. The same action must be judged under the same keep-out and trajectory model. Report:
+- fuel / delta-v and elapsed orbits;
+- inspection point coverage and valid-evidence coverage separately;
+- collision / keep-out violations and minimum margin;
+- shield intervention rate, magnitude and false-intervention burden;
+- ineligible action rates split by safety, portfolio, calibration, timing and scope;
+- correct resolution, premature stop, appropriate abstention and reacquisition;
+- offline planning time, onboard decision latency, memory, compute, communications and energy;
+- degradation under ephemeris/attitude uncertainty, tumbling or slewing targets, delayed messages, lighting/shadow changes and stale evidence.
+
+The stretch target is a Pareto improvement over the original baselines in **evidence-valid inspection yield** at matched risk, while preserving the RL-class onboard response time and moving closer to the PRM-class fuel/time frontier. Do not claim this until the matched simulator and held-out seeds exist. Safety violations remain a disqualifying metric; they cannot be traded against additional coverage or information value.
+
+## Fair comparator tournament
+
+Every arm must receive the same geometry, target characteristics, candidate-view pool, hardware limits, sensor model, calibration state, evidence prefix, resource budget and evaluation truth.
+
+| Arm | Comparator | What it isolates |
+|---|---|---|
+| B0 | Fixed/teach-and-repeat route and fixed sensor schedule | Passive operational baseline |
+| B1 | Random feasible action selection | Uninformed-selection control |
+| B2 | Uniform spatial/temporal observation allocation | Uniform sensing control |
+| B3 | Conventional coverage / viewpoint planner | Coverage and path planning |
+| B4 | Matched 2026 dexterity-oriented hierarchical planner | Published surface-inspection planning baseline |
+| B5 | Greedy immediate information gain per cost | Entropy reduction versus actual decision value |
+| B6 | Greedy worst-case decision-class separation | Decision-oriented heuristic |
+| B7 | Fixed recapture sequence | Non-adaptive inspection control |
+| B8 | Shielded closed-loop RL / policy controller | Published responsive onboard-control comparator |
+| B9 | Offline PRM–MIQCQP | Published fuel/time Pareto and offline global-planning comparator |
+| B10 | Hybrid offline planner + onboard receding-horizon controller | Test whether global efficiency and responsiveness can be combined |
+| B11 | Evidence-gated sequential recourse using #6835/#6887/#7292, inside the physical safety shield | Proposed policy; only after interfaces and safety gate are qualified |
+| B12 | Exhaustive finite policy oracle | Exact optimum on tiny declared support models only |
+| H | Hindsight/clairvoyant action selection | Evaluator-only privileged upper bound; never a deployable competitor |
+
+Separately ablate the acquisition-envelope models without changing the sensing policy: translation-only #7384; constant-speed perspective #7399; time-varying acceleration/jerk #7422. Compare false holds and false-valid admissions against a time-synchronized reference trajectory, not only nominal blur scores.
+
+For the surface-inspection paper, first reproduce its own baseline and reported metrics under its geometry and sensor protocol. Then add the recourse objective on a separate, matched extension. If its raw data, CAD or implementation are unavailable, mark the comparison as not reproducible; do not infer a numerical comparison from the abstract.
+
+## Non-compensatory action admission: two independent keys
+
+Every inspection action must first pass an independently owned physical-safety admissibility interface (for example, a qualified keep-out/reachable-tube shield) **and** the measurement-evidence admissibility interface (scope, calibration, timing, support and acquisition envelope). One PASS cannot compensate for another FAIL or UNKNOWN. Decision value, fuel/time efficiency and sensing utility rank only action candidates that survive both hard gates.
+
+This is a composition and benchmark requirement, not a new collision shield. Upstream spaceflight risk/trajectory owners continue to supply physical constraints and receipts; the inspection work consumes those exact outputs. The adapter must not derive collision probabilities, trajectory reachability, control barrier functions or safe-set invariance on its own.
+
+A controlled ablation may report which gate rejected each candidate, but an evidence-only or safety-only policy must not execute outside a protected simulation/test harness. Hard-gate violation counts are primary metrics; no reward-weighted average can make a collision or an inadmissible acquisition acceptable.
+
+## Metrics to report independently
+
+**Planning and execution:** path length, cycle time, solver time, reachable-view ratio, collision-free completion, localization error, intervention frequency, route stability and recovery time.
+
+**Acquisition and sensing:** capture association success, timing uncertainty, smear/blur, illumination and projector stability, occlusion, image clarity, valid coverage per required characteristic, repeat-acquisition rate and sensor dropout.
+
+**Metrology:** characteristic-specific bias and repeatability, reference-method comparison, expanded uncertainty, uncertainty coverage, calibration invalidation detection delay, drift response and environment-specific performance.
+
+**Observation-level evidence change:** visibility, valid depth, occlusion reduction, feature-local sampling, exposure/row/frame motion bound, timing association, photometric validity and calibrated characteristic-level uncertainty before/after each action.
+
+**Task/decision quality:** false engineering-decision commitment, false rejection, correct resolved decisions, appropriate abstention, unresolved decision-set size, decision regret, premature stopping, unnecessary additional observations, wasted observations and actions per resolved characteristic.
+
+**Action and system costs:** view count, path length, camera rotation, joint/robot action count, solver latency, completion time, computation, memory, robot energy, illumination/projector energy, communication volume, reachability, collision risk and execution failures.
+
+**Evidence assurance:** exact input/source binding, completeness, stale/revoked reference rejection, common-cause handling, deterministic replay, independent-oracle parity, audit completeness and policy non-anticipativity.
+
+Do not combine these into one weighted score. Report Pareto fronts and hard-gate violations separately.
+
+## Staged benchmark ladder
+
+### Stage 0 — finite synthetic semantics
+
+Targets for the current executable work:
+- 100% independent exact-oracle agreement on bounded known-answer cases;
+- zero UNKNOWN, FAIL, incomplete or unqualified acquisition actions selected;
+- zero false singleton decisions on opposite-decision support;
+- zero extra observation when every surviving world already implies the same decision;
+- zero use of future outcomes or hidden world IDs;
+- zero exact-optimum claims after a search cap;
+- byte-deterministic Rust replay and complete independent receipt equality.
+
+These are software contract targets only.
+
+### Stage 1 — simulator / digital-twin matched experiments
+
+Use a frozen CAD model, explicit surface characteristics, known truth, realistic sensor and robot models, occlusion, calibration drift, lighting, thermal change, timing faults and common-cause dependencies. Compare every baseline on the same initial candidate pool and same budgets. Use paired runs and publish mean, spread, confidence intervals and failure strata.
+
+### Stage 2 — physical lab campaign
+
+Use independently measured reference truth (for example, CMM or a qualified reference scanner) and a preregistered repeated-run protocol. Include multiple robot poses, sessions, calibration events, temperature states, sensor/remount cycles and deliberate capture failures. Measure feature-level error and uncertainty—not only point-cloud overlap. Only after the method-specific physical dataset exists should POD / false-alarm claims be made using an appropriate method such as the NIST guidance and applicable ASTM/NASA requirements.
+
+### Stage 3 — orbital analogue and environmental qualification
+
+Introduce representative truss geometry, long-baseline structure flexure, lighting/shadow, thermal gradients, vacuum-compatible hardware, communications delay, constrained contact/access, power reserve, radiation/thermal aging where relevant, and safe degraded-mode behavior. Hardware-in-the-loop and analog testing precede any flight or operational claim.
+
+## How to outperform, rather than just be different
+
+The stretch objective is a **non-dominated decision-assurance frontier**: at equal resource cost, obtain more correctly resolved required characteristics with no increase in false decision commitments; or reach the same decision quality with lower path length, energy, observation count or elapsed time. At equal inspection quality, improve cycle time and energy against the matched industrial baseline. At equal path and image quality, reduce unnecessary reacquisition and false confidence by tracking calibration, timing, evidence completeness and common causes.
+
+A meaningful win must hold across repeated runs and hard scenarios—not only average cases. Report worst-case behavior and tail failures. Keep the 2026 surface-inspection paper's 47% path and 37.5% solution-time improvements as serious reproduction targets, not figures that can be compared without matching its experiment. For orbital close-proximity inspection, reproduce the 2026 shielded-RL versus PRM–MIQCQP comparison on its declared scenario: fuel/time Pareto front, keep-out violations, shield intervention rate and magnitude, task coverage, offline solve time and onboard per-decision latency. Then test whether evidence-gated recourse inside the same physical shield can improve admissible characteristic yield, reduce reacquisition and avoid false commitments without degrading the safety envelope.
+
+## Current implementation mapping
+
+- #7384: bounded acquisition integrity (synthetic evaluator).
+- #7382: calibration-chain validity (synthetic evaluator).
+- #7388: exact finite motion/exposure/illumination co-design (synthetic evaluator).
+- #7394: exact finite contingent inspection recourse (synthetic reference oracle; dedicated and cross-platform CI passed).
+- #6887: statistical sequential world-survival / anytime-valid decision sets.
+- #7399: perspective-aware translation/rotation projection envelope (11-case synthetic benchmark and Ubuntu/macOS/Windows CI passed).
+- #7422: time-varying acceleration/jerk envelope (17-case synthetic benchmark and independent Fraction oracle; exact-head CI pending).\n- #6845: parent inspectability and independent evidence programme.
+
+The implementation sequence should connect these contracts only through versioned, exact input and output receipts. Missing owners remain missing; synthetic or modeled evidence must never be presented as measured physical truth.
+
+
+## New two-key action-admission work
+
+- #7484: non-compensatory physical-safety and measurement-evidence admission adapter, scoped to consume existing safety/risk and acquisition owners; no duplicated collision shield or trajectory engine.
