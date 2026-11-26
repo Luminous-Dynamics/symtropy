@@ -1,0 +1,698 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/optical-channel-observations-001/research/physical-storage/dna_channel_observation_v0_1.schema.json",
+  "title": "Physical storage DNA channel observation batch v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "evidence_class",
+    "partition",
+    "molecular_material",
+    "synthesis",
+    "storage",
+    "sequencing",
+    "sequence_constraints",
+    "records",
+    "evaluation_labels",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "physical-storage-dna-channel-observations-v0.1"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic_fixture",
+        "published_reproduction",
+        "physical_measurement",
+        "model_derived"
+      ]
+    },
+    "partition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "grouping",
+        "group_id",
+        "split_manifest_ref"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "training",
+            "calibration",
+            "validation",
+            "held_out"
+          ]
+        },
+        "grouping": {
+          "enum": [
+            "synthesis_batch",
+            "oligo_library",
+            "sequencing_run",
+            "storage_condition",
+            "library_and_run"
+          ]
+        },
+        "group_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "split_manifest_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "molecular_material": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "material_id",
+        "carrier_type",
+        "organism_or_synthetic_origin",
+        "supplier",
+        "batch_id",
+        "encapsulation"
+      ],
+      "properties": {
+        "material_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "carrier_type": {
+          "enum": [
+            "synthetic_dna_oligo",
+            "enzymatic_dna",
+            "plasmid",
+            "spore_or_cellular",
+            "other"
+          ]
+        },
+        "organism_or_synthetic_origin": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "supplier": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "batch_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "encapsulation": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "synthesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "process_id",
+        "platform",
+        "chemistry",
+        "length_nt_min",
+        "length_nt_max",
+        "synthesis_method",
+        "yield_measurement_ref"
+      ],
+      "properties": {
+        "process_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "platform": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "chemistry": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "length_nt_min": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "length_nt_max": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "synthesis_method": {
+          "enum": [
+            "phosphoramidite",
+            "enzymatic",
+            "biological_replication",
+            "other",
+            "unknown"
+          ]
+        },
+        "yield_measurement_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "storage_run_id",
+        "temperature_celsius",
+        "relative_humidity_percent",
+        "duration_value",
+        "duration_unit",
+        "environment_record_ref"
+      ],
+      "properties": {
+        "storage_run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "temperature_celsius": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "relative_humidity_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "duration_value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "duration_unit": {
+          "enum": [
+            "seconds",
+            "hours",
+            "days",
+            "months",
+            "years",
+            "unknown"
+          ]
+        },
+        "environment_record_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "sequencing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "platform",
+        "chemistry",
+        "basecaller",
+        "basecaller_version",
+        "quality_calibration_status",
+        "calibration_ref"
+      ],
+      "properties": {
+        "run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "platform": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "chemistry": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "basecaller": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "basecaller_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "quality_calibration_status": {
+          "enum": [
+            "traceable_calibration",
+            "empirically_calibrated",
+            "uncalibrated",
+            "synthetic_only",
+            "unavailable"
+          ]
+        },
+        "calibration_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "sequence_constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "alphabet",
+        "gc_fraction_min",
+        "gc_fraction_max",
+        "maximum_homopolymer_run",
+        "excluded_motifs_ref",
+        "constraint_profile_ref"
+      ],
+      "properties": {
+        "alphabet": {
+          "const": "ACGT"
+        },
+        "gc_fraction_min": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "gc_fraction_max": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maximum_homopolymer_run": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "excluded_motifs_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "constraint_profile_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "record_id",
+          "oligo_id",
+          "index_or_primer_group",
+          "read_status",
+          "reads"
+        ],
+        "properties": {
+          "record_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "oligo_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "index_or_primer_group": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "read_status": {
+            "enum": [
+              "reads_present",
+              "no_reads_detected",
+              "ambiguous_or_unresolved"
+            ]
+          },
+          "reads": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "read_id",
+                "sequence",
+                "phred_quality",
+                "read_count"
+              ],
+              "properties": {
+                "read_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sequence": {
+                  "type": "string",
+                  "pattern": "^[ACGTN]+$",
+                  "minLength": 1
+                },
+                "phred_quality": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 93
+                  }
+                },
+                "read_count": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "evaluation_labels": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "visibility",
+        "expected_library_ref",
+        "error_annotation_ref"
+      ],
+      "properties": {
+        "visibility": {
+          "enum": [
+            "none",
+            "separate_access_controlled_corpus",
+            "synthetic_inline_only"
+          ]
+        },
+        "expected_library_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "error_annotation_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "acquisition_timestamp",
+        "source_reference",
+        "raw_bundle_digest_sha256",
+        "instrument_log_ref",
+        "notes"
+      ],
+      "properties": {
+        "acquisition_timestamp": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "source_reference": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "raw_bundle_digest_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "instrument_log_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "evidence_class": {
+            "const": "synthetic_fixture"
+          }
+        },
+        "required": [
+          "evidence_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "sequencing": {
+            "properties": {
+              "quality_calibration_status": {
+                "const": "synthetic_only"
+              }
+            }
+          },
+          "evaluation_labels": {
+            "properties": {
+              "visibility": {
+                "const": "synthetic_inline_only"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence_class": {
+            "const": "physical_measurement"
+          }
+        },
+        "required": [
+          "evidence_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "evaluation_labels": {
+            "properties": {
+              "visibility": {
+                "enum": [
+                  "none",
+                  "separate_access_controlled_corpus"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "records": {
+            "contains": {
+              "properties": {
+                "read_status": {
+                  "const": "no_reads_detected"
+                }
+              },
+              "required": [
+                "read_status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "records"
+        ]
+      },
+      "then": {
+        "properties": {
+          "records": {
+            "items": {
+              "if": {
+                "properties": {
+                  "read_status": {
+                    "const": "no_reads_detected"
+                  }
+                },
+                "required": [
+                  "read_status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "reads": {
+                    "maxItems": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence_class": {
+            "const": "physical_measurement"
+          }
+        },
+        "required": [
+          "evidence_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "evaluation_labels": {
+            "properties": {
+              "visibility": {
+                "enum": [
+                  "none",
+                  "separate_access_controlled_corpus"
+                ]
+              }
+            }
+          },
+          "provenance": {
+            "properties": {
+              "acquisition_timestamp": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "raw_bundle_digest_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              },
+              "instrument_log_ref": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "acquisition_timestamp",
+              "raw_bundle_digest_sha256",
+              "instrument_log_ref"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "sequencing": {
+            "properties": {
+              "quality_calibration_status": {
+                "enum": [
+                  "traceable_calibration",
+                  "empirically_calibrated"
+                ]
+              }
+            },
+            "required": [
+              "quality_calibration_status"
+            ]
+          }
+        },
+        "required": [
+          "sequencing"
+        ]
+      },
+      "then": {
+        "properties": {
+          "sequencing": {
+            "properties": {
+              "calibration_ref": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "calibration_ref"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

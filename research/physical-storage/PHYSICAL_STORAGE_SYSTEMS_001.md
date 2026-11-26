@@ -30,7 +30,8 @@ The machine-readable register is adjacent at `fixtures/industry_baselines_v0_1.j
 | Seagate Mozaic 5 | Roadmap / prequalification | More than 50 TB per drive targeted; qualification shipments expected toward end of calendar 2027; an 8 TB-per-disk laboratory demonstration was reported | Vendor development and lab figures, not production-available capacity. Do not benchmark as a shipped drive. |
 | WD 40 TB UltraSMR ePMR | Shipping/ramping, reported August 2026 | Up to 40 TB per HDD | Industrial nearline capacity. UltraSMR trades some rewrite flexibility for density; workload compatibility matters. WD's first-generation 44 TB HAMR was still forecast for H1 2027 in the cited August report. |
 | LTO-10 tape | Current format/product family | 40 TB native per cartridge; up to 400 MB/s native; up to 100 TB at 2.5:1 compression | Removable, offline, high-capacity archive. Compatible drives support hardware encryption; Fujifilm's 2026 product notice lists the WORM option on its 30 TB LTO-10 variant, not the 40 TB cartridge. Cartridge capacity is not comparable to a glass volume density figure. |
-| Micron 6600 ION QLC SSD | Commercial product family | 245.76 TB usable / 256 TB raw in E3.L | Very high-capacity flash and low-latency access; a different cost, endurance, power and access tier from tape or glass archive. |
+| Micron 6600 ION QLC SSD | Commercial product family | 245.76 TB usable / 256 TB raw on product page; technical specification labels 245.76 TB capacity as unformatted | Very high-capacity flash and low-latency access; a different cost, endurance, power and access tier from tape or glass archive. Preserve source-specific capacity labels and confirm array-usable payload. |
+| Synthetic DNA oligonucleotide storage | Research review only (June 2026); not commercially qualified | No production-grade comparable capacity, cost, throughput or retention value admitted | Potential molecular-density/chemical-stability research tier. Requires sequence-level indel, substitution, dropout, abundance, PCR-bias and synthesis/sequencing economics; keep unrankable until measured end-to-end exact recovery exists. |
 
 ### Important arithmetic sanity check
 
@@ -187,3 +188,76 @@ This document and the baseline register are research specifications. They do not
 - LTO-10 technology and specifications: https://www.lto.org/lto-10/
 - Micron 6600 ION product specifications: https://www.micron.com/products/storage/ssd/data-center-ssd/6600-ion
 - Skyrmion racetrack noise model, *Physical Review B* 113, L180407 (18 May 2026): https://journals.aps.org/prb/abstract/10.1103/73z4-ymkp
+
+
+## 8. Instrument-bound optical channel observations
+
+The follow-on observation contract is tracked in [OPTICAL-CHANNEL-OBSERVATION-001 #7534](https://github.com/Luminous-Dynamics/symtropy/issues/7534), with its schema, synthetic fixture and protocol on the [optical-channel-observations branch](https://github.com/Luminous-Dynamics/symtropy/tree/research/optical-channel-observations-001/research/physical-storage).
+
+The handoff preserves four evidence classes (synthetic fixture, published reproduction, physical measurement and model-derived) and binds every observation batch to a specimen/material, writer/process record, reader/calibration, coordinate frame and provenance digest. Raw detector observations, hard symbols and optional soft information remain distinct. Ground-truth labels are separately referenced and held-out splits are grouped by specimen/batch/reader to avoid neighbouring-voxel leakage.
+
+The Draft 2020-12 schema includes conditional checks: synthetic-only batches cannot label their soft information calibrated; calibrated symbol vectors require a calibration reference; and a reader declared current/traceably calibrated must carry calibration identity, a record reference and uncertainty. A semantic validator is still required for unique observation IDs, alphabet membership, likelihood-vector cardinality and normalization, calibration compatibility, coordinate bounds and split non-overlap. JSON Schema does not prove instrument calibration or probability quality.
+
+The example fixture is explicitly synthetic and makes no BOROFLOAT 33/K10 measurement claim. Symthaea's decoder and optimizer may consume these records only with their evidence class, provenance and partition identity preserved. No confidence score may silently become a physical error probability.
+
+
+## 9. Preservation and industry-comparison standards
+
+The compiler's service contract should be assessed against the wider repository-preservation obligation, not only device endurance. Use the current references as complementary layers:
+
+- **OAIS / ISO 14721:2025:** an archival information-system reference model covering ingest, archival storage, data management, access, dissemination, information representation and media/software migration. This informs the service contract and preservation lifecycle: https://www.iso.org/standard/87471.html
+- **ISO 16363:2025:** audit and certification criteria for trustworthy digital repositories. Use this as an assurance target for repository process, evidence and organizational trustworthiness, not as a media physics test: https://www.iso.org/standard/87472.html
+- **NDSA Levels of Digital Preservation v2.1 (March 2026):** operational assessment framework with explicit environmental-sustainability considerations. Use it to ensure the compiler's lifecycle decision includes sustainability rather than only capacity and endurance: https://www.ndsa.org/publications/levels-of-digital-preservation/
+- **SNIA SSS PTS v2.0.2:** device-level SSD performance test methodology for repeatable enterprise/client comparison. It is not a 1 PB archive restore benchmark: https://www.snia.org/tech_activities/standards/curr_standards/pts
+
+### Comparison snapshots — evidence classes must remain separate
+
+| Technology | Public anchor | What it establishes | What it does not establish |
+|---|---|---|---|
+| Glass, fused silica | Silica paper: 4.8 TB usable per 120 × 120 × 2 mm platter, 301 layers, 1.59 Gbit/mm³, 25.6 Mbit/s per write beam | Published end-to-end laboratory demonstrator | Commercial production availability, full library restore or independent-reader service qualification |
+| Glass, borosilicate | 2.02 TB per platter; four-beam 65.9 Mbit/s write result | Published lower-cost glass regime and demonstrated parallel writing | 16+ beam production; that remains a thermal-model projection |
+| HAMR HDD | Seagate Mozaic 4+ up to 44 TB, qualified and in production with two hyperscale cloud providers (3 March 2026) | Production-scale high-capacity HDD platform | A century-scale archive guarantee or full archive restore in the compiler's service boundary |
+| LTO-10 tape | 40 TB native; up to 400 MB/s native per drive/cartridge stream (Fujifilm, 2 April 2026) | Current commercial tape capacity and device transfer ceiling | Multi-drive library restore after mounts, retries, ECC, verification and network transfer |
+| Micron 6600 ION SSD | 245.76 TB SKU; product page calls it usable, technical specification calls it unformatted; up to 13,700 MB/s sequential read and 3,000 MB/s sequential write in the 30 W power state | High-density enterprise SSD device-level performance | Century-scale retention, archive-array usable payload after formatting/redundancy, or end-to-end archive restore |
+
+The glass figures are from the published Silica system paper: https://www.nature.com/articles/s41586-025-10042-w. The commercial HAMR status is from Seagate's 3 March 2026 production announcement: https://www.seagate.com/stories/articles/seagate-delivers-industrys-highest-capacity-hard-drives-with-next-generation-mozaic-4/. LTO-10 values are from Fujifilm's 40 TB product specification: https://newsroom-us.fujifilm.com/press-releases/press-release-details/2026/FUJIFILM-North-America-Corporation-Announces-U-S--Availability-of-FUJIFILM-LTO-Ultrium-Generation-10-40TB-Data-Cartridges-04-02-2026/default.aspx. Micron's 245.76 TB rates are device-test results at a declared power state and workload: https://www.micron.com/content/dam/micron/global/public/products/storage/ssds/data-center/6600/6600-ion-ssd-technical-product-specification.pdf.
+
+### Fair-comparison rule
+
+Do not compare glass write throughput to HDD/SSD read throughput; do not compare a drive's sequential rate to an archive's verified restore rate; do not compare nominal raw capacity to net exact-recoverable payload; do not treat manufacturer retention statements, model extrapolations and direct ageing observations as equivalent.
+
+The compiler must normalize the service boundary and report:
+- net usable payload after coding, controls, calibration, spares and copy diversity;
+- full end-to-end ingest, read and restore throughput with digest verification;
+- energy and cost per successful verified restore and per verified TB-year;
+- reader replacement, decoder portability, migration and environmental obligations;
+- evidence tier, sample counts, uncertainty and missing values.
+
+For the illustrative 1 PB / 10-day restore, the 1.157 GB/s payload floor is a lower bound before all overhead. Three LTO-10 streams at 400 MB/s each only provide 1.2 GB/s on an ideal continuous-rate sum, so this is not a service qualification. The actual library must pass an end-to-end restore drill.
+
+
+## 10. DNA molecular storage as a separate research medium
+
+The Physical Memory Compiler now recognizes dna_molecular in both its service-contract and candidate-decision schemas. A source-linked June 2026 review is included in the technology register as research-only, without fabricated vendor capacity, price, throughput or lifetime values.
+
+DNA should be modeled as a biochemical sequence channel, not as an ordinary tile-erasure channel. Its full path includes constrained sequence encoding, oligo synthesis, storage/encapsulation, primer-based access, PCR or other amplification, sequencing, basecalling, sequence alignment and exact payload reconstruction.
+
+The channel contract has its own v0.1 schema and synthetic fixture in this branch:
+- dna_channel_observation_v0_1.schema.json
+- fixtures/dna_channel_observation_synthetic_v0_1.json
+- MOLECULAR_MEMORY_CHANNEL_001.md
+
+These are data-contract artifacts only. They distinguish substitutions, insertions, deletions, oligo dropout, abundance bias, duplicate reads and sequence-constraint issues. Expected sequences and error annotations are not embedded in the raw observation record; they are separately referenced to prevent evaluation leakage.
+
+The 2026 review identifies the potential of DNA's density and biochemical stability while also documenting synthesis cost, sequencing errors, access latency and process-efficiency barriers. DNA remains unrankable for production storage until net recoverable bits, synthesis/sequencing cost, storage stability, retrieval performance, sample yield and exact end-to-end restoration are measured on a declared platform and protocol.
+
+Source: Öztürk et al., “DNA Data Storage: A Critical Review of Bio-Algorithmic Integration, Performance-Cost Tradeoffs, and Future Directions for Scalable Architectures,” 3 June 2026: https://link.springer.com/article/10.1007/s11831-026-10651-2.
+
+
+## 12. DNA codec benchmark evidence update
+
+The DNA research row now links two current coding studies:
+- Gimpel et al., Nature Communications 17, 3963 (14 March 2026), compare six codecs (DNA-Aeon, DNA Fountain, DNA-RS, Goldman, HEDGES, Yin–Yang) under standardized in-silico/in-vitro settings, using read clustering and DT4DDS. The study reports 43 EB/g for material-deposition synthesis and 13 EB/g for electrochemical synthesis in separate in-vitro demonstrations; it reports up to 117 EB/g feasibility under its realistic-workflow in-silico analysis. https://doi.org/10.1038/s41467-026-70548-3
+- Ding et al., Bioinformatics 42(8), btag563 (3 August 2026), present Polus/SeqFormer. Its 38.9% DNA Fountain coverage reduction and approximate 80% effective-density uplift are in-silico, scenario-specific results. It also evaluates platform-dependent soft erasures and adaptive resequencing. https://doi.org/10.1093/bioinformatics/btag563
+
+The first comparison provides the in-vitro anchor and archived DT4DDS/ENA materials; the second provides the soft-decision challenge target. Keep the evidence classes separate. Neither result qualifies a commercial DNA archive or resolves system-level synthesis, access, storage lifetime and exact restore economics.

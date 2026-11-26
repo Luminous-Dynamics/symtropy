@@ -101,9 +101,12 @@ Examples:
 - Glass has strong density and accelerated voxel-ageing results, but is a published research demonstrator; full production cost, restore throughput, independent reader portability and whole-system lifetime are not demonstrated by the cited paper.
 - LTO-10 is a commercial archive format with known native capacity/transfer rate, but the example does not include a matched 1 PB library restore test or a substantiated 100-year guarantee.
 - Seagate Mozaic 4+ is customer-qualified production storage, but 44 TB capacity alone does not establish century-scale retention or the full archive restore SLA.
-- Micron 6600 ION is a high-capacity commercial QLC SSD, but package capacity and interface specifications do not establish century-scale archive retention or total-system service guarantees.
+- Micron 6600 ION is a high-capacity commercial QLC SSD. Its product page calls 245.76 TB usable (256 TB raw), while the September 2026 Rev A technical specification labels 245.76 TB as capacity (unformatted); preserve both source descriptions. Neither capacity nor interface specifications establish century-scale archive retention or total-system service guarantees.
 
 The compiler should not declare one medium the winner from those incomplete data.
+
+The candidate decision example now includes DNA as a research_review with assessment exploration_only, production_eligible=false and unknown service metrics. The evidence-status schema distinguishes a review-level research source from a published physical demonstrator or a commercial product.
+
 
 ### Restore-rate arithmetic for the illustrative 1 PB archive
 
@@ -129,13 +132,13 @@ For orientation only, using decimal capacities and rounding each copy up to a wh
 | Borosilicate phase-voxel platter | 2.02 TB | 496 | 1,488 |
 | LTO-10 (native, 40 TB) | 40 TB | 25 | 75 |
 | Seagate Mozaic 4+ HDD | up to 44 TB | 23 | 69 |
-| Micron 6600 ION SSD | 245.76 TB usable | 5 | 15 |
+| Micron 6600 ION SSD | 245.76 TB (product page: usable; technical specification: unformatted) | 5 | 15 |
 
 The two glass regimes in the paper use a 120 × 120 × 2 mm medium (0.0288 L geometric glass volume per platter). At those nominal capacities, the three-copy media-only lower bound is about 18.1 L for fused silica and 42.9 L for borosilicate glass. This excludes holders, protective packaging, robotic handling, reader/writer optics, alignment, redundancy/spares, thermal management, facility infrastructure and service access.
 
 These counts expose the density advantage of glass but do not establish total deployed volume or cost. HDD/SSD unit capacities are not physically or economically comparable to a glass platter without including complete drive electronics, servers, power/cooling and replacement cycles. Three copies are only a logical replication count: the actual independence of sites, readers, power, keys, operators and software must pass the Mycelix/Symtropy dependency-cut qualification before any three-domain claim.
 
-For additional context, Micron's 245.76 TB 6600 ION technical specification lists up to 13,700 MB/s sequential read and 3,000 MB/s sequential write for that SKU. These are drive-level performance figures, not a measured 1 PB archive restore. The compiler must preserve unit-level and system-level rates separately.
+For additional context, Micron's product page describes the 245.76 TB 6600 ION as usable capacity (with 256 TB raw), while its September 2026 Rev A technical specification labels 245.76 TB as capacity (unformatted). Preserve both source-specific labels rather than inferring formatted archive payload. The specification lists up to 13,700 MB/s sequential read and 3,000 MB/s sequential write for the 245.76 TB SKU at the specified power state. These are drive-level performance figures, not a measured 1 PB archive restore. The compiler must preserve unit-level and system-level rates separately.
 
 
 ## 7. Paradigm shifts
@@ -209,3 +212,23 @@ A benchmark pass is scoped to its evidence class. Passing a JSON schema is not a
 ## 10. Evidence and authority boundary
 
 This v0.1 work consists of schemas, illustrative data and a decision-report example. It is not a deployed compiler, a qualified device selector, a product recommendation or a manufacturing recipe. No device-control authority is granted. Human review and independently qualified engineering remain mandatory before any physical experiment or production decision.
+
+
+## 11. DNA molecular storage — research-only candidate
+
+The service contract and candidate-decision schemas now admit the medium family dna_molecular. The technology register carries a June 2026 review as a research-only entry with quantitative product fields intentionally absent.
+
+The DNA channel is not a glass or magnetic erasure channel. It spans constrained sequence encoding, synthesis, storage/encapsulation, selective retrieval, amplification, sequencing, basecalling, alignment and exact decoding. It requires explicit substitutions, insertions, deletions, oligo dropout, abundance bias, duplicate reads, contamination and sequence-constraint models. A future observation adapter is tracked in Symtropy #7567.
+
+The compiler must not rank DNA as production-qualified or infer a storage density, cost, throughput or lifetime from theoretical bits per nucleotide. Evaluate net recoverable bits only after GC/homopolymer/primer constraints, indexes, parity, dropout redundancy and the full biochemical process are counted.
+
+Source: Öztürk et al., “DNA Data Storage: A Critical Review of Bio-Algorithmic Integration, Performance-Cost Tradeoffs, and Future Directions for Scalable Architectures,” 3 June 2026: https://link.springer.com/article/10.1007/s11831-026-10651-2.
+
+
+### 2026 DNA codec and soft-decision baselines
+
+Two further 2026 studies make the DNA lane substantially more actionable:
+- Gimpel et al., Nature Communications (14 March 2026), compare six sequence codecs in silico and in vitro and publish the DT4DDS benchmark workflow, ENA PRJEB90546 data and archived code DOI 10.5281/zenodo.17391326. The study reports separate in-vitro demonstrations at 43 EB/g for material-deposition synthesis and 13 EB/g for electrochemical synthesis. These are experimental research results, not commercial archive specifications. https://doi.org/10.1038/s41467-026-70548-3
+- Ding et al., Bioinformatics (3 August 2026), introduce Polus/SeqFormer quality-aware soft-decision decoding. The reported 38.9% DNA Fountain coverage reduction and ~80% effective-density improvement are in silico, setup-specific results, not physical system qualifications. https://doi.org/10.1093/bioinformatics/btag563
+
+The compiler should treat these as coding/reconstruction baselines. They do not create a commercial DNA medium candidate. The optimizer's service comparison still needs synthesis yield, physical strand mass, read coverage, random access, retention, measured cost and exact end-to-end restore evidence.
