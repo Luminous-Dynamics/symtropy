@@ -207,10 +207,7 @@ pub struct SolverInputAudit {
 }
 
 impl SolverInputAudit {
-    pub fn validate(
-        &self,
-        problem: &FixedProblemFingerprint,
-    ) -> Result<(), ReceiptError> {
+    pub fn validate(&self, problem: &FixedProblemFingerprint) -> Result<(), ReceiptError> {
         let accounted = self
             .emitted_rows
             .checked_add(self.dropped_rows)
@@ -374,9 +371,7 @@ impl ContactSetAudit {
 
     #[must_use]
     pub fn accounted(&self) -> bool {
-        self.receipt_valid
-            && self.unsupported_contacts == 0
-            && self.dropped_contacts == 0
+        self.receipt_valid && self.unsupported_contacts == 0 && self.dropped_contacts == 0
     }
 
     #[must_use]
@@ -552,14 +547,15 @@ impl RunReceipt {
 
     #[must_use]
     pub fn frontend_accounted(&self) -> bool {
-        self.solver_input.complete()
-            && self.frontend.is_some_and(|frontend| frontend.accounted())
+        self.solver_input.complete() && self.frontend.is_some_and(|frontend| frontend.accounted())
     }
 
     #[must_use]
     pub fn frontend_qualifies(&self) -> bool {
         self.solver_input.complete()
-            && self.frontend.is_some_and(|frontend| frontend.fully_qualifies())
+            && self
+                .frontend
+                .is_some_and(|frontend| frontend.fully_qualifies())
     }
 }
 
@@ -864,7 +860,10 @@ mod tests {
 
     #[test]
     fn digest_rejects_uppercase_and_wrong_length() {
-        assert_eq!(Digest::from_hex(&"A".repeat(64)), Err(ReceiptError::InvalidDigest));
+        assert_eq!(
+            Digest::from_hex(&"A".repeat(64)),
+            Err(ReceiptError::InvalidDigest)
+        );
         assert_eq!(Digest::from_hex("abc"), Err(ReceiptError::InvalidDigest));
     }
 
@@ -945,10 +944,16 @@ mod tests {
         let mut value = receipt(BenchmarkPanel::FixedProblemSolver, "left");
         value.solver_input.capacity_rows = Some(4);
         value.solver_input.overflow_reported = true;
-        assert_eq!(value.validate(), Err(ReceiptError::SolverRowsExceedCapacity));
+        assert_eq!(
+            value.validate(),
+            Err(ReceiptError::SolverRowsExceedCapacity)
+        );
         value.solver_input.capacity_rows = Some(8);
         value.solver_input.overflow_reported = true;
-        assert_eq!(value.validate(), Err(ReceiptError::CapacityOverflowFlagMismatch));
+        assert_eq!(
+            value.validate(),
+            Err(ReceiptError::CapacityOverflowFlagMismatch)
+        );
     }
 
     #[test]
@@ -1102,10 +1107,16 @@ mod tests {
     fn missing_frontend_and_frontend_on_fixed_panel_are_rejected() {
         let mut fixed = receipt(BenchmarkPanel::FixedProblemSolver, "fixed");
         fixed.frontend = Some(frontend());
-        assert_eq!(fixed.validate(), Err(ReceiptError::FrontendPresentForFixedProblem));
+        assert_eq!(
+            fixed.validate(),
+            Err(ReceiptError::FrontendPresentForFixedProblem)
+        );
         let mut full = receipt(BenchmarkPanel::FullEnginePipeline, "full");
         full.frontend = None;
-        assert_eq!(full.validate(), Err(ReceiptError::MissingFrontendForFullPipeline));
+        assert_eq!(
+            full.validate(),
+            Err(ReceiptError::MissingFrontendForFullPipeline)
+        );
     }
 
     #[test]
