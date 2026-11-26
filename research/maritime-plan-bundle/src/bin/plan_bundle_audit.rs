@@ -211,12 +211,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("case_id\tbundle_disposition\tresult_count");
     for (case_id, rows) in &groups {
         let case = case_from_rows(rows)?;
-        let report = evaluate_bundle(
-            &case.plan,
-            &case.requirements,
-            case.cutoff,
-            &case.provider,
-        )?;
+        let report = evaluate_bundle(&case.plan, &case.requirements, case.cutoff, &case.provider)?;
         if report.disposition.as_str() != case.expected_bundle {
             return Err(format!(
                 "{case_id}: expected bundle {}, got {}",
