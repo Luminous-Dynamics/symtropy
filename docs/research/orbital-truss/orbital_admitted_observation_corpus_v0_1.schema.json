@@ -1,0 +1,323 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital_admitted_observation_corpus_v0_1.schema.json",
+  "title": "Orbital Admitted Observation Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-admitted-observation.corpus.v0.1"
+    },
+    "benchmark_id": {
+      "const": "ORBITAL-ADMITTED-OBSERVATION-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_source_bound_attempt_outcome_composition_only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "campaign_id",
+          "attempt_id",
+          "sequence_no",
+          "campaign_attempt_count",
+          "scope_disposition",
+          "scope_receipt_sha256",
+          "cutoff",
+          "action",
+          "kernel",
+          "outcome",
+          "owner_bindings",
+          "expected_disposition"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "campaign_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "attempt_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sequence_no": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "campaign_attempt_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "scope_disposition": {
+            "enum": [
+              "SCOPE_COHERENT",
+              "OUT_OF_SCOPE",
+              "INDETERMINATE",
+              "INVALID_INPUT"
+            ]
+          },
+          "scope_receipt_sha256": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cutoff": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cutoff_id",
+              "sequence_watermark",
+              "history_max_sequence",
+              "history_sha256"
+            ],
+            "properties": {
+              "cutoff_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sequence_watermark": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "history_max_sequence": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "history_sha256": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "action": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "action_id",
+              "policy_revision",
+              "command_receipt_sha256",
+              "realization",
+              "realized_action_id"
+            ],
+            "properties": {
+              "action_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "policy_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "command_receipt_sha256": {
+                "type": "string",
+                "minLength": 1
+              },
+              "realization": {
+                "enum": [
+                  "VERIFIED",
+                  "NOT_REALIZED",
+                  "UNKNOWN"
+                ]
+              },
+              "realized_action_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "kernel": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "profile_id",
+              "profile_revision",
+              "receipt_sha256",
+              "source_state",
+              "allowed_outcomes",
+              "required_owners",
+              "missingness_semantics_declared",
+              "action_realization_required"
+            ],
+            "properties": {
+              "profile_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "profile_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "receipt_sha256": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_state": {
+                "enum": [
+                  "CURRENT",
+                  "STALE",
+                  "REVOKED",
+                  "CONTRADICTED",
+                  "UNKNOWN"
+                ]
+              },
+              "allowed_outcomes": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required_owners": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "enum": [
+                    "CAPTURE",
+                    "TIMING",
+                    "MOTION",
+                    "CALIBRATION",
+                    "GEOMETRY",
+                    "FEATURE",
+                    "METROLOGY",
+                    "PHOTOMETRY",
+                    "DIVERSITY"
+                  ]
+                }
+              },
+              "missingness_semantics_declared": {
+                "type": "boolean"
+              },
+              "action_realization_required": {
+                "type": "boolean"
+              }
+            }
+          },
+          "outcome": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "outcome_record_sha256",
+              "payload_sha256",
+              "channel_ids",
+              "missing_channel_ids"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "minLength": 1
+              },
+              "outcome_record_sha256": {
+                "type": "string",
+                "minLength": 1
+              },
+              "payload_sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "channel_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "missing_channel_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "owner_bindings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "owner",
+                "required",
+                "state",
+                "source_state",
+                "receipt_sha256"
+              ],
+              "properties": {
+                "owner": {
+                  "enum": [
+                    "CAPTURE",
+                    "TIMING",
+                    "MOTION",
+                    "CALIBRATION",
+                    "GEOMETRY",
+                    "FEATURE",
+                    "METROLOGY",
+                    "PHOTOMETRY",
+                    "DIVERSITY"
+                  ]
+                },
+                "required": {
+                  "type": "boolean"
+                },
+                "state": {
+                  "enum": [
+                    "PASS",
+                    "FAIL",
+                    "UNKNOWN",
+                    "NOT_REQUIRED"
+                  ]
+                },
+                "source_state": {
+                  "enum": [
+                    "CURRENT",
+                    "STALE",
+                    "REVOKED",
+                    "CONTRADICTED",
+                    "UNKNOWN"
+                  ]
+                },
+                "receipt_sha256": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "expected_disposition": {
+            "enum": [
+              "MEASUREMENT_ADMISSIBLE",
+              "MODELLED_OBSERVATION_PROCESS_OUTCOME",
+              "ABSTAIN_UNMODELLED_OUTCOME",
+              "INADMISSIBLE_MEASUREMENT",
+              "INVALID_INPUT"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
