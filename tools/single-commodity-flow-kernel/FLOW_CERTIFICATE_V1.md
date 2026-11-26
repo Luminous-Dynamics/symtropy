@@ -36,7 +36,7 @@ This rejects a different equal-capacity cut partition, an omitted edge, duplicat
 
 ## Integer interoperability
 
-All capacity and flow quantities are Rust `u64`, represented in JSON as integer tokens. Consumers must parse them as exact unsigned 64-bit integers, **never binary floating-point**. A JSON parser that rounds integers above 2^53 is not suitable for verification. Values outside `0..=18446744073709551615` must be rejected.
+All capacity and flow quantities are Rust `u64`, represented in JSON as integer tokens. Consumers must parse them as exact unsigned 64-bit integers, **never binary floating-point**. A JSON parser that rounds integers above 2^53 is not suitable for verification. Values outside `0..=18446744073709551615` must be rejected. The frozen maximum-capacity vector is `conformance/fixtures/flow-certificate-v1.u64-max.json`; it must round-trip through the Rust serializer and independent verifier without changing any digit.
 
 ## Claim ceiling
 
