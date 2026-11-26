@@ -825,6 +825,22 @@ mod tests {
     }
 
     #[test]
+    fn u64_max_capacity_and_disconnected_graphs_have_exact_certificates() {
+        let maximum_capacity = graph(2, &[(0, 1, u64::MAX)]);
+        let maximum = maximum_capacity.solve().unwrap();
+        assert_eq!(maximum.max_flow, u64::MAX);
+        assert_eq!(maximum.min_cut.capacity, u64::MAX);
+        maximum_capacity.verify_result(&maximum).unwrap();
+
+        let disconnected = graph(2, &[]);
+        let zero = disconnected.solve().unwrap();
+        assert_eq!(zero.max_flow, 0);
+        assert_eq!(zero.min_cut.capacity, 0);
+        assert_eq!(zero.source_side_nodes, vec!["n0".to_string()]);
+        disconnected.verify_result(&zero).unwrap();
+    }
+
+    #[test]
     fn reverse_residual_edges_can_reroute_an_earlier_augmentation() {
         let candidate = FlowGraph {
             commodity_ref: "test-commodity".to_string(),
