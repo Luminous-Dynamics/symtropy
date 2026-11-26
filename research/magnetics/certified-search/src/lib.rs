@@ -10,7 +10,7 @@
 use std::collections::VecDeque;
 
 use magnetic_interval_ad::{
-    certify_expression, Interval, IntervalAdError, IntervalDual, ParameterDomain,
+    certify_expression_centered, Interval, IntervalAdError, IntervalDual, ParameterDomain,
     ValidatedDerivativeEnclosure,
 };
 
@@ -253,7 +253,7 @@ where
     let mut margin_domain =
         point_node_domain(root, node, design_dimension, &point, "incumbent-margin")?;
     margin_domain.expression_id = compliance_expression_id.to_owned();
-    let margin = match certify_expression(&margin_domain, compliance_margin) {
+    let margin = match certify_expression_centered(&margin_domain, compliance_margin) {
         Ok(result) => result,
         Err(error) if is_recoverable_interval_error(&SearchError::IntervalAd(error)) => {
             return Ok(None);
@@ -263,7 +263,7 @@ where
     if margin.value_enclosure.lower() < 0.0 {
         return Ok(None);
     }
-    let objective_record = match certify_expression(&objective_domain, objective) {
+    let objective_record = match certify_expression_centered(&objective_domain, objective) {
         Ok(result) => result,
         Err(error) if is_recoverable_interval_error(&SearchError::IntervalAd(error)) => {
             return Ok(None);
@@ -298,7 +298,7 @@ fn objective_lower_bound<const N: usize>(
     objective: &impl Fn([IntervalDual<N>; N]) -> Result<IntervalDual<N>, IntervalAdError>,
 ) -> Result<ValidatedDerivativeEnclosure<N>, SearchError> {
     let domain = node_domain(root, node, design_dimension, "objective");
-    certify_expression(&domain, objective).map_err(SearchError::from)
+    certify_expression_centered(&domain, objective).map_err(SearchError::from)
 }
 
 fn margin_enclosure<const N: usize>(
@@ -310,7 +310,7 @@ fn margin_enclosure<const N: usize>(
 ) -> Result<ValidatedDerivativeEnclosure<N>, SearchError> {
     let mut domain = node_domain(root, node, design_dimension, "compliance-margin");
     domain.expression_id = compliance_expression_id.to_owned();
-    certify_expression(&domain, margin).map_err(SearchError::from)
+    certify_expression_centered(&domain, margin).map_err(SearchError::from)
 }
 
 fn validate_root<const N: usize>(
@@ -761,7 +761,8 @@ where
         geometry_sha256: root.geometry_sha256.clone(),
         material_sha256: root.material_sha256.clone(),
         policy: policy.clone(),
-        arithmetic_contract: "binary64-nearest-plus-one-ulp-outward-v0.1".to_owned(),
+        arithmetic_contract:
+            "binary64-nearest-plus-one-ulp-outward-mean-value-v0.1".to_owned(),
         design_parameter_ids: root.parameter_ids[..design_dimension].to_vec(),
         nuisance_parameter_ids: root.parameter_ids[design_dimension..].to_vec(),
         explored_node_count,
