@@ -754,7 +754,10 @@ mod tests {
             .into_iter()
             .find(|case| case.case_id == "TK-024-OBSERVED-DECISION-EFFECT")
             .unwrap();
-        assert_eq!(case.candidate.decision_value_basis, DecisionValueBasis::Observed);
+        assert_eq!(
+            case.candidate.decision_value_basis,
+            DecisionValueBasis::Observed
+        );
         let result = evaluate_case(&case);
         assert_eq!(result.disposition, Disposition::EligibleInspection);
         assert_eq!(result.decision_value_basis, DecisionValueBasis::Observed);
