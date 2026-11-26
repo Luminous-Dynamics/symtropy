@@ -13,8 +13,9 @@
 //! these stamps. The caller remains responsible for proving that its supplied
 //! endpoint/global revisions came from the authoritative world mutation log.
 
+use super::PairDeltaFrame;
 use incremental_aabb_tree_reference::{ProxyId, ProxyPair};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Revision domains attached to one generation-stable collider identity.
 ///
@@ -88,6 +89,8 @@ pub enum FreshnessReason {
     ContactMaterialChanged,
     SolverConfigurationChanged,
     WakeEpochAdvanced,
+    NewPair,
+    MissingContactStamp,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -279,6 +282,142 @@ impl ContactFreshnessStamp {
             reasons: reasons.into_iter().collect(),
         })
     }
+}
+
+/// Meaning of one contact-manager action produced from a pair-delta frame.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ContactLifecycleActionKind {
+    Added,
+    Removed,
+    Revalidated,
+}
+
+/// A pair event translated into a contact-manager obligation.
+///
+/// Added pairs require a new narrowphase/contact build. Removed pairs retire
+/// existing contact state. Revalidated pairs carry a revision-based reuse
+/// decision, or require a full contact build if no prior stamp exists.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ContactLifecycleAction {
+    pub pair: ProxyPair,
+    pub kind: ContactLifecycleActionKind,
+    pub decision: Option<ContactReuseDecision>,
+}
+
+/// Deterministic contact-manager work plan for one broadphase delta frame.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct ContactLifecyclePlan {
+    /// Actions are grouped in stable order: added, removed, then revalidated.
+    pub actions: Vec<ContactLifecycleAction>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ContactLifecycleError {
+    NonCanonicalEventList,
+    ConflictingPairEvents,
+    UnexpectedStampForNewPair(ProxyPair),
+    MissingEndpointRevision(ProxyId),
+    Freshness(ContactFreshnessError),
+}
+
+impl From<ContactFreshnessError> for ContactLifecycleError {
+    fn from(value: ContactFreshnessError) -> Self {
+        Self::Freshness(value)
+    }
+}
+
+/// Translate broadphase membership/revalidation events into contact work.
+///
+/// The caller supplies the *previously committed* contact stamps and the
+/// current authoritative endpoint revision map. This function does not mutate
+/// the contact cache and does not certify journal provenance. It validates
+/// that event streams are canonical and disjoint, then produces explicit
+/// contact obligations for a downstream contact manager.
+pub fn plan_contact_lifecycle(
+    delta: &PairDeltaFrame,
+    previous_stamps: &BTreeMap<ProxyPair, ContactFreshnessStamp>,
+    current_global: GlobalContactRevisions,
+    current_endpoints: &BTreeMap<ProxyId, EndpointRevisions>,
+) -> Result<ContactLifecyclePlan, ContactLifecycleError> {
+    let mut seen = BTreeSet::new();
+    for stream in [&delta.added, &delta.removed, &delta.revalidated] {
+        let mut previous = None;
+        for pair in stream {
+            if pair.0 >= pair.1 || previous.is_some_and(|last| last >= *pair) {
+                return Err(ContactLifecycleError::NonCanonicalEventList);
+            }
+            if !seen.insert(*pair) {
+                return Err(ContactLifecycleError::ConflictingPairEvents);
+            }
+            previous = Some(*pair);
+        }
+    }
+
+    let mut plan = ContactLifecyclePlan::default();
+
+    for pair in &delta.added {
+        if previous_stamps.contains_key(pair) {
+            return Err(ContactLifecycleError::UnexpectedStampForNewPair(*pair));
+        }
+        plan.actions.push(ContactLifecycleAction {
+            pair: *pair,
+            kind: ContactLifecycleActionKind::Added,
+            decision: Some(ContactReuseDecision {
+                geometry: ReuseDisposition::RefreshRequired,
+                warm_start: ReuseDisposition::RefreshRequired,
+                pair_eligibility_recheck_required: false,
+                solver_activation_required: true,
+                reasons: vec![FreshnessReason::NewPair],
+            }),
+        });
+    }
+
+    for pair in &delta.removed {
+        plan.actions.push(ContactLifecycleAction {
+            pair: *pair,
+            kind: ContactLifecycleActionKind::Removed,
+            decision: None,
+        });
+    }
+
+    for pair in &delta.revalidated {
+        let left = current_endpoints
+            .get(&pair.0)
+            .copied()
+            .ok_or(ContactLifecycleError::MissingEndpointRevision(pair.0))?;
+        let right = current_endpoints
+            .get(&pair.1)
+            .copied()
+            .ok_or(ContactLifecycleError::MissingEndpointRevision(pair.1))?;
+        if left.proxy != pair.0 {
+            return Err(ContactLifecycleError::Freshness(
+                ContactFreshnessError::PairIdentityMismatch,
+            ));
+        }
+        if right.proxy != pair.1 {
+            return Err(ContactLifecycleError::Freshness(
+                ContactFreshnessError::PairIdentityMismatch,
+            ));
+        }
+
+        let decision = match previous_stamps.get(pair) {
+            Some(stamp) => stamp.assess(current_global, left, right)?,
+            None => ContactReuseDecision {
+                geometry: ReuseDisposition::RefreshRequired,
+                warm_start: ReuseDisposition::RefreshRequired,
+                pair_eligibility_recheck_required: true,
+                solver_activation_required: false,
+                reasons: vec![FreshnessReason::MissingContactStamp],
+            },
+        };
+        plan.actions.push(ContactLifecycleAction {
+            pair: *pair,
+            kind: ContactLifecycleActionKind::Revalidated,
+            decision: Some(decision),
+        });
+    }
+
+    Ok(plan)
 }
 
 fn check_revision(
