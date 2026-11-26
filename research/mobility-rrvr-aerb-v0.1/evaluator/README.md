@@ -21,6 +21,19 @@
 
 The evaluator does not implement or approximate EVSI/minimax probe ranking. Use Symthaea's existing prior-free robust evaluator for that calculation. This package does not execute probes or robot commands.
 
+## Deterministic challenge corpus
+
+The `aerb_generate` binary builds a repeatable process-model corpus while keeping candidate-visible and evaluator-only artifacts in disjoint output directories. It uses a seed-shuffled cycle through the eight world IDs, covering each world exactly once per full eight-case block. This is a balanced challenge schedule, not a probability distribution or an estimate of real-world event frequencies.
+
+Example:
+
+```bash
+cargo run --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml --locked --bin aerb_generate -- 42 128 /tmp/aerb-candidate /tmp/aerb-evaluator
+```
+
+The candidate directory receives only episode and submission files plus a candidate manifest. The evaluator directory receives world packs and a separate truth manifest. The generator rejects output directories that are equal or nested. Do not mount the evaluator directory into the candidate process.
+
+
 ## Run
 
 From the repository root:
@@ -36,7 +49,7 @@ cargo run --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml 
   research/mobility-rrvr-aerb-v0.1/fixtures/evaluator_only/world_pack_synthetic_v0_1.json
 ```
 
-The public fixture contains synthetic truth for a known-answer test. It is not a blind evaluation set and does not demonstrate benchmark performance.
+The public fixture contains synthetic truth for known-answer tests. The generator can create additional balanced stress cases, but neither it nor the public fixture is a blind evaluation set or demonstrates benchmark performance.
 
 ## Claim ceiling
 
