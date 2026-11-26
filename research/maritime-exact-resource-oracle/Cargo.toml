@@ -19,6 +19,10 @@ path = "src/bin/dgt_recovery_audit.rs"
 name = "qc-agv-sync-audit"
 path = "src/bin/qc_agv_sync_audit.rs"
 
+[[bin]]
+name = "continuous-qc-agv-audit"
+path = "src/bin/continuous_qc_agv_audit.rs"
+
 [dependencies]
 
 [workspace]
