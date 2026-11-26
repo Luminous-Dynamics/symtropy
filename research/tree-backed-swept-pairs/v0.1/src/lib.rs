@@ -264,6 +264,15 @@ fn same_body(left: &ColliderIdentity, right: &ColliderIdentity) -> bool {
     left.body_slot == right.body_slot && left.body_generation == right.body_generation
 }
 
+fn motion_bounds_overlap<const D: usize>(
+    left: &MotionAabb<D>,
+    right: &MotionAabb<D>,
+) -> bool {
+    (0..D).all(|axis| {
+        left.max()[axis] >= right.min()[axis] && right.max()[axis] >= left.min()[axis]
+    })
+}
+
 fn identity_key(identity: &ColliderIdentity) -> IdentityKey {
     IdentityKey::from_identity(identity)
 }
@@ -603,7 +612,20 @@ impl<const D: usize> TreeBackedBroadphase<D> {
             let (right, right_group, right_mask) = metadata
                 .get(&pair.1)
                 .ok_or(TreePairSetError::MissingProxyIdentity)?;
+            let left_bounds = desired_bounds
+                .get(&pair.0)
+                .ok_or(TreePairSetError::MissingProxyIdentity)?;
+            let right_bounds = desired_bounds
+                .get(&pair.1)
+                .ok_or(TreePairSetError::MissingProxyIdentity)?;
 
+            // The tree may retain an older, larger leaf when a new envelope
+            // remains inside it. Refine against the current verified envelopes
+            // so those conservative stale-leaf hits do not inflate this
+            // frame's candidate set.
+            if !motion_bounds_overlap(left_bounds, right_bounds) {
+                continue;
+            }
             if same_body(left, right) {
                 continue;
             }
@@ -893,6 +915,30 @@ mod tests {
         assert_eq!(third.tree_stats.proxy_count, 1);
         assert_eq!(third.frame_index, 2);
         assert!(verify_tree_frame_receipt(&third).is_ok());
+    }
+
+    #[test]
+    fn stateful_fat_contained_leaf_is_refined_against_current_envelope() {
+        let mut broadphase =
+            TreeBackedBroadphase::<1>::new(TreeBuildConfig::default()).unwrap();
+        let first = [
+            proxy(1, [0.0], [10.0], [0.0]),
+            proxy(2, [7.0], [8.0], [0.0]),
+        ];
+        let initial = broadphase.step(&first).unwrap();
+        assert_eq!(initial.candidate_pairs.len(), 1);
+
+        let second = [
+            proxy(1, [0.0], [1.0], [0.0]),
+            proxy(2, [7.0], [8.0], [0.0]),
+        ];
+        let updated = broadphase.step(&second).unwrap();
+        assert_eq!(updated.maintenance_delta.fat_contained_updates, 1);
+        assert_eq!(updated.stats.raw_tree_pairs, 1);
+        assert_eq!(updated.stats.filtered_tree_pairs, 0);
+        assert!(updated.candidate_pairs.is_empty());
+        assert_eq!(updated.candidate_pairs, updated.reference.candidate_pairs);
+        assert!(verify_tree_frame_receipt(&updated).is_ok());
     }
 
     #[test]
