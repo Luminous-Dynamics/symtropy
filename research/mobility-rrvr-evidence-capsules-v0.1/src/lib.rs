@@ -1427,7 +1427,8 @@ mod tests {
         claim.decision_cutoff_ingest_sequence = 1;
         let bundle = bundle_with(vec![endpoint], vec![claim]);
         let serialized = serde_json::to_string(&bundle).expect("bundle serialization");
-        let report = evaluate_json(&serialized).expect("wrong generation is a valid negative result");
+        let report =
+            evaluate_json(&serialized).expect("wrong generation is a valid negative result");
         assert_eq!(report.contradicted_n, 1);
         assert_eq!(
             report.claim_assessments[0].reason_codes[0],
