@@ -28,7 +28,9 @@ pub enum ObservationKindV0 {
     Event,
     /// An explicit shared calibration pulse. Its identity is public because
     /// it is a legitimate synchronization anchor, not a hidden event label.
-    ClockAnchor { anchor_id: u16 },
+    ClockAnchor {
+        anchor_id: u16,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -267,9 +269,7 @@ fn validate_config(config: MultimodalConfigV0) -> Result<(), MultimodalWorldErro
         if clock.rate_numerator == 0 || clock.rate_denominator == 0 {
             return Err(MultimodalWorldErrorV0::ZeroClockRate);
         }
-        if clock.rate_numerator > i64::MAX as u64
-            || clock.rate_denominator > i64::MAX as u64
-        {
+        if clock.rate_numerator > i64::MAX as u64 || clock.rate_denominator > i64::MAX as u64 {
             return Err(MultimodalWorldErrorV0::ClockRateTooLarge);
         }
         if clock.jitter_bound > i64::MAX as u64 {
@@ -327,10 +327,7 @@ fn make_observation(
     })
 }
 
-fn shuffled_symbol_map(
-    symbol_count: usize,
-    rng: &mut DeterministicRngV0,
-) -> Vec<u16> {
+fn shuffled_symbol_map(symbol_count: usize, rng: &mut DeterministicRngV0) -> Vec<u16> {
     let mut mapping = (0..symbol_count)
         .map(|symbol| u16::try_from(symbol).unwrap_or(u16::MAX))
         .collect::<Vec<_>>();
@@ -342,9 +339,7 @@ impl MultimodalWorldV0 {
     /// Generate a finite hidden world. Independent PRNG substreams ensure
     /// that switching between aligned and shuffled association regimes does
     /// not alter either modality's timestamp or missingness marginals.
-    pub fn generate(
-        config: MultimodalConfigV0,
-    ) -> Result<Self, MultimodalWorldErrorV0> {
+    pub fn generate(config: MultimodalConfigV0) -> Result<Self, MultimodalWorldErrorV0> {
         validate_config(config)?;
 
         let count = config.event_count;
@@ -382,8 +377,7 @@ impl MultimodalWorldV0 {
             AssociationRegimeV0::PeriodicAmbiguous => AMBIGUOUS_FAMILIES_V0,
             AssociationRegimeV0::Aligned | AssociationRegimeV0::MarginalMatchedShuffled => count,
         };
-        let beta_symbol_by_family =
-            shuffled_symbol_map(symbol_count, &mut symbol_rng);
+        let beta_symbol_by_family = shuffled_symbol_map(symbol_count, &mut symbol_rng);
 
         let mut observations = Vec::with_capacity(count.saturating_mul(2).saturating_add(4));
         let mut hidden_event_labels = Vec::with_capacity(count.saturating_mul(2));
@@ -392,8 +386,8 @@ impl MultimodalWorldV0 {
         let mut beta_timing_rng = DeterministicRngV0::new(config.seed ^ 0xBE7A_71AE);
 
         for event_index in 0..count {
-            let event_number = u64::try_from(event_index + 1)
-                .map_err(|_| MultimodalWorldErrorV0::TimeOverflow)?;
+            let event_number =
+                u64::try_from(event_index + 1).map_err(|_| MultimodalWorldErrorV0::TimeOverflow)?;
             let true_tick = event_number
                 .checked_mul(config.event_period)
                 .ok_or(MultimodalWorldErrorV0::TimeOverflow)?;
@@ -403,12 +397,12 @@ impl MultimodalWorldV0 {
             if alpha_visible[event_index] {
                 let symbol = match config.regime {
                     AssociationRegimeV0::PeriodicAmbiguous => {
-                        u16::try_from(event_index % AMBIGUOUS_FAMILIES_V0)
-                            .unwrap_or(u16::MAX)
+                        u16::try_from(event_index % AMBIGUOUS_FAMILIES_V0).unwrap_or(u16::MAX)
                     }
-                    AssociationRegimeV0::Aligned
-                    | AssociationRegimeV0::MarginalMatchedShuffled => u16::try_from(event_index)
-                        .map_err(|_| MultimodalWorldErrorV0::ObservationIdOverflow)?,
+                    AssociationRegimeV0::Aligned | AssociationRegimeV0::MarginalMatchedShuffled => {
+                        u16::try_from(event_index)
+                            .map_err(|_| MultimodalWorldErrorV0::ObservationIdOverflow)?
+                    }
                 };
                 observations.push(make_observation(
                     observation_id,
@@ -429,11 +423,10 @@ impl MultimodalWorldV0 {
 
             if let Some(source_event) = beta_source_event_by_slot[event_index] {
                 let family = match config.regime {
-                    AssociationRegimeV0::PeriodicAmbiguous => {
-                        event_index % AMBIGUOUS_FAMILIES_V0
+                    AssociationRegimeV0::PeriodicAmbiguous => event_index % AMBIGUOUS_FAMILIES_V0,
+                    AssociationRegimeV0::Aligned | AssociationRegimeV0::MarginalMatchedShuffled => {
+                        source_event
                     }
-                    AssociationRegimeV0::Aligned
-                    | AssociationRegimeV0::MarginalMatchedShuffled => source_event,
                 };
                 let symbol = beta_symbol_by_family[family];
                 observations.push(make_observation(
@@ -455,13 +448,13 @@ impl MultimodalWorldV0 {
         }
 
         if config.emit_shared_clock_anchors {
-            let end_event_number = u64::try_from(count + 1)
-                .map_err(|_| MultimodalWorldErrorV0::TimeOverflow)?;
+            let end_event_number =
+                u64::try_from(count + 1).map_err(|_| MultimodalWorldErrorV0::TimeOverflow)?;
             let end_tick = end_event_number
                 .checked_mul(config.event_period)
                 .ok_or(MultimodalWorldErrorV0::TimeOverflow)?;
-            let first_anchor_id = u32::try_from(count)
-                .map_err(|_| MultimodalWorldErrorV0::ObservationIdOverflow)?;
+            let first_anchor_id =
+                u32::try_from(count).map_err(|_| MultimodalWorldErrorV0::ObservationIdOverflow)?;
             let second_anchor_id = first_anchor_id
                 .checked_add(1)
                 .ok_or(MultimodalWorldErrorV0::ObservationIdOverflow)?;
@@ -501,10 +494,7 @@ impl MultimodalWorldV0 {
 
     /// Expose only observations whose arrival tick is within the requested
     /// causal cutoff. Measurement timestamps are not used to order arrival.
-    pub fn policy_view(
-        &self,
-        as_of_arrival_tick: u64,
-    ) -> PolicyViewV0 {
+    pub fn policy_view(&self, as_of_arrival_tick: u64) -> PolicyViewV0 {
         let mut observations = self
             .observations
             .iter()
@@ -595,14 +585,10 @@ impl MultimodalWorldV0 {
         let truth = normalize_alternatives(&self.exact_alignment_oracle());
 
         let (proposed, is_unique, is_unresolved) = match claim {
-            AlignmentClaimV0::Unique(pairs) => {
-                (vec![normalize_pairs(pairs)], true, false)
+            AlignmentClaimV0::Unique(pairs) => (vec![normalize_pairs(pairs)], true, false),
+            AlignmentClaimV0::Alternatives(alternatives) => {
+                (normalize_alternatives(alternatives), false, false)
             }
-            AlignmentClaimV0::Alternatives(alternatives) => (
-                normalize_alternatives(alternatives),
-                false,
-                false,
-            ),
             AlignmentClaimV0::Unresolved => (Vec::new(), false, true),
         };
 
@@ -682,9 +668,9 @@ impl MultimodalWorldV0 {
             })
             .collect::<Vec<_>>();
         let distinct = paired.len() >= 2
-            && paired.windows(2).any(|window| {
-                window[0].0 != window[1].0 && window[0].1 != window[1].1
-            });
+            && paired
+                .windows(2)
+                .any(|window| window[0].0 != window[1].0 && window[0].1 != window[1].1);
         let identifiable = distinct;
 
         let (rms_residual, max_abs_residual, invalid_proposal) = match (identifiable, proposal) {
@@ -698,8 +684,7 @@ impl MultimodalWorldV0 {
                     let residuals = paired
                         .iter()
                         .map(|(alpha, beta)| {
-                            candidate.offset + candidate.scale * (*beta as f64)
-                                - (*alpha as f64)
+                            candidate.offset + candidate.scale * (*beta as f64) - (*alpha as f64)
                         })
                         .collect::<Vec<_>>();
                     let mean_square = residuals
@@ -751,18 +736,11 @@ fn normalize_alternatives(alternatives: &[Vec<EventPairV0>]) -> Vec<Vec<EventPai
     normalized
 }
 
-fn best_pair_metrics(
-    proposal: &[EventPairV0],
-    truths: &[Vec<EventPairV0>],
-) -> PairMetricsV0 {
+fn best_pair_metrics(proposal: &[EventPairV0], truths: &[Vec<EventPairV0>]) -> PairMetricsV0 {
     truths
         .iter()
         .map(|truth| pair_metrics(proposal, truth))
-        .max_by(|left, right| {
-            left.f1
-                .unwrap_or(0.0)
-                .total_cmp(&right.f1.unwrap_or(0.0))
-        })
+.max_by(|left, right| left.f1.unwrap_or(0.0).total_cmp(&right.f1.unwrap_or(0.0)))
         .unwrap_or(PairMetricsV0 {
             true_positive: 0,
             false_positive: proposal.len(),
@@ -891,8 +869,7 @@ mod tests {
                 .observations
                 .iter()
                 .filter(|observation| {
-                    observation.modality == modality
-                        && observation.kind == ObservationKindV0::Event
+                    observation.modality == modality && observation.kind == ObservationKindV0::Event
                 })
                 .map(|observation| observation.symbol)
                 .collect::<Vec<_>>();
@@ -955,8 +932,7 @@ mod tests {
             MultimodalWorldV0::generate(config(AssociationRegimeV0::PeriodicAmbiguous)).unwrap();
         assert_eq!(world.exact_alignment_oracle().len(), AMBIGUOUS_FAMILIES_V0);
 
-        let (abstain_score, _) =
-            world.evaluate_alignment(&AlignmentClaimV0::Unresolved);
+        let (abstain_score, _) = world.evaluate_alignment(&AlignmentClaimV0::Unresolved);
         assert!(abstain_score.correct_abstention);
         assert!(!abstain_score.false_unique);
 
@@ -965,8 +941,7 @@ mod tests {
         assert!(unique_score.accepted_valid);
         assert!(unique_score.false_unique);
 
-        let alternatives =
-            AlignmentClaimV0::Alternatives(world.exact_alignment_oracle());
+        let alternatives = AlignmentClaimV0::Alternatives(world.exact_alignment_oracle());
         let (set_score, _) = world.evaluate_alignment(&alternatives);
         assert!(set_score.correctly_set_valued);
         assert!(set_score.accepted_valid);
@@ -992,22 +967,16 @@ mod tests {
             offset: 20.0 - (2.0 / 3.0) * 100.0,
             scale: 2.0 / 3.0,
         });
-        let aligned =
-            MultimodalWorldV0::generate(config(AssociationRegimeV0::Aligned)).unwrap();
+        let aligned = MultimodalWorldV0::generate(config(AssociationRegimeV0::Aligned)).unwrap();
         let shuffled =
             MultimodalWorldV0::generate(config(AssociationRegimeV0::MarginalMatchedShuffled))
                 .unwrap();
 
-        let aligned_score =
-            aligned.evaluate_clock_map(&all_observations(&aligned), proposal);
-        let shuffled_score =
-            shuffled.evaluate_clock_map(&all_observations(&shuffled), proposal);
+        let aligned_score = aligned.evaluate_clock_map(&all_observations(&aligned), proposal);
+        let shuffled_score = shuffled.evaluate_clock_map(&all_observations(&shuffled), proposal);
         assert_eq!(aligned_score.anchor_pairs, shuffled_score.anchor_pairs);
         assert_eq!(aligned_score.rms_residual, shuffled_score.rms_residual);
-        assert_eq!(
-            aligned_score.disposition,
-            shuffled_score.disposition
-        );
+        assert_eq!(aligned_score.disposition, shuffled_score.disposition);
     }
 
     #[test]
@@ -1044,19 +1013,20 @@ mod tests {
         let cutoff = 350;
         let view = world.policy_view(cutoff);
 
-        assert!(view
-            .observations
-            .iter()
-            .all(|observation| observation.arrival_tick <= cutoff));
+        assert!(
+            view.observations
+                .iter()
+                .all(|observation| observation.arrival_tick <= cutoff)
+        );
         assert!(view.observations.windows(2).all(|window| {
             (
                 window[0].arrival_tick,
                 window[0].modality,
-                window[0].observation_id
+                window[0].observation_id,
             ) <= (
                 window[1].arrival_tick,
                 window[1].modality,
-                window[1].observation_id
+                window[1].observation_id,
             )
         }));
         assert!(view.observations.len() < world.observations.len());
