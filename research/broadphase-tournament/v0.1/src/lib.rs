@@ -123,6 +123,9 @@ pub struct WorkCounters {
 pub struct TournamentRow {
     pub family: &'static str,
     pub dimension: usize,
+    pub seed: u64,
+    pub declared_proxy_count: usize,
+    pub scene_frames: usize,
     pub backend: &'static str,
     pub repetitions: u32,
     pub frame_samples: usize,
@@ -606,6 +609,9 @@ fn run_backend<const D: usize>(
     Ok(TournamentRow {
         family: scene.family.name(),
         dimension: D,
+        seed: scene.seed,
+        declared_proxy_count: scene.declared_proxy_count,
+        scene_frames: scene.frames.len(),
         backend: backend.name(),
         repetitions,
         frame_samples: frame_samples.len(),
@@ -652,15 +658,18 @@ pub fn run_tournament<const D: usize>(
 impl TournamentRow {
     #[must_use]
     pub fn csv_header() -> &'static str {
-        "family,dimension,backend,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,tree_rotations,max_tree_height,max_tree_nodes,max_active_proxies"
+        "family,dimension,seed,declared_proxy_count,scene_frames,backend,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,tree_rotations,max_tree_height,max_tree_nodes,max_active_proxies"
     }
 
     #[must_use]
     pub fn to_csv(&self) -> String {
         format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             self.family,
             self.dimension,
+            self.seed,
+            self.declared_proxy_count,
+            self.scene_frames,
             self.backend,
             self.repetitions,
             self.frame_samples,
@@ -710,6 +719,19 @@ mod tests {
             assert_eq!(row.oracle_pairs, row.candidate_pairs);
             assert!(row.frame_samples > 0);
         }
+    }
+
+    #[test]
+    fn csv_header_and_rows_have_identical_width_and_retain_scene_identity() {
+        let scene = generate_scene::<3>(SceneFamily::HighChurn, 32, 7, 0x1234_5678).unwrap();
+        let row = run_tournament(&scene, TournamentConfig::new(1)).unwrap().remove(0);
+        assert_eq!(
+            row.csv_header().split(',').count(),
+            row.to_csv().split(',').count()
+        );
+        assert_eq!(row.seed, scene.seed);
+        assert_eq!(row.declared_proxy_count, scene.declared_proxy_count);
+        assert_eq!(row.scene_frames, scene.frames.len());
     }
 
     #[test]
