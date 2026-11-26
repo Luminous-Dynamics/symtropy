@@ -1,0 +1,56 @@
+name: RRVR Evidence Capsules v0.1
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-evidence-capsules-v0-1-r1
+    paths:
+      - "research/mobility-rrvr-evidence-capsules-v0.1/**"
+      - ".github/workflows/mobility-rrvr-evidence-capsules.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-evidence-capsules-v0.1/**"
+      - ".github/workflows/mobility-rrvr-evidence-capsules.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-capsule:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Validate schema and known-answer fixture syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-evidence-capsules-v0.1"
+          jq empty "$ROOT/schemas/evidence_bundle_v0_1.schema.json"
+          jq empty "$ROOT/fixtures/evidence_bundle_v0_1.json"
+          jq -e '
+            .schema_version == "0.1"
+            and .benchmark == "RRVR-EVIDENCE-CAPSULES"
+            and (.claim_ceiling | length >= 40)
+            and (.evidence | length == 1)
+            and (.claims | length == 1)
+            and (.evidence[0].content_sha256 | test("^[a-f0-9]{64}$"))
+            and (.claims[0].evidence_snapshot_sha256 | test("^[a-f0-9]{64}$"))
+          ' "$ROOT/fixtures/evidence_bundle_v0_1.json"
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path research/mobility-rrvr-evidence-capsules-v0.1/Cargo.toml -- --check
+
+      - name: Execute evidence capsule known-answer fixture
+        run: cargo run --locked --manifest-path research/mobility-rrvr-evidence-capsules-v0.1/Cargo.toml --bin rrvr_evidence_validate -- research/mobility-rrvr-evidence-capsules-v0.1/fixtures/evidence_bundle_v0_1.json
+
+      - name: Run evidence capsule tests
+        run: cargo test --locked --manifest-path research/mobility-rrvr-evidence-capsules-v0.1/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/mobility-rrvr-evidence-capsules-v0.1/Cargo.toml --all-targets -- -D warnings
