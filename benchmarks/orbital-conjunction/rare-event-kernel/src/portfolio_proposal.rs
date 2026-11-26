@@ -202,11 +202,16 @@ pub struct PortfolioDefensiveGaussianMixture {
 }
 
 impl PortfolioDefensiveGaussianMixture {
-    /// Construct a defensive proposal mixture for a complete frozen mode universe.
+    /// Construct a defensive proposal mixture for a complete frozen mode universe
+    /// belonging to exactly one epistemic scenario.
     ///
-    /// Target mixture weights and proposal allocations must each be normalized.
-    /// Proposal allocations are normalized only for accepted residual floating
-    /// point roundoff within 1e-12. Every declared mode must be covered.
+    /// Distinct scenario IDs are rejected so this API cannot silently average
+    /// epistemic alternatives into one target measure. Use separate mixture
+    /// instances per scenario unless a separately qualified scenario-weighting
+    /// model is supplied. Target mixture weights and proposal allocations must
+    /// each be normalized. Proposal allocations are normalized only for accepted
+    /// residual floating-point roundoff within 1e-12. Every declared mode must
+    /// be covered.
     pub fn new(
         target_measure_id: [u8; 32],
         density_space_id: [u8; 32],
@@ -404,6 +409,11 @@ impl PortfolioDefensiveGaussianMixture {
     /// Return the defensive target-mixture fraction epsilon.
     pub fn defensive_fraction(&self) -> f64 {
         self.defensive_fraction
+    }
+
+    /// Return the single epistemic scenario ID represented by this mixture.
+    pub fn scenario_id(&self) -> [u8; 32] {
+        self.expected_modes[0].scenario_id
     }
 
     /// Return the complete canonical expected mode universe.
