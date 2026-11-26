@@ -285,7 +285,9 @@ impl SimultaneousDefensivePortfolioSelection {
             .checked_mul(portfolio_count - 1)
             .and_then(|count| count.checked_div(2))
             .ok_or(SimultaneousDefensiveSelectionError::ContrastCountOverflow)?;
-        let contrast_alpha = family_alpha / contrast_count as f64;
+        // Allocate strictly below the real-valued quotient so the pairwise
+        // family cannot exceed the declared error budget through rounding.
+        let contrast_alpha = next_down_probability(family_alpha / contrast_count as f64);
         if !contrast_alpha.is_finite() || contrast_alpha <= 0.0 || contrast_alpha >= 1.0 {
             return Err(SimultaneousDefensiveSelectionError::NumericalFailure);
         }
@@ -624,6 +626,14 @@ fn next_up(value: f64) -> f64 {
     }
     let bits = value.to_bits();
     f64::from_bits(if value > 0.0 { bits + 1 } else { bits - 1 })
+}
+
+/// Return the immediately smaller positive representable probability.
+fn next_down_probability(value: f64) -> f64 {
+    if !value.is_finite() || value <= 0.0 {
+        return value;
+    }
+    f64::from_bits(value.to_bits() - 1)
 }
 
 #[cfg(test)]
