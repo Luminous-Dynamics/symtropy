@@ -32,7 +32,7 @@ fn main() {
             "    \"propellant_mass_flow_kg_s\": {:.12e},\n",
             "    \"net_acceleration_m_s2\": {:.12e},\n",
             "    \"jet_power_identity_residual_w\": {:.12e}\n",
-            "  },\n",
+            "  }},\n",
             "  \"claim_ceiling\": \"arithmetic_screening_only_not_orbit_optics_climate_plasma_or_hardware_validation\"\n",
             "}}"
         ),
