@@ -874,6 +874,161 @@ mod tests {
         }
     }
 
+    fn spatial_domain() -> ParameterDomain<3> {
+        let mut scope = domain(
+            ["z", "x", "y"],
+            [
+                interval(-0.3, 0.3),
+                interval(-1.0, 1.0),
+                interval(-0.1, 0.1),
+            ],
+        );
+        scope.cell_id = "spatial-cell-xyz".to_owned();
+        scope.output_unit = "radian".to_owned();
+        scope.requirement_id = "minimum-phase-margin".to_owned();
+        scope
+    }
+
+    fn spatial_expression(
+        [z, x, y]: [IntervalDual<3>; 3],
+    ) -> Result<IntervalDual<3>, IntervalAdError> {
+        let four = IntervalDual::constant(interval(4.0, 4.0));
+        let two = IntervalDual::constant(interval(2.0, 2.0));
+        let three = IntervalDual::constant(interval(3.0, 3.0));
+        Ok(four * x + two * y + three * z)
+    }
+
+    #[test]
+    fn interval_derivatives_map_to_spatial_xyz_by_parameter_identity() {
+        let scope = spatial_domain();
+        let enclosure = certify_expression_centered(&scope, spatial_expression)
+            .expect("valid spatial functional expression");
+        let mapped = map_spatial_derivative_suprema(
+            &enclosure,
+            "spatial-cell-xyz",
+            "minimum-phase-margin",
+            ["x", "y", "z"],
+            "metre",
+        )
+        .expect("axis-aligned spatial handoff");
+
+        assert_eq!(
+            mapped.axis_parameter_ids,
+            ["x".to_owned(), "y".to_owned(), "z".to_owned()]
+        );
+        assert_eq!(mapped.axis_bounds_m[0], interval(-1.0, 1.0));
+        assert_eq!(mapped.axis_bounds_m[1], interval(-0.1, 0.1));
+        assert_eq!(mapped.axis_bounds_m[2], interval(-0.3, 0.3));
+        assert!(mapped.derivative_abs_supremum_by_axis[0] >= 4.0);
+        assert!(mapped.derivative_abs_supremum_by_axis[1] >= 2.0);
+        assert!(mapped.derivative_abs_supremum_by_axis[2] >= 3.0);
+        assert_eq!(mapped.derivative_unit, "radian/metre");
+        assert_eq!(mapped.source_record_id, enclosure.record_id);
+        assert_eq!(mapped.cell_id, "spatial-cell-xyz");
+    }
+
+    #[test]
+    fn spatial_handoff_rejects_a_different_cell_identity() {
+        let scope = spatial_domain();
+        let enclosure = certify_expression_centered(&scope, spatial_expression)
+            .expect("valid spatial functional expression");
+        assert_eq!(
+            map_spatial_derivative_suprema(
+                &enclosure,
+                "another-cell",
+                "minimum-phase-margin",
+                ["x", "y", "z"],
+                "metre",
+            )
+            .expect_err("cell identity must match"),
+            SpatialMappingError::CellIdentityMismatch
+        );
+    }
+
+    #[test]
+    fn spatial_handoff_rejects_a_different_requirement_identity() {
+        let scope = spatial_domain();
+        let enclosure = certify_expression_centered(&scope, spatial_expression)
+            .expect("valid spatial functional expression");
+        assert_eq!(
+            map_spatial_derivative_suprema(
+                &enclosure,
+                "spatial-cell-xyz",
+                "different-requirement",
+                ["x", "y", "z"],
+                "metre",
+            )
+            .expect_err("requirement identity must match"),
+            SpatialMappingError::RequirementIdentityMismatch
+        );
+    }
+
+    #[test]
+    fn spatial_handoff_rejects_missing_or_duplicate_axes() {
+        let scope = spatial_domain();
+        let enclosure = certify_expression_centered(&scope, spatial_expression)
+            .expect("valid spatial functional expression");
+        assert_eq!(
+            map_spatial_derivative_suprema(
+                &enclosure,
+                "spatial-cell-xyz",
+                "minimum-phase-margin",
+                ["x", "y", "missing"],
+                "metre",
+            )
+            .expect_err("missing z axis"),
+            SpatialMappingError::MissingSpatialAxisParameter { axis: 2 }
+        );
+        assert_eq!(
+            map_spatial_derivative_suprema(
+                &enclosure,
+                "spatial-cell-xyz",
+                "minimum-phase-margin",
+                ["x", "x", "z"],
+                "metre",
+            )
+            .expect_err("duplicate axis identity"),
+            SpatialMappingError::DuplicateSpatialAxisId
+        );
+    }
+
+    #[test]
+    fn spatial_handoff_rejects_non_metre_axis_units() {
+        let mut scope = spatial_domain();
+        scope.parameter_units[1] = "millimetre".to_owned();
+        let enclosure = certify_expression_centered(&scope, spatial_expression)
+            .expect("numeric expression still evaluates");
+        assert_eq!(
+            map_spatial_derivative_suprema(
+                &enclosure,
+                "spatial-cell-xyz",
+                "minimum-phase-margin",
+                ["x", "y", "z"],
+                "metre",
+            )
+            .expect_err("implicit unit conversion is forbidden"),
+            SpatialMappingError::SpatialAxisUnitMismatch { axis: 0 }
+        );
+    }
+
+    #[test]
+    fn spatial_mapping_does_not_create_a_centre_measurement_margin() {
+        let scope = spatial_domain();
+        let mut enclosure = certify_expression_centered(&scope, spatial_expression)
+            .expect("valid spatial functional expression");
+        enclosure.value_enclosure = interval(1000.0, 2000.0);
+        let mapped = map_spatial_derivative_suprema(
+            &enclosure,
+            "spatial-cell-xyz",
+            "minimum-phase-margin",
+            ["x", "y", "z"],
+            "metre",
+        )
+        .expect("derivative map is independent of the centre sample");
+        assert_eq!(mapped.derivative_abs_supremum_by_axis.len(), 3);
+        assert_eq!(mapped.output_unit, "radian");
+    }
+
     #[test]
     fn centered_form_tightens_a_repeated_variable_dependency() {
         let scope = domain(["x"], [interval(-1.0, 1.0)]);
