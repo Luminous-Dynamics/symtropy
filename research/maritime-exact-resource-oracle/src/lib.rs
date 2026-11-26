@@ -509,7 +509,6 @@ mod tests {
         assert_eq!(result.pareto_front.len(), 3);
     }
 
-
     #[test]
     fn sea_rail_transfer_tracks_are_shared_time_indexed_resources() {
         let candidate = |candidate_id: &str,
