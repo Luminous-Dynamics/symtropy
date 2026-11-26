@@ -1404,6 +1404,26 @@ mod tests {
         let complete = evaluate_json(&serialized).expect("complete closure should qualify");
         assert_eq!(complete.qualified_n, 1);
 
+        let mut wrong_generation = bundle.clone();
+        let edge = wrong_generation
+            .evidence
+            .iter_mut()
+            .find(|capsule| capsule.evidence_id == "edge-1")
+            .expect("edge receipt must exist");
+        let EvidencePayload::EdgeClosureReceipt {
+            queue_generation, ..
+        } = &mut edge.payload
+        else {
+            panic!("edge receipt must have edge-closure payload");
+        };
+        *queue_generation = 4;
+        reseal_bundle(&mut wrong_generation);
+        let wrong_generation_json =
+            serde_json::to_string(&wrong_generation).expect("bundle serialization");
+        let wrong_generation_report = evaluate_json(&wrong_generation_json)
+            .expect("wrong-generation edge receipt is a valid negative result");
+        assert_eq!(wrong_generation_report.unresolved_n, 1);
+
         bundle.claims[0]
             .evidence_ids
             .retain(|evidence_id| evidence_id != "ep-actuator");
