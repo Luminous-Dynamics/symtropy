@@ -1943,6 +1943,21 @@ mod tests {
         assert_eq!(moved.revalidated.len(), 1);
         assert_eq!(moved.frontier_proxy_visits, 0);
         assert_eq!(moved.dirty_snapshot_entries_visited, 0);
+        assert_eq!(moved.frame_validation_entries_visited, next.len());
+
+        // A wake-only lifecycle event may mark a known collider dirty even
+        // when its AABB is unchanged; retained pairs still require refresh.
+        assert!(cache
+            .verify_dirty_proxy_ids(&next, &[ProxyId(1)])
+            .unwrap());
+        let wake_only = cache
+            .step_with_dirty_ids(&next, &[ProxyId(1)])
+            .unwrap();
+        assert_eq!(wake_only.revalidated.len(), 1);
+        assert_eq!(wake_only.added.len(), 0);
+        assert_eq!(wake_only.removed.len(), 0);
+        assert_eq!(wake_only.dirty_snapshot_entries_visited, 0);
+        assert_eq!(wake_only.frame_validation_entries_visited, next.len());
 
         cache.invalidate_all();
         let full_dirty = cache.derive_dirty_proxy_ids(&next).unwrap();
@@ -1953,6 +1968,11 @@ mod tests {
         let rebuilt = cache.step(&next).unwrap();
         assert_eq!(rebuilt.dirty_proxies, 3);
         assert_eq!(rebuilt.active_pairs, 1);
+        assert_eq!(
+            rebuilt.dirty_snapshot_entries_visited,
+            5 * next.len()
+        );
+        assert_eq!(rebuilt.frame_validation_entries_visited, 0);
     }
 
     #[test]
@@ -2198,6 +2218,17 @@ mod tests {
         let delta = cache.step_with_dirty_ids(&next, &dirty).unwrap();
         assert_eq!(delta.removed.len(), 1);
         assert_eq!(delta.added.len(), 1);
+        assert_eq!(delta.dirty_snapshot_entries_visited, 0);
+        assert_eq!(delta.frame_validation_entries_visited, next.len());
+        assert!(
+            cache.verify_dirty_proxy_ids(&next, &[ProxyId(2)]).unwrap()
+        );
+        let wake_only = cache.step_with_dirty_ids(&next, &[ProxyId(2)]).unwrap();
+        assert_eq!(wake_only.revalidated.len(), 1);
+        assert_eq!(wake_only.added.len(), 0);
+        assert_eq!(wake_only.removed.len(), 0);
+        assert_eq!(wake_only.dirty_snapshot_entries_visited, 0);
+        assert_eq!(wake_only.frame_validation_entries_visited, next.len());
         assert_eq!(
             cache.active_pairs(),
             vec![ProxyPair::new(ProxyId(2), ProxyId(3)).unwrap()]
@@ -2209,7 +2240,10 @@ mod tests {
             cache.step_with_dirty_ids(&next, &full_dirty),
             Err(TournamentError::DirtyJournalCannotApplyFullInvalidation)
         );
-        assert_eq!(cache.step(&next).unwrap().overlap_tests, 1);
+        let invalidated = cache.step(&next).unwrap();
+        assert_eq!(invalidated.overlap_tests, 1);
+        assert_eq!(invalidated.dirty_snapshot_entries_visited, 10);
+        assert_eq!(invalidated.frame_validation_entries_visited, 0);
     }
 
     #[test]
