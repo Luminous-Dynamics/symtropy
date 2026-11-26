@@ -1431,9 +1431,11 @@ mod tests {
             "recorded_at_unix_ms": acquired + 2_000,
             "retroactive": false
         }]);
+        let report = evaluate_binding_case(&case);
+        assert!(has_violation(&report, "TIME_BOUNDS_PAIR_INCOMPLETE"));
         assert!(has_blocker(
-            &evaluate_binding_case(&case),
-            "TIME_BOUNDS_PAIR_INCOMPLETE"
+            &report,
+            "CALIBRATION_EVENT_HISTORY_UNRESOLVED"
         ));
     }
 
@@ -1724,6 +1726,14 @@ mod tests {
                 actual_blockers, expected_blockers,
                 "{case_id}: exact blocker set"
             );
+
+            if case_id == "revocation-recorded-before-evaluation-after-acquisition" {
+                assert_eq!(
+                    report.measurement_dispositions[0].non_applicable_event_ids,
+                    vec!["EVENT-REVOKE-A".to_owned()],
+                    "{case_id}: later event is retained but not applied"
+                );
+            }
         }
     }
 
