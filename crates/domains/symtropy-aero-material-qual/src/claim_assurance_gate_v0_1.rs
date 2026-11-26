@@ -224,7 +224,7 @@ fn validate_component_bindings(
     causal_cut: &CutAssessment,
     effectivity: &EffectivityRelation,
     reasons: &mut BTreeSet<String>,
-) -> Option<String> {
+) -> bool {
     let components = [
         ("COVERAGE", "OBSERVER_COVERAGE", &bindings.coverage),
         ("CAUSAL_CUT", "CAUSAL_CUT", &bindings.causal_cut),
