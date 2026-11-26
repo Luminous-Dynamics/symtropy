@@ -72,6 +72,8 @@ The three documents above are individual Internet-Drafts / work in progress. The
 
 The official [RoboCasa leaderboard](https://robocasa.ai/leaderboard.html) is another useful host platform for task-policy evaluation. Its scores should remain separate from RRVR's execution-integrity outcomes; task completion is not itself proof of one-shot effect cardinality, endpoint fencing or command-graph closure.
 
+**Replay validity matters:** RoboRecover describes screening replayed prefixes using end-effector/object position tolerances below 2 mm and image SSIM above 0.99 over the final five pre-recovery frames. Its evaluation scenarios are selected for intermediate recoverability (reference policies succeed in 2–18 of 20 trials). RRVR should preserve those replay-validation checks and disclose the benchmark's selected scenario distribution; it must not generalize a result on these curated recovery states to arbitrary robot failures. See the [RoboRecover paper record](https://www.alphaxiv.org/abs/2609.28952).
+
 ## 3. RRVR's actual repository foundation
 
 The following reflects repository issue/PR descriptions and currently visible artifacts. It is not a declaration that every exact-head workflow is green.
