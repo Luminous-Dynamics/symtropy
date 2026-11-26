@@ -2076,6 +2076,31 @@ mod tests {
     }
 
     #[test]
+    fn high_churn_reinsertions_receive_fresh_proxy_generation_ids() {
+        let scene = generate_scene::<3>(SceneFamily::HighChurn, 64, 40, 0x6e65_7767).unwrap();
+        let mut previously_active = BTreeSet::<ProxyId>::new();
+        let mut seen_ever = BTreeSet::<ProxyId>::new();
+
+        for frame in &scene.frames {
+            let current = frame.iter().map(|proxy| proxy.id).collect::<BTreeSet<_>>();
+            for id in &current {
+                if !previously_active.contains(id) {
+                    assert!(
+                        seen_ever.insert(*id),
+                        "a proxy residency reused an earlier generation identity: {id:?}"
+                    );
+                }
+            }
+            previously_active = current;
+        }
+
+        assert!(
+            seen_ever.len() > scene.declared_proxy_count,
+            "fixture must contain at least one remove/reinsert generation transition"
+        );
+    }
+
+    #[test]
     fn deterministic_scene_generation_replays_identically() {
         let first = generate_scene::<3>(SceneFamily::HighChurn, 64, 20, 7).unwrap();
         let second = generate_scene::<3>(SceneFamily::HighChurn, 64, 20, 7).unwrap();
