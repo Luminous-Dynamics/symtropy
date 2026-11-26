@@ -212,7 +212,7 @@ impl FiniteAdaptivePortfolioSelection {
             return Err(FiniteAdaptivePortfolioError::InvalidCampaignIdentity);
         }
         if config.defensive_mixture_weight_ticks == 0
-            || config.defensive_mixture_weight_ticks >= TICKET_SPACE
+            || config.defensive_mixture_weight_ticks > TICKET_SPACE
         {
             return Err(FiniteAdaptivePortfolioError::InvalidDefensiveFraction);
         }
@@ -646,28 +646,43 @@ fn campaign_digest(
     hasher.update(config.complete_proposal_after_event_digest);
     hasher.update(config.defensive_mixture_weight_ticks.to_be_bytes());
 
+    // The atom order is part of the sampler contract: inverse-CDF tickets
+    // map through this exact order. Bind each atom identity next to its event
+    // bit rather than relying on the order-independent outcome table.
+    hasher.update((config.atoms.len() as u64).to_be_bytes());
+    for atom in &config.atoms {
+        hasher.update(atom.atom_id);
+        hasher.update([u8::from(atom.is_event)]);
+    }
+    hasher.update((portfolio_bounds.len() as u64).to_be_bytes());
     for bound in portfolio_bounds {
         hasher.update(bound.portfolio_id);
         hasher.update(bound.lower_ticks.to_be_bytes());
         hasher.update(bound.upper_ticks.to_be_bytes());
     }
+    hasher.update((atom_outcomes.len() as u64).to_be_bytes());
     for (atom_id, outcome) in atom_outcomes {
         hasher.update(atom_id);
+        hasher.update((outcome.portfolio_consequences.len() as u64).to_be_bytes());
         for item in &outcome.portfolio_consequences {
             hasher.update(item.portfolio_id);
             hasher.update(item.consequence_ticks.to_be_bytes());
         }
+        hasher.update((outcome.portfolio_events.len() as u64).to_be_bytes());
         for item in &outcome.portfolio_events {
             hasher.update(item.portfolio_id);
             hasher.update([u8::from(item.event_occurred)]);
         }
     }
+    hasher.update((config.target_mass_ticks.len() as u64).to_be_bytes());
     for mass in &config.target_mass_ticks {
         hasher.update(mass.to_be_bytes());
     }
+    hasher.update((config.residual_before_event_ticks.len() as u64).to_be_bytes());
     for mass in &config.residual_before_event_ticks {
         hasher.update(mass.to_be_bytes());
     }
+    hasher.update((config.residual_after_event_ticks.len() as u64).to_be_bytes());
     for mass in &config.residual_after_event_ticks {
         hasher.update(mass.to_be_bytes());
     }
@@ -1033,6 +1048,55 @@ mod tests {
             .unwrap_err(),
             FiniteAdaptivePortfolioError::UnionEventDefinitionMismatch
         );
+    }
+
+    #[test]
+    fn target_only_epsilon_one_is_a_valid_reference_baseline() {
+        let mut target_only = config();
+        target_only.defensive_mixture_weight_ticks = TICKET_SPACE;
+        target_only.residual_before_event_ticks = vec![0, 256];
+        target_only.residual_after_event_ticks = vec![256, 0];
+
+        let mut process = FiniteAdaptivePortfolioSelection::new(
+            target_only,
+            0.05,
+            SCENARIO_ID,
+            DENSITY_SPACE_ID,
+            CONSEQUENCE_UNIT_ID,
+            bounds(),
+            outcomes(),
+        )
+        .unwrap();
+        let accepted = process
+            .observe(receipt(0, 54, false, 255, 200))
+            .unwrap();
+
+        assert!(accepted.verified_draw.defensive_component_selected);
+        assert_eq!(accepted.verified_draw.mixture_mass_numerator, 128 * 256);
+        assert!((accepted.pair_observations[0].defensive_likelihood_ratio - 1.0).abs() < 1.0e-15);
+        assert!((accepted.pair_observations[0].defensive_contribution - 1.0).abs() < 1.0e-15);
+        assert_eq!(process.report().unwrap().effective_defensive_fraction, 1.0);
+    }
+
+    #[test]
+    fn campaign_digest_binds_sampler_atom_order() {
+        let a = campaign();
+        let mut reordered_config = config();
+        reordered_config.atoms.reverse();
+        reordered_config.target_mass_ticks.reverse();
+        reordered_config.residual_before_event_ticks.reverse();
+        reordered_config.residual_after_event_ticks.reverse();
+        let b = FiniteAdaptivePortfolioSelection::new(
+            reordered_config,
+            0.05,
+            SCENARIO_ID,
+            DENSITY_SPACE_ID,
+            CONSEQUENCE_UNIT_ID,
+            bounds(),
+            outcomes(),
+        )
+        .unwrap();
+        assert_ne!(a.campaign_digest, b.campaign_digest);
     }
 
     #[test]
