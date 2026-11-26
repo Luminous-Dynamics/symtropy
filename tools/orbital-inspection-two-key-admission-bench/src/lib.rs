@@ -618,10 +618,7 @@ mod tests {
             .find(|case| case.case_id == "TK-013-HIGH-VALUE-UNSAFE")
             .unwrap();
         assert!(case.candidate.decision_value_milli > 1_000_000_000);
-        assert_eq!(
-            evaluate_case(case).disposition,
-            Disposition::RejectedSafety
-        );
+        assert_eq!(evaluate_case(case).disposition, Disposition::RejectedSafety);
     }
 
     #[test]
@@ -636,10 +633,7 @@ mod tests {
             "TK-023-MEASUREMENT-HORIZON-MISMATCH",
         ] {
             let case = input.cases.iter().find(|case| case.case_id == id).unwrap();
-            assert_eq!(
-                evaluate_case(case).disposition,
-                Disposition::OutOfScope
-            );
+            assert_eq!(evaluate_case(case).disposition, Disposition::OutOfScope);
         }
     }
 
@@ -656,10 +650,7 @@ mod tests {
             "TK-017-MEASUREMENT-MISSING",
         ] {
             let case = input.cases.iter().find(|case| case.case_id == id).unwrap();
-            assert_eq!(
-                evaluate_case(case).disposition,
-                Disposition::Indeterminate
-            );
+            assert_eq!(evaluate_case(case).disposition, Disposition::Indeterminate);
         }
     }
 
