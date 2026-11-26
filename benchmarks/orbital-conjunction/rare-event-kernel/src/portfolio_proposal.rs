@@ -682,7 +682,7 @@ mod tests {
         assert_eq!(
             PortfolioDefensiveGaussianMixture::new(
                 TARGET_MEASURE_ID,
-                DENSITY_SPACE_ID,
+                [0; 32],
                 target,
                 0.1,
                 vec![key(10, 1, 1)],
@@ -937,7 +937,7 @@ mod tests {
         .unwrap();
         let e = PortfolioDefensiveGaussianMixture::new(
             TARGET_MEASURE_ID,
-            DENSITY_SPACE_ID,
+            [93; 32],
             target,
             0.2,
             vec![key(10, 1, 1)],
