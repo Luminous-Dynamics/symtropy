@@ -33,9 +33,9 @@ pub mod adaptive_importance_sampling;
 pub mod conditional_velocity;
 pub mod coverage;
 pub mod decision_gate;
+pub mod decision_refinement;
 /// Anytime-valid paired contrast sequence under a frozen defensive proposal.
 pub mod defensive_contrast_sequence;
-pub mod decision_refinement;
 pub mod hedged_capital_sequence;
 pub mod lebedev;
 /// Exact dependence-aware aggregation across a finite mission encounter set.
@@ -55,9 +55,9 @@ pub mod pop_convergence;
 /// Defensive proposal mixtures across a frozen portfolio event-mode universe.
 pub mod portfolio_proposal;
 pub mod portfolio_selection;
+pub mod predictable_empirical_bernstein;
 /// Atomic simultaneous selection across portfolios under a defensive proposal.
 pub mod simultaneous_defensive_selection;
-pub mod predictable_empirical_bernstein;
 pub mod proposal_execution_conformance;
 pub mod refinement_scheduler;
 pub mod residual;
@@ -83,11 +83,6 @@ pub use conditional_velocity::{
     ConditionalVelocityDistribution, Matrix3, RelativePositionVelocityCovarianceBlocks,
     ZeroConditionalVarianceMode,
 };
-pub use defensive_contrast_sequence::{
-    MAX_DEFENSIVE_CONTRAST_DRAWS, DefensiveContrastConfidenceInterval,
-    DefensiveContrastConfidenceSequence, DefensiveContrastDraw,
-    DefensiveContrastObservation, DefensiveContrastSequenceError,
-};
 pub use decision_gate::{
     DecisionGateError, DecisionSufficiency, DecisionSufficiencyReport, RiskThresholdRule,
     assess_risk_threshold,
@@ -95,6 +90,11 @@ pub use decision_gate::{
 pub use decision_refinement::{
     DecisionRefinementDisposition, DecisionRefinementError, DecisionRefinementReport,
     plan_decision_refinement,
+};
+pub use defensive_contrast_sequence::{
+    DefensiveContrastConfidenceInterval, DefensiveContrastConfidenceSequence,
+    DefensiveContrastDraw, DefensiveContrastObservation, DefensiveContrastSequenceError,
+    MAX_DEFENSIVE_CONTRAST_DRAWS,
 };
 pub use hedged_capital_sequence::{
     AdaptiveImportanceSamplingHedgedSequence, DEFAULT_HEDGED_STAKE_CAP,
@@ -158,12 +158,6 @@ pub use portfolio_selection::{
     PortfolioContrastConfidenceInterval, PortfolioSelectionError, SimultaneousPortfolioComparison,
     SimultaneousPortfolioDraw, SimultaneousPortfolioSelectionReport,
 };
-pub use simultaneous_defensive_selection::{
-    MAX_SIMULTANEOUS_DEFENSIVE_DRAWS, DefensivePortfolioDraw,
-    DefensivePortfolioDrawReceipt, DefensivePortfolioPairInterval,
-    DefensivePortfolioPairObservation, SimultaneousDefensivePortfolioReport,
-    SimultaneousDefensivePortfolioSelection, SimultaneousDefensiveSelectionError,
-};
 pub use predictable_empirical_bernstein::{
     AdaptiveImportanceSamplingPrPlEbSequence, DEFAULT_BET_FRACTION_CAP, PrPlEbConfidenceSequence,
     PrPlEbError,
@@ -183,6 +177,12 @@ pub use residual::{
     affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
+pub use simultaneous_defensive_selection::{
+    DefensivePortfolioDraw, DefensivePortfolioDrawReceipt, DefensivePortfolioPairInterval,
+    DefensivePortfolioPairObservation, MAX_SIMULTANEOUS_DEFENSIVE_DRAWS,
+    SimultaneousDefensivePortfolioReport, SimultaneousDefensivePortfolioSelection,
+    SimultaneousDefensiveSelectionError,
+};
 pub use space_time_partition::{
     NcEnvelopeReport, NonnegativeRationalInterval, Rational, SpaceTimeCellContribution,
     SpaceTimeHorizon, SpaceTimePartition, SpaceTimePartitionError, SpaceTimeRateCell,
