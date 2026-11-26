@@ -505,9 +505,9 @@ fn score_arm(arm_id: ArmId, rows: &[&EpisodeRecord]) -> ArmScorecard {
         .collect::<Vec<_>>();
     let duplicate_one_shot = metric_from_optional(
         one_shot_rows.len(),
-        one_shot_rows.iter().map(|row| {
-            row.assurance.physical_effect_count.map(|count| count > 1)
-        }),
+        one_shot_rows
+            .iter()
+            .map(|row| row.assurance.physical_effect_count.map(|count| count > 1)),
     );
 
     let fenced_rows = rows
