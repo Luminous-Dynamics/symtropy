@@ -1175,7 +1175,8 @@ mod tests {
             metric_profile_id: METRIC_PROFILE_ID.to_owned(),
             campaign_id: "test-campaign".to_owned(),
             split_manifest_sha256: "5".repeat(64),
-            data_license_and_provenance: "Synthetic test fixture; no dataset redistribution.".to_owned(),
+            data_license_and_provenance: "Synthetic test fixture; no dataset redistribution."
+                .to_owned(),
             candidates,
         }
     }
