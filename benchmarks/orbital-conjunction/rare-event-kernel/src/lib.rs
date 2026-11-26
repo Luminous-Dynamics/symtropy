@@ -33,6 +33,8 @@ pub mod adaptive_importance_sampling;
 pub mod conditional_velocity;
 pub mod coverage;
 pub mod decision_gate;
+/// Minimax-regret decisions across explicit epistemic scenarios.
+pub mod epistemic_minimax_regret;
 pub mod decision_refinement;
 /// Anytime-valid paired contrast sequence under a frozen defensive proposal.
 pub mod defensive_contrast_sequence;
@@ -82,6 +84,10 @@ pub use conditional_velocity::{
     ConditionalDirectionReport, ConditionalVelocityConfig, ConditionalVelocityDiagnostics,
     ConditionalVelocityDistribution, Matrix3, RelativePositionVelocityCovarianceBlocks,
     ZeroConditionalVarianceMode,
+};
+pub use epistemic_minimax_regret::{
+    EpistemicMinimaxRegret, EpistemicMinimaxRegretError, EpistemicMinimaxRegretReport,
+    EpistemicScenarioEvidence, PortfolioWorstCaseRegretInterval,
 };
 pub use decision_gate::{
     DecisionGateError, DecisionSufficiency, DecisionSufficiencyReport, RiskThresholdRule,
