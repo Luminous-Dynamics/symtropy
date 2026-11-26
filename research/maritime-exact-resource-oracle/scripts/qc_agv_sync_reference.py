@@ -28,15 +28,16 @@ def parse_fixture(path: Path):
                 "qc_weight": int(fields[3]),
                 "agv_weight": int(fields[4]),
             }
-        elif kind == "TASK" and len(fields) == 6:
+        elif kind == "TASK" and len(fields) == 7:
             task_id = fields[1]
             if task_id in tasks:
                 raise AssertionError(f"duplicate task {task_id}")
             tasks[task_id] = {
                 "qc": fields[2],
-                "nominal": int(fields[3]),
-                "deviation": int(fields[4]),
-                "qc_predecessor": None if fields[5] == "-" else fields[5],
+                "qc_release": int(fields[3]),
+                "nominal": int(fields[4]),
+                "deviation": int(fields[5]),
+                "qc_predecessor": None if fields[6] == "-" else fields[6],
             }
         elif kind == "ROUTE" and len(fields) == 2:
             if fields[1] in routes:
@@ -92,7 +93,7 @@ def simulate(instance, tasks, steps, scenario):
         task = tasks[task_id]
         predecessor = task["qc_predecessor"]
         if predecessor is None:
-            qc_ready = 0
+            qc_ready = task["qc_release"]
         else:
             if predecessor not in timings:
                 raise AssertionError(f"QC predecessor {predecessor} unavailable before {task_id}")
