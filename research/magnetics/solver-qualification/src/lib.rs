@@ -631,7 +631,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn rejects_comparison_when_material_identity_differs() {
         let mut other = fem_run();
@@ -673,14 +672,13 @@ mod tests {
         let prediction = face_charge_run();
 
         let pair = compare_runs(&measurement, &prediction, policy()).unwrap();
-        assert_eq!(pair.lineage_relation, LineageRelation::PhysicalMeasurementVersusPrediction);
-        assert!(pair.physical_inputs_and_observer_grid_match);
         assert_eq!(
-            validate_run(&measurement, policy()),
-            Ok(())
+            pair.lineage_relation,
+            LineageRelation::PhysicalMeasurementVersusPrediction
         );
+        assert!(pair.physical_inputs_and_observer_grid_match);
+        assert_eq!(validate_run(&measurement, policy()), Ok(()));
     }
-
 
     #[test]
     fn refuses_unknown_numeric_precision_for_a_numerical_solver() {
