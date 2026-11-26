@@ -118,3 +118,10 @@ See [decision-sufficiency-bridge-v0.md](./decision-sufficiency-bridge-v0.md) for
 ## Candidate sufficiency receipt schema
 
 The candidate-visible, DecisionNeed-scoped claim format is specified in [decision-sufficiency-receipt-v0.schema.json](./decision-sufficiency-receipt-v0.schema.json), with [a safe-decision example](./decision-sufficiency-receipt-v0.example.json). It binds query/utility/evidence/policy/catalogue/budget digests and source-linked residual retention. It is not evaluator truth or an independent qualification receipt; hidden witness identities and true outcome supports stay with #7577. The Draft 2020-12 schema and example passed offline validation; five malformed/authority-leak negative examples were rejected. Digest fields use the existing `WorldManifestV1` convention: 64 lowercase hexadecimal characters without a `sha256:` prefix. No repository-side schema-validation workflow or runtime adapter is claimed yet.
+
+
+## Spatial state construction protocol
+
+See [spatial-state-construction-protocol-v0.md](./spatial-state-construction-protocol-v0.md) for the matched L0–L3 evidence-access experiment that isolates retrieval from allocentric map construction. It specifies candidate arms, map-state projection, grounding/geometry/topology scorecards, false-loop/false-adjacency controls and the native-vs-oracle evidence separation.
+
+This update follows the current official OVO-S analysis: evidence recall has near-zero correlation with correctness for tested memory systems, and oracle evidence selection / doubled frame budgets add at most +0.3 over uniform 128 frames. The intended research pivot is from more retrieval to grounded entity/coordinate/topology state construction, while long-horizon memory remains separately evaluated with 4DMemoryBench and EgoMemReason.
