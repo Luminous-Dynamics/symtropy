@@ -22,7 +22,7 @@ cargo clippy --manifest-path research/exact-coulomb-delassus/v0.1/Cargo.toml --l
 
 - Coulomb impulse-cone projection: interior, boundary, apex and frictionless ray.
 - Projection idempotence, non-expansiveness and tangent-plane rotation equivariance.
-- De Saxce/Feng residual checks for separation, sticking and sliding, plus wrong-direction, negative-normal and friction-disk negative controls.
+- De Saxce/Feng residual checks for separation, sticking and sliding, explicit (u=q+Wp) response consistency, plus wrong-direction, negative-normal and friction-disk negative controls.
 - Analytic centered two-body inverse-mass sum.
 - Static-body contribution is zero.
 - Matrix-free result equals dense reference for coupled contacts, nonzero lever arms and off-diagonal inertia.
@@ -31,6 +31,6 @@ cargo clippy --manifest-path research/exact-coulomb-delassus/v0.1/Cargo.toml --l
 
 ## Claim boundary
 
-The `coulomb_cone` module adds Euclidean projection onto the 3D circular Coulomb impulse cone and an independent local-law residual report for a supplied impulse/pre-velocity/post-velocity tuple. It checks primal cone feasibility, De Saxce/Feng augmented dual-cone feasibility, complementarity and signed kinetic-energy change. It does not search for a contact impulse or enumerate all admissible branches.
+The `coulomb_cone` module adds Euclidean projection onto the 3D circular Coulomb impulse cone and an independent local-law residual report. The caller supplies impulse, free velocity, Delassus response (Wp), and post velocity. The checker verifies (u=q+Wp), then checks primal cone feasibility, De Saxce/Feng augmented dual-cone feasibility, complementarity and signed kinetic-energy change. It does not search for a contact impulse or enumerate all admissible branches.
 
 The crate still does not implement an island-level cone-QP solver, an FBF outer loop, IPM/ANM continuation, warm starts, or any general convergence guarantee. No production physics or performance improvement is claimed.
