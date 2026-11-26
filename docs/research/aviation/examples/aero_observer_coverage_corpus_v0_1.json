@@ -17,6 +17,7 @@
       "challenge": "Closed roster; all required partitions contiguous; independent source counts and checkpoint agree.",
       "coverage_status": "QUALIFIED_COMPLETE_FOR_SCOPE",
       "replay_consequence": "ALLOW_SCOPED_ABSENCE_INFERENCE",
+      "fault_codes": [],
       "fixture": {
         "scope_closed": true,
         "scope_manifest_digest_valid": true,
@@ -31,7 +32,7 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "Closed roster; all required partitions contiguous; independent source counts and checkpoint agree."
+        "scope_note": "coverage-001-complete-reconciled"
       }
     },
     {
@@ -39,6 +40,9 @@
       "challenge": "One required source is absent although the evidence checkpoint is valid.",
       "coverage_status": "INCOMPLETE",
       "replay_consequence": "ABSTAIN",
+      "fault_codes": [
+        "REQUIRED_SOURCE_MISSING"
+      ],
       "fixture": {
         "scope_closed": true,
         "scope_manifest_digest_valid": true,
@@ -47,13 +51,13 @@
         "receipt_digest_valid": true,
         "independently_qualified": true,
         "source_roster_reconciled": false,
-        "required_obligations_complete": false,
-        "critical_channels_complete": false,
-        "time_interval_complete": false,
-        "stream_continuity_valid": false,
-        "retention_available": false,
+        "required_obligations_complete": true,
+        "critical_channels_complete": true,
+        "time_interval_complete": true,
+        "stream_continuity_valid": true,
+        "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "One required source is absent although the evidence checkpoint is valid."
+        "scope_note": "coverage-002-missing-required-source"
       }
     },
     {
@@ -61,6 +65,9 @@
       "challenge": "A required source stream has a missing sequence between observed records.",
       "coverage_status": "INCOMPLETE",
       "replay_consequence": "ABSTAIN",
+      "fault_codes": [
+        "MIDDLE_SEQUENCE_GAP"
+      ],
       "fixture": {
         "scope_closed": true,
         "scope_manifest_digest_valid": true,
@@ -68,14 +75,14 @@
         "receipt_present": true,
         "receipt_digest_valid": true,
         "independently_qualified": true,
-        "source_roster_reconciled": false,
-        "required_obligations_complete": false,
-        "critical_channels_complete": false,
-        "time_interval_complete": false,
+        "source_roster_reconciled": true,
+        "required_obligations_complete": true,
+        "critical_channels_complete": true,
+        "time_interval_complete": true,
         "stream_continuity_valid": false,
-        "retention_available": false,
+        "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "A required source stream has a missing sequence between observed records."
+        "scope_note": "coverage-003-middle-sequence-gap"
       }
     },
     {
@@ -83,6 +90,9 @@
       "challenge": "The receiver has no evidence for the final expected source sequence.",
       "coverage_status": "INCOMPLETE",
       "replay_consequence": "ABSTAIN",
+      "fault_codes": [
+        "FINAL_SEQUENCE_MISSING"
+      ],
       "fixture": {
         "scope_closed": true,
         "scope_manifest_digest_valid": true,
@@ -90,14 +100,14 @@
         "receipt_present": true,
         "receipt_digest_valid": true,
         "independently_qualified": true,
-        "source_roster_reconciled": false,
+        "source_roster_reconciled": true,
         "required_obligations_complete": false,
-        "critical_channels_complete": false,
-        "time_interval_complete": false,
-        "stream_continuity_valid": false,
-        "retention_available": false,
+        "critical_channels_complete": true,
+        "time_interval_complete": true,
+        "stream_continuity_valid": true,
+        "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "The receiver has no evidence for the final expected source sequence."
+        "scope_note": "coverage-004-missing-final-event"
       }
     },
     {
@@ -105,6 +115,9 @@
       "challenge": "Observer reports overflow or dropped records during the covered interval.",
       "coverage_status": "INCOMPLETE",
       "replay_consequence": "ABSTAIN",
+      "fault_codes": [
+        "DROP_COUNTER_NONZERO"
+      ],
       "fixture": {
         "scope_closed": true,
         "scope_manifest_digest_valid": true,
@@ -112,14 +125,14 @@
         "receipt_present": true,
         "receipt_digest_valid": true,
         "independently_qualified": true,
-        "source_roster_reconciled": false,
+        "source_roster_reconciled": true,
         "required_obligations_complete": false,
-        "critical_channels_complete": false,
-        "time_interval_complete": false,
-        "stream_continuity_valid": false,
-        "retention_available": false,
+        "critical_channels_complete": true,
+        "time_interval_complete": true,
+        "stream_continuity_valid": true,
+        "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "Observer reports overflow or dropped records during the covered interval."
+        "scope_note": "coverage-005-drop-counter-nonzero"
       }
     },
     {
@@ -127,6 +140,9 @@
       "challenge": "Required observer heartbeat is absent over part of the acquisition interval.",
       "coverage_status": "INCOMPLETE",
       "replay_consequence": "ABSTAIN",
+      "fault_codes": [
+        "HEARTBEAT_OUTAGE_OVERLAP"
+      ],
       "fixture": {
         "scope_closed": true,
         "scope_manifest_digest_valid": true,
@@ -134,14 +150,14 @@
         "receipt_present": true,
         "receipt_digest_valid": true,
         "independently_qualified": true,
-        "source_roster_reconciled": false,
-        "required_obligations_complete": false,
-        "critical_channels_complete": false,
+        "source_roster_reconciled": true,
+        "required_obligations_complete": true,
+        "critical_channels_complete": true,
         "time_interval_complete": false,
-        "stream_continuity_valid": false,
-        "retention_available": false,
+        "stream_continuity_valid": true,
+        "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "Required observer heartbeat is absent over part of the acquisition interval."
+        "scope_note": "coverage-006-heartbeat-outage"
       }
     },
     {
@@ -149,6 +165,9 @@
       "challenge": "Independent source count does not reconcile with receiver-observed count.",
       "coverage_status": "INCOMPLETE",
       "replay_consequence": "ABSTAIN",
+      "fault_codes": [
+        "SOURCE_RECEIVER_COUNT_MISMATCH"
+      ],
       "fixture": {
         "scope_closed": true,
         "scope_manifest_digest_valid": true,
@@ -157,13 +176,13 @@
         "receipt_digest_valid": true,
         "independently_qualified": true,
         "source_roster_reconciled": false,
-        "required_obligations_complete": false,
-        "critical_channels_complete": false,
-        "time_interval_complete": false,
-        "stream_continuity_valid": false,
-        "retention_available": false,
+        "required_obligations_complete": true,
+        "critical_channels_complete": true,
+        "time_interval_complete": true,
+        "stream_continuity_valid": true,
+        "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "Independent source count does not reconcile with receiver-observed count."
+        "scope_note": "coverage-007-source-count-mismatch"
       }
     },
     {
@@ -171,6 +190,9 @@
       "challenge": "Two successors claim the same source predecessor.",
       "coverage_status": "INCOMPLETE",
       "replay_consequence": "ABSTAIN",
+      "fault_codes": [
+        "SOURCE_SEQUENCE_FORK"
+      ],
       "fixture": {
         "scope_closed": true,
         "scope_manifest_digest_valid": true,
@@ -178,14 +200,14 @@
         "receipt_present": true,
         "receipt_digest_valid": true,
         "independently_qualified": true,
-        "source_roster_reconciled": false,
-        "required_obligations_complete": false,
-        "critical_channels_complete": false,
-        "time_interval_complete": false,
+        "source_roster_reconciled": true,
+        "required_obligations_complete": true,
+        "critical_channels_complete": true,
+        "time_interval_complete": true,
         "stream_continuity_valid": false,
-        "retention_available": false,
+        "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "Two successors claim the same source predecessor."
+        "scope_note": "coverage-008-forked-source-history"
       }
     },
     {
@@ -193,21 +215,24 @@
       "challenge": "Sequence counter resets without an authenticated stream epoch transition.",
       "coverage_status": "UNVERIFIED",
       "replay_consequence": "TRUST_UNRESOLVED",
+      "fault_codes": [
+        "STREAM_EPOCH_RESET_UNAUTHENTICATED"
+      ],
       "fixture": {
-        "scope_closed": false,
+        "scope_closed": true,
         "scope_manifest_digest_valid": true,
         "checkpoint_digest_valid": true,
-        "receipt_present": false,
+        "receipt_present": true,
         "receipt_digest_valid": true,
-        "independently_qualified": false,
-        "source_roster_reconciled": false,
-        "required_obligations_complete": false,
-        "critical_channels_complete": false,
-        "time_interval_complete": false,
+        "independently_qualified": true,
+        "source_roster_reconciled": true,
+        "required_obligations_complete": true,
+        "critical_channels_complete": true,
+        "time_interval_complete": true,
         "stream_continuity_valid": false,
-        "retention_available": false,
+        "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "Sequence counter resets without an authenticated stream epoch transition."
+        "scope_note": "coverage-009-unauthenticated-epoch-reset"
       }
     },
     {
@@ -215,21 +240,24 @@
       "challenge": "Independent reconciliation reveals a producer missing from the roster.",
       "coverage_status": "INCOMPLETE",
       "replay_consequence": "ABSTAIN",
+      "fault_codes": [
+        "UNREGISTERED_SOURCE_DISCOVERED"
+      ],
       "fixture": {
-        "scope_closed": true,
+        "scope_closed": false,
         "scope_manifest_digest_valid": true,
         "checkpoint_digest_valid": true,
         "receipt_present": true,
         "receipt_digest_valid": true,
         "independently_qualified": true,
         "source_roster_reconciled": false,
-        "required_obligations_complete": false,
-        "critical_channels_complete": false,
-        "time_interval_complete": false,
-        "stream_continuity_valid": false,
-        "retention_available": false,
+        "required_obligations_complete": true,
+        "critical_channels_complete": true,
+        "time_interval_complete": true,
+        "stream_continuity_valid": true,
+        "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "Independent reconciliation reveals a producer missing from the roster."
+        "scope_note": "coverage-010-unregistered-source"
       }
     },
     {
@@ -237,21 +265,24 @@
       "challenge": "Roster is explicitly open-world but a complete claim is attempted.",
       "coverage_status": "UNVERIFIED",
       "replay_consequence": "TRUST_UNRESOLVED",
+      "fault_codes": [
+        "OPEN_WORLD_ROSTER"
+      ],
       "fixture": {
         "scope_closed": false,
         "scope_manifest_digest_valid": true,
         "checkpoint_digest_valid": true,
-        "receipt_present": false,
+        "receipt_present": true,
         "receipt_digest_valid": true,
-        "independently_qualified": false,
-        "source_roster_reconciled": false,
-        "required_obligations_complete": false,
-        "critical_channels_complete": false,
-        "time_interval_complete": false,
-        "stream_continuity_valid": false,
-        "retention_available": false,
+        "independently_qualified": true,
+        "source_roster_reconciled": true,
+        "required_obligations_complete": true,
+        "critical_channels_complete": true,
+        "time_interval_complete": true,
+        "stream_continuity_valid": true,
+        "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "Roster is explicitly open-world but a complete claim is attempted."
+        "scope_note": "coverage-011-open-world-as-closed"
       }
     },
     {
@@ -259,6 +290,9 @@
       "challenge": "A critical channel is excluded without an owner-authorized scope change.",
       "coverage_status": "OUT_OF_SCOPE",
       "replay_consequence": "ABSTAIN",
+      "fault_codes": [
+        "UNAUTHORIZED_CRITICAL_CHANNEL_EXCLUSION"
+      ],
       "fixture": {
         "scope_closed": true,
         "scope_manifest_digest_valid": true,
@@ -266,14 +300,14 @@
         "receipt_present": true,
         "receipt_digest_valid": true,
         "independently_qualified": true,
-        "source_roster_reconciled": false,
+        "source_roster_reconciled": true,
         "required_obligations_complete": false,
         "critical_channels_complete": false,
-        "time_interval_complete": false,
-        "stream_continuity_valid": false,
-        "retention_available": false,
+        "time_interval_complete": true,
+        "stream_continuity_valid": true,
+        "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "A critical channel is excluded without an owner-authorized scope change."
+        "scope_note": "coverage-012-critical-channel-excluded"
       }
     },
     {
@@ -281,6 +315,9 @@
       "challenge": "Observer covers only part of the required acquisition interval.",
       "coverage_status": "INCOMPLETE",
       "replay_consequence": "ABSTAIN",
+      "fault_codes": [
+        "PARTIAL_TIME_INTERVAL"
+      ],
       "fixture": {
         "scope_closed": true,
         "scope_manifest_digest_valid": true,
@@ -288,14 +325,14 @@
         "receipt_present": true,
         "receipt_digest_valid": true,
         "independently_qualified": true,
-        "source_roster_reconciled": false,
-        "required_obligations_complete": false,
-        "critical_channels_complete": false,
+        "source_roster_reconciled": true,
+        "required_obligations_complete": true,
+        "critical_channels_complete": true,
         "time_interval_complete": false,
-        "stream_continuity_valid": false,
-        "retention_available": false,
+        "stream_continuity_valid": true,
+        "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "Observer covers only part of the required acquisition interval."
+        "scope_note": "coverage-013-partial-time-window"
       }
     },
     {
@@ -303,21 +340,24 @@
       "challenge": "Coverage receipt references a different checkpoint or scope-manifest digest.",
       "coverage_status": "INVALID",
       "replay_consequence": "REJECT",
+      "fault_codes": [
+        "CHECKPOINT_SCOPE_RECEIPT_BINDING_MISMATCH"
+      ],
       "fixture": {
-        "scope_closed": false,
-        "scope_manifest_digest_valid": false,
+        "scope_closed": true,
+        "scope_manifest_digest_valid": true,
         "checkpoint_digest_valid": false,
         "receipt_present": true,
-        "receipt_digest_valid": false,
-        "independently_qualified": false,
-        "source_roster_reconciled": false,
-        "required_obligations_complete": false,
-        "critical_channels_complete": false,
-        "time_interval_complete": false,
-        "stream_continuity_valid": false,
-        "retention_available": false,
+        "receipt_digest_valid": true,
+        "independently_qualified": true,
+        "source_roster_reconciled": true,
+        "required_obligations_complete": true,
+        "critical_channels_complete": true,
+        "time_interval_complete": true,
+        "stream_continuity_valid": true,
+        "retention_available": true,
         "checkpoint_binding_valid": false,
-        "scope_note": "Coverage receipt references a different checkpoint or scope-manifest digest."
+        "scope_note": "coverage-014-checkpoint-binding-mismatch"
       }
     },
     {
@@ -325,21 +365,24 @@
       "challenge": "Receipt is signed but observer qualification is not independent or verified.",
       "coverage_status": "UNVERIFIED",
       "replay_consequence": "TRUST_UNRESOLVED",
+      "fault_codes": [
+        "OBSERVER_NOT_INDEPENDENTLY_QUALIFIED"
+      ],
       "fixture": {
-        "scope_closed": false,
+        "scope_closed": true,
         "scope_manifest_digest_valid": true,
         "checkpoint_digest_valid": true,
-        "receipt_present": false,
+        "receipt_present": true,
         "receipt_digest_valid": true,
         "independently_qualified": false,
-        "source_roster_reconciled": false,
-        "required_obligations_complete": false,
-        "critical_channels_complete": false,
-        "time_interval_complete": false,
-        "stream_continuity_valid": false,
-        "retention_available": false,
+        "source_roster_reconciled": true,
+        "required_obligations_complete": true,
+        "critical_channels_complete": true,
+        "time_interval_complete": true,
+        "stream_continuity_valid": true,
+        "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "Receipt is signed but observer qualification is not independent or verified."
+        "scope_note": "coverage-015-self-attested-observer"
       }
     },
     {
@@ -347,21 +390,24 @@
       "challenge": "Only a self-reported complete flag is present; no per-source reconciliation exists.",
       "coverage_status": "UNVERIFIED",
       "replay_consequence": "TRUST_UNRESOLVED",
+      "fault_codes": [
+        "SELF_DECLARED_COMPLETE_ONLY"
+      ],
       "fixture": {
-        "scope_closed": false,
+        "scope_closed": true,
         "scope_manifest_digest_valid": true,
         "checkpoint_digest_valid": true,
         "receipt_present": false,
         "receipt_digest_valid": true,
         "independently_qualified": false,
-        "source_roster_reconciled": false,
-        "required_obligations_complete": false,
-        "critical_channels_complete": false,
-        "time_interval_complete": false,
-        "stream_continuity_valid": false,
-        "retention_available": false,
+        "source_roster_reconciled": true,
+        "required_obligations_complete": true,
+        "critical_channels_complete": true,
+        "time_interval_complete": true,
+        "stream_continuity_valid": true,
+        "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "Only a self-reported complete flag is present; no per-source reconciliation exists."
+        "scope_note": "coverage-016-self-declared-complete"
       }
     },
     {
@@ -369,21 +415,24 @@
       "challenge": "Source namespace aliasing moves a stream outside the declared source identity binding.",
       "coverage_status": "UNVERIFIED",
       "replay_consequence": "TRUST_UNRESOLVED",
+      "fault_codes": [
+        "SOURCE_NAMESPACE_ALIAS_UNVERIFIED"
+      ],
       "fixture": {
-        "scope_closed": false,
+        "scope_closed": true,
         "scope_manifest_digest_valid": true,
         "checkpoint_digest_valid": true,
-        "receipt_present": false,
+        "receipt_present": true,
         "receipt_digest_valid": true,
-        "independently_qualified": false,
+        "independently_qualified": true,
         "source_roster_reconciled": false,
-        "required_obligations_complete": false,
-        "critical_channels_complete": false,
-        "time_interval_complete": false,
-        "stream_continuity_valid": false,
-        "retention_available": false,
+        "required_obligations_complete": true,
+        "critical_channels_complete": true,
+        "time_interval_complete": true,
+        "stream_continuity_valid": true,
+        "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "Source namespace aliasing moves a stream outside the declared source identity binding."
+        "scope_note": "coverage-017-namespace-alias"
       }
     },
     {
@@ -391,21 +440,24 @@
       "challenge": "Two duplicate/correlated paths are counted as independent evidence channels.",
       "coverage_status": "UNVERIFIED",
       "replay_consequence": "TRUST_UNRESOLVED",
+      "fault_codes": [
+        "OBSERVER_COMMON_CAUSE_UNASSESSED"
+      ],
       "fixture": {
-        "scope_closed": false,
+        "scope_closed": true,
         "scope_manifest_digest_valid": true,
         "checkpoint_digest_valid": true,
-        "receipt_present": false,
+        "receipt_present": true,
         "receipt_digest_valid": true,
         "independently_qualified": false,
-        "source_roster_reconciled": false,
-        "required_obligations_complete": false,
-        "critical_channels_complete": false,
-        "time_interval_complete": false,
-        "stream_continuity_valid": false,
-        "retention_available": false,
+        "source_roster_reconciled": true,
+        "required_obligations_complete": true,
+        "critical_channels_complete": true,
+        "time_interval_complete": true,
+        "stream_continuity_valid": true,
+        "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "Two duplicate/correlated paths are counted as independent evidence channels."
+        "scope_note": "coverage-018-correlated-observers"
       }
     },
     {
@@ -413,6 +465,9 @@
       "challenge": "Receipt claims complete capture but the required immutable source bytes are unavailable.",
       "coverage_status": "INCOMPLETE",
       "replay_consequence": "ABSTAIN",
+      "fault_codes": [
+        "SOURCE_BYTES_NOT_RETAINED"
+      ],
       "fixture": {
         "scope_closed": true,
         "scope_manifest_digest_valid": true,
@@ -420,14 +475,14 @@
         "receipt_present": true,
         "receipt_digest_valid": true,
         "independently_qualified": true,
-        "source_roster_reconciled": false,
-        "required_obligations_complete": false,
-        "critical_channels_complete": false,
-        "time_interval_complete": false,
-        "stream_continuity_valid": false,
+        "source_roster_reconciled": true,
+        "required_obligations_complete": true,
+        "critical_channels_complete": true,
+        "time_interval_complete": true,
+        "stream_continuity_valid": true,
         "retention_available": false,
         "checkpoint_binding_valid": true,
-        "scope_note": "Receipt claims complete capture but the required immutable source bytes are unavailable."
+        "scope_note": "coverage-019-retention-bytes-missing"
       }
     },
     {
@@ -435,6 +490,9 @@
       "challenge": "Checkpoint digest is valid but the upstream capture path omitted a required event.",
       "coverage_status": "INCOMPLETE",
       "replay_consequence": "ABSTAIN",
+      "fault_codes": [
+        "UPSTREAM_CAPTURE_OMISSION"
+      ],
       "fixture": {
         "scope_closed": true,
         "scope_manifest_digest_valid": true,
@@ -442,14 +500,14 @@
         "receipt_present": true,
         "receipt_digest_valid": true,
         "independently_qualified": true,
-        "source_roster_reconciled": false,
+        "source_roster_reconciled": true,
         "required_obligations_complete": false,
-        "critical_channels_complete": false,
-        "time_interval_complete": false,
-        "stream_continuity_valid": false,
-        "retention_available": false,
+        "critical_channels_complete": true,
+        "time_interval_complete": true,
+        "stream_continuity_valid": true,
+        "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "Checkpoint digest is valid but the upstream capture path omitted a required event."
+        "scope_note": "coverage-020-valid-checkpoint-capture-omission"
       }
     },
     {
@@ -457,6 +515,9 @@
       "challenge": "High aggregate coverage hides one missing critical channel.",
       "coverage_status": "INCOMPLETE",
       "replay_consequence": "ABSTAIN",
+      "fault_codes": [
+        "CRITICAL_CHANNEL_MISSING_DESPITE_HIGH_AGGREGATE"
+      ],
       "fixture": {
         "scope_closed": true,
         "scope_manifest_digest_valid": true,
@@ -464,14 +525,14 @@
         "receipt_present": true,
         "receipt_digest_valid": true,
         "independently_qualified": true,
-        "source_roster_reconciled": false,
-        "required_obligations_complete": false,
+        "source_roster_reconciled": true,
+        "required_obligations_complete": true,
         "critical_channels_complete": false,
-        "time_interval_complete": false,
-        "stream_continuity_valid": false,
-        "retention_available": false,
+        "time_interval_complete": true,
+        "stream_continuity_valid": true,
+        "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "High aggregate coverage hides one missing critical channel."
+        "scope_note": "coverage-021-complete-noncritical-critical-missing"
       }
     },
     {
@@ -479,6 +540,7 @@
       "challenge": "Identical event bytes are delivered twice and both receipts are retained while semantics deduplicate once.",
       "coverage_status": "QUALIFIED_COMPLETE_FOR_SCOPE",
       "replay_consequence": "ALLOW_SCOPED_ABSENCE_INFERENCE",
+      "fault_codes": [],
       "fixture": {
         "scope_closed": true,
         "scope_manifest_digest_valid": true,
@@ -493,7 +555,7 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "Identical event bytes are delivered twice and both receipts are retained while semantics deduplicate once."
+        "scope_note": "coverage-022-positive-idempotent-duplicate"
       }
     },
     {
@@ -501,6 +563,7 @@
       "challenge": "Independent sources are complete but concurrent; replay preserves incomparability without a forced total order.",
       "coverage_status": "QUALIFIED_COMPLETE_FOR_SCOPE",
       "replay_consequence": "ALLOW_SCOPED_ABSENCE_INFERENCE",
+      "fault_codes": [],
       "fixture": {
         "scope_closed": true,
         "scope_manifest_digest_valid": true,
@@ -515,7 +578,7 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "Independent sources are complete but concurrent; replay preserves incomparability without a forced total order."
+        "scope_note": "coverage-023-positive-independent-concurrent-sources"
       }
     },
     {
@@ -523,6 +586,7 @@
       "challenge": "A source is excluded by a versioned, owner-authorized scope definition and the claim is explicitly restricted.",
       "coverage_status": "QUALIFIED_COMPLETE_FOR_SCOPE",
       "replay_consequence": "ALLOW_SCOPED_ABSENCE_INFERENCE",
+      "fault_codes": [],
       "fixture": {
         "scope_closed": true,
         "scope_manifest_digest_valid": true,
@@ -537,7 +601,7 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "A source is excluded by a versioned, owner-authorized scope definition and the claim is explicitly restricted."
+        "scope_note": "coverage-024-positive-authorized-exclusion"
       }
     }
   ]
