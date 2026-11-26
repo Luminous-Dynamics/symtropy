@@ -565,8 +565,8 @@ mod tests {
     fn frozen_corpus_matches_every_expected_disposition() {
         let receipt = audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567")
             .expect("corpus audits");
-        assert_eq!(receipt.case_count, 23);
-        assert_eq!(receipt.expected_disposition_matches, 23);
+        assert_eq!(receipt.case_count, 24);
+        assert_eq!(receipt.expected_disposition_matches, 24);
         assert_eq!(receipt.expected_disposition_mismatches, 0);
         assert!(!receipt.authority_granted);
         assert!(!receipt.source_bytes_authenticated);
