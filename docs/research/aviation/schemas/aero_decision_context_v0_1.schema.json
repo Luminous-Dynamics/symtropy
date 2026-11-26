@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero-decision-context-v0.1.schema.json",
+  "title": "AERO Decision Context v0.1",
+  "description": "Versioned decision-context identity for compositional AERO claim assurance. Referenced digests bind external artifacts but do not authenticate those artifacts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "claim_id",
+    "subject_ref",
+    "configuration_ref",
+    "operating_envelope_ref",
+    "acquisition_time_earliest_unix_ms",
+    "acquisition_time_latest_unix_ms",
+    "as_known_at_unix_ms",
+    "source_scope_manifest_sha256",
+    "evidence_knowledge_cut_sha256",
+    "trust_policy_sha256",
+    "claim_specification_sha256",
+    "required_evidence_manifest_sha256",
+    "risk_classification_sha256",
+    "model_applicability_profile_sha256"
+  ],
+  "properties": {
+    "claim_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\S(?:.*\\S)?$"
+    },
+    "subject_ref": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\S(?:.*\\S)?$"
+    },
+    "configuration_ref": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\S(?:.*\\S)?$"
+    },
+    "operating_envelope_ref": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\S(?:.*\\S)?$"
+    },
+    "acquisition_time_earliest_unix_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "acquisition_time_latest_unix_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "as_known_at_unix_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_scope_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "evidence_knowledge_cut_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "trust_policy_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "claim_specification_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "required_evidence_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "risk_classification_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "model_applicability_profile_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
