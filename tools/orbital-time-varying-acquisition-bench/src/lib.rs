@@ -446,11 +446,7 @@ fn calculate_bounds(model: &MotionModel) -> Result<ProjectionBounds, String> {
             row_span_ns,
             exposure_ns,
         )?,
-        exposure_jerk_term(
-            model.point_jerk_upper_um_s3,
-            row_span_ns,
-            exposure_ns,
-        )?,
+        exposure_jerk_term(model.point_jerk_upper_um_s3, row_span_ns, exposure_ns)?,
     )?;
 
     // The combined frame is integrated directly over the complete acquisition
@@ -466,14 +462,9 @@ fn calculate_bounds(model: &MotionModel) -> Result<ProjectionBounds, String> {
             row_span_ns,
             exposure_ns,
         )?,
-        jerk_frame_term(
-            model.point_jerk_upper_um_s3,
-            row_span_ns,
-            exposure_ns,
-        )?,
+        jerk_frame_term(model.point_jerk_upper_um_s3, row_span_ns, exposure_ns)?,
     )?;
-    let constant_max_speed_frame =
-        constant_max_speed_frame_terms(model, full_frame_duration_ns)?;
+    let constant_max_speed_frame = constant_max_speed_frame_terms(model, full_frame_duration_ns)?;
     let constant_speed_excess_um_upper = constant_max_speed_frame
         .total_um
         .checked_sub(combined_frame.total_um)
@@ -672,7 +663,9 @@ mod tests {
     use super::*;
 
     fn corpus_bytes() -> &'static [u8] {
-        include_bytes!("../../../docs/research/orbital-truss/fixtures/time-varying-acquisition-v0_1.json")
+        include_bytes!(
+            "../../../docs/research/orbital-truss/fixtures/time-varying-acquisition-v0_1.json"
+        )
     }
 
     fn corpus() -> Corpus {
@@ -681,11 +674,8 @@ mod tests {
 
     #[test]
     fn frozen_corpus_matches_all_expected_statuses() {
-        let receipt = audit_corpus(
-            corpus_bytes(),
-            "0123456789abcdef0123456789abcdef01234567",
-        )
-        .expect("corpus audits");
+        let receipt = audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567")
+            .expect("corpus audits");
         assert_eq!(receipt.case_count, 17);
         assert_eq!(receipt.expected_outcome_matches, 17);
         assert_eq!(receipt.expected_outcome_mismatches, 0);
@@ -919,9 +909,7 @@ mod tests {
         let input = corpus();
         for case in &input.cases {
             if let Ok(bounds) = calculate_bounds(&case.model) {
-                assert!(
-                    bounds.constant_max_speed_frame.total_um >= bounds.combined_frame.total_um
-                );
+                assert!(bounds.constant_max_speed_frame.total_um >= bounds.combined_frame.total_um);
                 assert!(
                     bounds.constant_speed_frame_x_micro_px_upper
                         >= bounds.combined_frame_x_micro_px_upper
@@ -944,9 +932,7 @@ mod tests {
             .unwrap();
         let bounds = calculate_bounds(&case.model).unwrap();
         assert!(bounds.constant_speed_excess_um_upper > 0);
-        assert!(
-            bounds.constant_max_speed_frame.total_um > bounds.combined_frame.total_um
-        );
+        assert!(bounds.constant_max_speed_frame.total_um > bounds.combined_frame.total_um);
     }
 
     #[test]
