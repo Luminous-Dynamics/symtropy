@@ -65,6 +65,8 @@ jobs:
           test -f "$CANDIDATE_DIR/candidate_manifest.json"
           test -f "$EVALUATOR_DIR/evaluator_manifest.json"
           jq -e 'has("hidden_truth_by_episode") | not' "$CANDIDATE_DIR/candidate_manifest.json"
+          jq -e 'has("seed") | not' "$CANDIDATE_DIR/candidate_manifest.json"
+          jq -e '.episode_id == "aerb-case-000000" and (.episode_id | contains("seed") | not)' "$CANDIDATE_DIR/episode-000000.json"
           jq -e 'has("hidden_truth_world_id") | not' "$CANDIDATE_DIR/episode-000000.json"
           jq -e 'has("hidden_truth_world_id") | not' "$CANDIDATE_DIR/submission-000000.json"
           jq -e '(.hidden_truth_by_episode | length == 16) and ([.hidden_truth_by_episode[]] | sort | group_by(.) | all(.[]; length == 2))' "$EVALUATOR_DIR/evaluator_manifest.json"
