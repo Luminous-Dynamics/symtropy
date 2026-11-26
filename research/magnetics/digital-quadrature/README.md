@@ -123,7 +123,7 @@ The capture is never shifted or trimmed to force a match. The mechanical angle s
 
 A synthetic generated capture only validates the record/reconciliation plumbing. It does not establish physical ASIC response, physical edge timing or a calibrated rotor-reference chain.
 
-The current source contains 54 authored unit tests, including seven robust field-synthesis controls and five sensor-parameter tolerance controls. Authored tests are not a test pass; consult the current exact-head pull-request checks. Test authorship is not a test pass; consult the current exact-head pull-request checks.
+The current source contains 55 authored unit tests, including seven robust field-synthesis controls and six sensor-parameter tolerance controls. Authored tests are not a test pass; consult the current exact-head pull-request checks. Test authorship is not a test pass; consult the current exact-head pull-request checks.
 
 
 ## TI 20-pole threshold-mismatch reconstruction control
