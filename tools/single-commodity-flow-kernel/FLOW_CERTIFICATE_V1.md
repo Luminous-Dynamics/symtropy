@@ -12,7 +12,7 @@ The Rust type is `FlowCertificateBundle`. Create it with `FlowCertificateBundle:
 
 The graph digest is SHA-256 over the following canonical byte encoding. It is intentionally independent of JSON property order and input array order.
 
-1. Append the 23 ASCII bytes `LUMINOUS-SCFK-GRAPH-V1` followed by one NUL byte.
+1. Append the 22 ASCII bytes `LUMINOUS-SCFK-GRAPH-V1` followed by one NUL byte.
 2. Encode each string as an unsigned 64-bit little-endian byte length followed by that many UTF-8 bytes.
 3. Encode each unsigned 64-bit integer as eight little-endian bytes.
 4. Append, in order: `commodity_ref`, `capacity_unit_ref`, `quantity_boundary_ref`, `source`, `sink`.
