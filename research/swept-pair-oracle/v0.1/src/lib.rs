@@ -116,8 +116,7 @@ fn pair_key(left: &ColliderIdentity, right: &ColliderIdentity) -> PairKey {
 }
 
 fn pair_cmp(left: &PairKey, right: &PairKey) -> Ordering {
-    identity_cmp(&left.left, &right.left)
-        .then_with(|| identity_cmp(&left.right, &right.right))
+    identity_cmp(&left.left, &right.left).then_with(|| identity_cmp(&left.right, &right.right))
 }
 
 fn validate_proxy<const D: usize>(proxy: &Proxy<D>) -> Result<Option<Aabb<D>>, PairSetError> {
@@ -162,9 +161,7 @@ fn validate_proxy<const D: usize>(proxy: &Proxy<D>) -> Result<Option<Aabb<D>>, P
 }
 
 fn strictly_disjoint<const D: usize>(left: &Aabb<D>, right: &Aabb<D>) -> bool {
-    (0..D).any(|axis| {
-        left.max()[axis] < right.min()[axis] || right.max()[axis] < left.min()[axis]
-    })
+    (0..D).any(|axis| left.max()[axis] < right.min()[axis] || right.max()[axis] < left.min()[axis])
 }
 
 /// Build a deterministic candidate set from verified motion evidence.
@@ -248,13 +245,14 @@ pub fn build_swept_pair_set<const D: usize>(
 
     receipt.candidate_pairs.sort_by(pair_cmp);
     receipt.fallback_pairs.sort_by(pair_cmp);
-    receipt.omissions.sort_by(|left, right| pair_cmp(&left.pair, &right.pair));
+    receipt
+        .omissions
+        .sort_by(|left, right| pair_cmp(&left.pair, &right.pair));
 
     receipt.stats.candidate_pairs = receipt.candidate_pairs.len();
     receipt.stats.omitted_pairs = receipt.omissions.len();
 
-    if receipt.stats.eligible_pairs
-        != receipt.stats.candidate_pairs + receipt.stats.omitted_pairs
+    if receipt.stats.eligible_pairs != receipt.stats.candidate_pairs + receipt.stats.omitted_pairs
         || receipt.stats.possible_pairs
             != receipt.stats.same_body_pairs
                 + receipt.stats.filter_rejected_pairs
@@ -497,14 +495,9 @@ mod tests {
             dt: 0.1,
             deterministic_net_q16_16: false,
         };
-        let envelope = build_semi_implicit_euler_envelope(
-            identity(2),
-            context(),
-            bounds,
-            motion,
-            0.0,
-        )
-        .unwrap();
+        let envelope =
+            build_semi_implicit_euler_envelope(identity(2), context(), bounds, motion, 0.0)
+                .unwrap();
         let moving_proxy = Proxy {
             identity: identity(2),
             motion: MotionEvidence::SemiImplicitEuler(envelope.receipt.unwrap()),
@@ -634,8 +627,7 @@ mod tests {
                 let min = std::array::from_fn(|_| next_value(&mut state, -20.0, 20.0));
                 let extent = std::array::from_fn(|_| next_value(&mut state, 0.1, 2.0));
                 let max = std::array::from_fn(|axis| min[axis] + extent[axis]);
-                let displacement =
-                    std::array::from_fn(|_| next_value(&mut state, -15.0, 15.0));
+                let displacement = std::array::from_fn(|_| next_value(&mut state, -15.0, 15.0));
                 linear(slot + 1, min, max, displacement)
             })
             .collect()
