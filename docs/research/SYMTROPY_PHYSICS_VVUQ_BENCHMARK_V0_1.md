@@ -42,7 +42,7 @@ The test deliberately avoids calling Symtropy support maps or GJK from the refer
 ## Reproduction
 
 ```bash
-cargo test --locked -p symtropy-physics --test vvuq_reference
+cargo test --locked -p symtropy-physics --test vvuq_reference -- --nocapture
 ```
 
 The focused workflow pins the repository Rust toolchain, runs formatting and this integration test on the exact triggering revision, and preserves the test log plus source revision as a CI artifact.
