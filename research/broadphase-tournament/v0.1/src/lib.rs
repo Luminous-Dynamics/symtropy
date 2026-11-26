@@ -1774,6 +1774,11 @@ mod tests {
 
         for (frame_index, frame) in scene.frames.iter().enumerate() {
             let delta = cache.step(frame).unwrap();
+            if frame_index == 0 {
+                assert!(delta.full_relation_reconciliation);
+            } else {
+                assert!(!delta.full_relation_reconciliation);
+            }
             let previous = if frame_index == 0 {
                 BTreeSet::new()
             } else {
@@ -1943,6 +1948,11 @@ mod tests {
             generate_scene::<3>(SceneFamily::SleepingWakeups, 1_024, 16, 0x5ca1_e002).unwrap();
         let rows = run_scale_tournament(&scene, TournamentConfig::new(1)).unwrap();
         assert_eq!(rows.len(), 8);
+        let indexed = rows
+            .iter()
+            .find(|row| row.backend == BackendKind::IndexedPairDeltaCache.name())
+            .unwrap();
+        assert!(indexed.counters.full_relation_reconciliations > 0);
         for row in rows {
             assert_eq!(row.oracle_method, "fixed_x_exact_sweep");
             assert_eq!(row.false_positives, 0, "backend {}", row.backend);
