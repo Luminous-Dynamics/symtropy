@@ -52,16 +52,12 @@ impl<const D: usize> Aabb<D> {
 
     #[must_use]
     pub fn overlaps(&self, other: &Self) -> bool {
-        (0..D).all(|axis| {
-            self.max[axis] >= other.min[axis] && other.max[axis] >= self.min[axis]
-        })
+        (0..D).all(|axis| self.max[axis] >= other.min[axis] && other.max[axis] >= self.min[axis])
     }
 
     #[must_use]
     pub fn contains(&self, other: &Self) -> bool {
-        (0..D).all(|axis| {
-            self.min[axis] <= other.min[axis] && self.max[axis] >= other.max[axis]
-        })
+        (0..D).all(|axis| self.min[axis] <= other.min[axis] && self.max[axis] >= other.max[axis])
     }
 
     #[must_use]
@@ -299,37 +295,27 @@ impl<const D: usize> IncrementalAabbTree<D> {
         let leaf = self.allocate_node(Node::leaf(fat_aabb, proxy));
         self.leaves.insert(proxy, leaf);
         self.insert_leaf(leaf);
-        self.maintenance.insert_operations =
-            self.maintenance.insert_operations.saturating_add(1);
+        self.maintenance.insert_operations = self.maintenance.insert_operations.saturating_add(1);
         Ok(())
     }
 
     /// Remove one proxy. Returns the removed fat AABB for audit/debug use.
     pub fn remove(&mut self, proxy: ProxyId) -> Result<Aabb<D>, TreeError> {
-        let leaf = self
-            .leaves
-            .remove(&proxy)
-            .ok_or(TreeError::MissingProxy)?;
+        let leaf = self.leaves.remove(&proxy).ok_or(TreeError::MissingProxy)?;
         let old_aabb = self.node(leaf).aabb;
         self.detach_leaf(leaf);
         self.free_node(leaf);
-        self.maintenance.remove_operations =
-            self.maintenance.remove_operations.saturating_add(1);
+        self.maintenance.remove_operations = self.maintenance.remove_operations.saturating_add(1);
         Ok(old_aabb)
     }
 
     /// Update a proxy's tight AABB. Returns true only when the fat proxy had
     /// to be reinserted. If the new tight bounds remain contained, the old fat
     /// AABB is still a conservative enclosure and no tree mutation occurs.
-    pub fn update(
-        &mut self,
-        proxy: ProxyId,
-        tight_aabb: Aabb<D>,
-    ) -> Result<bool, TreeError> {
+    pub fn update(&mut self, proxy: ProxyId, tight_aabb: Aabb<D>) -> Result<bool, TreeError> {
         let leaf = *self.leaves.get(&proxy).ok_or(TreeError::MissingProxy)?;
         let new_fat_aabb = tight_aabb.fatten(self.fat_margin)?;
-        self.maintenance.update_operations =
-            self.maintenance.update_operations.saturating_add(1);
+        self.maintenance.update_operations = self.maintenance.update_operations.saturating_add(1);
         if self.node(leaf).aabb.contains(&tight_aabb) {
             self.maintenance.fat_contained_updates =
                 self.maintenance.fat_contained_updates.saturating_add(1);
@@ -339,8 +325,7 @@ impl<const D: usize> IncrementalAabbTree<D> {
         self.detach_leaf(leaf);
         self.node_mut(leaf).aabb = new_fat_aabb;
         self.insert_leaf(leaf);
-        self.maintenance.proxy_reinsertions =
-            self.maintenance.proxy_reinsertions.saturating_add(1);
+        self.maintenance.proxy_reinsertions = self.maintenance.proxy_reinsertions.saturating_add(1);
         Ok(true)
     }
 
@@ -395,7 +380,9 @@ impl<const D: usize> IncrementalAabbTree<D> {
             stats: PairQueryStats::default(),
         };
         for (&proxy, &leaf) in &self.leaves {
-            let query = self.query(self.node(leaf).aabb).expect("stored bounds are valid");
+            let query = self
+                .query(self.node(leaf).aabb)
+                .expect("stored bounds are valid");
             result.stats.queries += 1;
             result.stats.node_visits += query.stats.node_visits;
             result.stats.leaf_tests += query.stats.leaf_tests;
@@ -417,8 +404,7 @@ impl<const D: usize> IncrementalAabbTree<D> {
     /// Rebuild the hierarchy in stable proxy-ID order while preserving fat
     /// bounds. This is a benchmark control for measuring rebuild/recovery cost.
     pub fn rebuild(&mut self) {
-        self.maintenance.full_rebuilds =
-            self.maintenance.full_rebuilds.saturating_add(1);
+        self.maintenance.full_rebuilds = self.maintenance.full_rebuilds.saturating_add(1);
         let mut entries = self
             .leaves
             .iter()
@@ -474,10 +460,8 @@ impl<const D: usize> IncrementalAabbTree<D> {
             let right = node.right.expect("branch right child");
             let combined = node.aabb.union(&leaf_aabb);
             let combined_cost = 2.0 * combined.boundary_content();
-            let inheritance_cost = 2.0 * nonnegative_cost_delta(
-                combined.boundary_content(),
-                node.aabb.boundary_content(),
-            );
+            let inheritance_cost = 2.0
+                * nonnegative_cost_delta(combined.boundary_content(), node.aabb.boundary_content());
             let left_cost = self.descend_cost(left, &leaf_aabb, inheritance_cost);
             let right_cost = self.descend_cost(right, &leaf_aabb, inheritance_cost);
 
@@ -650,9 +634,7 @@ impl<const D: usize> GeneratedWorkload<D> {
         max_displacement: f64,
         teleport_basis_points: u16,
     ) -> Result<Vec<WorkloadUpdate<D>>, WorkloadError> {
-        if !max_displacement.is_finite()
-            || max_displacement < 0.0
-            || teleport_basis_points > 10_000
+        if !max_displacement.is_finite() || max_displacement < 0.0 || teleport_basis_points > 10_000
         {
             return Err(WorkloadError::InvalidMotionParameter);
         }
@@ -675,9 +657,7 @@ impl<const D: usize> GeneratedWorkload<D> {
                     }
                 })
             } else {
-                std::array::from_fn(|_| {
-                    random.range(-max_displacement, max_displacement)
-                })
+                std::array::from_fn(|_| random.range(-max_displacement, max_displacement))
             };
             let previous = proxy.tight_aabb;
             let next = Aabb::new(
@@ -759,15 +739,10 @@ pub fn generate_workload<const D: usize>(
         let mut max = [0.0; D];
         for axis in 0..D {
             let (center, half_extent) = match spec.family {
-                WorkloadFamily::Uniform => {
-                    (random.range(0.0, 1_000.0), random.range(0.25, 2.0))
-                }
+                WorkloadFamily::Uniform => (random.range(0.0, 1_000.0), random.range(0.25, 2.0)),
                 WorkloadFamily::Clustered => {
                     let cluster = (random.next_u64() % 8) as f64 * 120.0;
-                    (
-                        cluster + random.range(-12.0, 12.0),
-                        random.range(0.5, 3.0),
-                    )
+                    (cluster + random.range(-12.0, 12.0), random.range(0.5, 3.0))
                 }
                 WorkloadFamily::Corridor => {
                     if axis == 0 {
@@ -876,11 +851,16 @@ mod tests {
     #[test]
     fn overlap_is_inclusive_and_touching_boxes_are_candidates() {
         let mut tree = IncrementalAabbTree::<2>::new(0.0).unwrap();
-        tree.insert(ProxyId(2), aabb([0.0, 0.0], [1.0, 1.0])).unwrap();
-        tree.insert(ProxyId(1), aabb([1.0, 0.0], [2.0, 1.0])).unwrap();
+        tree.insert(ProxyId(2), aabb([0.0, 0.0], [1.0, 1.0]))
+            .unwrap();
+        tree.insert(ProxyId(1), aabb([1.0, 0.0], [2.0, 1.0]))
+            .unwrap();
         let result = tree.query(aabb([1.0, 0.0], [1.0, 1.0])).unwrap();
         assert_eq!(result.proxies, vec![ProxyId(1), ProxyId(2)]);
-        assert_eq!(tree.query_pairs().pairs, vec![ProxyPair(ProxyId(1), ProxyId(2))]);
+        assert_eq!(
+            tree.query_pairs().pairs,
+            vec![ProxyPair(ProxyId(1), ProxyId(2))]
+        );
     }
 
     #[test]
@@ -888,23 +868,33 @@ mod tests {
         let mut tree = IncrementalAabbTree::<2>::new(0.25).unwrap();
         let bounds = aabb([0.0, 0.0], [1.0, 1.0]);
         tree.insert(ProxyId(7), bounds).unwrap();
-        assert_eq!(tree.insert(ProxyId(7), bounds), Err(TreeError::DuplicateProxy));
+        assert_eq!(
+            tree.insert(ProxyId(7), bounds),
+            Err(TreeError::DuplicateProxy)
+        );
         assert_eq!(tree.remove(ProxyId(9)), Err(TreeError::MissingProxy));
-        assert_eq!(tree.update(ProxyId(9), bounds), Err(TreeError::MissingProxy));
+        assert_eq!(
+            tree.update(ProxyId(9), bounds),
+            Err(TreeError::MissingProxy)
+        );
         assert_eq!(tree.len(), 1);
     }
 
     #[test]
     fn contained_motion_skips_reinsert_but_escape_reinserts() {
         let mut tree = IncrementalAabbTree::<2>::new(0.5).unwrap();
-        tree.insert(ProxyId(1), aabb([0.0, 0.0], [1.0, 1.0])).unwrap();
+        tree.insert(ProxyId(1), aabb([0.0, 0.0], [1.0, 1.0]))
+            .unwrap();
 
-        assert!(!tree
-            .update(ProxyId(1), aabb([0.25, 0.25], [0.75, 0.75]))
-            .unwrap());
-        assert!(tree
-            .update(ProxyId(1), aabb([2.0, 0.0], [3.0, 1.0]))
-            .unwrap());
+        assert!(
+            !tree
+                .update(ProxyId(1), aabb([0.25, 0.25], [0.75, 0.75]))
+                .unwrap()
+        );
+        assert!(
+            tree.update(ProxyId(1), aabb([2.0, 0.0], [3.0, 1.0]))
+                .unwrap()
+        );
         let result = tree.query(aabb([2.0, 0.0], [3.0, 1.0])).unwrap();
         assert_eq!(result.proxies, vec![ProxyId(1)]);
     }
@@ -1053,11 +1043,8 @@ mod tests {
         let mut tree = IncrementalAabbTree::<2>::new(0.0).unwrap();
         for index in 0..40_u64 {
             let start = index as f64;
-            tree.insert(
-                ProxyId(index),
-                aabb([start, 0.0], [start + 1.0, 1.0]),
-            )
-            .unwrap();
+            tree.insert(ProxyId(index), aabb([start, 0.0], [start + 1.0, 1.0]))
+                .unwrap();
         }
         for index in (0..40_u64).step_by(2) {
             tree.remove(ProxyId(index)).unwrap();
@@ -1072,11 +1059,8 @@ mod tests {
         let mut tree = IncrementalAabbTree::<2>::new(0.2).unwrap();
         for index in (0..64_u64).rev() {
             let start = (index % 8) as f64;
-            tree.insert(
-                ProxyId(index),
-                aabb([start, 0.0], [start + 0.75, 0.75]),
-            )
-            .unwrap();
+            tree.insert(ProxyId(index), aabb([start, 0.0], [start + 0.75, 0.75]))
+                .unwrap();
         }
         let before = tree.query_pairs().pairs;
         tree.rebuild();
@@ -1118,10 +1102,7 @@ mod tests {
                     let a = first.proxies[left].tight_aabb.fatten(0.25).unwrap();
                     let b = first.proxies[right].tight_aabb.fatten(0.25).unwrap();
                     if a.overlaps(&b) {
-                        oracle.push(ProxyPair(
-                            first.proxies[left].id,
-                            first.proxies[right].id,
-                        ));
+                        oracle.push(ProxyPair(first.proxies[left].id, first.proxies[right].id));
                     }
                 }
             }
@@ -1210,14 +1191,8 @@ mod tests {
         let mut oracle = Vec::new();
         for left in 0..workload.proxies.len() {
             for right in (left + 1)..workload.proxies.len() {
-                let a = workload.proxies[left]
-                    .tight_aabb
-                    .fatten(1.0)
-                    .unwrap();
-                let b = workload.proxies[right]
-                    .tight_aabb
-                    .fatten(1.0)
-                    .unwrap();
+                let a = workload.proxies[left].tight_aabb.fatten(1.0).unwrap();
+                let b = workload.proxies[right].tight_aabb.fatten(1.0).unwrap();
                 if a.overlaps(&b) {
                     oracle.push(ProxyPair(
                         workload.proxies[left].id,
@@ -1233,7 +1208,8 @@ mod tests {
     #[test]
     fn maintenance_counters_separate_contained_updates_reinserts_and_rebuilds() {
         let mut tree = IncrementalAabbTree::<2>::new(0.5).unwrap();
-        tree.insert(ProxyId(1), aabb([0.0, 0.0], [1.0, 1.0])).unwrap();
+        tree.insert(ProxyId(1), aabb([0.0, 0.0], [1.0, 1.0]))
+            .unwrap();
         tree.update(ProxyId(1), aabb([0.25, 0.25], [0.75, 0.75]))
             .unwrap();
         tree.update(ProxyId(1), aabb([3.0, 0.0], [4.0, 1.0]))
@@ -1253,11 +1229,16 @@ mod tests {
     #[test]
     fn failed_invalid_update_does_not_change_existing_tree() {
         let mut tree = IncrementalAabbTree::<2>::new(0.0).unwrap();
-        tree.insert(ProxyId(1), aabb([0.0, 0.0], [1.0, 1.0])).unwrap();
+        tree.insert(ProxyId(1), aabb([0.0, 0.0], [1.0, 1.0]))
+            .unwrap();
         assert_eq!(
-            tree.update(ProxyId(1), Aabb::new([f64::NAN, 0.0], [1.0, 1.0]).unwrap_or(
-                Aabb { min: [f64::NAN, 0.0], max: [1.0, 1.0] }
-            )),
+            tree.update(
+                ProxyId(1),
+                Aabb::new([f64::NAN, 0.0], [1.0, 1.0]).unwrap_or(Aabb {
+                    min: [f64::NAN, 0.0],
+                    max: [1.0, 1.0]
+                })
+            ),
             Err(TreeError::InvalidBounds)
         );
         assert_eq!(tree.query_pairs().pairs, Vec::<ProxyPair>::new());
