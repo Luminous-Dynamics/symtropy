@@ -8,11 +8,13 @@
 //! Domain adapters must construct a valid conserved-quantity network before
 //! calling it. Lower and upper capacity envelopes are separate graph instances.
 
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt;
 
 pub const KERNEL_VERSION: &str = "single-commodity-directed-flow-v0.1.0";
+pub const CERTIFICATE_SCHEMA_VERSION: &str = "luminous-flow-certificate-v1";
 pub const SUPPORTED_MODEL_CLASS: &str = "single_commodity_directed_integer_capacity";
 pub const MAX_NODES: usize = 4_096;
 pub const MAX_EDGES: usize = 65_536;
@@ -38,7 +40,8 @@ impl fmt::Display for FlowError {
 
 impl std::error::Error for FlowError {}
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FlowNode {
     pub id: String,
 }
@@ -49,7 +52,8 @@ impl FlowNode {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FlowEdge {
     pub id: String,
     pub from: String,
@@ -77,7 +81,8 @@ impl FlowEdge {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FlowGraph {
     /// Opaque domain identifier for the single conserved commodity.
     pub commodity_ref: String,
@@ -91,7 +96,8 @@ pub struct FlowGraph {
     pub sink: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct EdgeFlow {
     pub id: String,
     pub from: String,
@@ -101,7 +107,8 @@ pub struct EdgeFlow {
     pub metadata_ref: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CutEdge {
     pub id: String,
     pub from: String,
@@ -110,21 +117,25 @@ pub struct CutEdge {
     pub metadata_ref: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct MinimumCut {
     pub capacity: u64,
     pub edges: Vec<CutEdge>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FlowResult {
+    /// Explicit wire-schema version, distinct from the solver algorithm version.
+    pub certificate_schema: String,
     /// SHA-256 over the canonical, versioned encoding of the complete graph.
     pub graph_sha256: String,
     pub commodity_ref: String,
     pub capacity_unit_ref: String,
     pub quantity_boundary_ref: String,
-    pub kernel_version: &'static str,
-    pub supported_model_class: &'static str,
+    pub kernel_version: String,
+    pub supported_model_class: String,
     pub source: String,
     pub sink: String,
     pub max_flow: u64,
@@ -315,12 +326,13 @@ impl FlowGraph {
         }
 
         let result = FlowResult {
+            certificate_schema: CERTIFICATE_SCHEMA_VERSION.to_owned(),
             graph_sha256,
             commodity_ref: self.commodity_ref.clone(),
             capacity_unit_ref: self.capacity_unit_ref.clone(),
             quantity_boundary_ref: self.quantity_boundary_ref.clone(),
-            kernel_version: KERNEL_VERSION,
-            supported_model_class: SUPPORTED_MODEL_CLASS,
+            kernel_version: KERNEL_VERSION.to_owned(),
+            supported_model_class: SUPPORTED_MODEL_CLASS.to_owned(),
             source: self.source.clone(),
             sink: self.sink.clone(),
             max_flow,
@@ -355,6 +367,9 @@ impl FlowGraph {
             return Err(FlowError::new(
                 "quantity contract does not match the supplied graph",
             ));
+        }
+        if result.certificate_schema != CERTIFICATE_SCHEMA_VERSION {
+            return Err(FlowError::new("unsupported flow certificate schema"));
         }
         if result.kernel_version != KERNEL_VERSION
             || result.supported_model_class != SUPPORTED_MODEL_CLASS
@@ -1027,6 +1042,29 @@ mod tests {
             ],
         };
         assert!(candidate.verify_result(&result).is_err());
+    }
+
+    #[test]
+    fn serialized_certificate_round_trips_and_reverifies_portably() {
+        let candidate = graph(
+            4,
+            &[(0, 1, 7), (0, 2, 5), (1, 2, 2), (1, 3, 4), (2, 3, 8)],
+        );
+        let result = candidate.solve().unwrap();
+        let encoded = serde_json::to_vec(&result).unwrap();
+        let decoded: FlowResult = serde_json::from_slice(&encoded).unwrap();
+
+        assert_eq!(decoded, result);
+        assert_eq!(decoded.certificate_schema, CERTIFICATE_SCHEMA_VERSION);
+        candidate.verify_result(&decoded).unwrap();
+
+        let mut unknown = serde_json::to_value(&decoded).unwrap();
+        unknown["unrecognized_claim"] = serde_json::Value::Bool(true);
+        assert!(serde_json::from_value::<FlowResult>(unknown).is_err());
+
+        let mut wrong_schema = decoded.clone();
+        wrong_schema.certificate_schema = "luminous-flow-certificate-v0".to_string();
+        assert!(candidate.verify_result(&wrong_schema).is_err());
     }
 
     #[test]
