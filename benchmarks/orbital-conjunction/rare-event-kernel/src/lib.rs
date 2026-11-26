@@ -49,14 +49,16 @@ pub mod pathwise_proposal;
 pub mod pop_col_adjustment;
 pub mod pop_col_energy;
 pub mod pop_convergence;
-/// Simultaneous anytime-valid comparisons across paired portfolio arms.
 /// Defensive proposal mixtures across a frozen portfolio event-mode universe.
 pub mod portfolio_proposal;
+/// Simultaneous anytime-valid comparisons across paired portfolio arms.
 pub mod portfolio_selection;
 pub mod predictable_empirical_bernstein;
 pub mod proposal_execution_conformance;
 pub mod refinement_scheduler;
 pub mod residual;
+/// Exact scenario-separated and robust finite Pareto frontiers.
+pub mod robust_pareto;
 pub mod sequential;
 pub mod space_time_partition;
 pub mod stats;
@@ -166,6 +168,13 @@ pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
     AffineResidualMassReport, AffineUnionResidualMassConfig,
     affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
+};
+pub use robust_pareto::{
+    MAX_PARETO_ASSESSMENT_ROWS, MAX_PARETO_DOMINANCE_CHECKS, MAX_PARETO_OBJECTIVES,
+    MAX_PARETO_PORTFOLIOS, MAX_PARETO_SCENARIOS, ObjectiveDirection, ParetoDominance,
+    ParetoObjectiveDefinition, ParetoObjectiveValue, PortfolioScenarioAssessment,
+    RobustParetoConfig, RobustParetoError, RobustParetoReport, RobustPortfolioObjectiveSummary,
+    ScenarioFeasibility, ScenarioParetoFrontier, evaluate_robust_pareto,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
 pub use space_time_partition::{
