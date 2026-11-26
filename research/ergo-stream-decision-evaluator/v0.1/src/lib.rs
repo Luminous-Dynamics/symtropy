@@ -653,7 +653,10 @@ mod tests {
             &ground_truth,
         )
         .unwrap();
-        assert_eq!(report.decision_sufficiency_receipt_matches_truth, Some(false));
+        assert_eq!(
+            report.decision_sufficiency_receipt_matches_truth,
+            Some(false)
+        );
         assert!(report.false_decision_sufficiency_claim);
 
         let wrong_count = DecisionDisambiguationResultV0::DecisionSufficient {
@@ -667,7 +670,10 @@ mod tests {
             &ground_truth,
         )
         .unwrap();
-        assert_eq!(report.decision_sufficiency_receipt_matches_truth, Some(false));
+        assert_eq!(
+            report.decision_sufficiency_receipt_matches_truth,
+            Some(false)
+        );
         assert!(report.false_decision_sufficiency_claim);
 
         let correct = DecisionDisambiguationResultV0::DecisionSufficient {
@@ -681,7 +687,10 @@ mod tests {
             &ground_truth,
         )
         .unwrap();
-        assert_eq!(report.decision_sufficiency_receipt_matches_truth, Some(true));
+        assert_eq!(
+            report.decision_sufficiency_receipt_matches_truth,
+            Some(true)
+        );
         assert!(report.decision_sufficiency_is_valid);
     }
 
