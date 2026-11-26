@@ -365,7 +365,7 @@ pub fn evaluate_joint_action_catalogue(
         unresolved_count: 0,
         statically_excluded_count: subset_count - expected.len(),
     };
-    let mut best: Option<(Vec<[u8; 32]>, [u8; 32], u64, u64)> = None;
+    let mut best: Option<(Vec<[u8; 32]>, [u8; 32], u64, i64)> = None;
     let mut must_abstain = false;
 
     for (action_ids, resource_cost) in &expected {
