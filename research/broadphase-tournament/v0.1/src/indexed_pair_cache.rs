@@ -133,6 +133,111 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
         self.apply_dirty_ids(frame, dirty_ids, false, false, 0)
     }
 
+    fn apply_full_relation_reconciliation(
+        &mut self,
+        frame: &[ProxyFrame<D>],
+        dirty: &BTreeSet<ProxyId>,
+        dirty_snapshot_entries_visited: u64,
+    ) -> Result<PairDeltaFrame, TournamentError> {
+        // Build and qualify the replacement index off to the side. An error
+        // cannot partially mutate the currently committed tree or adjacency.
+        let mut next_tree = IncrementalAabbTree::new_with_balance_policy(
+            self.tree.fat_margin(),
+            self.tree.stats().balance_policy,
+        )?;
+        for proxy in frame {
+            next_tree.insert(proxy.id, proxy.bounds)?;
+        }
+
+        let query = next_tree.query_pairs();
+        let candidate_count = u64::try_from(query.pairs.len())
+            .map_err(|_| TournamentError::CounterOverflow)?;
+        let node_visits = u64::try_from(query.stats.node_visits)
+            .map_err(|_| TournamentError::CounterOverflow)?;
+        let leaf_tests = u64::try_from(query.stats.leaf_tests)
+            .map_err(|_| TournamentError::CounterOverflow)?;
+        let aabb_tests = u64::try_from(query.stats.aabb_tests)
+            .map_err(|_| TournamentError::CounterOverflow)?;
+
+        let mut current_pairs = BTreeSet::<ProxyPair>::new();
+        let mut overlap_tests = 0_u64;
+        for pair in query.pairs {
+            let left = frame
+                .binary_search_by_key(&pair.0, |proxy| proxy.id)
+                .ok()
+                .map(|index| &frame[index].bounds)
+                .ok_or(TournamentError::PairCacheInvariant)?;
+            let right = frame
+                .binary_search_by_key(&pair.1, |proxy| proxy.id)
+                .ok()
+                .map(|index| &frame[index].bounds)
+                .ok_or(TournamentError::PairCacheInvariant)?;
+            overlap_tests = overlap_tests
+                .checked_add(1)
+                .ok_or(TournamentError::CounterOverflow)?;
+            if overlaps(left, right) {
+                current_pairs.insert(pair);
+            }
+        }
+
+        let previous_pairs = self.active_pairs().into_iter().collect::<BTreeSet<_>>();
+        let added = current_pairs
+            .difference(&previous_pairs)
+            .copied()
+            .collect::<Vec<_>>();
+        let removed = previous_pairs
+            .difference(&current_pairs)
+            .copied()
+            .collect::<Vec<_>>();
+        let revalidated = current_pairs
+            .intersection(&previous_pairs)
+            .filter(|pair| dirty.contains(&pair.0) || dirty.contains(&pair.1))
+            .copied()
+            .collect::<Vec<_>>();
+
+        let next_pair_count = current_pairs.len();
+        let mut next_neighbors = BTreeMap::<ProxyId, BTreeSet<ProxyId>>::new();
+        for pair in &current_pairs {
+            next_neighbors.entry(pair.0).or_default().insert(pair.1);
+            next_neighbors.entry(pair.1).or_default().insert(pair.0);
+        }
+        let next_bounds = frame
+            .iter()
+            .map(|proxy| (proxy.id, proxy.bounds))
+            .collect::<BTreeMap<_, _>>();
+        let index_mutations =
+            u64::try_from(frame.len()).map_err(|_| TournamentError::CounterOverflow)?;
+        let dirty_proxies =
+            usize::try_from(dirty.len()).map_err(|_| TournamentError::CounterOverflow)?;
+
+        // Commit the replacement tree and relation only after oracle candidates,
+        // exact pair refinement, event sets and all accounting conversions pass.
+        self.tree = next_tree;
+        self.previous_bounds = next_bounds;
+        self.neighbors = next_neighbors;
+        self.active_pair_count = next_pair_count;
+        self.force_dirty = false;
+
+        Ok(PairDeltaFrame {
+            added,
+            removed,
+            revalidated,
+            dirty_proxies,
+            overlap_tests,
+            active_pairs: self.active_pair_count,
+            dirty_snapshot_entries_visited,
+            frontier_proxy_visits: 0,
+            frontier_pair_candidates: candidate_count,
+            frontier_unique_pairs: candidate_count,
+            frontier_node_visits: node_visits,
+            frontier_leaf_tests: leaf_tests,
+            frontier_aabb_tests: aabb_tests,
+            frontier_index_mutations: index_mutations,
+            frontier_index_reinsertions: 0,
+            full_relation_reconciliation: true,
+        })
+    }
+
     fn apply_dirty_ids(
         &mut self,
         frame: &[ProxyFrame<D>],
@@ -161,6 +266,23 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
             previous_dirty = Some(*dirty_id);
         }
         let dirty = dirty_ids.iter().copied().collect::<BTreeSet<_>>();
+
+        // Avoid an O(k^2) dirty/dirty enumeration when a large fraction of
+        // the world changes. In that regime, building a temporary current-frame
+        // tree and querying its unique pair relation is the cheaper, simpler
+        // reconciliation path. The threshold is a work estimate, not a timing
+        // claim; the selected mode is exported in the frame receipt.
+        let population = self.previous_bounds.len().max(frame.len()).max(1);
+        let log_factor = (usize::BITS - population.leading_zeros()) as usize;
+        let dirty_pair_upper_bound =
+            dirty.len().saturating_mul(dirty.len().saturating_sub(1)) / 2;
+        if dirty_pair_upper_bound > population.saturating_mul(log_factor) {
+            return self.apply_full_relation_reconciliation(
+                frame,
+                &dirty,
+                dirty_snapshot_entries_visited,
+            );
+        }
 
         let mut affected_pairs = BTreeSet::<ProxyPair>::new();
         let mut frontier_proxy_visits = 0_u64;
@@ -396,6 +518,7 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
             frontier_aabb_tests,
             frontier_index_mutations,
             frontier_index_reinsertions,
+            full_relation_reconciliation: false,
         })
     }
 }
