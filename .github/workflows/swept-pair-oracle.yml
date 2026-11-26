@@ -1,0 +1,33 @@
+name: Swept Pair Oracle
+
+on:
+  pull_request:
+    branches: [research/directional-motion-envelopes-v0.1]
+    paths:
+      - "research/swept-pair-oracle/v0.1/**"
+      - ".github/workflows/swept-pair-oracle.yml"
+  push:
+    branches: [research/swept-pair-oracle-v0.1]
+    paths:
+      - "research/swept-pair-oracle/v0.1/**"
+      - ".github/workflows/swept-pair-oracle.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Rust 1.96 swept-pair checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/swept-pair-oracle/v0.1/Cargo.toml -- --check
+      - name: Run tests
+        run: cargo test --manifest-path research/swept-pair-oracle/v0.1/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/swept-pair-oracle/v0.1/Cargo.toml --locked --all-targets -- -D warnings
