@@ -792,8 +792,8 @@ mod tests {
             None
         );
         assert!(matches!(
-            report.portfolio_evidence[2].outcome_state,
-            JointActionOutcomeState::Unresolved { reason_digest } if reason_digest == [77; 32]
+            &report.portfolio_evidence[2].outcome_state,
+            JointActionOutcomeState::Unresolved { reason_digest } if *reason_digest == [77; 32]
         ));
         assert_eq!(
             report.disposition,
