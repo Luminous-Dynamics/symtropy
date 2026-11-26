@@ -8,6 +8,7 @@
 //! approve an aircraft. A consistent binding is only a prerequisite for
 //! evidence review by competent authorities.
 
+use crate::effectivity_interval_v0_1::{EffectivityRelation, TimeInterval, compare_effectivity_intervals};
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -123,6 +124,46 @@ fn has_provenance(assertion: &Value) -> bool {
 
 fn field_u64(value: &Value, key: &str) -> Option<u64> {
     value.get(key).and_then(Value::as_u64)
+}
+
+/// Parse a nominal point and optional hard-bounds pair.
+///
+/// Existing v0.2 records remain exact-point observations when both bounds are
+/// omitted. When either bound is present, both must be valid unsigned integers,
+/// ordered, and contain the nominal point. Statistical intervals are not
+/// promoted to hard bounds by this parser.
+fn hard_time_interval(
+    value: &Value,
+    point_field: &str,
+    earliest_field: &str,
+    latest_field: &str,
+) -> Result<TimeInterval, &'static str> {
+    let point = field_u64(value, point_field).ok_or("TIME_POINT_MISSING_OR_INVALID")?;
+    let earliest_present = value.get(earliest_field).is_some();
+    let latest_present = value.get(latest_field).is_some();
+    match (earliest_present, latest_present) {
+        (false, false) => Ok(TimeInterval {
+            earliest_unix_ms: point,
+            latest_unix_ms: point,
+        }),
+        (true, true) => {
+            let earliest = field_u64(value, earliest_field)
+                .ok_or("TIME_BOUNDS_VALUE_MISSING_OR_INVALID")?;
+            let latest =
+                field_u64(value, latest_field).ok_or("TIME_BOUNDS_VALUE_MISSING_OR_INVALID")?;
+            if earliest > latest {
+                return Err("TIME_BOUNDS_START_AFTER_END");
+            }
+            if point < earliest || point > latest {
+                return Err("TIME_POINT_OUTSIDE_DECLARED_BOUNDS");
+            }
+            Ok(TimeInterval {
+                earliest_unix_ms: earliest,
+                latest_unix_ms: latest,
+            })
+        }
+        _ => Err("TIME_BOUNDS_PAIR_INCOMPLETE"),
+    }
 }
 
 fn sort_findings(findings: &mut [BindingFinding]) {
@@ -601,6 +642,19 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
                 );
             }
         }
+        if let Err(reason) = hard_time_interval(
+            event,
+            "effective_at_unix_ms",
+            "effective_time_earliest_unix_ms",
+            "effective_time_latest_unix_ms",
+        ) {
+            push(&mut violations, reason, event_id);
+            push(
+                &mut blockers,
+                "CALIBRATION_EVENT_HISTORY_UNRESOLVED",
+                event_id,
+            );
+        }
         match field_str(event, "event_type") {
             Some("corrected" | "superseded") => {
                 let target_id = field_str(event, "corrects_event_id");
@@ -659,16 +713,34 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
         let observation_id = field_str(observation, "id").unwrap_or("observation");
         let mut reasons = BTreeSet::new();
         let acquired_at = field_u64(observation, "acquired_at_unix_ms");
+        let acquisition_interval = match hard_time_interval(
+            observation,
+            "acquired_at_unix_ms",
+            "acquisition_time_earliest_unix_ms",
+            "acquisition_time_latest_unix_ms",
+        ) {
+            Ok(interval) => Some(interval),
+            Err("TIME_POINT_MISSING_OR_INVALID") => {
+                reasons.insert("ACQUISITION_TIMESTAMP_MISSING_OR_INVALID".to_owned());
+                None
+            }
+            Err(reason) => {
+                reasons.insert(reason.to_owned());
+                None
+            }
+        };
 
         if field_str(observation, "time_basis") != Some("UTC_UNIX_EPOCH_MS") {
             reasons.insert("TIME_BASIS_NOT_NORMALIZED_TO_UNIX_MS".to_owned());
         }
-        if acquired_at.is_none() {
-            reasons.insert("ACQUISITION_TIMESTAMP_MISSING_OR_INVALID".to_owned());
-        } else if evaluated_at
-            .is_some_and(|evaluated| acquired_at.is_some_and(|time| time > evaluated))
-        {
-            reasons.insert("ACQUISITION_AFTER_EVALUATION_TIME".to_owned());
+        if let (Some(interval), Some(evaluated)) = (acquisition_interval, evaluated_at) {
+            if interval.earliest_unix_ms > evaluated {
+                reasons.insert("ACQUISITION_AFTER_EVALUATION_TIME".to_owned());
+            } else if interval.latest_unix_ms > evaluated {
+                reasons.insert(
+                    "ACQUISITION_TIME_BOUNDARY_AMBIGUOUS_AT_EVALUATION_SNAPSHOT".to_owned(),
+                );
+            }
         }
 
         let specimen_id = field_str(observation, "specimen_id").unwrap_or("specimen");
@@ -721,13 +793,20 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
 
             let valid_from = field_u64(certificate, "valid_from_unix_ms");
             let valid_until = field_u64(certificate, "valid_until_unix_ms");
-            match (valid_from, valid_until) {
-                (Some(start), Some(end)) if start < end => {
-                    if let Some(acquired) = acquired_at
-                        && (acquired < start || acquired >= end)
-                    {
+            match (valid_from, valid_until, acquisition_interval) {
+                (Some(start), Some(end), Some(acquired))
+                    if start < end
+                        && acquired.earliest_unix_ms >= start
+                        && acquired.latest_unix_ms < end => {}
+                (Some(start), Some(end), Some(acquired)) if start < end => {
+                    if acquired.latest_unix_ms < start || acquired.earliest_unix_ms >= end {
                         reasons.insert("CALIBRATION_OUTSIDE_VALIDITY_INTERVAL".to_owned());
+                    } else {
+                        reasons.insert("CALIBRATION_VALIDITY_BOUNDARY_AMBIGUOUS".to_owned());
                     }
+                }
+                (Some(start), Some(end), None) if start < end => {
+                    reasons.insert("CALIBRATION_ACQUISITION_TIME_UNRESOLVED".to_owned());
                 }
                 _ => {
                     reasons.insert("CALIBRATION_INTERVAL_INVALID".to_owned());
@@ -738,27 +817,75 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
                 if field_str(event, "certificate_id") != Some(certificate_id) {
                     continue;
                 }
-                let Some(effective_at) = field_u64(event, "effective_at_unix_ms") else {
-                    continue;
-                };
                 let Some(recorded_at) = field_u64(event, "recorded_at_unix_ms") else {
                     continue;
                 };
-                if evaluated_at
-                    .is_none_or(|evaluated| recorded_at > evaluated || effective_at > evaluated)
-                {
+                let Some(evaluated) = evaluated_at else {
                     continue;
+                };
+                // Recorded time remains a source assertion and is not promoted
+                // to receiver-first-seen evidence by this evaluator.
+                if recorded_at > evaluated {
+                    continue;
+                }
+                let event_interval = match hard_time_interval(
+                    event,
+                    "effective_at_unix_ms",
+                    "effective_time_earliest_unix_ms",
+                    "effective_time_latest_unix_ms",
+                ) {
+                    Ok(interval) => interval,
+                    Err(_) => {
+                        reasons.insert("CALIBRATION_EVENT_EFFECTIVITY_BOUNDS_INVALID".to_owned());
+                        continue;
+                    }
+                };
+                let snapshot = TimeInterval {
+                    earliest_unix_ms: evaluated,
+                    latest_unix_ms: evaluated,
+                };
+                match compare_effectivity_intervals(event_interval, snapshot).relation {
+                    EffectivityRelation::DefinitelyNotYetEffective => continue,
+                    EffectivityRelation::BoundaryAmbiguous => {
+                        reasons.insert(
+                            "CALIBRATION_EVENT_EFFECTIVITY_BOUNDARY_AMBIGUOUS_AT_SNAPSHOT"
+                                .to_owned(),
+                        );
+                        continue;
+                    }
+                    EffectivityRelation::InvalidInterval => {
+                        reasons.insert("CALIBRATION_EVENT_EFFECTIVITY_BOUNDS_INVALID".to_owned());
+                        continue;
+                    }
+                    EffectivityRelation::DefinitelyEffective => {}
+                }
+
+                let acquisition = match acquisition_interval {
+                    Some(interval) => interval,
+                    None => {
+                        reasons.insert("CALIBRATION_EVENT_ACQUISITION_TIME_UNRESOLVED".to_owned());
+                        continue;
+                    }
+                };
+                match compare_effectivity_intervals(event_interval, acquisition).relation {
+                    EffectivityRelation::DefinitelyNotYetEffective => continue,
+                    EffectivityRelation::BoundaryAmbiguous => {
+                        reasons.insert(
+                            "CALIBRATION_EVENT_EFFECTIVITY_BOUNDARY_AMBIGUOUS_AT_ACQUISITION"
+                                .to_owned(),
+                        );
+                        continue;
+                    }
+                    EffectivityRelation::InvalidInterval => {
+                        reasons.insert("CALIBRATION_EVENT_EFFECTIVITY_BOUNDS_INVALID".to_owned());
+                        continue;
+                    }
+                    EffectivityRelation::DefinitelyEffective => {}
                 }
 
                 match field_str(event, "event_type") {
                     Some("revoked") => {
-                        let code = if acquired_at.is_some_and(|acquired| acquired < effective_at)
-                            && event.get("retroactive").and_then(Value::as_bool) != Some(true)
-                        {
-                            "CALIBRATION_REVOKED_AFTER_ACQUISITION_PENDING_DISPOSITION"
-                        } else {
-                            "CALIBRATION_REVOKED_PENDING_DISPOSITION"
-                        };
+                        let code = "CALIBRATION_REVOKED_PENDING_DISPOSITION";
                         reasons.insert(code.to_owned());
                     }
                     Some("suspended") => {
