@@ -1,0 +1,207 @@
+{
+  "schema_version": "0.1",
+  "benchmark": "RRVR-REPLAY-FIDELITY",
+  "profile_id": "RoboRecoverReplayV1",
+  "campaign_id": "synthetic-known-answer-replay-fidelity-v0.1",
+  "split_manifest_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+  "data_license_and_provenance": "Synthetic known-answer fixture generated for replay-audit tests; no RoboRecover or LIBERO dataset content is included.",
+  "candidates": [
+    {
+      "scenario_id": "synthetic-replay-valid",
+      "platform": "robo_twin",
+      "split": "test",
+      "source_episode_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source_trajectory_id": "synthetic-trajectory-001",
+      "trajectory_cluster_id": "synthetic-cluster-001",
+      "instruction_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "action_prefix_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "split_leakage_keys_sha256": [
+        "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      ],
+      "simulator_profile_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "robot_model_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "controller_profile_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "rendering_profile_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "reset_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "action_prefix_receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "difficulty_screen": {
+        "trials": [
+          {
+            "policy_id": "screen-policy-0",
+            "trial_index": 0,
+            "success": true
+          },
+          {
+            "policy_id": "screen-policy-0",
+            "trial_index": 1,
+            "success": true
+          },
+          {
+            "policy_id": "screen-policy-0",
+            "trial_index": 2,
+            "success": false
+          },
+          {
+            "policy_id": "screen-policy-0",
+            "trial_index": 3,
+            "success": false
+          },
+          {
+            "policy_id": "screen-policy-0",
+            "trial_index": 4,
+            "success": false
+          },
+          {
+            "policy_id": "screen-policy-1",
+            "trial_index": 0,
+            "success": false
+          },
+          {
+            "policy_id": "screen-policy-1",
+            "trial_index": 1,
+            "success": false
+          },
+          {
+            "policy_id": "screen-policy-1",
+            "trial_index": 2,
+            "success": false
+          },
+          {
+            "policy_id": "screen-policy-1",
+            "trial_index": 3,
+            "success": false
+          },
+          {
+            "policy_id": "screen-policy-1",
+            "trial_index": 4,
+            "success": false
+          },
+          {
+            "policy_id": "screen-policy-2",
+            "trial_index": 0,
+            "success": false
+          },
+          {
+            "policy_id": "screen-policy-2",
+            "trial_index": 1,
+            "success": false
+          },
+          {
+            "policy_id": "screen-policy-2",
+            "trial_index": 2,
+            "success": false
+          },
+          {
+            "policy_id": "screen-policy-2",
+            "trial_index": 3,
+            "success": false
+          },
+          {
+            "policy_id": "screen-policy-2",
+            "trial_index": 4,
+            "success": false
+          },
+          {
+            "policy_id": "screen-policy-3",
+            "trial_index": 0,
+            "success": false
+          },
+          {
+            "policy_id": "screen-policy-3",
+            "trial_index": 1,
+            "success": false
+          },
+          {
+            "policy_id": "screen-policy-3",
+            "trial_index": 2,
+            "success": false
+          },
+          {
+            "policy_id": "screen-policy-3",
+            "trial_index": 3,
+            "success": false
+          },
+          {
+            "policy_id": "screen-policy-3",
+            "trial_index": 4,
+            "success": false
+          }
+        ]
+      },
+      "spot_check": {
+        "seed": 42,
+        "selected_attempt_ids": [
+          "screen-attempt-03",
+          "screen-attempt-08",
+          "screen-attempt-14"
+        ],
+        "manifest_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "end_effector": {
+        "original": {
+          "coordinate_frame_id": "world",
+          "x_mm": 100,
+          "y_mm": 200,
+          "z_mm": 300
+        },
+        "replayed": {
+          "coordinate_frame_id": "world",
+          "x_mm": 101,
+          "y_mm": 200,
+          "z_mm": 300
+        }
+      },
+      "object_pose": {
+        "original": {
+          "coordinate_frame_id": "world",
+          "x_mm": 400,
+          "y_mm": 500,
+          "z_mm": 600
+        },
+        "replayed": {
+          "coordinate_frame_id": "world",
+          "x_mm": 401,
+          "y_mm": 500,
+          "z_mm": 600
+        }
+      },
+      "final_frame_pairs": [
+        {
+          "frame_index": 0,
+          "original_path": "frames/original-0.png",
+          "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+          "replay_path": "frames/replay-0.png",
+          "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+        },
+        {
+          "frame_index": 1,
+          "original_path": "frames/original-1.png",
+          "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+          "replay_path": "frames/replay-1.png",
+          "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+        },
+        {
+          "frame_index": 2,
+          "original_path": "frames/original-2.png",
+          "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+          "replay_path": "frames/replay-2.png",
+          "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+        },
+        {
+          "frame_index": 3,
+          "original_path": "frames/original-3.png",
+          "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+          "replay_path": "frames/replay-3.png",
+          "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+        },
+        {
+          "frame_index": 4,
+          "original_path": "frames/original-4.png",
+          "original_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a",
+          "replay_path": "frames/replay-4.png",
+          "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
+        }
+      ]
+    }
+  ]
+}
