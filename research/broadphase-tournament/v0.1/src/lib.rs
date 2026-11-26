@@ -704,7 +704,7 @@ impl<const D: usize> PairDeltaCache<D> {
     /// Safe default: detect changed identities from the complete snapshots.
     pub fn step(&mut self, frame: &[ProxyFrame<D>]) -> Result<PairDeltaFrame, TournamentError> {
         let dirty_ids = self.derive_dirty_proxy_ids(frame)?;
-        let snapshot_entries_visited = u64::try_from(self.previous_bounds.len())
+        let mut snapshot_entries_visited = u64::try_from(self.previous_bounds.len())
             .ok()
             .and_then(|previous| {
                 u64::try_from(frame.len())
@@ -716,7 +716,20 @@ impl<const D: usize> PairDeltaCache<D> {
                     })
             })
             .ok_or(TournamentError::CounterOverflow)?;
-        self.apply_dirty_ids(frame, &dirty_ids, true, true, snapshot_entries_visited)
+        if self.force_dirty {
+            let invalidation_entries = u64::try_from(self.previous_bounds.len())
+                .ok()
+                .and_then(|previous| {
+                    u64::try_from(frame.len())
+                        .ok()
+                        .and_then(|current| previous.checked_add(current))
+                })
+                .ok_or(TournamentError::CounterOverflow)?;
+            snapshot_entries_visited = snapshot_entries_visited
+                .checked_add(invalidation_entries)
+                .ok_or(TournamentError::CounterOverflow)?;
+        }
+        self.apply_dirty_ids(frame, &dirty_ids, true, true, snapshot_entries_visited, 0)
     }
 
     /// Apply a frame using a caller-provided, strictly increasing dirty-ID
@@ -731,7 +744,9 @@ impl<const D: usize> PairDeltaCache<D> {
         frame: &[ProxyFrame<D>],
         dirty_ids: &[ProxyId],
     ) -> Result<PairDeltaFrame, TournamentError> {
-        self.apply_dirty_ids(frame, dirty_ids, false, false, 0)
+        let frame_validation_entries_visited =
+            u64::try_from(frame.len()).map_err(|_| TournamentError::CounterOverflow)?;
+        self.apply_dirty_ids(frame, dirty_ids, false, false, 0, frame_validation_entries_visited)
     }
 
     fn apply_dirty_ids(
@@ -741,6 +756,7 @@ impl<const D: usize> PairDeltaCache<D> {
         allow_full_invalidation: bool,
         frame_prevalidated: bool,
         dirty_snapshot_entries_visited: u64,
+        frame_validation_entries_visited: u64,
     ) -> Result<PairDeltaFrame, TournamentError> {
         if !frame_prevalidated {
             validate_proxy_sequence(frame)?;
@@ -894,6 +910,7 @@ impl<const D: usize> PairDeltaCache<D> {
             overlap_tests,
             active_pairs: self.active_pair_count,
             dirty_snapshot_entries_visited,
+            frame_validation_entries_visited,
             frontier_proxy_visits,
             frontier_pair_candidates,
             frontier_unique_pairs: u64::try_from(affected_pairs.len())
