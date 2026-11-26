@@ -49,9 +49,9 @@ pub mod pathwise_proposal;
 pub mod pop_col_adjustment;
 pub mod pop_col_energy;
 pub mod pop_convergence;
-/// Simultaneous anytime-valid comparisons across paired portfolio arms.
 /// Defensive proposal mixtures across a frozen portfolio event-mode universe.
 pub mod portfolio_proposal;
+/// Simultaneous anytime-valid comparisons across paired portfolio arms.
 pub mod portfolio_selection;
 pub mod predictable_empirical_bernstein;
 pub mod proposal_execution_conformance;
