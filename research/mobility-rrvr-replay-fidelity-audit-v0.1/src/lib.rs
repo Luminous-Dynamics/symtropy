@@ -102,6 +102,7 @@ pub struct SpotCheckManifest {
 struct SpotCheckManifestMaterial<'a> {
     seed: u64,
     selection_method_id: &'a str,
+    selection_record_path: &'a str,
     selection_record_sha256: &'a str,
     selected_attempt_ids: &'a [String],
     attempts: &'a [SpotCheckAttempt],
@@ -512,6 +513,7 @@ fn spot_check_manifest_digest(spot: &SpotCheckManifest) -> Result<String, String
     let material = SpotCheckManifestMaterial {
         seed: spot.seed,
         selection_method_id: &spot.selection_method_id,
+        selection_record_path: &spot.selection_record_path,
         selection_record_sha256: &spot.selection_record_sha256,
         selected_attempt_ids: &spot.selected_attempt_ids,
         attempts: &spot.attempts,
