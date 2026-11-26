@@ -44,7 +44,8 @@
           "fault_schedule",
           "acceptance",
           "evaluation_split",
-          "notes"
+          "notes",
+          "migration_required"
         ],
         "properties": {
           "workload_id": {
@@ -399,6 +400,9 @@
           },
           "notes": {
             "type": "string"
+          },
+          "migration_required": {
+            "type": "boolean"
           }
         }
       }
