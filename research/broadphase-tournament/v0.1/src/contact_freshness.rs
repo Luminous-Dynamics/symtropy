@@ -645,4 +645,125 @@ mod tests {
             vec![FreshnessReason::CollisionPolicyChanged]
         );
     }
+
+    #[test]
+    fn pair_delta_wake_only_plan_preserves_contact_and_warm_start() {
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("distinct IDs");
+        let mut delta = PairDeltaFrame::default();
+        delta.revalidated.push(pair);
+
+        let mut stamps = BTreeMap::new();
+        stamps.insert(pair, stamp());
+        let mut endpoints = BTreeMap::new();
+        let mut awake = endpoint(1);
+        awake.wake_epoch += 1;
+        endpoints.insert(ProxyId(1), awake);
+        endpoints.insert(ProxyId(2), endpoint(2));
+
+        let plan = plan_contact_lifecycle(&delta, &stamps, global(), &endpoints)
+            .expect("complete pair revisions");
+        assert_eq!(plan.actions.len(), 1);
+        assert_eq!(
+            plan.actions[0].kind,
+            ContactLifecycleActionKind::Revalidated
+        );
+        let decision = plan.actions[0].decision.as_ref().expect("decision");
+        assert_eq!(decision.geometry, ReuseDisposition::Reusable);
+        assert_eq!(decision.warm_start, ReuseDisposition::Reusable);
+        assert!(decision.solver_activation_required);
+    }
+
+    #[test]
+    fn new_pair_requires_geometry_and_solver_activation() {
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("distinct IDs");
+        let mut delta = PairDeltaFrame::default();
+        delta.added.push(pair);
+        let plan = plan_contact_lifecycle(&delta, &BTreeMap::new(), global(), &BTreeMap::new())
+            .expect("new pair has no prior endpoint stamps");
+        let decision = plan.actions[0].decision.as_ref().expect("new pair decision");
+        assert_eq!(decision.geometry, ReuseDisposition::RefreshRequired);
+        assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
+        assert!(decision.solver_activation_required);
+        assert_eq!(decision.reasons, vec![FreshnessReason::NewPair]);
+    }
+
+    #[test]
+    fn removed_pair_retires_contact_state_without_current_endpoint_lookup() {
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("distinct IDs");
+        let mut delta = PairDeltaFrame::default();
+        delta.removed.push(pair);
+        let plan = plan_contact_lifecycle(&delta, &BTreeMap::new(), global(), &BTreeMap::new())
+            .expect("removed endpoints need not exist in current world");
+        assert_eq!(
+            plan.actions,
+            vec![ContactLifecycleAction {
+                pair,
+                kind: ContactLifecycleActionKind::Removed,
+                decision: None,
+            }]
+        );
+    }
+
+    #[test]
+    fn revalidated_pair_without_stamp_requires_full_contact_build() {
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("distinct IDs");
+        let mut delta = PairDeltaFrame::default();
+        delta.revalidated.push(pair);
+        let endpoints = BTreeMap::from([(ProxyId(1), endpoint(1)), (ProxyId(2), endpoint(2))]);
+        let plan = plan_contact_lifecycle(&delta, &BTreeMap::new(), global(), &endpoints)
+            .expect("endpoint revisions are complete");
+        let decision = plan.actions[0].decision.as_ref().expect("missing stamp decision");
+        assert_eq!(decision.geometry, ReuseDisposition::RefreshRequired);
+        assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
+        assert_eq!(decision.reasons, vec![FreshnessReason::MissingContactStamp]);
+    }
+
+    #[test]
+    fn overlapping_pair_event_classes_are_rejected() {
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("distinct IDs");
+        let mut delta = PairDeltaFrame::default();
+        delta.added.push(pair);
+        delta.removed.push(pair);
+        assert_eq!(
+            plan_contact_lifecycle(&delta, &BTreeMap::new(), global(), &BTreeMap::new()),
+            Err(ContactLifecycleError::ConflictingPairEvents)
+        );
+    }
+
+    #[test]
+    fn noncanonical_pair_event_order_is_rejected() {
+        let mut delta = PairDeltaFrame::default();
+        delta.added.push(ProxyPair(ProxyId(2), ProxyId(1)));
+        assert_eq!(
+            plan_contact_lifecycle(&delta, &BTreeMap::new(), global(), &BTreeMap::new()),
+            Err(ContactLifecycleError::NonCanonicalEventList)
+        );
+    }
+
+    #[test]
+    fn revalidated_pair_requires_both_endpoint_revision_records() {
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("distinct IDs");
+        let mut delta = PairDeltaFrame::default();
+        delta.revalidated.push(pair);
+        let endpoints = BTreeMap::from([(ProxyId(1), endpoint(1))]);
+        assert_eq!(
+            plan_contact_lifecycle(&delta, &BTreeMap::new(), global(), &endpoints),
+            Err(ContactLifecycleError::MissingEndpointRevision(ProxyId(2)))
+        );
+    }
+
+    #[test]
+    fn added_pair_rejects_an_orphaned_prior_contact_stamp() {
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("distinct IDs");
+        let mut delta = PairDeltaFrame::default();
+        delta.added.push(pair);
+        let mut stamps = BTreeMap::new();
+        stamps.insert(pair, stamp());
+        assert_eq!(
+            plan_contact_lifecycle(&delta, &stamps, global(), &BTreeMap::new()),
+            Err(ContactLifecycleError::UnexpectedStampForNewPair(pair))
+        );
+    }
+
+
 }
