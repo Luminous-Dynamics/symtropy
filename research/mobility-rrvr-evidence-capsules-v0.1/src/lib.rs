@@ -487,10 +487,7 @@ fn validate_claim_shape(claim: &Claim) -> Result<(), String> {
         }
         ClaimType::EndpointFenced => {
             if claim.required_epoch.is_none() || claim.required_queue_generation.is_none() {
-                return Err(format!(
-                    "ENDPOINT_FENCE_REQUIRES_EPOCH: {}",
-                    claim.claim_id
-                ));
+                return Err(format!("ENDPOINT_FENCE_REQUIRES_EPOCH: {}", claim.claim_id));
             }
         }
         ClaimType::TemporalClosure => {
