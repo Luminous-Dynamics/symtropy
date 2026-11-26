@@ -9,9 +9,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
-const PACKET: &str = include_str!(
-    "../../../../docs/research/aviation/examples/aero_evidence_gap_packet_v0_1.json"
-);
+const PACKET: &str =
+    include_str!("../../../../docs/research/aviation/examples/aero_evidence_gap_packet_v0_1.json");
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -171,10 +170,19 @@ impl EvidenceGapPacketV1 {
             ("packet_id", self.packet_id.as_str()),
             ("producer_profile", self.producer_profile.as_str()),
             ("assessment_ref", self.assessment.assessment_ref.as_str()),
-            ("verifier_profile_id", self.assessment.verifier_profile_id.as_str()),
+            (
+                "verifier_profile_id",
+                self.assessment.verifier_profile_id.as_str(),
+            ),
             ("profile_ref", self.decision_context.profile_ref.as_str()),
-            ("article_subject_ref", self.decision_context.article_subject_ref.as_str()),
-            ("configuration_id", self.decision_context.configuration_id.as_str()),
+            (
+                "article_subject_ref",
+                self.decision_context.article_subject_ref.as_str(),
+            ),
+            (
+                "configuration_id",
+                self.decision_context.configuration_id.as_str(),
+            ),
             ("icd_revision", self.decision_context.icd_revision.as_str()),
         ] {
             if !nonempty(value) {
@@ -206,7 +214,10 @@ impl EvidenceGapPacketV1 {
             if !allowed_disposition(&claim.disposition) {
                 errors.push("CLAIM_DISPOSITION_UNKNOWN".to_owned());
             }
-            if !matches!(claim.criticality.as_str(), "CRITICAL" | "NON_CRITICAL" | "UNKNOWN") {
+            if !matches!(
+                claim.criticality.as_str(),
+                "CRITICAL" | "NON_CRITICAL" | "UNKNOWN"
+            ) {
                 errors.push("CLAIM_CRITICALITY_UNKNOWN".to_owned());
             }
 
@@ -243,12 +254,20 @@ impl EvidenceGapPacketV1 {
             if !source_ids.insert(source.id.as_str()) {
                 errors.push("DUPLICATE_SOURCE_EVIDENCE_ID".to_owned());
             }
-            if source.sha256.as_deref().is_some_and(|digest| !valid_sha256(digest)) {
+            if source
+                .sha256
+                .as_deref()
+                .is_some_and(|digest| !valid_sha256(digest))
+            {
                 errors.push("SOURCE_EVIDENCE_DIGEST_INVALID".to_owned());
             }
             match source.state.as_str() {
                 "ADMITTED" => {
-                    if source.sha256.as_deref().is_none_or(|digest| !valid_sha256(digest)) {
+                    if source
+                        .sha256
+                        .as_deref()
+                        .is_none_or(|digest| !valid_sha256(digest))
+                    {
                         errors.push("ADMITTED_SOURCE_EVIDENCE_REQUIRES_DIGEST".to_owned());
                     }
                     admitted_source_ids.insert(source.id.as_str());
@@ -296,7 +315,10 @@ impl EvidenceGapPacketV1 {
                 .collect::<BTreeSet<_>>();
             if required.len() != change.required_requalification_claims.len()
                 || unaffected.len() != change.unaffected_claims.len()
-                || required.iter().chain(unaffected.iter()).any(|id| !nonempty(id))
+                || required
+                    .iter()
+                    .chain(unaffected.iter())
+                    .any(|id| !nonempty(id))
                 || !required.is_disjoint(&unaffected)
             {
                 errors.push("CHANGE_IMPACT_CLAIM_SETS_INVALID".to_owned());
@@ -313,9 +335,7 @@ impl EvidenceGapPacketV1 {
     /// Losslessly project AERO's exact context, unresolved claims, source
     /// references, dependency groups and owner change frontier. This is not an
     /// action proposal or execution command.
-    pub fn selector_projection(
-        &self,
-    ) -> Result<SymthaeaEvidenceGapProjectionV1, Vec<String>> {
+    pub fn selector_projection(&self) -> Result<SymthaeaEvidenceGapProjectionV1, Vec<String>> {
         self.validate()?;
         let target_claim_ids = self
             .claims
@@ -372,7 +392,7 @@ impl EvidenceGapPacketV1 {
 #[cfg(test)]
 mod tests {
     use super::{EvidenceGapPacketV1, PACKET};
-    use serde_json::{from_str, from_value, Value};
+    use serde_json::{Value, from_str, from_value};
 
     fn packet() -> EvidenceGapPacketV1 {
         from_str(PACKET).expect("synthetic AERO evidence-gap packet parses")
