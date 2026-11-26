@@ -7,11 +7,15 @@ use std::error::Error;
 const FIXTURE: &str = include_str!("../../fixtures/dgt-recovery.tsv");
 
 fn parse_u32(value: &str, field: &str) -> Result<u32, Box<dyn Error>> {
-    value.parse::<u32>().map_err(|error| format!("invalid {field}: {error}").into())
+    value
+        .parse::<u32>()
+        .map_err(|error| format!("invalid {field}: {error}").into())
 }
 
 fn parse_u64(value: &str, field: &str) -> Result<u64, Box<dyn Error>> {
-    value.parse::<u64>().map_err(|error| format!("invalid {field}: {error}").into())
+    value
+        .parse::<u64>()
+        .map_err(|error| format!("invalid {field}: {error}").into())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -48,7 +52,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                     },
                 };
                 if candidates.insert(candidate_id.clone(), action).is_some() {
-                    return Err(format!("line {}: duplicate candidate {candidate_id}", line_number + 1).into());
+                    return Err(format!(
+                        "line {}: duplicate candidate {candidate_id}",
+                        line_number + 1
+                    )
+                    .into());
                 }
             }
             Some("USE") if fields.len() == 5 => uses.push((
@@ -59,13 +67,16 @@ fn main() -> Result<(), Box<dyn Error>> {
                     units: parse_u32(fields[4], "reservation_units")?,
                 },
             )),
-            Some(kind) => return Err(format!("line {}: malformed record {kind}", line_number + 1).into()),
+            Some(kind) => {
+                return Err(format!("line {}: malformed record {kind}", line_number + 1).into())
+            }
             None => return Err(format!("line {}: empty record", line_number + 1).into()),
         }
     }
 
     for (candidate_id, reservation) in uses {
-        let action = candidates.get_mut(&candidate_id)
+        let action = candidates
+            .get_mut(&candidate_id)
             .ok_or_else(|| format!("USE references unknown candidate {candidate_id}"))?;
         action.reservations.push(reservation);
     }
@@ -102,6 +113,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             plan.objective.missed_connections
         );
     }
-    println!("SUMMARY\tPASS\t{}/{}", result.feasible_plans.len(), result.feasible_plans.len());
+    println!(
+        "SUMMARY\tPASS\t{}/{}",
+        result.feasible_plans.len(),
+        result.feasible_plans.len()
+    );
     Ok(())
 }
