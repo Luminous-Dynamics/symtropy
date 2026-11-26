@@ -92,6 +92,12 @@ The model rejects beta > 0.05. This does **not** cover the 0.05c–0.2c relativi
 
 Every value above is a synthetic input chosen to exercise the arithmetic. It is not a source-backed estimate of the interstellar medium, plasma-magnet interaction area, achievable efficiency, vehicle mass or real q-drive acceleration. In particular, the model's small positive net acceleration is **not a performance prediction**.
 
+### Net-force margin — the important q-drive output
+
+In this synthetic case, the model computes about **1.347 GW** of bus power and **125.83 N** of ideal exhaust thrust, but approximately **123.58 N** is consumed by the harvesting drag and the assumed parasitic drag. The residual is only **2.25 N**, or about **1.82%** of the total opposing force. The chosen exhaust speed (0.05c) is also close to the model's break-even value (about 0.0509c). Small changes in conversion, thrust-vector alignment, drag coupling, medium density or parasitic loads can erase the positive result.
+
+This is a sensitivity warning, not an estimate of achievable Q-drive performance. A confirmatory model must propagate uncertainty and demonstrate a robust positive lower bound on net acceleration, not merely a positive nominal value.
+
 ## Literature and current industry comparators
 
 - Greason (2019), [A Reaction Drive Powered by External Dynamic Pressure](https://tauzero.aero/a-reaction-drive/), *Journal of the British Interplanetary Society* 72(5), pp. 146–152. The paper explicitly says practical assessment still needs conversion-efficiency and parasitic-drag terms, credible subsystem mass estimates and off-axis thrust analysis.
