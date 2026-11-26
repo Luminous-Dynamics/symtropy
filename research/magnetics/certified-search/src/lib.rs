@@ -499,10 +499,10 @@ where
             continue;
         }
 
-        let objective = objective_result.expect("non-recoverable errors returned above");
-        let margin = margin_result.expect("non-recoverable errors returned above");
+        let objective_record = objective_result.expect("non-recoverable errors returned above");
+        let margin_record = margin_result.expect("non-recoverable errors returned above");
 
-        if margin.value_enclosure.upper() < 0.0 {
+        if margin_record.value_enclosure.upper() < 0.0 {
             robust_infeasible_count += 1;
             records.push(DesignBoxRecord {
                 node_id: node.node_id,
@@ -510,8 +510,8 @@ where
                 depth: node.depth,
                 design_bounds: node.design_bounds,
                 disposition: BoxDisposition::RobustInfeasible,
-                objective_lower_bound: Some(objective.value_enclosure.lower()),
-                margin_enclosure: Some(margin.value_enclosure),
+                objective_lower_bound: Some(objective_record.value_enclosure.lower()),
+                margin_enclosure: Some(margin_record.value_enclosure),
                 split_parameter_id: None,
                 child_node_ids: Vec::new(),
             });
@@ -534,7 +534,7 @@ where
             }
         }
 
-        let objective_lower = objective.value_enclosure.lower();
+        let objective_lower = objective_record.value_enclosure.lower();
         if incumbent.as_ref().is_some_and(|best| {
             objective_lower >= best.worst_case_objective_upper_bound
         }) {
@@ -546,7 +546,7 @@ where
                 design_bounds: node.design_bounds,
                 disposition: BoxDisposition::ObjectiveDominated,
                 objective_lower_bound: Some(objective_lower),
-                margin_enclosure: Some(margin.value_enclosure),
+                margin_enclosure: Some(margin_record.value_enclosure),
                 split_parameter_id: None,
                 child_node_ids: Vec::new(),
             });
@@ -566,10 +566,10 @@ where
                 continue;
             }
             any_axis_wide_enough = true;
-            let objective_score = objective.derivative_abs_supremum[axis]
+            let objective_score = objective_record.derivative_abs_supremum[axis]
                 * width
                 / policy.objective_sensitivity_scale;
-            let margin_score = margin.derivative_abs_supremum[axis]
+            let margin_score = margin_record.derivative_abs_supremum[axis]
                 * width
                 / policy.margin_sensitivity_scale;
             let score = objective_score.max(margin_score);
@@ -590,7 +590,7 @@ where
                 design_bounds: node.design_bounds,
                 disposition: BoxDisposition::UnresolvedMaximumDepth,
                 objective_lower_bound: Some(objective_lower),
-                margin_enclosure: Some(margin.value_enclosure),
+                margin_enclosure: Some(margin_record.value_enclosure),
                 split_parameter_id: None,
                 child_node_ids: Vec::new(),
             });
@@ -609,7 +609,7 @@ where
                     BoxDisposition::UnresolvedMinimumWidth
                 },
                 objective_lower_bound: Some(objective_lower),
-                margin_enclosure: Some(margin.value_enclosure),
+                margin_enclosure: Some(margin_record.value_enclosure),
                 split_parameter_id: None,
                 child_node_ids: Vec::new(),
             });
@@ -649,7 +649,7 @@ where
             design_bounds: node.design_bounds,
             disposition: BoxDisposition::Split,
             objective_lower_bound: Some(objective_lower),
-            margin_enclosure: Some(margin.value_enclosure),
+            margin_enclosure: Some(margin_record.value_enclosure),
             split_parameter_id: Some(root.parameter_ids[axis].clone()),
             child_node_ids: vec![left_id, right_id],
         });
