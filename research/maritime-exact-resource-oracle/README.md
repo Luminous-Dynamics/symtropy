@@ -209,3 +209,33 @@ Issue [#7602 — continuous-budget QC–AGV reproduction](https://github.com/Lum
 5. extend from the paper's deliberately narrow assumptions to finite yard buffers, traffic conflicts, charging, failures and receiver-service outcomes, as separate extensions.
 
 No exact S6-B replication or SOTA gain is claimed by the current two-task fixture.
+## Continuous-budget multi-AGV QC synchronization micro-reference (v0.2)
+
+The `continuous` module is a separate small-instance continuous adversary, distinct from the finite discrete `sync` microcase. It accepts fixed QC task predecessors and candidate plans containing multiple per-AGV task routes. The event recurrence is:
+
+`qc_ready_i = finish(qc_predecessor_i)` (or the task release time),
+`agv_ready_i = vehicle_release(vehicle_predecessor_i) + travel_before_i`,
+`service_start_i = max(qc_ready_i, agv_ready_i)`.
+
+Loading tasks release the vehicle at service start; unloading tasks release it after service finish plus the declared loaded-delivery leg. QC idle and AGV queue waits are reported separately and weighted separately.
+
+For each fixed candidate plan, the reference enumerates:
+1. every sign orthant of the continuous L1 uncertainty set `u_i = sign_i*x_i`, `x_i ∈ [0,1]`, `sum x_i <= Gamma`;
+2. every handoff active pattern specifying whether QC-ready or AGV-ready determines each service start;
+3. every combination of `n` active linear constraints, solving the resulting `n x n` system and checking all inequalities.
+
+Because the objective and event recurrences are affine within each sign/active region, a maximum over the compact region occurs at a vertex. The code retains a deterministic witness, then replays it through the event recurrence to verify its objective decomposition. The number reported as `feasible_active_set_bases` counts feasible independent active-constraint bases, **not deduplicated geometric vertices**; the same vertex may be represented by several bases or adjacent active regions.
+
+### Deliberate limits
+
+- Maximum four tasks; exhaustive active-region and basis enumeration grows combinatorially.
+- Fixed QC task orders and fixed candidate vehicle routes; it does not solve the master assignment/routing MILP.
+- Each QC's task order must be one linear chain. Each task belongs to exactly one vehicle route. The union of QC and vehicle precedence arcs must be acyclic.
+- Simplified deterministic travel legs; no road conflicts, geometry, finite buffers, charger queues, battery degradation, equipment failure, maintenance or stochastic travel time.
+- Loading/unloading release conventions are explicit, but task/cargo semantics are still a small abstraction.
+- Floating-point Gaussian elimination and feasibility tolerances are used; no external LP solver dual certificate is emitted. The result is a small exhaustive numerical reference, not a formally certified S6-B solver.
+- It is not the published six-task S6-B reproduction. Full task service/delta/distance/event data are not currently in this repository.
+
+The frozen `continuous-qc-agv.tsv` case has two AGVs, four tasks, two candidate plans, two QC chains and a fractional `Gamma=0.5` budget. `continuous-qc-agv-audit` emits a deterministic input/event/witness receipt. The separately implemented standard-library Python reference independently enumerates the same sign regions, handoff active regions and LP bases, then checks the entire receipt byte-for-byte.
+
+Use [#7602](https://github.com/Luminous-Dynamics/symtropy/issues/7602) for the faithful continuous-budget paper reproduction. Exact S6-B source data must be retrieved from the article's computational archive or authors before any replication claim.
