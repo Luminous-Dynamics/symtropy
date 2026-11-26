@@ -1,0 +1,106 @@
+name: SAFRB fuel-to-service synthetic corpus qualification
+
+on:
+  push:
+    branches:
+      - research/safrb-fuel-corpus-executable-v0.1
+    paths:
+      - "tools/safrb-fuel-service-corpus/**"
+      - ".github/workflows/safrb-fuel-service-corpus.yml"
+  pull_request:
+    paths:
+      - "tools/safrb-fuel-service-corpus/**"
+      - ".github/workflows/safrb-fuel-service-corpus.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: safrb-fuel-corpus-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  corpus:
+    name: SAFRB synthetic corpus Rust checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Verify formatting
+        run: cargo fmt --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml -- --check
+      - name: Run tests
+        run: cargo test --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --all-targets --locked -- -D warnings
+      - name: Validate corpus
+        run: cargo run --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --release --locked -- --check
+      - name: Emit deterministic JSONL
+        run: |
+          cargo run --manifest-path tools/safrb-fuel-service-corpus/Cargo.toml --release --locked -- --emit target/safrb-fuel-corpus-v0.1
+          test "$(wc -l < target/safrb-fuel-corpus-v0.1/planner-observations.jsonl)" -eq 120
+          test "$(wc -l < target/safrb-fuel-corpus-v0.1/oracle-truth.jsonl)" -eq 120
+          test -s target/safrb-fuel-corpus-v0.1/temporal-ablation-report.json
+          cd target/safrb-fuel-corpus-v0.1
+          sha256sum planner-observations.jsonl > PLANNER.SHA256SUMS
+          sha256sum oracle-truth.jsonl temporal-ablation-report.json > EVALUATOR.SHA256SUMS
+          test -s PLANNER.SHA256SUMS
+          test -s EVALUATOR.SHA256SUMS
+      - name: Validate JSON serialization and blind split
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("target/safrb-fuel-corpus-v0.1")
+          observation_schema = json.loads(Path("tools/safrb-fuel-service-corpus/fixtures/fuel-service-observation-v0.1.schema.json").read_text())
+          oracle_schema = json.loads(Path("tools/safrb-fuel-service-corpus/fixtures/fuel-service-case-v0.1.schema.json").read_text())
+          report_schema = json.loads(Path("tools/safrb-fuel-service-corpus/fixtures/temporal-ablation-report-v0.1.schema.json").read_text())
+          observations = [json.loads(line) for line in (root / "planner-observations.jsonl").read_text().splitlines()]
+          oracle = [json.loads(line) for line in (root / "oracle-truth.jsonl").read_text().splitlines()]
+          report = json.loads((root / "temporal-ablation-report.json").read_text())
+
+          assert len(observations) == len(oracle) == 120
+          assert report["casesTotal"] == 120
+          assert report["aggregateFalseGuaranteeCount"] > 0
+          assert report["temporalGuaranteeCount"] + report["temporalConfirmedShortfallCount"] + report["temporalIndeterminateCount"] == 120
+          assert set(report_schema["required"]).issubset(report)
+          for row in observations:
+              assert set(observation_schema["required"]).issubset(row)
+              assert row["recordKind"] == "planner_observation"
+              assert len(row["hourlyObservations"]) == 72
+              assert [step["hourIndex"] for step in row["hourlyObservations"]] == list(range(72))
+              assert not any(key in row for key in ("closingGrams", "grossGenerationWh", "networkDeliverableWh", "disposition", "hourlyTrajectory"))
+          for row in oracle:
+              assert set(oracle_schema["required"]).issubset(row)
+              assert row["recordKind"] == "oracle_truth"
+              assert len(row["hourlyTrajectory"]) == 72
+              assert [step["hourIndex"] for step in row["hourlyTrajectory"]] == list(range(72))
+          assert [row["caseId"] for row in observations] == [row["caseId"] for row in oracle]
+          print("JSON shape, 120-case pairing, hourly ordering, blind split and temporal ablation report validated")
+          PY
+      - name: Verify conservation and ablation with independent oracle
+        run: python3 tools/safrb-fuel-service-corpus/tests/independent_oracle.py target/safrb-fuel-corpus-v0.1
+      - name: Retain planner-visible observations
+        uses: actions/upload-artifact@v4
+        with:
+          name: safrb-fuel-service-observations-v0.1
+          path: |
+            target/safrb-fuel-corpus-v0.1/planner-observations.jsonl
+            target/safrb-fuel-corpus-v0.1/PLANNER.SHA256SUMS
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain evaluator-only oracle truth
+        uses: actions/upload-artifact@v4
+        with:
+          name: safrb-fuel-service-oracle-truth-v0.1
+          path: |
+            target/safrb-fuel-corpus-v0.1/oracle-truth.jsonl
+            target/safrb-fuel-corpus-v0.1/temporal-ablation-report.json
+            target/safrb-fuel-corpus-v0.1/EVALUATOR.SHA256SUMS
+          if-no-files-found: error
+          retention-days: 90

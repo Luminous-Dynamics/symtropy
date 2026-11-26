@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/safrb-temporal-ablation-report-v0.1.schema.json",
+  "title": "SAFRB aggregate-versus-temporal assurance ablation report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reportVersion",
+    "evidenceMaturity",
+    "casesTotal",
+    "aggregateEnergyGuaranteeCount",
+    "temporalGuaranteeCount",
+    "temporalConfirmedShortfallCount",
+    "temporalIndeterminateCount",
+    "aggregateFalseGuaranteeCount",
+    "falseGuaranteeWithHourlyShortfallCount",
+    "falseGuaranteeWithIndeterminateEvidenceCount",
+    "sustainedRecoveryConfirmedCount",
+    "rightCensoredRecoveryCount",
+    "restorationConfirmationHours"
+  ],
+  "properties": {
+    "reportVersion": { "const": "0.1.0" },
+    "evidenceMaturity": { "const": "synthetic_fixture" },
+    "casesTotal": { "type": "integer", "minimum": 1 },
+    "aggregateEnergyGuaranteeCount": { "type": "integer", "minimum": 0 },
+    "temporalGuaranteeCount": { "type": "integer", "minimum": 0 },
+    "temporalConfirmedShortfallCount": { "type": "integer", "minimum": 0 },
+    "temporalIndeterminateCount": { "type": "integer", "minimum": 0 },
+    "aggregateFalseGuaranteeCount": { "type": "integer", "minimum": 0 },
+    "falseGuaranteeWithHourlyShortfallCount": { "type": "integer", "minimum": 0 },
+    "falseGuaranteeWithIndeterminateEvidenceCount": { "type": "integer", "minimum": 0 },
+    "sustainedRecoveryConfirmedCount": { "type": "integer", "minimum": 0 },
+    "rightCensoredRecoveryCount": { "type": "integer", "minimum": 0 },
+    "restorationConfirmationHours": { "type": "integer", "minimum": 1 }
+  }
+}
