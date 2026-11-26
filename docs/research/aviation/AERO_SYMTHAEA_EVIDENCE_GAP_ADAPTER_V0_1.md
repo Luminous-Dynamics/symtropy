@@ -115,6 +115,35 @@ Suggested held-out scenarios:
 9. **Mandatory high-fidelity follow-up:** a cheap analytical or simulation action cannot discharge a physical/NDE obligation; deferred cost remains in the full budget.
 10. **Out-of-scope physical model:** no admissible action exists within the declared physics/procedure scope; preserve the unresolved result and escalate through the separately authorized owner workflow.
 
+### 6.1 SOTA baselines for the matched-budget tournament
+
+The AERO extension should use the existing Symthaea #13125 tournament harness and add comparator policies rather than create a second benchmark runner.
+
+| Policy arm | Why it belongs in the comparison |
+|---|---|
+| Seeded random / space filling | Establishes whether adaptive selection adds value over design-of-experiments coverage |
+| Prediction disagreement | Existing Symthaea generic selector baseline; informative about model separation but not automatically decision impact |
+| EI / NEI / knowledge gradient | Conventional Bayesian optimization / experimental-design baselines |
+| Cost-aware multi-fidelity consequential improvement | 2026 engineering research explicitly accounts for low-fidelity cost, accuracy/validity difference and hidden high-fidelity validation cost |
+| R-IDeA-style acquisition | 2026 active-learning research combines representativeness, informativeness and error de-amplification under model misspecification |
+| Distribution-free robust/minimax regret | Required when only intervals or uncertainty sets are defensible; no fabricated probability model |
+| Symthaea #13112 selector | Existing AERO-specific admissibility, hard-claim and component-wise resource semantics |
+| Qualified human engineering/NDE panel | Operational reference for domain expertise, mandatory work and justified abstention |
+
+The experimental-design comparison must distinguish three regimes:
+1. **Calibrated-probability EVSI:** use only an explicitly supplied and calibrated state model and observation likelihoods.
+2. **Distribution-free robust decision value:** use a declared uncertainty set and worst-case regret/feasibility semantics; do not assign probabilities to intervals.
+3. **Multi-fidelity validation value:** charge both the low-fidelity action and the mandatory high-fidelity validation needed before a physical claim can be promoted.
+
+Do not let a low-cost analytical model receive credit for resolving an NDE, material or structural acceptance requirement that it cannot discharge. The cost of the required independent validation is part of the acquisition decision from the beginning.
+
+External research comparators:
+- A 2025 production-engineering Bayesian experimental-design study evaluated 15,360 runs across eight engineering-focused test functions, noisy/noiseless variants and 96 algorithm configurations; it reports material differences between configurations and no universal default: https://www.frontiersin.org/journals/manufacturing-technology/articles/10.3389/fmtec.2025.1614335/full
+- The 2026 consequential-improvement multi-fidelity acquisition work explicitly includes cost, accuracy and validity differences between low- and high-fidelity samples, including the hidden high-fidelity validation cost: https://link.springer.com/article/10.1007/s11081-026-10078-5
+- R-IDeA research (AISTATS 2026) adds representativeness and error de-amplification to informativeness to reduce generalization error under model misspecification: https://proceedings.mlr.press/v300/tang26d.html
+
+These are comparators, not results reproduced by AERO or Symthaea.
+
 ### Scorecard
 
 Report separately:
