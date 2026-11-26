@@ -837,11 +837,26 @@ mod tests {
                 })
                 .collect::<Vec<_>>();
             let single = compare_paired_counterfactual_support(&single_atoms).unwrap();
-            assert_eq!(summary.mean_consequence_avoided_ticks, single.mean_consequence_avoided_ticks);
-            assert_eq!(summary.paired_difference_population_variance, single.paired_difference_population_variance);
-            assert_eq!(summary.independent_arm_difference_population_variance, single.independent_arm_difference_population_variance);
-            assert_eq!(summary.baseline_portfolio_covariance, single.baseline_portfolio_covariance);
-            assert_eq!(summary.paired_to_independent_variance_ratio, single.paired_to_independent_variance_ratio);
+            assert_eq!(
+                summary.mean_consequence_avoided_ticks,
+                single.mean_consequence_avoided_ticks
+            );
+            assert_eq!(
+                summary.paired_difference_population_variance,
+                single.paired_difference_population_variance
+            );
+            assert_eq!(
+                summary.independent_arm_difference_population_variance,
+                single.independent_arm_difference_population_variance
+            );
+            assert_eq!(
+                summary.baseline_portfolio_covariance,
+                single.baseline_portfolio_covariance
+            );
+            assert_eq!(
+                summary.paired_to_independent_variance_ratio,
+                single.paired_to_independent_variance_ratio
+            );
             assert_eq!(summary.pairing_effect, single.pairing_effect);
         }
 
@@ -867,11 +882,26 @@ mod tests {
                 })
                 .collect::<Vec<_>>();
             let single = compare_paired_counterfactual_support(&pair_atoms).unwrap();
-            assert_eq!(pair.mean_left_minus_right_consequence_ticks, single.mean_consequence_avoided_ticks);
-            assert_eq!(pair.paired_difference_population_variance, single.paired_difference_population_variance);
-            assert_eq!(pair.independent_arm_difference_population_variance, single.independent_arm_difference_population_variance);
-            assert_eq!(pair.portfolio_covariance, single.baseline_portfolio_covariance);
-            assert_eq!(pair.paired_to_independent_variance_ratio, single.paired_to_independent_variance_ratio);
+            assert_eq!(
+                pair.mean_left_minus_right_consequence_ticks,
+                single.mean_consequence_avoided_ticks
+            );
+            assert_eq!(
+                pair.paired_difference_population_variance,
+                single.paired_difference_population_variance
+            );
+            assert_eq!(
+                pair.independent_arm_difference_population_variance,
+                single.independent_arm_difference_population_variance
+            );
+            assert_eq!(
+                pair.portfolio_covariance,
+                single.baseline_portfolio_covariance
+            );
+            assert_eq!(
+                pair.paired_to_independent_variance_ratio,
+                single.paired_to_independent_variance_ratio
+            );
             assert_eq!(pair.pairing_effect, single.pairing_effect);
         }
     }
