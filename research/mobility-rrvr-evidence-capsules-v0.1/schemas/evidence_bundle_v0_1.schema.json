@@ -136,7 +136,7 @@
     },
     "claim": {
       "type": "object", "additionalProperties": false,
-      "required": ["claim_id", "episode_id", "attempt_id", "command_id", "claim_type", "asserted_value", "state", "subject_id", "required_epoch", "observation_window", "expected_holder_ids", "expected_edge_ids", "decision_cutoff_ingest_sequence", "evidence_ids", "evidence_snapshot_sha256"],
+      "required": ["claim_id", "episode_id", "attempt_id", "command_id", "claim_type", "asserted_value", "state", "subject_id", "required_epoch", "required_queue_generation", "observation_window", "expected_holder_ids", "expected_edge_ids", "decision_cutoff_ingest_sequence", "evidence_ids", "evidence_snapshot_sha256"],
       "properties": {
         "claim_id": { "type": "string", "minLength": 1 },
         "episode_id": { "type": "string", "minLength": 1 },
@@ -147,6 +147,7 @@
         "state": { "enum": ["asserted", "unknown", "disputed"] },
         "subject_id": { "type": "string", "minLength": 1 },
         "required_epoch": { "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
+        "required_queue_generation": { "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
         "observation_window": { "oneOf": [{ "$ref": "#/$defs/observation_window" }, { "type": "null" }] },
         "expected_holder_ids": { "type": "array", "items": { "type": "string", "minLength": 1 } },
         "expected_edge_ids": { "type": "array", "items": { "type": "string", "minLength": 1 } },
