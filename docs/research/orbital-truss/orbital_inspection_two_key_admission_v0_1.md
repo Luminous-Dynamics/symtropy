@@ -42,7 +42,7 @@ If no applicable trajectory/keep-out shield or safety admissibility receipt exis
 
 ## Frozen corpus
 
-Twenty-three synthetic cases cover:
+Twenty-four synthetic cases cover:
 1. all gates PASS;
 2. physical-safety FAIL and UNKNOWN;
 3. measurement acquisition FAIL and UNKNOWN;
@@ -58,6 +58,7 @@ Twenty-three synthetic cases cover:
 13. scope-coherence FAIL;
 14. post-action portfolio trajectory mismatch;
 15. measurement vehicle/horizon mismatch.
+16. predicted versus observed decision-value provenance is retained but never changes hard-gate admission.
 
 The independent Python oracle and Rust evaluator must agree on the full receipt. Case ordering and source input ordering do not alter canonical output.
 
