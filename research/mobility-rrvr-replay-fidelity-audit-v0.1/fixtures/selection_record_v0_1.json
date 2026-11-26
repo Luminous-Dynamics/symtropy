@@ -1,0 +1,10 @@
+{
+  "schema_version": "0.1",
+  "seed": 42,
+  "selection_method_id": "upstream-exported-seed42-selection-v1",
+  "selected_attempt_ids": [
+    "synthetic-replay-valid-screen-policy-0-trial-0",
+    "synthetic-replay-valid-screen-policy-1-trial-2",
+    "synthetic-replay-valid-screen-policy-2-trial-4"
+  ]
+}
