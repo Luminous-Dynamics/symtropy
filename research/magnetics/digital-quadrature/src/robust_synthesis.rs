@@ -6,7 +6,7 @@
 use std::collections::HashSet;
 
 use super::{
-    EncoderTrace, EvaluationError, QuadratureConfig, ScenarioSetMetrics,
+    EncoderTrace, EvidenceKind, EvaluationError, QuadratureConfig, ScenarioSetMetrics,
     evaluate_scenario_set, evaluate_trace, project,
 };
 
@@ -41,6 +41,7 @@ pub struct SynthesisRequirements {
 pub struct ScenarioSynthesisMetrics {
     pub trace_id: String,
     pub operating_condition_id: String,
+    pub field_bound_record_id: String,
     pub nominal_sequence_valid: bool,
     pub accepted_by_nominal_limits: bool,
     pub minimum_state_retention_margin_t: f64,
@@ -54,6 +55,7 @@ pub struct ScenarioSynthesisMetrics {
 #[derive(Clone, Debug, PartialEq)]
 pub struct CandidateSynthesisMetrics {
     pub candidate_id: String,
+    pub candidate_configuration: QuadratureConfig,
     pub nominal_all_scenarios_accepted: bool,
     pub robustly_accepted: bool,
     pub nominal_evaluation_error: Option<EvaluationError>,
@@ -68,6 +70,9 @@ pub struct CandidateSynthesisMetrics {
 #[derive(Clone, Debug, PartialEq)]
 pub struct SynthesisResult {
     pub set_id: String,
+    pub evidence_kind: EvidenceKind,
+    pub coordinate_frame_id: String,
+    pub angular_grid_id: String,
     pub scenario_count: usize,
     pub candidate_count: usize,
     pub robustly_accepted_candidate_count: usize,
@@ -292,12 +297,23 @@ fn analyze_channel(
         } else {
             brp - (values[latest_index] + vector_error_radii[latest_index])
         };
-        let crossing_margin = before_margin.min(after_margin);
+        let transition_state_margin = (earliest_index..=latest_index)
+            .map(|index| {
+                if rising {
+                    values[index] - vector_error_radii[index] - brp
+                } else {
+                    bop - (values[index] + vector_error_radii[index])
+                }
+            })
+            .fold(f64::INFINITY, f64::min);
+        let crossing_margin = before_margin.min(after_margin).min(transition_state_margin);
 
         if !before_margin.is_finite()
             || !after_margin.is_finite()
+            || !transition_state_margin.is_finite()
             || before_margin <= 0.0
             || after_margin <= 0.0
+            || transition_state_margin <= 0.0
         {
             failed_transition_crossings += 1;
         }
@@ -482,6 +498,7 @@ fn scenario_metrics(
     Ok(ScenarioSynthesisMetrics {
         trace_id: scenario.trace.trace_id.clone(),
         operating_condition_id: scenario.trace.operating_condition_id.clone(),
+        field_bound_record_id: scenario.field_bounds.field_bound_record_id.clone(),
         nominal_sequence_valid: sequence_valid,
         accepted_by_nominal_limits,
         minimum_state_retention_margin_t: minimum_state_margin,
@@ -568,6 +585,7 @@ pub fn synthesize_robust_configurations(
         let Some(metrics) = nominal_metrics.as_ref() else {
             results.push(CandidateSynthesisMetrics {
                 candidate_id: candidate.configuration_id.clone(),
+                candidate_configuration: candidate.clone(),
                 nominal_all_scenarios_accepted: false,
                 robustly_accepted: false,
                 nominal_evaluation_error: nominal_error,
@@ -615,6 +633,7 @@ pub fn synthesize_robust_configurations(
                     scenario_results.push(ScenarioSynthesisMetrics {
                         trace_id: scenario.trace.trace_id.clone(),
                         operating_condition_id: scenario.trace.operating_condition_id.clone(),
+                        field_bound_record_id: scenario.field_bounds.field_bound_record_id.clone(),
                         nominal_sequence_valid: false,
                         accepted_by_nominal_limits: false,
                         minimum_state_retention_margin_t: f64::NEG_INFINITY,
@@ -645,6 +664,7 @@ pub fn synthesize_robust_configurations(
 
         results.push(CandidateSynthesisMetrics {
             candidate_id: candidate.configuration_id.clone(),
+            candidate_configuration: candidate.clone(),
             nominal_all_scenarios_accepted: all_nominal_limits_pass,
             robustly_accepted,
             nominal_evaluation_error: None,
@@ -677,6 +697,9 @@ pub fn synthesize_robust_configurations(
 
     Ok(SynthesisResult {
         set_id: set_id.to_owned(),
+        evidence_kind: scenarios[0].trace.evidence_kind,
+        coordinate_frame_id: scenarios[0].trace.coordinate_frame_id.clone(),
+        angular_grid_id: scenarios[0].trace.angular_grid_id.clone(),
         scenario_count: scenarios.len(),
         candidate_count: candidates.len(),
         robustly_accepted_candidate_count,
@@ -788,7 +811,7 @@ mod tests {
         assert!(result.candidates[0].robustly_accepted);
         assert!(result.candidates[0]
             .minimum_robust_threshold_margin_t
-            .is_some_and(|margin| margin >= 0.05));
+            .is_some_and(|margin| margin >= 0.005));
     }
 
     #[test]
@@ -889,6 +912,7 @@ mod tests {
     fn pareto_frontier_preserves_robust_tradeoffs() {
         let a = CandidateSynthesisMetrics {
             candidate_id: "a".to_owned(),
+            candidate_configuration: config("a", 0.25, -0.25),
             nominal_all_scenarios_accepted: true,
             robustly_accepted: true,
             nominal_evaluation_error: None,
@@ -901,6 +925,7 @@ mod tests {
         };
         let b = CandidateSynthesisMetrics {
             candidate_id: "b".to_owned(),
+            candidate_configuration: config("b", 0.25, -0.25),
             nominal_all_scenarios_accepted: true,
             robustly_accepted: true,
             nominal_evaluation_error: None,
@@ -913,6 +938,7 @@ mod tests {
         };
         let c = CandidateSynthesisMetrics {
             candidate_id: "c".to_owned(),
+            candidate_configuration: config("c", 0.25, -0.25),
             nominal_all_scenarios_accepted: true,
             robustly_accepted: true,
             nominal_evaluation_error: None,
