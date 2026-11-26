@@ -11,6 +11,7 @@ pub mod atlas;
 pub mod behaviour;
 pub mod bundle;
 pub mod calibration;
+pub mod clock_estimators;
 pub mod decision_value;
 pub mod dynamics;
 pub mod matching;
