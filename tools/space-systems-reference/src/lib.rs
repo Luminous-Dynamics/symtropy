@@ -160,7 +160,7 @@ pub struct QDriveEstimate {
 /// - exhaust kinetic power P_jet = 0.5 * mdot * u_e^2;
 /// - thrust is aligned with the velocity axis and opposes combined drag.
 ///
-/// The function rejects beta > 0.05. The 0.05c-0.2c regime in q-drive
+/// The function rejects beta > 0.05 for both vehicle/medium relative speed and exhaust speed. The 0.05c-0.2c regime in q-drive
 /// literature needs a relativistic energy-momentum derivation.
 pub fn evaluate_qdrive(input: QDriveInput) -> Result<QDriveEstimate, &'static str> {
     if !finite_nonnegative(input.plasma_mass_density_kg_m3) {
