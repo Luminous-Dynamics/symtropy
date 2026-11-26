@@ -44,6 +44,8 @@ AERB uses two distinct artifacts and processes:
 
 Contains the frozen command context, decision cut, admitted observations, their timestamps/clock domains/source roles, and the permitted probe menu with costs/deadlines. It contains no hidden truth ID, world outcome supports, likelihoods or evaluator loss matrix.
 
+The candidate snapshot digest in the submission is SHA-256 over RFC 8785 JSON Canonicalization Scheme (JCS) bytes of the complete candidate-visible episode artifact. The synthetic submission fixture binds to its exact episode fixture; do not copy that digest to a modified episode.
+
 ### Evaluator-only world pack
 
 Contains the one true world for each episode, the possible-world catalog, the world-specific physical effect and authority state, the probe outcome-support sets, and the frozen decision-loss table. It must remain in an independently permissioned evaluator process/environment during confirmatory runs.
