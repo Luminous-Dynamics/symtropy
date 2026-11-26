@@ -1,0 +1,10 @@
+[package]
+name = "ergo-stream-decision-evaluator"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+ergo-stream-microcosm = { path = "../../../ergo-stream-world-contract/v0.1" }
+
+[workspace]
