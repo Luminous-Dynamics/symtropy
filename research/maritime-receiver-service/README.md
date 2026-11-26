@@ -29,7 +29,7 @@ A protected floor F passes only when the lower bound reaches F; it fails only wh
 
 The fixture has ten scenario cases: all-on-time, terminal-exit-only, late acceptance, censored bounds, confirmed non-acceptance, verified loss/damage, unverified acceptance, explicit separation of container and TEU groups, unit reconciliation failure, and acceptance after the measurement horizon.
 
-The dependency-free Rust reducer has 14 unit tests. A deterministic TSV receipt is compared with a separately implemented standard-library Python reference.
+The dependency-free Rust reducer has 15 unit tests. A deterministic TSV receipt is compared with a separately implemented standard-library Python reference.
 
 ## Run locally
 
