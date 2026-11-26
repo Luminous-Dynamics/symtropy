@@ -1213,6 +1213,165 @@ mod tests {
         );
     }
 
+
+    fn parameter_candidate(
+        configuration_id: &str,
+        axis_error_rad: f64,
+        bop_error_t: f64,
+        brp_error_t: f64,
+    ) -> ParameterBoundedCandidate {
+        ParameterBoundedCandidate {
+            configuration: config(configuration_id, 0.25, -0.25),
+            parameter_bounds: SensorParameterErrorBounds {
+                configuration_id: configuration_id.to_owned(),
+                parameter_bound_record_id: format!("sensor-bounds-{configuration_id}"),
+                channel_a_axis_angle_bound_rad: axis_error_rad,
+                channel_b_axis_angle_bound_rad: axis_error_rad,
+                channel_a_bop_error_bound_t: bop_error_t,
+                channel_a_brp_error_bound_t: brp_error_t,
+                channel_b_bop_error_bound_t: bop_error_t,
+                channel_b_brp_error_bound_t: brp_error_t,
+            },
+        }
+    }
+
+    #[test]
+    fn zero_sensor_parameter_bounds_preserve_base_synthesis_result() {
+        let input = scenario("trace-zero-parameter", "nominal", 0.01);
+        let config = config("candidate-zero-parameter", 0.25, -0.25);
+        let baseline = synthesize_robust_configurations(
+            "set-zero-parameter",
+            &[input.clone()],
+            std::slice::from_ref(&config),
+            requirements(),
+        )
+        .expect("base synthesis should succeed");
+
+        let parameter_aware = synthesize_with_sensor_parameter_bounds(
+            "set-zero-parameter",
+            &[input],
+            &[parameter_candidate("candidate-zero-parameter", 0.0, 0.0, 0.0)],
+            requirements(),
+        )
+        .expect("parameter-aware synthesis should succeed");
+
+        let base_metrics = &baseline.candidates[0];
+        let bounded_metrics = &parameter_aware.candidates[0].synthesis;
+        assert_eq!(bounded_metrics.robustly_accepted, base_metrics.robustly_accepted);
+        assert_eq!(
+            bounded_metrics.minimum_robust_threshold_margin_t,
+            base_metrics.minimum_robust_threshold_margin_t
+        );
+        assert_eq!(
+            bounded_metrics.worst_spacing_error_upper_bound_rad,
+            base_metrics.worst_spacing_error_upper_bound_rad
+        );
+        assert_eq!(
+            bounded_metrics.worst_transition_bracket_rad,
+            base_metrics.worst_transition_bracket_rad
+        );
+        assert_eq!(
+            parameter_aware.candidates[0].scenario_contributions[0]
+                .original_field_bound_record_id,
+            "bounds-trace-zero-parameter"
+        );
+    }
+
+    #[test]
+    fn axis_and_threshold_tolerances_reduce_robust_acceptance_margin() {
+        let input = scenario("trace-sensor-tolerance", "nominal", 0.01);
+        let bounded = synthesize_with_sensor_parameter_bounds(
+            "set-sensor-tolerance",
+            &[input],
+            &[parameter_candidate("candidate-tolerance", 0.10, 0.01, 0.01)],
+            requirements(),
+        )
+        .expect("valid parameter bounds");
+
+        let candidate = &bounded.candidates[0];
+        assert!(
+            candidate.scenario_contributions[0]
+                .channel_a_max_axis_projection_error_bound_t
+                > 0.0
+        );
+        assert!(
+            candidate.scenario_contributions[0]
+                .channel_a_max_effective_projected_error_bound_t
+                > 0.01
+        );
+        assert!(!candidate.synthesis.robustly_accepted);
+    }
+
+    #[test]
+    fn collapsed_robust_hysteresis_gap_is_rejected() {
+        let input = scenario("trace-hysteresis-collapse", "nominal", 0.01);
+        let mut candidate = parameter_candidate("candidate-hysteresis-collapse", 0.0, 0.30, 0.0);
+        candidate.configuration.channel_a.bop_threshold_t = 0.25;
+        candidate.configuration.channel_a.brp_threshold_t = -0.25;
+
+        assert_eq!(
+            synthesize_with_sensor_parameter_bounds(
+                "set-hysteresis-collapse",
+                &[input],
+                &[candidate],
+                requirements(),
+            )
+            .expect_err("uncertainty can erase the hysteresis gap"),
+            ParameterAwareSynthesisError::RobustHysteresisGapCollapsed {
+                channel: 'A'
+            }
+        );
+    }
+
+    #[test]
+    fn sensor_parameter_record_must_match_candidate_identity() {
+        let input = scenario("trace-parameter-identity", "nominal", 0.01);
+        let mut candidate = parameter_candidate("candidate-parameter-identity", 0.0, 0.0, 0.0);
+        candidate.parameter_bounds.configuration_id = "another-candidate".to_owned();
+
+        assert_eq!(
+            synthesize_with_sensor_parameter_bounds(
+                "set-parameter-identity",
+                &[input],
+                &[candidate],
+                requirements(),
+            )
+            .expect_err("parameter record must be bound to the exact candidate"),
+            ParameterAwareSynthesisError::ParameterBoundConfigurationMismatch
+        );
+    }
+
+    #[test]
+    fn invalid_axis_and_threshold_parameter_bounds_are_rejected() {
+        let input = scenario("trace-invalid-parameter", "nominal", 0.01);
+        let mut invalid_axis = parameter_candidate("candidate-invalid-axis", 0.0, 0.0, 0.0);
+        invalid_axis.parameter_bounds.channel_b_axis_angle_bound_rad =
+            std::f64::consts::PI + 0.01;
+        assert_eq!(
+            synthesize_with_sensor_parameter_bounds(
+                "set-invalid-axis",
+                &[input.clone()],
+                &[invalid_axis],
+                requirements(),
+            )
+            .expect_err("axis bound outside mathematical domain is invalid"),
+            ParameterAwareSynthesisError::InvalidParameterBoundValue
+        );
+
+        let mut invalid_threshold =
+            parameter_candidate("candidate-invalid-threshold", 0.0, -0.001, 0.0);
+        assert_eq!(
+            synthesize_with_sensor_parameter_bounds(
+                "set-invalid-threshold",
+                &[input],
+                &[invalid_threshold],
+                requirements(),
+            )
+            .expect_err("negative threshold error bound is invalid"),
+            ParameterAwareSynthesisError::InvalidParameterBoundValue
+        );
+    }
+
     #[test]
     fn pareto_frontier_preserves_robust_tradeoffs() {
         let a = CandidateSynthesisMetrics {
