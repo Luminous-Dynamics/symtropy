@@ -983,9 +983,15 @@ mod tests {
         input.centre_margin_upper_bound = 0.1;
         input.derivative_abs_upper_by_axis_per_m = [0.0; 3];
         let result = plan_refinement(&input, 0, 1, policy()).expect("valid unresolved cell");
-        assert_eq!(result.disposition, RefinementDisposition::NoSpatialSensitivity);
+        assert_eq!(
+            result.disposition,
+            RefinementDisposition::NoSpatialSensitivity
+        );
         assert!(result.split.is_none());
-        assert_eq!(result.certificate.classification, CellClassification::Unresolved);
+        assert_eq!(
+            result.certificate.classification,
+            CellClassification::Unresolved
+        );
     }
 
     #[test]
@@ -997,7 +1003,10 @@ mod tests {
         bounded.maximum_leaf_count = 1;
         let result = plan_refinement(&input, 0, 1, bounded).expect("valid budget");
         assert_eq!(result.disposition, RefinementDisposition::LeafBudgetReached);
-        assert_eq!(result.certificate.classification, CellClassification::Unresolved);
+        assert_eq!(
+            result.certificate.classification,
+            CellClassification::Unresolved
+        );
     }
 
     #[test]
@@ -1039,7 +1048,9 @@ mod tests {
             maximum_m: [maximum, 1.0, 1.0],
         };
         assert_eq!(
-            narrow.validate().expect_err("no representable interior centre"),
+            narrow
+                .validate()
+                .expect_err("no representable interior centre"),
             CertificationError::UnrepresentableBoxCentre
         );
     }
@@ -1057,9 +1068,18 @@ mod tests {
         }
         let shifted = certify_cell(&translated).expect("translated");
         assert_eq!(shifted.classification, original.classification);
-        assert_eq!(shifted.maximum_spatial_variation, original.maximum_spatial_variation);
-        assert_eq!(shifted.margin_lower_enclosure, original.margin_lower_enclosure);
-        assert_eq!(shifted.margin_upper_enclosure, original.margin_upper_enclosure);
+        assert_eq!(
+            shifted.maximum_spatial_variation,
+            original.maximum_spatial_variation
+        );
+        assert_eq!(
+            shifted.margin_lower_enclosure,
+            original.margin_lower_enclosure
+        );
+        assert_eq!(
+            shifted.margin_upper_enclosure,
+            original.margin_upper_enclosure
+        );
     }
 
     #[test]
@@ -1128,8 +1148,7 @@ mod tests {
     fn domain_certificate_rejects_duplicate_cell_ids() {
         let cell = evidence();
         assert_eq!(
-            certify_domain(box3(), &[cell.clone(), cell])
-                .expect_err("duplicate cell id"),
+            certify_domain(box3(), &[cell.clone(), cell]).expect_err("duplicate cell id"),
             CertificationError::DuplicateCellId
         );
     }
@@ -1174,5 +1193,3 @@ mod tests {
             CertificationError::PartitionVolumeMismatch
         );
     }
-
-}
