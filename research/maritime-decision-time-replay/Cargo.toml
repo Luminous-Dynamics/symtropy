@@ -11,6 +11,10 @@ path = "src/lib.rs"
 name = "mdtr-audit"
 path = "src/bin/mdtr_audit.rs"
 
+[[bin]]
+name = "temporal-audit"
+path = "src/bin/temporal_audit.rs"
+
 [dependencies]
 
 [workspace]
