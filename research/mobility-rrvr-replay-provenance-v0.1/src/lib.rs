@@ -983,6 +983,58 @@ mod tests {
         });
         let source_episode = write_json(&root, "source/episode.json", &source_value);
 
+        let state_artifacts: Vec<(ArtifactRef, ArtifactRef)> = (0..3)
+            .map(|index| {
+                let attempt_id = format!("attempt-{index}");
+                let offset_mm = index as f64 * 10.0;
+                let original = write_json(
+                    &root,
+                    &format!("states/original-{attempt_id}.json"),
+                    &serde_json::json!({
+                        "schema_version":"0.1",
+                        "scenario_id":"scenario-1",
+                        "attempt_id":attempt_id,
+                        "simulator_profile_sha256":simulator.sha256,
+                        "end_effector_position":{
+                            "coordinate_frame_id":"robot-base",
+                            "x_mm":100.0 + offset_mm,
+                            "y_mm":20.0,
+                            "z_mm":300.0
+                        },
+                        "object_position":{
+                            "coordinate_frame_id":"robot-base",
+                            "x_mm":120.0 + offset_mm,
+                            "y_mm":20.0,
+                            "z_mm":40.0
+                        }
+                    }),
+                );
+                let replayed = write_json(
+                    &root,
+                    &format!("states/replay-{attempt_id}.json"),
+                    &serde_json::json!({
+                        "schema_version":"0.1",
+                        "scenario_id":"scenario-1",
+                        "attempt_id":attempt_id,
+                        "simulator_profile_sha256":simulator.sha256,
+                        "end_effector_position":{
+                            "coordinate_frame_id":"robot-base",
+                            "x_mm":101.0 + offset_mm,
+                            "y_mm":20.0,
+                            "z_mm":300.0
+                        },
+                        "object_position":{
+                            "coordinate_frame_id":"robot-base",
+                            "x_mm":121.0 + offset_mm,
+                            "y_mm":20.0,
+                            "z_mm":40.0
+                        }
+                    }),
+                );
+                (original, replayed)
+            })
+            .collect();
+
         let reset_value = serde_json::json!({
             "schema_version":"0.1","receipt_type":"reset_receipt_bundle",
             "scenario_id":"scenario-1","execution_scope_id":scope,
@@ -990,9 +1042,9 @@ mod tests {
             "simulator_profile_sha256":simulator.sha256,
             "robot_model_profile_sha256":robot.sha256,
             "attempts":[
-                {"attempt_id":"attempt-0","policy_id":"policy-0","status":"accepted","initial_state_sha256":"a".repeat(64),"reset_generation":1},
-                {"attempt_id":"attempt-1","policy_id":"policy-1","status":"accepted","initial_state_sha256":"b".repeat(64),"reset_generation":1},
-                {"attempt_id":"attempt-2","policy_id":"policy-2","status":"accepted","initial_state_sha256":"c".repeat(64),"reset_generation":1}
+                {"attempt_id":"attempt-0","policy_id":"policy-0","status":"accepted","initial_state_sha256":state_artifacts[0].0.sha256.clone(),"reset_generation":1},
+                {"attempt_id":"attempt-1","policy_id":"policy-1","status":"accepted","initial_state_sha256":state_artifacts[1].0.sha256.clone(),"reset_generation":1},
+                {"attempt_id":"attempt-2","policy_id":"policy-2","status":"accepted","initial_state_sha256":state_artifacts[2].0.sha256.clone(),"reset_generation":1}
             ]
         });
         let reset = write_json(&root, "receipts/reset.json", &reset_value);
@@ -1051,9 +1103,9 @@ mod tests {
                     "selection_method_id":"upstream-seed42",
                     "selected_attempt_ids":["attempt-0","attempt-1","attempt-2"],
                     "attempts":[
-                        {"attempt_id":"attempt-0","original_state_sha256":"a".repeat(64),"replay_state_sha256":"1".repeat(64)},
-                        {"attempt_id":"attempt-1","original_state_sha256":"b".repeat(64),"replay_state_sha256":"2".repeat(64)},
-                        {"attempt_id":"attempt-2","original_state_sha256":"c".repeat(64),"replay_state_sha256":"3".repeat(64)}
+                        {"attempt_id":"attempt-0","original_state_path":state_artifacts[0].0.relative_path,"original_state_sha256":state_artifacts[0].0.sha256,"replay_state_path":state_artifacts[0].1.relative_path,"replay_state_sha256":state_artifacts[0].1.sha256},
+                        {"attempt_id":"attempt-1","original_state_path":state_artifacts[1].0.relative_path,"original_state_sha256":state_artifacts[1].0.sha256,"replay_state_path":state_artifacts[1].1.relative_path,"replay_state_sha256":state_artifacts[1].1.sha256},
+                        {"attempt_id":"attempt-2","original_state_path":state_artifacts[2].0.relative_path,"original_state_sha256":state_artifacts[2].0.sha256,"replay_state_path":state_artifacts[2].1.relative_path,"replay_state_sha256":state_artifacts[2].1.sha256}
                     ]
                 }
             }]
