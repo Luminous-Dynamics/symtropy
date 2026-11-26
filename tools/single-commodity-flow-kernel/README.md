@@ -5,7 +5,7 @@ This crate provides a deterministic integer-capacity max-flow/min-cut kernel for
 ## Contract
 
 - Stable, unique node and edge identities.
-- One conserved quantity and one common boundary per solve.
+- One opaque commodity reference, capacity-unit reference and common quantity-boundary reference per solve; all three are included in the canonical graph digest and returned certificate.
 - Non-negative integer capacities (u64); no floating-point feasibility tolerances.
 - Directed arcs; parallel and antiparallel edges are valid.
 - Deterministic node/edge ordering and tie-breaking.
@@ -15,7 +15,7 @@ This crate provides a deterministic integer-capacity max-flow/min-cut kernel for
 - Explicit graph-size bounds and checked integer arithmetic.
 - Independent certificate verification without rerunning the solver.
 
-The canonical graph digest binds source/sink IDs, node IDs, edge IDs, endpoints, capacities and opaque metadata references. Input permutation does not change the digest.
+The canonical graph digest binds commodity, capacity unit, quantity boundary, source/sink IDs, node IDs, edge IDs, endpoints, capacities and opaque metadata references. Input permutation does not change the digest.
 
 ## Deliberate non-goals
 
