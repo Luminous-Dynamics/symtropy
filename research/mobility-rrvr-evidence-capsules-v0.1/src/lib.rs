@@ -748,7 +748,10 @@ fn evaluate_fault_delivered(
     }) {
         return unresolved("FAULT_OBSERVER_NOT_INDEPENDENT");
     }
-    if receipts.iter().any(|(_, delivered)| *delivered != receipts[0].1) {
+    if receipts
+        .iter()
+        .any(|(_, delivered)| *delivered != receipts[0].1)
+    {
         return disputed("FAULT_RECEIPTS_CONTRADICT");
     }
     let findings: BTreeSet<ObservationFinding> =
