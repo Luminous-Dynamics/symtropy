@@ -43,7 +43,10 @@ impl fmt::Display for ClockFitErrorV0 {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::TooFewAnchors { found } => {
-                write!(formatter, "affine clock fit needs at least two anchors; found {found}")
+                write!(
+                    formatter,
+                    "affine clock fit needs at least two anchors; found {found}"
+                )
             }
             Self::TooManyAnchors { found, maximum } => {
                 write!(formatter, "anchor count {found} exceeds v0 limit {maximum}")
@@ -237,9 +240,7 @@ fn weighted_least_squares(
     Ok(line)
 }
 
-fn unweighted_least_squares(
-    points: &[CenteredPairV0],
-) -> Result<LocalLineV0, ClockFitErrorV0> {
+fn unweighted_least_squares(points: &[CenteredPairV0]) -> Result<LocalLineV0, ClockFitErrorV0> {
     weighted_least_squares(points, &vec![1.0; points.len()])
 }
 
@@ -262,8 +263,7 @@ fn build_fit(
     let absolute = errors.iter().map(|value| value.abs()).collect::<Vec<_>>();
     let sum_squares = errors.iter().map(|value| value * value).sum::<f64>();
     let rms = (sum_squares / errors.len() as f64).sqrt();
-    let median_absolute_residual =
-        median(&absolute).ok_or(ClockFitErrorV0::NonFiniteEstimate)?;
+    let median_absolute_residual = median(&absolute).ok_or(ClockFitErrorV0::NonFiniteEstimate)?;
     let max_absolute_residual = absolute.iter().copied().fold(0.0_f64, f64::max);
 
     let offset = origins.alpha + line.intercept - line.scale * origins.beta;
@@ -296,9 +296,7 @@ fn build_fit(
 
 /// Ordinary least-squares affine fit. This is a high-efficiency reference
 /// under approximately Gaussian, non-contaminated anchor error.
-pub fn fit_affine_ols_v0(
-    pairs: &[ClockAnchorPairV0],
-) -> Result<ClockFitV0, ClockFitErrorV0> {
+pub fn fit_affine_ols_v0(pairs: &[ClockAnchorPairV0]) -> Result<ClockFitV0, ClockFitErrorV0> {
     let origins = validate_pairs(pairs)?;
     let points = centered_pairs(pairs);
     let line = unweighted_least_squares(&points)?;
@@ -331,9 +329,7 @@ fn theil_sen_line(points: &[CenteredPairV0]) -> Result<LocalLineV0, ClockFitErro
 /// Theil-Sen affine baseline: median of all pairwise slopes and then median
 /// intercept. It is robust to a minority of gross anchor outliers, but has
 /// quadratic pair count and is intended only for the bounded v0 anchor set.
-pub fn fit_affine_theil_sen_v0(
-    pairs: &[ClockAnchorPairV0],
-) -> Result<ClockFitV0, ClockFitErrorV0> {
+pub fn fit_affine_theil_sen_v0(pairs: &[ClockAnchorPairV0]) -> Result<ClockFitV0, ClockFitErrorV0> {
     let origins = validate_pairs(pairs)?;
     let points = centered_pairs(pairs);
     let line = theil_sen_line(&points)?;
@@ -408,8 +404,7 @@ mod tests {
                 ClockAnchorPairV0 {
                     anchor_id: u16::try_from(index).unwrap_or(u16::MAX),
                     beta_local_time: beta,
-                    alpha_local_time: offset
-                        + (scale_numerator * beta) / scale_denominator,
+                    alpha_local_time: offset + (scale_numerator * beta) / scale_denominator,
                 }
             })
             .collect()
@@ -493,7 +488,10 @@ mod tests {
                 alpha_local_time: 1_000_i64 - (100_i64 + index * 100),
             })
             .collect::<Vec<_>>();
-        assert_eq!(fit_affine_ols_v0(&pairs), Err(ClockFitErrorV0::NonPositiveScale));
+        assert_eq!(
+            fit_affine_ols_v0(&pairs),
+            Err(ClockFitErrorV0::NonPositiveScale)
+        );
     }
 
     #[test]
