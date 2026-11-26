@@ -33,8 +33,7 @@ fn free_fall_errors(dt: f64) -> (f64, f64, f64) {
     }
 
     let body = world.body(handle).expect("body remains in world");
-    let expected_y =
-        initial.coord(1) + 0.5 * gravity * actual_duration * actual_duration;
+    let expected_y = initial.coord(1) + 0.5 * gravity * actual_duration * actual_duration;
     let expected_vy = gravity * actual_duration;
     let position_error = body.transform.translation.coord(1) - expected_y;
     let velocity_error = body.linear_velocity[1] - expected_vy;
@@ -57,8 +56,7 @@ fn semi_implicit_euler_matches_its_exact_discrete_error_and_first_order_rate() {
     let mut position_errors = Vec::new();
 
     for dt in timesteps {
-        let (position_error, velocity_error, expected_discrete_error) =
-            free_fall_errors(dt);
+        let (position_error, velocity_error, expected_discrete_error) = free_fall_errors(dt);
 
         assert!(
             (position_error - expected_discrete_error).abs() <= 1.0e-9,
@@ -123,16 +121,13 @@ fn obb_sat_reference(
 ) -> bool {
     let axes_a = local_axes(angle_a);
     let axes_b = local_axes(angle_b);
-    let delta = [
-        center_b[0] - center_a[0],
-        center_b[1] - center_a[1],
-    ];
+    let delta = [center_b[0] - center_a[0], center_b[1] - center_a[1]];
 
     for axis in axes_a.into_iter().chain(axes_b) {
-        let radius_a = half_a[0] * dot(axes_a[0], axis).abs()
-            + half_a[1] * dot(axes_a[1], axis).abs();
-        let radius_b = half_b[0] * dot(axes_b[0], axis).abs()
-            + half_b[1] * dot(axes_b[1], axis).abs();
+        let radius_a =
+            half_a[0] * dot(axes_a[0], axis).abs() + half_a[1] * dot(axes_a[1], axis).abs();
+        let radius_b =
+            half_b[0] * dot(axes_b[0], axis).abs() + half_b[1] * dot(axes_b[1], axis).abs();
         if dot(delta, axis).abs() > radius_a + radius_b + 1.0e-12 {
             return false;
         }
@@ -173,16 +168,10 @@ fn transformed_obb_gjk_matches_seeded_independent_sat_reference() {
             rotation: rotor_2d(angle_b),
         };
 
-        let expected = obb_sat_reference(
-            center_a, half_a, angle_a, center_b, half_b, angle_b,
-        );
-        let observed = gjk::intersects_transformed(
-            &shape_a,
-            &transform_a,
-            &shape_b,
-            &transform_b,
-        )
-        .intersecting;
+        let expected = obb_sat_reference(center_a, half_a, angle_a, center_b, half_b, angle_b);
+        let observed =
+            gjk::intersects_transformed(&shape_a, &transform_a, &shape_b, &transform_b)
+                .intersecting;
 
         if observed && !expected {
             false_positives += 1;
