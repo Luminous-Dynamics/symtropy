@@ -9,7 +9,6 @@ version = "0.1.0"
 [[package]]
 name = "incremental-aabb-tree-reference"
 version = "0.1.0"
-source = "git+https://github.com/Luminous-Dynamics/symtropy?rev=fed9ba265485d495d9f6191f280ff826d255e648#fed9ba265485d495d9f6191f280ff826d255e648"
 
 [[package]]
 name = "swept-pair-oracle"
