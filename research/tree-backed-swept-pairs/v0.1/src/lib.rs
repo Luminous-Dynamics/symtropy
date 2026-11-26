@@ -265,9 +265,8 @@ fn same_body(left: &ColliderIdentity, right: &ColliderIdentity) -> bool {
 }
 
 fn motion_bounds_overlap<const D: usize>(left: &MotionAabb<D>, right: &MotionAabb<D>) -> bool {
-    (0..D).all(|axis| {
-        left.max()[axis] >= right.min()[axis] && right.max()[axis] >= left.min()[axis]
-    })
+    (0..D)
+        .all(|axis| left.max()[axis] >= right.min()[axis] && right.max()[axis] >= left.min()[axis])
 }
 
 fn identity_key(identity: &ColliderIdentity) -> IdentityKey {
@@ -439,8 +438,12 @@ impl TreeMaintenanceDelta {
             inserts: after
                 .insert_operations
                 .saturating_sub(before.insert_operations),
-            removes: after.remove_operations.saturating_sub(before.remove_operations),
-            updates: after.update_operations.saturating_sub(before.update_operations),
+            removes: after
+                .remove_operations
+                .saturating_sub(before.remove_operations),
+            updates: after
+                .update_operations
+                .saturating_sub(before.update_operations),
             fat_contained_updates: after
                 .fat_contained_updates
                 .saturating_sub(before.fat_contained_updates),
@@ -884,10 +887,7 @@ mod tests {
     #[test]
     fn stateful_tree_inserts_reinserts_and_removes_across_frames() {
         let mut broadphase = TreeBackedBroadphase::<1>::new(TreeBuildConfig::default()).unwrap();
-        let frame_one = [
-            proxy(1, [0.0], [1.0], [0.0]),
-            proxy(2, [5.0], [6.0], [0.0]),
-        ];
+        let frame_one = [proxy(1, [0.0], [1.0], [0.0]), proxy(2, [5.0], [6.0], [0.0])];
         let first = broadphase.step(&frame_one).unwrap();
         assert_eq!(first.maintenance_delta.inserts, 2);
         assert_eq!(first.tree_stats.proxy_count, 2);
