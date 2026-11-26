@@ -1,6 +1,6 @@
 # Maritime Exact Resource Oracle v0.1
 
-**Status:** synthetic exhaustive micro-instance; exact-head CI pending.  
+**Status:** synthetic exhaustive micro-instance; dedicated exact-head workflow passed.  
 **Tracking:** [#7519 — MARITIME-EXACT-ORACLE-001](https://github.com/Luminous-Dynamics/symtropy/issues/7519).  
 **Related:** #3683, #7231, #7357, #7504, #7510, #7512.
 
@@ -116,7 +116,7 @@ Public context:
 - Transnet, 18 November 2026: https://www.transnet.net/getFile.ashx?id=34389
 - Business Day, 25 November 2026: https://www.businessday.co.za/economy/2026-11-25-durban-port-backlog-to-last-into-january-transnet-says/
 
-The additional Rust-only regressions now cover sea–rail tracks, tide/mooring/bridge coupling and this DGT direct-vs-diversion structure. The separately compared receipt fixture remains the 4-feasible / 3-Pareto two-vessel port case; the added topology tests do not yet have independent TSV reference receipts.
+The additional Rust unit regressions cover sea–rail tracks and tide/mooring/bridge coupling. DGT direct-vs-diversion has now also been promoted to a separately frozen TSV receipt and independent reference.
 
 
 ## Independently reproduced DGT recovery case
@@ -135,4 +135,17 @@ The dedicated workflow now emits and checks two receipts:
 1. the primary micro-port receipt (4 feasible, 3 Pareto);
 2. the DGT recovery receipt (2 feasible, 2 Pareto).
 
-The DGT run is independently reproduced from `fixtures/dgt-recovery.tsv` by `scripts/dgt_reference.py`. Both receipts are uploaded as workflow artifacts. The new DGT fixture must pass its own exact-head run before this extension is considered qualified.
+The DGT run is independently reproduced from `fixtures/dgt-recovery.tsv` by `scripts/dgt_reference.py`. Both receipts are uploaded as workflow artifacts. The DGT fixture passed its exact-head independent receipt check; see the qualification record below.
+
+
+## Exact-head qualification record — primary + DGT receipts
+
+The dedicated `maritime-exact-resource-oracle` workflow passed on commit `5c9474ccba68dfd1cf0d51f95b8f057e04cbccc7`:
+- Formatting: pass
+- Rust unit tests: 13 passed, 0 failed
+- Strict Clippy: pass
+- Primary micro-port receipt: pass; independent reference reports 4 feasible / 3 Pareto
+- DGT recovery receipt: pass; independent reference confirms 2/2 cross-route bundles
+- Both deterministic receipts uploaded
+
+The DGT fixture is a discrete synthetic translation of the public intervention pattern. It is not a Transnet schedule reconstruction or an independently measured capacity / performance claim. The sea–rail and tidal mooring/bridge additions remain unit-level regressions, while the primary and DGT fixtures have independent serialized receipt references.
