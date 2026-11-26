@@ -4,11 +4,13 @@ A small branch-and-bound reference that uses interval forward-mode AD from the a
 
 ## Scope
 
+The objective and compliance expression have separate provenance IDs. The objective expression ID is bound to the root parameter-domain record; the compliance expression ID is an explicit policy input and is copied into every margin evaluation and report.
+
 This v0.1 crate solves a deliberately narrow problem:
 - outer prefix parameters are design variables;
 - remaining suffix parameters are a fixed bounded nuisance/operating domain;
 - one scalar objective is minimized;
-- one scalar robust compliance margin must remain nonnegative over the full design × nuisance box.
+- one separately identified scalar robust compliance-margin expression must remain nonnegative over the full design × nuisance box.
 
 The design search subdivides only design variables. The nuisance/operating domain remains whole and is conservatively enclosed at every node. This makes v0.1 simple and safe but can be loose. A later increment can partition nuisance space into a validated exact cover and tighten minimax bounds.
 
@@ -32,6 +34,7 @@ This uses the complete nuisance envelope in every evaluation. Because v0.1 does 
 - fixed ID-order tie-break;
 - maximum node count, maximum depth and per-design-variable minimum width;
 - absolute-plus-relative global gap target;
+- separate objective-expression and compliance-expression identities;
 - exact node IDs and parent/child path identities.
 
 If no incumbent exists, the report says so. If budget/width limits stop the search, unresolved boxes remain explicit. No queue-empty shortcut is labelled global optimality.
