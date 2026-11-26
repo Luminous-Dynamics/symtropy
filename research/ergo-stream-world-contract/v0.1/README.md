@@ -173,7 +173,7 @@ Symtropy [#7495 — ERGO-STREAM-CLOCK-BASELINE-001](https://github.com/Luminous-
 - integer-centered timestamp differences plus exact reference epochs to reduce precision loss for large absolute timestamps;
 - eleven focused tests including a gross endpoint outlier, large absolute timestamp epochs, negative-rate rejection and the 128-anchor bound.
 
-These estimators consume only public paired sensor-time anchors. They do not consume evaluator time, event identities, arrival delay or hidden clock parameters. They are generic baselines, not a reproduction of MATH-SYNC. Exact-head Rust 1.96 format/tests/strict Clippy remain pending.
+These estimators consume only public paired sensor-time anchors. They do not consume evaluator time, event identities, arrival delay or hidden clock parameters. They are generic baselines, not a reproduction of MATH-SYNC. The owning oracle base (#7432) and multimodal parent (#7493) have passed Rust 1.96 format/tests/strict Clippy; this clock-estimator branch includes the inherited NodeV0 import and calibration receipt error fixes. Its own exact-head workflow is still required before claiming qualification.
 
 ### Parent integration repair
 
