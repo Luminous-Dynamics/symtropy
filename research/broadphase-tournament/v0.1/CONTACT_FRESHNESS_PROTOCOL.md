@@ -28,7 +28,8 @@ The first Rust slice is exported from `src/contact_freshness.rs`:
 - `GlobalContactRevisions`: world and collision-policy revisions; SHA-256 digests for narrowphase and solver configuration.
 - `ContactFreshnessStamp`: canonical pair plus the exact endpoint/global tuple under which a manifold was last produced.
 - `ContactReuseDecision`: independent `geometry`, `warm_start`, `pair_eligibility_recheck_required` and `solver_activation_required` outputs.
-- `ContactFreshnessError`: identity mismatch and monotonic-revision violations. Regressions fail closed.
+- `plan_contact_lifecycle`: translates canonical, disjoint pair-event streams into deterministic `Added`, `Removed` and `Revalidated` contact actions. New and revalidated pairs require current endpoint revision records; a revalidated pair without a stamp requires a full contact build; an added pair with an orphaned prior stamp is rejected.
+- `ContactFreshnessError` / `ContactLifecycleError`: identity mismatch, noncanonical or conflicting events, missing endpoint data and monotonic-revision violations. Regressions fail closed.
 
 The stamp must be written by the contact-producing side only after a successful narrowphase/contact update. The broadphase may request revalidation; it must not certify that its own contact is fresh.
 
@@ -54,6 +55,7 @@ The matrix is conservative. A production integration may retain more state only 
 - Per-domain revisions are monotonic within one proxy generation.
 - A generation change is a new residency identity; never compare its reset counters with the old generation or alias the old contact.
 - World revisions may advance while an unaffected pair remains untouched. Reuse depends on unchanged endpoint/global revisions and a complete authoritative mutation journal, not rewriting every pair stamp each frame.
+- Any endpoint/global mutation must advance the enclosing world revision. A changed endpoint or policy tuple under an unchanged world revision is rejected.
 - A lower world, policy or same-generation endpoint revision is an error and requires reconciliation/quarantine.
 - The caller must bind the revision tuple to the authoritative world mutation source. This crate cannot prove journal provenance.
 
@@ -161,7 +163,7 @@ The intended contribution is not a new generic AABB tree or a claim that pair ca
 
 ## 7. Current evidence boundary
 
-Implemented in this branch: typed revision structures, generation-aware identity checks, monotonicity errors, separate geometry/warm-start/activation decisions, and unit tests for the principal mutation classes.
+Implemented in this branch: typed revision structures, generation-aware identity checks, monotonicity errors including world-revision binding, separate geometry/warm-start/activation decisions, deterministic pair-delta-to-contact action planning, and unit tests for the principal mutation and event classes.
 
 Not yet implemented or established: live world mutation journal integration; cryptographic receipt serialization; independent verifier/replay; real contact-manager or solver integration; matched external-engine runs; Rust formatting, tests, Clippy or release timings on this exact branch head.
 
