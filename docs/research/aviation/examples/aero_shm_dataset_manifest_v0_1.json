@@ -4,7 +4,7 @@
   "status": "DISCOVERY_ONLY",
   "synthetic_only": false,
   "claim_ceiling": "public-source discovery metadata only; no dataset download, rights clearance, physical result or benchmark result claimed",
-  "checked_on": "2026-11-25",
+  "checked_on": "2026-11-26",
   "datasets": [
     {
       "dataset_id": "nasa-pcoe-cfrp-composites",
@@ -117,7 +117,8 @@
         "original_samples_per_wave": 10000,
         "public_samples_per_wave": 2000,
         "channel_count": 8,
-        "file_format": "Python pickle (.pickle)"
+        "file_format": "Python pickle (.pickle)",
+        "dataset_license_metadata": "CC BY reported by DataCite/OpenAIRE metadata for DOI 10.6084/m9.figshare.28112504; direct item-level Figshare licence still requires confirmation"
       },
       "limitations": [
         "The structure is an aluminum plate, not an aerospace composite; use for environmental/sensor/installation drift rather than direct aircraft transfer claims.",
@@ -127,9 +128,9 @@
       ],
       "access_status": "PUBLIC_FIGSHARE_DOI",
       "rights": {
-        "status": "UNVERIFIED",
-        "evidence_url": "https://doi.org/10.6084/m9.figshare.28112504",
-        "notes": "Retrieve the item-specific license and version metadata from the Figshare record before reuse or redistribution; platform-level defaults do not establish this item's actual license."
+        "status": "REVIEW_PENDING",
+        "evidence_url": "https://oamonitor.ireland.openaire.eu/national/search/dataset?pid=10.6084%2Fm9.figshare.28112504",
+        "notes": "DataCite/OpenAIRE metadata reports CC BY for the dataset record. This is stronger than an assumed Figshare default, but the direct item-level Figshare license and version metadata must still be checked before reuse or redistribution. The journal article itself has a separate CC BY-NC-ND 4.0 license; do not conflate article and dataset rights. No download or adaptation has occurred."
       },
       "security": {
         "format_risk": "UNTRUSTED_PICKLE_EXECUTION_RISK",

@@ -104,6 +104,23 @@ A later report time cannot retroactively move the physical acquisition time. A l
 
 The benchmark includes both a revocation effective after acquisition but before report generation (must remain `NOT_YET_EFFECTIVE` for that observation) and a revocation whose effective time falls inside the acquisition uncertainty interval (must abstain). This is distinct from whether the event was known at the evidence cutoff.
 
+### 2.5.1 Uncertainty in event effective time
+
+The event's effective time may itself be uncertain. A source can publish an asserted instant while its clock, synchronization, timestamp precision or authority record leaves a bounded interval for when the event actually took effect. Preserve the original assertion and its time-quality evidence; do not silently convert an asserted point into a perfectly known instant.
+
+The research reference primitive is `crates/domains/symtropy-aero-material-qual/src/effectivity_interval_v0_1.rs`. It compares an event-effective interval `[e^-, e^+]` with the physical acquisition interval `[a^-, a^+]`:
+
+- `e^+ <= a^-`: definitely effective for every acquisition instant supported by the bounds.
+- `e^- > a^+`: definitely not yet effective for any acquisition instant supported by the bounds.
+- Otherwise: the intervals overlap or touch without a universal ordering; return `TIME_BOUNDARY_AMBIGUOUS` and abstain.
+- An interval whose start exceeds its end is invalid and rejected.
+
+For a point-valued event time, set `e^-=e^+=t_e`; this preserves the earlier point-vs-acquisition-interval semantics. Exact equality of two point instants is inclusive: the event is effective at the acquisition instant under this contract.
+
+These are hard-bound semantics. A statistical confidence interval is not automatically a guaranteed enclosure; preserve the method, coverage level, clock source and assumptions separately. Do not convert a 95% interval into a deterministic certainty claim. Likewise, event-effective-time uncertainty is distinct from measurement-result uncertainty and acquisition-clock uncertainty; those quantities may interact, but must not be collapsed into a single generic uncertainty field.
+
+The current temporal corpus and production evaluator still use point-valued event `effective_at` fields. The interval primitive is research-only and is not yet wired into those paths. The next corpus version should add positive, negative and overlap cases for event-effective uncertainty, including equal-point boundaries and statistical intervals whose coverage semantics are not qualified.
+
 ### 2.6 Measurement-time uncertainty
 
 A timestamp is not infinitely precise. Preserve an acquisition-time interval or estimate plus uncertainty. For calibration validity `[valid_from, valid_until)`, a conservative positive binding requires the entire credible acquisition interval to be contained in the validity interval.

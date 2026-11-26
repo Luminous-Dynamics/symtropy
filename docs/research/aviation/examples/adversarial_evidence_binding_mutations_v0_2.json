@@ -637,7 +637,8 @@
       ],
       "expected_structurally_complete": false,
       "expected_violation_codes": [
-        "CALIBRATION_EVENT_REPLAY"
+        "CALIBRATION_EVENT_REPLAY",
+        "DUPLICATE_ENTITY_ID"
       ],
       "expected_blocker_codes": [
         "CALIBRATION_EVENT_HISTORY_UNRESOLVED",

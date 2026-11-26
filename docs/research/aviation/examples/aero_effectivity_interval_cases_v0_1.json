@@ -1,0 +1,105 @@
+{
+  "corpus_id": "AERO-EFFECTIVITY-INTERVAL-CASES-0.1",
+  "version": "0.1.0",
+  "evidence_class": "SYNTHETIC_ONLY",
+  "oracle_review_status": "NOT_INDEPENDENTLY_REVIEWED",
+  "interval_semantics": "Closed hard-bound intervals for effectivity comparison. Statistical coverage levels are not implied.",
+  "cases": [
+    {
+      "case_id": "event-definitely-effective-before-acquisition",
+      "event_effective": {
+        "earliest_unix_ms": 80,
+        "latest_unix_ms": 90
+      },
+      "acquisition": {
+        "earliest_unix_ms": 100,
+        "latest_unix_ms": 110
+      },
+      "expected": "DEFINITELY_EFFECTIVE"
+    },
+    {
+      "case_id": "event-definitely-after-acquisition",
+      "event_effective": {
+        "earliest_unix_ms": 111,
+        "latest_unix_ms": 120
+      },
+      "acquisition": {
+        "earliest_unix_ms": 100,
+        "latest_unix_ms": 110
+      },
+      "expected": "DEFINITELY_NOT_YET_EFFECTIVE"
+    },
+    {
+      "case_id": "event-and-acquisition-bounds-overlap",
+      "event_effective": {
+        "earliest_unix_ms": 105,
+        "latest_unix_ms": 115
+      },
+      "acquisition": {
+        "earliest_unix_ms": 100,
+        "latest_unix_ms": 110
+      },
+      "expected": "TIME_BOUNDARY_AMBIGUOUS"
+    },
+    {
+      "case_id": "uncertainty-bounds-touch-without-universal-order",
+      "event_effective": {
+        "earliest_unix_ms": 110,
+        "latest_unix_ms": 120
+      },
+      "acquisition": {
+        "earliest_unix_ms": 100,
+        "latest_unix_ms": 110
+      },
+      "expected": "TIME_BOUNDARY_AMBIGUOUS"
+    },
+    {
+      "case_id": "exact-point-event-at-exact-acquisition",
+      "event_effective": {
+        "earliest_unix_ms": 100,
+        "latest_unix_ms": 100
+      },
+      "acquisition": {
+        "earliest_unix_ms": 100,
+        "latest_unix_ms": 100
+      },
+      "expected": "DEFINITELY_EFFECTIVE"
+    },
+    {
+      "case_id": "event-latest-equals-acquisition-earliest",
+      "event_effective": {
+        "earliest_unix_ms": 80,
+        "latest_unix_ms": 100
+      },
+      "acquisition": {
+        "earliest_unix_ms": 100,
+        "latest_unix_ms": 110
+      },
+      "expected": "DEFINITELY_EFFECTIVE"
+    },
+    {
+      "case_id": "invalid-event-effective-interval",
+      "event_effective": {
+        "earliest_unix_ms": 120,
+        "latest_unix_ms": 110
+      },
+      "acquisition": {
+        "earliest_unix_ms": 100,
+        "latest_unix_ms": 110
+      },
+      "expected": "INVALID_TIME_INTERVAL"
+    },
+    {
+      "case_id": "invalid-acquisition-interval",
+      "event_effective": {
+        "earliest_unix_ms": 80,
+        "latest_unix_ms": 90
+      },
+      "acquisition": {
+        "earliest_unix_ms": 120,
+        "latest_unix_ms": 110
+      },
+      "expected": "INVALID_TIME_INTERVAL"
+    }
+  ]
+}

@@ -2,7 +2,7 @@ name: AERO Material Qualification Contract
 
 on:
   push:
-    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1"]
+    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1"]
     paths:
       - "crates/domains/symtropy-aero-material-qual/**"
       - "docs/research/aviation/AERO_EVIDENCE_BINDING_001_V0_2.md"
@@ -18,6 +18,17 @@ on:
       - "docs/research/aviation/examples/aero_temporal_replay_corpus_v0_1.json"
       - "docs/research/aviation/examples/aero_shm_dataset_manifest_v0_1.json"
       - "docs/research/aviation/schemas/aero_shm_dataset_manifest_v0_1.schema.json"
+      - "docs/research/aviation/AERO_OBSERVER_COVERAGE_QUALIFICATION_V0_1.md"
+      - "docs/research/aviation/examples/aero_observer_coverage_corpus_v0_1.json"
+      - "docs/research/aviation/schemas/aero_observer_coverage_corpus_v0_1.schema.json"
+      - "docs/research/aviation/AERO_CAUSAL_EVIDENCE_CUT_BENCHMARK_V0_1.md"
+      - "docs/research/aviation/examples/aero_vector_evidence_cut_v0_1.json"
+      - "docs/research/aviation/schemas/aero_vector_evidence_cut_v0_1.schema.json"
+      - "docs/research/aviation/AERO_SYMTHAEA_EVIDENCE_GAP_ADAPTER_V0_1.md"
+      - "docs/research/aviation/examples/aero_evidence_gap_packet_v0_1.json"
+      - "docs/research/aviation/schemas/aero_evidence_gap_packet_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_effectivity_interval_cases_v0_1.json"
+      - "docs/research/aviation/schemas/aero_effectivity_interval_cases_v0_1.schema.json"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
     branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1"]
@@ -39,6 +50,17 @@ on:
       - "docs/research/aviation/AERO_DFI_SHM_CO_DESIGN_BENCHMARK_V0_1.md"
       - "docs/research/aviation/examples/aero_shm_dataset_manifest_v0_1.json"
       - "docs/research/aviation/schemas/aero_shm_dataset_manifest_v0_1.schema.json"
+      - "docs/research/aviation/AERO_OBSERVER_COVERAGE_QUALIFICATION_V0_1.md"
+      - "docs/research/aviation/examples/aero_observer_coverage_corpus_v0_1.json"
+      - "docs/research/aviation/schemas/aero_observer_coverage_corpus_v0_1.schema.json"
+      - "docs/research/aviation/AERO_CAUSAL_EVIDENCE_CUT_BENCHMARK_V0_1.md"
+      - "docs/research/aviation/examples/aero_vector_evidence_cut_v0_1.json"
+      - "docs/research/aviation/schemas/aero_vector_evidence_cut_v0_1.schema.json"
+      - "docs/research/aviation/AERO_SYMTHAEA_EVIDENCE_GAP_ADAPTER_V0_1.md"
+      - "docs/research/aviation/examples/aero_evidence_gap_packet_v0_1.json"
+      - "docs/research/aviation/schemas/aero_evidence_gap_packet_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_effectivity_interval_cases_v0_1.json"
+      - "docs/research/aviation/schemas/aero_effectivity_interval_cases_v0_1.schema.json"
       - ".github/workflows/aero-material-qual.yml"
   workflow_dispatch:
 
@@ -168,6 +190,7 @@ jobs:
                   print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
               raise SystemExit(f"temporal replay corpus failed schema validation ({len(errors)} errors)")
           cases = corpus["cases"]
+          required_modes = {"as_known_at", "recomputed_with_current_trust", "recomputed_with_current_evidence_and_trust"}
           ids = [case["case_id"] for case in cases]
           if len(ids) != len(set(ids)):
               raise SystemExit("temporal replay case IDs must be unique")
@@ -224,7 +247,6 @@ jobs:
               raise SystemExit("correction-of-correction target must point to prior correction")
           if any(nested_correction["expected"][mode]["reason_codes"] != ["CALIBRATION_CORRECTION_SEMANTICS_UNQUALIFIED"] for mode in required_modes):
               raise SystemExit("correction-of-correction semantics must remain unqualified")
-          required_modes = {"as_known_at", "recomputed_with_current_trust", "recomputed_with_current_evidence_and_trust"}
           for case in cases:
               if set(case["expected"]) != required_modes:
                   raise SystemExit(f"{case['case_id']}: all three replay modes must be frozen")
@@ -372,6 +394,169 @@ jobs:
           print(f"Temporal replay corpus structure passed: {len(cases)} cases; semantic oracle review still required.")
           PY
 
+      - name: Validate observer coverage corpus schema and frozen dispositions
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema = json.loads((root / "docs/research/aviation/schemas/aero_observer_coverage_corpus_v0_1.schema.json").read_text())
+          corpus = json.loads((root / "docs/research/aviation/examples/aero_observer_coverage_corpus_v0_1.json").read_text())
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("observer coverage schema must declare Draft 2020-12")
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(corpus), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
+              raise SystemExit(f"observer coverage corpus failed schema validation ({len(errors)} errors)")
+          cases = corpus["cases"]
+          ids = [case["case_id"] for case in cases]
+          if len(ids) != len(set(ids)):
+              raise SystemExit("observer coverage case IDs must be unique")
+          if len(cases) != 24:
+              raise SystemExit(f"observer coverage corpus must contain exactly 24 frozen cases; found {len(cases)}")
+          if corpus.get("oracle_review_status") != "NOT_INDEPENDENTLY_REVIEWED":
+              raise SystemExit("observer coverage oracle status must remain explicit until independent review")
+          required_statuses = {"QUALIFIED_COMPLETE_FOR_SCOPE", "INCOMPLETE", "UNVERIFIED", "INVALID", "OUT_OF_SCOPE"}
+          if set(corpus["status_semantics"]) != required_statuses:
+              raise SystemExit("observer coverage status semantics are incomplete or contain unknown statuses")
+          seen_statuses = {case["coverage_status"] for case in cases}
+          if seen_statuses != required_statuses:
+              raise SystemExit(f"observer coverage corpus must include every disposition: {sorted(required_statuses)}")
+          allowed_pairs = {
+              "QUALIFIED_COMPLETE_FOR_SCOPE": {"ALLOW_SCOPED_ABSENCE_INFERENCE"},
+              "INCOMPLETE": {"ABSTAIN"},
+              "UNVERIFIED": {"TRUST_UNRESOLVED"},
+              "INVALID": {"REJECT"},
+              "OUT_OF_SCOPE": {"ABSTAIN", "TRUST_UNRESOLVED"},
+          }
+          for case in cases:
+              if case["replay_consequence"] not in allowed_pairs[case["coverage_status"]]:
+                  raise SystemExit(f"{case['case_id']}: unsafe coverage status/consequence pairing")
+              fixture = case["fixture"]
+              if not case["fault_codes"] and case["coverage_status"] != "QUALIFIED_COMPLETE_FOR_SCOPE":
+                  raise SystemExit(f"{case['case_id']}: non-positive control must identify its fault")
+              if case["coverage_status"] == "QUALIFIED_COMPLETE_FOR_SCOPE":
+                  required_true = (
+                      "scope_closed", "requested_claim_in_scope", "scope_manifest_digest_valid", "checkpoint_digest_valid",
+                      "receipt_present", "receipt_digest_valid", "independently_qualified",
+                      "source_identity_binding_valid", "stream_epoch_binding_verified",
+                      "source_roster_reconciled", "required_obligations_complete",
+                      "critical_channels_complete", "time_interval_complete",
+                      "stream_continuity_valid", "retention_available", "checkpoint_binding_valid",
+                  )
+                  if any(fixture[name] is not True for name in required_true):
+                      raise SystemExit(f"{case['case_id']}: complete-for-scope control has an unresolved obligation")
+          print(f"Observer coverage corpus structure passed: {len(cases)} synthetic cases; oracle review still required.")
+          PY
+
+      - name: Validate event effectivity interval corpus
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema = json.loads((root / "docs/research/aviation/schemas/aero_effectivity_interval_cases_v0_1.schema.json").read_text())
+          corpus = json.loads((root / "docs/research/aviation/examples/aero_effectivity_interval_cases_v0_1.json").read_text())
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("effectivity interval schema must declare Draft 2020-12")
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(corpus), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
+              raise SystemExit(f"effectivity interval corpus failed schema validation ({len(errors)} errors)")
+          cases = corpus["cases"]
+          ids = [case["case_id"] for case in cases]
+          if len(ids) != 8 or len(ids) != len(set(ids)):
+              raise SystemExit("effectivity interval corpus must contain exactly 8 unique cases")
+          if corpus.get("oracle_review_status") != "NOT_INDEPENDENTLY_REVIEWED":
+              raise SystemExit("effectivity interval oracle status must remain explicit")
+          def compare(event, acquisition):
+              if event["earliest_unix_ms"] > event["latest_unix_ms"] or acquisition["earliest_unix_ms"] > acquisition["latest_unix_ms"]:
+                  return "INVALID_TIME_INTERVAL"
+              if event["latest_unix_ms"] <= acquisition["earliest_unix_ms"]:
+                  return "DEFINITELY_EFFECTIVE"
+              if event["earliest_unix_ms"] > acquisition["latest_unix_ms"]:
+                  return "DEFINITELY_NOT_YET_EFFECTIVE"
+              return "TIME_BOUNDARY_AMBIGUOUS"
+          for case in cases:
+              actual = compare(case["event_effective"], case["acquisition"])
+              if actual != case["expected"]:
+                  raise SystemExit(f"{case['case_id']}: expected {case['expected']}, got {actual}")
+          print(f"Event effectivity interval corpus passed: {len(cases)} synthetic cases; independent review still required.")
+          PY
+
+      - name: Validate vector evidence cut schema and positive causal fixture
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema = json.loads((root / "docs/research/aviation/schemas/aero_vector_evidence_cut_v0_1.schema.json").read_text())
+          fixture = json.loads((root / "docs/research/aviation/examples/aero_vector_evidence_cut_v0_1.json").read_text())
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("vector evidence cut schema must declare Draft 2020-12")
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(fixture), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
+              raise SystemExit(f"vector evidence cut fixture failed schema validation ({len(errors)} errors)")
+          keys = [(item["source_id"], item["partition_id"]) for item in fixture["watermarks"]]
+          if len(keys) != len(set(keys)):
+              raise SystemExit("vector watermark fixture has duplicate source/partition keys")
+          event_refs = [event["event_ref"] for event in fixture["events"]]
+          if len(event_refs) != len(set(event_refs)):
+              raise SystemExit("vector evidence cut fixture has duplicate event references")
+          if len(fixture["watermarks"]) < 2 or not any(event["dependencies"] for event in fixture["events"]):
+              raise SystemExit("positive vector fixture must include independent partitions and causal dependencies")
+          print("Vector evidence cut schema and positive fixture validation passed.")
+          PY
+
+      - name: Validate AERO evidence-gap packet schema and selector boundary
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema = json.loads((root / "docs/research/aviation/schemas/aero_evidence_gap_packet_v0_1.schema.json").read_text())
+          packet = json.loads((root / "docs/research/aviation/examples/aero_evidence_gap_packet_v0_1.json").read_text())
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("AERO evidence-gap schema must declare Draft 2020-12")
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(packet), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
+              raise SystemExit(f"AERO evidence-gap packet failed schema validation ({len(errors)} errors)")
+          if packet["claim_ceiling"] != "evidence_gap_packet_only" or packet["no_actuation"] is not True or packet["authority_granted"] is not False:
+              raise SystemExit("AERO evidence-gap packet exceeds its proposal-only authority boundary")
+          if packet["assessment"]["disposition"] != "TRUST_UNRESOLVED":
+              raise SystemExit("synthetic evidence-gap fixture must preserve its unresolved assessment")
+          for claim in packet["claims"]:
+              if not claim["claim_id"] or not claim["reason_codes"]:
+                  raise SystemExit("each synthetic claim must retain its identity and AERO reason codes")
+          print(f"AERO evidence-gap packet schema and authority boundary passed: {len(packet['claims'])} claims.")
+          PY
+
       - name: Validate SHM dataset manifest schema and rights gates
         run: |
           python - <<'PY'
@@ -413,6 +598,9 @@ jobs:
 
       - name: Run evaluator Clippy
         run: cargo clippy --locked --package symtropy-aero-material-qual --all-targets -- -D warnings
+
+      - name: Run typed causal-cut 10k benchmark smoke
+        run: cargo run --locked --package symtropy-aero-material-qual --example vector_cut_scale -- 10000 31
 
       - name: Run evaluator CLI smoke test
         shell: bash

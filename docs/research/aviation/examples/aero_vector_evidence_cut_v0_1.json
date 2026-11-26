@@ -1,0 +1,65 @@
+{
+  "cut_id": "aero-vector-cut-positive-001",
+  "watermarks": [
+    {
+      "source_id": "sensor-A",
+      "partition_id": "0",
+      "stream_epoch": "epoch-1",
+      "last_contiguous_sequence": 2,
+      "receiver_inclusion_offset": 20,
+      "checkpoint_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "source_id": "sensor-B",
+      "partition_id": "0",
+      "stream_epoch": "epoch-1",
+      "last_contiguous_sequence": 1,
+      "receiver_inclusion_offset": 10,
+      "checkpoint_digest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ],
+  "events": [
+    {
+      "event_ref": "sensor-A/event-1",
+      "source_id": "sensor-A",
+      "partition_id": "0",
+      "stream_epoch": "epoch-1",
+      "sequence": 1,
+      "receiver_inclusion_offset": 10,
+      "dependencies": []
+    },
+    {
+      "event_ref": "sensor-B/event-1",
+      "source_id": "sensor-B",
+      "partition_id": "0",
+      "stream_epoch": "epoch-1",
+      "sequence": 1,
+      "receiver_inclusion_offset": 10,
+      "dependencies": []
+    },
+    {
+      "event_ref": "sensor-A/event-2",
+      "source_id": "sensor-A",
+      "partition_id": "0",
+      "stream_epoch": "epoch-1",
+      "sequence": 2,
+      "receiver_inclusion_offset": 20,
+      "dependencies": [
+        {
+          "event_ref": "sensor-A/event-1",
+          "source_id": "sensor-A",
+          "partition_id": "0",
+          "stream_epoch": "epoch-1",
+          "sequence": 1
+        },
+        {
+          "event_ref": "sensor-B/event-1",
+          "source_id": "sensor-B",
+          "partition_id": "0",
+          "stream_epoch": "epoch-1",
+          "sequence": 1
+        }
+      ]
+    }
+  ]
+}

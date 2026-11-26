@@ -1,0 +1,349 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero_evidence_gap_packet_v0_1.schema.json",
+  "title": "AERO Evidence Gap Packet v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "record_kind",
+    "packet_id",
+    "producer_profile",
+    "assessment",
+    "decision_context",
+    "claims",
+    "source_evidence",
+    "change_impact",
+    "claim_ceiling",
+    "no_actuation",
+    "authority_granted",
+    "evidence_dependency_groups"
+  ],
+  "properties": {
+    "schema": {
+      "const": "AeroEvidenceGapPacketV1"
+    },
+    "record_kind": {
+      "const": "EVIDENCE_GAP_PACKET"
+    },
+    "packet_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "producer_profile": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assessment_ref",
+        "report_digest_sha256",
+        "replay_coordinate_digest_sha256",
+        "disposition",
+        "verifier_profile_id"
+      ],
+      "properties": {
+        "assessment_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "report_digest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "replay_coordinate_digest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "disposition": {
+          "enum": [
+            "ACCEPTED_FOR_BINDING_ONLY",
+            "BLOCK",
+            "ABSTAIN",
+            "TRUST_UNRESOLVED",
+            "INCOMPLETE",
+            "OUT_OF_SCOPE",
+            "REJECT"
+          ]
+        },
+        "verifier_profile_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "decision_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_ref",
+        "article_subject_ref",
+        "configuration_id",
+        "icd_revision"
+      ],
+      "properties": {
+        "profile_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "article_subject_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "icd_revision": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "source_evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/reference"
+      }
+    },
+    "change_impact": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/changeImpact"
+        }
+      ]
+    },
+    "claim_ceiling": {
+      "const": "evidence_gap_packet_only"
+    },
+    "no_actuation": {
+      "const": true
+    },
+    "authority_granted": {
+      "const": false
+    },
+    "evidence_dependency_groups": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "propertyNames": {
+        "pattern": "^\\S(?:.*\\S)?$"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "state"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "enum": [
+            "ADMITTED",
+            "UNVERIFIED",
+            "REJECTED",
+            "NOT_RECEIVED"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "ADMITTED"
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "sha256": {
+                "$ref": "#/$defs/sha256"
+              }
+            },
+            "required": [
+              "sha256"
+            ]
+          }
+        }
+      ]
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "disposition",
+        "reason_codes",
+        "criticality",
+        "evidence_requirements"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disposition": {
+          "enum": [
+            "ACCEPTED_FOR_BINDING_ONLY",
+            "BLOCK",
+            "ABSTAIN",
+            "TRUST_UNRESOLVED",
+            "INCOMPLETE",
+            "OUT_OF_SCOPE",
+            "REJECT"
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_]+$"
+          }
+        },
+        "criticality": {
+          "enum": [
+            "CRITICAL",
+            "NON_CRITICAL",
+            "UNKNOWN"
+          ]
+        },
+        "evidence_requirements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/requirement"
+          }
+        }
+      }
+    },
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirement_id",
+        "semantic_type",
+        "owner_ref",
+        "output_contract_ref",
+        "mandatory",
+        "independent_evidence_required"
+      ],
+      "properties": {
+        "requirement_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "semantic_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "output_contract_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mandatory": {
+          "type": "boolean"
+        },
+        "independent_evidence_required": {
+          "type": "boolean"
+        }
+      }
+    },
+    "changeImpact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_owner",
+        "receipt_ref",
+        "event_frontier_ref",
+        "completeness",
+        "required_requalification_claims",
+        "unaffected_claims"
+      ],
+      "properties": {
+        "source_owner": {
+          "const": "mycelix:6219"
+        },
+        "receipt_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_frontier_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "completeness": {
+          "enum": [
+            "COMPLETE",
+            "INCOMPLETE"
+          ]
+        },
+        "required_requalification_claims": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "unaffected_claims": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

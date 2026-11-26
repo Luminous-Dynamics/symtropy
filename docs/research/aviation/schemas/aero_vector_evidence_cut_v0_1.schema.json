@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero_vector_evidence_cut_v0_1.schema.json",
+  "title": "AERO Vector Evidence Cut v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "cut_id",
+    "watermarks",
+    "events"
+  ],
+  "properties": {
+    "cut_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "watermarks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/watermark"
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/event"
+      }
+    }
+  },
+  "$defs": {
+    "nonemptyString": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\S(?:.*\\S)?$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "watermark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "partition_id",
+        "stream_epoch",
+        "last_contiguous_sequence",
+        "receiver_inclusion_offset",
+        "checkpoint_digest_sha256"
+      ],
+      "properties": {
+        "source_id": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "partition_id": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "stream_epoch": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "last_contiguous_sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "receiver_inclusion_offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "checkpoint_digest_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_ref",
+        "source_id",
+        "partition_id",
+        "stream_epoch",
+        "sequence"
+      ],
+      "properties": {
+        "event_ref": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "source_id": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "partition_id": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "stream_epoch": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_ref",
+        "source_id",
+        "partition_id",
+        "stream_epoch",
+        "sequence",
+        "receiver_inclusion_offset",
+        "dependencies"
+      ],
+      "properties": {
+        "event_ref": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "source_id": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "partition_id": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "stream_epoch": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "receiver_inclusion_offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/dependency"
+          }
+        }
+      }
+    }
+  }
+}

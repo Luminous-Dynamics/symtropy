@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero_observer_coverage_corpus_v0_1.schema.json",
+  "title": "AERO Observer Coverage Qualification Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_id",
+    "version",
+    "oracle_review_status",
+    "evidence_class",
+    "purpose",
+    "status_semantics",
+    "cases"
+  ],
+  "properties": {
+    "corpus_id": {
+      "const": "AERO-OBSERVER-COVERAGE-QUALIFICATION-001"
+    },
+    "version": {
+      "const": "0.1.0"
+    },
+    "oracle_review_status": {
+      "const": "NOT_INDEPENDENTLY_REVIEWED"
+    },
+    "evidence_class": {
+      "const": "SYNTHETIC_ONLY"
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status_semantics": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      },
+      "required": [
+        "QUALIFIED_COMPLETE_FOR_SCOPE",
+        "INCOMPLETE",
+        "UNVERIFIED",
+        "INVALID",
+        "OUT_OF_SCOPE"
+      ]
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "challenge",
+          "coverage_status",
+          "replay_consequence",
+          "fixture",
+          "fault_codes"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^coverage-[0-9]{3}-[a-z0-9-]+$"
+          },
+          "challenge": {
+            "type": "string",
+            "minLength": 1
+          },
+          "coverage_status": {
+            "enum": [
+              "QUALIFIED_COMPLETE_FOR_SCOPE",
+              "INCOMPLETE",
+              "UNVERIFIED",
+              "INVALID",
+              "OUT_OF_SCOPE"
+            ]
+          },
+          "replay_consequence": {
+            "enum": [
+              "ALLOW_SCOPED_ABSENCE_INFERENCE",
+              "ABSTAIN",
+              "TRUST_UNRESOLVED",
+              "REJECT"
+            ]
+          },
+          "fixture": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "scope_closed",
+              "scope_manifest_digest_valid",
+              "checkpoint_digest_valid",
+              "receipt_present",
+              "receipt_digest_valid",
+              "independently_qualified",
+              "source_roster_reconciled",
+              "required_obligations_complete",
+              "critical_channels_complete",
+              "time_interval_complete",
+              "stream_continuity_valid",
+              "retention_available",
+              "checkpoint_binding_valid",
+              "scope_note",
+              "requested_claim_in_scope",
+              "source_identity_binding_valid",
+              "stream_epoch_binding_verified"
+            ],
+            "properties": {
+              "scope_closed": {
+                "type": "boolean"
+              },
+              "scope_manifest_digest_valid": {
+                "type": "boolean"
+              },
+              "checkpoint_digest_valid": {
+                "type": "boolean"
+              },
+              "receipt_present": {
+                "type": "boolean"
+              },
+              "receipt_digest_valid": {
+                "type": "boolean"
+              },
+              "independently_qualified": {
+                "type": "boolean"
+              },
+              "source_roster_reconciled": {
+                "type": "boolean"
+              },
+              "required_obligations_complete": {
+                "type": "boolean"
+              },
+              "critical_channels_complete": {
+                "type": "boolean"
+              },
+              "time_interval_complete": {
+                "type": "boolean"
+              },
+              "stream_continuity_valid": {
+                "type": "boolean"
+              },
+              "retention_available": {
+                "type": "boolean"
+              },
+              "checkpoint_binding_valid": {
+                "type": "boolean"
+              },
+              "scope_note": {
+                "type": "string",
+                "minLength": 1
+              },
+              "requested_claim_in_scope": {
+                "type": "boolean",
+                "description": "Whether the requested engineering claim lies inside the declared observer-coverage scope."
+              },
+              "source_identity_binding_valid": {
+                "type": "boolean",
+                "description": "Whether every required source identity and namespace binding is verified."
+              },
+              "stream_epoch_binding_verified": {
+                "type": "boolean",
+                "description": "Whether stream epoch transitions are authenticated and bound to the coverage receipt."
+              }
+            }
+          },
+          "fault_codes": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z0-9_]+$"
+            }
+          }
+        }
+      }
+    }
+  }
+}
