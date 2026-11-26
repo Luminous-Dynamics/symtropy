@@ -1041,8 +1041,10 @@ mod tests {
         candidate.final_frame_pairs[0].original_sha256 = "0".repeat(64);
         let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
         assert_eq!(report.invalid_n, 1);
-        assert!(report.candidate_audits[0]
-            .reason_codes
-            .contains(&"FRAME_DIGEST_MISMATCH".to_owned()));
+        assert!(
+            report.candidate_audits[0]
+                .reason_codes
+                .contains(&"FRAME_DIGEST_MISMATCH".to_owned())
+        );
     }
 }
