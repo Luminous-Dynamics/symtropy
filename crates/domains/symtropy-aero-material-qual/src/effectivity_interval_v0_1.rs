@@ -147,6 +147,43 @@ mod tests {
     }
 
     #[test]
+    fn exhaustive_small_interval_pairs_match_pairwise_time_ordering() {
+        for event_earliest in 0..=3 {
+            for event_latest in event_earliest..=3 {
+                for acquisition_earliest in 0..=3 {
+                    for acquisition_latest in acquisition_earliest..=3 {
+                        let event = interval(event_earliest, event_latest);
+                        let acquisition =
+                            interval(acquisition_earliest, acquisition_latest);
+                        let every_pair_effective = (event_earliest..=event_latest)
+                            .all(|event_time| {
+                                (acquisition_earliest..=acquisition_latest)
+                                    .all(|acquisition_time| event_time <= acquisition_time)
+                            });
+                        let every_pair_not_yet_effective =
+                            (event_earliest..=event_latest).all(|event_time| {
+                                (acquisition_earliest..=acquisition_latest)
+                                    .all(|acquisition_time| event_time > acquisition_time)
+                            });
+                        let expected = if every_pair_effective {
+                            EffectivityRelation::DefinitelyEffective
+                        } else if every_pair_not_yet_effective {
+                            EffectivityRelation::DefinitelyNotYetEffective
+                        } else {
+                            EffectivityRelation::BoundaryAmbiguous
+                        };
+                        assert_eq!(
+                            compare_effectivity_intervals(event, acquisition).relation,
+                            expected,
+                            "event=[{event_earliest},{event_latest}] acquisition=[{acquisition_earliest},{acquisition_latest}]"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
     fn event_definitely_effective_before_every_acquisition_time() {
         let result =
             compare_effectivity_intervals(interval(80, 90), interval(100, 110));
