@@ -106,6 +106,7 @@ struct Parsed {
     nodes: BTreeMap<String, Node>,
     edges: Vec<Edge>,
     obligations: Vec<Obligation>,
+    gate_ids: BTreeSet<String>,
     scenario_sha256: String,
     hypothetical: bool,
 }
@@ -176,6 +177,60 @@ fn half_open(value: &str, path: &str, index: u64) -> Result<(), String> {
     let end = end.parse::<u64>().map_err(|_| err(path, "invalid interval end"))?;
     if start != index || end != index.saturating_add(1) {
         return Err(err(path, "interval must match the declared one-step time index"));
+    }
+    Ok(())
+}
+
+fn path_exists_without_gates(
+    parsed_nodes: &BTreeMap<String, Node>,
+    parsed_edges: &[Edge],
+    gate_ids: &BTreeSet<String>,
+    start: &str,
+    target: &str,
+) -> bool {
+    let mut seen = BTreeSet::new();
+    let mut queue = vec![start.to_owned()];
+    seen.insert(start.to_owned());
+    for node_id in queue.iter() {
+        if node_id == target {
+            return true;
+        }
+        for edge in parsed_edges.iter().filter(|edge| {
+            edge.from == *node_id
+                && edge.upper > 0
+                && !gate_ids.contains(&edge.id)
+        }) {
+            if parsed_nodes.contains_key(&edge.to) && seen.insert(edge.to.clone()) {
+                queue.push(edge.to.clone());
+            }
+        }
+    }
+    seen.contains(target)
+}
+
+fn verify_physical_gate_dominance(parsed: &Parsed) -> Result<(), String> {
+    if parsed.gate_ids.is_empty() {
+        return Err(err("$.resource_aliases", "no physical capacity gates were declared"));
+    }
+    if path_exists_without_gates(
+        &parsed.nodes,
+        &parsed.edges,
+        &parsed.gate_ids,
+        &parsed.source,
+        &parsed.sink,
+    ) {
+        return Err(err("$.edges", "a positive-capacity source-to-service path bypasses all declared physical-resource gates"));
+    }
+    for gate_id in &parsed.gate_ids {
+        let gate = parsed.edges.iter().find(|edge| &edge.id == gate_id)
+            .ok_or_else(|| err("$.resource_aliases", "declared physical gate edge is missing"))?;
+        if !path_exists_without_gates(
+            &parsed.nodes, &parsed.edges, &parsed.gate_ids, &parsed.source, &gate.from
+        ) || !path_exists_without_gates(
+            &parsed.nodes, &parsed.edges, &parsed.gate_ids, &gate.to, &parsed.sink
+        ) {
+            return Err(err("$.resource_aliases", "declared physical capacity gate does not lie on a source-to-service path"));
+        }
     }
     Ok(())
 }
@@ -396,7 +451,7 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
     }
     obligations.sort_by_key(|o| (o.time, o.id.clone()));
 
-    Ok(Parsed {
+    let parsed = Parsed {
         case_id,
         scope,
         commodity,
@@ -407,9 +462,12 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
         nodes,
         edges,
         obligations,
+        gate_ids: all_gates,
         scenario_sha256: digest(value)?,
         hypothetical,
-    })
+    };
+    verify_physical_gate_dominance(&parsed)?;
+    Ok(parsed)
 }
 
 fn solve(parsed: &Parsed, upper: bool) -> Result<FlowResult, String> {
@@ -637,6 +695,22 @@ mod tests {
     fn opening_stock_alias_duplication_is_rejected() {
         let mut input = scenario();
         input["total_opening_stock"]["source_ids"][1] = Value::String("terminal-a-stock".into());
+        assert!(evaluate_scenario(&input).is_err());
+    }
+
+    #[test]
+    fn a_new_service_path_cannot_bypass_the_shared_pump() {
+        let mut input = scenario();
+        input["edges"].as_array_mut().unwrap().push(serde_json::json!({
+            "id": "unqualified-pump-bypass",
+            "from": "inventory-a-t0",
+            "to": "service-t1",
+            "capacity_lower": 1,
+            "capacity_upper": 1,
+            "unit": "t",
+            "resource_id": "unqualified-bypass",
+            "time_index": 0
+        }));
         assert!(evaluate_scenario(&input).is_err());
     }
 
