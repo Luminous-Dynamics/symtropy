@@ -57,11 +57,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
             Some("ROUTE") if fields.len() == 2 => {
                 if routes.insert(fields[1].to_owned(), Vec::new()).is_some() {
-                    return Err(format!("line {}: duplicate route {}", line_number + 1, fields[1]).into());
+                    return Err(
+                        format!("line {}: duplicate route {}", line_number + 1, fields[1]).into(),
+                    );
                 }
             }
             Some("STEP") if fields.len() == 4 => {
-                let route = routes.get_mut(fields[1])
+                let route = routes
+                    .get_mut(fields[1])
                     .ok_or_else(|| format!("line {}: STEP before ROUTE", line_number + 1))?;
                 route.push((fields[2].to_owned(), parse_u32(fields[3], "travel_before")?));
             }
@@ -101,9 +104,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("QC_AGV_SYNC_RECEIPT\t0.1");
     println!(
         "INSTANCE\t{}\t{}\t{}",
-        result.instance_id,
-        result.gamma,
-        result.uncertainty_scenario_count
+        result.instance_id, result.gamma, result.uncertainty_scenario_count
     );
     for route in &result.routes {
         let witness = route
