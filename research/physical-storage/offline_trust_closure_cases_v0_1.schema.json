@@ -30,8 +30,7 @@
       "minLength": 1
     },
     "case_count": {
-      "type": "integer",
-      "minimum": 1
+      "const": 13
     },
     "cases": {
       "type": "array",
