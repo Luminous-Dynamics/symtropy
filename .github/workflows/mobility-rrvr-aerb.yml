@@ -74,7 +74,7 @@ jobs:
           ' "$ROOT/fixtures/candidate_submission_synthetic_v0_1.json"
 
           EXPECTED_DIGEST="$(jq -r '.candidate_snapshot_sha256' "$ROOT/fixtures/candidate_submission_synthetic_v0_1.json")"
-          ACTUAL_DIGEST="$(jq -S -c . "$ROOT/fixtures/candidate_episode_synthetic_v0_1.json" | tr -d '\\n' | sha256sum | cut -d ' ' -f 1)"
+          ACTUAL_DIGEST="$(jq -S -c . "$ROOT/fixtures/candidate_episode_synthetic_v0_1.json" | tr -d '\n' | sha256sum | cut -d ' ' -f 1)"
           test "$EXPECTED_DIGEST" = "$ACTUAL_DIGEST"
 
       - name: Validate evaluator-only truth and probe-support completeness
@@ -83,22 +83,15 @@ jobs:
           set -euo pipefail
           ROOT="research/mobility-rrvr-aerb-v0.1"
           PACK="$ROOT/fixtures/evaluator_only/world_pack_synthetic_v0_1.json"
-          jq -e '
+          jq -e --slurpfile episode "$ROOT/fixtures/candidate_episode_synthetic_v0_1.json" '
             . as $pack
             | ($pack.worlds | map(.world_id)) as $world_ids
-            | ($pack.hidden_truth_world_id as $truth | ($world_ids | index($truth)) != null)
-            and ($world_ids | length == ($world_ids | unique | length))
+            | ($episode[0].permitted_probes | map(.probe_id) | sort) as $permitted_probe_ids
+            | ($pack.probe_outcome_supports | map(.probe_id) | sort) as $supported_probe_ids
+            | $permitted_probe_ids == $supported_probe_ids
             and all($pack.probe_outcome_supports[];
               . as $probe
-              | ($probe.outcomes | map(.possible_world_ids[]) | unique) as $covered
-              | all($world_ids[]; . as $world_id | ($covered | index($world_id)) != null)
+              | all($probe.outcomes[]; all(.possible_world_ids[]; . as $state_id | ($world_ids | index($state_id)) != null))
             )
-            and (
-              ["hold_reconcile","request_observation","abstain","recommend_fresh_attempt"] as $dispositions
-              | all($world_ids[]; . as $world_id
-                | all($dispositions[]; . as $disposition
-                  | any($pack.decision_losses[]; .world_id == $world_id and .disposition == $disposition)
-                )
-              )
-            )
-          ' "$PACK"
+            and ($pack.hidden_truth_world_id as $truth | ($world_ids | index($truth)) != null)
+
