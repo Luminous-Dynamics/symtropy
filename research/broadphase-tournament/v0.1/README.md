@@ -6,16 +6,18 @@ A reproducible, CPU-only temporal AABB tournament for Symtropy's broadphase port
 
 - Brute-force pair enumeration.
 - Sweep-and-prune with a per-frame axis selected from current-frame geometry only.
-- Persistent incremental AABB tree with balancing disabled.
-- Persistent incremental AABB tree with height-rotation balancing.
+- Per-leaf incremental AABB tree query (the original one-query-per-proxy reference), balancing disabled.
+- Self-pair incremental AABB tree query, balancing disabled.
+- Per-leaf incremental AABB tree query, height-rotation balanced.
+- Self-pair incremental AABB tree query, height-rotation balanced.
 
-The two tree variants use the same pinned `incremental-aabb-tree-reference` implementation from PR #7524. They receive identical proxy identities, AABB populations and temporal frames.
+The four tree variants use the same pinned `incremental-aabb-tree-reference` implementation from PR #7524. Each per-leaf/self-pair comparison uses the same balancing policy, tree mutation sequence, proxy identities, AABB population and temporal frames. This makes traversal strategy comparable without confounding it with a different topology.
 
 ## Frozen scene families
 
 The deterministic generator includes sparse coherent motion, dense clusters, static-heavy scenes, high-churn populations, anisotropic/high-aspect bounds and teleport sequences. Each can run in 2D, 3D and 4D.
 
-The seed, declared proxy count and frame count are explicit and included in every CSV row, so a result can be tied back to its exact deterministic sequence. Scene generation is outside the timed backend region. The same scene sequence is supplied to all four backends.
+The seed, declared proxy count and frame count are explicit and included in every CSV row, so a result can be tied back to its exact deterministic sequence. Scene generation is outside the timed backend region. The same scene sequence is supplied to all six backends.
 
 ## Measurement contract
 
