@@ -10,6 +10,8 @@ A reproducible, CPU-only temporal AABB tournament for Symtropy's broadphase port
 - Self-pair incremental AABB tree query, balancing disabled.
 - Per-leaf incremental AABB tree query, height-rotation balanced.
 - Self-pair incremental AABB tree query, height-rotation balanced.
+- Persistent pair-delta cache: keep the symmetric active-pair relation and emit additions, removals, and revalidation events for changed proxies.
+- Symtropy Morton/LBVH AABB adapter: production Morton quantization, longest-common-prefix split construction, per-leaf traversal and the live 50-body brute-force fallback threshold.
 
 The four tree variants use the same pinned `incremental-aabb-tree-reference` implementation from PR #7524. Each per-leaf/self-pair comparison uses the same balancing policy, tree mutation sequence, proxy identities, AABB population and temporal frames. This makes traversal strategy comparable without confounding it with a different topology.
 
@@ -17,18 +19,32 @@ The four tree variants use the same pinned `incremental-aabb-tree-reference` imp
 
 The deterministic generator includes sparse coherent motion, dense clusters, static-heavy scenes, high-churn populations, anisotropic/high-aspect bounds and teleport sequences. Each can run in 2D, 3D and 4D.
 
-The seed, declared proxy count and frame count are explicit and included in every CSV row, so a result can be tied back to its exact deterministic sequence. Scene generation is outside the timed backend region. The same scene sequence is supplied to all six backends.
+The seed, declared proxy count and frame count are explicit and included in every CSV row, so a result can be tied back to its exact deterministic sequence. Scene generation is outside the timed backend region. The same scene sequence is supplied to all eight backends.
+
+The added sleeping-wakeup family keeps most proxies stationary and moves only two of 128 proxies per frame after initialization. This models a common engine regime where most bodies are asleep and only a sparse wake frontier changes.
 
 ## Measurement contract
 
 1. The independent brute-force AABB pair oracle is computed before timed backend execution.
-2. Each backend times its own frame work: brute-force candidate production; SAP axis selection, sorting and sweep; or persistent-tree insert/update/remove, query and current-envelope refinement.
-3. The timer stops before the backend candidate set is compared with the oracle.
-4. Every false positive, false negative and mismatching frame remains in the result. The tests require exact candidate parity for all declared fixtures.
-5. Tree leaves may remain conservative and larger after a fat-contained update. The benchmark filters raw tree hits against current-frame AABBs and reports stale hits removed.
-6. p50/p95/p99 frame latency, summed frame time, campaign wall time, pair tests, tree traversal, proxy maintenance, tree height and node counts are reported.
+2. Full-set backends time their own frame work: brute-force candidate production; SAP axis selection, sorting and sweep; or persistent-tree insert/update/remove, query and current-envelope refinement.
+3. The pair-delta backend times only dirty-frontier discovery, affected-pair reevaluation and pair birth/death/revalidation event production. Its output contract is explicitly labelled `pair_delta_events`; it does not claim to regenerate the full set each frame.
+4. Pair-cache full-set materialization is timed and reported separately. Production consumers should normally keep their own persistent contact/pair state and apply the delta stream; a consumer that needs a full list must include the separately reported materialization cost.
+5. The timer stops before independent candidate and event comparisons with the oracle. For the pair-delta backend, emitted additions/removals must equal the exact set differences between adjacent brute-force oracle frames. Revalidated pairs must equal the intersection of adjacent oracle relations that touch a changed proxy. The active pair cache must also equal the complete current oracle set.
+6. Every false positive, false negative, candidate mismatch, event mismatch and duplicate event remains in the result. The tests require exact candidate parity for all declared fixtures.
+7. Tree leaves may remain conservative and larger after a fat-contained update. The benchmark filters raw tree hits against current-frame AABBs and reports stale hits removed.
+8. p50/p95/p99 frame latency, pair-cache materialization latency, summed frame time, campaign wall time, pair tests, dirty-frontier size, additions/removals/revalidations, tree traversal, proxy maintenance, tree height and node counts are reported.
+
+The Morton/LBVH adapter rebuilds its hierarchy each frame and times construction plus per-leaf query. At fewer than 50 proxies it follows the production brute-force fallback. It operates on already-computed AABBs and omits RigidBody shape transformation, static/kinematic cache, and body collision filters, so it is an algorithm-level adapter rather than a full production integration.
 
 The tree backend uses zero extra fat margin because the tournament inputs are already authoritative AABBs. Candidate parity is exact for current-frame AABB overlap; it is not a shape-level or continuous time-of-impact proof.
+
+The pair-delta output is a different API contract from full candidate-set output. `added` and `removed` change pair membership. `revalidated` contains pairs that remain active but touch a dirty endpoint; consumers must refresh narrowphase/contact state for these pairs even though their membership did not change. Do not compare its event-generation p95 directly to full-set p95 without accounting for the consumer's persistent-pair integration and the separately reported materialization cost.
+
+The cache exposes two input paths:
+- `step` safely derives changed identities by diffing the prior/current AABB snapshots. This is the path used by the current tournament row.
+- `step_with_dirty_ids` accepts a strictly sorted authoritative change journal from a physics world. The caller is responsible for completeness; `verify_dirty_proxy_ids` independently checks it against the snapshots in the audit path. This fast path is implemented and unit-tested, but it is not yet the measured tournament backend.
+
+A full invalidation (for example, collision filter/layer policy change) forces the safe snapshot-derived path; the dirty-journal fast path rejects it until all affected relationships are revalidated. Empty frames are supported by the stateful cache, so removing the last proxy emits every remaining pair removal and a later insertion can reinitialize the relation. The tournament scene oracle still uses non-empty frames. A production integration must bind the journal to exact world revisions and a trusted source before treating it as authoritative.
 
 ## Run
 
@@ -48,7 +64,7 @@ For initial local qualification, use a small smoke run before larger campaigns:
 
 ## Claim boundary
 
-This is an internal reference tournament, not an external industry comparison. It does not yet include Symtropy's production LBVH/static-cache path, GPU SAP/LBVH, Box2D, Jolt, MuJoCo Warp or Newton. It does not time motion-bound construction, narrowphase, CCD, contact generation, the solver or full simulation ticks. No SOTA or performance-superiority claim is made.
+This is an internal reference tournament, not an external industry comparison. It now includes an AABB adapter of Symtropy's production Morton/LBVH algorithm, but not the complete production RigidBody and static/kinematic-cache integration. GPU SAP/LBVH, Box2D, Jolt, MuJoCo Warp and Newton are not yet executed as matched backends. The pair-delta cache is an experimental CPU reference and is not yet integrated into the simulation engine's sleep/contact lifecycle. It does not time motion-bound construction, narrowphase, CCD, contact generation, the solver or full simulation ticks. No SOTA or performance-superiority claim is made.
 
 The p95 promotion target remains prospective: at least 20% lower total broadphase cost on two held-out temporal families with no more than 5% regression on the other declared families, with zero correctness failures and unchanged candidate/contact/solver-row denominators. Candidate-count reductions alone are not a speed win.
 
