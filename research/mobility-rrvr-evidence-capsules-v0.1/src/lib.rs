@@ -1074,7 +1074,8 @@ mod tests {
                 principal_id: format!("principal-{evidence_id}"),
                 role,
                 independence_group: group.to_owned(),
-                profile_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+                profile_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
             },
             parent_evidence_ids: Vec::new(),
             event_time: TimeInterval {
