@@ -15,8 +15,7 @@ use std::fmt;
 
 use super::transfer::{
     NodeCorrespondenceV0, ParticipantTransformV0, RelationCorrespondenceV0,
-    RelationKindCorrespondenceV0, RelationOrientationV0, StructuralCorrespondenceV0,
-    StructureV0,
+    RelationKindCorrespondenceV0, RelationOrientationV0, StructuralCorrespondenceV0, StructureV0,
 };
 
 /// Hard limits keep factorial enumeration explicit and bounded.
@@ -104,9 +103,7 @@ pub fn exhaustive_isomorphism_oracle(
         return Err(IsomorphismOracleErrorV0::NoRelations);
     }
 
-    if source.nodes.len() > MAX_ORACLE_NODES_V0
-        || target.nodes.len() > MAX_ORACLE_NODES_V0
-    {
+    if source.nodes.len() > MAX_ORACLE_NODES_V0 || target.nodes.len() > MAX_ORACLE_NODES_V0 {
         return Err(IsomorphismOracleErrorV0::TooManyNodes);
     }
     if source.relations.len() > MAX_ORACLE_RELATIONS_V0
@@ -204,9 +201,7 @@ fn no_isomorphism(explored_node_bijections: usize) -> IsomorphismOracleReportV0 
     }
 }
 
-fn validate_oracle_input(
-    structure: &StructureV0,
-) -> Result<(), IsomorphismOracleErrorV0> {
+fn validate_oracle_input(structure: &StructureV0) -> Result<(), IsomorphismOracleErrorV0> {
     let mut node_ids = BTreeSet::new();
     for node in &structure.nodes {
         if !node_ids.insert(node.id) {
@@ -663,10 +658,11 @@ mod tests {
             validate_structural_correspondence(&source, &target, &correspondence).unwrap();
         assert_eq!(witness.mapped_nodes, 3);
         assert_eq!(witness.mapped_relations, 2);
-        assert!(correspondence
-            .relation_kinds
-            .iter()
-            .any(|mapping| mapping.participant_transform == ParticipantTransformV0::ReverseOrder));
+        assert!(
+            correspondence.relation_kinds.iter().any(
+                |mapping| mapping.participant_transform == ParticipantTransformV0::ReverseOrder
+            )
+        );
     }
 
     fn k33() -> StructureV0 {
@@ -675,13 +671,7 @@ mod tests {
         let mut id = 0;
         for left in 0..3 {
             for right in 3..6 {
-                relations.push(edge(
-                    id,
-                    1,
-                    left,
-                    right,
-                    RelationOrientationV0::Undirected,
-                ));
+                relations.push(edge(id, 1, left, right, RelationOrientationV0::Undirected));
                 id += 1;
             }
         }
@@ -787,7 +777,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn independently_checks_transfer_atlas_structural_families() {
         let cases = [
@@ -806,11 +795,9 @@ mod tests {
         for (family, expected_structural_isomorphism) in cases {
             let world = TransferAtlasWorldV0::generate(family);
             let view = world.policy_view();
-            let report =
-                exhaustive_isomorphism_oracle(&view.source, &view.target).unwrap();
+            let report = exhaustive_isomorphism_oracle(&view.source, &view.target).unwrap();
             assert_eq!(
-                report.isomorphic,
-                expected_structural_isomorphism,
+                report.isomorphic, expected_structural_isomorphism,
                 "independent structural oracle disagreed for {family:?}"
             );
         }
@@ -818,11 +805,7 @@ mod tests {
 
     const FIVE_NODE_EDGE_COUNT: usize = 10;
 
-    fn permute_five(
-        values: &mut [u8; 5],
-        index: usize,
-        output: &mut Vec<[u8; 5]>,
-    ) {
+    fn permute_five(values: &mut [u8; 5], index: usize, output: &mut Vec<[u8; 5]>) {
         if index == values.len() {
             output.push(*values);
             return;
