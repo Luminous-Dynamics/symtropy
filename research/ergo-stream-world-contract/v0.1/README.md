@@ -175,6 +175,10 @@ Symtropy [#7495 — ERGO-STREAM-CLOCK-BASELINE-001](https://github.com/Luminous-
 
 These estimators consume only public paired sensor-time anchors. They do not consume evaluator time, event identities, arrival delay or hidden clock parameters. They are generic baselines, not a reproduction of MATH-SYNC. Exact-head Rust 1.96 format/tests/strict Clippy remain pending.
 
+### Parent integration repair
+
+The owning base PR #7432 now passes Rust 1.96 formatting, all tests and strict Clippy after importing `NodeV0` in the oracle tests and declaring the two receipt-error variants already used by `calibration.rs`. The multimodal parent PR #7493 also passes the complete workflow. This clock branch has been synchronized to those source fixes; its own exact-head workflow remains the authority for the paired-anchor module.
+
 ## 11. First executable milestone
 
 The current slice supplies the evaluator-side categorical world and exact correspondence scorer only. The minimal child policy / process adapter remains a follow-on under the existing blind episode contract. Before adding large modalities, prove hidden-state non-exposure, exact replay, denominator conservation and held-out composition scoring.
