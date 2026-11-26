@@ -6,7 +6,7 @@
 use std::collections::HashSet;
 
 use super::{
-    EncoderTrace, EvidenceKind, EvaluationError, QuadratureConfig, ScenarioSetMetrics,
+    EncoderTrace, EvaluationError, EvidenceKind, QuadratureConfig, ScenarioSetMetrics,
     evaluate_scenario_set, evaluate_trace, project,
 };
 
@@ -146,9 +146,13 @@ fn validate_scenarios(scenarios: &[BoundedQuadratureScenario]) -> Result<(), Syn
             return Err(SynthesisError::GridIdentityMismatch);
         }
         if trace.samples.len() != first.trace.samples.len()
-            || trace.samples.iter().zip(first.trace.samples.iter()).any(|(left, right)| {
-                left.mechanical_angle_rad.to_bits() != right.mechanical_angle_rad.to_bits()
-            })
+            || trace
+                .samples
+                .iter()
+                .zip(first.trace.samples.iter())
+                .any(|(left, right)| {
+                    left.mechanical_angle_rad.to_bits() != right.mechanical_angle_rad.to_bits()
+                })
         {
             return Err(SynthesisError::GridCoordinatesMismatch);
         }
@@ -442,7 +446,8 @@ fn scenario_metrics(
         maximum_bracket = maximum_bracket.max(window.upper_angle_rad - window.lower_angle_rad);
     }
 
-    let expected_spacing = std::f64::consts::TAU / evaluation.metrics.expected_transitions_per_revolution as f64;
+    let expected_spacing =
+        std::f64::consts::TAU / evaluation.metrics.expected_transitions_per_revolution as f64;
     for adjacent in ordered_windows.windows(2) {
         let first = adjacent[0];
         let second = adjacent[1];
@@ -468,8 +473,9 @@ fn scenario_metrics(
         failed_transition_crossings += 1;
     }
 
-    let minimum_state_margin =
-        analysis_a.minimum_state_margin_t.min(analysis_b.minimum_state_margin_t);
+    let minimum_state_margin = analysis_a
+        .minimum_state_margin_t
+        .min(analysis_b.minimum_state_margin_t);
     let minimum_transition_margin = match (
         analysis_a.minimum_transition_margin_t,
         analysis_b.minimum_transition_margin_t,
@@ -482,16 +488,17 @@ fn scenario_metrics(
     let sequence_valid = evaluation.metrics.quadrature_sequence_valid;
     let nominal_spacing_upper = evaluation.metrics.maximum_spacing_error_upper_bound_rad;
     let nominal_bracket = evaluation.metrics.maximum_transition_bracket_rad;
-    let robust_spacing_upper =
-        (!ordered_windows.is_empty()).then_some(worst_spacing_error);
+    let robust_spacing_upper = (!ordered_windows.is_empty()).then_some(worst_spacing_error);
     let robust_bracket = (!ordered_windows.is_empty()).then_some(maximum_bracket);
 
     let accepted_by_nominal_limits = sequence_valid
-        && evaluation.metrics.within_edge_rate_policy.is_none_or(|within_limit| within_limit)
+        && evaluation
+            .metrics
+            .within_edge_rate_policy
+            .is_none_or(|within_limit| within_limit)
         && robust_spacing_upper
             .is_some_and(|value| value <= requirements.maximum_spacing_error_rad)
-        && robust_bracket
-            .is_some_and(|value| value <= requirements.maximum_transition_bracket_rad)
+        && robust_bracket.is_some_and(|value| value <= requirements.maximum_transition_bracket_rad)
         && nominal_spacing_upper.is_some()
         && nominal_bracket.is_some();
 
@@ -503,7 +510,8 @@ fn scenario_metrics(
         accepted_by_nominal_limits,
         minimum_state_retention_margin_t: minimum_state_margin,
         minimum_transition_crossing_margin_t: minimum_transition_margin,
-        failed_state_sample_count: analysis_a.failed_state_samples + analysis_b.failed_state_samples,
+        failed_state_sample_count: analysis_a.failed_state_samples
+            + analysis_b.failed_state_samples,
         failed_transition_crossing_count: failed_transition_crossings,
         maximum_spacing_error_upper_bound_rad: robust_spacing_upper,
         maximum_transition_bracket_rad: robust_bracket,
@@ -533,9 +541,8 @@ fn dominates(left: &CandidateSynthesisMetrics, right: &CandidateSynthesisMetrics
     let no_worse = left_margin >= right_margin
         && left_spacing <= right_spacing
         && left_bracket <= right_bracket;
-    let strictly_better = left_margin > right_margin
-        || left_spacing < right_spacing
-        || left_bracket < right_bracket;
+    let strictly_better =
+        left_margin > right_margin || left_spacing < right_spacing || left_bracket < right_bracket;
     no_worse && strictly_better
 }
 
@@ -692,8 +699,10 @@ pub fn synthesize_robust_configurations(
         .enumerate()
         .filter_map(|(index, result)| result.is_pareto_optimal.then_some(index))
         .collect::<Vec<_>>();
-    let robustly_accepted_candidate_count =
-        results.iter().filter(|result| result.robustly_accepted).count();
+    let robustly_accepted_candidate_count = results
+        .iter()
+        .filter(|result| result.robustly_accepted)
+        .count();
 
     Ok(SynthesisResult {
         set_id: set_id.to_owned(),
@@ -707,7 +716,6 @@ pub fn synthesize_robust_configurations(
         pareto_candidate_indices,
     })
 }
-
 
 /// Absolute sensor-parameter error bounds for one exact candidate configuration.
 ///
@@ -816,16 +824,12 @@ fn validate_sensor_parameter_bounds(
     if config.channel_a.bop_threshold_t - bounds.channel_a_bop_error_bound_t
         <= config.channel_a.brp_threshold_t + bounds.channel_a_brp_error_bound_t
     {
-        return Err(ParameterAwareSynthesisError::RobustHysteresisGapCollapsed {
-            channel: 'A',
-        });
+        return Err(ParameterAwareSynthesisError::RobustHysteresisGapCollapsed { channel: 'A' });
     }
     if config.channel_b.bop_threshold_t - bounds.channel_b_bop_error_bound_t
         <= config.channel_b.brp_threshold_t + bounds.channel_b_brp_error_bound_t
     {
-        return Err(ParameterAwareSynthesisError::RobustHysteresisGapCollapsed {
-            channel: 'B',
-        });
+        return Err(ParameterAwareSynthesisError::RobustHysteresisGapCollapsed { channel: 'B' });
     }
 
     Ok(())
@@ -842,8 +846,7 @@ fn effective_projected_field_error_radius(
     // changes it by a chord of length 2*sin(delta/2).
     let nominal_magnitude = field.radial_t.hypot(field.tangential_t);
     let maximum_true_magnitude = nominal_magnitude + field_vector_error_radius_t;
-    let axis_projection_error =
-        2.0 * maximum_true_magnitude * (axis_angle_bound_rad / 2.0).sin();
+    let axis_projection_error = 2.0 * maximum_true_magnitude * (axis_angle_bound_rad / 2.0).sin();
     let effective_radius =
         field_vector_error_radius_t + axis_projection_error + threshold_error_bound_t;
     (axis_projection_error, effective_radius)
@@ -933,15 +936,11 @@ pub fn synthesize_with_sensor_parameter_bounds(
             // This is a composition identity label, not a cryptographic digest.
             effective.field_bounds.field_bound_record_id = format!(
                 "effective[{}|{}]",
-                scenario.field_bounds.field_bound_record_id,
-                bounds.parameter_bound_record_id
+                scenario.field_bounds.field_bound_record_id, bounds.parameter_bound_record_id
             );
             scenario_contributions.push(ParameterScenarioContributions {
                 trace_id: scenario.trace.trace_id.clone(),
-                original_field_bound_record_id: scenario
-                    .field_bounds
-                    .field_bound_record_id
-                    .clone(),
+                original_field_bound_record_id: scenario.field_bounds.field_bound_record_id.clone(),
                 parameter_bound_record_id: bounds.parameter_bound_record_id.clone(),
                 channel_a_max_axis_projection_error_bound_t: max_axis_a,
                 channel_b_max_axis_projection_error_bound_t: max_axis_b,
@@ -1021,9 +1020,7 @@ pub fn synthesize_with_sensor_parameter_bounds(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        EncoderSample, EvidenceKind, HallLatchConfig, InPlaneField, SensorArchitecture,
-    };
+    use crate::{EncoderSample, EvidenceKind, HallLatchConfig, InPlaneField, SensorArchitecture};
     use std::f64::consts::TAU;
 
     fn sinusoidal_trace(trace_id: &str, condition_id: &str, pole_pairs: u32) -> EncoderTrace {
@@ -1069,7 +1066,10 @@ mod tests {
     fn scenario(trace_id: &str, condition_id: &str, error_t: f64) -> BoundedQuadratureScenario {
         let trace = sinusoidal_trace(trace_id, condition_id, 1);
         let field_bounds = bounds(&trace, error_t);
-        BoundedQuadratureScenario { trace, field_bounds }
+        BoundedQuadratureScenario {
+            trace,
+            field_bounds,
+        }
     }
 
     fn config(configuration_id: &str, bop: f64, brp: f64) -> QuadratureConfig {
@@ -1108,33 +1108,27 @@ mod tests {
             scenario("trace-gap", "increased-gap", 0.02),
         ];
         let candidates = vec![config("candidate-good", 0.25, -0.25)];
-        let result = synthesize_robust_configurations(
-            "set-001",
-            &scenarios,
-            &candidates,
-            requirements(),
-        )
-        .expect("valid scenario set");
+        let result =
+            synthesize_robust_configurations("set-001", &scenarios, &candidates, requirements())
+                .expect("valid scenario set");
 
         assert_eq!(result.robustly_accepted_candidate_count, 1);
         assert_eq!(result.pareto_candidate_indices, vec![0]);
         assert!(result.candidates[0].robustly_accepted);
-        assert!(result.candidates[0]
-            .minimum_robust_threshold_margin_t
-            .is_some_and(|margin| margin >= 0.005));
+        assert!(
+            result.candidates[0]
+                .minimum_robust_threshold_margin_t
+                .is_some_and(|margin| margin >= 0.005)
+        );
     }
 
     #[test]
     fn a_larger_field_error_bound_can_turn_the_same_candidate_into_failure() {
         let scenarios = vec![scenario("trace-weak-margin", "nominal", 0.30)];
         let candidates = vec![config("candidate-margin-fail", 0.25, -0.25)];
-        let result = synthesize_robust_configurations(
-            "set-002",
-            &scenarios,
-            &candidates,
-            requirements(),
-        )
-        .expect("finite bounded set");
+        let result =
+            synthesize_robust_configurations("set-002", &scenarios, &candidates, requirements())
+                .expect("finite bounded set");
 
         assert!(!result.candidates[0].robustly_accepted);
         assert_eq!(result.robustly_accepted_candidate_count, 0);
@@ -1144,13 +1138,9 @@ mod tests {
     fn transition_crossings_must_be_separated_from_both_threshold_sides() {
         let scenarios = vec![scenario("trace-crossing", "nominal", 0.80)];
         let candidates = vec![config("candidate-crossing-fail", 0.25, -0.25)];
-        let result = synthesize_robust_configurations(
-            "set-003",
-            &scenarios,
-            &candidates,
-            requirements(),
-        )
-        .expect("finite bounded set");
+        let result =
+            synthesize_robust_configurations("set-003", &scenarios, &candidates, requirements())
+                .expect("finite bounded set");
 
         assert!(result.candidates[0].scenarios[0].failed_transition_crossing_count > 0);
         assert!(!result.candidates[0].robustly_accepted);
@@ -1213,7 +1203,6 @@ mod tests {
         );
     }
 
-
     fn parameter_candidate(
         configuration_id: &str,
         axis_error_rad: f64,
@@ -1250,14 +1239,22 @@ mod tests {
         let parameter_aware = synthesize_with_sensor_parameter_bounds(
             "set-zero-parameter",
             &[input],
-            &[parameter_candidate("candidate-zero-parameter", 0.0, 0.0, 0.0)],
+            &[parameter_candidate(
+                "candidate-zero-parameter",
+                0.0,
+                0.0,
+                0.0,
+            )],
             requirements(),
         )
         .expect("parameter-aware synthesis should succeed");
 
         let base_metrics = &baseline.candidates[0];
         let bounded_metrics = &parameter_aware.candidates[0].synthesis;
-        assert_eq!(bounded_metrics.robustly_accepted, base_metrics.robustly_accepted);
+        assert_eq!(
+            bounded_metrics.robustly_accepted,
+            base_metrics.robustly_accepted
+        );
         assert_eq!(
             bounded_metrics.minimum_robust_threshold_margin_t,
             base_metrics.minimum_robust_threshold_margin_t
@@ -1271,8 +1268,7 @@ mod tests {
             base_metrics.worst_transition_bracket_rad
         );
         assert_eq!(
-            parameter_aware.candidates[0].scenario_contributions[0]
-                .original_field_bound_record_id,
+            parameter_aware.candidates[0].scenario_contributions[0].original_field_bound_record_id,
             "bounds-trace-zero-parameter"
         );
     }
@@ -1290,13 +1286,10 @@ mod tests {
 
         let candidate = &bounded.candidates[0];
         assert!(
-            candidate.scenario_contributions[0]
-                .channel_a_max_axis_projection_error_bound_t
-                > 0.0
+            candidate.scenario_contributions[0].channel_a_max_axis_projection_error_bound_t > 0.0
         );
         assert!(
-            candidate.scenario_contributions[0]
-                .channel_a_max_effective_projected_error_bound_t
+            candidate.scenario_contributions[0].channel_a_max_effective_projected_error_bound_t
                 > 0.01
         );
         assert!(!candidate.synthesis.robustly_accepted);
