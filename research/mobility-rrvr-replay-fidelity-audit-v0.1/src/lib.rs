@@ -498,18 +498,87 @@ fn validate_difficulty_screen(screen: &DifficultyScreen) -> Result<usize, Vec<St
     }
 }
 
-fn validate_spot_check(spot: &SpotCheckManifest) -> Result<(), String> {
+fn spot_check_manifest_digest(spot: &SpotCheckManifest) -> Result<String, String> {
+    let material = SpotCheckManifestMaterial {
+        seed: spot.seed,
+        selection_method_id: &spot.selection_method_id,
+        selection_record_sha256: &spot.selection_record_sha256,
+        selected_attempt_ids: &spot.selected_attempt_ids,
+        attempts: &spot.attempts,
+    };
+    let bytes = serde_json::to_vec(&material)
+        .map_err(|error| format!("SPOT_CHECK_MANIFEST_SERIALIZATION_FAILED: {error}"))?;
+    Ok(sha256_hex(&bytes))
+}
+
+fn validate_spot_check(
+    spot: &SpotCheckManifest,
+    screen: &DifficultyScreen,
+    artifact_root: &Path,
+) -> Result<(), (AuditStatus, String)> {
     if spot.seed != SPOT_CHECK_SEED {
-        return Err("SPOT_CHECK_SEED_MISMATCH".to_owned());
+        return Err((AuditStatus::Invalid, "SPOT_CHECK_SEED_MISMATCH".to_owned()));
+    }
+    if spot.selection_method_id.trim().is_empty() {
+        return Err((AuditStatus::Unresolved, "SPOT_CHECK_METHOD_ID_MISSING".to_owned()));
     }
     if spot.selected_attempt_ids.len() != SPOT_CHECK_N
+        || spot.attempts.len() != SPOT_CHECK_N
         || spot.selected_attempt_ids.iter().any(String::is_empty)
         || spot.selected_attempt_ids.iter().collect::<BTreeSet<_>>().len() != SPOT_CHECK_N
     {
-        return Err("SPOT_CHECK_SELECTION_INVALID".to_owned());
+        return Err((AuditStatus::Invalid, "SPOT_CHECK_SELECTION_INVALID".to_owned()));
     }
-    if !is_sha256(&spot.manifest_sha256) {
-        return Err("SPOT_CHECK_MANIFEST_DIGEST_INVALID".to_owned());
+    if spot
+        .attempts
+        .iter()
+        .map(|attempt| attempt.attempt_id.as_str())
+        .collect::<Vec<_>>()
+        != spot
+            .selected_attempt_ids
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>()
+    {
+        return Err((AuditStatus::Invalid, "SPOT_CHECK_ATTEMPT_SELECTION_MISMATCH".to_owned()));
+    }
+    let available_attempt_ids: BTreeSet<&str> = screen
+        .trials
+        .iter()
+        .map(|trial| trial.attempt_id.as_str())
+        .collect();
+    if spot
+        .selected_attempt_ids
+        .iter()
+        .any(|attempt_id| !available_attempt_ids.contains(attempt_id.as_str()))
+    {
+        return Err((AuditStatus::Invalid, "SPOT_CHECK_ATTEMPT_NOT_IN_SCREENING_TRIALS".to_owned()));
+    }
+    if !is_sha256(&spot.selection_record_sha256) || !is_sha256(&spot.manifest_sha256) {
+        return Err((AuditStatus::Invalid, "SPOT_CHECK_MANIFEST_DIGEST_INVALID".to_owned()));
+    }
+
+    let selection_path = safe_artifact_path(artifact_root, &spot.selection_record_path)
+        .map_err(|reason| (AuditStatus::Unresolved, reason))?;
+    let selection_bytes = fs::read(selection_path)
+        .map_err(|error| (AuditStatus::Unresolved, format!("SPOT_CHECK_SELECTION_READ_FAILED: {error}")))?;
+    if sha256_hex(&selection_bytes) != spot.selection_record_sha256 {
+        return Err((AuditStatus::Invalid, "SPOT_CHECK_SELECTION_DIGEST_MISMATCH".to_owned()));
+    }
+    let selection_record: SpotCheckSelectionRecord = serde_json::from_slice(&selection_bytes)
+        .map_err(|error| (AuditStatus::Invalid, format!("SPOT_CHECK_SELECTION_RECORD_INVALID: {error}")))?;
+    if selection_record.schema_version != SCHEMA_VERSION
+        || selection_record.seed != spot.seed
+        || selection_record.selection_method_id != spot.selection_method_id
+        || selection_record.selected_attempt_ids != spot.selected_attempt_ids
+    {
+        return Err((AuditStatus::Invalid, "SPOT_CHECK_SELECTION_RECORD_MISMATCH".to_owned()));
+    }
+
+    let expected_manifest_digest = spot_check_manifest_digest(spot)
+        .map_err(|error| (AuditStatus::Invalid, error))?;
+    if expected_manifest_digest != spot.manifest_sha256 {
+        return Err((AuditStatus::Invalid, "SPOT_CHECK_MANIFEST_DIGEST_MISMATCH".to_owned()));
     }
     Ok(())
 }
