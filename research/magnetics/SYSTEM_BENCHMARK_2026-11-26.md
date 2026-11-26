@@ -25,7 +25,7 @@ Sources:
 - RLS AksIM-4 HIPERFACE DSL official product page (current page links MCD06): https://www.rls.si/eng/aksim-hdsl-rotary-absolute-magnetic-encoder
 - RLS current absolute-encoder portfolio (standard family and HDSL variant distinction): https://www.rls.si/eng/products/rotary-magnetic-encoders/absolute-encoders
 - RLS AksIM-4 Dual Concentric official product page: https://www.rls.si/eng/aksim-dual
-- RLS MCD05 Issue 04 lifecycle notice; directs new designs to MCD06: https://www.rls.si/cn/en/fileuploader/download/download/?d=0&id=713&title=Data+sheet%3A+AksIM-4%E2%84%A2+HIPERFACE+DSL%C2%AE+Absolute+Rotary+Magnetic+Encoder
+- RLS MCD05 Issue 04 lifecycle notice; directs new designs to MCD06: https://cdn.rls.si/documents/datasheets/MCD05.pdf
 - Renishaw RESOLUTE ETR datasheet, installed accuracy by RESA30 ring diameter: https://www.renishaw.com/resourcecentre/download/%28844aab74daa246dd80cff7ec2e451af0%29?userLanguage=en
 - Magpylib Material Response 0.15.0 changelog: https://magpylib-material-response.readthedocs.io/en/stable/changelog.html
 - Magpylib Material Response 0.15.0 PyPI release and artifact digests: https://pypi.org/project/magpylib-material-response/0.15.0/
