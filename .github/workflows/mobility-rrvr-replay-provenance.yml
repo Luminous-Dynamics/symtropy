@@ -1,0 +1,39 @@
+name: RRVR Replay Provenance Preflight v0.1
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-replay-provenance-v0-1
+    paths:
+      - "research/mobility-rrvr-replay-provenance-v0.1/**"
+      - ".github/workflows/mobility-rrvr-replay-provenance.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-replay-provenance-v0.1/**"
+      - ".github/workflows/mobility-rrvr-replay-provenance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  provenance-preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Validate provenance schema
+        run: jq empty research/mobility-rrvr-replay-provenance-v0.1/schemas/replay_provenance_manifest_v0_1.schema.json
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/mobility-rrvr-replay-provenance-v0.1/Cargo.toml -- --check
+
+      - name: Run raw-artifact provenance known answers and mutations
+        run: cargo test --manifest-path research/mobility-rrvr-replay-provenance-v0.1/Cargo.toml --locked
+
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/mobility-rrvr-replay-provenance-v0.1/Cargo.toml --locked --all-targets -- -D warnings
