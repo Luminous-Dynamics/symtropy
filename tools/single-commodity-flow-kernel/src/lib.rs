@@ -77,6 +77,12 @@ impl FlowEdge {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FlowGraph {
+    /// Opaque domain identifier for the single conserved commodity.
+    pub commodity_ref: String,
+    /// Opaque unit identifier shared by every capacity in this graph.
+    pub capacity_unit_ref: String,
+    /// Opaque identifier for the common conservation/measurement boundary.
+    pub quantity_boundary_ref: String,
     pub nodes: Vec<FlowNode>,
     pub edges: Vec<FlowEdge>,
     pub source: String,
@@ -112,6 +118,9 @@ pub struct MinimumCut {
 pub struct FlowResult {
     /// SHA-256 over the canonical, versioned encoding of the complete graph.
     pub graph_sha256: String,
+    pub commodity_ref: String,
+    pub capacity_unit_ref: String,
+    pub quantity_boundary_ref: String,
     pub kernel_version: &'static str,
     pub supported_model_class: &'static str,
     pub source: String,
@@ -145,6 +154,9 @@ impl FlowGraph {
 
         let mut bytes = Vec::new();
         bytes.extend_from_slice(b"LUMINOUS-SCFK-GRAPH-V1\0");
+        push_string(&mut bytes, &self.commodity_ref);
+        push_string(&mut bytes, &self.capacity_unit_ref);
+        push_string(&mut bytes, &self.quantity_boundary_ref);
         push_string(&mut bytes, &self.source);
         push_string(&mut bytes, &self.sink);
         push_u64(&mut bytes, nodes.len() as u64);
@@ -302,6 +314,9 @@ impl FlowGraph {
 
         let result = FlowResult {
             graph_sha256,
+            commodity_ref: self.commodity_ref.clone(),
+            capacity_unit_ref: self.capacity_unit_ref.clone(),
+            quantity_boundary_ref: self.quantity_boundary_ref.clone(),
             kernel_version: KERNEL_VERSION,
             supported_model_class: SUPPORTED_MODEL_CLASS,
             source: self.source.clone(),
@@ -328,6 +343,12 @@ impl FlowGraph {
         let expected_digest = format!("sha256:{}", hex_lower(&Sha256::digest(canonical)));
         if result.graph_sha256 != expected_digest {
             return Err(FlowError::new("graph SHA-256 does not match the supplied graph"));
+        }
+        if result.commodity_ref != self.commodity_ref
+            || result.capacity_unit_ref != self.capacity_unit_ref
+            || result.quantity_boundary_ref != self.quantity_boundary_ref
+        {
+            return Err(FlowError::new("quantity contract does not match the supplied graph"));
         }
         if result.kernel_version != KERNEL_VERSION
             || result.supported_model_class != SUPPORTED_MODEL_CLASS
@@ -457,6 +478,14 @@ impl FlowGraph {
             return Err(FlowError::new(format!(
                 "edge count must be at most {MAX_EDGES}"
             )));
+        }
+        if self.commodity_ref.trim().is_empty()
+            || self.capacity_unit_ref.trim().is_empty()
+            || self.quantity_boundary_ref.trim().is_empty()
+        {
+            return Err(FlowError::new(
+                "commodity, capacity unit and quantity boundary references must be non-empty",
+            ));
         }
         if self.source.trim().is_empty() || self.sink.trim().is_empty() {
             return Err(FlowError::new("source and sink IDs must be non-empty"));
@@ -649,6 +678,9 @@ mod tests {
             })
             .collect::<Vec<_>>();
         FlowGraph {
+            commodity_ref: "test-commodity".to_string(),
+            capacity_unit_ref: "test-capacity-unit".to_string(),
+            quantity_boundary_ref: "test-boundary".to_string(),
             nodes: node_rows,
             edges: edge_rows,
             source: "n0".to_string(),
@@ -717,6 +749,9 @@ mod tests {
     #[test]
     fn parallel_antiparallel_cycles_and_zero_capacity_edges_are_supported() {
         let candidate = FlowGraph {
+            commodity_ref: "test-commodity".to_string(),
+            capacity_unit_ref: "test-capacity-unit".to_string(),
+            quantity_boundary_ref: "test-boundary".to_string(),
             nodes: vec![
                 FlowNode::new("s"),
                 FlowNode::new("a"),
