@@ -344,8 +344,12 @@ pub fn evaluate_decision_disambiguation_claim_v0(
             decision_class_id,
             live_hypotheses,
         } => Some(
-            unique_truth_decision_class(&truth) == Some(*decision_class_id)
-                && *live_hypotheses == problem.hypotheses.len(),
+            unique_truth_decision_class(&truth).is_some()
+                && *live_hypotheses == problem.hypotheses.len()
+                && problem
+                    .hypotheses
+                    .iter()
+                    .all(|hypothesis| hypothesis.decision_class_id == *decision_class_id),
         ),
         _ => None,
     };
@@ -664,7 +668,7 @@ mod tests {
         assert!(report.false_decision_sufficiency_claim);
 
         let wrong_count = DecisionDisambiguationResultV0::DecisionSufficient {
-            decision_class_id: 7,
+            decision_class_id: 10,
             live_hypotheses: 3,
         };
         let report = evaluate_decision_disambiguation_claim_v0(
@@ -681,7 +685,7 @@ mod tests {
         assert!(report.false_decision_sufficiency_claim);
 
         let correct = DecisionDisambiguationResultV0::DecisionSufficient {
-            decision_class_id: 7,
+            decision_class_id: 10,
             live_hypotheses: 2,
         };
         let report = evaluate_decision_disambiguation_claim_v0(
