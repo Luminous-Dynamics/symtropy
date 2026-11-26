@@ -437,6 +437,53 @@ impl FlowGraph {
             return Err(FlowError::new("invalid residual source-side node set"));
         }
 
+        // Reconstruct the residual graph from the submitted edge-flow
+        // witness. The reported source-side set is specifically the set
+        // reachable from source in this residual graph, not an arbitrary
+        // equal-capacity minimum-cut partition.
+        let mut residual_adjacency = self.nodes.iter()
+            .map(|node| (node.id.clone(), Vec::<String>::new()))
+            .collect::<BTreeMap<_, _>>();
+        for witness in &result.edge_flows {
+            if witness.flow < witness.capacity {
+                residual_adjacency
+                    .get_mut(&witness.from)
+                    .ok_or_else(|| FlowError::new("residual witness references an unknown tail"))?
+                    .push(witness.to.clone());
+            }
+            if witness.flow > 0 {
+                residual_adjacency
+                    .get_mut(&witness.to)
+                    .ok_or_else(|| FlowError::new("residual witness references an unknown head"))?
+                    .push(witness.from.clone());
+            }
+        }
+        let mut residual_reachable = BTreeSet::new();
+        let mut residual_queue = VecDeque::new();
+        residual_reachable.insert(self.source.clone());
+        residual_queue.push_back(self.source.clone());
+        while let Some(node_id) = residual_queue.pop_front() {
+            if let Some(neighbors) = residual_adjacency.get(&node_id) {
+                for neighbor in neighbors {
+                    if residual_reachable.insert(neighbor.clone()) {
+                        residual_queue.push_back(neighbor.clone());
+                    }
+                }
+            }
+        }
+        let mut sorted_node_ids = self.nodes.iter()
+            .map(|node| node.id.clone())
+            .collect::<Vec<_>>();
+        sorted_node_ids.sort();
+        let expected_source_side = sorted_node_ids.into_iter()
+            .filter(|node_id| residual_reachable.contains(node_id))
+            .collect::<Vec<_>>();
+        if result.source_side_nodes != expected_source_side {
+            return Err(FlowError::new(
+                "source-side node set does not match residual reachability of the edge-flow witness",
+            ));
+        }
+
         let mut expected_cut = Vec::new();
         let mut expected_cut_capacity = 0_u64;
         let mut sorted_edges = self.edges.iter().collect::<Vec<_>>();
@@ -833,6 +880,57 @@ mod tests {
         assert_eq!(a.edge_flows, b.edge_flows);
         assert_eq!(a.source_side_nodes, b.source_side_nodes);
         assert_eq!(a.min_cut, b.min_cut);
+    }
+
+    #[test]
+    fn certificate_cannot_substitute_an_equal_capacity_cut_partition() {
+        let candidate = FlowGraph {
+            commodity_ref: "test-commodity".to_string(),
+            capacity_unit_ref: "test-capacity-unit".to_string(),
+            quantity_boundary_ref: "test-boundary".to_string(),
+            nodes: vec![
+                FlowNode::new("s"),
+                FlowNode::new("a"),
+                FlowNode::new("b"),
+                FlowNode::new("t"),
+            ],
+            edges: vec![
+                FlowEdge::new("s-a", "s", "a", 1, None),
+                FlowEdge::new("s-b", "s", "b", 1, None),
+                FlowEdge::new("a-t", "a", "t", 1, None),
+                FlowEdge::new("b-t", "b", "t", 1, None),
+            ],
+            source: "s".to_string(),
+            sink: "t".to_string(),
+        };
+
+        let mut result = candidate.solve().unwrap();
+        assert_eq!(result.max_flow, 2);
+        assert_eq!(result.source_side_nodes, vec!["s".to_string()]);
+
+        // {s,a} is a different but equal-capacity cut (2). It is not the
+        // residual-reachable source side of this submitted flow witness.
+        result.source_side_nodes = vec!["a".to_string(), "s".to_string()];
+        result.min_cut = MinimumCut {
+            capacity: 2,
+            edges: vec![
+                CutEdge {
+                    id: "a-t".to_string(),
+                    from: "a".to_string(),
+                    to: "t".to_string(),
+                    capacity: 1,
+                    metadata_ref: None,
+                },
+                CutEdge {
+                    id: "s-b".to_string(),
+                    from: "s".to_string(),
+                    to: "b".to_string(),
+                    capacity: 1,
+                    metadata_ref: None,
+                },
+            ],
+        };
+        assert!(candidate.verify_result(&result).is_err());
     }
 
     #[test]
