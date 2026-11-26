@@ -507,7 +507,7 @@ where
                     parent_node_id: node.parent_node_id,
                     depth: node.depth,
                     design_bounds: node.design_bounds.clone(),
-                    disposition: BoxDisposition::UnresolvedMinimumWidth,
+                    disposition: BoxDisposition::UnresolvedUnboundedExpression,
                     objective_lower_bound: current_objective_lower,
                     margin_enclosure: current_margin_enclosure,
                     split_parameter_id: None,
