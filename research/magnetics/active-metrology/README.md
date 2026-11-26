@@ -51,6 +51,8 @@ Selection is deterministic and greedy over the supplied candidate list:
 
 The planner reports selected order and explicit exclusion/not-rankable reasons for every candidate. It does not invent locations or modify measurement inputs.
 
+The crate currently contains 15 authored unit tests covering impact-per-cost order, missing sensitivity/disagreement, sensitivity intervals crossing zero, positive and negative derivative intervals, measurement-error masking, protected evidence roles, 3D separation, budget, deterministic ties, provenance mismatch, duplicate IDs, invalid inputs and explicit revisit policy. Authored tests are not a test pass.
+
 ## Benchmark programme
 
 Compare against a uniform grid, seeded random sampling, maximum field-variance sampling, maximum cross-solver disagreement sampling, sensitivity-only sampling, decision-directed sampling and a full-map oracle. Use identical probe calibration, coordinate registration, standoff, condition, cost model and blind holdout map.
