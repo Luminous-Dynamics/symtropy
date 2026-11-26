@@ -2,7 +2,7 @@ name: AERO Material Qualification Contract
 
 on:
   push:
-    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1"]
+    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1"]
     paths:
       - "crates/domains/symtropy-aero-material-qual/**"
       - "docs/research/aviation/AERO_EVIDENCE_BINDING_001_V0_2.md"
@@ -29,6 +29,9 @@ on:
       - "docs/research/aviation/schemas/aero_evidence_gap_packet_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_effectivity_interval_cases_v0_1.json"
       - "docs/research/aviation/schemas/aero_effectivity_interval_cases_v0_1.schema.json"
+      - "docs/research/aviation/AERO_DECISION_CONTEXT_ENVELOPE_V0_1.md"
+      - "docs/research/aviation/schemas/aero_decision_context_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_decision_context_v0_1.json"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
     branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1"]
@@ -167,6 +170,67 @@ jobs:
                   print(f"{list(error.absolute_path)}: {error.message}")
               raise SystemExit(f"v0.2 fixture failed schema validation ({len(errors)} errors)")
           print("v0.2 evidence-binding schema and fixture validation passed.")
+          PY
+
+      - name: Validate typed decision context and independent digest vectors
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import pathlib
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema = json.loads((root / "docs/research/aviation/schemas/aero_decision_context_v0_1.schema.json").read_text())
+          context = json.loads((root / "docs/research/aviation/examples/aero_decision_context_v0_1.json").read_text())
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("decision-context schema must declare Draft 2020-12")
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(context), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}")
+              raise SystemExit(f"decision-context fixture failed schema validation ({len(errors)} errors)")
+
+          refs = ["receipt:inspection-01", "receipt:calibration-02"]
+          manifest = {
+              "schema": "AeroRequiredEvidenceManifestV1",
+              "canonicalization_profile": "rust-serde-json-struct-order-v1",
+              "evidence_refs": sorted(refs),
+          }
+          manifest_bytes = json.dumps(manifest, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+          manifest_digest = hashlib.sha256(manifest_bytes).hexdigest()
+          if context["required_evidence_manifest_sha256"] != manifest_digest:
+              raise SystemExit("required-evidence manifest digest does not match independent Python vector")
+
+          envelope = {
+              "schema": "AeroDecisionContextV0_1",
+              "canonicalization_profile": "rust-serde-json-struct-order-v1",
+              "claim_id": context["claim_id"],
+              "subject_ref": context["subject_ref"],
+              "configuration_ref": context["configuration_ref"],
+              "operating_envelope_ref": context["operating_envelope_ref"],
+              "acquisition_time_earliest_unix_ms": context["acquisition_time_earliest_unix_ms"],
+              "acquisition_time_latest_unix_ms": context["acquisition_time_latest_unix_ms"],
+              "as_known_at_unix_ms": context["as_known_at_unix_ms"],
+              "source_scope_manifest_sha256": context["source_scope_manifest_sha256"],
+              "evidence_knowledge_cut_sha256": context["evidence_knowledge_cut_sha256"],
+              "trust_policy_sha256": context["trust_policy_sha256"],
+              "claim_specification_sha256": context["claim_specification_sha256"],
+              "required_evidence_manifest_sha256": context["required_evidence_manifest_sha256"],
+              "risk_classification_sha256": context["risk_classification_sha256"],
+              "model_applicability_profile_sha256": context["model_applicability_profile_sha256"],
+          }
+          context_bytes = json.dumps(envelope, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+          context_digest = hashlib.sha256(context_bytes).hexdigest()
+          if context_digest != "b413084d0f543cc90a15e14cdff3fa92e6cf934b9e57773182017dfa2001768e":
+              raise SystemExit("decision-context canonical digest vector mismatch")
+          if context["acquisition_time_earliest_unix_ms"] > context["acquisition_time_latest_unix_ms"]:
+              raise SystemExit("decision-context acquisition interval is reversed")
+          if context["acquisition_time_latest_unix_ms"] > context["as_known_at_unix_ms"]:
+              raise SystemExit("decision-context acquisition is later than its as-known snapshot")
+          print("Decision-context schema and independent manifest/context SHA-256 vectors passed.")
           PY
 
       - name: Validate temporal replay corpus schema and frozen vectors
