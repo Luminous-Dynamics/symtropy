@@ -5,14 +5,15 @@ This isolated Rust crate provides an artifact-backed preflight for the existing 
 ## What it verifies
 
 - Raw source episode bytes match the source-episode digest in the replay manifest.
-- Raw instruction and action-prefix bytes match the replay manifest digests.
+- Raw instruction and action-prefix-index bytes match the replay manifest digests. The three selected attempts each carry distinct raw action-prefix artifacts and step counts.
+- Raw original-state and replay-state snapshot files for all three selected attempts are read, hashed and checked for scenario, attempt ID, simulator-profile binding, finite positions and matching coordinate frames. The reset receipts' initial-state digests must match the original-state artifact bytes.
 - Simulator, robot-model, controller and rendering profile artifacts exist, hash correctly, and identify the expected profile kind.
 - A frozen policy-roster artifact contains exactly the four unique policy IDs used by the 20 screening rows. This proves equality to a supplied frozen roster, not that the roster is canonical author data.
 - The reset-receipt manifest is raw-byte hash bound and scope bound to the scenario, source episode and simulator/robot profiles. Its three selected attempt IDs and policy IDs match the screening ledger.
-- The action-prefix receipt manifest is raw-byte hash bound and scope bound to the scenario, source episode, instruction, action prefix, reset receipt and simulator/robot/controller/rendering profiles. Its three selected attempt IDs and policy IDs match the screening ledger; action-step counts must be positive.
+- The action-prefix receipt manifest is raw-byte hash bound and scope bound to the scenario, source episode, instruction, action-prefix index, reset receipt and simulator/robot/controller/rendering profiles. Its three selected attempt IDs and policy IDs match the screening ledger; raw action-prefix bytes, hashes and positive action-step counts must agree.
 - Sidecar scenario identities and artifact digests match the exact replay manifest supplied to the CLI.
 
-The existing replay auditor continues to verify the three independent replay attempts, state artifacts, pose errors, five image pairs per attempt and the arithmetic mean of five SSIM frame scores per attempt. The preflight requires those three selected attempt IDs to occur in the 20-row screening ledger and checks their policy assignments. The seed-42 selection receipt remains verified, but the exact upstream RNG stream is not regenerated until the authors' algorithm/library/version is pinned. The provenance preflight does not alter the SSIM/pose checks.
+The existing replay auditor continues to verify pose-error thresholds, five image pairs per attempt and the arithmetic mean of five SSIM frame scores per attempt. The provenance preflight now independently verifies raw state artifacts and their typed scope before that image/pose score is considered. The preflight requires those three selected attempt IDs to occur in the 20-row screening ledger and checks their policy assignments. The seed-42 selection receipt remains verified, but the exact upstream RNG stream is not regenerated until the authors' algorithm/library/version is pinned. The provenance preflight does not alter the SSIM/pose checks.
 
 ## What it does not verify
 
