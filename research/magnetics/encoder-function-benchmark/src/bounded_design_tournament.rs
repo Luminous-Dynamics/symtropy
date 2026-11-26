@@ -176,9 +176,14 @@ fn validate_uncertainty_record(
             scenario_index,
         });
     }
-    for sample_index in 0..trace.samples.len() {
-        let field_bound = bounds.field_vector_error_radius_t[sample_index];
-        let angle_bound = bounds.mechanical_angle_error_bound_rad[sample_index];
+    for (sample_index, (field_bound, angle_bound)) in bounds
+        .field_vector_error_radius_t
+        .iter()
+        .zip(bounds.mechanical_angle_error_bound_rad.iter())
+        .enumerate()
+    {
+        let field_bound = *field_bound;
+        let angle_bound = *angle_bound;
         if !field_bound.is_finite()
             || field_bound < 0.0
             || !angle_bound.is_finite()
@@ -233,9 +238,20 @@ fn bounded_scenario_metrics(
     let mut unbounded_phase_sample_count = 0_usize;
 
     let pole_pairs = requirements.pole_pairs as f64;
-    for (sample_index, sample) in trace.samples.iter().enumerate() {
+    for (sample_index, (sample, (field_radius, angle_radius))) in trace
+        .samples
+        .iter()
+        .zip(
+            bounds
+                .field_vector_error_radius_t
+                .iter()
+                .zip(bounds.mechanical_angle_error_bound_rad.iter()),
+        )
+        .enumerate()
+    {
         let nominal_in_plane = sample.bx_t.hypot(sample.by_t);
-        let radius = bounds.field_vector_error_radius_t[sample_index];
+        let radius = *field_radius;
+        let angle_bound_rad = *angle_radius;
         let lower_in_plane = nominal_in_plane - radius;
         let upper_in_plane = nominal_in_plane + radius;
         if !nominal_in_plane.is_finite() || !lower_in_plane.is_finite() || !upper_in_plane.is_finite() {
@@ -267,11 +283,17 @@ fn bounded_scenario_metrics(
         // A 2D perturbation disk of radius r centred on a vector of magnitude m
         // subtends at most asin(r/m) radians at the origin when r < m.
         let field_direction_error = (radius / nominal_in_plane).asin();
-        let mechanical_phase_error =
-            pole_pairs * bounds.mechanical_angle_error_bound_rad[sample_index];
+        let mechanical_phase_error = pole_pairs * angle_bound_rad;
         let total_phase_error_bound = field_direction_error
             + mechanical_phase_error
             + bounds.phase_zero_error_bound_rad;
+        if !total_phase_error_bound.is_finite() {
+            return Err(BoundedDesignTournamentError::NumericOverflow {
+                candidate_index,
+                scenario_index,
+                sample_index,
+            });
+        }
         let expected_phase = requirements.phase_rotation_sense as f64
             * pole_pairs
             * sample.mechanical_angle_rad
