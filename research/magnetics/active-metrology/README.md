@@ -49,9 +49,9 @@ Selection is deterministic and greedy over the supplied candidate list:
 - maximum number of points;
 - minimum declared priority floor.
 
-The planner reports selected order and explicit exclusion/not-rankable reasons for every candidate. It does not invent locations or modify measurement inputs.
+The planner reports selected order and explicit exclusion/not-rankable reasons for every candidate. It does not invent locations or modify measurement inputs. A declared 3D scan-region envelope and standoff interval are enforced before candidate ranking.
 
-The crate currently contains 15 authored unit tests covering impact-per-cost order, missing sensitivity/disagreement, sensitivity intervals crossing zero, positive and negative derivative intervals, measurement-error masking, protected evidence roles, 3D separation, budget, deterministic ties, provenance mismatch, duplicate IDs, invalid inputs and explicit revisit policy. Authored tests are not a test pass.
+The crate currently contains 16 authored unit tests covering impact-per-cost order, missing sensitivity/disagreement, sensitivity intervals crossing zero, positive and negative derivative intervals, measurement-error masking, protected evidence roles, 3D separation, budget, deterministic ties, provenance mismatch, duplicate IDs, invalid inputs and explicit revisit policy. Authored tests are not a test pass.
 
 ## Benchmark programme
 
