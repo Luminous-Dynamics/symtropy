@@ -225,40 +225,25 @@ pub fn compare_paired_counterfactual_support(
             .ok_or(PairedCounterfactualError::ArithmeticOverflow)?;
     }
 
-    let count = i128::try_from(atoms.len())
-        .map_err(|_| PairedCounterfactualError::ArithmeticOverflow)?;
+    let count =
+        i128::try_from(atoms.len()).map_err(|_| PairedCounterfactualError::ArithmeticOverflow)?;
     let denominator = (atoms.len() as u128)
         .checked_mul(atoms.len() as u128)
         .ok_or(PairedCounterfactualError::ArithmeticOverflow)?;
 
-    let baseline_variance_numerator = centered_sum_squares_numerator(
-        count,
-        sum_baseline,
-        sum_baseline_squared,
-    )?;
-    let portfolio_variance_numerator = centered_sum_squares_numerator(
-        count,
-        sum_portfolio,
-        sum_portfolio_squared,
-    )?;
-    let paired_variance_numerator = centered_sum_squares_numerator(
-        count,
-        sum_difference,
-        sum_difference_squared,
-    )?;
+    let baseline_variance_numerator =
+        centered_sum_squares_numerator(count, sum_baseline, sum_baseline_squared)?;
+    let portfolio_variance_numerator =
+        centered_sum_squares_numerator(count, sum_portfolio, sum_portfolio_squared)?;
+    let paired_variance_numerator =
+        centered_sum_squares_numerator(count, sum_difference, sum_difference_squared)?;
 
     let independent_variance_numerator = baseline_variance_numerator
         .checked_add(portfolio_variance_numerator)
         .ok_or(PairedCounterfactualError::ArithmeticOverflow)?;
 
-    let paired_variance = Rational::new(
-        paired_variance_numerator,
-        denominator,
-    )?;
-    let independent_variance = Rational::new(
-        independent_variance_numerator,
-        denominator,
-    )?;
+    let paired_variance = Rational::new(paired_variance_numerator, denominator)?;
+    let independent_variance = Rational::new(independent_variance_numerator, denominator)?;
     let covariance_numerator = count
         .checked_mul(sum_cross_product)
         .and_then(|value| {
@@ -341,10 +326,13 @@ mod tests {
         ])
         .unwrap();
 
-        assert_eq!(report.mean_consequence_avoided_ticks, SignedRational {
-            numerator: -1,
-            denominator: 1,
-        });
+        assert_eq!(
+            report.mean_consequence_avoided_ticks,
+            SignedRational {
+                numerator: -1,
+                denominator: 1,
+            }
+        );
         assert_eq!(
             report.baseline_portfolio_covariance,
             SignedRational {
@@ -433,18 +421,8 @@ mod tests {
 
     #[test]
     fn exact_counterfactual_comparison_is_invariant_to_atom_order() {
-        let forward = [
-            atom(1, 0, 3),
-            atom(2, 1, 2),
-            atom(3, 2, 1),
-            atom(4, 3, 0),
-        ];
-        let reverse = [
-            atom(4, 3, 0),
-            atom(3, 2, 1),
-            atom(2, 1, 2),
-            atom(1, 0, 3),
-        ];
+        let forward = [atom(1, 0, 3), atom(2, 1, 2), atom(3, 2, 1), atom(4, 3, 0)];
+        let reverse = [atom(4, 3, 0), atom(3, 2, 1), atom(2, 1, 2), atom(1, 0, 3)];
         assert_eq!(
             compare_paired_counterfactual_support(&forward),
             compare_paired_counterfactual_support(&reverse)
@@ -490,6 +468,9 @@ mod tests {
             Rational::from_integer(0)
         );
         assert_eq!(report.paired_to_independent_variance_ratio, None);
-        assert_eq!(report.pairing_effect, PairingEffect::ZeroIndependentVariance);
+        assert_eq!(
+            report.pairing_effect,
+            PairingEffect::ZeroIndependentVariance
+        );
     }
 }
