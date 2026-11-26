@@ -108,11 +108,20 @@ pub enum OracleError {
     EmptyScenario,
     EmptyIdentifier,
     DuplicateVessel(String),
-    DuplicateCapacity { resource_id: String, slot: u32 },
+    DuplicateCapacity {
+        resource_id: String,
+        slot: u32,
+    }
     DuplicateCandidate(String),
-    UnknownVessel { candidate_id: String, vessel_id: String },
+    UnknownVessel {
+        candidate_id: String,
+        vessel_id: String,
+    }
     NoCandidatesForVessel(String),
-    UnknownResourceSlot { resource_id: String, slot: u32 },
+    UnknownResourceSlot {
+        resource_id: String,
+        slot: u32,
+    }
     ReservationOverflow,
     ObjectiveOverflow,
 }
@@ -136,14 +145,7 @@ fn reservation_totals(
 
 fn validate_and_index<'a>(
     scenario: &'a Scenario,
-) -> Result<
-    (
-        Vec<String>,
-        CapacityIndex,
-        CandidateIndex<'a>,
-    ),
-    OracleError,
-> {
+) -> Result<(Vec<String>, CapacityIndex, CandidateIndex<'a>), OracleError> {
     if scenario.vessel_ids.is_empty() || scenario.candidates.is_empty() {
         return Err(OracleError::EmptyScenario);
     }
@@ -508,7 +510,6 @@ mod tests {
             Err(OracleError::UnknownVessel { .. })
         ));
     }
-
 
     #[test]
     fn reservation_sum_overflow_is_rejected() {
