@@ -558,7 +558,6 @@ mod tests {
 
     #[test]
     fn generated_candidate_and_evaluator_artifacts_are_disjoint_and_valid() {
-        let seed = 42;
         let profile = digest_label("test-generator-profile");
         let episode = build_episode(3, &profile);
         let submission = build_submission(&episode).expect("candidate submission");
@@ -580,7 +579,7 @@ mod tests {
         assert!(episode_value.get("hidden_truth_world_id").is_none());
         assert!(submission_value.get("hidden_truth_world_id").is_none());
         assert!(world_pack_value.get("hidden_truth_world_id").is_some());
-        assert_eq!(episode_value["episode_id"], "aerb-case-000003");
+        assert_eq!(episode_value["episode_id"].as_str(), Some("aerb-case-000003"));
         assert!(!episode_value["episode_id"].as_str().unwrap().contains("seed"));
 
         let report = evaluate_json(&episode_json, &submission_json, &world_pack_json)
