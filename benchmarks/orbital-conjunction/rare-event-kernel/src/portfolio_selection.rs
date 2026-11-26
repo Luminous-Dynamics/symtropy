@@ -130,13 +130,19 @@ impl core::fmt::Display for PortfolioSelectionError {
             Self::InvalidFamilyAlpha => "family-wise confidence error must lie in (0, 1)",
             Self::TooFewPortfolios => "simultaneous selection requires at least two portfolios",
             Self::TooManyPortfolios => "portfolio universe exceeds the exact comparison limit",
-            Self::InvalidPortfolioIdentity => "portfolio identity is zero, duplicated or inconsistent",
+            Self::InvalidPortfolioIdentity => {
+                "portfolio identity is zero, duplicated or inconsistent"
+            },
             Self::InvalidConsequenceBound => "portfolio consequence bound is invalid",
-            Self::IncompletePortfolioDraw => "paired draw does not cover the frozen portfolio universe",
+            Self::IncompletePortfolioDraw => {
+                "paired draw does not cover the frozen portfolio universe"
+            },
             Self::ConsequenceOutsideBound => "portfolio consequence lies outside its frozen bound",
             Self::InvalidDrawIndex => "paired draw index is not the next expected sequence number",
             Self::ContrastCountOverflow => "pairwise contrast count overflowed",
-            Self::NumericalFailure => "portfolio contrast normalization or interval failed numerically",
+            Self::NumericalFailure => {
+                "portfolio contrast normalization or interval failed numerically"
+            },
             Self::PrPlEbFailure => "underlying PrPl-EB confidence-sequence update failed",
         };
         formatter.write_str(message)
@@ -274,9 +280,7 @@ impl SimultaneousPortfolioComparison {
             .draw_count
             .checked_add(1)
             .ok_or(PortfolioSelectionError::InvalidDrawIndex)?;
-        if draw.draw_index != expected_index
-            || draw.draw_index > MAX_SIMULTANEOUS_PORTFOLIO_DRAWS
-        {
+        if draw.draw_index != expected_index || draw.draw_index > MAX_SIMULTANEOUS_PORTFOLIO_DRAWS {
             return Err(PortfolioSelectionError::InvalidDrawIndex);
         }
         if draw.portfolio_consequences.len() != self.portfolio_bounds.len() {
@@ -286,7 +290,9 @@ impl SimultaneousPortfolioComparison {
         let mut observed = BTreeMap::new();
         for item in &draw.portfolio_consequences {
             if item.portfolio_id.iter().all(|byte| *byte == 0)
-                || observed.insert(item.portfolio_id, item.consequence_ticks).is_some()
+                || observed
+                    .insert(item.portfolio_id, item.consequence_ticks)
+                    .is_some()
             {
                 return Err(PortfolioSelectionError::InvalidPortfolioIdentity);
             }
@@ -329,8 +335,7 @@ impl SimultaneousPortfolioComparison {
             );
             let difference = left - right;
             let width = contrast.maximum_difference_ticks - contrast.minimum_difference_ticks;
-            let normalized =
-                (difference - contrast.minimum_difference_ticks) as f64 / width as f64;
+            let normalized = (difference - contrast.minimum_difference_ticks) as f64 / width as f64;
             if !normalized.is_finite() || !(0.0..=1.0).contains(&normalized) {
                 return Err(PortfolioSelectionError::NumericalFailure);
             }
@@ -369,11 +374,7 @@ impl SimultaneousPortfolioComparison {
                 let upper = outward_up(minimum + width_ticks * current.upper)
                     .min(contrast.maximum_difference_ticks as f64);
                 let mean = minimum + width_ticks * current.empirical_mean;
-                if !lower.is_finite()
-                    || !upper.is_finite()
-                    || !mean.is_finite()
-                    || lower > upper
-                {
+                if !lower.is_finite() || !upper.is_finite() || !mean.is_finite() || lower > upper {
                     return Err(PortfolioSelectionError::NumericalFailure);
                 }
                 PortfolioContrastConfidenceInterval {
@@ -583,19 +584,29 @@ mod tests {
         .unwrap();
         let report = process.report().unwrap();
 
-        assert_eq!(report.pairwise_intervals[0].lower_left_minus_right_ticks, -4.0);
-        assert_eq!(report.pairwise_intervals[0].upper_left_minus_right_ticks, -4.0);
-        assert_eq!(report.pairwise_intervals[1].lower_left_minus_right_ticks, 3.0);
-        assert_eq!(report.pairwise_intervals[1].upper_left_minus_right_ticks, 3.0);
+        assert_eq!(
+            report.pairwise_intervals[0].lower_left_minus_right_ticks,
+            -4.0
+        );
+        assert_eq!(
+            report.pairwise_intervals[0].upper_left_minus_right_ticks,
+            -4.0
+        );
+        assert_eq!(
+            report.pairwise_intervals[1].lower_left_minus_right_ticks,
+            3.0
+        );
+        assert_eq!(
+            report.pairwise_intervals[1].upper_left_minus_right_ticks,
+            3.0
+        );
     }
 
     #[test]
     fn invalid_or_partial_draw_is_transactional() {
-        let mut process = SimultaneousPortfolioComparison::new(
-            0.05,
-            vec![bound(10, 0, 10), bound(20, 0, 10)],
-        )
-        .unwrap();
+        let mut process =
+            SimultaneousPortfolioComparison::new(0.05, vec![bound(10, 0, 10), bound(20, 0, 10)])
+                .unwrap();
 
         assert_eq!(
             process.observe(&draw(1, &[(10, 5)])),
@@ -620,11 +631,9 @@ mod tests {
 
     #[test]
     fn duplicate_and_substituted_portfolio_identities_are_rejected() {
-        let mut process = SimultaneousPortfolioComparison::new(
-            0.05,
-            vec![bound(10, 0, 10), bound(20, 0, 10)],
-        )
-        .unwrap();
+        let mut process =
+            SimultaneousPortfolioComparison::new(0.05, vec![bound(10, 0, 10), bound(20, 0, 10)])
+                .unwrap();
 
         assert_eq!(
             process.observe(&draw(1, &[(10, 2), (10, 3)])),
@@ -653,7 +662,10 @@ mod tests {
             report
                 .pairwise_intervals
                 .iter()
-                .map(|interval| (interval.left_portfolio_id[0], interval.right_portfolio_id[0]))
+                .map(|interval| (
+                    interval.left_portfolio_id[0],
+                    interval.right_portfolio_id[0]
+                ))
                 .collect::<Vec<_>>(),
             vec![(10, 20), (10, 30), (20, 30)]
         );
