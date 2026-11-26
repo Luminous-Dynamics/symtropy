@@ -615,14 +615,48 @@ fn push_status(status: &mut AuditStatus, next: AuditStatus) {
     };
 }
 
-fn audit_pose(comparison: &PoseComparison, label: &str) -> (AuditStatus, PoseCheck, Vec<String>) {
+fn read_state_snapshot(
+    artifact_root: &Path,
+    relative_path: &str,
+    expected_sha256: &str,
+    scenario_id: &str,
+    attempt_id: &str,
+    simulator_profile_sha256: &str,
+) -> Result<ReplayStateSnapshot, (AuditStatus, String)> {
+    if !is_sha256(expected_sha256) {
+        return Err((AuditStatus::Invalid, "STATE_ARTIFACT_DIGEST_INVALID".to_owned()));
+    }
+    let path = safe_artifact_path(artifact_root, relative_path)
+        .map_err(|reason| (AuditStatus::Unresolved, reason))?;
+    let bytes = fs::read(path)
+        .map_err(|error| (AuditStatus::Unresolved, format!("STATE_ARTIFACT_READ_FAILED: {error}")))?;
+    if sha256_hex(&bytes) != expected_sha256 {
+        return Err((AuditStatus::Invalid, "STATE_ARTIFACT_DIGEST_MISMATCH".to_owned()));
+    }
+    let snapshot: ReplayStateSnapshot = serde_json::from_slice(&bytes)
+        .map_err(|error| (AuditStatus::Invalid, format!("STATE_ARTIFACT_JSON_INVALID: {error}")))?;
+    if snapshot.schema_version != SCHEMA_VERSION
+        || snapshot.scenario_id != scenario_id
+        || snapshot.attempt_id != attempt_id
+        || snapshot.simulator_profile_sha256 != simulator_profile_sha256
+    {
+        return Err((AuditStatus::Invalid, "STATE_ARTIFACT_SCOPE_MISMATCH".to_owned()));
+    }
+    Ok(snapshot)
+}
+
+fn audit_pose(
+    original: &PositionMm,
+    replayed: &PositionMm,
+    label: &str,
+) -> (AuditStatus, PoseCheck, Vec<String>) {
     let mut check = PoseCheck {
         observed_error_mm: None,
         threshold_mm: POSE_THRESHOLD_MM,
         passed: None,
     };
     let mut reasons = Vec::new();
-    match pose_error_mm(&comparison.original, &comparison.replayed) {
+    match pose_error_mm(original, replayed) {
         Ok(error_mm) => {
             let passed = error_mm < POSE_THRESHOLD_MM;
             check.observed_error_mm = Some(error_mm);
