@@ -139,7 +139,6 @@ fn independently_build_column_scaled_design(problem: &JointClockProblemV0) -> Ve
 /// columns directly avoids forming A^T A and squaring its condition number.
 fn singular_values_one_sided_jacobi(matrix: &[Vec<f64>]) -> Vec<f64> {
     assert!(!matrix.is_empty(), "the design must contain observations");
-    let row_count = matrix.len();
     let column_count = matrix[0].len();
     assert!(column_count > 0, "the design must contain parameters");
     assert!(
