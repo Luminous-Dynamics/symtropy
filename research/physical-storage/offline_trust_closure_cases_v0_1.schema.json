@@ -1,0 +1,221 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/offline-trust-closure-001/research/physical-storage/offline_trust_closure_cases_v0_1.schema.json",
+  "title": "Offline Trust Closure Cases v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "evidence_class",
+    "qualification_status",
+    "scorer_contract",
+    "case_count",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "offline-trust-closure-cases-v0.1"
+    },
+    "corpus_id": {
+      "const": "OCSTC-001-CASES-V0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_semantic_fixture"
+    },
+    "qualification_status": {
+      "const": "not_run"
+    },
+    "scorer_contract": {
+      "type": "string",
+      "minLength": 1
+    },
+    "case_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 13,
+      "maxItems": 13,
+      "items": {
+        "type": "object",
+        "required": [
+          "scenario_id",
+          "description",
+          "fault_injection",
+          "receipt",
+          "expected_disposition",
+          "rationale"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fault_injection": {
+            "type": "object",
+            "required": [
+              "type",
+              "network"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "minLength": 1
+              },
+              "network": {
+                "enum": [
+                  "deny_all",
+                  "not_configured"
+                ]
+              },
+              "package_caches": {
+                "type": "string"
+              },
+              "vendor_runtime": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "receipt": {
+            "type": "object",
+            "required": [
+              "scenario_id",
+              "bitstream_integrity",
+              "authenticity",
+              "interpretability",
+              "operational_closure",
+              "expected_digest_source",
+              "signature_trust_root_source",
+              "reader_ids",
+              "reader_independence",
+              "reader_agreement",
+              "preservation_objectives_required",
+              "preservation_objectives_passed",
+              "undeclared_runtime_dependencies",
+              "attempted_network_calls",
+              "sandbox_violations"
+            ],
+            "properties": {
+              "scenario_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "bitstream_integrity": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated"
+                ]
+              },
+              "authenticity": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated"
+                ]
+              },
+              "interpretability": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated"
+                ]
+              },
+              "operational_closure": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated"
+                ]
+              },
+              "expected_digest_source": {
+                "enum": [
+                  "out_of_band",
+                  "archive_only",
+                  "missing",
+                  "unknown"
+                ]
+              },
+              "signature_trust_root_source": {
+                "enum": [
+                  "out_of_band",
+                  "archive_only",
+                  "missing",
+                  "unknown"
+                ]
+              },
+              "reader_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "uniqueItems": true
+              },
+              "reader_independence": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated"
+                ]
+              },
+              "reader_agreement": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated"
+                ]
+              },
+              "preservation_objectives_required": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "preservation_objectives_passed": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "undeclared_runtime_dependencies": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "attempted_network_calls": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "sandbox_violations": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "additionalProperties": false
+          },
+          "expected_disposition": {
+            "enum": [
+              "pass",
+              "fail",
+              "incomplete",
+              "not_evaluated"
+            ]
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
