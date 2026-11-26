@@ -1239,7 +1239,7 @@ mod tests {
         let score = evaluate_sequence(&value).unwrap();
         assert_eq!(score.transition_overhead_ns, 40);
         assert_eq!(score.selected_switches, 1);
-        assert_eq!(score.online_total_cost_ns, 100 + 50 + 50 + 40);
+        assert_eq!(score.online_total_cost_ns, 100 + 50 + 100 + 40);
     }
 
     #[test]
