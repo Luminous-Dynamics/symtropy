@@ -331,7 +331,10 @@ fn validate_bundle(bundle: &EvidenceBundle) -> Result<(), String> {
             ));
         }
         if claim.evidence_ids.is_empty() && claim.state == ClaimState::Asserted {
-            return Err(format!("ASSERTED_CLAIM_WITHOUT_EVIDENCE: {}", claim.claim_id));
+            return Err(format!(
+                "ASSERTED_CLAIM_WITHOUT_EVIDENCE: {}",
+                claim.claim_id
+            ));
         }
         for evidence_id in &claim.evidence_ids {
             let capsule = by_id
