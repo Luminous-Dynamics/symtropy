@@ -629,6 +629,22 @@ fn individual_verdict(lower: u64, upper: u64, required: u64) -> WindowDispositio
     }
 }
 
+fn individual_maxima_status(
+    joint_lower_feasible: bool,
+    include_individual_maxima: bool,
+    obligation_count: usize,
+) -> IndividualMaximaStatus {
+    if joint_lower_feasible {
+        IndividualMaximaStatus::NotNeededJointServiceFeasible
+    } else if !include_individual_maxima {
+        IndividualMaximaStatus::OmittedForCounterfactualSearch
+    } else if obligation_count <= MAX_INDIVIDUAL_MAXIMA {
+        IndividualMaximaStatus::ComputedForInfeasibleJointService
+    } else {
+        IndividualMaximaStatus::OmittedAboveDeclaredObligationLimit
+    }
+}
+
 fn evaluate_internal(
     value: &Value,
     allow_hypothetical: bool,
@@ -647,15 +663,11 @@ fn evaluate_internal(
     })?;
     let joint_lower_feasible = lower.max_flow == total_required;
 
-    let individual_maxima_status = if joint_lower_feasible {
-        IndividualMaximaStatus::NotNeededJointServiceFeasible
-    } else if !include_individual_maxima {
-        IndividualMaximaStatus::OmittedForCounterfactualSearch
-    } else if p.obligations.len() <= MAX_INDIVIDUAL_MAXIMA {
-        IndividualMaximaStatus::ComputedForInfeasibleJointService
-    } else {
-        IndividualMaximaStatus::OmittedAboveDeclaredObligationLimit
-    };
+    let individual_maxima_status = individual_maxima_status(
+        joint_lower_feasible,
+        include_individual_maxima,
+        p.obligations.len(),
+    );
 
     let mut windows = Vec::new();
     for obligation in &p.obligations {
@@ -973,6 +985,26 @@ mod tests {
         let actual_cut = result.lower.min_cut.edges.iter()
             .map(|edge| edge.id.clone()).collect::<BTreeSet<_>>();
         assert_eq!(actual_cut, expected_cut);
+    }
+
+    #[test]
+    fn individual_maxima_budget_dispositions_are_explicit() {
+        assert_eq!(
+            individual_maxima_status(true, true, 128),
+            IndividualMaximaStatus::NotNeededJointServiceFeasible
+        );
+        assert_eq!(
+            individual_maxima_status(false, true, 2),
+            IndividualMaximaStatus::ComputedForInfeasibleJointService
+        );
+        assert_eq!(
+            individual_maxima_status(false, true, 33),
+            IndividualMaximaStatus::OmittedAboveDeclaredObligationLimit
+        );
+        assert_eq!(
+            individual_maxima_status(false, false, 2),
+            IndividualMaximaStatus::OmittedForCounterfactualSearch
+        );
     }
 
     #[test]
