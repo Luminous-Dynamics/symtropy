@@ -177,6 +177,16 @@ pub struct MaintenanceStats {
     pub fat_contained_updates: u64,
     pub proxy_reinsertions: u64,
     pub full_rebuilds: u64,
+    pub tree_rotations: u64,
+}
+
+/// Optional local balancing policy for the benchmark reference. The default
+/// remains Disabled so existing v0.1 traces preserve their original topology.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum BalancePolicy {
+    #[default]
+    Disabled,
+    HeightRotations,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -185,6 +195,7 @@ pub struct TreeStats {
     pub node_count: usize,
     pub height: usize,
     pub free_node_count: usize,
+    pub balance_policy: BalancePolicy,
     pub maintenance: MaintenanceStats,
 }
 
@@ -234,20 +245,29 @@ impl<const D: usize> Node<D> {
 /// Insert/remove/update operations are deterministic for a fixed operation
 /// sequence. Updating a tight AABB contained by the existing fat AABB avoids
 /// reinsertion. Otherwise the proxy is detached and reinserted using a
-/// generalized perimeter-cost heuristic. This baseline does not implement
-/// concurrent updates or automatic rotations; height and traversal counters
-/// are exposed so those costs and limitations remain visible.
+/// generalized perimeter-cost heuristic. The default policy disables
+/// rotations; an opt-in height-rotation policy is available for matched
+/// benchmarking. Height and traversal counters remain observable.
 pub struct IncrementalAabbTree<const D: usize> {
     root: Option<usize>,
     nodes: Vec<Option<Node<D>>>,
     free_nodes: Vec<usize>,
     leaves: BTreeMap<ProxyId, usize>,
     fat_margin: f64,
+    balance_policy: BalancePolicy,
     maintenance: MaintenanceStats,
 }
 
 impl<const D: usize> IncrementalAabbTree<D> {
     pub fn new(fat_margin: f64) -> Result<Self, TreeError> {
+        Self::new_with_balance_policy(fat_margin, BalancePolicy::Disabled)
+    }
+
+    /// Construct a tree with an explicit benchmark balancing policy.
+    pub fn new_with_balance_policy(
+        fat_margin: f64,
+        balance_policy: BalancePolicy,
+    ) -> Result<Self, TreeError> {
         if !fat_margin.is_finite() || fat_margin < 0.0 {
             return Err(TreeError::InvalidMargin);
         }
@@ -257,8 +277,14 @@ impl<const D: usize> IncrementalAabbTree<D> {
             free_nodes: Vec::new(),
             leaves: BTreeMap::new(),
             fat_margin,
+            balance_policy,
             maintenance: MaintenanceStats::default(),
         })
+    }
+
+    #[must_use]
+    pub fn balance_policy(&self) -> BalancePolicy {
+        self.balance_policy
     }
 
     #[must_use]
@@ -283,6 +309,7 @@ impl<const D: usize> IncrementalAabbTree<D> {
             node_count: self.nodes.iter().filter(|node| node.is_some()).count(),
             height: self.root.map_or(0, |root| self.node(root).height),
             free_node_count: self.free_nodes.len(),
+            balance_policy: self.balance_policy,
             maintenance: self.maintenance,
         }
     }
@@ -546,27 +573,174 @@ impl<const D: usize> IncrementalAabbTree<D> {
         }
     }
 
-    fn fix_upwards(&mut self, mut index: usize) {
-        loop {
-            let (left, right) = {
-                let node = self.node(index);
+    fn recompute_branch(&mut self, index: usize) {
+        let (left, right) = {
+            let node = self.node(index);
+            (
+                node.left.expect("branch left child"),
+                node.right.expect("branch right child"),
+            )
+        };
+        let left_node = self.node(left);
+        let right_node = self.node(right);
+        let aabb = left_node.aabb.union(&right_node.aabb);
+        let height = 1 + left_node.height.max(right_node.height);
+        let min_proxy = left_node.min_proxy.min(right_node.min_proxy);
+        let node = self.node_mut(index);
+        node.aabb = aabb;
+        node.height = height;
+        node.min_proxy = min_proxy;
+    }
+
+    fn replace_subtree_root(&mut self, old_root: usize, new_root: usize) {
+        let parent = self.node(old_root).parent;
+        if let Some(parent_index) = parent {
+            let parent_node = self.node_mut(parent_index);
+            if parent_node.left == Some(old_root) {
+                parent_node.left = Some(new_root);
+            } else if parent_node.right == Some(old_root) {
+                parent_node.right = Some(new_root);
+            } else {
+                unreachable!("old subtree root is not attached to its parent");
+            }
+        } else {
+            self.root = Some(new_root);
+        }
+        self.node_mut(new_root).parent = parent;
+    }
+
+    /// Rotate an imbalanced branch toward its taller child. This uses the
+    /// standard single-vs-double rotation choice: when the heavy child leans
+    /// inward, promote the inner grandchild rather than leaving a skewed root.
+    fn balance_branch(&mut self, index: usize) -> usize {
+        self.recompute_branch(index);
+        let (left, right) = {
+            let node = self.node(index);
+            (
+                node.left.expect("branch left child"),
+                node.right.expect("branch right child"),
+            )
+        };
+        let left_height = self.node(left).height;
+        let right_height = self.node(right).height;
+
+        if right_height > left_height.saturating_add(1) {
+            let (inner, outer) = {
+                let node = self.node(right);
                 (
-                    node.left.expect("branch left child"),
-                    node.right.expect("branch right child"),
+                    node.left.expect("right branch left child"),
+                    node.right.expect("right branch right child"),
                 )
             };
-            let left_node = self.node(left);
-            let right_node = self.node(right);
-            let aabb = left_node.aabb.union(&right_node.aabb);
-            let height = 1 + left_node.height.max(right_node.height);
-            let min_proxy = left_node.min_proxy.min(right_node.min_proxy);
-            {
-                let node = self.node_mut(index);
-                node.aabb = aabb;
-                node.height = height;
-                node.min_proxy = min_proxy;
+
+            if self.node(inner).height > self.node(outer).height {
+                // Right-left double rotation: promote the inner grandchild.
+                let promoted = inner;
+                let (promoted_left, promoted_right) = {
+                    let node = self.node(promoted);
+                    (
+                        node.left.expect("inner branch left child"),
+                        node.right.expect("inner branch right child"),
+                    )
+                };
+                self.replace_subtree_root(index, promoted);
+                self.node_mut(promoted).left = Some(index);
+                self.node_mut(promoted).right = Some(right);
+                self.node_mut(index).parent = Some(promoted);
+                self.node_mut(right).parent = Some(promoted);
+
+                self.node_mut(index).right = Some(promoted_left);
+                self.node_mut(promoted_left).parent = Some(index);
+                self.node_mut(right).left = Some(promoted_right);
+                self.node_mut(promoted_right).parent = Some(right);
+
+                self.recompute_branch(index);
+                self.recompute_branch(right);
+                self.recompute_branch(promoted);
+                self.maintenance.tree_rotations = self.maintenance.tree_rotations.saturating_add(2);
+                return promoted;
             }
-            let Some(parent) = self.node(index).parent else {
+
+            // Right-right or balanced-heavy-child case: one left rotation.
+            let promoted = right;
+            let inner = self.node(promoted).left.expect("right branch left child");
+            self.replace_subtree_root(index, promoted);
+            self.node_mut(promoted).left = Some(index);
+            self.node_mut(index).parent = Some(promoted);
+            self.node_mut(index).right = Some(inner);
+            self.node_mut(inner).parent = Some(index);
+
+            self.recompute_branch(index);
+            self.recompute_branch(promoted);
+            self.maintenance.tree_rotations = self.maintenance.tree_rotations.saturating_add(1);
+            return promoted;
+        }
+
+        if left_height > right_height.saturating_add(1) {
+            let (outer, inner) = {
+                let node = self.node(left);
+                (
+                    node.left.expect("left branch left child"),
+                    node.right.expect("left branch right child"),
+                )
+            };
+
+            if self.node(inner).height > self.node(outer).height {
+                // Left-right double rotation: promote the inner grandchild.
+                let promoted = inner;
+                let (promoted_left, promoted_right) = {
+                    let node = self.node(promoted);
+                    (
+                        node.left.expect("inner branch left child"),
+                        node.right.expect("inner branch right child"),
+                    )
+                };
+                self.replace_subtree_root(index, promoted);
+                self.node_mut(promoted).left = Some(left);
+                self.node_mut(promoted).right = Some(index);
+                self.node_mut(left).parent = Some(promoted);
+                self.node_mut(index).parent = Some(promoted);
+
+                self.node_mut(left).right = Some(promoted_left);
+                self.node_mut(promoted_left).parent = Some(left);
+                self.node_mut(index).left = Some(promoted_right);
+                self.node_mut(promoted_right).parent = Some(index);
+
+                self.recompute_branch(left);
+                self.recompute_branch(index);
+                self.recompute_branch(promoted);
+                self.maintenance.tree_rotations = self.maintenance.tree_rotations.saturating_add(2);
+                return promoted;
+            }
+
+            // Left-left or balanced-heavy-child case: one right rotation.
+            let promoted = left;
+            let inner = self.node(promoted).right.expect("left branch right child");
+            self.replace_subtree_root(index, promoted);
+            self.node_mut(promoted).right = Some(index);
+            self.node_mut(index).parent = Some(promoted);
+            self.node_mut(index).left = Some(inner);
+            self.node_mut(inner).parent = Some(index);
+
+            self.recompute_branch(index);
+            self.recompute_branch(promoted);
+            self.maintenance.tree_rotations = self.maintenance.tree_rotations.saturating_add(1);
+            return promoted;
+        }
+
+        index
+    }
+
+    fn fix_upwards(&mut self, mut index: usize) {
+        loop {
+            let subtree_root = match self.balance_policy {
+                BalancePolicy::Disabled => {
+                    self.recompute_branch(index);
+                    index
+                }
+                BalancePolicy::HeightRotations => self.balance_branch(index),
+            };
+            let Some(parent) = self.node(subtree_root).parent else {
                 break;
             };
             index = parent;
@@ -1242,5 +1416,196 @@ mod tests {
             Err(TreeError::InvalidBounds)
         );
         assert_eq!(tree.query_pairs().pairs, Vec::<ProxyPair>::new());
+    }
+
+    fn assert_tree_invariants<const D: usize>(tree: &IncrementalAabbTree<D>) {
+        fn visit<const D: usize>(
+            tree: &IncrementalAabbTree<D>,
+            index: usize,
+            parent: Option<usize>,
+            seen: &mut [bool],
+        ) -> (Aabb<D>, usize, ProxyId) {
+            assert!(!seen[index], "node {index} was reached more than once");
+            seen[index] = true;
+            let node = tree.node(index).clone();
+            assert_eq!(node.parent, parent);
+            if let Some(proxy) = node.proxy {
+                assert!(node.left.is_none());
+                assert!(node.right.is_none());
+                assert_eq!(node.height, 0);
+                assert_eq!(node.min_proxy, proxy);
+                assert_eq!(tree.leaves.get(&proxy), Some(&index));
+                return (node.aabb, 0, proxy);
+            }
+
+            let left = node.left.expect("branch has left child");
+            let right = node.right.expect("branch has right child");
+            let (left_aabb, left_height, left_min) = visit(tree, left, Some(index), seen);
+            let (right_aabb, right_height, right_min) = visit(tree, right, Some(index), seen);
+            let expected_aabb = left_aabb.union(&right_aabb);
+            let expected_height = 1 + left_height.max(right_height);
+            let expected_min = left_min.min(right_min);
+            assert_eq!(node.aabb, expected_aabb);
+            assert_eq!(node.height, expected_height);
+            assert_eq!(node.min_proxy, expected_min);
+            (expected_aabb, expected_height, expected_min)
+        }
+
+        let mut seen = vec![false; tree.nodes.len()];
+        if let Some(root) = tree.root {
+            assert!(tree.node(root).parent.is_none());
+            visit(tree, root, None, &mut seen);
+        } else {
+            assert!(tree.leaves.is_empty());
+        }
+
+        for (index, node) in tree.nodes.iter().enumerate() {
+            assert_eq!(
+                node.is_some(),
+                seen[index],
+                "live-node reachability at {index}"
+            );
+        }
+        assert_eq!(
+            tree.leaves.len(),
+            tree.nodes
+                .iter()
+                .filter(|node| node.as_ref().is_some_and(Node::<D>::is_leaf))
+                .count()
+        );
+        let mut free = std::collections::BTreeSet::new();
+        for index in &tree.free_nodes {
+            assert!(free.insert(*index), "duplicate free-node index");
+            assert!(tree.nodes[*index].is_none());
+        }
+        for (index, node) in tree.nodes.iter().enumerate() {
+            if node.is_none() {
+                assert!(free.contains(&index), "untracked free node");
+            }
+        }
+    }
+
+    fn assert_height_balanced<const D: usize>(
+        tree: &IncrementalAabbTree<D>,
+        index: usize,
+    ) -> usize {
+        let node = tree.node(index);
+        if node.is_leaf() {
+            return 0;
+        }
+        let left = node.left.expect("branch has left child");
+        let right = node.right.expect("branch has right child");
+        let left_height = assert_height_balanced(tree, left);
+        let right_height = assert_height_balanced(tree, right);
+        assert!(
+            left_height.abs_diff(right_height) <= 1,
+            "AVL height invariant violated at node {index}: left={left_height}, right={right_height}"
+        );
+        1 + left_height.max(right_height)
+    }
+
+    fn tree_brute_force_pairs<const D: usize>(tree: &IncrementalAabbTree<D>) -> Vec<ProxyPair> {
+        let entries = tree
+            .leaves
+            .iter()
+            .map(|(proxy, index)| (*proxy, tree.node(*index).aabb))
+            .collect::<Vec<_>>();
+        let mut pairs = Vec::new();
+        for left in 0..entries.len() {
+            for right in (left + 1)..entries.len() {
+                if entries[left].1.overlaps(&entries[right].1) {
+                    pairs.push(ProxyPair(entries[left].0, entries[right].0));
+                }
+            }
+        }
+        pairs.sort_unstable();
+        pairs
+    }
+
+    #[test]
+    fn height_rotations_repair_adversarial_insertions_without_changing_pairs() {
+        let mut unbalanced = IncrementalAabbTree::<2>::new(0.0).unwrap();
+        let mut balanced =
+            IncrementalAabbTree::<2>::new_with_balance_policy(0.0, BalancePolicy::HeightRotations)
+                .unwrap();
+
+        for id in 0..128_u64 {
+            let bounds = aabb([0.0, 0.0], [1.0, 1.0]);
+            unbalanced.insert(ProxyId(id), bounds).unwrap();
+            balanced.insert(ProxyId(id), bounds).unwrap();
+        }
+
+        assert_eq!(unbalanced.balance_policy(), BalancePolicy::Disabled);
+        assert_eq!(balanced.balance_policy(), BalancePolicy::HeightRotations);
+        assert!(balanced.stats().maintenance.tree_rotations > 0);
+        assert!(
+            balanced.stats().height < unbalanced.stats().height,
+            "balanced={} unbalanced={}",
+            balanced.stats().height,
+            unbalanced.stats().height
+        );
+        assert_eq!(
+            balanced.query_pairs().pairs,
+            tree_brute_force_pairs(&balanced)
+        );
+        assert_eq!(
+            unbalanced.query_pairs().pairs,
+            tree_brute_force_pairs(&unbalanced)
+        );
+        assert_tree_invariants(&balanced);
+        assert_tree_invariants(&unbalanced);
+        assert_height_balanced(&balanced, balanced.root.expect("non-empty tree"));
+
+        for id in (0..128_u64).step_by(7) {
+            let x = id as f64 * 3.0;
+            let moved = aabb([x, 0.0], [x + 0.5, 0.5]);
+            unbalanced.update(ProxyId(id), moved).unwrap();
+            balanced.update(ProxyId(id), moved).unwrap();
+        }
+        for id in (1..128_u64).step_by(5) {
+            unbalanced.remove(ProxyId(id)).unwrap();
+            balanced.remove(ProxyId(id)).unwrap();
+        }
+        assert_eq!(
+            balanced.query_pairs().pairs,
+            tree_brute_force_pairs(&balanced)
+        );
+        assert_eq!(
+            unbalanced.query_pairs().pairs,
+            tree_brute_force_pairs(&unbalanced)
+        );
+        assert_tree_invariants(&balanced);
+        assert_tree_invariants(&unbalanced);
+        assert_height_balanced(&balanced, balanced.root.expect("non-empty tree"));
+
+        let before = balanced.query_pairs().pairs;
+        balanced.rebuild();
+        assert_eq!(balanced.query_pairs().pairs, before);
+        assert_tree_invariants(&balanced);
+        assert_height_balanced(&balanced, balanced.root.expect("non-empty tree"));
+    }
+
+    #[test]
+    fn height_rotation_topology_is_deterministic_for_identical_operation_traces() {
+        fn build() -> IncrementalAabbTree<3> {
+            let mut tree =
+                IncrementalAabbTree::new_with_balance_policy(0.25, BalancePolicy::HeightRotations)
+                    .unwrap();
+            for id in (0..96_u64).rev() {
+                let x = (id % 7) as f64 * 0.125;
+                let bounds = aabb([x, 0.0, 0.0], [x + 1.0, 1.0, 1.0]);
+                tree.insert(ProxyId(id), bounds).unwrap();
+            }
+            tree
+        }
+
+        let first = build();
+        let second = build();
+        assert_eq!(first.stats(), second.stats());
+        assert_eq!(first.query_pairs().pairs, second.query_pairs().pairs);
+        assert_tree_invariants(&first);
+        assert_tree_invariants(&second);
+        assert_height_balanced(&first, first.root.expect("non-empty tree"));
+        assert_height_balanced(&second, second.root.expect("non-empty tree"));
     }
 }
