@@ -521,7 +521,7 @@ mod tests {
             receipt_ref: "SYNTHETIC::CHANGE-RECEIPT".to_owned(),
             event_frontier_ref: "SYNTHETIC::EVENT-FRONTIER".to_owned(),
             completeness: "INCOMPLETE".to_owned(),
-            required_requalification_claims: vec!["claim-A".to_owned()],
+            required_requalification_claims: vec!["SYNTHETIC::CALIBRATION-BINDING-CLAIM".to_owned()],
             unaffected_claims: Vec::new(),
         });
         let projection = packet
