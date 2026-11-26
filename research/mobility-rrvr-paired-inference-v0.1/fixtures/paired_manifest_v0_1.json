@@ -1,0 +1,209 @@
+{
+  "schema_version": "0.1",
+  "benchmark": "RRVR-PAIRED-INFERENCE",
+  "analysis_id": "synthetic-known-answer-clustered-pairs-v0.1",
+  "preregistration": {
+    "control_arm_id": "native_recovery",
+    "treatment_arm_id": "rrvr_overlay",
+    "control_implementation_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "treatment_implementation_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "cluster_unit_id": "trajectory_cluster",
+    "cluster_unit_profile_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "bootstrap_draws": 2000,
+    "bootstrap_seed": 42,
+    "alpha": 0.05,
+    "endpoint_specs": [
+      {
+        "endpoint_id": "false_safe",
+        "direction": "minimize_event",
+        "description": "False-safe verdict, with unknown and disputed counted conservatively adverse."
+      },
+      {
+        "endpoint_id": "recovery_success",
+        "direction": "maximize_success",
+        "description": "Independently adjudicated native recovery success."
+      }
+    ]
+  },
+  "scheduled_pair_ids": [
+    "p1",
+    "p2",
+    "p3",
+    "p4",
+    "p5",
+    "p6",
+    "p7",
+    "p8"
+  ],
+  "excluded_pair_ids": [],
+  "pairs": [
+    {
+      "pair_id": "p1",
+      "control_attempt_id": "p1-native",
+      "treatment_attempt_id": "p1-rrvr",
+      "cluster_id": "c1",
+      "control_cluster_id": "c1",
+      "treatment_cluster_id": "c1",
+      "frozen_input_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "outcomes": [
+        {
+          "endpoint_id": "false_safe",
+          "control": "event",
+          "treatment": "no_event"
+        },
+        {
+          "endpoint_id": "recovery_success",
+          "control": "event",
+          "treatment": "event"
+        }
+      ]
+    },
+    {
+      "pair_id": "p2",
+      "control_attempt_id": "p2-native",
+      "treatment_attempt_id": "p2-rrvr",
+      "cluster_id": "c1",
+      "control_cluster_id": "c1",
+      "treatment_cluster_id": "c1",
+      "frozen_input_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "outcomes": [
+        {
+          "endpoint_id": "false_safe",
+          "control": "no_event",
+          "treatment": "no_event"
+        },
+        {
+          "endpoint_id": "recovery_success",
+          "control": "no_event",
+          "treatment": "event"
+        }
+      ]
+    },
+    {
+      "pair_id": "p3",
+      "control_attempt_id": "p3-native",
+      "treatment_attempt_id": "p3-rrvr",
+      "cluster_id": "c2",
+      "control_cluster_id": "c2",
+      "treatment_cluster_id": "c2",
+      "frozen_input_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "outcomes": [
+        {
+          "endpoint_id": "false_safe",
+          "control": "no_event",
+          "treatment": "no_event"
+        },
+        {
+          "endpoint_id": "recovery_success",
+          "control": "event",
+          "treatment": "event"
+        }
+      ]
+    },
+    {
+      "pair_id": "p4",
+      "control_attempt_id": "p4-native",
+      "treatment_attempt_id": "p4-rrvr",
+      "cluster_id": "c2",
+      "control_cluster_id": "c2",
+      "treatment_cluster_id": "c2",
+      "frozen_input_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "outcomes": [
+        {
+          "endpoint_id": "false_safe",
+          "control": "no_event",
+          "treatment": "no_event"
+        },
+        {
+          "endpoint_id": "recovery_success",
+          "control": "event",
+          "treatment": "event"
+        }
+      ]
+    },
+    {
+      "pair_id": "p5",
+      "control_attempt_id": "p5-native",
+      "treatment_attempt_id": "p5-rrvr",
+      "cluster_id": "c3",
+      "control_cluster_id": "c3",
+      "treatment_cluster_id": "c3",
+      "frozen_input_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "outcomes": [
+        {
+          "endpoint_id": "false_safe",
+          "control": "no_event",
+          "treatment": "no_event"
+        },
+        {
+          "endpoint_id": "recovery_success",
+          "control": "no_event",
+          "treatment": "event"
+        }
+      ]
+    },
+    {
+      "pair_id": "p6",
+      "control_attempt_id": "p6-native",
+      "treatment_attempt_id": "p6-rrvr",
+      "cluster_id": "c3",
+      "control_cluster_id": "c3",
+      "treatment_cluster_id": "c3",
+      "frozen_input_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "outcomes": [
+        {
+          "endpoint_id": "false_safe",
+          "control": "no_event",
+          "treatment": "no_event"
+        },
+        {
+          "endpoint_id": "recovery_success",
+          "control": "event",
+          "treatment": "event"
+        }
+      ]
+    },
+    {
+      "pair_id": "p7",
+      "control_attempt_id": "p7-native",
+      "treatment_attempt_id": "p7-rrvr",
+      "cluster_id": "c4",
+      "control_cluster_id": "c4",
+      "treatment_cluster_id": "c4",
+      "frozen_input_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "outcomes": [
+        {
+          "endpoint_id": "false_safe",
+          "control": "no_event",
+          "treatment": "no_event"
+        },
+        {
+          "endpoint_id": "recovery_success",
+          "control": "event",
+          "treatment": "no_event"
+        }
+      ]
+    },
+    {
+      "pair_id": "p8",
+      "control_attempt_id": "p8-native",
+      "treatment_attempt_id": "p8-rrvr",
+      "cluster_id": "c4",
+      "control_cluster_id": "c4",
+      "treatment_cluster_id": "c4",
+      "frozen_input_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "outcomes": [
+        {
+          "endpoint_id": "false_safe",
+          "control": "no_event",
+          "treatment": "no_event"
+        },
+        {
+          "endpoint_id": "recovery_success",
+          "control": "event",
+          "treatment": "event"
+        }
+      ]
+    }
+  ]
+}
