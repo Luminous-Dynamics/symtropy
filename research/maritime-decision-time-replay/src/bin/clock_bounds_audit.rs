@@ -1,5 +1,5 @@
 use maritime_decision_time_replay::clock_bounds::{
-    qualify_clock_bounds, ClockAdmission, ClockCutoffs, ClockEvidence, TimeInterval,
+    qualify_clock_bounds, ClockCutoffs, ClockEvidence, TimeInterval,
 };
 use std::error::Error;
 
