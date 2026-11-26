@@ -74,12 +74,17 @@ jobs:
             and .endpoint_reports[0].control_only_adverse_pair_n == 1
             and .endpoint_reports[0].treatment_only_adverse_pair_n == 0
             and .endpoint_reports[0].mcnemar == null
+            and .endpoint_reports[0].status == "descriptive_only"
+            and .endpoint_reports[0].cluster_independence_status == "not_independently_verified"
+            and .endpoint_reports[0].bootstrap_interval_interpretation == "exploratory_descriptive_only"
             and (.endpoint_reports[0].treatment_zero_adverse_cluster_upper_bound > 0.527)
             and (.endpoint_reports[0].treatment_zero_adverse_cluster_upper_bound < 0.528)
             and .endpoint_reports[1].endpoint_id == "recovery_success"
             and .endpoint_reports[1].episode_weighted_risk_difference == -0.125
             and .endpoint_reports[1].mcnemar == null
+            and all(.endpoint_reports[]; .status == "descriptive_only")
             and all(.endpoint_reports[]; .bootstrap_interval.draws == 2000)
+            and all(.endpoint_reports[]; .bootstrap_interval.interpretation == "exploratory_descriptive_only")
           ' "$RUNNER_TEMP/rrvr-paired-inference.json"
 
       - name: Run paired inference tests
