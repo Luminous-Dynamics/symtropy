@@ -19,3 +19,7 @@ name = "aerb_evaluate"
 path = "src/bin/aerb_evaluate.rs"
 
 [workspace]
+
+[[bin]]
+name = "aerb_generate"
+path = "src/bin/aerb_generate.rs"
