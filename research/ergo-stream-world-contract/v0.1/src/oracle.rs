@@ -565,7 +565,7 @@ fn build_correspondence(
 mod tests {
     use super::*;
     use crate::atlas::{TransferAtlasFamilyV0, TransferAtlasWorldV0};
-    use crate::transfer::{RelationV0, validate_structural_correspondence};
+    use crate::transfer::{NodeV0, RelationV0, validate_structural_correspondence};
 
     fn edge(
         id: u32,
