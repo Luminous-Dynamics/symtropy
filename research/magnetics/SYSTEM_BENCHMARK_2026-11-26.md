@@ -10,19 +10,24 @@ Do not put magnetic field solvers, Hall latches, magnetic absolute encoders and 
 | Comparator | Published capability | What it is a fair comparator for | What it is not |
 |---|---|---|---|
 | TI TMAG5110/TMAG5111 | 2D dual-channel Hall latch; typical BOP variants 1.4 mT and 3 mT; product page lists 40 kHz bandwidth and -40°C to +125°C; independent A/B latch output or speed/direction output | Hall field-to-digital transition chain, speed/direction, packaging, field margin and operating-temperature challenge | A calibrated absolute-angle system accuracy specification |
-| RLS AksIM-2 | Axial off-axis magnetic absolute encoder; 17–20-bit resolution, up to 10,000 rpm (size-dependent); system accuracy ±0.004° to ±0.020° after self-calibration in the May 2026 data sheet; hysteresis and repeatability below one unit of resolution | High-end magnetic absolute encoder system, including calibration and ring/readhead integration | A raw Hall-latch sensor or a solver benchmark |
+| RLS AksIM-2 | Axial off-axis magnetic absolute encoder; up to 20-bit; 10,000 rpm; official page lists system accuracy ±0.004° to ±0.020° after self-calibration (configuration-dependent) | High-end magnetic absolute encoder accuracy, calibration, ring/readhead integration | A Hall latch or a solver benchmark |
+| RLS AksIM-4 | New off-axis true-absolute magnetic encoder; up to 22-bit; 22–150 mm ring outer diameters; -40°C to +105°C with connector or +125°C with solder pads; hysteresis below one LSB. The overview page does not publish a system-accuracy figure | Current high-resolution magnetic absolute encoder, packaging, temperature and ring-size comparison | An accuracy claim where the overview provides none |
+| RLS AksIM-4 Dual Concentric | Two absolute channels in one encoder; 19-bit input and output; stated system accuracy up to ±0.010°; -40°C to +105°C | Dual-sensor robot-joint feedback and compact dual-measurement architectures | A single-channel Hall latch |
 | Renishaw RESOLUTE | Optical absolute rotary system; current comparison table lists system accuracy ±4.28 to ±0.41 arcsec depending on RESA30/REXA30 ring diameter (52–550 mm / 52–417 mm); two-readhead typical installed accuracy up to ±1 arcsec; size/resolution-dependent speed up to 36,000 rpm for RESA30 | Upper industrial optical metrology reference and independent rotor-angle truth source | A direct magnetic BOM/environment competitor without application normalization |
-| Magpylib Material Response 0.15.0 | Analytical-source and face-charge browser/WASM kernels; face-charge differentiable through JAX/PyTorch; release source describes shared 50-digit references | Open solver and differentiable-kernel reference for value/gradient qualification | A complete replacement for nonlinear/an-isotropic FEM or physical metrology |
+| Magpylib Material Response 0.15.0 | 25 Nov 2026 release adds analytical and face-charge WASM field kernels checked against shared 50-digit references; face-charge runs through JAX/PyTorch with JIT and gradients; release changelog reports a far-axis cylinder numerical-stability case | Open field-kernel, differentiable face-charge and numerical-stability reference | A replacement for nonlinear/anisotropic FEM or physical metrology |
 
 Sources:
 - TI TMAG5110/TMAG5111 product page: https://www.ti.com/product/TMAG5111
 - TI TMAG511x datasheet Rev D: https://www.ti.com/lit/ds/symlink/tmag5111.pdf
-- RLS AksIM-2 official product page (retrieved 26 Nov 2026): https://www.rls.si/eng/aksim-2-off-axis-rotary-absolute-encoder
-- RLS AksIM-2 data sheet MBD01_15, issue 15, 13 May 2026: https://www.rls.si/cn_tw/fileuploader/download/download/?d=0&id=267&title=Data+sheet%3A+AksIM-2%E2%84%A2+off-axis+rotary+absolute+magnetic+encoder+%28MBD01%29
 - RLS AksIM-2 official product page: https://www.rls.si/eng/aksim-2-off-axis-rotary-absolute-encoder
+- RLS AksIM-4 official product page: https://www.rls.si/eng/aksim-4-off-axis-rotary-absolute-encoder
+- RLS AksIM-4 Dual Concentric official product page: https://www.rls.si/eng/aksim-dual
+- RLS absolute-encoder product portfolio: https://www.rls.si/eng/products/rotary-magnetic-encoders/absolute-encoders
 - Renishaw current open-encoder comparison table: https://www.renishaw.com/en/open-optical-encoders-comparison-table--6789
+- Magpylib Material Response 0.15.0 changelog: https://magpylib-material-response.readthedocs.io/en/stable/changelog.html
 - Magpylib Material Response 0.15.0 PyPI release and artifact digests: https://pypi.org/project/magpylib-material-response/0.15.0/
 - Magpylib Material Response 0.15.0 source commit: https://github.com/magpylib/magpylib-material-response/commit/492b37459a47f4220d7e44380668c2d9ab720784
+- Insinga and Bjørk, “Gradient-based optimization of permanent-magnet assemblies for any objective”, Physical Review Applied 20, 064030 (2023): https://doi.org/10.1103/PhysRevApplied.20.064030
 
 Important qualification note: TI product-page operating-point summaries include typical and maximum values for different device variants; the Rev D datasheet's threshold curves are typical characteristics. Do not turn a typical curve or graph digitization into a guaranteed tolerance interval. Obtain the exact part suffix, guaranteed electrical table, temperature/supply conditions and traceable component characterization before creating a hard sensor bound.
 
@@ -68,6 +73,32 @@ Pin artifact hashes, source commit, dependency versions, runtime, precision, bac
 Compare field values and derivatives independently. Check rotational/translation covariance, scale laws, source superposition, mesh/panel refinement, finite-difference step stability, near-axis/far-field behaviour and degenerate geometry. JAX eager/JIT, PyTorch eager, WASM and high-precision reference runs need matched numerical tolerances before speed comparisons.
 
 Inverse design should use differentiable fast models for exploration, then re-check finalists with independent FEM/refinement and calibrated physical measurements. A differentiable solver is an optimizer aid, not proof that the physical design is correct.
+
+### F. Function-first inverse design
+
+Gradient-based permanent-magnet design is established research, not a novelty claim. Insinga and Bjørk demonstrated a semianalytical adjoint-like method for optimizing magnetization direction over a prescribed design region. Our opportunity is to optimize the *encoder's measured function and its evidence margin*, then qualify each finalist independently.
+
+Compare these optimizers under identical parameterizations, initial designs, material/geometry constraints, compute budget and preregistered holdout scenarios:
+
+- engineering baseline (existing pole pattern and hand tuning);
+- bounded grid/random search;
+- derivative-free CMA-ES or another fixed evolutionary baseline;
+- Bayesian optimization with an explicit evaluation budget;
+- gradient/adjoint search through a differentiable field model;
+- multi-fidelity search: differentiable/fast model for exploration, independent FEM for finalist screening, and bounded physical metrology for final acceptance.
+
+The design vector must declare which variables are actually free: magnetization direction, pole pitch and duty, magnet thickness/segmentation, material, air gap, eccentricity allowance, sensor axes/position and calibration degrees of freedom. Do not silently optimize sensor parameters that the product cannot calibrate or control.
+
+The objective is constrained and multiobjective, not a hidden weighted scalar. Candidate feasibility is decided first by hard worst-case functional limits (phase/edge reserve, minimum field, ripple, cross-axis leakage and environment). Only feasible candidates enter a Pareto ranking for robust margin, BOM/material use, package envelope, compute and measurement cost.
+
+Proposed research targets, not achieved results:
+- at least 2× fewer high-fidelity FEM evaluations than a single-fidelity baseline to reach the same preregistered robust-feasible hypervolume under equal total compute;
+- every finalist passes derivative directional checks against independent finite differences and an independent solver within declared tolerances;
+- zero false accepts on the deterministic bounded challenge set;
+- no candidate may be accepted using training scenarios alone: hidden geometric, thermal, eccentricity and stray-field cases remain sealed until the final evaluation;
+- publish time-to-first-robust-feasible design, number of FEM solves, wall-clock/energy, Pareto hypervolume, failure rate, and worst blind functional margin.
+
+The 2× target is a falsifiable research target, not a promised gain. Report solver calls and hardware as well as elapsed time, because different fidelity levels have different costs.
 
 ### C. Incremental Hall quadrature
 
@@ -123,6 +154,8 @@ The credible differentiation is the end-to-end evidence chain:
       -> independent capture -> blind functional acceptance
 
 Commercial products may already win on accuracy, certification, installed base or manufacturing scale. Our opportunity is to demonstrate a better *design-to-evidence workflow*: explicit applicability, reproducible multi-solver checks, robust functional margins, fewer necessary measurements and transparent physical reconciliation. It becomes a competitive claim only after the matched T2/T3 benchmark suite is complete.
+
+A specific claim boundary follows from the current market: AksIM-4's published 22-bit resolution is not an accuracy claim, and its overview does not publish a system-accuracy number. AksIM-2's accuracy range is configuration- and self-calibration-dependent. RESOLUTE is an optical metrology class with much tighter published installed accuracy on larger rings. We will compare each specification only against a like-for-like product and configuration, and treat an independent optical encoder as reference instrumentation rather than a magnetic competitor.
 
 ## 6. Active work
 
