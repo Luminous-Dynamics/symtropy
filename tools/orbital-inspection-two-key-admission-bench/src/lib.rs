@@ -33,6 +33,18 @@ pub enum DecisionValueBasis {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum SafetyClaimDisposition {
+    SafetyClaimsComplete,
+    SafetyClaimFailed,
+    SafetyClaimIncomplete,
+    RiskOnly,
+    OutOfScope,
+    Indeterminate,
+    InvalidInput,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Disposition {
     EligibleInspection,
     EligibleRecovery,
@@ -60,7 +72,10 @@ pub struct ActionScope {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct PhysicalSafetyBinding {
-    pub state: GateState,
+    pub claim_disposition: SafetyClaimDisposition,
+    pub proof_verification_state: GateState,
+    pub finite_horizon_claim_sha256: Option<String>,
+    pub safe_continuation_claim_sha256: Option<String>,
     pub action_id: String,
     pub vehicle_id: String,
     pub trajectory_revision: String,
@@ -142,6 +157,9 @@ pub struct CaseResult {
     pub decision_value_milli: u64,
     pub decision_value_basis: DecisionValueBasis,
     pub physical_safety_receipt_sha256: Option<String>,
+    pub physical_safety_claim_disposition: Option<SafetyClaimDisposition>,
+    pub finite_horizon_claim_sha256: Option<String>,
+    pub safe_continuation_claim_sha256: Option<String>,
     pub portfolio_receipt_sha256: Option<String>,
     pub measurement_receipt_sha256: Option<String>,
     pub scope_receipt_sha256: Option<String>,
@@ -216,6 +234,18 @@ fn evaluate_case(case: &Case) -> CaseResult {
         .physical_safety
         .as_ref()
         .map(|binding| binding.receipt_sha256.clone());
+    let safety_claim_disposition = candidate
+        .physical_safety
+        .as_ref()
+        .map(|binding| binding.claim_disposition);
+    let finite_horizon_digest = candidate
+        .physical_safety
+        .as_ref()
+        .and_then(|binding| binding.finite_horizon_claim_sha256.clone());
+    let safe_continuation_digest = candidate
+        .physical_safety
+        .as_ref()
+        .and_then(|binding| binding.safe_continuation_claim_sha256.clone());
     let portfolio_digest = candidate
         .post_action_portfolio
         .as_ref()
@@ -239,6 +269,9 @@ fn evaluate_case(case: &Case) -> CaseResult {
         decision_value_milli: candidate.decision_value_milli,
         decision_value_basis: candidate.decision_value_basis,
         physical_safety_receipt_sha256: safety_digest.clone(),
+        physical_safety_claim_disposition: safety_claim_disposition,
+        finite_horizon_claim_sha256: finite_horizon_digest.clone(),
+        safe_continuation_claim_sha256: safe_continuation_digest.clone(),
         portfolio_receipt_sha256: portfolio_digest.clone(),
         measurement_receipt_sha256: measurement_digest.clone(),
         scope_receipt_sha256: scope_digest.clone(),
@@ -271,10 +304,27 @@ fn evaluate_case(case: &Case) -> CaseResult {
             || !valid_text(&binding.trajectory_revision)
             || !valid_text(&binding.horizon_id)
             || !valid_sha256(&binding.receipt_sha256)
+            || binding
+                .finite_horizon_claim_sha256
+                .as_ref()
+                .is_some_and(|digest| !valid_sha256(digest))
+            || binding
+                .safe_continuation_claim_sha256
+                .as_ref()
+                .is_some_and(|digest| !valid_sha256(digest))
         {
             return result(
                 Disposition::InvalidInput,
                 vec!["PHYSICAL_SAFETY_BINDING_INVALID".to_owned()],
+            );
+        }
+        if binding.claim_disposition == SafetyClaimDisposition::SafetyClaimsComplete
+            && (binding.finite_horizon_claim_sha256.is_none()
+                || binding.safe_continuation_claim_sha256.is_none())
+        {
+            return result(
+                Disposition::InvalidInput,
+                vec!["COMPOSITE_SAFETY_CLAIM_MISSING_COMPONENT_REFERENCE".to_owned()],
             );
         }
         if !same(&scope.action_id, &binding.action_id)
@@ -377,18 +427,49 @@ fn evaluate_case(case: &Case) -> CaseResult {
     }
 
     let safety = candidate.physical_safety.as_ref().expect("checked above");
-    match safety.state {
+    match safety.claim_disposition {
+        SafetyClaimDisposition::SafetyClaimsComplete => {}
+        SafetyClaimDisposition::SafetyClaimFailed => {
+            return result(
+                Disposition::RejectedSafety,
+                vec!["PHYSICAL_SAFETY_CLAIM_FAILED".to_owned()],
+            );
+        }
+        SafetyClaimDisposition::SafetyClaimIncomplete
+        | SafetyClaimDisposition::RiskOnly
+        | SafetyClaimDisposition::Indeterminate => {
+            return result(
+                Disposition::Indeterminate,
+                vec!["PHYSICAL_SAFETY_CLAIM_NOT_COMPOSITE".to_owned()],
+            );
+        }
+        SafetyClaimDisposition::OutOfScope => {
+            return result(
+                Disposition::OutOfScope,
+                vec!["PHYSICAL_SAFETY_CLAIM_OUT_OF_SCOPE".to_owned()],
+            );
+        }
+        SafetyClaimDisposition::InvalidInput => {
+            return result(
+                Disposition::InvalidInput,
+                vec!["PHYSICAL_SAFETY_CLAIM_INVALID".to_owned()],
+            );
+        }
+    }
+    // Structural completeness from #7575 is necessary but not sufficient.
+    // A separate external verifier must attest the supplied proof bundle.
+    match safety.proof_verification_state {
         GateState::Pass => {}
         GateState::Fail => {
-            reasons.insert("PHYSICAL_SAFETY_FAIL".to_owned());
+            reasons.insert("PHYSICAL_SAFETY_PROOF_VERIFICATION_FAIL".to_owned());
             return result(Disposition::RejectedSafety, reasons.into_iter().collect());
         }
         GateState::Unknown => {
-            reasons.insert("PHYSICAL_SAFETY_UNKNOWN".to_owned());
+            reasons.insert("PHYSICAL_SAFETY_PROOF_VERIFICATION_UNKNOWN".to_owned());
             return result(Disposition::Indeterminate, reasons.into_iter().collect());
         }
         GateState::Stale => {
-            reasons.insert("PHYSICAL_SAFETY_STALE".to_owned());
+            reasons.insert("PHYSICAL_SAFETY_PROOF_VERIFICATION_STALE".to_owned());
             return result(Disposition::Indeterminate, reasons.into_iter().collect());
         }
     }
@@ -720,7 +801,7 @@ mod tests {
                     for scope in states {
                         for event_set_complete in [false, true] {
                             let mut candidate = base.clone();
-                            candidate.candidate.physical_safety.as_mut().unwrap().state = safety;
+                            candidate.candidate.physical_safety.as_mut().unwrap().proof_verification_state = safety;
                             let portfolio_binding =
                                 candidate.candidate.post_action_portfolio.as_mut().unwrap();
                             portfolio_binding.state = portfolio;
