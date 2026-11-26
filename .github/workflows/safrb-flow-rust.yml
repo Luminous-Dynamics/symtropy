@@ -99,6 +99,20 @@ jobs:
             fi
           done
 
+      - name: Independent portable certificate conformance
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f "tools/single-commodity-flow-kernel/conformance/test_flow_certificate.py" ]]; then
+            python3 -m unittest discover \
+              -s tools/single-commodity-flow-kernel/conformance \
+              -p 'test_*.py' -v
+            python3 tools/single-commodity-flow-kernel/conformance/verify_flow_certificate.py \
+              tools/single-commodity-flow-kernel/conformance/fixtures/flow-certificate-v1.synthetic.json
+          else
+            echo "Portable certificate conformance suite not present on this branch; skipped."
+          fi
+
       - name: Emit exact-head qualification receipt
         if: always()
         shell: bash
