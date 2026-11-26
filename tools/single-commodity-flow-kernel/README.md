@@ -13,7 +13,7 @@ This crate provides a deterministic integer-capacity max-flow/min-cut kernel for
 - Minimum-cut edge identities, capacities and exact max-flow/min-cut equality.
 - Versioned canonical graph encoding and SHA-256 binding.
 - Explicit graph-size bounds and checked integer arithmetic.
-- Independent certificate verification without rerunning the solver.
+- Independent certificate verification without rerunning the solver, including exact reconstruction of residual reachability from the submitted edge-flow witness; a substituted equal-capacity cut partition is rejected.
 
 The canonical graph digest binds commodity, capacity unit, quantity boundary, source/sink IDs, node IDs, edge IDs, endpoints, capacities and opaque metadata references. Input permutation does not change the digest.
 
