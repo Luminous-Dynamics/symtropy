@@ -111,17 +111,17 @@ pub enum OracleError {
     DuplicateCapacity {
         resource_id: String,
         slot: u32,
-    }
+    },
     DuplicateCandidate(String),
     UnknownVessel {
         candidate_id: String,
         vessel_id: String,
-    }
+    },
     NoCandidatesForVessel(String),
     UnknownResourceSlot {
         resource_id: String,
         slot: u32,
-    }
+    },
     ReservationOverflow,
     ObjectiveOverflow,
 }
