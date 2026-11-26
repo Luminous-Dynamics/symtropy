@@ -324,6 +324,7 @@ fn validate_manifest(manifest: &InferenceManifest) -> Result<(), String> {
         .map(|endpoint| endpoint.endpoint_id.as_str())
         .collect();
     let mut pair_ids = BTreeSet::new();
+    let mut attempt_ids = BTreeSet::new();
     for pair in &manifest.pairs {
         if !pair_ids.insert(pair.pair_id.as_str()) {
             return Err(format!("DUPLICATE_PAIR_ID: {}", pair.pair_id));
@@ -331,8 +332,14 @@ fn validate_manifest(manifest: &InferenceManifest) -> Result<(), String> {
         if pair.control_attempt_id.trim().is_empty()
             || pair.treatment_attempt_id.trim().is_empty()
             || pair.cluster_id.trim().is_empty()
+            || pair.control_attempt_id == pair.treatment_attempt_id
         {
             return Err(format!("PAIR_IDENTITY_INCOMPLETE: {}", pair.pair_id));
+        }
+        if !attempt_ids.insert(pair.control_attempt_id.as_str())
+            || !attempt_ids.insert(pair.treatment_attempt_id.as_str())
+        {
+            return Err(format!("DUPLICATE_ATTEMPT_ID: {}", pair.pair_id));
         }
         if pair.control_cluster_id != pair.cluster_id
             || pair.treatment_cluster_id != pair.cluster_id
@@ -739,6 +746,17 @@ mod tests {
         manifest.pairs[0].treatment_cluster_id = "other".to_owned();
         let error = evaluate_manifest(&manifest).expect_err("cluster mismatch");
         assert!(error.starts_with("PAIR_CLUSTER_ID_MISMATCH"));
+    }
+
+    #[test]
+    fn attempt_ids_cannot_be_reused_across_pairs() {
+        let mut manifest = manifest_with(vec![
+            pair("p1", "c1", OutcomeState::NoEvent, OutcomeState::NoEvent, OutcomeState::Event, OutcomeState::Event),
+            pair("p2", "c2", OutcomeState::NoEvent, OutcomeState::NoEvent, OutcomeState::Event, OutcomeState::Event),
+        ]);
+        manifest.pairs[1].control_attempt_id = manifest.pairs[0].control_attempt_id.clone();
+        let error = evaluate_manifest(&manifest).expect_err("duplicate attempt ID");
+        assert!(error.starts_with("DUPLICATE_ATTEMPT_ID"));
     }
 
     #[test]
