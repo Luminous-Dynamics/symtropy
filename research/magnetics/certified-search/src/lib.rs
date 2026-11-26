@@ -817,6 +817,11 @@ mod tests {
         .expect("valid search");
         assert!(result.incumbent.is_some());
         assert!(result.certified_within_gap);
+        assert_eq!(result.objective_id, "quadratic-robust-reference");
+        assert_eq!(
+            result.compliance_expression_id,
+            "robust-margin-expression-v1"
+        );
         assert_eq!(result.termination, SearchTermination::OptimalityGapSatisfied);
         assert!(result.global_objective_lower_bound.is_some());
         assert!(result.global_objective_upper_bound.is_some());
@@ -934,6 +939,33 @@ mod tests {
                 .expect_err("width vector must match design dimension"),
             SearchError::InvalidPolicy
         );
+    }
+
+
+    #[test]
+    fn singular_boundary_remains_unresolved_and_cannot_claim_a_global_gap() {
+        let root = root_domain();
+        let one = IntervalDual::constant(Interval::ONE);
+        let singular_objective = |[x, _u]: [IntervalDual<2>; 2]| Ok(one / x);
+        let always_feasible = |_variables: [IntervalDual<2>; 2]| {
+            Ok(IntervalDual::constant(interval(1.0, 1.0)))
+        };
+        let mut bounded = policy(1.0e-6);
+        bounded.maximum_depth = 8;
+
+        let result = branch_and_bound(
+            &root,
+            1,
+            bounded,
+            singular_objective,
+            always_feasible,
+        )
+        .expect("singular regions are retained, not treated as fatal");
+        assert!(result.incumbent.is_some());
+        assert!(result.unresolved_leaf_count > 0);
+        assert_eq!(result.global_objective_lower_bound, None);
+        assert!(!result.certified_within_gap);
+        assert_eq!(result.termination, SearchTermination::UnresolvedBoxesRemain);
     }
 
 }
