@@ -169,9 +169,8 @@ fn transformed_obb_gjk_matches_seeded_independent_sat_reference() {
         };
 
         let expected = obb_sat_reference(center_a, half_a, angle_a, center_b, half_b, angle_b);
-        let observed =
-            gjk::intersects_transformed(&shape_a, &transform_a, &shape_b, &transform_b)
-                .intersecting;
+        let observed = gjk::intersects_transformed(&shape_a, &transform_a, &shape_b, &transform_b)
+            .intersecting;
 
         if observed && !expected {
             false_positives += 1;
