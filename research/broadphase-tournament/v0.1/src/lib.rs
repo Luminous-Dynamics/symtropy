@@ -732,21 +732,42 @@ impl<const D: usize> PairDeltaCache<D> {
         self.apply_dirty_ids(frame, &dirty_ids, true, true, snapshot_entries_visited, 0)
     }
 
-    /// Apply a frame using a caller-provided, strictly increasing dirty-ID
-    /// journal. This is the fast path for a physics world that already tracks
-    /// inserted/removed/moved/woken colliders. Completeness is a caller
-    /// precondition; use verify_dirty_proxy_ids in the independent audit.
-    ///
-    /// A full invalidation (e.g. collision filter/layer policy change) must use
-    /// step, which derives all relevant identities from the snapshot.
+    /// Trusted fast path for a physics world that owns a canonical, sorted
+    /// proxy frame and an authoritative complete journal of every inserted,
+    /// removed, moved, woken or policy-invalidated identity. This path does
+    /// not scan unchanged proxies: it validates only journal entries and the
+    /// bounds of dirty current proxies. The caller must guarantee that the
+    /// frame is sorted by unique ProxyId and that every non-dirty entry is
+    /// unchanged and previously validated. Use verify_dirty_proxy_ids in the
+    /// independent snapshot audit. A full invalidation must use step.
     pub fn step_with_dirty_ids(
         &mut self,
         frame: &[ProxyFrame<D>],
         dirty_ids: &[ProxyId],
     ) -> Result<PairDeltaFrame, TournamentError> {
+        self.apply_dirty_ids(frame, dirty_ids, false, true, 0, 0)
+    }
+
+    /// Defensive variant for untrusted snapshots. It validates the entire
+    /// current frame before applying the supplied journal and reports that
+    /// O(N) work separately. It is useful for adapters that have not yet earned
+    /// the trusted canonical-frame contract.
+    pub fn step_with_dirty_ids_checked(
+        &mut self,
+        frame: &[ProxyFrame<D>],
+        dirty_ids: &[ProxyId],
+    ) -> Result<PairDeltaFrame, TournamentError> {
+        validate_proxy_sequence(frame)?;
         let frame_validation_entries_visited =
             u64::try_from(frame.len()).map_err(|_| TournamentError::CounterOverflow)?;
-        self.apply_dirty_ids(frame, dirty_ids, false, false, 0, frame_validation_entries_visited)
+        self.apply_dirty_ids(
+            frame,
+            dirty_ids,
+            false,
+            true,
+            0,
+            frame_validation_entries_visited,
+        )
     }
 
     fn apply_dirty_ids(
@@ -770,11 +791,14 @@ impl<const D: usize> PairDeltaCache<D> {
                 return Err(TournamentError::InvalidDirtyJournal);
             }
             let exists_before = self.previous_bounds.contains_key(dirty_id);
-            let exists_now = frame
-                .binary_search_by_key(dirty_id, |proxy| proxy.id)
-                .is_ok();
+            let current_index =
+                frame.binary_search_by_key(dirty_id, |proxy| proxy.id).ok();
+            let exists_now = current_index.is_some();
             if !exists_before && !exists_now {
                 return Err(TournamentError::InvalidDirtyJournal);
+            }
+            if current_index.is_some_and(|index| !frame[index].bounds.is_valid()) {
+                return Err(TournamentError::InvalidBounds);
             }
             previous_dirty = Some(*dirty_id);
         }
