@@ -599,6 +599,9 @@ jobs:
       - name: Run evaluator Clippy
         run: cargo clippy --locked --package symtropy-aero-material-qual --all-targets -- -D warnings
 
+      - name: Run typed causal-cut 10k benchmark smoke
+        run: cargo run --locked --package symtropy-aero-material-qual --example vector_cut_scale -- 10000 31
+
       - name: Run evaluator CLI smoke test
         shell: bash
         run: |
