@@ -358,11 +358,7 @@ pub fn calibrate_cluster_conformal_ellipsoid(
     sorted_scores.sort_by(f64::total_cmp);
     let cluster_count = sorted_scores.len();
     let observation_count = observations.len();
-    let raw_rank = ((cluster_count + 1) as f64 * (1.0 - config.alpha)).ceil();
-    if !raw_rank.is_finite() || raw_rank < 1.0 {
-        return Err(ClusterConformalCalibrationError::NumericalFailure);
-    }
-    let order_statistic_rank = raw_rank as usize;
+    let order_statistic_rank = conformal_order_statistic_rank(cluster_count, config.alpha)?;
     let calibrated_max_nis_threshold = if order_statistic_rank <= cluster_count {
         Some(sorted_scores[order_statistic_rank - 1])
     } else {
@@ -396,6 +392,52 @@ pub fn calibrate_cluster_conformal_ellipsoid(
         cluster_scores_by_identity,
         guarantee_assumption: "marginal block-level coverage conditional on exchangeability of complete calibration and future block maximum-NIS scores under the frozen block contract",
     })
+}
+
+/// Compute ceil((m + 1) * (1 - alpha)) exactly for the supplied binary64 alpha.
+///
+/// For integer N=m+1, ceil(N*(1-alpha)) = N - floor(N*alpha). Decode alpha's
+/// binary significand/exponent and perform the scaled product in u128. This
+/// avoids an intermediate floating-point subtraction or multiplication moving
+/// an exact order-statistic boundary by one rank.
+fn conformal_order_statistic_rank(
+    calibration_cluster_count: usize,
+    alpha: f64,
+) -> Result<usize, ClusterConformalCalibrationError> {
+    if !alpha.is_finite() || alpha <= 0.0 || alpha >= 1.0 {
+        return Err(ClusterConformalCalibrationError::InvalidAlpha);
+    }
+    let scale = calibration_cluster_count
+        .checked_add(1)
+        .ok_or(ClusterConformalCalibrationError::NumericalFailure)?;
+    let bits = alpha.to_bits();
+    let exponent_bits = ((bits >> 52) & 0x7ff) as u32;
+    let fraction = bits & ((1_u64 << 52) - 1);
+    let (significand, denominator_shift) = if exponent_bits == 0 {
+        (u128::from(fraction), 1074_u32)
+    } else {
+        (
+            u128::from((1_u64 << 52) | fraction),
+            1075_u32 - exponent_bits,
+        )
+    };
+    let scaled_product = (scale as u128)
+        .checked_mul(significand)
+        .ok_or(ClusterConformalCalibrationError::NumericalFailure)?;
+    let floor_scaled_alpha = if denominator_shift >= 128 {
+        0_u128
+    } else {
+        scaled_product >> denominator_shift
+    };
+    let rank = (scale as u128)
+        .checked_sub(floor_scaled_alpha)
+        .ok_or(ClusterConformalCalibrationError::NumericalFailure)?;
+    let rank = usize::try_from(rank)
+        .map_err(|_| ClusterConformalCalibrationError::NumericalFailure)?;
+    if rank == 0 {
+        return Err(ClusterConformalCalibrationError::NumericalFailure);
+    }
+    Ok(rank)
 }
 
 #[cfg(test)]
@@ -436,6 +478,15 @@ mod tests {
             observations_per_cluster,
             alpha,
         }
+    }
+
+    #[test]
+    fn conformal_order_statistic_rank_uses_exact_binary64_alpha() {
+        assert_eq!(conformal_order_statistic_rank(4, 0.2).unwrap(), 4);
+        assert_eq!(conformal_order_statistic_rank(9, 0.1).unwrap(), 9);
+        assert_eq!(conformal_order_statistic_rank(9, 0.05).unwrap(), 10);
+        assert_eq!(conformal_order_statistic_rank(1, 0.5).unwrap(), 1);
+        assert_eq!(conformal_order_statistic_rank(99, 0.01).unwrap(), 99);
     }
 
     #[test]
