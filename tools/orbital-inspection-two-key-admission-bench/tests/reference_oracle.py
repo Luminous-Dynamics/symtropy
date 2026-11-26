@@ -44,6 +44,9 @@ def make_result(case, disposition, reason):
         "decision_value_milli": candidate["decision_value_milli"],
         "decision_value_basis": candidate["decision_value_basis"],
         "physical_safety_receipt_sha256": safety["receipt_sha256"] if safety else None,
+        "physical_safety_claim_disposition": safety["claim_disposition"] if safety else None,
+        "finite_horizon_claim_sha256": safety["finite_horizon_claim_sha256"] if safety else None,
+        "safe_continuation_claim_sha256": safety["safe_continuation_claim_sha256"] if safety else None,
         "portfolio_receipt_sha256": portfolio["receipt_sha256"] if portfolio else None,
         "measurement_receipt_sha256": measurement["measurement_receipt_sha256"] if measurement else None,
         "scope_receipt_sha256": measurement["scope_receipt_sha256"] if measurement else None,
@@ -103,8 +106,24 @@ def evaluate_case(case):
         or not valid_text(safety["trajectory_revision"])
         or not valid_text(safety["horizon_id"])
         or not valid_sha256(safety["receipt_sha256"])
+        or (
+            safety["finite_horizon_claim_sha256"] is not None
+            and not valid_sha256(safety["finite_horizon_claim_sha256"])
+        )
+        or (
+            safety["safe_continuation_claim_sha256"] is not None
+            and not valid_sha256(safety["safe_continuation_claim_sha256"])
+        )
     ):
         return result("INVALID_INPUT", "PHYSICAL_SAFETY_BINDING_INVALID")
+    if (
+        safety["claim_disposition"] == "SAFETY_CLAIMS_COMPLETE"
+        and (
+            safety["finite_horizon_claim_sha256"] is None
+            or safety["safe_continuation_claim_sha256"] is None
+        )
+    ):
+        return result("INVALID_INPUT", "COMPOSITE_SAFETY_CLAIM_MISSING_COMPONENT_REFERENCE")
     if any(
         safety[name] != scope[name]
         for name in ["action_id", "vehicle_id", "trajectory_revision", "horizon_id"]
@@ -166,12 +185,31 @@ def evaluate_case(case):
         ):
             return result("OUT_OF_SCOPE", "MEASUREMENT_SCOPE_MISMATCH")
 
-    if safety["state"] == "FAIL":
-        return result("REJECTED_SAFETY", "PHYSICAL_SAFETY_FAIL")
-    if safety["state"] == "UNKNOWN":
-        return result("INDETERMINATE", "PHYSICAL_SAFETY_UNKNOWN")
-    if safety["state"] == "STALE":
-        return result("INDETERMINATE", "PHYSICAL_SAFETY_STALE")
+    claim_disposition = safety["claim_disposition"]
+    if claim_disposition == "SAFETY_CLAIM_FAILED":
+        return result("REJECTED_SAFETY", "PHYSICAL_SAFETY_CLAIM_FAILED")
+    if claim_disposition in {
+        "SAFETY_CLAIM_INCOMPLETE",
+        "RISK_ONLY",
+        "INDETERMINATE",
+    }:
+        return result("INDETERMINATE", "PHYSICAL_SAFETY_CLAIM_NOT_COMPOSITE")
+    if claim_disposition == "OUT_OF_SCOPE":
+        return result("OUT_OF_SCOPE", "PHYSICAL_SAFETY_CLAIM_OUT_OF_SCOPE")
+    if claim_disposition == "INVALID_INPUT":
+        return result("INVALID_INPUT", "PHYSICAL_SAFETY_CLAIM_INVALID")
+    if claim_disposition != "SAFETY_CLAIMS_COMPLETE":
+        return result("INVALID_INPUT", "PHYSICAL_SAFETY_CLAIM_DISPOSITION_INVALID")
+
+    # Structural completeness is not enough; a separate external verifier must pass.
+    if safety["proof_verification_state"] == "FAIL":
+        return result("REJECTED_SAFETY", "PHYSICAL_SAFETY_PROOF_VERIFICATION_FAIL")
+    if safety["proof_verification_state"] == "UNKNOWN":
+        return result("INDETERMINATE", "PHYSICAL_SAFETY_PROOF_VERIFICATION_UNKNOWN")
+    if safety["proof_verification_state"] == "STALE":
+        return result("INDETERMINATE", "PHYSICAL_SAFETY_PROOF_VERIFICATION_STALE")
+    if safety["proof_verification_state"] != "PASS":
+        return result("INVALID_INPUT", "PHYSICAL_SAFETY_PROOF_VERIFICATION_STATE_INVALID")
 
     if candidate["class"] == "RECOVERY":
         if portfolio is not None or measurement is not None:
