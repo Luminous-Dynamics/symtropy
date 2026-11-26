@@ -81,7 +81,6 @@ struct Edge {
     to: String,
     lower: u64,
     upper: u64,
-    unit: String,
     resource: String,
     time: u64,
 }
@@ -89,7 +88,6 @@ struct Edge {
 #[derive(Debug, Clone)]
 struct Obligation {
     id: String,
-    node: String,
     time: u64,
     interval: String,
     required: u64,
@@ -192,6 +190,9 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
     let case_id = sfield(value, "case_id", "$")?;
     let scope = sfield(value, "claim_scope", "$")?;
     if scope != "FUEL-DELIVERABILITY" {
+        return Err(err("$.claim_scope", "v0.1 supports FUEL-DELIVERABILITY only"));
+    }
+    if scope != "FUEL-DELIVERABILITY" {
         return Err(err("$.claim_scope", "v0.1 adapter supports FUEL-DELIVERABILITY only"));
     }
 
@@ -253,7 +254,7 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
         if from_node.kind == "resource_output" && to_node.kind == "route_arrival" && to_node.time != time.saturating_add(1) {
             return Err(err(&path, "route transit must advance one interval"));
         }
-        edges.push(Edge { id, from, to, lower, upper, unit: edge_unit, resource: sfield(row, "resource_id", &path)?, time });
+        edges.push(Edge { id, from, to, lower, upper, resource: sfield(row, "resource_id", &path)?, time });
     }
     if edges.is_empty() || edges.len() > 65_536 { return Err(err("$.edges", "edge count outside 1..=65536")); }
 
@@ -284,6 +285,7 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
     }
 
     let aliases = array(value, "resource_aliases", "$")?;
+    if aliases.is_empty() { return Err(err("$.resource_aliases", "must not be empty")); }
     let mut logicals = BTreeSet::new();
     let mut physical_gates = BTreeMap::<String, BTreeSet<String>>::new();
     let mut all_gates = BTreeSet::new();
@@ -326,7 +328,9 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
         if nfield(row, "transit_intervals", &path)? != 1 {
             return Err(err(&path, "v0.1 adapter supports exactly one transit interval"));
         }
-        for resource in array(row, "physical_resources", &path)? {
+        let physical_resources = array(row, "physical_resources", &path)?;
+        if physical_resources.is_empty() { return Err(err(&path, "physical_resources must not be empty")); }
+        for resource in physical_resources {
             let resource = strv(resource, &format!("{path}.physical_resources[]"))?;
             if !physical_gates.contains_key(&resource) { return Err(err(&path, "route references an unknown physical resource")); }
         }
@@ -359,7 +363,9 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
             return Err(err("$.capacity_evidence", "missing or inconsistent physical capacity evidence"));
         }
     }
-    if evidence.len() != all_gates.len() { return Err(err("$.capacity_evidence", "unreferenced capacity evidence")); }
+    if evidence.len() != all_gates.len() {
+        return Err(err("$.capacity_evidence", "unreferenced capacity evidence"));
+    }
 
     let mut obligations = Vec::new();
     let mut obligation_ids = BTreeSet::new();
@@ -383,7 +389,7 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
         if matching.next().is_some() || service_edge.lower != required || service_edge.upper != required {
             return Err(err(&path, "sink edge must uniquely encode the declared service floor"));
         }
-        obligations.push(Obligation { id, node: node_id, time, interval, required, edge_id: service_edge.id.clone() });
+        obligations.push(Obligation { id, time, interval, required, edge_id: service_edge.id.clone() });
     }
     if obligations.is_empty() || edges.iter().filter(|e| e.to == sink).count() != obligations.len() {
         return Err(err("$.service_obligations", "sink edges and declared obligations must match exactly"));
@@ -631,6 +637,18 @@ mod tests {
     fn opening_stock_alias_duplication_is_rejected() {
         let mut input = scenario();
         input["total_opening_stock"]["source_ids"][1] = Value::String("terminal-a-stock".into());
+        assert!(evaluate_scenario(&input).is_err());
+    }
+
+    #[test]
+    fn unsupported_scope_and_unreferenced_capacity_evidence_are_rejected() {
+        let mut input = scenario();
+        input["claim_scope"] = Value::String("WHOLE-BENEFICIARY-SERVICE".into());
+        assert!(evaluate_scenario(&input).is_err());
+
+        let mut input = scenario();
+        let extra = input["capacity_evidence"][0].clone();
+        input["capacity_evidence"].as_array_mut().unwrap().push(extra);
         assert!(evaluate_scenario(&input).is_err());
     }
 }
