@@ -79,6 +79,26 @@ impl Interval {
         Some(self.lower.abs().max(self.upper.abs()))
     }
 
+    /// Enclose x² without the dependency overestimate of x * x when x
+    /// crosses zero. For X containing zero, the exact lower bound is zero.
+    pub fn square(self) -> Self {
+        if self.contains_zero() {
+            let maximum = self.lower.abs().max(self.upper.abs());
+            let upper = if maximum == 0.0 {
+                0.0
+            } else {
+                next_up(maximum * maximum)
+            };
+            return Self { lower: 0.0, upper };
+        }
+
+        let left = self.lower * self.lower;
+        let right = self.upper * self.upper;
+        let lower = next_down(left.min(right)).max(0.0);
+        let upper = next_up(left.max(right));
+        Self { lower, upper }
+    }
+
     pub fn sqrt(self) -> Result<Self, IntervalError> {
         if self.upper < 0.0 {
             return Err(IntervalError::SquareRootOutsideRealDomain);
@@ -282,6 +302,17 @@ impl<const N: usize> IntervalDual<N> {
         self.gradient
     }
 
+    /// Enclose x² and its derivative 2x without interval self-dependency.
+    pub fn square(self) -> Self {
+        let two = Interval::point(2.0).expect("finite constant");
+        Self {
+            value: self.value.square(),
+            gradient: std::array::from_fn(|index| {
+                two * self.value * self.gradient[index]
+            }),
+        }
+    }
+
     pub fn sqrt(self) -> Result<Self, IntervalError> {
         let value = self.value.sqrt()?;
         let gradient = if self.value.lower <= 0.0 {
@@ -298,6 +329,13 @@ impl<const N: usize> IntervalDual<N> {
     pub fn powi(self, exponent: i32) -> Self {
         if exponent == 0 {
             return Self::constant(Interval::ONE);
+        }
+        if exponent == 2 {
+            return self.square();
+        }
+        if exponent == -2 {
+            let square = self.square();
+            return Self::constant(Interval::ONE) / square;
         }
         let mut power = self;
         let mut remaining = exponent.unsigned_abs();
@@ -650,6 +688,25 @@ mod tests {
     }
 
     #[test]
+    fn square_of_zero_crossing_interval_is_nonnegative_and_tight() {
+        let result = interval(-2.0, 3.0).square();
+        assert!(result.lower() >= 0.0);
+        assert!(result.lower() <= 0.0);
+        assert!(result.upper() >= 9.0);
+        assert!(result.upper() < 9.0 + 1.0e-12);
+    }
+
+    #[test]
+    fn interval_dual_square_uses_the_exact_chain_rule_enclosure() {
+        let input = IntervalDual::<1>::variable(interval(-2.0, 3.0), 0);
+        let result = input.square();
+        assert!(result.value().lower() >= 0.0);
+        assert!(result.value().upper() >= 9.0);
+        assert!(result.gradient()[0].lower() <= -4.0);
+        assert!(result.gradient()[0].upper() >= 6.0);
+    }
+
+    #[test]
     fn interval_multiplication_handles_all_sign_combinations() {
         let cases = [
             (interval(1.0, 2.0), interval(3.0, 4.0), 3.0, 8.0),
@@ -800,13 +857,13 @@ mod tests {
         // omitted, leaving the dimensionless spatial dependence:
         // Bz = 3*z^2/r^5 - 1/r^3.
         let result = certify_expression(&scope, |[x, y, z]| {
-            let r2 = x * x + y * y + z * z;
+            let r2 = x.square() + y.square() + z.square();
             let r = r2.sqrt()?;
             let r3 = r2 * r;
             let r5 = r3 * r2;
             let one = IntervalDual::constant(Interval::ONE);
             let three = IntervalDual::constant(interval(3.0, 3.0));
-            let bz = three * z * z / r5 - one / r3;
+            let bz = three * z.square() / r5 - one / r3;
             Ok(bz)
         })
         .expect("box does not contain the dipole singularity");
