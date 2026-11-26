@@ -26,7 +26,7 @@ The sleeping-wakeup family keeps 126 of 128 proxies stationary and moves two pro
 
 ## Measurement contract
 
-1. The independent brute-force AABB pair oracle is computed before timed backend execution.
+1. The 128-proxy tournament computes an independent brute-force AABB pair oracle before timed backend execution. The scale lane uses a separate exact fixed-X sweep oracle; that oracle is cross-checked against brute force on small temporal fixtures before it is used for large populations.
 2. Full-set backends time their own frame work: brute-force candidate production; SAP axis selection, sorting and sweep; or persistent-tree insert/update/remove, query and current-envelope refinement.
 3. Pair-delta backends time dirty-frontier discovery, affected-pair reevaluation and pair birth/death/revalidation event production. Their output contract is explicitly labelled `pair_delta_events`; they do not claim to regenerate the full set each frame.
 4. The indexed backend queries the pre-update conservative tree to discover current dirty-to-unchanged neighbours, explicitly enumerates dirty-to-dirty relationships, validates pair transitions, preflights tree membership and fat-AABB construction, and only then commits tree mutations. It reports tree node visits, leaf tests, returned frontier candidates, raw candidate enumeration, unique affected pairs, index mutations and reinsertion counts. The scan cache separately reports full-population proxy visits.
@@ -61,6 +61,12 @@ Arguments are proxy count, frame count and repetitions. Defaults are 128, 40 and
 For initial local qualification, use a small smoke run before larger campaigns:
 
     cargo run --release --manifest-path research/broadphase-tournament/v0.1/Cargo.toml --bin broadphase-tournament -- 48 18 1
+
+For larger 3D scale experiments, use the exact fixed-X sweep oracle rather than the O(N²) all-pairs oracle:
+
+    cargo run --release --manifest-path research/broadphase-tournament/v0.1/Cargo.toml --bin broadphase-tournament -- --scale 100000 32 1
+
+The scale lane runs sparse-coherent, sleeping-wakeup and high-churn traces across SAP, four tree variants, the scan pair-delta cache, the indexed pair-delta cache and the Morton/LBVH adapter. Every AABB overlap is still checked exactly in all dimensions after the X-interval filter. Each CSV row declares its `oracle_method`; `fixed_x_exact_sweep` and `brute_force_all_pairs` results must not be pooled without preserving that distinction.
 
 ## Claim boundary
 
