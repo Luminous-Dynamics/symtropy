@@ -25,7 +25,14 @@ fn generate_cut(event_count: usize) -> EvidenceCut {
     let mut events = Vec::with_capacity(event_count);
     let mut identities = Vec::with_capacity(PARTITIONS);
     let partition_counts = (0..PARTITIONS)
-        .map(|source| event_count / PARTITIONS + if source < event_count % PARTITIONS { 1 } else { 0 })
+        .map(|source| {
+            event_count / PARTITIONS
+                + if source < event_count % PARTITIONS {
+                    1
+                } else {
+                    0
+                }
+        })
         .collect::<Vec<_>>();
 
     for source in 0..PARTITIONS {
