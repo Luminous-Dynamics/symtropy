@@ -145,9 +145,9 @@ pub use portfolio_selection::{
     SimultaneousPortfolioDraw, SimultaneousPortfolioSelectionReport,
 };
 pub use portfolio_proposal::{
-    MAX_PORTFOLIO_PROPOSAL_COMPONENTS, MAX_PORTFOLIO_PROPOSAL_MODES,
-    DefensiveProposalComponent, DefensiveProposalEvaluation, PortfolioDefensiveGaussianMixture,
-    PortfolioEventModeKey, PortfolioProposalError,
+    DefensiveProposalComponent, DefensiveProposalEvaluation, MAX_PORTFOLIO_PROPOSAL_COMPONENTS,
+    MAX_PORTFOLIO_PROPOSAL_MODES, PortfolioDefensiveGaussianMixture, PortfolioEventModeKey,
+    PortfolioProposalError,
 };
 pub use predictable_empirical_bernstein::{
     AdaptiveImportanceSamplingPrPlEbSequence, DEFAULT_BET_FRACTION_CAP, PrPlEbConfidenceSequence,
