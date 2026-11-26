@@ -1,6 +1,6 @@
 {
   "schema_version": "physical-storage-industry-baseline-v0.1",
-  "snapshot_date": "2026-11-25",
+  "snapshot_date": "2026-11-26",
   "comparison_warning": "Capacity, density, throughput, retention and cost values use source-specific boundaries. Do not rank across media using a single raw number.",
   "technologies": [
     {
@@ -126,11 +126,34 @@
       "status": "commercial_product",
       "source_date": "2026-11-25",
       "reported": {
-        "usable_capacity_tb": 245.76,
-        "raw_capacity_tb": 256,
-        "interface": "PCIe Gen5"
+        "capacity_tb_unformatted": 245.76,
+        "interface": "PCIe Gen5",
+        "sequential_read_max_mb_per_s_at_ps0": 13700,
+        "sequential_write_max_mb_per_s_at_ps0": 3000
       },
-      "source": "https://www.micron.com/products/storage/ssd/data-center-ssd/6600-ion"
+      "source": "https://tw.micron.com/content/dam/micron/global/public/products/storage/ssds/data-center/6600/6600-ion-ssd-technical-product-specification.pdf",
+      "capacity_note": "The Micron September 2026 Rev A technical specification labels the 245.76 TB SKU capacity as unformatted. Do not describe this value as formatted usable payload capacity. Performance values are power-state and test-condition dependent.",
+      "product_page": "https://www.micron.com/products/storage/ssd/data-center-ssd/6600-ion"
+    },
+    {
+      "id": "dna_molecular_storage_review_2026",
+      "medium": "synthetic DNA oligonucleotides",
+      "use_case": "molecular archival storage research",
+      "status": "research_review_not_commercially_qualified",
+      "source_date": "2026-06-03",
+      "reported": {},
+      "unreported_or_not_comparable": [
+        "commercial product status and production scale",
+        "net bits per nucleotide after GC, homopolymer, primer and error-correction constraints",
+        "synthesis cost per accepted payload byte",
+        "sequencing cost and throughput per exactly recovered payload",
+        "random-access latency and retrieval selectivity",
+        "storage lifetime under a specified encapsulation and environment",
+        "lot-to-lot yield and independently verified whole-payload recovery"
+      ],
+      "status_note": "The 2026 review identifies DNA as a high-density, chemically stable research direction but discusses synthesis cost, sequencing errors, efficiency and experimental complexity as scaling constraints. It covers device-aware encoding, error correction, PCR/CRISPR access and biochemical noise. This is a review-level research candidate, not a qualified commercial medium. Do not compare theoretical bits per nucleotide to net usable bits/mm3 without a complete process and redundancy boundary.",
+      "source": "https://link.springer.com/article/10.1007/s11831-026-10651-2",
+      "secondary_source": "https://www.sciencedirect.com/science/article/pii/S0168165626000702"
     }
   ]
 }
