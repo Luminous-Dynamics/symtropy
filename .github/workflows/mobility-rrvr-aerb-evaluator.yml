@@ -73,3 +73,18 @@ jobs:
           ! test -e "$CANDIDATE_DIR/world-pack-000000.json"
           test -f "$EVALUATOR_DIR/world-pack-000000.json"
           cargo run --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml --locked --bin aerb_evaluate -- "$CANDIDATE_DIR/episode-000000.json" "$CANDIDATE_DIR/submission-000000.json" "$EVALUATOR_DIR/world-pack-000000.json"
+
+          cargo run --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml --locked --bin aerb_campaign_evaluate -- "$CANDIDATE_DIR" "$EVALUATOR_DIR" "$EVALUATOR_DIR/campaign-report.json"
+
+          jq -e '
+            .scenario_count == 16
+            and .evaluated_n == 16
+            and .structural_invalid_n == 0
+            and .candidate_contract_valid_n == 16
+            and .hidden_truth_covered_n == 16
+            and .open_world_residual_retained_n == 16
+            and .disposition_admissible_n == 16
+            and .unsafe_fresh_attempt_n == 0
+            and (.world_strata | length == 8)
+            and (.cluster_strata | length == 4)
+          ' "$EVALUATOR_DIR/campaign-report.json"
