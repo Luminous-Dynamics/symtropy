@@ -287,8 +287,7 @@ impl CoulombCone {
 
         let scaled_augmented_normal = augmented_normal / velocity_scale;
         let scaled_tangent_velocity = tangent_velocity_norm / velocity_scale;
-        let dual_cone_violation =
-            (mu * scaled_tangent_velocity - scaled_augmented_normal).max(0.0);
+        let dual_cone_violation = (mu * scaled_tangent_velocity - scaled_augmented_normal).max(0.0);
 
         let complementarity = (scaled_normal_impulse * scaled_augmented_normal
             + (impulse.tangent[0] / impulse_scale) * (post_velocity.tangent[0] / velocity_scale)
