@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/aerb-evaluator-world-pack-v0.1.schema.json",
+  "title": "AERB Evaluator-Only World Pack v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark",
+    "episode_id",
+    "hidden_truth_world_id",
+    "worlds",
+    "decision_losses",
+    "probe_outcome_supports",
+    "evaluator_profile_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "benchmark": {
+      "const": "AERB"
+    },
+    "episode_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "hidden_truth_world_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evaluator_profile_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "worlds": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/world"
+      }
+    },
+    "decision_losses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/loss"
+      }
+    },
+    "probe_outcome_supports": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/probe_support"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "world": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "world_id",
+        "dispatch_state",
+        "effect_state",
+        "effect_count",
+        "authority_relation",
+        "acknowledgement_state"
+      ],
+      "properties": {
+        "world_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dispatch_state": {
+          "enum": [
+            "not_dispatched",
+            "dispatched",
+            "unknown"
+          ]
+        },
+        "effect_state": {
+          "enum": [
+            "none",
+            "once",
+            "partial",
+            "duplicate",
+            "stale_epoch",
+            "unknown"
+          ]
+        },
+        "effect_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "authority_relation": {
+          "enum": [
+            "current_epoch",
+            "stale_epoch",
+            "unresolved_holder",
+            "not_applicable"
+          ]
+        },
+        "acknowledgement_state": {
+          "enum": [
+            "received",
+            "lost",
+            "delayed",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "loss": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition",
+        "world_id",
+        "loss"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "hold_reconcile",
+            "request_observation",
+            "abstain",
+            "recommend_fresh_attempt"
+          ]
+        },
+        "world_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "loss": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "probe_support": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "probe_id",
+        "outcomes"
+      ],
+      "properties": {
+        "probe_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcomes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "outcome_id",
+              "possible_world_ids"
+            ],
+            "properties": {
+              "outcome_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "possible_world_ids": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
