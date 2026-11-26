@@ -1,7 +1,7 @@
 {
   "schema_version": "physical-storage-candidate-decision-v0.1",
   "contract_id": "EXAMPLE-PB-ARCHIVE-01",
-  "snapshot_date": "2026-11-25",
+  "snapshot_date": "2026-11-26",
   "rankability": "not_rankable",
   "ranking_reason": "The illustrative contract requires 100-year exact recovery, three dependency-independent failure domains, two independent readers, and a 10-day full restore. A 1 PB decimal payload over 10 days requires at least 1.157 GB/s aggregate user-payload throughput before metadata, mounts, ECC, retries, verification or network overhead. The published LTO-10 headline is up to 400 MB/s per drive; three drives provide only a 1.2 GB/s arithmetic upper bound and do not demonstrate an end-to-end library restore. The glass publication's 65.9 Mbit/s figure is a four-beam write rate, not a restore rate. Available public sources do not establish the full contract on a matched system boundary. No score or recommendation is emitted.",
   "candidates": [
@@ -189,7 +189,7 @@
           "observed": 5,
           "status": "unknown",
           "source": "https://www.micron.com/products/storage/ssd/data-center-ssd/6600-ion",
-          "note": "Calculated as ceil(1,000 TB / 245.76 TB usable per drive). No spare, parity, controller or system overhead adjustment."
+          "note": "Calculated as ceil(1,000 TB / 245.76 TB nominal per drive). Micron's product page labels 245.76 TB usable (256 TB raw), while its September 2026 Rev A technical specification labels 245.76 TB capacity (unformatted). Treat this as a nominal capacity floor only; no namespace formatting, spare, parity, controller or system-overhead adjustment is included."
         },
         {
           "metric": "sequential_read_rate_per_drive",
@@ -231,6 +231,55 @@
           "status": "unknown",
           "source": null,
           "note": "No complete, identity-bound Mycelix dependency profile/cut-set receipt is included in this public product specification; three labels or copies cannot be assumed independent."
+        }
+      ]
+    },
+    {
+      "candidate_id": "dna_molecular_storage_review_2026",
+      "medium_family": "dna_molecular",
+      "evidence_status": "research_review",
+      "production_eligible": false,
+      "assessment": "exploration_only",
+      "metrics": [
+        {
+          "metric": "minimum_retention_years",
+          "required": 100,
+          "observed": null,
+          "status": "unknown",
+          "source": "https://link.springer.com/article/10.1007/s11831-026-10651-2",
+          "note": "The 2026 review discusses biochemical stability and preservation potential but does not qualify a named commercial system for this 100-year service contract."
+        },
+        {
+          "metric": "net_recoverable_bits_per_nucleotide",
+          "required": "measured after sequence constraints, indexes and error-correction overhead",
+          "observed": null,
+          "status": "unknown",
+          "source": "https://link.springer.com/article/10.1007/s11831-026-10651-2",
+          "note": "Theoretical nucleotide capacity is not net exact-recoverable archive payload; GC, homopolymer, primer, dropout and indel constraints must be included."
+        },
+        {
+          "metric": "synthesis_and_sequencing_cost_per_verified_tb",
+          "required": "measured end-to-end cost",
+          "observed": null,
+          "status": "unknown",
+          "source": "https://link.springer.com/article/10.1007/s11831-026-10651-2",
+          "note": "No matching production-scale cost ledger or independent full-payload restoration is supplied by the review."
+        },
+        {
+          "metric": "full_restore_seconds",
+          "required": 864000,
+          "observed": null,
+          "status": "unknown",
+          "source": "https://link.springer.com/article/10.1007/s11831-026-10651-2",
+          "note": "Synthesis, selective retrieval, amplification, sequencing, basecalling and decoding require a full-system restore test."
+        },
+        {
+          "metric": "dependency_qualified_failure_domains",
+          "required": 3,
+          "observed": null,
+          "status": "unknown",
+          "source": null,
+          "note": "No complete identity-bound dependency profile or independently qualified reader/synthesis/sequencing domains are available."
         }
       ]
     }
