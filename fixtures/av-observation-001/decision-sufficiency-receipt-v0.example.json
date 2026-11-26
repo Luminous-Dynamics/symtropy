@@ -1,0 +1,32 @@
+{
+  "schema_version": "decision-sufficiency-receipt-v0",
+  "receipt_id": "receipt:episode-0007:need-safe-exit:revision-1",
+  "issued_at": "2026-11-26T20:50:00Z",
+  "decision_need": {
+    "id": "route-to-safe-exit",
+    "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "utility_contract_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "evidence_prefix_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "candidate_policy_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "probe_catalogue_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "budget": {
+    "remaining_cost_units": 3,
+    "remaining_latency_ticks": 2,
+    "deadline_id": "deadline:route-0007"
+  },
+  "disposition": "decision_sufficient",
+  "decision_sufficient": {
+    "candidate_decision_class_id": 17,
+    "candidate_live_hypothesis_count": 2
+  },
+  "residuals": {
+    "unresolved_candidate_hypothesis_count": 2,
+    "residual_index_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "source_evidence_refs": [
+      "observation:frame-seq-41",
+      "observation:frame-seq-57"
+    ],
+    "retention_contract_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+  }
+}
