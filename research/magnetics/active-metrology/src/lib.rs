@@ -82,7 +82,6 @@ pub enum NotRankableReason {
     SensitivityIntervalCrossesZero,
     NoPositiveDecisionImpact,
     MeasurementBoundMasksModelDisagreement,
-    ProtectedEvidenceRole,
     AlreadyMeasured,
 }
 
