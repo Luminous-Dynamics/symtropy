@@ -1376,8 +1376,7 @@ mod tests {
     #[test]
     fn axis_projection_chord_bound_covers_exact_rotated_projection() {
         for angle_bound in [0.0_f64, 0.01, 0.2, 0.9, std::f64::consts::PI] {
-            let upper = 2.0 * angle_bound.mul_add(0.0, 1.0).sqrt()
-                * (angle_bound / 2.0).sin();
+            let upper = 2.0 * (angle_bound / 2.0).sin();
             for field_angle in (0..720).map(|index| {
                 std::f64::consts::TAU * index as f64 / 720.0
             }) {
