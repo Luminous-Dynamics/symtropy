@@ -96,7 +96,7 @@ The action context must exactly equal the AERO decision context. A profile, seri
 - **Symtropy #4165 / #6540 / #6484:** NDE/inspectability semantics, mandatory campaign adequacy and interface lifecycle requirements.
 - **Qualified labs and engineering authorities:** physical test execution, ground truth, procedure approval and acceptance.
 
-AERO must not reconstruct Mycelix dependency edges or decide that a claim was unaffected by an owner event. An incomplete owner event frontier remains incomplete and blocks promotion.
+AERO must not reconstruct Mycelix dependency edges or decide that a claim was unaffected by an owner event. The Mycelix receipt must be referenced as ADMITTED source evidence before the change-impact object is forwarded; its claim sets must resolve to packet claims and be disjoint. An incomplete owner event frontier must not carry any unaffected-claim assertion; it remains incomplete and blocks promotion.
 
 ## 6. AERO-specific matched-budget tournament extension
 
