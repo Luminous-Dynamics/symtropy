@@ -157,7 +157,8 @@
       "additionalProperties": false,
       "required": [
         "id",
-        "kind"
+        "kind",
+        "state"
       ],
       "properties": {
         "id": {
@@ -177,8 +178,37 @@
               "type": "null"
             }
           ]
+        },
+        "state": {
+          "enum": [
+            "ADMITTED",
+            "UNVERIFIED",
+            "REJECTED",
+            "NOT_RECEIVED"
+          ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "ADMITTED"
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "sha256": {
+                "$ref": "#/$defs/sha256"
+              }
+            }
+          }
+        }
+      ]
     },
     "claim": {
       "type": "object",
