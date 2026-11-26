@@ -45,7 +45,7 @@ jobs:
           errors = list(Draft202012Validator(schema).iter_errors(fixture))
           assert not errors, errors
           assert len(fixture["cases"]) == 23
-          assert len({case["case_id"] for case in fixture["cases"]}) == 20
+          assert len({case["case_id"] for case in fixture["cases"]}) == 23
           print("23 two-key admission cases and Draft 2020-12 schema validated")
           PY
       - name: Format
@@ -70,7 +70,7 @@ jobs:
           rust = json.loads(Path("/tmp/two-key-rust-a.json").read_text())
           oracle = json.loads(Path("/tmp/two-key-python.json").read_text())
           assert rust == oracle
-          assert rust["expected_disposition_matches"] == 20
+          assert rust["expected_disposition_matches"] == 23
           assert rust["expected_disposition_mismatches"] == 0
           assert rust["source_bytes_authenticated"] is False
           assert rust["authority_granted"] is False
