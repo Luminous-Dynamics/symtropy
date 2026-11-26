@@ -1170,21 +1170,61 @@ mod tests {
         }
     }
 
-    fn pose_comparison(offset_mm: f64) -> PoseComparison {
-        PoseComparison {
-            original: PositionMm {
-                coordinate_frame_id: "world".to_owned(),
-                x_mm: 100.0,
+    const SIMULATOR_PROFILE_SHA256: &str =
+        "d".repeat(64);
+
+    fn write_state_artifact(
+        root: &Path,
+        relative_path: &str,
+        snapshot: &ReplayStateSnapshot,
+    ) -> String {
+        let bytes = serde_json::to_vec_pretty(snapshot).expect("state snapshot serialization");
+        let path = root.join(relative_path);
+        fs::create_dir_all(path.parent().expect("state artifact parent"))
+            .expect("state artifact directory");
+        fs::write(path, &bytes).expect("state artifact write");
+        sha256_hex(&bytes)
+    }
+
+    fn make_state_snapshot(
+        scenario_id: &str,
+        attempt_id: &str,
+        end_effector_frame: &str,
+        object_frame: &str,
+        end_effector_offset_mm: f64,
+        object_offset_mm: f64,
+    ) -> ReplayStateSnapshot {
+        ReplayStateSnapshot {
+            schema_version: SCHEMA_VERSION.to_owned(),
+            scenario_id: scenario_id.to_owned(),
+            attempt_id: attempt_id.to_owned(),
+            simulator_profile_sha256: SIMULATOR_PROFILE_SHA256.to_owned(),
+            end_effector_position: PositionMm {
+                coordinate_frame_id: end_effector_frame.to_owned(),
+                x_mm: 100.0 + end_effector_offset_mm,
                 y_mm: 200.0,
                 z_mm: 300.0,
             },
-            replayed: PositionMm {
-                coordinate_frame_id: "world".to_owned(),
-                x_mm: 100.0 + offset_mm,
-                y_mm: 200.0,
-                z_mm: 300.0,
+            object_position: PositionMm {
+                coordinate_frame_id: object_frame.to_owned(),
+                x_mm: 400.0 + object_offset_mm,
+                y_mm: 500.0,
+                z_mm: 600.0,
             },
         }
+    }
+
+    fn update_attempt_replay_state(
+        root: &Path,
+        candidate: &mut ReplayCandidate,
+        index: usize,
+        snapshot: &ReplayStateSnapshot,
+    ) {
+        let attempt = &mut candidate.spot_check.attempts[index];
+        attempt.replay_state_sha256 =
+            write_state_artifact(root, &attempt.replay_state_path, snapshot);
+        candidate.spot_check.manifest_sha256 =
+            spot_check_manifest_digest(&candidate.spot_check).expect("spot manifest digest");
     }
 
     fn write_selection_record(
@@ -1222,13 +1262,39 @@ mod tests {
         ];
         let attempts: Vec<SpotCheckAttempt> = selected_attempt_ids
             .iter()
-            .map(|attempt_id| SpotCheckAttempt {
-                attempt_id: attempt_id.clone(),
-                end_effector: pose_comparison(1.0),
-                object_pose: pose_comparison(1.0),
-                final_frame_pairs: (0..FRAME_PAIR_N as u8)
-                    .map(|index| frame_asset(root, attempt_id, index, &pixels, &pixels))
-                    .collect(),
+            .map(|attempt_id| {
+                let original_state_path = format!("states/{attempt_id}-original.json");
+                let replay_state_path = format!("states/{attempt_id}-replay.json");
+                let original_snapshot = make_state_snapshot(
+                    scenario_id,
+                    attempt_id,
+                    "world",
+                    "world",
+                    0.0,
+                    0.0,
+                );
+                let replay_snapshot = make_state_snapshot(
+                    scenario_id,
+                    attempt_id,
+                    "world",
+                    "world",
+                    1.0,
+                    1.0,
+                );
+                let original_state_sha256 =
+                    write_state_artifact(root, &original_state_path, &original_snapshot);
+                let replay_state_sha256 =
+                    write_state_artifact(root, &replay_state_path, &replay_snapshot);
+                SpotCheckAttempt {
+                    attempt_id: attempt_id.clone(),
+                    original_state_path,
+                    original_state_sha256,
+                    replay_state_path,
+                    replay_state_sha256,
+                    final_frame_pairs: (0..FRAME_PAIR_N as u8)
+                        .map(|index| frame_asset(root, attempt_id, index, &pixels, &pixels))
+                        .collect(),
+                }
             })
             .collect();
         let selection_method_id = "upstream-exported-seed42-selection-v1".to_owned();
