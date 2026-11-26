@@ -80,8 +80,30 @@ struct SpotCheck {
 #[derive(Debug, Clone, Deserialize)]
 struct SpotCheckAttempt {
     attempt_id: String,
+    original_state_path: String,
     original_state_sha256: String,
+    replay_state_path: String,
     replay_state_sha256: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PositionMm {
+    coordinate_frame_id: String,
+    x_mm: f64,
+    y_mm: f64,
+    z_mm: f64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ReplayStateSnapshotArtifact {
+    schema_version: String,
+    scenario_id: String,
+    attempt_id: String,
+    simulator_profile_sha256: String,
+    end_effector_position: PositionMm,
+    object_position: PositionMm,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -317,6 +339,57 @@ fn assert_eq_field<T: PartialEq + std::fmt::Debug>(
     } else {
         Err(format!("{code}: expected {expected:?}, got {actual:?}"))
     }
+}
+
+fn validate_state_snapshot_artifact(
+    root: &Path,
+    relative_path: &str,
+    expected_sha256: &str,
+    scenario_id: &str,
+    attempt_id: &str,
+    simulator_profile_sha256: &str,
+    label: &str,
+) -> Result<(), String> {
+    let reference = ArtifactRef {
+        relative_path: relative_path.to_owned(),
+        sha256: expected_sha256.to_owned(),
+    };
+    let snapshot: ReplayStateSnapshotArtifact =
+        parse_artifact(root, &reference, label)?;
+    assert_eq_field(
+        snapshot.schema_version,
+        SCHEMA_VERSION.to_owned(),
+        "STATE_ARTIFACT_SCHEMA_VERSION_MISMATCH",
+    )?;
+    assert_eq_field(
+        snapshot.scenario_id,
+        scenario_id.to_owned(),
+        "STATE_ARTIFACT_SCENARIO_MISMATCH",
+    )?;
+    assert_eq_field(
+        snapshot.attempt_id,
+        attempt_id.to_owned(),
+        "STATE_ARTIFACT_ATTEMPT_MISMATCH",
+    )?;
+    assert_eq_field(
+        snapshot.simulator_profile_sha256,
+        simulator_profile_sha256.to_owned(),
+        "STATE_ARTIFACT_SIMULATOR_PROFILE_MISMATCH",
+    )?;
+    for position in [&snapshot.end_effector_position, &snapshot.object_position] {
+        if position.coordinate_frame_id.trim().is_empty()
+            || ![
+                position.x_mm,
+                position.y_mm,
+                position.z_mm,
+            ]
+            .iter()
+            .all(|value| value.is_finite())
+        {
+            return Err("STATE_ARTIFACT_POSITION_INVALID".to_owned());
+        }
+    }
+    Ok(())
 }
 
 fn validate_profile(
@@ -638,7 +711,28 @@ fn validate_candidate(
         let reset = &reset_bundle.attempts[index];
         let indexed_prefix = &action_index.attempts[index];
         let receipt = &action_receipt.attempts[index];
-        let expected_initial_state_sha = &replay.spot_check.attempts[index].original_state_sha256;
+        let replay_attempt = &replay.spot_check.attempts[index];
+        let expected_initial_state_sha = &replay_attempt.original_state_sha256;
+
+        validate_state_snapshot_artifact(
+            root,
+            &replay_attempt.original_state_path,
+            &replay_attempt.original_state_sha256,
+            &replay.scenario_id,
+            attempt_id,
+            &replay.simulator_profile_sha256,
+            "ORIGINAL_STATE",
+        )?;
+        validate_state_snapshot_artifact(
+            root,
+            &replay_attempt.replay_state_path,
+            &replay_attempt.replay_state_sha256,
+            &replay.scenario_id,
+            attempt_id,
+            &replay.simulator_profile_sha256,
+            "REPLAY_STATE",
+        )?;
+        verified += 2;
 
         assert_eq_field(reset.attempt_id.clone(), attempt_id.clone(), "RESET_RECEIPT_ATTEMPT_ID_MISMATCH")?;
         assert_eq_field(reset.policy_id.clone(), expected_policy.clone(), "RESET_RECEIPT_POLICY_ID_MISMATCH")?;
@@ -993,7 +1087,7 @@ mod tests {
         assert_eq!(report.valid_n, 1);
         assert_eq!(report.invalid_n, 0);
         assert_eq!(report.candidate_reports[0].selected_attempt_n, 3);
-        assert_eq!(report.candidate_reports[0].verified_artifact_n, 13);
+        assert_eq!(report.candidate_reports[0].verified_artifact_n, 19);
     }
 
     #[test]
