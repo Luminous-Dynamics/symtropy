@@ -1,0 +1,71 @@
+name: RRVR Paired Cluster-Aware Inference v0.1
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-paired-inference-v0-1
+    paths:
+      - "research/mobility-rrvr-paired-inference-v0.1/**"
+      - ".github/workflows/mobility-rrvr-paired-inference.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-paired-inference-v0.1/**"
+      - ".github/workflows/mobility-rrvr-paired-inference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paired-inference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Validate input and output schemas
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-paired-inference-v0.1"
+          jq empty "$ROOT/schemas/paired_inference_manifest_v0_1.schema.json"
+          jq empty "$ROOT/schemas/paired_inference_report_v0_1.schema.json"
+          jq empty "$ROOT/fixtures/paired_manifest_v0_1.json"
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path research/mobility-rrvr-paired-inference-v0.1/Cargo.toml -- --check
+
+      - name: Execute paired cluster inference known-answer campaign
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-paired-inference-v0.1"
+          cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_paired_inference -- "$ROOT/fixtures/paired_manifest_v0_1.json" > "$RUNNER_TEMP/rrvr-paired-inference.json"
+          jq -e '
+            .benchmark == "RRVR-PAIRED-INFERENCE"
+            and .scheduled_pair_n == 8
+            and .analyzed_pair_n == 8
+            and .excluded_pair_n == 0
+            and .cluster_n == 4
+            and (.endpoint_reports | length == 2)
+            and .endpoint_reports[0].endpoint_id == "false_safe"
+            and .endpoint_reports[0].treatment_adverse_cluster_n == 0
+            and .endpoint_reports[0].control_only_adverse_pair_n == 1
+            and .endpoint_reports[0].treatment_only_adverse_pair_n == 0
+            and .endpoint_reports[0].mcnemar == null
+            and (.endpoint_reports[0].treatment_zero_adverse_cluster_upper_bound > 0.527)
+            and (.endpoint_reports[0].treatment_zero_adverse_cluster_upper_bound < 0.528)
+            and .endpoint_reports[1].endpoint_id == "recovery_success"
+            and .endpoint_reports[1].episode_weighted_risk_difference == -0.125
+            and .endpoint_reports[1].mcnemar == null
+            and all(.endpoint_reports[]; .bootstrap_interval.draws == 2000)
+          ' "$RUNNER_TEMP/rrvr-paired-inference.json"
+
+      - name: Run paired inference tests
+        run: cargo test --locked --manifest-path research/mobility-rrvr-paired-inference-v0.1/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/mobility-rrvr-paired-inference-v0.1/Cargo.toml --all-targets -- -D warnings
