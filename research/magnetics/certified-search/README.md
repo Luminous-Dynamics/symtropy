@@ -41,6 +41,8 @@ If no incumbent exists, the report says so. If budget/width limits stop the sear
 
 ## Global lower bound and gap
 
+Every objective and compliance evaluation uses the centered mean-value interval enclosure from `magnetic-interval-ad`, which intersects the natural interval extension with a centre-plus-interval-gradient enclosure. The search report records the corresponding arithmetic contract. This can improve bound tightness for dependency-heavy expressions; soundness remains conditional on the interval-AD implementation and differentiability over each full box.
+
 The global lower bound is the minimum objective lower bound across the **terminal design partition**:
 - objective-dominated leaves (their lower bounds are at least the incumbent upper bound);
 - unresolved leaves, including those retained at maximum depth, minimum width, unbounded-expression subdivision limits or node-budget exhaustion.
