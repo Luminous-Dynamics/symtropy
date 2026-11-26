@@ -251,28 +251,24 @@ impl PortfolioDefensiveGaussianMixture {
 
         // Canonicalize target components by distribution content and then by
         // weight, so equivalent target mixtures have stable component order.
-        let mut target_components = target.components().to_vec();
-        let mut target_digests = target_components
+        let mut target_components = target
+            .components()
             .iter()
             .map(|component| {
                 Ok((
                     gaussian_digest(component.distribution())?,
                     canonical_f64_bits(component.weight()),
+                    component.clone(),
                 ))
             })
             .collect::<Result<Vec<_>, PortfolioProposalError>>()?;
-        let mut order = (0..target_components.len()).collect::<Vec<_>>();
-        order.sort_unstable_by_key(|index| target_digests[*index]);
-        let canonical_target_components = order
-            .iter()
-            .map(|index| {
-                let component = &target_components[*index];
+        target_components.sort_unstable_by_key(|(digest, weight_bits, _)| (*digest, *weight_bits));
+        let canonical_target_components = target_components
+            .into_iter()
+            .map(|(_, _, component)| {
                 GaussianComponent::new(component.weight(), component.distribution().clone())
             })
             .collect::<Result<Vec<_>, _>>()?;
-        // Keep this binding mutable only until canonical sorting has completed.
-        target_digests.clear();
-        target_components.clear();
         let canonical_target = GaussianMixture::new(canonical_target_components)?;
 
         let mut flattened = Vec::with_capacity(
