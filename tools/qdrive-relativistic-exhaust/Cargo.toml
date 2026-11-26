@@ -1,0 +1,10 @@
+[package]
+name = "qdrive-relativistic-exhaust"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Analytical relativistic particle and exhaust reference kernels for q-drive research"
+
+[workspace]
+members = []
