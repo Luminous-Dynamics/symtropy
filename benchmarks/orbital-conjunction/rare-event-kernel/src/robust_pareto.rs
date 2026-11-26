@@ -82,7 +82,9 @@ pub struct PortfolioScenarioAssessment {
     pub scenario_id: [u8; 32],
     /// Hard feasibility disposition; never replaced by an objective score.
     pub feasibility: ScenarioFeasibility,
-    /// Exactly one value for every frozen objective, in any input order.
+    /// Complete values for every frozen objective when Feasible. Infeasible
+    /// or Unresolved rows may provide no values, or a complete vector if
+    /// available; partial objective vectors are rejected.
     pub objective_values: Vec<ParetoObjectiveValue>,
 }
 
@@ -115,6 +117,10 @@ pub struct ScenarioParetoFrontier {
     pub scenario_id: [u8; 32],
     /// Portfolios whose hard feasibility is qualified in this scenario.
     pub feasible_portfolio_ids: Vec<[u8; 32]>,
+    /// Portfolios affirmatively infeasible in this scenario.
+    pub infeasible_portfolio_ids: Vec<[u8; 32]>,
+    /// Portfolios whose feasibility is unresolved in this scenario.
+    pub unresolved_portfolio_ids: Vec<[u8; 32]>,
     /// Nondominated portfolios among the scenario-feasible set.
     pub frontier_portfolio_ids: Vec<[u8; 32]>,
     /// Dominance results for scenario-feasible portfolios.
@@ -296,7 +302,12 @@ pub fn evaluate_robust_pareto(
             .iter()
             .map(|value| value.objective_id)
             .collect::<Vec<_>>();
-        if observed_ids != objective_ids {
+        let requires_objectives = assessment.feasibility == ScenarioFeasibility::Feasible;
+        let has_complete_objectives = observed_ids == objective_ids;
+        let has_no_objectives = observed_ids.is_empty();
+        if (requires_objectives && !has_complete_objectives)
+            || (!requires_objectives && !has_complete_objectives && !has_no_objectives)
+        {
             return Err(RobustParetoError::InvalidObjectiveProduct);
         }
         if rows
@@ -324,10 +335,30 @@ pub fn evaluate_robust_pareto(
                     .then_some((*portfolio_id, row.objective_values.clone()))
             })
             .collect::<Vec<_>>();
+        let infeasible_portfolio_ids = config
+            .portfolio_ids
+            .iter()
+            .filter(|portfolio_id| {
+                rows.get(&(**portfolio_id, *scenario_id))
+                    .is_some_and(|row| matches!(row.feasibility, ScenarioFeasibility::Infeasible { .. }))
+            })
+            .copied()
+            .collect();
+        let unresolved_portfolio_ids = config
+            .portfolio_ids
+            .iter()
+            .filter(|portfolio_id| {
+                rows.get(&(**portfolio_id, *scenario_id))
+                    .is_some_and(|row| matches!(row.feasibility, ScenarioFeasibility::Unresolved { .. }))
+            })
+            .copied()
+            .collect();
         let (frontier_portfolio_ids, dominance) = calculate_frontier(&feasible, &config.objectives);
         scenario_frontiers.push(ScenarioParetoFrontier {
             scenario_id: *scenario_id,
             feasible_portfolio_ids: feasible.iter().map(|(id, _)| *id).collect(),
+            infeasible_portfolio_ids,
+            unresolved_portfolio_ids,
             frontier_portfolio_ids,
             dominance,
         });
@@ -626,6 +657,53 @@ mod tests {
         assert!(!report.robust_feasible_portfolio_ids.contains(&[10; 32]));
         assert!(report.infeasible_portfolio_ids.contains(&[10; 32]));
         assert!(!report.robust_frontier_portfolio_ids.contains(&[10; 32]));
+    }
+
+    #[test]
+    fn unresolved_assessment_may_omit_unavailable_objective_values() {
+        let mut config = two_scenario_config();
+        let unresolved = config
+            .assessments
+            .iter_mut()
+            .find(|assessment| {
+                assessment.portfolio_id == [10; 32] && assessment.scenario_id == [1; 32]
+            })
+            .unwrap();
+        unresolved.feasibility = ScenarioFeasibility::Unresolved {
+            reason_digest: [79; 32],
+        };
+        unresolved.objective_values.clear();
+
+        let report = evaluate_robust_pareto(config).unwrap();
+        assert_eq!(
+            report.scenario_frontiers[0].unresolved_portfolio_ids,
+            vec![[10; 32]]
+        );
+        assert!(!report.robust_feasible_portfolio_ids.contains(&[10; 32]));
+        assert!(report.unresolved_portfolio_ids.contains(&[10; 32]));
+    }
+
+    #[test]
+    fn infeasible_assessment_may_omit_objective_values() {
+        let mut config = two_scenario_config();
+        let infeasible = config
+            .assessments
+            .iter_mut()
+            .find(|assessment| {
+                assessment.portfolio_id == [30; 32] && assessment.scenario_id == [2; 32]
+            })
+            .unwrap();
+        infeasible.feasibility = ScenarioFeasibility::Infeasible {
+            reason_digest: [80; 32],
+        };
+        infeasible.objective_values.clear();
+
+        let report = evaluate_robust_pareto(config).unwrap();
+        assert_eq!(
+            report.scenario_frontiers[1].infeasible_portfolio_ids,
+            vec![[30; 32]]
+        );
+        assert!(report.infeasible_portfolio_ids.contains(&[30; 32]));
     }
 
     #[test]
