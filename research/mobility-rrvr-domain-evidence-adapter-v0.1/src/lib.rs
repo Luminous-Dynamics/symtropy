@@ -203,7 +203,10 @@ fn capsule(
     }
 }
 
-fn trace_event<'a>(trace: &'a [ModelTraceEntry], event: &str) -> Result<&'a ModelTraceEntry, String> {
+fn trace_event<'a>(
+    trace: &'a [ModelTraceEntry],
+    event: &str,
+) -> Result<&'a ModelTraceEntry, String> {
     trace
         .iter()
         .find(|entry| entry.event == event)
@@ -286,7 +289,10 @@ fn adapt_arm(
         scenario.scenario_id,
         &attempt_id,
         &result.original_command_id,
-        format!("model-trace-event-{}-{}", fence_event.sequence, fence_event.event),
+        format!(
+            "model-trace-event-{}-{}",
+            fence_event.sequence, fence_event.event
+        ),
         &profile_digest,
         Vec::new(),
         1,
@@ -299,7 +305,10 @@ fn adapt_arm(
         scenario.scenario_id,
         &attempt_id,
         &result.original_command_id,
-        format!("model-trace-event-{}-{}", fence_event.sequence, fence_event.event),
+        format!(
+            "model-trace-event-{}-{}",
+            fence_event.sequence, fence_event.event
+        ),
         &profile_digest,
         Vec::new(),
         2,
@@ -330,8 +339,7 @@ fn adapt_arm(
             old_epoch_enqueue_closed: result.endpoint_fenced,
         },
     );
-    let inventory_complete =
-        scenario.holder_inventory_complete && scenario.edge_inventory_complete;
+    let inventory_complete = scenario.holder_inventory_complete && scenario.edge_inventory_complete;
     let inventory_receipt = capsule(
         inventory_id,
         scenario.scenario_id,
@@ -455,15 +463,11 @@ pub fn adapt_campaign(campaign: &CampaignReport) -> Result<CampaignEnvelope, Str
     }
 
     let model_digest = profile_sha256();
-    let material = unsigned_material(
-        campaign.campaign_id,
-        &model_digest,
-        CLAIM_CEILING,
-        &arms,
-    );
+    let material = unsigned_material(campaign.campaign_id, &model_digest, CLAIM_CEILING, &arms);
     let material_bytes = serde_json::to_vec(&material)
         .map_err(|error| format!("CAMPAIGN_ENVELOPE_SERIALIZATION_FAILED: {error}"))?;
-    let artifact_sha256 = digest_with_domain("rrvr-process-model-campaign-envelope-v0.1", &material_bytes);
+    let artifact_sha256 =
+        digest_with_domain("rrvr-process-model-campaign-envelope-v0.1", &material_bytes);
 
     let envelope = CampaignEnvelope {
         schema_version: ADAPTER_SCHEMA_VERSION.to_owned(),
@@ -582,13 +586,19 @@ mod tests {
         let output = envelope();
         for arm in &output.arms {
             assert_eq!(arm.evidence_report.claim_n, 2);
-            assert_eq!(arm.evidence_bundle.evidence_domain, Some(EvidenceDomain::ProcessModel));
+            assert_eq!(
+                arm.evidence_bundle.evidence_domain,
+                Some(EvidenceDomain::ProcessModel)
+            );
             assert!(arm.evidence_bundle.evidence.iter().all(|capsule| {
                 capsule.source.role == SourceRole::ModelOracle
                     && capsule.source.independence_group == "single-correlated-process-model"
             }));
             assert!(arm.evidence_bundle.claims.iter().all(|claim| {
-                matches!(claim.claim_type, ClaimType::EndpointFenced | ClaimType::TemporalClosure)
+                matches!(
+                    claim.claim_type,
+                    ClaimType::EndpointFenced | ClaimType::TemporalClosure
+                )
             }));
             assert!(arm.trace.len() >= 12);
         }
@@ -640,12 +650,9 @@ mod tests {
             .expect("applied effect RRVR arm exists");
         assert_eq!(arm.outcome.actual_effect_count, 1);
         assert_eq!(arm.outcome.reported_disposition, "applied");
-        assert!(
-            arm.evidence_bundle.claims.iter().all(|claim| {
-                claim.claim_type != ClaimType::EffectApplied
-                    && claim.claim_type != ClaimType::NoEffect
-            })
-        );
+        assert!(arm.evidence_bundle.claims.iter().all(|claim| {
+            claim.claim_type != ClaimType::EffectApplied && claim.claim_type != ClaimType::NoEffect
+        }));
     }
 
     #[test]
