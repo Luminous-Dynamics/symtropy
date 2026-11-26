@@ -26,6 +26,8 @@ pub struct FieldTraceUncertaintyBounds {
     pub field_vector_error_radius_t: Vec<f64>,
     /// Simultaneous absolute mechanical-reference-angle error bound, radians.
     pub mechanical_angle_error_bound_rad: Vec<f64>,
+    /// Absolute rotation error bound between the field-map and sensor measurement frames, radians.
+    pub sensor_frame_rotation_error_bound_rad: f64,
     /// Absolute error bound of the independent phase-zero calibration, radians.
     pub phase_zero_error_bound_rad: f64,
 }
@@ -50,6 +52,10 @@ pub struct BoundedScenarioMetrics {
     pub p95_absolute_phase_error_upper_bound_rad: f64,
     pub amplitude_ripple_upper_bound_fraction: Option<f64>,
     pub rms_cross_axis_ratio_upper_bound: Option<f64>,
+    pub maximum_field_direction_error_bound_rad: f64,
+    pub maximum_mechanical_reference_error_contribution_rad: f64,
+    pub sensor_frame_rotation_error_bound_rad: f64,
+    pub phase_zero_error_bound_rad: f64,
     pub unbounded_phase_sample_count: usize,
     pub accepted: bool,
 }
@@ -227,7 +233,11 @@ fn validate_uncertainty_record(
             },
         );
     }
-    if !bounds.phase_zero_error_bound_rad.is_finite() || bounds.phase_zero_error_bound_rad < 0.0 {
+    if !bounds.phase_zero_error_bound_rad.is_finite()
+        || bounds.phase_zero_error_bound_rad < 0.0
+        || !bounds.sensor_frame_rotation_error_bound_rad.is_finite()
+        || bounds.sensor_frame_rotation_error_bound_rad < 0.0
+    {
         return Err(BoundedDesignTournamentError::InvalidPhaseZeroBound {
             candidate_index,
             scenario_index,
@@ -291,6 +301,8 @@ fn bounded_scenario_metrics(
     let mut lower_in_plane_magnitudes = Vec::with_capacity(trace.samples.len());
     let mut upper_in_plane_magnitudes = Vec::with_capacity(trace.samples.len());
     let mut upper_out_of_plane_magnitudes = Vec::with_capacity(trace.samples.len());
+    let mut field_direction_error_bounds = Vec::with_capacity(trace.samples.len());
+    let mut mechanical_reference_error_contributions = Vec::with_capacity(trace.samples.len());
     let mut unbounded_phase_sample_count = 0_usize;
 
     let pole_pairs = requirements.pole_pairs as f64;
@@ -400,6 +412,15 @@ fn bounded_scenario_metrics(
         .iter()
         .copied()
         .fold(0.0_f64, f64::max);
+    let maximum_field_direction_error_bound_rad = field_direction_error_bounds
+        .iter()
+        .copied()
+        .fold(0.0_f64, f64::max);
+    let maximum_mechanical_reference_error_contribution_rad =
+        mechanical_reference_error_contributions
+            .iter()
+            .copied()
+            .fold(0.0_f64, f64::max);
     let rms_phase_error_upper_bound_rad = rms(&phase_error_upper_bounds);
     let p95_absolute_phase_error_upper_bound_rad = percentile_95(&phase_error_upper_bounds);
     if !minimum_in_plane_field_lower_bound_t.is_finite()
@@ -407,6 +428,8 @@ fn bounded_scenario_metrics(
         || !rms_in_plane_field_lower_bound_t.is_finite()
         || !rms_out_of_plane_field_upper_bound_t.is_finite()
         || !maximum_absolute_phase_error_upper_bound_rad.is_finite()
+        || !maximum_field_direction_error_bound_rad.is_finite()
+        || !maximum_mechanical_reference_error_contribution_rad.is_finite()
         || !rms_phase_error_upper_bound_rad.is_finite()
         || !p95_absolute_phase_error_upper_bound_rad.is_finite()
         || amplitude_ripple_upper_bound_fraction.is_some_and(|value| !value.is_finite())
@@ -441,6 +464,10 @@ fn bounded_scenario_metrics(
         p95_absolute_phase_error_upper_bound_rad,
         amplitude_ripple_upper_bound_fraction,
         rms_cross_axis_ratio_upper_bound,
+        maximum_field_direction_error_bound_rad,
+        maximum_mechanical_reference_error_contribution_rad,
+        sensor_frame_rotation_error_bound_rad: bounds.sensor_frame_rotation_error_bound_rad,
+        phase_zero_error_bound_rad: bounds.phase_zero_error_bound_rad,
         unbounded_phase_sample_count,
         accepted,
     })
@@ -736,6 +763,7 @@ mod tests {
                 phase_zero_calibration_id: "independent-phase-zero-v1".to_owned(),
                 field_vector_error_radius_t: vec![field_radius_t; trace.samples.len()],
                 mechanical_angle_error_bound_rad: vec![angle_error_rad; trace.samples.len()],
+                sensor_frame_rotation_error_bound_rad: 0.0,
                 phase_zero_error_bound_rad: phase_zero_error_rad,
             })
             .collect();
@@ -882,6 +910,30 @@ mod tests {
                 > baseline.candidates[0].worst_peak_phase_error_upper_bound_rad
         );
     }
+
+
+    #[test]
+    fn sensor_frame_rotation_error_is_added_as_an_independent_phase_bound() {
+        let candidate = bounded_candidate("sensor-frame-error", 1.0, 0.0, 0.0, 0.0, 0.0);
+        let mut candidate = candidate;
+        for uncertainty in &mut candidate.scenario_uncertainty {
+            uncertainty.sensor_frame_rotation_error_bound_rad = 0.003;
+        }
+        let result = rank_bounded_magnetic_designs(
+            "sensor-frame-error-tournament",
+            &[candidate],
+            &requirements(),
+        )
+        .unwrap();
+        assert_close(
+            result.candidates[0].worst_peak_phase_error_upper_bound_rad,
+            0.003,
+        );
+        assert!(result.candidates[0].scenarios.iter().all(|scenario| {
+            scenario.sensor_frame_rotation_error_bound_rad == 0.003
+        }));
+    }
+
 
     #[test]
     fn uncertainty_records_must_match_the_source_archive_and_calibration() {
