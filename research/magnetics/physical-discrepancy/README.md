@@ -58,6 +58,19 @@ The crate checks identity consistency and interval arithmetic. It cannot authent
 - A measured standard deviation, RMSE or finite sample maximum is not accepted as a deterministic supremum by conversion. The caller must provide a separate absolute interval/bound and its evidence identity.
 - The result remains a predicted physical-field enclosure, not a measurement map or a centre observation. It cannot be substituted for the separate centre margin used by spatial functional certification.
 
+## Initial implementation
+
+The public Rust reference is under `research/magnetics/physical-discrepancy/` on branch `research/magnetic-physical-discrepancy-v0.1`. It:
+- computes the centre residual from interval-valued measurement and model centre observations;
+- computes outward-expanded half-widths from the exact cell box;
+- applies a 3×3 residual-Jacobian absolute-supremum matrix to form component-wise cell residual intervals;
+- adds each residual interval to the solver's full-cell field interval;
+- checks model-centre inclusion in the model's full-cell enclosure;
+- retains solver/model and Jacobian source, implementation, artifact and environment identities, along with calibration/registration/background/temperature IDs;
+- preserves evidence role, including blind-holdout identity, without fitting or modifying the supplied model.
+
+The authored tests include an affine residual fixture checked at all eight cell corners, zero-width cells, measurement/Jacobian monotonicity, centre/cell identity, inconsistent model enclosures, missing calibration/registration identities, invalid Jacobian values and source-digest controls. Authored tests are not a test pass.
+
 ## Benchmark plan
 
 Compare a zero-discrepancy assumption, constant centre-bias model, affine residual model, Lipschitz/Jacobian supremum envelope, interval-Taylor residual model and probabilistic GP residual as a separate non-deterministic comparator.
