@@ -59,6 +59,22 @@ NIST's current SI for Manufacturing programme describes a shared operation test 
 For SAFRB, add an explicit *grounding* audit per decision: every claimed resource, capacity, time window, authority and service boundary must resolve to the exact admissible source artifact and profile version that was available at decision time. Report grounding as its own metric; do not merge it into general accuracy. For fault detection/diagnosis arms, report recall and precision separately, and preregister the consequence-weighting for missed faults. Do not import NIST's fault-recall weighting as a universal ranking rule for allocation, investment or service scheduling.
 
 
+### 2.3 Different optimization classes need different baselines
+
+Do not extend the max-flow comparison to models it cannot represent.
+
+| Model class | Matched baseline | Use it for | Qualification boundary |
+|---|---|---|---|
+| Single-commodity, cost-free flow | OR-Tools `SimpleMaxFlow`; NetworkX preflow-push / Dinitz / Edmonds-Karp | Maximum feasible quantity and minimum-cut comparison | Same directed graph, integer capacities, source/sink and edge-identity mapping |
+| Single-commodity, declared linear unit costs | OR-Tools `SimpleMinCostFlow` | Cost-minimizing flow under arc capacities and node supplies/demands | Costs must be owner-supplied, dimensioned and versioned. An objective coefficient or dual value is not a market price, asset value or authorized intervention cost |
+| Linear process-coupled constraints | HiGHS LP | Shared linear constraints, conversion balances and process-coupled resource allocation | Compare primal feasibility, objective and independently checked dual/Farkas evidence where available; retain solver/version/tolerances |
+| Integer schedules and discrete decisions | HiGHS MILP | Unit commitment, batch sizes, vehicle/crew slots and discrete restoration choices | A solver-reported optimal/infeasible status is not by itself a portable proof. Preserve exact model/input digests, bounds, incumbent, optimality gap and an independently checkable proof/replay route; otherwise report solver-qualified, not proof-certified |
+| Nonlinear / nonconvex physics | Domain-specific simulator/optimizer with VVUQ | Pump curves, hydraulic pressure, thermal limits, nonlinear conversion and safety envelopes | Keep the physical-model class separate; require uncertainty, calibration, applicability and independent model validation |
+
+OR-Tools documents `SimpleMinCostFlow` as a capacitated flow model with node supplies/demands and integer unit costs; HiGHS documents LP, MILP and QP support (but not mixed-integer QP). Sources: https://developers.google.com/optimization/flow/mincostflow and https://ergo-code.github.io/HiGHS/stable/.
+
+The DIMACS Implementation Challenges are a useful *benchmark-methodology* comparator: they emphasize realistic instance generators, empirical implementation behavior and practical algorithm performance rather than relying on worst-case bounds or unrealistic random graphs alone. Apply that discipline to SAFRB's sparse, layered, time-expanded and common-cause topologies; this is a methodology reference, not a claim that SAFRB already participates in a DIMACS challenge. Source: https://dimacs.rutgers.edu/programs/implementation-challenges/.
+
 ## 3. Matched experimental arms
 
 Every arm receives the same frozen decision-time observation, service requirement, resource graph, candidate actions, cost/time budgets and held-out case IDs. The product rows above are not silently simulated as if they were vendor runs.
