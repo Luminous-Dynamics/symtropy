@@ -1218,14 +1218,9 @@ mod tests {
 
     #[test]
     fn five_frame_ssim_uses_published_mean_per_attempt_not_a_per_frame_minimum() {
-        let passing_mean = mean_final_five_ssim(&[
-            Some(0.98),
-            Some(1.0),
-            Some(1.0),
-            Some(1.0),
-            Some(1.0),
-        ])
-        .expect("five frame scores");
+        let passing_mean =
+            mean_final_five_ssim(&[Some(0.98), Some(1.0), Some(1.0), Some(1.0), Some(1.0)])
+                .expect("five frame scores");
         assert!((passing_mean - 0.996).abs() < 1e-12);
         assert!(passing_mean > SSIM_THRESHOLD);
 
