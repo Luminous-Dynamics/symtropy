@@ -34,10 +34,13 @@ jobs:
         run: cargo run --locked --manifest-path research/maritime-exact-resource-oracle/Cargo.toml --bin resource-oracle-audit > resource-oracle-receipt.tsv
       - name: Emit deterministic DGT recovery receipt
         run: cargo run --locked --manifest-path research/maritime-exact-resource-oracle/Cargo.toml --bin dgt-recovery-audit > dgt-recovery-receipt.tsv
+      - name: Emit QC–AGV synchronization receipt
+        run: cargo run --locked --manifest-path research/maritime-exact-resource-oracle/Cargo.toml --bin qc-agv-sync-audit > qc-agv-sync-receipt.tsv
       - name: Independent exact references
         run: |
           python3 research/maritime-exact-resource-oracle/scripts/independent_reference.py --receipt resource-oracle-receipt.tsv
           python3 research/maritime-exact-resource-oracle/scripts/dgt_reference.py --receipt dgt-recovery-receipt.tsv
+          python3 research/maritime-exact-resource-oracle/scripts/qc_agv_sync_reference.py --receipt qc-agv-sync-receipt.tsv
       - name: Upload deterministic receipts
         uses: actions/upload-artifact@v4
         with:
@@ -45,5 +48,6 @@ jobs:
           path: |
             resource-oracle-receipt.tsv
             dgt-recovery-receipt.tsv
+            qc-agv-sync-receipt.tsv
           if-no-files-found: error
           retention-days: 30
