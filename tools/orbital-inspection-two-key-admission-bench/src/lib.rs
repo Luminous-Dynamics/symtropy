@@ -235,7 +235,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
     };
 
     if !valid_text(&case.case_id) || !checked_text_fields(scope) || !valid_costs(candidate) {
-        return result(Disposition::InvalidInput, vec!["CASE_SCOPE_OR_COST_INVALID".to_owned()]);
+        return result(
+            Disposition::InvalidInput,
+            vec!["CASE_SCOPE_OR_COST_INVALID".to_owned()],
+        );
     }
 
     if candidate.class == ActionClass::Recovery
@@ -259,17 +262,26 @@ fn evaluate_case(case: &Case) -> CaseResult {
             || !valid_text(&binding.horizon_id)
             || !valid_sha256(&binding.receipt_sha256)
         {
-            return result(Disposition::InvalidInput, vec!["PHYSICAL_SAFETY_BINDING_INVALID".to_owned()]);
+            return result(
+                Disposition::InvalidInput,
+                vec!["PHYSICAL_SAFETY_BINDING_INVALID".to_owned()],
+            );
         }
         if !same(&scope.action_id, &binding.action_id)
             || !same(&scope.vehicle_id, &binding.vehicle_id)
             || !same(&scope.trajectory_revision, &binding.trajectory_revision)
             || !same(&scope.horizon_id, &binding.horizon_id)
         {
-            return result(Disposition::OutOfScope, vec!["PHYSICAL_SAFETY_SCOPE_MISMATCH".to_owned()]);
+            return result(
+                Disposition::OutOfScope,
+                vec!["PHYSICAL_SAFETY_SCOPE_MISMATCH".to_owned()],
+            );
         }
     } else {
-        return result(Disposition::Indeterminate, vec!["PHYSICAL_SAFETY_EVIDENCE_MISSING".to_owned()]);
+        return result(
+            Disposition::Indeterminate,
+            vec!["PHYSICAL_SAFETY_EVIDENCE_MISSING".to_owned()],
+        );
     }
 
     if let Some(binding) = &candidate.post_action_portfolio {
@@ -280,14 +292,20 @@ fn evaluate_case(case: &Case) -> CaseResult {
             || !valid_text(&binding.event_set_revision)
             || !valid_sha256(&binding.receipt_sha256)
         {
-            return result(Disposition::InvalidInput, vec!["PORTFOLIO_BINDING_INVALID".to_owned()]);
+            return result(
+                Disposition::InvalidInput,
+                vec!["PORTFOLIO_BINDING_INVALID".to_owned()],
+            );
         }
         if !same(&scope.action_id, &binding.action_id)
             || !same(&scope.vehicle_id, &binding.vehicle_id)
             || !same(&scope.trajectory_revision, &binding.trajectory_revision)
             || !same(&scope.horizon_id, &binding.horizon_id)
         {
-            return result(Disposition::OutOfScope, vec!["POST_ACTION_PORTFOLIO_SCOPE_MISMATCH".to_owned()]);
+            return result(
+                Disposition::OutOfScope,
+                vec!["POST_ACTION_PORTFOLIO_SCOPE_MISMATCH".to_owned()],
+            );
         }
     }
 
@@ -303,19 +321,34 @@ fn evaluate_case(case: &Case) -> CaseResult {
             || !valid_sha256(&binding.measurement_receipt_sha256)
             || !valid_sha256(&binding.scope_receipt_sha256)
         {
-            return result(Disposition::InvalidInput, vec!["MEASUREMENT_BINDING_INVALID".to_owned()]);
+            return result(
+                Disposition::InvalidInput,
+                vec!["MEASUREMENT_BINDING_INVALID".to_owned()],
+            );
         }
         let Some(acquisition_id) = scope.acquisition_id.as_deref() else {
-            return result(Disposition::Indeterminate, vec!["ACQUISITION_SCOPE_MISSING".to_owned()]);
+            return result(
+                Disposition::Indeterminate,
+                vec!["ACQUISITION_SCOPE_MISSING".to_owned()],
+            );
         };
         let Some(camera_id) = scope.camera_id.as_deref() else {
-            return result(Disposition::Indeterminate, vec!["CAMERA_SCOPE_MISSING".to_owned()]);
+            return result(
+                Disposition::Indeterminate,
+                vec!["CAMERA_SCOPE_MISSING".to_owned()],
+            );
         };
         let Some(asset_id) = scope.asset_id.as_deref() else {
-            return result(Disposition::Indeterminate, vec!["ASSET_SCOPE_MISSING".to_owned()]);
+            return result(
+                Disposition::Indeterminate,
+                vec!["ASSET_SCOPE_MISSING".to_owned()],
+            );
         };
         let Some(feature_id) = scope.feature_id.as_deref() else {
-            return result(Disposition::Indeterminate, vec!["FEATURE_SCOPE_MISSING".to_owned()]);
+            return result(
+                Disposition::Indeterminate,
+                vec!["FEATURE_SCOPE_MISSING".to_owned()],
+            );
         };
         if !same(&scope.action_id, &binding.action_id)
             || !same(&scope.vehicle_id, &binding.vehicle_id)
@@ -326,7 +359,10 @@ fn evaluate_case(case: &Case) -> CaseResult {
             || !same(asset_id, &binding.asset_id)
             || !same(feature_id, &binding.feature_id)
         {
-            return result(Disposition::OutOfScope, vec!["MEASUREMENT_SCOPE_MISMATCH".to_owned()]);
+            return result(
+                Disposition::OutOfScope,
+                vec!["MEASUREMENT_SCOPE_MISMATCH".to_owned()],
+            );
         }
     }
 
@@ -369,49 +405,85 @@ fn evaluate_case(case: &Case) -> CaseResult {
         }
         ActionClass::Inspection => {
             let Some(portfolio) = candidate.post_action_portfolio.as_ref() else {
-                return result(Disposition::Indeterminate, vec!["POST_ACTION_PORTFOLIO_MISSING".to_owned()]);
+                return result(
+                    Disposition::Indeterminate,
+                    vec!["POST_ACTION_PORTFOLIO_MISSING".to_owned()],
+                );
             };
             if !portfolio.event_set_complete {
-                return result(Disposition::Indeterminate, vec!["POST_ACTION_EVENT_SET_INCOMPLETE".to_owned()]);
+                return result(
+                    Disposition::Indeterminate,
+                    vec!["POST_ACTION_EVENT_SET_INCOMPLETE".to_owned()],
+                );
             }
             match portfolio.state {
                 GateState::Pass => {}
                 GateState::Fail => {
-                    return result(Disposition::RejectedPortfolio, vec!["POST_ACTION_PORTFOLIO_FAIL".to_owned()]);
+                    return result(
+                        Disposition::RejectedPortfolio,
+                        vec!["POST_ACTION_PORTFOLIO_FAIL".to_owned()],
+                    );
                 }
                 GateState::Unknown => {
-                    return result(Disposition::Indeterminate, vec!["POST_ACTION_PORTFOLIO_UNKNOWN".to_owned()]);
+                    return result(
+                        Disposition::Indeterminate,
+                        vec!["POST_ACTION_PORTFOLIO_UNKNOWN".to_owned()],
+                    );
                 }
                 GateState::Stale => {
-                    return result(Disposition::Indeterminate, vec!["POST_ACTION_PORTFOLIO_STALE".to_owned()]);
+                    return result(
+                        Disposition::Indeterminate,
+                        vec!["POST_ACTION_PORTFOLIO_STALE".to_owned()],
+                    );
                 }
             }
 
             let Some(measurement) = candidate.measurement.as_ref() else {
-                return result(Disposition::Indeterminate, vec!["MEASUREMENT_EVIDENCE_MISSING".to_owned()]);
+                return result(
+                    Disposition::Indeterminate,
+                    vec!["MEASUREMENT_EVIDENCE_MISSING".to_owned()],
+                );
             };
             match measurement.acquisition_state {
                 GateState::Pass => {}
                 GateState::Fail => {
-                    return result(Disposition::RejectedEvidence, vec!["MEASUREMENT_ACQUISITION_FAIL".to_owned()]);
+                    return result(
+                        Disposition::RejectedEvidence,
+                        vec!["MEASUREMENT_ACQUISITION_FAIL".to_owned()],
+                    );
                 }
                 GateState::Unknown => {
-                    return result(Disposition::Indeterminate, vec!["MEASUREMENT_ACQUISITION_UNKNOWN".to_owned()]);
+                    return result(
+                        Disposition::Indeterminate,
+                        vec!["MEASUREMENT_ACQUISITION_UNKNOWN".to_owned()],
+                    );
                 }
                 GateState::Stale => {
-                    return result(Disposition::Indeterminate, vec!["MEASUREMENT_ACQUISITION_STALE".to_owned()]);
+                    return result(
+                        Disposition::Indeterminate,
+                        vec!["MEASUREMENT_ACQUISITION_STALE".to_owned()],
+                    );
                 }
             }
             match measurement.scope_coherence_state {
                 GateState::Pass => {}
                 GateState::Fail => {
-                    return result(Disposition::RejectedEvidence, vec!["MEASUREMENT_SCOPE_COHERENCE_FAIL".to_owned()]);
+                    return result(
+                        Disposition::RejectedEvidence,
+                        vec!["MEASUREMENT_SCOPE_COHERENCE_FAIL".to_owned()],
+                    );
                 }
                 GateState::Unknown => {
-                    return result(Disposition::Indeterminate, vec!["MEASUREMENT_SCOPE_COHERENCE_UNKNOWN".to_owned()]);
+                    return result(
+                        Disposition::Indeterminate,
+                        vec!["MEASUREMENT_SCOPE_COHERENCE_UNKNOWN".to_owned()],
+                    );
                 }
                 GateState::Stale => {
-                    return result(Disposition::Indeterminate, vec!["MEASUREMENT_SCOPE_COHERENCE_STALE".to_owned()]);
+                    return result(
+                        Disposition::Indeterminate,
+                        vec!["MEASUREMENT_SCOPE_COHERENCE_STALE".to_owned()],
+                    );
                 }
             }
             result(Disposition::EligibleInspection, Vec::new())
@@ -498,7 +570,10 @@ mod tests {
             .iter()
             .find(|case| case.case_id == "TK-001-BOTH-PASS")
             .unwrap();
-        assert_eq!(evaluate_case(eligible).disposition, Disposition::EligibleInspection);
+        assert_eq!(
+            evaluate_case(eligible).disposition,
+            Disposition::EligibleInspection
+        );
 
         let safety_only = input
             .cases
@@ -510,8 +585,14 @@ mod tests {
             .iter()
             .find(|case| case.case_id == "TK-002-SAFETY-FAIL")
             .unwrap();
-        assert_eq!(evaluate_case(safety_only).disposition, Disposition::RejectedEvidence);
-        assert_eq!(evaluate_case(unsafe_only).disposition, Disposition::RejectedSafety);
+        assert_eq!(
+            evaluate_case(safety_only).disposition,
+            Disposition::RejectedEvidence
+        );
+        assert_eq!(
+            evaluate_case(unsafe_only).disposition,
+            Disposition::RejectedSafety
+        );
     }
 
     #[test]
@@ -522,7 +603,10 @@ mod tests {
             .iter()
             .find(|case| case.case_id == "TK-011-RECOVERY-SAFE")
             .unwrap();
-        assert_eq!(evaluate_case(case).disposition, Disposition::EligibleRecovery);
+        assert_eq!(
+            evaluate_case(case).disposition,
+            Disposition::EligibleRecovery
+        );
     }
 
     #[test]
@@ -534,7 +618,10 @@ mod tests {
             .find(|case| case.case_id == "TK-013-HIGH-VALUE-UNSAFE")
             .unwrap();
         assert!(case.candidate.decision_value_milli > 1_000_000_000);
-        assert_eq!(evaluate_case(case).disposition, Disposition::RejectedSafety);
+        assert_eq!(
+            evaluate_case(case).disposition,
+            Disposition::RejectedSafety
+        );
     }
 
     #[test]
@@ -549,7 +636,10 @@ mod tests {
             "TK-023-MEASUREMENT-HORIZON-MISMATCH",
         ] {
             let case = input.cases.iter().find(|case| case.case_id == id).unwrap();
-            assert_eq!(evaluate_case(case).disposition, Disposition::OutOfScope);
+            assert_eq!(
+                evaluate_case(case).disposition,
+                Disposition::OutOfScope
+            );
         }
     }
 
@@ -566,7 +656,10 @@ mod tests {
             "TK-017-MEASUREMENT-MISSING",
         ] {
             let case = input.cases.iter().find(|case| case.case_id == id).unwrap();
-            assert_eq!(evaluate_case(case).disposition, Disposition::Indeterminate);
+            assert_eq!(
+                evaluate_case(case).disposition,
+                Disposition::Indeterminate
+            );
         }
     }
 
@@ -609,7 +702,8 @@ mod tests {
     #[test]
     fn action_order_and_utility_do_not_change_hard_gate_disposition() {
         let input = corpus();
-        let original = audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567").unwrap();
+        let original =
+            audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567").unwrap();
         let mut permuted = input;
         permuted.cases.reverse();
         let bytes = serde_json::to_vec(&permuted).unwrap();
@@ -622,6 +716,9 @@ mod tests {
             .find(|case| case.case_id == "TK-001-BOTH-PASS")
             .unwrap();
         candidate.candidate.decision_value_milli = MAX_COST;
-        assert_eq!(evaluate_case(&candidate).disposition, Disposition::EligibleInspection);
+        assert_eq!(
+            evaluate_case(&candidate).disposition,
+            Disposition::EligibleInspection
+        );
     }
 }
