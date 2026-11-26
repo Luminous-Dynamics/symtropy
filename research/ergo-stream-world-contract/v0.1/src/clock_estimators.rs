@@ -420,6 +420,20 @@ mod tests {
     }
 
     #[test]
+    fn sparse_well_spread_anchor_subset_recovers_affine_clock() {
+        let complete = anchors(35, 7, 5);
+        let pairs = [complete[0], complete[1], complete[4], complete[8]];
+        let ols = fit_affine_ols_v0(&pairs).unwrap();
+        let huber = fit_affine_huber_irls_v0(&pairs, 30, 1.0e-10).unwrap();
+        let theil_sen = fit_affine_theil_sen_v0(&pairs).unwrap();
+        for fit in [ols, huber, theil_sen] {
+            assert!((fit.offset - 35.0).abs() < 1.0e-8);
+            assert!((fit.scale - 1.4).abs() < 1.0e-12);
+            assert!(fit.residual_rms < 1.0e-8);
+        }
+    }
+
+    #[test]
     fn theil_sen_recovers_exact_affine_map() {
         let pairs = anchors(15, 3, 2);
         let fit = fit_affine_theil_sen_v0(&pairs).unwrap();
