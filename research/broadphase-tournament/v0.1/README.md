@@ -22,7 +22,7 @@ The deterministic generator includes sparse coherent motion, dense clusters, sta
 
 The seed, declared proxy count and frame count are explicit and included in every CSV row, so a result can be tied back to its exact deterministic sequence. Scene generation is outside the timed backend region. The same scene sequence is supplied to all nine backends. High-churn fixtures allocate a fresh monotonic ProxyId after a removal/reinsertion boundary; an identity remains stable only for one continuous residency.
 
-The added sleeping-wakeup family keeps most proxies stationary and moves only two of 128 proxies per frame after initialization. This models a common engine regime where most bodies are asleep and only a sparse wake frontier changes.
+The sleeping-wakeup family keeps 126 of 128 proxies stationary and moves two proxies at discrete wake points every eight frames; they remain stationary between those events. This gives both zero-dirty idle frames and small wake frontiers in the same temporal sequence.
 
 ## Measurement contract
 
