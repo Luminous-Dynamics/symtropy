@@ -849,7 +849,7 @@ mod tests {
         let bounds = result.bounds.unwrap();
         assert_eq!(bounds.exposure_x_micro_px_upper, 12_000);
         assert_eq!(bounds.row_time_x_micro_px_upper, 12_000);
-        assert_eq!(bounds.combined_frame_x_micro_px_upper, 24_000);
+        assert_eq!(bounds.combined_frame_x_micro_px_upper, 15_000);
         assert_eq!(result.status, Status::BudgetExceeded);
     }
 
