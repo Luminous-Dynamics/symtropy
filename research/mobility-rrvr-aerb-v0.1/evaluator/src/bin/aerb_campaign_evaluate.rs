@@ -225,11 +225,11 @@ fn record_world_stratum(
     unsafe_fresh: bool,
 ) {
     row.scenario_n += 1;
-    row.candidate_contract_valid_n += usize::from(report.candidate_contract_valid);
-    row.hidden_truth_covered_n += usize::from(report.hidden_truth_in_candidate_support);
-    row.open_world_residual_retained_n += usize::from(report.open_world_residual_retained);
-    row.disposition_admissible_n += usize::from(report.selected_disposition_admissible);
-    row.unsafe_fresh_attempt_n += usize::from(unsafe_fresh);
+    row.candidate_contract_valid_n += if usize::from(report.candidate_contract_valid) { 1 } else { 0 };
+    row.hidden_truth_covered_n += if usize::from(report.hidden_truth_in_candidate_support) { 1 } else { 0 };
+    row.open_world_residual_retained_n += if usize::from(report.open_world_residual_retained) { 1 } else { 0 };
+    row.disposition_admissible_n += if usize::from(report.selected_disposition_admissible) { 1 } else { 0 };
+    row.unsafe_fresh_attempt_n += if usize::from(unsafe_fresh) { 1 } else { 0 };
     row.support_size_sum += report.possible_world_support_n;
     row.worst_case_loss_sum += report.selected_disposition_worst_case_loss.unwrap_or(1.0);
     row.truth_loss_sum += report.evaluator_truth_disposition_loss;
@@ -241,10 +241,10 @@ fn record_cluster(
     unsafe_fresh: bool,
 ) {
     row.scenario_n += 1;
-    row.candidate_contract_valid_n += usize::from(report.candidate_contract_valid);
-    row.hidden_truth_covered_n += usize::from(report.hidden_truth_in_candidate_support);
-    row.open_world_residual_retained_n += usize::from(report.open_world_residual_retained);
-    row.disposition_admissible_n += usize::from(report.selected_disposition_admissible);
+    row.candidate_contract_valid_n += if usize::from(report.candidate_contract_valid) { 1 } else { 0 };
+    row.hidden_truth_covered_n += if usize::from(report.hidden_truth_in_candidate_support) { 1 } else { 0 };
+    row.open_world_residual_retained_n += if usize::from(report.open_world_residual_retained) { 1 } else { 0 };
+    row.disposition_admissible_n += if usize::from(report.selected_disposition_admissible) { 1 } else { 0 };
     row.unsafe_fresh_attempt_n += usize::from(unsafe_fresh);
     row.support_size_sum += report.possible_world_support_n;
     row.worst_case_loss_sum += report.selected_disposition_worst_case_loss.unwrap_or(1.0);
@@ -386,7 +386,7 @@ fn campaign_report(
         truth_covered_n += usize::from(report.hidden_truth_in_candidate_support);
         residual_retained_n += usize::from(report.open_world_residual_retained);
         admissible_n += usize::from(report.selected_disposition_admissible);
-        unsafe_fresh_n += usize::from(unsafe_fresh);
+        unsafe_fresh_n += if usize::from(unsafe_fresh) { 1 } else { 0 };
         support_size_sum += report.possible_world_support_n;
         worst_loss_sum += report.selected_disposition_worst_case_loss.unwrap_or(1.0);
         truth_loss_sum += report.evaluator_truth_disposition_loss;
@@ -451,8 +451,8 @@ fn run() -> Result<(), String> {
     if !canonical_parent.starts_with(&evaluator_root) {
         return Err("EVALUATOR_REPORT_MUST_BE_WRITTEN_INSIDE_EVALUATOR_DIRECTORY".to_owned());
     }
-    if output_path.exists() {
-        return Err("EVALUATOR_REPORT_OUTPUT_ALREADY_EXISTS".to_owned());
+    if output_path.symlink_metadata().is_ok() {
+        return Err("EVALUATOR_REPORT_OUTPUT_ALREADY_EXISTS_OR_IS_SYMLINK".to_owned());
     }
     let bytes = serde_json::to_vec_pretty(&report)
         .map_err(|error| format!("REPORT_SERIALIZATION_FAILED: {error}"))?;
