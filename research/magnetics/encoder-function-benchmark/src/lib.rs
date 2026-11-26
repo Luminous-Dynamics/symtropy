@@ -4,6 +4,7 @@
 //! vector. It does not model a sensor ASIC or infer manufacturing probability.
 
 pub mod design_tournament;
+pub mod bounded_design_tournament;
 
 use std::collections::HashSet;
 use std::f64::consts::{PI, TAU};
