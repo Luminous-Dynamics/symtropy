@@ -14,6 +14,7 @@ pub mod calibration;
 pub mod clock_estimators;
 pub mod decision_value;
 pub mod dynamics;
+pub mod joint_clock;
 pub mod matching;
 pub mod multimodal;
 pub mod oracle;
