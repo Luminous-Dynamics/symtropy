@@ -92,6 +92,8 @@ jobs:
             | ($episode[0].permitted_probes | map(.probe_id) | sort) as $permitted_probe_ids
             | ($pack.probe_outcome_supports | map(.probe_id) | sort) as $supported_probe_ids
             | ($permitted_probe_ids == $supported_probe_ids)
+            and ($pack.maximum_worst_case_loss == 0.45)
+            and ($pack.maximum_worst_case_loss >= 0 and $pack.maximum_worst_case_loss <= 1)
             and (($pack.worlds | map(.world_id) | length) == ($world_ids | unique | length))
             and (($pack.hidden_truth_world_id as $truth | ($world_ids | index($truth)) != null))
             and all($pack.probe_outcome_supports[];
