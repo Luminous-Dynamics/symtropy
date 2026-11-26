@@ -629,7 +629,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn tidal_mooring_orientation_and_approach_bridge_are_joint_resources() {
         let candidate = |candidate_id: &str,
