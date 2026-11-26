@@ -593,7 +593,7 @@ fn validate_world_pack<'a>(
 
         if probe.probe_id != SCOPE_CLOSURE_PROBE_ID {
             if probe.outcomes.iter().any(|outcome| {
-                !outcome.possible_world_ids.iter().any(|world_id| world_id == OPEN_WORLD_RESIDUAL)
+                !outcome.possible_world_ids.iter().any(|world_id| world_id.as_str() == OPEN_WORLD_RESIDUAL)
             }) {
                 return Err(EvaluatorError::InvalidWorldPack(
                     "ordinary observation probe attempts to eliminate open-world residual".to_owned()
@@ -601,7 +601,7 @@ fn validate_world_pack<'a>(
             }
         } else {
             let has_unresolved_scope_outcome = probe.outcomes.iter().any(|outcome| {
-                outcome.possible_world_ids.iter().any(|world_id| world_id == OPEN_WORLD_RESIDUAL)
+                outcome.possible_world_ids.iter().any(|world_id| world_id.as_str() == OPEN_WORLD_RESIDUAL)
             });
             let has_scope_closed_outcome = probe.outcomes.iter().any(|outcome| {
                 !outcome.possible_world_ids.iter().any(|world_id| world_id == OPEN_WORLD_RESIDUAL)
