@@ -142,6 +142,7 @@ pub struct ScanPlan {
 pub enum PlanningError {
     InvalidPolicy,
     InvalidCandidateMetadata { index: usize },
+    ProtectedEvidenceRoleCandidate { index: usize },
     DuplicateCandidateId,
     SourceIdentityMismatch { index: usize },
     InvalidCoordinate { index: usize },
@@ -206,6 +207,10 @@ fn validate_candidate(
     index: usize,
     policy: &ScanPolicy,
 ) -> Result<(), PlanningError> {
+    if candidate.role != MeasurementRole::AdaptiveExploration {
+        return Err(PlanningError::ProtectedEvidenceRoleCandidate { index });
+    }
+
     if !nonempty(&candidate.candidate_id)
         || !nonempty(&candidate.coordinate_frame_id)
         || !nonempty(&candidate.operating_condition_id)
@@ -308,9 +313,6 @@ fn candidate_metrics(
         disposition: CandidateDisposition::NotRankable(reason),
     };
 
-    if candidate.role != MeasurementRole::AdaptiveExploration {
-        return Ok(not_rankable(NotRankableReason::ProtectedEvidenceRole));
-    }
     if candidate.already_measured && !allow_revisit {
         return Ok(not_rankable(NotRankableReason::AlreadyMeasured));
     }
@@ -588,18 +590,19 @@ mod tests {
     }
 
     #[test]
-    fn blind_holdout_and_qualification_points_are_never_selected() {
-        let mut holdout = candidate("blind", 0.0, 1.0, 10.0, 0.001, 0.1);
-        holdout.role = MeasurementRole::BlindHoldout;
-        let mut qualification = candidate("qualification", 0.01, 1.0, 10.0, 0.001, 0.1);
-        qualification.role = MeasurementRole::PostSelectionQualification;
-        let result =
-            plan_decision_directed_scan(&[holdout, qualification], &policy()).expect("valid plan");
-        assert_eq!(result.selected_point_count, 0);
-        assert!(result.candidates.iter().all(|candidate| matches!(
-            candidate.disposition,
-            CandidateDisposition::NotRankable(NotRankableReason::ProtectedEvidenceRole)
-        )));
+    fn protected_holdout_and_qualification_roles_fail_closed() {
+        for role in [
+            MeasurementRole::ModelCalibration,
+            MeasurementRole::BlindHoldout,
+            MeasurementRole::PostSelectionQualification,
+        ] {
+            let mut protected = candidate("protected", 0.0, 1.0, 10.0, 0.001, 0.1);
+            protected.role = role;
+            assert!(matches!(
+                plan_decision_directed_scan(&[protected], &policy()),
+                Err(PlanningError::ProtectedEvidenceRoleCandidate { index: 0 })
+            ));
+        }
     }
 
     #[test]
