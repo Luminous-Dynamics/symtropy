@@ -12,6 +12,7 @@ This crate provides a deterministic integer-capacity max-flow/min-cut kernel for
 - Constructive edge-level flow witness and residual source-side partition.
 - Minimum-cut edge identities, capacities and exact max-flow/min-cut equality.
 - Versioned canonical graph encoding and SHA-256 binding.
+- Portable graph-bound certificate bundle (`FlowCertificateBundle`) with strict Serde decoding, a published JSON Schema and an independent post-deserialization verifier.
 - Explicit graph-size bounds and checked integer arithmetic.
 - Independent certificate verification without rerunning the solver, including exact reconstruction of residual reachability from the submitted edge-flow witness; a substituted equal-capacity cut partition is rejected.
 
@@ -31,6 +32,8 @@ AGPL-3.0-or-later. The package is added as an explicitly AGPL-licensed extractio
 
 ## Validation
 
-The unit suite exhaustively enumerates all simple directed graph topologies through four nodes (with a deterministic capacity assignment) and compares the result against an independent source/sink cut enumerator. It also tests parallel and antiparallel arcs, cycles, zero capacity, malformed identities/endpoints, overflow, permutation invariance and certificate mutation.
+The unit suite exhaustively enumerates all simple directed graph topologies through four nodes and compares against an independent source/sink cut enumerator. A second deterministic differential corpus checks 1,120 generated graphs across 2–8 nodes against the independent cut oracle and runs the certificate verifier on every result. It also tests parallel and antiparallel arcs, cycles, zero capacity, reverse-residual rerouting, `u64::MAX`, disconnected graphs, malformed identities/endpoints, overflow, permutation invariance, forged equal-capacity cuts, strict portable serialization and graph/certificate substitution.
+
+See [FLOW_CERTIFICATE_V1.md](FLOW_CERTIFICATE_V1.md) for the portable bundle contract and [the JSON Schema](schemas/flow-certificate-v1.schema.json) for the wire shape.
 
 These tests establish algorithm behavior for the declared graph model only. They do not qualify physical inputs, infrastructure, production integrations or field service.
