@@ -659,8 +659,8 @@ mod tests {
             .zip(&selected_counts)
             .filter(|(((atom, _), _), _)| atom.is_event)
             .map(|(((_, target_mass), residual_mass), sample_count)| {
-                let q_count = alpha * u64::from(*target_mass)
-                    + complement * u64::from(*residual_mass);
+                let q_count =
+                    alpha * u64::from(*target_mass) + complement * u64::from(*residual_mass);
                 let weighted_numerator = alpha * u64::from(*target_mass);
                 assert_eq!(*sample_count, q_count);
                 assert_eq!((*sample_count * weighted_numerator) % q_count, 0);
@@ -817,14 +817,7 @@ mod tests {
     #[test]
     fn verified_finite_draw_converts_into_the_existing_confidence_sequence_adapter() {
         let mut verifier = FiniteProposalExecutionVerifier::new(config()).unwrap();
-        let receipt = receipt(
-            0,
-            [120; 32],
-            RESIDUAL_BEFORE,
-            100,
-            0,
-            0,
-        );
+        let receipt = receipt(0, [120; 32], RESIDUAL_BEFORE, 100, 0, 0);
         let verified = verifier.verify_next(receipt).unwrap();
         let draw = verified.into_adaptive_importance_draw();
 
@@ -836,14 +829,9 @@ mod tests {
         assert!((draw.log_target_density.exp() - 0.25).abs() < 1.0e-15);
         assert!((draw.log_proposal_density.exp() - 0.4375).abs() < 1.0e-15);
 
-        let mut sequence = AdaptiveImportanceSamplingConfidenceSequence::new(
-            EVENT,
-            TARGET,
-            DEFENSIVE,
-            0.25,
-            0.05,
-        )
-        .unwrap();
+        let mut sequence =
+            AdaptiveImportanceSamplingConfidenceSequence::new(EVENT, TARGET, DEFENSIVE, 0.25, 0.05)
+                .unwrap();
         sequence.observe(draw).unwrap();
         let summary = sequence.summary().unwrap();
         assert_eq!(summary.sample_count, 1);
@@ -855,14 +843,7 @@ mod tests {
         let mut c = config();
         c.target_mass_ticks = vec![256, 0, 0, 0];
         let mut verifier = FiniteProposalExecutionVerifier::new(c).unwrap();
-        let execution = receipt(
-            0,
-            [121; 32],
-            RESIDUAL_BEFORE,
-            100,
-            130,
-            1,
-        );
+        let execution = receipt(0, [121; 32], RESIDUAL_BEFORE, 100, 130, 1);
         let verified = verifier.verify_next(execution).unwrap();
         assert_eq!(verified.target_mass_ticks, 0);
         assert!(!verified.event_occurred);
@@ -871,14 +852,9 @@ mod tests {
         assert_eq!(draw.log_target_density, f64::NEG_INFINITY);
         assert!(draw.log_proposal_density.is_finite());
 
-        let mut sequence = AdaptiveImportanceSamplingConfidenceSequence::new(
-            EVENT,
-            TARGET,
-            DEFENSIVE,
-            0.25,
-            0.05,
-        )
-        .unwrap();
+        let mut sequence =
+            AdaptiveImportanceSamplingConfidenceSequence::new(EVENT, TARGET, DEFENSIVE, 0.25, 0.05)
+                .unwrap();
         sequence.observe(draw).unwrap();
         assert_eq!(sequence.summary().unwrap().normalized_mean_estimate, 0.0);
     }
@@ -886,14 +862,7 @@ mod tests {
     #[test]
     fn complete_proposal_identity_is_checked_separately_from_residual_identity() {
         let mut verifier = FiniteProposalExecutionVerifier::new(config()).unwrap();
-        let mut forged = receipt(
-            0,
-            [122; 32],
-            RESIDUAL_BEFORE,
-            100,
-            0,
-            0,
-        );
+        let mut forged = receipt(0, [122; 32], RESIDUAL_BEFORE, 100, 0, 0);
         forged.complete_proposal_digest = COMPLETE_AFTER;
         assert_eq!(
             verifier.verify_next(forged),
@@ -901,7 +870,6 @@ mod tests {
         );
         assert_eq!(verifier.sample_count(), 0);
     }
-
 
     #[test]
     fn verified_draw_bridges_into_fixed_stake_prpl_eb_and_hedged_adapters() {
@@ -911,22 +879,12 @@ mod tests {
             .unwrap();
         let draw = verified.into_adaptive_importance_draw();
 
-        let mut fixed_stake = AdaptiveImportanceSamplingConfidenceSequence::new(
-            EVENT,
-            TARGET,
-            DEFENSIVE,
-            0.25,
-            0.05,
-        )
-        .unwrap();
-        let mut prpl_eb = AdaptiveImportanceSamplingPrPlEbSequence::new(
-            EVENT,
-            TARGET,
-            DEFENSIVE,
-            0.25,
-            0.05,
-        )
-        .unwrap();
+        let mut fixed_stake =
+            AdaptiveImportanceSamplingConfidenceSequence::new(EVENT, TARGET, DEFENSIVE, 0.25, 0.05)
+                .unwrap();
+        let mut prpl_eb =
+            AdaptiveImportanceSamplingPrPlEbSequence::new(EVENT, TARGET, DEFENSIVE, 0.25, 0.05)
+                .unwrap();
         let hedged_grid =
             HedgedCapitalConfidenceSequence::log_tailed_parameter_grid(1.0e-8, 0.02, 48, 48)
                 .unwrap();
@@ -948,5 +906,4 @@ mod tests {
         assert_eq!(prpl_eb.summary().unwrap().sample_count, 1);
         assert_eq!(hedged.summary().unwrap().sample_count, 1);
     }
-
 }
