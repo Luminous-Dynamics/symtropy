@@ -100,3 +100,20 @@ A new exhaustive two-vessel unit test adds the core topology coupling found in P
 - shared approach-bridge corridor reservations by time slot.
 
 The test enumerates only the two cross-orientation assignments. Same-orientation pairs overbook a berth segment and bridge; the tide-closed candidate is impossible. This is still a discrete micro-regression, not a reproduction of the paper's continuous tide/channel-time functions, berth geometry or complete Ningbo-Zhoushan dataset. The paper reports up to 10.9% objective improvement over the best Gurobi result within a two-hour limit on its own large instances; that percentage is literature context, not a result from this crate.
+
+
+## South African DGT recovery micro-regression
+
+A synthetic two-vessel test now encodes the public intervention pattern described in Transnet's November 2026 DGT communications:
+- Pier 2 is modeled as unavailable in the tested slot;
+- direct geared-vessel discharge uses DGT Berth 102 and its compatible discharge capacity;
+- an alternative diverts via Ngqura berth/QC capacity, a feeder-transfer slot, a later Berth 102 arrival and Gauteng rail evacuation;
+- berth, feeder and rail slots are shared resources, so both vessels cannot consume the same single-capacity direct/diversion route simultaneously.
+
+The exact instance admits two cross-route combinations (one direct and one Ngqura-feeder) and rejects the two Pier 2 options. This is a synthetic resource-capacity translation of public intervention descriptions, not a reconstruction of actual DGT schedules, container counts or operational availability.
+
+Public context:
+- Transnet, 18 November 2026: https://www.transnet.net/getFile.ashx?id=34389
+- Business Day, 25 November 2026: https://www.businessday.co.za/economy/2026-11-25-durban-port-backlog-to-last-into-january-transnet-says/
+
+The additional Rust-only regressions now cover sea–rail tracks, tide/mooring/bridge coupling and this DGT direct-vs-diversion structure. The separately compared receipt fixture remains the 4-feasible / 3-Pareto two-vessel port case; the added topology tests do not yet have independent TSV reference receipts.
