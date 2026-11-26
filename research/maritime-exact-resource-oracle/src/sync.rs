@@ -135,7 +135,9 @@ fn validate_instance(
         if task.task_id.is_empty() || task.qc_id.is_empty() {
             return Err(SyncError::EmptyIdentifier);
         }
-        if task.nominal_service <= task.service_deviation {
+        if task.nominal_service <= task.service_deviation
+            || task.nominal_service.checked_add(task.service_deviation).is_none()
+        {
             return Err(SyncError::InvalidServiceBand {
                 task_id: task.task_id.clone(),
             });
@@ -312,7 +314,14 @@ fn simulate(
         let service_start = qc_ready.max(agv_ready);
         let qc_wait = service_start - qc_ready;
         let agv_wait = service_start - agv_ready;
-        let deviation = scenario[index];
+        let deviation_index = tasks
+            .keys()
+            .position(|candidate_id| candidate_id == task_id)
+            .ok_or_else(|| SyncError::UnknownTask {
+                route_id: route.route_id.clone(),
+                task_id: task_id.clone(),
+            })?;
+        let deviation = *scenario.get(deviation_index).ok_or(SyncError::ArithmeticOverflow)?;
         let service_time = if deviation < 0 {
             task.nominal_service - task.service_deviation
         } else if deviation > 0 {
@@ -369,7 +378,7 @@ fn evaluate_route(
     qc_wait_weight: u64,
     agv_wait_weight: u64,
 ) -> Result<RouteRobustResult, SyncError> {
-    let zero_scenario = vec![0_i8; route.task_order.len()];
+    let zero_scenario = vec![0_i8; tasks.len()];
     let nominal = simulate(
         tasks,
         route,
