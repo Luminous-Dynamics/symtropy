@@ -1,0 +1,51 @@
+name: Contact Problem Comparability Receipts
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/contact-problem-receipts/v0.1/**"
+      - ".github/workflows/contact-problem-receipts.yml"
+  push:
+    branches: [main, "research/contact-problem-receipts-v0.1"]
+    paths:
+      - "research/contact-problem-receipts/v0.1/**"
+      - ".github/workflows/contact-problem-receipts.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    name: Rust 1.96 contact receipt checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/contact-problem-receipts/v0.1/Cargo.toml
+      - name: Upload rustfmt-normalized source
+        uses: actions/upload-artifact@v4
+        with:
+          name: contact-problem-receipts-rustfmt
+          path: research/contact-problem-receipts/v0.1/src
+          if-no-files-found: error
+      - name: Commit rustfmt changes on branch push
+        if: github.event_name == 'push'
+        env:
+          SOURCE_PATH: research/contact-problem-receipts/v0.1/src
+        run: |
+          if ! git diff --quiet -- "$SOURCE_PATH"; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add "$SOURCE_PATH"
+            git commit -m "style(physics): apply canonical rustfmt"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+      - name: Run tests
+        run: cargo test --manifest-path research/contact-problem-receipts/v0.1/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/contact-problem-receipts/v0.1/Cargo.toml --locked --all-targets -- -D warnings
