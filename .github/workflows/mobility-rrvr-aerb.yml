@@ -66,6 +66,7 @@ jobs:
             and all($submission.possible_world_support_ids[];
               . as $world_id | any($vocab[0].worlds[]; .world_id == $world_id)
             )
+            and ($submission.possible_world_support_ids | index("open_world_residual") != null)
             and (
               $submission.requested_probe_id == null
               or any($episode[0].permitted_probes[]; .probe_id == $submission.requested_probe_id)
