@@ -87,6 +87,9 @@ pub struct WatchObservation {
     /// A Healthy observation that clears an earlier Alert must identify the
     /// alert it supersedes. Mere disappearance or elapsed time cannot clear it.
     pub supersedes_observation_id: Option<String>,
+    /// Must be supplied for IndependentCopies observations; measured by the
+    /// independent dependency/failure-domain authority, not inferred here.
+    pub observed_independent_copies: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -131,6 +134,10 @@ pub enum WatchContractError {
     EmptyTargetId,
     EmptyRequiredSignals,
     DuplicateRequiredSignal,
+    ZeroMinimumIndependentCopies,
+    MissingIndependentCopyCount,
+    CopyCountOnWrongSignal,
+    InconsistentIndependentCopyEvidence,
     EmptyObservationId,
     DuplicateObservationId,
     EmptyObserverId,
@@ -277,6 +284,9 @@ pub fn evaluate_watch(
     if policy.required_signals.is_empty() {
         return Err(WatchContractError::EmptyRequiredSignals);
     }
+    if policy.minimum_independent_copies == 0 {
+        return Err(WatchContractError::ZeroMinimumIndependentCopies);
+    }
     if policy.required_signals.iter().enumerate().any(
         |(index, signal)| policy.required_signals[..index].contains(signal)
     ) {
@@ -315,6 +325,13 @@ pub fn evaluate_watch(
             && observation.provenance != EvidenceProvenance::Verified
         {
             return Err(WatchContractError::HealthyStateWithAlertOnlyProvenance);
+        }
+        if observation.signal == WatchSignal::IndependentCopies {
+            if observation.observed_independent_copies.is_none() {
+                return Err(WatchContractError::MissingIndependentCopyCount);
+            }
+        } else if observation.observed_independent_copies.is_some() {
+            return Err(WatchContractError::CopyCountOnWrongSignal);
         }
         if observation.target_id == target_id {
             grouped.entry(observation.signal).or_default().push(observation);
@@ -396,10 +413,21 @@ pub fn evaluate_watch(
         let latest = ordered.last().copied().expect("history is non-empty");
         let fresh = latest.valid_until_unix >= evaluated_at_unix;
         let source_verified = latest.provenance == EvidenceProvenance::Verified;
-        let state = if !fresh || !source_verified {
-            ObservationState::Unknown
-        } else if latest.provenance == EvidenceProvenance::Invalid {
+        let state = if latest.provenance == EvidenceProvenance::Invalid {
             ObservationState::Alert
+        } else if !fresh || !source_verified {
+            ObservationState::Unknown
+        } else if *signal == WatchSignal::IndependentCopies {
+            let observed = latest.observed_independent_copies
+                .ok_or(WatchContractError::MissingIndependentCopyCount)?;
+            let below_policy = observed < policy.minimum_independent_copies;
+            if below_policy && latest.state == ObservationState::Healthy {
+                return Err(WatchContractError::InconsistentIndependentCopyEvidence);
+            }
+            if !below_policy && latest.state == ObservationState::Alert {
+                return Err(WatchContractError::InconsistentIndependentCopyEvidence);
+            }
+            if below_policy { ObservationState::Alert } else { ObservationState::Healthy }
         } else {
             latest.state
         };
@@ -515,6 +543,7 @@ mod tests {
             observer_id: "independent-watcher".into(),
             provenance: EvidenceProvenance::Verified,
             supersedes_observation_id: None,
+            observed_independent_copies: if signal == WatchSignal::IndependentCopies { Some(2) } else { None },
         }
     }
 
@@ -685,6 +714,45 @@ mod tests {
         assert_eq!(
             evaluate_watch("archive-A", 150, &policy(), &invalid_window),
             Err(WatchContractError::InvalidValidityWindow)
+        );
+    }
+
+    #[test]
+    fn independent_copy_threshold_is_enforced_from_measured_count() {
+        let mut copy_policy = policy();
+        copy_policy.required_signals.push(WatchSignal::IndependentCopies);
+        let mut observations = healthy_snapshot();
+        let mut copies = observation(
+            "COPIES-1",
+            WatchSignal::IndependentCopies,
+            ObservationState::Alert,
+            1,
+        );
+        copies.observed_independent_copies = Some(1);
+        observations.push(copies);
+        let receipt = evaluate_watch("archive-A", 150, &copy_policy, &observations).unwrap();
+        assert_eq!(receipt.disposition, WatchDisposition::InterventionRequired);
+        assert!(receipt.action_proposals.iter().any(
+            |proposal| proposal.action == ProposedAction::CreateIndependentCopy
+        ));
+    }
+
+    #[test]
+    fn copy_count_and_reported_state_must_not_contradict() {
+        let mut copy_policy = policy();
+        copy_policy.required_signals.push(WatchSignal::IndependentCopies);
+        let mut observations = healthy_snapshot();
+        let mut copies = observation(
+            "COPIES-1",
+            WatchSignal::IndependentCopies,
+            ObservationState::Healthy,
+            1,
+        );
+        copies.observed_independent_copies = Some(1);
+        observations.push(copies);
+        assert_eq!(
+            evaluate_watch("archive-A", 150, &copy_policy, &observations),
+            Err(WatchContractError::InconsistentIndependentCopyEvidence)
         );
     }
 
