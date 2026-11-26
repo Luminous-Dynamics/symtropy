@@ -1645,6 +1645,43 @@ mod tests {
         }
     }
 
+    fn assert_morton_lbvh_hierarchy_matches<const D: usize>(family: SceneFamily) {
+        let scene = generate_scene::<D>(family, 64, 12, 0x6c62_7668_2026).unwrap();
+        let rows = run_tournament(&scene, TournamentConfig::new(1)).unwrap();
+        let row = rows
+            .iter()
+            .find(|row| row.backend == BackendKind::MortonLbvhAabbAdapter.name())
+            .unwrap();
+        assert_eq!(row.false_positives, 0);
+        assert_eq!(row.false_negatives, 0);
+        assert_eq!(row.mismatch_frames, 0);
+        assert_eq!(row.counters.lbvh_builds, 12);
+        assert_eq!(row.counters.lbvh_bruteforce_fallback_frames, 0);
+        assert_eq!(row.counters.lbvh_internal_nodes, 12 * (64 - 1));
+    }
+
+    #[test]
+    fn symtropy_morton_lbvh_hierarchy_matches_oracle_in_2d_3d_4d() {
+        assert_morton_lbvh_hierarchy::<2>(SceneFamily::SparseCoherent);
+        assert_morton_lbvh_hierarchy::<3>(SceneFamily::DenseClustered);
+        assert_morton_lbvh_hierarchy::<4>(SceneFamily::Anisotropic);
+    }
+
+    #[test]
+    fn symtropy_morton_lbvh_uses_live_small_population_fallback_threshold() {
+        let scene = generate_scene::<3>(SceneFamily::SparseCoherent, 48, 9, 0x50).unwrap();
+        let rows = run_tournament(&scene, TournamentConfig::new(1)).unwrap();
+        let row = rows
+            .iter()
+            .find(|row| row.backend == BackendKind::MortonLbvhAabbAdapter.name())
+            .unwrap();
+        assert_eq!(row.false_positives, 0);
+        assert_eq!(row.false_negatives, 0);
+        assert_eq!(row.counters.lbvh_builds, 0);
+        assert_eq!(row.counters.lbvh_bruteforce_fallback_frames, 9);
+        assert_eq!(row.counters.pair_tests, 9 * 48 * 47 / 2);
+    }
+
     #[test]
     fn csv_header_and_rows_have_identical_width_and_retain_scene_identity() {
         let scene = generate_scene::<3>(SceneFamily::HighChurn, 32, 7, 0x1234_5678).unwrap();
