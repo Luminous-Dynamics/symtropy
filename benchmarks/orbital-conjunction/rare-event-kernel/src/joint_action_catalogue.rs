@@ -14,8 +14,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use sha2::{Digest, Sha256};
 
 use crate::action_effect_portfolio::{
-    ActionEffectReceipt, ActionPortfolioDisposition, ActionPortfolioError,
-    ConjunctionPortfolioSnapshot, reconcile_action_effects,
+    ActionEffectReceipt, ActionPortfolioDisposition, ActionPortfolioError, ActionPortfolioReport,
+    ConjunctionEventProbabilityEnvelope, ConjunctionPortfolioSnapshot, reconcile_action_effects,
 };
 use crate::space_time_partition::Rational;
 
@@ -117,6 +117,29 @@ struct RankedJointAction {
     consequence_avoided_ticks: i64,
 }
 
+/// Per-coalition evidence emitted by the catalogue for one statically selectable action set.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct JointActionPortfolioEvidenceRecord {
+    /// Strictly sorted action identities in this exact portfolio.
+    pub action_ids: Vec<[u8; 32]>,
+    /// Independently recomputed canonical action-set digest.
+    pub action_set_digest: [u8; 32],
+    /// Total resource cost used by the exact catalogue.
+    pub resource_cost: u64,
+    /// Exact supplied outcome state; qualified states retain the complete post-action snapshot.
+    ///
+    /// Snapshot contents and digests are copied as evidence inputs. This record does not
+    /// authenticate their issuer, prove physical screening correctness or establish
+    /// real-world event-universe completeness.
+    pub outcome_state: JointActionOutcomeState,
+    /// Independently recomputed digest of the sorted event IDs, assessment digests and
+    /// exact probability interval endpoints in the post-action snapshot, when qualified.
+    pub post_action_event_inventory_digest: Option<[u8; 32]>,
+    /// Derived before/after reconciliation for qualified outcomes. Non-qualified outcome
+    /// states have no physical reconciliation report.
+    pub reconciliation: Option<ActionPortfolioReport>,
+}
+
 /// Summary of exact joint-action catalogue enumeration and selection.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JointActionCatalogueReport {
@@ -130,6 +153,11 @@ pub struct JointActionCatalogueReport {
     pub selected_resource_cost: Option<u64>,
     /// Signed robust lower bound on consequence avoided for the selected portfolio.
     pub selected_robust_consequence_avoided_ticks: Option<i64>,
+    /// Exactly one deterministic evidence record for every statically selectable coalition.
+    ///
+    /// Records are ordered by the canonical action-ID sequence and include infeasible and
+    /// unresolved outcomes; no coalition is omitted merely because it was not selected.
+    pub portfolio_evidence: Vec<JointActionPortfolioEvidenceRecord>,
     /// Number of statically selectable coalitions whose outcome was required.
     pub expected_coalition_count: usize,
     /// Number of fully screened, below-threshold, consequence-qualified coalitions.
@@ -255,6 +283,43 @@ pub fn canonical_joint_action_set_digest(
     Ok(hasher.finalize().into())
 }
 
+/// Recompute a canonical SHA-256 identity for a complete post-action event inventory.
+///
+/// The digest binds the sorted event identity, assessment digest and exact reduced lower and
+/// upper probability endpoints. It is separate from the producer-supplied snapshot digest.
+/// This establishes content identity only: it does not authenticate the assessment issuer,
+/// validate the physical probability model or prove that the event inventory is complete.
+pub fn canonical_post_action_event_inventory_digest(
+    events: &[ConjunctionEventProbabilityEnvelope],
+) -> Result<[u8; 32], JointActionCatalogueError> {
+    let mut ordered = events.to_vec();
+    ordered.sort_by_key(|event| event.event_id);
+    if ordered.iter().any(|event| {
+        is_zero_digest(&event.event_id)
+            || is_zero_digest(&event.assessment_digest)
+            || event.probability.lower > event.probability.upper
+            || event.probability.upper > Rational::from_integer(1)
+    }) || ordered
+        .windows(2)
+        .any(|pair| pair[0].event_id == pair[1].event_id)
+    {
+        return Err(JointActionCatalogueError::InvalidPortfolioEvidence);
+    }
+
+    let mut hasher = Sha256::new();
+    hasher.update(b"luminous.orbital-post-action-event-inventory.v0.1\0");
+    hasher.update((ordered.len() as u64).to_be_bytes());
+    for event in ordered {
+        hasher.update(event.event_id);
+        hasher.update(event.assessment_digest);
+        hasher.update(event.probability.lower.numerator().to_be_bytes());
+        hasher.update(event.probability.lower.denominator().to_be_bytes());
+        hasher.update(event.probability.upper.numerator().to_be_bytes());
+        hasher.update(event.probability.upper.denominator().to_be_bytes());
+    }
+    Ok(hasher.finalize().into())
+}
+
 /// Verify the closed coalition catalogue and choose the best qualified safe portfolio.
 ///
 /// The function enumerates all subsets of the frozen candidate universe. Subsets
@@ -325,7 +390,7 @@ pub fn evaluate_joint_action_catalogue(
 
     let mut outcome_by_set = BTreeMap::new();
     let mut action_set_digests = BTreeSet::new();
-    for outcome in &config.outcomes {
+    for outcome in config.outcomes {
         if outcome.action_ids.windows(2).any(|pair| pair[0] >= pair[1]) {
             return Err(JointActionCatalogueError::NonCanonicalActionSet);
         }
@@ -365,6 +430,7 @@ pub fn evaluate_joint_action_catalogue(
         selected_action_set_digest: None,
         selected_resource_cost: None,
         selected_robust_consequence_avoided_ticks: None,
+        portfolio_evidence: Vec::with_capacity(expected.len()),
         expected_coalition_count: expected.len(),
         qualified_safe_count: 0,
         threshold_exceeded_count: 0,
@@ -379,21 +445,41 @@ pub fn evaluate_joint_action_catalogue(
 
     for (action_ids, resource_cost) in &expected {
         let outcome = outcome_by_set
-            .get(action_ids)
+            .remove(action_ids)
             .ok_or(JointActionCatalogueError::MissingCoalitionOutcome)?;
-        match &outcome.state {
+        match outcome.state {
             JointActionOutcomeState::Infeasible { reason_digest } => {
-                if is_zero_digest(reason_digest) {
+                if is_zero_digest(&reason_digest) {
                     return Err(JointActionCatalogueError::InvalidReasonDigest);
                 }
                 report.infeasible_count += 1;
+                report
+                    .portfolio_evidence
+                    .push(JointActionPortfolioEvidenceRecord {
+                        action_ids: action_ids.clone(),
+                        action_set_digest: outcome.action_set_digest,
+                        resource_cost: *resource_cost,
+                        outcome_state: JointActionOutcomeState::Infeasible { reason_digest },
+                        post_action_event_inventory_digest: None,
+                        reconciliation: None,
+                    });
             }
             JointActionOutcomeState::Unresolved { reason_digest } => {
-                if is_zero_digest(reason_digest) {
+                if is_zero_digest(&reason_digest) {
                     return Err(JointActionCatalogueError::InvalidReasonDigest);
                 }
                 report.unresolved_count += 1;
                 must_abstain = true;
+                report
+                    .portfolio_evidence
+                    .push(JointActionPortfolioEvidenceRecord {
+                        action_ids: action_ids.clone(),
+                        action_set_digest: outcome.action_set_digest,
+                        resource_cost: *resource_cost,
+                        outcome_state: JointActionOutcomeState::Unresolved { reason_digest },
+                        post_action_event_inventory_digest: None,
+                        reconciliation: None,
+                    });
             }
             JointActionOutcomeState::Qualified {
                 post_action_snapshot,
@@ -401,7 +487,7 @@ pub fn evaluate_joint_action_catalogue(
                 robust_consequence_avoided_ticks,
                 coordination_digest,
             } => {
-                if *consequence_model_digest != config.consequence_model_digest {
+                if consequence_model_digest != config.consequence_model_digest {
                     return Err(JointActionCatalogueError::ConsequenceModelMismatch);
                 }
                 let mut operators = BTreeSet::new();
@@ -416,7 +502,7 @@ pub fn evaluate_joint_action_catalogue(
                 coordination_required |= operators.len() > 1;
                 if action_ids.is_empty()
                     && (post_action_snapshot.as_ref() != &config.baseline_snapshot
-                        || *robust_consequence_avoided_ticks != 0)
+                        || robust_consequence_avoided_ticks != 0)
                 {
                     return Err(JointActionCatalogueError::InvalidNoActionControl);
                 }
@@ -427,14 +513,31 @@ pub fn evaluate_joint_action_catalogue(
                     post_action_snapshot_digest: post_action_snapshot.snapshot_digest,
                     post_action_ephemeris_digest: post_action_snapshot.ephemeris_digest,
                     secondary_maneuverable: coordination_required,
-                    coordination_digest: *coordination_digest,
+                    coordination_digest,
                 };
                 let reconciliation = reconcile_action_effects(
                     &config.baseline_snapshot,
-                    post_action_snapshot,
+                    post_action_snapshot.as_ref(),
                     receipt,
                     config.probability_threshold,
                 )?;
+                let event_inventory_digest =
+                    canonical_post_action_event_inventory_digest(&post_action_snapshot.events)?;
+                report
+                    .portfolio_evidence
+                    .push(JointActionPortfolioEvidenceRecord {
+                        action_ids: action_ids.clone(),
+                        action_set_digest: outcome.action_set_digest,
+                        resource_cost: *resource_cost,
+                        outcome_state: JointActionOutcomeState::Qualified {
+                            post_action_snapshot,
+                            consequence_model_digest,
+                            robust_consequence_avoided_ticks,
+                            coordination_digest,
+                        },
+                        post_action_event_inventory_digest: Some(event_inventory_digest),
+                        reconciliation: Some(reconciliation.clone()),
+                    });
 
                 // A catalog revision change makes consequence deltas incomparable,
                 // even when the post-action event inventory is itself complete.
@@ -451,7 +554,7 @@ pub fn evaluate_joint_action_catalogue(
                             action_ids: action_ids.clone(),
                             action_set_digest: outcome.action_set_digest,
                             resource_cost: *resource_cost,
-                            consequence_avoided_ticks: *robust_consequence_avoided_ticks,
+                            consequence_avoided_ticks: robust_consequence_avoided_ticks,
                         };
                         if is_better(&candidate, best.as_ref()) {
                             best = Some(candidate);
@@ -472,7 +575,6 @@ pub fn evaluate_joint_action_catalogue(
             }
         }
     }
-
     if must_abstain {
         report.disposition = JointActionSelectionDisposition::AbstainIncompleteEvidence;
         return Ok(report);
@@ -613,6 +715,92 @@ mod tests {
             probability_threshold: rational(1, 10_000),
             resource_capacity: capacity,
         }
+    }
+
+    #[test]
+    fn post_action_event_inventory_digest_is_order_invariant_and_content_bound() {
+        let first = event(10, (1, 2_000_000), (2, 2_000_000));
+        let second = event(11, (1, 3_000_000), (1, 3_000_000));
+        let forward = canonical_post_action_event_inventory_digest(&[first, second]).unwrap();
+        let reverse = canonical_post_action_event_inventory_digest(&[second, first]).unwrap();
+        let single = canonical_post_action_event_inventory_digest(&[event(
+            10,
+            (1, 2_000_000),
+            (2, 2_000_000),
+        )])
+        .unwrap();
+        let empty = canonical_post_action_event_inventory_digest(&[]).unwrap();
+
+        assert_eq!(forward, reverse);
+        assert_ne!(forward, single);
+        assert_ne!(single, empty);
+        assert_ne!(empty, [0; 32]);
+    }
+
+    #[test]
+    fn post_action_event_inventory_digest_rejects_duplicate_event_identity() {
+        let duplicate = event(10, (1, 2_000_000), (1, 2_000_000));
+        assert_eq!(
+            canonical_post_action_event_inventory_digest(&[duplicate, duplicate]),
+            Err(JointActionCatalogueError::InvalidPortfolioEvidence)
+        );
+    }
+
+    #[test]
+    fn catalogue_emits_one_evidence_record_for_every_selectable_coalition() {
+        let a = [10; 32];
+        let b = [11; 32];
+        let report = evaluate_joint_action_catalogue(config(
+            vec![candidate(11, 1, OPERATOR_A), candidate(10, 1, OPERATOR_A)],
+            vec![
+                JointActionOutcomeRecord {
+                    action_ids: vec![b],
+                    action_set_digest: canonical_joint_action_set_digest(&[b]).unwrap(),
+                    state: JointActionOutcomeState::Unresolved {
+                        reason_digest: [77; 32],
+                    },
+                },
+                qualified(vec![], 1, vec![], 0),
+                qualified(
+                    vec![a],
+                    2,
+                    vec![event(10, (1, 2_000_000), (1, 2_000_000))],
+                    5,
+                ),
+            ],
+            1,
+        ))
+        .unwrap();
+
+        assert_eq!(report.expected_coalition_count, 3);
+        assert_eq!(report.portfolio_evidence.len(), 3);
+        assert_eq!(
+            report.portfolio_evidence[0].action_ids,
+            Vec::<[u8; 32]>::new()
+        );
+        assert_eq!(report.portfolio_evidence[1].action_ids, vec![a]);
+        assert_eq!(report.portfolio_evidence[2].action_ids, vec![b]);
+        assert!(report.portfolio_evidence[0].reconciliation.is_some());
+        assert!(report.portfolio_evidence[1].reconciliation.is_some());
+        assert_ne!(
+            report.portfolio_evidence[1]
+                .post_action_event_inventory_digest
+                .unwrap(),
+            [0; 32]
+        );
+        assert!(report.portfolio_evidence[2].reconciliation.is_none());
+        assert_eq!(
+            report.portfolio_evidence[2].post_action_event_inventory_digest,
+            None
+        );
+        assert!(matches!(
+            &report.portfolio_evidence[2].outcome_state,
+            JointActionOutcomeState::Unresolved { reason_digest } if *reason_digest == [77; 32]
+        ));
+        assert_eq!(
+            report.disposition,
+            JointActionSelectionDisposition::AbstainIncompleteEvidence
+        );
     }
 
     #[test]
