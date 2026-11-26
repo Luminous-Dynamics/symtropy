@@ -9,7 +9,7 @@ use std::{
 };
 
 use mobility_rrvr_aerb_evaluator::{
-    canonical_sorted_json_sha256, sha256_hex, AcknowledgementState, AuthorityRelation,
+    canonical_sorted_json_sha256, evaluate_json, sha256_hex, AcknowledgementState, AuthorityRelation,
     CandidateEpisode, CandidateSubmission, ClockStamp, CommandContext, DecisionLoss,
     DispatchState, Disposition, EffectState, EvaluatorWorld, EvaluatorWorldPack,
     EvidenceDomain, Observation, ObservationQuality, PermittedProbe, ProbeOutcomeSupport,
@@ -531,5 +531,77 @@ fn main() -> ExitCode {
             eprintln!("AERB_GENERATOR_FAILED: {error}");
             ExitCode::FAILURE
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn each_world_cycle_covers_all_eight_states_once() {
+        for cycle in 0..12 {
+            let values = shuffled_world_cycle(42, cycle);
+            let unique = values.iter().copied().collect::<std::collections::BTreeSet<_>>();
+            assert_eq!(values.len(), WORLD_IDS.len());
+            assert_eq!(unique.len(), WORLD_IDS.len());
+            for world_id in WORLD_IDS {
+                assert!(unique.contains(world_id));
+            }
+        }
+    }
+
+    #[test]
+    fn fixed_seed_and_cycle_are_repeatable() {
+        assert_eq!(shuffled_world_cycle(42, 3), shuffled_world_cycle(42, 3));
+        assert_ne!(shuffled_world_cycle(42, 3), shuffled_world_cycle(43, 3));
+    }
+
+    #[test]
+    fn generated_candidate_and_evaluator_artifacts_are_disjoint_and_valid() {
+        let seed = 42;
+        let profile = digest_label("test-generator-profile");
+        let episode = build_episode(seed, 3, &profile);
+        let submission = build_submission(&episode).expect("candidate submission");
+        let world_pack = build_world_pack(
+            &episode.episode_id,
+            "open_world_residual",
+            &digest_label("test-evaluator-profile"),
+        );
+        let episode_json = serde_json::to_string(&episode).expect("episode JSON");
+        let submission_json = serde_json::to_string(&submission).expect("submission JSON");
+        let world_pack_json = serde_json::to_string(&world_pack).expect("evaluator JSON");
+
+        assert!(!episode_json.contains("hidden_truth_world_id"));
+        assert!(!submission_json.contains("open_world_residual_truth"));
+        assert!(world_pack_json.contains("open_world_residual"));
+
+        let report = evaluate_json(&episode_json, &submission_json, &world_pack_json)
+            .expect("generated candidate should satisfy evaluator contract");
+        assert!(report.candidate_contract_valid);
+        assert!(report.hidden_truth_in_candidate_support);
+        assert!(report.open_world_residual_retained);
+        assert_eq!(report.probe_admission, mobility_rrvr_aerb_evaluator::ProbeAdmission::Eligible);
+    }
+
+    #[test]
+    fn generated_campaign_cycle_is_balanced_not_probability_weighted() {
+        let mut counts = BTreeMap::new();
+        for cycle in 0..3 {
+            for world_id in shuffled_world_cycle(20261126, cycle) {
+                *counts.entry(world_id).or_insert(0usize) += 1;
+            }
+        }
+        assert!(WORLD_IDS.iter().all(|world_id| counts.get(world_id) == Some(&3)));
+    }
+
+    #[test]
+    fn overlapping_candidate_and_evaluator_directories_are_rejected() {
+        let root = env::temp_dir().join(format!("aerb-generator-test-{}", std::process::id()));
+        let candidate = root.join("candidate");
+        let evaluator = candidate.join("evaluator");
+        fs::create_dir_all(&candidate).expect("candidate dir");
+        assert!(validate_disjoint_directories(&candidate, &evaluator).is_err());
+        let _ = fs::remove_dir_all(root);
     }
 }
