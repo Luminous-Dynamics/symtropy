@@ -7,12 +7,12 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use mobility_rrvr_evidence_capsule::{
-    AssessmentStatus, Claim, ClaimState, ClaimType, EvidenceBundle, EvidenceCapsule,
-    EvidenceDomain, EvidencePayload, EvidenceReport, EvidenceSource, SourceRole, TimeInterval,
-    evaluate_json, seal_bundle,
+    Claim, ClaimState, ClaimType, EvidenceBundle, EvidenceCapsule, EvidenceDomain,
+    EvidencePayload, EvidenceReport, EvidenceSource, SourceRole, TimeInterval, evaluate_json,
+    seal_bundle,
 };
 use mobility_rrvr_fault_harness::{
-    ArmResult, CampaignReport, Disposition, Scenario, TraceEntry, known_scenarios, run_campaign,
+    ArmResult, CampaignReport, Scenario, TraceEntry, known_scenarios, run_campaign,
 };
 
 const ADAPTER_SCHEMA_VERSION: &str = "0.1";
@@ -174,31 +174,36 @@ fn logical_time(clock_id: &str, tick: u64) -> (TimeInterval, TimeInterval) {
     (interval.clone(), interval)
 }
 
-fn capsule(
+struct CapsuleScope<'a> {
+    episode_id: &'a str,
+    attempt_id: &'a str,
+    command_id: &'a str,
+    profile_sha256: &'a str,
+    clock_id: &'a str,
+}
+
+struct CapsuleDraft {
     evidence_id: String,
-    episode_id: &str,
-    attempt_id: &str,
-    command_id: &str,
     source_id: String,
-    profile_sha256: &str,
     parent_evidence_ids: Vec<String>,
     ingest_sequence: u64,
     tick: u64,
-    clock_id: &str,
     payload: EvidencePayload,
-) -> EvidenceCapsule {
-    let (event_time, observation_time) = logical_time(clock_id, tick);
+}
+
+fn capsule(scope: &CapsuleScope<'_>, draft: CapsuleDraft) -> EvidenceCapsule {
+    let (event_time, observation_time) = logical_time(scope.clock_id, draft.tick);
     EvidenceCapsule {
-        evidence_id,
-        episode_id: episode_id.to_owned(),
-        attempt_id: attempt_id.to_owned(),
-        command_id: command_id.to_owned(),
-        source: model_source(source_id, profile_sha256),
-        parent_evidence_ids,
+        evidence_id: draft.evidence_id,
+        episode_id: scope.episode_id.to_owned(),
+        attempt_id: scope.attempt_id.to_owned(),
+        command_id: scope.command_id.to_owned(),
+        source: model_source(draft.source_id, scope.profile_sha256),
+        parent_evidence_ids: draft.parent_evidence_ids,
         event_time,
         observation_time,
-        ingest_sequence,
-        payload,
+        ingest_sequence: draft.ingest_sequence,
+        payload: draft.payload,
         content_sha256: String::new(),
     }
 }
@@ -213,37 +218,42 @@ fn trace_event<'a>(
         .ok_or_else(|| format!("MODEL_TRACE_EVENT_MISSING: {event}"))
 }
 
-fn make_claim(
+struct ClaimScope<'a> {
+    episode_id: &'a str,
+    attempt_id: &'a str,
+    command_id: &'a str,
+}
+
+struct ClaimSpec {
     claim_id: String,
-    episode_id: &str,
-    attempt_id: &str,
-    command_id: &str,
     claim_type: ClaimType,
     asserted_value: bool,
-    subject_id: &str,
+    subject_id: String,
     required_epoch: Option<u64>,
     required_queue_generation: Option<u64>,
     expected_holder_ids: Vec<String>,
     expected_edge_ids: Vec<String>,
     decision_cutoff_ingest_sequence: u64,
     evidence_ids: Vec<String>,
-) -> Claim {
+}
+
+fn make_claim(scope: &ClaimScope<'_>, spec: ClaimSpec) -> Claim {
     Claim {
-        claim_id,
-        episode_id: episode_id.to_owned(),
-        attempt_id: attempt_id.to_owned(),
-        command_id: command_id.to_owned(),
-        claim_type,
-        asserted_value,
+        claim_id: spec.claim_id,
+        episode_id: scope.episode_id.to_owned(),
+        attempt_id: scope.attempt_id.to_owned(),
+        command_id: scope.command_id.to_owned(),
+        claim_type: spec.claim_type,
+        asserted_value: spec.asserted_value,
         state: ClaimState::Asserted,
-        subject_id: subject_id.to_owned(),
-        required_epoch,
-        required_queue_generation,
+        subject_id: spec.subject_id,
+        required_epoch: spec.required_epoch,
+        required_queue_generation: spec.required_queue_generation,
         observation_window: None,
-        expected_holder_ids,
-        expected_edge_ids,
-        decision_cutoff_ingest_sequence,
-        evidence_ids,
+        expected_holder_ids: spec.expected_holder_ids,
+        expected_edge_ids: spec.expected_edge_ids,
+        decision_cutoff_ingest_sequence: spec.decision_cutoff_ingest_sequence,
+        evidence_ids: spec.evidence_ids,
         evidence_snapshot_sha256: String::new(),
     }
 }
