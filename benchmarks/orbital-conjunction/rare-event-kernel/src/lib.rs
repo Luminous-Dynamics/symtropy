@@ -57,6 +57,8 @@ pub mod portfolio_proposal;
 pub mod portfolio_selection;
 /// Atomic simultaneous selection across portfolios under a defensive proposal.
 pub mod simultaneous_defensive_selection;
+/// Robust portfolio dominance across separately qualified epistemic scenarios.
+pub mod scenario_robust_selection;
 pub mod predictable_empirical_bernstein;
 pub mod proposal_execution_conformance;
 pub mod refinement_scheduler;
@@ -163,6 +165,12 @@ pub use simultaneous_defensive_selection::{
     DefensivePortfolioDrawReceipt, DefensivePortfolioPairInterval,
     DefensivePortfolioPairObservation, SimultaneousDefensivePortfolioReport,
     SimultaneousDefensivePortfolioSelection, SimultaneousDefensiveSelectionError,
+};
+pub use scenario_robust_selection::{
+    MAX_ROBUST_EPISTEMIC_SCENARIOS, MAX_ROBUST_SCENARIO_BATCHES,
+    ScenarioDefensiveBatchReceipt, ScenarioDefensiveDrawBatch, ScenarioPortfolioSnapshot,
+    ScenarioRobustPortfolioReport, ScenarioRobustPortfolioSelection,
+    ScenarioRobustSelectionError,
 };
 pub use predictable_empirical_bernstein::{
     AdaptiveImportanceSamplingPrPlEbSequence, DEFAULT_BET_FRACTION_CAP, PrPlEbConfidenceSequence,
