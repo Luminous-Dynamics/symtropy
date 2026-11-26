@@ -255,8 +255,8 @@ pub fn build_envelope<const D: usize>(
         let translated_min = outward_min(checked_add(*tight_min, *motion_min)?)?;
         let translated_max = outward_max(checked_add(*tight_max, *motion_max)?)?;
 
-        let swept_min = tight_min.min(&translated_min);
-        let swept_max = tight_max.max(&translated_max);
+        let swept_min = (*tight_min).min(translated_min);
+        let swept_max = (*tight_max).max(translated_max);
         *out_min = outward_min(checked_sub(*swept_min, guard)?)?;
         *out_max = outward_max(checked_add(*swept_max, guard)?)?;
     }
