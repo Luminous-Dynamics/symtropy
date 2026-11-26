@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/space-engineering/schemas/propulsion-analytic-case-v0.1.schema.json",
+  "title": "Propulsion Analytic Reference Case v0.1",
+  "description": "Analytic consistency cases for ideal rocket-equation and rocket thrust identities. Not a component, engine or flight qualification model.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "scope",
+    "constants",
+    "rocket_equation",
+    "nozzle_thrust",
+    "sources",
+    "claim_ceiling",
+    "not_established"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "case_id": {
+      "const": "ideal-rocket-equation-and-nozzle-thrust"
+    },
+    "scope": {
+      "const": "analytical_invariant_check_only"
+    },
+    "constants": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "standard_gravity_m_s2"
+      ],
+      "properties": {
+        "standard_gravity_m_s2": {
+          "const": 9.80665
+        }
+      }
+    },
+    "rocket_equation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mass_initial_kg",
+        "mass_final_kg",
+        "specific_impulse_s",
+        "expected_delta_v_m_s",
+        "tolerance_m_s"
+      ],
+      "properties": {
+        "mass_initial_kg": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "mass_final_kg": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "specific_impulse_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "expected_delta_v_m_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "tolerance_m_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "nozzle_thrust": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mass_flow_kg_s",
+        "exit_velocity_m_s",
+        "exit_pressure_pa",
+        "ambient_pressure_pa",
+        "exit_area_m2",
+        "expected_thrust_n",
+        "expected_specific_impulse_s",
+        "tolerance_thrust_n",
+        "tolerance_specific_impulse_s"
+      ],
+      "properties": {
+        "mass_flow_kg_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "exit_velocity_m_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "exit_pressure_pa": {
+          "type": "number",
+          "minimum": 0
+        },
+        "ambient_pressure_pa": {
+          "type": "number",
+          "minimum": 0
+        },
+        "exit_area_m2": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expected_thrust_n": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "expected_specific_impulse_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "tolerance_thrust_n": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "tolerance_specific_impulse_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "title",
+          "url"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 8
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "const": "analytical_equation_checks_only_not_engine_performance_or_qualification"
+    },
+    "not_established": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "string",
+        "minLength": 8
+      }
+    }
+  }
+}
