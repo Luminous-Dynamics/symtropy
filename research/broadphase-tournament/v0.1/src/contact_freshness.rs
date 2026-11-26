@@ -365,6 +365,19 @@ pub fn plan_contact_lifecycle(
         if previous_stamps.contains_key(pair) {
             return Err(ContactLifecycleError::UnexpectedStampForNewPair(*pair));
         }
+        let left = current_endpoints
+            .get(&pair.0)
+            .copied()
+            .ok_or(ContactLifecycleError::MissingEndpointRevision(pair.0))?;
+        let right = current_endpoints
+            .get(&pair.1)
+            .copied()
+            .ok_or(ContactLifecycleError::MissingEndpointRevision(pair.1))?;
+        if left.proxy != pair.0 || right.proxy != pair.1 {
+            return Err(ContactLifecycleError::Freshness(
+                ContactFreshnessError::PairIdentityMismatch,
+            ));
+        }
         plan.actions.push(ContactLifecycleAction {
             pair: *pair,
             kind: ContactLifecycleActionKind::Added,
@@ -555,7 +568,7 @@ mod tests {
         let mut changed = endpoint(2);
         changed.shape += 1;
         let decision = stamp
-            .assess(global(), endpoint(1), changed)
+            .assess(next_global(), endpoint(1), changed)
             .expect("shape advances monotonically");
         assert_eq!(decision.geometry, ReuseDisposition::RefreshRequired);
         assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
@@ -693,8 +706,9 @@ mod tests {
         let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("distinct IDs");
         let mut delta = PairDeltaFrame::default();
         delta.added.push(pair);
-        let plan = plan_contact_lifecycle(&delta, &BTreeMap::new(), global(), &BTreeMap::new())
-            .expect("new pair has no prior endpoint stamps");
+        let endpoints = BTreeMap::from([(ProxyId(1), endpoint(1)), (ProxyId(2), endpoint(2))]);
+        let plan = plan_contact_lifecycle(&delta, &BTreeMap::new(), global(), &endpoints)
+            .expect("new pair has current endpoint revisions");
         let decision = plan.actions[0].decision.as_ref().expect("new pair decision");
         assert_eq!(decision.geometry, ReuseDisposition::RefreshRequired);
         assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
@@ -790,6 +804,20 @@ mod tests {
         assert_eq!(
             stamp.assess(global(), moved, endpoint(2)),
             Err(ContactFreshnessError::WorldRevisionDidNotAdvanceForMutation)
+        );
+    }
+
+
+
+    #[test]
+    fn added_pair_requires_current_endpoint_revision_records() {
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("distinct IDs");
+        let mut delta = PairDeltaFrame::default();
+        delta.added.push(pair);
+        let endpoints = BTreeMap::from([(ProxyId(1), endpoint(1))]);
+        assert_eq!(
+            plan_contact_lifecycle(&delta, &BTreeMap::new(), global(), &endpoints),
+            Err(ContactLifecycleError::MissingEndpointRevision(ProxyId(2)))
         );
     }
 
