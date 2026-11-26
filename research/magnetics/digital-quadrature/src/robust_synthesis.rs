@@ -708,6 +708,316 @@ pub fn synthesize_robust_configurations(
     })
 }
 
+
+/// Absolute sensor-parameter error bounds for one exact candidate configuration.
+///
+/// Threshold bounds are converted conservatively to a symmetric projected-field
+/// interval using max(BOP_error, BRP_error). This is safe but can be more
+/// conservative than asymmetric interval propagation. Axis-angle uncertainty is
+/// propagated using a Euclidean chord bound.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SensorParameterErrorBounds {
+    pub configuration_id: String,
+    pub parameter_bound_record_id: String,
+    pub channel_a_axis_angle_bound_rad: f64,
+    pub channel_b_axis_angle_bound_rad: f64,
+    pub channel_a_bop_error_bound_t: f64,
+    pub channel_a_brp_error_bound_t: f64,
+    pub channel_b_bop_error_bound_t: f64,
+    pub channel_b_brp_error_bound_t: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ParameterBoundedCandidate {
+    pub configuration: QuadratureConfig,
+    pub parameter_bounds: SensorParameterErrorBounds,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ParameterScenarioContributions {
+    pub trace_id: String,
+    pub original_field_bound_record_id: String,
+    pub parameter_bound_record_id: String,
+    pub channel_a_max_axis_projection_error_bound_t: f64,
+    pub channel_b_max_axis_projection_error_bound_t: f64,
+    pub channel_a_max_effective_projected_error_bound_t: f64,
+    pub channel_b_max_effective_projected_error_bound_t: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ParameterAwareCandidateMetrics {
+    pub candidate_id: String,
+    pub parameter_bound_record_id: String,
+    pub maximum_bop_error_bound_t: f64,
+    pub maximum_brp_error_bound_t: f64,
+    pub maximum_axis_angle_error_bound_rad: f64,
+    pub synthesis: CandidateSynthesisMetrics,
+    pub scenario_contributions: Vec<ParameterScenarioContributions>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ParameterAwareSynthesisResult {
+    pub set_id: String,
+    pub evidence_kind: super::EvidenceKind,
+    pub coordinate_frame_id: String,
+    pub angular_grid_id: String,
+    pub scenario_count: usize,
+    pub candidate_count: usize,
+    pub robustly_accepted_candidate_count: usize,
+    pub candidates: Vec<ParameterAwareCandidateMetrics>,
+    pub pareto_candidate_indices: Vec<usize>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ParameterAwareSynthesisError {
+    EmptyCandidateSet,
+    InvalidParameterBoundMetadata,
+    ParameterBoundConfigurationMismatch,
+    InvalidParameterBoundValue,
+    RobustHysteresisGapCollapsed { channel: char },
+    NonFiniteEffectiveFieldBound { sample_index: usize, channel: char },
+    BaseSynthesis(SynthesisError),
+}
+
+fn validate_sensor_parameter_bounds(
+    candidate: &ParameterBoundedCandidate,
+) -> Result<(), ParameterAwareSynthesisError> {
+    let config = &candidate.configuration;
+    let bounds = &candidate.parameter_bounds;
+    if bounds.configuration_id.trim().is_empty()
+        || bounds.parameter_bound_record_id.trim().is_empty()
+    {
+        return Err(ParameterAwareSynthesisError::InvalidParameterBoundMetadata);
+    }
+    if bounds.configuration_id != config.configuration_id {
+        return Err(ParameterAwareSynthesisError::ParameterBoundConfigurationMismatch);
+    }
+
+    let axis_bounds = [
+        bounds.channel_a_axis_angle_bound_rad,
+        bounds.channel_b_axis_angle_bound_rad,
+    ];
+    let threshold_bounds = [
+        bounds.channel_a_bop_error_bound_t,
+        bounds.channel_a_brp_error_bound_t,
+        bounds.channel_b_bop_error_bound_t,
+        bounds.channel_b_brp_error_bound_t,
+    ];
+    if axis_bounds
+        .into_iter()
+        .any(|value| !value.is_finite() || !(0.0..=std::f64::consts::PI).contains(&value))
+        || threshold_bounds
+            .into_iter()
+            .any(|value| !value.is_finite() || value < 0.0)
+    {
+        return Err(ParameterAwareSynthesisError::InvalidParameterBoundValue);
+    }
+
+    if config.channel_a.bop_threshold_t - bounds.channel_a_bop_error_bound_t
+        <= config.channel_a.brp_threshold_t + bounds.channel_a_brp_error_bound_t
+    {
+        return Err(ParameterAwareSynthesisError::RobustHysteresisGapCollapsed {
+            channel: 'A',
+        });
+    }
+    if config.channel_b.bop_threshold_t - bounds.channel_b_bop_error_bound_t
+        <= config.channel_b.brp_threshold_t + bounds.channel_b_brp_error_bound_t
+    {
+        return Err(ParameterAwareSynthesisError::RobustHysteresisGapCollapsed {
+            channel: 'B',
+        });
+    }
+
+    Ok(())
+}
+
+fn effective_projected_field_error_radius(
+    field: super::InPlaneField,
+    field_vector_error_radius_t: f64,
+    axis_angle_bound_rad: f64,
+    threshold_error_bound_t: f64,
+) -> (f64, f64) {
+    // The true field magnitude is no greater than nominal magnitude plus its
+    // declared vector-error radius. Rotating a unit projection axis by delta
+    // changes it by a chord of length 2*sin(delta/2).
+    let nominal_magnitude = field.radial_t.hypot(field.tangential_t);
+    let maximum_true_magnitude = nominal_magnitude + field_vector_error_radius_t;
+    let axis_projection_error =
+        2.0 * maximum_true_magnitude * (axis_angle_bound_rad / 2.0).sin();
+    let effective_radius =
+        field_vector_error_radius_t + axis_projection_error + threshold_error_bound_t;
+    (axis_projection_error, effective_radius)
+}
+
+/// Search a finite candidate set while including field, sensor-axis, BOP and
+/// BRP absolute parameter bounds.
+///
+/// The axis term is bounded by the chord between nominal and perturbed unit
+/// axes. BOP/BRP tolerances are conservatively absorbed using their channel-wise
+/// maximum as an additional symmetric projected-field radius. This is
+/// distribution-free and fail-closed, but deliberately more conservative than
+/// a future exact asymmetric-threshold interval formulation.
+pub fn synthesize_with_sensor_parameter_bounds(
+    set_id: &str,
+    scenarios: &[BoundedQuadratureScenario],
+    candidates: &[ParameterBoundedCandidate],
+    requirements: SynthesisRequirements,
+) -> Result<ParameterAwareSynthesisResult, ParameterAwareSynthesisError> {
+    if candidates.is_empty() {
+        return Err(ParameterAwareSynthesisError::EmptyCandidateSet);
+    }
+
+    let mut candidate_ids = HashSet::with_capacity(candidates.len());
+    let mut results = Vec::with_capacity(candidates.len());
+
+    for candidate in candidates {
+        validate_sensor_parameter_bounds(candidate)?;
+        if !candidate_ids.insert(candidate.configuration.configuration_id.as_str()) {
+            return Err(ParameterAwareSynthesisError::BaseSynthesis(
+                SynthesisError::DuplicateCandidateId,
+            ));
+        }
+
+        let mut effective_scenarios = Vec::with_capacity(scenarios.len());
+        let mut scenario_contributions = Vec::with_capacity(scenarios.len());
+        let bounds = &candidate.parameter_bounds;
+
+        for scenario in scenarios {
+            let mut effective = scenario.clone();
+            let mut max_axis_a = 0.0_f64;
+            let mut max_axis_b = 0.0_f64;
+            let mut max_total_a = 0.0_f64;
+            let mut max_total_b = 0.0_f64;
+            let threshold_a = bounds
+                .channel_a_bop_error_bound_t
+                .max(bounds.channel_a_brp_error_bound_t);
+            let threshold_b = bounds
+                .channel_b_bop_error_bound_t
+                .max(bounds.channel_b_brp_error_bound_t);
+
+            for (index, sample) in scenario.trace.samples.iter().enumerate() {
+                let (axis_a, total_a) = effective_projected_field_error_radius(
+                    sample.channel_a_field,
+                    scenario.field_bounds.channel_a_vector_error_radius_t[index],
+                    bounds.channel_a_axis_angle_bound_rad,
+                    threshold_a,
+                );
+                let (axis_b, total_b) = effective_projected_field_error_radius(
+                    sample.channel_b_field,
+                    scenario.field_bounds.channel_b_vector_error_radius_t[index],
+                    bounds.channel_b_axis_angle_bound_rad,
+                    threshold_b,
+                );
+                if !axis_a.is_finite()
+                    || !total_a.is_finite()
+                    || !axis_b.is_finite()
+                    || !total_b.is_finite()
+                {
+                    return Err(ParameterAwareSynthesisError::NonFiniteEffectiveFieldBound {
+                        sample_index: index,
+                        channel: if !total_a.is_finite() || !axis_a.is_finite() {
+                            'A'
+                        } else {
+                            'B'
+                        },
+                    });
+                }
+                max_axis_a = max_axis_a.max(axis_a);
+                max_axis_b = max_axis_b.max(axis_b);
+                max_total_a = max_total_a.max(total_a);
+                max_total_b = max_total_b.max(total_b);
+                effective.field_bounds.channel_a_vector_error_radius_t[index] = total_a;
+                effective.field_bounds.channel_b_vector_error_radius_t[index] = total_b;
+            }
+
+            // This is a composition identity label, not a cryptographic digest.
+            effective.field_bounds.field_bound_record_id = format!(
+                "effective[{}|{}]",
+                scenario.field_bounds.field_bound_record_id,
+                bounds.parameter_bound_record_id
+            );
+            scenario_contributions.push(ParameterScenarioContributions {
+                trace_id: scenario.trace.trace_id.clone(),
+                original_field_bound_record_id: scenario
+                    .field_bounds
+                    .field_bound_record_id
+                    .clone(),
+                parameter_bound_record_id: bounds.parameter_bound_record_id.clone(),
+                channel_a_max_axis_projection_error_bound_t: max_axis_a,
+                channel_b_max_axis_projection_error_bound_t: max_axis_b,
+                channel_a_max_effective_projected_error_bound_t: max_total_a,
+                channel_b_max_effective_projected_error_bound_t: max_total_b,
+            });
+            effective_scenarios.push(effective);
+        }
+
+        let synthesis = synthesize_robust_configurations(
+            set_id,
+            &effective_scenarios,
+            std::slice::from_ref(&candidate.configuration),
+            requirements,
+        )
+        .map_err(ParameterAwareSynthesisError::BaseSynthesis)?
+        .candidates
+        .into_iter()
+        .next()
+        .expect("one candidate was supplied");
+
+        results.push(ParameterAwareCandidateMetrics {
+            candidate_id: candidate.configuration.configuration_id.clone(),
+            parameter_bound_record_id: bounds.parameter_bound_record_id.clone(),
+            maximum_bop_error_bound_t: bounds
+                .channel_a_bop_error_bound_t
+                .max(bounds.channel_b_bop_error_bound_t),
+            maximum_brp_error_bound_t: bounds
+                .channel_a_brp_error_bound_t
+                .max(bounds.channel_b_brp_error_bound_t),
+            maximum_axis_angle_error_bound_rad: bounds
+                .channel_a_axis_angle_bound_rad
+                .max(bounds.channel_b_axis_angle_bound_rad),
+            synthesis,
+            scenario_contributions,
+        });
+    }
+
+    for index in 0..results.len() {
+        if !results[index].synthesis.robustly_accepted {
+            continue;
+        }
+        let dominated = results.iter().enumerate().any(|(other_index, other)| {
+            other_index != index
+                && other.synthesis.robustly_accepted
+                && dominates(&other.synthesis, &results[index].synthesis)
+        });
+        results[index].synthesis.is_pareto_optimal = !dominated;
+    }
+
+    let pareto_candidate_indices = results
+        .iter()
+        .enumerate()
+        .filter_map(|(index, result)| result.synthesis.is_pareto_optimal.then_some(index))
+        .collect::<Vec<_>>();
+    let robustly_accepted_candidate_count = results
+        .iter()
+        .filter(|result| result.synthesis.robustly_accepted)
+        .count();
+
+    let first = scenarios.first().ok_or_else(|| {
+        ParameterAwareSynthesisError::BaseSynthesis(SynthesisError::EmptyScenarioSet)
+    })?;
+    Ok(ParameterAwareSynthesisResult {
+        set_id: set_id.to_owned(),
+        evidence_kind: first.trace.evidence_kind,
+        coordinate_frame_id: first.trace.coordinate_frame_id.clone(),
+        angular_grid_id: first.trace.angular_grid_id.clone(),
+        scenario_count: scenarios.len(),
+        candidate_count: results.len(),
+        robustly_accepted_candidate_count,
+        candidates: results,
+        pareto_candidate_indices,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
