@@ -58,10 +58,10 @@ jobs:
           } > "$results_dir/manifest.txt"
           cargo run --release --manifest-path research/broadphase-tournament/v0.1/Cargo.toml --bin broadphase-tournament -- 128 40 2 > "$results_dir/results.csv"
           test "$(wc -l < "$results_dir/results.csv")" -eq 190
-          awk -F, 'NR > 1 && (NF != 60 || $14 != 0 || $15 != 0 || $16 != 0 || $17 != 0) { print "invalid benchmark row", NR, "columns", NF; failed = 1 } END { exit failed }' "$results_dir/results.csv"
+          awk -F, 'NR > 1 && (NF != 61 || $14 != 0 || $15 != 0 || $16 != 0 || $17 != 0) { print "invalid benchmark row", NR, "columns", NF; failed = 1 } END { exit failed }' "$results_dir/results.csv"
           cargo run --release --manifest-path research/broadphase-tournament/v0.1/Cargo.toml --bin broadphase-tournament -- --scale 1024 16 1 > "$results_dir/scale-smoke.csv"
           test "$(wc -l < "$results_dir/scale-smoke.csv")" -eq 25
-          awk -F, 'NR > 1 && (NF != 60 || $14 != 0 || $15 != 0 || $16 != 0 || $17 != 0) { print "invalid scale smoke row", NR, "columns", NF; failed = 1 } END { exit failed }' "$results_dir/scale-smoke.csv"
+          awk -F, 'NR > 1 && (NF != 61 || $14 != 0 || $15 != 0 || $16 != 0 || $17 != 0) { print "invalid scale smoke row", NR, "columns", NF; failed = 1 } END { exit failed }' "$results_dir/scale-smoke.csv"
           printf 'validated_rows=%s\n' "$(($(wc -l < "$results_dir/results.csv") - 1))" >> "$results_dir/manifest.txt"
           printf 'validated_scale_rows=%s\n' "$(($(wc -l < "$results_dir/scale-smoke.csv") - 1))" >> "$results_dir/manifest.txt"
       - name: Retain benchmark evidence
