@@ -57,13 +57,14 @@ jobs:
           ' "$ROOT/world_vocabulary/aerb_ambiguous_command_history_v0_1.json"
 
           jq -e --slurpfile vocab "$ROOT/world_vocabulary/aerb_ambiguous_command_history_v0_1.json" --slurpfile episode "$ROOT/fixtures/candidate_episode_synthetic_v0_1.json" '
-            .benchmark == "AERB"
-            and all(.possible_world_support_ids[];
+            . as $submission
+            | $submission.benchmark == "AERB"
+            and all($submission.possible_world_support_ids[];
               . as $world_id | any($vocab[0].worlds[]; .world_id == $world_id)
             )
             and (
-              .requested_probe_id == null
-              or any($episode[0].permitted_probes[]; .probe_id == .requested_probe_id)
+              $submission.requested_probe_id == null
+              or any($episode[0].permitted_probes[]; .probe_id == $submission.requested_probe_id)
             )
           ' "$ROOT/fixtures/candidate_submission_synthetic_v0_1.json"
 
