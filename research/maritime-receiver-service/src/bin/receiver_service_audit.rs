@@ -14,11 +14,15 @@ struct Case {
 }
 
 fn parse_u64(value: &str, field: &str) -> Result<u64, Box<dyn Error>> {
-    value.parse::<u64>().map_err(|error| format!("invalid {field}: {error}").into())
+    value
+        .parse::<u64>()
+        .map_err(|error| format!("invalid {field}: {error}").into())
 }
 
 fn parse_i64(value: &str, field: &str) -> Result<i64, Box<dyn Error>> {
-    value.parse::<i64>().map_err(|error| format!("invalid {field}: {error}").into())
+    value
+        .parse::<i64>()
+        .map_err(|error| format!("invalid {field}: {error}").into())
 }
 
 fn parse_bool(value: &str, field: &str) -> Result<bool, Box<dyn Error>> {
@@ -102,11 +106,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 });
             }
             Some(kind) => {
-                return Err(format!(
-                    "line {}: unknown/malformed record {kind}",
-                    line_number + 1
-                )
-                .into());
+                return Err(
+                    format!("line {}: unknown/malformed record {kind}", line_number + 1).into(),
+                );
             }
             None => return Err(format!("line {}: empty row", line_number + 1).into()),
         }
@@ -116,7 +118,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("CASE\tcase_id\tunit_count\tcohort_count");
 
     for (case_id, case) in &cases {
-        let horizon = case.horizon.ok_or_else(|| format!("{case_id}: missing CASE header"))?;
+        let horizon = case
+            .horizon
+            .ok_or_else(|| format!("{case_id}: missing CASE header"))?;
         let report = evaluate_receiver_service(&case.units, &case.floors, horizon)?;
         println!(
             "CASE\t{}\t{}\t{}",
