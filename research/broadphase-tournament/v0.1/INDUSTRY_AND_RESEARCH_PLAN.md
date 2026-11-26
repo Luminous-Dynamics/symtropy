@@ -61,7 +61,7 @@ Use the persistent spatial index for current neighbours and cached adjacency for
 
 The desired indexed frontier complexity is O(k log N + C) under favourable spatial distributions, where k is the dirty-proxy count and C is the number of spatially returned candidates. Dense scenes can still make C = O(kN), and index maintenance remains part of the cost.
 
-**Current limitation:** the indexed tournament prototype uses safe snapshot-derived dirty discovery, which remains O(N). It removes the later O(kN) scan over current proxies, but does not establish sublinear end-to-end frame work. The authoritative-journal method exists and is tested; a physics-world adapter must bind it to exact world revisions and charge or separately measure its producer.
+**Current limitation:** the indexed tournament backend is still measured through safe snapshot-derived dirty discovery, which remains O(N). It removes the later O(kN) scan over current proxies, but does not establish sublinear end-to-end frame work in the current campaign. A separate trusted `step_with_dirty_ids` path now permits an O(1) empty-journal no-op and O(k log N + C) indexed reconciliation under the canonical-frame and complete-journal preconditions; it revalidates only dirty current AABBs. A checked variant retains O(N) frame validation and reports it separately. Neither journal path is yet the timed tournament backend. Production use must bind the journal to exact world/proxy/filter revisions, prove canonical non-dirty state at the mutation-source boundary, and charge or separately measure journal production.
 
 ### 3.3 Bounded negative-space certificates
 
