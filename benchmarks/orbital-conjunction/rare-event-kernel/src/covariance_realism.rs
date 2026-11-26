@@ -151,15 +151,25 @@ pub enum CovarianceRealismError {
 impl core::fmt::Display for CovarianceRealismError {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let message = match self {
-            Self::EmptyObservationSet => "covariance realism requires at least one residual observation",
+            Self::EmptyObservationSet => {
+                "covariance realism requires at least one residual observation"
+            }
             Self::TooManyObservations => "residual observation count exceeds the configured limit",
             Self::InvalidDimension => "residual dimension is zero or exceeds the configured limit",
-            Self::InvalidIdentity => "observation, cluster, stratum or density-space identity is zero",
-            Self::DuplicateObservationIdentity => "prediction/truth observation identity is duplicated",
+            Self::InvalidIdentity => {
+                "observation, cluster, stratum or density-space identity is zero"
+            }
+            Self::DuplicateObservationIdentity => {
+                "prediction/truth observation identity is duplicated"
+            }
             Self::DimensionMismatch => "residual and covariance dimensions differ",
             Self::NonFiniteResidual => "residual contains a non-finite value",
-            Self::NonZeroCovarianceReferenceMean => "covariance reference mean must be exactly zero",
-            Self::NumericalFailure => "NIS, chi-square reference or summary calculation failed numerically",
+            Self::NonZeroCovarianceReferenceMean => {
+                "covariance reference mean must be exactly zero"
+            }
+            Self::NumericalFailure => {
+                "NIS, chi-square reference or summary calculation failed numerically"
+            }
         };
         formatter.write_str(message)
     }
@@ -221,7 +231,10 @@ impl GroupAccumulator {
         }
 
         self.nis_values.push(nis);
-        let cluster_count = self.cluster_counts.entry(correlation_cluster_id).or_insert(0);
+        let cluster_count = self
+            .cluster_counts
+            .entry(correlation_cluster_id)
+            .or_insert(0);
         *cluster_count = cluster_count
             .checked_add(1)
             .ok_or(CovarianceRealismError::NumericalFailure)?;
@@ -249,10 +262,7 @@ impl GroupAccumulator {
         let coverage = NOMINAL_ELLIPSOID_COVERAGE_PERMILLE
             .iter()
             .map(|nominal| {
-                let threshold = chi_square_quantile(
-                    f64::from(*nominal) / 1000.0,
-                    key.dimension,
-                )?;
+                let threshold = chi_square_quantile(f64::from(*nominal) / 1000.0, key.dimension)?;
                 let inside_count = self
                     .nis_values
                     .iter()
@@ -327,7 +337,10 @@ pub fn audit_covariance_realism(
 
     for observation in observations {
         if observation.observation_id.iter().all(|byte| *byte == 0)
-            || observation.correlation_cluster_id.iter().all(|byte| *byte == 0)
+            || observation
+                .correlation_cluster_id
+                .iter()
+                .all(|byte| *byte == 0)
             || observation.stratum_id.iter().all(|byte| *byte == 0)
             || observation.density_space_id.iter().all(|byte| *byte == 0)
         {
@@ -435,8 +448,8 @@ pub(crate) fn chi_square_quantile(
     }
     let shape = degrees_of_freedom as f64 * 0.5;
     let mut lower = 0.0;
-    let mut upper = (degrees_of_freedom as f64 + 10.0 * (2.0 * degrees_of_freedom as f64).sqrt())
-        .max(1.0);
+    let mut upper =
+        (degrees_of_freedom as f64 + 10.0 * (2.0 * degrees_of_freedom as f64).sqrt()).max(1.0);
     let mut upper_cdf = regularized_gamma_p(shape, upper * 0.5)?;
     for _ in 0..128 {
         if upper_cdf >= probability {
@@ -648,10 +661,9 @@ mod tests {
     #[test]
     fn two_dimensional_cholesky_whitening_matches_manual_nis() {
         let covariance = Gaussian::new(vec![0.0, 0.0], vec![4.0, 2.0, 2.0, 5.0]).unwrap();
-        let report = audit_covariance_realism(&[
-            observation(1, 10, 20, 30, vec![2.0, 3.0], covariance),
-        ])
-        .unwrap();
+        let report =
+            audit_covariance_realism(&[observation(1, 10, 20, 30, vec![2.0, 3.0], covariance)])
+                .unwrap();
         let group = &report.groups[0];
 
         assert_eq!(group.dimension, 2);
@@ -700,7 +712,11 @@ mod tests {
         assert_eq!(group.correlation_cluster_count, 2);
         assert_eq!(group.largest_cluster_observation_count, 3);
         assert_eq!(group.largest_cluster_fraction, 0.75);
-        assert!(report.inferential_status.contains("no iid confidence intervals"));
+        assert!(
+            report
+                .inferential_status
+                .contains("no iid confidence intervals")
+        );
     }
 
     #[test]
@@ -766,10 +782,9 @@ mod tests {
 
     #[test]
     fn all_five_nominal_coverage_levels_are_reported() {
-        let report = audit_covariance_realism(&[
-            observation(1, 10, 20, 30, vec![0.0], covariance_1d(1.0)),
-        ])
-        .unwrap();
+        let report =
+            audit_covariance_realism(&[observation(1, 10, 20, 30, vec![0.0], covariance_1d(1.0))])
+                .unwrap();
         assert_eq!(
             report.groups[0]
                 .ellipsoid_coverage
