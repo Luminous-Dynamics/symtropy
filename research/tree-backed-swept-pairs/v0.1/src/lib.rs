@@ -51,9 +51,6 @@ impl IdentityKey {
         }
     }
 
-    fn same_body(&self, other: &Self) -> bool {
-        self.body_slot == other.body_slot && self.body_generation == other.body_generation
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
