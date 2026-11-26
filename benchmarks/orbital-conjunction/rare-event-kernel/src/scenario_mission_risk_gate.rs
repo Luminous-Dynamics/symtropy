@@ -22,6 +22,8 @@
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
+use sha2::{Digest, Sha256};
+
 use crate::mission_risk_aggregation::{ExactMass, MissionRiskBudgetStatus, MissionRiskEnvelope};
 use crate::simultaneous_defensive_selection::SimultaneousDefensivePortfolioReport;
 
@@ -40,6 +42,8 @@ pub struct PortfolioScenarioRiskContract {
     pub density_space_digest: [u8; 32],
     /// Post-action mission event-inventory digest for this portfolio.
     pub event_inventory_digest: [u8; 32],
+    /// Digest of the complete canonical MissionRiskEnvelope contents.
+    pub risk_envelope_digest: [u8; 32],
     /// Exact total integer mass expected for the finite target support.
     pub total_mass_ticks: u64,
     /// Exact rational mission-wide collision-risk budget for this scenario.
@@ -172,6 +176,7 @@ impl core::fmt::Display for ScenarioMissionRiskGateError {
             Self::InvalidRiskContract => "scenario/portfolio risk contract is invalid",
             Self::IncompleteRiskEvidenceMatrix => "mission-risk envelope matrix is incomplete or duplicated",
             Self::RiskEnvelopeIdentityMismatch => "mission-risk envelope does not match its frozen contract",
+            Self::RiskEnvelopeDigestMismatch => "mission-risk envelope content digest differs from its frozen contract",
             Self::InvalidRiskEnvelopeShape => "mission-risk envelope shape is invalid",
             Self::InvalidExactMass => "exact probability mass is invalid",
             Self::UnionComplementMismatch => "mission union and no-event masses do not sum exactly to one",
@@ -259,6 +264,7 @@ impl ScenarioMissionRiskGate {
                 || contract.target_measure_digest.iter().all(|b| *b == 0)
                 || contract.density_space_digest.iter().all(|b| *b == 0)
                 || contract.event_inventory_digest.iter().all(|b| *b == 0)
+                || contract.risk_envelope_digest.iter().all(|b| *b == 0)
                 || contract.total_mass_ticks == 0
                 || !valid_probability_mass(contract.risk_budget)
             {
@@ -610,6 +616,74 @@ impl ScenarioMissionRiskGate {
     }
 }
 
+
+/// Compute a canonical, domain-separated content digest for a mission-risk envelope.
+///
+/// The digest binds all exact risk summaries, event identifiers and the
+/// diagnostic independence approximation. It is a content identity, not an
+/// issuer signature or proof that the underlying source universe is complete.
+pub fn mission_risk_envelope_digest(envelope: &MissionRiskEnvelope) -> [u8; 32] {
+    let mut hasher = Sha256::new();
+    hasher.update(b"luminous.orbital.mission-risk-envelope.v0.1\0");
+    hasher.update(envelope.manifest_digest);
+    hasher.update(envelope.target_measure_digest);
+    hasher.update(envelope.event_inventory_digest);
+    hasher.update(envelope.total_mass_ticks.to_be_bytes());
+    hasher.update((envelope.event_count as u64).to_be_bytes());
+    hasher.update((envelope.trajectory_atom_count as u64).to_be_bytes());
+
+    hasher.update((envelope.event_marginals.len() as u64).to_be_bytes());
+    for marginal in &envelope.event_marginals {
+        hash_string(&mut hasher, &marginal.event_id);
+        hash_exact_mass(&mut hasher, marginal.mass);
+    }
+
+    hasher.update((envelope.pairwise_intersections.len() as u64).to_be_bytes());
+    for pair in &envelope.pairwise_intersections {
+        hash_string(&mut hasher, &pair.left_event_id);
+        hash_string(&mut hasher, &pair.right_event_id);
+        hash_exact_mass(&mut hasher, pair.mass);
+    }
+
+    hasher.update((envelope.joint_signatures.len() as u64).to_be_bytes());
+    for signature in &envelope.joint_signatures {
+        hasher.update((signature.contacting_event_ids.len() as u64).to_be_bytes());
+        for event_id in &signature.contacting_event_ids {
+            hash_string(&mut hasher, event_id);
+        }
+        hash_exact_mass(&mut hasher, signature.mass);
+    }
+
+    hash_exact_mass(&mut hasher, envelope.pathwise_union_mass);
+    hash_exact_mass(&mut hasher, envelope.no_event_mass);
+    hasher.update(envelope.marginal_sum_ticks.to_be_bytes());
+    hash_exact_mass(&mut hasher, envelope.frechet_union_bounds.lower_bound);
+    hash_exact_mass(&mut hasher, envelope.frechet_union_bounds.upper_bound);
+    let independence_bits = if envelope.independence_union_approximation == 0.0 {
+        0.0_f64.to_bits()
+    } else {
+        envelope.independence_union_approximation.to_bits()
+    };
+    hasher.update(independence_bits.to_be_bytes());
+    hash_exact_mass(&mut hasher, envelope.risk_budget);
+    hasher.update([match envelope.budget_status {
+        MissionRiskBudgetStatus::WithinDeclaredFiniteSupportBudget => 0,
+        MissionRiskBudgetStatus::ExceedsDeclaredFiniteSupportBudget => 1,
+    }]);
+    hasher.update([u8::from(envelope.authority_granted)]);
+    hasher.finalize().into()
+}
+
+fn hash_string(hasher: &mut Sha256, value: &str) {
+    hasher.update((value.len() as u64).to_be_bytes());
+    hasher.update(value.as_bytes());
+}
+
+fn hash_exact_mass(hasher: &mut Sha256, mass: ExactMass) {
+    hasher.update(mass.numerator.to_be_bytes());
+    hasher.update(mass.denominator.to_be_bytes());
+}
+
 fn validate_envelope(
     contract: &PortfolioScenarioRiskContract,
     envelope: &MissionRiskEnvelope,
@@ -620,6 +694,9 @@ fn validate_envelope(
         || envelope.total_mass_ticks != contract.total_mass_ticks
     {
         return Err(ScenarioMissionRiskGateError::RiskEnvelopeIdentityMismatch);
+    }
+    if mission_risk_envelope_digest(envelope) != contract.risk_envelope_digest {
+        return Err(ScenarioMissionRiskGateError::RiskEnvelopeDigestMismatch);
     }
     if envelope.authority_granted {
         return Err(ScenarioMissionRiskGateError::UnexpectedAuthorityGrant);
