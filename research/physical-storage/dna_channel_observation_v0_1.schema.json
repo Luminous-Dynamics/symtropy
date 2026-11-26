@@ -609,6 +609,90 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence_class": {
+            "const": "physical_measurement"
+          }
+        },
+        "required": [
+          "evidence_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "evaluation_labels": {
+            "properties": {
+              "visibility": {
+                "enum": [
+                  "none",
+                  "separate_access_controlled_corpus"
+                ]
+              }
+            }
+          },
+          "provenance": {
+            "properties": {
+              "acquisition_timestamp": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "raw_bundle_digest_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              },
+              "instrument_log_ref": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "acquisition_timestamp",
+              "raw_bundle_digest_sha256",
+              "instrument_log_ref"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "sequencing": {
+            "properties": {
+              "quality_calibration_status": {
+                "enum": [
+                  "traceable_calibration",
+                  "empirically_calibrated"
+                ]
+              }
+            },
+            "required": [
+              "quality_calibration_status"
+            ]
+          }
+        },
+        "required": [
+          "sequencing"
+        ]
+      },
+      "then": {
+        "properties": {
+          "sequencing": {
+            "properties": {
+              "calibration_ref": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "calibration_ref"
+            ]
+          }
+        }
+      }
     }
   ]
 }
