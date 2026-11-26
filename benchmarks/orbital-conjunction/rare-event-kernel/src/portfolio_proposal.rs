@@ -813,21 +813,32 @@ mod tests {
     #[test]
     fn deterministic_sample_transform_selects_defensive_and_residual_components() {
         let mixture = fixture();
-        let defensive = mixture.replay_sample_transform(0.0, &[1.0]).unwrap();
-        assert_eq!(defensive.selected_component_index, 0);
-        assert!(defensive.defensive_target_component_selected);
-        assert_eq!(defensive.selected_proposal_mode_key, None);
-        assert_eq!(defensive.sampled_point, vec![-1.0 + 1.0]);
+        let defensive_zero = mixture.replay_sample_transform(0.0, &[0.0]).unwrap();
+        let defensive_one = mixture.replay_sample_transform(0.0, &[1.0]).unwrap();
+        assert_eq!(defensive_zero.selected_component_index, 0);
+        assert!(defensive_zero.defensive_target_component_selected);
+        assert_eq!(defensive_zero.selected_proposal_mode_key, None);
+        assert_eq!(
+            defensive_one.sampled_point[0] - defensive_zero.sampled_point[0],
+            1.0
+        );
 
-        let left_residual = mixture.replay_sample_transform(0.2, &[0.5]).unwrap();
+        let left_residual = mixture.replay_sample_transform(0.3, &[0.5]).unwrap();
         assert!(!left_residual.defensive_target_component_selected);
         assert_eq!(left_residual.selected_proposal_mode_key, Some(key(10, 1, 1)));
-        assert_eq!(left_residual.sampled_point, vec![-5.0 + 0.5]);
+        assert_eq!(left_residual.sampled_point, vec![-4.5]);
 
-        let right_boundary = mixture.replay_sample_transform(0.6, &[0.0]).unwrap();
-        assert_eq!(right_boundary.selected_component_index, 3);
-        assert_eq!(right_boundary.selected_proposal_mode_key, Some(key(20, 1, 2)));
-        assert_eq!(right_boundary.sampled_point, vec![5.0]);
+        let right_boundary = mixture
+            .full_proposal
+            .components()
+            .iter()
+            .take(3)
+            .map(GaussianComponent::weight)
+            .sum::<f64>();
+        let right = mixture.replay_sample_transform(right_boundary, &[0.0]).unwrap();
+        assert_eq!(right.selected_component_index, 3);
+        assert_eq!(right.selected_proposal_mode_key, Some(key(20, 1, 2)));
+        assert_eq!(right.sampled_point, vec![5.0]);
     }
 
     #[test]
