@@ -526,8 +526,7 @@ fn score_arm(arm_id: ArmId, rows: &[&EpisodeRecord]) -> ArmScorecard {
     let unsafe_admission_n = admission_rows
         .iter()
         .filter(|row| {
-            row.assurance.fresh_attempt_admitted
-                && !row.assurance.admission_preconditions_satisfied
+            row.assurance.fresh_attempt_admitted && !row.assurance.admission_preconditions_satisfied
         })
         .count();
 
