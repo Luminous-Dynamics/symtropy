@@ -74,6 +74,8 @@ pub enum PortfolioProposalError {
     InvalidModeIdentity,
     /// A mode identity occurs more than once in the frozen universe.
     DuplicateModeIdentity,
+    /// One instance cannot combine distinct epistemic scenario target measures.
+    MixedEpistemicScenarios,
     /// A proposal component identity is zero or duplicated.
     InvalidOrDuplicateComponentIdentity,
     /// A proposal component references a mode outside the frozen universe.
@@ -114,6 +116,9 @@ impl core::fmt::Display for PortfolioProposalError {
             }
             Self::InvalidModeIdentity => "portfolio, scenario or event-mode identity is zero",
             Self::DuplicateModeIdentity => "portfolio event-mode identity is duplicated",
+            Self::MixedEpistemicScenarios => {
+                "one defensive target mixture cannot combine distinct epistemic scenarios"
+            }
             Self::InvalidOrDuplicateComponentIdentity => {
                 "proposal component identity is zero or duplicated"
             }
@@ -176,11 +181,14 @@ pub struct DefensiveProposalEvaluation {
     pub defensive_contribution: f64,
 }
 
-/// Frozen defensive Gaussian proposal mixture for a declared mode universe.
+/// Frozen defensive Gaussian proposal mixture for one epistemic scenario.
 ///
-/// The proposal is q(u) = epsilon * p(u) + (1-epsilon) * sum_j alpha_j q_j(u).
-/// The target and all keyed proposal components are flattened into one
-/// canonical Gaussian mixture. This type does not contain an RNG or a sampler.
+/// The proposal is q(u) = epsilon * p_s(u) + (1-epsilon) * sum_j alpha_j q_j(u).
+/// All mode keys in one instance must share the same scenario ID; keep distinct
+/// physical-world/loss-model alternatives in separate instances unless a
+/// separately qualified scenario-weighting model is supplied. The target and
+/// all keyed proposal components are flattened into one canonical Gaussian
+/// mixture. This type does not contain an RNG or a sampler.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PortfolioDefensiveGaussianMixture {
     target_measure_id: [u8; 32],
@@ -244,6 +252,14 @@ impl PortfolioDefensiveGaussianMixture {
             if index > 0 && expected_modes[index - 1] == *mode {
                 return Err(PortfolioProposalError::DuplicateModeIdentity);
             }
+        }
+
+        let scenario_id = expected_modes[0].scenario_id;
+        if expected_modes
+            .iter()
+            .any(|mode| mode.scenario_id != scenario_id)
+        {
+            return Err(PortfolioProposalError::MixedEpistemicScenarios);
         }
 
         let dimension = target.dimension();
@@ -722,6 +738,29 @@ mod tests {
             )
             .unwrap_err(),
             PortfolioProposalError::IncompleteModeCoverage
+        );
+    }
+
+    #[test]
+    fn one_target_measure_cannot_mix_epistemic_scenarios() {
+        let target = GaussianMixture::new(vec![
+            GaussianComponent::new(1.0, gaussian(0.0, 1.0)).unwrap(),
+        ])
+        .unwrap();
+        assert_eq!(
+            PortfolioDefensiveGaussianMixture::new(
+                TARGET_MEASURE_ID,
+                DENSITY_SPACE_ID,
+                target,
+                0.1,
+                vec![key(10, 1, 1), key(20, 2, 2)],
+                vec![
+                    proposal(1, key(10, 1, 1), 0.5, -2.0),
+                    proposal(2, key(20, 2, 2), 0.5, 2.0),
+                ],
+            )
+            .unwrap_err(),
+            PortfolioProposalError::MixedEpistemicScenarios
         );
     }
 
