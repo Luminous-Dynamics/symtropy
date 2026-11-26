@@ -20,7 +20,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["scenario_id", "platform", "split", "source_trajectory_id", "trajectory_cluster_id", "status", "end_effector", "object_pose", "frame_checks", "difficulty_success_n", "difficulty_trial_n", "spot_check_attempt_ids", "reason_codes"],
+        "required": ["scenario_id", "platform", "split", "source_trajectory_id", "trajectory_cluster_id", "status", "end_effector", "object_pose", "frame_checks", "mean_final_five_ssim", "mean_ssim_threshold", "mean_ssim_passed", "difficulty_success_n", "difficulty_trial_n", "spot_check_attempt_ids", "reason_codes"],
         "properties": {
           "scenario_id": { "type": "string", "minLength": 1 },
           "platform": { "enum": ["robo_twin", "libero"] },
@@ -31,6 +31,9 @@
           "end_effector": { "$ref": "#/$defs/pose_check" },
           "object_pose": { "$ref": "#/$defs/pose_check" },
           "frame_checks": { "type": "array", "items": { "$ref": "#/$defs/frame_check" } },
+          "mean_final_five_ssim": { "type": ["number", "null"] },
+          "mean_ssim_threshold": { "const": 0.99 },
+          "mean_ssim_passed": { "type": ["boolean", "null"] },
           "difficulty_success_n": { "type": "integer", "minimum": 0 },
           "difficulty_trial_n": { "type": "integer", "minimum": 0 },
           "spot_check_attempt_ids": { "type": "array", "items": { "type": "string" } },
@@ -54,7 +57,7 @@
     "frame_check": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["frame_index", "original_sha256", "replay_sha256", "original_width", "original_height", "replay_width", "replay_height", "ssim", "threshold", "passed"],
+      "required": ["frame_index", "original_sha256", "replay_sha256", "original_width", "original_height", "replay_width", "replay_height", "ssim"],
       "properties": {
         "frame_index": { "type": "integer", "minimum": 0, "maximum": 4 },
         "original_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
@@ -63,9 +66,7 @@
         "original_height": { "type": ["integer", "null"], "minimum": 1 },
         "replay_width": { "type": ["integer", "null"], "minimum": 1 },
         "replay_height": { "type": ["integer", "null"], "minimum": 1 },
-        "ssim": { "type": ["number", "null"] },
-        "threshold": { "const": 0.99 },
-        "passed": { "type": ["boolean", "null"] }
+        "ssim": { "type": ["number", "null"] }
       }
     }
   }
