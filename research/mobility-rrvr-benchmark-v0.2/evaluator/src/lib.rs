@@ -732,8 +732,10 @@ fn duration_percentiles(samples: &[f64]) -> DurationPercentiles {
     }
 }
 
+type LatencyMetricSelector = (&'static str, fn(&EpisodeRecord) -> Option<f64>);
+
 fn latency_scorecard(rows: &[&EpisodeRecord]) -> BTreeMap<String, DurationPercentiles> {
-    let metrics: [(&str, fn(&EpisodeRecord) -> Option<f64>); 7] = [
+    let metrics: [LatencyMetricSelector; 7] = [
         ("append_sync", |row| row.latencies_ms.append_sync),
         ("owner_reservation", |row| {
             row.latencies_ms.owner_reservation
