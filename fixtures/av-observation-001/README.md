@@ -128,3 +128,8 @@ This update follows the current official OVO-S analysis: evidence recall has nea
 
 
 The current candidate map hypothesis is a **constraint-carrying, revisable set of map alternatives**, not necessarily one best-estimate global map. See VIS-012 #13855 and the final protocol section for frame correctness, cycle consistency, topological validity, identity consistency and DecisionNeed-scoped stopping.
+
+
+## Classical geometry validation
+
+The spatial-state protocol now adds separate TUM RGB-D, EuRoC MAV, KITTI Odometry and OpenLORIS-Scene lanes. These validate geometric pose/trajectory, sensor calibration and long-term map maintenance under each dataset's native metrics; they are not pooled with OVO-S semantic question accuracy. See [section 13 of the protocol](./spatial-state-construction-protocol-v0.md#13-classical-geometric-validation-lane) and VIS-012 #13855.
