@@ -1,0 +1,10 @@
+# Synthetic arithmetic fixture; not a measured Proxima-line-of-sight dust model.
+schema_version=0.1
+scenario_id=synthetic-4p24ly-10nm-dust
+evidence_class=synthetic
+spacecraft_projected_area_m2=5.0e-11
+path_distance_ly=4.24
+speed_fraction_c=0.2
+grain_radius_m=1.0e-8
+grain_density_kg_m3=3000.0
+grain_number_density_m3=1.0e-6
