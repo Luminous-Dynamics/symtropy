@@ -101,7 +101,7 @@ For probe p, its possible outcome z restricts the world set to S_z. The post-obs
 R_p=\max_z R(S_z), \qquad \Delta_p=R(S)-R_p.
 \]
 
-\(\Delta_p\) is a guaranteed worst-case reduction under the supplied finite support model. It is **not** EVSI, mutual information or an expected risk reduction. Probe acquisition cost, result delay, permission and deadline remain separate dimensions. Do not subtract them from task loss unless a defensible, preregistered common utility scale exists.
+\(\Delta_p\) is a guaranteed worst-case reduction under the supplied finite support model. It is **not** EVSI, mutual information or an expected risk reduction. Probe acquisition cost, result delay, permission and deadline remain separate dimensions. The evaluator's `maximum_worst_case_loss` is a hard admissibility ceiling over the declared loss model: decisions above it are excluded rather than compensated by utility. The v0.1 synthetic example uses 0.45 illustratively; it is not a universal robotics safety threshold. Do not subtract probe costs from task loss unless a defensible, preregistered common utility scale exists.
 
 Use the Bayesian EVSI path only when prior probabilities and joint observation likelihoods are independently justified and frozen. Correlated evidence channels require a joint model or an explicitly justified conditional-independence contract. HDC cosine, covariance distance, Mahalanobis distance and raw prediction error are not probabilities.
 
