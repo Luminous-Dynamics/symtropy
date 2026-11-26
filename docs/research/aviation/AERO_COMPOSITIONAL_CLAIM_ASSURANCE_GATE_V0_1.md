@@ -115,3 +115,66 @@ Do not claim superiority over an industry system from a synthetic harness. The f
 ## 8. Limitations
 
 The module composes supplied evaluator outputs; it cannot detect a flaw shared by all upstream evaluators. It does not independently prove the completeness of the source universe, authenticate owner receipts, validate calibration or measurement truth, quantify model uncertainty, assess structural damage, perform NDE, calculate POD, determine damage tolerance or replace authorized engineering review. A fully satisfied conjunction is a prerequisite for review, not a substitute for the underlying discipline.
+
+
+## 10. Industry comparison and defensible differentiation (2026-11-26)
+
+This is a capability comparison, not a vendor-product benchmark. Public product pages describe intended capabilities; they do not expose matched independent assurance results.
+
+| Comparator | Demonstrated industry emphasis | AERO should complement or exceed in this specific dimension | What AERO must not claim |
+|---|---|---|---|
+| NASA-STD-7009B + NASA-HDBK-7009B | Model/simulation lifecycle credibility; program/project acceptance criteria approved by delegated technical authority; handbook implementation guidance | Machine-checkable, claim-specific evidence closure and reproducible cross-owner evidence packets | NASA compliance, technical-authority acceptance, validated physics |
+| NIST AMS 100-85 (2026-10-05) | Risk-scaled VVUQ based on model influence and decision consequence; harmonization of ASME computational modeling and JCGM metrology practices | Bind risk tier, uncertainty budget, evidence provenance and exact claim context into one reviewable record | A new universal VVUQ method or proof of physical model fidelity |
+| Siemens Aerospace Digital Thread / Aircraft Certification | MBSE, requirements, architecture, verification, certification-plan traceability and connected lifecycle data | Portable, owner-independent negative-evidence semantics and compositional assurance across vendor and owner boundaries | PLM/MBSE replacement, stronger lifecycle integration or shorter certification cycle before matched pilots |
+| Dassault 3DEXPERIENCE / AI for Systems Engineering | Virtual-twin/MBSE continuity, simulation, requirements traceability, impact analysis and AI-assisted systems engineering | A narrow independent assurance kernel with explicit abstention, exact context binding and auditable non-compensation | A richer virtual twin, broader industrial ontology, or equivalent production integrations |
+| ASTM E2862-23 / FAA 14 CFR 25.571 / AC 25.571-1D | Method-specific POD analysis and transport-aircraft damage-tolerance, crack-growth, inspection and limit-of-validity requirements | Preserve inspection-method, subject, configuration, time and evidence lineage as qualified inputs to a review | Replacing NDE, POD demonstration, fatigue testing, damage-tolerance analysis, maintenance programmes or regulatory acceptance |
+
+### Where a genuine paradigm shift is available
+
+1. **Assurance as a claim graph, not a document folder.** Every engineering claim should identify its subject, configuration, operating envelope, time coordinates, dependencies, evidence reports, uncertainty and owner. Changes invalidate only claims whose declared dependencies intersect the change, while incomplete change feeds make the affected frontier indeterminate.
+2. **Proof-carrying evidence, not trusted metadata.** Component outputs must reference immutable report bytes, canonical context, owner receipts, trust-policy snapshots and verifier builds. A digest's shape is not authentication. The next production adapter must verify bytes and trust evidence at the owner boundary.
+3. **Non-compensatory uncertainty.** Keep model-form discrepancy, parameter uncertainty, measurement uncertainty, sensor/time uncertainty, missingness and domain shift distinguishable. A favourable mean or a narrow confidence interval cannot cancel a failed hard bound or an unsupported operating stratum.
+4. **Evidence acquisition as an optimization problem.** Symthaea's existing selector should optimize expected reduction in decision-relevant uncertainty per cost, with robust/distribution-free fallback when probabilities are not calibrated. Benchmark cost per independently reviewed decision—not number of tests proposed or records ingested.
+5. **Adversarially qualified digital thread.** Red-team omitted observers, common-cause failures, identity substitution, backdated changes, stream forks, replay, compromised credentials, stale trust policy, model drift and configuration changes. Every test family needs independently authored expected dispositions.
+6. **Open interoperability over platform replacement.** Ingest owner-native PLM/MBSE, metrology, NDE, sensor and simulation evidence through versioned adapters; preserve source semantics and raw bytes. Never turn an import into an admission or physical truth assertion.
+
+### Benchmark programme: target scoreboard, not achieved results
+
+| Dimension | Matched baselines | Prospective target |
+|---|---|---|
+| Catastrophic false-review | Aggregate PASS/FAIL; weighted compensating score; AERO conjunction | 0 false-review outcomes on the frozen, independently adjudicated hard-gate suite; report numerator, denominator, fault-family coverage and finite-sample confidence bound |
+| Context integrity | Unbound component reports; claim-ID-only binding; exact claim/subject/context binding | 0 cross-claim, cross-subject or cross-context compositions accepted |
+| Required evidence | Vacuous empty-set; Boolean present/missing; four-state admission | 100% of injected mandatory evidence faults prevent reviewability; no empty-set pass |
+| Historical replay | Latest-row only; scalar wall clock; bitemporal; three-axis replay plus hard-bound event/acquisition intervals | 100% agreement with independent oracle on frozen deterministic cases; no late-received event affects AS-KNOWN-AT |
+| Causal closure | Declared event rows; vector watermarks; vector plus predecessor-DAG closure | 100% correct result on finite oracle cases; no lost, forked or future predecessor accepted |
+| Model credibility | Random row split; configuration/flight-group split; risk-scaled VVUQ | 0 leakage across confirmatory groups; explicit NOT_COVERED/INDETERMINATE outside the validated envelope; report per-stratum interval coverage and width |
+| Change impact | Global invalidation; latest current flag; claim-dependency intersection with complete/incomplete change feed | Exact affected-claim frontier on complete synthetic feeds; no claim marked unaffected when the frontier is incomplete |
+| NDE/SHM | Detection accuracy or ROC-AUC alone; method-specific POD and independent ground truth | Report POD curve, uncertainty, sample/exposure denominator, false calls and performance by defect type, depth, orientation, material, sensor and environment; thresholds are method/authority-specific |
+| Performance | Naive scan; hash-indexed; vector/DAG; full owner-receipt path | p50/p95/p99, throughput, peak memory and storage at 1k/10k/100k/1M events and 1/10/100/1k/10k evidence references; asymptotic behaviour and hardware disclosed |
+| Engineering economics | Manual requalification; global retest; claim-targeted requalification | Prospective ≥20% lower cost per independently reviewed decision at matched risk and evidence quality; not credited until a controlled pilot |
+| Reproducibility | Producer-only report; independent replay | Independent evaluator reproduces the context, component digests, dispositions and all published metrics from retained source bytes |
+
+For zero observed false-review events, publish a finite-sample upper confidence bound rather than writing "zero risk." Under an iid Bernoulli approximation, the rule-of-three gives an approximate 95% upper bound of 3/N after zero failures; this is only a descriptive bound for the sampled challenge population. Fault-family dependence, selection bias and distribution shift require separate treatment. A thousand generated mutations from one generator are not a thousand independent assurance cases.
+
+### Minimum fair head-to-head protocol
+
+- Freeze exact model, configuration, subject, acquisition window, operating domain, trust policy, evaluator version and raw-data manifests before the confirmatory run.
+- Use the same input bytes, fault injections, resource budget, reference measurements and expected dispositions for each baseline.
+- Separate calibration/development from confirmatory data by physical article, production lot, flight/configuration, campaign and environmental episode, not random rows.
+- Blind the implementation team to confirmatory outcomes; publish failed/censored cases and all exclusions.
+- Have an independent team write and adjudicate the oracle before running the candidate system.
+- Publish code SHA, input and output digests, environment, hardware, confidence bounds and all deviations.
+- Do not combine hard-gate safety outcomes with latency, throughput, RMSE or cost in one weighted score.
+
+### Sources and scope notes
+
+- [NASA-STD-7009B](https://standards.nasa.gov/node/263) is active; its stated scope includes lifecycle credibility assessments and acceptance criteria approved by delegated technical authority.
+- [NASA-HDBK-7009B](https://standards.nasa.gov/standard/nasa/nasa-hdbk-7009) is active and dated 2026-02-03; it is implementation guidance, not itself a technical acceptance certificate.
+- [NIST AMS 100-85](https://www.nist.gov/publications/methods-uncertainty-quantification-computational-modeling-and-simulation-harmonizing) was published 2026-10-05 and frames VVUQ effort around model influence and decision consequence.
+- [Siemens aerospace MBSE](https://www.siemens.com/en-us/digital-thread/mbse/aerospace/) and [aircraft certification](https://www.siemens.com/en-gb/digital-thread/integrated-lifecycle-management/aircraft-certification/) describe integrated requirements, architecture, verification and certification-data threads.
+- [Dassault Systèmes AI for Systems Engineering](https://www.3ds.com/industrial-ai/generative-virtual-twins/systems-engineering) describes AI-assisted MBSE, simulation and requirements traceability on 3DEXPERIENCE.
+- [ASTM E2862-23](https://store.astm.org/e2862-23.html) is specifically a statistical practice for POD analysis of hit/miss NDE data under defined examination parameters; it is not a universal detection or certification threshold.
+- [14 CFR 25.571](https://www.govinfo.gov/content/pkg/CFR-2025-title14-vol1/xhtml/CFR-2025-title14-vol1-sec25-571.html) sets damage-tolerance/fatigue evaluation requirements for transport-category aircraft structure, including analysis supported by test evidence and required inspections/limits.
+- [FAA AC 25.571-1D](https://www.faa.gov/airports/resources/advisory_circulars/index.cfm/go/document.information/documentNumber/25.571-1D) is active guidance for damage-tolerance and fatigue evaluation.
+
+These sources define comparators and boundaries. None is a direct benchmark result for AERO, and vendor capability pages do not establish a matched superiority result.
