@@ -12,9 +12,9 @@ const CLAIM_CEILING: &str = "Synthetic mathematical feasibility for the declared
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WindowDisposition {
-    GuaranteedWithinDeclaredLowerEnvelope,
-    IndeterminateNotGuaranteed,
-    InfeasibleEvenAtDeclaredUpperEnvelope,
+    IndividuallyFeasibleWithinDeclaredLowerEnvelope,
+    IndividuallyPossibleOnlyWithinDeclaredUpperEnvelope,
+    NotIndividuallyFeasibleWithinDeclaredUpperEnvelope,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,8 +30,14 @@ pub struct WindowResult {
     pub time_index: u64,
     pub interval: String,
     pub required: u64,
-    pub lower_delivered: u64,
-    pub upper_delivered: u64,
+    /// Flow allocated to this obligation by the joint all-obligation witness.
+    /// This is one feasible allocation, not an individual maximum or guarantee.
+    pub lower_joint_witness_allocation: u64,
+    pub upper_joint_witness_allocation: u64,
+    /// Maximum deliverable to this obligation when evaluated on its own.
+    /// Individual maxima for different obligations need not be jointly feasible.
+    pub lower_individual_max_deliverable: u64,
+    pub upper_individual_max_deliverable: u64,
     pub disposition: WindowDisposition,
 }
 
@@ -481,13 +487,29 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
     Ok(parsed)
 }
 
-fn solve(parsed: &Parsed, upper: bool) -> Result<FlowResult, String> {
+fn solve(
+    parsed: &Parsed,
+    upper: bool,
+    only_obligation_edge: Option<&str>,
+) -> Result<FlowResult, String> {
     let nodes = parsed.nodes.values().map(|n| FlowNode::new(n.id.clone())).collect::<Vec<_>>();
-    let edges = parsed.edges.iter().map(|e| {
-        let capacity = if upper { e.upper } else { e.lower };
-        let metadata = format!("safrb-v0.1/{}/{}/t{}", parsed.scope, e.resource, e.time);
-        FlowEdge::new(e.id.clone(), e.from.clone(), e.to.clone(), capacity, Some(metadata))
-    }).collect::<Vec<_>>();
+    let obligation_edges = parsed.obligations.iter()
+        .map(|obligation| obligation.edge_id.as_str())
+        .collect::<BTreeSet<_>>();
+    let edges = parsed.edges.iter()
+        .filter(|edge| {
+            if !obligation_edges.contains(edge.id.as_str()) {
+                return true;
+            }
+            only_obligation_edge == Some(edge.id.as_str())
+                || (only_obligation_edge.is_none())
+        })
+        .map(|e| {
+            let capacity = if upper { e.upper } else { e.lower };
+            let metadata = format!("safrb-v0.1/{}/{}/t{}", parsed.scope, e.resource, e.time);
+            FlowEdge::new(e.id.clone(), e.from.clone(), e.to.clone(), capacity, Some(metadata))
+        })
+        .collect::<Vec<_>>();
     let graph = FlowGraph {
         commodity_ref: parsed.commodity.clone(),
         capacity_unit_ref: parsed.unit.clone(),
@@ -504,43 +526,71 @@ fn edge_flow(result: &FlowResult) -> BTreeMap<String, u64> {
     result.edge_flows.iter().map(|e| (e.id.clone(), e.flow)).collect()
 }
 
-fn verdict(lower: u64, upper: u64, required: u64) -> WindowDisposition {
+fn individual_verdict(lower: u64, upper: u64, required: u64) -> WindowDisposition {
     if lower >= required {
-        WindowDisposition::GuaranteedWithinDeclaredLowerEnvelope
+        WindowDisposition::IndividuallyFeasibleWithinDeclaredLowerEnvelope
     } else if upper >= required {
-        WindowDisposition::IndeterminateNotGuaranteed
+        WindowDisposition::IndividuallyPossibleOnlyWithinDeclaredUpperEnvelope
     } else {
-        WindowDisposition::InfeasibleEvenAtDeclaredUpperEnvelope
+        WindowDisposition::NotIndividuallyFeasibleWithinDeclaredUpperEnvelope
     }
 }
 
 fn evaluate_internal(value: &Value, allow_hypothetical: bool) -> Result<SafrbCertificate, String> {
     let p = parse(value, allow_hypothetical)?;
-    let lower = solve(&p, false)?;
-    let upper = solve(&p, true)?;
+    // Joint solves answer whether every beneficiary floor can be met at once.
+    let lower = solve(&p, false, None)?;
+    let upper = solve(&p, true, None)?;
     let lf = edge_flow(&lower);
     let uf = edge_flow(&upper);
+
+    let total_required = p.obligations.iter().try_fold(0_u64, |sum, obligation| {
+        sum.checked_add(obligation.required)
+            .ok_or_else(|| err("$.service_obligations", "sum of service floors overflows u64"))
+    })?;
+
     let mut windows = Vec::new();
     for obligation in &p.obligations {
-        let lo = *lf.get(&obligation.edge_id).ok_or_else(|| err("$.certificate", "missing lower flow witness"))?;
-        let hi = *uf.get(&obligation.edge_id).ok_or_else(|| err("$.certificate", "missing upper flow witness"))?;
+        let lower_joint = *lf.get(&obligation.edge_id)
+            .ok_or_else(|| err("$.certificate", "joint lower witness omitted an obligation edge"))?;
+        let upper_joint = *uf.get(&obligation.edge_id)
+            .ok_or_else(|| err("$.certificate", "joint upper witness omitted an obligation edge"))?;
+
+        // Individual solves remove other sink-obligation edges. These maxima
+        // are useful for diagnosis but are not claimed to be jointly feasible.
+        let lower_individual = solve(&p, false, Some(&obligation.edge_id))?;
+        let upper_individual = solve(&p, true, Some(&obligation.edge_id))?;
+        let lower_individual_max = lower_individual.max_flow;
+        let upper_individual_max = upper_individual.max_flow;
+
         windows.push(WindowResult {
             obligation_id: obligation.id.clone(),
             time_index: obligation.time,
             interval: obligation.interval.clone(),
             required: obligation.required,
-            lower_delivered: lo,
-            upper_delivered: hi,
-            disposition: verdict(lo, hi, obligation.required),
+            lower_joint_witness_allocation: lower_joint,
+            upper_joint_witness_allocation: upper_joint,
+            lower_individual_max_deliverable: lower_individual_max,
+            upper_individual_max_deliverable: upper_individual_max,
+            disposition: individual_verdict(
+                lower_individual_max,
+                upper_individual_max,
+                obligation.required,
+            ),
         });
     }
-    let disposition = if windows.iter().all(|w| w.disposition == WindowDisposition::GuaranteedWithinDeclaredLowerEnvelope) {
+
+    // A full lower-bound max-flow saturates every sink-obligation edge because
+    // their total capacity equals total_required. This is the only condition
+    // under which this adapter calls all obligations simultaneously supported.
+    let disposition = if lower.max_flow == total_required {
         ServiceDisposition::GuaranteedWithinDeclaredLowerEnvelope
-    } else if windows.iter().any(|w| w.disposition == WindowDisposition::InfeasibleEvenAtDeclaredUpperEnvelope) {
-        ServiceDisposition::InfeasibleEvenAtDeclaredUpperEnvelope
-    } else {
+    } else if upper.max_flow == total_required {
         ServiceDisposition::IndeterminateNotGuaranteed
+    } else {
+        ServiceDisposition::InfeasibleEvenAtDeclaredUpperEnvelope
     };
+
     Ok(SafrbCertificate {
         case_id: p.case_id,
         scenario_sha256: p.scenario_sha256,
@@ -597,7 +647,7 @@ pub fn minimum_capacity_counterfactual(value: &Value, edge_id: &str) -> Result<O
         evidence_row["lower"] = Value::from(candidate);
         evidence_row["status"] = Value::String(HYPOTHETICAL.to_owned());
         let report = evaluate_internal(&trial, true)?;
-        if report.windows.iter().all(|w| w.lower_delivered >= w.required) {
+        if report.disposition == ServiceDisposition::GuaranteedWithinDeclaredLowerEnvelope {
             return Ok(Some(RestorationThreshold {
                 edge_id: edge_id.to_owned(),
                 physical_resource_id: resource,
@@ -640,8 +690,18 @@ mod tests {
         assert_eq!(result.upper.max_flow, 12);
         assert_eq!(result.upper.min_cut.capacity, 12);
         assert_eq!(result.windows.len(), 2);
-        assert_eq!((result.windows[0].lower_delivered, result.windows[0].upper_delivered), (6, 6));
-        assert_eq!((result.windows[1].lower_delivered, result.windows[1].upper_delivered), (3, 6));
+        assert_eq!(
+            (result.windows[0].lower_individual_max_deliverable, result.windows[0].upper_individual_max_deliverable),
+            (6, 6)
+        );
+        assert_eq!(
+            (result.windows[1].lower_individual_max_deliverable, result.windows[1].upper_individual_max_deliverable),
+            (3, 6)
+        );
+        assert_eq!(
+            (result.windows[0].lower_joint_witness_allocation, result.windows[1].lower_joint_witness_allocation),
+            (6, 3)
+        );
         assert_eq!(result.disposition, ServiceDisposition::IndeterminateNotGuaranteed);
         let expected_witness = expected["flow_witness"].as_object().unwrap();
         for edge in &result.lower.edge_flows {
