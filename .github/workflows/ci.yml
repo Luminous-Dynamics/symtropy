@@ -96,5 +96,17 @@ jobs:
       if: ${{ hashFiles('research/magnetics/interval-ad/Cargo.toml') != '' }}
       run: cargo test --manifest-path research/magnetics/interval-ad/Cargo.toml
 
+    - name: Check Magnetic Certified Search Formatting
+      if: ${{ hashFiles('research/magnetics/certified-search/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path research/magnetics/certified-search/Cargo.toml -- --check
+
+    - name: Run Clippy (Magnetic Certified Search)
+      if: ${{ hashFiles('research/magnetics/certified-search/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path research/magnetics/certified-search/Cargo.toml --all-targets -- -D warnings
+
+    - name: Run Tests (Magnetic Certified Search)
+      if: ${{ hashFiles('research/magnetics/certified-search/Cargo.toml') != '' }}
+      run: cargo test --manifest-path research/magnetics/certified-search/Cargo.toml
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
