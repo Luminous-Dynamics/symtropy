@@ -26,6 +26,13 @@ pub enum ActionClass {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum DecisionValueBasis {
+    Predicted,
+    Observed,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Disposition {
     EligibleInspection,
     EligibleRecovery,
@@ -103,6 +110,7 @@ pub struct CandidateAction {
     pub duration_ms: u64,
     pub compute_us: u64,
     pub decision_value_milli: u64,
+    pub decision_value_basis: DecisionValueBasis,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -132,6 +140,7 @@ pub struct CaseResult {
     pub duration_ms: u64,
     pub compute_us: u64,
     pub decision_value_milli: u64,
+    pub decision_value_basis: DecisionValueBasis,
     pub physical_safety_receipt_sha256: Option<String>,
     pub portfolio_receipt_sha256: Option<String>,
     pub measurement_receipt_sha256: Option<String>,
@@ -228,6 +237,7 @@ fn evaluate_case(case: &Case) -> CaseResult {
         duration_ms: candidate.duration_ms,
         compute_us: candidate.compute_us,
         decision_value_milli: candidate.decision_value_milli,
+        decision_value_basis: candidate.decision_value_basis,
         physical_safety_receipt_sha256: safety_digest.clone(),
         portfolio_receipt_sha256: portfolio_digest.clone(),
         measurement_receipt_sha256: measurement_digest.clone(),
@@ -735,6 +745,19 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn observed_decision_effect_is_preserved_and_not_promoted_to_admission_authority() {
+        let case = corpus()
+            .cases
+            .into_iter()
+            .find(|case| case.case_id == "TK-024-OBSERVED-DECISION-EFFECT")
+            .unwrap();
+        assert_eq!(case.candidate.decision_value_basis, DecisionValueBasis::Observed);
+        let result = evaluate_case(&case);
+        assert_eq!(result.disposition, Disposition::EligibleInspection);
+        assert_eq!(result.decision_value_basis, DecisionValueBasis::Observed);
     }
 
     #[test]
