@@ -194,7 +194,11 @@ pub fn evaluate_relativistic_exhaust(
     }
 
     let beta = speed_m_s / SPEED_OF_LIGHT_M_S;
-    let gamma = 1.0 / (1.0 - beta * beta).sqrt();
+    let beta_squared = beta * beta;
+    let gamma = 1.0 / (1.0 - beta_squared).sqrt();
+    // Stable form of gamma - 1. Avoid catastrophic cancellation when beta is
+    // small and gamma rounds to 1.0 in f64.
+    let gamma_minus_one = beta_squared * gamma / (1.0 + (1.0 - beta_squared).sqrt());
     let momentum_scale = input.rest_mass_flow_kg_s * gamma;
     let exhaust_momentum_flux_n =
         input.exhaust_velocity_m_s.map(|component| momentum_scale * component);
@@ -204,7 +208,7 @@ pub fn evaluate_relativistic_exhaust(
         input.rest_mass_flow_kg_s * SPEED_OF_LIGHT_M_S.powi(2);
     let total_energy_flux_w = rest_mass_energy_flux_w * gamma;
     let kinetic_power_w =
-        input.rest_mass_flow_kg_s * (gamma - 1.0) * SPEED_OF_LIGHT_M_S.powi(2);
+        input.rest_mass_flow_kg_s * gamma_minus_one * SPEED_OF_LIGHT_M_S.powi(2);
 
     let outputs = [
         beta,
@@ -317,23 +321,24 @@ mod tests {
     #[test]
     fn low_beta_limit_recovers_newtonian_exhaust_relations() {
         let flow = 0.7;
-        let beta = 1.0e-4;
-        let speed = beta * SPEED_OF_LIGHT_M_S;
-        let result = evaluate_relativistic_exhaust(RelativisticExhaustInput {
-            rest_mass_flow_kg_s: flow,
-            exhaust_velocity_m_s: [speed, 0.0, 0.0],
-        })
-        .unwrap();
+        for beta in [1.0e-4, 1.0e-8, 1.0e-10] {
+            let speed = beta * SPEED_OF_LIGHT_M_S;
+            let result = evaluate_relativistic_exhaust(RelativisticExhaustInput {
+                rest_mass_flow_kg_s: flow,
+                exhaust_velocity_m_s: [speed, 0.0, 0.0],
+            })
+            .unwrap();
 
-        let newtonian_thrust = flow * speed;
-        let newtonian_power = 0.5 * flow * speed.powi(2);
-        let thrust_relative_error =
-            (result.thrust_magnitude_n - newtonian_thrust).abs() / newtonian_thrust;
-        let power_relative_error =
-            (result.kinetic_power_w - newtonian_power).abs() / newtonian_power;
+            let newtonian_thrust = flow * speed;
+            let newtonian_power = 0.5 * flow * speed.powi(2);
+            let thrust_relative_error =
+                (result.thrust_magnitude_n - newtonian_thrust).abs() / newtonian_thrust;
+            let power_relative_error =
+                (result.kinetic_power_w - newtonian_power).abs() / newtonian_power;
 
-        assert!(thrust_relative_error < 1.0e-8);
-        assert!(power_relative_error < 1.0e-7);
+            assert!(thrust_relative_error < 1.0e-8, "beta={beta}, error={thrust_relative_error}");
+            assert!(power_relative_error < 1.0e-7, "beta={beta}, error={power_relative_error}");
+        }
     }
 
     #[test]
