@@ -1967,7 +1967,21 @@ mod tests {
         assert_eq!(moved.revalidated.len(), 1);
         assert_eq!(moved.frontier_proxy_visits, 0);
         assert_eq!(moved.dirty_snapshot_entries_visited, 0);
-        assert_eq!(moved.frame_validation_entries_visited, next.len());
+        assert_eq!(moved.frame_validation_entries_visited, 0);
+
+        // An unchanged sleeping frame can be accepted as an O(1) empty
+        // journal. No snapshot or full-frame validation is performed.
+        let idle = cache.step_with_dirty_ids(&next, &[]).unwrap();
+        assert_eq!(idle.dirty_proxies, 0);
+        assert_eq!(idle.frame_validation_entries_visited, 0);
+        assert!(idle.added.is_empty());
+        assert!(idle.removed.is_empty());
+        assert!(idle.revalidated.is_empty());
+
+        // The checked variant performs the O(N) validation pass explicitly.
+        let checked = cache.step_with_dirty_ids_checked(&next, &[]).unwrap();
+        assert_eq!(checked.frame_validation_entries_visited, next.len());
+        assert_eq!(checked.dirty_proxies, 0);
 
         // A wake-only lifecycle event may mark a known collider dirty even
         // when its AABB is unchanged; retained pairs still require refresh.
@@ -1981,7 +1995,7 @@ mod tests {
         assert_eq!(wake_only.added.len(), 0);
         assert_eq!(wake_only.removed.len(), 0);
         assert_eq!(wake_only.dirty_snapshot_entries_visited, 0);
-        assert_eq!(wake_only.frame_validation_entries_visited, next.len());
+        assert_eq!(wake_only.frame_validation_entries_visited, 0);
 
         cache.invalidate_all();
         let full_dirty = cache.derive_dirty_proxy_ids(&next).unwrap();
@@ -2243,7 +2257,7 @@ mod tests {
         assert_eq!(delta.removed.len(), 1);
         assert_eq!(delta.added.len(), 1);
         assert_eq!(delta.dirty_snapshot_entries_visited, 0);
-        assert_eq!(delta.frame_validation_entries_visited, next.len());
+        assert_eq!(delta.frame_validation_entries_visited, 0);
         assert!(
             cache.verify_dirty_proxy_ids(&next, &[ProxyId(2)]).unwrap()
         );
@@ -2252,7 +2266,10 @@ mod tests {
         assert_eq!(wake_only.added.len(), 0);
         assert_eq!(wake_only.removed.len(), 0);
         assert_eq!(wake_only.dirty_snapshot_entries_visited, 0);
-        assert_eq!(wake_only.frame_validation_entries_visited, next.len());
+        assert_eq!(wake_only.frame_validation_entries_visited, 0);
+        let checked = cache.step_with_dirty_ids_checked(&next, &[]).unwrap();
+        assert_eq!(checked.frame_validation_entries_visited, next.len());
+        assert_eq!(checked.dirty_proxies, 0);
         assert_eq!(
             cache.active_pairs(),
             vec![ProxyPair::new(ProxyId(2), ProxyId(3)).unwrap()]
