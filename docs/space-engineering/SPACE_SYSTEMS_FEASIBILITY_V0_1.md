@@ -59,7 +59,7 @@ This crate closes the first-order Newtonian arithmetic chain for both relative s
 - dynamic-pressure proxy;
 - effective harvesting drag;
 - harvested mechanical power;
-- conversion and thruster power losses;
+- explicit mechanical-to-bus and bus-to-jet conversion losses with a power-chain residual;
 - exhaust kinetic power and ideal thrust;
 - parasitic drag;
 - net axial force and acceleration.
