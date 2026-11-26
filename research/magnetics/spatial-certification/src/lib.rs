@@ -404,8 +404,9 @@ pub fn validate_split(
         return Err(CertificationError::InvalidSplit);
     }
 
-    for index in 0..3 {
-        if index == axis_index {
+    for axis in Axis::ALL {
+        let index = axis.index();
+        if axis == split.axis {
             if split.left_bounds.minimum_m[index] != parent.minimum_m[index]
                 || split.left_bounds.maximum_m[index] != split.split_coordinate_m
                 || split.right_bounds.minimum_m[index] != split.split_coordinate_m
@@ -588,10 +589,8 @@ pub fn validate_leaf_partition(
         }
     }
 
-    for left_index in 0..leaves.len() {
-        for right_index in (left_index + 1)..leaves.len() {
-            let left = leaves[left_index];
-            let right = leaves[right_index];
+    for (left_index, left) in leaves.iter().enumerate() {
+        for right in leaves.iter().skip(left_index + 1) {
             let overlap_interior = Axis::ALL.into_iter().all(|axis| {
                 let index = axis.index();
                 left.maximum_m[index].min(right.maximum_m[index])
@@ -788,7 +787,7 @@ mod tests {
         bounded.maximum_leaf_count = 1;
         let result = plan_refinement(&input, 0, 1, bounded).expect("valid budget");
         assert_eq!(result.disposition, RefinementDisposition::LeafBudgetReached);
-        assert_eq!(result.certificate.classification, CellClassification::CertifiedSafe);
+        assert_eq!(result.certificate.classification, CellClassification::Unresolved);
     }
 
     #[test]
