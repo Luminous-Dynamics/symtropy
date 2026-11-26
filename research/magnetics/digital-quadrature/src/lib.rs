@@ -1943,7 +1943,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn integrated_sensor_reports_nonorthogonal_sensing_axes() {
         let trace = sinusoidal_trace("nonorthogonal-integrated-axes", 1, 361, 0.008, 1.0);
