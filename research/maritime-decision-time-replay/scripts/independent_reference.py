@@ -93,6 +93,12 @@ def main() -> int:
         type=Path,
         default=Path("research/maritime-decision-time-replay/fixtures/episodes.tsv"),
     )
+    parser.add_argument("--temporal-receipt", type=Path)
+    parser.add_argument(
+        "--temporal-fixture",
+        type=Path,
+        default=Path("research/maritime-decision-time-replay/fixtures/temporal-cases.tsv"),
+    )
     args = parser.parse_args()
 
     with args.fixture.open("r", encoding="utf-8", newline="") as handle:
@@ -143,6 +149,158 @@ def main() -> int:
 
     print(f"INDEPENDENT_REFERENCE\tPASS\t{len(actual_rows)}/{len(expected_rows)}")
     return 0
+
+
+def temporal_reference(fields: list[str]) -> tuple[str, str, str]:
+    (
+        _case_id, physical_at, decision_at, audit_at, expected_subject,
+        _source_id, _event_id, _subject_id, _source_revision, _payload_digest,
+        _dependency_cluster, _valid_from, _valid_until, _published_at,
+        _retrieved_at, _rights_clear, _rights_valid_from, _rights_valid_until,
+        _adjudications, expected_selected, expected_audit, expected_error,
+    ) = fields
+    physical_i = int(physical_at)
+    decision_i = int(decision_at)
+    audit_i = int(audit_at)
+    grouped: dict[str, list[dict[str, object]]] = {}
+
+    # All records for a case are supplied to the function via a module-local
+    # active group to keep this reference independent from Rust data types.
+    raise RuntimeError("temporal_reference must be called through temporal_group_reference")
+
+
+def parse_adjudications(value: str) -> list[tuple[int, int, str]]:
+    if value == "-":
+        return []
+    parsed: list[tuple[int, int, str]] = []
+    for item in value.split(";"):
+        revision_s, recorded_s, state = item.split("@")
+        if state not in {"ACCEPTED", "REJECTED", "DISPUTED", "NOT_EVALUABLE"}:
+            raise ValueError(f"unsupported adjudication state: {state}")
+        parsed.append((int(revision_s), int(recorded_s), state))
+    return parsed
+
+
+def temporal_group_reference(rows: list[list[str]]) -> tuple[str, str, str]:
+    first = rows[0]
+    physical_i, decision_i, audit_i = map(int, (first[1], first[2], first[3]))
+    expected_subject = first[4]
+    for row in rows:
+        if (row[1], row[2], row[3], row[4], row[19], row[20], row[21]) != (
+            first[1], first[2], first[3], first[4], first[19], first[20], first[21]
+        ):
+            raise AssertionError(f"{first[0]}: inconsistent group cutoffs or expectations")
+
+    admissible: list[list[str]] = []
+    for row in rows:
+        valid = int(row[11]) <= physical_i <= int(row[12])
+        published = int(row[13]) <= decision_i
+        retrieved = int(row[14]) <= decision_i
+        rights = (
+            row[15] == "true"
+            and int(row[16]) <= decision_i <= int(row[17])
+        )
+        if valid and published and retrieved and rights:
+            if row[7] != expected_subject:
+                return "-", "-", "SUBJECT_BINDING_MISMATCH"
+            admissible.append(row)
+
+    seen: dict[tuple[str, str, int], str] = {}
+    selected: dict[tuple[str, str], list[str]] = {}
+    for row in admissible:
+        source_id, event_id, revision = row[5], row[6], int(row[8])
+        identity = (source_id, event_id, revision)
+        digest = row[9]
+        if identity in seen:
+            if seen[identity] != digest:
+                return "-", "-", "CONFLICTING_SOURCE_REVISION"
+            continue
+        seen[identity] = digest
+
+        source_event = (source_id, event_id)
+        current = selected.get(source_event)
+        if current is None or revision > int(current[8]):
+            selected[source_event] = row
+
+    selected_rows = [selected[key] for key in sorted(selected)]
+    selected_text = ",".join(
+        f"{row[5]}:{row[6]}:{row[8]}" for row in selected_rows
+    ) or "-"
+
+    audit_values: list[str] = []
+    for row in selected_rows:
+        adjudications = [
+            item for item in parse_adjudications(row[18]) if item[1] <= audit_i
+        ]
+        latest: tuple[int, int, str] | None = None
+        for candidate in adjudications:
+            if latest is None or candidate[0] > latest[0]:
+                latest = candidate
+            elif candidate[0] == latest[0] and candidate != latest:
+                return "-", "-", "CONFLICTING_ADJUDICATION_REVISION"
+        key = f"{row[5]}:{row[6]}:{row[8]}"
+        if latest is None:
+            audit_values.append(f"{key}=NOT_YET")
+        else:
+            audit_values.append(f"{key}={latest[2]}@{latest[0]}")
+    audit_text = ",".join(audit_values) or "-"
+    return selected_text, audit_text, "-"
+
+
+def verify_temporal_reference(receipt_path: Path, fixture_path: Path) -> None:
+    with fixture_path.open("r", encoding="utf-8", newline="") as handle:
+        fixture_rows = [
+            row for row in csv.reader(handle, delimiter="\\t")
+            if row and not row[0].startswith("#")
+        ]
+
+    groups: dict[str, list[list[str]]] = {}
+    for fields in fixture_rows:
+        if len(fields) != 22:
+            raise AssertionError(f"temporal fixture row must have 22 fields, got {len(fields)}")
+        groups.setdefault(fields[0], []).append(fields)
+
+    expected_rows: dict[str, tuple[str, str, str]] = {}
+    for case_id, rows in groups.items():
+        expected = temporal_group_reference(rows)
+        hand_authored = (rows[0][19], rows[0][20], rows[0][21])
+        if expected != hand_authored:
+            raise AssertionError(
+                f"{case_id}: independent temporal reference {expected} "
+                f"does not match frozen expected {hand_authored}"
+            )
+        expected_rows[case_id] = expected
+
+    receipt_lines = receipt_path.read_text(encoding="utf-8").splitlines()
+    if len(receipt_lines) < 4 or receipt_lines[0] != "MDTR_TEMPORAL_RECEIPT\\t0.1.0":
+        raise AssertionError("missing or invalid MDTR temporal receipt header")
+    if receipt_lines[1] != "case_id\\tselected_revisions\\taudit_projection\\terror":
+        raise AssertionError("unexpected MDTR temporal receipt columns")
+
+    actual_rows: dict[str, tuple[str, str, str]] = {}
+    for line in receipt_lines[2:]:
+        fields = line.split("\\t")
+        if fields[0] == "SUMMARY":
+            continue
+        if len(fields) != 4:
+            raise AssertionError(f"temporal receipt row must have 4 fields: {line}")
+        case_id, selected, audit, error = fields
+        if case_id in actual_rows:
+            raise AssertionError(f"duplicate temporal receipt case id: {case_id}")
+        actual_rows[case_id] = (selected, audit, error)
+
+    if actual_rows != expected_rows:
+        missing = sorted(set(expected_rows) - set(actual_rows))
+        extra = sorted(set(actual_rows) - set(expected_rows))
+        mismatched = sorted(
+            case_id for case_id in set(actual_rows) & set(expected_rows)
+            if actual_rows[case_id] != expected_rows[case_id]
+        )
+        raise AssertionError(
+            f"temporal Rust/reference mismatch; missing={missing}, extra={extra}, "
+            f"mismatched={mismatched}"
+        )
+    print(f"TEMPORAL_REFERENCE\\tPASS\\t{len(actual_rows)}/{len(expected_rows)}")
 
 
 if __name__ == "__main__":
