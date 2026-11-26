@@ -24,11 +24,12 @@ def digest(path: Path, algorithm: str) -> str:
 
 def safe_relative_path(raw: str) -> str:
     path = PurePosixPath(raw)
+    segments = raw.split("/")
     if (
         not raw
         or path.is_absolute()
         or "\\" in raw
-        or any(part in ("", ".", "..") for part in path.parts)
+        or any(part in ("", ".", "..") for part in segments)
         or raw.startswith("/")
     ):
         raise ValueError(f"unsafe manifest path: {raw!r}")
@@ -81,7 +82,9 @@ def payload_file_set(root: Path) -> set[str]:
 def tag_file_set(root: Path) -> set[str]:
     result = set()
     for item in root.rglob("*"):
-        if item.is_symlink() or not item.is_file():
+        if item.is_symlink():
+            raise ValueError(f"symlinks are not accepted in this profile: {item}")
+        if not item.is_file():
             continue
         relative = item.relative_to(root).as_posix()
         if relative.startswith("data/"):
@@ -185,6 +188,17 @@ def verify_capsule(root: Path) -> dict:
     known_answer = json.loads(
         (root / "capsule" / "known_answer.json").read_text(encoding="utf-8")
     )
+    descriptor_manifest = descriptor["payload_manifest"]
+    if descriptor_manifest["path"] != "manifest-sha256.txt":
+        raise ValueError("fixture expects the BagIt SHA-256 payload manifest")
+    known_answer_sets = descriptor.get("known_answer_sets", [])
+    if not any(
+        item["payload_path"] == known_answer["payload_path"]
+        and item["expected_digest"].lower() == known_answer["expected_digest"].lower()
+        and item["expected_byte_length"] == known_answer["expected_byte_length"]
+        for item in known_answer_sets
+    ):
+        raise ValueError("descriptor and scorer known-answer records disagree")
     payload_path = safe_relative_path(known_answer["payload_path"])
     payload = root.joinpath(*PurePosixPath(payload_path).parts)
     actual_digest = digest(payload, known_answer["expected_digest_algorithm"])
