@@ -764,9 +764,7 @@ mod tests {
         let result = plan_decision_directed_scan(&[point], &policy()).expect("valid plan");
         assert!(matches!(
             result.candidates[0].disposition,
-            CandidateDisposition::NotRankable(
-                NotRankableReason::MissingQualifiedModelDisagreement
-            )
+            CandidateDisposition::NotRankable(NotRankableReason::MissingQualifiedModelDisagreement)
         ));
     }
 }
