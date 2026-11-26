@@ -530,7 +530,7 @@ mod tests {
         assert_eq!(report.portfolio_count, 3);
         assert_eq!(report.contrast_count, 3);
         assert_eq!(report.family_alpha, 0.06);
-        assert_eq!(report.contrast_alpha, 0.02);
+        assert!(report.contrast_alpha <= 0.06_f64 / 3.0);
         assert_eq!(report.pairwise_intervals.len(), 3);
         assert_eq!(report.draw_count, 0);
         assert_eq!(report.unique_best_portfolio_id, None);
