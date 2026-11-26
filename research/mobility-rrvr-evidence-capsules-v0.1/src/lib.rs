@@ -951,14 +951,17 @@ fn endpoint_is_fenced(
             && matches!(
                 capsule.source.role,
                 SourceRole::Endpoint | SourceRole::ModelOracle
-            ) => Some(
-            *accepted_epoch >= required_epoch
-                && *queue_generation == required_queue_generation
-                && accepted_high_water == retired_high_water
-                && *outstanding_n == 0
-                && *in_flight_n == 0
-                && *terminal_actuator_fenced,
-        ),
+            ) =>
+        {
+            Some(
+                *accepted_epoch >= required_epoch
+                    && *queue_generation == required_queue_generation
+                    && accepted_high_water == retired_high_water
+                    && *outstanding_n == 0
+                    && *in_flight_n == 0
+                    && *terminal_actuator_fenced,
+            )
+        }
         _ => None,
     }
 }
