@@ -57,6 +57,18 @@ A certified gap is reported only when an incumbent exists and:
 
 This is a global bound for the declared scalar objective and one scalar constraint, conditional on the interval arithmetic/expression contract and nuisance box. It does not imply that the global optimum is attained by the reported candidate.
 
+## Reproducible certificate receipt
+
+The report carries the complete root input scope alongside the search result:
+- root record/cell IDs and immutable input digest;
+- source revision, implementation, build artifact and environment digests;
+- ordered parameter IDs, units and exact root intervals (design and nuisance);
+- objective and separate compliance expression IDs;
+- output units, frame, operating condition, model set, solver run, geometry/material digests and requirement ID;
+- the complete search policy and the interval arithmetic contract identifier.
+
+This makes the robust objective bounds and unresolved/pruned partition replayable without reconstructing root inputs from an external conversation or current branch state. A digest is still an identity/provenance link, not proof that an upstream solver or model is physically correct.
+
 ## Test programme
 
 Analytic one-dimensional minimax cases exercise:
