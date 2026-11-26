@@ -179,3 +179,6 @@ Use official SPECstorage Solution 2020 workload runs for application-style stora
 The preservation overlay adds independently accepted bytes, exact-object/digest/provenance status, reader-independence and migration fidelity. Whole-service joules per independently accepted TiB must be separately measured across the declared end-to-end boundary; do not relabel a device-level Emerald result as whole-service energy or a SPEC workload throughput as archive recovery throughput.
 
 The reference scorer also requires time-to-first-accepted-byte when any payload bytes are accepted, and rejects any stage observation whose duration exceeds the total end-to-end wall-clock interval. Stages may overlap, so their individual durations must not simply be summed.
+
+
+Energy evidence is not just a numeric joule value. If energy metering is required and reported as passing, the receipt must bind it to the workload's frozen meter boundary, non-empty meter ID, calibration reference, positive sample interval and SHA-256 digest of the retained raw meter trace. Missing or mismatched meter provenance blocks an energy pass. Device-subsystem and whole-service energy remain distinct boundaries.
