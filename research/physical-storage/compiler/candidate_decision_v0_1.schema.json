@@ -59,7 +59,8 @@
               "ferroelectric",
               "pcm",
               "reram",
-              "hybrid"
+              "hybrid",
+              "dna_molecular"
             ]
           },
           "evidence_status": {
