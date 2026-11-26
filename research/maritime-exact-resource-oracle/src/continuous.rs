@@ -79,7 +79,7 @@ pub struct PlanEvaluation {
     pub worst_case_makespan: f64,
     pub worst_case_events: Vec<TaskEvent>,
     pub active_set_combinations_examined: usize,
-    pub feasible_region_vertices: usize,
+    pub feasible_active_set_bases: usize,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -593,7 +593,7 @@ fn evaluate_plan(
     let branches_count = 1usize << dimensions;
     let mut best: Option<(f64, Vec<f64>)> = None;
     let mut active_set_combinations_examined = 0usize;
-    let mut feasible_region_vertices = 0usize;
+    let mut feasible_active_set_bases = 0usize;
 
     for sign_mask in 0..signs_count {
         let signs: Vec<f64> = (0..dimensions)
@@ -655,7 +655,7 @@ fn evaluate_plan(
                 if !feasible(&point, &constraints) {
                     return;
                 }
-                feasible_region_vertices += 1;
+                feasible_active_set_bases += 1;
                 let cost = model.objective.constant
                     + objective_coefficients
                         .iter()
@@ -708,7 +708,7 @@ fn evaluate_plan(
         worst_case_makespan: worst.makespan,
         worst_case_events: worst.events,
         active_set_combinations_examined,
-        feasible_region_vertices,
+        feasible_active_set_bases,
     })
 }
 
@@ -910,7 +910,7 @@ mod tests {
             .plans
             .iter()
             .all(|plan| plan.active_set_combinations_examined > 0
-                && plan.feasible_region_vertices > 0
+                && plan.feasible_active_set_bases > 0
                 && plan.worst_case_makespan >= 0.0));
         assert!(!result.nominal_best_plan.is_empty());
         assert!(!result.robust_best_plan.is_empty());
