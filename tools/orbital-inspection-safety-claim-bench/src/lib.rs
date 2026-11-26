@@ -157,7 +157,10 @@ pub struct Receipt {
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
-    Sha256::digest(bytes).iter().map(|byte| format!("{byte:02x}")).collect()
+    Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }
 
 fn valid_text(value: &str) -> bool {
@@ -235,12 +238,14 @@ fn validate_claim_shape(claim: &SafetyClaim) -> Result<(), String> {
         }
         ClaimComponent::SafeContinuation => {
             if !matches!(
-                    claim.assurance_class,
-                    AssuranceClass::PassiveInvariantSet | AssuranceClass::AbortReachableSet
-                )
-                || !claim.temporal_enclosure_complete
+                claim.assurance_class,
+                AssuranceClass::PassiveInvariantSet | AssuranceClass::AbortReachableSet
+            ) || !claim.temporal_enclosure_complete
                 || !claim.terminal_set_id.as_deref().is_some_and(valid_text)
-                || !claim.terminal_set_revision.as_deref().is_some_and(valid_text)
+                || !claim
+                    .terminal_set_revision
+                    .as_deref()
+                    .is_some_and(valid_text)
                 || claim.terminal_epoch_tai_ns.is_none()
                 || !claim
                     .terminal_invariant_proof_sha256
@@ -284,16 +289,22 @@ fn evaluate_claim(claim: &SafetyClaim, action: &ActionScope) -> ClaimResult {
         return result(Disposition::InvalidInput, vec![reason]);
     }
     if !same_scope(action, &claim.scope) {
-        return result(Disposition::OutOfScope, vec!["ACTION_SCOPE_MISMATCH".to_owned()]);
+        return result(
+            Disposition::OutOfScope,
+            vec!["ACTION_SCOPE_MISMATCH".to_owned()],
+        );
     }
     if claim.validity.time_basis_id != action.time_basis_id {
-        return result(Disposition::OutOfScope, vec!["TIME_BASIS_MISMATCH".to_owned()]);
+        return result(
+            Disposition::OutOfScope,
+            vec!["TIME_BASIS_MISMATCH".to_owned()],
+        );
     }
 
     match claim.component {
         ClaimComponent::FiniteHorizonKeepOut => {
             if claim.validity.start_tai_ns > action.action_start_tai_ns
-                || claim.validity.end_tai_ns <= action.action_end_tai_ns
+                || claim.validity.end_tai_ns < action.action_end_tai_ns
             {
                 return result(
                     Disposition::OutOfScope,
@@ -511,7 +522,9 @@ mod tests {
     use super::*;
 
     fn corpus_bytes() -> &'static [u8] {
-        include_bytes!("../../../docs/research/orbital-truss/fixtures/inspection-safety-claim-v0_1.json")
+        include_bytes!(
+            "../../../docs/research/orbital-truss/fixtures/inspection-safety-claim-v0_1.json"
+        )
     }
 
     fn corpus() -> Corpus {
@@ -520,11 +533,8 @@ mod tests {
 
     #[test]
     fn frozen_safety_claim_corpus_matches_expected_dispositions() {
-        let receipt = audit_corpus(
-            corpus_bytes(),
-            "0123456789abcdef0123456789abcdef01234567",
-        )
-        .expect("safety corpus audits");
+        let receipt = audit_corpus(corpus_bytes(), "0123456789abcdef0123456789abcdef01234567")
+            .expect("safety corpus audits");
         assert_eq!(receipt.case_count, 24);
         assert_eq!(receipt.expected_disposition_matches, 24);
         assert_eq!(receipt.expected_disposition_mismatches, 0);
@@ -540,7 +550,10 @@ mod tests {
             .iter()
             .find(|case| case.case_id == "SA-001-COMPOSITE-PASS")
             .unwrap();
-        assert_eq!(evaluate_case(case).disposition, Disposition::SafetyClaimsComplete);
+        assert_eq!(
+            evaluate_case(case).disposition,
+            Disposition::SafetyClaimsComplete
+        );
     }
 
     #[test]
@@ -556,8 +569,14 @@ mod tests {
             .iter()
             .find(|case| case.case_id == "SA-003-TERMINAL-ONLY")
             .unwrap();
-        assert_eq!(evaluate_case(finite_only).disposition, Disposition::SafetyClaimIncomplete);
-        assert_eq!(evaluate_case(terminal_only).disposition, Disposition::SafetyClaimIncomplete);
+        assert_eq!(
+            evaluate_case(finite_only).disposition,
+            Disposition::SafetyClaimIncomplete
+        );
+        assert_eq!(
+            evaluate_case(terminal_only).disposition,
+            Disposition::SafetyClaimIncomplete
+        );
     }
 
     #[test]
@@ -622,8 +641,14 @@ mod tests {
             .iter()
             .find(|case| case.case_id == "SA-020-TERMINAL-EPOCH-MISMATCH")
             .unwrap();
-        assert_eq!(evaluate_case(short).disposition, Disposition::SafetyClaimFailed);
-        assert_eq!(evaluate_case(wrong_terminal).disposition, Disposition::OutOfScope);
+        assert_eq!(
+            evaluate_case(short).disposition,
+            Disposition::SafetyClaimFailed
+        );
+        assert_eq!(
+            evaluate_case(wrong_terminal).disposition,
+            Disposition::OutOfScope
+        );
     }
 
     #[test]
