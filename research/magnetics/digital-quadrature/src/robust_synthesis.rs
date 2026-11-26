@@ -1005,9 +1005,11 @@ pub fn synthesize_with_sensor_parameter_bounds(
         .filter(|result| result.synthesis.robustly_accepted)
         .count();
 
-    let first = scenarios.first().ok_or(
-        ParameterAwareSynthesisError::BaseSynthesis(SynthesisError::EmptyScenarioSet),
-    )?;
+    let first = scenarios
+        .first()
+        .ok_or(ParameterAwareSynthesisError::BaseSynthesis(
+            SynthesisError::EmptyScenarioSet,
+        ))?;
     Ok(ParameterAwareSynthesisResult {
         set_id: set_id.to_owned(),
         evidence_kind: first.trace.evidence_kind,
@@ -1191,8 +1193,13 @@ mod tests {
     fn empty_and_duplicate_candidates_are_rejected() {
         let input = scenario("trace-candidates", "nominal", 0.01);
         assert_eq!(
-            synthesize_robust_configurations("set-006", std::slice::from_ref(&input), &[], requirements())
-                .expect_err("empty candidate list is invalid"),
+            synthesize_robust_configurations(
+                "set-006",
+                std::slice::from_ref(&input),
+                &[],
+                requirements(),
+            )
+            .expect_err("empty candidate list is invalid"),
             SynthesisError::EmptyCandidateSet
         );
 
