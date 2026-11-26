@@ -76,7 +76,7 @@ pub struct BoundedMagneticDesignTournament {
     pub candidates: Vec<BoundedMagneticDesignMetrics>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum BoundedDesignTournamentError {
     BaseTournament(DesignTournamentError),
     UncertaintyScenarioCountMismatch { candidate_index: usize },
@@ -246,9 +246,17 @@ fn bounded_scenario_metrics(
             });
         }
 
+        let upper_out_of_plane = sample.bz_t.abs() + radius;
+        if !upper_out_of_plane.is_finite() {
+            return Err(BoundedDesignTournamentError::NumericOverflow {
+                candidate_index,
+                scenario_index,
+                sample_index,
+            });
+        }
         lower_in_plane_magnitudes.push(lower_in_plane.max(0.0));
         upper_in_plane_magnitudes.push(upper_in_plane);
-        upper_out_of_plane_magnitudes.push(sample.bz_t.abs() + radius);
+        upper_out_of_plane_magnitudes.push(upper_out_of_plane);
 
         if nominal_in_plane <= 0.0 || radius >= nominal_in_plane {
             unbounded_phase_sample_count += 1;
@@ -317,6 +325,22 @@ fn bounded_scenario_metrics(
         .fold(0.0_f64, f64::max);
     let rms_phase_error_upper_bound_rad = rms(&phase_error_upper_bounds);
     let p95_absolute_phase_error_upper_bound_rad = percentile_95(&phase_error_upper_bounds);
+    if !minimum_in_plane_field_lower_bound_t.is_finite()
+        || !maximum_in_plane_field_upper_bound_t.is_finite()
+        || !rms_in_plane_field_lower_bound_t.is_finite()
+        || !rms_out_of_plane_field_upper_bound_t.is_finite()
+        || !maximum_absolute_phase_error_upper_bound_rad.is_finite()
+        || !rms_phase_error_upper_bound_rad.is_finite()
+        || !p95_absolute_phase_error_upper_bound_rad.is_finite()
+        || amplitude_ripple_upper_bound_fraction.is_some_and(|value| !value.is_finite())
+        || rms_cross_axis_ratio_upper_bound.is_some_and(|value| !value.is_finite())
+    {
+        return Err(BoundedDesignTournamentError::NumericOverflow {
+            candidate_index,
+            scenario_index,
+            sample_index: 0,
+        });
+    }
 
     let accepted = unbounded_phase_sample_count == 0
         && minimum_in_plane_field_lower_bound_t >= requirements.minimum_in_plane_field_t
@@ -524,6 +548,13 @@ mod tests {
     const DIGEST_B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
     const DIGEST_C: &str = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
 
+    fn assert_close(left: f64, right: f64) {
+        assert!(
+            (left - right).abs() < 1.0e-12,
+            "expected {left:.16e} to be within tolerance of {right:.16e}"
+        );
+    }
+
     fn requirements() -> EncoderRequirements {
         EncoderRequirements {
             pole_pairs: 4,
@@ -623,25 +654,29 @@ mod tests {
         let nominal_scenarios = &nominal.candidates[0].scenario_metrics.scenarios;
         let bounded_scenarios = &bounded.candidates[0].scenarios;
         for (base, robust) in nominal_scenarios.iter().zip(bounded_scenarios) {
-            assert_eq!(
+            assert_close(
                 robust.minimum_in_plane_field_lower_bound_t,
-                base.minimum_in_plane_field_t
+                base.minimum_in_plane_field_t,
             );
-            assert_eq!(
+            assert_close(
                 robust.maximum_absolute_phase_error_upper_bound_rad,
-                base.maximum_absolute_phase_error_rad
+                base.maximum_absolute_phase_error_rad,
             );
-            assert_eq!(
+            assert_close(
                 robust.rms_phase_error_upper_bound_rad,
-                base.rms_phase_error_rad
+                base.rms_phase_error_rad,
             );
-            assert_eq!(
-                robust.amplitude_ripple_upper_bound_fraction,
-                base.amplitude_ripple_fraction
+            assert_close(
+                robust.p95_absolute_phase_error_upper_bound_rad,
+                base.p95_absolute_phase_error_rad,
             );
-            assert_eq!(
-                robust.rms_cross_axis_ratio_upper_bound,
-                base.rms_cross_axis_ratio
+            assert_close(
+                robust.amplitude_ripple_upper_bound_fraction.unwrap(),
+                base.amplitude_ripple_fraction.unwrap(),
+            );
+            assert_close(
+                robust.rms_cross_axis_ratio_upper_bound.unwrap(),
+                base.rms_cross_axis_ratio.unwrap(),
             );
         }
     }
@@ -678,8 +713,7 @@ mod tests {
         assert!(result.candidates[0]
             .scenarios
             .iter()
-            .all(|scenario| scenario.unbounded_phase_sample_count == scenario
-                .unbounded_phase_sample_count));
+            .all(|scenario| scenario.unbounded_phase_sample_count > 0));
         assert!(!result.candidates[0].robustly_accepted);
     }
 
