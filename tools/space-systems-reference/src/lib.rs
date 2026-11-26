@@ -27,7 +27,7 @@ pub struct SunshadeInput {
     pub solar_irradiance_w_m2: f64,
     pub target_flux_reduction_fraction: f64,
     pub attenuation_effectiveness: f64,
-        /// Scenario density applied to the equivalent area; not an installed-system
+    /// Scenario density applied to the equivalent area; not an installed-system
     /// density unless a separate geometry model establishes that relationship.
     pub scenario_areal_mass_density_kg_m2: f64,
     /// Scenario parameter only; not demonstrated lunar membrane capability.
@@ -85,9 +85,12 @@ pub fn evaluate_sunshade(input: SunshadeInput) -> Result<SunshadeEstimate, &'sta
     let equivalent_target_plane_attenuation_area_m2 = input.target_flux_reduction_fraction
         * earth_projected_area_m2
         / input.attenuation_effectiveness;
-    let equivalent_area_mass_proxy_kg = equivalent_target_plane_attenuation_area_m2 * input.scenario_areal_mass_density_kg_m2;
-    let locally_sourced_mass_proxy_kg = equivalent_area_mass_proxy_kg * input.locally_sourced_material_fraction;
-    let earth_supplied_mass_proxy_kg = equivalent_area_mass_proxy_kg - locally_sourced_mass_proxy_kg;
+    let equivalent_area_mass_proxy_kg =
+        equivalent_target_plane_attenuation_area_m2 * input.scenario_areal_mass_density_kg_m2;
+    let locally_sourced_mass_proxy_kg =
+        equivalent_area_mass_proxy_kg * input.locally_sourced_material_fraction;
+    let earth_supplied_mass_proxy_kg =
+        equivalent_area_mass_proxy_kg - locally_sourced_mass_proxy_kg;
     let intercepted_power_reduction_w = input.solar_irradiance_w_m2
         * input.target_flux_reduction_fraction
         * earth_projected_area_m2;
@@ -107,7 +110,8 @@ pub fn evaluate_sunshade(input: SunshadeInput) -> Result<SunshadeEstimate, &'sta
     Ok(SunshadeEstimate {
         earth_projected_area_m2,
         equivalent_target_plane_attenuation_area_m2,
-        equivalent_target_plane_attenuation_area_km2: equivalent_target_plane_attenuation_area_m2 / 1.0e6,
+        equivalent_target_plane_attenuation_area_km2:
+            equivalent_target_plane_attenuation_area_m2 / 1.0e6,
         equivalent_area_mass_proxy_kg,
         locally_sourced_mass_proxy_kg,
         earth_supplied_mass_proxy_kg,
@@ -338,7 +342,11 @@ mod tests {
             1.416_845_755_304_967_5e12,
             1.0,
         );
-        close(result.equivalent_area_mass_proxy_kg, 1.416_845_755_304_967_5e10, 0.01);
+        close(
+            result.equivalent_area_mass_proxy_kg,
+            1.416_845_755_304_967_5e10,
+            0.01,
+        );
         close(
             result.intercepted_power_reduction_w,
             1.735_494_365_673_054_5e15,
