@@ -1394,7 +1394,6 @@ mod tests {
         assert!(metrics.measurement_phase_std_max_rad.is_finite());
     }
 
-
     #[test]
     fn vector_phase_tournament_allows_distinct_operating_conditions() {
         let nominal = make_trace(
