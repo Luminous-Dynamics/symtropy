@@ -10,6 +10,9 @@
 
 use std::collections::BTreeMap;
 
+type SourceEventIdentity<'a> = (&'a str, &'a str);
+type SourceRevisionIdentity<'a> = (SourceEventIdentity<'a>, u32);
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct TemporalCutoffs {
     pub physical_at: i64,
@@ -193,8 +196,9 @@ pub fn select_decision_revisions<'a>(
     expected_subject_id: &str,
     cutoffs: TemporalCutoffs,
 ) -> Result<Vec<&'a TemporalEvidenceRevision>, TemporalError> {
-    let mut selected: BTreeMap<(&str, &str), &TemporalEvidenceRevision> = BTreeMap::new();
-    let mut visible_identities: BTreeMap<((&str, &str), u32), &str> = BTreeMap::new();
+    let mut selected: BTreeMap<SourceEventIdentity<'_>, &TemporalEvidenceRevision> =
+        BTreeMap::new();
+    let mut visible_identities: BTreeMap<SourceRevisionIdentity<'_>, &str> = BTreeMap::new();
 
     for record in records {
         if !decision_admissible(record, cutoffs) {
