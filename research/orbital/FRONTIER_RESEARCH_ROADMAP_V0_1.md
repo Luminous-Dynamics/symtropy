@@ -68,6 +68,22 @@ References:
 - https://space.commerce.gov/wp-content/uploads/2026/01/TraCSS_SE_SPEC_002_v2.1.pdf
 - https://ccsds.org/wp-content/uploads/gravity_forms/5-448e85c647331d9cbaf66c096458bdd5/2026/10/502x0b3e2tc11.pdf?gv-iframe=true
 
+## 2.1 ISO 23705:2026 implementation implications
+
+ISO 23705:2026, Edition 1, was published in June 2026. Its scope covers the workflow and technical requirements for identifying, evaluating and avoiding collisions, including data requirements, probability/consequence methods and collision-avoidance manoeuvres:
+- Official standard overview: https://www.iso.org/standard/87556.html
+- Online preview: https://www.iso.org/obp/ui?_escaped_fragment_=iso%3Astd%3Aiso%3A23705%3Aed-1%3Av1%3Aen
+
+Three requirements sharpen Symtropy's next implementation priorities:
+
+1. **Secondary collision screening (§6.2.10).** A manoeuvre plan must not introduce serious new collision risk with the secondary object or other catalogued objects within the minimum timeframe specified by the approving agent. Therefore the post-action event-universe receipt needs a horizon identity (start/end, time scale, epoch/reference frame, propagation policy and approving-policy reference), and every candidate portfolio must be re-screened on that common horizon.
+2. **Post-CAM risk objective (§6.2.8).** The preview describes a post-manoeuvre Pc target tied to the applicable threshold and approving agent. Keep the threshold, any margin/target below it, policy version and authorization source explicit. Do not hard-code one global action threshold or equate a model-generated target with approval.
+3. **Multi-objective manoeuvre planning.** The standard identifies fuel use, mission downtime and mission risk as optimization objectives. Treat safety/risk feasibility as a hard gate first, then calculate a Pareto frontier over fuel, downtime, residual risk and other approved mission objectives among eligible portfolios.
+
+The current [#7637 gate](https://github.com/Luminous-Dynamics/symtropy/pull/7637) now binds each scenario's post-action screening horizon and collision-risk policy into the scenario/portfolio risk-envelope digest. Its horizon and policy identities must be shared by all alternatives within a scenario; each portfolio may still have a different event inventory after the manoeuvre.
+
+The content/identity gate does not prove that the horizon is physically complete, that the approving agent is authenticated, or that all catalogued objects have been enumerated. Those remain separate evidence obligations.
+
 ## 2. Paradigm shifts worth pursuing
 
 ### Shift A — from isolated conjunctions to a mission-level risk object
@@ -116,7 +132,10 @@ The public work now establishes the following building blocks:
 | [#7587](https://github.com/Luminous-Dynamics/symtropy/pull/7587) | Bonferroni family of PrPl-EB pairwise confidence sequences | Fixed target / bounded raw paired observations |
 | [#7590](https://github.com/Luminous-Dynamics/symtropy/pull/7590) | Frozen defensive Gaussian mixture across declared portfolio modes | Density evaluator only; no sampler proof |
 | [#7607](https://github.com/Luminous-Dynamics/symtropy/pull/7607) | Defensive bounded contribution transformed to target contrast confidence interval | One fixed proposal and one scenario |
-| [#7610](https://github.com/Luminous-Dynamics/symtropy/pull/7610) | Atomic simultaneous defensive updates over all portfolio pairs | Fixed proposal and one scenario; hosted validation pending |
+| [#7610](https://github.com/Luminous-Dynamics/symtropy/pull/7610) | Atomic simultaneous defensive updates over all portfolio pairs | Fixed Gaussian proposal and one scenario |
+| [#7628](https://github.com/Luminous-Dynamics/symtropy/pull/7628) | Scenario-separated minimax-regret intervals | Epistemic alternatives kept separate; does not enforce mission-risk feasibility |
+| [#7632](https://github.com/Luminous-Dynamics/symtropy/pull/7632) | Replay-verified adaptive finite-support portfolio counterfactuals | Exact discrete support; RNG-ticket uniformity remains a stated assumption |
+| [#7637](https://github.com/Luminous-Dynamics/symtropy/pull/7637) | Scenario-wide exact mission-risk hard gate before regret ranking | Draft; exact finite-support envelopes and policy-bound horizons, not physical completeness |
 | [#7580](https://github.com/Luminous-Dynamics/symtropy/pull/7580) | TraCSS screening benchmark protocol and parser-profile pinning | Documentation; external data not yet acquired |
 | [#7608](https://github.com/Luminous-Dynamics/symtropy/pull/7608) | NASA CARA risk/covariance benchmark protocol | Documentation; no CARA truth-history run |
 
@@ -185,13 +204,14 @@ Use paired comparisons where a common exogenous realization is meaningful. Repor
 
 ## 7. Next technical research after the current stacked PRs
 
-1. **Sampler attestation:** bind component selection, RNG stream, pre-draw proposal digest, target density, full q_t density, point and draw identity to an independently replayable sampler receipt.
-2. **Predictable adaptation:** update proposal components using only prior information, keep epsilon fixed, and demonstrate that each bounded defensive observation has the same conditional mean.
-3. **Scenario-robust decision:** run separate sequences per epistemic scenario; do not average physical-world alternatives without a qualified weighting model. Add a robust/worst-case decision path.
-4. **Covariance calibration:** construct chronological held-out truth-history partitions and add residual coverage/conditional reliability diagnostics.
-5. **Independent propagation challenger:** compare a second propagator and covariance transformer on frozen ephemeris and force-model configurations.
-6. **Mission-level decision:** join encounter-universe completeness, mission dependence, post-action event re-enumeration and the simultaneous portfolio selection family.
-7. **External benchmark execution:** acquire TraCSS input files and CARA public release/LFS artifacts, record actual SHA-256 and byte counts, then run the frozen protocols.
+1. **RNG attestation and entropy quality:** bind component selection, RNG stream, pre-draw proposal digest, target density, full q_t density, point and draw identity to an independently replayable sampler receipt; separately test the RNG ticket source for uniformity, independence and failure/reseed behavior.
+2. **Predictable adaptation:** extend the finite support verifier to a precommitted adaptive proposal sequence; keep epsilon fixed and establish the conditional-mean contract for each bounded contribution.
+3. **Scenario-robust decision:** run separate sequences per epistemic scenario; do not average physical-world alternatives without a qualified weighting model. Keep minimax regret separate from the #7637 hard mission-risk gate.
+4. **ISO-aligned post-action screening:** implement the approving-agent horizon as a typed interval contract, preserve every newly introduced/removed encounter, and prove complete post-action object-pair coverage over that horizon.
+5. **Covariance calibration:** construct chronological held-out truth-history partitions and add residual coverage/conditional reliability diagnostics, especially time-correlated drag and common-mode primary/secondary errors.
+6. **Independent propagation challenger:** compare a second propagator and covariance transformer on frozen ephemeris and force-model configurations.
+7. **Multi-objective eligible frontier:** after hard feasibility filtering, compare fuel, downtime, residual mission risk and consequence with simultaneous uncertainty intervals; preserve Pareto ties rather than forcing one weighted score.
+8. **External benchmark execution:** acquire TraCSS input files and CARA public release/LFS artifacts, record actual SHA-256 and byte counts, then run the frozen protocols.
 
 ## 8. Why this can become a field-level advance
 
