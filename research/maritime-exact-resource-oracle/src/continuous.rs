@@ -108,6 +108,7 @@ pub enum ContinuousError {
     UnknownTask(String),
     UnknownQcPredecessor(String, String),
     QcPredecessorMismatch(String, String),
+    InvalidQcTaskOrder(String),
     PrecedenceCycle,
     InvalidTaskTimes(String),
     InvalidDelivery(String),
@@ -291,6 +292,55 @@ fn validate_plan(
             }
         }
         qc_predecessor.insert(task.task_id.clone(), task.qc_predecessor.clone());
+    }
+
+    // A fixed QC order is a single chain per crane: exactly one root,
+    // at most one successor per task, and every task reachable from the root.
+    let mut qc_groups: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut qc_successors: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut qc_roots: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for task in &instance.tasks {
+        qc_groups
+            .entry(task.qc_id.clone())
+            .or_default()
+            .push(task.task_id.clone());
+        match &task.qc_predecessor {
+            Some(predecessor) => qc_successors
+                .entry(predecessor.clone())
+                .or_default()
+                .push(task.task_id.clone()),
+            None => qc_roots
+                .entry(task.qc_id.clone())
+                .or_default()
+                .push(task.task_id.clone()),
+        }
+    }
+    for (qc_id, group_tasks) in &qc_groups {
+        let roots = qc_roots.get(qc_id).map(Vec::as_slice).unwrap_or(&[]);
+        if roots.len() != 1
+            || group_tasks.iter().any(|task_id| {
+                qc_successors
+                    .get(task_id)
+                    .is_some_and(|successors| successors.len() > 1)
+            })
+        {
+            return Err(ContinuousError::InvalidQcTaskOrder(qc_id.clone()));
+        }
+        let mut visited = BTreeSet::new();
+        let mut current = roots[0].clone();
+        loop {
+            if !visited.insert(current.clone()) {
+                return Err(ContinuousError::InvalidQcTaskOrder(qc_id.clone()));
+            }
+            match qc_successors.get(&current).map(Vec::as_slice).unwrap_or(&[]) {
+                [next] => current = next.clone(),
+                [] => break,
+                _ => return Err(ContinuousError::InvalidQcTaskOrder(qc_id.clone())),
+            }
+        }
+        if visited.len() != group_tasks.len() {
+            return Err(ContinuousError::InvalidQcTaskOrder(qc_id.clone()));
+        }
     }
 
     // Kahn topological order on the union of QC-precedence and vehicle-route
@@ -916,6 +966,40 @@ mod tests {
         assert!(!result.robust_best_plan.is_empty());
     }
 
+
+    #[test]
+    fn each_qc_must_have_one_linear_fixed_task_order() {
+        let mut invalid = instance(1.0);
+        invalid.tasks[2].qc_predecessor = None;
+        assert_eq!(
+            evaluate_continuous_tournament(&invalid),
+            Err(ContinuousError::InvalidQcTaskOrder("QC-1".to_owned()))
+        );
+    }
+
+    #[test]
+    fn branching_qc_precedence_is_rejected() {
+        let mut invalid = instance(1.0);
+        invalid.tasks.push(ContinuousTask {
+            task_id: "D".to_owned(),
+            qc_id: "QC-1".to_owned(),
+            qc_predecessor: Some("A".to_owned()),
+            qc_release_at: 0.0,
+            nominal_service: 5.0,
+            service_deviation: 1.0,
+            direction: TaskDirection::Loading,
+            loaded_delivery_after: 0.0,
+        });
+        for plan in &mut invalid.plans {
+            plan.vehicle_routes[0].task_order.push("D".to_owned());
+            plan.vehicle_routes[0].travel_before.push(0.0);
+        }
+        assert_eq!(
+            evaluate_continuous_tournament(&invalid),
+            Err(ContinuousError::InvalidQcTaskOrder("QC-1".to_owned()))
+        );
+    }
+
     #[test]
     fn combined_qc_and_vehicle_precedence_cycles_are_rejected() {
         let mut invalid = instance(1.0);
@@ -943,7 +1027,7 @@ mod tests {
         }
         assert_eq!(
             evaluate_continuous_tournament(&invalid),
-            Err(ContinuousError::TooManyTasks(4))
+            Err(ContinuousError::TooManyTasks(5))
         );
     }
 }
