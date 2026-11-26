@@ -796,6 +796,65 @@ mod tests {
     }
 
     #[test]
+    fn independent_receiver_maxima_are_not_additive_under_shared_segment_capacity() {
+        let scenario = serde_json::json!({
+            "schema_version": "wpt-exact-service-oracle-v0",
+            "scenario_id": "shared-segment-non-additive-receiver-maxima",
+            "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+            "interval_count": 1,
+            "segment_slots": [
+                {"segment_id": "segment-a", "interval_index": 0, "available_deliverable_energy_mwh": 8}
+            ],
+            "receivers": [
+                {"receiver_id": "vehicle-a", "arrival_interval": 0, "departure_interval": 1, "minimum_service_mwh": 5},
+                {"receiver_id": "vehicle-b", "arrival_interval": 0, "departure_interval": 1, "minimum_service_mwh": 5}
+            ],
+            "receiver_slots": [
+                {"receiver_id": "vehicle-a", "interval_index": 0, "max_acceptance_mwh": 5},
+                {"receiver_id": "vehicle-b", "interval_index": 0, "max_acceptance_mwh": 5}
+            ],
+            "transfer_links": [
+                {
+                    "link_id": "segment-a-to-vehicle-a",
+                    "segment_id": "segment-a",
+                    "receiver_id": "vehicle-a",
+                    "interval_index": 0,
+                    "max_deliverable_energy_mwh": 5
+                },
+                {
+                    "link_id": "segment-a-to-vehicle-b",
+                    "segment_id": "segment-a",
+                    "receiver_id": "vehicle-b",
+                    "interval_index": 0,
+                    "max_deliverable_energy_mwh": 5
+                }
+            ],
+            "quality_flags": ["SYNTHETIC_ONLY"]
+        });
+
+        let report = evaluate_scenario(&scenario).unwrap();
+        assert!(!report.feasible);
+        assert_eq!(report.total_minimum_service_mwh, 10);
+        assert_eq!(report.maximum_deliverable_mwh, 8);
+        assert_eq!(
+            report.receiver_allocations.iter()
+                .map(|row| row.joint_witness_allocation_mwh)
+                .sum::<u64>(),
+            8
+        );
+        assert!(report.receiver_allocations.iter()
+            .all(|row| row.individual_max_deliverable_mwh == 5));
+        assert_eq!(
+            report.receiver_allocations.iter()
+                .map(|row| row.individual_max_deliverable_mwh)
+                .sum::<u64>(),
+            10
+        );
+        assert!(report.receiver_allocations.iter()
+            .all(|row| row.individual_max_graph_sha256.starts_with("sha256:")));
+    }
+
+    #[test]
     fn shared_segment_energy_shortage_returns_exact_min_cut_certificate() {
         let mut scenario = fixture();
         scenario["segment_slots"][2]["available_deliverable_energy_mwh"] = Value::from(0);
@@ -861,8 +920,8 @@ mod tests {
             .iter()
             .find(|row| row.receiver_id == "vehicle-02")
             .unwrap();
-        assert_eq!(receiver.delivered_mwh, 0);
-        assert_eq!(receiver.shortfall_mwh, 4);
+        assert_eq!(receiver.joint_witness_allocation_mwh, 0);
+        assert_eq!(receiver.joint_witness_shortfall_mwh, 4);
         assert!(!report.feasible);
     }
 
