@@ -398,3 +398,37 @@ DCSA's 2026 Standards Roadmap emphasizes moving from siloed spreadsheets/databas
 6. Where commercial data is unavailable, publish the data gap and use open/synthetic instances only for the claims they support.
 
 Sources: [Pang et al., tidal-port branch-and-price](https://doi.org/10.1016/j.trb.2026.103584); [Yang et al., HA-QMIX](https://doi.org/10.3934/jimo.2026198); [Li & Li, coordinated berth/QC/AGV](https://doi.org/10.3390/jmse14181714); [Li & Hu, OPS/energy dispatch](https://doi.org/10.1016/j.jclepro.2026.149105); [Wang et al., robust berth/yard/OPS](https://doi.org/10.1016/j.oceaneng.2026.125850); [CPPI 2025](https://www.worldbank.org/en/topic/transport/publication/cppi); [StormGeo–Portchain acquisition](https://stormgeo.com/insights/stormgeo-acquires-portchain-to-advance-just-in-time-voyage-optimization-at-scale); [DCSA Standards Roadmap 2026](https://dcsa.org/newsroom/dcsa-standards-roadmap-2026).
+
+
+## Interval-valued clock uncertainty (v0.3 research increment)
+
+The `src/clock_bounds.rs` module extends replay from scalar timestamps to conservative closed intervals on a caller-declared normalized time scale. A comparison `A <= B` is:
+- definitely true when `A.latest <= B.earliest`;
+- definitely false when `A.earliest > B.latest`;
+- uncertain when the intervals overlap and neither relation is established.
+
+Exact boundary equality is inclusive. The qualifier applies this to:
+- physical valid-from / valid-until vs physical target;
+- publication and actual retrieval vs decision cutoff;
+- effective rights start/end vs decision cutoff.
+
+A record is definitely admissible only when every comparison is established. Overlap produces `TEMPORALLY_UNCERTAIN`; a definite violation produces `DEFINITELY_INADMISSIBLE`. If one comparison is uncertain and another is definitely false, the result is inadmissible while retaining both reason codes.
+
+The module has 12 Rust tests for equality, publication/retrieval overlap, definite late publication, effective-rights windows, physical validity, mixed uncertainty/violation, negative epoch values and invalid intervals. The frozen `fixtures/clock-cases.tsv` corpus has 12 named cases; `clock-bounds-audit` emits a deterministic receipt and `scripts/clock_reference.py` independently recomputes the interval ordering without importing Rust.
+
+Run the full expanded validation from the repository root:
+
+```sh
+cargo fmt --manifest-path research/maritime-decision-time-replay/Cargo.toml -- --check
+cargo test --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml
+cargo clippy --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml --all-targets -- -D warnings
+cargo run --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml --bin mdtr-audit > mdtr-receipt.tsv
+cargo run --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml --bin temporal-audit > mdtr-temporal-receipt.tsv
+cargo run --locked --manifest-path research/maritime-decision-time-replay/Cargo.toml --bin clock-bounds-audit > mdtr-clock-receipt.tsv
+python3 research/maritime-decision-time-replay/scripts/independent_reference.py --receipt mdtr-receipt.tsv --temporal-receipt mdtr-temporal-receipt.tsv
+python3 research/maritime-decision-time-replay/scripts/clock_reference.py --receipt mdtr-clock-receipt.tsv
+```
+
+The supplied bounds are not proof that a source clock is correctly synchronized. The evidence envelope must preserve clock source, timezone/offset provenance, timestamp precision, calibration and derivation of earliest/latest bounds. This module assumes the intervals have already been normalized onto one declared time scale; it does not itself authenticate clocks or infer timezones.
+
+Exact-head qualification of this v0.3 increment is pending; the earlier v0.2 qualification must not be treated as a pass for the new clock code.
