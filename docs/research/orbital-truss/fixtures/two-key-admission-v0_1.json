@@ -53,7 +53,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "ELIGIBLE_INSPECTION"
     },
@@ -106,7 +107,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "REJECTED_SAFETY"
     },
@@ -159,7 +161,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "INDETERMINATE"
     },
@@ -212,7 +215,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "REJECTED_EVIDENCE"
     },
@@ -265,7 +269,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "INDETERMINATE"
     },
@@ -318,7 +323,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "OUT_OF_SCOPE"
     },
@@ -371,7 +377,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "INDETERMINATE"
     },
@@ -424,7 +431,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "INDETERMINATE"
     },
@@ -477,7 +485,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "OUT_OF_SCOPE"
     },
@@ -530,7 +539,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "OUT_OF_SCOPE"
     },
@@ -561,7 +571,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "ELIGIBLE_RECOVERY"
     },
@@ -592,7 +603,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "INDETERMINATE"
     },
@@ -645,7 +657,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 900000000000
+        "decision_value_milli": 900000000000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "REJECTED_SAFETY"
     },
@@ -698,7 +711,8 @@
         "delta_v_milli_m_s": 900000000000,
         "duration_ms": 900000000000,
         "compute_us": 2000,
-        "decision_value_milli": 1
+        "decision_value_milli": 1,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "ELIGIBLE_INSPECTION"
     },
@@ -744,7 +758,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "INDETERMINATE"
     },
@@ -788,7 +803,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "INDETERMINATE"
     },
@@ -828,7 +844,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "INDETERMINATE"
     },
@@ -881,7 +898,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "INVALID_INPUT"
     },
@@ -934,7 +952,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "REJECTED_PORTFOLIO"
     },
@@ -987,7 +1006,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "REJECTED_EVIDENCE"
     },
@@ -1040,7 +1060,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "OUT_OF_SCOPE"
     },
@@ -1093,7 +1114,8 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "OUT_OF_SCOPE"
     },
@@ -1146,9 +1168,64 @@
         "delta_v_milli_m_s": 300,
         "duration_ms": 120000,
         "compute_us": 2000,
-        "decision_value_milli": 5000
+        "decision_value_milli": 5000,
+        "decision_value_basis": "PREDICTED"
       },
       "expected_disposition": "OUT_OF_SCOPE"
+    },
+    {
+      "case_id": "TK-024-OBSERVED-DECISION-EFFECT",
+      "candidate": {
+        "class": "INSPECTION",
+        "scope": {
+          "action_id": "ACTION-001",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17"
+        },
+        "physical_safety": {
+          "state": "PASS",
+          "action_id": "ACTION-001",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000064"
+        },
+        "post_action_portfolio": {
+          "state": "PASS",
+          "event_set_complete": true,
+          "action_id": "ACTION-001",
+          "horizon_id": "HORIZON-T0-T4",
+          "event_set_revision": "EVENT-SET-REV-3",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000000c8",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7"
+        },
+        "measurement": {
+          "acquisition_state": "PASS",
+          "scope_coherence_state": "PASS",
+          "action_id": "ACTION-001",
+          "acquisition_id": "ACQ-014",
+          "camera_id": "CAMERA-02",
+          "asset_id": "RSO-TRUSS-ALPHA",
+          "feature_id": "FEATURE-JOINT-17",
+          "measurement_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012c",
+          "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "vehicle_id": "SERVICER-01",
+          "trajectory_revision": "TRAJ-REV-7",
+          "horizon_id": "HORIZON-T0-T4"
+        },
+        "delta_v_milli_m_s": 300,
+        "duration_ms": 120000,
+        "compute_us": 2000,
+        "decision_value_milli": 5000,
+        "decision_value_basis": "OBSERVED"
+      },
+      "expected_disposition": "ELIGIBLE_INSPECTION"
     }
   ]
 }
