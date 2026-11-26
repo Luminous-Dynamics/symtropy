@@ -761,7 +761,8 @@ mod tests {
         }
         for id in ["AO-023-BAD-OUTCOME-DIGEST", "AO-024-DUPLICATE-CHANNEL"] {
             assert_eq!(
-                evaluate_case(input.cases.iter().find(|case| case.case_id == id).unwrap()).disposition,
+                evaluate_case(input.cases.iter().find(|case| case.case_id == id).unwrap())
+                    .disposition,
                 Disposition::InvalidInput
             );
         }
@@ -887,8 +888,7 @@ mod tests {
         input.cases[1].cutoff.history_max_sequence = 1;
 
         let bytes = serde_json::to_vec(&input).unwrap();
-        let error = audit_corpus(&bytes, "0123456789abcdef0123456789abcdef01234567")
-            .unwrap_err();
+        let error = audit_corpus(&bytes, "0123456789abcdef0123456789abcdef01234567").unwrap_err();
         assert_eq!(error, "ATTEMPT_ID_DUPLICATE_WITHIN_CAMPAIGN");
     }
 
