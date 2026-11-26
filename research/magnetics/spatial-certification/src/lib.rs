@@ -272,6 +272,56 @@ fn same_point_exact(left: [f64; 3], right: [f64; 3]) -> bool {
         .all(|(left, right)| left.to_bits() == right.to_bits())
 }
 
+fn next_up(value: f64) -> f64 {
+    if value.is_nan() || value == f64::INFINITY {
+        return value;
+    }
+    if value == 0.0 {
+        return f64::from_bits(1);
+    }
+    let bits = value.to_bits();
+    if value.is_sign_negative() {
+        f64::from_bits(bits - 1)
+    } else {
+        f64::from_bits(bits + 1)
+    }
+}
+
+fn next_down(value: f64) -> f64 {
+    if value.is_nan() || value == f64::NEG_INFINITY {
+        return value;
+    }
+    if value == 0.0 {
+        return f64::from_bits((1_u64 << 63) | 1);
+    }
+    let bits = value.to_bits();
+    if value.is_sign_negative() {
+        f64::from_bits(bits + 1)
+    } else {
+        f64::from_bits(bits - 1)
+    }
+}
+
+fn multiply_up(left: f64, right: f64) -> f64 {
+    if left == 0.0 || right == 0.0 {
+        0.0
+    } else {
+        next_up(left * right)
+    }
+}
+
+fn add_up(left: f64, right: f64) -> f64 {
+    if left == 0.0 && right == 0.0 {
+        0.0
+    } else {
+        next_up(left + right)
+    }
+}
+
+fn subtract_down(left: f64, right: f64) -> f64 {
+    next_down(left - right)
+}
+
 fn validate_evidence(evidence: &CellMarginEvidence) -> Result<(), CertificationError> {
     let identities = [
         evidence.domain_id.as_str(),
@@ -354,21 +404,23 @@ pub fn certify_cell(
 
     for axis in Axis::ALL {
         let index = axis.index();
-        contributions[index] =
-            evidence.derivative_abs_upper_by_axis_per_m[index] * half_widths[index];
+        contributions[index] = multiply_up(
+            evidence.derivative_abs_upper_by_axis_per_m[index],
+            half_widths[index],
+        );
         if !contributions[index].is_finite() {
             return Err(CertificationError::NonFiniteDerivedMargin);
         }
-        maximum_spatial_variation += contributions[index];
+        maximum_spatial_variation = add_up(maximum_spatial_variation, contributions[index]);
         if !maximum_spatial_variation.is_finite() {
             return Err(CertificationError::NonFiniteDerivedMargin);
         }
     }
 
     let margin_lower_enclosure =
-        evidence.centre_margin_lower_bound - maximum_spatial_variation;
+        subtract_down(evidence.centre_margin_lower_bound, maximum_spatial_variation);
     let margin_upper_enclosure =
-        evidence.centre_margin_upper_bound + maximum_spatial_variation;
+        add_up(evidence.centre_margin_upper_bound, maximum_spatial_variation);
     if !margin_lower_enclosure.is_finite() || !margin_upper_enclosure.is_finite() {
         return Err(CertificationError::NonFiniteDerivedMargin);
     }
@@ -797,7 +849,7 @@ mod tests {
         input.centre_margin_upper_bound = 0.9;
         input.derivative_abs_upper_by_axis_per_m = [0.125, 0.25, 0.375];
         let result = certify_cell(&input).expect("valid boundary interval");
-        assert_eq!(result.margin_lower_enclosure, 0.0);
+        assert!(result.margin_lower_enclosure <= 0.0);
         assert_eq!(result.classification, CellClassification::Unresolved);
     }
 
