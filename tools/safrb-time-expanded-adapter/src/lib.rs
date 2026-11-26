@@ -680,8 +680,10 @@ fn evaluate_internal(
 ) -> Result<SafrbCertificate, String> {
     let p = parse(value, allow_hypothetical)?;
     // Joint solves answer whether every beneficiary floor can be met at once.
-    let lower = solve(&p, false, None)?;
-    let upper = solve(&p, true, None)?;
+    let lower_bundle = solve_bundle(&p, false, None)?;
+    let upper_bundle = solve_bundle(&p, true, None)?;
+    let lower = lower_bundle.result.clone();
+    let upper = upper_bundle.result.clone();
     let lf = edge_flow(&lower);
     let uf = edge_flow(&upper);
 
@@ -708,11 +710,11 @@ fn evaluate_internal(
             if individual_maxima_status == IndividualMaximaStatus::ComputedForInfeasibleJointService {
                 // Each isolated solve removes other obligation edges and raises
                 // the retained sink edge to the total source-capacity bound.
-                // The complete primal/dual certificate is retained below.
-                let lower_result = solve(&p, false, Some(&obligation.edge_id))?;
-                let upper_result = solve(&p, true, Some(&obligation.edge_id))?;
-                let lower_max = lower_result.max_flow;
-                let upper_max = upper_result.max_flow;
+                // The complete graph-bound primal/dual bundles are retained.
+                let lower_result = solve_bundle(&p, false, Some(&obligation.edge_id))?;
+                let upper_result = solve_bundle(&p, true, Some(&obligation.edge_id))?;
+                let lower_max = lower_result.result.max_flow;
+                let upper_max = upper_result.result.max_flow;
                 let verdict = individual_verdict(lower_max, upper_max, obligation.required);
                 (Some(lower_result), Some(upper_result), Some(verdict))
             } else if individual_maxima_status == IndividualMaximaStatus::NotNeededJointServiceFeasible {
@@ -735,8 +737,12 @@ fn evaluate_internal(
             required: obligation.required,
             lower_joint_witness_allocation: lower_joint,
             upper_joint_witness_allocation: upper_joint,
-            lower_individual_max_deliverable: lower_individual.as_ref().map(|result| result.max_flow),
-            upper_individual_max_deliverable: upper_individual.as_ref().map(|result| result.max_flow),
+            lower_individual_max_deliverable: lower_individual
+                .as_ref()
+                .map(|bundle| bundle.result.max_flow),
+            upper_individual_max_deliverable: upper_individual
+                .as_ref()
+                .map(|bundle| bundle.result.max_flow),
             lower_individual_certificate: lower_individual,
             upper_individual_certificate: upper_individual,
             disposition: window_disposition,
@@ -763,6 +769,8 @@ fn evaluate_internal(
         quantity_boundary_ref: p.boundary,
         lower,
         upper,
+        lower_bundle,
+        upper_bundle,
         windows,
         individual_maxima_status,
         disposition,
@@ -770,7 +778,6 @@ fn evaluate_internal(
         claim_ceiling: CLAIM_CEILING,
     })
 }
-
 /// Evaluate the scenario object (the document's "scenario" property).
 pub fn evaluate_scenario(value: &Value) -> Result<SafrbCertificate, String> {
     evaluate_internal(value, false, true)
@@ -856,6 +863,8 @@ pub fn minimum_capacity_counterfactual(value: &Value, edge_id: &str) -> Result<O
         lower_cut: report.lower.min_cut.capacity,
         lower_certificate: report.lower.clone(),
         upper_certificate: report.upper.clone(),
+        lower_bundle: report.lower_bundle,
+        upper_bundle: report.upper_bundle,
         windows: report.windows,
         individual_maxima_status: report.individual_maxima_status,
         evidence_status: HYPOTHETICAL,
@@ -988,15 +997,27 @@ mod tests {
             (result.windows[0].upper_joint_witness_allocation, result.windows[1].upper_joint_witness_allocation),
             (6, 6)
         );
+        result.lower_bundle.verify().unwrap();
+        result.upper_bundle.verify().unwrap();
+        assert_eq!(result.lower_bundle.result.max_flow, result.lower.max_flow);
+        assert_eq!(result.upper_bundle.result.max_flow, result.upper.max_flow);
         for window in &result.windows {
-            let lower_certificate = window.lower_individual_certificate.as_ref().unwrap();
-            let upper_certificate = window.upper_individual_certificate.as_ref().unwrap();
-            assert_eq!(Some(lower_certificate.max_flow), window.lower_individual_max_deliverable);
-            assert_eq!(Some(upper_certificate.max_flow), window.upper_individual_max_deliverable);
-            assert_eq!(lower_certificate.max_flow, lower_certificate.min_cut.capacity);
-            assert_eq!(upper_certificate.max_flow, upper_certificate.min_cut.capacity);
-            assert!(lower_certificate.graph_sha256.starts_with("sha256:"));
-            assert!(upper_certificate.graph_sha256.starts_with("sha256:"));
+            let lower_bundle = window.lower_individual_certificate.as_ref().unwrap();
+            let upper_bundle = window.upper_individual_certificate.as_ref().unwrap();
+            lower_bundle.verify().unwrap();
+            upper_bundle.verify().unwrap();
+            assert_eq!(
+                Some(lower_bundle.result.max_flow),
+                window.lower_individual_max_deliverable
+            );
+            assert_eq!(
+                Some(upper_bundle.result.max_flow),
+                window.upper_individual_max_deliverable
+            );
+            assert_eq!(lower_bundle.result.max_flow, lower_bundle.result.min_cut.capacity);
+            assert_eq!(upper_bundle.result.max_flow, upper_bundle.result.min_cut.capacity);
+            assert!(lower_bundle.result.graph_sha256.starts_with("sha256:"));
+            assert!(upper_bundle.result.graph_sha256.starts_with("sha256:"));
         }
         assert_eq!(result.disposition, ServiceDisposition::IndeterminateNotGuaranteed);
         let expected_witness = expected["flow_witness"].as_object().unwrap();
@@ -1092,6 +1113,10 @@ mod tests {
         assert_eq!(result.lower_certificate.max_flow, 12);
         assert_eq!(result.lower_certificate.min_cut.capacity, 12);
         assert_eq!(result.upper_certificate.max_flow, 12);
+        result.lower_bundle.verify().unwrap();
+        result.upper_bundle.verify().unwrap();
+        assert_eq!(result.lower_bundle.result.max_flow, 12);
+        assert_eq!(result.upper_bundle.result.max_flow, 12);
         assert_eq!(
             result.individual_maxima_status,
             IndividualMaximaStatus::NotNeededJointServiceFeasible
