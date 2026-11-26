@@ -30,9 +30,10 @@ For a lost acknowledgement, preserve distinct hypotheses:
 - partial_effect: only part of the intended effect occurred;
 - duplicate_effect: one-shot effect occurred more than once;
 - stale_authority_effect: effect occurred under a superseded authority epoch or queue generation;
-- unresolved_command_holder: another holder/forwarder may still create an effect because inventory is incomplete.
+- unresolved_command_holder: another known holder/forwarder may still create an effect because inventory is incomplete;
+- open_world_residual: an unmodelled effect-producing path or system-boundary mismatch remains possible, so the catalog cannot yet be treated as exhaustive.
 
-A scenario may permit a subset or extension of these states. State IDs, world transition rules, outcome supports and hidden truth are defined in the evaluator package. The candidate receives only the public episode snapshot and its permitted observation menu.
+A scenario may permit a subset or extension of these states. State IDs, world transition rules, outcome supports and hidden truth are defined in the evaluator package. The open-world residual is retained until the declared system boundary and effect-producing component/holder inventory have been independently qualified; a command-holder list supplied by the same coordinator is not sufficient evidence to remove it. AERB v0.1 does not itself issue that closure attestation. The candidate receives only the public episode snapshot and its permitted observation menu.
 
 **Do not collapse unknown into no-effect. Do not turn a prediction into a physical observation. Do not let a successful task outcome prove command integrity.**
 
@@ -193,7 +194,7 @@ These are targets, not achieved results:
 1. 100% of candidate inputs bind to one immutable snapshot digest and decision cut.
 2. 100% of post-cut, stale, duplicate, disputed, wrong-scope or non-monotonic records are rejected or trigger typed abstention.
 3. 100% of valid synthetic evaluator episodes have hidden truth inside the generator's complete possible-world catalog.
-4. Candidate support coverage is reported by regime; no narrow support can be scored as safe if it excludes evaluator truth.
+4. Candidate support coverage is reported by regime; no narrow support can be scored as safe if it excludes evaluator truth. The open-world residual remains in candidate support unless an independently verified, scope-bound closure artifact is admitted.
 5. 100% of requested probes come from the allowed menu and satisfy budget/deadline checks before execution.
 6. Probe outcome supports cover all declared evaluator states; uncovered supports reject.
 7. Zero false Applied / NoEffect / closure in the preregistered synthetic known-answer negative controls.
