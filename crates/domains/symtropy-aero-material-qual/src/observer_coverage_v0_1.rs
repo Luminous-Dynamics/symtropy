@@ -7,6 +7,7 @@
 //! qualify an observer, or establish physical completeness. Real qualification
 //! remains owned by BASALT and the relevant source owners.
 
+use serde::Serialize;
 use serde_json::Value;
 use std::collections::BTreeSet;
 
@@ -58,7 +59,7 @@ const INCOMPLETE_FIELDS: &[&str] = &[
     "retention_available",
 ];
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub enum CoverageStatus {
     QualifiedCompleteForScope,
     Incomplete,
@@ -79,7 +80,7 @@ impl CoverageStatus {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub enum ReplayConsequence {
     AllowScopedAbsenceInference,
     Abstain,
@@ -98,7 +99,7 @@ impl ReplayConsequence {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct CoverageAssessment {
     pub status: CoverageStatus,
     pub replay_consequence: ReplayConsequence,
