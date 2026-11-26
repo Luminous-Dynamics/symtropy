@@ -53,7 +53,23 @@ Contains the one true world for each episode, the possible-world catalog, the wo
 
 The JSON schemas in schemas/ define these separate contracts. Synthetic public fixtures exist only for unit tests and conformance; they are not a secret evaluation set. The candidate command context binds an execution_scope_id, system_boundary_manifest_sha256 and effect_producing_inventory_profile_sha256 so all closure evidence is assessed against a declared boundary.
 
-## 4. Candidate output contract
+## 3. Evaluator-side Rust package
+
+The first evaluator-side executable is in `evaluator/`. It consumes three separate files after candidate inference: the candidate-visible episode, the candidate submission, and the evaluator-only world pack. The evaluator validates digest binding, candidate support membership, open-world residual retention, probe menu/budget/deadline admission, evaluator matrix completeness and the selected disposition's worst-case loss against the frozen hard-risk ceiling. It returns only post-run score fields and never serializes the hidden truth world ID.
+
+The evaluator rejects any ordinary observation probe that drops `open_world_residual`. Only `reconcile_effect_and_scope` may contain closed-scope outcomes, and that probe must retain at least one unresolved-scope outcome. This encodes the rule that a journal, pose sample or holder-only inventory cannot establish exhaustive effect-path closure by itself.
+
+The evaluator deliberately does not calculate EVSI or robust minimax probe rankings. Symthaea's existing prior-free robust evaluator remains the decision-value calculation engine. The Rust package validates AERB contracts and scores candidate support/decision outcomes; it does not execute probes or robot commands.
+
+Input and output schemas:
+- `schemas/aerb_candidate_episode_v0_1.schema.json`
+- `schemas/aerb_candidate_submission_v0_1.schema.json`
+- `schemas/aerb_evaluator_world_pack_v0_1.schema.json`
+- `schemas/aerb_evaluator_report_v0_1.schema.json`
+
+Exact-head formatting, tests, Clippy and synthetic CLI conformance run through `.github/workflows/mobility-rrvr-aerb-evaluator.yml`. These checks are pending until GitHub Actions completes.
+
+## 5. Candidate output contract
 
 A candidate submission declares:
 
@@ -83,7 +99,7 @@ The separate schema schemas/aerb_scope_closure_receipt_v0_1.schema.json defines 
 
 A JSON field reading verification_status = verified is not self-authenticating. The upstream adapter must actually verify the evidence and signature; AERB v0.1 only defines the receipt contract. Even a valid receipt closes only the named boundary and stated assumptions. It does not prove that the physical universe has no effects outside that boundary, and it cannot be issued by the same coordinator whose command-holder inventory is being challenged.
 
-## 5. Reuse Symthaea's existing robust decision-value evaluator
+## 6. Reuse Symthaea's existing robust decision-value evaluator
 
 Do not implement a second minimax/EVSI engine.
 
@@ -112,7 +128,7 @@ Use the Bayesian EVSI path only when prior probabilities and joint observation l
 
 The robust evaluator computes value; it does not execute probes. Its Rust type boundary is not a process-security boundary.
 
-## 6. Initial campaign: process-model lane
+## 7. Initial campaign: process-model lane
 
 Start with #7564's six paired scenarios and add independently frozen cut points for:
 
@@ -142,7 +158,7 @@ For each episode:
 
 The first lane is synthetic process-model evidence. The simulator adapter must independently supply simulator reset/action/effect receipts and raw observations before any simulator claim. HIL and physical tiers are separate.
 
-## 7. Required baselines
+## 8. Required baselines
 
 Compare under matched information, probe menu, deadlines and resource budgets:
 
@@ -161,7 +177,7 @@ Compare under matched information, probe menu, deadlines and resource budgets:
 
 For HDC/CfC comparisons, preserve typed numeric observations; use HDC for representation and temporal models for forecasting. Do not treat PredictiveHdcEncoder's missing/zero-prediction sentinel as a genuine anomaly. The existing symthaea-manipulator same-model one-step predictor remains a consistency/oracle control, not an independent dynamics model.
 
-## 8. Separate endpoints
+## 9. Separate endpoints
 
 Do not aggregate these into one score:
 
@@ -198,7 +214,7 @@ Do not aggregate these into one score:
 
 Hard-safety endpoints cannot be traded against utility or efficiency.
 
-## 9. Statistical and leakage protocol
+## 10. Statistical and leakage protocol
 
 - Preregister estimands, scenario roster, possible-world catalog version, hidden truth generation, decision losses, probe supports, cluster unit, candidate/model profiles, deadlines and stopping rules.
 - Split by scenario, source trajectory cluster, task, policy/checkpoint, endpoint profile and simulator configuration; do not split adjacent frames from the same episode across training and test.
@@ -208,7 +224,7 @@ Hard-safety endpoints cannot be traded against utility or efficiency.
 - Report exact scheduled, valid, invalid, unresolved and analyzed denominators.
 - Zero observed failures is not zero risk. Any one-sided zero-event bound must state its independent-cluster sampling assumptions; #7629 keeps v0.1 descriptive until these are independently verified and coverage is validated.
 
-## 10. Proposed acceptance gates
+## 11. Proposed acceptance gates
 
 These are targets, not achieved results:
 
@@ -223,7 +239,7 @@ These are targets, not achieved results:
 9. A second independent evaluator recomputes world-support coverage, decision loss and probe-value metrics.
 10. At least one preregistered case shows lower worst-case decision loss than fixed cadence and entropy/EIG baselines without increasing hard-safety events; otherwise publish the null result.
 
-## 11. Higher evidence tiers
+## 12. Higher evidence tiers
 
 - **Tier 0 — software / known-answer:** schema, parser, candidate/evaluator isolation tests, finite-world minimax conformance.
 - **Tier 1 — process model:** #7564 deterministic harness and #7565 domain-qualified adapter.
@@ -233,6 +249,6 @@ These are targets, not achieved results:
 
 No tier promotion by metadata. RoboRecover host reproduction remains conditional on author archive/checkpoints/simulator assets and the separately qualified three-attempt replay gate; RoboTwin's all-state/all-camera verifier remains separate.
 
-## 12. Claim ceiling
+## 13. Claim ceiling
 
-AERB v0.1 is a new synthetic benchmark protocol and schema workstream. It does not establish SOTA superiority, calibrated sensor reliability, causal identification, physical effect truth, simulator/HIL/physical qualification or robot safety certification. Its first result must be a reproducible, independently challengeable process-model experiment—not a leaderboard claim.
+AERB v0.1 is a synthetic benchmark protocol, typed Rust evaluator and conformance fixture. The evaluator can score candidate support/decision outputs on synthetic inputs, but no campaign result, SOTA superiority, calibrated sensor reliability, causal identification, physical effect truth, simulator/HIL/physical qualification or robot safety certification is claimed. The first benchmark result must be a reproducible, independently challengeable process-model experiment—not a leaderboard claim.
