@@ -162,34 +162,6 @@
         "attempts": [
           {
             "attempt_id": "synthetic-replay-valid-screen-policy-0-trial-0",
-            "end_effector": {
-              "original": {
-                "coordinate_frame_id": "world",
-                "x_mm": 100,
-                "y_mm": 200,
-                "z_mm": 300
-              },
-              "replayed": {
-                "coordinate_frame_id": "world",
-                "x_mm": 101,
-                "y_mm": 200,
-                "z_mm": 300
-              }
-            },
-            "object_pose": {
-              "original": {
-                "coordinate_frame_id": "world",
-                "x_mm": 400,
-                "y_mm": 500,
-                "z_mm": 600
-              },
-              "replayed": {
-                "coordinate_frame_id": "world",
-                "x_mm": 401,
-                "y_mm": 500,
-                "z_mm": 600
-              }
-            },
             "final_frame_pairs": [
               {
                 "frame_index": 0,
@@ -226,38 +198,14 @@
                 "replay_path": "frames/synthetic-replay-valid-screen-policy-0-trial-0/replay-4.png",
                 "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
               }
-            ]
+            ],
+            "original_state_path": "states/synthetic-replay-valid-screen-policy-0-trial-0-original.json",
+            "original_state_sha256": "817b1a24083f80cbc079cf078f54b55e6088af9253cec0d2c16f3084098bc259",
+            "replay_state_path": "states/synthetic-replay-valid-screen-policy-0-trial-0-replay.json",
+            "replay_state_sha256": "1a93428ca9f41ac47da5b859e349182e0b18e4762c642fb52d318a381587afe4"
           },
           {
             "attempt_id": "synthetic-replay-valid-screen-policy-1-trial-2",
-            "end_effector": {
-              "original": {
-                "coordinate_frame_id": "world",
-                "x_mm": 100,
-                "y_mm": 200,
-                "z_mm": 300
-              },
-              "replayed": {
-                "coordinate_frame_id": "world",
-                "x_mm": 101,
-                "y_mm": 200,
-                "z_mm": 300
-              }
-            },
-            "object_pose": {
-              "original": {
-                "coordinate_frame_id": "world",
-                "x_mm": 400,
-                "y_mm": 500,
-                "z_mm": 600
-              },
-              "replayed": {
-                "coordinate_frame_id": "world",
-                "x_mm": 401,
-                "y_mm": 500,
-                "z_mm": 600
-              }
-            },
             "final_frame_pairs": [
               {
                 "frame_index": 0,
@@ -294,38 +242,14 @@
                 "replay_path": "frames/synthetic-replay-valid-screen-policy-1-trial-2/replay-4.png",
                 "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
               }
-            ]
+            ],
+            "original_state_path": "states/synthetic-replay-valid-screen-policy-1-trial-2-original.json",
+            "original_state_sha256": "274b9a01646b55f245b96074d62b443335607d999ca068e5eda5390f67cb1f74",
+            "replay_state_path": "states/synthetic-replay-valid-screen-policy-1-trial-2-replay.json",
+            "replay_state_sha256": "5863c531f07301745df0c75f763a33b3376840817866c64465640a0cf72c01ce"
           },
           {
             "attempt_id": "synthetic-replay-valid-screen-policy-2-trial-4",
-            "end_effector": {
-              "original": {
-                "coordinate_frame_id": "world",
-                "x_mm": 100,
-                "y_mm": 200,
-                "z_mm": 300
-              },
-              "replayed": {
-                "coordinate_frame_id": "world",
-                "x_mm": 101,
-                "y_mm": 200,
-                "z_mm": 300
-              }
-            },
-            "object_pose": {
-              "original": {
-                "coordinate_frame_id": "world",
-                "x_mm": 400,
-                "y_mm": 500,
-                "z_mm": 600
-              },
-              "replayed": {
-                "coordinate_frame_id": "world",
-                "x_mm": 401,
-                "y_mm": 500,
-                "z_mm": 600
-              }
-            },
             "final_frame_pairs": [
               {
                 "frame_index": 0,
@@ -362,10 +286,14 @@
                 "replay_path": "frames/synthetic-replay-valid-screen-policy-2-trial-4/replay-4.png",
                 "replay_sha256": "b40d68626d99fea184808a236852069fdfb49b763cebe225bfa8a0313da6be2a"
               }
-            ]
+            ],
+            "original_state_path": "states/synthetic-replay-valid-screen-policy-2-trial-4-original.json",
+            "original_state_sha256": "a9f177644bb866e30f6de83f1187c36fdafab61f71a809c48fc20bad988ac9dc",
+            "replay_state_path": "states/synthetic-replay-valid-screen-policy-2-trial-4-replay.json",
+            "replay_state_sha256": "7c78d69664dad5bf1f109fc149c1728dc7d653f4f4cb5484a4ca16a712860222"
           }
         ],
-        "manifest_sha256": "4f9dfd7adde79458c21f713b02b9f2bae4f884f11c73b4916d8b4a934634477e"
+        "manifest_sha256": "d3a72de4d4c5cf073ad3bc49926502a39ff28d73ff2d1a570fdb0b1337faf648"
       }
     }
   ]
