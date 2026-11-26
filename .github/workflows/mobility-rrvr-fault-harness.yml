@@ -34,11 +34,13 @@ jobs:
         run: |
           set -euo pipefail
           ROOT="research/mobility-rrvr-fault-harness-v0.1"
+          jq empty "$ROOT/fixtures/scenario_manifest_v0_1.json"
+          jq -e '.scenarios | length == 6' "$ROOT/fixtures/scenario_manifest_v0_1.json"
           cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_fault_harness -- --known-campaign > "$RUNNER_TEMP/rrvr-harness.json"
           jq -e '
             .campaign_id == "rrvr-crash-replay-known-cases-v0.1"
-            and .pair_n == 5
-            and (.pairs | length == 5)
+            and .pair_n == 6
+            and (.pairs | length == 6)
             and all(.pairs[];
               .native.frozen_input_id == .rrvr.frozen_input_id
               and .native.arm == "native_retry"
