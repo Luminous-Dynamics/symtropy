@@ -70,6 +70,7 @@ pub enum RevisionDomain {
 pub enum ContactFreshnessError {
     PairIdentityMismatch,
     WorldRevisionRegressed,
+    WorldRevisionDidNotAdvanceForMutation,
     CollisionPolicyRevisionRegressed,
     EndpointRevisionRegressed {
         proxy: ProxyId,
@@ -174,6 +175,7 @@ impl ContactFreshnessStamp {
                 reasons.insert(FreshnessReason::ProxyGenerationChanged);
                 geometry_reusable = false;
                 warm_start_reusable = false;
+                pair_eligibility_recheck_required = true;
                 // Counters for a recycled slot belong to a new identity
                 // lifetime and must not be compared with the old generation.
                 continue;
@@ -260,6 +262,10 @@ impl ContactFreshnessStamp {
         if global.solver_config_sha256 != self.global.solver_config_sha256 {
             reasons.insert(FreshnessReason::SolverConfigurationChanged);
             warm_start_reusable = false;
+        }
+
+        if !reasons.is_empty() && global.world == self.global.world {
+            return Err(ContactFreshnessError::WorldRevisionDidNotAdvanceForMutation);
         }
 
         if !geometry_reusable {
@@ -458,6 +464,12 @@ mod tests {
         }
     }
 
+    fn next_global() -> GlobalContactRevisions {
+        let mut current = global();
+        current.world += 1;
+        current
+    }
+
     fn stamp() -> ContactFreshnessStamp {
         ContactFreshnessStamp::new(
             ProxyPair::new(ProxyId(1), ProxyId(2)).expect("distinct IDs"),
@@ -486,7 +498,7 @@ mod tests {
         let mut awake = endpoint(1);
         awake.wake_epoch += 1;
         let decision = stamp
-            .assess(global(), awake, endpoint(2))
+            .assess(next_global(), awake, endpoint(2))
             .expect("wake epoch advances monotonically");
         assert_eq!(decision.geometry, ReuseDisposition::Reusable);
         assert_eq!(decision.warm_start, ReuseDisposition::Reusable);
@@ -500,7 +512,7 @@ mod tests {
         let mut moved = endpoint(1);
         moved.transform += 1;
         let decision = stamp
-            .assess(global(), moved, endpoint(2))
+            .assess(next_global(), moved, endpoint(2))
             .expect("transform advances monotonically");
         assert_eq!(decision.geometry, ReuseDisposition::RefreshRequired);
         assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
@@ -513,7 +525,7 @@ mod tests {
         let mut material = endpoint(2);
         material.material += 1;
         let decision = stamp
-            .assess(global(), endpoint(1), material)
+            .assess(next_global(), endpoint(1), material)
             .expect("material advances monotonically");
         assert_eq!(decision.geometry, ReuseDisposition::Reusable);
         assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
@@ -526,7 +538,7 @@ mod tests {
         let mut changed = endpoint(1);
         changed.eligibility += 1;
         let decision = stamp
-            .assess(global(), changed, endpoint(2))
+            .assess(next_global(), changed, endpoint(2))
             .expect("eligibility advances monotonically");
         assert_eq!(decision.geometry, ReuseDisposition::RefreshRequired);
         assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
@@ -557,7 +569,7 @@ mod tests {
         recycled.generation += 1;
         recycled.transform = 0;
         let decision = stamp
-            .assess(global(), recycled, endpoint(2))
+            .assess(next_global(), recycled, endpoint(2))
             .expect("new generation is a new identity lifetime");
         assert_eq!(decision.geometry, ReuseDisposition::RefreshRequired);
         assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
@@ -584,7 +596,7 @@ mod tests {
         let mut older = endpoint(2);
         older.shape -= 1;
         assert_eq!(
-            stamp.assess(global(), endpoint(1), older),
+            stamp.assess(next_global(), endpoint(1), older),
             Err(ContactFreshnessError::EndpointRevisionRegressed {
                 proxy: ProxyId(2),
                 domain: RevisionDomain::Shape,
@@ -596,6 +608,7 @@ mod tests {
     fn narrowphase_and_solver_configuration_changes_are_separate() {
         let stamp = stamp();
         let mut changed = global();
+        changed.world += 1;
         changed.narrowphase_config_sha256 = [13; 32];
         let decision = stamp
             .assess(changed, endpoint(1), endpoint(2))
@@ -608,6 +621,7 @@ mod tests {
         );
 
         let mut solver_changed = global();
+        solver_changed.world += 1;
         solver_changed.solver_config_sha256 = [14; 32];
         let decision = stamp
             .assess(solver_changed, endpoint(1), endpoint(2))
@@ -626,7 +640,7 @@ mod tests {
         let mut changed_endpoint = endpoint(1);
         changed_endpoint.motion_class += 1;
         let decision = stamp
-            .assess(global(), changed_endpoint, endpoint(2))
+            .assess(next_global(), changed_endpoint, endpoint(2))
             .expect("motion class advances");
         assert!(decision.pair_eligibility_recheck_required);
         assert_eq!(
@@ -635,6 +649,7 @@ mod tests {
         );
 
         let mut changed_global = global();
+        changed_global.world += 1;
         changed_global.collision_policy += 1;
         let decision = stamp
             .assess(changed_global, endpoint(1), endpoint(2))
@@ -660,7 +675,7 @@ mod tests {
         endpoints.insert(ProxyId(1), awake);
         endpoints.insert(ProxyId(2), endpoint(2));
 
-        let plan = plan_contact_lifecycle(&delta, &stamps, global(), &endpoints)
+        let plan = plan_contact_lifecycle(&delta, &stamps, next_global(), &endpoints)
             .expect("complete pair revisions");
         assert_eq!(plan.actions.len(), 1);
         assert_eq!(
@@ -762,6 +777,19 @@ mod tests {
         assert_eq!(
             plan_contact_lifecycle(&delta, &stamps, global(), &BTreeMap::new()),
             Err(ContactLifecycleError::UnexpectedStampForNewPair(pair))
+        );
+    }
+
+
+
+    #[test]
+    fn endpoint_mutation_without_world_revision_advance_fails_closed() {
+        let stamp = stamp();
+        let mut moved = endpoint(1);
+        moved.transform += 1;
+        assert_eq!(
+            stamp.assess(global(), moved, endpoint(2)),
+            Err(ContactFreshnessError::WorldRevisionDidNotAdvanceForMutation)
         );
     }
 
