@@ -489,12 +489,9 @@ mod tests {
 
     #[test]
     fn exact_trace_with_zero_bounds_is_accepted() {
-        let result = evaluate_bounded_trace(
-            &trace(2, 1),
-            &requirements(2, 1),
-            &angular_error(0.0, 0.0),
-        )
-        .expect("valid trace");
+        let result =
+            evaluate_bounded_trace(&trace(2, 1), &requirements(2, 1), &angular_error(0.0, 0.0))
+                .expect("valid trace");
 
         assert!(result.accepted);
         assert!(result.peak_absolute_phase_error_upper_bound_rad < 1.0e-12);
@@ -510,12 +507,8 @@ mod tests {
             sample.field_error_radius_t = 0.5;
         }
 
-        let result = evaluate_bounded_trace(
-            &input,
-            &requirements(2, 1),
-            &angular_error(0.0, 0.0),
-        )
-        .expect("valid trace");
+        let result = evaluate_bounded_trace(&input, &requirements(2, 1), &angular_error(0.0, 0.0))
+            .expect("valid trace");
 
         let expected = 0.5_f64.asin();
         assert!((result.maximum_field_phase_error_bound_rad - expected).abs() < 1.0e-12);
@@ -568,19 +561,23 @@ mod tests {
             sample.field_error_radius_t = 1.0;
         }
 
-        let result = evaluate_bounded_trace(
-            &input,
-            &requirements(2, 1),
-            &angular_error(0.0, 0.0),
-        )
-        .expect("finite but non-qualifying trace");
+        let result = evaluate_bounded_trace(&input, &requirements(2, 1), &angular_error(0.0, 0.0))
+            .expect("finite but non-qualifying trace");
 
         assert_eq!(result.phase_undefined_sample_count, input.samples.len());
         assert_eq!(result.minimum_guaranteed_true_field_t, 0.0);
         assert_eq!(result.peak_absolute_phase_error_upper_bound_rad, PI);
         assert!(!result.accepted);
-        assert!(result.violations.contains(&BoundedViolation::MinimumFieldNotGuaranteed));
-        assert!(result.violations.contains(&BoundedViolation::PhaseUndefinedAtOrWithinFieldErrorDisk));
+        assert!(
+            result
+                .violations
+                .contains(&BoundedViolation::MinimumFieldNotGuaranteed)
+        );
+        assert!(
+            result
+                .violations
+                .contains(&BoundedViolation::PhaseUndefinedAtOrWithinFieldErrorDisk)
+        );
     }
 
     #[test]
@@ -592,16 +589,16 @@ mod tests {
         let mut req = requirements(2, 1);
         req.maximum_peak_phase_error_rad = 0.05;
 
-        let result = evaluate_bounded_trace(
-            &input,
-            &req,
-            &angular_error(0.0, 0.0),
-        )
-        .expect("valid trace");
+        let result =
+            evaluate_bounded_trace(&input, &req, &angular_error(0.0, 0.0)).expect("valid trace");
 
         assert!(!result.accepted);
         assert!(result.peak_absolute_phase_error_upper_bound_rad > 0.05);
-        assert!(result.violations.contains(&BoundedViolation::PeakPhaseErrorNotGuaranteed));
+        assert!(
+            result
+                .violations
+                .contains(&BoundedViolation::PeakPhaseErrorNotGuaranteed)
+        );
     }
 
     #[test]
@@ -670,11 +667,7 @@ mod tests {
         input.samples[3].field_error_radius_t = -1.0;
 
         assert!(matches!(
-            evaluate_bounded_trace(
-                &input,
-                &requirements(2, 1),
-                &angular_error(0.0, 0.0)
-            ),
+            evaluate_bounded_trace(&input, &requirements(2, 1), &angular_error(0.0, 0.0)),
             Err(BoundedEvaluationError::NegativeFieldErrorRadius { index: 3 })
         ));
     }
