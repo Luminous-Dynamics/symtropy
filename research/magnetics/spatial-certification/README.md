@@ -24,7 +24,7 @@ For a convention where positive margin means compliant:
 - upper enclosure strictly below zero: certified failing throughout the box;
 - otherwise: unresolved.
 
-A cell touching zero is unresolved. Missing or invalid identities, non-finite bounds, a centre sample away from the exact box centre, or derivative evidence bound to another cell fails closed.
+A cell touching zero is unresolved. The computed lower and upper enclosures use outward-rounded f64 operations: derivative products/sums round upward, the lower margin rounds downward and the upper margin rounds upward. Overflow or non-finite results fail closed. Missing or invalid identities, a centre sample away from the exact box centre, or derivative evidence bound to another cell also fails closed.
 
 ## Deterministic refinement
 
@@ -35,7 +35,7 @@ For an unresolved adaptive-exploration cell:
 - emit two child boxes and their centres as suggested next measurement locations;
 - enforce maximum depth, maximum leaf count and minimum child width.
 
-A split is accepted only when its two children exactly partition the parent: matching outer bounds on all axes, one shared interior split plane, no overlap and no gap. Repeated validated splits preserve the root volume by construction.
+A split is accepted only when its two children exactly partition the parent: matching outer bounds on all axes, one shared interior split plane, no overlap and no gap. Repeated validated splits preserve the root volume by construction. The domain-certification entry point also checks that every leaf shares the same domain, frame, condition, probe calibration, model/solver, geometry/material, requirement, units and evidence role; it reports safe, failing and unresolved cell counts and marks the domain safe only when every leaf is certified safe.
 
 If all spatial contributions are zero, further subdivision cannot tighten the supplied interval. The result remains unresolved with a measurement/model-uncertainty disposition rather than inventing a spatial split. Budget exhaustion also leaves the cell unresolved.
 
