@@ -116,10 +116,7 @@ fn partition_key(source_id: &str, partition_id: &str) -> (String, String) {
     (source_id.to_owned(), partition_id.to_owned())
 }
 
-fn event_coordinate_matches(
-    event: &CutEvent,
-    dependency: &EventDependency,
-) -> bool {
+fn event_coordinate_matches(event: &CutEvent, dependency: &EventDependency) -> bool {
     event.event_ref == dependency.event_ref
         && event.source_id == dependency.source_id
         && event.partition_id == dependency.partition_id
@@ -433,7 +430,13 @@ mod tests {
 
     const DIGEST: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
-    fn watermark(source: &str, partition: &str, epoch: &str, seq: u64, offset: u64) -> PartitionWatermark {
+    fn watermark(
+        source: &str,
+        partition: &str,
+        epoch: &str,
+        seq: u64,
+        offset: u64,
+    ) -> PartitionWatermark {
         PartitionWatermark {
             source_id: source.to_owned(),
             partition_id: partition.to_owned(),
@@ -625,10 +628,7 @@ mod tests {
             watermarks: Vec::new(),
             events: Vec::new(),
         };
-        assert_eq!(
-            validate_causal_cut(&evidence).status,
-            CutStatus::Unverified
-        );
+        assert_eq!(validate_causal_cut(&evidence).status, CutStatus::Unverified);
     }
 
     #[test]
