@@ -111,10 +111,9 @@ pub use normal_positive_part::{
 pub use paired_counterfactual::{
     MAX_PAIRED_COUNTERFACTUAL_ATOMS, MAX_PAIRED_COUNTERFACTUAL_PORTFOLIOS,
     MultiPortfolioPairedAtom, MultiPortfolioPairedReport, PairedCounterfactualAtom,
-    PairedCounterfactualError, PairedCounterfactualReport, PairingEffect,
-    PortfolioConsequence, PortfolioCounterfactualSummary, PortfolioPairComparison,
-    SignedRational, compare_multi_portfolio_paired_support,
-    compare_paired_counterfactual_support,
+    PairedCounterfactualError, PairedCounterfactualReport, PairingEffect, PortfolioConsequence,
+    PortfolioCounterfactualSummary, PortfolioPairComparison, SignedRational,
+    compare_multi_portfolio_paired_support, compare_paired_counterfactual_support,
 };
 pub use pathwise_event::{
     EncounterWindow, HorizonContactDisposition, HorizonEventConfig, HorizonEventDefinition,
