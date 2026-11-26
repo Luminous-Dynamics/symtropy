@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/aerb-candidate-submission-v0.1.schema.json",
+  "title": "AERB Candidate Submission v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark",
+    "episode_id",
+    "candidate_snapshot_sha256",
+    "model_sha256",
+    "observer_profile_sha256",
+    "possible_world_support_ids",
+    "disposition",
+    "requested_probe_id",
+    "reason_codes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "benchmark": {
+      "const": "AERB"
+    },
+    "episode_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidate_snapshot_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "model_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "observer_profile_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "possible_world_support_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "disposition": {
+      "enum": [
+        "hold_reconcile",
+        "request_observation",
+        "abstain",
+        "recommend_fresh_attempt"
+      ]
+    },
+    "requested_probe_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "explanation_observation_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "disposition": {
+            "const": "request_observation"
+          }
+        },
+        "required": [
+          "disposition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "requested_probe_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "disposition": {
+            "enum": [
+              "hold_reconcile",
+              "abstain",
+              "recommend_fresh_attempt"
+            ]
+          }
+        },
+        "required": [
+          "disposition"
+        ]
+      },
+      "then": {
+        "properties": {
+          "requested_probe_id": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}
