@@ -458,7 +458,7 @@ mod tests {
 
     #[test]
     fn crossing_trajectories_are_candidates_and_temporal_oracle_positives() {
-        let motions = vec![
+        let motions = [
             linear(1, [0.0, 0.0], [1.0, 1.0], [4.0, 0.0]),
             linear(2, [3.0, 0.0], [4.0, 1.0], [-4.0, 0.0]),
         ];
@@ -472,7 +472,7 @@ mod tests {
 
     #[test]
     fn overlapping_swept_envelopes_can_be_a_temporal_false_positive() {
-        let motions = vec![
+        let motions = [
             linear(1, [0.0], [1.0], [10.0]),
             linear(2, [4.0], [5.0], [10.0]),
         ];
@@ -513,7 +513,7 @@ mod tests {
 
     #[test]
     fn unsupported_motion_is_always_retained_as_fallback() {
-        let motions = vec![
+        let motions = [
             linear(1, [0.0, 0.0], [1.0, 1.0], [0.0, 0.0]),
             linear(2, [100.0, 100.0], [101.0, 101.0], [0.0, 0.0]),
         ];
@@ -527,7 +527,7 @@ mod tests {
 
     #[test]
     fn filters_and_same_body_siblings_are_accounted_separately() {
-        let mut motions = vec![
+        let mut motions = [
             linear(1, [0.0], [1.0], [0.0]),
             linear(2, [0.0], [1.0], [0.0]),
             linear(3, [0.0], [1.0], [0.0]),
@@ -550,7 +550,7 @@ mod tests {
 
     #[test]
     fn input_order_does_not_change_pair_set_and_receipt_replays() {
-        let motions = vec![
+        let motions = [
             linear(1, [0.0, 0.0], [1.0, 1.0], [1.0, 0.0]),
             linear(2, [3.0, 0.0], [4.0, 1.0], [-1.0, 0.0]),
             linear(3, [10.0, 10.0], [11.0, 11.0], [0.0, 0.0]),
@@ -572,7 +572,7 @@ mod tests {
 
     #[test]
     fn changed_generation_is_a_different_identity_and_invalidates_replay() {
-        let motions = vec![
+        let motions = [
             linear(1, [0.0], [1.0], [1.0]),
             linear(2, [3.0], [4.0], [-1.0]),
         ];
@@ -588,7 +588,7 @@ mod tests {
 
     #[test]
     fn tampered_motion_receipt_is_rejected_before_pair_omission() {
-        let motions = vec![
+        let motions = [
             linear(1, [0.0], [1.0], [0.0]),
             linear(2, [10.0], [11.0], [0.0]),
         ];
