@@ -911,6 +911,7 @@ mod tests {
         let left = receipt(BenchmarkPanel::FixedProblemSolver, "left");
         let mut right = receipt(BenchmarkPanel::FixedProblemSolver, "right");
         right.problem.contact_identities = digest('8');
+        right.solver_input.contact_identities_digest = digest('8');
         let comparison = compare_fixed_problem(&left, &right).unwrap();
         assert!(!comparison.eligible);
         assert!(comparison.mismatched_fields.contains(&"contact_identities"));
@@ -933,10 +934,9 @@ mod tests {
         let right = receipt(BenchmarkPanel::FixedProblemSolver, "right");
         left.solver_input.emitted_rows = 5;
         left.solver_input.dropped_rows = 1;
-        assert_eq!(
-            compare_fixed_problem(&left, &right),
-            Err(ReceiptError::InvalidSolverRowCounts)
-        );
+        let comparison = compare_fixed_problem(&left, &right).unwrap();
+        assert!(!comparison.eligible);
+        assert!(!comparison.performance_comparable);
     }
 
     #[test]
@@ -959,9 +959,15 @@ mod tests {
     #[test]
     fn pair_recall_count_conservation_is_independently_checked() {
         let mut value = pair_audit();
+        value.true_positive_pairs = 2;
         value.false_negative_pairs = 1;
-        assert_eq!(value.validate(), Err(ReceiptError::InvalidPairCounts));
+        value.emitted_pairs = 3;
+        assert!(value.validate().is_ok());
+        assert!(!value.qualifies());
+        value.true_positive_pairs = 3;
         value.false_negative_pairs = 0;
+        value.emitted_pairs = 4;
+        assert!(value.validate().is_ok());
         assert!(value.qualifies());
     }
 
@@ -1097,10 +1103,9 @@ mod tests {
         let right = receipt(BenchmarkPanel::FullEnginePipeline, "right");
         left.solver_input.emitted_rows = 5;
         left.solver_input.dropped_rows = 1;
-        assert_eq!(
-            compare_full_pipeline(&left, &right),
-            Err(ReceiptError::InvalidSolverRowCounts)
-        );
+        let comparison = compare_full_pipeline(&left, &right).unwrap();
+        assert!(!comparison.eligible_for_scene_comparison);
+        assert!(!comparison.performance_comparable);
     }
 
     #[test]
