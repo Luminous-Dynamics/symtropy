@@ -170,15 +170,24 @@ impl EvidenceBundle {
             ("custody_closure", self.custody_closure),
             ("receiver_acceptance", self.receiver_acceptance),
             ("dependence_unit", self.dependence_unit),
-            ("calibration_evaluation_split", self.calibration_evaluation_split),
+            (
+                "calibration_evaluation_split",
+                self.calibration_evaluation_split,
+            ),
             ("frozen_candidate_grid", self.frozen_candidate_grid),
             ("outcome_completeness", self.outcome_completeness),
             ("cargo_conservation", self.cargo_conservation),
             ("statistical_guarantee", self.statistical_guarantee),
             ("observation_freshness", self.observation_freshness),
             ("observation_accounting", self.observation_accounting),
-            ("historical_as_of_integrity", self.historical_as_of_integrity),
-            ("feasible_authorized_action", self.feasible_authorized_action),
+            (
+                "historical_as_of_integrity",
+                self.historical_as_of_integrity,
+            ),
+            (
+                "feasible_authorized_action",
+                self.feasible_authorized_action,
+            ),
         ]
     }
 
@@ -219,26 +228,12 @@ impl EvidenceBundle {
 pub fn apply_named_fault(bundle: &mut EvidenceBundle, fault: &str) -> Result<(), String> {
     let (field, state, reason) = match fault {
         "NONE" => return Ok(()),
-        "CAPTURE_NOT_DURABLE" => (
-            "capture",
-            GateState::Incomplete,
-            "CAPTURE_NOT_DURABLE",
-        ),
-        "EVENT_ID_PAYLOAD_CONFLICT" => (
-            "integrity",
-            GateState::Fail,
-            "EVENT_ID_PAYLOAD_CONFLICT",
-        ),
-        "SUBJECT_BINDING_MISMATCH" => (
-            "subject",
-            GateState::Fail,
-            "SUBJECT_BINDING_MISMATCH",
-        ),
-        "ARTIFACT_NOT_VISIBLE_AS_OF" => (
-            "as_of",
-            GateState::Incomplete,
-            "ARTIFACT_NOT_VISIBLE_AS_OF",
-        ),
+        "CAPTURE_NOT_DURABLE" => ("capture", GateState::Incomplete, "CAPTURE_NOT_DURABLE"),
+        "EVENT_ID_PAYLOAD_CONFLICT" => ("integrity", GateState::Fail, "EVENT_ID_PAYLOAD_CONFLICT"),
+        "SUBJECT_BINDING_MISMATCH" => ("subject", GateState::Fail, "SUBJECT_BINDING_MISMATCH"),
+        "ARTIFACT_NOT_VISIBLE_AS_OF" => {
+            ("as_of", GateState::Incomplete, "ARTIFACT_NOT_VISIBLE_AS_OF")
+        },
         "EVENT_NOT_KNOWN_AT_DECISION_TIME" => (
             "as_of",
             GateState::Incomplete,
@@ -249,21 +244,11 @@ pub fn apply_named_fault(bundle: &mut EvidenceBundle, fault: &str) -> Result<(),
             GateState::NotEvaluable,
             "TIME_BINDING_NOT_EVALUABLE",
         ),
-        "UNSUPPORTED_CLAIM_PROMOTION" => (
-            "claim",
-            GateState::Fail,
-            "UNSUPPORTED_CLAIM_PROMOTION",
-        ),
-        "UNSUPPORTED_OUTCOME_PROMOTION" => (
-            "claim",
-            GateState::Fail,
-            "UNSUPPORTED_OUTCOME_PROMOTION",
-        ),
-        "RECEIVER_PROOF_REQUIRED" => (
-            "receiver",
-            GateState::Fail,
-            "RECEIVER_PROOF_REQUIRED",
-        ),
+        "UNSUPPORTED_CLAIM_PROMOTION" => ("claim", GateState::Fail, "UNSUPPORTED_CLAIM_PROMOTION"),
+        "UNSUPPORTED_OUTCOME_PROMOTION" => {
+            ("claim", GateState::Fail, "UNSUPPORTED_OUTCOME_PROMOTION")
+        }
+        "RECEIVER_PROOF_REQUIRED" => ("receiver", GateState::Fail, "RECEIVER_PROOF_REQUIRED"),
         "CUSTODY_CLOSURE_INCOMPLETE" => (
             "custody",
             GateState::Incomplete,
@@ -289,11 +274,9 @@ pub fn apply_named_fault(bundle: &mut EvidenceBundle, fault: &str) -> Result<(),
             GateState::NotAuthorized,
             "AUTHORIZATION_REVOKED",
         ),
-        "AUTHORIZATION_SCOPE_INVALID" => (
-            "authority",
-            GateState::Fail,
-            "AUTHORIZATION_SCOPE_INVALID",
-        ),
+        "AUTHORIZATION_SCOPE_INVALID" => {
+            ("authority", GateState::Fail, "AUTHORIZATION_SCOPE_INVALID")
+        },
         "UNKNOWN_PHYSICAL_STATE_BLOCKS" => (
             "physical",
             GateState::Unknown,
@@ -304,31 +287,17 @@ pub fn apply_named_fault(bundle: &mut EvidenceBundle, fault: &str) -> Result<(),
             GateState::Fail,
             "NON_COMPENSABLE_PARTICIPANT_FLOOR",
         ),
-        "DEPENDENCE_UNIT_MISDECLARED" => (
-            "dependence",
-            GateState::Fail,
-            "DEPENDENCE_UNIT_MISDECLARED",
-        ),
-        "CALIBRATION_EVALUATION_LEAKAGE" => (
-            "split",
-            GateState::Fail,
-            "CALIBRATION_EVALUATION_LEAKAGE",
-        ),
-        "FROZEN_POLICY_GRID_MISMATCH" => (
-            "grid",
-            GateState::Fail,
-            "FROZEN_POLICY_GRID_MISMATCH",
-        ),
-        "MISSING_OUTCOME_PROMOTED" => (
-            "outcome",
-            GateState::Fail,
-            "MISSING_OUTCOME_PROMOTED",
-        ),
-        "CARGO_CONSERVATION_VIOLATION" => (
-            "cargo",
-            GateState::Fail,
-            "CARGO_CONSERVATION_VIOLATION",
-        ),
+        "DEPENDENCE_UNIT_MISDECLARED" => {
+            ("dependence", GateState::Fail, "DEPENDENCE_UNIT_MISDECLARED")
+        }
+        "CALIBRATION_EVALUATION_LEAKAGE" => {
+            ("split", GateState::Fail, "CALIBRATION_EVALUATION_LEAKAGE")
+        }
+        "FROZEN_POLICY_GRID_MISMATCH" => ("grid", GateState::Fail, "FROZEN_POLICY_GRID_MISMATCH"),
+        "MISSING_OUTCOME_PROMOTED" => ("outcome", GateState::Fail, "MISSING_OUTCOME_PROMOTED"),
+        "CARGO_CONSERVATION_VIOLATION" => {
+            ("cargo", GateState::Fail, "CARGO_CONSERVATION_VIOLATION")
+        },
         "RECEIVER_HANDOFF_BINDING_MISMATCH" => (
             "receiver",
             GateState::Fail,
@@ -349,16 +318,8 @@ pub fn apply_named_fault(bundle: &mut EvidenceBundle, fault: &str) -> Result<(),
             GateState::NotEvaluable,
             "OBSERVATION_VALUE_NOT_EVALUABLE",
         ),
-        "AS_OF_HISTORY_MUTATED" => (
-            "history",
-            GateState::Fail,
-            "AS_OF_HISTORY_MUTATED",
-        ),
-        "SOURCE_RIGHTS_VIOLATION" => (
-            "rights",
-            GateState::Fail,
-            "SOURCE_RIGHTS_VIOLATION",
-        ),
+        "AS_OF_HISTORY_MUTATED" => ("history", GateState::Fail, "AS_OF_HISTORY_MUTATED"),
+        "SOURCE_RIGHTS_VIOLATION" => ("rights", GateState::Fail, "SOURCE_RIGHTS_VIOLATION"),
         "NO_FEASIBLE_AUTHORIZED_ACTION" => (
             "action",
             GateState::NotEvaluable,
@@ -430,7 +391,10 @@ pub fn audit_manifest(manifest: &str) -> Result<CorpusSummary, String> {
         let [case_id, fault, expected_disposition, expected_reason] =
             [fields[0], fields[1], fields[2], fields[3]];
         if case_id.is_empty() || !seen.insert(case_id.to_owned()) {
-            return Err(format!("line {}: empty or duplicate case id", line_number + 1));
+            return Err(format!(
+                "line {}: empty or duplicate case id",
+                line_number + 1
+            ));
         }
 
         let mut bundle = EvidenceBundle::synthetic_valid_fixture();
