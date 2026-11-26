@@ -186,8 +186,8 @@ Keep failed, invalid, unresolved and unobservable scheduled trials in an explici
 
 ## 6. Industry and standards interface
 
-- [ISO 10218-1:2025](https://www.iso.org/standard/73932.html) addresses industrial robot safety requirements; [ISO 10218-2:2025](https://www.iso.org/standard/73934.html) addresses industrial robot applications and cells, including integration and lifecycle activities.
-- [ISO 13849-1:2023](https://www.iso.org/standard/69883.html) concerns the design and integration of safety-related parts of control systems. RRVR evidence is not a PL claim and cannot replace required risk assessment or validation.
+- [ISO 10218-1:2025](https://www.iso.org/standard/73933.html) addresses industrial robot safety requirements; [ISO 10218-2:2025](https://www.iso.org/standard/73934.html) addresses industrial robot applications and cells, including integration and lifecycle activities.
+- [ISO 13849-1:2023](https://www.iso.org/standard/73481.html) concerns the design and integration of safety-related parts of control systems. RRVR evidence is not a PL claim and cannot replace required risk assessment or validation.
 - [ISO 21423:2026](https://www.iso.org/standard/86749.html) specifies communications and interoperability among industrial mobile robots, fleet managers and related industrial systems. The standard explicitly states that it is not safety-related and contains no safety requirements.
 - [NIST's robotic performance assessment work](https://www.nist.gov/programs-projects/performance-assessment-framework-robotic-systems) supports composable robot performance measurement across perception, mobility, dexterity and safety.
 
@@ -227,5 +227,5 @@ The primary literature is linked inline above. Relevant primary sources:
 - [EAST (arXiv:2610.34358)](https://arxiv.org/abs/2610.34358)
 - [NIST Performance Assessment Framework for Robotic Systems](https://www.nist.gov/programs-projects/performance-assessment-framework-robotic-systems)
 - [ISO 21423:2026](https://www.iso.org/standard/86749.html)
-- [ISO 10218-1:2025](https://www.iso.org/standard/73932.html)
+- [ISO 10218-1:2025](https://www.iso.org/standard/73933.html)
 - [ISO 10218-2:2025](https://www.iso.org/standard/73934.html)
