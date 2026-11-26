@@ -427,8 +427,9 @@ jobs:
                   raise SystemExit(f"{case['case_id']}: non-positive control must identify its fault")
               if case["coverage_status"] == "QUALIFIED_COMPLETE_FOR_SCOPE":
                   required_true = (
-                      "scope_closed", "scope_manifest_digest_valid", "checkpoint_digest_valid",
+                      "scope_closed", "requested_claim_in_scope", "scope_manifest_digest_valid", "checkpoint_digest_valid",
                       "receipt_present", "receipt_digest_valid", "independently_qualified",
+                      "source_identity_binding_valid", "stream_epoch_binding_verified",
                       "source_roster_reconciled", "required_obligations_complete",
                       "critical_channels_complete", "time_interval_complete",
                       "stream_continuity_valid", "retention_available", "checkpoint_binding_valid",
