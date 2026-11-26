@@ -438,9 +438,9 @@ fn evaluate_case(case: &Case) -> CaseResult {
     }
 
     let owner_map = owner_map(case);
-    if let Some(binding) = case
-        .owner_bindings
-        .iter()
+    let owner_map = owner_map(case);
+    if let Some(binding) = owner_map
+        .values()
         .find(|binding| binding.source_state != SourceState::Current)
     {
         return abstain_case(
@@ -482,9 +482,8 @@ fn evaluate_case(case: &Case) -> CaseResult {
                 owners,
             );
         }
-        if let Some(binding) = case
-            .owner_bindings
-            .iter()
+        if let Some(binding) = owner_map
+            .values()
             .find(|binding| binding.required && binding.state == GateState::Unknown)
         {
             return abstain_case(
