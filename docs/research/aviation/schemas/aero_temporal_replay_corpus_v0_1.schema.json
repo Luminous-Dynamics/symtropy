@@ -581,6 +581,17 @@
           "const": "aero-temporal-replay-reference-v0.1"
         }
       }
+    },
+    "nullableSha": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   }
 }
