@@ -11,6 +11,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use sha2::{Digest, Sha256};
+
 use crate::action_effect_portfolio::{
     ActionEffectReceipt, ActionPortfolioDisposition, ActionPortfolioError,
     ConjunctionPortfolioSnapshot, reconcile_action_effects,
@@ -41,7 +43,7 @@ pub enum JointActionOutcomeState {
     /// Independently produced, complete post-action portfolio and consequence result.
     Qualified {
         /// Complete post-action event inventory screened against the declared catalog.
-        post_action_snapshot: ConjunctionPortfolioSnapshot,
+        post_action_snapshot: Box<ConjunctionPortfolioSnapshot>,
         /// Identity of the independently qualified consequence model.
         consequence_model_digest: [u8; 32],
         /// Caller-supplied signed lower bound on consequence avoided, in fixed integer ticks.
@@ -66,13 +68,13 @@ pub enum JointActionOutcomeState {
 
 /// One outcome row for one canonical action set.
 ///
-/// Action IDs must be strictly increasing. The action-set digest is an opaque
-/// caller-supplied identity and is not recomputed by this policy verifier.
+/// Action IDs must be strictly increasing. The action-set digest is
+/// independently recomputed from the canonical action-ID sequence.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JointActionOutcomeRecord {
     /// Canonically sorted action identities; the empty set is the no-action baseline.
     pub action_ids: Vec<[u8; 32]>,
-    /// Stable digest binding the exact action set and its maneuver assumptions.
+    /// SHA-256 digest of the domain-separated canonical sorted action-ID sequence.
     pub action_set_digest: [u8; 32],
     /// Explicit outcome of this exact action set.
     pub state: JointActionOutcomeState,
@@ -106,6 +108,15 @@ pub enum JointActionSelectionDisposition {
     AbstainIncompleteEvidence,
 }
 
+/// Internal ranking key for one qualified safe coalition.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct RankedJointAction {
+    action_ids: Vec<[u8; 32]>,
+    action_set_digest: [u8; 32],
+    resource_cost: u64,
+    consequence_avoided_ticks: i64,
+}
+
 /// Summary of exact joint-action catalogue enumeration and selection.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JointActionCatalogueReport {
@@ -113,7 +124,7 @@ pub struct JointActionCatalogueReport {
     pub disposition: JointActionSelectionDisposition,
     /// Selected action identities, present only when the global optimum is qualified.
     pub selected_action_ids: Option<Vec<[u8; 32]>>,
-    /// Opaque action-set digest of the selected portfolio.
+    /// Independently recomputed canonical action-set digest of the selected portfolio.
     pub selected_action_set_digest: Option<[u8; 32]>,
     /// Resource units consumed by the selected portfolio.
     pub selected_resource_cost: Option<u64>,
@@ -160,6 +171,8 @@ pub enum JointActionCatalogueError {
     MissingCoalitionOutcome,
     /// Distinct coalitions reuse the same action-set digest.
     DuplicateActionSetDigest,
+    /// The supplied action-set digest does not match the canonical action IDs.
+    ActionSetDigestMismatch,
     /// An infeasible or unresolved row lacks a reason digest.
     InvalidReasonDigest,
     /// A qualified row uses a different consequence model.
@@ -189,6 +202,9 @@ impl core::fmt::Display for JointActionCatalogueError {
                 "a statically selectable coalition lacks an outcome row"
             }
             Self::DuplicateActionSetDigest => "different coalition rows reuse an action-set digest",
+            Self::ActionSetDigestMismatch => {
+                "action-set digest differs from the canonical action-ID sequence"
+            }
             Self::InvalidReasonDigest => "infeasible or unresolved outcome lacks a reason digest",
             Self::ConsequenceModelMismatch => {
                 "qualified coalition uses a different consequence model"
@@ -209,6 +225,34 @@ impl From<ActionPortfolioError> for JointActionCatalogueError {
     fn from(_: ActionPortfolioError) -> Self {
         Self::InvalidPortfolioEvidence
     }
+}
+
+/// Recompute the canonical identity of an exact action set.
+///
+/// The digest uses a domain-separated SHA-256 encoding of the strictly sorted
+/// 32-byte action identities, including the action count. Action IDs must
+/// themselves identify the frozen manoeuvre definitions; this function binds
+/// the coalition membership but does not authenticate the issuer or validate
+/// the physical meaning of an action ID.
+pub fn canonical_joint_action_set_digest(
+    action_ids: &[[u8; 32]],
+) -> Result<[u8; 32], JointActionCatalogueError> {
+    let mut sorted = action_ids.to_vec();
+    if sorted.iter().any(is_zero_digest) {
+        return Err(JointActionCatalogueError::InvalidActionIdentity);
+    }
+    sorted.sort_unstable();
+    if sorted.windows(2).any(|pair| pair[0] == pair[1]) {
+        return Err(JointActionCatalogueError::InvalidActionIdentity);
+    }
+
+    let mut hasher = Sha256::new();
+    hasher.update(b"luminous.orbital-joint-action-set.v0.1\0");
+    hasher.update((sorted.len() as u64).to_be_bytes());
+    for action_id in sorted {
+        hasher.update(action_id);
+    }
+    Ok(hasher.finalize().into())
 }
 
 /// Verify the closed coalition catalogue and choose the best qualified safe portfolio.
@@ -282,12 +326,6 @@ pub fn evaluate_joint_action_catalogue(
     let mut outcome_by_set = BTreeMap::new();
     let mut action_set_digests = BTreeSet::new();
     for outcome in &config.outcomes {
-        if is_zero_digest(&outcome.action_set_digest) {
-            return Err(JointActionCatalogueError::InvalidIdentity);
-        }
-        if !action_set_digests.insert(outcome.action_set_digest) {
-            return Err(JointActionCatalogueError::DuplicateActionSetDigest);
-        }
         if outcome.action_ids.windows(2).any(|pair| pair[0] >= pair[1]) {
             return Err(JointActionCatalogueError::NonCanonicalActionSet);
         }
@@ -298,15 +336,20 @@ pub fn evaluate_joint_action_catalogue(
         {
             return Err(JointActionCatalogueError::UnknownAction);
         }
+        if outcome_by_set.contains_key(&outcome.action_ids) {
+            return Err(JointActionCatalogueError::DuplicateCoalitionOutcome);
+        }
         if !expected.contains_key(&outcome.action_ids) {
             return Err(JointActionCatalogueError::UnexpectedCoalitionOutcome);
         }
-        if outcome_by_set
-            .insert(outcome.action_ids.clone(), outcome)
-            .is_some()
-        {
-            return Err(JointActionCatalogueError::DuplicateCoalitionOutcome);
+        let recomputed_digest = canonical_joint_action_set_digest(&outcome.action_ids)?;
+        if outcome.action_set_digest != recomputed_digest {
+            return Err(JointActionCatalogueError::ActionSetDigestMismatch);
         }
+        if !action_set_digests.insert(recomputed_digest) {
+            return Err(JointActionCatalogueError::DuplicateActionSetDigest);
+        }
+        outcome_by_set.insert(outcome.action_ids.clone(), outcome);
     }
     if outcome_by_set.len() != expected.len()
         || expected
@@ -331,7 +374,7 @@ pub fn evaluate_joint_action_catalogue(
         unresolved_count: 0,
         statically_excluded_count: subset_count - expected.len(),
     };
-    let mut best: Option<(Vec<[u8; 32]>, [u8; 32], u64, u64)> = None;
+    let mut best: Option<RankedJointAction> = None;
     let mut must_abstain = false;
 
     for (action_ids, resource_cost) in &expected {
@@ -372,7 +415,7 @@ pub fn evaluate_joint_action_catalogue(
                 }
                 coordination_required |= operators.len() > 1;
                 if action_ids.is_empty()
-                    && (post_action_snapshot != &config.baseline_snapshot
+                    && (post_action_snapshot.as_ref() != &config.baseline_snapshot
                         || *robust_consequence_avoided_ticks != 0)
                 {
                     return Err(JointActionCatalogueError::InvalidNoActionControl);
@@ -404,12 +447,12 @@ pub fn evaluate_joint_action_catalogue(
                 match reconciliation.disposition {
                     ActionPortfolioDisposition::PostActionBelowThreshold => {
                         report.qualified_safe_count += 1;
-                        let candidate = (
-                            action_ids.clone(),
-                            outcome.action_set_digest,
-                            *resource_cost,
-                            *robust_consequence_avoided_ticks,
-                        );
+                        let candidate = RankedJointAction {
+                            action_ids: action_ids.clone(),
+                            action_set_digest: outcome.action_set_digest,
+                            resource_cost: *resource_cost,
+                            consequence_avoided_ticks: *robust_consequence_avoided_ticks,
+                        };
                         if is_better(&candidate, best.as_ref()) {
                             best = Some(candidate);
                         }
@@ -434,26 +477,25 @@ pub fn evaluate_joint_action_catalogue(
         report.disposition = JointActionSelectionDisposition::AbstainIncompleteEvidence;
         return Ok(report);
     }
-    if let Some((action_ids, digest, resource_cost, avoided)) = best {
+    if let Some(best) = best {
         report.disposition = JointActionSelectionDisposition::QualifiedOptimum;
-        report.selected_action_ids = Some(action_ids);
-        report.selected_action_set_digest = Some(digest);
-        report.selected_resource_cost = Some(resource_cost);
-        report.selected_robust_consequence_avoided_ticks = Some(avoided);
+        report.selected_action_ids = Some(best.action_ids);
+        report.selected_action_set_digest = Some(best.action_set_digest);
+        report.selected_resource_cost = Some(best.resource_cost);
+        report.selected_robust_consequence_avoided_ticks = Some(best.consequence_avoided_ticks);
     }
     Ok(report)
 }
 
-fn is_better(
-    candidate: &(Vec<[u8; 32]>, [u8; 32], u64, i64),
-    current: Option<&(Vec<[u8; 32]>, [u8; 32], u64, i64)>,
-) -> bool {
+fn is_better(candidate: &RankedJointAction, current: Option<&RankedJointAction>) -> bool {
     let Some(current) = current else {
         return true;
     };
-    candidate.3 > current.3
-        || (candidate.3 == current.3
-            && (candidate.2 < current.2 || (candidate.2 == current.2 && candidate.0 < current.0)))
+    candidate.consequence_avoided_ticks > current.consequence_avoided_ticks
+        || (candidate.consequence_avoided_ticks == current.consequence_avoided_ticks
+            && (candidate.resource_cost < current.resource_cost
+                || (candidate.resource_cost == current.resource_cost
+                    && candidate.action_ids < current.action_ids)))
 }
 
 fn is_zero_digest(digest: &[u8; 32]) -> bool {
@@ -544,11 +586,13 @@ mod tests {
         } else {
             snapshot([id + 40; 32], [id + 50; 32], post_events)
         };
+        let action_set_digest =
+            canonical_joint_action_set_digest(&action_ids).expect("fixture action-set digest");
         JointActionOutcomeRecord {
             action_ids,
-            action_set_digest: [id + 60; 32],
+            action_set_digest,
             state: JointActionOutcomeState::Qualified {
-                post_action_snapshot: post,
+                post_action_snapshot: Box::new(post),
                 consequence_model_digest: CONSEQUENCE,
                 robust_consequence_avoided_ticks: avoided,
                 coordination_digest: None,
@@ -569,6 +613,55 @@ mod tests {
             probability_threshold: rational(1, 10_000),
             resource_capacity: capacity,
         }
+    }
+
+    #[test]
+    fn canonical_action_set_identity_is_order_independent_and_domain_separated() {
+        let a = [10; 32];
+        let b = [11; 32];
+        let ab = canonical_joint_action_set_digest(&[a, b]).unwrap();
+        let ba = canonical_joint_action_set_digest(&[b, a]).unwrap();
+        let a_only = canonical_joint_action_set_digest(&[a]).unwrap();
+        let empty = canonical_joint_action_set_digest(&[]).unwrap();
+
+        assert_eq!(ab, ba);
+        assert_ne!(ab, a_only);
+        assert_ne!(a_only, empty);
+        assert_ne!(empty, [0; 32]);
+    }
+
+    #[test]
+    fn caller_supplied_action_set_digest_is_recomputed() {
+        let a = [10; 32];
+        let mut row = qualified(
+            vec![a],
+            2,
+            vec![event(10, (1, 2_000_000), (2, 2_000_000))],
+            5,
+        );
+        row.action_set_digest = [99; 32];
+
+        assert_eq!(
+            evaluate_joint_action_catalogue(config(
+                vec![candidate(10, 1, OPERATOR_A)],
+                vec![qualified(vec![], 1, vec![], 0), row],
+                1,
+            )),
+            Err(JointActionCatalogueError::ActionSetDigestMismatch)
+        );
+    }
+
+    #[test]
+    fn canonical_action_set_identity_rejects_zero_and_duplicate_action_ids() {
+        let a = [10; 32];
+        assert_eq!(
+            canonical_joint_action_set_digest(&[[0; 32]]),
+            Err(JointActionCatalogueError::InvalidActionIdentity)
+        );
+        assert_eq!(
+            canonical_joint_action_set_digest(&[a, a]),
+            Err(JointActionCatalogueError::InvalidActionIdentity)
+        );
     }
 
     #[test]
@@ -668,7 +761,7 @@ mod tests {
             ),
             JointActionOutcomeRecord {
                 action_ids: vec![a],
-                action_set_digest: [90; 32],
+                action_set_digest: canonical_joint_action_set_digest(&[a]).unwrap(),
                 state: JointActionOutcomeState::Unresolved {
                     reason_digest: [91; 32],
                 },
@@ -687,7 +780,6 @@ mod tests {
 
     #[test]
     fn missing_selectable_coalition_row_prevents_an_optimality_claim() {
-        let a = [10; 32];
         let outcomes = vec![qualified(vec![], 1, vec![], 0)];
         assert_eq!(
             evaluate_joint_action_catalogue(config(
@@ -706,7 +798,7 @@ mod tests {
             qualified(vec![], 1, vec![], 0),
             JointActionOutcomeRecord {
                 action_ids: vec![a],
-                action_set_digest: [90; 32],
+                action_set_digest: canonical_joint_action_set_digest(&[a]).unwrap(),
                 state: JointActionOutcomeState::Unresolved {
                     reason_digest: [91; 32],
                 },
@@ -929,7 +1021,7 @@ mod tests {
             qualified(vec![], 1, vec![], 0),
             JointActionOutcomeRecord {
                 action_ids: vec![a],
-                action_set_digest: [90; 32],
+                action_set_digest: canonical_joint_action_set_digest(&[a]).unwrap(),
                 state: JointActionOutcomeState::Infeasible {
                     reason_digest: [91; 32],
                 },
@@ -960,13 +1052,13 @@ mod tests {
             qualified(
                 vec![a],
                 2,
-                vec![event(10, (1, 2_000_000), (2, 2_000_000))],
+                vec![event(10, (1, 2_000_000), (1, 2_000_000))],
                 -12,
             ),
             qualified(
                 vec![b],
                 3,
-                vec![event(10, (1, 2_000_000), (2, 2_000_000))],
+                vec![event(10, (1, 2_000_000), (1, 2_000_000))],
                 -5,
             ),
         ];
@@ -1011,5 +1103,4 @@ mod tests {
         assert_eq!(report.selected_action_ids, Some(vec![]));
         assert_eq!(report.selected_robust_consequence_avoided_ticks, Some(0));
     }
-
 }

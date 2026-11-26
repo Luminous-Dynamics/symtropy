@@ -75,7 +75,8 @@ pub use decision_refinement::{
 pub use joint_action_catalogue::{
     JointActionCandidate, JointActionCatalogueConfig, JointActionCatalogueError,
     JointActionCatalogueReport, JointActionOutcomeRecord, JointActionOutcomeState,
-    JointActionSelectionDisposition, MAX_JOINT_ACTIONS, evaluate_joint_action_catalogue,
+    JointActionSelectionDisposition, MAX_JOINT_ACTIONS, canonical_joint_action_set_digest,
+    evaluate_joint_action_catalogue,
 };
 pub use lebedev::{
     AdaptiveSphereQuadratureConfig, AdaptiveSphereQuadratureReport, LebedevRule, LebedevSphereRule,
