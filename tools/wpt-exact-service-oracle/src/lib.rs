@@ -659,6 +659,16 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
     } else {
         IndividualMaximaStatus::OmittedAboveDeclaredReceiverLimit
     };
+    let individual_source_capacity_bound = if individual_maxima_status
+        == IndividualMaximaStatus::ComputedForInfeasibleJointService
+    {
+        Some(scenario.segment_slots.values().try_fold(0_u64, |sum, slot| {
+            sum.checked_add(slot.available_deliverable_energy_mwh)
+                .ok_or_else(|| "individual WPT source-capacity bound overflowed u64".to_string())
+        })?)
+    } else {
+        None
+    };
     let obligation_edge_ids = demand_edge_ids.values()
         .map(String::as_str)
         .collect::<BTreeSet<_>>();
@@ -680,6 +690,11 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
                 !obligation_edge_ids.contains(edge.id.as_str())
                     || edge.id.as_str() == edge_id.as_str()
             });
+            let target_edge = individual_graph.edges.iter_mut()
+                .find(|edge| edge.id == *edge_id)
+                .ok_or_else(|| format!("individual graph omitted receiver obligation edge for {receiver_id}"))?;
+            target_edge.capacity = individual_source_capacity_bound
+                .ok_or_else(|| "individual source-capacity bound was unexpectedly absent".to_string())?;
             Some(individual_graph.solve().map_err(|error| {
                 format!("individual maximum for {receiver_id}: {error}")
             })?)
@@ -921,6 +936,22 @@ mod tests {
         assert!(report.receiver_allocations.iter()
             .all(|row| row.individual_max_graph_sha256.as_deref()
                 .is_some_and(|digest| digest.starts_with("sha256:"))));
+    }
+
+    #[test]
+    fn individual_receiver_maximum_can_exceed_its_service_floor() {
+        let mut scenario = fixture();
+        scenario["receivers"][0]["minimum_service_mwh"] = Value::from(8);
+        scenario["receivers"][1]["minimum_service_mwh"] = Value::from(5);
+        let report = evaluate_scenario(&scenario).unwrap();
+        assert!(!report.feasible);
+        let vehicle_one = report.receiver_allocations.iter()
+            .find(|row| row.receiver_id == "vehicle-01")
+            .unwrap();
+        assert_eq!(vehicle_one.minimum_service_mwh, 8);
+        assert_eq!(vehicle_one.individual_max_deliverable_mwh, Some(9));
+        assert_eq!(vehicle_one.individual_floor_feasible, Some(true));
+        assert!(vehicle_one.joint_witness_allocation_mwh <= 8);
     }
 
     #[test]
