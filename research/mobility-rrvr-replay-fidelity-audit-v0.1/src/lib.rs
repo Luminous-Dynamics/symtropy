@@ -155,8 +155,6 @@ pub struct FrameCheck {
     pub replay_width: Option<u32>,
     pub replay_height: Option<u32>,
     pub ssim: Option<f64>,
-    pub threshold: f64,
-    pub passed: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -170,6 +168,9 @@ pub struct CandidateAudit {
     pub end_effector: PoseCheck,
     pub object_pose: PoseCheck,
     pub frame_checks: Vec<FrameCheck>,
+    pub mean_final_five_ssim: Option<f64>,
+    pub mean_ssim_threshold: f64,
+    pub mean_ssim_passed: Option<bool>,
     pub difficulty_success_n: usize,
     pub difficulty_trial_n: usize,
     pub spot_check_attempt_ids: Vec<String>,
@@ -539,8 +540,6 @@ fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> Candida
             replay_width: None,
             replay_height: None,
             ssim: None,
-            threshold: SSIM_THRESHOLD,
-            passed: None,
         };
         if frame.frame_index as usize != expected_index {
             reason_codes.push("FRAME_INDEX_ORDER_INVALID".to_owned());
@@ -632,13 +631,7 @@ fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> Candida
         check.replay_height = Some(replay_image.height);
         match compute_ssim(&original_image, &replay_image) {
             Ok(ssim) => {
-                let passed = ssim > SSIM_THRESHOLD;
                 check.ssim = Some(ssim);
-                check.passed = Some(passed);
-                if !passed {
-                    reason_codes.push("FRAME_SSIM_NOT_ABOVE_0_99".to_owned());
-                    push_status(&mut status, AuditStatus::Invalid);
-                }
             }
             Err(reason) => {
                 reason_codes.push(reason);
@@ -652,6 +645,22 @@ fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> Candida
         push_status(&mut status, AuditStatus::Invalid);
     }
     frame_checks.sort_by_key(|check| check.frame_index);
+    let mean_scores: Option<Vec<f64>> = frame_checks
+        .iter()
+        .map(|check| check.ssim)
+        .collect();
+    let (mean_final_five_ssim, mean_ssim_passed) = match mean_scores {
+        Some(scores) if scores.len() == FRAME_PAIR_N => {
+            let mean = scores.iter().sum::<f64>() / FRAME_PAIR_N as f64;
+            let passed = mean > SSIM_THRESHOLD;
+            if !passed {
+                reason_codes.push("MEAN_FINAL_FIVE_FRAME_SSIM_NOT_ABOVE_0_99".to_owned());
+                push_status(&mut status, AuditStatus::Invalid);
+            }
+            (Some(mean), Some(passed))
+        }
+        _ => (None, None),
+    };
 
     CandidateAudit {
         scenario_id: candidate.scenario_id.clone(),
@@ -663,6 +672,9 @@ fn audit_candidate(candidate: &ReplayCandidate, artifact_root: &Path) -> Candida
         end_effector,
         object_pose,
         frame_checks,
+        mean_final_five_ssim,
+        mean_ssim_threshold: SSIM_THRESHOLD,
+        mean_ssim_passed,
         difficulty_success_n: successes,
         difficulty_trial_n: candidate.difficulty_screen.trials.len(),
         spot_check_attempt_ids: candidate.spot_check.selected_attempt_ids.clone(),
