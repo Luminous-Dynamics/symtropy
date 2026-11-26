@@ -51,7 +51,7 @@ The candidate snapshot digest in the submission is SHA-256 over RFC 8785 JSON Ca
 
 Contains the one true world for each episode, the possible-world catalog, the world-specific physical effect and authority state, the probe outcome-support sets, and the frozen decision-loss table. It must remain in an independently permissioned evaluator process/environment during confirmatory runs.
 
-The JSON schemas in schemas/ define these separate contracts. Synthetic public fixtures exist only for unit tests and conformance; they are not a secret evaluation set.
+The JSON schemas in schemas/ define these separate contracts. Synthetic public fixtures exist only for unit tests and conformance; they are not a secret evaluation set. The candidate command context binds an execution_scope_id, system_boundary_manifest_sha256 and effect_producing_inventory_profile_sha256 so all closure evidence is assessed against a declared boundary.
 
 ## 4. Candidate output contract
 
@@ -67,6 +67,17 @@ A candidate submission declares:
 The candidate cannot dispatch, retry, fence an endpoint, append evidence, adjudicate Applied/NoEffect, or authorize a robot action. It can recommend a disposition only. A separate execution owner enforces permissions and executes permitted probes.
 
 A candidate may conservatively retain every possible world. This should preserve support coverage but often leads to high worst-case decision loss. A narrow support may reduce worst-case loss but is penalized when it excludes evaluator truth. This creates a real calibration/utility trade-off rather than rewarding confident guessing.
+
+### Scope-closure receipt and the open-world residual
+
+The separate schema schemas/aerb_scope_closure_receipt_v0_1.schema.json defines a receipt for a claimed complete inventory of effect-producing components, command holders and forwarding edges within one declared execution scope. The receipt is admissible for narrowing open_world_residual only when:
+
+- its execution scope, system-boundary manifest digest and inventory-profile digest match the episode command context;
+- the independent evidence adapter verifies the signature envelope, source artifacts, verifier profile and receipt provenance;
+- the disposition is closed within the declared scope, all three completeness flags are true, and unresolved holder/forwarder/unaccounted-producer counts are zero;
+- the receipt's decision frontier is not later than the candidate's decision cut and its source roles are independent of the coordinator whose inventory is under test.
+
+A JSON field reading verification_status = verified is not self-authenticating. The upstream adapter must actually verify the evidence and signature; AERB v0.1 only defines the receipt contract. Even a valid receipt closes only the named boundary and stated assumptions. It does not prove that the physical universe has no effects outside that boundary, and it cannot be issued by the same coordinator whose command-holder inventory is being challenged.
 
 ## 5. Reuse Symthaea's existing robust decision-value evaluator
 
