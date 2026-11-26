@@ -342,6 +342,66 @@ mod tests {
     }
 
     #[test]
+    fn inverse_lorentz_boost_recovers_original_four_momentum() {
+        let particle = FourMomentum::from_particle(
+            2.3,
+            [
+                0.08 * SPEED_OF_LIGHT_M_S,
+                -0.03 * SPEED_OF_LIGHT_M_S,
+                0.02 * SPEED_OF_LIGHT_M_S,
+            ],
+        )
+        .unwrap();
+        let boost = [
+            0.17 * SPEED_OF_LIGHT_M_S,
+            -0.06 * SPEED_OF_LIGHT_M_S,
+            0.04 * SPEED_OF_LIGHT_M_S,
+        ];
+
+        let transformed = particle.boost_to_moving_frame(boost).unwrap();
+        let recovered = transformed
+            .boost_to_moving_frame(boost.map(|component| -component))
+            .unwrap();
+
+        close(recovered.energy_j(), particle.energy_j(), 1e-6);
+        for axis in 0..3 {
+            close(
+                recovered.momentum_kg_m_s()[axis],
+                particle.momentum_kg_m_s()[axis],
+                1e-7,
+            );
+        }
+    }
+
+    #[test]
+    fn four_momentum_boost_composes_for_collinear_frames() {
+        let mass = 1.7;
+        let particle = FourMomentum::from_particle(mass, [0.0, 0.0, 0.0]).unwrap();
+        let first_beta: f64 = 0.12;
+        let second_beta: f64 = 0.08;
+        let first = particle
+            .boost_to_moving_frame([first_beta * SPEED_OF_LIGHT_M_S, 0.0, 0.0])
+            .unwrap();
+        let sequential = first
+            .boost_to_moving_frame([second_beta * SPEED_OF_LIGHT_M_S, 0.0, 0.0])
+            .unwrap();
+
+        let combined_beta =
+            (first_beta + second_beta) / (1.0 + first_beta * second_beta);
+        let direct = particle
+            .boost_to_moving_frame([combined_beta * SPEED_OF_LIGHT_M_S, 0.0, 0.0])
+            .unwrap();
+
+        close(sequential.energy_j(), direct.energy_j(), 1e-6);
+        close(
+            sequential.momentum_kg_m_s()[0],
+            direct.momentum_kg_m_s()[0],
+            1e-7,
+        );
+        close(sequential.invariant_rest_mass_kg().unwrap(), mass, 1e-11);
+    }
+
+    #[test]
     fn four_momentum_invariant_survives_general_lorentz_boost() {
         let mass = 3.2;
         let particle = FourMomentum::from_particle(
