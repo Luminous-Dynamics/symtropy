@@ -9,10 +9,10 @@ The named profile, `RoboRecoverReplayV1`, fixes:
 - between 2 and 18 successful reference recoveries, inclusive;
 - exactly three distinct replay spot-check attempt IDs, recorded under seed 42;
 - end-effector and object positional deviations strictly below 2 mm;
-- mean SSIM strictly above 0.99 across exactly five final pre-recovery frame pairs;
+- mean SSIM strictly above 0.99 across exactly five final pre-recovery frame pairs, with the published SSIM threshold applied to their arithmetic mean;
 - same declared coordinate-frame identity for each original/replayed pose pair.
 
-The image profile is pinned to PNG decode through png 0.18.1, 8-bit RGB sample space, alpha composited over white, 11×11 Gaussian SSIM windows (sigma 1.5), K1=0.01, K2=0.03, and arithmetic mean over valid window centers and RGB channels. Input samples are the decoded 8-bit sRGB-encoded values; no unversioned color-space conversion is applied. A change to decoder, alpha handling, window, sigma, constants or aggregation requires a profile version change.
+The image profile is pinned to PNG decode through png 0.18.1, 8-bit RGB sample space, alpha composited over white, 11×11 Gaussian SSIM windows (sigma 1.5), K1=0.01, K2=0.03, and arithmetic mean over valid window centers and RGB channels. The five per-frame SSIM values are then averaged; the host threshold applies to this five-frame mean, not to each frame independently. Input samples are decoded 8-bit RGB channel values; no color-management or gamma normalization is applied. The single rendering-profile digest must bind both original and replay captures. A change to decoder, alpha handling, window, sigma, constants or aggregation requires a profile version change.
 
 ## Run
 
