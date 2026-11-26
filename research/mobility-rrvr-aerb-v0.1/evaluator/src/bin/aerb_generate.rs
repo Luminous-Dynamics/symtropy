@@ -605,6 +605,29 @@ mod tests {
     }
 
     #[test]
+    fn generated_unqualified_observations_force_abstention() {
+        let profile = digest_label("test-generator-profile");
+        for index in [0usize, 11, 17] {
+            let episode = build_episode(index, &profile);
+            let submission = build_submission(&episode).expect("submission");
+            assert_eq!(submission.disposition, Disposition::Abstain);
+            assert!(submission.requested_probe_id.is_none());
+        }
+    }
+
+    #[test]
+    fn generated_clean_observations_request_scoped_reconciliation() {
+        let profile = digest_label("test-generator-profile");
+        let episode = build_episode(3, &profile);
+        let submission = build_submission(&episode).expect("submission");
+        assert_eq!(submission.disposition, Disposition::RequestObservation);
+        assert_eq!(
+            submission.requested_probe_id.as_deref(),
+            Some("reconcile_effect_and_scope")
+        );
+    }
+
+    #[test]
     fn generated_campaign_cycle_is_balanced_not_probability_weighted() {
         let mut counts = BTreeMap::new();
         for cycle in 0..3 {
