@@ -44,24 +44,38 @@ jobs:
           set -euo pipefail
           ROOT="research/mobility-rrvr-replay-fidelity-audit-v0.1"
           ARTIFACT_ROOT="$RUNNER_TEMP/replay-artifacts"
-          mkdir -p "$ARTIFACT_ROOT/frames"
-          for i in 0 1 2 3 4; do
-            base64 -d "$ROOT/fixtures/identical_rgb16x16.png.b64" > "$ARTIFACT_ROOT/frames/original-$i.png"
-            cp "$ARTIFACT_ROOT/frames/original-$i.png" "$ARTIFACT_ROOT/frames/replay-$i.png"
+          mkdir -p "$ARTIFACT_ROOT/metadata"
+          cp "$ROOT/fixtures/selection_record_v0_1.json" "$ARTIFACT_ROOT/metadata/synthetic-replay-valid-selection.json"
+          ATTEMPTS=(
+            synthetic-replay-valid-screen-policy-0-trial-0
+            synthetic-replay-valid-screen-policy-1-trial-2
+            synthetic-replay-valid-screen-policy-2-trial-4
+          )
+          for attempt in "${ATTEMPTS[@]}"; do
+            mkdir -p "$ARTIFACT_ROOT/frames/$attempt"
+            for i in 0 1 2 3 4; do
+              base64 -d "$ROOT/fixtures/identical_rgb16x16.png.b64" > "$ARTIFACT_ROOT/frames/$attempt/original-$i.png"
+              cp "$ARTIFACT_ROOT/frames/$attempt/original-$i.png" "$ARTIFACT_ROOT/frames/$attempt/replay-$i.png"
+            done
           done
           cargo run --locked --manifest-path "$ROOT/Cargo.toml" --bin rrvr_replay_audit -- "$ROOT/fixtures/replay_manifest_v0_1.json" "$ARTIFACT_ROOT" > "$RUNNER_TEMP/rrvr-replay-audit.json"
           jq -e '
             .benchmark == "RRVR-REPLAY-FIDELITY"
-            and .profile_id == "RoboRecoverReplayV1"
+            and .profile_id == "RoboRecoverPublishedThresholdsV1"
+            and .metric_profile_id == "RRVR-SSIM-GAUSSIAN11-SIGMA1_5-RGB8-V0_1"
             and .candidate_n == 1
             and .valid_n == 1
             and .invalid_n == 0
             and .unresolved_n == 0
             and .candidate_audits[0].status == "valid"
             and .candidate_audits[0].difficulty_success_n == 2
-            and (.candidate_audits[0].frame_checks | length == 5)
-            and .candidate_audits[0].mean_final_five_ssim == 1
-            and .candidate_audits[0].mean_ssim_passed
+            and (.candidate_audits[0].spot_checks | length == 3)
+            and all(.candidate_audits[0].spot_checks[];
+              .status == "valid"
+              and (.frame_checks | length == 5)
+              and .mean_final_five_ssim == 1
+              and .mean_ssim_passed
+            )
           ' "$RUNNER_TEMP/rrvr-replay-audit.json"
 
       - name: Run replay-fidelity tests
