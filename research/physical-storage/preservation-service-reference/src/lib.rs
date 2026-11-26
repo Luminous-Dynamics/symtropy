@@ -104,6 +104,7 @@ pub enum ContractError {
     ZeroRequestedObjects,
     ZeroElapsedTime,
     MissingRequiredDeadline,
+    NoRequiredStages,
     RequiredStageDuplicated,
     ObservedStageDuplicated,
     ObjectAccountingOverflow,
@@ -156,6 +157,9 @@ pub fn score(
     }
     if contract.deadline_required && contract.deadline_ms == 0 {
         return Err(ContractError::MissingRequiredDeadline);
+    }
+    if contract.required_stages.is_empty() {
+        return Err(ContractError::NoRequiredStages);
     }
     if contains_duplicate_stages(&contract.required_stages) {
         return Err(ContractError::RequiredStageDuplicated);
@@ -480,6 +484,8 @@ mod tests {
 
         let mut accepted = passing_receipt();
         accepted.independently_accepted_bytes += 1;
+        accepted.delivered_bytes += 1;
+        accepted.reconstructed_bytes += 1;
         assert_eq!(score(&contract(), &accepted), Err(ContractError::AcceptedBytesExceedRequested));
     }
 
