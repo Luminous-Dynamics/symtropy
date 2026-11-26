@@ -175,3 +175,37 @@ The exact-head workflow now checks three receipts:
 3. QC–AGV synchronization (nominal best BA, robust best AB; five Gamma=1 scenarios).
 
 Each receipt is recomputed by a separate standard-library Python reference. The sync reference reconstructs event readiness and waiting independently; this does not authenticate real QC service-time bounds or measure terminal receiver service.
+
+## November 2026 QC–AGV robust-routing comparator
+
+A new comparator must now be included: Song et al., *Journal of Marine Science and Engineering* 14(23), 2244 (25 November 2026), DOI [10.3390/jmse14232244](https://doi.org/10.3390/jmse14232244). The paper's core route model differs materially from the current two-task `sync` microcase.
+
+### Correct comparator contract
+
+- Fixed QC task orders; AGV vehicle assignments and successor routes are chosen.
+- Handoff starts at the exact maximum of QC readiness and AGV arrival.
+- Both QC idle and AGV queue waiting are costed separately.
+- Loading AGVs are released at QC service start; unloading AGVs remain occupied through QC service and loaded delivery.
+- Continuous two-sided service-time deviations use `p_i(u)=pbar_i+delta_i*u_i`, `-1 <= u_i <= 1`, and `sum_i |u_i| <= Gamma`.
+- Route selection is here-and-now; event times are recomputed for every uncertain realization.
+- A continuous separation problem supplies a feasible adverse witness and a valid upper bound; the master supplies a lower bound. A timeout or repeated adversary point without gap closure is not an optimality certificate.
+- A sufficient loose-horizon condition is used in the paper. A failure of that sufficient condition is not proof of infeasibility; binding deadlines need separate robust feasibility checks.
+
+The paper's two-task `sync` mechanism test in this repository is not a reproduction of that paper. Its uncertainty set is the finite discrete subset `{-1,0,1}` with an integer L1 budget.
+
+### Published result: a deliberately narrow win, not general SOTA
+
+For six-task synthetic instance S6-B at `Gamma=1`, the paper reports nominal route cost increasing from 69.1000 to 71.0833 CNY while the certified route-specific worst-case cost falls from 82.3000 to 77.0833 CNY. S6-B is the only improvement among its tested matrix; the article reports 16 certified conditions and eight unresolved. The result is a conditional synchronization mechanism under fixed crane orders, an instantaneous loading-release convention and a loose completion horizon—not an estimate of operating savings or evidence that robust rerouting generally wins.
+
+The paper's text identifies S6-B local tasks 0–5 as source IDs 69, 90, 94, 175, 1034 and 1153; QC 1 handles tasks 1, 2, 4; QC 2 handles tasks 0, 5; QC 3 handles task 3. Tasks 1, 2 and 4 load; the others unload. Full durations, deviation amplitudes, yard blocks, distances and event records reside in the accompanying computational archive / are available from the authors. They have not been reconstructed here. Do not infer them from aggregate costs.
+
+### Our next reproduction gate
+
+Issue [#7602 — continuous-budget QC–AGV reproduction](https://github.com/Luminous-Dynamics/symtropy/issues/7602) defines the next work. Before comparing performance, we must:
+1. implement a fixed-route continuous adversary with exact event timing and direction-dependent release;
+2. provide a small independent LP/active-region oracle and continuous uncertainty witnesses;
+3. recover or request exact S6-B source inputs before claiming reproduction;
+4. compare nominal route, continuous worst costs, task-1 plus/minus 36 s witnesses, both routes under both witnesses, and certification bounds;
+5. extend from the paper's deliberately narrow assumptions to finite yard buffers, traffic conflicts, charging, failures and receiver-service outcomes, as separate extensions.
+
+No exact S6-B replication or SOTA gain is claimed by the current two-task fixture.
