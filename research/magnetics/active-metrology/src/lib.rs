@@ -46,6 +46,18 @@ pub struct ScanCandidate {
     pub already_measured: bool,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ScanRegion {
+    pub minimum_x_m: f64,
+    pub maximum_x_m: f64,
+    pub minimum_y_m: f64,
+    pub maximum_y_m: f64,
+    pub minimum_z_m: f64,
+    pub maximum_z_m: f64,
+    pub minimum_standoff_m: f64,
+    pub maximum_standoff_m: f64,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct ScanPolicy {
     pub plan_id: String,
@@ -54,6 +66,7 @@ pub struct ScanPolicy {
     pub probe_calibration_record_id: String,
     pub qualified_model_set_id: String,
     pub functional_requirement_id: String,
+    pub scan_region: ScanRegion,
     /// Minimum Euclidean separation between selected probe locations, metres.
     pub minimum_separation_m: f64,
     pub maximum_acquisition_cost_s: f64,
@@ -132,6 +145,7 @@ pub enum PlanningError {
     DuplicateCandidateId,
     SourceIdentityMismatch { index: usize },
     InvalidCoordinate { index: usize },
+    OutsideScanEnvelope { index: usize },
     InvalidMeasurementBound { index: usize },
     InvalidAcquisitionCost { index: usize },
     InvalidModelDisagreement { index: usize },
@@ -150,6 +164,23 @@ fn validate_policy(policy: &ScanPolicy) -> Result<(), PlanningError> {
         || !nonempty(&policy.probe_calibration_record_id)
         || !nonempty(&policy.qualified_model_set_id)
         || !nonempty(&policy.functional_requirement_id)
+        || [
+            policy.scan_region.minimum_x_m,
+            policy.scan_region.maximum_x_m,
+            policy.scan_region.minimum_y_m,
+            policy.scan_region.maximum_y_m,
+            policy.scan_region.minimum_z_m,
+            policy.scan_region.maximum_z_m,
+            policy.scan_region.minimum_standoff_m,
+            policy.scan_region.maximum_standoff_m,
+        ]
+        .into_iter()
+        .any(|value| !value.is_finite())
+        || policy.scan_region.minimum_x_m > policy.scan_region.maximum_x_m
+        || policy.scan_region.minimum_y_m > policy.scan_region.maximum_y_m
+        || policy.scan_region.minimum_z_m > policy.scan_region.maximum_z_m
+        || policy.scan_region.minimum_standoff_m < 0.0
+        || policy.scan_region.minimum_standoff_m > policy.scan_region.maximum_standoff_m
         || !policy.minimum_separation_m.is_finite()
         || policy.minimum_separation_m < 0.0
         || !policy.maximum_acquisition_cost_s.is_finite()
@@ -205,6 +236,19 @@ fn validate_candidate(
         || candidate.standoff_m < 0.0
     {
         return Err(PlanningError::InvalidCoordinate { index });
+    }
+
+    let region = policy.scan_region;
+    if candidate.x_m < region.minimum_x_m
+        || candidate.x_m > region.maximum_x_m
+        || candidate.y_m < region.minimum_y_m
+        || candidate.y_m > region.maximum_y_m
+        || candidate.z_m < region.minimum_z_m
+        || candidate.z_m > region.maximum_z_m
+        || candidate.standoff_m < region.minimum_standoff_m
+        || candidate.standoff_m > region.maximum_standoff_m
+    {
+        return Err(PlanningError::OutsideScanEnvelope { index });
     }
 
     if !candidate.measurement_error_bound_t.is_finite()
@@ -452,6 +496,16 @@ mod tests {
             probe_calibration_record_id: "probe-cal-001".to_owned(),
             qualified_model_set_id: "models-001".to_owned(),
             functional_requirement_id: "encoder-phase-margin-001".to_owned(),
+            scan_region: ScanRegion {
+                minimum_x_m: -0.1,
+                maximum_x_m: 0.1,
+                minimum_y_m: -0.1,
+                maximum_y_m: 0.1,
+                minimum_z_m: -0.1,
+                maximum_z_m: 0.1,
+                minimum_standoff_m: 0.001,
+                maximum_standoff_m: 0.01,
+            },
             minimum_separation_m: 0.002,
             maximum_acquisition_cost_s: 10.0,
             maximum_point_count: 4,
@@ -595,6 +649,24 @@ mod tests {
         assert!(matches!(
             plan_decision_directed_scan(&[point], &policy()),
             Err(PlanningError::SourceIdentityMismatch { index: 0 })
+        ));
+    }
+
+
+    #[test]
+    fn points_outside_the_declared_scan_volume_or_standoff_are_rejected() {
+        let mut outside_position = candidate("outside-volume", 0.0, 0.02, 1.0, 0.001, 1.0);
+        outside_position.x_m = 0.2;
+        assert!(matches!(
+            plan_decision_directed_scan(&[outside_position], &policy()),
+            Err(PlanningError::OutsideScanEnvelope { index: 0 })
+        ));
+
+        let mut outside_standoff = candidate("outside-standoff", 0.0, 0.02, 1.0, 0.001, 1.0);
+        outside_standoff.standoff_m = 0.02;
+        assert!(matches!(
+            plan_decision_directed_scan(&[outside_standoff], &policy()),
+            Err(PlanningError::OutsideScanEnvelope { index: 0 })
         ));
     }
 
