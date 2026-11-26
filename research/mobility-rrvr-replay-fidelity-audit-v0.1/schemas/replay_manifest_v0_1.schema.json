@@ -28,13 +28,17 @@
         "z_mm": { "type": "number" }
       }
     },
-    "pose_comparison": {
+    "replay_state_snapshot": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["original", "replayed"],
+      "required": ["schema_version", "scenario_id", "attempt_id", "simulator_profile_sha256", "end_effector_position", "object_position"],
       "properties": {
-        "original": { "$ref": "#/$defs/position_mm" },
-        "replayed": { "$ref": "#/$defs/position_mm" }
+        "schema_version": { "const": "0.1" },
+        "scenario_id": { "type": "string", "minLength": 1 },
+        "attempt_id": { "type": "string", "minLength": 1 },
+        "simulator_profile_sha256": { "$ref": "#/$defs/sha256" },
+        "end_effector_position": { "$ref": "#/$defs/position_mm" },
+        "object_position": { "$ref": "#/$defs/position_mm" }
       }
     },
     "difficulty_trial": {
@@ -63,11 +67,13 @@
     "spot_check_attempt": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["attempt_id", "end_effector", "object_pose", "final_frame_pairs"],
+      "required": ["attempt_id", "original_state_path", "original_state_sha256", "replay_state_path", "replay_state_sha256", "final_frame_pairs"],
       "properties": {
         "attempt_id": { "type": "string", "minLength": 1 },
-        "end_effector": { "$ref": "#/$defs/pose_comparison" },
-        "object_pose": { "$ref": "#/$defs/pose_comparison" },
+        "original_state_path": { "type": "string", "minLength": 1 },
+        "original_state_sha256": { "$ref": "#/$defs/sha256" },
+        "replay_state_path": { "type": "string", "minLength": 1 },
+        "replay_state_sha256": { "$ref": "#/$defs/sha256" },
         "final_frame_pairs": { "type": "array", "minItems": 5, "maxItems": 5, "items": { "$ref": "#/$defs/frame_pair" } }
       }
     },
