@@ -7,7 +7,7 @@
 //! checkpoints, verify receiver receipts, or qualify physical observations.
 //! Those facts must come from owner-native and independently qualified inputs.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
@@ -52,7 +52,7 @@ pub struct EventDependency {
     pub sequence: u64,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub enum CutStatus {
     Closed,
     Incomplete,
@@ -71,7 +71,7 @@ impl CutStatus {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct CutAssessment {
     pub status: CutStatus,
     pub reason_codes: Vec<String>,
