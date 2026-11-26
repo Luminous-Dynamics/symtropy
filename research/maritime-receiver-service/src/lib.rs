@@ -133,7 +133,7 @@ pub enum ServiceError {
     },
     EvidenceAfterHorizon {
         unit_id: String,
-    }
+    },
 }
 
 impl std::fmt::Display for ServiceError {
