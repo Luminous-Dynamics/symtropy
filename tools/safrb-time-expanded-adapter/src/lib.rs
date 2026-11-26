@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 const SCHEMA: &str = "safrb-time-expanded-network-v0.1";
 const HYPOTHETICAL: &str = "hypothetical_counterfactual_not_admitted";
 const MAX_SERVICE_OBLIGATIONS: usize = 128;
+const MAX_INDIVIDUAL_MAXIMA: usize = 32;
 const CLAIM_CEILING: &str = "Synthetic mathematical feasibility for the declared single-commodity time-expanded graph only; no authenticated evidence, physical asset qualification, legal access, dispatch authority or actual beneficiary-service claim.";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -24,6 +25,14 @@ pub enum ServiceDisposition {
     NotFeasibleWithinDeclaredUpperEnvelope,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IndividualMaximaStatus {
+    NotNeededJointServiceFeasible,
+    ComputedForInfeasibleJointService,
+    OmittedAboveDeclaredObligationLimit,
+    OmittedForCounterfactualSearch,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WindowResult {
     pub obligation_id: String,
@@ -36,13 +45,13 @@ pub struct WindowResult {
     pub upper_joint_witness_allocation: u64,
     /// Maximum deliverable to this obligation when evaluated on its own.
     /// Individual maxima for different obligations need not be jointly feasible.
-    pub lower_individual_max_deliverable: u64,
-    pub upper_individual_max_deliverable: u64,
-    /// Full primal/dual certificates for each isolated maximum. These bind
-    /// the modified graph digest, edge-flow witness and min-cut witness.
-    pub lower_individual_certificate: FlowResult,
-    pub upper_individual_certificate: FlowResult,
-    pub disposition: WindowDisposition,
+    pub lower_individual_max_deliverable: Option<u64>,
+    pub upper_individual_max_deliverable: Option<u64>,
+    /// Full primal/dual certificates for each isolated maximum. Absent when
+    /// these diagnostics are not needed or deliberately omitted.
+    pub lower_individual_certificate: Option<FlowResult>,
+    pub upper_individual_certificate: Option<FlowResult>,
+    pub disposition: Option<WindowDisposition>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -56,6 +65,7 @@ pub struct SafrbCertificate {
     pub lower: FlowResult,
     pub upper: FlowResult,
     pub windows: Vec<WindowResult>,
+    pub individual_maxima_status: IndividualMaximaStatus,
     pub disposition: ServiceDisposition,
     pub counterfactual_only: bool,
     pub claim_ceiling: &'static str,
@@ -71,7 +81,10 @@ pub struct RestorationThreshold {
     pub additional_capacity: u64,
     pub lower_flow: u64,
     pub lower_cut: u64,
+    pub lower_certificate: FlowResult,
+    pub upper_certificate: FlowResult,
     pub windows: Vec<WindowResult>,
+    pub individual_maxima_status: IndividualMaximaStatus,
     pub evidence_status: &'static str,
     pub base_scenario_sha256: String,
     pub hypothetical_scenario_sha256: String,
@@ -616,7 +629,11 @@ fn individual_verdict(lower: u64, upper: u64, required: u64) -> WindowDispositio
     }
 }
 
-fn evaluate_internal(value: &Value, allow_hypothetical: bool) -> Result<SafrbCertificate, String> {
+fn evaluate_internal(
+    value: &Value,
+    allow_hypothetical: bool,
+    include_individual_maxima: bool,
+) -> Result<SafrbCertificate, String> {
     let p = parse(value, allow_hypothetical)?;
     // Joint solves answer whether every beneficiary floor can be met at once.
     let lower = solve(&p, false, None)?;
@@ -628,6 +645,17 @@ fn evaluate_internal(value: &Value, allow_hypothetical: bool) -> Result<SafrbCer
         sum.checked_add(obligation.required)
             .ok_or_else(|| err("$.service_obligations", "sum of service floors overflows u64"))
     })?;
+    let joint_lower_feasible = lower.max_flow == total_required;
+
+    let individual_maxima_status = if joint_lower_feasible {
+        IndividualMaximaStatus::NotNeededJointServiceFeasible
+    } else if !include_individual_maxima {
+        IndividualMaximaStatus::OmittedForCounterfactualSearch
+    } else if p.obligations.len() <= MAX_INDIVIDUAL_MAXIMA {
+        IndividualMaximaStatus::ComputedForInfeasibleJointService
+    } else {
+        IndividualMaximaStatus::OmittedAboveDeclaredObligationLimit
+    };
 
     let mut windows = Vec::new();
     for obligation in &p.obligations {
@@ -636,12 +664,29 @@ fn evaluate_internal(value: &Value, allow_hypothetical: bool) -> Result<SafrbCer
         let upper_joint = *uf.get(&obligation.edge_id)
             .ok_or_else(|| err("$.certificate", "joint upper witness omitted an obligation edge"))?;
 
-        // Individual solves remove other sink-obligation edges. These maxima
-        // are useful for diagnosis but are not claimed to be jointly feasible.
-        let lower_individual = solve(&p, false, Some(&obligation.edge_id))?;
-        let upper_individual = solve(&p, true, Some(&obligation.edge_id))?;
-        let lower_individual_max = lower_individual.max_flow;
-        let upper_individual_max = upper_individual.max_flow;
+        let (lower_individual, upper_individual, window_disposition) =
+            if individual_maxima_status == IndividualMaximaStatus::ComputedForInfeasibleJointService {
+                // Each isolated solve removes other obligation edges and raises
+                // the retained sink edge to the total source-capacity bound.
+                // The complete primal/dual certificate is retained below.
+                let lower_result = solve(&p, false, Some(&obligation.edge_id))?;
+                let upper_result = solve(&p, true, Some(&obligation.edge_id))?;
+                let lower_max = lower_result.max_flow;
+                let upper_max = upper_result.max_flow;
+                let verdict = individual_verdict(lower_max, upper_max, obligation.required);
+                (Some(lower_result), Some(upper_result), Some(verdict))
+            } else if individual_maxima_status == IndividualMaximaStatus::NotNeededJointServiceFeasible {
+                // Joint lower feasibility already proves each individual
+                // floor is attainable; computing separate maxima adds no
+                // decision value and would multiply solver work.
+                (
+                    None,
+                    None,
+                    Some(WindowDisposition::IndividuallyFeasibleWithinDeclaredLowerEnvelope),
+                )
+            } else {
+                (None, None, None)
+            };
 
         windows.push(WindowResult {
             obligation_id: obligation.id.clone(),
@@ -650,22 +695,18 @@ fn evaluate_internal(value: &Value, allow_hypothetical: bool) -> Result<SafrbCer
             required: obligation.required,
             lower_joint_witness_allocation: lower_joint,
             upper_joint_witness_allocation: upper_joint,
-            lower_individual_max_deliverable: lower_individual_max,
-            upper_individual_max_deliverable: upper_individual_max,
+            lower_individual_max_deliverable: lower_individual.as_ref().map(|result| result.max_flow),
+            upper_individual_max_deliverable: upper_individual.as_ref().map(|result| result.max_flow),
             lower_individual_certificate: lower_individual,
             upper_individual_certificate: upper_individual,
-            disposition: individual_verdict(
-                lower_individual_max,
-                upper_individual_max,
-                obligation.required,
-            ),
+            disposition: window_disposition,
         });
     }
 
     // A full lower-bound max-flow saturates every sink-obligation edge because
     // their total capacity equals total_required. This is the only condition
     // under which this adapter calls all obligations simultaneously supported.
-    let disposition = if lower.max_flow == total_required {
+    let disposition = if joint_lower_feasible {
         ServiceDisposition::GuaranteedWithinDeclaredLowerEnvelope
     } else if upper.max_flow == total_required {
         ServiceDisposition::IndeterminateNotGuaranteed
@@ -683,6 +724,7 @@ fn evaluate_internal(value: &Value, allow_hypothetical: bool) -> Result<SafrbCer
         lower,
         upper,
         windows,
+        individual_maxima_status,
         disposition,
         counterfactual_only: p.hypothetical,
         claim_ceiling: CLAIM_CEILING,
@@ -691,7 +733,7 @@ fn evaluate_internal(value: &Value, allow_hypothetical: bool) -> Result<SafrbCer
 
 /// Evaluate the scenario object (the document's "scenario" property).
 pub fn evaluate_scenario(value: &Value) -> Result<SafrbCertificate, String> {
-    evaluate_internal(value, false)
+    evaluate_internal(value, false, true)
 }
 
 /// Enumerate the least integer lower-bound uplift for one declared physical
@@ -738,7 +780,7 @@ pub fn minimum_capacity_counterfactual(value: &Value, edge_id: &str) -> Result<O
     };
 
     let maximum_trial = make_trial(maximum)?;
-    if evaluate_internal(&maximum_trial, true)?.disposition
+    if evaluate_internal(&maximum_trial, true, false)?.disposition
         != ServiceDisposition::GuaranteedWithinDeclaredLowerEnvelope
     {
         return Ok(None);
@@ -749,7 +791,7 @@ pub fn minimum_capacity_counterfactual(value: &Value, edge_id: &str) -> Result<O
     while low < high {
         let middle = low + (high - low) / 2;
         let trial = make_trial(middle)?;
-        let report = evaluate_internal(&trial, true)?;
+        let report = evaluate_internal(&trial, true, false)?;
         if report.disposition == ServiceDisposition::GuaranteedWithinDeclaredLowerEnvelope {
             high = middle;
         } else {
@@ -758,7 +800,7 @@ pub fn minimum_capacity_counterfactual(value: &Value, edge_id: &str) -> Result<O
     }
 
     let final_trial = make_trial(low)?;
-    let report = evaluate_internal(&final_trial, true)?;
+    let report = evaluate_internal(&final_trial, true, false)?;
     if report.disposition != ServiceDisposition::GuaranteedWithinDeclaredLowerEnvelope {
         return Err(err("$.counterfactual", "binary-search threshold failed final joint-feasibility verification"));
     }
@@ -772,7 +814,10 @@ pub fn minimum_capacity_counterfactual(value: &Value, edge_id: &str) -> Result<O
         additional_capacity: low - base_lower,
         lower_flow: report.lower.max_flow,
         lower_cut: report.lower.min_cut.capacity,
+        lower_certificate: report.lower.clone(),
+        upper_certificate: report.upper.clone(),
         windows: report.windows,
+        individual_maxima_status: report.individual_maxima_status,
         evidence_status: HYPOTHETICAL,
         base_scenario_sha256: base_digest,
         hypothetical_scenario_sha256: report.scenario_sha256,
