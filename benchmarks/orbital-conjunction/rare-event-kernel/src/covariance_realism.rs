@@ -616,6 +616,21 @@ mod tests {
     }
 
     #[test]
+    fn chi_square_two_degree_quantiles_match_closed_form() {
+        let expected = [
+            (500, 1.386_294_361_119_890_6),
+            (900, 4.605_170_185_988_092),
+            (950, 5.991_464_547_107_979),
+            (990, 9.210_340_371_976_18),
+            (999, 13.815_510_557_964_274),
+        ];
+        for (level, reference) in expected {
+            let actual = chi_square_quantile(level as f64 / 1000.0, 2).unwrap();
+            assert!((actual - reference).abs() < 2.0e-10);
+        }
+    }
+
+    #[test]
     fn two_dimensional_cholesky_whitening_matches_manual_nis() {
         let covariance = Gaussian::new(vec![0.0, 0.0], vec![4.0, 2.0, 2.0, 5.0]).unwrap();
         let report = audit_covariance_realism(&[
