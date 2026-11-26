@@ -9,7 +9,7 @@
 
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
-use single_commodity_flow_kernel::{FlowEdge, FlowGraph, FlowNode};
+use single_commodity_flow_kernel::{FlowEdge, FlowGraph, FlowNode, MAX_EDGES, MAX_NODES};
 
 const MAX_INTERVALS: u64 = 256;
 const MAX_SEGMENT_SLOTS: usize = 4096;
@@ -356,6 +356,35 @@ fn parse_scenario(value: &Value) -> Result<Scenario, String> {
     }
 
     transfer_links.sort_by_key(|link| link.link_id.clone());
+
+    let modeled_node_count = 2_usize
+        .checked_add(segment_slots.len())
+        .and_then(|count| count.checked_add(receiver_slots.len()))
+        .and_then(|count| count.checked_add(receivers.len()))
+        .ok_or_else(|| fail("$", "modeled graph node count overflowed usize"))?;
+    if modeled_node_count > MAX_NODES {
+        return Err(fail(
+            "$",
+            format!(
+                "modeled graph has {modeled_node_count} nodes, exceeding kernel limit {MAX_NODES}"
+            ),
+        ));
+    }
+
+    let modeled_edge_count = segment_slots.len()
+        .checked_add(receiver_slots.len())
+        .and_then(|count| count.checked_add(transfer_links.len()))
+        .and_then(|count| count.checked_add(receivers.len()))
+        .ok_or_else(|| fail("$", "modeled graph edge count overflowed usize"))?;
+    if modeled_edge_count > MAX_EDGES {
+        return Err(fail(
+            "$",
+            format!(
+                "modeled graph has {modeled_edge_count} edges, exceeding kernel limit {MAX_EDGES}"
+            ),
+        ));
+    }
+
     Ok(Scenario {
         scenario_id,
         interval_count,
@@ -1057,6 +1086,21 @@ mod tests {
             report.minimum_cut_capacity_mwh,
             report.maximum_deliverable_mwh
         );
+    }
+
+    #[test]
+    fn parser_rejects_a_scenario_larger_than_the_shared_kernel_node_limit() {
+        let mut scenario = fixture();
+        let segment_slots = scenario["segment_slots"].as_array_mut().unwrap();
+        for index in 0..(MAX_SEGMENT_SLOTS - segment_slots.len()) {
+            segment_slots.push(serde_json::json!({
+                "segment_id": format!("extra-segment-{index:04}"),
+                "interval_index": 0,
+                "available_deliverable_energy_mwh": 1
+            }));
+        }
+        let error = evaluate_scenario(&scenario).unwrap_err();
+        assert!(error.contains("exceeding kernel limit"));
     }
 
     #[test]
